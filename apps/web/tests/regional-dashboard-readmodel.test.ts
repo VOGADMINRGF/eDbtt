@@ -23,7 +23,9 @@ describe("regional dashboard readmodel", () => {
     expect(model.guidelineMatrix?.title).toBe("Leitlinienmatrix Berlin / Bürgerbeteiligung");
     expect(model.guidelineMatrix?.legalAdvice).toBe(false);
     expect(model.feedSignals.some((signal) => signal.title.includes("Schulsanierung"))).toBe(true);
-    expect(model.participationSignals.some((signal) => signal.sourceType === "public_claim")).toBe(true);
+    expect(model.participationSignals.some((signal) => signal.sourceType === "public_claim")).toBe(false);
+    expect(model.participationSignals.some((signal) => signal.sourceType === "public_question")).toBe(true);
+    expect(model.participationSignals.some((signal) => signal.visibilityState === "public_unverified")).toBe(true);
     expect(model.participationSignals.some((signal) => signal.sourceType === "swipe_interest")).toBe(true);
     expect(model.needsRegionReviewSignals.some((signal) => signal.reviewStatus === "needs_region_review")).toBe(true);
     expect(model.suggestedAnlassraeume.some((item) => item.title === "Bildung & Schulinfrastruktur Reinickendorf")).toBe(true);
@@ -52,7 +54,8 @@ describe("regional dashboard readmodel", () => {
     expect(magdeburg.guidelineProfile).toBeNull();
     expect(magdeburg.guidelineMatrix).toBeNull();
     expect(magdeburg.feedSignals.some((signal) => signal.detectedPlaces.includes("Magdeburg"))).toBe(true);
-    expect(magdeburg.participationSignals.some((signal) => signal.detectedPlaces.includes("Magdeburg"))).toBe(true);
+    expect(magdeburg.participationSignals.some((signal) => signal.detectedPlaces.includes("Magdeburg"))).toBe(false);
+    expect(magdeburg.reviewItemsFromPublicInput.some((item) => item.regionId === "kommune-magdeburg")).toBe(true);
     expect(magdeburg.feedSignals.some((signal) => signal.regionId === "bezirk-berlin-reinickendorf")).toBe(false);
   });
 
@@ -85,6 +88,7 @@ describe("regional dashboard readmodel", () => {
     const serialized = JSON.stringify(model);
     expect(serialized).not.toContain("userId");
     expect(model.participationSignals.every((signal) => signal.noPersonalProfiling)).toBe(true);
+    expect(model.participationSignals.every((signal) => signal.visibilityState !== "internal_review")).toBe(true);
     expect(model.participationSignals.every((signal) => signal.noPoliticalScoring)).toBe(true);
     expect(model.participationSignals.every((signal) => signal.noRepresentativeClaim)).toBe(true);
   });
