@@ -3,6 +3,7 @@ import {
   getDirectorySourceStatus,
   listOperationalRegions,
   listRegionsFromRegistry,
+  resolveRegionIntelligenceSourceContracts,
 } from "@features/region";
 
 function regionTypeLabel(value: string) {
@@ -63,6 +64,9 @@ export default async function AdminRegionsPage() {
   const regions = await listOperationalRegions();
   const registryRegions = listRegionsFromRegistry();
   const sourceStatus = getDirectorySourceStatus();
+  const intelligenceSourceContracts = resolveRegionIntelligenceSourceContracts({
+    sources: [],
+  });
   const regionMap = new Map(regions.map((region) => [region.id, region]));
   const productiveRegions = registryRegions
     .map((region) => regionMap.get(region.id) ?? region)
@@ -89,7 +93,7 @@ export default async function AdminRegionsPage() {
         </p>
       </header>
 
-      <section data-testid="admin-regions-summary" className="grid gap-3 md:grid-cols-4">
+      <section data-testid="admin-regions-summary" className="grid gap-3 md:grid-cols-5">
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Produktive Regionen</p>
           <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{productiveRegions.length}</p>
@@ -115,6 +119,47 @@ export default async function AdminRegionsPage() {
           <p className="text-sm text-[rgb(var(--muted))]">
             Verwaltungsanschriften bleiben getrennt vom RegionRegistry-Import.
           </p>
+        </div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Region Intelligence</p>
+          <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+            {intelligenceSourceContracts.sourceStatusSummary.productiveLabel}
+          </p>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            {intelligenceSourceContracts.sourceStatusSummary.curatedLabel} ·{" "}
+            {intelligenceSourceContracts.sourceStatusSummary.manualLabel}
+          </p>
+        </div>
+      </section>
+
+      <section
+        data-testid="admin-regions-intelligence-sources"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Region Intelligence
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          Konfigurierbare regionale Quellen, ohne Render-Abhängigkeit
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Region Intelligence bleibt reviewpflichtig. Produktive, kuratierte und manuelle Quellen
+          sind getrennt vorbereitet; keine Live-Crawler-Behauptung, kein Scraping und keine
+          DeepSearch-Automatikkosten.
+        </p>
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          {intelligenceSourceContracts.configuredSources.map((source) => (
+            <article key={source.adapterId} className="rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                {source.category}
+              </p>
+              <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{source.label}</h3>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{source.description}</p>
+              <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                Status: {source.status} · Gewicht {source.weight.toFixed(2)}
+              </p>
+            </article>
+          ))}
         </div>
       </section>
 

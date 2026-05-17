@@ -240,6 +240,7 @@ describe("review queue readmodel", () => {
     expect(readModel.summary.byDomain).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ domain: "anlassraum_public_input" }),
+        expect.objectContaining({ domain: "region_intelligence_suggestion" }),
         expect.objectContaining({ domain: "region_signal_draft" }),
         expect.objectContaining({ domain: "dossier_workspace" }),
         expect.objectContaining({ domain: "output_artifact" }),
@@ -256,6 +257,10 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "public_official_approval",
           reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+        }),
+        expect.objectContaining({
+          domain: "region_intelligence_suggestion",
+          visibilityState: "internal_review",
         }),
       ]),
     );

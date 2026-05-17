@@ -89,9 +89,15 @@ export type OrganizationDashboardStartingPoint = {
   topicClusters: string[];
   openQuestions: string[];
   sourceStatus: string;
+  productiveSourceStatus: string;
+  curatedSourceStatus: string;
+  manualSourceStatus: string;
+  weightingLabel: string;
   sourcesCount: number;
   dossierSuggestionCount: number;
   anlassraumSuggestionCount: number;
+  reviewSuggestionCount: number;
+  reviewSuggestionLabels: string[];
 };
 
 export type OrganizationDashboardDraftSummary = {
@@ -352,13 +358,21 @@ function buildStartingPoint(entry: {
     summary: entry.cockpit.cockpit.modules.themenlage.summary,
     topicClusters: entry.cockpit.topicClusters.map((item) => item.label).slice(0, 4),
     openQuestions,
-    sourceStatus:
-      entry.cockpit.feedSignals.length > 0 || entry.cockpit.communitySourceHints.length > 0
-        ? "Kuratierte Startlage mit reviewpflichtigen Quellenhinweisen vorhanden."
-        : "Noch keine kuratierte Startlage vorbereitet.",
-    sourcesCount: entry.cockpit.feedSignals.length + entry.cockpit.communitySourceHints.length,
+    sourceStatus: entry.cockpit.intelligenceSourceStatus.overallLabel,
+    productiveSourceStatus: entry.cockpit.intelligenceSourceStatus.productiveLabel,
+    curatedSourceStatus: entry.cockpit.intelligenceSourceStatus.curatedLabel,
+    manualSourceStatus: entry.cockpit.intelligenceSourceStatus.manualLabel,
+    weightingLabel: entry.cockpit.intelligenceWeighting.label,
+    sourcesCount: entry.cockpit.intelligenceSources.reduce(
+      (sum, source) => sum + source.matchedSourceCount,
+      0,
+    ),
     dossierSuggestionCount: entry.cockpit.suggestedDossiers.length,
     anlassraumSuggestionCount: entry.cockpit.suggestedAnlassraeume.length,
+    reviewSuggestionCount: entry.cockpit.intelligenceReviewSuggestions.length,
+    reviewSuggestionLabels: entry.cockpit.intelligenceReviewSuggestions
+      .map((suggestion) => suggestion.title)
+      .slice(0, 4),
   };
 }
 

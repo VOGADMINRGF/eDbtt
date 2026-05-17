@@ -49,6 +49,8 @@ describe("region intelligence preparation", () => {
     expect(prompt).toContain("kein Scraping");
     expect(prompt).toContain("keine DeepSearch-Automatikkosten");
     expect(prompt).toContain("keine automatische amtliche Bewertung");
+    expect(prompt).toContain("Quellenstatus:");
+    expect(prompt).toContain("Gewichtung:");
   });
 
   it("prepares deterministic review-only intelligence and maps it back to region feed signals", async () => {
@@ -125,6 +127,35 @@ describe("region intelligence preparation", () => {
     expect(preparation.noDeepSearchAutoCosts).toBe(true);
     expect(preparation.noTenderMonitoring).toBe(true);
     expect(preparation.noProcurementMonitoring).toBe(true);
+    expect(preparation.configuredSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          adapterId: "curated_starting_point",
+          category: "curated",
+          status: "connected",
+        }),
+        expect.objectContaining({
+          adapterId: "manual_review_queue",
+          category: "manual",
+          status: "connected",
+        }),
+        expect.objectContaining({
+          adapterId: "productive_regional_source",
+          category: "productive",
+          status: "missing",
+        }),
+      ]),
+    );
+    expect(preparation.sourceStatusSummary.productiveLabel).toContain("Keine produktive Quelle verbunden");
+    expect(preparation.sourceStatusSummary.curatedLabel).toContain("kuratierte");
+    expect(preparation.sourceStatusSummary.manualLabel).toContain("manuelle");
+    expect(preparation.weightingSummary.label).toContain("Gewichtung vorbereitet");
+    expect(preparation.reviewSuggestions.length).toBeGreaterThan(0);
+    expect(preparation.reviewSuggestions[0]).toEqual(
+      expect.objectContaining({
+        visibilityState: "internal_review",
+      }),
+    );
     expect(preparation.topicClusterHints.length).toBeGreaterThan(0);
     expect(preparation.anlassraumSuggestionHints.length).toBeGreaterThan(0);
 

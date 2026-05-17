@@ -383,6 +383,30 @@ export default async function AccountOrganizationDashboardPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-semibold text-[rgb(var(--muted))]">Produktiv / kuratiert / manuell</p>
+                      <p className="mt-1 text-sm text-[rgb(var(--fg))]">
+                        {entry.productiveSourceStatus}
+                      </p>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {entry.curatedSourceStatus} · {entry.manualSourceStatus}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[rgb(var(--muted))]">Gewichtung</p>
+                      <p className="mt-1 text-sm text-[rgb(var(--fg))]">{entry.weightingLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[rgb(var(--muted))]">Review-Vorschläge</p>
+                      <p className="mt-1 text-sm text-[rgb(var(--fg))]">
+                        {entry.reviewSuggestionCount} reviewpflichtige Vorschläge
+                      </p>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {entry.reviewSuggestionLabels.join(", ") || "Noch keine Vorschläge."}
+                      </p>
+                    </div>
+                  </div>
                 </article>
               ))
             )}

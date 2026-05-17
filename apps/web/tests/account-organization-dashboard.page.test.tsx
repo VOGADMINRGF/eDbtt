@@ -274,6 +274,9 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Aktiv");
     expect(html).toContain("KI-vorqualifizierte Startlage");
     expect(html).toContain("kuratierte Startlage");
+    expect(html).toContain("Keine produktive Quelle verbunden");
+    expect(html).toContain("Gewichtung vorbereitet");
+    expect(html).toContain("reviewpflichtige Vorschläge");
     expect(html).toContain("Beteiligungssignale");
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");

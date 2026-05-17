@@ -59,6 +59,13 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Detailroute: `/admin/region?regionId=...`");
     expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
     expect(html).toContain("Kuratierte Startlage und Pilotvorschau für die Themenlage");
+    expect(html).toContain("Keine Live-Crawler-Behauptung");
+    expect(html).toContain("Produktive Quellen");
+    expect(html).toContain("Keine produktive Quelle verbunden");
+    expect(html).toContain("Kuratierte Quellen");
+    expect(html).toContain("Manuelle Quellen");
+    expect(html).toContain("Quellengewichtung und Adapter");
+    expect(html).toContain("Gewichtung vorbereitet");
     expect(html).toContain("notRealNews=true");
     expect(html).toContain("notProductionData=true");
     expect(html).toContain("reviewRequired: true");
@@ -90,6 +97,8 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Reviewpflichtige Verdichtungen");
     expect(html).toContain("Nur Vorschläge, kein automatischer Anlassraum");
     expect(html).toContain("Nur Vorschläge, kein automatisches Dossier");
+    expect(html).toContain("Reviewpflichtige Startlage-Vorschläge");
+    expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain("Dossier-Draft vorbereiten");
     expect(html).toContain("Anlassraum-Draft vorbereiten");
     expect(html).toContain("Quelle prüfen");
