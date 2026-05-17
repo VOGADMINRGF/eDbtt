@@ -61,6 +61,11 @@ describe("/admin/review page", () => {
         officialApprovalCount: 1,
         byDomain: [
           {
+            domain: "region_source_result",
+            label: "Quellen-Testresultat",
+            count: 1,
+          },
+          {
             domain: "region_intelligence_suggestion",
             label: "Region-Intelligence-Vorschlag",
             count: 1,
@@ -86,6 +91,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Zentrale Review-Queue");
     expect(html).toContain("Keine Sammelentscheidung");
     expect(html).toContain("Region-Intelligence-Vorschläge");
+    expect(html).toContain("reviewpflichtige Source Results");
     expect(html).toContain("Amtliche Freigabe");
     expect(html).toContain("Nur Publikationsfreigabe oder Admin-Fallback");
     expect(html).toContain("Berlin Reinickendorf");

@@ -18,6 +18,9 @@ vi.mock("next/navigation", async () => {
   return {
     ...actual,
     redirect: (...args: unknown[]) => navigationMocks.redirect(...args),
+    useRouter: () => ({
+      refresh: vi.fn(),
+    }),
   };
 });
 
@@ -53,6 +56,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-open-review"');
     expect(html).toContain('data-testid="admin-region-prepare-actions"');
     expect(html).toContain('data-testid="admin-region-modules"');
+    expect(html).toContain('data-testid="admin-region-source-connections"');
     expect(html).toContain("Verwaltung, Akteure und Signale");
     expect(html).toContain("Zur Regionen-Übersicht");
     expect(html).toContain("Arbeitsansicht: berlin-reinickendorf");
@@ -99,6 +103,10 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Nur Vorschläge, kein automatisches Dossier");
     expect(html).toContain("Reviewpflichtige Startlage-Vorschläge");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
+    expect(html).toContain("Source Connection Registry");
+    expect(html).toContain("Quellen konfigurieren und testweise auswerten");
+    expect(html).toContain("Noch keine Quellen konfiguriert.");
+    expect(html).toContain("Noch keine Dry-Run-Ergebnisse vorhanden.");
     expect(html).toContain("Dossier-Draft vorbereiten");
     expect(html).toContain("Anlassraum-Draft vorbereiten");
     expect(html).toContain("Quelle prüfen");

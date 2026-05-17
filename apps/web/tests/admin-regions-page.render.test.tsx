@@ -52,6 +52,59 @@ vi.mock("@features/region", async () => {
         officialDirectoryEntry: null,
       },
     ],
+    listRegionSourceConnections: async () => [
+      {
+        id: "source-1",
+        regionId: "bezirk-berlin-reinickendorf",
+        label: "Bezirksamt Reinickendorf News",
+        sourceType: "municipal_news",
+        adapterId: "productive_regional_source",
+        url: "https://reinickendorf.example/aktuelles",
+        notes: null,
+        enabled: true,
+        sampleItems: [
+          {
+            title: "Schulwegsicherheit im Bezirk",
+            summary: "Explizit verbundene kommunale Quelle für die regionale Startlage.",
+            url: "https://reinickendorf.example/aktuelles/schulwege",
+            detectedTopics: ["Schule", "Verkehr"],
+          },
+        ],
+        createdAt: "2026-05-17T00:00:00.000Z",
+        updatedAt: "2026-05-17T00:00:00.000Z",
+        createdBy: "admin-1",
+        updatedBy: "admin-1",
+        reviewRequired: true,
+        noLiveCrawlerClaim: true,
+        noScraping: true,
+        noDeepSearchAutoCosts: true,
+      },
+    ],
+    listRegionSourceTestResults: async () => [
+      {
+        id: "source-result-1",
+        connectionId: "source-1",
+        regionId: "bezirk-berlin-reinickendorf",
+        connectionLabel: "Bezirksamt Reinickendorf News",
+        sourceType: "municipal_news",
+        adapterId: "productive_regional_source",
+        resultMode: "dry_run",
+        title: "Bezirksamt Reinickendorf News · Dry Run",
+        summary: "Explizite URL vorbereitet und reviewpflichtig ausgewertet.",
+        configuredUrl: "https://reinickendorf.example/aktuelles",
+        detectedTopics: ["Schule", "Verkehr"],
+        visibilityState: "internal_review",
+        visibilityLabel: "reviewpflichtig",
+        reviewStatus: "needs_review",
+        confidence: 0.68,
+        createdAt: "2026-05-17T00:00:00.000Z",
+        updatedAt: "2026-05-17T00:00:00.000Z",
+        testedBy: "admin-1",
+        reviewRequired: true,
+        noAutoPublish: true,
+        noPublicOfficial: true,
+      },
+    ],
   };
 });
 
@@ -71,9 +124,12 @@ describe("admin-regions-page.render", () => {
     expect(html).toContain("Operative Regionen aus der RegionRegistry");
     expect(html).toContain("Getrennt markierte manuelle und Pilotregionen");
     expect(html).toContain("Konfigurierbare regionale Quellen, ohne Render-Abhängigkeit");
-    expect(html).toContain("Keine produktive Quelle verbunden");
+    expect(html).toContain("1 produktive Quelle verbunden");
     expect(html).toContain("Kuratierte Startlage");
     expect(html).toContain("Manuelle Hinweise / Review-Queue");
+    expect(html).toContain("Konfigurierte Quellen");
+    expect(html).toContain("Reviewpflichtige Source Results");
+    expect(html).toContain("Bezirksamt Reinickendorf News");
     expect(html).toContain("Amtliches Gemeindeverzeichnis ist nicht verbunden.");
     expect(html).toContain("Noch keine RegionRegistry-Einträge gefunden.");
     expect(html).toContain("Berlin Reinickendorf");
