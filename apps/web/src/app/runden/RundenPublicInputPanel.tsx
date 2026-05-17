@@ -5,7 +5,10 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   PUBLIC_ANLASSRAUM_INPUT_KINDS,
+  PUBLIC_ANLASSRAUM_INPUT_EMPTY_STATE_COPY,
   type PublicAnlassraumInputKind,
+  publicAnlassraumInputKindLabel,
+  publicAnlassraumInputPlaceholder,
 } from "@features/topicRound/publicInput";
 
 type SubmissionState =
@@ -23,39 +26,6 @@ type RundenPublicInputPanelProps = {
   anlassraumTitle: string | null;
 };
 
-function kindLabel(value: PublicAnlassraumInputKind): string {
-  switch (value) {
-    case "frage":
-      return "Frage";
-    case "quelle":
-      return "Quelle";
-    case "perspektive":
-      return "Perspektive";
-    case "option":
-      return "Option";
-    case "hinweis":
-      return "Hinweis";
-  }
-}
-
-function placeholderForKind(value: PublicAnlassraumInputKind): string {
-  switch (value) {
-    case "frage":
-      return "Welche Frage soll im Anlassraum öffentlich gesammelt werden?";
-    case "quelle":
-      return "Welche Quelle oder welches Dokument ist für diesen Anlass relevant?";
-    case "perspektive":
-      return "Welche lokale Perspektive oder Gegenposition sollte sichtbar werden?";
-    case "option":
-      return "Welche Option sollte für diesen Anlass geprüft werden?";
-    case "hinweis":
-      return "Welcher kurze Hinweis sollte review- und risikogesteuert eingehen?";
-  }
-}
-
-const EMPTY_STATE_COPY =
-  "Noch kein öffentlicher Anlass für direkte Eingaben aktiv. Wähle zuerst einen sichtbaren Anlassraum.";
-
 export default function RundenPublicInputPanel({
   anlassraumId,
   anlassraumTitle,
@@ -70,7 +40,7 @@ export default function RundenPublicInputPanel({
     if (!anlassraumId) {
       setSubmission({
         kind: "error",
-        message: EMPTY_STATE_COPY,
+        message: PUBLIC_ANLASSRAUM_INPUT_EMPTY_STATE_COPY,
       });
       return;
     }
@@ -111,7 +81,7 @@ export default function RundenPublicInputPanel({
         kind: "error",
         message:
           body?.error === "public_anlassraum_not_found"
-            ? EMPTY_STATE_COPY
+            ? PUBLIC_ANLASSRAUM_INPUT_EMPTY_STATE_COPY
             : "Die öffentliche Eingabe konnte nicht übernommen werden.",
       });
       return;
@@ -160,7 +130,9 @@ export default function RundenPublicInputPanel({
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">
             Noch kein öffentlicher Anlass gewählt
           </p>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{EMPTY_STATE_COPY}</p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+            {PUBLIC_ANLASSRAUM_INPUT_EMPTY_STATE_COPY}
+          </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
@@ -179,7 +151,7 @@ export default function RundenPublicInputPanel({
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                   }`}
                 >
-                  {kindLabel(entry)}
+                  {publicAnlassraumInputKindLabel(entry)}
                 </button>
               );
             })}
@@ -200,7 +172,7 @@ export default function RundenPublicInputPanel({
               minLength={8}
               maxLength={2400}
               className="mt-2 min-h-[120px] w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              placeholder={placeholderForKind(kind)}
+              placeholder={publicAnlassraumInputPlaceholder(kind)}
             />
           </div>
 
@@ -231,7 +203,7 @@ export default function RundenPublicInputPanel({
             >
               {submission.kind === "submitting"
                 ? "Wird eingereicht…"
-                : `${kindLabel(kind)} einreichen`}
+                : `${publicAnlassraumInputKindLabel(kind)} einreichen`}
             </button>
             <Link
               href="/create?mode=source&intent=contribution&source=runden&reason=public_anlassraum_input"
