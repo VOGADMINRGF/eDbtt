@@ -4,7 +4,7 @@ import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
 
 export const metadata = {
-  title: "Organisation & Verifizierung · eDebatte",
+  title: "Organisationsantrag & Verifizierung · eDebatte",
 };
 
 export default async function AccountOrganizationPage() {
@@ -25,11 +25,11 @@ export default async function AccountOrganizationPage() {
           Organisation
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">
-          Organisationszuordnung und Membership
+          Organisationsantrag und Verifizierung
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Angaben zu Organisation, Einheit und Standort bleiben zunächst Selbstauskunft. Offizielle Rechte
-          entstehen erst nach Review und persistierter Membership.
+          Angaben zu Organisation, Einheit und Standort bleiben zunächst Selbstauskunft. Rechte und
+          Freischaltungen entstehen erst nach Review und bestätigter Membership.
         </p>
       </header>
       <OrganizationClaimsClient initialClaims={claims} />

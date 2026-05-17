@@ -15,17 +15,17 @@ describe("faq topic/dossier/claim/vote glossary contract", () => {
     expect(corpus).toContain("kann aber mehrere Themenfelder berühren");
   });
 
-  it("explains claim as dossier-bound with thematic overlap", () => {
+  it("explains an Aussage as dossier-bound with thematic overlap", () => {
     const corpus = buildFaqCorpus().join("\n\n");
-    expect(corpus).toContain("Was ist ein Claim?");
-    expect(corpus).toContain("Ein Claim gehört zu einem Dossier");
+    expect(corpus).toContain("Was ist eine Aussage?");
+    expect(corpus).toContain("Eine Aussage gehört zu einem Dossier");
     expect(corpus).toContain("ein oder mehrere Themen");
   });
 
-  it("explains vote hierarchy from claim or dossier question", () => {
+  it("explains vote hierarchy from Aussage or dossier question", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Was ist eine Abstimmung?");
-    expect(corpus).toContain("aus einem Claim oder aus einer übergeordneten Dossierfrage");
+    expect(corpus).toContain("aus einer Aussage oder aus einer übergeordneten Dossierfrage");
     expect(corpus).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
   });
 });

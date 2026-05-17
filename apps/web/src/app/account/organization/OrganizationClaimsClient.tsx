@@ -39,7 +39,7 @@ function statusLabel(status: OrganizationClaim["verificationStatus"]) {
     case "unverified":
       return "Unverifiziert";
     default:
-      return "Pending Review";
+      return "In Prüfung";
   }
 }
 
@@ -94,7 +94,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
 
         await refreshClaims();
         form.reset();
-        setNotice("Antrag gespeichert. Diese Angabe erzeugt noch keine offiziellen Rechte.");
+        setNotice("Organisationsantrag gespeichert. Diese Angabe erzeugt noch keine offiziellen Rechte oder Freischaltungen.");
       } catch (submitError) {
         setError(submitError instanceof Error ? submitError.message : "organization_claim_submit_failed");
       }
@@ -111,7 +111,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
           Organisation oder Einheit angeben
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Self-declared ist nicht verifiziert. Erst Review und bestätigte Membership erzeugen Rechte.
+          Selbstauskunft ist nicht verifiziert. Erst Review und bestätigte Membership erzeugen Rechte und mögliche Freischaltungen.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -178,11 +178,11 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
         </p>
         <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">Status und Review-Verlauf</h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Pending Review erzeugt keine Dashboard- oder Veröffentlichungsrechte.
+          In Prüfung erzeugt keine Dashboard-, Sichtbarkeits- oder Veröffentlichungsrechte.
         </p>
         <div className="mt-5 space-y-3">
           {claims.length === 0 ? (
-            <p className="text-sm text-[rgb(var(--muted))]">Noch keine OrganisationClaims vorhanden.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Noch keine Organisationsanträge vorhanden.</p>
           ) : (
             claims.map((claim) => (
               <article key={claim.id} className="rounded-2xl border border-[rgb(var(--border))] p-4">

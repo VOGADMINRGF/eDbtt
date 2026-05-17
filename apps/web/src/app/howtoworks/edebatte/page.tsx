@@ -18,7 +18,7 @@ const hero = {
   title_de: "Vom Thema zum nachvollziehbaren Prozess",
   title_en: "From topic to a traceable process",
   lead_de:
-    "VoiceOpenGov ist die Initiative für faire, nachvollziehbare Beteiligung. eDebatte ist das Werkzeug, das den Ablauf umsetzt: Check → Dossier → Beteiligung → Status.",
+    "VoiceOpenGov ist die Initiative für faire, nachvollziehbare Beteiligung. eDebatte ist das Werkzeug, das den Ablauf umsetzt: Check → Dossier → Beteiligung → Status. Lass das beste Argument gewinnen.",
   lead_en:
     "VoiceOpenGov is the initiative for fair, traceable participation. eDebatte is the tool that executes the flow: check → dossier → participation → status.",
 };
@@ -35,7 +35,7 @@ const journey = {
   title_de: "Die RePro-Nutzerreise",
   title_en: "The RePro user journey",
   lead_de:
-    "Kein Sprung ins Unklare: Jede Station hat einen klaren Zweck und ein sichtbares Ergebnis.",
+    "Kein Sprung ins Unklare: Jede Station hat einen klaren Zweck und ein sichtbares Ergebnis. Lass das beste Argument gewinnen, nicht die lauteste Behauptung.",
   lead_en:
     "No leap into the unknown: every stage has a clear purpose and visible outcome.",
 };

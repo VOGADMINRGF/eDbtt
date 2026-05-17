@@ -5,7 +5,7 @@ import { getRegionEntitlementRuntimeRepo } from "@features/region";
 import { AdminEntitlementsClient } from "./AdminEntitlementsClient";
 
 export const metadata = {
-  title: "Entitlements · eDebatte",
+  title: "Freischaltungen · eDebatte",
 };
 
 export default async function AdminEntitlementsPage() {
@@ -26,10 +26,10 @@ export default async function AdminEntitlementsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           Admin Freischaltung
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Paid Entitlements verwalten</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Freischaltungen verwalten</h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Entitlements ergänzen verifizierte Memberships, ersetzen sie aber nicht. Diese Oberfläche verwaltet
-          Pilot-, Trial- und Admin-Grants ohne Checkout, automatische Abbuchung oder Rechnungslogik.
+          Freischaltungen ergänzen verifizierte Memberships, ersetzen sie aber nicht. Diese Oberfläche verwaltet
+          Pilot-, Test- und Admin-Freischaltungen ohne Checkout, automatische Abbuchung oder Rechnungslogik.
         </p>
       </header>
       <AdminEntitlementsClient initialEntitlements={entitlements} />

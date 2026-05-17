@@ -44,7 +44,7 @@ function sourceTypeLabel(value: string) {
     case "feed_draft":
       return "Feed-Draft";
     case "public_claim":
-      return "Öffentlicher Claim";
+      return "Öffentliche Aussage";
     case "public_contribution":
       return "Öffentlicher Beitrag";
     case "public_question":
@@ -109,7 +109,7 @@ function verificationStatusLabel(
     case "email_verified":
       return "E-Mail-verifiziert";
     case "pending_review":
-      return "Pending Review";
+      return "In Prüfung";
     case "unverified":
       return "Unverifiziert";
     case "rejected":
@@ -220,7 +220,7 @@ function accessHint(cockpit: RegionalAdminCockpitReadModel) {
   if (cockpit.accessSummary.verificationStatus === "organization_verified") {
     return "Organisations-verifizierte Rollen bleiben read-only für die eigene Region. Draft-Aktionen folgen erst mit zusätzlicher Unit-Verifizierung.";
   }
-  return "Self-declared, pending oder unverifizierte Zuordnungen sind keine Behördenrechte. Standorte wie Rathaus Reinickendorf bleiben optionale Kontextangaben.";
+  return "Selbstauskunft, In-Prüfung-Status oder unverifizierte Zuordnungen sind keine Behördenrechte. Standorte wie Rathaus Reinickendorf bleiben optionale Kontextangaben.";
 }
 
 function actionStateLabel(cockpit: RegionalAdminCockpitReadModel) {
@@ -379,7 +379,7 @@ export default async function AdminRegionPage({
                     {verificationStatusLabel(cockpit.accessSummary.verificationStatus)}
                   </p>
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    Pending hat keine Behördenrechte. Publication approval bleibt gesondert erforderlich.
+                    In Prüfung hat keine Behördenrechte. Publikationsfreigabe bleibt gesondert erforderlich.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
@@ -398,11 +398,11 @@ export default async function AdminRegionPage({
                   </p>
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                     {cockpit.accessSummary.entitlementSource === "admin_grant"
-                      ? "Admin-Grant, ohne Checkout"
+                      ? "Admin-Freischaltung, ohne Checkout"
                       : cockpit.accessSummary.entitlementSource === "pilot_grant"
-                        ? "Pilot-Grant, ohne Billing"
+                        ? "Pilot-Freischaltung, ohne Abrechnung"
                         : cockpit.accessSummary.entitlementSource === "manual_contract"
-                          ? "Manueller Vertrag, ohne Auto-Charge"
+                          ? "Manueller Vertrag, ohne automatische Abbuchung"
                           : cockpit.accessSummary.entitlementSource === "admin_fallback"
                             ? "Admin-Fallback"
                             : cockpit.accessSummary.entitlementSource === "not_checked"
@@ -423,8 +423,9 @@ export default async function AdminRegionPage({
                   : " / offen"}
               </p>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Self-declared ist nicht verifiziert. Pending hat keine Behördenrechte. Publication approval ist
-                gesondert erforderlich. Standortangaben wie Rathaus Reinickendorf bleiben optional.
+                Selbstauskunft ist nicht verifiziert. In Prüfung hat keine Behördenrechte. Eine
+                Publikationsfreigabe ist gesondert erforderlich. Standortangaben wie Rathaus Reinickendorf bleiben
+                optional.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {cockpit.accessSummary.allowedActions.length > 0 ? (
@@ -448,13 +449,13 @@ export default async function AdminRegionPage({
               data-testid="admin-region-guardrails"
               className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
             >
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Pilotlage</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Startlage</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
                 Aktuelle Themenlage {cockpit.region.name}
               </h2>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Pilotdaten zur Demonstration der Themenlage. Keine echten Nachrichten, keine produktiven Verwaltungsdaten,
-                kein Procurement- oder Vergabe-Radar.
+                Kuratierte Startlage und Pilotvorschau für die Themenlage. Keine echten Nachrichten, keine produktiven
+                Verwaltungsdaten, kein Procurement- oder Vergabe-Radar.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
@@ -605,14 +606,14 @@ export default async function AdminRegionPage({
                 Ungeprüft, nicht amtlich, reviewpflichtig
               </h2>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Öffentliche Claims, Beiträge, Fragen, Quellenhinweise und Swipe-Signale erscheinen hier nur
+                Öffentliche Aussagen, Beiträge, Fragen, Quellenhinweise und Swipe-Signale erscheinen hier nur
                 anonymisiert oder aggregiert. Keine Personenprofile, keine Repräsentativitätsbehauptung und
                 keine automatische amtliche Übernahme.
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Claims aus der Öffentlichkeit
+                    Aussagen aus der Öffentlichkeit
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
                     {cockpit.publicClaimsSummary.total}
@@ -718,7 +719,7 @@ export default async function AdminRegionPage({
 
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Public Input Review
+                Review für Beteiligungssignale
               </p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
                 Quellenhinweise, Aggregation und Datenschutz
@@ -837,13 +838,13 @@ export default async function AdminRegionPage({
                         <span>·</span>
                         <span>{reviewStatusLabel(item.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{item.isFixture ? "Pilot-/Fixture-Hinweis" : "Runtime-Review"}</span>
+                        <span>{item.isFixture ? "Pilotvorschau / kuratierte Startlage" : "Runtime-Review"}</span>
                         <span>·</span>
                         <span>Confidence {item.confidence.toFixed(2)}</span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                        Aktion bleibt review-gated. Keine automatische Veröffentlichung und keine automatische Erstellung.
+                        Aktion bleibt review-gated. Nichts wird automatisch sichtbar gemacht, veröffentlicht oder erstellt.
                       </p>
                     </div>
                   ))

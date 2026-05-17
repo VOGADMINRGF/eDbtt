@@ -26,7 +26,7 @@ export const DEMO_STATUS_GLOSSARY: DemoStatusItem[] = [
     label: "community eingereicht",
     description: "Einreichung aus der Beteiligungsschicht.",
   },
-  { key: "verified", label: "verifiziert", description: "Quelle/Claim ist dokumentiert und geprueft." },
+  { key: "verified", label: "verifiziert", description: "Quelle/Aussage ist dokumentiert und geprueft." },
 ];
 
 export function getDemoStatusLabel(key: DemoStatusKey): string {

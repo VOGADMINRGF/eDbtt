@@ -104,7 +104,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         },
         feedSignals: expect.arrayContaining([
           expect.objectContaining({
-            title: "Pilot-Fall: Hinweise zu Schulsanierung und Bauzustand",
+            title: "Pilotvorschau: Hinweise zu Schulsanierung und Bauzustand",
             provenance: expect.objectContaining({ dataOrigin: "pilot_fixture" }),
           }),
         ]),
@@ -123,7 +123,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ]),
         participationAggregates: expect.arrayContaining([
           expect.objectContaining({
-            label: "Claims aus der Öffentlichkeit",
+            label: "Aussagen aus der Öffentlichkeit",
           }),
         ]),
         publicClaimsSummary: expect.objectContaining({
@@ -155,7 +155,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ]),
         openReviewItems: expect.arrayContaining([
           expect.objectContaining({
-            title: "Pilot-Fall: Hinweise zu Schulsanierung und Bauzustand",
+            title: "Pilotvorschau: Hinweise zu Schulsanierung und Bauzustand",
           }),
         ]),
       },

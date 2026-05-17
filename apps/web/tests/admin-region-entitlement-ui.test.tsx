@@ -85,8 +85,8 @@ vi.mock("@features/region", async () => {
           regionId: "bezirk-berlin-reinickendorf",
           sourceId: "fixture-1",
           sourceType: "news",
-          title: "Pilot-Fall",
-          summary: "Pilotdaten",
+          title: "Pilotvorschau",
+          summary: "Kuratierte Startlage",
           url: null,
           publishedAt: null,
           detectedTopics: ["Schulen"],
@@ -149,7 +149,7 @@ vi.mock("@features/region", async () => {
       openReviewItems: [
         {
           id: "review-1",
-          title: "Pilot-Fall",
+          title: "Pilotvorschau",
           sourceType: "news",
           suggestedAction: "create_dossier",
           reviewStatus: "needs_review",
@@ -196,6 +196,6 @@ describe("admin-region-entitlement-ui", () => {
     expect(html).toContain("Verifizierte Membership allein reicht nicht.");
     expect(html).toContain("Kein Plan");
     expect(html).toContain("Noch nicht geprüft");
-    expect(html).toContain("Self-declared ist nicht verifiziert.");
+    expect(html).toContain("Selbstauskunft ist nicht verifiziert.");
   });
 });
