@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { RegionAllowedAction, RegionalAdminCockpitReadModel } from "@features/region";
 import {
+  getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
 } from "@features/region";
 
@@ -284,7 +285,11 @@ export default async function AdminRegionPage({
   if (!selectedRegionId) {
     redirect("/admin/regions");
   }
-  const cockpit = selectedRegionId ? await getRegionalAdminCockpitReadModel(selectedRegionId) : null;
+  const region = selectedRegionId ? await getOperationalRegionById(selectedRegionId) : null;
+  if (!region) {
+    redirect("/admin/regions");
+  }
+  const cockpit = await getRegionalAdminCockpitReadModel(region.id);
 
   return (
     <main
