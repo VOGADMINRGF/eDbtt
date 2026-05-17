@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildRegionSourceConnectionFeedSignals,
   buildRegionIntelligencePrompt,
   mapRegionIntelligenceToSignals,
   parseCommunitySignal,
@@ -80,6 +81,37 @@ describe("region intelligence preparation", () => {
       createdAt: "2026-05-17T00:00:00.000Z",
       updatedAt: "2026-05-17T00:00:00.000Z",
     });
+    const productiveSourceSignals = buildRegionSourceConnectionFeedSignals({
+      connections: [
+        {
+          id: "source-1",
+          regionId: "bezirk-berlin-reinickendorf",
+          label: "Bezirksamt Reinickendorf News",
+          sourceType: "municipal_news",
+          adapterId: "productive_regional_source",
+          url: "https://reinickendorf.example/aktuelles",
+          notes: "Explizit verbundene kommunale Quelle",
+          enabled: true,
+          sampleItems: [
+            {
+              title: "Schulwegsicherheit im Bezirk",
+              summary: "Explizit verbundene kommunale Quelle für die regionale Startlage.",
+              url: "https://reinickendorf.example/aktuelles/schulwege",
+              detectedTopics: ["Schule", "Verkehr"],
+            },
+          ],
+          createdAt: "2026-05-17T00:00:00.000Z",
+          updatedAt: "2026-05-17T00:00:00.000Z",
+          createdBy: "admin-1",
+          updatedBy: "admin-1",
+          reviewRequired: true,
+          noLiveCrawlerClaim: true,
+          noScraping: true,
+          noDeepSearchAutoCosts: true,
+        },
+      ],
+      regionNameById: new Map([["bezirk-berlin-reinickendorf", "Reinickendorf"]]),
+    });
 
     const preparation = await runRegionIntelligencePreparation({
       region,
@@ -107,6 +139,10 @@ describe("region intelligence preparation", () => {
           kind: "feed_signal",
           signal: REGION_FEED_SIGNAL_FIXTURES[1]!,
         },
+        ...productiveSourceSignals.map((signal) => ({
+          kind: "feed_signal" as const,
+          signal,
+        })),
         {
           kind: "community_signal",
           signal: communitySignal,
@@ -142,11 +178,11 @@ describe("region intelligence preparation", () => {
         expect.objectContaining({
           adapterId: "productive_regional_source",
           category: "productive",
-          status: "missing",
+          status: "connected",
         }),
       ]),
     );
-    expect(preparation.sourceStatusSummary.productiveLabel).toContain("Keine produktive Quelle verbunden");
+    expect(preparation.sourceStatusSummary.productiveLabel).toContain("1 produktive Quelle verbunden");
     expect(preparation.sourceStatusSummary.curatedLabel).toContain("kuratierte");
     expect(preparation.sourceStatusSummary.manualLabel).toContain("manuelle");
     expect(preparation.weightingSummary.label).toContain("Gewichtung vorbereitet");
@@ -160,12 +196,19 @@ describe("region intelligence preparation", () => {
     expect(preparation.anlassraumSuggestionHints.length).toBeGreaterThan(0);
 
     const mappedSignals = mapRegionIntelligenceToSignals(preparation);
-    expect(mappedSignals.length).toBe(2);
+    expect(mappedSignals.length).toBe(3);
     expect(mappedSignals.every((signal) => signal.noAutoPublish)).toBe(true);
     expect(mappedSignals.every((signal) => signal.noAutoCreateDossier)).toBe(true);
     expect(mappedSignals.every((signal) => signal.noAutoCreateAnlassraum)).toBe(true);
     expect(mappedSignals.every((signal) => signal.noTenderMonitoring)).toBe(true);
     expect(mappedSignals.every((signal) => signal.noProcurementMonitoring)).toBe(true);
+    expect(
+      mappedSignals.some(
+        (signal) =>
+          signal.provenance.dataOrigin === "source_connection_runtime" &&
+          signal.title === "Schulwegsicherheit im Bezirk",
+      ),
+    ).toBe(true);
     expect(
       mappedSignals.some(
         (signal) =>

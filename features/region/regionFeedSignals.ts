@@ -33,9 +33,11 @@ export type RegionSignalSuggestedAction = (typeof REGION_SIGNAL_SUGGESTED_ACTION
 
 const RegionSignalProvenanceSchema = z
   .object({
-    dataOrigin: z.enum(["pilot_fixture", "runtime_review_queue"]),
+    dataOrigin: z.enum(["pilot_fixture", "runtime_review_queue", "source_connection_runtime"]),
     isFixture: z.boolean(),
-    fixtureMarker: z.enum(["pilot_fixture_only", "runtime_review_queue"]).nullable(),
+    fixtureMarker: z
+      .enum(["pilot_fixture_only", "runtime_review_queue", "source_connection_runtime"])
+      .nullable(),
   })
   .strict();
 
@@ -228,6 +230,12 @@ const RUNTIME_PROVENANCE: RegionSignalProvenance = {
   dataOrigin: "runtime_review_queue",
   isFixture: false,
   fixtureMarker: "runtime_review_queue",
+};
+
+const SOURCE_CONNECTION_PROVENANCE: RegionSignalProvenance = {
+  dataOrigin: "source_connection_runtime",
+  isFixture: false,
+  fixtureMarker: "source_connection_runtime",
 };
 
 export const REGION_FEED_SOURCE_FIXTURES: readonly RegionFeedSource[] = [
@@ -571,4 +579,8 @@ export const REGION_FEED_SIGNAL_FIXTURES: readonly RegionFeedSignal[] = [
 
 export function buildRuntimeRegionSignalProvenance(): RegionSignalProvenance {
   return RUNTIME_PROVENANCE;
+}
+
+export function buildSourceConnectionRegionSignalProvenance(): RegionSignalProvenance {
+  return SOURCE_CONNECTION_PROVENANCE;
 }

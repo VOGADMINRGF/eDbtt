@@ -5,10 +5,12 @@ import {
   createInMemoryRegionDataRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
+  createInMemoryRegionSourceConnectionRuntimeRepo,
   setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionEntitlementRuntimeRepoForTests,
   setRegionOrganizationRuntimeRepoForTests,
+  setRegionSourceConnectionRuntimeRepoForTests,
 } from "@features/region";
 
 const mocks = vi.hoisted(() => ({
@@ -66,6 +68,63 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
     setParticipationSignalReviewRuntimeRepoForTests(
       createInMemoryParticipationSignalReviewRuntimeRepo(),
     );
+    setRegionSourceConnectionRuntimeRepoForTests(
+      createInMemoryRegionSourceConnectionRuntimeRepo({
+        connections: [
+          {
+            id: "source-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            label: "Bezirksamt Reinickendorf News",
+            sourceType: "municipal_news",
+            adapterId: "productive_regional_source",
+            url: "https://reinickendorf.example/aktuelles",
+            notes: null,
+            enabled: true,
+            sampleItems: [
+              {
+                title: "Schulwegsicherheit im Bezirk",
+                summary: "Explizit verbundene kommunale Quelle für die regionale Startlage.",
+                url: "https://reinickendorf.example/aktuelles/schulwege",
+                detectedTopics: ["Schule", "Verkehr"],
+              },
+            ],
+            createdAt: "2026-05-17T00:00:00.000Z",
+            updatedAt: "2026-05-17T00:00:00.000Z",
+            createdBy: "admin-1",
+            updatedBy: "admin-1",
+            reviewRequired: true,
+            noLiveCrawlerClaim: true,
+            noScraping: true,
+            noDeepSearchAutoCosts: true,
+          },
+        ],
+        results: [
+          {
+            id: "source-result-1",
+            connectionId: "source-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            connectionLabel: "Bezirksamt Reinickendorf News",
+            sourceType: "municipal_news",
+            adapterId: "productive_regional_source",
+            resultMode: "dry_run",
+            title: "Bezirksamt Reinickendorf News · Dry Run",
+            summary: "Explizite URL vorbereitet und reviewpflichtig ausgewertet.",
+            configuredUrl: "https://reinickendorf.example/aktuelles",
+            detectedTopics: ["Schule", "Verkehr"],
+            visibilityState: "internal_review",
+            visibilityLabel: "reviewpflichtig",
+            reviewStatus: "needs_review",
+            confidence: 0.68,
+            createdAt: "2026-05-17T00:00:00.000Z",
+            updatedAt: "2026-05-17T00:00:00.000Z",
+            testedBy: "admin-1",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+          },
+        ],
+      }),
+    );
   });
 
   it("returns a read-only cockpit with regional signals, suggestions and guardrails", async () => {
@@ -106,6 +165,10 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
           expect.objectContaining({
             title: "Pilotvorschau: Hinweise zu Schulsanierung und Bauzustand",
             provenance: expect.objectContaining({ dataOrigin: "pilot_fixture" }),
+          }),
+          expect.objectContaining({
+            title: "Schulwegsicherheit im Bezirk",
+            provenance: expect.objectContaining({ dataOrigin: "source_connection_runtime" }),
           }),
         ]),
         participationSignals: expect.arrayContaining([
@@ -152,9 +215,22 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
             noAutoCreateDossier: true,
           }),
         ]),
+        sourceConnections: expect.arrayContaining([
+          expect.objectContaining({
+            label: "Bezirksamt Reinickendorf News",
+          }),
+        ]),
+        sourceTestResults: expect.arrayContaining([
+          expect.objectContaining({
+            title: "Bezirksamt Reinickendorf News · Dry Run",
+          }),
+        ]),
         openReviewItems: expect.arrayContaining([
           expect.objectContaining({
             title: "Pilotvorschau: Hinweise zu Schulsanierung und Bauzustand",
+          }),
+          expect.objectContaining({
+            title: "Schulwegsicherheit im Bezirk",
           }),
         ]),
       },

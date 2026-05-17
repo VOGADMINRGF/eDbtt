@@ -18,6 +18,7 @@ import {
   getRegionalAdminCockpitReadModel,
   listOperationalRegions,
 } from "./region/store";
+import { listRegionSourceTestResults } from "./region/server/sourceConnectionRuntime";
 import {
   listParticipationSignalsForReviewRuntime,
   type RegionParticipationSignalRecord,
@@ -27,6 +28,7 @@ export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
   "anlassraum_public_input",
   "region_intelligence_suggestion",
+  "region_source_result",
   "region_signal_draft",
   "dossier_workspace",
   "output_artifact",
@@ -154,6 +156,8 @@ function domainLabelFor(domain: ReviewQueueDomain) {
       return "Anlassraum Public Input";
     case "region_intelligence_suggestion":
       return "Region-Intelligence-Vorschlag";
+    case "region_source_result":
+      return "Quellen-Testresultat";
     case "region_signal_draft":
       return "RegionSignalDraft";
     case "dossier_workspace":
@@ -402,6 +406,36 @@ function mapRegionIntelligenceSuggestionItem(params: {
   };
 }
 
+function mapRegionSourceResultItem(params: {
+  result: Awaited<ReturnType<typeof listRegionSourceTestResults>>[number];
+  regionMap: Map<string, Region>;
+}): ReviewQueueItem {
+  return {
+    id: `region_source_result:${params.result.id}`,
+    domain: "region_source_result",
+    domainLabel: domainLabelFor("region_source_result"),
+    workflowState: "review_required",
+    workflowLabel: workflowLabelFor("review_required"),
+    title: params.result.title,
+    summary: params.result.summary,
+    href: `${reviewLinkForRegion(params.result.regionId)}#source-results`,
+    regionId: params.result.regionId,
+    regionName: regionNameFor(params.regionMap, params.result.regionId),
+    organizationId: null,
+    dossierId: null,
+    draftId: params.result.connectionId,
+    sourceType: params.result.sourceType,
+    visibilityState: params.result.visibilityState,
+    visibilityLabel: publicationVisibilityLabel(params.result.visibilityState),
+    createdAt: params.result.createdAt,
+    updatedAt: params.result.updatedAt,
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+  };
+}
+
 function workspaceSummary(workspace: DossierStudioWorkspace) {
   return (
     workspace.reviewNotes ??
@@ -591,6 +625,7 @@ export async function buildReviewQueueReadModel(
     listRegionSignalDraftRecords(),
     getDossierStudioWorkspaceRepo().listDossierStudioWorkspaces(),
   ]);
+  const sourceResults = await listRegionSourceTestResults({ limit: 200 });
 
   const items: ReviewQueueItem[] = [];
 
@@ -620,6 +655,11 @@ export async function buildReviewQueueReadModel(
       continue;
     }
     items.push(mapRegionSignalDraftItem({ record, regionMap }));
+  }
+
+  for (const result of sourceResults) {
+    if (!scopeAllowsRegion({ scope, regionIds: [result.regionId] })) continue;
+    items.push(mapRegionSourceResultItem({ result, regionMap }));
   }
 
   for (const workspace of workspaces) {

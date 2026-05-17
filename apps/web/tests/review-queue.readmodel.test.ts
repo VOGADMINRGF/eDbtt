@@ -3,9 +3,11 @@ import {
   createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   createInMemoryRegionSignalDraftPersistence,
+  createInMemoryRegionSourceConnectionRuntimeRepo,
   setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionSignalDraftPersistenceForTests,
+  setRegionSourceConnectionRuntimeRepoForTests,
 } from "@features/region";
 import {
   createInMemoryDossierStudioWorkspaceRepo,
@@ -216,6 +218,35 @@ describe("review queue readmodel", () => {
       },
     });
     setDossierStudioWorkspaceRepoForTests(workspaceRepo);
+    setRegionSourceConnectionRuntimeRepoForTests(
+      createInMemoryRegionSourceConnectionRuntimeRepo({
+        results: [
+          {
+            id: "source-result-1",
+            connectionId: "source-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            connectionLabel: "Bezirksamt Reinickendorf News",
+            sourceType: "municipal_news",
+            adapterId: "productive_regional_source",
+            resultMode: "dry_run",
+            title: "Bezirksamt Reinickendorf News · Dry Run",
+            summary: "Explizite URL vorbereitet und reviewpflichtig ausgewertet.",
+            configuredUrl: "https://reinickendorf.example/aktuelles",
+            detectedTopics: ["Schule", "Verkehr"],
+            visibilityState: "internal_review",
+            visibilityLabel: "reviewpflichtig",
+            reviewStatus: "needs_review",
+            confidence: 0.68,
+            createdAt: "2026-05-17T10:40:00.000Z",
+            updatedAt: "2026-05-17T10:40:00.000Z",
+            testedBy: "admin-1",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+          },
+        ],
+      }),
+    );
   });
 
   it("aggregates the existing review domains for the global operator queue", async () => {
@@ -241,6 +272,7 @@ describe("review queue readmodel", () => {
       expect.arrayContaining([
         expect.objectContaining({ domain: "anlassraum_public_input" }),
         expect.objectContaining({ domain: "region_intelligence_suggestion" }),
+        expect.objectContaining({ domain: "region_source_result" }),
         expect.objectContaining({ domain: "region_signal_draft" }),
         expect.objectContaining({ domain: "dossier_workspace" }),
         expect.objectContaining({ domain: "output_artifact" }),
@@ -261,6 +293,10 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "region_intelligence_suggestion",
           visibilityState: "internal_review",
+        }),
+        expect.objectContaining({
+          domain: "region_source_result",
+          title: "Bezirksamt Reinickendorf News · Dry Run",
         }),
       ]),
     );

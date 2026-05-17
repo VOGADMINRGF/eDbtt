@@ -103,6 +103,9 @@ export type RegionIntelligenceSourceStatusSummary = {
   productiveConnectedCount: number;
   curatedConnectedCount: number;
   manualConnectedCount: number;
+  productiveConfiguredCount: number;
+  curatedConfiguredCount: number;
+  manualConfiguredCount: number;
   productiveMissingCount: number;
   productiveLabel: string;
   curatedLabel: string;
@@ -443,6 +446,15 @@ function buildSourceStatusSummary(
   const manualConnectedCount = configuredSources.filter(
     (entry) => entry.category === "manual" && entry.status === "connected",
   ).length;
+  const productiveConfiguredCount = configuredSources.filter(
+    (entry) => entry.category === "productive" && entry.status === "configured",
+  ).length;
+  const curatedConfiguredCount = configuredSources.filter(
+    (entry) => entry.category === "curated" && entry.status === "configured",
+  ).length;
+  const manualConfiguredCount = configuredSources.filter(
+    (entry) => entry.category === "manual" && entry.status === "configured",
+  ).length;
   const productiveMissingCount = configuredSources.filter(
     (entry) => entry.category === "productive" && entry.status === "missing",
   ).length;
@@ -452,18 +464,30 @@ function buildSourceStatusSummary(
       ? `${productiveSourceCount} produktive Quelle${
           productiveSourceCount === 1 ? "" : "n"
         } verbunden`
+      : productiveConfiguredCount > 0
+        ? `${productiveConfiguredCount} produktive Quelle${
+            productiveConfiguredCount === 1 ? "" : "n"
+          } konfiguriert`
       : "Keine produktive Quelle verbunden";
   const curatedLabel =
     curatedConnectedCount > 0
       ? `${curatedSourceCount} kuratierte Quelle${
           curatedSourceCount === 1 ? "" : "n"
         } aktiv`
+      : curatedConfiguredCount > 0
+        ? `${curatedConfiguredCount} kuratierte Quelle${
+            curatedConfiguredCount === 1 ? "" : "n"
+          } konfiguriert`
       : "Kuratierte Quellen vorbereitet";
   const manualLabel =
     manualConnectedCount > 0
       ? `${manualSourceCount} manuelle Quelle${
           manualSourceCount === 1 ? "" : "n"
         } aktiv`
+      : manualConfiguredCount > 0
+        ? `${manualConfiguredCount} manuelle Quelle${
+            manualConfiguredCount === 1 ? "" : "n"
+          } konfiguriert`
       : "Manuelle Quellen vorbereitet";
   const overallLabel =
     productiveConnectedCount > 0
@@ -477,6 +501,9 @@ function buildSourceStatusSummary(
     productiveConnectedCount,
     curatedConnectedCount,
     manualConnectedCount,
+    productiveConfiguredCount,
+    curatedConfiguredCount,
+    manualConfiguredCount,
     productiveMissingCount,
     productiveLabel,
     curatedLabel,

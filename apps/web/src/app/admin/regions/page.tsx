@@ -1,9 +1,14 @@
 import Link from "next/link";
 import {
+  buildRegionIntelligenceSourceAdapterOverrides,
+  buildRegionSourceConnectionFeedSignals,
   getDirectorySourceStatus,
+  listRegionSourceConnections,
+  listRegionSourceTestResults,
   listOperationalRegions,
   listRegionsFromRegistry,
   resolveRegionIntelligenceSourceContracts,
+  regionSourceConnectionTypeLabel,
 } from "@features/region";
 
 function regionTypeLabel(value: string) {
@@ -64,10 +69,21 @@ export default async function AdminRegionsPage() {
   const regions = await listOperationalRegions();
   const registryRegions = listRegionsFromRegistry();
   const sourceStatus = getDirectorySourceStatus();
-  const intelligenceSourceContracts = resolveRegionIntelligenceSourceContracts({
-    sources: [],
-  });
+  const [sourceConnections, sourceTestResults] = await Promise.all([
+    listRegionSourceConnections(),
+    listRegionSourceTestResults({ limit: 12 }),
+  ]);
   const regionMap = new Map(regions.map((region) => [region.id, region]));
+  const intelligenceSourceContracts = resolveRegionIntelligenceSourceContracts({
+    sources: buildRegionSourceConnectionFeedSignals({
+      connections: sourceConnections,
+      regionNameById: new Map(regions.map((region) => [region.id, region.name])),
+    }).map((signal) => ({
+      kind: "feed_signal" as const,
+      signal,
+    })),
+    sourceAdapters: buildRegionIntelligenceSourceAdapterOverrides(sourceConnections),
+  });
   const productiveRegions = registryRegions
     .map((region) => regionMap.get(region.id) ?? region)
     .sort((left, right) => left.name.localeCompare(right.name, "de"));
@@ -160,6 +176,64 @@ export default async function AdminRegionsPage() {
               </p>
             </article>
           ))}
+        </div>
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              Konfigurierte Quellen
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{sourceConnections.length}</p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              Produktive, kuratierte und manuelle Quellen bleiben explizit getrennt und laufen nicht direkt im
+              Renderpfad.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              Reviewpflichtige Source Results
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{sourceTestResults.length}</p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              Dry Runs bleiben intern in Prüfung und sind weder Veröffentlichung noch `public_official`.
+            </p>
+          </article>
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">Letzte Quellkonfigurationen</p>
+            <div className="mt-3 space-y-2">
+              {sourceConnections.length > 0 ? (
+                sourceConnections.slice(0, 5).map((connection) => (
+                  <div key={connection.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connection.label}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {regionMap.get(connection.regionId)?.name ?? connection.regionId} ·{" "}
+                      {regionSourceConnectionTypeLabel(connection.sourceType)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[rgb(var(--muted))]">Noch keine Quellen konfiguriert.</p>
+              )}
+            </div>
+          </article>
+          <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">Letzte Dry Runs</p>
+            <div className="mt-3 space-y-2">
+              {sourceTestResults.length > 0 ? (
+                sourceTestResults.slice(0, 5).map((result) => (
+                  <div key={result.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{result.title}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {regionMap.get(result.regionId)?.name ?? result.regionId} · {result.visibilityLabel}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[rgb(var(--muted))]">Noch keine Dry-Run-Ergebnisse vorhanden.</p>
+              )}
+            </div>
+          </article>
         </div>
       </section>
 

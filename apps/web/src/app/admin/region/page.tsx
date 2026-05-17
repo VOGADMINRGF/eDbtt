@@ -6,6 +6,7 @@ import {
   getRegionalAdminCockpitReadModel,
   resolveFeedVisibilityState,
 } from "@features/region";
+import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
@@ -340,6 +341,8 @@ export default async function AdminRegionPage({
   const suggestedDossiers = toArray(cockpit.suggestedDossiers);
   const intelligenceSources = toArray(cockpit.intelligenceSources);
   const intelligenceReviewSuggestions = toArray(cockpit.intelligenceReviewSuggestions);
+  const sourceConnections = toArray(cockpit.sourceConnections);
+  const sourceTestResults = toArray(cockpit.sourceTestResults);
   const allowedActions = toArray(cockpit.accessSummary.allowedActions);
   const guidelineCriteria = cockpit.guidelineMatrix ? toArray(cockpit.guidelineMatrix.criteria) : [];
   const cockpitModules = Object.entries(cockpit.cockpit?.modules ?? {});
@@ -613,7 +616,9 @@ export default async function AdminRegionPage({
                         <span>
                           {signal.provenance.dataOrigin === "pilot_fixture"
                             ? "pilot fixture · notRealNews=true · notProductionData=true"
-                            : "runtime review queue"}
+                            : signal.provenance.dataOrigin === "source_connection_runtime"
+                              ? "explizit verbundene produktive Quelle · reviewpflichtig"
+                              : "runtime review queue"}
                         </span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
@@ -1057,6 +1062,12 @@ export default async function AdminRegionPage({
               </article>
             ))}
           </section>
+
+          <RegionSourceConnectionsPanel
+            regionId={cockpit.region.id}
+            connections={sourceConnections}
+            results={sourceTestResults}
+          />
         </>
       ) : (
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">

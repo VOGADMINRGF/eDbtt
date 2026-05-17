@@ -88,11 +88,18 @@ import {
   type RegionParticipationSignalRecord,
 } from "./server/participationSignalReviewRuntime";
 import {
+  buildRegionSourceConnectionFeedSignals,
+  buildRegionIntelligenceSourceAdapterOverrides,
+  listRegionSourceConnections,
+  listRegionSourceTestResults,
+} from "./server/sourceConnectionRuntime";
+import {
   getRegionDataRepo,
   setRegionDataRepoForTests,
   type CommunitySignalRepoListQuery,
   type RegionalActorRepoListQuery,
 } from "./server/repo";
+import type { RegionSourceConnection, RegionSourceTestResult } from "./sourceConnections";
 
 export type RegionalActorRegisterQuery = RegionalActorRepoListQuery;
 export type CommunitySignalQueueQuery = CommunitySignalRepoListQuery;
@@ -202,6 +209,8 @@ export type RegionalAdminCockpitReadModel = {
   intelligenceSourceStatus: RegionIntelligenceSourceStatusSummary;
   intelligenceWeighting: RegionIntelligenceWeightingSummary;
   intelligenceReviewSuggestions: RegionIntelligenceReviewSuggestion[];
+  sourceConnections: RegionSourceConnection[];
+  sourceTestResults: RegionSourceTestResult[];
   openReviewItems: RegionDashboardOpenReviewItem[];
   activeDossiers: RegionDashboardActiveDossier[];
   activeAnlassraeume: RegionalAnlassraum[];
@@ -334,6 +343,7 @@ async function resolveRegionFeedSignals(params: {
   regionMap: Map<string, Region>;
   accessContext: RegionAccessContext;
   actors: RegionalActor[];
+  sourceConnections: RegionSourceConnection[];
 }): Promise<{
   feedSignals: RegionFeedSignal[];
   preparation: RegionIntelligencePreparationResult;
@@ -342,6 +352,12 @@ async function resolveRegionFeedSignals(params: {
   const pilotSignals = REGION_FEED_SIGNAL_FIXTURES.filter((signal) =>
     params.scopedRegionIds.includes(signal.regionId),
   ).map((signal) => clone(signal));
+  const productiveSourceSignals = buildRegionSourceConnectionFeedSignals({
+    connections: params.sourceConnections,
+    regionNameById: new Map(
+      Array.from(params.regionMap.entries()).map(([id, region]) => [id, region.name]),
+    ),
+  });
 
   const preparation = await runRegionIntelligencePreparation({
     region: params.region,
@@ -363,6 +379,7 @@ async function resolveRegionFeedSignals(params: {
       goal: "Reviewpflichtige regionale Startlage fuer Themencluster, Dossier-Vorschlaege, Anlassraum-Vorschlaege und offene Fragen",
       focusTopics: uniqueNonEmpty([
         ...pilotSignals.flatMap((signal) => signal.detectedTopics),
+        ...productiveSourceSignals.flatMap((signal) => signal.detectedTopics),
         ...params.communitySignals.flatMap((signal) => signal.title ? [signal.title] : []),
       ]).slice(0, 12),
       expectedOutputs: [
@@ -377,6 +394,10 @@ async function resolveRegionFeedSignals(params: {
         kind: "feed_signal" as const,
         signal,
       })),
+      ...productiveSourceSignals.map((signal) => ({
+        kind: "feed_signal" as const,
+        signal,
+      })),
       ...params.communitySignals.map((signal) => ({
         kind: "community_signal" as const,
         signal,
@@ -385,6 +406,7 @@ async function resolveRegionFeedSignals(params: {
         defaultAnlassraumTitle: params.activeAnlassraeume[0]?.title ?? null,
       })),
     ],
+    sourceAdapters: buildRegionIntelligenceSourceAdapterOverrides(params.sourceConnections),
   });
 
   return {
@@ -959,6 +981,10 @@ export async function getRegionalAdminCockpitReadModel(
   const activeAnlassraeume = listRegionalAnlassraeume()
     .filter((anlassraum) => scopedSet.has(anlassraum.regionId))
     .map((anlassraum) => clone(anlassraum));
+  const [sourceConnections, sourceTestResults] = await Promise.all([
+    listRegionSourceConnections(region.id),
+    listRegionSourceTestResults({ regionId: region.id, limit: 20 }),
+  ]);
   const guidelineProfile = resolveGuidelineProfileForRegion({
     region,
     activeAnlassraeume,
@@ -1044,6 +1070,7 @@ export async function getRegionalAdminCockpitReadModel(
     regionMap,
     accessContext,
     actors,
+    sourceConnections,
   });
   const feedSignals = intelligence.feedSignals;
   const participationAggregates = buildParticipationAggregates(region.id, participationSignals);
@@ -1086,7 +1113,9 @@ export async function getRegionalAdminCockpitReadModel(
     officialDirectoryActorCount: actors.filter((actor) => actor.sourceKind === "official_directory").length,
     signalCount: feedSignals.length + participationSignals.length,
     pendingSignalCount:
-      openReviewItems.length + intelligence.preparation.reviewSuggestions.length,
+      openReviewItems.length +
+      intelligence.preparation.reviewSuggestions.length +
+      sourceTestResults.length,
     directoryStructureBreakdown:
       actors.length > 0
         ? Array.from(structureCounts.entries())
@@ -1116,6 +1145,8 @@ export async function getRegionalAdminCockpitReadModel(
     intelligenceSourceStatus: intelligence.preparation.sourceStatusSummary,
     intelligenceWeighting: intelligence.preparation.weightingSummary,
     intelligenceReviewSuggestions: intelligence.preparation.reviewSuggestions,
+    sourceConnections,
+    sourceTestResults,
     openReviewItems,
     activeDossiers: buildActiveDossiers(activeAnlassraeume),
     activeAnlassraeume,

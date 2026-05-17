@@ -55,10 +55,11 @@ export default async function AdminReviewPage() {
           Admin · Review
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">Zentrale Review-Queue</h1>
-      <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-        Betreiberbereich für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
-          Region-Intelligence-Vorschläge, RegionSignalDrafts, Dossier Studio Workspaces,
-          Output-/Distribution-Artefakte, Create-Handoffs und explizite public_official-Freigaben.
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Betreiberbereich für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
+          Region-Intelligence-Vorschläge, reviewpflichtige Source Results, RegionSignalDrafts,
+          Dossier Studio Workspaces, Output-/Distribution-Artefakte, Create-Handoffs und
+          explizite public_official-Freigaben.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           Keine Sammelentscheidung, keine automatische Amtlichkeit, keine automatische
