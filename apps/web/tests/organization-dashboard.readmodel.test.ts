@@ -132,7 +132,7 @@ function dossierDraftRecord(): RegionSignalDraftRecord {
       notRealNews: true,
     },
     targetStatus: "draft",
-    targetVisibility: "non_public",
+    visibilityState: "internal_review",
     backingStore: "dossiers",
     createdAt: "2026-05-17T08:00:00.000Z",
     updatedAt: "2026-05-17T08:00:00.000Z",

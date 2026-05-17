@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 
 export const OUTPUT_FORMATS = [
   "web_article",
@@ -103,6 +107,7 @@ export const DossierOutputSchema = z
     openQuestions: z.array(z.string().trim().min(1)).default([]),
     options: z.array(z.string().trim().min(1)).default([]),
     reviewStatus: z.enum(OUTPUT_REVIEW_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     completenessStatus: z.enum(OUTPUT_COMPLETENESS_STATUSES),
     mapperReady: z.literal(false),
   })
@@ -128,6 +133,7 @@ export const OutputPackageSchema = z
     dossierId: z.string().trim().min(1),
     generatedAt: z.string().datetime({ offset: true }),
     reviewStatus: z.enum(OUTPUT_REVIEW_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     completenessStatus: z.enum(OUTPUT_COMPLETENESS_STATUSES),
     audience: z.enum(OUTPUT_AUDIENCES),
     title: z.string().trim().min(1),
@@ -147,3 +153,4 @@ export const OutputPackageSchema = z
   .strict();
 
 export type OutputPackage = z.infer<typeof OutputPackageSchema>;
+export type OutputVisibilityState = RegionPublicationVisibilityState;

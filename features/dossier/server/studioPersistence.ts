@@ -2,6 +2,10 @@ import { coreCol } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { z } from "zod";
 import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  resolveStudioWorkspaceVisibilityState,
+} from "@features/region/publicationRiskLadder";
+import {
   MasterPostSchema,
   SocialCarouselOutputSchema,
   SocialDistributionDraftSchema,
@@ -64,6 +68,7 @@ const DossierStudioWorkspaceSchema = z
     unitId: z.string().trim().min(1).optional(),
     source: z.enum(DOSSIER_STUDIO_WORKSPACE_SOURCES),
     status: z.enum(DOSSIER_STUDIO_WORKSPACE_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     title: z.string().trim().min(1),
     masterPostDraft: MasterPostSchema.optional(),
     distributionDraft: SocialDistributionDraftSchema.optional(),
@@ -273,6 +278,9 @@ function buildWorkspace(
     unitId: sanitizeOptionalString(input.unitId),
     source: input.source,
     status: input.seed?.status ?? "draft",
+    visibilityState: resolveStudioWorkspaceVisibilityState({
+      status: input.seed?.status ?? "draft",
+    }),
     title: input.title,
     masterPostDraft: input.seed?.masterPostDraft ?? undefined,
     distributionDraft: input.seed?.distributionDraft ?? undefined,
@@ -310,6 +318,9 @@ function applyPatch(
         ? undefined
         : parsedPatch.reviewNotes ?? workspace.reviewNotes,
     status: parsedPatch.status ?? workspace.status,
+    visibilityState: resolveStudioWorkspaceVisibilityState({
+      status: parsedPatch.status ?? workspace.status,
+    }),
     updatedBy,
     updatedAt: isoNow(),
     guardrails: WORKSPACE_GUARDRAILS,
@@ -424,6 +435,7 @@ function createMongoDossierStudioWorkspaceRepo(): DossierStudioWorkspaceRepo {
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
         status: "archived",
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: "archived" }),
         updatedBy: input.archivedBy,
         updatedAt: isoNow(),
       });
@@ -450,6 +462,7 @@ function createMongoDossierStudioWorkspaceRepo(): DossierStudioWorkspaceRepo {
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
         status: "locked",
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: "locked" }),
         lockedBy: input.lockedBy,
         lockedAt: isoNow(),
         updatedBy: input.lockedBy,
@@ -475,9 +488,11 @@ function createMongoDossierStudioWorkspaceRepo(): DossierStudioWorkspaceRepo {
     async unlockDossierStudioWorkspace(input) {
       const existing = await this.getDossierStudioWorkspace(input.dossierId);
       if (!existing) return null;
+      const nextStatus = existing.status === "archived" ? "archived" : "draft";
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
-        status: existing.status === "archived" ? "archived" : "draft",
+        status: nextStatus,
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: nextStatus }),
         lockedBy: undefined,
         lockedAt: undefined,
         updatedBy: input.unlockedBy,
@@ -585,6 +600,7 @@ export function createInMemoryDossierStudioWorkspaceRepo(seed?: {
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
         status: "archived",
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: "archived" }),
         updatedBy: input.archivedBy,
         updatedAt: isoNow(),
       });
@@ -599,6 +615,7 @@ export function createInMemoryDossierStudioWorkspaceRepo(seed?: {
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
         status: "locked",
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: "locked" }),
         lockedBy: input.lockedBy,
         lockedAt: now,
         updatedBy: input.lockedBy,
@@ -611,9 +628,11 @@ export function createInMemoryDossierStudioWorkspaceRepo(seed?: {
     async unlockDossierStudioWorkspace(input) {
       const existing = workspaces.get(input.dossierId);
       if (!existing) return null;
+      const nextStatus = existing.status === "archived" ? "archived" : "draft";
       const next = DossierStudioWorkspaceSchema.parse({
         ...existing,
-        status: existing.status === "archived" ? "archived" : "draft",
+        status: nextStatus,
+        visibilityState: resolveStudioWorkspaceVisibilityState({ status: nextStatus }),
         lockedBy: undefined,
         lockedAt: undefined,
         updatedBy: input.unlockedBy,
@@ -654,4 +673,3 @@ export function setDossierStudioWorkspaceRepoForTests(
   repoSingleton = repo;
   indexesReady = false;
 }
-

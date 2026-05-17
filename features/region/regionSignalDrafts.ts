@@ -30,6 +30,11 @@ import {
   syncParticipationSignalRecords,
   type RegionParticipationSignalRecord,
 } from "./server/participationSignalReviewRuntime";
+import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  resolveReviewOnlyVisibilityState,
+  type RegionPublicationVisibilityState,
+} from "./publicationRiskLadder";
 
 export const REGION_SIGNAL_DRAFT_TARGETS = ["dossier", "anlassraum"] as const;
 export type RegionSignalDraftTarget = (typeof REGION_SIGNAL_DRAFT_TARGETS)[number];
@@ -133,7 +138,7 @@ const RegionSignalDraftRecordSchema = z
     guardrails: RegionSignalDraftGuardrailsSchema,
     provenance: RegionSignalDraftProvenanceSchema,
     targetStatus: z.literal("draft"),
-    targetVisibility: z.literal("non_public"),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     backingStore: z.enum(["dossiers", "anlassraum"]),
     createdAt: z.string().datetime({ offset: true }),
     updatedAt: z.string().datetime({ offset: true }),
@@ -149,12 +154,19 @@ const RegionSignalDraftResultSchema = z
     draftId: z.string().trim().min(1).optional(),
     draftType: z.enum(REGION_SIGNAL_DRAFT_TARGETS),
     reviewStatus: z.enum(REGION_SIGNAL_DRAFT_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     createdByRole: z.string().trim().min(1),
     guardrails: RegionSignalDraftGuardrailsSchema,
   })
   .strict();
 
 export type RegionSignalDraftResult = z.infer<typeof RegionSignalDraftResultSchema>;
+
+function resolveRegionSignalDraftVisibilityState(
+  reviewStatus: RegionSignalDraftStatus,
+): RegionPublicationVisibilityState {
+  return resolveReviewOnlyVisibilityState({ reviewStatus });
+}
 
 type RegionSignalDraftPersistence = {
   getRecordByUniqueKey(uniqueKey: string): Promise<RegionSignalDraftRecord | null>;
@@ -684,6 +696,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "unsupported_target",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -696,6 +709,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "validation_error",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -707,6 +721,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "wrong_region",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -720,6 +735,7 @@ export async function createRegionSignalDraft(input: {
         blockedReason: participationBlock,
         draftType,
         reviewStatus: "needs_review",
+        visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
         createdByRole,
         guardrails: DRAFT_GUARDRAILS,
       });
@@ -732,6 +748,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: resolved.participationSignalRecord ? "public_signal_not_found" : "signal_not_found",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -748,6 +765,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "missing_permission",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -759,6 +777,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "signal_not_accepted",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -770,6 +789,7 @@ export async function createRegionSignalDraft(input: {
       blockedReason: "tender_or_procurement_out_of_scope",
       draftType,
       reviewStatus: "needs_review",
+      visibilityState: resolveRegionSignalDraftVisibilityState("needs_review"),
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
@@ -795,6 +815,7 @@ export async function createRegionSignalDraft(input: {
       draftId: existingRecord.draftId,
       draftType: existingRecord.draftType,
       reviewStatus: existingRecord.reviewStatus,
+      visibilityState: existingRecord.visibilityState,
       createdByRole: existingRecord.createdByRole,
       guardrails: existingRecord.guardrails,
     });
@@ -845,7 +866,7 @@ export async function createRegionSignalDraft(input: {
     guardrails: DRAFT_GUARDRAILS,
     provenance: action.provenance,
     targetStatus: "draft",
-    targetVisibility: "non_public",
+    visibilityState: resolveRegionSignalDraftVisibilityState(action.reviewStatus),
     backingStore: action.target === "dossier" ? "dossiers" : "anlassraum",
     createdAt: now,
     updatedAt: now,
@@ -858,6 +879,7 @@ export async function createRegionSignalDraft(input: {
     draftId,
     draftType: action.target,
     reviewStatus: action.reviewStatus,
+    visibilityState: record.visibilityState,
     createdByRole,
     guardrails: DRAFT_GUARDRAILS,
   });

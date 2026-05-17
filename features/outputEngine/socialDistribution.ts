@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { MasterPost } from "./masterPost";
 import type { SocialCarouselOutput } from "./socialCarousel";
+import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 
 export const SOCIAL_DISTRIBUTION_CHANNELS = [
   "website_embed",
@@ -81,6 +85,7 @@ export type SocialDistributionTarget = {
 export type SocialDistributionPlan = {
   dossierId: string;
   packageId: string;
+  visibilityState: RegionPublicationVisibilityState;
   mode: SocialDistributionMode;
   status: SocialDistributionStatus;
   scheduleMode: SocialScheduleMode;
@@ -140,6 +145,7 @@ export type SocialDistributionDraft = {
   draftId: string;
   dossierId: string;
   packageId: string;
+  visibilityState: RegionPublicationVisibilityState;
   savedAt: string;
   status: SocialDistributionDraftStatus;
   scheduleMode: SocialScheduleMode;
@@ -205,6 +211,7 @@ export const SocialDistributionDraftSchema = z
     draftId: z.string().trim().min(1),
     dossierId: z.string().trim().min(1),
     packageId: z.string().trim().min(1),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     savedAt: z.string().datetime({ offset: true }),
     status: z.enum(SOCIAL_DISTRIBUTION_DRAFT_STATUSES),
     scheduleMode: z.enum(SOCIAL_SCHEDULE_MODES),
@@ -221,6 +228,7 @@ export const SocialDistributionPlanSchema = z
   .object({
     dossierId: z.string().trim().min(1),
     packageId: z.string().trim().min(1),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     mode: z.enum(SOCIAL_DISTRIBUTION_MODES),
     status: z.enum(SOCIAL_DISTRIBUTION_STATUSES),
     scheduleMode: z.enum(SOCIAL_SCHEDULE_MODES),
@@ -461,6 +469,7 @@ export function buildSocialDistributionDraft(input: {
     draftId: `distdraft_${stableKey([input.plan.packageId, savedAt, selectedChannels.join(",")].join("|"))}`,
     dossierId: input.plan.dossierId,
     packageId: input.plan.packageId,
+    visibilityState: input.plan.visibilityState,
     savedAt,
     status: input.status,
     scheduleMode: input.scheduleMode,
@@ -527,6 +536,7 @@ export function buildSocialDistributionPlan(
   const plan: SocialDistributionPlan = {
     dossierId: masterPost.dossierId,
     packageId: masterPost.packageId,
+    visibilityState: masterPost.visibilityState,
     mode: "review_required",
     status,
     scheduleMode,

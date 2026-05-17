@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { MasterPost } from "@features/outputEngine";
+import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 
 type MasterPostActionsProps = {
   dossierId: string;
@@ -149,6 +150,9 @@ export default function MasterPostActions({
       <h3 className="text-base font-semibold">Hauptaktionen</h3>
       <p className="mt-1 text-sm text-[rgb(var(--muted))]">
         Veröffentlichung bleibt review-gebunden. Keine Live-Veröffentlichung.
+      </p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+        Sichtbarkeit: {publicationVisibilityLabel(masterPostTemplate.visibilityState)}.
       </p>
       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
         LocalStorage-Arbeitsstände bleiben lokal im Browser und gelten nicht als produktive Behördenpersistenz.

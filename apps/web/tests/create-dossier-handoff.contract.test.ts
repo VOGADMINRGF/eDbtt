@@ -89,6 +89,7 @@ describe("create dossier handoff contract", () => {
     expect(html).toContain("Aus deinem Beitrag vorbereitet");
     expect(html).toContain("Keine automatische Anheftung an bestehende Dossiers");
     expect(html).toContain("requiresConfirmation");
+    expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Topic-Key:");
     expect(html).toContain("https://example.org/tierwohl-standard");
     expect(html).toContain("In /create weiter bearbeiten");

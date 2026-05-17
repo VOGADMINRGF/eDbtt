@@ -4,6 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import type { CreateHandoffDraft } from "@/features/create/createHandoff";
 import { buildCreateFactcheckClaimPreview } from "@/features/create/createHandoff";
+import {
+  publicationVisibilityLabel,
+  resolveCreateHandoffVisibilityState,
+} from "@features/region/publicationRiskLadder";
 
 type CreateHandoffPanelProps = {
   draft: CreateHandoffDraft;
@@ -28,6 +32,9 @@ export function CreateHandoffPanel({
   onSaveOnly,
 }: CreateHandoffPanelProps) {
   const preview = showClaimPreview ? buildCreateFactcheckClaimPreview(draft) : null;
+  const visibilityState =
+    draft.visibilityState ??
+    resolveCreateHandoffVisibilityState({ reviewState: draft.reviewState });
 
   return (
     <section className="rounded-3xl border border-cyan-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-cyan-300/20 dark:bg-[rgb(var(--card))]">
@@ -36,6 +43,9 @@ export function CreateHandoffPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
           <p className="text-lg font-semibold text-[rgb(var(--fg))]">{draft.plannerResult.plannerCore}</p>
           <p className="text-sm text-[rgb(var(--muted))]">Reviewstatus: {renderReviewStateLabel(draft.reviewState)}</p>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Sichtbarkeit: {publicationVisibilityLabel(visibilityState)}
+          </p>
         </div>
         <span className="rounded-full border border-cyan-300/50 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-cyan-300/30 dark:bg-cyan-500/12 dark:text-cyan-100">
           requiresConfirmation

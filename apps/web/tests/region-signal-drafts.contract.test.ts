@@ -248,13 +248,13 @@ describe("region signal drafts contract", () => {
             reviewRequired: true,
           }),
           targetStatus: "draft",
-          targetVisibility: "non_public",
+          visibilityState: "internal_review",
           backingStore: "dossiers",
         }),
         expect.objectContaining({
           draftType: "anlassraum",
           targetStatus: "draft",
-          targetVisibility: "non_public",
+          visibilityState: "internal_review",
           backingStore: "anlassraum",
         }),
       ]),
@@ -410,6 +410,7 @@ describe("region signal drafts contract", () => {
       ok: true,
       draftType: "dossier",
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
     });
   });
 });

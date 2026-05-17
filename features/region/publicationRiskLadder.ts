@@ -42,6 +42,27 @@ type FeedSourceTypeLike =
   | "feed_draft"
   | "manual_note";
 
+type ReviewOnlyStatusLike =
+  | "draft"
+  | "needs_review"
+  | "accepted"
+  | "rejected"
+  | "archived";
+
+type StudioWorkspaceStatusLike =
+  | "draft"
+  | "needs_review"
+  | "locked"
+  | "archived";
+
+type CreateHandoffReviewStateLike =
+  | "draft"
+  | "clarification_required"
+  | "graph_review_required"
+  | "factcheck_candidate"
+  | "manual_review_required"
+  | "ready_for_confirmation";
+
 export function isPublicVisibilityState(
   value: RegionPublicationVisibilityState,
 ): boolean {
@@ -56,6 +77,29 @@ export function isReviewVisibilityState(
   value: RegionPublicationVisibilityState,
 ): boolean {
   return value === "private_draft" || value === "internal_review";
+}
+
+export function publicationVisibilityLabel(
+  value: RegionPublicationVisibilityState,
+): string {
+  switch (value) {
+    case "private_draft":
+      return "privater Entwurf";
+    case "internal_review":
+      return "reviewpflichtig";
+    case "public_unverified":
+      return "sichtbar, aber nicht geprüft";
+    case "public_reviewed":
+      return "geprüft";
+    case "public_official":
+      return "amtlich freigegeben";
+    case "archived":
+      return "archiviert";
+    case "blocked":
+      return "blockiert";
+    default:
+      return value;
+  }
 }
 
 function isLowRiskPublicParticipationSource(
@@ -128,10 +172,30 @@ export function resolveFeedVisibilityState(params: {
 }
 
 export function resolveReviewOnlyVisibilityState(params: {
-  reviewStatus: "draft" | "needs_review" | "accepted" | "rejected" | "archived";
+  reviewStatus: ReviewOnlyStatusLike;
 }): RegionPublicationVisibilityState {
   if (params.reviewStatus === "archived") return "archived";
   if (params.reviewStatus === "rejected") return "blocked";
   if (params.reviewStatus === "draft") return "private_draft";
+  return "internal_review";
+}
+
+export function resolveStudioWorkspaceVisibilityState(params: {
+  status: StudioWorkspaceStatusLike;
+}): RegionPublicationVisibilityState {
+  if (params.status === "archived") return "archived";
+  if (params.status === "draft") return "private_draft";
+  return "internal_review";
+}
+
+export function resolveCreateHandoffVisibilityState(params: {
+  reviewState: CreateHandoffReviewStateLike;
+}): RegionPublicationVisibilityState {
+  if (
+    params.reviewState === "draft" ||
+    params.reviewState === "ready_for_confirmation"
+  ) {
+    return "private_draft";
+  }
   return "internal_review";
 }

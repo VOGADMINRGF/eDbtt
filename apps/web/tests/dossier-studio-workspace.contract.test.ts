@@ -72,6 +72,7 @@ describe("dossier studio workspace contract", () => {
       localStorageIsNotProduction: true,
     });
     expect(workspace.status).toBe("draft");
+    expect(workspace.visibilityState).toBe("private_draft");
     expect(workspace.masterPostDraft?.publicationStatus).toBe("draft_review_required");
     expect(workspace.distributionDraft?.externalPublish).toBe(false);
   });
@@ -140,12 +141,14 @@ describe("dossier studio workspace contract", () => {
     });
     expect(updated.reviewNotes).toBe("Bitte Review priorisieren.");
     expect(updated.status).toBe("needs_review");
+    expect(updated.visibilityState).toBe("internal_review");
 
     const locked = await repo.lockDossierStudioWorkspace({
       dossierId: "dossier-draft-studio-002",
       lockedBy: "staff-1",
     });
     expect(locked?.status).toBe("locked");
+    expect(locked?.visibilityState).toBe("internal_review");
     await expect(
       repo.updateDossierStudioWorkspace({
         dossierId: "dossier-draft-studio-002",
@@ -159,12 +162,14 @@ describe("dossier studio workspace contract", () => {
       unlockedBy: "staff-1",
     });
     expect(unlocked?.status).toBe("draft");
+    expect(unlocked?.visibilityState).toBe("private_draft");
 
     const archived = await repo.archiveDossierStudioWorkspace({
       dossierId: "dossier-draft-studio-002",
       archivedBy: "admin-1",
     });
     expect(archived?.status).toBe("archived");
+    expect(archived?.visibilityState).toBe("archived");
 
     const other = await repo.getDossierStudioWorkspace("dossier-draft-studio-003");
     expect(other?.title).toBe("Studio B");

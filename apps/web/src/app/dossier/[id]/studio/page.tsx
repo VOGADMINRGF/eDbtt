@@ -19,6 +19,7 @@ import {
   getSocialPublishingPolicy,
   type MinimalDossierInput,
 } from "@features/outputEngine";
+import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 import {
   buildRuntimeDataGuardrail,
   isExplicitDemoDossierId,
@@ -197,6 +198,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Dossier bleibt Quelle</span>
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">{reviewStateLabel}</span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            Sichtbarkeit: {publicationVisibilityLabel(pkg.visibilityState)}
+          </span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Noch nicht live veröffentlicht</span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
             Externe Kanäle nur Export/Kopieren, solange nicht verbunden
@@ -208,7 +212,8 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           ) : null}
           {studioWorkspace ? (
             <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1">
-              Server-Workspace · {studioWorkspace.status} · reviewpflichtig
+              Server-Workspace · {studioWorkspace.status} ·{" "}
+              {publicationVisibilityLabel(studioWorkspace.visibilityState)}
             </span>
           ) : null}
         </div>
@@ -229,6 +234,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[rgb(var(--muted))]">
             Status: {reviewStatusLabel(pkg.reviewStatus)}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[rgb(var(--muted))]">
+            Sichtbarkeit: {publicationVisibilityLabel(pkg.visibilityState)}
           </span>
           {reviewRequired ? (
             <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-semibold text-amber-300">
@@ -255,6 +263,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         <h3 className="text-lg font-semibold">Fertiger Post-Entwurf</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Finaler Master-Post vor Veröffentlichungsvorbereitung.
+        </p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Sichtbarkeit: {publicationVisibilityLabel(masterPost.visibilityState)}. Sichtbar heißt hier
+          nicht automatisch geprüft oder amtlich.
         </p>
         <article className="mt-4 space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[linear-gradient(145deg,rgba(8,47,73,0.9),rgba(3,7,18,0.92))] p-4 text-slate-100">
           <header>

@@ -81,6 +81,7 @@ describe("create anlassraum handoff contract", () => {
 
     expect(html).toContain("Aus /create in den Anlassraum übernommen");
     expect(html).toContain("Topic-Key:");
+    expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Keine automatische Veröffentlichung");
     expect(html).toContain("kein stiller Themen- oder Graph-Merge");
     expect(html).toContain("prepare_anlassraum");
