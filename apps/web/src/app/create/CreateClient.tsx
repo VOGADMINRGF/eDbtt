@@ -84,6 +84,8 @@ import {
   buildCreateAttachmentMaterialItems,
   resolveMaterialRouting,
 } from "@/features/create/materialRouting";
+import CreateRathausDemoSourcePreview from "@/features/create/CreateRathausDemoSourcePreview";
+import { getRathausDemoGraphSeedPreview } from "@features/region/rathausDemoSeed";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -1300,6 +1302,16 @@ export default function CreateClient({
     productMode === "analyze" ? "Wir ordnen deinen Beitrag ein …" : surfaceTexts.startBusyStatus;
   const showStartChatPreview =
     Boolean(followupSnapshot) && hasStarted && !showIntelligentFollowup && !showLinkClarification;
+  const activeRathausDemoPreview = React.useMemo(() => {
+    const urls =
+      linkClarificationState?.detection.urls.length
+        ? linkClarificationState.detection.urls
+        : currentLinkDetection.urls;
+    return getRathausDemoGraphSeedPreview({
+      urls,
+      roles: entitlements.roles,
+    });
+  }, [currentLinkDetection.urls, entitlements.roles, linkClarificationState?.detection.urls]);
   const startChatAssistantTitle = isStarting
     ? "Ich ordne das kurz ein"
     : productMode === "guided"
@@ -1718,6 +1730,9 @@ export default function CreateClient({
               body={startChatAssistantBody}
               notice={isStarting ? null : actionNotice}
             />
+            {activeRathausDemoPreview ? (
+              <CreateRathausDemoSourcePreview preview={activeRathausDemoPreview} />
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1754,6 +1769,9 @@ export default function CreateClient({
                 );
               }}
             />
+            {activeRathausDemoPreview ? (
+              <CreateRathausDemoSourcePreview preview={activeRathausDemoPreview} />
+            ) : null}
           </div>
         </div>
       ) : null}

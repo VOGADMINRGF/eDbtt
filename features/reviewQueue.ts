@@ -18,6 +18,7 @@ import {
   getRegionalAdminCockpitReadModel,
   listOperationalRegions,
 } from "./region/store";
+import { getRathausDemoGraphSeedPreview } from "./region/rathausDemoSeed";
 import {
   listParticipationSignalsForReviewRuntime,
   type RegionParticipationSignalRecord,
@@ -402,6 +403,35 @@ function mapRegionIntelligenceSuggestionItem(params: {
   };
 }
 
+function mapRathausDemoSeedReviewItem(params: {
+  seed: NonNullable<ReturnType<typeof getRathausDemoGraphSeedPreview>>["reviewSeeds"][number];
+}): ReviewQueueItem {
+  return {
+    id: `region_intelligence_suggestion:rathaus_demo:${params.seed.id}`,
+    domain: "region_intelligence_suggestion",
+    domainLabel: domainLabelFor("region_intelligence_suggestion"),
+    workflowState: "review_required",
+    workflowLabel: workflowLabelFor("review_required"),
+    title: params.seed.title,
+    summary: params.seed.summary,
+    href: params.seed.href,
+    regionId: params.seed.regionId,
+    regionName: params.seed.regionName,
+    organizationId: null,
+    dossierId: params.seed.dossierId,
+    draftId: params.seed.kind === "anlassraum" ? params.seed.id : null,
+    sourceType: params.seed.kind,
+    visibilityState: params.seed.visibilityState,
+    visibilityLabel: params.seed.visibilityLabel,
+    createdAt: "2026-05-17T00:00:00.000Z",
+    updatedAt: "2026-05-17T00:00:00.000Z",
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+  };
+}
+
 function workspaceSummary(workspace: DossierStudioWorkspace) {
   return (
     workspace.reviewNotes ??
@@ -663,6 +693,22 @@ export async function buildReviewQueueReadModel(
           suggestion,
         }),
       );
+    }
+  }
+
+  const rathausDemoPreview = getRathausDemoGraphSeedPreview({
+    urls: [
+      "https://www.berlin.de/ba-reinickendorf/service/buergerbeteiligung/investitions-haushaltsplanung/",
+    ],
+    roles: ["admin"],
+  });
+
+  if (
+    rathausDemoPreview &&
+    scopeAllowsRegion({ scope, regionIds: [rathausDemoPreview.regionId] })
+  ) {
+    for (const seed of rathausDemoPreview.reviewSeeds) {
+      items.push(mapRathausDemoSeedReviewItem({ seed }));
     }
   }
 
