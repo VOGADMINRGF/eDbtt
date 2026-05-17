@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
@@ -30,6 +31,13 @@ export default async function AccountOrganizationPage() {
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Angaben zu Organisation, Einheit und Standort bleiben zunächst Selbstauskunft. Rechte und
           Freischaltungen entstehen erst nach Review und bestätigter Membership.
+        </p>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Der Arbeitsbereich deiner Organisation liegt unter{" "}
+          <Link href="/account/organization/dashboard" className="font-semibold text-[rgb(var(--fg))]">
+            /account/organization/dashboard
+          </Link>
+          . Diese Seite bleibt Antrag und Status.
         </p>
       </header>
       <OrganizationClaimsClient initialClaims={claims} />
