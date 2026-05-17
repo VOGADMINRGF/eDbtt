@@ -17,9 +17,12 @@ import {
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
   listOperationalRegions,
-  type RegionDashboardOpenReviewItem,
   type RegionalAdminCockpitReadModel,
 } from "./store";
+import {
+  buildReviewQueueReadModel,
+  type ReviewQueueItem,
+} from "../reviewQueue";
 import type {
   Organization,
   OrganizationClaim,
@@ -77,10 +80,7 @@ export type OrganizationDashboardMembershipStatus = {
   highestVerificationStatus: VerificationStatus | "none" | "admin_fallback";
 };
 
-export type OrganizationDashboardReviewItem = RegionDashboardOpenReviewItem & {
-  regionId: string;
-  regionName: string;
-};
+export type OrganizationDashboardReviewItem = ReviewQueueItem;
 
 export type OrganizationDashboardStartingPoint = {
   regionId: string;
@@ -587,14 +587,6 @@ export async function buildOrganizationDashboardReadModel(input: {
     .map((entry) => entry.cockpit)
     .filter((entry): entry is RegionalAdminCockpitReadModel => Boolean(entry));
 
-  const reviewItems = readableCockpits.flatMap((cockpit) =>
-    cockpit.openReviewItems.map((item) => ({
-      ...item,
-      regionId: cockpit.region.id,
-      regionName: cockpit.region.name,
-    })),
-  );
-
   const draftsVisibleRegionIds = new Set(
     regionContexts
       .filter((entry) => entry.dashboardAccess)
@@ -638,6 +630,32 @@ export async function buildOrganizationDashboardReadModel(input: {
     ...activeMemberships.flatMap((membership) => membership.allowedActions),
     ...regionContexts.flatMap((entry) => entry.accessContext.allowedActions),
   ]) as RegionAllowedAction[];
+  const reviewQueue = await buildReviewQueueReadModel({
+    mode: input.isAdmin ? "global_operator" : "organization",
+    userId: input.userId,
+    isAdmin: input.isAdmin,
+    visibleRegionIds: regionContexts
+      .filter((entry) => entry.dashboardAccess)
+      .map((entry) => entry.regionId),
+    organizationIds: organizations.map((organization) => organization.id),
+    canApproveOfficial: allowedActions.includes("approve_publication"),
+    governanceActor: input.isAdmin
+      ? {
+          userId: input.userId,
+          role: "admin",
+          isAdmin: true,
+          scopedOwnerIds: uniqueNonEmpty([
+            input.userId,
+            ...organizations.map((organization) => organization.id),
+          ]),
+          scopedEntityIds: uniqueNonEmpty([
+            input.userId,
+            ...organizations.map((organization) => organization.id),
+          ]),
+          personTrust: null,
+        }
+      : null,
+  });
   const nextActions = buildNextActions({
     pendingClaims,
     hasVerifiedMembership: verifiedMemberships.length > 0,
@@ -677,7 +695,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     allowedActions,
     pendingOrganizationClaims: pendingClaims,
     verifiedMemberships: verifiedMemberships.map((membership) => clone(membership)),
-    openReviewItems: reviewItems,
+    openReviewItems: reviewQueue.items,
     regionalStartingPoints,
     dossierDrafts,
     anlassraumDrafts,
