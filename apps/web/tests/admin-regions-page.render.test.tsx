@@ -66,9 +66,14 @@ describe("admin-regions-page.render", () => {
     expect(html).toContain('data-testid="admin-regions-productive"');
     expect(html).toContain('data-testid="admin-regions-pilot-fixtures"');
     expect(html).toContain('data-testid="admin-regions-registry-missing-state"');
+    expect(html).toContain('data-testid="admin-regions-intelligence-sources"');
     expect(html).toContain("`/admin/regions` ist die produktive Übersicht.");
     expect(html).toContain("Operative Regionen aus der RegionRegistry");
     expect(html).toContain("Getrennt markierte manuelle und Pilotregionen");
+    expect(html).toContain("Konfigurierbare regionale Quellen, ohne Render-Abhängigkeit");
+    expect(html).toContain("Keine produktive Quelle verbunden");
+    expect(html).toContain("Kuratierte Startlage");
+    expect(html).toContain("Manuelle Hinweise / Review-Queue");
     expect(html).toContain("Amtliches Gemeindeverzeichnis ist nicht verbunden.");
     expect(html).toContain("Noch keine RegionRegistry-Einträge gefunden.");
     expect(html).toContain("Berlin Reinickendorf");

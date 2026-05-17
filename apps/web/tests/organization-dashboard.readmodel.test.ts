@@ -282,6 +282,11 @@ describe("organization dashboard readmodel", () => {
         expect.objectContaining({
           regionId: "bezirk-berlin-reinickendorf",
           topicClusters: expect.arrayContaining(["Bildung & Schulinfrastruktur Reinickendorf"]),
+          productiveSourceStatus: expect.stringContaining("Keine produktive Quelle verbunden"),
+          curatedSourceStatus: expect.stringContaining("kuratierte"),
+          manualSourceStatus: expect.stringContaining("manuelle"),
+          weightingLabel: expect.stringContaining("Gewichtung vorbereitet"),
+          reviewSuggestionCount: expect.any(Number),
         }),
       ]),
     );

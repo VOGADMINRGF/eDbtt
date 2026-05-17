@@ -13,8 +13,8 @@ function EmptyState() {
     <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
       <p className="text-sm font-semibold text-[rgb(var(--fg))]">Noch keine offenen Review-Aufgaben.</p>
       <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-        Sobald reviewpflichtige Signale, Drafts, Studio-Workspaces, Output-Artefakte oder
-        amtliche Freigabeschritte offen sind, erscheinen sie hier.
+        Sobald reviewpflichtige Signale, Intelligence-Vorschläge, Drafts, Studio-Workspaces,
+        Output-Artefakte oder amtliche Freigabeschritte offen sind, erscheinen sie hier.
       </p>
     </div>
   );
@@ -55,10 +55,10 @@ export default async function AdminReviewPage() {
           Admin · Review
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">Zentrale Review-Queue</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Betreiberbereich für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
-          RegionSignalDrafts, Dossier Studio Workspaces, Output-/Distribution-Artefakte,
-          Create-Handoffs und explizite public_official-Freigaben.
+      <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+        Betreiberbereich für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
+          Region-Intelligence-Vorschläge, RegionSignalDrafts, Dossier Studio Workspaces,
+          Output-/Distribution-Artefakte, Create-Handoffs und explizite public_official-Freigaben.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           Keine Sammelentscheidung, keine automatische Amtlichkeit, keine automatische

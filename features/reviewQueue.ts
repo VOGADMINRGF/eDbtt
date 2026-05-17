@@ -15,6 +15,7 @@ import {
   type RegionSignalDraftRecord,
 } from "./region/regionSignalDrafts";
 import {
+  getRegionalAdminCockpitReadModel,
   listOperationalRegions,
 } from "./region/store";
 import {
@@ -25,6 +26,7 @@ import {
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
   "anlassraum_public_input",
+  "region_intelligence_suggestion",
   "region_signal_draft",
   "dossier_workspace",
   "output_artifact",
@@ -150,6 +152,8 @@ function domainLabelFor(domain: ReviewQueueDomain) {
       return "Beteiligungssignal";
     case "anlassraum_public_input":
       return "Anlassraum Public Input";
+    case "region_intelligence_suggestion":
+      return "Region-Intelligence-Vorschlag";
     case "region_signal_draft":
       return "RegionSignalDraft";
     case "dossier_workspace":
@@ -358,6 +362,39 @@ function mapRegionSignalDraftItem(params: {
     visibilityLabel: publicationVisibilityLabel(params.record.visibilityState),
     createdAt: params.record.createdAt,
     updatedAt: params.record.updatedAt,
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+  };
+}
+
+function mapRegionIntelligenceSuggestionItem(params: {
+  regionId: string;
+  regionName: string;
+  suggestion: Awaited<
+    ReturnType<typeof getRegionalAdminCockpitReadModel>
+  >["intelligenceReviewSuggestions"][number];
+}): ReviewQueueItem {
+  return {
+    id: `region_intelligence_suggestion:${params.regionId}:${params.suggestion.id}`,
+    domain: "region_intelligence_suggestion",
+    domainLabel: domainLabelFor("region_intelligence_suggestion"),
+    workflowState: "review_required",
+    workflowLabel: workflowLabelFor("review_required"),
+    title: params.suggestion.title,
+    summary: params.suggestion.summary,
+    href: `${reviewLinkForRegion(params.regionId)}#intelligence-review-suggestions`,
+    regionId: params.regionId,
+    regionName: params.regionName,
+    organizationId: null,
+    dossierId: null,
+    draftId: null,
+    sourceType: params.suggestion.suggestionType,
+    visibilityState: params.suggestion.visibilityState,
+    visibilityLabel: publicationVisibilityLabel(params.suggestion.visibilityState),
+    createdAt: "2026-05-17T00:00:00.000Z",
+    updatedAt: "2026-05-17T00:00:00.000Z",
     reviewRequired: true,
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
@@ -607,6 +644,25 @@ export async function buildReviewQueueReadModel(
 
     for (const item of queue.items.filter(includeCreateAttachItem)) {
       items.push(mapCreateAttachItem(item));
+    }
+  }
+
+  const intelligenceRegionIds =
+    scope.mode === "global_operator"
+      ? regions.map((region) => region.id)
+      : uniqueNonEmpty(scope.visibleRegionIds);
+
+  for (const regionId of intelligenceRegionIds) {
+    const cockpit = await getRegionalAdminCockpitReadModel(regionId).catch(() => null);
+    if (!cockpit) continue;
+    for (const suggestion of cockpit.intelligenceReviewSuggestions) {
+      items.push(
+        mapRegionIntelligenceSuggestionItem({
+          regionId: cockpit.region.id,
+          regionName: cockpit.region.name,
+          suggestion,
+        }),
+      );
     }
   }
 

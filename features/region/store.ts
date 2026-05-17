@@ -7,6 +7,11 @@ import {
 import {
   mapRegionIntelligenceToSignals,
   runRegionIntelligencePreparation,
+  type RegionIntelligencePreparationResult,
+  type RegionIntelligenceReviewSuggestion,
+  type RegionIntelligenceSourceAdapterContract,
+  type RegionIntelligenceSourceStatusSummary,
+  type RegionIntelligenceWeightingSummary,
 } from "./intelligence";
 import {
   canAttachSignalToDossier,
@@ -193,6 +198,10 @@ export type RegionalAdminCockpitReadModel = {
   topicClusters: RegionTopicCluster[];
   suggestedAnlassraeume: RegionAnlassraumSuggestion[];
   suggestedDossiers: RegionDossierSuggestion[];
+  intelligenceSources: RegionIntelligenceSourceAdapterContract[];
+  intelligenceSourceStatus: RegionIntelligenceSourceStatusSummary;
+  intelligenceWeighting: RegionIntelligenceWeightingSummary;
+  intelligenceReviewSuggestions: RegionIntelligenceReviewSuggestion[];
   openReviewItems: RegionDashboardOpenReviewItem[];
   activeDossiers: RegionDashboardActiveDossier[];
   activeAnlassraeume: RegionalAnlassraum[];
@@ -325,7 +334,10 @@ async function resolveRegionFeedSignals(params: {
   regionMap: Map<string, Region>;
   accessContext: RegionAccessContext;
   actors: RegionalActor[];
-}): Promise<RegionFeedSignal[]> {
+}): Promise<{
+  feedSignals: RegionFeedSignal[];
+  preparation: RegionIntelligencePreparationResult;
+}> {
   const activeAnlassraumIds = params.activeAnlassraeume.map((entry) => entry.id);
   const pilotSignals = REGION_FEED_SIGNAL_FIXTURES.filter((signal) =>
     params.scopedRegionIds.includes(signal.regionId),
@@ -375,7 +387,10 @@ async function resolveRegionFeedSignals(params: {
     ],
   });
 
-  return mapRegionIntelligenceToSignals(preparation);
+  return {
+    feedSignals: mapRegionIntelligenceToSignals(preparation),
+    preparation,
+  };
 }
 
 function buildParticipationAggregates(
@@ -702,6 +717,8 @@ function buildDefaultCockpit(params: {
   openReviewItems: RegionDashboardOpenReviewItem[];
   topicClusters: RegionTopicCluster[];
   suggestedDossiers: RegionDossierSuggestion[];
+  intelligenceSourceStatus: RegionIntelligenceSourceStatusSummary;
+  intelligenceReviewSuggestions: RegionIntelligenceReviewSuggestion[];
 }): RegionalAdminCockpit {
   const fixtureCockpit = getRegionalAdminCockpitById(`admin-cockpit-${params.region.slug}`);
   const base = fixtureCockpit ?? getRegionalAdminCockpitById(`admin-cockpit-${params.region.id}`);
@@ -713,7 +730,7 @@ function buildDefaultCockpit(params: {
     modules: {
       themenlage: {
         headline: "Themenlage",
-        summary: `${params.feedSignals.length} kuratierte Signale und ${params.topicClusters.length} Themencluster liegen fuer ${params.region.name} vor.`,
+        summary: `${params.feedSignals.length} kuratierte Signale, ${params.topicClusters.length} Themencluster und ${params.intelligenceReviewSuggestions.length} reviewpflichtige Intelligence-Vorschlaege liegen fuer ${params.region.name} vor.`,
       },
       akteurskarte: {
         headline: "Akteurskarte",
@@ -725,7 +742,7 @@ function buildDefaultCockpit(params: {
       },
       offene_fragen: {
         headline: "Offene Fragen",
-        summary: `${params.suggestedDossiers.length} Dossier-Vorschlaege bleiben ohne automatische Erstellung und brauchen redaktionelle Klaerung.`,
+        summary: `${params.suggestedDossiers.length} Dossier-Vorschlaege bleiben ohne automatische Erstellung und brauchen redaktionelle Klaerung. ${params.intelligenceSourceStatus.overallLabel}`,
       },
       teilhabegaps: {
         headline: "Teilhabegaps",
@@ -1019,7 +1036,7 @@ export async function getRegionalAdminCockpitReadModel(
         "manage_organization_members",
       ],
     } satisfies RegionAccessContext);
-  const feedSignals = await resolveRegionFeedSignals({
+  const intelligence = await resolveRegionFeedSignals({
     region,
     scopedRegionIds,
     activeAnlassraeume,
@@ -1028,6 +1045,7 @@ export async function getRegionalAdminCockpitReadModel(
     accessContext,
     actors,
   });
+  const feedSignals = intelligence.feedSignals;
   const participationAggregates = buildParticipationAggregates(region.id, participationSignals);
   const reviewItemsFromPublicInput = buildParticipationReviewItems(
     participationReviewRecords.filter(
@@ -1048,6 +1066,8 @@ export async function getRegionalAdminCockpitReadModel(
     openReviewItems,
     topicClusters,
     suggestedDossiers,
+    intelligenceSourceStatus: intelligence.preparation.sourceStatusSummary,
+    intelligenceReviewSuggestions: intelligence.preparation.reviewSuggestions,
   });
 
   const structureCounts = new Map<string, number>();
@@ -1065,7 +1085,8 @@ export async function getRegionalAdminCockpitReadModel(
     verifiedActorCount: actors.filter((actor) => actor.verificationStatus === "verified").length,
     officialDirectoryActorCount: actors.filter((actor) => actor.sourceKind === "official_directory").length,
     signalCount: feedSignals.length + participationSignals.length,
-    pendingSignalCount: openReviewItems.length,
+    pendingSignalCount:
+      openReviewItems.length + intelligence.preparation.reviewSuggestions.length,
     directoryStructureBreakdown:
       actors.length > 0
         ? Array.from(structureCounts.entries())
@@ -1091,6 +1112,10 @@ export async function getRegionalAdminCockpitReadModel(
     topicClusters,
     suggestedAnlassraeume,
     suggestedDossiers,
+    intelligenceSources: intelligence.preparation.configuredSources,
+    intelligenceSourceStatus: intelligence.preparation.sourceStatusSummary,
+    intelligenceWeighting: intelligence.preparation.weightingSummary,
+    intelligenceReviewSuggestions: intelligence.preparation.reviewSuggestions,
     openReviewItems,
     activeDossiers: buildActiveDossiers(activeAnlassraeume),
     activeAnlassraeume,

@@ -301,6 +301,19 @@ function privacyModeLabel(value: string) {
   }
 }
 
+function intelligenceSuggestionLabel(value: string) {
+  switch (value) {
+    case "topic_cluster":
+      return "Themencluster";
+    case "dossier_suggestion":
+      return "Dossier-Vorschlag";
+    case "anlassraum_suggestion":
+      return "Anlassraum-Vorschlag";
+    default:
+      return "Review-Vorschlag";
+  }
+}
+
 export default async function AdminRegionPage({
   searchParams,
 }: {
@@ -325,6 +338,8 @@ export default async function AdminRegionPage({
   const reviewItemsFromPublicInput = toArray(cockpit.reviewItemsFromPublicInput);
   const suggestedAnlassraeume = toArray(cockpit.suggestedAnlassraeume);
   const suggestedDossiers = toArray(cockpit.suggestedDossiers);
+  const intelligenceSources = toArray(cockpit.intelligenceSources);
+  const intelligenceReviewSuggestions = toArray(cockpit.intelligenceReviewSuggestions);
   const allowedActions = toArray(cockpit.accessSummary.allowedActions);
   const guidelineCriteria = cockpit.guidelineMatrix ? toArray(cockpit.guidelineMatrix.criteria) : [];
   const cockpitModules = Object.entries(cockpit.cockpit?.modules ?? {});
@@ -492,8 +507,9 @@ export default async function AdminRegionPage({
                 Aktuelle Themenlage {cockpit.region.name}
               </h2>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Kuratierte Startlage und Pilotvorschau für die Themenlage. Keine echten Nachrichten, keine produktiven
-                Verwaltungsdaten, kein Procurement- oder Vergabe-Radar.
+                Kuratierte Startlage und Pilotvorschau für die Themenlage. Sichtbar heißt nicht automatisch geprüft
+                oder amtlich. Keine Live-Crawler-Behauptung, kein Scraping, keine DeepSearch-Automatikkosten und
+                kein Procurement- oder Vergabe-Radar.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
@@ -514,6 +530,60 @@ export default async function AdminRegionPage({
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
                   noProcurementMonitoring: {cockpit.guardrails.noProcurementMonitoring ? "true" : "false"}
                 </span>
+              </div>
+              <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Produktive Quellen
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.intelligenceSourceStatus.productiveLabel}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Kein produktiver Regionaladapter ist verbunden, solange keine echte Quelle angebunden ist.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Kuratierte Quellen
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.intelligenceSourceStatus.curatedLabel}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Kuration bleibt reviewpflichtig und ist keine automatische amtliche Bewertung.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Manuelle Quellen
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.intelligenceSourceStatus.manualLabel}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Öffentliche und manuelle Hinweise laufen nur über bestehende Review-Pfade ein.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
+                <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Quellengewichtung und Adapter
+                </p>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                  {cockpit.intelligenceWeighting.label}
+                </p>
+                <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                  {intelligenceSources.map((source) => (
+                    <div key={source.adapterId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{source.label}</p>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {source.category} · {source.status} · Gewicht {source.weight.toFixed(2)}
+                      </p>
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">{source.description}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
           </section>
@@ -871,7 +941,11 @@ export default async function AdminRegionPage({
             </article>
           </section>
 
-          <section data-testid="admin-region-open-review" className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <section
+            id="intelligence-review-suggestions"
+            data-testid="admin-region-open-review"
+            className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]"
+          >
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Open Review Items</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Review-gated Arbeitsliste</h2>
@@ -931,6 +1005,45 @@ export default async function AdminRegionPage({
                     </span>
                   </button>
                 ))}
+              </div>
+            </article>
+          </section>
+
+          <section data-testid="admin-region-intelligence-review-suggestions" className="grid gap-4 lg:grid-cols-2">
+            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Intelligence-Vorschläge
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                Reviewpflichtige Startlage-Vorschläge
+              </h2>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Intelligence-Ergebnisse bleiben reviewpflichtige Vorschläge. Nichts wird automatisch veröffentlicht,
+                nichts wird automatisch amtlich und `public_official` wird hier nie automatisch vergeben.
+              </p>
+              <div className="mt-4 space-y-3">
+                {intelligenceReviewSuggestions.length > 0 ? (
+                  intelligenceReviewSuggestions.slice(0, 6).map((suggestion) => (
+                    <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                        <span>{intelligenceSuggestionLabel(suggestion.suggestionType)}</span>
+                        <span>·</span>
+                        <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
+                        <span>·</span>
+                        <span>{visibilityStateLabel(suggestion.visibilityState)}</span>
+                        <span>·</span>
+                        <span>Confidence {suggestion.confidence.toFixed(2)}</span>
+                      </div>
+                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
+                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                        {suggestion.sourceStatusLabel}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  renderEmptyState("Intelligence-Vorschläge")
+                )}
               </div>
             </article>
           </section>
