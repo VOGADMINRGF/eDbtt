@@ -367,4 +367,85 @@ describe("organization dashboard readmodel", () => {
       ]),
     );
   });
+
+  it("offers explicit official review only for publication-approved memberships", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [
+          membership({
+            verificationStatus: "publication_approved",
+            allowedActions: [
+              "read_region_dashboard",
+              "review_region_signal",
+              "create_region_draft",
+              "create_dossier_draft",
+              "create_anlassraum_draft",
+              "approve_publication",
+            ],
+          }),
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-3",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-17T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-17T08:00:00.000Z",
+            updatedAt: "2026-05-17T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "admin_grant",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.allowedActions).toContain("approve_publication");
+    expect(readModel.nextActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "review_official_release",
+          label: "Amtliche Freigabe prüfen",
+        }),
+      ]),
+    );
+  });
 });

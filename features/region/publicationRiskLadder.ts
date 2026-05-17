@@ -11,6 +11,21 @@ export const REGION_PUBLICATION_VISIBILITY_STATES = [
 export type RegionPublicationVisibilityState =
   (typeof REGION_PUBLICATION_VISIBILITY_STATES)[number];
 
+export const OFFICIAL_PUBLICATION_AUTHORITIES = [
+  "publication_approved",
+  "admin_fallback",
+] as const;
+
+export type OfficialPublicationAuthority =
+  (typeof OFFICIAL_PUBLICATION_AUTHORITIES)[number];
+
+export type ExplicitOfficialPublicationApproval = {
+  approvedByUserId: string;
+  approvedAt: string;
+  authority: OfficialPublicationAuthority;
+  note?: string | null;
+};
+
 type ReviewStateLike =
   | "draft"
   | "needs_review"
@@ -100,6 +115,20 @@ export function publicationVisibilityLabel(
     default:
       return value;
   }
+}
+
+export function resolveExplicitOfficialVisibility(params: {
+  fallbackVisibilityState: RegionPublicationVisibilityState;
+  officialApproval?: ExplicitOfficialPublicationApproval | null;
+}): RegionPublicationVisibilityState {
+  if (!params.officialApproval) return params.fallbackVisibilityState;
+  if (
+    params.fallbackVisibilityState === "archived" ||
+    params.fallbackVisibilityState === "blocked"
+  ) {
+    return params.fallbackVisibilityState;
+  }
+  return "public_official";
 }
 
 function isLowRiskPublicParticipationSource(

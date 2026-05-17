@@ -68,6 +68,24 @@ const organizations = [
   },
 ];
 
+const publicationApprovedMembership = [
+  {
+    ...unitMembership[0],
+    id: "membership-publication-1",
+    verificationStatus: "publication_approved",
+    allowedActions: [
+      "read_region_dashboard",
+      "review_region_signal",
+      "create_region_draft",
+      "create_dossier_draft",
+      "create_anlassraum_draft",
+      "attach_signal_to_dossier",
+      "submit_for_review",
+      "approve_publication",
+    ],
+  },
+];
+
 function buildRequest(url: string, body?: Record<string, unknown>) {
   return new NextRequest(url, {
     method: body ? "POST" : "GET",
@@ -277,6 +295,70 @@ describe("admin participation signal review routes", () => {
       record: expect.objectContaining({
         reviewStatus: "rejected",
         visibilityState: "blocked",
+      }),
+    });
+  });
+
+  it("blocks unit-verified staff from public_official and allows publication-approved staff", async () => {
+    seedVerifiedRuntimeMembership();
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const blocked = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/participation-signals/region-participation-reinickendorf-claim-001/review",
+        { decision: "approve_official" },
+      ),
+      {
+        params: Promise.resolve({ id: "region-participation-reinickendorf-claim-001" }),
+      },
+    );
+    expect(blocked.status).toBe(403);
+
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations,
+        memberships: publicationApprovedMembership,
+      }),
+    );
+    await syncParticipationSignalRecords(await listOperationalRegions());
+    await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/participation-signals/region-participation-reinickendorf-claim-001/review",
+        { decision: "accept" },
+      ),
+      {
+        params: Promise.resolve({ id: "region-participation-reinickendorf-claim-001" }),
+      },
+    );
+
+    const approved = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/participation-signals/region-participation-reinickendorf-claim-001/review",
+        { decision: "approve_official", note: "Explizite amtliche Freigabe." },
+      ),
+      {
+        params: Promise.resolve({ id: "region-participation-reinickendorf-claim-001" }),
+      },
+    );
+    expect(approved.status).toBe(200);
+    await expect(approved.json()).resolves.toMatchObject({
+      ok: true,
+      record: expect.objectContaining({
+        visibilityState: "public_official",
+        officialApproval: expect.objectContaining({
+          authority: "publication_approved",
+        }),
       }),
     });
   });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   buildPersistedRegionAccessContext,
+  canApprovePublication,
   canReviewRegionSignal,
   getOperationalRegionById,
   getParticipationSignalReviewRuntimeRepo,
@@ -23,6 +24,8 @@ const ReviewBodySchema = z
       "confirm_region",
       "revoke",
       "restore_to_review",
+      "approve_official",
+      "revoke_official",
     ]),
     regionId: z.string().trim().min(1).optional(),
     note: z.string().trim().min(1).optional(),
@@ -50,6 +53,7 @@ function statusForBlockedReason(reason: string | null | undefined) {
       return 404;
     case "public_signal_region_unconfirmed":
     case "public_signal_privacy_restricted":
+    case "official_publication_requires_accepted_review":
     case "invalid_decision":
       return 400;
     default:
@@ -85,7 +89,17 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
     const accessContext = await buildAccessContext({ gate, regionId: region.id });
-    if (!accessContext || !canReviewRegionSignal(accessContext, region.id)) {
+    const hasReviewAccess = accessContext && canReviewRegionSignal(accessContext, region.id);
+    const hasPublicationApprovalAccess =
+      accessContext && canApprovePublication(accessContext, region.id);
+    const requiresPublicationApproval =
+      body.decision === "approve_official" || body.decision === "revoke_official";
+    if (
+      !accessContext ||
+      (requiresPublicationApproval
+        ? !hasPublicationApprovalAccess
+        : !hasReviewAccess)
+    ) {
       return NextResponse.json({ ok: false, error: "region_review_forbidden" }, { status: 403 });
     }
   }
@@ -97,13 +111,27 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
   }
 
-  const result = await repo.reviewParticipationSignal({
-    signalId: id,
-    decision: body.decision,
-    regionId,
-    reviewedBy: gate.actor.userId,
-    note: body.note ?? null,
-  });
+  const result =
+    body.decision === "approve_official"
+      ? await repo.approveParticipationSignalOfficialPublication({
+          signalId: id,
+          approvedBy: gate.actor.userId,
+          authority: gate.actor.isAdmin ? "admin_fallback" : "publication_approved",
+          note: body.note ?? null,
+        })
+      : body.decision === "revoke_official"
+        ? await repo.revokeParticipationSignalOfficialPublication(
+            id,
+            gate.actor.userId,
+            body.note ?? null,
+          )
+        : await repo.reviewParticipationSignal({
+            signalId: id,
+            decision: body.decision,
+            regionId,
+            reviewedBy: gate.actor.userId,
+            note: body.note ?? null,
+          });
 
   if (!result.ok) {
     return NextResponse.json(

@@ -238,7 +238,7 @@ function accessHint(cockpit: RegionalAdminCockpitReadModel) {
     return "Verifizierte Membership allein reicht nicht. Für dieses RegionDashboard ist zusätzlich eine aktive oder testweise Freischaltung erforderlich.";
   }
   if (cockpit.accessSummary.verificationStatus === "publication_approved") {
-    return "Publikationsfreigabe wäre theoretisch erlaubt. CUT-02 baut dafür bewusst noch keine Publikationsroute.";
+    return "Publikationsfreigabe ist als expliziter menschlicher Freigabeschritt möglich. `public_official` wird nie automatisch vergeben.";
   }
   if (cockpit.accessSummary.verificationStatus === "unit_verified") {
     return "Unit-verifizierte Rollen dürfen Draft- und Review-Aktionen vorbereiten. Veröffentlichung bleibt separat gesperrt.";

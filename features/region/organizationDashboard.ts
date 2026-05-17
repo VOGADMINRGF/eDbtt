@@ -407,9 +407,11 @@ function buildNextActions(params: {
   hasVerifiedMembership: boolean;
   hasReadableRegion: boolean;
   hasEntitlement: boolean;
+  canApprovePublication: boolean;
   dossierDrafts: OrganizationDashboardDraftSummary[];
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
+  participationSignals: OrganizationDashboardParticipationSignal[];
 }): OrganizationDashboardNextAction[] {
   const actions: OrganizationDashboardNextAction[] = [];
 
@@ -446,6 +448,18 @@ function buildNextActions(params: {
       label: "Startlage prüfen",
       description: "KI-vorqualifizierte und kuratierte Startlage auf Themencluster, offene Fragen und Quellenstatus prüfen.",
       href: "#startlage",
+    });
+  }
+
+  if (
+    params.canApprovePublication &&
+    params.hasReadableRegion
+  ) {
+    actions.push({
+      id: "review_official_release",
+      label: "Amtliche Freigabe prüfen",
+      description: "`public_official` bleibt ein expliziter menschlicher Freigabeschritt und wird nie automatisch vergeben.",
+      href: "/admin/region",
     });
   }
 
@@ -629,9 +643,11 @@ export async function buildOrganizationDashboardReadModel(input: {
     hasVerifiedMembership: verifiedMemberships.length > 0,
     hasReadableRegion: readableCockpits.length > 0 || regionSummary.some((entry) => entry.source === "verified_membership"),
     hasEntitlement: entitlementSummary.hasActiveEntitlement || entitlementSummary.hasTrialEntitlement,
+    canApprovePublication: allowedActions.includes("approve_publication"),
     dossierDrafts,
     anlassraumDrafts,
     regionalStartingPoints,
+    participationSignals,
   });
 
   return {

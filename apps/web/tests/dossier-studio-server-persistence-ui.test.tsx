@@ -50,6 +50,7 @@ function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
     updatedBy: "admin-1",
     createdAt: "2026-05-15T08:00:00.000Z",
     updatedAt: "2026-05-15T08:10:00.000Z",
+    officialApproval: null,
     provenance: {
       notProductionData: true,
       fixture: true,
@@ -101,5 +102,34 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
+  });
+
+  it("shows explicit human official approval when a workspace was freigegeben", async () => {
+    setDossierStudioWorkspaceRepoForTests(
+      createInMemoryDossierStudioWorkspaceRepo({
+        workspaces: [
+          {
+            ...buildWorkspaceSeed(),
+            visibilityState: "public_official",
+            officialApproval: {
+              approvedByUserId: "publisher-1",
+              approvedAt: "2026-05-15T09:00:00.000Z",
+              authority: "publication_approved",
+              note: "Menschlich freigegeben.",
+            },
+          },
+        ],
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      await DossierOutputStudioPage({
+        params: Promise.resolve({ id: "dossier_demo_mobility_berlin" }),
+      }),
+    );
+
+    expect(html).toContain("Server-Workspace · needs_review · amtlich freigegeben");
+    expect(html).toContain("Menschlich freigegeben · Publikationsfreigabe");
+    expect(html).toContain("Öffentliche amtliche Freigabe wurde explizit durch einen berechtigten Menschen erteilt.");
   });
 });

@@ -131,6 +131,59 @@ describe("participation signal review runtime", () => {
     });
   });
 
+  it("requires an explicit human approval for public_official and records an audit event", async () => {
+    const regions = await listOperationalRegions();
+    await syncParticipationSignalRecords(regions);
+    const repo = getParticipationSignalReviewRuntimeRepo();
+
+    await expect(
+      repo.approveParticipationSignalOfficialPublication({
+        signalId: "region-participation-reinickendorf-claim-001",
+        approvedBy: "admin-1",
+        authority: "admin_fallback",
+      }),
+    ).resolves.toMatchObject({
+      ok: false,
+      blockedReason: "official_publication_requires_accepted_review",
+    });
+
+    await repo.reviewParticipationSignal({
+      signalId: "region-participation-reinickendorf-claim-001",
+      decision: "accept",
+      reviewedBy: "admin-1",
+    });
+
+    const approved = await repo.approveParticipationSignalOfficialPublication({
+      signalId: "region-participation-reinickendorf-claim-001",
+      approvedBy: "publisher-1",
+      authority: "publication_approved",
+      note: "Amtliche Freigabe nach menschlicher Prüfung.",
+    });
+
+    expect(approved).toMatchObject({
+      ok: true,
+      record: expect.objectContaining({
+        reviewStatus: "accepted",
+        visibilityState: "public_official",
+        officialApproval: expect.objectContaining({
+          authority: "publication_approved",
+          approvedByUserId: "publisher-1",
+        }),
+      }),
+    });
+
+    const audit = await repo.listParticipationSignalAuditEvents(
+      "region-participation-reinickendorf-claim-001",
+    );
+    expect(
+      audit.find((event) => event.eventType === "official_approved"),
+    ).toMatchObject({
+      eventType: "official_approved",
+      authority: "publication_approved",
+      createdBy: "publisher-1",
+    });
+  });
+
   it("keeps rejected, archived and internal-review-only records out of the active dashboard payload and strips person-level data", async () => {
     const regions = await listOperationalRegions();
     await syncParticipationSignalRecords(regions);
