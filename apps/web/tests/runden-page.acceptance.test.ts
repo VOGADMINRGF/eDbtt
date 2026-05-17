@@ -141,6 +141,8 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
     expect(html).toContain("Für Veranstaltungen nutzen");
     expect(html).toContain("Für Artikel oder Berichte nutzen");
+    expect(html).toContain("Direkt öffentlich einreichen");
+    expect(html).toContain("Öffentliche Eingaben sind keine repräsentative Abstimmung.");
     expect(html).toContain("Neuen Anlass öffnen");
     expect(html).toContain("Laufenden Anlass weiterführen");
     expect(html).toContain("Stand und Ergebnisse ansehen");
