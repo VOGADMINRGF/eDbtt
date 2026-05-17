@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "node ../../scripts/check-page-contracts.mjs && next build --webpack",
+    "build": "BROWSERSLIST_IGNORE_OLD_DATA=1 node ../../scripts/check-page-contracts.mjs && NODE_OPTIONS='--require=../../scripts/suppress-baseline-browser-mapping-warning.cjs' BROWSERSLIST_IGNORE_OLD_DATA=1 next build --webpack",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "ai:provider-smoke": "pnpm exec tsx scripts/ai-provider-smoke.ts",

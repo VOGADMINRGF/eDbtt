@@ -118,4 +118,19 @@ describe("admin-region-page.render", () => {
 
     expect(navigationMocks.redirect).toHaveBeenCalledWith("/admin/regions");
   });
+
+  it("redirects cleanly when regionId is missing", async () => {
+    setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
+
+    await expect(
+      AdminRegionPage({
+        searchParams: {},
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/regions");
+
+    expect(navigationMocks.redirect).toHaveBeenCalledWith("/admin/regions");
+  });
 });
