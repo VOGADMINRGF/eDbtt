@@ -302,21 +302,28 @@ export default async function AccountOrganizationDashboardPage() {
             {readModel.openReviewItems.length === 0 ? (
               <EmptyState
                 title="Noch keine offenen Reviews."
-                body="Sobald reviewpflichtige Signale oder Entwürfe vorliegen, erscheinen sie hier."
+                body="Sobald reviewpflichtige Signale, Entwürfe oder Freigabeschritte vorliegen, erscheinen sie hier."
               />
             ) : (
               readModel.openReviewItems.slice(0, 4).map((item) => (
-                <article key={`${item.regionId}:${item.id}`} className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                <article key={item.id} className="rounded-2xl border border-[rgb(var(--border))] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
                     <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                      {item.regionName}
+                      {item.regionName ?? "Übergreifend"}
                     </span>
                   </div>
-                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                      {item.sourceClass === "participation" ? "Beteiligungssignal" : "Signal"} ·{" "}
-                      {publicationVisibilityLabel(item.visibilityState)}
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    {item.domainLabel} · {item.workflowLabel} ·{" "}
+                    {publicationVisibilityLabel(item.visibilityState)}
                   </p>
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{item.summary}</p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    {item.reviewAuthorityLabel}
+                  </p>
+                  <Link href={item.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
+                    Review öffnen
+                  </Link>
                 </article>
               ))
             )}

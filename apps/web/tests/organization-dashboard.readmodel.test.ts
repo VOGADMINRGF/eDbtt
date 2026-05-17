@@ -366,6 +366,18 @@ describe("organization dashboard readmodel", () => {
         }),
       ]),
     );
+    expect(readModel.openReviewItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "region_signal_draft",
+          title: "Sanierung von Schulen im Bezirk",
+        }),
+        expect.objectContaining({
+          domain: "region_signal_draft",
+          title: "Bildung & Schulinfrastruktur Reinickendorf",
+        }),
+      ]),
+    );
   });
 
   it("offers explicit official review only for publication-approved memberships", async () => {

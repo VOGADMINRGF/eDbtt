@@ -234,6 +234,7 @@ export type DossierStudioWorkspaceRepo = {
     input: CreateOrGetDossierStudioWorkspaceInput,
   ): Promise<DossierStudioWorkspace>;
   getDossierStudioWorkspace(dossierId: string): Promise<DossierStudioWorkspace | null>;
+  listDossierStudioWorkspaces(): Promise<DossierStudioWorkspace[]>;
   updateDossierStudioWorkspace(
     input: UpdateDossierStudioWorkspaceInput,
   ): Promise<DossierStudioWorkspace>;
@@ -454,6 +455,18 @@ function createMongoDossierStudioWorkspaceRepo(): DossierStudioWorkspaceRepo {
       const col = await coreCol<DossierStudioWorkspaceDoc>(WORKSPACES_COLLECTION);
       const existing = await col.findOne({ "workspace.dossierId": dossierId });
       return existing?.workspace ? clone(existing.workspace) : null;
+    },
+
+    async listDossierStudioWorkspaces() {
+      await ensureMongoIndexes();
+      const col = await coreCol<DossierStudioWorkspaceDoc>(WORKSPACES_COLLECTION);
+      const docs = await col
+        .find({})
+        .sort({ "workspace.updatedAt": -1 })
+        .toArray();
+      return docs
+        .map((doc) => clone(doc.workspace))
+        .filter((workspace): workspace is DossierStudioWorkspace => Boolean(workspace));
     },
 
     async updateDossierStudioWorkspace(input) {
@@ -719,6 +732,12 @@ export function createInMemoryDossierStudioWorkspaceRepo(seed?: {
     async getDossierStudioWorkspace(dossierId) {
       const workspace = workspaces.get(dossierId);
       return workspace ? clone(workspace) : null;
+    },
+
+    async listDossierStudioWorkspaces() {
+      return Array.from(workspaces.values())
+        .map((workspace) => clone(workspace))
+        .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
     },
 
     async updateDossierStudioWorkspace(input) {
