@@ -5,6 +5,10 @@ import {
   summarizeOfficialAdministrativeDirectory,
 } from "./directory";
 import {
+  mapRegionIntelligenceToSignals,
+  runRegionIntelligencePreparation,
+} from "./intelligence";
+import {
   canAttachSignalToDossier,
   canCreateAnlassraumDraft,
   canCreateDossierDraft,
@@ -262,45 +266,6 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function mapCommunitySignalReviewStatus(status: CommunitySignal["reviewStatus"]): RegionSignalReviewState {
-  if (status === "accepted") return "accepted";
-  if (status === "rejected") return "rejected";
-  return "needs_review";
-}
-
-function inferTopicsFromCommunitySignal(signal: CommunitySignal): string[] {
-  const haystack = `${signal.title} ${signal.summary}`.toLowerCase();
-  const topics: string[] = [];
-  if (haystack.includes("schule") || haystack.includes("schul")) topics.push("Schulwege");
-  if (haystack.includes("verkehr")) topics.push("Verkehr");
-  if (haystack.includes("jugend")) topics.push("Jugend");
-  if (haystack.includes("sport")) topics.push("Sport");
-  if (haystack.includes("kiez") || haystack.includes("nachbarschaft")) topics.push("Nachbarschaft");
-  if (topics.length === 0) topics.push("Lokale Hinweise");
-  return uniqueNonEmpty(topics);
-}
-
-function inferClusterKey(signal: CommunitySignal, regionName: string): string {
-  const haystack = `${signal.title} ${signal.summary}`.toLowerCase();
-  if (haystack.includes("schule") || haystack.includes("schul")) return "bildung-schulinfrastruktur";
-  if (haystack.includes("verkehr")) return "verkehr-schulwege";
-  if (haystack.includes("jugend") || haystack.includes("sport") || haystack.includes("kultur")) {
-    return slugify(`${regionName}-jugend-sport-kultur`);
-  }
-  if (haystack.includes("kiez") || haystack.includes("nachbarschaft")) return "soziale-infrastruktur";
-  return slugify(`${regionName}-community-signal`);
-}
-
-function inferSuggestedAction(
-  signal: CommunitySignal,
-  hasExistingAnlassraum: boolean,
-): RegionFeedSignal["suggestedAction"] {
-  if (signal.signalType === "source") return "attach_source_to_dossier";
-  if (signal.signalType === "topic_proposal") return "create_anlassraum";
-  if (signal.signalType === "local_knowledge") return "ask_clarifying_question";
-  return hasExistingAnlassraum ? "attach_to_anlassraum" : "create_anlassraum";
-}
-
 function matchesActorQuery(actor: RegionalActor, query: RegionalActorRegisterQuery): boolean {
   if (query.regionId?.trim() && actor.regionId !== query.regionId.trim()) return false;
   if (query.actorType && query.actorType !== "all" && actor.actorType !== query.actorType) return false;
@@ -346,57 +311,65 @@ function collectScopedRegionIds(rootRegionId: string, regions: Region[]): string
   return Array.from(visited);
 }
 
-function resolveRegionFeedSignals(params: {
+async function resolveRegionFeedSignals(params: {
   region: Region;
   scopedRegionIds: string[];
   activeAnlassraeume: RegionalAnlassraum[];
   communitySignals: CommunitySignal[];
   regionMap: Map<string, Region>;
-}): RegionFeedSignal[] {
+  accessContext: RegionAccessContext;
+  actors: RegionalActor[];
+}): Promise<RegionFeedSignal[]> {
   const activeAnlassraumIds = params.activeAnlassraeume.map((entry) => entry.id);
   const pilotSignals = REGION_FEED_SIGNAL_FIXTURES.filter((signal) =>
     params.scopedRegionIds.includes(signal.regionId),
   ).map((signal) => clone(signal));
 
-  const runtimeSignals = params.communitySignals.map((signal) => {
-    const signalRegionName = params.regionMap.get(signal.regionId)?.name ?? params.region.name;
-    return parseRegionFeedSignal({
-      id: `region-feed-runtime-${signal.id}`,
-      kind: "region_feed_signal",
-      regionId: signal.regionId,
-      sourceId: signal.id,
-      sourceType: "community_signal",
-      title: signal.title,
-      summary: signal.summary,
-      url: signal.sourceUrls[0] ?? null,
-      publishedAt: signal.createdAt ?? null,
-      detectedTopics: inferTopicsFromCommunitySignal(signal),
-      detectedPlaces: [signalRegionName],
-      relatedClaims: [],
-      relatedDossiers: [],
-      relatedAnlassraumIds: activeAnlassraumIds,
-      suggestedAction: inferSuggestedAction(signal, activeAnlassraumIds.length > 0),
-      confidence: signal.reviewStatus === "accepted" ? 0.73 : 0.61,
-      reviewStatus: mapCommunitySignalReviewStatus(signal.reviewStatus),
-      noAutoPublish: true,
-      noAutoCreateDossier: true,
-      noAutoCreateAnlassraum: true,
-      noTenderMonitoring: true,
-      noProcurementMonitoring: true,
-      provenance: buildRuntimeRegionSignalProvenance(),
-      clusterKey: inferClusterKey(signal, signalRegionName),
-      openQuestions: [],
-      reviewHint:
-        signal.reviewStatus === "submitted"
-          ? "Signal bleibt reviewpflichtig und erzeugt keine automatische Struktur."
-          : "Weiterer redaktioneller Review bleibt erforderlich.",
-      suggestedAnlassraumTitle:
-        activeAnlassraumIds.length > 0 ? params.activeAnlassraeume[0]?.title ?? null : null,
-      suggestedDossierTitle: signal.signalType === "source" ? "Quellenpruefung im bestehenden Dossier" : null,
-    });
+  const preparation = await runRegionIntelligencePreparation({
+    region: params.region,
+    organization: {
+      primaryOrganizationId: params.accessContext.organization.primaryOrganizationId,
+      organizationIds: params.accessContext.organization.organizationIds,
+      actorRole: params.accessContext.actorRole,
+      entitlementStatus: params.accessContext.organization.entitlementStatus,
+      verificationStatus: params.accessContext.verificationStatus,
+      regionalActorLabels: uniqueNonEmpty(
+        params.actors
+          .filter((actor) => actor.actorType === "verwaltung")
+          .map((actor) => actor.name),
+      ).slice(0, 8),
+    },
+    orientation: {
+      audience:
+        params.accessContext.actorRole === "admin" ? "verwaltung_organisation" : "regional_organization",
+      goal: "Reviewpflichtige regionale Startlage fuer Themencluster, Dossier-Vorschlaege, Anlassraum-Vorschlaege und offene Fragen",
+      focusTopics: uniqueNonEmpty([
+        ...pilotSignals.flatMap((signal) => signal.detectedTopics),
+        ...params.communitySignals.flatMap((signal) => signal.title ? [signal.title] : []),
+      ]).slice(0, 12),
+      expectedOutputs: [
+        "topic_clusters",
+        "dossier_suggestions",
+        "anlassraum_suggestions",
+        "open_questions",
+      ],
+    },
+    sources: [
+      ...pilotSignals.map((signal) => ({
+        kind: "feed_signal" as const,
+        signal,
+      })),
+      ...params.communitySignals.map((signal) => ({
+        kind: "community_signal" as const,
+        signal,
+        regionName: params.regionMap.get(signal.regionId)?.name ?? params.region.name,
+        activeAnlassraumIds,
+        defaultAnlassraumTitle: params.activeAnlassraeume[0]?.title ?? null,
+      })),
+    ],
   });
 
-  return [...pilotSignals, ...runtimeSignals].sort((left, right) => right.confidence - left.confidence);
+  return mapRegionIntelligenceToSignals(preparation);
 }
 
 function buildParticipationAggregates(
@@ -1030,12 +1003,14 @@ export async function getRegionalAdminCockpitReadModel(
         "manage_organization_members",
       ],
     } satisfies RegionAccessContext);
-  const feedSignals = resolveRegionFeedSignals({
+  const feedSignals = await resolveRegionFeedSignals({
     region,
     scopedRegionIds,
     activeAnlassraeume,
     communitySignals,
     regionMap,
+    accessContext,
+    actors,
   });
   const participationAggregates = buildParticipationAggregates(region.id, participationSignals);
   const reviewItemsFromPublicInput = buildParticipationReviewItems(
