@@ -376,6 +376,8 @@ export function canSubmitForReview(context: RegionAccessContext, regionId: strin
 }
 
 export function canApprovePublication(context: RegionAccessContext, regionId: string): boolean {
+  if (context.isAdmin) return contextAllowsAction(context, "approve_publication", regionId);
+  if (context.verificationStatus !== "publication_approved") return false;
   return contextAllowsAction(context, "approve_publication", regionId);
 }
 

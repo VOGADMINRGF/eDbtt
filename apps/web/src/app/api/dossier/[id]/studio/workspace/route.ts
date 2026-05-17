@@ -13,6 +13,7 @@ import {
 } from "@features/outputEngine";
 import {
   buildPersistedRegionAccessContext,
+  canApprovePublication,
   canCreateDossierDraft,
   canReadRegionDashboard,
   findRegionSignalDraftRecordByDraftId,
@@ -34,6 +35,13 @@ const WorkspaceMutationSchema = z
     audienceNotes: z.string().trim().min(1).nullable().optional(),
     reviewNotes: z.string().trim().min(1).nullable().optional(),
     status: WorkspaceWriteStatusSchema.optional(),
+  })
+  .strict();
+
+const WorkspaceOfficialApprovalSchema = z
+  .object({
+    action: z.enum(["approve_publication", "revoke_publication"]),
+    note: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
 
@@ -179,6 +187,19 @@ function canWriteWorkspace(access: ResolvedStudioAccess) {
   return canCreateDossierDraft(access.accessContext, access.regionId);
 }
 
+function canApproveWorkspacePublication(access: ResolvedStudioAccess) {
+  if (access.accessContext?.isAdmin) return true;
+  if (!access.regionId || !access.accessContext) return false;
+  if (
+    access.organizationId &&
+    access.accessContext.organization.organizationIds.length > 0 &&
+    !access.accessContext.organization.organizationIds.includes(access.organizationId)
+  ) {
+    return false;
+  }
+  return canApprovePublication(access.accessContext, access.regionId);
+}
+
 function workspaceResponseBody(
   workspace: NonNullable<ResolvedStudioAccess["workspace"]> | null,
   access: ResolvedStudioAccess,
@@ -192,6 +213,7 @@ function workspaceResponseBody(
       verificationStatus: access.accessContext?.verificationStatus ?? "none",
       canRead: canReadWorkspace(access),
       canEdit: canWriteWorkspace(access),
+      canApproveOfficialPublication: canApproveWorkspacePublication(access),
     },
   };
 }
@@ -246,10 +268,39 @@ export async function POST(req: NextRequest, params: RouteParams) {
 export async function PATCH(req: NextRequest, params: RouteParams) {
   const access = await resolveStudioAccess(req, params);
   if (access instanceof Response) return access;
-  if (!canWriteWorkspace(access)) return writeDeniedResponse();
 
   try {
-    const body = WorkspaceMutationSchema.parse(await req.json());
+    const rawBody = await req.json();
+    const officialAction = WorkspaceOfficialApprovalSchema.safeParse(rawBody);
+    if (officialAction.success) {
+      if (!canApproveWorkspacePublication(access)) return writeDeniedResponse();
+      const repo = getDossierStudioWorkspaceRepo();
+      const workspace =
+        officialAction.data.action === "approve_publication"
+          ? await repo.approveDossierStudioWorkspaceOfficial({
+              dossierId: access.dossierId,
+              approvedBy: access.accessContext?.userId ?? "unknown",
+              authority: access.accessContext?.isAdmin ? "admin_fallback" : "publication_approved",
+              note: officialAction.data.note ?? null,
+            })
+          : await repo.revokeDossierStudioWorkspaceOfficial(
+              access.dossierId,
+              access.accessContext?.userId ?? "unknown",
+              officialAction.data.note ?? null,
+            );
+      if (!workspace) {
+        return NextResponse.json(
+          { ok: false, error: "studio_workspace_official_publication_blocked" },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json(workspaceResponseBody(workspace, access), {
+        status: 200,
+      });
+    }
+
+    if (!canWriteWorkspace(access)) return writeDeniedResponse();
+    const body = WorkspaceMutationSchema.parse(rawBody);
     const repo = getDossierStudioWorkspaceRepo();
     const existing =
       access.workspace ??

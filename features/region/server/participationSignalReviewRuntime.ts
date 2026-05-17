@@ -2,8 +2,12 @@ import { coreCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "../contracts";
 import {
+  OFFICIAL_PUBLICATION_AUTHORITIES,
+  resolveExplicitOfficialVisibility,
   isPublicVisibilityState,
   resolveParticipationVisibilityState,
+  type ExplicitOfficialPublicationApproval,
+  type OfficialPublicationAuthority,
   type RegionPublicationVisibilityState,
 } from "../publicationRiskLadder";
 import {
@@ -28,10 +32,21 @@ export const REGION_PARTICIPATION_SIGNAL_REVIEW_DECISIONS = [
   "confirm_region",
   "revoke",
   "restore_to_review",
+  "approve_official",
+  "revoke_official",
 ] as const;
 
 export type RegionParticipationSignalReviewDecision =
   (typeof REGION_PARTICIPATION_SIGNAL_REVIEW_DECISIONS)[number];
+
+const ExplicitOfficialPublicationApprovalSchema = z
+  .object({
+    approvedByUserId: z.string().trim().min(1),
+    approvedAt: z.string().datetime({ offset: true }),
+    authority: z.enum(OFFICIAL_PUBLICATION_AUTHORITIES),
+    note: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
 
 const RegionParticipationSignalRecordSchema = z
   .object({
@@ -101,6 +116,7 @@ const RegionParticipationSignalRecordSchema = z
     updatedAt: z.string().datetime({ offset: true }),
     reviewedBy: z.string().trim().min(1).nullable(),
     reviewedAt: z.string().datetime({ offset: true }).nullable(),
+    officialApproval: ExplicitOfficialPublicationApprovalSchema.nullable().default(null),
     noAutoPublish: z.literal(true),
     noAutoCreateDossier: z.literal(true),
     noAutoCreateAnlassraum: z.literal(true),
@@ -161,6 +177,8 @@ const RegionParticipationSignalAuditEventSchema = z
       "region_confirmed",
       "archived",
       "revoked",
+      "official_approved",
+      "official_revoked",
     ]),
     previousStatus: z.enum([
       "draft",
@@ -182,6 +200,7 @@ const RegionParticipationSignalAuditEventSchema = z
     ]).nullable(),
     note: z.string().trim().min(1).nullable(),
     regionId: z.string().trim().min(1).nullable(),
+    authority: z.enum(OFFICIAL_PUBLICATION_AUTHORITIES).nullable().optional(),
     createdBy: z.string().trim().min(1),
     createdAt: z.string().datetime({ offset: true }),
   })
@@ -199,6 +218,7 @@ const RegionParticipationSignalReviewResultSchema = z
         "signal_not_found",
         "public_signal_region_unconfirmed",
         "public_signal_privacy_restricted",
+        "official_publication_requires_accepted_review",
         "invalid_decision",
       ])
       .nullable()
@@ -217,6 +237,14 @@ export type ReviewParticipationSignalInput = {
   decision: RegionParticipationSignalReviewDecision;
   reviewedBy: string;
   regionId?: string | null;
+  note?: string | null;
+  authority?: OfficialPublicationAuthority | null;
+};
+
+export type ApproveParticipationSignalOfficialPublicationInput = {
+  signalId: string;
+  approvedBy: string;
+  authority: OfficialPublicationAuthority;
   note?: string | null;
 };
 
@@ -237,6 +265,14 @@ export type ParticipationSignalReviewRuntimeRepo = {
   reviewParticipationSignal(
     input: ReviewParticipationSignalInput,
   ): Promise<RegionParticipationSignalReviewResult>;
+  approveParticipationSignalOfficialPublication(
+    input: ApproveParticipationSignalOfficialPublicationInput,
+  ): Promise<RegionParticipationSignalReviewResult>;
+  revokeParticipationSignalOfficialPublication(
+    signalId: string,
+    reviewedBy: string,
+    note?: string | null,
+  ): Promise<RegionParticipationSignalReviewResult>;
   confirmParticipationSignalRegion(
     signalId: string,
     regionId: string,
@@ -251,6 +287,9 @@ export type ParticipationSignalReviewRuntimeRepo = {
   getAcceptedParticipationSignalForDraft(
     signalId: string,
   ): Promise<RegionParticipationSignalRecord | null>;
+  listParticipationSignalAuditEvents(
+    signalId: string,
+  ): Promise<RegionParticipationSignalAuditEvent[]>;
   appendParticipationSignalAuditEvent(
     event: RegionParticipationSignalAuditEvent,
   ): Promise<void>;
@@ -336,7 +375,7 @@ function buildRecordFromSignal(
   const regionId =
     existing?.regionId ??
     (signal.needsRegionReview ? null : signal.regionId);
-  const visibilityState = resolveParticipationVisibilityState({
+  const fallbackVisibilityState = resolveParticipationVisibilityState({
     reviewStatus,
     sourceType: signal.sourceType,
     privacyMode: signal.privacyMode,
@@ -346,6 +385,10 @@ function buildRecordFromSignal(
     regionId,
     publicSafeTitle: existing?.publicSafeTitle ?? buildPublicSafeTitle(signal),
     publicSafeSummary: existing?.publicSafeSummary ?? buildPublicSafeSummary(signal),
+  });
+  const visibilityState = resolveExplicitOfficialVisibility({
+    fallbackVisibilityState,
+    officialApproval: existing?.officialApproval ?? null,
   });
   return RegionParticipationSignalRecordSchema.parse({
     id: signal.id,
@@ -379,6 +422,7 @@ function buildRecordFromSignal(
     updatedAt: isoNow(),
     reviewedBy: existing?.reviewedBy ?? null,
     reviewedAt: existing?.reviewedAt ?? null,
+    officialApproval: existing?.officialApproval ?? null,
     noAutoPublish: true,
     noAutoCreateDossier: true,
     noAutoCreateAnlassraum: true,
@@ -572,9 +616,26 @@ function nextStatusForDecision(
       return "revoked";
     case "restore_to_review":
       return record.regionId ? "needs_review" : "needs_region_review";
+    case "approve_official":
+    case "revoke_official":
+      return record.reviewStatus;
     default:
       return null;
   }
+}
+
+function recordCanBeOfficiallyApproved(
+  record: RegionParticipationSignalRecord,
+): boolean {
+  if (record.reviewStatus !== "accepted") return false;
+  if (!record.regionId || record.needsRegionReview) return false;
+  if (
+    record.privacyMode === "review_restricted" &&
+    (!record.publicSafeTitle || !record.publicSafeSummary)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function reviewBlockedReason(
@@ -590,6 +651,9 @@ function reviewBlockedReason(
     (!record.publicSafeTitle || !record.publicSafeSummary)
   ) {
     return "public_signal_privacy_restricted";
+  }
+  if (input.decision === "approve_official" && !recordCanBeOfficiallyApproved(record)) {
+    return "official_publication_requires_accepted_review";
   }
   return "invalid_decision";
 }
@@ -613,7 +677,7 @@ function buildUpdatedRecordFromDecision(
         ? String(input.regionId ?? record.regionId ?? record.proposedRegionId ?? "").trim() || null
         : record.proposedRegionId;
   const nextNeedsRegionReview = nextStatus === "needs_region_review";
-  const visibilityState = resolveParticipationVisibilityState({
+  const fallbackVisibilityState = resolveParticipationVisibilityState({
     reviewStatus: nextStatus,
     sourceType: record.sourceType,
     privacyMode: record.privacyMode,
@@ -621,6 +685,14 @@ function buildUpdatedRecordFromDecision(
     regionId: nextRegionId,
     publicSafeTitle: record.publicSafeTitle,
     publicSafeSummary: record.publicSafeSummary,
+  });
+  const clearsOfficialApproval =
+    input.decision !== "approve_official" &&
+    input.decision !== "revoke_official";
+  const officialApproval = clearsOfficialApproval ? null : record.officialApproval;
+  const visibilityState = resolveExplicitOfficialVisibility({
+    fallbackVisibilityState,
+    officialApproval,
   });
 
   return RegionParticipationSignalRecordSchema.parse({
@@ -633,6 +705,63 @@ function buildUpdatedRecordFromDecision(
     reviewedBy: input.reviewedBy,
     reviewedAt,
     updatedAt: reviewedAt,
+    officialApproval,
+  });
+}
+
+function buildOfficialApproval(
+  authority: OfficialPublicationAuthority,
+  approvedBy: string,
+  note?: string | null,
+): ExplicitOfficialPublicationApproval {
+  return {
+    approvedByUserId: approvedBy,
+    approvedAt: isoNow(),
+    authority,
+    note: note ?? null,
+  };
+}
+
+function buildOfficiallyApprovedRecord(
+  record: RegionParticipationSignalRecord,
+  input: ApproveParticipationSignalOfficialPublicationInput,
+): RegionParticipationSignalRecord {
+  const officialApproval = buildOfficialApproval(
+    input.authority,
+    input.approvedBy,
+    input.note,
+  );
+  return RegionParticipationSignalRecordSchema.parse({
+    ...record,
+    visibilityState: resolveExplicitOfficialVisibility({
+      fallbackVisibilityState: record.visibilityState,
+      officialApproval,
+    }),
+    officialApproval,
+    updatedAt: officialApproval.approvedAt,
+  });
+}
+
+function buildOfficialApprovalRevokedRecord(
+  record: RegionParticipationSignalRecord,
+  reviewedBy: string,
+): RegionParticipationSignalRecord {
+  const fallbackVisibilityState = resolveParticipationVisibilityState({
+    reviewStatus: record.reviewStatus,
+    sourceType: record.sourceType,
+    privacyMode: record.privacyMode,
+    needsRegionReview: record.needsRegionReview,
+    regionId: record.regionId,
+    publicSafeTitle: record.publicSafeTitle,
+    publicSafeSummary: record.publicSafeSummary,
+  });
+  return RegionParticipationSignalRecordSchema.parse({
+    ...record,
+    visibilityState: fallbackVisibilityState,
+    officialApproval: null,
+    reviewedBy,
+    reviewedAt: isoNow(),
+    updatedAt: isoNow(),
   });
 }
 
@@ -786,6 +915,92 @@ export function createMongoParticipationSignalReviewRuntimeRepo(): Participation
       });
     },
 
+    async approveParticipationSignalOfficialPublication(input) {
+      await ensureMongoIndexes();
+      const col = await coreCol<ParticipationSignalRecordDoc>(RECORDS_COLLECTION);
+      const existing = mapRecordDoc(await col.findOne({ _id: input.signalId }));
+      if (!existing) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "signal_not_found",
+          record: null,
+          review: null,
+        });
+      }
+      if (!recordCanBeOfficiallyApproved(existing)) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "official_publication_requires_accepted_review",
+          record: existing,
+          review: null,
+        });
+      }
+      const updatedRecord = buildOfficiallyApprovedRecord(existing, input);
+      await col.updateOne(
+        { _id: updatedRecord.id },
+        { $set: { record: clone(updatedRecord), updatedAt: new Date(updatedRecord.updatedAt) } },
+      );
+      await appendAuditEventMongo(
+        RegionParticipationSignalAuditEventSchema.parse({
+          id: new ObjectId().toHexString(),
+          signalId: updatedRecord.id,
+          eventType: "official_approved",
+          previousStatus: existing.reviewStatus,
+          nextStatus: updatedRecord.reviewStatus,
+          note: input.note ?? null,
+          regionId: updatedRecord.regionId ?? updatedRecord.proposedRegionId ?? null,
+          authority: input.authority,
+          createdBy: input.approvedBy,
+          createdAt: updatedRecord.updatedAt,
+        }),
+      );
+      return RegionParticipationSignalReviewResultSchema.parse({
+        ok: true,
+        blockedReason: null,
+        record: updatedRecord,
+        review: null,
+      });
+    },
+
+    async revokeParticipationSignalOfficialPublication(signalId, reviewedBy, note) {
+      await ensureMongoIndexes();
+      const col = await coreCol<ParticipationSignalRecordDoc>(RECORDS_COLLECTION);
+      const existing = mapRecordDoc(await col.findOne({ _id: signalId }));
+      if (!existing) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "signal_not_found",
+          record: null,
+          review: null,
+        });
+      }
+      const updatedRecord = buildOfficialApprovalRevokedRecord(existing, reviewedBy);
+      await col.updateOne(
+        { _id: updatedRecord.id },
+        { $set: { record: clone(updatedRecord), updatedAt: new Date(updatedRecord.updatedAt) } },
+      );
+      await appendAuditEventMongo(
+        RegionParticipationSignalAuditEventSchema.parse({
+          id: new ObjectId().toHexString(),
+          signalId: updatedRecord.id,
+          eventType: "official_revoked",
+          previousStatus: existing.reviewStatus,
+          nextStatus: updatedRecord.reviewStatus,
+          note: note ?? null,
+          regionId: updatedRecord.regionId ?? updatedRecord.proposedRegionId ?? null,
+          authority: existing.officialApproval?.authority ?? null,
+          createdBy: reviewedBy,
+          createdAt: updatedRecord.updatedAt,
+        }),
+      );
+      return RegionParticipationSignalReviewResultSchema.parse({
+        ok: true,
+        blockedReason: null,
+        record: updatedRecord,
+        review: null,
+      });
+    },
+
     async confirmParticipationSignalRegion(signalId, regionId, reviewedBy, note) {
       return this.reviewParticipationSignal({
         signalId,
@@ -817,6 +1032,16 @@ export function createMongoParticipationSignalReviewRuntimeRepo(): Participation
         return null;
       }
       return record;
+    },
+
+    async listParticipationSignalAuditEvents(signalId) {
+      await ensureMongoIndexes();
+      const col = await coreCol<ParticipationSignalAuditEventDoc>(AUDIT_COLLECTION);
+      const docs = await col
+        .find({ "event.signalId": signalId })
+        .sort({ createdAt: -1 })
+        .toArray();
+      return docs.map((doc) => clone(doc.event));
     },
 
     async appendParticipationSignalAuditEvent(event) {
@@ -956,6 +1181,80 @@ export function createInMemoryParticipationSignalReviewRuntimeRepo(seed?: {
       });
     },
 
+    async approveParticipationSignalOfficialPublication(input) {
+      const existing = records.get(input.signalId) ?? null;
+      if (!existing) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "signal_not_found",
+          record: null,
+          review: null,
+        });
+      }
+      if (!recordCanBeOfficiallyApproved(existing)) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "official_publication_requires_accepted_review",
+          record: clone(existing),
+          review: null,
+        });
+      }
+      const updatedRecord = buildOfficiallyApprovedRecord(existing, input);
+      records.set(updatedRecord.id, clone(updatedRecord));
+      const event = RegionParticipationSignalAuditEventSchema.parse({
+        id: new ObjectId().toHexString(),
+        signalId: updatedRecord.id,
+        eventType: "official_approved",
+        previousStatus: existing.reviewStatus,
+        nextStatus: updatedRecord.reviewStatus,
+        note: input.note ?? null,
+        regionId: updatedRecord.regionId ?? updatedRecord.proposedRegionId ?? null,
+        authority: input.authority,
+        createdBy: input.approvedBy,
+        createdAt: updatedRecord.updatedAt,
+      });
+      auditEvents.set(event.id, clone(event));
+      return RegionParticipationSignalReviewResultSchema.parse({
+        ok: true,
+        blockedReason: null,
+        record: updatedRecord,
+        review: null,
+      });
+    },
+
+    async revokeParticipationSignalOfficialPublication(signalId, reviewedBy, note) {
+      const existing = records.get(signalId) ?? null;
+      if (!existing) {
+        return RegionParticipationSignalReviewResultSchema.parse({
+          ok: false,
+          blockedReason: "signal_not_found",
+          record: null,
+          review: null,
+        });
+      }
+      const updatedRecord = buildOfficialApprovalRevokedRecord(existing, reviewedBy);
+      records.set(updatedRecord.id, clone(updatedRecord));
+      const event = RegionParticipationSignalAuditEventSchema.parse({
+        id: new ObjectId().toHexString(),
+        signalId: updatedRecord.id,
+        eventType: "official_revoked",
+        previousStatus: existing.reviewStatus,
+        nextStatus: updatedRecord.reviewStatus,
+        note: note ?? null,
+        regionId: updatedRecord.regionId ?? updatedRecord.proposedRegionId ?? null,
+        authority: existing.officialApproval?.authority ?? null,
+        createdBy: reviewedBy,
+        createdAt: updatedRecord.updatedAt,
+      });
+      auditEvents.set(event.id, clone(event));
+      return RegionParticipationSignalReviewResultSchema.parse({
+        ok: true,
+        blockedReason: null,
+        record: updatedRecord,
+        review: null,
+      });
+    },
+
     async confirmParticipationSignalRegion(signalId, regionId, reviewedBy, note) {
       return this.reviewParticipationSignal({
         signalId,
@@ -987,6 +1286,13 @@ export function createInMemoryParticipationSignalReviewRuntimeRepo(seed?: {
         return null;
       }
       return clone(record);
+    },
+
+    async listParticipationSignalAuditEvents(signalId) {
+      return Array.from(auditEvents.values())
+        .filter((event) => event.signalId === signalId)
+        .map((event) => clone(event))
+        .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
     },
 
     async appendParticipationSignalAuditEvent(event) {

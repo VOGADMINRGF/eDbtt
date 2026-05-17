@@ -19,7 +19,12 @@ import {
   getSocialPublishingPolicy,
   type MinimalDossierInput,
 } from "@features/outputEngine";
-import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
+import {
+  type ExplicitOfficialPublicationApproval,
+  publicationVisibilityLabel,
+  resolveExplicitOfficialVisibility,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 import {
   buildRuntimeDataGuardrail,
   isExplicitDemoDossierId,
@@ -29,6 +34,20 @@ import {
 type PageProps = { params: Promise<{ id: string }> };
 
 const REVIEW_REQUIRED_STATUSES = new Set(["draft", "needs_review"]);
+
+function withOfficialVisibility<T extends { visibilityState: string }>(
+  value: T,
+  officialApproval: ExplicitOfficialPublicationApproval | null | undefined,
+): T {
+  return {
+    ...value,
+    visibilityState: resolveExplicitOfficialVisibility({
+      fallbackVisibilityState:
+        value.visibilityState as RegionPublicationVisibilityState,
+      officialApproval: officialApproval ?? null,
+    }),
+  };
+}
 
 function reviewStatusLabel(value: string): string {
   if (value === "draft") return "Entwurf";
@@ -164,11 +183,19 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
     );
   }
 
-  const pkg = parsedPackage.data;
-  const reviewRequired = REVIEW_REQUIRED_STATUSES.has(pkg.reviewStatus);
   const studioWorkspace = await getDossierStudioWorkspaceRepo().getDossierStudioWorkspace(id);
-  const carousel = studioWorkspace?.carouselDraft ?? generateSocialCarouselOutput(pkg);
-  const masterPost = studioWorkspace?.masterPostDraft ?? generateMasterPost(pkg);
+  const pkg = studioWorkspace?.officialApproval
+    ? withOfficialVisibility(parsedPackage.data, studioWorkspace.officialApproval)
+    : parsedPackage.data;
+  const reviewRequired = REVIEW_REQUIRED_STATUSES.has(pkg.reviewStatus);
+  const carouselBase = studioWorkspace?.carouselDraft ?? generateSocialCarouselOutput(pkg);
+  const carousel = studioWorkspace?.officialApproval
+    ? withOfficialVisibility(carouselBase, studioWorkspace.officialApproval)
+    : carouselBase;
+  const masterPostBase = studioWorkspace?.masterPostDraft ?? generateMasterPost(pkg);
+  const masterPost = studioWorkspace?.officialApproval
+    ? withOfficialVisibility(masterPostBase, studioWorkspace.officialApproval)
+    : masterPostBase;
   const policy = getSocialPublishingPolicy();
   const distributionPlan = buildSocialDistributionPlan(masterPost, carousel, { policy });
   const persistedDistributionDraft = studioWorkspace?.distributionDraft ?? null;
@@ -214,6 +241,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1">
               Server-Workspace · {studioWorkspace.status} ·{" "}
               {publicationVisibilityLabel(studioWorkspace.visibilityState)}
+            </span>
+          ) : null}
+          {studioWorkspace?.officialApproval ? (
+            <span className="rounded-full border border-sky-400/40 bg-sky-500/10 px-2 py-1">
+              Menschlich freigegeben · {studioWorkspace.officialApproval.authority === "admin_fallback"
+                ? "Betreiber-Fallback"
+                : "Publikationsfreigabe"}
             </span>
           ) : null}
         </div>
@@ -268,6 +302,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           Sichtbarkeit: {publicationVisibilityLabel(masterPost.visibilityState)}. Sichtbar heißt hier
           nicht automatisch geprüft oder amtlich.
         </p>
+        {studioWorkspace?.officialApproval ? (
+          <p className="mt-2 text-xs text-sky-700">
+            Öffentliche amtliche Freigabe wurde explizit durch einen berechtigten Menschen erteilt.
+          </p>
+        ) : null}
         <article className="mt-4 space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[linear-gradient(145deg,rgba(8,47,73,0.9),rgba(3,7,18,0.92))] p-4 text-slate-100">
           <header>
             <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Titel</p>

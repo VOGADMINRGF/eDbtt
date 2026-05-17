@@ -86,6 +86,24 @@ const organizationMembership = [
   },
 ];
 
+const publicationApprovedMembership = [
+  {
+    ...unitMembership[0],
+    id: "membership-publication-1",
+    verificationStatus: "publication_approved",
+    allowedActions: [
+      "read_region_dashboard",
+      "review_region_signal",
+      "create_region_draft",
+      "create_dossier_draft",
+      "create_anlassraum_draft",
+      "attach_signal_to_dossier",
+      "submit_for_review",
+      "approve_publication",
+    ],
+  },
+];
+
 const organizations = [
   {
     id: "org-reinickendorf-1",
@@ -551,6 +569,89 @@ describe("/api/dossier/[id]/studio/workspace", () => {
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
+    });
+  });
+
+  it("keeps official publication explicit and restricted to publication-approved or admin fallback", async () => {
+    seedVerifiedRuntimeMembership();
+    const draftId = await seedRegionDraftDossier();
+    const payload = buildStudioPayload(draftId);
+
+    const created = await POST(
+      buildRequest("POST", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        masterPostDraft: payload.masterPost,
+        distributionDraft: payload.distributionDraft,
+        carouselDraft: payload.carouselDraft,
+        status: "needs_review",
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+    expect(created.status).toBe(201);
+
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const blocked = await PATCH(
+      buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        action: "approve_publication",
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+    expect(blocked.status).toBe(403);
+
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations,
+        memberships: publicationApprovedMembership.map((membership) => ({
+          ...membership,
+          userId: "publisher-1",
+        })),
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "publisher-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "publisher-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const approved = await PATCH(
+      buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        action: "approve_publication",
+        note: "Explizite menschliche Freigabe.",
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+    expect(approved.status).toBe(200);
+    await expect(approved.json()).resolves.toMatchObject({
+      ok: true,
+      workspace: {
+        status: "needs_review",
+        visibilityState: "public_official",
+        officialApproval: expect.objectContaining({
+          authority: "publication_approved",
+          approvedByUserId: "publisher-1",
+        }),
+      },
+      access: {
+        canApproveOfficialPublication: true,
+      },
     });
   });
 });
