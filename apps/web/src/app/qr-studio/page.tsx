@@ -71,6 +71,10 @@ function buildOptionList(input: string) {
   return raw;
 }
 
+function toArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export default function QrStudioPage() {
   const [mode, setMode] = useState<"manual" | "research">("manual");
   const [title, setTitle] = useState("");
@@ -213,7 +217,13 @@ export default function QrStudioPage() {
         if (!res.ok || !body?.ok) {
           throw new Error(body?.error || "summary_failed");
         }
-        setSummary(body);
+        setSummary({
+          ...body,
+          questions: toArray(body.questions).map((question) => ({
+            ...question,
+            options: toArray(question.options),
+          })),
+        });
       } catch (err: unknown) {
         setSummaryError(err instanceof Error ? err.message : "summary_failed");
         setSummary(null);
@@ -229,6 +239,8 @@ export default function QrStudioPage() {
       void loadSummary(createdCode);
     }
   }, [createdCode, loadSummary]);
+
+  const summaryQuestions = toArray(summary?.questions);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[rgb(var(--bg))] pb-16">
@@ -517,16 +529,16 @@ export default function QrStudioPage() {
                 <span>Gesamtstimmen: {summary.totalVotes ?? 0}</span>
               </div>
 
-              {summary.questions?.length ? (
+              {summaryQuestions.length ? (
                 <div className="grid gap-4">
-                  {summary.questions.map((question) => (
+                  {summaryQuestions.map((question) => (
                     <div key={question.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{question.title}</p>
                         <span className="text-xs text-[rgb(var(--muted))]">{question.totalVotes} Stimmen</span>
                       </div>
                       <div className="mt-3 space-y-2">
-                        {question.options.map((opt) => {
+                        {toArray(question.options).map((opt) => {
                           const total = question.totalVotes || 1;
                           const pct = Math.round((opt.count / total) * 100);
                           return (

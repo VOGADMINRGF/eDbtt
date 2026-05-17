@@ -1,11 +1,96 @@
 "use client";
 import { useState } from "react";
 import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
+import type { E150Lane } from "@features/ai/e150/journeyProfiles";
+import type { ResearchUsed, VerificationMode } from "@features/ai/e150/verificationContract";
+
+type FactcheckClaimResult = {
+  id: string;
+  text: string;
+};
+
+type FactcheckJobResult = {
+  jobId?: string;
+  status?: string;
+  lane?: E150Lane;
+  verificationMode?: VerificationMode;
+  researchUsed?: ResearchUsed;
+  sealEligible?: boolean;
+  sealGranted?: boolean;
+  verdict?: string;
+  confidence?: number;
+};
+
+type FactcheckResult = {
+  job: FactcheckJobResult;
+  claims: FactcheckClaimResult[];
+};
+
+function toClaims(value: unknown): FactcheckClaimResult[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((claim, idx) => {
+    const current = claim as { id?: unknown; text?: unknown } | null;
+    return {
+      id: typeof current?.id === "string" && current.id.trim() ? current.id : String(idx + 1),
+      text: typeof current?.text === "string" ? current.text : "",
+    };
+  });
+}
+
+function toLane(value: unknown): E150Lane | undefined {
+  switch (value) {
+    case "standard":
+    case "sealed_factcheck":
+    case "material_grounding":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function toVerificationMode(value: unknown): VerificationMode | undefined {
+  switch (value) {
+    case "none":
+    case "precheck":
+    case "sealed":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function toResearchUsed(value: unknown): ResearchUsed | undefined {
+  switch (value) {
+    case "none":
+    case "lite":
+    case "gemini":
+    case "search":
+    case "deep_search":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function toJob(value: unknown): FactcheckJobResult {
+  const current = value as Record<string, unknown> | null;
+  return {
+    jobId: typeof current?.jobId === "string" ? current.jobId : undefined,
+    status: typeof current?.status === "string" ? current.status : undefined,
+    lane: toLane(current?.lane),
+    verificationMode: toVerificationMode(current?.verificationMode),
+    researchUsed: toResearchUsed(current?.researchUsed),
+    sealEligible: typeof current?.sealEligible === "boolean" ? current.sealEligible : undefined,
+    sealGranted: typeof current?.sealGranted === "boolean" ? current.sealGranted : undefined,
+    verdict: typeof current?.verdict === "string" ? current.verdict : undefined,
+    confidence: typeof current?.confidence === "number" ? current.confidence : undefined,
+  };
+}
 
 export default function FactcheckPage() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<FactcheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
@@ -27,11 +112,8 @@ export default function FactcheckPage() {
         const sj = await st.json();
         if (st.ok && (sj.job.status === "completed" || sj.job.status === "failed")) {
           setResult({
-            job: sj.job,
-            claims: (sj.claims ?? []).map((c: any, idx: number) => ({
-              id: c.id ?? String(idx + 1),
-              text: c.text,
-            })),
+            job: toJob(sj?.job),
+            claims: toClaims(sj?.claims),
           });
           setLoading(false);
           return;
@@ -66,7 +148,7 @@ export default function FactcheckPage() {
       {result && (
         <div className="border rounded p-4 space-y-2">
           <div className="text-sm text-gray-600">
-            Job #{result.job.jobId} – {result.job.status}
+            Job #{result.job.jobId ?? "unbekannt"} – {result.job.status ?? "offen"}
           </div>
           <VerificationStatusPanel
             lane={result.job?.lane ?? "sealed_factcheck"}
@@ -83,7 +165,7 @@ export default function FactcheckPage() {
               {typeof result.job.confidence === "number" ? ` (confidence ${result.job.confidence})` : ""}
             </div>
           )}
-          {result.claims.map((c: any) => (
+          {result.claims.map((c) => (
             <div key={c.id} className="p-3 bg-gray-50 rounded">
               <div className="font-medium">{c.text}</div>
             </div>

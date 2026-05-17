@@ -8,6 +8,10 @@ export type PrivacyDataPoint = {
   description: string;
 };
 
+function toArray<T>(value: T[] | readonly T[] | null | undefined): T[] {
+  return Array.isArray(value) ? [...value] : [];
+}
+
 const STRINGS = {
   title: {
     de: "Datenschutz",
@@ -211,14 +215,14 @@ export function getPrivacyStrings(locale: SupportedLocale | string) {
     controllerTitle: pick(STRINGS.controllerTitle, locale),
     controllerBody: pick(STRINGS.controllerBody, locale),
     dataTitle: pick(STRINGS.dataTitle, locale),
-    dataPoints: pick(STRINGS.dataPoints, locale),
+    dataPoints: toArray(pick(STRINGS.dataPoints, locale)),
     cookiesTitle: pick(STRINGS.cookiesTitle, locale),
     cookiesBody: pick(STRINGS.cookiesBody, locale),
     aiTitle: pick(STRINGS.aiTitle, locale),
     aiBody: pick(STRINGS.aiBody, locale),
     rightsTitle: pick(STRINGS.rightsTitle, locale),
     rightsIntro: pick(STRINGS.rightsIntro, locale),
-    rightsPoints: pick(STRINGS.rightsPoints, locale),
+    rightsPoints: toArray(pick(STRINGS.rightsPoints, locale)),
     rightsComplaintHint: pick(STRINGS.rightsComplaintHint, locale),
     contactTitle: pick(STRINGS.contactTitle, locale),
     contactBody: pick(STRINGS.contactBody, locale),

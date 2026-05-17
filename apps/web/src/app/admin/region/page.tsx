@@ -11,6 +11,10 @@ type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
   | Record<string, string | string[] | undefined>;
 
+function toArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function firstParam(value?: string | string[]) {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value[0] ?? null;
@@ -312,6 +316,18 @@ export default async function AdminRegionPage({
     redirect("/admin/regions");
   }
   const cockpit = await getRegionalAdminCockpitReadModel(region.id);
+  const openReviewItems = toArray(cockpit.openReviewItems);
+  const feedSignals = toArray(cockpit.feedSignals);
+  const topicClusters = toArray(cockpit.topicClusters);
+  const participationSignals = toArray(cockpit.participationSignals);
+  const needsRegionReviewSignals = toArray(cockpit.needsRegionReviewSignals);
+  const communitySourceHints = toArray(cockpit.communitySourceHints);
+  const reviewItemsFromPublicInput = toArray(cockpit.reviewItemsFromPublicInput);
+  const suggestedAnlassraeume = toArray(cockpit.suggestedAnlassraeume);
+  const suggestedDossiers = toArray(cockpit.suggestedDossiers);
+  const allowedActions = toArray(cockpit.accessSummary.allowedActions);
+  const guidelineCriteria = cockpit.guidelineMatrix ? toArray(cockpit.guidelineMatrix.criteria) : [];
+  const cockpitModules = Object.entries(cockpit.cockpit?.modules ?? {});
 
   return (
     <main
@@ -367,7 +383,7 @@ export default async function AdminRegionPage({
             </div>
             <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Review-Items</p>
-              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{cockpit.openReviewItems.length}</p>
+              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{openReviewItems.length}</p>
               <p className="text-sm text-[rgb(var(--muted))]">Review-gated, keine automatische Weiterverarbeitung</p>
             </div>
             <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
@@ -450,8 +466,8 @@ export default async function AdminRegionPage({
                 optional.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {cockpit.accessSummary.allowedActions.length > 0 ? (
-                  cockpit.accessSummary.allowedActions.map((action) => (
+                {allowedActions.length > 0 ? (
+                  allowedActions.map((action) => (
                     <span
                       key={action}
                       className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
@@ -509,8 +525,8 @@ export default async function AdminRegionPage({
                 Aktuelle Themenlage {cockpit.region.name}
               </h2>
               <div className="mt-4 space-y-3">
-                {cockpit.feedSignals.length > 0 ? (
-                  cockpit.feedSignals.slice(0, 6).map((signal) => (
+                {feedSignals.length > 0 ? (
+                  feedSignals.slice(0, 6).map((signal) => (
                     <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(signal.sourceType)}</span>
@@ -533,7 +549,7 @@ export default async function AdminRegionPage({
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {signal.detectedTopics.map((topic) => (
+                        {toArray(signal.detectedTopics).map((topic) => (
                           <span
                             key={topic}
                             className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
@@ -543,7 +559,7 @@ export default async function AdminRegionPage({
                         ))}
                       </div>
                       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                        Orte: {signal.detectedPlaces.join(", ") || "nicht erkannt"}
+                        Orte: {toArray(signal.detectedPlaces).join(", ") || "nicht erkannt"}
                       </p>
                       <p className="mt-2 text-xs font-medium text-cyan-900">{suggestedActionLabel(signal.suggestedAction)}</p>
                     </div>
@@ -558,20 +574,20 @@ export default async function AdminRegionPage({
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themencluster</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Reviewpflichtige Verdichtungen</h2>
               <div className="mt-4 space-y-3">
-                {cockpit.topicClusters.length > 0 ? (
-                  cockpit.topicClusters.slice(0, 5).map((cluster) => (
+                {topicClusters.length > 0 ? (
+                  topicClusters.slice(0, 5).map((cluster) => (
                     <div key={cluster.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{reviewStatusLabel(cluster.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{cluster.signalIds.length} Signale</span>
+                        <span>{toArray(cluster.signalIds).length} Signale</span>
                         <span>·</span>
                         <span>Review-Hinweis aktiv</span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{cluster.label}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">{cluster.summary}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {cluster.detectedTopics.map((topic) => (
+                        {toArray(cluster.detectedTopics).map((topic) => (
                           <span
                             key={topic}
                             className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
@@ -603,7 +619,7 @@ export default async function AdminRegionPage({
                 Leitlinien-Erfüllung und keine automatische Veröffentlichung.
               </p>
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {cockpit.guidelineMatrix.criteria.map((criterion) => (
+                {guidelineCriteria.map((criterion) => (
                   <article key={criterion.key} className="rounded-2xl border border-[rgb(var(--border))] p-4">
                     <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                       {guidelineLabel(criterion.key)}
@@ -683,17 +699,17 @@ export default async function AdminRegionPage({
                   </p>
                 </div>
               </div>
-              {cockpit.needsRegionReviewSignals.length > 0 ? (
+              {needsRegionReviewSignals.length > 0 ? (
                 <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-amber-900">
                     Regionzuordnung offen
                   </p>
                   <p className="mt-2 text-sm text-amber-950">
-                    {cockpit.needsRegionReviewSignals.length} öffentliche Signale bleiben bis zur bestätigten
+                    {needsRegionReviewSignals.length} öffentliche Signale bleiben bis zur bestätigten
                     Regionzuordnung außerhalb der aktiven Themenlage.
                   </p>
                   <div className="mt-3 space-y-2">
-                    {cockpit.needsRegionReviewSignals.slice(0, 4).map((signal) => (
+                    {needsRegionReviewSignals.slice(0, 4).map((signal) => (
                       <div key={signal.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2">
                         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
@@ -705,8 +721,8 @@ export default async function AdminRegionPage({
                 </div>
               ) : null}
               <div className="mt-4 space-y-3">
-                {cockpit.participationSignals.length > 0 ? (
-                  cockpit.participationSignals.slice(0, 6).map((signal) => (
+                {participationSignals.length > 0 ? (
+                  participationSignals.slice(0, 6).map((signal) => (
                     <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(signal.sourceType)}</span>
@@ -726,7 +742,7 @@ export default async function AdminRegionPage({
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {signal.detectedTopics.map((topic) => (
+                        {toArray(signal.detectedTopics).map((topic) => (
                           <span
                             key={topic}
                             className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
@@ -736,7 +752,7 @@ export default async function AdminRegionPage({
                         ))}
                       </div>
                       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                        Orte: {signal.detectedPlaces.join(", ") || "nicht sicher zugeordnet"}
+                        Orte: {toArray(signal.detectedPlaces).join(", ") || "nicht sicher zugeordnet"}
                       </p>
                     </div>
                   ))
@@ -758,8 +774,8 @@ export default async function AdminRegionPage({
                   <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                     Quellenhinweise aus der Community
                   </p>
-                  {cockpit.communitySourceHints.length > 0 ? (
-                    cockpit.communitySourceHints.slice(0, 3).map((signal) => (
+                  {communitySourceHints.length > 0 ? (
+                    communitySourceHints.slice(0, 3).map((signal) => (
                       <p key={signal.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
                         {signal.title}
                       </p>
@@ -781,8 +797,8 @@ export default async function AdminRegionPage({
                   <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                     Review-Items aus öffentlichem Input
                   </p>
-                  {cockpit.reviewItemsFromPublicInput.length > 0 ? (
-                    cockpit.reviewItemsFromPublicInput.slice(0, 4).map((item) => (
+                  {reviewItemsFromPublicInput.length > 0 ? (
+                    reviewItemsFromPublicInput.slice(0, 4).map((item) => (
                       <div key={item.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
                         {item.title} · {privacyModeLabel(item.privacyMode)} · {aggregationModeLabel(item.aggregationMode)}
                         {" "}· {visibilityStateLabel(item.visibilityState)}
@@ -801,15 +817,15 @@ export default async function AdminRegionPage({
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene Anlassräume</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Nur Vorschläge, kein automatischer Anlassraum</h2>
               <div className="mt-4 space-y-3">
-                {cockpit.suggestedAnlassraeume.length > 0 ? (
-                  cockpit.suggestedAnlassraeume.slice(0, 4).map((suggestion) => (
+                {suggestedAnlassraeume.length > 0 ? (
+                  suggestedAnlassraeume.slice(0, 4).map((suggestion) => (
                     <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
                         <span>·</span>
                         <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
                         <span>·</span>
-                        <span>{suggestion.relatedSignalIds.length} relatedSignals</span>
+                        <span>{toArray(suggestion.relatedSignalIds).length} relatedSignals</span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
@@ -825,21 +841,21 @@ export default async function AdminRegionPage({
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene Dossiers</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Nur Vorschläge, kein automatisches Dossier</h2>
               <div className="mt-4 space-y-3">
-                {cockpit.suggestedDossiers.length > 0 ? (
-                  cockpit.suggestedDossiers.slice(0, 4).map((suggestion) => (
+                {suggestedDossiers.length > 0 ? (
+                  suggestedDossiers.slice(0, 4).map((suggestion) => (
                     <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
                         <span>·</span>
                         <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
                         <span>·</span>
-                        <span>{suggestion.relatedSignalIds.length} relatedSignals</span>
+                        <span>{toArray(suggestion.relatedSignalIds).length} relatedSignals</span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
                       <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
-                      {suggestion.openQuestions.length > 0 ? (
+                      {toArray(suggestion.openQuestions).length > 0 ? (
                         <div className="mt-3 space-y-1">
-                          {suggestion.openQuestions.map((question) => (
+                          {toArray(suggestion.openQuestions).map((question) => (
                             <p key={question} className="text-xs text-[rgb(var(--muted))]">
                               Offene Frage: {question}
                             </p>
@@ -860,8 +876,8 @@ export default async function AdminRegionPage({
               <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Open Review Items</p>
               <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Review-gated Arbeitsliste</h2>
               <div className="mt-4 space-y-3">
-                {cockpit.openReviewItems.length > 0 ? (
-                  cockpit.openReviewItems.slice(0, 6).map((item) => (
+                {openReviewItems.length > 0 ? (
+                  openReviewItems.slice(0, 6).map((item) => (
                     <div key={item.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(item.sourceType)}</span>
@@ -920,7 +936,7 @@ export default async function AdminRegionPage({
           </section>
 
           <section data-testid="admin-region-modules" className="grid gap-4 lg:grid-cols-2">
-            {Object.entries(cockpit.cockpit.modules).map(([key, module]) => (
+            {cockpitModules.map(([key, module]) => (
               <article key={key} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
                 <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{key}</p>
                 <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{module.headline}</h2>

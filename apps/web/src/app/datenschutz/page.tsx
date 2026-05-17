@@ -14,6 +14,8 @@ export default function DatenschutzPage() {
     locale === "de" || locale === "en"
       ? baseStrings
       : mapTranslatableStrings(sourceStrings, t, { namespace: "datenschutz" });
+  const dataPoints = Array.isArray(strings.dataPoints) ? strings.dataPoints : [];
+  const rightsPoints = Array.isArray(strings.rightsPoints) ? strings.rightsPoints : [];
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
@@ -46,7 +48,7 @@ export default function DatenschutzPage() {
                 {strings.dataTitle}
               </p>
               <ul className="mt-2 space-y-2">
-                {strings.dataPoints.map((item) => (
+                {dataPoints.map((item) => (
                   <li key={item.label}>
                     <span className="font-semibold">{item.label}:</span> {item.description}
                   </li>
@@ -63,7 +65,7 @@ export default function DatenschutzPage() {
               </p>
               <p className="mt-1">{strings.rightsIntro}</p>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {strings.rightsPoints.map((item, idx) => (
+                {rightsPoints.map((item, idx) => (
                   <li key={idx}>{item}</li>
                 ))}
               </ul>
