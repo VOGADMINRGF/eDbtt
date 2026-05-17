@@ -2,6 +2,7 @@ import {
   DISTRIBUTION_CHANNELS,
   OUTPUT_FORMATS,
   OutputPackageSchema,
+  type OutputVisibilityState,
   type DistributionChannel,
   type DossierOutput,
   type OutputAudience,
@@ -10,6 +11,7 @@ import {
   type OutputReviewStatus,
   type SourceTrace,
 } from "./contracts";
+import { resolveReviewOnlyVisibilityState } from "@features/region/publicationRiskLadder";
 
 export type MinimalDossierInput = {
   id: string;
@@ -142,15 +144,27 @@ function resolveReviewStatus(needsInputMarkers: string[]): OutputReviewStatus {
   return needsInputMarkers.length > 0 ? "needs_review" : "draft";
 }
 
+function resolveOutputVisibilityState(
+  reviewStatus: OutputReviewStatus,
+): OutputVisibilityState {
+  return resolveReviewOnlyVisibilityState({
+    reviewStatus:
+      reviewStatus === "approved" || reviewStatus === "published"
+        ? "accepted"
+        : reviewStatus,
+  });
+}
+
 function buildDistributionOutputs(input: {
   formats: readonly OutputFormat[];
   title: string;
   shortSummary: string;
   structuredSummary: string[];
   openQuestions: string[];
-  options: string[];
-  reviewStatus: OutputReviewStatus;
-  completenessStatus: "complete" | "needs_input";
+    options: string[];
+    reviewStatus: OutputReviewStatus;
+    visibilityState: OutputVisibilityState;
+    completenessStatus: "complete" | "needs_input";
 }): DossierOutput[] {
   return input.formats.map((format) => ({
     format,
@@ -161,6 +175,7 @@ function buildDistributionOutputs(input: {
     openQuestions: input.openQuestions,
     options: input.options,
     reviewStatus: input.reviewStatus,
+    visibilityState: input.visibilityState,
     completenessStatus: input.completenessStatus,
     mapperReady: false,
   }));
@@ -188,6 +203,7 @@ export function generateOutputPackage(
     summary,
   });
   const reviewStatus = resolveReviewStatus(needsInputMarkers);
+  const visibilityState = resolveOutputVisibilityState(reviewStatus);
   const completenessStatus = needsInputMarkers.length > 0 ? "needs_input" : "complete";
   const generatedAt = toIsoDate(options.generatedAt ?? dossier.updatedAt);
   const dossierBacklinkTarget = normalizeBacklink(options.baseUrl, dossierId);
@@ -198,6 +214,7 @@ export function generateOutputPackage(
     dossierId,
     generatedAt,
     reviewStatus,
+    visibilityState,
     completenessStatus,
     audience: options.audience ?? "general_public",
     title,
@@ -235,6 +252,7 @@ export function generateOutputPackage(
       openQuestions,
       options: decisionOptions,
       reviewStatus,
+      visibilityState,
       completenessStatus,
     }),
     autoPublish: false,

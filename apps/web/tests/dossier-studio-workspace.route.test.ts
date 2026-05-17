@@ -306,6 +306,7 @@ describe("/api/dossier/[id]/studio/workspace", () => {
       workspace: {
         dossierId: draftId,
         status: "draft",
+        visibilityState: "private_draft",
         guardrails: {
           noAutoPublish: true,
           noSocialPublishing: true,
@@ -332,6 +333,7 @@ describe("/api/dossier/[id]/studio/workspace", () => {
       workspace: {
         dossierId: draftId,
         status: "needs_review",
+        visibilityState: "internal_review",
         reviewNotes: "Review jetzt erforderlich",
       },
     });

@@ -7,6 +7,7 @@ import {
   type OrganizationDashboardDraftSummary,
   type OrganizationDashboardReadModel,
 } from "@features/region";
+import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 
 export const metadata = {
   title: "Organisationsbereich · eDebatte",
@@ -75,23 +76,6 @@ function organizationTypeLabel(value: OrganizationDashboardReadModel["organizati
       return "Organisation";
     default:
       return "Noch kein Typ";
-  }
-}
-
-function visibilityLabel(value: string) {
-  switch (value) {
-    case "public_unverified":
-      return "sichtbar, aber nicht geprüft";
-    case "public_reviewed":
-      return "geprüft";
-    case "public_official":
-      return "amtlich freigegeben";
-    case "internal_review":
-      return "reviewpflichtig";
-    case "blocked":
-      return "blockiert";
-    default:
-      return value;
   }
 }
 
@@ -329,9 +313,9 @@ export default async function AccountOrganizationDashboardPage() {
                       {item.regionName}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                    {item.sourceClass === "participation" ? "Beteiligungssignal" : "Signal"} ·{" "}
-                    {visibilityLabel(item.visibilityState)}
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      {item.sourceClass === "participation" ? "Beteiligungssignal" : "Signal"} ·{" "}
+                      {publicationVisibilityLabel(item.visibilityState)}
                   </p>
                 </article>
               ))
@@ -415,7 +399,8 @@ export default async function AccountOrganizationDashboardPage() {
                 <article key={draft.draftId} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                   <p className="text-sm font-semibold text-[rgb(var(--fg))]">{draft.title}</p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    {draft.regionName} · {draftTitle(draft.draftType)} · reviewpflichtig
+                    {draft.regionName} · {draftTitle(draft.draftType)} ·{" "}
+                    {publicationVisibilityLabel(draft.visibilityState)}
                   </p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{draft.summary}</p>
                   <Link href={draft.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
@@ -442,7 +427,8 @@ export default async function AccountOrganizationDashboardPage() {
                 <article key={draft.draftId} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                   <p className="text-sm font-semibold text-[rgb(var(--fg))]">{draft.title}</p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    {draft.regionName} · Anlassraum · reviewpflichtig
+                    {draft.regionName} · Anlassraum ·{" "}
+                    {publicationVisibilityLabel(draft.visibilityState)}
                   </p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{draft.summary}</p>
                   <Link href={draft.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
@@ -474,7 +460,7 @@ export default async function AccountOrganizationDashboardPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</p>
                     <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                      {visibilityLabel(signal.visibilityState)}
+                      {publicationVisibilityLabel(signal.visibilityState)}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">{signal.regionName}</p>

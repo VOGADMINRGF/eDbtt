@@ -1,6 +1,7 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol } from "@features/anlassraum/db";
 import { getParticipationSignalReviewRuntimeRepo } from "@features/region";
+import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 import { PublicAnlassraumInputPayloadSchema } from "@features/topicRound/publicInput";
 import { buildPublicAnlassraumParticipationSignal } from "@features/topicRound/server/publicInputSubmission";
 import { NextResponse } from "next/server";
@@ -14,21 +15,6 @@ function normalizeRoomContext(room: Record<string, unknown>, anlassraumId: strin
     isPublic: room.isPublic === true,
     regionKey: String(room.regionKey ?? "").trim() || null,
   };
-}
-
-function visibilityLabel(value: string): string {
-  switch (value) {
-    case "public_unverified":
-      return "sichtbar, aber nicht geprüft";
-    case "public_reviewed":
-      return "geprüft";
-    case "public_official":
-      return "amtlich freigegeben";
-    case "blocked":
-      return "blockiert";
-    default:
-      return "reviewpflichtig";
-  }
 }
 
 export async function POST(req: Request) {
@@ -74,7 +60,7 @@ export async function POST(req: Request) {
           sourceType: record.sourceType,
           reviewStatus: record.reviewStatus,
           visibilityState: record.visibilityState,
-          visibilityLabel: visibilityLabel(record.visibilityState),
+          visibilityLabel: publicationVisibilityLabel(record.visibilityState),
           noAutoPublish: record.noAutoPublish,
           noAutoCreateDossier: record.noAutoCreateDossier,
           noAutoCreateAnlassraum: record.noAutoCreateAnlassraum,

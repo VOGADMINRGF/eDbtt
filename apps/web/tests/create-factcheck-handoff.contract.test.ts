@@ -39,6 +39,7 @@ describe("create factcheck handoff contract", () => {
 
     expect(draft.selectedAction).toBe("request_factcheck");
     expect(draft.reviewState).toBe("factcheck_candidate");
+    expect(draft.visibilityState).toBe("internal_review");
     expect(draft.plannerResult.providerPlan.researchUsed).toBe("none");
     expect(draft.plannerResult.providerPlan.deepSearchUsed).toBe(false);
     expect(draft.sourceGrounding).toEqual(

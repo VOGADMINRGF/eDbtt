@@ -16,6 +16,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("eDebatte Studio");
     expect(html).toContain("Vom Dossier zum fertigen Beitrag, Kanal-Versionen und Veröffentlichungsplan.");
     expect(html).toContain("Dossier bleibt Quelle");
+    expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Noch nicht live veröffentlicht");
     expect(html).toContain("Fertiger Post-Entwurf");
     expect(html).toContain("Beteiligungsfrage");
@@ -60,6 +61,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Veröffentlichung vorbereiten");
     expect(html).toContain("Quellenlage");
     expect(html).toContain("Review erforderlich");
+    expect(html).toContain("Sichtbar heißt hier nicht automatisch geprüft oder amtlich.");
     expect(html).not.toContain("extern veröffentlicht");
     expect(html).not.toContain("Jetzt veröffentlichen");
   });

@@ -1,5 +1,9 @@
 import { z } from "zod";
 import type { OutputPackage, SourceState } from "./contracts";
+import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 
 export const MASTER_POST_STATUSES = [
   "draft",
@@ -72,6 +76,7 @@ export type MasterPost = {
   motifHint: string;
   sourceState: SourceState;
   reviewStatus: MasterPostStatus;
+  visibilityState: RegionPublicationVisibilityState;
   publicationStatus: MasterPostPublicationStatus;
   canAutoPublish: false;
   canRealtimePublish: false;
@@ -136,6 +141,7 @@ export const MasterPostSchema = z
     motifHint: z.string().trim().min(1),
     sourceState: z.any(),
     reviewStatus: z.enum(MASTER_POST_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     publicationStatus: z.enum(MASTER_POST_PUBLICATION_STATUSES),
     canAutoPublish: z.literal(false),
     canRealtimePublish: z.literal(false),
@@ -360,6 +366,7 @@ export function generateMasterPost(
     motifHint: "Kontrast aus lokalem Anlass, Quellenlage und offener Beteiligungsfrage.",
     sourceState: outputPackage.sourceState,
     reviewStatus: mapReviewStatus(outputPackage.reviewStatus),
+    visibilityState: outputPackage.visibilityState,
     publicationStatus: "draft_review_required",
     canAutoPublish: false,
     canRealtimePublish: false,

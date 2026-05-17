@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 import {
   buildCopyText,
   buildDistributionPlan,
@@ -480,6 +481,9 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Verteilung planen</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">Beste Zeitfenster, Hashtag-Vorschlag und Beispieltext.</p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Sichtbarkeit: {publicationVisibilityLabel(plan.visibilityState)}.
+        </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">

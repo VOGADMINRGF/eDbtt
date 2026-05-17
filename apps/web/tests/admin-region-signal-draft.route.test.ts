@@ -181,6 +181,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
       ok: true,
       draftType: "dossier",
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
       guardrails: {
         noAutoPublish: true,
         noAutoVote: true,
@@ -198,7 +199,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
           draftType: "dossier",
           authoritySource: "admin_fallback",
           adminFallback: true,
-          targetVisibility: "non_public",
+          visibilityState: "internal_review",
         }),
       ]),
     );
@@ -250,8 +251,16 @@ describe("/api/admin/region/signals/[id]/draft", () => {
 
     expect(dossierRes.status).toBe(201);
     expect(anlassraumRes.status).toBe(201);
-    await expect(dossierRes.json()).resolves.toMatchObject({ ok: true, draftType: "dossier" });
-    await expect(anlassraumRes.json()).resolves.toMatchObject({ ok: true, draftType: "anlassraum" });
+    await expect(dossierRes.json()).resolves.toMatchObject({
+      ok: true,
+      draftType: "dossier",
+      visibilityState: "internal_review",
+    });
+    await expect(anlassraumRes.json()).resolves.toMatchObject({
+      ok: true,
+      draftType: "anlassraum",
+      visibilityState: "internal_review",
+    });
   });
 
   it("blocks raw roles and wrong-region requests and keeps non-accepted signals from becoming drafts", async () => {
@@ -492,6 +501,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
     await expect(acceptedRes.json()).resolves.toMatchObject({
       ok: true,
       draftType: "dossier",
+      visibilityState: "internal_review",
     });
   });
 });

@@ -41,6 +41,7 @@ function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
     dossierId,
     source: "imported_demo" as const,
     status: "needs_review" as const,
+    visibilityState: "internal_review" as const,
     title: "Demo Studio Workspace",
     masterPostDraft: masterPost,
     distributionDraft,
@@ -96,6 +97,7 @@ describe("dossier studio server persistence UI", () => {
 
     expect(html).toContain("Studio-Arbeitsstand serverseitig gespeichert");
     expect(html).toContain("reviewpflichtig und nicht veröffentlicht");
+    expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");

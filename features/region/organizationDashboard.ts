@@ -102,6 +102,7 @@ export type OrganizationDashboardDraftSummary = {
   title: string;
   summary: string;
   reviewStatus: "draft" | "needs_review";
+  visibilityState: RegionPublicationVisibilityState;
   createdByRole: string;
   href: string;
 };
@@ -378,6 +379,7 @@ function buildDraftSummaries(params: {
     title: record.title,
     summary: record.summary,
     reviewStatus: record.reviewStatus,
+    visibilityState: record.visibilityState,
     createdByRole: record.createdByRole,
     href: draftHref(record),
   }));

@@ -1,6 +1,10 @@
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
+import {
+  resolveCreateHandoffVisibilityState,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 import type {
   CreateGraphMatchRecord,
   CreateGraphMatchResult,
@@ -73,6 +77,7 @@ export type CreateHandoffDraft = {
   topicSeed: CreateHandoffTopicSeed;
   resumeHref: string;
   reviewState: CreateHandoffReviewState;
+  visibilityState?: RegionPublicationVisibilityState;
   requiresConfirmation: true;
   createdAt: string;
 };
@@ -323,6 +328,11 @@ export function buildCreateHandoffDraft(input: BuildCreateHandoffDraftInput): Cr
       ? globalThis.crypto.randomUUID()
       : `${Date.now()}`;
   const handoffId = input.id ?? `create-handoff-${generatedId}`;
+  const reviewState = deriveReviewState({
+    selectedAction: input.selectedAction,
+    graphMatches: normalizedGraphMatches,
+    openQuestions,
+  });
   return {
     id: handoffId,
     source: "create",
@@ -339,10 +349,9 @@ export function buildCreateHandoffDraft(input: BuildCreateHandoffDraftInput): Cr
     }),
     topicSeed: buildTopicSeed(input.result, plannerResult),
     resumeHref: buildCreateHandoffResumeHref(handoffId),
-    reviewState: deriveReviewState({
-      selectedAction: input.selectedAction,
-      graphMatches: normalizedGraphMatches,
-      openQuestions,
+    reviewState,
+    visibilityState: resolveCreateHandoffVisibilityState({
+      reviewState,
     }),
     requiresConfirmation: true,
     createdAt,

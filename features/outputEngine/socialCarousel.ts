@@ -5,6 +5,10 @@ import {
   type OutputPackage,
   type SourceStateStatus,
 } from "./contracts";
+import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  type RegionPublicationVisibilityState,
+} from "@features/region/publicationRiskLadder";
 
 export const SOCIAL_CAROUSEL_SLIDE_KINDS = [
   "headline",
@@ -59,6 +63,7 @@ export type SocialCarouselOutput = {
   packageId: string;
   generatedAt: string;
   reviewStatus: OutputPackage["reviewStatus"];
+  visibilityState: RegionPublicationVisibilityState;
   sourceState: SourceStateStatus;
   slideCount: number;
   slides: SocialCarouselSlide[];
@@ -117,6 +122,7 @@ export const SocialCarouselOutputSchema = z
     packageId: z.string().trim().min(1),
     generatedAt: z.string().datetime({ offset: true }),
     reviewStatus: z.enum(OUTPUT_REVIEW_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
     sourceState: z.enum(SOURCE_STATE_STATUSES),
     slideCount: z.number().int().min(5).max(7),
     slides: z.array(SocialCarouselSlideSchema).min(5).max(7),
@@ -407,6 +413,7 @@ export function generateSocialCarouselOutput(outputPackage: OutputPackage): Soci
     packageId: outputPackage.packageId,
     generatedAt: outputPackage.generatedAt,
     reviewStatus: outputPackage.reviewStatus,
+    visibilityState: outputPackage.visibilityState,
     sourceState: outputPackage.sourceState.status,
     slideCount: slides.length,
     slides,
