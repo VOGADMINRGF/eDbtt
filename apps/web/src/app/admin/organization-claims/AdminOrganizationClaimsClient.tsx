@@ -63,7 +63,7 @@ export function AdminOrganizationClaimsClient({ initialClaims }: Props) {
           throw new Error(body?.error ?? "organization_claim_review_failed");
         }
         await refreshClaims();
-        setNotice(`Claim geprüft: ${decisionLabel(decision)}`);
+        setNotice(`Organisationsantrag geprüft: ${decisionLabel(decision)}`);
       } catch (reviewError) {
         setError(reviewError instanceof Error ? reviewError.message : "organization_claim_review_failed");
       }
@@ -77,7 +77,7 @@ export function AdminOrganizationClaimsClient({ initialClaims }: Props) {
 
       {claims.length === 0 ? (
         <p className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-          Keine offenen OrganizationClaims.
+          Keine offenen Organisationsanträge.
         </p>
       ) : (
         claims.map((claim) => (

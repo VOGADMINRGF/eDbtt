@@ -47,7 +47,7 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
           throw new Error(body?.error ?? "entitlement_update_failed");
         }
         await refreshEntitlements();
-        setNotice(`Entitlement aktualisiert: ${status}`);
+        setNotice(`Freischaltung aktualisiert: ${status}`);
       } catch (updateError) {
         setError(updateError instanceof Error ? updateError.message : "entitlement_update_failed");
       }
@@ -69,7 +69,7 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
           throw new Error(body?.error ?? "entitlement_create_failed");
         }
         await refreshEntitlements();
-        setNotice("Entitlement angelegt. Keine Zahlungsabwicklung ausgelöst.");
+        setNotice("Freischaltung angelegt. Keine Zahlungsabwicklung ausgelöst.");
       } catch (createError) {
         setError(createError instanceof Error ? createError.message : "entitlement_create_failed");
       }
@@ -82,7 +82,7 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Pilot- oder Admin-Grant setzen</p>
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Pilot- oder Admin-Freischaltung setzen</p>
         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
           Diese Eingaben erzeugen nur eine serverseitige Freischaltung. Kein Checkout, keine Abbuchung, keine Rechnung.
         </p>
@@ -139,13 +139,13 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
           onClick={createEntitlement}
           className="mt-4 rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
         >
-          Entitlement anlegen
+          Freischaltung anlegen
         </button>
       </section>
 
       {entitlements.length === 0 ? (
         <p className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-          Keine aktiven oder vorbereiteten Entitlements. Pilot- und Admin-Grants bleiben manuelle Freischaltungen
+          Keine aktiven oder vorbereiteten Freischaltungen. Pilot- und Admin-Grants bleiben manuelle Freischaltungen
           ohne Zahlungsabwicklung.
         </p>
       ) : (

@@ -49,19 +49,19 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "grundlagen-1b",
         question: "Was ist eDebatte?",
         answer:
-          "eDebatte ist unser eigens entwickeltes Werkzeug. Dort werden Themen vorbereitet, Quellen gesammelt, Pro & Contra sichtbar gemacht und Abstimmungen durchgeführt. So bleibt der Prozess transparent, fair und überprüfbar.",
+          "eDebatte ist unser eigens entwickeltes Werkzeug. Dort werden Themen vorbereitet, Quellen gesammelt, Pro & Contra sichtbar gemacht und Abstimmungen durchgeführt. So bleibt der Prozess transparent, fair und überprüfbar. Unser Leitsatz dabei ist: „Lass das beste Argument gewinnen.“",
       },
       {
         id: "grundlagen-1c",
         question: "Was meint eDebatte mit einer regionalen Startlage?",
         answer:
-          "Wenn sich eine Verwaltung, ein Verband, ein Verein oder ein Träger für eine Region interessiert, kann eDebatte aus regionalen Quellen eine hochwertige, aktuelle und vorqualifizierte Themenlage vorbereiten. Das ist keine Demo-Fixture, sondern eine kuratierte regionale Startlage. Sie bleibt reviewpflichtig und wird nicht automatisch amtlich oder verbindlich.",
+          "Wenn sich eine Verwaltung, ein Verband, ein Verein oder ein Träger für eine Region interessiert, kann eDebatte aus regionalen Quellen eine hochwertige, aktuelle und vorqualifizierte Themenlage vorbereiten. Das ist keine Demo-Strecke, sondern eine kuratierte regionale Startlage. Sie bleibt reviewpflichtig und wird nicht automatisch amtlich oder verbindlich.",
       },
       {
         id: "grundlagen-1d",
         question: "Was passiert zuerst in /create?",
         answer:
-          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen oder Veröffentlichen entlang der Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
+          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen, sichtbar machen oder veröffentlichen, je nach Kontext und Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
       },
       {
         id: "grundlagen-1e",
@@ -107,15 +107,15 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       },
       {
         id: "grundlagen-5",
-        question: "Was ist ein Claim?",
+        question: "Was ist eine Aussage?",
         answer:
-          "Ein Claim ist eine konkrete Aussage, Forderung, Frage oder Position innerhalb eines Dossiers. Ein Claim gehört zu einem Dossier und berührt ein oder mehrere Themen. Beispiel: „Kommunaler Wohnungsbau soll schneller genehmigt werden“ gehört zum Dossier „Kommunale Prioritäten und Zielkonflikte“ und berührt die Themen Wohnen, Verwaltung, Finanzen und soziale Gerechtigkeit.",
+          "Eine Aussage ist eine konkrete Aussage, Forderung, Frage oder Position innerhalb eines Dossiers. Eine Aussage gehört zu einem Dossier und berührt ein oder mehrere Themen. Beispiel: „Kommunaler Wohnungsbau soll schneller genehmigt werden“ gehört zum Dossier „Kommunale Prioritäten und Zielkonflikte“ und berührt die Themen Wohnen, Verwaltung, Finanzen und soziale Gerechtigkeit.",
       },
       {
         id: "grundlagen-6",
         question: "Was ist eine Abstimmung?",
         answer:
-          "Eine Abstimmung entsteht aus einem Claim oder aus einer übergeordneten Dossierfrage. Nutzer stimmen also nicht einfach über ein ganzes Thema ab, sondern über konkrete Fragen, Prioritäten, Positionen oder Entscheidungsoptionen. Beispiel: „Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?“ ist eine Dossierfrage. „Soll kommunaler Wohnungsbau beschleunigt werden, auch wenn Auflagen reduziert werden?“ ist eine Abstimmungsfrage zu einem konkreten Claim.",
+          "Eine Abstimmung entsteht aus einer Aussage oder aus einer übergeordneten Dossierfrage. Nutzer stimmen also nicht einfach über ein ganzes Thema ab, sondern über konkrete Fragen, Prioritäten, Positionen oder Entscheidungsoptionen. Beispiel: „Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?“ ist eine Dossierfrage. „Soll kommunaler Wohnungsbau beschleunigt werden, auch wenn Auflagen reduziert werden?“ ist eine Abstimmungsfrage zu einer konkreten Aussage.",
       },
       {
         id: "grundlagen-6b",
@@ -133,13 +133,13 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "abstimmung-1",
         question: "Wie läuft eine Abstimmung ab?",
         answer:
-          "1. Vorlage lesen: Du siehst Kurztext, Begründung, Pro & Contra, Quellen und Unsicherheiten.\n2. Berechtigung prüfen: Je nach Thema kann es Kriterien geben (z. B. Region, Alter). Grundsatz bleibt: eine Person, eine Stimme.\n3. Stimme abgeben: Du stimmst digital, die Identität ist technisch vom Stimmzettel getrennt.\n4. Zählen & prüfen: Quorum, definierte Mehrheiten (z. B. 2/3 bei Grundsatzfragen) und Minderheitenbericht werden ermittelt.\n5. Veröffentlichen: Ergebnis, Beteiligung, Minderheitenbericht und Prüfprotokoll sind öffentlich einsehbar.",
+          "1. Vorlage lesen: Du siehst Kurztext, Begründung, Pro & Contra, Quellen und Unsicherheiten.\n2. Berechtigung prüfen: Je nach Thema kann es Kriterien geben (z. B. Region, Alter). Grundsatz bleibt: eine Person, eine Stimme.\n3. Stimme abgeben: Du stimmst digital, die Identität ist technisch vom Stimmzettel getrennt.\n4. Zählen & prüfen: Quorum, definierte Mehrheiten (z. B. 2/3 bei Grundsatzfragen) und Minderheitenbericht werden ermittelt.\n5. Sichtbar machen oder veröffentlichen: Ergebnis, Beteiligung, Minderheitenbericht und Prüfprotokoll sind je nach Kontext öffentlich einsehbar.",
       },
       {
         id: "abstimmung-2",
         question: "Was ist der Evidenz-Graph?",
         answer:
-          "Der Evidenz-Graph verknüpft Aussagen mit Belegen und Gegenbelegen. Jede Aussage kann auf Quellen, Studien oder Erfahrungsberichte verweisen. Gegenpositionen und Unsicherheiten werden nicht versteckt, sondern sichtbar gemacht. So kannst du nachvollziehen, warum eine Entscheidung inhaltlich sinnvoll erscheint – oder wo du selbst noch Kritik siehst.",
+          "Der Evidenz-Graph verknüpft Aussagen mit Belegen und Gegenbelegen. Jede Aussage kann auf Quellen, Studien oder Erfahrungsberichte verweisen. Gegenpositionen und Unsicherheiten werden nicht versteckt, sondern sichtbar gemacht. So kannst du nachvollziehen, warum eine Entscheidung inhaltlich sinnvoll erscheint – oder wo du selbst noch Kritik siehst. Kurz gesagt: Lass das beste Argument gewinnen.",
       },
       {
         id: "abstimmung-3",

@@ -404,7 +404,7 @@ function buildParticipationAggregates(
           : key === "swipe-counterpoint"
             ? "Gegenpositionen"
             : key === "public-claims"
-              ? "Claims aus der Öffentlichkeit"
+              ? "Aussagen aus der Öffentlichkeit"
               : key === "public-questions"
                 ? "Fragen aus der Öffentlichkeit"
                 : key === "public-source-hints"

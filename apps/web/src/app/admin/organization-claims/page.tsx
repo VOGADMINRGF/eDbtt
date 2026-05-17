@@ -6,7 +6,7 @@ import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { AdminOrganizationClaimsClient } from "./AdminOrganizationClaimsClient";
 
 export const metadata = {
-  title: "OrganizationClaims Review · eDebatte",
+  title: "Organisationsanträge prüfen · eDebatte",
 };
 
 export default async function AdminOrganizationClaimsPage() {
@@ -27,15 +27,15 @@ export default async function AdminOrganizationClaimsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           Admin Review
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">OrganizationClaims prüfen</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Organisationsanträge prüfen</h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Self-declared Angaben bleiben ohne Rechte. Erst Review erzeugt persistierte Memberships und
+          Selbstauskünfte bleiben ohne Rechte. Erst Review erzeugt persistierte Memberships und
           verifizierte Regionenzuordnung.
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Paid Entitlements werden getrennt verwaltet.{" "}
+          Freischaltungen werden getrennt verwaltet.{" "}
           <Link className="font-semibold text-[rgb(var(--fg))]" href="/admin/entitlements">
-            Zur Entitlement-Verwaltung
+            Zur Freischaltungsverwaltung
           </Link>
         </p>
       </header>

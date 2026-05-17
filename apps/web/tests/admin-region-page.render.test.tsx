@@ -58,7 +58,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Arbeitsansicht: berlin-reinickendorf");
     expect(html).toContain("Detailroute: `/admin/region?regionId=...`");
     expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
-    expect(html).toContain("Pilotdaten zur Demonstration der Themenlage");
+    expect(html).toContain("Kuratierte Startlage und Pilotvorschau für die Themenlage");
     expect(html).toContain("notRealNews=true");
     expect(html).toContain("notProductionData=true");
     expect(html).toContain("reviewRequired: true");
@@ -79,7 +79,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Nachvollziehbarkeit");
     expect(html).toContain("Öffentliche Beteiligungssignale");
     expect(html).toContain("Regionzuordnung offen");
-    expect(html).toContain("Claims aus der Öffentlichkeit");
+    expect(html).toContain("Aussagen aus der Öffentlichkeit");
     expect(html).toContain("Fragen aus der Öffentlichkeit");
     expect(html).toContain("Swipe-/Interesse-Signale aggregiert");
     expect(html).toContain("Gegenpositionen / andere Sichtweisen");
@@ -95,8 +95,8 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Quelle prüfen");
     expect(html).toContain("Offene Frage markieren");
     expect(html).toContain("Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale.");
-    expect(html).toContain("Self-declared ist nicht verifiziert.");
-    expect(html).toContain("Pending hat keine Behördenrechte.");
+    expect(html).toContain("Selbstauskunft ist nicht verifiziert.");
+    expect(html).toContain("In Prüfung hat keine Behördenrechte.");
     expect(html).toContain("Standortangaben wie Rathaus Reinickendorf bleiben optional.");
     expect(html).not.toContain("userId");
     expect(html).not.toContain("Standort ist Pflicht");

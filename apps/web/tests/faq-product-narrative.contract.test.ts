@@ -11,7 +11,7 @@ describe("faq product narrative contract", () => {
   it("explains the ai-orchestrated regional starting point", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Was meint eDebatte mit einer regionalen Startlage?");
-    expect(corpus).toContain("keine Demo-Fixture, sondern eine kuratierte regionale Startlage");
+    expect(corpus).toContain("keine Demo-Strecke, sondern eine kuratierte regionale Startlage");
     expect(corpus).toContain("nicht automatisch amtlich oder verbindlich");
   });
 
@@ -19,7 +19,7 @@ describe("faq product narrative contract", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Was passiert zuerst in /create?");
     expect(corpus).toContain("Haben wir dich richtig verstanden?");
-    expect(corpus).toContain("Einreichen oder Veröffentlichen entlang der Risikologik");
+    expect(corpus).toContain("Einreichen, sichtbar machen oder veröffentlichen");
   });
 
   it("explains the production maturity path beyond a permanent pilot state", () => {
@@ -54,5 +54,10 @@ describe("faq product narrative contract", () => {
     expect(corpus).toContain("offene Reviews");
     expect(corpus).toContain("KI-vorqualifizierte Themenlage");
     expect(corpus).toContain("Interne Reviews, Freischaltungen und Verwaltungsentwürfe sind nicht automatisch öffentlich");
+  });
+
+  it("integrates the core claim about arguments winning", () => {
+    const corpus = buildFaqCorpus().join("\n\n");
+    expect(corpus).toContain("Lass das beste Argument gewinnen.");
   });
 });
