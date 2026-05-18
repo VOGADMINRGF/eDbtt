@@ -1,4 +1,4 @@
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import type {
   CommunitySignal,
   CommunitySignalReviewStatus,
@@ -243,7 +243,7 @@ export function createInMemoryRegionDataRepo(seed?: {
 }
 
 export function getRegionDataRepo(): RegionDataRepo {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) repoSingleton = createInMemoryRegionDataRepo();
     return repoSingleton;
   }

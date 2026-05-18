@@ -1,4 +1,4 @@
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { z } from "zod";
 import type {
   RegionIntelligenceSourceAdapterOverride,
@@ -275,7 +275,7 @@ export function createInMemoryRegionSourceConnectionRuntimeRepo(seed?: {
 }
 
 function getRepo() {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) repoSingleton = createInMemoryRegionSourceConnectionRuntimeRepo();
     return repoSingleton;
   }

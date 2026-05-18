@@ -1,4 +1,4 @@
-import { coreCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "../contracts";
 import {
@@ -1302,7 +1302,7 @@ export function createInMemoryParticipationSignalReviewRuntimeRepo(seed?: {
 }
 
 export function getParticipationSignalReviewRuntimeRepo(): ParticipationSignalReviewRuntimeRepo {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) repoSingleton = createInMemoryParticipationSignalReviewRuntimeRepo();
     return repoSingleton;
   }

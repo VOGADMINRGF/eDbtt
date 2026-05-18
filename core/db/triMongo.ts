@@ -2,6 +2,7 @@
 import { MongoClient, type Db, type Collection, type Document as MongoDoc } from "mongodb";
 
 export type TriStore = "core" | "votes" | "pii" | "ai_core_reader";
+type EnvSource = Record<string, string | undefined>;
 
 type Conn = { uri?: string; db?: string };
 const CFG: Record<TriStore, Conn> = {
@@ -33,6 +34,69 @@ declare global {
   } | undefined;
 }
 const G = (globalThis as any).__TRIMONGO__ ??= { clients: {}, dbs: {} };
+
+export function isStaticCollectionBuild(source: EnvSource = process.env): boolean {
+  return String(source.NEXT_PHASE ?? "").trim() === "phase-production-build";
+}
+
+export function shouldUseInMemoryMongoFallback(source: EnvSource = process.env): boolean {
+  return Boolean(source.VITEST) || isStaticCollectionBuild(source);
+}
+
+function buildStaticCollectionCursor<T extends MongoDoc = MongoDoc>() {
+  const cursor: Record<string, unknown> = {
+    sort: () => cursor,
+    limit: () => cursor,
+    skip: () => cursor,
+    project: () => cursor,
+    next: async () => null,
+    toArray: async () => [] as T[],
+  };
+  return cursor;
+}
+
+function buildStaticCollectionWriteBlock(method: string, store: TriStore, name: string) {
+  return async () => {
+    throw new Error(
+      `[triMongo] Write blocked during static collection (${store}.${name}.${method}).`,
+    );
+  };
+}
+
+function buildStaticCollectionCollection<T extends MongoDoc = MongoDoc>(
+  store: TriStore,
+  name: string,
+): Collection<T> {
+  const cursorFactory = () => buildStaticCollectionCursor<T>();
+  return {
+    find: () => cursorFactory() as any,
+    aggregate: () => cursorFactory() as any,
+    listIndexes: () => cursorFactory() as any,
+    findOne: async () => null,
+    countDocuments: async () => 0,
+    estimatedDocumentCount: async () => 0,
+    createIndex: async () => "static_collection_skip",
+    createIndexes: async () => [],
+    updateOne: buildStaticCollectionWriteBlock("updateOne", store, name),
+    updateMany: buildStaticCollectionWriteBlock("updateMany", store, name),
+    replaceOne: buildStaticCollectionWriteBlock("replaceOne", store, name),
+    insertOne: buildStaticCollectionWriteBlock("insertOne", store, name),
+    insertMany: buildStaticCollectionWriteBlock("insertMany", store, name),
+    deleteOne: buildStaticCollectionWriteBlock("deleteOne", store, name),
+    deleteMany: buildStaticCollectionWriteBlock("deleteMany", store, name),
+    findOneAndUpdate: buildStaticCollectionWriteBlock("findOneAndUpdate", store, name),
+    findOneAndReplace: buildStaticCollectionWriteBlock("findOneAndReplace", store, name),
+    findOneAndDelete: buildStaticCollectionWriteBlock("findOneAndDelete", store, name),
+    bulkWrite: buildStaticCollectionWriteBlock("bulkWrite", store, name),
+  } as unknown as Collection<T>;
+}
+
+function buildStaticCollectionDb(store: TriStore): Db {
+  return {
+    collection: <T extends MongoDoc = MongoDoc>(name: string) =>
+      buildStaticCollectionCollection<T>(store, name),
+  } as unknown as Db;
+}
 
 function configError(
   store: TriStore,
@@ -74,6 +138,9 @@ async function getClient(store: TriStore): Promise<MongoClient> {
 
 /** Liefert (und cached) die Db-Instanz für einen Store. */
 export async function getDb(store: TriStore = "core"): Promise<Db> {
+  if (isStaticCollectionBuild()) {
+    return buildStaticCollectionDb(store);
+  }
   if (!G.dbs[store]) {
     assertStoreConfigured(store, "triMongo.getDb");
     const { db } = CFG[store];
@@ -108,6 +175,9 @@ export async function getCol<T extends MongoDoc = MongoDoc>(
   } else {
     name = a;
     store = b as TriStore;
+  }
+  if (isStaticCollectionBuild()) {
+    return buildStaticCollectionCollection<T>(store, name);
   }
   const db = await getDb(store);
   return db.collection<T>(name);

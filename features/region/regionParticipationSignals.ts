@@ -1,4 +1,4 @@
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "./contracts";
 import {
@@ -498,7 +498,7 @@ function buildRuntimeSource(input: {
 }
 
 function shouldSkipRuntimeParticipationDatabaseLookups() {
-  return Boolean(process.env.VITEST);
+  return shouldUseInMemoryMongoFallback();
 }
 
 function defaultReviewStatusFromContribution(
