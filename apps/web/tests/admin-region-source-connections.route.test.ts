@@ -31,6 +31,18 @@ function buildRequest(url: string, body?: Record<string, unknown>) {
 describe("admin region source connection routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          `<!doctype html><html><head><title>Schulsanierung in Reinickendorf</title><meta name="description" content="Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit und Sanierungsbedarf."></head><body><p>Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.</p><p>Für die Region wird zusätzlicher Sanierungsbedarf an Schulen beschrieben.</p></body></html>`,
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          },
+        ),
+      ),
+    );
     setRegionSourceConnectionRuntimeRepoForTests(
       createInMemoryRegionSourceConnectionRuntimeRepo(),
     );
@@ -112,6 +124,31 @@ describe("admin region source connection routes", () => {
         reviewStatus: "needs_review",
         noAutoPublish: true,
         noPublicOfficial: true,
+        sourceSnapshotStatus: "fetched",
+        sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
+        possibleClaims: expect.arrayContaining([
+          expect.objectContaining({
+            basisLabel: "Titel",
+          }),
+        ]),
+        topicClusters: expect.arrayContaining([
+          expect.objectContaining({
+            label: expect.any(String),
+          }),
+        ]),
+        dossierSuggestions: expect.arrayContaining([
+          expect.objectContaining({
+            title: expect.stringContaining("Berlin Reinickendorf"),
+          }),
+        ]),
+        evidenceReferences: expect.arrayContaining([
+          expect.objectContaining({
+            label: expect.stringContaining("Seitenauszug"),
+          }),
+        ]),
+        reviewTaskSummary: expect.objectContaining({
+          claimCount: expect.any(Number),
+        }),
       }),
     });
   });

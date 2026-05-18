@@ -410,6 +410,10 @@ function mapRegionSourceResultItem(params: {
   result: Awaited<ReturnType<typeof listRegionSourceTestResults>>[number];
   regionMap: Map<string, Region>;
 }): ReviewQueueItem {
+  const sourceSummary =
+    params.result.reviewTaskSummary?.label
+      ? `${params.result.reviewTaskSummary.label}. ${params.result.summary}`
+      : params.result.summary;
   return {
     id: `region_source_result:${params.result.id}`,
     domain: "region_source_result",
@@ -417,7 +421,7 @@ function mapRegionSourceResultItem(params: {
     workflowState: "review_required",
     workflowLabel: workflowLabelFor("review_required"),
     title: params.result.title,
-    summary: params.result.summary,
+    summary: sourceSummary,
     href: `${reviewLinkForRegion(params.result.regionId)}#source-results`,
     regionId: params.result.regionId,
     regionName: regionNameFor(params.regionMap, params.result.regionId),

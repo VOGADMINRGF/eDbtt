@@ -103,8 +103,8 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Nur Vorschläge, kein automatisches Dossier");
     expect(html).toContain("Reviewpflichtige Startlage-Vorschläge");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
-    expect(html).toContain("Source Connection Registry");
-    expect(html).toContain("Quellen konfigurieren und testweise auswerten");
+    expect(html).toContain("Quelle auswerten");
+    expect(html).toContain("Explizite URL kontrolliert und reviewpflichtig auswerten");
     expect(html).toContain("Noch keine Quellen konfiguriert.");
     expect(html).toContain("Noch keine Dry-Run-Ergebnisse vorhanden.");
     expect(html).toContain("Dossier-Draft vorbereiten");

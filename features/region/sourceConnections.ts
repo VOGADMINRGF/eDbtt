@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { RegionPublicationVisibilityState } from "./publicationRiskLadder";
-import type { RegionIntelligenceSourceAdapterId } from "./intelligence";
+import type {
+  RegionIntelligenceClusterHint,
+  RegionIntelligenceReviewSuggestion,
+  RegionIntelligenceSourceAdapterId,
+  RegionIntelligenceSuggestionHint,
+} from "./intelligence";
 
 export const REGION_SOURCE_CONNECTION_TYPES = [
   "manual_source",
@@ -55,12 +60,56 @@ export type RegionSourceTestResult = {
   visibilityLabel: string;
   reviewStatus: "needs_review";
   confidence: number;
+  sourceSnapshotStatus: "fetched" | "manual_only" | "fetch_failed";
+  sourceSnapshotTitle: string | null;
+  sourceSnapshotSummary: string | null;
+  sourceSnapshotExcerpt: string | null;
+  possibleClaims: RegionSourcePossibleClaim[];
+  topicClusters: RegionIntelligenceClusterHint[];
+  dossierSuggestions: RegionIntelligenceSuggestionHint[];
+  anlassraumSuggestions: RegionIntelligenceSuggestionHint[];
+  evidenceReferences: RegionSourceEvidenceReference[];
+  openQuestions: string[];
+  affectedScope: RegionSourceAffectedScope;
+  reviewSuggestions: RegionIntelligenceReviewSuggestion[];
+  reviewTaskSummary: RegionSourceReviewTaskSummary;
   createdAt: string;
   updatedAt: string;
   testedBy: string | null;
   reviewRequired: true;
   noAutoPublish: true;
   noPublicOfficial: true;
+};
+
+export type RegionSourcePossibleClaim = {
+  text: string;
+  confidence: number;
+  basisLabel: "Titel" | "Zusammenfassung" | "Seitenauszug";
+  excerpt: string | null;
+  reviewRequired: true;
+};
+
+export type RegionSourceEvidenceReference = {
+  label: string;
+  url: string | null;
+  excerpt: string | null;
+};
+
+export type RegionSourceAffectedScope = {
+  regionName: string | null;
+  detectedPlaces: string[];
+  ortsteilHints: string[];
+  fachbereichHints: string[];
+};
+
+export type RegionSourceReviewTaskSummary = {
+  claimCount: number;
+  topicClusterCount: number;
+  dossierSuggestionCount: number;
+  anlassraumSuggestionCount: number;
+  openQuestionCount: number;
+  evidenceCount: number;
+  label: string;
 };
 
 const SampleItemSchema = z
