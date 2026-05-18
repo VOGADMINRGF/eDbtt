@@ -38,6 +38,28 @@ function topicsFromInput(input: string) {
     .filter(Boolean);
 }
 
+function renderSuggestionList(
+  items: Array<{ title: string; confidence: number; openQuestions?: string[] }>,
+  emptyLabel: string,
+) {
+  if (items.length === 0) {
+    return <p className="text-xs text-[rgb(var(--muted))]">{emptyLabel}</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((item) => (
+        <div key={`${item.title}-${item.confidence}`} className="rounded-2xl border border-[rgb(var(--border))] p-2">
+          <p className="text-xs font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+          <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+            Confidence {item.confidence.toFixed(2)}
+            {item.openQuestions?.length ? ` · ${item.openQuestions.length} offene Fragen` : ""}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RegionSourceConnectionsPanel(props: {
   regionId: string;
   connections: RegionSourceConnection[];
@@ -115,15 +137,16 @@ export function RegionSourceConnectionsPanel(props: {
     >
       <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-          Source Connection Registry
+          Quelle auswerten
         </p>
         <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-          Quellen konfigurieren und testweise auswerten
+          Explizite URL kontrolliert und reviewpflichtig auswerten
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Keine allgemeine Live-Suche, kein unkontrolliertes Scraping. `official_feed` und
-          `municipal_news` funktionieren nur mit expliziter URL. Produktive Quellen gelten erst
-          als verbunden, wenn mindestens ein reviewpflichtiger Snapshot-Eintrag vorliegt.
+          `municipal_news` funktionieren nur mit expliziter URL. Der Dry Run liest höchstens die
+          angegebene Seite, erzeugt daraus reviewpflichtige Vorschläge und veröffentlicht nichts
+          automatisch.
         </p>
 
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
@@ -258,7 +281,7 @@ export function RegionSourceConnectionsPanel(props: {
         </div>
 
         <div className="mt-5 space-y-3">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Reviewpflichtige Source Results</p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">Reviewpflichtige Source Results</p>
           {props.results.length > 0 ? (
             props.results.map((result) => (
               <div key={result.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
@@ -268,6 +291,149 @@ export function RegionSourceConnectionsPanel(props: {
                   {result.confidence.toFixed(2)}
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">{result.summary}</p>
+                {result.sourceSnapshotTitle ? (
+                  <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Gelesene Quelle
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{result.sourceSnapshotTitle}</p>
+                    {result.sourceSnapshotSummary ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">{result.sourceSnapshotSummary}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Mögliche Aussagen / Claims
+                    </p>
+                    {result.possibleClaims.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {result.possibleClaims.map((claim, index) => (
+                          <div key={`${result.id}-claim-${index}`} className="rounded-2xl border border-[rgb(var(--border))] p-2">
+                            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{claim.text}</p>
+                            <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                              {claim.basisLabel} · Confidence {claim.confidence.toFixed(2)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                        Noch keine möglichen Aussagen aus dieser Quelle erkannt.
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Betroffene Region / Ortsteil / Fachbereich
+                    </p>
+                    <div className="mt-2 space-y-1 text-xs text-[rgb(var(--muted))]">
+                      <p>Region: {result.affectedScope.regionName ?? "offen"}</p>
+                      <p>
+                        Ortsteil: {result.affectedScope.ortsteilHints.join(", ") || "noch kein klarer Hinweis"}
+                      </p>
+                      <p>
+                        Fachbereich: {result.affectedScope.fachbereichHints.join(", ") || "noch kein klarer Hinweis"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Themencluster
+                    </p>
+                    <div className="mt-2">
+                      {renderSuggestionList(
+                        result.topicClusters.map((item) => ({
+                          title: item.label,
+                          confidence: item.confidence,
+                          openQuestions: item.openQuestions,
+                        })),
+                        "Noch keine Themencluster vorbereitet.",
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Offene Fragen
+                    </p>
+                    {result.openQuestions.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-xs text-[rgb(var(--muted))]">
+                        {result.openQuestions.map((question) => (
+                          <li key={question}>{question}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">Noch keine offenen Fragen erkannt.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Anlassraum-Vorschläge
+                    </p>
+                    <div className="mt-2">
+                      {renderSuggestionList(result.anlassraumSuggestions, "Noch kein Anlassraum-Vorschlag vorbereitet.")}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Dossier-Vorschläge
+                    </p>
+                    <div className="mt-2">
+                      {renderSuggestionList(result.dossierSuggestions, "Noch kein Dossier-Vorschlag vorbereitet.")}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Quellen / Belege
+                    </p>
+                    {result.evidenceReferences.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {result.evidenceReferences.map((reference, index) => (
+                          <div key={`${result.id}-evidence-${index}`} className="rounded-2xl border border-[rgb(var(--border))] p-2">
+                            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{reference.label}</p>
+                            {reference.excerpt ? (
+                              <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{reference.excerpt}</p>
+                            ) : null}
+                            {reference.url ? (
+                              <p className="mt-1 break-all text-[11px] text-[rgb(var(--muted))]">{reference.url}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">Noch keine Belegauszüge verfügbar.</p>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Review-Aufgaben
+                    </p>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      {result.reviewTaskSummary.label}
+                    </p>
+                    {result.reviewSuggestions.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {result.reviewSuggestions.slice(0, 3).map((suggestion) => (
+                          <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-2">
+                            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{suggestion.title}</p>
+                            <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{suggestion.summary}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                        Noch keine zusätzlichen Review-Verdichtungen vorbereitet.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             ))
           ) : (

@@ -1,8 +1,11 @@
 import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { z } from "zod";
 import type {
+  RegionIntelligenceSource,
   RegionIntelligenceSourceAdapterOverride,
 } from "../intelligence";
+import { runRegionIntelligencePreparation } from "../intelligence";
+import type { Region } from "../contracts";
 import {
   parseRegionFeedSignal,
   type RegionFeedSignal,
@@ -16,11 +19,17 @@ import {
   type RegionSourceConnection,
   type RegionSourceConnectionSampleItem,
   type RegionSourceConnectionType,
+  type RegionSourceEvidenceReference,
+  type RegionSourcePossibleClaim,
   type RegionSourceTestResult,
 } from "../sourceConnections";
 
 const REGION_SOURCE_CONNECTIONS_COLLECTION = "edebatte_region_source_connections";
 const REGION_SOURCE_TEST_RESULTS_COLLECTION = "edebatte_region_source_test_results";
+const DEFAULT_SOURCE_CONNECTION_FETCH_TIMEOUT_MS = 8_000;
+const MAX_SOURCE_TEXT_LENGTH = 320;
+const MAX_SOURCE_SUMMARY_LENGTH = 500;
+const MAX_PAGE_TEXT_SCAN = 8_000;
 
 type RegionSourceConnectionDoc = {
   _id: string;
@@ -51,6 +60,15 @@ export type RegionSourceConnectionRuntimeRepo = {
 let repoSingleton: RegionSourceConnectionRuntimeRepo | null = null;
 let indexesReady = false;
 
+type RegionSourceUrlSnapshot = {
+  status: "fetched" | "fetch_failed";
+  title: string | null;
+  summary: string | null;
+  excerpt: string | null;
+  evidenceReferences: RegionSourceEvidenceReference[];
+  fallbackSampleItem: RegionSourceConnectionSampleItem | null;
+};
+
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -67,6 +85,55 @@ function normalizeLimit(value: unknown, fallback = 50) {
 
 function uniqueNonEmpty(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
+function pickFirst(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
+function truncateText(value: string, maxLength = MAX_SOURCE_TEXT_LENGTH) {
+  const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function decodeHtmlEntities(input: string) {
+  return String(input ?? "")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function stripHtml(input: string) {
+  return truncateText(
+    decodeHtmlEntities(
+      String(input ?? "")
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " "),
+    ),
+    MAX_PAGE_TEXT_SCAN,
+  );
+}
+
+function extractMetaContent(html: string, matcher: RegExp) {
+  const match = html.match(matcher)?.[1];
+  return match ? truncateText(decodeHtmlEntities(match), MAX_SOURCE_SUMMARY_LENGTH) : null;
+}
+
+function extractParagraphs(html: string) {
+  return Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+    .map((match) => truncateText(stripHtml(match[1]), MAX_SOURCE_TEXT_LENGTH))
+    .filter((paragraph) => paragraph.length >= 40);
 }
 
 function slugify(value: string) {
@@ -93,6 +160,144 @@ function inferTopicsFromText(input: string) {
   return uniqueNonEmpty(topics);
 }
 
+function inferDepartmentHints(input: string) {
+  const haystack = input.toLowerCase();
+  const departments: string[] = [];
+  if (haystack.includes("schule") || haystack.includes("schul") || haystack.includes("bildung")) {
+    departments.push("Schule/Bildung");
+  }
+  if (haystack.includes("verkehr") || haystack.includes("mobil") || haystack.includes("straße") || haystack.includes("strasse")) {
+    departments.push("Verkehr/Mobilität");
+  }
+  if (haystack.includes("jugend") || haystack.includes("kita") || haystack.includes("famil")) {
+    departments.push("Jugend/Familie");
+  }
+  if (haystack.includes("umwelt") || haystack.includes("klima") || haystack.includes("grün") || haystack.includes("gruen")) {
+    departments.push("Umwelt/Klima");
+  }
+  if (haystack.includes("bau") || haystack.includes("wohnen") || haystack.includes("stadtentwicklung")) {
+    departments.push("Bauen/Stadtentwicklung");
+  }
+  if (haystack.includes("gesundheit") || haystack.includes("sozial") || haystack.includes("pflege")) {
+    departments.push("Soziales/Gesundheit");
+  }
+  if (haystack.includes("kultur") || haystack.includes("bibliothek")) {
+    departments.push("Kultur");
+  }
+  return uniqueNonEmpty(departments);
+}
+
+function inferOrtsteilHints(input: string, regionName: string | null) {
+  const blocked = new Set(
+    uniqueNonEmpty([
+      regionName,
+      "Berlin",
+      "Reinickendorf",
+      "Bezirksamt",
+      "Bezirk",
+      "Amt",
+      "Verwaltung",
+      "Stadt",
+      "Gemeinde",
+    ]),
+  );
+  return uniqueNonEmpty(
+    Array.from(
+      String(input ?? "").matchAll(
+        /\b(?:in|im|am|für|bei)\s+([A-ZÄÖÜ][a-zäöüß]+(?:[-\s][A-ZÄÖÜ][a-zäöüß]+){0,2})/g,
+      ),
+    )
+      .map((match) => match[1]?.trim() ?? "")
+      .filter((entry) => entry.length >= 3 && !blocked.has(entry)),
+  );
+}
+
+function buildSampleEvidenceReferences(items: RegionSourceConnectionSampleItem[]) {
+  return items
+    .slice(0, 3)
+    .map((item, index) => ({
+      label:
+        index === 0
+          ? `Quellensnapshot · ${item.title}`
+          : `Quellensnapshot ${index + 1}`,
+      url: item.url ?? null,
+      excerpt: truncateText(item.summary, MAX_SOURCE_TEXT_LENGTH),
+    }));
+}
+
+async function fetchExplicitUrlSnapshot(url: string | null): Promise<RegionSourceUrlSnapshot | null> {
+  if (!String(url ?? "").trim()) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_SOURCE_CONNECTION_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(String(url).trim(), {
+      headers: { "user-agent": "eDebatte/region-source-review (+https://edebatte.org)" },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`source_fetch_failed_${response.status}`);
+    }
+    const html = await response.text();
+    const paragraphs = extractParagraphs(html);
+    const title = pickFirst(
+      extractMetaContent(html, /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["'][^>]*>/i),
+      extractMetaContent(html, /<meta[^>]+name=["']title["'][^>]+content=["']([^"']+)["'][^>]*>/i),
+      html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? null,
+      paragraphs[0] ?? null,
+    );
+    const summary = pickFirst(
+      extractMetaContent(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i),
+      extractMetaContent(html, /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["'][^>]*>/i),
+      paragraphs[0] ?? null,
+      stripHtml(html),
+    );
+    const evidenceReferences = paragraphs.slice(0, 3).map((excerpt, index) => ({
+      label:
+        index === 0
+          ? `Seitenauszug · ${title ?? "Explizite URL"}`
+          : `Seitenauszug ${index + 1}`,
+      url: String(url).trim(),
+      excerpt,
+    }));
+    const excerpt =
+      evidenceReferences[0]?.excerpt ??
+      (truncateText(stripHtml(html), MAX_SOURCE_TEXT_LENGTH) || null);
+    return {
+      status: "fetched",
+      title,
+      summary: summary ? truncateText(summary, MAX_SOURCE_SUMMARY_LENGTH) : excerpt,
+      excerpt,
+      evidenceReferences,
+      fallbackSampleItem:
+        title || summary || excerpt
+          ? {
+              title: title ?? "Explizite URL",
+              summary: truncateText(summary ?? excerpt ?? "", MAX_SOURCE_SUMMARY_LENGTH),
+              url: String(url).trim(),
+              detectedTopics: inferTopicsFromText(`${title ?? ""} ${summary ?? ""} ${excerpt ?? ""}`),
+            }
+          : null,
+    };
+  } catch {
+    return {
+      status: "fetch_failed",
+      title: null,
+      summary: null,
+      excerpt: null,
+      evidenceReferences: [
+        {
+          label: "Explizite URL",
+          url: String(url).trim(),
+          excerpt: null,
+        },
+      ],
+      fallbackSampleItem: null,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function normalizeSampleItems(
   items:
     | Array<{
@@ -113,6 +318,22 @@ function normalizeSampleItems(
         : inferTopicsFromText(`${item.title} ${item.summary}`),
     ),
   }));
+}
+
+function mergeDryRunSampleItems(
+  connection: RegionSourceConnection,
+  snapshot: RegionSourceUrlSnapshot | null,
+) {
+  const items = normalizeSampleItems(connection.sampleItems);
+  const extra = snapshot?.fallbackSampleItem ? [snapshot.fallbackSampleItem] : [];
+  const merged = [...extra, ...items];
+  const seen = new Set<string>();
+  return merged.filter((item) => {
+    const key = `${String(item.url ?? "").trim()}::${item.title}::${item.summary}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function isProductiveSourceConnection(connection: RegionSourceConnection) {
@@ -302,23 +523,6 @@ function confidenceForType(sourceType: RegionSourceConnectionType) {
   }
 }
 
-function buildDryRunSummary(connection: RegionSourceConnection) {
-  const sampleCount = connection.sampleItems.length;
-  if (connection.sourceType === "official_feed" || connection.sourceType === "municipal_news") {
-    return sampleCount > 0
-      ? `Explizite URL vorbereitet. ${sampleCount} Testeintraege wurden nur als reviewpflichtige Quelle ausgewertet. Kein Live-Crawler, kein Scraping.`
-      : `Explizite URL vorbereitet. Dry Run bleibt reviewpflichtig und fuehrt keine automatische Abfrage aus. Kein Live-Crawler, kein Scraping.`;
-  }
-  if (connection.sourceType === "curated_pilot_source") {
-    return sampleCount > 0
-      ? `${sampleCount} kuratierte Testeintraege wurden als Pilotvorschau ausgewertet. Keine automatische Veroeffentlichung.`
-      : "Kuratierte Pilotquelle vorbereitet. Dry Run bleibt reviewpflichtig und nicht amtlich.";
-  }
-  return sampleCount > 0
-    ? `${sampleCount} manuelle Testeintraege wurden reviewpflichtig ausgewertet. Keine automatische Veroeffentlichung.`
-    : "Manuelle Quelle vorbereitet. Dry Run bleibt reviewpflichtig und nicht amtlich.";
-}
-
 function buildDryRunTitle(connection: RegionSourceConnection) {
   return `${connection.label} · Dry Run`;
 }
@@ -418,6 +622,178 @@ function buildSuggestedTitles(params: {
   };
 }
 
+function splitCandidateSentences(input: string) {
+  return String(input ?? "")
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => truncateText(sentence, MAX_SOURCE_TEXT_LENGTH))
+    .filter((sentence) => sentence.length >= 28 && !sentence.includes("?"));
+}
+
+function buildPossibleClaims(params: {
+  sourceSnapshot: RegionSourceUrlSnapshot | null;
+  sampleItems: RegionSourceConnectionSampleItem[];
+}) {
+  const claims: RegionSourcePossibleClaim[] = [];
+  const pushClaim = (
+    text: string | null | undefined,
+    confidence: number,
+    basisLabel: RegionSourcePossibleClaim["basisLabel"],
+    excerpt: string | null,
+  ) => {
+    const normalized = truncateText(String(text ?? ""), MAX_SOURCE_TEXT_LENGTH);
+    if (!normalized || normalized.endsWith("?")) return;
+    if (claims.some((claim) => claim.text === normalized)) return;
+    claims.push({
+      text: normalized,
+      confidence: Number(confidence.toFixed(2)),
+      basisLabel,
+      excerpt: excerpt ? truncateText(excerpt, MAX_SOURCE_TEXT_LENGTH) : null,
+      reviewRequired: true,
+    });
+  };
+
+  pushClaim(params.sourceSnapshot?.title, 0.74, "Titel", params.sourceSnapshot?.excerpt ?? null);
+  for (const sentence of splitCandidateSentences(params.sourceSnapshot?.summary ?? "")) {
+    pushClaim(sentence, 0.68, "Zusammenfassung", params.sourceSnapshot?.excerpt ?? null);
+  }
+  for (const reference of params.sourceSnapshot?.evidenceReferences ?? []) {
+    for (const sentence of splitCandidateSentences(reference.excerpt ?? "")) {
+      pushClaim(sentence, 0.62, "Seitenauszug", reference.excerpt ?? null);
+    }
+  }
+  for (const item of params.sampleItems) {
+    pushClaim(item.title, 0.66, "Titel", item.summary);
+    for (const sentence of splitCandidateSentences(item.summary)) {
+      pushClaim(sentence, 0.6, "Zusammenfassung", item.summary);
+    }
+  }
+  return claims.slice(0, 5);
+}
+
+function buildReviewTaskSummary(params: {
+  possibleClaims: RegionSourcePossibleClaim[];
+  preparation: Awaited<ReturnType<typeof runRegionIntelligencePreparation>>;
+  evidenceReferences: RegionSourceEvidenceReference[];
+}) {
+  const claimCount = params.possibleClaims.length;
+  const topicClusterCount = params.preparation.topicClusterHints.length;
+  const dossierSuggestionCount = params.preparation.dossierSuggestionHints.length;
+  const anlassraumSuggestionCount = params.preparation.anlassraumSuggestionHints.length;
+  const openQuestionCount = params.preparation.openQuestions.length;
+  const evidenceCount = params.evidenceReferences.length;
+  return {
+    claimCount,
+    topicClusterCount,
+    dossierSuggestionCount,
+    anlassraumSuggestionCount,
+    openQuestionCount,
+    evidenceCount,
+    label: `${claimCount} mögliche Aussagen · ${topicClusterCount} Themencluster · ${dossierSuggestionCount} Dossier-Vorschläge · ${anlassraumSuggestionCount} Anlassraum-Vorschläge · ${openQuestionCount} offene Fragen`,
+  };
+}
+
+function buildDryRunSummary(params: {
+  connection: RegionSourceConnection;
+  sourceSnapshot: RegionSourceUrlSnapshot | null;
+  reviewTaskSummary: ReturnType<typeof buildReviewTaskSummary>;
+}) {
+  if (params.sourceSnapshot?.status === "fetch_failed" && params.connection.sampleItems.length === 0) {
+    return "Explizite URL ist hinterlegt, konnte im kontrollierten Single-Page-Dry-Run aber nicht gelesen werden. Der Eintrag bleibt reviewpflichtig; bitte manuelle Stichpunkte oder einen erreichbaren Link ergänzen.";
+  }
+  if (params.sourceSnapshot?.status === "fetched") {
+    return `Explizite URL wurde kontrolliert als einzelne Seite ausgewertet. ${params.reviewTaskSummary.label}. Alles bleibt reviewpflichtig; kein Live-Crawler, kein Link-Following, kein Scraping im Sinne eines offenen Site-Crawls und keine automatische Veröffentlichung.`;
+  }
+  const sampleCount = params.connection.sampleItems.length;
+  return sampleCount > 0
+    ? `${sampleCount} vorbereitete Quellensnapshots wurden als reviewpflichtige Vorschläge verdichtet. ${params.reviewTaskSummary.label}. Keine automatische Veröffentlichung oder Amtlichkeit.`
+    : "Quelle vorbereitet. Dry Run bleibt reviewpflichtig und erzeugt keine automatische Veröffentlichung oder Amtlichkeit.";
+}
+
+function buildAffectedScope(params: {
+  region: Region;
+  sourceSnapshot: RegionSourceUrlSnapshot | null;
+  sampleItems: RegionSourceConnectionSampleItem[];
+  detectedTopics: string[];
+}) {
+  const snapshotText = [
+    params.sourceSnapshot?.title,
+    params.sourceSnapshot?.summary,
+    params.sourceSnapshot?.excerpt,
+    ...params.sampleItems.map((item) => `${item.title} ${item.summary}`),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const detectedPlaces = uniqueNonEmpty([
+    params.region.name,
+    ...params.sampleItems.flatMap((item) => inferOrtsteilHints(`${item.title} ${item.summary}`, params.region.name)),
+    ...inferOrtsteilHints(snapshotText, params.region.name),
+  ]);
+  return {
+    regionName: params.region.name,
+    detectedPlaces,
+    ortsteilHints: uniqueNonEmpty(
+      inferOrtsteilHints(snapshotText, params.region.name).filter((place) => place !== params.region.name),
+    ),
+    fachbereichHints: uniqueNonEmpty([
+      ...inferDepartmentHints(`${snapshotText} ${params.detectedTopics.join(" ")}`),
+      ...params.detectedTopics,
+    ]).slice(0, 5),
+  };
+}
+
+function buildDryRunPreparationInput(params: {
+  connection: RegionSourceConnection;
+  region: Region;
+  sampleItems: RegionSourceConnectionSampleItem[];
+  actorRole: string;
+  organizationIds: string[];
+}) {
+  const expectedOutputs: Array<
+    "topic_clusters" | "dossier_suggestions" | "anlassraum_suggestions" | "open_questions"
+  > = [
+    "topic_clusters",
+    "dossier_suggestions",
+    "anlassraum_suggestions",
+    "open_questions",
+  ];
+  const connectionForSignals: RegionSourceConnection = {
+    ...params.connection,
+    sampleItems: params.sampleItems,
+    enabled: true,
+  };
+  const sources: RegionIntelligenceSource[] = buildRegionSourceConnectionFeedSignals({
+    connections: [connectionForSignals],
+    regionNameById: new Map([[params.region.id, params.region.name]]),
+  }).map((signal) => ({
+    kind: "feed_signal" as const,
+    signal,
+  }));
+  return {
+    region: params.region,
+    organization: {
+      primaryOrganizationId: params.organizationIds[0] ?? null,
+      organizationIds: params.organizationIds,
+      actorRole: params.actorRole,
+      entitlementStatus: null,
+      verificationStatus: null,
+      regionalActorLabels: uniqueNonEmpty([
+        params.region.officialBody?.label ?? null,
+        params.connection.label,
+      ]),
+    },
+    orientation: {
+      audience: "verwaltung_organisation" as const,
+      goal: "Explizite URL reviewpflichtig als regionale Quelle auswerten",
+      focusTopics: uniqueNonEmpty(
+        params.sampleItems.flatMap((item) => item.detectedTopics),
+      ),
+      expectedOutputs,
+    },
+    sources,
+    sourceAdapters: buildRegionIntelligenceSourceAdapterOverrides([connectionForSignals]),
+  };
+}
+
 export async function listRegionSourceConnections(regionId?: string | null) {
   return getRepo().listConnections(regionId);
 }
@@ -454,10 +830,46 @@ export async function saveRegionSourceConnection(input: z.input<typeof RegionSou
 export async function runRegionSourceConnectionDryRun(params: {
   connectionId: string;
   testedBy: string | null;
+  region: Region;
+  actorRole?: string | null;
+  organizationIds?: string[] | null;
 }) {
   const connection = await getRepo().getConnectionById(params.connectionId);
   if (!connection) throw new Error("source_connection_not_found");
 
+  const sourceSnapshot = await fetchExplicitUrlSnapshot(connection.url);
+  const sampleItems = mergeDryRunSampleItems(connection, sourceSnapshot);
+  const preparation = await runRegionIntelligencePreparation(
+    buildDryRunPreparationInput({
+      connection,
+      region: params.region,
+      sampleItems,
+      actorRole: String(params.actorRole ?? "admin").trim() || "admin",
+      organizationIds: uniqueNonEmpty(params.organizationIds ?? []),
+    }),
+  );
+  const evidenceReferences = uniqueNonEmpty(
+    [
+      ...(sourceSnapshot?.evidenceReferences ?? []).map((reference) =>
+        JSON.stringify(reference),
+      ),
+      ...buildSampleEvidenceReferences(sampleItems).map((reference) => JSON.stringify(reference)),
+    ],
+  )
+    .slice(0, 5)
+    .map((value) => JSON.parse(value) as RegionSourceEvidenceReference);
+  const possibleClaims = buildPossibleClaims({
+    sourceSnapshot,
+    sampleItems,
+  });
+  const detectedTopics = uniqueNonEmpty(
+    preparation.signalSeeds.flatMap((seed) => seed.detectedTopics),
+  );
+  const reviewTaskSummary = buildReviewTaskSummary({
+    possibleClaims,
+    preparation,
+    evidenceReferences,
+  });
   const now = buildIsoNow();
   const result: RegionSourceTestResult = {
     id: `region-source-test-result-${connection.id}-${Date.now()}`,
@@ -468,13 +880,37 @@ export async function runRegionSourceConnectionDryRun(params: {
     adapterId: connection.adapterId,
     resultMode: "dry_run",
     title: buildDryRunTitle(connection),
-    summary: buildDryRunSummary(connection),
+    summary: buildDryRunSummary({
+      connection,
+      sourceSnapshot,
+      reviewTaskSummary,
+    }),
     configuredUrl: connection.url,
-    detectedTopics: buildDryRunTopics(connection),
+    detectedTopics: detectedTopics.length > 0 ? detectedTopics : buildDryRunTopics(connection),
     visibilityState: "internal_review",
     visibilityLabel: regionSourceResultVisibilityLabel("internal_review"),
     reviewStatus: "needs_review",
     confidence: confidenceForType(connection.sourceType),
+    sourceSnapshotStatus:
+      sourceSnapshot?.status ??
+      (sampleItems.length > 0 ? "manual_only" : "fetch_failed"),
+    sourceSnapshotTitle: sourceSnapshot?.title ?? sampleItems[0]?.title ?? null,
+    sourceSnapshotSummary: sourceSnapshot?.summary ?? sampleItems[0]?.summary ?? null,
+    sourceSnapshotExcerpt: sourceSnapshot?.excerpt ?? evidenceReferences[0]?.excerpt ?? null,
+    possibleClaims,
+    topicClusters: preparation.topicClusterHints,
+    dossierSuggestions: preparation.dossierSuggestionHints,
+    anlassraumSuggestions: preparation.anlassraumSuggestionHints,
+    evidenceReferences,
+    openQuestions: preparation.openQuestions,
+    affectedScope: buildAffectedScope({
+      region: params.region,
+      sourceSnapshot,
+      sampleItems,
+      detectedTopics,
+    }),
+    reviewSuggestions: preparation.reviewSuggestions,
+    reviewTaskSummary,
     createdAt: now,
     updatedAt: now,
     testedBy: params.testedBy,

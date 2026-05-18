@@ -97,6 +97,86 @@ vi.mock("@features/region", async () => {
         visibilityLabel: "reviewpflichtig",
         reviewStatus: "needs_review",
         confidence: 0.68,
+        sourceSnapshotStatus: "fetched",
+        sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
+        sourceSnapshotSummary: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit und Sanierungsbedarf.",
+        sourceSnapshotExcerpt: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+        possibleClaims: [
+          {
+            text: "Schulsanierung in Reinickendorf",
+            confidence: 0.74,
+            basisLabel: "Titel",
+            excerpt: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+            reviewRequired: true,
+          },
+        ],
+        topicClusters: [
+          {
+            clusterKey: "schule-reinickendorf",
+            label: "Schule Reinickendorf",
+            signalSeedIds: ["region-source-feed-signal-source-1-1"],
+            openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+            confidence: 0.68,
+            suggestedAction: "ask_clarifying_question",
+            reviewStatus: "needs_review",
+          },
+        ],
+        dossierSuggestions: [
+          {
+            title: "Berlin Reinickendorf: Schule",
+            signalSeedIds: ["region-source-feed-signal-source-1-1"],
+            openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+            confidence: 0.68,
+            reviewStatus: "needs_review",
+          },
+        ],
+        anlassraumSuggestions: [
+          {
+            title: "Schule Berlin Reinickendorf",
+            signalSeedIds: ["region-source-feed-signal-source-1-1"],
+            openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+            confidence: 0.68,
+            reviewStatus: "needs_review",
+          },
+        ],
+        evidenceReferences: [
+          {
+            label: "Seitenauszug · Schulsanierung in Reinickendorf",
+            url: "https://reinickendorf.example/aktuelles",
+            excerpt: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+          },
+        ],
+        openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+        affectedScope: {
+          regionName: "Berlin Reinickendorf",
+          detectedPlaces: ["Berlin Reinickendorf"],
+          ortsteilHints: [],
+          fachbereichHints: ["Schule/Bildung", "Schule", "Verkehr"],
+        },
+        reviewSuggestions: [
+          {
+            id: "region-intelligence-dossier-schule-reinickendorf",
+            suggestionType: "dossier_suggestion",
+            title: "Berlin Reinickendorf: Schule",
+            summary: "1 Signal spricht für einen reviewpflichtigen Dossier-Vorschlag.",
+            signalSeedIds: ["region-source-feed-signal-source-1-1"],
+            confidence: 0.68,
+            reviewStatus: "needs_review",
+            visibilityState: "internal_review",
+            sourceCategories: ["productive"],
+            sourceLabels: ["Bezirksamt Reinickendorf News"],
+            sourceStatusLabel: "1 produktive Quelle verbunden",
+          },
+        ],
+        reviewTaskSummary: {
+          claimCount: 1,
+          topicClusterCount: 1,
+          dossierSuggestionCount: 1,
+          anlassraumSuggestionCount: 1,
+          openQuestionCount: 1,
+          evidenceCount: 1,
+          label: "1 mögliche Aussagen · 1 Themencluster · 1 Dossier-Vorschläge · 1 Anlassraum-Vorschläge · 1 offene Fragen",
+        },
         createdAt: "2026-05-17T00:00:00.000Z",
         updatedAt: "2026-05-17T00:00:00.000Z",
         testedBy: "admin-1",
@@ -130,6 +210,9 @@ describe("admin-regions-page.render", () => {
     expect(html).toContain("Konfigurierte Quellen");
     expect(html).toContain("Reviewpflichtige Source Results");
     expect(html).toContain("Bezirksamt Reinickendorf News");
+    expect(html).toContain("Review-Queue öffnen");
+    expect(html).toContain("Zur Review-Aufgabe");
+    expect(html).toContain("1 mögliche Aussagen");
     expect(html).toContain("Amtliches Gemeindeverzeichnis ist nicht verbunden.");
     expect(html).toContain("Noch keine RegionRegistry-Einträge gefunden.");
     expect(html).toContain("Berlin Reinickendorf");

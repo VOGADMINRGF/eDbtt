@@ -163,6 +163,14 @@ export default async function AdminRegionsPage() {
           sind getrennt vorbereitet; keine Live-Crawler-Behauptung, kein Scraping und keine
           DeepSearch-Automatikkosten.
         </p>
+        <div className="mt-4">
+          <Link
+            href="/admin/review"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            Review-Queue öffnen
+          </Link>
+        </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
           {intelligenceSourceContracts.configuredSources.map((source) => (
             <article key={source.adapterId} className="rounded-2xl border border-[rgb(var(--border))] p-4">
@@ -227,6 +235,17 @@ export default async function AdminRegionsPage() {
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {regionMap.get(result.regionId)?.name ?? result.regionId} · {result.visibilityLabel}
                     </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {result.reviewTaskSummary.label}
+                    </p>
+                    <div className="mt-2">
+                      <Link
+                        href={`/admin/region?regionId=${encodeURIComponent(regionMap.get(result.regionId)?.slug ?? result.regionId)}#source-results`}
+                        className="text-xs font-semibold text-sky-700 underline underline-offset-2"
+                      >
+                        Zur Review-Aufgabe
+                      </Link>
+                    </div>
                   </div>
                 ))
               ) : (

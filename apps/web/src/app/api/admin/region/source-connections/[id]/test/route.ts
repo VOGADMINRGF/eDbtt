@@ -58,6 +58,9 @@ export async function POST(
     const result = await runRegionSourceConnectionDryRun({
       connectionId: connection.id,
       testedBy: gate.actor.userId,
+      region,
+      actorRole: gate.actor.role,
+      organizationIds: gate.actor.scopedOwnerIds,
     });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
