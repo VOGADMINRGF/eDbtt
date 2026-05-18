@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import {
   dossierClaimsCol,
   dossierSourcesCol,
@@ -183,7 +184,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
     );
   }
 
-  const studioWorkspace = await getDossierStudioWorkspaceRepo().getDossierStudioWorkspace(id);
+  const studioWorkspace = shouldUseInMemoryMongoFallback()
+    ? null
+    : await getDossierStudioWorkspaceRepo().getDossierStudioWorkspace(id);
   const pkg = studioWorkspace?.officialApproval
     ? withOfficialVisibility(parsedPackage.data, studioWorkspace.officialApproval)
     : parsedPackage.data;

@@ -1,7 +1,8 @@
-import { ObjectId } from "@core/db/triMongo";
+import { ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { dossiersCol } from "./db";
 
 export async function findDossierByAnyId(dossierId: string) {
+  if (shouldUseInMemoryMongoFallback()) return null;
   const col = await dossiersCol();
   const clauses: Record<string, any>[] = [
     { dossierId },

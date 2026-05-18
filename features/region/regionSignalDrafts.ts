@@ -1,4 +1,4 @@
-import { coreCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { z } from "zod";
 import type { CommunitySignal } from "./contracts";
@@ -644,7 +644,7 @@ export function createInMemoryRegionSignalDraftPersistence(): RegionSignalDraftP
 }
 
 function getRegionSignalDraftPersistence(): RegionSignalDraftPersistence {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!draftPersistenceSingleton) {
       draftPersistenceSingleton = createInMemoryRegionSignalDraftPersistence();
     }

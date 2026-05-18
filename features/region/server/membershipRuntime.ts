@@ -1,4 +1,4 @@
-import { coreCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { buildRegionAccessContext, type RegionAccessContext } from "../access";
 import { getRegionEntitlementRuntimeRepo } from "./paidEntitlements";
 import {
@@ -1047,7 +1047,7 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
 }
 
 export function getRegionOrganizationRuntimeRepo(): RegionOrganizationRuntimeRepo {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) repoSingleton = createInMemoryRegionOrganizationRuntimeRepo();
     return repoSingleton;
   }

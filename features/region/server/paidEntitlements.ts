@@ -1,4 +1,4 @@
-import { coreCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { z } from "zod";
 import { EDEBATTE_PACKAGES_DE } from "@features/pricing/domain/plans.de";
 import type { EDebattePackageId } from "@features/pricing/domain/types";
@@ -929,7 +929,7 @@ export function createInMemoryRegionEntitlementRuntimeRepo(seed?: {
 }
 
 export function getRegionEntitlementRuntimeRepo(): RegionEntitlementRuntimeRepo {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) repoSingleton = createInMemoryRegionEntitlementRuntimeRepo();
     return repoSingleton;
   }

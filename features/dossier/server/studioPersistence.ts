@@ -1,4 +1,4 @@
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { z } from "zod";
 import {
@@ -933,7 +933,7 @@ export function createInMemoryDossierStudioWorkspaceRepo(seed?: {
 }
 
 export function getDossierStudioWorkspaceRepo(): DossierStudioWorkspaceRepo {
-  if (process.env.VITEST) {
+  if (shouldUseInMemoryMongoFallback()) {
     if (!repoSingleton) {
       repoSingleton = createInMemoryDossierStudioWorkspaceRepo();
     }
