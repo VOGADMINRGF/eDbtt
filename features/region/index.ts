@@ -10,6 +10,7 @@ export * from "./publicationRiskLadder";
 export * from "./regionFeedSignals";
 export * from "./regionParticipationSignals";
 export * from "./regionSignalDrafts";
+export * from "./scope";
 export * from "./sourceConnections";
 export * from "./store";
 export * from "./server/paidEntitlements";

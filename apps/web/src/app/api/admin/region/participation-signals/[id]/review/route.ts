@@ -5,9 +5,11 @@ import {
   buildPersistedRegionAccessContext,
   canApprovePublication,
   canReviewRegionSignal,
+  canViewRegionResource,
   getOperationalRegionById,
   getParticipationSignalReviewRuntimeRepo,
   listOperationalRegions,
+  regionScopeFromRegionAccessContext,
   syncParticipationSignalRecords,
 } from "@features/region";
 
@@ -37,7 +39,7 @@ async function buildAccessContext(params: {
   regionId: string;
 }) {
   if (params.gate instanceof Response) return null;
-  return buildPersistedRegionAccessContext({
+  const accessContext = await buildPersistedRegionAccessContext({
     userId: params.gate.actor.userId,
     actorRole: params.gate.actor.role,
     isAdmin: params.gate.actor.isAdmin,
@@ -45,6 +47,10 @@ async function buildAccessContext(params: {
     organizationIds: params.gate.actor.scopedOwnerIds,
     regionId: params.regionId,
   });
+  return {
+    accessContext,
+    scope: regionScopeFromRegionAccessContext({ accessContext }),
+  };
 }
 
 function statusForBlockedReason(reason: string | null | undefined) {
@@ -88,14 +94,19 @@ export async function POST(
     if (!region) {
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
-    const accessContext = await buildAccessContext({ gate, regionId: region.id });
-    const hasReviewAccess = accessContext && canReviewRegionSignal(accessContext, region.id);
+    const scoped = await buildAccessContext({ gate, regionId: region.id });
+    const hasReviewAccess =
+      scoped &&
+      canViewRegionResource(scoped.scope, { regionId: region.id }) &&
+      canReviewRegionSignal(scoped.accessContext, region.id);
     const hasPublicationApprovalAccess =
-      accessContext && canApprovePublication(accessContext, region.id);
+      scoped &&
+      canViewRegionResource(scoped.scope, { regionId: region.id }) &&
+      canApprovePublication(scoped.accessContext, region.id);
     const requiresPublicationApproval =
       body.decision === "approve_official" || body.decision === "revoke_official";
     if (
-      !accessContext ||
+      !scoped ||
       (requiresPublicationApproval
         ? !hasPublicationApprovalAccess
         : !hasReviewAccess)

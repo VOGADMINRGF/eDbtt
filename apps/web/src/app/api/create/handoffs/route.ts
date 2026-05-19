@@ -18,6 +18,12 @@ import {
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
 import type { CreateGraphMatchResult } from "@/features/create/intelligentFollowupContract";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
+import {
+  buildPersistedRegionAccessContext,
+  canEditOrganizationResource,
+  canViewRegionResource,
+  regionScopeFromRegionAccessContext,
+} from "@features/region";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -210,6 +216,11 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     const userId = user?._id?.toHexString?.() ?? null;
     if (!user || !user.sessionValid || !userId) return unauthorized();
+    const roles = Array.isArray(user.roles)
+      ? user.roles.map((role) => String(role ?? "").trim()).filter(Boolean)
+      : [];
+    const isAdmin = roles.includes("admin");
+    const actorRole = String(roles[0] ?? (isAdmin ? "admin" : "organization_member")).trim() || "organization_member";
 
     const body = CreateHandoffBodySchema.parse(await req.json());
     const draft = normalizeCreateHandoffDraft(body.draft);
@@ -218,6 +229,31 @@ export async function POST(req: Request) {
       dossierId: body.dossierId ?? null,
       anlassraumId: body.anlassraumId ?? null,
     });
+    const accessContext = await buildPersistedRegionAccessContext({
+      userId,
+      actorRole,
+      isAdmin,
+      roles,
+      regionId: context.regionId,
+    });
+    const scope = regionScopeFromRegionAccessContext({ accessContext });
+    if (
+      !isAdmin &&
+      ((
+        context.regionId &&
+        !canViewRegionResource(scope, {
+          regionId: context.regionId,
+          organizationId: context.organizationId,
+        })
+      ) || (
+        context.organizationId &&
+        !canEditOrganizationResource(scope, {
+          organizationId: context.organizationId,
+        })
+      ))
+    ) {
+      return NextResponse.json({ ok: false, error: "create_handoff_scope_forbidden" }, { status: 403 });
+    }
     const record = await persistCreateHandoffForReview({
       draft,
       createdByUserId: userId,

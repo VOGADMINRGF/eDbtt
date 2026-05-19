@@ -4,9 +4,11 @@ import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   buildPersistedRegionAccessContext,
   canReviewRegionSignal,
+  canViewRegionResource,
   getOperationalRegionById,
   listOperationalRegions,
   listParticipationSignalsForReviewRuntime,
+  regionScopeFromRegionAccessContext,
 } from "@features/region";
 
 export const runtime = "nodejs";
@@ -33,17 +35,21 @@ const QuerySchema = z
 
 async function buildAccessContext(params: {
   gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
-  regionId: string;
+  regionId?: string | null;
 }) {
   if (params.gate instanceof Response) return null;
-  return buildPersistedRegionAccessContext({
+  const accessContext = await buildPersistedRegionAccessContext({
     userId: params.gate.actor.userId,
     actorRole: params.gate.actor.role,
     isAdmin: params.gate.actor.isAdmin,
     roles: params.gate.roles,
     organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId,
+    regionId: params.regionId ?? undefined,
   });
+  return {
+    accessContext,
+    scope: regionScopeFromRegionAccessContext({ accessContext }),
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -70,8 +76,12 @@ export async function GET(req: NextRequest) {
         { status: 403 },
       );
     }
-    const accessContext = await buildAccessContext({ gate, regionId: resolvedRegionId });
-    if (!accessContext || !canReviewRegionSignal(accessContext, resolvedRegionId)) {
+    const scoped = await buildAccessContext({ gate, regionId: resolvedRegionId });
+    if (
+      !scoped ||
+      !canViewRegionResource(scoped.scope, { regionId: resolvedRegionId }) ||
+      !canReviewRegionSignal(scoped.accessContext, resolvedRegionId)
+    ) {
       return NextResponse.json(
         { ok: false, error: "region_review_forbidden" },
         { status: 403 },
@@ -93,10 +103,18 @@ export async function GET(req: NextRequest) {
             : null,
     },
   });
+  const scoped = gate.actor.isAdmin ? null : await buildAccessContext({ gate, regionId: resolvedRegionId });
+  const filteredSignals = signals.filter((signal) =>
+    gate.actor.isAdmin ||
+    (scoped &&
+      canViewRegionResource(scoped.scope, {
+        regionId: signal.regionId ?? signal.proposedRegionId ?? null,
+      })),
+  );
 
   return NextResponse.json({
     ok: true,
-    signals: signals.map((signal) => ({
+    signals: filteredSignals.map((signal) => ({
       id: signal.id,
       regionId: signal.regionId,
       proposedRegionId: signal.proposedRegionId,

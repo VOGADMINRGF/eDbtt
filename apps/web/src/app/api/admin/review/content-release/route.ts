@@ -8,10 +8,13 @@ import {
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import {
   buildPersistedRegionAccessContext,
+  canEditOrganizationResource,
   canApprovePublication,
   canCreateAnlassraumDraft,
   canCreateDossierDraft,
+  canViewRegionResource,
   getOperationalRegionById,
+  regionScopeFromRegionAccessContext,
 } from "@features/region";
 import { getRegionSourceTestResultById } from "@features/region/server/sourceConnectionRuntime";
 
@@ -38,7 +41,7 @@ const ContentReleaseBodySchema = z
 
 async function buildAccessContext(input: {
   req: NextRequest;
-  regionId: string;
+  regionId?: string | null;
 }) {
   const gate = await requireGovernanceActorOrResponse(input.req);
   if (gate instanceof Response) return gate;
@@ -48,9 +51,9 @@ async function buildAccessContext(input: {
     isAdmin: gate.actor.isAdmin,
     roles: gate.roles,
     organizationIds: gate.actor.scopedOwnerIds,
-    regionId: input.regionId,
+    regionId: input.regionId ?? undefined,
   });
-  return { gate, accessContext };
+  return { gate, accessContext, scope: regionScopeFromRegionAccessContext({ accessContext }) };
 }
 
 function denied(error: string) {
@@ -71,22 +74,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const regionId = body.sourceKind === "region_source_result" ? source.regionId : source.regionId;
+    const regionId = source.regionId;
+    const organizationId = source.organizationId ?? null;
+    const sourceOwnerUserId =
+      "createdByUserId" in source ? source.createdByUserId : null;
     const region = regionId ? await getOperationalRegionById(regionId) : null;
-    const access = region?.id ? await buildAccessContext({ req, regionId: region.id }) : await requireGovernanceActorOrResponse(req);
+    const access = await buildAccessContext({ req, regionId: region?.id ?? null });
     if (access instanceof Response) return access;
-
-    const gate = "gate" in access ? access.gate : access;
-    const accessContext = "gate" in access ? access.accessContext : null;
-    const canPrepareTarget =
+    const { gate, accessContext, scope } = access;
+    const canViewSource =
       gate.actor.isAdmin ||
-      (region?.id && accessContext
-        ? body.targetType === "dossier"
-          ? canCreateDossierDraft(accessContext, region.id)
-          : canCreateAnlassraumDraft(accessContext, region.id)
-        : false);
+      canViewRegionResource(scope, {
+        regionId: region?.id ?? regionId,
+        organizationId,
+        ownerUserId: sourceOwnerUserId,
+      });
+    const canPrepareTarget =
+      canViewSource &&
+      (
+        gate.actor.isAdmin ||
+        (
+          canEditOrganizationResource(scope, { organizationId, ownerUserId: sourceOwnerUserId }) &&
+          region?.id &&
+          (
+            body.targetType === "dossier"
+              ? canCreateDossierDraft(accessContext, region.id)
+              : canCreateAnlassraumDraft(accessContext, region.id)
+          )
+        )
+      );
     const canPreparePublicationStep =
-      gate.actor.isAdmin || Boolean(region?.id && accessContext && canApprovePublication(accessContext, region.id));
+      gate.actor.isAdmin ||
+      Boolean(
+        canViewSource &&
+        canEditOrganizationResource(scope, {
+          organizationId,
+          ownerUserId: sourceOwnerUserId,
+        }) &&
+        region?.id &&
+        canApprovePublication(accessContext, region.id),
+      );
 
     if (body.action === "prepare_target") {
       if (!canPrepareTarget) return denied("content_release_prepare_forbidden");

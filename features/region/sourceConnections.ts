@@ -50,6 +50,7 @@ export type RegionSourceSnapshotTemplate = {
 export type RegionSourceConnection = {
   id: string;
   regionId: string;
+  organizationId?: string | null;
   label: string;
   sourceType: RegionSourceConnectionType;
   adapterId: RegionIntelligenceSourceAdapterId;
@@ -72,6 +73,7 @@ export type RegionSourceTestResult = {
   id: string;
   connectionId: string;
   regionId: string;
+  organizationId?: string | null;
   connectionLabel: string;
   sourceType: RegionSourceConnectionType;
   adapterId: RegionIntelligenceSourceAdapterId;

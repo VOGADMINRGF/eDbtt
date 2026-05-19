@@ -4,11 +4,14 @@ import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   RegionSourceConnectionUpsertSchema,
   buildPersistedRegionAccessContext,
+  canEditOrganizationResource,
   canCreateRegionDraft,
   canReviewRegionSignal,
+  canViewRegionResource,
   getOperationalRegionById,
   listRegionSourceConnections,
   listRegionSourceTestResults,
+  regionScopeFromRegionAccessContext,
   saveRegionSourceConnection,
 } from "@features/region";
 
@@ -21,23 +24,44 @@ const QuerySchema = z
   })
   .strict();
 
-async function canManageRegionSources(params: {
+async function buildScopedAccess(params: {
   gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
-  regionId: string;
+  regionId?: string | null;
 }) {
   if (params.gate instanceof Response) return false;
-  if (params.gate.actor.isAdmin) return true;
   const accessContext = await buildPersistedRegionAccessContext({
     userId: params.gate.actor.userId,
     actorRole: params.gate.actor.role,
     isAdmin: params.gate.actor.isAdmin,
     roles: params.gate.roles,
     organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId,
+    regionId: params.regionId ?? undefined,
   });
+  return {
+    accessContext,
+    scope: regionScopeFromRegionAccessContext({ accessContext }),
+  };
+}
+
+async function canManageRegionSources(params: {
+  gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
+  regionId: string;
+}) {
+  if (params.gate instanceof Response) return false;
+  const scoped = await buildScopedAccess(params);
+  if (!scoped) return false;
   return (
-    canReviewRegionSignal(accessContext, params.regionId) ||
-    canCreateRegionDraft(accessContext, params.regionId)
+    canViewRegionResource(scoped.scope, {
+      regionId: params.regionId,
+      organizationId: scoped.accessContext.organization.primaryOrganizationId,
+    }) &&
+    canEditOrganizationResource(scoped.scope, {
+      organizationId: scoped.accessContext.organization.primaryOrganizationId,
+    }) &&
+    (
+      canReviewRegionSignal(scoped.accessContext, params.regionId) ||
+      canCreateRegionDraft(scoped.accessContext, params.regionId)
+    )
   );
 }
 
@@ -55,11 +79,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
     }
 
+    const scoped = await buildScopedAccess({ gate, regionId: region?.id ?? null });
     const [connections, results] = await Promise.all([
       listRegionSourceConnections(region?.id ?? null),
       listRegionSourceTestResults({ regionId: region?.id ?? null, limit: 50 }),
     ]);
-    return NextResponse.json({ ok: true, connections, results });
+    if (gate.actor.isAdmin) {
+      return NextResponse.json({ ok: true, connections, results });
+    }
+    const filteredConnections = connections.filter((connection) =>
+      scoped &&
+      canViewRegionResource(scoped.scope, {
+        regionId: connection.regionId,
+        organizationId: connection.organizationId ?? null,
+      }),
+    );
+    const filteredResults = results.filter((result) =>
+      scoped &&
+      canViewRegionResource(scoped.scope, {
+        regionId: result.regionId,
+        organizationId: result.organizationId ?? null,
+      }),
+    );
+    return NextResponse.json({ ok: true, connections: filteredConnections, results: filteredResults });
   } catch (error) {
     const message = error instanceof Error ? error.message : "region_source_list_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
@@ -80,10 +122,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
     }
 
+    const scoped = await buildScopedAccess({ gate, regionId: region.id });
     const connection = await saveRegionSourceConnection({
       ...parsed,
       regionId: region.id,
       userId: gate.actor.userId,
+      organizationId: gate.actor.isAdmin
+        ? null
+        : scoped && canEditOrganizationResource(scoped.scope, {
+            organizationId: scoped.accessContext.organization.primaryOrganizationId,
+          })
+          ? scoped.accessContext.organization.primaryOrganizationId
+          : null,
     });
     return NextResponse.json({ ok: true, connection });
   } catch (error) {

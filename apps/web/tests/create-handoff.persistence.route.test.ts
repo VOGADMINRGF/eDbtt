@@ -9,6 +9,12 @@ import {
   createInMemoryDossierStudioWorkspaceRepo,
   setDossierStudioWorkspaceRepoForTests,
 } from "@features/dossier/server/studioPersistence";
+import {
+  createInMemoryRegionEntitlementRuntimeRepo,
+  createInMemoryRegionOrganizationRuntimeRepo,
+  setRegionEntitlementRuntimeRepoForTests,
+  setRegionOrganizationRuntimeRepoForTests,
+} from "@features/region";
 
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
@@ -136,10 +142,51 @@ describe("/api/create/handoffs", () => {
   beforeEach(async () => {
     mocks.getSessionUser.mockResolvedValue({
       _id: { toHexString: () => "user-1" },
-      roles: ["user"],
+      roles: ["organization_member"],
       sessionValid: true,
     });
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [
+          {
+            id: "org-reinickendorf-1",
+            name: "Bezirksamt Reinickendorf",
+            type: "district_office",
+            countryCode: "DE",
+            primaryRegionId: "bezirk-berlin-reinickendorf",
+            website: "https://reinickendorf.example",
+            verificationStatus: "organization_verified",
+            createdByUserId: "admin-1",
+          },
+        ],
+        memberships: [
+          {
+            id: "membership-1",
+            userId: "user-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            unitName: "Beteiligung",
+            optionalLocation: null,
+            roleLabel: "Beteiligung",
+            roleType: "participation_officer",
+            verificationStatus: "unit_verified",
+            allowedActions: ["read_region_dashboard", "create_dossier_draft"],
+            createdAt: "2026-05-19T08:00:00.000Z",
+            updatedAt: "2026-05-19T08:00:00.000Z",
+            verifiedBy: "admin-1",
+            verifiedAt: "2026-05-19T08:00:00.000Z",
+            expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
+          },
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
     const workspaceRepo = createInMemoryDossierStudioWorkspaceRepo();
     await workspaceRepo.createOrGetDossierStudioWorkspace({
       dossierId: "dossier-1",
@@ -210,5 +257,36 @@ describe("/api/create/handoffs", () => {
       organizationId: "org-reinickendorf-1",
       dossierId: "dossier-1",
     });
+  });
+
+  it("rejects persisting a handoff into a foreign organization workspace", async () => {
+    const workspaceRepo = createInMemoryDossierStudioWorkspaceRepo();
+    await workspaceRepo.createOrGetDossierStudioWorkspace({
+      dossierId: "dossier-foreign",
+      regionId: "bezirk-berlin-spandau",
+      organizationId: "org-spandau-1",
+      source: "manual_editor",
+      title: "Spandau Studio",
+      createdBy: "staff-2",
+      updatedBy: "staff-2",
+    });
+    setDossierStudioWorkspaceRepoForTests(workspaceRepo);
+
+    const response = await persistRoute(
+      new NextRequest("http://localhost/api/create/handoffs", {
+        method: "POST",
+        body: JSON.stringify({
+          draft: draftPayload,
+          dossierId: "dossier-foreign",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: "create_handoff_scope_forbidden",
+    });
+    expect(response.status).toBe(403);
   });
 });

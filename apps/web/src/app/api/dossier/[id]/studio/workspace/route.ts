@@ -13,11 +13,14 @@ import {
 } from "@features/outputEngine";
 import {
   buildPersistedRegionAccessContext,
+  canEditOrganizationResource,
   canApprovePublication,
   canCreateDossierDraft,
   canReadRegionDashboard,
+  canViewRegionResource,
   findRegionSignalDraftRecordByDraftId,
   getOperationalRegionById,
+  regionScopeFromRegionAccessContext,
 } from "@features/region";
 import { isExplicitDemoDossierId } from "@/features/runtimeDataGuardrails";
 
@@ -162,25 +165,20 @@ function writeDeniedResponse() {
 }
 
 function canReadWorkspace(access: ResolvedStudioAccess) {
-  if (access.accessContext?.isAdmin) return true;
   if (!access.regionId || !access.accessContext) return false;
-  if (
-    access.organizationId &&
-    access.accessContext.organization.organizationIds.length > 0 &&
-    !access.accessContext.organization.organizationIds.includes(access.organizationId)
-  ) {
+  const scope = regionScopeFromRegionAccessContext({ accessContext: access.accessContext });
+  if (!canViewRegionResource(scope, { regionId: access.regionId, organizationId: access.organizationId })) {
     return false;
   }
   return canReadRegionDashboard(access.accessContext, access.regionId);
 }
 
 function canWriteWorkspace(access: ResolvedStudioAccess) {
-  if (access.accessContext?.isAdmin) return true;
   if (!access.regionId || !access.accessContext) return false;
+  const scope = regionScopeFromRegionAccessContext({ accessContext: access.accessContext });
   if (
-    access.organizationId &&
-    access.accessContext.organization.organizationIds.length > 0 &&
-    !access.accessContext.organization.organizationIds.includes(access.organizationId)
+    !canViewRegionResource(scope, { regionId: access.regionId, organizationId: access.organizationId }) ||
+    !canEditOrganizationResource(scope, { organizationId: access.organizationId })
   ) {
     return false;
   }
@@ -188,12 +186,11 @@ function canWriteWorkspace(access: ResolvedStudioAccess) {
 }
 
 function canApproveWorkspacePublication(access: ResolvedStudioAccess) {
-  if (access.accessContext?.isAdmin) return true;
   if (!access.regionId || !access.accessContext) return false;
+  const scope = regionScopeFromRegionAccessContext({ accessContext: access.accessContext });
   if (
-    access.organizationId &&
-    access.accessContext.organization.organizationIds.length > 0 &&
-    !access.accessContext.organization.organizationIds.includes(access.organizationId)
+    !canViewRegionResource(scope, { regionId: access.regionId, organizationId: access.organizationId }) ||
+    !canEditOrganizationResource(scope, { organizationId: access.organizationId })
   ) {
     return false;
   }
