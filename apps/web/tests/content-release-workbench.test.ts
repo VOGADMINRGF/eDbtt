@@ -60,8 +60,13 @@ import {
   buildContentReleaseWorkbenchTargets,
   buildContentReleaseWorkbenchTargetsForCreateHandoff,
   createInMemoryContentReleaseWorkbenchRepo,
+  getPublicContentLink,
+  makeContentVisible,
   listContentReleaseAuditEvents,
+  preparePublishPreview,
   prepareContentReleaseTargetFromSourceResult,
+  revokeVisibility,
+  archiveVisibleContent,
   setContentReleaseWorkbenchRepoForTests,
   updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
@@ -365,8 +370,10 @@ describe("content release workbench", () => {
     expect(dossierTarget).toMatchObject({
       prepared: true,
       statusLabel: "Arbeitsstand",
+      publishStatus: "internal_review",
       visibilityState: "internal_review",
       qrHref: null,
+      publicLink: null,
     });
   });
 
@@ -384,6 +391,22 @@ describe("content release workbench", () => {
     expect(record.publicHref).toBe("/anlassraum?anlassraumId=anlassraum-release-1");
   });
 
+  it("creates a publish preview contract from the existing workbench layer", async () => {
+    const preview = await preparePublishPreview({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "dossier",
+      requestedBy: "admin-1",
+    });
+    expect(preview.target).toMatchObject({
+      targetType: "dossier",
+      targetLabel: "Dossier-Entwurf",
+    });
+    expect(preview.publishStatus).toBe("internal_review");
+    expect(preview.publishStatusLabel).toBe("Arbeitsstand");
+    expect(preview.publicLink).toBeNull();
+  });
+
   it("requires conscious visibility actions and never sets public_official automatically", async () => {
     const prepared = await prepareContentReleaseTargetFromSourceResult({
       sourceKind: "region_source_result",
@@ -393,11 +416,10 @@ describe("content release workbench", () => {
     });
     expect(prepared.visibilityState).toBe("internal_review");
 
-    const visible = await updateContentReleaseTargetFromSourceResult({
+    const visible = await makeContentVisible({
       sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
-      action: "make_visible",
       requestedBy: "admin-1",
     });
     expect(visible.visibilityState).toBe("public_unverified");
@@ -454,12 +476,64 @@ describe("content release workbench", () => {
     });
     expect(visibleTargets.find((target) => target.targetType === "dossier")).toMatchObject({
       statusLabel: "sichtbar, aber nicht geprüft",
+      publishStatus: "public_unverified",
       visibilityState: "public_unverified",
       canCreateQrLink: true,
     });
     expect(
       visibleTargets.find((target) => target.targetType === "dossier")?.qrHref,
     ).toContain("/qrcodegenerator?target=");
+    expect(
+      visibleTargets.find((target) => target.targetType === "dossier")?.publicLink,
+    ).toMatchObject({
+      href: expect.stringContaining("/dossier/"),
+      shareHref: expect.stringContaining("/dossier/"),
+      visibilityState: "public_unverified",
+    });
+  });
+
+  it("retracts visibility without hard delete and archives consciously", async () => {
+    await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "anlassraum",
+      requestedBy: "admin-1",
+    });
+    await updateContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "anlassraum",
+      action: "prepare_publication",
+      requestedBy: "admin-1",
+    });
+
+    const revoked = await revokeVisibility({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "anlassraum",
+      requestedBy: "admin-1",
+    });
+    expect(revoked.visibilityState).toBe("internal_review");
+
+    const archived = await archiveVisibleContent({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "anlassraum",
+      requestedBy: "admin-1",
+    });
+    expect(archived.visibilityState).toBe("archived");
+
+    const link = await getPublicContentLink({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "anlassraum",
+    });
+    expect(link).toBeNull();
+
+    const auditEvents = await listContentReleaseAuditEvents(archived.id);
+    expect(auditEvents.map((event) => event.action)).toEqual(
+      expect.arrayContaining(["visibility_retracted", "archived"]),
+    );
   });
 
   it("reuses the same workbench for persisted create handoffs", async () => {

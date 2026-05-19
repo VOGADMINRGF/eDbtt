@@ -177,6 +177,29 @@ export type OrganizationDashboardNextAction = {
   href: string;
 };
 
+export type OrganizationDashboardPublishItem = {
+  itemId: string;
+  targetType: "dossier" | "anlassraum";
+  targetLabel: string;
+  regionName: string | null;
+  title: string;
+  statusLabel: string;
+  visibilityState: RegionPublicationVisibilityState;
+  previewHref: string | null;
+  publicHref: string | null;
+  shareHref: string | null;
+  qrHref: string | null;
+  archived: boolean;
+};
+
+export type OrganizationDashboardPublishSummary = {
+  totalPrepared: number;
+  visibleCount: number;
+  shareableCount: number;
+  archivedCount: number;
+  items: OrganizationDashboardPublishItem[];
+};
+
 export type OrganizationDashboardReadModel = {
   organization: {
     primaryOrganizationId: string | null;
@@ -200,6 +223,7 @@ export type OrganizationDashboardReadModel = {
   dossierDrafts: OrganizationDashboardDraftSummary[];
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
   participationSignals: OrganizationDashboardParticipationSignal[];
+  publishSummary: OrganizationDashboardPublishSummary;
   nextActions: OrganizationDashboardNextAction[];
   guardrails: OrganizationDashboardGuardrails;
 };
@@ -489,6 +513,37 @@ function hasPublicVisibility(
     visibilityState === "public_reviewed" ||
     visibilityState === "public_official"
   );
+}
+
+function buildPublishSummary(
+  openReviewItems: OrganizationDashboardReviewItem[],
+): OrganizationDashboardPublishSummary {
+  const items = openReviewItems.flatMap((item) =>
+    (item.contentReleaseWorkbench?.targets ?? [])
+      .filter((target) => target.prepared)
+      .map((target) => ({
+        itemId: item.id,
+        targetType: target.targetType,
+        targetLabel: target.targetLabel,
+        regionName: item.regionName,
+        title: target.suggestedTitle,
+        statusLabel: target.statusLabel,
+        visibilityState: target.visibilityState,
+        previewHref: target.previewHref,
+        publicHref: target.publicLink?.href ?? null,
+        shareHref: target.publicLink?.shareHref ?? null,
+        qrHref: target.publicLink?.qrHref ?? null,
+        archived: target.visibilityState === "archived",
+      })),
+  );
+
+  return {
+    totalPrepared: items.length,
+    visibleCount: items.filter((item) => hasPublicVisibility(item.visibilityState)).length,
+    shareableCount: items.filter((item) => Boolean(item.publicHref)).length,
+    archivedCount: items.filter((item) => item.archived).length,
+    items,
+  };
 }
 
 function buildOrganizationFirstRun(input: {
@@ -796,6 +851,7 @@ function buildNextActions(params: {
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
   participationSignals: OrganizationDashboardParticipationSignal[];
+  publishSummary: OrganizationDashboardPublishSummary;
 }): OrganizationDashboardNextAction[] {
   const actions: OrganizationDashboardNextAction[] = [];
 
@@ -862,6 +918,24 @@ function buildNextActions(params: {
       label: "Anlassraum teilen",
       description: "Bestehenden Anlassraum als öffentlichen Gesprächsraum weiterführen oder teilen.",
       href: params.anlassraumDrafts[0]?.href ?? "/runden",
+    });
+  }
+
+  if (params.publishSummary.totalPrepared > 0 && params.publishSummary.visibleCount === 0) {
+    actions.push({
+      id: "review_publish_preview",
+      label: "Veröffentlichung prüfen",
+      description: "Vorschau, Sichtbarkeit und Review-Status im Content-Release-Workbench bewusst prüfen.",
+      href: "#veroeffentlichung",
+    });
+  }
+
+  if (params.publishSummary.shareableCount > 0) {
+    actions.push({
+      id: "share_visible_content",
+      label: "Öffentlichen Link teilen",
+      description: "Sichtbare Inhalte haben jetzt eine öffentliche URL, Share-Link und bei Bedarf einen QR-Pfad.",
+      href: "#veroeffentlichung",
     });
   }
 
@@ -1077,6 +1151,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     dossierDrafts,
     anlassraumDrafts,
   });
+  const publishSummary = buildPublishSummary(reviewQueue.items);
   const nextActions = buildNextActions({
     pendingClaims,
     hasVerifiedMembership: verifiedMemberships.length > 0,
@@ -1087,6 +1162,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     anlassraumDrafts,
     regionalStartingPoints,
     participationSignals,
+    publishSummary,
   });
 
   return {
@@ -1123,6 +1199,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     dossierDrafts,
     anlassraumDrafts,
     participationSignals,
+    publishSummary,
     nextActions,
     guardrails: DASHBOARD_GUARDRAILS,
   };

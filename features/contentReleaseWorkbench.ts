@@ -37,6 +37,7 @@ export const CONTENT_RELEASE_ACTIONS = [
   "archive_target",
 ] as const;
 export type ContentReleaseAction = (typeof CONTENT_RELEASE_ACTIONS)[number];
+export type ContentPublishAction = ContentReleaseAction;
 
 export const CONTENT_RELEASE_AUDIT_ACTIONS = [
   "prepared",
@@ -110,6 +111,49 @@ const ContentReleaseAuditEventSchema = z
   .strict();
 
 export type ContentReleaseAuditEvent = z.infer<typeof ContentReleaseAuditEventSchema>;
+export type ContentPublishAuditEvent = ContentReleaseAuditEvent;
+
+export const CONTENT_PUBLISH_STATUSES = [
+  "draft",
+  "internal_review",
+  "public_unverified",
+  "public_reviewed",
+  "public_official",
+  "archived",
+  "blocked",
+] as const;
+export type ContentPublishStatus = (typeof CONTENT_PUBLISH_STATUSES)[number];
+
+export type PublicContentLink = {
+  href: string;
+  shareHref: string;
+  qrHref: string | null;
+  visibilityState: Extract<
+    RegionPublicationVisibilityState,
+    "public_unverified" | "public_reviewed" | "public_official"
+  >;
+  visibilityLabel: string;
+};
+
+export type ContentPublishTarget = {
+  targetType: ContentReleaseTargetType;
+  targetLabel: string;
+  targetId: string | null;
+};
+
+export type ContentPublishPreview = {
+  target: ContentPublishTarget;
+  suggestedTitle: string;
+  prepared: boolean;
+  previewHref: string | null;
+  publishStatus: ContentPublishStatus;
+  publishStatusLabel: ContentReleaseStatusLabel;
+  visibilityState: RegionPublicationVisibilityState;
+  visibilityLabel: string;
+  statusHint: string;
+  publicLink: PublicContentLink | null;
+  auditEvents: ContentPublishAuditEvent[];
+};
 
 export type ContentReleaseWorkbenchTarget = {
   targetType: ContentReleaseTargetType;
@@ -119,14 +163,22 @@ export type ContentReleaseWorkbenchTarget = {
   prepared: boolean;
   previewHref: string | null;
   publicHref: string | null;
+  shareHref: string | null;
   qrHref: string | null;
+  publicLink: PublicContentLink | null;
+  publishStatus: ContentPublishStatus;
+  publishStatusLabel: ContentReleaseStatusLabel;
   visibilityState: RegionPublicationVisibilityState;
   visibilityLabel: string;
   statusLabel: ContentReleaseStatusLabel;
+  statusHint: string;
   canPrepare: boolean;
   canMakeVisible: boolean;
   canPreparePublication: boolean;
+  canRevokeVisibility: boolean;
+  canArchive: boolean;
   canCreateQrLink: boolean;
+  auditEvents: ContentPublishAuditEvent[];
 };
 
 export type PrepareContentReleaseTargetInput = {
@@ -233,6 +285,21 @@ function qrHrefFor(publicHref: string | null, visibilityState: RegionPublication
   return `/qrcodegenerator?target=${encodeURIComponent(publicHref)}`;
 }
 
+function publicContentLinkFor(
+  publicHref: string | null,
+  visibilityState: RegionPublicationVisibilityState,
+): PublicContentLink | null {
+  if (!publicHref || !isPublicVisibilityState(visibilityState)) return null;
+  const qrHref = qrHrefFor(publicHref, visibilityState);
+  return {
+    href: publicHref,
+    shareHref: publicHref,
+    qrHref,
+    visibilityState: visibilityState as PublicContentLink["visibilityState"],
+    visibilityLabel: publicationVisibilityLabel(visibilityState),
+  };
+}
+
 function statusLabelForVisibility(
   visibilityState: RegionPublicationVisibilityState,
 ): ContentReleaseStatusLabel {
@@ -252,6 +319,76 @@ function statusLabelForVisibility(
     default:
       return "Arbeitsstand";
   }
+}
+
+function publishStatusForTarget(
+  record: ContentReleaseTargetRecord | null,
+): ContentPublishStatus {
+  if (!record) return "draft";
+  return record.visibilityState;
+}
+
+function statusHintForTarget(input: {
+  prepared: boolean;
+  visibilityState: RegionPublicationVisibilityState;
+}) {
+  if (!input.prepared) {
+    return "Noch nicht übernommen. Veröffentlichung startet erst mit einer bewussten Übernahme in den bestehenden Dossier- oder Anlassraum-Pfad.";
+  }
+  switch (input.visibilityState) {
+    case "public_unverified":
+      return "Sichtbar heißt hier noch nicht geprüft oder amtlich. Review und Widerruf bleiben bewusst möglich.";
+    case "public_reviewed":
+      return "Der Inhalt ist sichtbar und geprüft, aber weiterhin nicht automatisch amtlich freigegeben.";
+    case "public_official":
+      return "Amtliche Freigabe läuft ausschließlich über den bestehenden Official-Release-Pfad.";
+    case "archived":
+      return "Archivierung löscht nicht hart. Der Arbeitsstand bleibt auditierbar und kann nachvollzogen werden.";
+    case "blocked":
+      return "Dieser Arbeitsstand ist blockiert und nicht als sichtbarer Inhalt freigegeben.";
+    case "private_draft":
+    case "internal_review":
+    default:
+      return "Bewusst vorbereiteter Arbeitsstand. Keine automatische Veröffentlichung und kein automatisches public_official.";
+  }
+}
+
+function canMakeVisibleFromState(
+  visibilityState: RegionPublicationVisibilityState,
+) {
+  return (
+    visibilityState !== "public_unverified" &&
+    visibilityState !== "public_reviewed" &&
+    visibilityState !== "public_official" &&
+    visibilityState !== "archived" &&
+    visibilityState !== "blocked"
+  );
+}
+
+function canPreparePublicationFromState(
+  visibilityState: RegionPublicationVisibilityState,
+) {
+  return (
+    visibilityState !== "public_reviewed" &&
+    visibilityState !== "public_official" &&
+    visibilityState !== "archived" &&
+    visibilityState !== "blocked"
+  );
+}
+
+function canRevokeVisibilityFromState(
+  visibilityState: RegionPublicationVisibilityState,
+) {
+  return (
+    visibilityState === "public_unverified" ||
+    visibilityState === "public_reviewed"
+  );
+}
+
+function canArchiveFromState(
+  visibilityState: RegionPublicationVisibilityState,
+) {
+  return visibilityState !== "archived" && visibilityState !== "blocked";
 }
 
 function safeTrim(value: string | null | undefined) {
@@ -304,10 +441,14 @@ function nextVisibilityStateForAction(
 ) {
   switch (action) {
     case "make_visible":
+      if (current === "public_reviewed") return "public_reviewed" as const;
+      if (current === "public_official") return "public_official" as const;
       return "public_unverified" as const;
     case "prepare_publication":
+      if (current === "public_official") return "public_official" as const;
       return "public_reviewed" as const;
     case "retract_visibility":
+      if (current === "archived" || current === "blocked") return current;
       return "internal_review" as const;
     case "archive_target":
       return "archived" as const;
@@ -331,6 +472,39 @@ function auditActionForVisibilityAction(
     default:
       return "visibility_retracted";
   }
+}
+
+async function buildPublishPreview(params: {
+  targetType: ContentReleaseTargetType;
+  suggestedTitle: string;
+  record: ContentReleaseTargetRecord | null;
+}) {
+  const visibilityState = params.record?.visibilityState ?? "internal_review";
+  const publicHref = params.record?.publicHref ?? null;
+  const publicLink = publicContentLinkFor(publicHref, visibilityState);
+  const auditEvents = params.record
+    ? await listContentReleaseAuditEvents(params.record.id)
+    : [];
+  return {
+    target: {
+      targetType: params.targetType,
+      targetLabel: targetLabel(params.targetType),
+      targetId: params.record?.targetId ?? null,
+    },
+    suggestedTitle: params.suggestedTitle,
+    prepared: Boolean(params.record),
+    previewHref: params.record?.previewHref ?? null,
+    publishStatus: publishStatusForTarget(params.record),
+    publishStatusLabel: statusLabelForVisibility(visibilityState),
+    visibilityState,
+    visibilityLabel: publicationVisibilityLabel(visibilityState),
+    statusHint: statusHintForTarget({
+      prepared: Boolean(params.record),
+      visibilityState,
+    }),
+    publicLink,
+    auditEvents,
+  } satisfies ContentPublishPreview;
 }
 
 function mapPossibleClaims(possibleClaims: RegionSourcePossibleClaim[]) {
@@ -962,40 +1136,51 @@ export async function buildContentReleaseWorkbenchTargets(params: {
     params.result.id,
   );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
-  return CONTENT_RELEASE_TARGET_TYPES.map((targetType): ContentReleaseWorkbenchTarget => {
+  return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
     const record = recordByType.get(targetType) ?? null;
-    const visibilityState = record?.visibilityState ?? "internal_review";
-    const publicHref = record?.publicHref ?? null;
-    const qrHref = qrHrefFor(publicHref, visibilityState);
+    const preview = await buildPublishPreview({
+      targetType,
+      suggestedTitle: record?.title ?? suggestedTitleForTarget(params.result, targetType),
+      record,
+    });
+    const publicHref = preview.publicLink?.href ?? null;
+    const shareHref = preview.publicLink?.shareHref ?? null;
+    const qrHref = preview.publicLink?.qrHref ?? null;
     return {
       targetType,
       targetLabel: targetLabel(targetType),
-      suggestedTitle: record?.title ?? suggestedTitleForTarget(params.result, targetType),
+      suggestedTitle: preview.suggestedTitle,
       targetId: record?.targetId ?? null,
       prepared: Boolean(record),
-      previewHref: record?.previewHref ?? null,
+      previewHref: preview.previewHref,
       publicHref,
+      shareHref,
       qrHref,
-      visibilityState,
-      visibilityLabel: publicationVisibilityLabel(visibilityState),
-      statusLabel: statusLabelForVisibility(visibilityState),
+      publicLink: preview.publicLink,
+      publishStatus: preview.publishStatus,
+      publishStatusLabel: preview.publishStatusLabel,
+      visibilityState: preview.visibilityState,
+      visibilityLabel: preview.visibilityLabel,
+      statusLabel: preview.publishStatusLabel,
+      statusHint: preview.statusHint,
       canPrepare: !record && params.canPrepare,
-      canMakeVisible:
-        Boolean(record) &&
-        params.canPrepare &&
-        visibilityState !== "public_unverified" &&
-        visibilityState !== "public_reviewed" &&
-        visibilityState !== "public_official" &&
-        visibilityState !== "archived",
+      canMakeVisible: Boolean(record) && params.canPrepare && canMakeVisibleFromState(preview.visibilityState),
       canPreparePublication:
         Boolean(record) &&
         params.canPreparePublication &&
-        visibilityState !== "public_reviewed" &&
-        visibilityState !== "public_official" &&
-        visibilityState !== "archived",
+        canPreparePublicationFromState(preview.visibilityState),
+      canRevokeVisibility:
+        Boolean(record) &&
+        params.canPreparePublication &&
+        canRevokeVisibilityFromState(preview.visibilityState),
+      canArchive:
+        Boolean(record) &&
+        params.canPreparePublication &&
+        canArchiveFromState(preview.visibilityState),
       canCreateQrLink: Boolean(qrHref),
+      auditEvents: preview.auditEvents,
     };
-  });
+  }));
 }
 
 export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params: {
@@ -1009,38 +1194,104 @@ export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params
     params.record.id,
   );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
-  return CONTENT_RELEASE_TARGET_TYPES.map((targetType): ContentReleaseWorkbenchTarget => {
+  return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
     const existing = recordByType.get(targetType) ?? null;
-    const visibilityState = existing?.visibilityState ?? "internal_review";
-    const publicHref = existing?.publicHref ?? null;
-    const qrHref = qrHrefFor(publicHref, visibilityState);
+    const preview = await buildPublishPreview({
+      targetType,
+      suggestedTitle: existing?.title ?? suggestedTitleForCreateHandoff(params.record, targetType),
+      record: existing,
+    });
+    const publicHref = preview.publicLink?.href ?? null;
+    const shareHref = preview.publicLink?.shareHref ?? null;
+    const qrHref = preview.publicLink?.qrHref ?? null;
     return {
       targetType,
       targetLabel: targetLabel(targetType),
-      suggestedTitle: existing?.title ?? suggestedTitleForCreateHandoff(params.record, targetType),
+      suggestedTitle: preview.suggestedTitle,
       targetId: existing?.targetId ?? null,
       prepared: Boolean(existing),
-      previewHref: existing?.previewHref ?? null,
+      previewHref: preview.previewHref,
       publicHref,
+      shareHref,
       qrHref,
-      visibilityState,
-      visibilityLabel: publicationVisibilityLabel(visibilityState),
-      statusLabel: statusLabelForVisibility(visibilityState),
+      publicLink: preview.publicLink,
+      publishStatus: preview.publishStatus,
+      publishStatusLabel: preview.publishStatusLabel,
+      visibilityState: preview.visibilityState,
+      visibilityLabel: preview.visibilityLabel,
+      statusLabel: preview.publishStatusLabel,
+      statusHint: preview.statusHint,
       canPrepare: !existing && params.canPrepare,
       canMakeVisible:
         Boolean(existing) &&
         params.canPrepare &&
-        visibilityState !== "public_unverified" &&
-        visibilityState !== "public_reviewed" &&
-        visibilityState !== "public_official" &&
-        visibilityState !== "archived",
+        canMakeVisibleFromState(preview.visibilityState),
       canPreparePublication:
         Boolean(existing) &&
         params.canPreparePublication &&
-        visibilityState !== "public_reviewed" &&
-        visibilityState !== "public_official" &&
-        visibilityState !== "archived",
+        canPreparePublicationFromState(preview.visibilityState),
+      canRevokeVisibility:
+        Boolean(existing) &&
+        params.canPreparePublication &&
+        canRevokeVisibilityFromState(preview.visibilityState),
+      canArchive:
+        Boolean(existing) &&
+        params.canPreparePublication &&
+        canArchiveFromState(preview.visibilityState),
       canCreateQrLink: Boolean(qrHref),
+      auditEvents: preview.auditEvents,
     };
+  }));
+}
+
+export async function preparePublishPreview(
+  input: PrepareContentReleaseTargetInput,
+): Promise<ContentPublishPreview> {
+  const record = await prepareContentReleaseTargetFromSourceResult(input);
+  return buildPublishPreview({
+    targetType: record.targetType,
+    suggestedTitle: record.title,
+    record,
   });
+}
+
+export async function makeContentVisible(
+  input: Omit<UpdateContentReleaseTargetInput, "action">,
+) {
+  return updateContentReleaseTargetFromSourceResult({
+    ...input,
+    action: "make_visible",
+  });
+}
+
+export async function archiveVisibleContent(
+  input: Omit<UpdateContentReleaseTargetInput, "action">,
+) {
+  return updateContentReleaseTargetFromSourceResult({
+    ...input,
+    action: "archive_target",
+  });
+}
+
+export async function revokeVisibility(
+  input: Omit<UpdateContentReleaseTargetInput, "action">,
+) {
+  return updateContentReleaseTargetFromSourceResult({
+    ...input,
+    action: "retract_visibility",
+  });
+}
+
+export async function getPublicContentLink(input: {
+  sourceKind: ContentReleaseSourceKind;
+  sourceResultId: string;
+  targetType: ContentReleaseTargetType;
+}) {
+  const record = await getContentReleaseTargetRecord(
+    input.sourceKind,
+    input.sourceResultId,
+    input.targetType,
+  );
+  if (!record) return null;
+  return publicContentLinkFor(record.publicHref, record.visibilityState);
 }

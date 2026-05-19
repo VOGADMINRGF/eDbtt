@@ -368,6 +368,18 @@ export default async function AccountOrganizationDashboardPage() {
                 {readModel.reviewQueueSummary.readyCount} / {readModel.reviewQueueSummary.blockedCount}
               </p>
             </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Sichtbare Inhalte</p>
+              <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+                {readModel.publishSummary.visibleCount}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Archivierte Inhalte</p>
+              <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+                {readModel.publishSummary.archivedCount}
+              </p>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -590,6 +602,117 @@ export default async function AccountOrganizationDashboardPage() {
             )}
           </div>
         </article>
+      </section>
+
+      <section
+        id="veroeffentlichung"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Veröffentlichbare Inhalte
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          Vorschau, Sichtbarkeit und öffentliche Links
+        </h2>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          Sichtbar heißt nicht automatisch amtlich. Öffentliche URL, Share-Link und QR erscheinen
+          erst nach bewusster Sichtbarkeit.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Vorbereitet</p>
+            <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+              {readModel.publishSummary.totalPrepared}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Sichtbar</p>
+            <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+              {readModel.publishSummary.visibleCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Teilbar</p>
+            <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+              {readModel.publishSummary.shareableCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Archiviert</p>
+            <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+              {readModel.publishSummary.archivedCount}
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          {readModel.publishSummary.items.filter((item) => !item.archived).length === 0 ? (
+            <EmptyState
+              title="Noch keine sichtbaren oder vorbereiteten Inhalte."
+              body="Sobald Review-Items bewusst als Dossier oder Anlassraum vorbereitet werden, erscheinen Vorschau- und Sichtbarkeitsschritte hier."
+            />
+          ) : (
+            readModel.publishSummary.items
+              .filter((item) => !item.archived)
+              .slice(0, 4)
+              .map((item) => (
+                <article
+                  key={`${item.itemId}:${item.targetType}`}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                    <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                      {item.targetLabel}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    {item.regionName ?? "Eigener Scope"} · {publicationVisibilityLabel(item.visibilityState)} ·{" "}
+                    {item.statusLabel}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {item.previewHref ? (
+                      <Link
+                        href={item.previewHref}
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+                      >
+                        Vorschau ansehen
+                      </Link>
+                    ) : null}
+                    {item.publicHref ? (
+                      <Link
+                        href={item.publicHref}
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+                      >
+                        Öffentliche URL
+                      </Link>
+                    ) : null}
+                    {item.shareHref ? (
+                      <Link
+                        href={item.shareHref}
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+                      >
+                        Share-Link
+                      </Link>
+                    ) : null}
+                    {item.qrHref ? (
+                      <Link
+                        href={item.qrHref}
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+                      >
+                        QR-Link
+                      </Link>
+                    ) : null}
+                  </div>
+                </article>
+              ))
+          )}
+        </div>
+        {readModel.publishSummary.archivedCount > 0 ? (
+          <p className="mt-4 text-xs text-[rgb(var(--muted))]">
+            Archivierte Inhalte bleiben auffindbar, werden hier aber bewusst nicht prominent
+            ausgespielt.
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
