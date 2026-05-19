@@ -161,7 +161,8 @@ export default async function AdminRegionsPage() {
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           Region Intelligence bleibt reviewpflichtig. Produktive, kuratierte und manuelle Quellen
           sind getrennt vorbereitet; keine Live-Crawler-Behauptung, kein Scraping und keine
-          DeepSearch-Automatikkosten.
+          DeepSearch-Automatikkosten. Generische regionale Snapshot-Templates halten die
+          URL-to-Publish-Strecke reproduzierbar; Reinickendorf bleibt höchstens Beispiel-Seed.
         </p>
         <div className="mt-4">
           <Link
@@ -218,6 +219,12 @@ export default async function AdminRegionsPage() {
                       {regionMap.get(connection.regionId)?.name ?? connection.regionId} ·{" "}
                       {regionSourceConnectionTypeLabel(connection.sourceType)}
                     </p>
+                    {connection.sourceSnapshotTemplate ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {connection.sourceSnapshotTemplate.label} ·{" "}
+                        {connection.sourceSnapshotTemplate.seedKindLabel}
+                      </p>
+                    ) : null}
                   </div>
                 ))
               ) : (
@@ -235,6 +242,11 @@ export default async function AdminRegionsPage() {
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {regionMap.get(result.regionId)?.name ?? result.regionId} · {result.visibilityLabel}
                     </p>
+                    {result.sourceSnapshotTemplate ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Snapshot vorhanden · {result.sourceSnapshotTemplate.seedKindLabel}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {result.reviewTaskSummary.label}
                     </p>

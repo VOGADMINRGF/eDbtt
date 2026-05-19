@@ -3,8 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
+  createInMemoryRegionSourceConnectionRuntimeRepo,
   setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
+  setRegionSourceConnectionRuntimeRepoForTests,
 } from "@features/region";
 
 const navigationMocks = vi.hoisted(() => ({
@@ -36,6 +38,170 @@ describe("admin-region-page.render", () => {
     setParticipationSignalReviewRuntimeRepoForTests(
       createInMemoryParticipationSignalReviewRuntimeRepo(),
     );
+    setRegionSourceConnectionRuntimeRepoForTests(
+      createInMemoryRegionSourceConnectionRuntimeRepo({
+        connections: [
+          {
+            id: "source-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            label: "Bezirksamt Reinickendorf News",
+            sourceType: "municipal_news",
+            adapterId: "productive_regional_source",
+            url: "https://reinickendorf.example/aktuelles",
+            notes: "Explizite Verwaltungsquelle",
+            enabled: true,
+            sampleItems: [
+              {
+                title: "Schulwege im Bezirk",
+                summary: "Verwaltung informiert über Schulwegsicherheit.",
+                url: "https://reinickendorf.example/aktuelles/schulwege",
+                detectedTopics: ["Schule", "Verkehr"],
+              },
+            ],
+            sourceSnapshotTemplate: {
+              id: "region-source-snapshot-template-source-1",
+              label: "Beispiel-Snapshot",
+              mode: "template_plus_explicit_url",
+              seedKind: "example_seed",
+              seedKindLabel: "Beispiel-Seed",
+              configuredUrl: "https://reinickendorf.example/aktuelles",
+              isExampleSeed: true,
+              reviewHint:
+                "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+              noLiveCrawlerClaim: true,
+              noScraping: true,
+              noDeepSearchAutoCosts: true,
+              noAutoPublish: true,
+              noPublicOfficial: true,
+            },
+            createdAt: "2026-05-19T00:00:00.000Z",
+            updatedAt: "2026-05-19T00:00:00.000Z",
+            createdBy: "admin-1",
+            updatedBy: "admin-1",
+            reviewRequired: true,
+            noLiveCrawlerClaim: true,
+            noScraping: true,
+            noDeepSearchAutoCosts: true,
+          },
+        ],
+        results: [
+          {
+            id: "source-result-1",
+            connectionId: "source-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            connectionLabel: "Bezirksamt Reinickendorf News",
+            sourceType: "municipal_news",
+            adapterId: "productive_regional_source",
+            resultMode: "dry_run",
+            title: "Bezirksamt Reinickendorf News · Dry Run",
+            summary: "Explizite URL vorbereitet und reviewpflichtig ausgewertet.",
+            configuredUrl: "https://reinickendorf.example/aktuelles",
+            detectedTopics: ["Schule", "Verkehr"],
+            visibilityState: "internal_review",
+            visibilityLabel: "reviewpflichtig",
+            reviewStatus: "needs_review",
+            confidence: 0.68,
+            sourceSnapshotStatus: "fetched",
+            sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
+            sourceSnapshotSummary:
+              "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit und Sanierungsbedarf.",
+            sourceSnapshotExcerpt:
+              "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+            sourceSnapshotTemplate: {
+              id: "region-source-snapshot-template-source-1",
+              label: "Beispiel-Snapshot",
+              mode: "template_plus_explicit_url",
+              seedKind: "example_seed",
+              seedKindLabel: "Beispiel-Seed",
+              configuredUrl: "https://reinickendorf.example/aktuelles",
+              isExampleSeed: true,
+              reviewHint:
+                "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+              noLiveCrawlerClaim: true,
+              noScraping: true,
+              noDeepSearchAutoCosts: true,
+              noAutoPublish: true,
+              noPublicOfficial: true,
+              claimCandidates: [],
+              topicCandidates: [],
+              evidenceHints: [],
+              openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+            },
+            possibleClaims: [
+              {
+                text: "Schulsanierung in Reinickendorf",
+                confidence: 0.74,
+                basisLabel: "Titel",
+                excerpt:
+                  "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+                reviewRequired: true,
+              },
+            ],
+            topicClusters: [
+              {
+                clusterKey: "bildung-schule",
+                label: "Schule Reinickendorf",
+                signalSeedIds: ["region-source-feed-signal-source-1-1"],
+                openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+                confidence: 0.68,
+                suggestedAction: "ask_clarifying_question",
+                reviewStatus: "needs_review",
+              },
+            ],
+            dossierSuggestions: [
+              {
+                title: "Berlin Reinickendorf: Schule",
+                signalSeedIds: ["region-source-feed-signal-source-1-1"],
+                openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+                confidence: 0.68,
+                reviewStatus: "needs_review",
+              },
+            ],
+            anlassraumSuggestions: [
+              {
+                title: "Schule Berlin Reinickendorf",
+                signalSeedIds: ["region-source-feed-signal-source-1-1"],
+                openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+                confidence: 0.68,
+                reviewStatus: "needs_review",
+              },
+            ],
+            evidenceReferences: [
+              {
+                label: "Seitenauszug · Schulsanierung in Reinickendorf",
+                url: "https://reinickendorf.example/aktuelles",
+                excerpt:
+                  "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+              },
+            ],
+            openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+            affectedScope: {
+              regionName: "Berlin Reinickendorf",
+              detectedPlaces: ["Berlin Reinickendorf"],
+              ortsteilHints: [],
+              fachbereichHints: ["Schule/Bildung", "Schule", "Verkehr"],
+            },
+            reviewSuggestions: [],
+            reviewTaskSummary: {
+              claimCount: 1,
+              topicClusterCount: 1,
+              dossierSuggestionCount: 1,
+              anlassraumSuggestionCount: 1,
+              openQuestionCount: 1,
+              evidenceCount: 1,
+              label:
+                "1 mögliche Aussagen · 1 Themencluster · 1 Dossier-Vorschläge · 1 Anlassraum-Vorschläge · 1 offene Fragen",
+            },
+            createdAt: "2026-05-19T00:00:00.000Z",
+            updatedAt: "2026-05-19T00:00:00.000Z",
+            testedBy: "admin-1",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+          },
+        ],
+      }),
+    );
     const html = renderToStaticMarkup(
       await AdminRegionPage({
         searchParams: {
@@ -65,7 +231,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Kuratierte Startlage und Pilotvorschau für die Themenlage");
     expect(html).toContain("Keine Live-Crawler-Behauptung");
     expect(html).toContain("Produktive Quellen");
-    expect(html).toContain("Keine produktive Quelle verbunden");
+    expect(html).toContain("1 produktive Quelle verbunden");
     expect(html).toContain("Kuratierte Quellen");
     expect(html).toContain("Manuelle Quellen");
     expect(html).toContain("Quellengewichtung und Adapter");
@@ -105,8 +271,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain("Quelle auswerten");
     expect(html).toContain("Explizite URL kontrolliert und reviewpflichtig auswerten");
-    expect(html).toContain("Noch keine Quellen konfiguriert.");
-    expect(html).toContain("Noch keine Dry-Run-Ergebnisse vorhanden.");
+    expect(html).toContain("Beispiel-Snapshot");
+    expect(html).toContain("Beispiel-Seed");
+    expect(html).toContain("Demo-/Pilotstand reproduzierbar");
     expect(html).toContain("Dossier-Draft vorbereiten");
     expect(html).toContain("Anlassraum-Draft vorbereiten");
     expect(html).toContain("Quelle prüfen");

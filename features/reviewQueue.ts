@@ -7,6 +7,7 @@ import {
   buildContentReleaseWorkbenchTargets,
   type ContentReleaseWorkbenchTarget,
 } from "@features/contentReleaseWorkbench";
+import type { RegionSourceSnapshotTemplateResult } from "./region/sourceConnections";
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 import { listCreatePrepareAttachDraftQueue } from "@/features/create/attachDraftReviewQueue";
 import type { Region } from "./region/contracts";
@@ -82,6 +83,12 @@ export type ReviewQueueItem = {
   contentReleaseWorkbench?: {
     intro: string;
     targets: ContentReleaseWorkbenchTarget[];
+  } | null;
+  sourceSnapshotTemplate?: {
+    label: string;
+    seedKindLabel: string;
+    isExampleSeed: boolean;
+    reviewHint: string;
   } | null;
 };
 
@@ -316,6 +323,7 @@ function mapParticipationReviewItem(params: {
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 
@@ -350,6 +358,7 @@ function mapParticipationOfficialApprovalItem(params: {
     reviewAuthority: "publication_approved_or_admin",
     reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 
@@ -381,6 +390,7 @@ function mapRegionSignalDraftItem(params: {
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 
@@ -415,6 +425,19 @@ function mapRegionIntelligenceSuggestionItem(params: {
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
+  };
+}
+
+function mapSourceSnapshotTemplate(
+  template: RegionSourceSnapshotTemplateResult | null | undefined,
+) {
+  if (!template) return null;
+  return {
+    label: template.label,
+    seedKindLabel: template.seedKindLabel,
+    isExampleSeed: template.isExampleSeed,
+    reviewHint: template.reviewHint,
   };
 }
 
@@ -462,6 +485,7 @@ async function mapRegionSourceResultItem(params: {
         "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
       targets,
     },
+    sourceSnapshotTemplate: mapSourceSnapshotTemplate(params.result.sourceSnapshotTemplate),
   };
 }
 
@@ -507,6 +531,7 @@ function mapWorkspaceItem(params: {
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 
@@ -540,6 +565,7 @@ function mapWorkspaceOfficialApprovalItem(params: {
     reviewAuthority: "publication_approved_or_admin",
     reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 
@@ -568,6 +594,7 @@ function mapWorkspaceOutputItems(params: {
     reviewAuthority: "standard_review" as const,
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 
   if (params.workspace.masterPostDraft?.reviewStatus === "review_required") {
@@ -642,6 +669,7 @@ function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQue
     reviewAuthorityLabel:
       workflowState === "apply_pending" ? "Manueller Apply-Schritt" : "Reviewpflichtig",
     contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
   };
 }
 

@@ -16,11 +16,15 @@ import {
   regionSourceConnectionAdapterId,
   regionSourceConnectionTypeLabel,
   regionSourceResultVisibilityLabel,
+  regionSourceSnapshotSeedKindLabel,
   type RegionSourceConnection,
   type RegionSourceConnectionSampleItem,
   type RegionSourceConnectionType,
   type RegionSourceEvidenceReference,
   type RegionSourcePossibleClaim,
+  type RegionSourceSnapshotSeedKind,
+  type RegionSourceSnapshotTemplate,
+  type RegionSourceSnapshotTemplateResult,
   type RegionSourceTestResult,
 } from "../sourceConnections";
 
@@ -337,6 +341,44 @@ function mergeDryRunSampleItems(
   });
 }
 
+function defaultSnapshotTemplateLabel(seedKind: RegionSourceSnapshotSeedKind) {
+  return seedKind === "example_seed" ? "Beispiel-Snapshot" : "Regionales Snapshot-Template";
+}
+
+function buildConnectionSnapshotTemplate(input: {
+  connectionId: string;
+  sourceType: RegionSourceConnectionType;
+  url: string | null;
+  sampleItems: RegionSourceConnectionSampleItem[];
+  snapshotSeedKind?: RegionSourceSnapshotSeedKind | null;
+  snapshotTemplateLabel?: string | null;
+}): RegionSourceSnapshotTemplate | null {
+  if (input.sampleItems.length === 0) return null;
+  const seedKind = input.snapshotSeedKind ?? "configured_region_source";
+  const mode =
+    input.sourceType === "curated_pilot_source" ? "template_only" : "template_plus_explicit_url";
+  return {
+    id: `region-source-snapshot-template-${input.connectionId}`,
+    label:
+      String(input.snapshotTemplateLabel ?? "").trim() ||
+      defaultSnapshotTemplateLabel(seedKind),
+    mode,
+    seedKind,
+    seedKindLabel: regionSourceSnapshotSeedKindLabel(seedKind),
+    configuredUrl: String(input.url ?? "").trim() || null,
+    isExampleSeed: seedKind === "example_seed",
+    reviewHint:
+      mode === "template_only"
+        ? "Reproduzierbarer regionaler Snapshot aus explizit gesetzter Quelle. Review-first, kein Live-Crawler, kein Scraping und keine automatische Veröffentlichung."
+        : "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+    noLiveCrawlerClaim: true,
+    noScraping: true,
+    noDeepSearchAutoCosts: true,
+    noAutoPublish: true,
+    noPublicOfficial: true,
+  };
+}
+
 function isProductiveSourceConnection(connection: RegionSourceConnection) {
   return connection.sourceType === "official_feed" || connection.sourceType === "municipal_news";
 }
@@ -565,6 +607,8 @@ function normalizeConnection(input: {
     url?: string | null;
     detectedTopics?: string[];
   }>;
+  snapshotSeedKind?: RegionSourceSnapshotSeedKind | null;
+  snapshotTemplateLabel?: string | null;
   userId: string | null;
   id?: string | null;
 }): RegionSourceConnection {
@@ -572,6 +616,7 @@ function normalizeConnection(input: {
   const id =
     String(input.id ?? input.existing?.id ?? "").trim() ||
     `region-source-connection-${input.regionId}-${Date.now()}`;
+  const sampleItems = normalizeSampleItems(input.sampleItems);
   return {
     id,
     regionId: input.regionId,
@@ -581,7 +626,21 @@ function normalizeConnection(input: {
     url: String(input.url ?? "").trim() || null,
     notes: String(input.notes ?? "").trim() || null,
     enabled: input.enabled,
-    sampleItems: normalizeSampleItems(input.sampleItems),
+    sampleItems,
+    sourceSnapshotTemplate: buildConnectionSnapshotTemplate({
+      connectionId: id,
+      sourceType: input.sourceType,
+      url: String(input.url ?? "").trim() || null,
+      sampleItems,
+      snapshotSeedKind:
+        input.snapshotSeedKind ??
+        input.existing?.sourceSnapshotTemplate?.seedKind ??
+        null,
+      snapshotTemplateLabel:
+        input.snapshotTemplateLabel ??
+        input.existing?.sourceSnapshotTemplate?.label ??
+        null,
+    }),
     createdAt: input.existing?.createdAt ?? now,
     updatedAt: now,
     createdBy: input.existing?.createdBy ?? input.userId,
@@ -590,6 +649,23 @@ function normalizeConnection(input: {
     noLiveCrawlerClaim: true,
     noScraping: true,
     noDeepSearchAutoCosts: true,
+  };
+}
+
+function buildSnapshotTemplateResult(params: {
+  connection: RegionSourceConnection;
+  possibleClaims: RegionSourcePossibleClaim[];
+  topicCandidates: Awaited<ReturnType<typeof runRegionIntelligencePreparation>>["topicClusterHints"];
+  evidenceHints: RegionSourceEvidenceReference[];
+  openQuestions: string[];
+}): RegionSourceSnapshotTemplateResult | null {
+  if (!params.connection.sourceSnapshotTemplate) return null;
+  return {
+    ...params.connection.sourceSnapshotTemplate,
+    claimCandidates: params.possibleClaims,
+    topicCandidates: params.topicCandidates,
+    evidenceHints: params.evidenceHints,
+    openQuestions: params.openQuestions,
   };
 }
 
@@ -709,11 +785,17 @@ function buildDryRunSummary(params: {
   sourceSnapshot: RegionSourceUrlSnapshot | null;
   reviewTaskSummary: ReturnType<typeof buildReviewTaskSummary>;
 }) {
+  if (params.connection.sourceSnapshotTemplate?.mode === "template_only") {
+    return `${params.connection.sourceSnapshotTemplate.seedKindLabel} wurde reproduzierbar als reviewpflichtiger regionaler Source-Snapshot ausgewertet. ${params.reviewTaskSummary.label}. Alles bleibt review-first; kein Live-Crawler, kein Scraping, keine DeepSearch-Automatikkosten und keine automatische Veröffentlichung oder Amtlichkeit.`;
+  }
   if (params.sourceSnapshot?.status === "fetch_failed" && params.connection.sampleItems.length === 0) {
     return "Explizite URL ist hinterlegt, konnte im kontrollierten Single-Page-Dry-Run aber nicht gelesen werden. Der Eintrag bleibt reviewpflichtig; bitte manuelle Stichpunkte oder einen erreichbaren Link ergänzen.";
   }
   if (params.sourceSnapshot?.status === "fetched") {
-    return `Explizite URL wurde kontrolliert als einzelne Seite ausgewertet. ${params.reviewTaskSummary.label}. Alles bleibt reviewpflichtig; kein Live-Crawler, kein Link-Following, kein Scraping im Sinne eines offenen Site-Crawls und keine automatische Veröffentlichung.`;
+    const snapshotTail = params.connection.sourceSnapshotTemplate
+      ? ` ${params.connection.sourceSnapshotTemplate.reviewHint}`
+      : "";
+    return `Explizite URL wurde kontrolliert als einzelne Seite ausgewertet. ${params.reviewTaskSummary.label}. Alles bleibt reviewpflichtig; kein Live-Crawler, kein Link-Following, kein Scraping im Sinne eines offenen Site-Crawls und keine automatische Veröffentlichung.${snapshotTail}`;
   }
   const sampleCount = params.connection.sampleItems.length;
   return sampleCount > 0
@@ -836,6 +918,8 @@ export async function saveRegionSourceConnection(input: z.input<typeof RegionSou
     notes: parsed.notes ?? null,
     enabled: parsed.enabled ?? true,
     sampleItems: parsed.sampleItems ?? [],
+    snapshotSeedKind: parsed.snapshotSeedKind ?? null,
+    snapshotTemplateLabel: parsed.snapshotTemplateLabel ?? null,
     userId: input.userId,
     id: parsed.id,
   });
@@ -853,7 +937,10 @@ export async function runRegionSourceConnectionDryRun(params: {
   const connection = await getRepo().getConnectionById(params.connectionId);
   if (!connection) throw new Error("source_connection_not_found");
 
-  const sourceSnapshot = await fetchExplicitUrlSnapshot(connection.url);
+  const sourceSnapshot =
+    connection.sourceSnapshotTemplate?.mode === "template_only"
+      ? null
+      : await fetchExplicitUrlSnapshot(connection.url);
   const sampleItems = mergeDryRunSampleItems(connection, sourceSnapshot);
   const preparation = await runRegionIntelligencePreparation(
     buildDryRunPreparationInput({
@@ -886,6 +973,13 @@ export async function runRegionSourceConnectionDryRun(params: {
     preparation,
     evidenceReferences,
   });
+  const sourceSnapshotTemplate = buildSnapshotTemplateResult({
+    connection,
+    possibleClaims,
+    topicCandidates: preparation.topicClusterHints,
+    evidenceHints: evidenceReferences,
+    openQuestions: preparation.openQuestions,
+  });
   const now = buildIsoNow();
   const result: RegionSourceTestResult = {
     id: `region-source-test-result-${connection.id}-${Date.now()}`,
@@ -913,6 +1007,7 @@ export async function runRegionSourceConnectionDryRun(params: {
     sourceSnapshotTitle: sourceSnapshot?.title ?? sampleItems[0]?.title ?? null,
     sourceSnapshotSummary: sourceSnapshot?.summary ?? sampleItems[0]?.summary ?? null,
     sourceSnapshotExcerpt: sourceSnapshot?.excerpt ?? evidenceReferences[0]?.excerpt ?? null,
+    sourceSnapshotTemplate,
     possibleClaims,
     topicClusters: preparation.topicClusterHints,
     dossierSuggestions: preparation.dossierSuggestionHints,
