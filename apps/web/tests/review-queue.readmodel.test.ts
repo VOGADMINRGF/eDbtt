@@ -18,6 +18,10 @@ import {
   setDossierStudioWorkspaceRepoForTests,
 } from "@features/dossier/server/studioPersistence";
 import { buildReviewQueueReadModel } from "@features/reviewQueue";
+import {
+  createInMemoryReviewQueueOperationRepo,
+  setReviewQueueOperationRepoForTests,
+} from "@features/reviewQueueOperations";
 
 const mocks = vi.hoisted(() => ({
   listCreatePrepareAttachDraftQueue: vi.fn(),
@@ -487,6 +491,7 @@ describe("review queue readmodel", () => {
         ],
       }),
     );
+    setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   });
 
   it("aggregates the existing review domains for the global operator queue", async () => {
@@ -525,10 +530,13 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "create_handoff",
           title: "Create-Handoff Schulsanierung",
+          operationalStatus: "open",
         }),
         expect.objectContaining({
           domain: "create_handoff",
           title: "Schulsanierung im Bezirk · Dossier-Entwurf",
+          priorityBucket: expect.any(String),
+          scopeLabel: expect.stringContaining("Berlin Reinickendorf"),
           contentReleaseWorkbench: expect.objectContaining({
             sourceKind: "create_handoff",
             sourceId: "create-handoff-1",
@@ -546,6 +554,8 @@ describe("review queue readmodel", () => {
           domain: "region_source_result",
           title: "Bezirksamt Reinickendorf News · Dry Run",
           summary: expect.stringContaining("1 mögliche Aussagen"),
+          operationalStatusLabel: "Offen",
+          noteCount: 0,
           sourceSnapshotTemplate: expect.objectContaining({
             label: "Beispiel-Snapshot",
             seedKindLabel: "Beispiel-Seed",
@@ -568,6 +578,9 @@ describe("review queue readmodel", () => {
           }),
         }),
       ]),
+    );
+    expect(readModel.filters.options.statuses).toEqual(
+      expect.arrayContaining([expect.objectContaining({ value: "open", label: "Offen" })]),
     );
   });
 
@@ -606,5 +619,66 @@ describe("review queue readmodel", () => {
         }),
       ]),
     );
+  });
+
+  it("supports operational filters and assignment metadata without a second queue", async () => {
+    setReviewQueueOperationRepoForTests(
+      createInMemoryReviewQueueOperationRepo({
+        records: [
+          {
+            itemId: "region_source_result:source-result-1",
+            operationalStatus: "blocked",
+            assignedToUserId: "admin-2",
+            assignedByUserId: "admin-1",
+            assignedAt: "2026-05-19T10:00:00.000Z",
+            noteCount: 1,
+            latestNote: "Regionenzuordnung vor Sichtbarkeit klären.",
+            latestNoteAt: "2026-05-19T10:05:00.000Z",
+            latestAction: "block",
+            latestActionAt: "2026-05-19T10:05:00.000Z",
+            latestActionByUserId: "admin-1",
+            createdAt: "2026-05-19T10:00:00.000Z",
+            updatedAt: "2026-05-19T10:05:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildReviewQueueReadModel(
+      {
+        mode: "global_operator",
+        userId: "admin-1",
+        isAdmin: true,
+        visibleRegionIds: [],
+        organizationIds: [],
+        canApproveOfficial: true,
+        governanceActor: {
+          userId: "admin-1",
+          role: "admin",
+          isAdmin: true,
+          scopedOwnerIds: ["admin-1"],
+          scopedEntityIds: ["admin-1"],
+          personTrust: null,
+        },
+      },
+      {
+        operationalStatus: "blocked",
+        assignedToUserId: "admin-2",
+        sort: "priority",
+      },
+    );
+
+    expect(readModel.summary.total).toBe(1);
+    expect(readModel.summary.blockedCount).toBe(1);
+    expect(readModel.items[0]).toMatchObject({
+      id: "region_source_result:source-result-1",
+      operationalStatus: "blocked",
+      assignedToUserId: "admin-2",
+      noteCount: 1,
+      latestNote: {
+        text: "Regionenzuordnung vor Sichtbarkeit klären.",
+      },
+      priorityBucket: "medium",
+    });
   });
 });

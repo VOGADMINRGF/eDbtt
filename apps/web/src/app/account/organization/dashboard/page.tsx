@@ -275,7 +275,7 @@ export default async function AccountOrganizationDashboardPage() {
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <p className="text-xs text-[rgb(var(--muted))]">Offene Reviews</p>
               <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
-                {readModel.openReviewItems.length}
+                {readModel.reviewQueueSummary.total}
               </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -285,17 +285,28 @@ export default async function AccountOrganizationDashboardPage() {
               </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-              <p className="text-xs text-[rgb(var(--muted))]">Dossier-Entwürfe</p>
+              <p className="text-xs text-[rgb(var(--muted))]">Hohe Priorität</p>
               <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
-                {readModel.dossierDrafts.length}
+                {readModel.reviewQueueSummary.highPriorityCount}
               </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-              <p className="text-xs text-[rgb(var(--muted))]">Anlassräume</p>
+              <p className="text-xs text-[rgb(var(--muted))]">Bereit / blockiert</p>
               <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
-                {readModel.anlassraumDrafts.length}
+                {readModel.reviewQueueSummary.readyCount} / {readModel.reviewQueueSummary.blockedCount}
               </p>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {readModel.reviewQueueSummary.byOperationalStatus.map((entry) => (
+              <span
+                key={entry.status}
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
+              >
+                {entry.label}: {entry.count}
+              </span>
+            ))}
           </div>
 
           <div className="mt-5 space-y-3">
@@ -314,13 +325,19 @@ export default async function AccountOrganizationDashboardPage() {
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                    {item.domainLabel} · {item.workflowLabel} ·{" "}
-                    {publicationVisibilityLabel(item.visibilityState)}
+                    {item.domainLabel} · {item.workflowLabel} · {item.operationalStatusLabel} ·{" "}
+                    {item.priorityLabel}
                   </p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{item.summary}</p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    {publicationVisibilityLabel(item.visibilityState)} · {item.scopeLabel} ·{" "}
                     {item.reviewAuthorityLabel}
                   </p>
+                  {item.assignedToUserId ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Zugewiesen an {item.assignedToUserId}
+                    </p>
+                  ) : null}
                   <Link href={item.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
                     Review öffnen
                   </Link>

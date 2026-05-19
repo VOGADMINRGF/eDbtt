@@ -34,6 +34,12 @@ import {
   listParticipationSignalsForReviewRuntime,
   type RegionParticipationSignalRecord,
 } from "./region/server/participationSignalReviewRuntime";
+import {
+  REVIEW_QUEUE_OPERATION_STATUSES,
+  listReviewQueueOperationRecords,
+  reviewQueueOperationalStatusLabel,
+  type ReviewQueueOperationalStatus,
+} from "./reviewQueueOperations";
 
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
@@ -77,6 +83,21 @@ export type ReviewQueueItem = {
   sourceType: string | null;
   visibilityState: RegionPublicationVisibilityState;
   visibilityLabel: string;
+  scopeLabel: string;
+  priorityScore: number;
+  priorityBucket: ReviewQueuePriorityBucket;
+  priorityLabel: string;
+  pendingHours: number;
+  operationalStatus: ReviewQueueOperationalStatus;
+  operationalStatusLabel: string;
+  assignedToUserId: string | null;
+  assignedAt: string | null;
+  assignedByUserId: string | null;
+  noteCount: number;
+  latestNote: {
+    text: string;
+    at: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   reviewRequired: true;
@@ -100,18 +121,84 @@ export type ReviewQueueItem = {
   } | null;
 };
 
+type ReviewQueueItemCore = Omit<
+  ReviewQueueItem,
+  | "scopeLabel"
+  | "priorityScore"
+  | "priorityBucket"
+  | "priorityLabel"
+  | "pendingHours"
+  | "operationalStatus"
+  | "operationalStatusLabel"
+  | "assignedToUserId"
+  | "assignedAt"
+  | "assignedByUserId"
+  | "noteCount"
+  | "latestNote"
+>;
+
 export type ReviewQueueSummaryEntry = {
   domain: ReviewQueueDomain;
   label: string;
   count: number;
 };
 
+export const REVIEW_QUEUE_PRIORITY_BUCKETS = ["high", "medium", "low"] as const;
+export type ReviewQueuePriorityBucket = (typeof REVIEW_QUEUE_PRIORITY_BUCKETS)[number];
+
+export const REVIEW_QUEUE_SORTS = ["priority", "newest", "oldest", "type", "region"] as const;
+export type ReviewQueueSort = (typeof REVIEW_QUEUE_SORTS)[number];
+
+export type ReviewQueueStatusSummaryEntry = {
+  status: ReviewQueueOperationalStatus;
+  label: string;
+  count: number;
+};
+
+export type ReviewQueueFilters = {
+  domain: ReviewQueueDomain | "all";
+  operationalStatus: ReviewQueueOperationalStatus | "all";
+  regionId: string | "all";
+  organizationId: string | "all";
+  priority: ReviewQueuePriorityBucket | "all";
+  assignedToUserId: string | "all" | "unassigned";
+  visibilityState: RegionPublicationVisibilityState | "all";
+  sort: ReviewQueueSort;
+};
+
+export type ReviewQueueFilterOption = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+export type ReviewQueueQuery = Partial<ReviewQueueFilters>;
+
 export type ReviewQueueReadModel = {
   items: ReviewQueueItem[];
   summary: {
     total: number;
+    totalBeforeFilters: number;
     officialApprovalCount: number;
+    highPriorityCount: number;
+    assignedCount: number;
+    blockedCount: number;
+    readyCount: number;
     byDomain: ReviewQueueSummaryEntry[];
+    byOperationalStatus: ReviewQueueStatusSummaryEntry[];
+  };
+  filters: {
+    applied: ReviewQueueFilters;
+    options: {
+      domains: ReviewQueueFilterOption[];
+      statuses: ReviewQueueFilterOption[];
+      regions: ReviewQueueFilterOption[];
+      organizations: ReviewQueueFilterOption[];
+      priorities: ReviewQueueFilterOption[];
+      assignees: ReviewQueueFilterOption[];
+      visibilities: ReviewQueueFilterOption[];
+      sorts: ReviewQueueFilterOption[];
+    };
   };
   guardrails: {
     noBulkApprove: true;
@@ -214,29 +301,99 @@ function workflowLabelFor(state: ReviewQueueState) {
   }
 }
 
-function priorityFor(item: ReviewQueueItem) {
-  switch (item.workflowState) {
+function workflowPriority(state: ReviewQueueState) {
+  switch (state) {
     case "official_approval_required":
-      return 0;
+      return 92;
     case "region_confirmation_required":
-      return 1;
+      return 84;
     case "output_review_required":
-      return 2;
+      return 74;
     case "draft_review_required":
-      return 3;
+      return 68;
     case "review_required":
-      return 4;
+      return 56;
     case "apply_pending":
-      return 5;
+      return 62;
     default:
-      return 9;
+      return 40;
   }
 }
 
-function byPriorityAndTime(left: ReviewQueueItem, right: ReviewQueueItem) {
-  const priorityDelta = priorityFor(left) - priorityFor(right);
-  if (priorityDelta !== 0) return priorityDelta;
-  return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+function priorityBucketLabel(bucket: ReviewQueuePriorityBucket) {
+  switch (bucket) {
+    case "high":
+      return "Hohe Priorität";
+    case "medium":
+      return "Mittlere Priorität";
+    case "low":
+    default:
+      return "Niedrige Priorität";
+  }
+}
+
+function scopeLabelFor(item: Pick<ReviewQueueItemCore, "regionName" | "organizationId">) {
+  if (item.regionName && item.organizationId) return `${item.regionName} · Organisation`;
+  if (item.regionName) return item.regionName;
+  if (item.organizationId) return `Organisation ${item.organizationId}`;
+  return "Übergreifend";
+}
+
+function pendingHoursFor(updatedAt: string) {
+  const updated = Date.parse(updatedAt);
+  if (!Number.isFinite(updated)) return 0;
+  const diff = Math.max(0, Date.now() - updated);
+  return Number((diff / 36e5).toFixed(1));
+}
+
+function priorityScoreFor(item: ReviewQueueItemCore, operationalStatus: ReviewQueueOperationalStatus) {
+  const pendingHours = pendingHoursFor(item.updatedAt);
+  let score = workflowPriority(item.workflowState);
+  if (operationalStatus === "blocked") score += 16;
+  if (operationalStatus === "request_changes") score += 10;
+  if (operationalStatus === "ready") score += 8;
+  if (operationalStatus === "in_review") score += 4;
+  if (operationalStatus === "archived") score -= 40;
+  if (pendingHours >= 72) score += 18;
+  else if (pendingHours >= 24) score += 10;
+  else if (pendingHours >= 8) score += 4;
+  if (item.publicOfficialCandidate) score += 6;
+  return score;
+}
+
+function priorityBucketFor(score: number): ReviewQueuePriorityBucket {
+  if (score >= 90) return "high";
+  if (score >= 60) return "medium";
+  return "low";
+}
+
+function sortReviewQueueItems(sort: ReviewQueueSort, items: ReviewQueueItem[]) {
+  const sorted = [...items];
+  sorted.sort((left, right) => {
+    if (sort === "newest") {
+      return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+    }
+    if (sort === "oldest") {
+      return Date.parse(left.createdAt) - Date.parse(right.createdAt);
+    }
+    if (sort === "type") {
+      const domainDelta = left.domainLabel.localeCompare(right.domainLabel, "de");
+      if (domainDelta !== 0) return domainDelta;
+      return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+    }
+    if (sort === "region") {
+      const regionDelta = (left.regionName ?? "Übergreifend").localeCompare(
+        right.regionName ?? "Übergreifend",
+        "de",
+      );
+      if (regionDelta !== 0) return regionDelta;
+      return right.priorityScore - left.priorityScore;
+    }
+    const priorityDelta = right.priorityScore - left.priorityScore;
+    if (priorityDelta !== 0) return priorityDelta;
+    return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+  });
+  return sorted;
 }
 
 function scopeAllowsRegion(params: {
@@ -295,7 +452,7 @@ function workspaceCanBeOfficiallyApproved(workspace: DossierStudioWorkspace) {
 function mapParticipationReviewItem(params: {
   record: RegionParticipationSignalRecord;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem | null {
+}): ReviewQueueItemCore | null {
   const { record } = params;
   if (
     record.reviewStatus !== "needs_review" &&
@@ -351,7 +508,7 @@ function mapParticipationReviewItem(params: {
 function mapParticipationOfficialApprovalItem(params: {
   record: RegionParticipationSignalRecord;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem | null {
+}): ReviewQueueItemCore | null {
   if (!signalCanBeOfficiallyApproved(params.record)) return null;
   const regionId = params.record.regionId ?? null;
   return {
@@ -386,7 +543,7 @@ function mapParticipationOfficialApprovalItem(params: {
 function mapRegionSignalDraftItem(params: {
   record: RegionSignalDraftRecord;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem {
+}): ReviewQueueItemCore {
   return {
     id: `region_signal_draft:${params.record.id}`,
     domain: "region_signal_draft",
@@ -421,7 +578,7 @@ function mapRegionIntelligenceSuggestionItem(params: {
   suggestion: Awaited<
     ReturnType<typeof getRegionalAdminCockpitReadModel>
   >["intelligenceReviewSuggestions"][number];
-}): ReviewQueueItem {
+}): ReviewQueueItemCore {
   return {
     id: `region_intelligence_suggestion:${params.regionId}:${params.suggestion.id}`,
     domain: "region_intelligence_suggestion",
@@ -466,7 +623,7 @@ async function mapRegionSourceResultItem(params: {
   result: Awaited<ReturnType<typeof listRegionSourceTestResults>>[number];
   regionMap: Map<string, Region>;
   scope: ReviewQueueScope;
-}): Promise<ReviewQueueItem> {
+}): Promise<ReviewQueueItemCore> {
   const sourceSummary =
     params.result.reviewTaskSummary?.label
       ? `${params.result.reviewTaskSummary.label}. ${params.result.summary}`
@@ -524,7 +681,7 @@ function workspaceSummary(workspace: DossierStudioWorkspace) {
 function mapWorkspaceItem(params: {
   workspace: DossierStudioWorkspace;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem | null {
+}): ReviewQueueItemCore | null {
   if (
     params.workspace.status !== "needs_review" &&
     params.workspace.status !== "locked"
@@ -562,7 +719,7 @@ function mapWorkspaceItem(params: {
 function mapWorkspaceOfficialApprovalItem(params: {
   workspace: DossierStudioWorkspace;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem | null {
+}): ReviewQueueItemCore | null {
   if (!workspaceCanBeOfficiallyApproved(params.workspace)) return null;
   return {
     id: `public_official_approval:workspace:${params.workspace.id}`,
@@ -596,8 +753,8 @@ function mapWorkspaceOfficialApprovalItem(params: {
 function mapWorkspaceOutputItems(params: {
   workspace: DossierStudioWorkspace;
   regionMap: Map<string, Region>;
-}): ReviewQueueItem[] {
-  const items: ReviewQueueItem[] = [];
+}): ReviewQueueItemCore[] {
+  const items: ReviewQueueItemCore[] = [];
   const base = {
     domain: "output_artifact" as const,
     domainLabel: domainLabelFor("output_artifact"),
@@ -662,7 +819,7 @@ function includeCreateAttachItem(item: CreatePrepareAttachDraftQueueItem) {
   return false;
 }
 
-function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQueueItem {
+function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQueueItemCore {
   const workflowState: ReviewQueueState =
     item.reviewState === "accepted_for_apply" || item.applyState === "apply_failed"
       ? "apply_pending"
@@ -701,7 +858,7 @@ async function mapPersistedCreateHandoffItem(params: {
   record: PersistedCreateHandoffRecord;
   regionMap: Map<string, Region>;
   scope: ReviewQueueScope;
-}): Promise<ReviewQueueItem> {
+}): Promise<ReviewQueueItemCore> {
   const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
     sourceKind: "create_handoff",
     record: params.record,
@@ -763,9 +920,208 @@ async function mapPersistedCreateHandoffItem(params: {
   };
 }
 
+function normalizeFilterValue(value: string | undefined, fallback: "all") {
+  const normalized = String(value ?? "").trim();
+  return normalized || fallback;
+}
+
+function normalizeSort(sort: string | undefined): ReviewQueueSort {
+  const normalized = String(sort ?? "").trim();
+  return (REVIEW_QUEUE_SORTS as readonly string[]).includes(normalized) ? (normalized as ReviewQueueSort) : "priority";
+}
+
+function normalizeReviewQueueQuery(query?: ReviewQueueQuery): ReviewQueueFilters {
+  return {
+    domain: normalizeFilterValue(query?.domain, "all") as ReviewQueueFilters["domain"],
+    operationalStatus: normalizeFilterValue(
+      query?.operationalStatus,
+      "all",
+    ) as ReviewQueueFilters["operationalStatus"],
+    regionId: normalizeFilterValue(query?.regionId, "all"),
+    organizationId: normalizeFilterValue(query?.organizationId, "all"),
+    priority: normalizeFilterValue(query?.priority, "all") as ReviewQueueFilters["priority"],
+    assignedToUserId: normalizeFilterValue(
+      query?.assignedToUserId,
+      "all",
+    ) as ReviewQueueFilters["assignedToUserId"],
+    visibilityState: normalizeFilterValue(
+      query?.visibilityState,
+      "all",
+    ) as ReviewQueueFilters["visibilityState"],
+    sort: normalizeSort(query?.sort),
+  };
+}
+
+function decorateReviewQueueItem(
+  item: ReviewQueueItemCore,
+  operation: Awaited<ReturnType<typeof listReviewQueueOperationRecords>>[number] | undefined,
+): ReviewQueueItem {
+  const operationalStatus = operation?.operationalStatus ?? "open";
+  const priorityScore = priorityScoreFor(item, operationalStatus);
+  const priorityBucket = priorityBucketFor(priorityScore);
+  const latestNoteText = String(operation?.latestNote ?? "").trim();
+  const latestNoteAt = String(operation?.latestNoteAt ?? "").trim();
+  return {
+    ...item,
+    scopeLabel: scopeLabelFor(item),
+    priorityScore,
+    priorityBucket,
+    priorityLabel: priorityBucketLabel(priorityBucket),
+    pendingHours: pendingHoursFor(item.updatedAt),
+    operationalStatus,
+    operationalStatusLabel: reviewQueueOperationalStatusLabel(operationalStatus),
+    assignedToUserId: operation?.assignedToUserId ?? null,
+    assignedAt: operation?.assignedAt ?? null,
+    assignedByUserId: operation?.assignedByUserId ?? null,
+    noteCount: operation?.noteCount ?? 0,
+    latestNote:
+      latestNoteText && latestNoteAt
+        ? {
+            text: latestNoteText,
+            at: latestNoteAt,
+          }
+        : null,
+  };
+}
+
+function itemMatchesFilters(item: ReviewQueueItem, filters: ReviewQueueFilters) {
+  if (filters.domain !== "all" && item.domain !== filters.domain) return false;
+  if (
+    filters.operationalStatus !== "all" &&
+    item.operationalStatus !== filters.operationalStatus
+  ) {
+    return false;
+  }
+  if (
+    filters.regionId !== "all" &&
+    ((filters.regionId === "overgreifend" && item.regionId !== null) ||
+      (filters.regionId !== "overgreifend" && item.regionId !== filters.regionId))
+  ) {
+    return false;
+  }
+  if (
+    filters.organizationId !== "all" &&
+    (filters.organizationId === "ohne_organisation"
+      ? item.organizationId !== null
+      : item.organizationId !== filters.organizationId)
+  ) {
+    return false;
+  }
+  if (filters.priority !== "all" && item.priorityBucket !== filters.priority) return false;
+  if (filters.assignedToUserId === "unassigned" && item.assignedToUserId) return false;
+  if (
+    filters.assignedToUserId !== "all" &&
+    filters.assignedToUserId !== "unassigned" &&
+    item.assignedToUserId !== filters.assignedToUserId
+  ) {
+    return false;
+  }
+  if (
+    filters.visibilityState !== "all" &&
+    item.visibilityState !== filters.visibilityState
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function buildFilterOptions(items: ReviewQueueItem[]) {
+  const countBy = (values: string[]) =>
+    values.reduce<Map<string, number>>((acc, value) => {
+      acc.set(value, (acc.get(value) ?? 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+
+  const domainCounts = countBy(items.map((item) => item.domain));
+  const statusCounts = countBy(items.map((item) => item.operationalStatus));
+  const regionCounts = countBy(items.map((item) => item.regionId ?? "overgreifend"));
+  const organizationCounts = countBy(items.map((item) => item.organizationId ?? "ohne_organisation"));
+  const priorityCounts = countBy(items.map((item) => item.priorityBucket));
+  const assigneeCounts = countBy(items.map((item) => item.assignedToUserId ?? "unassigned"));
+  const visibilityCounts = countBy(items.map((item) => item.visibilityState));
+  const regionLabels = new Map(
+    items
+      .filter((item) => item.regionId)
+      .map((item) => [item.regionId as string, item.regionName ?? (item.regionId as string)]),
+  );
+  const organizationLabels = new Map(
+    items
+      .filter((item) => item.organizationId)
+      .map((item) => [item.organizationId as string, item.organizationId as string]),
+  );
+
+  return {
+    domains: REVIEW_QUEUE_DOMAINS.map((domain) => ({
+      value: domain,
+      label: domainLabelFor(domain),
+      count: domainCounts.get(domain) ?? 0,
+    })).filter((entry) => entry.count > 0),
+    statuses: REVIEW_QUEUE_OPERATION_STATUSES.map((status) => ({
+      value: status,
+      label: reviewQueueOperationalStatusLabel(status),
+      count: statusCounts.get(status) ?? 0,
+    })).filter((entry) => entry.count > 0),
+    regions: Array.from(regionCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label:
+          value === "overgreifend"
+            ? "Übergreifend"
+            : regionLabels.get(value) ?? value,
+        count,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, "de")),
+    organizations: Array.from(organizationCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label:
+          value === "ohne_organisation"
+            ? "Ohne Organisation"
+            : organizationLabels.get(value) ?? value,
+        count,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, "de")),
+    priorities: REVIEW_QUEUE_PRIORITY_BUCKETS.map((bucket) => ({
+      value: bucket,
+      label: priorityBucketLabel(bucket),
+      count: priorityCounts.get(bucket) ?? 0,
+    })).filter((entry) => entry.count > 0),
+    assignees: Array.from(assigneeCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label: value === "unassigned" ? "Nicht zugewiesen" : value,
+        count,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, "de")),
+    visibilities: Array.from(visibilityCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label: publicationVisibilityLabel(value as RegionPublicationVisibilityState),
+        count,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, "de")),
+    sorts: REVIEW_QUEUE_SORTS.map((sort) => ({
+      value: sort,
+      label:
+        sort === "newest"
+          ? "Neueste zuerst"
+          : sort === "oldest"
+            ? "Älteste zuerst"
+            : sort === "type"
+              ? "Typ"
+              : sort === "region"
+                ? "Region"
+                : "Priorität",
+      count: items.length,
+    })),
+  };
+}
+
 export async function buildReviewQueueReadModel(
   scope: ReviewQueueScope,
+  query?: ReviewQueueQuery,
 ): Promise<ReviewQueueReadModel> {
+  const filters = normalizeReviewQueueQuery(query);
   const regions = await listOperationalRegions();
   const regionMap = new Map(regions.map((region) => [region.id, clone(region)]));
   const [participationRecords, draftRecords, workspaces] = await Promise.all([
@@ -778,7 +1134,7 @@ export async function buildReviewQueueReadModel(
   ]);
   const sourceResults = await listRegionSourceTestResults({ limit: 200 });
 
-  const items: ReviewQueueItem[] = [];
+  const coreItems: ReviewQueueItemCore[] = [];
 
   for (const record of participationRecords) {
     const recordRegionIds = uniqueNonEmpty([
@@ -789,11 +1145,11 @@ export async function buildReviewQueueReadModel(
     if (!scopeAllowsRegion({ scope, regionIds: recordRegionIds })) continue;
 
     const reviewItem = mapParticipationReviewItem({ record, regionMap });
-    if (reviewItem) items.push(reviewItem);
+    if (reviewItem) coreItems.push(reviewItem);
 
     if (scope.canApproveOfficial) {
       const officialItem = mapParticipationOfficialApprovalItem({ record, regionMap });
-      if (officialItem) items.push(officialItem);
+      if (officialItem) coreItems.push(officialItem);
     }
   }
 
@@ -805,22 +1161,22 @@ export async function buildReviewQueueReadModel(
     ) {
       continue;
     }
-    items.push(mapRegionSignalDraftItem({ record, regionMap }));
+    coreItems.push(mapRegionSignalDraftItem({ record, regionMap }));
   }
 
   for (const result of sourceResults) {
     if (!scopeAllowsRegion({ scope, regionIds: [result.regionId] })) continue;
-    items.push(await mapRegionSourceResultItem({ result, regionMap, scope }));
+    coreItems.push(await mapRegionSourceResultItem({ result, regionMap, scope }));
   }
 
   for (const workspace of workspaces) {
     if (!scopeAllowsWorkspace({ scope, workspace })) continue;
     const workspaceItem = mapWorkspaceItem({ workspace, regionMap });
-    if (workspaceItem) items.push(workspaceItem);
-    items.push(...mapWorkspaceOutputItems({ workspace, regionMap }));
+    if (workspaceItem) coreItems.push(workspaceItem);
+    coreItems.push(...mapWorkspaceOutputItems({ workspace, regionMap }));
     if (scope.canApproveOfficial) {
       const officialItem = mapWorkspaceOfficialApprovalItem({ workspace, regionMap });
-      if (officialItem) items.push(officialItem);
+      if (officialItem) coreItems.push(officialItem);
     }
   }
 
@@ -834,7 +1190,7 @@ export async function buildReviewQueueReadModel(
     }).catch(() => ({ items: [] as CreatePrepareAttachDraftQueueItem[], total: 0 }));
 
     for (const item of queue.items.filter(includeCreateAttachItem)) {
-      items.push(mapCreateAttachItem(item));
+      coreItems.push(mapCreateAttachItem(item));
     }
   }
 
@@ -843,7 +1199,7 @@ export async function buildReviewQueueReadModel(
   );
   for (const record of persistedCreateHandoffs) {
     if (!scopeAllowsCreateHandoff({ scope, record })) continue;
-    items.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope }));
+    coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope }));
   }
 
   const intelligenceRegionIds =
@@ -855,7 +1211,7 @@ export async function buildReviewQueueReadModel(
     const cockpit = await getRegionalAdminCockpitReadModel(regionId).catch(() => null);
     if (!cockpit) continue;
     for (const suggestion of cockpit.intelligenceReviewSuggestions) {
-      items.push(
+      coreItems.push(
         mapRegionIntelligenceSuggestionItem({
           regionId: cockpit.region.id,
           regionName: cockpit.region.name,
@@ -865,22 +1221,44 @@ export async function buildReviewQueueReadModel(
     }
   }
 
-  const sorted = [...items].sort(byPriorityAndTime);
+  const operationMap = new Map(
+    (await listReviewQueueOperationRecords()).map((record) => [record.itemId, record]),
+  );
+  const decorated = coreItems.map((item) => decorateReviewQueueItem(item, operationMap.get(item.id)));
+  const filtered = decorated.filter((item) => itemMatchesFilters(item, filters));
+  const sorted = sortReviewQueueItems(filters.sort, filtered);
+  const filterOptions = buildFilterOptions(decorated);
   const counts = new Map<ReviewQueueDomain, number>();
+  const statusCounts = new Map<ReviewQueueOperationalStatus, number>();
   for (const item of sorted) {
     counts.set(item.domain, (counts.get(item.domain) ?? 0) + 1);
+    statusCounts.set(item.operationalStatus, (statusCounts.get(item.operationalStatus) ?? 0) + 1);
   }
 
   return {
     items: sorted,
     summary: {
       total: sorted.length,
+      totalBeforeFilters: decorated.length,
       officialApprovalCount: sorted.filter((item) => item.publicOfficialCandidate).length,
+      highPriorityCount: sorted.filter((item) => item.priorityBucket === "high").length,
+      assignedCount: sorted.filter((item) => Boolean(item.assignedToUserId)).length,
+      blockedCount: sorted.filter((item) => item.operationalStatus === "blocked").length,
+      readyCount: sorted.filter((item) => item.operationalStatus === "ready").length,
       byDomain: REVIEW_QUEUE_DOMAINS.map((domain) => ({
         domain,
         label: domainLabelFor(domain),
         count: counts.get(domain) ?? 0,
       })).filter((entry) => entry.count > 0),
+      byOperationalStatus: REVIEW_QUEUE_OPERATION_STATUSES.map((status) => ({
+        status,
+        label: reviewQueueOperationalStatusLabel(status),
+        count: statusCounts.get(status) ?? 0,
+      })).filter((entry) => entry.count > 0),
+    },
+    filters: {
+      applied: filters,
+      options: filterOptions,
     },
     guardrails: REVIEW_QUEUE_GUARDRAILS,
   };

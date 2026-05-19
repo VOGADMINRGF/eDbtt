@@ -22,6 +22,7 @@ import {
 import {
   buildReviewQueueReadModel,
   type ReviewQueueItem,
+  type ReviewQueueReadModel,
 } from "../reviewQueue";
 import type {
   Organization,
@@ -81,6 +82,8 @@ export type OrganizationDashboardMembershipStatus = {
 };
 
 export type OrganizationDashboardReviewItem = ReviewQueueItem;
+
+export type OrganizationDashboardReviewSummary = ReviewQueueReadModel["summary"];
 
 export type OrganizationDashboardStartingPoint = {
   regionId: string;
@@ -147,6 +150,7 @@ export type OrganizationDashboardReadModel = {
   pendingOrganizationClaims: OrganizationClaim[];
   verifiedMemberships: OrganizationMembership[];
   openReviewItems: OrganizationDashboardReviewItem[];
+  reviewQueueSummary: OrganizationDashboardReviewSummary;
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
   dossierDrafts: OrganizationDashboardDraftSummary[];
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
@@ -710,6 +714,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     pendingOrganizationClaims: pendingClaims,
     verifiedMemberships: verifiedMemberships.map((membership) => clone(membership)),
     openReviewItems: reviewQueue.items,
+    reviewQueueSummary: reviewQueue.summary,
     regionalStartingPoints,
     dossierDrafts,
     anlassraumDrafts,
