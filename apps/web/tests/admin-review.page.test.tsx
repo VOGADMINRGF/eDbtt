@@ -19,6 +19,16 @@ vi.mock("@features/reviewQueue", () => ({
   buildReviewQueueReadModel: (...args: unknown[]) => mocks.buildReviewQueueReadModel(...args),
 }));
 
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  return {
+    ...actual,
+    useRouter: () => ({
+      refresh: vi.fn(),
+    }),
+  };
+});
+
 import AdminReviewPage from "@/app/admin/review/page";
 
 describe("/admin/review page", () => {
@@ -54,6 +64,71 @@ describe("/admin/review page", () => {
           publicOfficialCandidate: true,
           reviewAuthority: "publication_approved_or_admin",
           reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+          contentReleaseWorkbench: null,
+        },
+        {
+          id: "region_source_result:source-result-1",
+          domain: "region_source_result",
+          domainLabel: "Quellen-Testresultat",
+          workflowState: "review_required",
+          workflowLabel: "Review erforderlich",
+          title: "Bezirksamt Reinickendorf News · Dry Run",
+          summary: "1 mögliche Aussagen · 1 Themencluster. Explizite URL vorbereitet.",
+          href: "/admin/region?regionId=bezirk-berlin-reinickendorf#source-results",
+          regionId: "bezirk-berlin-reinickendorf",
+          regionName: "Berlin Reinickendorf",
+          organizationId: null,
+          dossierId: null,
+          draftId: "source-1",
+          sourceType: "municipal_news",
+          visibilityState: "internal_review",
+          visibilityLabel: "reviewpflichtig",
+          createdAt: "2026-05-18T09:00:00.000Z",
+          updatedAt: "2026-05-18T09:00:00.000Z",
+          reviewRequired: true,
+          publicOfficialCandidate: false,
+          reviewAuthority: "standard_review",
+          reviewAuthorityLabel: "Reviewpflichtig",
+          contentReleaseWorkbench: {
+            intro:
+              "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+            targets: [
+              {
+                targetType: "dossier",
+                targetLabel: "Dossier-Entwurf",
+                suggestedTitle: "Berlin Reinickendorf: Schule",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                qrHref: null,
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canCreateQrLink: false,
+              },
+              {
+                targetType: "anlassraum",
+                targetLabel: "Anlassraum",
+                suggestedTitle: "Schule Berlin Reinickendorf",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                qrHref: null,
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canCreateQrLink: false,
+              },
+            ],
+          },
         },
       ],
       summary: {
@@ -96,5 +171,9 @@ describe("/admin/review page", () => {
     expect(html).toContain("Nur Publikationsfreigabe oder Admin-Fallback");
     expect(html).toContain("Berlin Reinickendorf");
     expect(html).toContain("Prüfen");
+    expect(html).toContain("Review-to-Publish Workspace");
+    expect(html).toContain("Als Dossier-Entwurf übernehmen");
+    expect(html).toContain("Als Anlassraum vorbereiten");
+    expect(html).toContain("Arbeitsstand");
   });
 });
