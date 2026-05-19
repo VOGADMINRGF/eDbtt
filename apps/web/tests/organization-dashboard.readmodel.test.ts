@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  createInMemoryPersistedCreateHandoffRepo,
+  setPersistedCreateHandoffRepoForTests,
+} from "@/features/create/persistedHandoffReviewQueue";
+import {
   buildOrganizationDashboardReadModel,
   createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
@@ -155,6 +159,7 @@ function anlassraumDraftRecord(): RegionSignalDraftRecord {
 }
 
 beforeEach(() => {
+  setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
   setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
   setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
   setRegionDataRepoForTests(createInMemoryRegionDataRepo());
@@ -348,6 +353,127 @@ describe("organization dashboard readmodel", () => {
     );
     await persistence.saveRecord(dossierDraftRecord());
     await persistence.saveRecord(anlassraumDraftRecord());
+    setPersistedCreateHandoffRepoForTests(
+      createInMemoryPersistedCreateHandoffRepo({
+        records: [
+          {
+            schemaVersion: "create_handoff_review_item.v1",
+            id: "create-handoff-dashboard-1",
+            source: "create",
+            sourceText: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+            plannerResult: {
+              source: "heuristic_fallback",
+              plannerSource: "heuristic_fallback",
+              plannerProvider: "none",
+              plannerRole: "planner_only",
+              plannerTopic: "Schulsanierung im Bezirk",
+              plannerCore: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+              plannerScope: ["district"],
+              plannerStance: "open",
+              plannerClusters: ["Bildung"],
+              plannerOpenQuestions: ["Welche Standorte haben Priorität?"],
+              shortSummary: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+              topicCandidates: ["Schulsanierung"],
+              clusterCandidates: ["Bildung"],
+              scopeCandidates: ["district"],
+              stance: "open",
+              openQuestions: ["Welche Standorte haben Priorität?"],
+              graphSearchTerms: ["Schulsanierung Reinickendorf"],
+              materialSignals: [],
+              recommendedLane: "standard",
+              providerPlan: {
+                lane: "standard",
+                plannerProvider: "none",
+                plannerRole: "planner_only",
+                structureProvider: "mistral",
+                summaryProvider: "claude",
+                researchUsed: "none",
+                researchProvider: null,
+                deepSearchUsed: false,
+                graphMatch: "after_structure",
+              },
+              permissions: {
+                nonMutative: true,
+                canPublish: false,
+                canSave: false,
+                canMerge: false,
+                canDeepSearch: false,
+              },
+              plannerDegraded: false,
+              degradedReason: null,
+              plannerDegradedReason: null,
+              qualityStatus: "specific",
+              qualityIssues: [],
+              providerCallAttempted: false,
+              providerCallSucceeded: false,
+              plannerDebug: {
+                attemptedProvider: null,
+                usedProvider: "none",
+                providerAvailable: false,
+                rawPayloadValid: true,
+                rawTextValid: true,
+                normalizedPayloadValid: true,
+                qualityGatePassed: true,
+              },
+            } as any,
+            graphMatches: {
+              stage: "after_structure",
+              prepared: true,
+              requiresConfirmation: true,
+              searchTerms: ["Schulsanierung Reinickendorf"],
+              matches: [],
+              matchedTopics: ["Schulsanierung"],
+              matchedDossiers: [],
+              matchedClaims: [],
+              matchedAnlassraeume: [],
+              matchedVotes: [],
+              shouldCreateNewTopic: true,
+            },
+            selectedAction: "create_dossier",
+            claims: [
+              {
+                id: "claim-1",
+                text: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+                kind: "factual_claim",
+                factcheckEligible: true,
+                sourceRefs: ["source-text"],
+              },
+            ],
+            arguments: [],
+            openQuestions: [
+              {
+                id: "question-1",
+                question: "Welche Standorte haben Priorität?",
+                requiredBeforePublish: true,
+              },
+            ],
+            sourceGrounding: [],
+            topicSeed: {
+              topicKey: "schulsanierung-im-bezirk",
+              topicLabel: "Schulsanierung im Bezirk",
+              jurisdiction: "kommune",
+              themenradarSourceType: "create_intake",
+            },
+            resumeHref: "/create?resume=create_handoff&handoffId=create-handoff-dashboard-1",
+            reviewState: "ready_for_confirmation",
+            visibilityState: "internal_review",
+            requiresConfirmation: true,
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            createdByUserId: "user-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            organizationId: "org-reinickendorf-1",
+            dossierId: null,
+            anlassraumId: null,
+            createdAt: "2026-05-19T08:00:00.000Z",
+            updatedAt: "2026-05-19T08:00:00.000Z",
+          },
+        ],
+      }),
+    );
 
     const readModel = await buildOrganizationDashboardReadModel({
       userId: "user-1",
@@ -380,6 +506,10 @@ describe("organization dashboard readmodel", () => {
         expect.objectContaining({
           domain: "region_signal_draft",
           title: "Bildung & Schulinfrastruktur Reinickendorf",
+        }),
+        expect.objectContaining({
+          domain: "create_handoff",
+          title: "Schulsanierung im Bezirk · Dossier-Entwurf",
         }),
       ]),
     );

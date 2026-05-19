@@ -7,7 +7,8 @@ import type { ReviewQueueItem } from "@features/reviewQueue";
 
 type Props = {
   itemId: string;
-  sourceResultId: string;
+  sourceKind: "region_source_result" | "create_handoff";
+  sourceId: string;
   contentReleaseWorkbench: NonNullable<ReviewQueueItem["contentReleaseWorkbench"]>;
 };
 
@@ -22,7 +23,8 @@ type ActionState = {
 };
 
 async function postAction(input: {
-  sourceResultId: string;
+  sourceKind: "region_source_result" | "create_handoff";
+  sourceId: string;
   targetType: "dossier" | "anlassraum";
   action: ActionState["action"];
 }) {
@@ -48,7 +50,8 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
     setError(null);
     try {
       await postAction({
-        sourceResultId: props.sourceResultId,
+        sourceKind: props.sourceKind,
+        sourceId: props.sourceId,
         targetType: actionState.targetType,
         action: actionState.action,
       });

@@ -58,12 +58,17 @@ vi.mock("@features/dossier/seed", () => ({
 
 import {
   buildContentReleaseWorkbenchTargets,
+  buildContentReleaseWorkbenchTargetsForCreateHandoff,
   createInMemoryContentReleaseWorkbenchRepo,
   listContentReleaseAuditEvents,
   prepareContentReleaseTargetFromSourceResult,
   setContentReleaseWorkbenchRepoForTests,
   updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
+import {
+  createInMemoryPersistedCreateHandoffRepo,
+  setPersistedCreateHandoffRepoForTests,
+} from "@/features/create/persistedHandoffReviewQueue";
 import {
   createInMemoryRegionSourceConnectionRuntimeRepo,
   setRegionSourceConnectionRuntimeRepoForTests,
@@ -187,6 +192,129 @@ const sourceResult = {
   noPublicOfficial: true,
 } as const;
 
+const persistedCreateHandoff = {
+  schemaVersion: "create_handoff_review_item.v1",
+  id: "create-handoff-1",
+  source: "create",
+  sourceText: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+  plannerResult: {
+    source: "heuristic_fallback",
+    plannerSource: "heuristic_fallback",
+    plannerProvider: "none",
+    plannerRole: "planner_only",
+    plannerTopic: "Schulsanierung im Bezirk",
+    plannerCore: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+    plannerScope: ["district"],
+    plannerStance: "open",
+    plannerClusters: ["Bildung"],
+    plannerOpenQuestions: ["Welche Standorte haben Priorität?"],
+    shortSummary: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+    topicCandidates: ["Schulsanierung"],
+    clusterCandidates: ["Bildung"],
+    scopeCandidates: ["district"],
+    stance: "open",
+    openQuestions: ["Welche Standorte haben Priorität?"],
+    graphSearchTerms: ["Schulsanierung Reinickendorf"],
+    materialSignals: [],
+    recommendedLane: "standard",
+    providerPlan: {
+      lane: "standard",
+      plannerProvider: "none",
+      plannerRole: "planner_only",
+      structureProvider: "mistral",
+      summaryProvider: "claude",
+      researchUsed: "none",
+      researchProvider: null,
+      deepSearchUsed: false,
+      graphMatch: "after_structure",
+    },
+    permissions: {
+      nonMutative: true,
+      canPublish: false,
+      canSave: false,
+      canMerge: false,
+      canDeepSearch: false,
+    },
+    plannerDegraded: false,
+    degradedReason: null,
+    plannerDegradedReason: null,
+    qualityStatus: "specific",
+    qualityIssues: [],
+    providerCallAttempted: false,
+    providerCallSucceeded: false,
+    plannerDebug: {
+      attemptedProvider: null,
+      usedProvider: "none",
+      providerAvailable: false,
+      rawPayloadValid: true,
+      rawTextValid: true,
+      normalizedPayloadValid: true,
+      qualityGatePassed: true,
+    },
+  },
+  graphMatches: {
+    stage: "after_structure",
+    prepared: true,
+    requiresConfirmation: true,
+    searchTerms: ["Schulsanierung Reinickendorf"],
+    matches: [],
+    matchedTopics: ["Schulsanierung"],
+    matchedDossiers: [],
+    matchedClaims: [],
+    matchedAnlassraeume: [],
+    matchedVotes: [],
+    shouldCreateNewTopic: true,
+  },
+  selectedAction: "create_dossier",
+  claims: [
+    {
+      id: "claim-1",
+      text: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+      kind: "factual_claim",
+      factcheckEligible: true,
+      sourceRefs: ["source-text"],
+    },
+  ],
+  arguments: [],
+  openQuestions: [
+    {
+      id: "question-1",
+      question: "Welche Standorte haben Priorität?",
+      requiredBeforePublish: true,
+    },
+  ],
+  sourceGrounding: [
+    {
+      id: "source-link-1",
+      label: "Link 1",
+      status: "link_reference",
+      detail: "https://reinickendorf.example/aktuelles",
+    },
+  ],
+  topicSeed: {
+    topicKey: "schulsanierung-im-bezirk",
+    topicLabel: "Schulsanierung im Bezirk",
+    jurisdiction: "kommune",
+    themenradarSourceType: "create_intake",
+  },
+  resumeHref: "/create?resume=create_handoff&handoffId=create-handoff-1",
+  reviewState: "ready_for_confirmation",
+  visibilityState: "internal_review",
+  requiresConfirmation: true,
+  reviewRequired: true,
+  noAutoPublish: true,
+  noPublicOfficial: true,
+  noAutomaticOfficialResponse: true,
+  noAutoFinalization: true,
+  createdByUserId: "user-1",
+  regionId: "bezirk-berlin-reinickendorf",
+  organizationId: "org-reinickendorf-1",
+  dossierId: null,
+  anlassraumId: null,
+  createdAt: "2026-05-19T08:00:00.000Z",
+  updatedAt: "2026-05-19T08:00:00.000Z",
+} as const;
+
 describe("content release workbench", () => {
   beforeEach(() => {
     process.env.VITEST = "1";
@@ -201,6 +329,11 @@ describe("content release workbench", () => {
         results: [sourceResult as any],
       }),
     );
+    setPersistedCreateHandoffRepoForTests(
+      createInMemoryPersistedCreateHandoffRepo({
+        records: [persistedCreateHandoff as any],
+      }),
+    );
     setDossierStudioWorkspaceRepoForTests(createInMemoryDossierStudioWorkspaceRepo());
     mocks.createManualAnlassraum.mockResolvedValue({
       anlassraumId: { toHexString: () => "anlassraum-release-1" },
@@ -209,6 +342,7 @@ describe("content release workbench", () => {
 
   it("prepares a dossier draft from a review item without auto publication", async () => {
     const record = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       requestedBy: "admin-1",
@@ -222,6 +356,7 @@ describe("content release workbench", () => {
     expect(record.publicHref).toBe(`/dossier/${record.targetId}`);
 
     const targets = await buildContentReleaseWorkbenchTargets({
+      sourceKind: "region_source_result",
       result: sourceResult as any,
       canPrepare: true,
       canPreparePublication: true,
@@ -237,6 +372,7 @@ describe("content release workbench", () => {
 
   it("prepares an anlassraum from a review item on the existing route family", async () => {
     const record = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "anlassraum",
       requestedBy: "admin-1",
@@ -250,6 +386,7 @@ describe("content release workbench", () => {
 
   it("requires conscious visibility actions and never sets public_official automatically", async () => {
     const prepared = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       requestedBy: "admin-1",
@@ -257,6 +394,7 @@ describe("content release workbench", () => {
     expect(prepared.visibilityState).toBe("internal_review");
 
     const visible = await updateContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       action: "make_visible",
@@ -265,6 +403,7 @@ describe("content release workbench", () => {
     expect(visible.visibilityState).toBe("public_unverified");
 
     const preparedForPublication = await updateContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       action: "prepare_publication",
@@ -285,12 +424,14 @@ describe("content release workbench", () => {
 
   it("offers QR only after a visible release state and shows the status correctly in preview metadata", async () => {
     await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       requestedBy: "admin-1",
     });
 
     const beforeVisible = await buildContentReleaseWorkbenchTargets({
+      sourceKind: "region_source_result",
       result: sourceResult as any,
       canPrepare: true,
       canPreparePublication: true,
@@ -298,6 +439,7 @@ describe("content release workbench", () => {
     expect(beforeVisible.find((target) => target.targetType === "dossier")?.qrHref).toBeNull();
 
     await updateContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
       targetType: "dossier",
       action: "make_visible",
@@ -305,6 +447,7 @@ describe("content release workbench", () => {
     });
 
     const visibleTargets = await buildContentReleaseWorkbenchTargets({
+      sourceKind: "region_source_result",
       result: sourceResult as any,
       canPrepare: true,
       canPreparePublication: true,
@@ -317,5 +460,50 @@ describe("content release workbench", () => {
     expect(
       visibleTargets.find((target) => target.targetType === "dossier")?.qrHref,
     ).toContain("/qrcodegenerator?target=");
+  });
+
+  it("reuses the same workbench for persisted create handoffs", async () => {
+    const dossierRecord = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "create_handoff",
+      sourceResultId: persistedCreateHandoff.id,
+      targetType: "dossier",
+      requestedBy: "admin-1",
+      organizationId: "org-reinickendorf-1",
+    });
+
+    expect(dossierRecord.sourceKind).toBe("create_handoff");
+    expect(dossierRecord.title).toBe("Schulsanierung im Bezirk");
+    expect(dossierRecord.visibilityState).toBe("internal_review");
+
+    const anlassraumRecord = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "create_handoff",
+      sourceResultId: persistedCreateHandoff.id,
+      targetType: "anlassraum",
+      requestedBy: "admin-1",
+    });
+
+    expect(anlassraumRecord.sourceKind).toBe("create_handoff");
+    expect(anlassraumRecord.publicHref).toBe("/anlassraum?anlassraumId=anlassraum-release-1");
+
+    const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
+      sourceKind: "create_handoff",
+      record: persistedCreateHandoff as any,
+      canPrepare: true,
+      canPreparePublication: true,
+    });
+    expect(targets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetType: "dossier",
+          prepared: true,
+          statusLabel: "Arbeitsstand",
+        }),
+        expect.objectContaining({
+          targetType: "anlassraum",
+          prepared: true,
+          statusLabel: "Arbeitsstand",
+        }),
+      ]),
+    );
   });
 });

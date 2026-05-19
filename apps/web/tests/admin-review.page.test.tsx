@@ -100,6 +100,8 @@ describe("/admin/review page", () => {
           contentReleaseWorkbench: {
             intro:
               "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+            sourceKind: "region_source_result",
+            sourceId: "source-result-1",
             targets: [
               {
                 targetType: "dossier",
@@ -122,6 +124,73 @@ describe("/admin/review page", () => {
                 targetType: "anlassraum",
                 targetLabel: "Anlassraum",
                 suggestedTitle: "Schule Berlin Reinickendorf",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                qrHref: null,
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canCreateQrLink: false,
+              },
+            ],
+          },
+        },
+        {
+          id: "create_handoff:persisted:create-handoff-1",
+          domain: "create_handoff",
+          domainLabel: "Create-Handoff",
+          workflowState: "review_required",
+          workflowLabel: "Review erforderlich",
+          title: "Schulsanierung im Bezirk · Dossier-Entwurf",
+          summary: "1 Aussagen · 1 offene Fragen · 1 Faktencheck-Kandidaten. Persistenter Create-Handoff.",
+          href: "/create?resume=create_handoff&handoffId=create-handoff-1",
+          regionId: "bezirk-berlin-reinickendorf",
+          regionName: "Berlin Reinickendorf",
+          organizationId: "org-reinickendorf-1",
+          dossierId: "dossier-1",
+          draftId: "create-handoff-1",
+          sourceType: "create_dossier",
+          visibilityState: "internal_review",
+          visibilityLabel: "reviewpflichtig",
+          createdAt: "2026-05-19T09:00:00.000Z",
+          updatedAt: "2026-05-19T09:00:00.000Z",
+          reviewRequired: true,
+          publicOfficialCandidate: false,
+          reviewAuthority: "standard_review",
+          reviewAuthorityLabel: "Reviewpflichtig",
+          sourceSnapshotTemplate: null,
+          contentReleaseWorkbench: {
+            intro:
+              "eDebatte bereitet aus deinem Arbeitsstand veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+            sourceKind: "create_handoff",
+            sourceId: "create-handoff-1",
+            targets: [
+              {
+                targetType: "dossier",
+                targetLabel: "Dossier-Entwurf",
+                suggestedTitle: "Schulsanierung im Bezirk",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                qrHref: null,
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canCreateQrLink: false,
+              },
+              {
+                targetType: "anlassraum",
+                targetLabel: "Anlassraum",
+                suggestedTitle: "Schulsanierung im Bezirk",
                 targetId: null,
                 prepared: false,
                 previewHref: null,
@@ -182,6 +251,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");
+    expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Arbeitsstand");
