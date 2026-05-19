@@ -81,6 +81,9 @@ describe("/account/organization/dashboard page", () => {
 
     expect(html).toContain("Organisationsbereich");
     expect(html).toContain("Hier sieht deine Organisation ihre Region, Freischaltung, offenen Aufgaben und vorbereiteten Themen.");
+    expect(html).toContain("Geführter Einstieg für deine Organisation");
+    expect(html).toContain("Organisation vervollständigen");
+    expect(html).toContain("Region auswählen");
     expect(html).toContain("Noch keine Freischaltung aktiv.");
     expect(html).toContain("Noch keine regionale Startlage vorbereitet.");
     expect(html).toContain("Noch keine offenen Reviews.");
@@ -281,6 +284,13 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Beteiligungssignale");
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
+    expect(html).toContain("Erste Schritte");
+    expect(html).toContain("Quelle auswerten");
+    expect(html).toContain("Beispiel-Snapshot laden");
+    expect(html).toContain("Review Queue öffnen");
+    expect(html).toContain("Dossier vorbereiten");
+    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Sichtbarkeit vorbereiten");
     expect(html).toContain("Offen");
     expect(html).toContain("Mittlere Priorität");
     expect(html).toContain("Sanierung von Schulen im Bezirk");
