@@ -70,6 +70,8 @@ describe("admin region source connection routes", () => {
         label: "Bezirksamt Reinickendorf News",
         url: "https://reinickendorf.example/aktuelles",
         notes: "Explizite Verwaltungsquelle",
+        snapshotSeedKind: "example_seed",
+        snapshotTemplateLabel: "Beispiel-Snapshot",
         sampleItems: [
           {
             title: "Schulwege im Bezirk",
@@ -89,6 +91,12 @@ describe("admin region source connection routes", () => {
         sourceType: "municipal_news",
         adapterId: "productive_regional_source",
         noLiveCrawlerClaim: true,
+        sourceSnapshotTemplate: expect.objectContaining({
+          label: "Beispiel-Snapshot",
+          seedKind: "example_seed",
+          isExampleSeed: true,
+          mode: "template_plus_explicit_url",
+        }),
       }),
     });
 
@@ -126,6 +134,29 @@ describe("admin region source connection routes", () => {
         noPublicOfficial: true,
         sourceSnapshotStatus: "fetched",
         sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
+        sourceSnapshotTemplate: expect.objectContaining({
+          label: "Beispiel-Snapshot",
+          seedKindLabel: "Beispiel-Seed",
+          isExampleSeed: true,
+          noLiveCrawlerClaim: true,
+          noPublicOfficial: true,
+          claimCandidates: expect.arrayContaining([
+            expect.objectContaining({
+              basisLabel: "Titel",
+            }),
+          ]),
+          topicCandidates: expect.arrayContaining([
+            expect.objectContaining({
+              label: expect.any(String),
+            }),
+          ]),
+          evidenceHints: expect.arrayContaining([
+            expect.objectContaining({
+              label: expect.any(String),
+            }),
+          ]),
+          openQuestions: expect.arrayContaining([expect.any(String)]),
+        }),
         possibleClaims: expect.arrayContaining([
           expect.objectContaining({
             basisLabel: "Titel",
@@ -149,6 +180,110 @@ describe("admin region source connection routes", () => {
         reviewTaskSummary: expect.objectContaining({
           claimCount: expect.any(Number),
         }),
+      }),
+    });
+  });
+
+  it("builds deterministic snapshot templates for arbitrary regions without live crawling", async () => {
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockClear();
+
+    const magdeburgCreate = await POST_CONNECTION(
+      buildRequest("http://localhost/api/admin/region/source-connections", {
+        regionId: "magdeburg",
+        sourceType: "curated_pilot_source",
+        label: "Stadt Magdeburg Beispielquelle",
+        url: "https://magdeburg.example/verkehr",
+        notes: "Kuratierter regionaler Snapshot",
+        snapshotSeedKind: "configured_region_source",
+        snapshotTemplateLabel: "Regionales Snapshot-Template",
+        sampleItems: [
+          {
+            title: "Verkehr in Magdeburg",
+            summary: "Die Stadt Magdeburg beschreibt priorisierte Verkehrsmaßnahmen.",
+            url: "https://magdeburg.example/verkehr",
+            detectedTopics: ["Verkehr"],
+          },
+        ],
+      }),
+    );
+    const magdeburgBody = await magdeburgCreate.json();
+    const magdeburgDryRun = await POST_TEST(
+      buildRequest(
+        `http://localhost/api/admin/region/source-connections/${magdeburgBody.connection.id}/test`,
+        {},
+      ),
+      { params: Promise.resolve({ id: magdeburgBody.connection.id }) },
+    );
+    expect(magdeburgDryRun.status).toBe(200);
+    await expect(magdeburgDryRun.json()).resolves.toMatchObject({
+      ok: true,
+      result: expect.objectContaining({
+        regionId: "kommune-magdeburg",
+        configuredUrl: "https://magdeburg.example/verkehr",
+        sourceSnapshotStatus: "manual_only",
+        sourceSnapshotTemplate: expect.objectContaining({
+          seedKind: "configured_region_source",
+          seedKindLabel: "Regionales Snapshot-Template",
+          isExampleSeed: false,
+          mode: "template_only",
+        }),
+        summary: expect.stringContaining("kein Live-Crawler"),
+        possibleClaims: expect.arrayContaining([
+          expect.objectContaining({
+            text: expect.stringContaining("Magdeburg"),
+          }),
+        ]),
+      }),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const spandauCreate = await POST_CONNECTION(
+      buildRequest("http://localhost/api/admin/region/source-connections", {
+        regionId: "berlin-spandau",
+        sourceType: "curated_pilot_source",
+        label: "Bezirk Spandau Beispielquelle",
+        url: "https://spandau.example/kultur",
+        notes: "Kuratierter regionaler Snapshot",
+        snapshotSeedKind: "configured_region_source",
+        snapshotTemplateLabel: "Regionales Snapshot-Template",
+        sampleItems: [
+          {
+            title: "Kultur in Spandau",
+            summary: "Der Bezirk Spandau beschreibt neue Kultur- und Nachbarschaftsprojekte.",
+            url: "https://spandau.example/kultur",
+            detectedTopics: ["Kultur", "Nachbarschaft"],
+          },
+        ],
+      }),
+    );
+    const spandauBody = await spandauCreate.json();
+    const spandauDryRun = await POST_TEST(
+      buildRequest(
+        `http://localhost/api/admin/region/source-connections/${spandauBody.connection.id}/test`,
+        {},
+      ),
+      { params: Promise.resolve({ id: spandauBody.connection.id }) },
+    );
+    expect(spandauDryRun.status).toBe(200);
+    await expect(spandauDryRun.json()).resolves.toMatchObject({
+      ok: true,
+      result: expect.objectContaining({
+        regionId: "bezirk-berlin-spandau",
+        configuredUrl: "https://spandau.example/kultur",
+        possibleClaims: expect.arrayContaining([
+          expect.objectContaining({
+            text: expect.stringContaining("Spandau"),
+          }),
+        ]),
+        sourceSnapshotTemplate: expect.objectContaining({
+          seedKindLabel: "Regionales Snapshot-Template",
+        }),
+        evidenceReferences: expect.arrayContaining([
+          expect.objectContaining({
+            url: "https://spandau.example/kultur",
+          }),
+        ]),
       }),
     });
   });

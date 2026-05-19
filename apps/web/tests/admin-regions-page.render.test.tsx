@@ -70,6 +70,22 @@ vi.mock("@features/region", async () => {
             detectedTopics: ["Schule", "Verkehr"],
           },
         ],
+        sourceSnapshotTemplate: {
+          id: "region-source-snapshot-template-source-1",
+          label: "Beispiel-Snapshot",
+          mode: "template_plus_explicit_url",
+          seedKind: "example_seed",
+          seedKindLabel: "Beispiel-Seed",
+          configuredUrl: "https://reinickendorf.example/aktuelles",
+          isExampleSeed: true,
+          reviewHint:
+            "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+          noLiveCrawlerClaim: true,
+          noScraping: true,
+          noDeepSearchAutoCosts: true,
+          noAutoPublish: true,
+          noPublicOfficial: true,
+        },
         createdAt: "2026-05-17T00:00:00.000Z",
         updatedAt: "2026-05-17T00:00:00.000Z",
         createdBy: "admin-1",
@@ -101,6 +117,26 @@ vi.mock("@features/region", async () => {
         sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
         sourceSnapshotSummary: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit und Sanierungsbedarf.",
         sourceSnapshotExcerpt: "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+        sourceSnapshotTemplate: {
+          id: "region-source-snapshot-template-source-1",
+          label: "Beispiel-Snapshot",
+          mode: "template_plus_explicit_url",
+          seedKind: "example_seed",
+          seedKindLabel: "Beispiel-Seed",
+          configuredUrl: "https://reinickendorf.example/aktuelles",
+          isExampleSeed: true,
+          reviewHint:
+            "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+          noLiveCrawlerClaim: true,
+          noScraping: true,
+          noDeepSearchAutoCosts: true,
+          noAutoPublish: true,
+          noPublicOfficial: true,
+          claimCandidates: [],
+          topicCandidates: [],
+          evidenceHints: [],
+          openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+        },
         possibleClaims: [
           {
             text: "Schulsanierung in Reinickendorf",
@@ -210,6 +246,8 @@ describe("admin-regions-page.render", () => {
     expect(html).toContain("Konfigurierte Quellen");
     expect(html).toContain("Reviewpflichtige Source Results");
     expect(html).toContain("Bezirksamt Reinickendorf News");
+    expect(html).toContain("Beispiel-Snapshot");
+    expect(html).toContain("Snapshot vorhanden");
     expect(html).toContain("Review-Queue öffnen");
     expect(html).toContain("Zur Review-Aufgabe");
     expect(html).toContain("1 mögliche Aussagen");

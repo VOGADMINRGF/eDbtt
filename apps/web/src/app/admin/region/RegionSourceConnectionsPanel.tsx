@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  REGION_SOURCE_SNAPSHOT_SEED_KINDS,
   REGION_SOURCE_CONNECTION_TYPES,
   regionSourceConnectionCategoryLabel,
   regionSourceConnectionTypeLabel,
+  regionSourceSnapshotSeedKindLabel,
   type RegionSourceConnection,
   type RegionSourceConnectionType,
   type RegionSourceTestResult,
@@ -16,6 +18,8 @@ type FormState = {
   label: string;
   url: string;
   notes: string;
+  snapshotSeedKind: "configured_region_source" | "example_seed";
+  snapshotTemplateLabel: string;
   sampleTitle: string;
   sampleSummary: string;
   sampleTopics: string;
@@ -26,6 +30,8 @@ const INITIAL_FORM: FormState = {
   label: "",
   url: "",
   notes: "",
+  snapshotSeedKind: "configured_region_source",
+  snapshotTemplateLabel: "",
   sampleTitle: "",
   sampleSummary: "",
   sampleTopics: "",
@@ -83,6 +89,8 @@ export function RegionSourceConnectionsPanel(props: {
       url: form.url.trim() || null,
       notes: form.notes.trim() || null,
       enabled: true,
+      snapshotSeedKind: form.snapshotSeedKind,
+      snapshotTemplateLabel: form.snapshotTemplateLabel.trim() || undefined,
       sampleItems:
         form.sampleTitle.trim() && form.sampleSummary.trim()
           ? [
@@ -148,6 +156,11 @@ export function RegionSourceConnectionsPanel(props: {
           angegebene Seite, erzeugt daraus reviewpflichtige Vorschläge und veröffentlicht nichts
           automatisch.
         </p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          Regionale Source-Snapshot-Templates funktionieren für beliebige `regionId` und halten
+          Demo-/Pilotstände reproduzierbar. Reinickendorf darf als Beispiel-Seed dienen, ist aber
+          keine Produktgrenze.
+        </p>
 
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
@@ -194,11 +207,47 @@ export function RegionSourceConnectionsPanel(props: {
             />
           </label>
           <div className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] p-3">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">Dry Run Testeintrag</p>
-            <p className="text-xs text-[rgb(var(--muted))]">
-              Dieser Eintrag bleibt reviewpflichtig und kann zugleich als expliziter Quellen-Snapshot
-              für die regionale Startlage dienen.
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+              Regionales Source-Snapshot-Template
             </p>
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Dieser Eintrag bleibt reviewpflichtig und kann zugleich als reproduzierbarer
+              Snapshot für die regionale Startlage dienen. Kein Live-Crawler, kein Scraping und
+              keine automatische Veröffentlichung.
+            </p>
+            <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
+              <span>Snapshot-Typ</span>
+              <select
+                value={form.snapshotSeedKind}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    snapshotSeedKind: event.target.value as FormState["snapshotSeedKind"],
+                  }))
+                }
+                className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2 text-sm"
+              >
+                {REGION_SOURCE_SNAPSHOT_SEED_KINDS.map((seedKind) => (
+                  <option key={seedKind} value={seedKind}>
+                    {regionSourceSnapshotSeedKindLabel(seedKind)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
+              <span>Snapshot-Label</span>
+              <input
+                value={form.snapshotTemplateLabel}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    snapshotTemplateLabel: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2 text-sm"
+                placeholder="z. B. Regionales Snapshot-Template"
+              />
+            </label>
             <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
               <span>Titel</span>
               <input
@@ -270,6 +319,22 @@ export function RegionSourceConnectionsPanel(props: {
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                   {connection.url || "Keine externe URL hinterlegt."}
                 </p>
+                {connection.sourceSnapshotTemplate ? (
+                  <div className="mt-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      {connection.sourceSnapshotTemplate.label}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {connection.sourceSnapshotTemplate.seedKindLabel}
+                      {connection.sourceSnapshotTemplate.isExampleSeed
+                        ? " · Beispiel-Seed"
+                        : " · Region-generic"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {connection.sourceSnapshotTemplate.reviewHint}
+                    </p>
+                  </div>
+                ) : null}
                 {connection.notes ? (
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">{connection.notes}</p>
                 ) : null}
@@ -291,6 +356,22 @@ export function RegionSourceConnectionsPanel(props: {
                   {result.confidence.toFixed(2)}
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">{result.summary}</p>
+                {result.sourceSnapshotTemplate ? (
+                  <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      {result.sourceSnapshotTemplate.label}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {result.sourceSnapshotTemplate.seedKindLabel}
+                      {result.sourceSnapshotTemplate.isExampleSeed
+                        ? " · Beispiel-Seed"
+                        : " · Region-generic"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {result.sourceSnapshotTemplate.reviewHint}
+                    </p>
+                  </div>
+                ) : null}
                 {result.sourceSnapshotTitle ? (
                   <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -346,7 +427,7 @@ export function RegionSourceConnectionsPanel(props: {
                     </p>
                     <div className="mt-2">
                       {renderSuggestionList(
-                        result.topicClusters.map((item) => ({
+                        (result.sourceSnapshotTemplate?.topicCandidates ?? result.topicClusters).map((item) => ({
                           title: item.label,
                           confidence: item.confidence,
                           openQuestions: item.openQuestions,
@@ -395,7 +476,7 @@ export function RegionSourceConnectionsPanel(props: {
                     </p>
                     {result.evidenceReferences.length > 0 ? (
                       <div className="mt-2 space-y-2">
-                        {result.evidenceReferences.map((reference, index) => (
+                        {(result.sourceSnapshotTemplate?.evidenceHints ?? result.evidenceReferences).map((reference, index) => (
                           <div key={`${result.id}-evidence-${index}`} className="rounded-2xl border border-[rgb(var(--border))] p-2">
                             <p className="text-xs font-semibold text-[rgb(var(--fg))]">{reference.label}</p>
                             {reference.excerpt ? (

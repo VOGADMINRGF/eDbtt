@@ -95,6 +95,26 @@ const sourceResult = {
     "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit und Sanierungsbedarf.",
   sourceSnapshotExcerpt:
     "Das Bezirksamt Reinickendorf informiert über Schulwegsicherheit an mehreren Standorten.",
+  sourceSnapshotTemplate: {
+    id: "region-source-snapshot-template-source-1",
+    label: "Beispiel-Snapshot",
+    mode: "template_plus_explicit_url",
+    seedKind: "example_seed",
+    seedKindLabel: "Beispiel-Seed",
+    configuredUrl: "https://reinickendorf.example/aktuelles",
+    isExampleSeed: true,
+    reviewHint:
+      "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+    noLiveCrawlerClaim: true,
+    noScraping: true,
+    noDeepSearchAutoCosts: true,
+    noAutoPublish: true,
+    noPublicOfficial: true,
+    claimCandidates: [],
+    topicCandidates: [],
+    evidenceHints: [],
+    openQuestions: ["Welche nächsten Prüfschritte ergeben sich aus Schule?"],
+  },
   possibleClaims: [
     {
       text: "Schulsanierung in Reinickendorf ist ein priorisiertes Thema.",

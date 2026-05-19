@@ -64,6 +64,7 @@ describe("/admin/review page", () => {
           publicOfficialCandidate: true,
           reviewAuthority: "publication_approved_or_admin",
           reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+          sourceSnapshotTemplate: null,
           contentReleaseWorkbench: null,
         },
         {
@@ -89,6 +90,13 @@ describe("/admin/review page", () => {
           publicOfficialCandidate: false,
           reviewAuthority: "standard_review",
           reviewAuthorityLabel: "Reviewpflichtig",
+          sourceSnapshotTemplate: {
+            label: "Beispiel-Snapshot",
+            seedKindLabel: "Beispiel-Seed",
+            isExampleSeed: true,
+            reviewHint:
+              "Explizite URL bleibt kontrolliert reviewpflichtig; hinterlegte Snapshot-Hinweise halten den Demo-/Pilotstand reproduzierbar, ohne Live-Crawler oder automatische Veröffentlichung.",
+          },
           contentReleaseWorkbench: {
             intro:
               "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
@@ -172,6 +180,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Berlin Reinickendorf");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Review-to-Publish Workspace");
+    expect(html).toContain("Beispiel-Snapshot");
+    expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Arbeitsstand");

@@ -14,14 +14,37 @@ export const REGION_SOURCE_CONNECTION_TYPES = [
   "municipal_news",
 ] as const;
 
+export const REGION_SOURCE_SNAPSHOT_SEED_KINDS = [
+  "configured_region_source",
+  "example_seed",
+] as const;
+
 export type RegionSourceConnectionType =
   (typeof REGION_SOURCE_CONNECTION_TYPES)[number];
+export type RegionSourceSnapshotSeedKind =
+  (typeof REGION_SOURCE_SNAPSHOT_SEED_KINDS)[number];
 
 export type RegionSourceConnectionSampleItem = {
   title: string;
   summary: string;
   url: string | null;
   detectedTopics: string[];
+};
+
+export type RegionSourceSnapshotTemplate = {
+  id: string;
+  label: string;
+  mode: "template_only" | "template_plus_explicit_url";
+  seedKind: RegionSourceSnapshotSeedKind;
+  seedKindLabel: string;
+  configuredUrl: string | null;
+  isExampleSeed: boolean;
+  reviewHint: string;
+  noLiveCrawlerClaim: true;
+  noScraping: true;
+  noDeepSearchAutoCosts: true;
+  noAutoPublish: true;
+  noPublicOfficial: true;
 };
 
 export type RegionSourceConnection = {
@@ -34,6 +57,7 @@ export type RegionSourceConnection = {
   notes: string | null;
   enabled: boolean;
   sampleItems: RegionSourceConnectionSampleItem[];
+  sourceSnapshotTemplate: RegionSourceSnapshotTemplate | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;
@@ -64,6 +88,7 @@ export type RegionSourceTestResult = {
   sourceSnapshotTitle: string | null;
   sourceSnapshotSummary: string | null;
   sourceSnapshotExcerpt: string | null;
+  sourceSnapshotTemplate: RegionSourceSnapshotTemplateResult | null;
   possibleClaims: RegionSourcePossibleClaim[];
   topicClusters: RegionIntelligenceClusterHint[];
   dossierSuggestions: RegionIntelligenceSuggestionHint[];
@@ -93,6 +118,13 @@ export type RegionSourceEvidenceReference = {
   label: string;
   url: string | null;
   excerpt: string | null;
+};
+
+export type RegionSourceSnapshotTemplateResult = RegionSourceSnapshotTemplate & {
+  claimCandidates: RegionSourcePossibleClaim[];
+  topicCandidates: RegionIntelligenceClusterHint[];
+  evidenceHints: RegionSourceEvidenceReference[];
+  openQuestions: string[];
 };
 
 export type RegionSourceAffectedScope = {
@@ -130,6 +162,8 @@ export const RegionSourceConnectionUpsertSchema = z
     url: z.string().trim().url().nullable().optional(),
     notes: z.string().trim().nullable().optional(),
     enabled: z.boolean().optional(),
+    snapshotSeedKind: z.enum(REGION_SOURCE_SNAPSHOT_SEED_KINDS).optional(),
+    snapshotTemplateLabel: z.string().trim().min(1).optional(),
     sampleItems: z.array(SampleItemSchema).max(5).optional(),
   })
   .superRefine((value, ctx) => {
@@ -179,6 +213,47 @@ export function regionSourceConnectionAdapterId(
     default:
       return "productive_regional_source";
   }
+}
+
+export function regionSourceSnapshotSeedKindLabel(
+  value: RegionSourceSnapshotSeedKind,
+) {
+  switch (value) {
+    case "example_seed":
+      return "Beispiel-Seed";
+    case "configured_region_source":
+    default:
+      return "Regionales Snapshot-Template";
+  }
+}
+
+export function buildRegionSourceSnapshotTemplateSeed(input: {
+  sourceType: RegionSourceConnectionType;
+  url: string | null;
+  title: string;
+  summary: string;
+  detectedTopics?: string[];
+  seedKind?: RegionSourceSnapshotSeedKind;
+  templateLabel?: string | null;
+}) {
+  const seedKind = input.seedKind ?? "configured_region_source";
+  const mode =
+    input.sourceType === "curated_pilot_source" ? "template_only" : "template_plus_explicit_url";
+  return {
+    sampleItems: [
+      {
+        title: String(input.title ?? "").trim(),
+        summary: String(input.summary ?? "").trim(),
+        url: String(input.url ?? "").trim() || null,
+        detectedTopics: (input.detectedTopics ?? []).map((topic) => String(topic).trim()).filter(Boolean),
+      },
+    ],
+    snapshotSeedKind: seedKind,
+    snapshotTemplateLabel:
+      String(input.templateLabel ?? "").trim() ||
+      (seedKind === "example_seed" ? "Beispiel-Snapshot" : "Regionales Snapshot-Template"),
+    snapshotMode: mode,
+  };
 }
 
 export function regionSourceConnectionCategoryLabel(

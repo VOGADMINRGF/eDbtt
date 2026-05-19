@@ -156,6 +156,22 @@ export default async function AdminReviewPage() {
                     <p className="text-xs text-[rgb(var(--muted))]">
                       {item.regionName ?? "Übergreifend"} · {item.reviewAuthorityLabel}
                     </p>
+                    {item.sourceSnapshotTemplate ? (
+                      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                          {item.sourceSnapshotTemplate.label}
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {item.sourceSnapshotTemplate.seedKindLabel}
+                          {item.sourceSnapshotTemplate.isExampleSeed
+                            ? " · Beispiel-Seed"
+                            : " · Region-generic"}
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {item.sourceSnapshotTemplate.reviewHint}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                   <Link
                     href={item.href}
