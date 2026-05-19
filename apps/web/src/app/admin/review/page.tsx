@@ -180,10 +180,11 @@ export default async function AdminReviewPage() {
                     Prüfen
                   </Link>
                 </div>
-                {item.domain === "region_source_result" && item.contentReleaseWorkbench ? (
+                {item.contentReleaseWorkbench ? (
                   <ContentReleaseWorkbenchActions
                     itemId={item.id}
-                    sourceResultId={item.id.replace("region_source_result:", "")}
+                    sourceKind={item.contentReleaseWorkbench.sourceKind}
+                    sourceId={item.contentReleaseWorkbench.sourceId}
                     contentReleaseWorkbench={item.contentReleaseWorkbench}
                   />
                 ) : null}

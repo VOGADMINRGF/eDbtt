@@ -767,11 +767,40 @@ export default function CreateClient({
     const params = new URLSearchParams(window.location.search);
     if (params.get("resume") !== "create_handoff") return;
     const handoffId = params.get("handoffId");
-    const draft = readCreateHandoffDraft(handoffId);
-    if (!draft) return;
-    setIntakeText(draft.sourceText);
-    setActionNotice("Arbeitsstand aus Handoff geladen. Du kannst jetzt überarbeiten und neu einordnen.");
-    setIntakeRestoreInfo("Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+    if (!handoffId) return;
+
+    let cancelled = false;
+    async function hydratePersistedHandoff() {
+      const localDraft = readCreateHandoffDraft(handoffId);
+      if (localDraft) {
+        if (cancelled) return;
+        setIntakeText(localDraft.sourceText);
+        setActionNotice("Arbeitsstand aus Handoff geladen. Du kannst jetzt überarbeiten und neu einordnen.");
+        setIntakeRestoreInfo("Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/create/handoffs/${encodeURIComponent(handoffId)}`, {
+          cache: "no-store",
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.ok || !body?.draft) return;
+        const draft = body.draft;
+        saveCreateHandoffDraft(draft);
+        if (cancelled) return;
+        setIntakeText(String(draft.sourceText ?? ""));
+        setActionNotice("Persistenter Handoff-Arbeitsstand geladen. Du kannst jetzt weiterbearbeiten.");
+        setIntakeRestoreInfo("Persistenter Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+      } catch {
+        // ignore persisted resume errors here; local flow still works when available
+      }
+    }
+
+    void hydratePersistedHandoff();
+    return () => {
+      cancelled = true;
+    };
   }, [initialText]);
 
   React.useEffect(() => {
@@ -1409,7 +1438,7 @@ export default function CreateClient({
   ]);
 
   const navigateWithCreateHandoff = React.useCallback(
-    (selectedAction: CreateHandoffAction, baseHref: string) => {
+    async (selectedAction: CreateHandoffAction, baseHref: string) => {
       if (!privacyGate.ensureActiveProcessingAllowed(`create-handoff:${selectedAction}`)) return;
       if (!intelligentFollowup?.meta?.planner || !intelligentFollowup?.meta?.graphMatch) {
         setActionNotice("Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.");
@@ -1429,6 +1458,25 @@ export default function CreateClient({
         materialItems: currentMaterialRouting.materialItems,
       });
       saveCreateHandoffDraft(draft);
+      setActionNotice("Reviewbarer Handoff wird gespeichert. Keine automatische Veröffentlichung.");
+      try {
+        const response = await fetch("/api/create/handoffs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            draft,
+            dossierId: dossierId ?? null,
+            anlassraumId: effectiveSelectedAnlassraumId ?? null,
+          }),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.ok) {
+          throw new Error(body?.error ?? "create_handoff_persist_failed");
+        }
+      } catch {
+        setActionNotice("Handoff konnte nicht persistent in die Review-Queue geschrieben werden. Bitte erneut versuchen.");
+        return;
+      }
       setShowFollowupCorrectionComposer(false);
       setActionNotice("Reviewbarer Handoff vorbereitet. Keine automatische Veröffentlichung.");
       const targetHref = buildCreateHandoffTargetHref({
@@ -1438,7 +1486,15 @@ export default function CreateClient({
       });
       router.push(targetHref as Parameters<typeof router.push>[0]);
     },
-    [currentMaterialRouting.materialItems, currentMaterialRouting.sourceUrls, intelligentFollowup, privacyGate, router],
+    [
+      currentMaterialRouting.materialItems,
+      currentMaterialRouting.sourceUrls,
+      dossierId,
+      effectiveSelectedAnlassraumId,
+      intelligentFollowup,
+      privacyGate,
+      router,
+    ],
   );
 
   const handleRetryPlanner = React.useCallback(async () => {
@@ -1494,11 +1550,11 @@ export default function CreateClient({
   ]);
 
   const handleRequestEditorialReview = React.useCallback(() => {
-    navigateWithCreateHandoff("request_review", "/community/contributions");
+    void navigateWithCreateHandoff("request_review", "/community/contributions");
   }, [navigateWithCreateHandoff]);
 
   const handlePrepareSubmission = React.useCallback(() => {
-    navigateWithCreateHandoff("submit_draft", "/community/contributions");
+    void navigateWithCreateHandoff("submit_draft", "/community/contributions");
   }, [navigateWithCreateHandoff]);
 
   const handlePrepareAnlassraum = React.useCallback(() => {
@@ -1507,7 +1563,7 @@ export default function CreateClient({
       return;
     }
     const baseHref = resolveCreateAnlassraumTargetHref(intelligentFollowup);
-    navigateWithCreateHandoff("prepare_anlassraum", baseHref);
+    void navigateWithCreateHandoff("prepare_anlassraum", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
   const handleOpenDossierAppend = React.useCallback(() => {
@@ -1521,11 +1577,11 @@ export default function CreateClient({
       statements: intelligentFollowup.understanding.statements,
       suggestions: intelligentFollowup.suggestions,
     });
-    navigateWithCreateHandoff("append_to_dossier", baseHref);
+    void navigateWithCreateHandoff("append_to_dossier", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
   const handleOpenDossierCreate = React.useCallback(() => {
-    navigateWithCreateHandoff("create_dossier", "/dossier");
+    void navigateWithCreateHandoff("create_dossier", "/dossier");
   }, [navigateWithCreateHandoff]);
 
   const handlePrepareVote = React.useCallback(() => {
@@ -1544,14 +1600,14 @@ export default function CreateClient({
           suggestionHref: voteSuggestion.href ?? null,
         })
       : "/swipes?from=create";
-    navigateWithCreateHandoff("prepare_vote", baseHref);
+    void navigateWithCreateHandoff("prepare_vote", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
   const handleStartFactcheckService = React.useCallback(() => {
     setFactcheckMessage(
       "Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.",
     );
-    navigateWithCreateHandoff("request_factcheck", "/factcheck");
+    void navigateWithCreateHandoff("request_factcheck", "/factcheck");
   }, [navigateWithCreateHandoff]);
 
   const handleSaveOnly = React.useCallback(async () => {

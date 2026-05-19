@@ -16,9 +16,18 @@ import {
 import type { RegionSourcePossibleClaim, RegionSourceTestResult } from "@features/region/sourceConnections";
 import { getRegionSourceTestResultById } from "@features/region/server/sourceConnectionRuntime";
 import { createManualAnlassraum } from "@features/anlassraum/service";
+import {
+  buildPersistedCreateHandoffSuggestedTitle,
+  buildPersistedCreateHandoffSummary,
+  getPersistedCreateHandoffRecord,
+  persistedCreateHandoffStatementId,
+  type PersistedCreateHandoffRecord,
+} from "@/features/create/persistedHandoffReviewQueue";
 
 export const CONTENT_RELEASE_TARGET_TYPES = ["dossier", "anlassraum"] as const;
 export type ContentReleaseTargetType = (typeof CONTENT_RELEASE_TARGET_TYPES)[number];
+export const CONTENT_RELEASE_SOURCE_KINDS = ["region_source_result", "create_handoff"] as const;
+export type ContentReleaseSourceKind = (typeof CONTENT_RELEASE_SOURCE_KINDS)[number];
 
 export const CONTENT_RELEASE_ACTIONS = [
   "prepare_target",
@@ -58,9 +67,10 @@ export type ContentReleaseStatusLabel =
 const ContentReleaseTargetRecordSchema = z
   .object({
     id: z.string().trim().min(1),
+    sourceKind: z.enum(CONTENT_RELEASE_SOURCE_KINDS),
     sourceResultId: z.string().trim().min(1),
     sourceReviewItemId: z.string().trim().min(1),
-    regionId: z.string().trim().min(1),
+    regionId: z.string().trim().min(1).nullable().optional(),
     targetType: z.enum(CONTENT_RELEASE_TARGET_TYPES),
     targetId: z.string().trim().min(1),
     title: z.string().trim().min(1),
@@ -89,6 +99,7 @@ const ContentReleaseAuditEventSchema = z
   .object({
     id: z.string().trim().min(1),
     recordId: z.string().trim().min(1),
+    sourceKind: z.enum(CONTENT_RELEASE_SOURCE_KINDS),
     sourceResultId: z.string().trim().min(1),
     targetType: z.enum(CONTENT_RELEASE_TARGET_TYPES),
     action: z.enum(CONTENT_RELEASE_AUDIT_ACTIONS),
@@ -119,6 +130,7 @@ export type ContentReleaseWorkbenchTarget = {
 };
 
 export type PrepareContentReleaseTargetInput = {
+  sourceKind: ContentReleaseSourceKind;
   sourceResultId: string;
   targetType: ContentReleaseTargetType;
   requestedBy: string;
@@ -126,6 +138,7 @@ export type PrepareContentReleaseTargetInput = {
 };
 
 export type UpdateContentReleaseTargetInput = {
+  sourceKind: ContentReleaseSourceKind;
   sourceResultId: string;
   targetType: ContentReleaseTargetType;
   action: Exclude<ContentReleaseAction, "prepare_target">;
@@ -135,10 +148,14 @@ export type UpdateContentReleaseTargetInput = {
 
 type ContentReleaseWorkbenchRepo = {
   getTargetRecord(
+    sourceKind: ContentReleaseSourceKind,
     sourceResultId: string,
     targetType: ContentReleaseTargetType,
   ): Promise<ContentReleaseTargetRecord | null>;
-  listTargetRecordsForSourceResult(sourceResultId: string): Promise<ContentReleaseTargetRecord[]>;
+  listTargetRecordsForSourceResult(
+    sourceKind: ContentReleaseSourceKind,
+    sourceResultId: string,
+  ): Promise<ContentReleaseTargetRecord[]>;
   saveTargetRecord(record: ContentReleaseTargetRecord): Promise<void>;
   appendAuditEvent(event: ContentReleaseAuditEvent): Promise<void>;
   listAuditEvents(recordId: string): Promise<ContentReleaseAuditEvent[]>;
@@ -162,8 +179,12 @@ function targetLabel(targetType: ContentReleaseTargetType) {
   return targetType === "dossier" ? "Dossier-Entwurf" : "Anlassraum";
 }
 
-function recordIdFor(sourceResultId: string, targetType: ContentReleaseTargetType) {
-  return `content-release-${targetType}-${stableHash(`${sourceResultId}:${targetType}`).slice(0, 18)}`;
+function recordIdFor(
+  sourceKind: ContentReleaseSourceKind,
+  sourceResultId: string,
+  targetType: ContentReleaseTargetType,
+) {
+  return `content-release-${targetType}-${stableHash(`${sourceKind}:${sourceResultId}:${targetType}`).slice(0, 18)}`;
 }
 
 function auditEventIdFor(recordId: string, action: ContentReleaseAuditAction, at: string) {
@@ -176,6 +197,10 @@ function dossierIdForSourceResult(sourceResultId: string) {
 
 function statementIdForSourceResult(sourceResultId: string) {
   return `source-result:${sourceResultId}`;
+}
+
+function dossierIdForCreateHandoff(handoffId: string) {
+  return `create-handoff-dossier-${stableHash(handoffId).slice(0, 16)}`;
 }
 
 function anlassraumTopicKey(title: string) {
@@ -229,6 +254,10 @@ function statusLabelForVisibility(
   }
 }
 
+function safeTrim(value: string | null | undefined) {
+  return String(value ?? "").trim();
+}
+
 function summaryFromSourceResult(result: RegionSourceTestResult) {
   return (
     String(result.sourceSnapshotSummary ?? "").trim() ||
@@ -236,6 +265,10 @@ function summaryFromSourceResult(result: RegionSourceTestResult) {
     String(result.summary || "").trim() ||
     "Reviewpflichtiger Arbeitsstand aus expliziter URL-Auswertung."
   );
+}
+
+function summaryFromCreateHandoff(record: PersistedCreateHandoffRecord) {
+  return buildPersistedCreateHandoffSummary(record);
 }
 
 function suggestedTitleForTarget(
@@ -256,6 +289,13 @@ function suggestedTitleForTarget(
     String(result.sourceSnapshotTitle ?? "").trim() ||
     result.title.replace(/\s+·\s+Dry Run$/u, "").trim()
   );
+}
+
+function suggestedTitleForCreateHandoff(
+  record: PersistedCreateHandoffRecord,
+  targetType: ContentReleaseTargetType,
+) {
+  return buildPersistedCreateHandoffSuggestedTitle(record, targetType);
 }
 
 function nextVisibilityStateForAction(
@@ -296,6 +336,13 @@ function auditActionForVisibilityAction(
 function mapPossibleClaims(possibleClaims: RegionSourcePossibleClaim[]) {
   return possibleClaims.map((claim, index) => ({
     id: `source-result-claim-${index + 1}`,
+    text: claim.text,
+  }));
+}
+
+function mapCreateHandoffClaims(record: PersistedCreateHandoffRecord) {
+  return record.claims.map((claim, index) => ({
+    id: `create-handoff-claim-${index + 1}`,
     text: claim.text,
   }));
 }
@@ -442,6 +489,148 @@ async function ensureAnlassraumFromSourceResult(input: {
   };
 }
 
+async function ensureDossierDraftFromCreateHandoff(input: {
+  record: PersistedCreateHandoffRecord;
+  requestedBy: string;
+  organizationId?: string | null;
+}) {
+  const dossierId = input.record.dossierId ?? dossierIdForCreateHandoff(input.record.id);
+  const statementId = persistedCreateHandoffStatementId(input.record.id);
+  const title = suggestedTitleForCreateHandoff(input.record, "dossier");
+  const now = new Date();
+  const dossiers = await dossiersCol();
+  const existing = await dossiers.findOne({
+    $or: [{ dossierId }, { statementId }],
+  } as any);
+
+  if (!existing) {
+    await dossiers.insertOne({
+      dossierId,
+      statementId,
+      title,
+      status: "draft",
+      counts: {
+        claims: 0,
+        sources: 0,
+        findings: 0,
+        edges: 0,
+        openQuestions: 0,
+      },
+      createdAt: now,
+      updatedAt: now,
+    } as any);
+    await logDossierRevision({
+      dossierId,
+      entityType: "dossier",
+      entityId: dossierId,
+      action: "create",
+      diffSummary: "Dossier-Entwurf aus persistiertem Create-Handoff erstellt.",
+      byRole: "admin",
+      byUserId: input.requestedBy,
+    });
+  }
+
+  await seedDossierFromAnalysis({
+    dossierId,
+    claims: mapCreateHandoffClaims(input.record),
+    questions: input.record.openQuestions.map((question, index) => ({
+      id: `create-handoff-question-${index + 1}`,
+      text: question.question,
+    })),
+    createdByRole: "admin",
+  });
+
+  const sources = await dossierSourcesCol();
+  for (const [index, reference] of input.record.sourceGrounding.entries()) {
+    const url = reference.status === "link_reference" ? safeTrim(reference.detail) : "";
+    if (!url) continue;
+    const sourceId = `create-handoff-source-${stableHash(`${input.record.id}:${url}:${index}`).slice(0, 12)}`;
+    const canonicalUrlHash = stableHash(url);
+    const existingSource = await sources.findOne({ dossierId, canonicalUrlHash });
+    if (existingSource) continue;
+    await sources.insertOne({
+      sourceId,
+      dossierId,
+      canonicalUrlHash,
+      url,
+      title: reference.label || title,
+      publisher: "Create Handoff",
+      publishedAt: new Date(input.record.createdAt),
+      retrievedAt: now,
+      type: "user_generated",
+      snippet: safeTrim(reference.detail) || undefined,
+      tags: input.record.plannerResult.topicCandidates.slice(0, 5),
+      language: "de",
+      createdAt: now,
+      updatedAt: now,
+    } as any);
+    await logDossierRevision({
+      dossierId,
+      entityType: "source",
+      entityId: sourceId,
+      action: "create",
+      diffSummary: "Quellenhinweis aus persistiertem Create-Handoff übernommen.",
+      byRole: "admin",
+      byUserId: input.requestedBy,
+    });
+  }
+  await updateDossierCounts(dossierId, "Dossier-Zaehler nach Create-Handoff-Übernahme aktualisiert.");
+
+  await getDossierStudioWorkspaceRepo().createOrGetDossierStudioWorkspace({
+    dossierId,
+    regionId: input.record.regionId,
+    organizationId: safeTrim(input.organizationId ?? input.record.organizationId) || null,
+    source: "manual_editor" satisfies DossierStudioWorkspaceSource,
+    title,
+    createdBy: input.requestedBy,
+    updatedBy: input.requestedBy,
+    provenance: {
+      sourceSignalId: input.record.id,
+      sourceRegionId: input.record.regionId ?? undefined,
+      sourceDraftId: input.record.id,
+      notProductionData: false,
+      fixture: false,
+    },
+    seed: {
+      status: "draft",
+      audienceNotes:
+        "Persistenter Create-Handoff wurde als reviewpflichtiger veröffentlichbarer Arbeitsstand vorbereitet.",
+      reviewNotes:
+        "Reviewpflichtiger Studio-Arbeitsstand aus `/create`. Keine automatische Veröffentlichung, kein automatisches public_official.",
+    },
+  });
+
+  return {
+    targetId: dossierId,
+    title,
+    summary: summaryFromCreateHandoff(input.record),
+  };
+}
+
+async function ensureAnlassraumFromCreateHandoff(input: {
+  record: PersistedCreateHandoffRecord;
+  requestedBy: string;
+}) {
+  const title = suggestedTitleForCreateHandoff(input.record, "anlassraum");
+  const created = await createManualAnlassraum({
+    entityId: new ObjectId(),
+    type: "policy",
+    title,
+    summary: summaryFromCreateHandoff(input.record),
+    topicKey: anlassraumTopicKey(title),
+    regionKey: input.record.regionId,
+    scope: input.record.regionId ? "regional" : "global",
+    ownerType: input.record.regionId ? "government" : "system",
+    ownerId: input.record.regionId ?? input.record.organizationId ?? input.record.createdByUserId,
+    createdBy: input.requestedBy,
+  });
+  return {
+    targetId: created.anlassraumId.toHexString(),
+    title,
+    summary: summaryFromCreateHandoff(input.record),
+  };
+}
+
 async function ensureIndexes() {
   if (indexesReady) return;
   const [targets, audit] = await Promise.all([
@@ -449,31 +638,38 @@ async function ensureIndexes() {
     coreCol(CONTENT_RELEASE_AUDIT_COLLECTION),
   ]);
   await Promise.all([
-    targets.createIndex({ sourceResultId: 1, targetType: 1 }, { unique: true }),
+    targets.createIndex({ sourceKind: 1, sourceResultId: 1, targetType: 1 }, { unique: true }),
     targets.createIndex({ regionId: 1, updatedAt: -1 }),
     audit.createIndex({ recordId: 1, at: -1 }),
-    audit.createIndex({ sourceResultId: 1, at: -1 }),
+    audit.createIndex({ sourceKind: 1, sourceResultId: 1, at: -1 }),
   ]);
   indexesReady = true;
 }
 
 function createMongoRepo(): ContentReleaseWorkbenchRepo {
   return {
-    async getTargetRecord(sourceResultId, targetType) {
+    async getTargetRecord(sourceKind, sourceResultId, targetType) {
       await ensureIndexes();
       const col = await coreCol<{ _id: string; record: ContentReleaseTargetRecord }>(
         CONTENT_RELEASE_TARGETS_COLLECTION,
       );
-      const doc = await col.findOne({ "record.sourceResultId": sourceResultId, "record.targetType": targetType });
+      const doc = await col.findOne({
+        "record.sourceKind": sourceKind,
+        "record.sourceResultId": sourceResultId,
+        "record.targetType": targetType,
+      });
       return doc?.record ? ContentReleaseTargetRecordSchema.parse(clone(doc.record)) : null;
     },
 
-    async listTargetRecordsForSourceResult(sourceResultId) {
+    async listTargetRecordsForSourceResult(sourceKind, sourceResultId) {
       await ensureIndexes();
       const col = await coreCol<{ _id: string; record: ContentReleaseTargetRecord }>(
         CONTENT_RELEASE_TARGETS_COLLECTION,
       );
-      const docs = await col.find({ "record.sourceResultId": sourceResultId }).toArray();
+      const docs = await col.find({
+        "record.sourceKind": sourceKind,
+        "record.sourceResultId": sourceResultId,
+      }).toArray();
       return docs.map((doc) => ContentReleaseTargetRecordSchema.parse(clone(doc.record)));
     },
 
@@ -484,7 +680,7 @@ function createMongoRepo(): ContentReleaseWorkbenchRepo {
       );
       await col.updateOne(
         { _id: record.id },
-        { $set: { record: clone(record), sourceResultId: record.sourceResultId, targetType: record.targetType, regionId: record.regionId, updatedAt: record.updatedAt } as any },
+        { $set: { record: clone(record), sourceKind: record.sourceKind, sourceResultId: record.sourceResultId, targetType: record.targetType, regionId: record.regionId, updatedAt: record.updatedAt } as any },
         { upsert: true },
       );
     },
@@ -523,16 +719,19 @@ export function createInMemoryContentReleaseWorkbenchRepo(seed?: {
     auditEvents.set(parsed.id, clone(parsed));
   }
   return {
-    async getTargetRecord(sourceResultId, targetType) {
+    async getTargetRecord(sourceKind, sourceResultId, targetType) {
       return (
         Array.from(records.values()).find(
-          (record) => record.sourceResultId === sourceResultId && record.targetType === targetType,
+          (record) =>
+            record.sourceKind === sourceKind &&
+            record.sourceResultId === sourceResultId &&
+            record.targetType === targetType,
         ) ?? null
       );
     },
-    async listTargetRecordsForSourceResult(sourceResultId) {
+    async listTargetRecordsForSourceResult(sourceKind, sourceResultId) {
       return Array.from(records.values())
-        .filter((record) => record.sourceResultId === sourceResultId)
+        .filter((record) => record.sourceKind === sourceKind && record.sourceResultId === sourceResultId)
         .map((record) => clone(record));
     },
     async saveTargetRecord(record) {
@@ -567,7 +766,10 @@ export function setContentReleaseWorkbenchRepoForTests(
 }
 
 function buildRecord(params: {
-  result: RegionSourceTestResult;
+  sourceKind: ContentReleaseSourceKind;
+  sourceResultId: string;
+  sourceReviewItemId: string;
+  regionId: string | null;
   targetType: ContentReleaseTargetType;
   targetId: string;
   title: string;
@@ -577,10 +779,11 @@ function buildRecord(params: {
   const now = isoNow();
   const publicHref = publicHrefFor(params.targetType, params.targetId);
   return ContentReleaseTargetRecordSchema.parse({
-    id: recordIdFor(params.result.id, params.targetType),
-    sourceResultId: params.result.id,
-    sourceReviewItemId: `region_source_result:${params.result.id}`,
-    regionId: params.result.regionId,
+    id: recordIdFor(params.sourceKind, params.sourceResultId, params.targetType),
+    sourceKind: params.sourceKind,
+    sourceResultId: params.sourceResultId,
+    sourceReviewItemId: params.sourceReviewItemId,
+    regionId: params.regionId,
     targetType: params.targetType,
     targetId: params.targetId,
     title: params.title,
@@ -606,26 +809,73 @@ function buildRecord(params: {
 export async function prepareContentReleaseTargetFromSourceResult(
   input: PrepareContentReleaseTargetInput,
 ) {
-  const result = await getRegionSourceTestResultById(input.sourceResultId);
-  if (!result) throw new Error("source_result_not_found");
-
-  const existing = await getRepo().getTargetRecord(input.sourceResultId, input.targetType);
+  const existing = await getRepo().getTargetRecord(
+    input.sourceKind,
+    input.sourceResultId,
+    input.targetType,
+  );
   if (existing) return existing;
 
+  if (input.sourceKind === "region_source_result") {
+    const result = await getRegionSourceTestResultById(input.sourceResultId);
+    if (!result) throw new Error("source_result_not_found");
+
+    const prepared =
+      input.targetType === "dossier"
+        ? await ensureDossierDraftFromSourceResult({
+            result,
+            requestedBy: input.requestedBy,
+            organizationId: input.organizationId,
+          })
+        : await ensureAnlassraumFromSourceResult({
+            result,
+            requestedBy: input.requestedBy,
+          });
+
+    const record = buildRecord({
+      sourceKind: input.sourceKind,
+      sourceResultId: result.id,
+      sourceReviewItemId: `region_source_result:${result.id}`,
+      regionId: result.regionId,
+      targetType: input.targetType,
+      targetId: prepared.targetId,
+      title: prepared.title,
+      summary: prepared.summary,
+      requestedBy: input.requestedBy,
+    });
+    await getRepo().saveTargetRecord(record);
+    await getRepo().appendAuditEvent({
+      id: auditEventIdFor(record.id, "prepared", record.updatedAt),
+      recordId: record.id,
+      sourceKind: record.sourceKind,
+      sourceResultId: record.sourceResultId,
+      targetType: record.targetType,
+      action: "prepared",
+      byUserId: input.requestedBy,
+      note: "Target bewusst aus Review-Queue vorbereitet.",
+      at: record.updatedAt,
+    });
+    return record;
+  }
+
+  const handoff = await getPersistedCreateHandoffRecord(input.sourceResultId);
+  if (!handoff) throw new Error("create_handoff_not_found");
   const prepared =
     input.targetType === "dossier"
-      ? await ensureDossierDraftFromSourceResult({
-          result,
+      ? await ensureDossierDraftFromCreateHandoff({
+          record: handoff,
           requestedBy: input.requestedBy,
           organizationId: input.organizationId,
         })
-      : await ensureAnlassraumFromSourceResult({
-          result,
+      : await ensureAnlassraumFromCreateHandoff({
+          record: handoff,
           requestedBy: input.requestedBy,
         });
-
   const record = buildRecord({
-    result,
+    sourceKind: input.sourceKind,
+    sourceResultId: handoff.id,
+    sourceReviewItemId: `create_handoff:${handoff.id}`,
+    regionId: handoff.regionId,
     targetType: input.targetType,
     targetId: prepared.targetId,
     title: prepared.title,
@@ -636,6 +886,7 @@ export async function prepareContentReleaseTargetFromSourceResult(
   await getRepo().appendAuditEvent({
     id: auditEventIdFor(record.id, "prepared", record.updatedAt),
     recordId: record.id,
+    sourceKind: record.sourceKind,
     sourceResultId: record.sourceResultId,
     targetType: record.targetType,
     action: "prepared",
@@ -649,7 +900,11 @@ export async function prepareContentReleaseTargetFromSourceResult(
 export async function updateContentReleaseTargetFromSourceResult(
   input: UpdateContentReleaseTargetInput,
 ) {
-  const existing = await getRepo().getTargetRecord(input.sourceResultId, input.targetType);
+  const existing = await getRepo().getTargetRecord(
+    input.sourceKind,
+    input.sourceResultId,
+    input.targetType,
+  );
   if (!existing) throw new Error("content_release_target_not_prepared");
   const nextVisibilityState = nextVisibilityStateForAction(existing.visibilityState, input.action);
   if (nextVisibilityState === "public_official") {
@@ -666,6 +921,7 @@ export async function updateContentReleaseTargetFromSourceResult(
   await getRepo().appendAuditEvent({
     id: auditEventIdFor(next.id, auditActionForVisibilityAction(input.action), updatedAt),
     recordId: next.id,
+    sourceKind: next.sourceKind,
     sourceResultId: next.sourceResultId,
     targetType: next.targetType,
     action: auditActionForVisibilityAction(input.action),
@@ -676,8 +932,11 @@ export async function updateContentReleaseTargetFromSourceResult(
   return next;
 }
 
-export async function listContentReleaseTargetsForSourceResult(sourceResultId: string) {
-  return getRepo().listTargetRecordsForSourceResult(sourceResultId);
+export async function listContentReleaseTargetsForSourceResult(
+  sourceKind: ContentReleaseSourceKind,
+  sourceResultId: string,
+) {
+  return getRepo().listTargetRecordsForSourceResult(sourceKind, sourceResultId);
 }
 
 export async function listContentReleaseAuditEvents(recordId: string) {
@@ -685,18 +944,23 @@ export async function listContentReleaseAuditEvents(recordId: string) {
 }
 
 export async function getContentReleaseTargetRecord(
+  sourceKind: ContentReleaseSourceKind,
   sourceResultId: string,
   targetType: ContentReleaseTargetType,
 ) {
-  return getRepo().getTargetRecord(sourceResultId, targetType);
+  return getRepo().getTargetRecord(sourceKind, sourceResultId, targetType);
 }
 
 export async function buildContentReleaseWorkbenchTargets(params: {
+  sourceKind: ContentReleaseSourceKind;
   result: RegionSourceTestResult;
   canPrepare: boolean;
   canPreparePublication: boolean;
 }) {
-  const existingRecords = await listContentReleaseTargetsForSourceResult(params.result.id);
+  const existingRecords = await listContentReleaseTargetsForSourceResult(
+    params.sourceKind,
+    params.result.id,
+  );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
   return CONTENT_RELEASE_TARGET_TYPES.map((targetType): ContentReleaseWorkbenchTarget => {
     const record = recordByType.get(targetType) ?? null;
@@ -725,6 +989,53 @@ export async function buildContentReleaseWorkbenchTargets(params: {
         visibilityState !== "archived",
       canPreparePublication:
         Boolean(record) &&
+        params.canPreparePublication &&
+        visibilityState !== "public_reviewed" &&
+        visibilityState !== "public_official" &&
+        visibilityState !== "archived",
+      canCreateQrLink: Boolean(qrHref),
+    };
+  });
+}
+
+export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params: {
+  sourceKind: ContentReleaseSourceKind;
+  record: PersistedCreateHandoffRecord;
+  canPrepare: boolean;
+  canPreparePublication: boolean;
+}) {
+  const existingRecords = await listContentReleaseTargetsForSourceResult(
+    params.sourceKind,
+    params.record.id,
+  );
+  const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
+  return CONTENT_RELEASE_TARGET_TYPES.map((targetType): ContentReleaseWorkbenchTarget => {
+    const existing = recordByType.get(targetType) ?? null;
+    const visibilityState = existing?.visibilityState ?? "internal_review";
+    const publicHref = existing?.publicHref ?? null;
+    const qrHref = qrHrefFor(publicHref, visibilityState);
+    return {
+      targetType,
+      targetLabel: targetLabel(targetType),
+      suggestedTitle: existing?.title ?? suggestedTitleForCreateHandoff(params.record, targetType),
+      targetId: existing?.targetId ?? null,
+      prepared: Boolean(existing),
+      previewHref: existing?.previewHref ?? null,
+      publicHref,
+      qrHref,
+      visibilityState,
+      visibilityLabel: publicationVisibilityLabel(visibilityState),
+      statusLabel: statusLabelForVisibility(visibilityState),
+      canPrepare: !existing && params.canPrepare,
+      canMakeVisible:
+        Boolean(existing) &&
+        params.canPrepare &&
+        visibilityState !== "public_unverified" &&
+        visibilityState !== "public_reviewed" &&
+        visibilityState !== "public_official" &&
+        visibilityState !== "archived",
+      canPreparePublication:
+        Boolean(existing) &&
         params.canPreparePublication &&
         visibilityState !== "public_reviewed" &&
         visibilityState !== "public_official" &&

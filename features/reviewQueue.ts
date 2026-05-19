@@ -5,11 +5,17 @@ import {
 } from "@features/dossier/server/studioPersistence";
 import {
   buildContentReleaseWorkbenchTargets,
+  buildContentReleaseWorkbenchTargetsForCreateHandoff,
   type ContentReleaseWorkbenchTarget,
 } from "@features/contentReleaseWorkbench";
 import type { RegionSourceSnapshotTemplateResult } from "./region/sourceConnections";
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 import { listCreatePrepareAttachDraftQueue } from "@/features/create/attachDraftReviewQueue";
+import {
+  buildPersistedCreateHandoffSummary,
+  listPersistedCreateHandoffRecords,
+  type PersistedCreateHandoffRecord,
+} from "@/features/create/persistedHandoffReviewQueue";
 import type { Region } from "./region/contracts";
 import {
   publicationVisibilityLabel,
@@ -82,6 +88,8 @@ export type ReviewQueueItem = {
   reviewAuthorityLabel: string;
   contentReleaseWorkbench?: {
     intro: string;
+    sourceKind: "region_source_result" | "create_handoff";
+    sourceId: string;
     targets: ContentReleaseWorkbenchTarget[];
   } | null;
   sourceSnapshotTemplate?: {
@@ -249,6 +257,19 @@ function scopeAllowsWorkspace(params: {
   const regionId = String(params.workspace.regionId ?? "").trim();
   if (regionId && params.scope.visibleRegionIds.includes(regionId)) return true;
   const organizationId = String(params.workspace.organizationId ?? "").trim();
+  if (organizationId && params.scope.organizationIds.includes(organizationId)) return true;
+  return false;
+}
+
+function scopeAllowsCreateHandoff(params: {
+  scope: ReviewQueueScope;
+  record: PersistedCreateHandoffRecord;
+}) {
+  if (params.scope.mode === "global_operator") return true;
+  if (params.record.createdByUserId === params.scope.userId) return true;
+  const regionId = String(params.record.regionId ?? "").trim();
+  if (regionId && params.scope.visibleRegionIds.includes(regionId)) return true;
+  const organizationId = String(params.record.organizationId ?? "").trim();
   if (organizationId && params.scope.organizationIds.includes(organizationId)) return true;
   return false;
 }
@@ -451,6 +472,7 @@ async function mapRegionSourceResultItem(params: {
       ? `${params.result.reviewTaskSummary.label}. ${params.result.summary}`
       : params.result.summary;
   const targets = await buildContentReleaseWorkbenchTargets({
+    sourceKind: "region_source_result",
     result: params.result,
     canPrepare:
       params.scope.mode === "global_operator" ||
@@ -483,6 +505,8 @@ async function mapRegionSourceResultItem(params: {
     contentReleaseWorkbench: {
       intro:
         "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+      sourceKind: "region_source_result",
+      sourceId: params.result.id,
       targets,
     },
     sourceSnapshotTemplate: mapSourceSnapshotTemplate(params.result.sourceSnapshotTemplate),
@@ -673,6 +697,72 @@ function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQue
   };
 }
 
+async function mapPersistedCreateHandoffItem(params: {
+  record: PersistedCreateHandoffRecord;
+  regionMap: Map<string, Region>;
+  scope: ReviewQueueScope;
+}): Promise<ReviewQueueItem> {
+  const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
+    sourceKind: "create_handoff",
+    record: params.record,
+    canPrepare: params.scope.mode === "global_operator" || params.record.createdByUserId === params.scope.userId,
+    canPreparePublication: params.scope.canApproveOfficial || params.scope.isAdmin,
+  });
+
+  const selectedActionLabel = (() => {
+    switch (params.record.selectedAction) {
+      case "append_to_dossier":
+        return "Dossier-Vorschlag";
+      case "prepare_anlassraum":
+        return "Anlassraum-Vorschlag";
+      case "request_factcheck":
+        return "Faktencheck-Vorschlag";
+      case "create_dossier":
+        return "Dossier-Entwurf";
+      case "prepare_vote":
+        return "Abstimmungs-Vorbereitung";
+      case "submit_draft":
+        return "Arbeitsstand";
+      case "request_review":
+      default:
+        return "Review-Aufgabe";
+    }
+  })();
+
+  return {
+    id: `create_handoff:persisted:${params.record.id}`,
+    domain: "create_handoff",
+    domainLabel: domainLabelFor("create_handoff"),
+    workflowState: "review_required",
+    workflowLabel: workflowLabelFor("review_required"),
+    title: `${params.record.topicSeed.topicLabel} · ${selectedActionLabel}`,
+    summary: buildPersistedCreateHandoffSummary(params.record),
+    href: params.record.resumeHref,
+    regionId: params.record.regionId,
+    regionName: regionNameFor(params.regionMap, params.record.regionId),
+    organizationId: params.record.organizationId,
+    dossierId: params.record.dossierId,
+    draftId: params.record.id,
+    sourceType: params.record.selectedAction,
+    visibilityState: params.record.visibilityState,
+    visibilityLabel: publicationVisibilityLabel(params.record.visibilityState),
+    createdAt: params.record.createdAt,
+    updatedAt: params.record.updatedAt,
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: {
+      intro:
+        "eDebatte bereitet aus deinem Arbeitsstand veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+      sourceKind: "create_handoff",
+      sourceId: params.record.id,
+      targets,
+    },
+    sourceSnapshotTemplate: null,
+  };
+}
+
 export async function buildReviewQueueReadModel(
   scope: ReviewQueueScope,
 ): Promise<ReviewQueueReadModel> {
@@ -746,6 +836,14 @@ export async function buildReviewQueueReadModel(
     for (const item of queue.items.filter(includeCreateAttachItem)) {
       items.push(mapCreateAttachItem(item));
     }
+  }
+
+  const persistedCreateHandoffs = await listPersistedCreateHandoffRecords().catch(
+    () => [] as PersistedCreateHandoffRecord[],
+  );
+  for (const record of persistedCreateHandoffs) {
+    if (!scopeAllowsCreateHandoff({ scope, record })) continue;
+    items.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope }));
   }
 
   const intelligenceRegionIds =
