@@ -49,6 +49,7 @@ export type RegionSourceConnectionRuntimeRepo = {
   listConnections(regionId?: string | null): Promise<RegionSourceConnection[]>;
   getConnectionById(id: string): Promise<RegionSourceConnection | null>;
   upsertConnection(connection: RegionSourceConnection): Promise<void>;
+  getTestResultById(id: string): Promise<RegionSourceTestResult | null>;
   listTestResults(query?: {
     regionId?: string | null;
     connectionId?: string | null;
@@ -407,6 +408,12 @@ export function createMongoRegionSourceConnectionRuntimeRepo(): RegionSourceConn
       );
     },
 
+    async getTestResultById(id) {
+      await ensureMongoIndexes();
+      const col = await coreCol<RegionSourceTestResultDoc>(REGION_SOURCE_TEST_RESULTS_COLLECTION);
+      return mapResultDoc(await col.findOne({ _id: id }));
+    },
+
     async listTestResults(query = {}) {
       await ensureMongoIndexes();
       const col = await coreCol<RegionSourceTestResultDoc>(REGION_SOURCE_TEST_RESULTS_COLLECTION);
@@ -474,6 +481,11 @@ export function createInMemoryRegionSourceConnectionRuntimeRepo(seed?: {
 
     async upsertConnection(connection) {
       connections.set(connection.id, clone(connection));
+    },
+
+    async getTestResultById(id) {
+      const result = results.get(id);
+      return result ? clone(result) : null;
     },
 
     async listTestResults(query = {}) {
@@ -804,6 +816,10 @@ export async function listRegionSourceTestResults(query: {
   limit?: number;
 } = {}) {
   return getRepo().listTestResults(query);
+}
+
+export async function getRegionSourceTestResultById(id: string) {
+  return getRepo().getTestResultById(String(id || "").trim());
 }
 
 export async function saveRegionSourceConnection(input: z.input<typeof RegionSourceConnectionUpsertSchema> & {

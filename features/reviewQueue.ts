@@ -3,6 +3,10 @@ import {
   getDossierStudioWorkspaceRepo,
   type DossierStudioWorkspace,
 } from "@features/dossier/server/studioPersistence";
+import {
+  buildContentReleaseWorkbenchTargets,
+  type ContentReleaseWorkbenchTarget,
+} from "@features/contentReleaseWorkbench";
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 import { listCreatePrepareAttachDraftQueue } from "@/features/create/attachDraftReviewQueue";
 import type { Region } from "./region/contracts";
@@ -75,6 +79,10 @@ export type ReviewQueueItem = {
     | "publication_approved_or_admin"
     | "apply_followup";
   reviewAuthorityLabel: string;
+  contentReleaseWorkbench?: {
+    intro: string;
+    targets: ContentReleaseWorkbenchTarget[];
+  } | null;
 };
 
 export type ReviewQueueSummaryEntry = {
@@ -307,6 +315,7 @@ function mapParticipationReviewItem(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -340,6 +349,7 @@ function mapParticipationOfficialApprovalItem(params: {
     publicOfficialCandidate: true,
     reviewAuthority: "publication_approved_or_admin",
     reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -370,6 +380,7 @@ function mapRegionSignalDraftItem(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -403,17 +414,26 @@ function mapRegionIntelligenceSuggestionItem(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 }
 
-function mapRegionSourceResultItem(params: {
+async function mapRegionSourceResultItem(params: {
   result: Awaited<ReturnType<typeof listRegionSourceTestResults>>[number];
   regionMap: Map<string, Region>;
-}): ReviewQueueItem {
+  scope: ReviewQueueScope;
+}): Promise<ReviewQueueItem> {
   const sourceSummary =
     params.result.reviewTaskSummary?.label
       ? `${params.result.reviewTaskSummary.label}. ${params.result.summary}`
       : params.result.summary;
+  const targets = await buildContentReleaseWorkbenchTargets({
+    result: params.result,
+    canPrepare:
+      params.scope.mode === "global_operator" ||
+      params.scope.visibleRegionIds.includes(params.result.regionId),
+    canPreparePublication: params.scope.canApproveOfficial || params.scope.isAdmin,
+  });
   return {
     id: `region_source_result:${params.result.id}`,
     domain: "region_source_result",
@@ -437,6 +457,11 @@ function mapRegionSourceResultItem(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: {
+      intro:
+        "eDebatte bereitet aus deinem Link veröffentlichbare Inhalte vor. Du entscheidest, was als Dossier, Anlassraum oder öffentliche Themenseite sichtbar wird.",
+      targets,
+    },
   };
 }
 
@@ -481,6 +506,7 @@ function mapWorkspaceItem(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -513,6 +539,7 @@ function mapWorkspaceOfficialApprovalItem(params: {
     publicOfficialCandidate: true,
     reviewAuthority: "publication_approved_or_admin",
     reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -540,6 +567,7 @@ function mapWorkspaceOutputItems(params: {
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review" as const,
     reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 
   if (params.workspace.masterPostDraft?.reviewStatus === "review_required") {
@@ -613,6 +641,7 @@ function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQue
     reviewAuthority: workflowState === "apply_pending" ? "apply_followup" : "standard_review",
     reviewAuthorityLabel:
       workflowState === "apply_pending" ? "Manueller Apply-Schritt" : "Reviewpflichtig",
+    contentReleaseWorkbench: null,
   };
 }
 
@@ -663,7 +692,7 @@ export async function buildReviewQueueReadModel(
 
   for (const result of sourceResults) {
     if (!scopeAllowsRegion({ scope, regionIds: [result.regionId] })) continue;
-    items.push(mapRegionSourceResultItem({ result, regionMap }));
+    items.push(await mapRegionSourceResultItem({ result, regionMap, scope }));
   }
 
   for (const workspace of workspaces) {

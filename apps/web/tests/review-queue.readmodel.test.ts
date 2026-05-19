@@ -378,6 +378,21 @@ describe("review queue readmodel", () => {
           domain: "region_source_result",
           title: "Bezirksamt Reinickendorf News · Dry Run",
           summary: expect.stringContaining("1 mögliche Aussagen"),
+          contentReleaseWorkbench: expect.objectContaining({
+            intro: expect.stringContaining("veröffentlichbare Inhalte"),
+            targets: expect.arrayContaining([
+              expect.objectContaining({
+                targetType: "dossier",
+                prepared: false,
+                statusLabel: "Arbeitsstand",
+              }),
+              expect.objectContaining({
+                targetType: "anlassraum",
+                prepared: false,
+                statusLabel: "Arbeitsstand",
+              }),
+            ]),
+          }),
         }),
       ]),
     );

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel } from "@features/reviewQueue";
+import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -163,6 +164,13 @@ export default async function AdminReviewPage() {
                     Prüfen
                   </Link>
                 </div>
+                {item.domain === "region_source_result" && item.contentReleaseWorkbench ? (
+                  <ContentReleaseWorkbenchActions
+                    itemId={item.id}
+                    sourceResultId={item.id.replace("region_source_result:", "")}
+                    contentReleaseWorkbench={item.contentReleaseWorkbench}
+                  />
+                ) : null}
               </article>
             ))
           )}
