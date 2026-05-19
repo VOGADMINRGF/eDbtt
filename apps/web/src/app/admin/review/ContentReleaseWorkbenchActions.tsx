@@ -69,11 +69,16 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
         Review-to-Publish Workspace
       </p>
       <p className="mt-2 text-sm text-[rgb(var(--muted))]">{props.contentReleaseWorkbench.intro}</p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        eDebatte bereitet Inhalte veröffentlichbar vor. Du entscheidest, was sichtbar wird.
+        Sichtbar heißt nicht automatisch amtlich.
+      </p>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         {props.contentReleaseWorkbench.targets.map((target) => {
           const prepareKey = `${target.targetType}:prepare_target`;
           const visibleKey = `${target.targetType}:make_visible`;
           const publicationKey = `${target.targetType}:prepare_publication`;
+          const revokeKey = `${target.targetType}:retract_visibility`;
           const archiveKey = `${target.targetType}:archive_target`;
           return (
             <article key={`${props.itemId}:${target.targetType}`} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -83,11 +88,12 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                 <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">{target.visibilityLabel}</span>
               </div>
               <h3 className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">{target.suggestedTitle}</h3>
-              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                {target.prepared
-                  ? "Bewusst vorbereiteter Arbeitsstand. Keine automatische Veröffentlichung, keine automatische Amtlichkeit."
-                  : "Noch nicht übernommen. Die Veröffentlichung erfordert zuerst eine bewusste Übernahme in einen bestehenden Zielpfad."}
-              </p>
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">{target.statusHint}</p>
+              {target.auditEvents.length > 0 ? (
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Audit-Events: {target.auditEvents.length}
+                </p>
+              ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 {target.canPrepare ? (
                   <button
@@ -129,6 +135,22 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     Veröffentlichen vorbereiten
                   </button>
                 ) : null}
+                {target.publicLink ? (
+                  <Link
+                    href={target.publicLink.href}
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))]"
+                  >
+                    Öffentliche URL anzeigen
+                  </Link>
+                ) : null}
+                {target.publicLink ? (
+                  <Link
+                    href={target.publicLink.shareHref}
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))]"
+                  >
+                    Share-Link öffnen
+                  </Link>
+                ) : null}
                 {target.canCreateQrLink && target.qrHref ? (
                   <Link
                     href={target.qrHref}
@@ -137,22 +159,30 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     QR-Link erstellen
                   </Link>
                 ) : null}
-                {target.prepared &&
-                target.statusLabel !== "archiviert" &&
-                target.statusLabel !== "blockiert" ? (
+                {target.canRevokeVisibility ? (
+                  <button
+                    type="button"
+                    disabled={pendingKey === revokeKey}
+                    onClick={() => runAction({ targetType: target.targetType, action: "retract_visibility" })}
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+                  >
+                    Sichtbarkeit zurücknehmen
+                  </button>
+                ) : null}
+                {target.canArchive ? (
                   <button
                     type="button"
                     disabled={pendingKey === archiveKey}
                     onClick={() => runAction({ targetType: target.targetType, action: "archive_target" })}
                     className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
                   >
-                    Archivieren vorbereiten
+                    Archivieren
                   </button>
                 ) : null}
               </div>
-              {target.prepared && target.publicHref ? (
+              {target.publicLink ? (
                 <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-                  Öffentliche Route: <span className="font-mono">{target.publicHref}</span>
+                  Öffentliche URL / Share-Link: <span className="font-mono">{target.publicLink.href}</span>
                 </p>
               ) : null}
             </article>

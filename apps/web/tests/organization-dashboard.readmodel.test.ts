@@ -20,6 +20,10 @@ import {
   type OrganizationMembership,
   type RegionSignalDraftRecord,
 } from "@features/region";
+import {
+  createInMemoryContentReleaseWorkbenchRepo,
+  setContentReleaseWorkbenchRepoForTests,
+} from "@features/contentReleaseWorkbench";
 
 const organization: Organization = {
   id: "org-reinickendorf-1",
@@ -160,6 +164,7 @@ function anlassraumDraftRecord(): RegionSignalDraftRecord {
 
 beforeEach(() => {
   setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+  setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
   setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
   setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
   setRegionDataRepoForTests(createInMemoryRegionDataRepo());
@@ -521,6 +526,51 @@ describe("organization dashboard readmodel", () => {
         ],
       }),
     );
+    setContentReleaseWorkbenchRepoForTests(
+      createInMemoryContentReleaseWorkbenchRepo({
+        records: [
+          {
+            id: "content-release-dossier-create-handoff-dashboard-1",
+            sourceKind: "create_handoff",
+            sourceResultId: "create-handoff-dashboard-1",
+            sourceReviewItemId: "create_handoff:create-handoff-dashboard-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            targetType: "dossier",
+            targetId: "create-handoff-dossier-1",
+            title: "Schulsanierung im Bezirk",
+            summary: "Bewusst vorbereiteter veröffentlichbarer Arbeitsstand.",
+            previewHref: "/dossier/create-handoff-dossier-1/studio",
+            publicHref: "/dossier/create-handoff-dossier-1",
+            visibilityState: "public_unverified",
+            createdByUserId: "user-1",
+            createdAt: "2026-05-19T08:05:00.000Z",
+            updatedByUserId: "user-1",
+            updatedAt: "2026-05-19T08:06:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
+        ],
+        auditEvents: [
+          {
+            id: "content-release-audit-1",
+            recordId: "content-release-dossier-create-handoff-dashboard-1",
+            sourceKind: "create_handoff",
+            sourceResultId: "create-handoff-dashboard-1",
+            targetType: "dossier",
+            action: "visibility_made_public",
+            byUserId: "user-1",
+            note: "Bewusst sichtbar gemacht.",
+            at: "2026-05-19T08:06:00.000Z",
+          },
+        ],
+      }),
+    );
 
     const readModel = await buildOrganizationDashboardReadModel({
       userId: "user-1",
@@ -581,6 +631,20 @@ describe("organization dashboard readmodel", () => {
           ctas: expect.arrayContaining([
             expect.objectContaining({ label: "Sichtbarkeit vorbereiten" }),
           ]),
+        }),
+      ]),
+    );
+    expect(readModel.publishSummary).toMatchObject({
+      totalPrepared: 1,
+      visibleCount: 1,
+      shareableCount: 1,
+      archivedCount: 0,
+    });
+    expect(readModel.nextActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "share_visible_content",
+          label: "Öffentlichen Link teilen",
         }),
       ]),
     );
