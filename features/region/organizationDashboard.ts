@@ -5,6 +5,11 @@ import {
   type RegionAccessContext,
 } from "./access";
 import {
+  buildOrganizationScopeContext,
+  buildRegionScopeContext,
+  canViewRegionResource,
+} from "./scope";
+import {
   type Region,
   type RegionalAnlassraum,
 } from "./contracts";
@@ -966,26 +971,6 @@ export async function buildOrganizationDashboardReadModel(input: {
     .map((entry) => entry.cockpit)
     .filter((entry): entry is RegionalAdminCockpitReadModel => Boolean(entry));
 
-  const draftsVisibleRegionIds = new Set(
-    regionContexts
-      .filter((entry) => entry.dashboardAccess)
-      .map((entry) => entry.regionId),
-  );
-  const visibleDrafts = draftRecords.filter(
-    (record) =>
-      draftsVisibleRegionIds.has(record.regionId) ||
-      record.createdByUserId === input.userId ||
-      input.isAdmin,
-  );
-  const dossierDrafts = buildDraftSummaries({
-    records: visibleDrafts.filter((record) => record.draftType === "dossier"),
-    regionMap,
-  });
-  const anlassraumDrafts = buildDraftSummaries({
-    records: visibleDrafts.filter((record) => record.draftType === "anlassraum"),
-    regionMap,
-  });
-
   const regionalStartingPoints = readableCockpits.map((cockpit) =>
     buildStartingPoint({
       cockpit,
@@ -1003,21 +988,59 @@ export async function buildOrganizationDashboardReadModel(input: {
     claims,
     isAdmin: input.isAdmin,
   });
-  const entitlementSummary = buildEntitlementSummary(entitlements, regionContexts);
   const allowedActions = uniqueNonEmpty([
     ...(input.isAdmin ? REGION_ALLOWED_ACTIONS : []),
     ...activeMemberships.flatMap((membership) => membership.allowedActions),
     ...regionContexts.flatMap((entry) => entry.accessContext.allowedActions),
   ]) as RegionAllowedAction[];
-  const reviewQueue = await buildReviewQueueReadModel({
-    mode: input.isAdmin ? "global_operator" : "organization",
+  const organizationScope = buildOrganizationScopeContext({
     userId: input.userId,
     isAdmin: input.isAdmin,
-    visibleRegionIds: regionContexts
-      .filter((entry) => entry.dashboardAccess)
-      .map((entry) => entry.regionId),
     organizationIds: organizations.map((organization) => organization.id),
+    primaryOrganizationId: primaryOrganization?.id ?? null,
+    status:
+      input.isAdmin
+        ? "admin_fallback"
+        : verifiedMemberships.length > 0
+          ? "verified_membership"
+          : "pending_or_unverified",
+  });
+  const visibleRegionIds = regionContexts
+    .filter((entry) => entry.dashboardAccess)
+    .map((entry) => entry.regionId);
+  const regionScope = buildRegionScopeContext({
+    userId: organizationScope.userId,
+    isAdmin: organizationScope.isAdmin,
+    organizationIds: organizationScope.organizationIds,
+    primaryOrganizationId: organizationScope.primaryOrganizationId,
+    status: organizationScope.status,
+    visibleRegionIds,
     canApproveOfficial: allowedActions.includes("approve_publication"),
+  });
+  const entitlementSummary = buildEntitlementSummary(entitlements, regionContexts);
+  const visibleDrafts = draftRecords.filter((record) =>
+    canViewRegionResource(regionScope, {
+      ownerUserId: record.createdByUserId,
+      regionId: record.regionId,
+    }),
+  );
+  const dossierDrafts = buildDraftSummaries({
+    records: visibleDrafts.filter((record) => record.draftType === "dossier"),
+    regionMap,
+  });
+  const anlassraumDrafts = buildDraftSummaries({
+    records: visibleDrafts.filter((record) => record.draftType === "anlassraum"),
+    regionMap,
+  });
+  const reviewQueue = await buildReviewQueueReadModel({
+    mode: regionScope.mode,
+    userId: input.userId,
+    isAdmin: input.isAdmin,
+    visibleRegionIds: regionScope.visibleRegionIds,
+    organizationIds: regionScope.organizationIds,
+    primaryOrganizationId: regionScope.primaryOrganizationId,
+    status: regionScope.status,
+    canApproveOfficial: regionScope.canApproveOfficial,
     governanceActor: input.isAdmin
       ? {
           userId: input.userId,

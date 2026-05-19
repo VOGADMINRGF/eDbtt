@@ -3,8 +3,10 @@ import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   buildPersistedRegionAccessContext,
   canReadRegionDashboard,
+  canViewRegionResource,
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
+  regionScopeFromRegionAccessContext,
 } from "@features/region";
 
 export async function GET(
@@ -29,7 +31,14 @@ export async function GET(
       organizationIds: gate.actor.scopedOwnerIds,
       regionId: region.id,
     });
-    if (!canReadRegionDashboard(accessContext, region.id)) {
+    const scope = regionScopeFromRegionAccessContext({ accessContext });
+    if (
+      !canViewRegionResource(scope, {
+        regionId: region.id,
+        organizationId: accessContext.organization.primaryOrganizationId,
+      }) ||
+      !canReadRegionDashboard(accessContext, region.id)
+    ) {
       return NextResponse.json(
         { ok: false, error: "region_dashboard_forbidden" },
         { status: 403 },

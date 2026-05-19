@@ -3,10 +3,13 @@ import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   RegionSourceConnectionDryRunSchema,
   buildPersistedRegionAccessContext,
+  canEditOrganizationResource,
   canCreateRegionDraft,
   canReviewRegionSignal,
+  canViewRegionResource,
   getOperationalRegionById,
   listRegionSourceConnections,
+  regionScopeFromRegionAccessContext,
   runRegionSourceConnectionDryRun,
 } from "@features/region";
 
@@ -16,9 +19,9 @@ export const dynamic = "force-dynamic";
 async function canManageRegionSources(params: {
   gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
   regionId: string;
+  organizationId?: string | null;
 }) {
   if (params.gate instanceof Response) return false;
-  if (params.gate.actor.isAdmin) return true;
   const accessContext = await buildPersistedRegionAccessContext({
     userId: params.gate.actor.userId,
     actorRole: params.gate.actor.role,
@@ -27,9 +30,20 @@ async function canManageRegionSources(params: {
     organizationIds: params.gate.actor.scopedOwnerIds,
     regionId: params.regionId,
   });
+  const scope = regionScopeFromRegionAccessContext({ accessContext });
   return (
-    canReviewRegionSignal(accessContext, params.regionId) ||
-    canCreateRegionDraft(accessContext, params.regionId)
+    canViewRegionResource(scope, {
+      regionId: params.regionId,
+      organizationId: params.organizationId ?? null,
+    }) &&
+    canEditOrganizationResource(scope, {
+      organizationId:
+        params.organizationId ?? accessContext.organization.primaryOrganizationId,
+    }) &&
+    (
+      canReviewRegionSignal(accessContext, params.regionId) ||
+      canCreateRegionDraft(accessContext, params.regionId)
+    )
   );
 }
 
@@ -51,7 +65,13 @@ export async function POST(
     if (!region) {
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
-    if (!(await canManageRegionSources({ gate, regionId: region.id }))) {
+    if (
+      !(await canManageRegionSources({
+        gate,
+        regionId: region.id,
+        organizationId: connection.organizationId ?? null,
+      }))
+    ) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
     }
 

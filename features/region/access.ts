@@ -283,6 +283,11 @@ export function buildRegionAccessContext(input: RegionAccessContextInput = {}): 
   const isAdmin = Boolean(input.isAdmin || roles.includes("admin"));
   const memberships = Array.isArray(input.memberships) ? input.memberships : [];
   const organizations = Array.isArray(input.organizations) ? input.organizations : [];
+  const organizationIds = uniqueNonEmpty([
+    ...(input.organizationIds ?? []),
+    ...memberships.map((membership) => membership.organizationId),
+    ...organizations.map((organization) => organization.id),
+  ]);
   const hintedRegionIds = uniqueNonEmpty([
     ...(input.scopedRegionIds ?? []),
     ...extractScopedRegionIds(roles),
@@ -316,7 +321,7 @@ export function buildRegionAccessContext(input: RegionAccessContextInput = {}): 
     verifiedRegionIds,
     scopedRegionIds,
     organization: buildOrganizationAccessContext({
-      organizationIds: input.organizationIds,
+      organizationIds,
       isAdmin,
       dashboardEntitlementCheck: input.dashboardEntitlementCheck,
       dossierDraftEntitlementCheck: input.dossierDraftEntitlementCheck,

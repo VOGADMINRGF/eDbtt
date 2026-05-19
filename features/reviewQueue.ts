@@ -22,6 +22,12 @@ import {
   type RegionPublicationVisibilityState,
 } from "./region/publicationRiskLadder";
 import {
+  buildReviewQueueScopeContext,
+  canOperateReviewItem,
+  canViewRegionResource,
+  type ReviewQueueScopeContext,
+} from "./region/scope";
+import {
   listRegionSignalDraftRecords,
   type RegionSignalDraftRecord,
 } from "./region/regionSignalDrafts";
@@ -215,6 +221,8 @@ export type ReviewQueueScope = {
   isAdmin: boolean;
   visibleRegionIds: string[];
   organizationIds: string[];
+  primaryOrganizationId?: string | null;
+  status?: ReviewQueueScopeContext["status"];
   canApproveOfficial: boolean;
   governanceActor?: GovernanceActor | null;
 };
@@ -397,38 +405,34 @@ function sortReviewQueueItems(sort: ReviewQueueSort, items: ReviewQueueItem[]) {
 }
 
 function scopeAllowsRegion(params: {
-  scope: ReviewQueueScope;
+  scope: ReviewQueueScopeContext;
   regionIds: Array<string | null | undefined>;
 }) {
-  if (params.scope.mode === "global_operator") return true;
-  const visible = new Set(params.scope.visibleRegionIds);
-  return params.regionIds.some((regionId) => visible.has(String(regionId ?? "").trim()));
+  return params.regionIds.some((regionId) =>
+    canViewRegionResource(params.scope, { regionId }),
+  );
 }
 
 function scopeAllowsWorkspace(params: {
-  scope: ReviewQueueScope;
+  scope: ReviewQueueScopeContext;
   workspace: DossierStudioWorkspace;
 }) {
-  if (params.scope.mode === "global_operator") return true;
-  if (params.workspace.createdBy === params.scope.userId) return true;
-  const regionId = String(params.workspace.regionId ?? "").trim();
-  if (regionId && params.scope.visibleRegionIds.includes(regionId)) return true;
-  const organizationId = String(params.workspace.organizationId ?? "").trim();
-  if (organizationId && params.scope.organizationIds.includes(organizationId)) return true;
-  return false;
+  return canViewRegionResource(params.scope, {
+    ownerUserId: params.workspace.createdBy,
+    regionId: params.workspace.regionId ?? null,
+    organizationId: params.workspace.organizationId ?? null,
+  });
 }
 
 function scopeAllowsCreateHandoff(params: {
-  scope: ReviewQueueScope;
+  scope: ReviewQueueScopeContext;
   record: PersistedCreateHandoffRecord;
 }) {
-  if (params.scope.mode === "global_operator") return true;
-  if (params.record.createdByUserId === params.scope.userId) return true;
-  const regionId = String(params.record.regionId ?? "").trim();
-  if (regionId && params.scope.visibleRegionIds.includes(regionId)) return true;
-  const organizationId = String(params.record.organizationId ?? "").trim();
-  if (organizationId && params.scope.organizationIds.includes(organizationId)) return true;
-  return false;
+  return canViewRegionResource(params.scope, {
+    ownerUserId: params.record.createdByUserId,
+    regionId: params.record.regionId,
+    organizationId: params.record.organizationId,
+  });
 }
 
 function signalCanBeOfficiallyApproved(record: RegionParticipationSignalRecord) {
@@ -622,7 +626,7 @@ function mapSourceSnapshotTemplate(
 async function mapRegionSourceResultItem(params: {
   result: Awaited<ReturnType<typeof listRegionSourceTestResults>>[number];
   regionMap: Map<string, Region>;
-  scope: ReviewQueueScope;
+  scope: ReviewQueueScopeContext;
 }): Promise<ReviewQueueItemCore> {
   const sourceSummary =
     params.result.reviewTaskSummary?.label
@@ -631,9 +635,11 @@ async function mapRegionSourceResultItem(params: {
   const targets = await buildContentReleaseWorkbenchTargets({
     sourceKind: "region_source_result",
     result: params.result,
-    canPrepare:
-      params.scope.mode === "global_operator" ||
-      params.scope.visibleRegionIds.includes(params.result.regionId),
+    canPrepare: canOperateReviewItem(params.scope, {
+      regionId: params.result.regionId,
+      organizationId: params.result.organizationId ?? null,
+      reviewAuthority: "standard_review",
+    }),
     canPreparePublication: params.scope.canApproveOfficial || params.scope.isAdmin,
   });
   return {
@@ -647,7 +653,7 @@ async function mapRegionSourceResultItem(params: {
     href: `${reviewLinkForRegion(params.result.regionId)}#source-results`,
     regionId: params.result.regionId,
     regionName: regionNameFor(params.regionMap, params.result.regionId),
-    organizationId: null,
+    organizationId: params.result.organizationId ?? null,
     dossierId: null,
     draftId: params.result.connectionId,
     sourceType: params.result.sourceType,
@@ -857,12 +863,17 @@ function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQue
 async function mapPersistedCreateHandoffItem(params: {
   record: PersistedCreateHandoffRecord;
   regionMap: Map<string, Region>;
-  scope: ReviewQueueScope;
+  scope: ReviewQueueScopeContext;
 }): Promise<ReviewQueueItemCore> {
   const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
     sourceKind: "create_handoff",
     record: params.record,
-    canPrepare: params.scope.mode === "global_operator" || params.record.createdByUserId === params.scope.userId,
+    canPrepare: canOperateReviewItem(params.scope, {
+      ownerUserId: params.record.createdByUserId,
+      regionId: params.record.regionId,
+      organizationId: params.record.organizationId,
+      reviewAuthority: "standard_review",
+    }),
     canPreparePublication: params.scope.canApproveOfficial || params.scope.isAdmin,
   });
 
@@ -1121,6 +1132,16 @@ export async function buildReviewQueueReadModel(
   scope: ReviewQueueScope,
   query?: ReviewQueueQuery,
 ): Promise<ReviewQueueReadModel> {
+  const scoped = buildReviewQueueScopeContext({
+    userId: scope.userId,
+    isAdmin: scope.isAdmin,
+    organizationIds: scope.organizationIds,
+    primaryOrganizationId: scope.primaryOrganizationId,
+    visibleRegionIds: scope.visibleRegionIds,
+    canApproveOfficial: scope.canApproveOfficial,
+    status: scope.status,
+    governanceActorPresent: Boolean(scope.governanceActor),
+  });
   const filters = normalizeReviewQueueQuery(query);
   const regions = await listOperationalRegions();
   const regionMap = new Map(regions.map((region) => [region.id, clone(region)]));
@@ -1142,12 +1163,12 @@ export async function buildReviewQueueReadModel(
       record.proposedRegionId,
       ...record.matchedRegionIds,
     ]);
-    if (!scopeAllowsRegion({ scope, regionIds: recordRegionIds })) continue;
+    if (!scopeAllowsRegion({ scope: scoped, regionIds: recordRegionIds })) continue;
 
     const reviewItem = mapParticipationReviewItem({ record, regionMap });
     if (reviewItem) coreItems.push(reviewItem);
 
-    if (scope.canApproveOfficial) {
+    if (scoped.canApproveOfficial) {
       const officialItem = mapParticipationOfficialApprovalItem({ record, regionMap });
       if (officialItem) coreItems.push(officialItem);
     }
@@ -1155,9 +1176,10 @@ export async function buildReviewQueueReadModel(
 
   for (const record of draftRecords) {
     if (
-      scope.mode !== "global_operator" &&
-      record.createdByUserId !== scope.userId &&
-      !scope.visibleRegionIds.includes(record.regionId)
+      !canViewRegionResource(scoped, {
+        ownerUserId: record.createdByUserId,
+        regionId: record.regionId,
+      })
     ) {
       continue;
     }
@@ -1165,22 +1187,29 @@ export async function buildReviewQueueReadModel(
   }
 
   for (const result of sourceResults) {
-    if (!scopeAllowsRegion({ scope, regionIds: [result.regionId] })) continue;
-    coreItems.push(await mapRegionSourceResultItem({ result, regionMap, scope }));
+    if (
+      !canViewRegionResource(scoped, {
+        regionId: result.regionId,
+        organizationId: result.organizationId ?? null,
+      })
+    ) {
+      continue;
+    }
+    coreItems.push(await mapRegionSourceResultItem({ result, regionMap, scope: scoped }));
   }
 
   for (const workspace of workspaces) {
-    if (!scopeAllowsWorkspace({ scope, workspace })) continue;
+    if (!scopeAllowsWorkspace({ scope: scoped, workspace })) continue;
     const workspaceItem = mapWorkspaceItem({ workspace, regionMap });
     if (workspaceItem) coreItems.push(workspaceItem);
     coreItems.push(...mapWorkspaceOutputItems({ workspace, regionMap }));
-    if (scope.canApproveOfficial) {
+    if (scoped.canApproveOfficial) {
       const officialItem = mapWorkspaceOfficialApprovalItem({ workspace, regionMap });
       if (officialItem) coreItems.push(officialItem);
     }
   }
 
-  if (scope.mode === "global_operator" && scope.governanceActor) {
+  if (scoped.mode === "global_operator" && scope.governanceActor) {
     const queue = await listCreatePrepareAttachDraftQueue({
       actor: scope.governanceActor,
       reviewState: "all",
@@ -1198,14 +1227,14 @@ export async function buildReviewQueueReadModel(
     () => [] as PersistedCreateHandoffRecord[],
   );
   for (const record of persistedCreateHandoffs) {
-    if (!scopeAllowsCreateHandoff({ scope, record })) continue;
-    coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope }));
+    if (!scopeAllowsCreateHandoff({ scope: scoped, record })) continue;
+    coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope: scoped }));
   }
 
   const intelligenceRegionIds =
-    scope.mode === "global_operator"
+    scoped.mode === "global_operator"
       ? regions.map((region) => region.id)
-      : uniqueNonEmpty(scope.visibleRegionIds);
+      : uniqueNonEmpty(scoped.visibleRegionIds);
 
   for (const regionId of intelligenceRegionIds) {
     const cockpit = await getRegionalAdminCockpitReadModel(regionId).catch(() => null);

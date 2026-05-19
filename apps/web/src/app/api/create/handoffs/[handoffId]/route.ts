@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import {
+  buildPersistedRegionAccessContext,
+  canViewOrganizationResource,
+  canViewRegionResource,
+  regionScopeFromRegionAccessContext,
+} from "@features/region";
+import {
   getPersistedCreateHandoffRecord,
   toCreateHandoffDraft,
 } from "@/features/create/persistedHandoffReviewQueue";
@@ -28,7 +34,31 @@ export async function GET(
   }
 
   const isOwner = record.createdByUserId === userId;
-  if (!isOwner && !userIsAdminDashboard(user)) {
+  const roles = Array.isArray(user.roles)
+    ? user.roles.map((role) => String(role ?? "").trim()).filter(Boolean)
+    : [];
+  const isAdmin = userIsAdminDashboard(user);
+  const accessContext = await buildPersistedRegionAccessContext({
+    userId,
+    actorRole: String(roles[0] ?? (isAdmin ? "admin" : "organization_member")).trim() || "organization_member",
+    isAdmin,
+    roles,
+    regionId: record.regionId,
+  });
+  const scope = regionScopeFromRegionAccessContext({ accessContext });
+  const canViewRecord =
+    isOwner ||
+    isAdmin ||
+    canViewOrganizationResource(scope, {
+      organizationId: record.organizationId,
+      ownerUserId: record.createdByUserId,
+    }) ||
+    canViewRegionResource(scope, {
+      regionId: record.regionId,
+      organizationId: record.organizationId,
+      ownerUserId: record.createdByUserId,
+    });
+  if (!canViewRecord) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 

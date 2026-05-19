@@ -596,6 +596,7 @@ function buildDryRunTopics(connection: RegionSourceConnection) {
 function normalizeConnection(input: {
   existing?: RegionSourceConnection | null;
   regionId: string;
+  organizationId?: string | null;
   label: string;
   sourceType: RegionSourceConnectionType;
   url: string | null;
@@ -620,6 +621,7 @@ function normalizeConnection(input: {
   return {
     id,
     regionId: input.regionId,
+    organizationId: String(input.organizationId ?? input.existing?.organizationId ?? "").trim() || null,
     label: input.label,
     sourceType: input.sourceType,
     adapterId: regionSourceConnectionAdapterId(input.sourceType),
@@ -906,12 +908,19 @@ export async function getRegionSourceTestResultById(id: string) {
 
 export async function saveRegionSourceConnection(input: z.input<typeof RegionSourceConnectionUpsertSchema> & {
   userId: string | null;
+  organizationId?: string | null;
 }) {
-  const parsed = RegionSourceConnectionUpsertSchema.parse(input);
+  const {
+    userId,
+    organizationId,
+    ...payload
+  } = input;
+  const parsed = RegionSourceConnectionUpsertSchema.parse(payload);
   const existing = parsed.id ? await getRepo().getConnectionById(parsed.id) : null;
   const connection = normalizeConnection({
     existing,
     regionId: parsed.regionId,
+    organizationId,
     label: parsed.label,
     sourceType: parsed.sourceType,
     url: parsed.url ?? null,
@@ -920,7 +929,7 @@ export async function saveRegionSourceConnection(input: z.input<typeof RegionSou
     sampleItems: parsed.sampleItems ?? [],
     snapshotSeedKind: parsed.snapshotSeedKind ?? null,
     snapshotTemplateLabel: parsed.snapshotTemplateLabel ?? null,
-    userId: input.userId,
+    userId,
     id: parsed.id,
   });
   await getRepo().upsertConnection(connection);
@@ -985,6 +994,7 @@ export async function runRegionSourceConnectionDryRun(params: {
     id: `region-source-test-result-${connection.id}-${Date.now()}`,
     connectionId: connection.id,
     regionId: connection.regionId,
+    organizationId: connection.organizationId ?? null,
     connectionLabel: connection.label,
     sourceType: connection.sourceType,
     adapterId: connection.adapterId,
