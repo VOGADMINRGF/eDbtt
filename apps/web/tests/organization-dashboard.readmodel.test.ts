@@ -194,6 +194,22 @@ describe("organization dashboard readmodel", () => {
     expect(readModel.regionalStartingPoints).toEqual([]);
     expect(readModel.openReviewItems).toEqual([]);
     expect(readModel.entitlementSummary.state).toBe("fehlt");
+    expect(readModel.firstRun.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "organization",
+          status: "needs_review",
+        }),
+        expect.objectContaining({
+          id: "review",
+          status: "needs_review",
+        }),
+        expect.objectContaining({
+          id: "source",
+          status: "needs_review",
+        }),
+      ]),
+    );
   });
 
   it("shows own region summary for verified memberships even without active freischaltung", async () => {
@@ -221,6 +237,18 @@ describe("organization dashboard readmodel", () => {
       ]),
     );
     expect(readModel.entitlementSummary.state).toBe("fehlt");
+    expect(readModel.firstRun.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "organization",
+          status: "done",
+        }),
+        expect.objectContaining({
+          id: "status",
+          status: "available",
+        }),
+      ]),
+    );
   });
 
   it("shows KI-vorqualifizierte Startlage when verified membership and freischaltung exist", async () => {
@@ -296,6 +324,25 @@ describe("organization dashboard readmodel", () => {
       ]),
     );
     expect(readModel.participationSignals.some((item) => item.regionId === "bezirk-berlin-reinickendorf")).toBe(true);
+    expect(readModel.firstRun.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "source",
+          status: "available",
+          ctas: expect.arrayContaining([
+            expect.objectContaining({ label: "Quelle auswerten" }),
+            expect.objectContaining({ label: "Beispiel-Snapshot laden" }),
+          ]),
+        }),
+        expect.objectContaining({
+          id: "review",
+          status: "needs_review",
+          ctas: expect.arrayContaining([
+            expect.objectContaining({ label: "Review Queue öffnen" }),
+          ]),
+        }),
+      ]),
+    );
   });
 
   it("lists dossier and anlassraum drafts as reviewpflichtig work items", async () => {
@@ -510,6 +557,30 @@ describe("organization dashboard readmodel", () => {
         expect.objectContaining({
           domain: "create_handoff",
           title: "Schulsanierung im Bezirk · Dossier-Entwurf",
+        }),
+      ]),
+    );
+    expect(readModel.firstRun.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "dossier",
+          status: "done",
+          ctas: expect.arrayContaining([
+            expect.objectContaining({ label: "Dossier vorbereiten" }),
+          ]),
+        }),
+        expect.objectContaining({
+          id: "anlassraum",
+          status: "done",
+          ctas: expect.arrayContaining([
+            expect.objectContaining({ label: "Anlassraum vorbereiten" }),
+          ]),
+        }),
+        expect.objectContaining({
+          id: "visibility",
+          ctas: expect.arrayContaining([
+            expect.objectContaining({ label: "Sichtbarkeit vorbereiten" }),
+          ]),
         }),
       ]),
     );

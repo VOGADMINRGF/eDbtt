@@ -85,6 +85,45 @@ export type OrganizationDashboardReviewItem = ReviewQueueItem;
 
 export type OrganizationDashboardReviewSummary = ReviewQueueReadModel["summary"];
 
+export const ORGANIZATION_FIRST_RUN_STEP_STATUSES = [
+  "locked",
+  "available",
+  "done",
+  "needs_review",
+  "optional",
+] as const;
+
+export type OrganizationFirstRunStepStatus =
+  (typeof ORGANIZATION_FIRST_RUN_STEP_STATUSES)[number];
+
+export type OrganizationFirstRunStepCta = {
+  id: string;
+  label: string;
+  href: string;
+};
+
+export type OrganizationFirstRunStep = {
+  id:
+    | "organization"
+    | "region"
+    | "status"
+    | "source"
+    | "review"
+    | "dossier"
+    | "anlassraum"
+    | "visibility";
+  title: string;
+  description: string;
+  status: OrganizationFirstRunStepStatus;
+  statusLabel: string;
+  ctas: OrganizationFirstRunStepCta[];
+};
+
+export type OrganizationFirstRunReadModel = {
+  intro: string;
+  steps: OrganizationFirstRunStep[];
+};
+
 export type OrganizationDashboardStartingPoint = {
   regionId: string;
   regionName: string;
@@ -149,6 +188,7 @@ export type OrganizationDashboardReadModel = {
   allowedActions: RegionAllowedAction[];
   pendingOrganizationClaims: OrganizationClaim[];
   verifiedMemberships: OrganizationMembership[];
+  firstRun: OrganizationFirstRunReadModel;
   openReviewItems: OrganizationDashboardReviewItem[];
   reviewQueueSummary: OrganizationDashboardReviewSummary;
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
@@ -420,6 +460,327 @@ function buildParticipationSignals(params: {
   );
 }
 
+function firstRunStatusLabel(status: OrganizationFirstRunStepStatus) {
+  switch (status) {
+    case "available":
+      return "Verfügbar";
+    case "done":
+      return "Erledigt";
+    case "needs_review":
+      return "In Prüfung";
+    case "optional":
+      return "Optional";
+    case "locked":
+    default:
+      return "Gesperrt";
+  }
+}
+
+function hasPublicVisibility(
+  visibilityState: RegionPublicationVisibilityState | null | undefined,
+) {
+  return (
+    visibilityState === "public_unverified" ||
+    visibilityState === "public_reviewed" ||
+    visibilityState === "public_official"
+  );
+}
+
+function buildOrganizationFirstRun(input: {
+  primaryOrganizationId: string | null;
+  hasPendingClaim: boolean;
+  hasVerifiedMembership: boolean;
+  hasReadableRegion: boolean;
+  hasSelectedRegion: boolean;
+  hasEntitlement: boolean;
+  firstRegionId: string | null;
+  openReviewItems: OrganizationDashboardReviewItem[];
+  dossierDrafts: OrganizationDashboardDraftSummary[];
+  anlassraumDrafts: OrganizationDashboardDraftSummary[];
+}): OrganizationFirstRunReadModel {
+  const firstRegionHref = input.firstRegionId
+    ? `/admin/region?regionId=${encodeURIComponent(input.firstRegionId)}`
+    : "/account/organization";
+  const sourceWorkbenchItems = input.openReviewItems.filter(
+    (item) =>
+      item.domain === "region_source_result" ||
+      item.domain === "create_handoff" ||
+      item.domain === "region_signal_draft",
+  );
+  const hasSourceStart = sourceWorkbenchItems.some(
+    (item) =>
+      item.domain === "region_source_result" ||
+      item.domain === "create_handoff",
+  );
+  const hasDossierPreparationPath =
+    input.dossierDrafts.length > 0 ||
+    input.openReviewItems.some((item) =>
+      item.contentReleaseWorkbench?.targets.some((target) => target.targetType === "dossier"),
+    );
+  const hasAnlassraumPreparationPath =
+    input.anlassraumDrafts.length > 0 ||
+    input.openReviewItems.some((item) =>
+      item.contentReleaseWorkbench?.targets.some((target) => target.targetType === "anlassraum"),
+    );
+  const hasPreparedVisibilityPath =
+    input.dossierDrafts.some((draft) => hasPublicVisibility(draft.visibilityState)) ||
+    input.anlassraumDrafts.some((draft) => hasPublicVisibility(draft.visibilityState)) ||
+    input.openReviewItems.some((item) => hasPublicVisibility(item.visibilityState));
+  const needsVisibilityReview = input.openReviewItems.some(
+    (item) => item.visibilityState === "public_unverified",
+  );
+
+  const steps: OrganizationFirstRunStep[] = [
+    {
+      id: "organization",
+      title: "Organisation anmelden",
+      description:
+        "Organisation, Rolle und Grunddaten vollständig hinterlegen. Ohne das bleibt der Einstieg auf Status und Antrag begrenzt.",
+      status: input.hasVerifiedMembership
+        ? "done"
+        : input.hasPendingClaim || input.primaryOrganizationId
+          ? "needs_review"
+          : "available",
+      statusLabel: firstRunStatusLabel(
+        input.hasVerifiedMembership
+          ? "done"
+          : input.hasPendingClaim || input.primaryOrganizationId
+            ? "needs_review"
+            : "available",
+      ),
+      ctas: [
+        {
+          id: "complete-organization",
+          label: "Organisation vervollständigen",
+          href: "/account/organization",
+        },
+      ],
+    },
+    {
+      id: "region",
+      title: "Region wählen",
+      description:
+        "Region bewusst auswählen oder im Antrag bestätigen, damit eigene regionale Arbeitsstände sauber getrennt bleiben.",
+      status: input.hasSelectedRegion
+        ? input.hasVerifiedMembership
+          ? "done"
+          : "needs_review"
+        : input.hasPendingClaim || input.primaryOrganizationId
+          ? "available"
+          : "locked",
+      statusLabel: firstRunStatusLabel(
+        input.hasSelectedRegion
+          ? input.hasVerifiedMembership
+            ? "done"
+            : "needs_review"
+          : input.hasPendingClaim || input.primaryOrganizationId
+            ? "available"
+            : "locked",
+      ),
+      ctas: [
+        {
+          id: "choose-region",
+          label: "Region auswählen",
+          href: "/account/organization",
+        },
+      ],
+    },
+    {
+      id: "status",
+      title: "Freischaltung verstehen",
+      description:
+        "Freischaltung zeigt den Arbeitszugang, nicht Checkout oder Payment. Sichtbarkeit und Veröffentlichung bleiben davon getrennt reviewpflichtig.",
+      status: input.hasEntitlement
+        ? "done"
+        : input.hasSelectedRegion
+          ? input.hasVerifiedMembership
+            ? "available"
+            : "needs_review"
+          : "locked",
+      statusLabel: firstRunStatusLabel(
+        input.hasEntitlement
+          ? "done"
+          : input.hasSelectedRegion
+            ? input.hasVerifiedMembership
+              ? "available"
+              : "needs_review"
+            : "locked",
+      ),
+      ctas: [
+        {
+          id: "understand-status",
+          label: "Freischaltung/Status verstehen",
+          href: "/account/organization/dashboard#freischaltung",
+        },
+      ],
+    },
+    {
+      id: "source",
+      title: "Quelle oder Snapshot starten",
+      description:
+        "Explizite Quelle kontrolliert auswerten oder ein Beispiel-Snapshot laden. Kein Live-Crawler, kein Scraping und keine automatische Veröffentlichung.",
+      status: hasSourceStart
+        ? "done"
+        : input.hasReadableRegion
+          ? "available"
+          : input.hasSelectedRegion
+            ? "needs_review"
+            : "locked",
+      statusLabel: firstRunStatusLabel(
+        hasSourceStart
+          ? "done"
+          : input.hasReadableRegion
+            ? "available"
+            : input.hasSelectedRegion
+              ? "needs_review"
+              : "locked",
+      ),
+      ctas: [
+        {
+          id: "evaluate-source",
+          label: "Quelle auswerten",
+          href: `${firstRegionHref}#source-results`,
+        },
+        {
+          id: "load-example-snapshot",
+          label: "Beispiel-Snapshot laden",
+          href: `${firstRegionHref}#source-results`,
+        },
+      ],
+    },
+    {
+      id: "review",
+      title: "Erste Review-Aufgaben sehen",
+      description:
+        "Eigene reviewpflichtige Arbeitsstände erscheinen erst im passenden Scope. Unverified oder Pending sehen keine fremden Reviewdaten.",
+      status: input.openReviewItems.length > 0
+        ? "needs_review"
+        : input.hasReadableRegion
+          ? "available"
+          : input.hasSelectedRegion
+            ? "needs_review"
+            : "locked",
+      statusLabel: firstRunStatusLabel(
+        input.openReviewItems.length > 0
+          ? "needs_review"
+          : input.hasReadableRegion
+            ? "available"
+            : input.hasSelectedRegion
+              ? "needs_review"
+              : "locked",
+      ),
+      ctas: [
+        {
+          id: "open-review-queue",
+          label: "Review Queue öffnen",
+          href: "/account/organization/dashboard#aufgaben",
+        },
+      ],
+    },
+    {
+      id: "dossier",
+      title: "Dossier vorbereiten",
+      description:
+        "Aus reviewpflichtigen Vorschlägen oder bestehenden Arbeitsständen bewusst einen Dossier-Entwurf weiterführen.",
+      status: input.dossierDrafts.length > 0
+        ? "done"
+        : hasDossierPreparationPath
+          ? "available"
+          : input.hasReadableRegion
+            ? "optional"
+            : "locked",
+      statusLabel: firstRunStatusLabel(
+        input.dossierDrafts.length > 0
+          ? "done"
+          : hasDossierPreparationPath
+            ? "available"
+            : input.hasReadableRegion
+              ? "optional"
+              : "locked",
+      ),
+      ctas: [
+        {
+          id: "prepare-dossier",
+          label: "Dossier vorbereiten",
+          href:
+            input.dossierDrafts[0]?.href ??
+            "/account/organization/dashboard#aufgaben",
+        },
+      ],
+    },
+    {
+      id: "anlassraum",
+      title: "Anlassraum vorbereiten",
+      description:
+        "Anlassraum bleibt Gesprächsraum mit Review-Grenzen. Ein Entwurf entsteht nur über einen bewussten Schritt.",
+      status: input.anlassraumDrafts.length > 0
+        ? "done"
+        : hasAnlassraumPreparationPath
+          ? "available"
+          : input.hasReadableRegion
+            ? "optional"
+            : "locked",
+      statusLabel: firstRunStatusLabel(
+        input.anlassraumDrafts.length > 0
+          ? "done"
+          : hasAnlassraumPreparationPath
+            ? "available"
+            : input.hasReadableRegion
+              ? "optional"
+              : "locked",
+      ),
+      ctas: [
+        {
+          id: "prepare-anlassraum",
+          label: "Anlassraum vorbereiten",
+          href:
+            input.anlassraumDrafts[0]?.href ??
+            "/account/organization/dashboard#aufgaben",
+        },
+      ],
+    },
+    {
+      id: "visibility",
+      title: "Sichtbarkeit vorbereiten",
+      description:
+        "Sichtbarkeit bleibt ein bewusster Review-Schritt. Kein Auto-Publish, kein automatisches public_official und keine automatische amtliche Antwort.",
+      status: hasPreparedVisibilityPath
+        ? needsVisibilityReview
+          ? "needs_review"
+          : "done"
+        : hasDossierPreparationPath || hasAnlassraumPreparationPath
+          ? "available"
+          : input.hasReadableRegion
+            ? "optional"
+            : "locked",
+      statusLabel: firstRunStatusLabel(
+        hasPreparedVisibilityPath
+          ? needsVisibilityReview
+            ? "needs_review"
+            : "done"
+          : hasDossierPreparationPath || hasAnlassraumPreparationPath
+            ? "available"
+            : input.hasReadableRegion
+              ? "optional"
+              : "locked",
+      ),
+      ctas: [
+        {
+          id: "prepare-visibility",
+          label: "Sichtbarkeit vorbereiten",
+          href: "/account/organization/dashboard#aufgaben",
+        },
+      ],
+    },
+  ];
+
+  return {
+    intro:
+      "Der Organisationsbereich führt review-first durch Region, Freischaltung, Quelle oder Snapshot, erste Review-Aufgaben sowie Dossier-, Anlassraum- und Sichtbarkeitsschritte.",
+    steps,
+  };
+}
+
 function buildNextActions(params: {
   pendingClaims: OrganizationClaim[];
   hasVerifiedMembership: boolean;
@@ -674,6 +1035,25 @@ export async function buildOrganizationDashboardReadModel(input: {
         }
       : null,
   });
+  const firstRun = buildOrganizationFirstRun({
+    primaryOrganizationId: primaryOrganization?.id ?? null,
+    hasPendingClaim: pendingClaims.length > 0,
+    hasVerifiedMembership: verifiedMemberships.length > 0,
+    hasReadableRegion:
+      readableCockpits.length > 0 ||
+      regionSummary.some((entry) => entry.dashboardAccess),
+    hasSelectedRegion: regionSummary.length > 0,
+    hasEntitlement:
+      entitlementSummary.hasActiveEntitlement || entitlementSummary.hasTrialEntitlement,
+    firstRegionId:
+      readableCockpits[0]?.region.id ??
+      regionSummary.find((entry) => entry.dashboardAccess)?.regionId ??
+      regionSummary[0]?.regionId ??
+      null,
+    openReviewItems: reviewQueue.items,
+    dossierDrafts,
+    anlassraumDrafts,
+  });
   const nextActions = buildNextActions({
     pendingClaims,
     hasVerifiedMembership: verifiedMemberships.length > 0,
@@ -713,6 +1093,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     allowedActions,
     pendingOrganizationClaims: pendingClaims,
     verifiedMemberships: verifiedMemberships.map((membership) => clone(membership)),
+    firstRun,
     openReviewItems: reviewQueue.items,
     reviewQueueSummary: reviewQueue.summary,
     regionalStartingPoints,
