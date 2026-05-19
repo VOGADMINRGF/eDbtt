@@ -2,26 +2,90 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
-import { buildReviewQueueReadModel } from "@features/reviewQueue";
+import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
+import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
 };
 
+type SearchParamsInput =
+  | Promise<Record<string, string | string[] | undefined>>
+  | Record<string, string | string[] | undefined>
+  | undefined;
+
+function readSearchParam(
+  input: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = input[key];
+  if (Array.isArray(value)) return String(value[0] ?? "").trim();
+  return String(value ?? "").trim();
+}
+
+async function resolveSearchParams(searchParams: SearchParamsInput) {
+  const resolved = (await searchParams) ?? {};
+  return {
+    domain: readSearchParam(resolved, "domain") || "all",
+    operationalStatus: readSearchParam(resolved, "status") || "all",
+    regionId: readSearchParam(resolved, "regionId") || "all",
+    organizationId: readSearchParam(resolved, "organizationId") || "all",
+    priority: readSearchParam(resolved, "priority") || "all",
+    assignedToUserId: readSearchParam(resolved, "assignedTo") || "all",
+    visibilityState: readSearchParam(resolved, "visibility") || "all",
+    sort: readSearchParam(resolved, "sort") || "priority",
+  } as const;
+}
+
 function EmptyState() {
   return (
     <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
-      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Noch keine offenen Review-Aufgaben.</p>
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Keine Review-Aufgaben im aktuellen Filter.</p>
       <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-        Sobald reviewpflichtige Signale, Intelligence-Vorschläge, Drafts, Studio-Workspaces,
-        Output-Artefakte oder amtliche Freigabeschritte offen sind, erscheinen sie hier.
+        Passe Filter oder Sortierung an. Beteiligungssignale, Drafts, Source Results,
+        Workspaces und Freigabeschritte bleiben weiter review-first.
       </p>
     </div>
   );
 }
 
-export default async function AdminReviewPage() {
+function FilterSelect({
+  label,
+  name,
+  value,
+  options,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  options: Array<{ value: string; label: string; count?: number }>;
+}) {
+  return (
+    <label className="space-y-2 text-xs text-[rgb(var(--muted))]">
+      {label}
+      <select
+        name={name}
+        defaultValue={value}
+        className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+      >
+        <option value="all">Alle</option>
+        {options.map((option) => (
+          <option key={`${name}:${option.value}`} value={option.value}>
+            {option.label}
+            {typeof option.count === "number" ? ` (${option.count})` : ""}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export default async function AdminReviewPage({
+  searchParams,
+}: {
+  searchParams?: SearchParamsInput;
+} = {}) {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
 
@@ -32,22 +96,36 @@ export default async function AdminReviewPage() {
     redirect("/account/organization/dashboard");
   }
 
-  const readModel = await buildReviewQueueReadModel({
-    mode: "global_operator",
-    userId,
-    isAdmin: true,
-    visibleRegionIds: [],
-    organizationIds: [],
-    canApproveOfficial: true,
-    governanceActor: {
+  const filters = await resolveSearchParams(searchParams);
+  const readModel = await buildReviewQueueReadModel(
+    {
+      mode: "global_operator",
       userId,
-      role: "admin",
       isAdmin: true,
-      scopedOwnerIds: [userId],
-      scopedEntityIds: [userId],
-      personTrust: null,
+      visibleRegionIds: [],
+      organizationIds: [],
+      canApproveOfficial: true,
+      governanceActor: {
+        userId,
+        role: "admin",
+        isAdmin: true,
+        scopedOwnerIds: [userId],
+        scopedEntityIds: [userId],
+        personTrust: null,
+      },
     },
-  });
+    filters as Partial<ReviewQueueFilters>,
+  );
+
+  const activeFilterCount = [
+    readModel.filters.applied.domain !== "all",
+    readModel.filters.applied.operationalStatus !== "all",
+    readModel.filters.applied.regionId !== "all",
+    readModel.filters.applied.organizationId !== "all",
+    readModel.filters.applied.priority !== "all",
+    readModel.filters.applied.assignedToUserId !== "all",
+    readModel.filters.applied.visibilityState !== "all",
+  ].filter(Boolean).length;
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -57,27 +135,47 @@ export default async function AdminReviewPage() {
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">Zentrale Review-Queue</h1>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Betreiberbereich für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
+          Operative Arbeitsliste für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
           Region-Intelligence-Vorschläge, reviewpflichtige Source Results aus expliziten
-          URL-Auswertungen, RegionSignalDrafts,
-          Dossier Studio Workspaces, Output-/Distribution-Artefakte, Create-Handoffs und
-          explizite public_official-Freigaben.
+          URL-Auswertungen, RegionSignalDrafts, Dossier Studio Workspaces, Output-/Distribution-Artefakte,
+          Create-Handoffs und explizite public_official-Freigaben.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Keine Sammelentscheidung, keine automatische Amtlichkeit, keine automatische
-          Dossier-/Anlassraum-Finalisierung.
+          Keine Sammelentscheidung, kein Auto-Publish, kein automatisches public_official und keine
+          automatische Dossier-/Anlassraum-Finalisierung.
         </p>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-4">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Offene Aufgaben
+            Sichtbare Aufgaben
           </p>
           <p className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">{readModel.summary.total}</p>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            Alle Einträge bleiben review-first und verlinken zurück in die bestehenden
-            Fach-Surfaces.
+            {readModel.summary.totalBeforeFilters} insgesamt · {activeFilterCount} aktive Filter
+          </p>
+        </article>
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Hohe Priorität
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">
+            {readModel.summary.highPriorityCount}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Priorität folgt Workflow, Queue-Status und Alterung.
+          </p>
+        </article>
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Zugewiesen
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">
+            {readModel.summary.assignedCount}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            {readModel.summary.readyCount} bereit · {readModel.summary.blockedCount} blockiert
           </p>
         </article>
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
@@ -88,37 +186,20 @@ export default async function AdminReviewPage() {
             {readModel.summary.officialApprovalCount}
           </p>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            public_official bleibt ein expliziter menschlicher Schritt für berechtigte Rollen.
+            public_official bleibt ein expliziter menschlicher Schritt.
           </p>
-        </article>
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Verteilung
-          </p>
-          <div className="mt-3 space-y-2">
-            {readModel.summary.byDomain.length === 0 ? (
-              <p className="text-sm text-[rgb(var(--muted))]">Noch keine Domains mit offenen Aufgaben.</p>
-            ) : (
-              readModel.summary.byDomain.map((entry) => (
-                <div key={entry.domain} className="flex items-center justify-between text-sm">
-                  <span className="text-[rgb(var(--muted))]">{entry.label}</span>
-                  <span className="font-semibold text-[rgb(var(--fg))]">{entry.count}</span>
-                </div>
-              ))
-            )}
-          </div>
         </article>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-              Queue
+              Arbeitsliste
             </p>
             <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-              Die Queue bündelt nur bestehende Review-Runtimes. Entscheidungen bleiben in den
-              jeweiligen Fachpfaden.
+              Filter, Sortierung, Zuweisung, Notizen und sichere Statuswechsel liegen auf derselben
+              zentralen Review-Queue. Fachentscheidungen bleiben in den bestehenden Zielpfaden.
             </p>
           </div>
           <Link
@@ -127,6 +208,93 @@ export default async function AdminReviewPage() {
           >
             Create-Handoffs separat öffnen
           </Link>
+        </div>
+
+        <form className="mt-5 grid gap-3 lg:grid-cols-4" method="GET">
+          <FilterSelect
+            label="Typ"
+            name="domain"
+            value={readModel.filters.applied.domain}
+            options={readModel.filters.options.domains}
+          />
+          <FilterSelect
+            label="Status"
+            name="status"
+            value={readModel.filters.applied.operationalStatus}
+            options={readModel.filters.options.statuses}
+          />
+          <FilterSelect
+            label="Region"
+            name="regionId"
+            value={readModel.filters.applied.regionId}
+            options={readModel.filters.options.regions}
+          />
+          <FilterSelect
+            label="Organisation"
+            name="organizationId"
+            value={readModel.filters.applied.organizationId}
+            options={readModel.filters.options.organizations}
+          />
+          <FilterSelect
+            label="Priorität"
+            name="priority"
+            value={readModel.filters.applied.priority}
+            options={readModel.filters.options.priorities}
+          />
+          <FilterSelect
+            label="Zugewiesen an"
+            name="assignedTo"
+            value={readModel.filters.applied.assignedToUserId}
+            options={readModel.filters.options.assignees.map((option) => ({
+              ...option,
+              label: option.value === userId ? "Mir" : option.label,
+            }))}
+          />
+          <FilterSelect
+            label="Sichtbarkeit"
+            name="visibility"
+            value={readModel.filters.applied.visibilityState}
+            options={readModel.filters.options.visibilities}
+          />
+          <label className="space-y-2 text-xs text-[rgb(var(--muted))]">
+            Sortierung
+            <select
+              name="sort"
+              defaultValue={readModel.filters.applied.sort}
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+            >
+              {readModel.filters.options.sorts.map((option) => (
+                <option key={`sort:${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-wrap items-end gap-2 lg:col-span-4">
+            <button
+              type="submit"
+              className="rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Filter anwenden
+            </button>
+            <Link
+              href="/admin/review"
+              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+            >
+              Zurücksetzen
+            </Link>
+          </div>
+        </form>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {readModel.summary.byOperationalStatus.map((entry) => (
+            <span
+              key={entry.status}
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
+            >
+              {entry.label}: {entry.count}
+            </span>
+          ))}
         </div>
 
         <div className="mt-5 space-y-3">
@@ -148,14 +316,28 @@ export default async function AdminReviewPage() {
                         {item.workflowLabel}
                       </span>
                       <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                        {item.operationalStatusLabel}
+                      </span>
+                      <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                        {item.priorityLabel}
+                      </span>
+                      <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
                         {item.visibilityLabel}
                       </span>
                     </div>
                     <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{item.title}</h2>
                     <p className="max-w-4xl text-sm text-[rgb(var(--muted))]">{item.summary}</p>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {item.regionName ?? "Übergreifend"} · {item.reviewAuthorityLabel}
+                      {item.scopeLabel} · {item.reviewAuthorityLabel} · offen seit {item.pendingHours}h
                     </p>
+                    {item.assignedToUserId ? (
+                      <p className="text-xs text-[rgb(var(--muted))]">
+                        Zugewiesen an {item.assignedToUserId}
+                        {item.assignedAt
+                          ? ` · ${new Date(item.assignedAt).toLocaleString("de-DE")}`
+                          : ""}
+                      </p>
+                    ) : null}
                     {item.sourceSnapshotTemplate ? (
                       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -180,6 +362,9 @@ export default async function AdminReviewPage() {
                     Prüfen
                   </Link>
                 </div>
+
+                <ReviewQueueItemActions item={item} currentUserId={userId} />
+
                 {item.contentReleaseWorkbench ? (
                   <ContentReleaseWorkbenchActions
                     itemId={item.id}

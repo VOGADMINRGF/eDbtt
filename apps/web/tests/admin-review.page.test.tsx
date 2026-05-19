@@ -58,6 +58,21 @@ describe("/admin/review page", () => {
           sourceType: "public_claim",
           visibilityState: "public_reviewed",
           visibilityLabel: "geprüft",
+          scopeLabel: "Berlin Reinickendorf",
+          priorityScore: 98,
+          priorityBucket: "high",
+          priorityLabel: "Hohe Priorität",
+          pendingHours: 4,
+          operationalStatus: "ready",
+          operationalStatusLabel: "Bereit",
+          assignedToUserId: "admin-1",
+          assignedAt: "2026-05-19T09:30:00.000Z",
+          assignedByUserId: "admin-1",
+          noteCount: 1,
+          latestNote: {
+            text: "Freigabe nur nach expliziter Sichtprüfung.",
+            at: "2026-05-19T09:35:00.000Z",
+          },
           createdAt: "2026-05-17T09:00:00.000Z",
           updatedAt: "2026-05-17T09:00:00.000Z",
           reviewRequired: true,
@@ -84,6 +99,18 @@ describe("/admin/review page", () => {
           sourceType: "municipal_news",
           visibilityState: "internal_review",
           visibilityLabel: "reviewpflichtig",
+          scopeLabel: "Berlin Reinickendorf",
+          priorityScore: 81,
+          priorityBucket: "medium",
+          priorityLabel: "Mittlere Priorität",
+          pendingHours: 12,
+          operationalStatus: "in_review",
+          operationalStatusLabel: "In Review",
+          assignedToUserId: null,
+          assignedAt: null,
+          assignedByUserId: null,
+          noteCount: 0,
+          latestNote: null,
           createdAt: "2026-05-18T09:00:00.000Z",
           updatedAt: "2026-05-18T09:00:00.000Z",
           reviewRequired: true,
@@ -157,6 +184,18 @@ describe("/admin/review page", () => {
           sourceType: "create_dossier",
           visibilityState: "internal_review",
           visibilityLabel: "reviewpflichtig",
+          scopeLabel: "Berlin Reinickendorf · Organisation",
+          priorityScore: 77,
+          priorityBucket: "medium",
+          priorityLabel: "Mittlere Priorität",
+          pendingHours: 2,
+          operationalStatus: "open",
+          operationalStatusLabel: "Offen",
+          assignedToUserId: null,
+          assignedAt: null,
+          assignedByUserId: null,
+          noteCount: 0,
+          latestNote: null,
           createdAt: "2026-05-19T09:00:00.000Z",
           updatedAt: "2026-05-19T09:00:00.000Z",
           reviewRequired: true,
@@ -209,8 +248,13 @@ describe("/admin/review page", () => {
         },
       ],
       summary: {
-        total: 1,
+        total: 3,
+        totalBeforeFilters: 3,
         officialApprovalCount: 1,
+        highPriorityCount: 1,
+        assignedCount: 1,
+        blockedCount: 0,
+        readyCount: 1,
         byDomain: [
           {
             domain: "region_source_result",
@@ -228,6 +272,51 @@ describe("/admin/review page", () => {
             count: 1,
           },
         ],
+        byOperationalStatus: [
+          {
+            status: "open",
+            label: "Offen",
+            count: 1,
+          },
+          {
+            status: "in_review",
+            label: "In Review",
+            count: 1,
+          },
+          {
+            status: "ready",
+            label: "Bereit",
+            count: 1,
+          },
+        ],
+      },
+      filters: {
+        applied: {
+          domain: "all",
+          operationalStatus: "all",
+          regionId: "all",
+          organizationId: "all",
+          priority: "all",
+          assignedToUserId: "all",
+          visibilityState: "all",
+          sort: "priority",
+        },
+        options: {
+          domains: [
+            { value: "region_source_result", label: "Quellen-Testresultat", count: 1 },
+            { value: "create_handoff", label: "Create-Handoff", count: 1 },
+          ],
+          statuses: [
+            { value: "open", label: "Offen", count: 1 },
+            { value: "in_review", label: "In Review", count: 1 },
+          ],
+          regions: [{ value: "bezirk-berlin-reinickendorf", label: "Berlin Reinickendorf", count: 3 }],
+          organizations: [{ value: "org-reinickendorf-1", label: "org-reinickendorf-1", count: 1 }],
+          priorities: [{ value: "high", label: "Hohe Priorität", count: 1 }],
+          assignees: [{ value: "admin-1", label: "admin-1", count: 1 }],
+          visibilities: [{ value: "internal_review", label: "reviewpflichtig", count: 2 }],
+          sorts: [{ value: "priority", label: "Priorität", count: 3 }],
+        },
       },
       guardrails: {
         noBulkApprove: true,
@@ -246,6 +335,10 @@ describe("/admin/review page", () => {
     expect(html).toContain("reviewpflichtige Source Results");
     expect(html).toContain("Amtliche Freigabe");
     expect(html).toContain("Nur Publikationsfreigabe oder Admin-Fallback");
+    expect(html).toContain("Arbeitsliste");
+    expect(html).toContain("Hohe Priorität");
+    expect(html).toContain("Zugewiesen");
+    expect(html).toContain("Mir zuweisen");
     expect(html).toContain("Berlin Reinickendorf");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Review-to-Publish Workspace");

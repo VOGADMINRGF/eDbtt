@@ -84,6 +84,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Noch keine Freischaltung aktiv.");
     expect(html).toContain("Noch keine regionale Startlage vorbereitet.");
     expect(html).toContain("Noch keine offenen Reviews.");
+    expect(html).toContain("Hohe Priorität");
     expect(html).toContain("Noch keine Dossier-Entwürfe.");
     expect(html).toContain("Noch keine Anlassräume.");
     expect(html).toContain("Stelle zuerst einen Organisationsantrag oder warte auf Freigabe.");
@@ -280,6 +281,8 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Beteiligungssignale");
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
+    expect(html).toContain("Offen");
+    expect(html).toContain("Mittlere Priorität");
     expect(html).toContain("Sanierung von Schulen im Bezirk");
     expect(html).toContain("Bildung &amp; Schulinfrastruktur Reinickendorf");
     expect(html).toContain("Keine automatische Veröffentlichung");
