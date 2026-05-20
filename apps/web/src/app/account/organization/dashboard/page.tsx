@@ -61,7 +61,7 @@ function organizationTypeLabel(value: OrganizationDashboardReadModel["organizati
     case "school":
       return "Schule";
     case "association":
-      return "Verein / Verband";
+      return "Verein / Verband / Träger";
     case "ngo":
       return "NGO";
     case "civic_initiative":
@@ -184,8 +184,8 @@ export default async function AccountOrganizationDashboardPage() {
             </p>
             <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Organisationsbereich</h1>
             <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-              Hier sieht deine Organisation ihre Region, Freischaltung, offenen Aufgaben und
-              vorbereiteten Themen.
+              Starte mit deiner Organisation, deiner Region oder deinem Wirkraum. Hier sieht deine
+              Organisation ihren Scope, offene Aufgaben und vorbereitete Themen.
             </p>
             <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
               Aussage, Dossier, Anlassraum und Beteiligungssignal bleiben reviewpflichtige
@@ -212,7 +212,8 @@ export default async function AccountOrganizationDashboardPage() {
         {readModel.organization.isOperatorMode ? (
           <div className="mt-4 rounded-2xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900">
             Betreiber-Modus aktiv. `/admin` bleibt Betreiberbereich; dieser Organisationsbereich
-            zeigt den Stand als Fallback, ohne automatische amtliche Freigabe.
+            zeigt denselben Arbeitsstand im Organisationsblick, ohne automatische amtliche
+            Freigabe.
           </div>
         ) : null}
       </header>

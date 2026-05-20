@@ -247,7 +247,7 @@ function accessHint(cockpit: RegionalAdminCockpitReadModel) {
   if (cockpit.accessSummary.verificationStatus === "organization_verified") {
     return "Organisations-verifizierte Rollen bleiben read-only für die eigene Region. Draft-Aktionen folgen erst mit zusätzlicher Unit-Verifizierung.";
   }
-  return "Selbstauskunft, In-Prüfung-Status oder unverifizierte Zuordnungen sind keine Behördenrechte. Standorte wie Rathaus Reinickendorf bleiben optionale Kontextangaben.";
+  return "Selbstauskunft, In-Prüfung-Status oder unverifizierte Zuordnungen sind keine Behördenrechte. Standorte wie Rathaus, Geschäftsstelle oder Redaktionsbüro bleiben optionale Kontextangaben.";
 }
 
 function actionStateLabel(cockpit: RegionalAdminCockpitReadModel) {
@@ -509,8 +509,8 @@ export default async function AdminRegionPage({
               </p>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                 Selbstauskunft ist nicht verifiziert. In Prüfung hat keine Behördenrechte. Eine
-                Publikationsfreigabe ist gesondert erforderlich. Standortangaben wie Rathaus Reinickendorf bleiben
-                optional.
+                Publikationsfreigabe ist gesondert erforderlich. Standortangaben wie Rathaus,
+                Geschäftsstelle oder Redaktionsbüro bleiben optional.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {allowedActions.length > 0 ? (

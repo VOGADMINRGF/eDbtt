@@ -105,7 +105,7 @@ describe("/account/organization/dashboard page", () => {
     const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
 
     expect(html).toContain("Organisationsbereich");
-    expect(html).toContain("Hier sieht deine Organisation ihre Region, Freischaltung, offenen Aufgaben und vorbereiteten Themen.");
+    expect(html).toContain("Starte mit deiner Organisation, deiner Region oder deinem Wirkraum.");
     expect(html).toContain("Geführter Einstieg für deine Organisation");
     expect(html).toContain("Organisation vervollständigen");
     expect(html).toContain("Region auswählen");

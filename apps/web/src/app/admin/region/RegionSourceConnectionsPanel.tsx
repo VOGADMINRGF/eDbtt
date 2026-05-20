@@ -158,8 +158,8 @@ export function RegionSourceConnectionsPanel(props: {
         </p>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Regionale Source-Snapshot-Templates funktionieren für beliebige `regionId` und halten
-          Demo-/Pilotstände reproduzierbar. Reinickendorf darf als Beispiel-Seed dienen, ist aber
-          keine Produktgrenze.
+          Demo-/Pilotstände reproduzierbar. Beispiel-Seeds bleiben optional und markieren keinen
+          Produkt-Sonderfall.
         </p>
 
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
@@ -185,7 +185,7 @@ export function RegionSourceConnectionsPanel(props: {
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
               className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2 text-sm"
-              placeholder="z. B. Bezirksamt Reinickendorf News"
+              placeholder="z. B. Stadtportal Nord, Kreisverwaltung News oder Lokalredaktion Mitte"
             />
           </label>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
