@@ -146,6 +146,26 @@ export default async function AdminReviewPage({
         </p>
       </header>
 
+      <section
+        data-testid="admin-review-journey"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Review-to-Visible Journey
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          Review, Vorschau, Sichtbarkeit und Widerruf laufen auf demselben Pfad
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Aus einem reviewpflichtigen Item werden hier bewusst Dossier oder Anlassraum vorbereitet,
+          danach Vorschau, Sichtbarkeit und erst im sichtbaren Zustand Public URL, QR und Share.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Sichtbar heißt nicht automatisch amtlich. `public_official` bleibt ausschließlich Official
+          Release. Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.
+        </p>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-4">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">

@@ -618,6 +618,11 @@ export default async function AccountOrganizationDashboardPage() {
           Sichtbar heißt nicht automatisch amtlich. Öffentliche URL, Share-Link und QR erscheinen
           erst nach bewusster Sichtbarkeit.
         </p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          Nächster Schritt: Vorschau im Review-to-Publish-Workspace prüfen. Dort wird Sichtbarkeit
+          auch wieder zurückgenommen oder archiviert, ohne Hard Delete und ohne automatische
+          amtliche Freigabe.
+        </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
             <p className="text-xs text-[rgb(var(--muted))]">Vorbereitet</p>

@@ -109,6 +109,41 @@ export default async function AdminRegionsPage() {
         </p>
       </header>
 
+      <section
+        data-testid="admin-regions-journey"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Demo- und QA-Journey
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          Von Region und Quelle bis zur sichtbaren Veröffentlichung
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Diese Übersicht startet die bestehende Produktkette: Region wählen, Quelle oder
+          Snapshot prüfen, Review Queue öffnen, Dossier oder Anlassraum vorbereiten, Vorschau
+          ansehen, bewusst sichtbar machen und erst dann Public URL, QR oder Share nutzen.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Sichtbar heißt nicht automatisch amtlich. Sichtbarkeit kann im bestehenden Review-to-Publish-Workspace
+          später wieder zurückgenommen oder archiviert werden.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/review"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            Review-Queue öffnen
+          </Link>
+          <Link
+            href="/account/organization/dashboard"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            Organisations-Journey prüfen
+          </Link>
+        </div>
+      </section>
+
       <section data-testid="admin-regions-summary" className="grid gap-3 md:grid-cols-5">
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Produktive Regionen</p>

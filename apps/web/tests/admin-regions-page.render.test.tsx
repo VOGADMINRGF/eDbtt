@@ -231,12 +231,17 @@ describe("admin-regions-page.render", () => {
     const html = renderToStaticMarkup(await AdminRegionsPage());
 
     expect(html).toContain('data-testid="admin-regions-page"');
+    expect(html).toContain('data-testid="admin-regions-journey"');
     expect(html).toContain('data-testid="admin-regions-summary"');
     expect(html).toContain('data-testid="admin-regions-productive"');
     expect(html).toContain('data-testid="admin-regions-pilot-fixtures"');
     expect(html).toContain('data-testid="admin-regions-registry-missing-state"');
     expect(html).toContain('data-testid="admin-regions-intelligence-sources"');
     expect(html).toContain("`/admin/regions` ist die produktive Übersicht.");
+    expect(html).toContain("Demo- und QA-Journey");
+    expect(html).toContain("Von Region und Quelle bis zur sichtbaren Veröffentlichung");
+    expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
+    expect(html).toContain("Organisations-Journey prüfen");
     expect(html).toContain("Operative Regionen aus der RegionRegistry");
     expect(html).toContain("Getrennt markierte manuelle und Pilotregionen");
     expect(html).toContain("Konfigurierbare regionale Quellen, ohne Render-Abhängigkeit");

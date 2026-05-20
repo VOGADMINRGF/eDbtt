@@ -458,6 +458,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Sichtbare Inhalte");
     expect(html).toContain("Öffentliche URL");
     expect(html).toContain("Share-Link");
+    expect(html).toContain("Dort wird Sichtbarkeit auch wieder zurückgenommen oder archiviert");
     expect(html).toContain("Offen");
     expect(html).toContain("Mittlere Priorität");
     expect(html).toContain("Sanierung von Schulen im Bezirk");

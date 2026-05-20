@@ -381,6 +381,35 @@ export default async function AdminRegionPage({
         </p>
       </header>
 
+      <section
+        data-testid="admin-region-journey"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Nächster Schritt
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          Quelle oder Snapshot prüfen, dann bewusst in Review und Sichtbarkeit gehen
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Hier entstehen reviewpflichtige Signals, Claims, Themencluster sowie Dossier- und
+          Anlassraum-Vorschläge. Noch nichts ist sichtbar oder automatisch amtlich.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Der nächste operative Schritt liegt in der Review Queue: dort wird aus dem Review-Item
+          eine Vorschau, danach eine bewusste Sichtbarkeit und erst dann Public URL, QR oder
+          Share. Sichtbarkeit kann anschließend wieder zurückgenommen oder archiviert werden.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/review"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            Review-Queue öffnen
+          </Link>
+        </div>
+      </section>
+
       {cockpit ? (
         <>
           <section data-testid="admin-region-summary" className="grid gap-3 md:grid-cols-4">
