@@ -49,7 +49,7 @@ type RegionSourceTestResultDoc = {
   updatedAt: Date;
 };
 
-export type RegionSourceConnectionRuntimeRepo = {
+export type SourceConnectionRepository = {
   listConnections(regionId?: string | null): Promise<RegionSourceConnection[]>;
   getConnectionById(id: string): Promise<RegionSourceConnection | null>;
   upsertConnection(connection: RegionSourceConnection): Promise<void>;
@@ -62,7 +62,9 @@ export type RegionSourceConnectionRuntimeRepo = {
   saveTestResult(result: RegionSourceTestResult): Promise<void>;
 };
 
-let repoSingleton: RegionSourceConnectionRuntimeRepo | null = null;
+export type RegionSourceConnectionRuntimeRepo = SourceConnectionRepository;
+
+let repoSingleton: SourceConnectionRepository | null = null;
 let indexesReady = false;
 
 type RegionSourceUrlSnapshot = {
@@ -412,7 +414,7 @@ function mapResultDoc(doc: RegionSourceTestResultDoc | null): RegionSourceTestRe
   return clone(doc.result);
 }
 
-export function createMongoRegionSourceConnectionRuntimeRepo(): RegionSourceConnectionRuntimeRepo {
+export function createMongoRegionSourceConnectionRuntimeRepo(): SourceConnectionRepository {
   return {
     async listConnections(regionId) {
       await ensureMongoIndexes();
@@ -498,7 +500,7 @@ export function createMongoRegionSourceConnectionRuntimeRepo(): RegionSourceConn
 export function createInMemoryRegionSourceConnectionRuntimeRepo(seed?: {
   connections?: RegionSourceConnection[];
   results?: RegionSourceTestResult[];
-}): RegionSourceConnectionRuntimeRepo {
+}): SourceConnectionRepository {
   const connections = new Map<string, RegionSourceConnection>();
   const results = new Map<string, RegionSourceTestResult>();
   for (const connection of seed?.connections ?? []) {
@@ -559,9 +561,13 @@ function getRepo() {
 }
 
 export function setRegionSourceConnectionRuntimeRepoForTests(
-  repo: RegionSourceConnectionRuntimeRepo | null,
+  repo: SourceConnectionRepository | null,
 ) {
   repoSingleton = repo;
+}
+
+export function getSourceConnectionRepository(): SourceConnectionRepository {
+  return getRepo();
 }
 
 function confidenceForType(sourceType: RegionSourceConnectionType) {

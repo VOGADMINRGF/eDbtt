@@ -86,6 +86,19 @@ export type RelatedTopicPageTarget = {
   visibilityLabel: string;
 };
 
+export type PublicTopicPageRepository = {
+  getBySlug(slug: string): Promise<ContentReleaseTargetRecord | null>;
+  getVisibleBySlug(slug: string): Promise<PublicTopicPage | null>;
+  getPreviewableBySlug(params: {
+    slug: string;
+    allowInternalPreview: boolean;
+  }): Promise<PublicTopicPage | null>;
+  getRelatedTopicPageForDossier(dossierId: string): Promise<RelatedTopicPageTarget | null>;
+  listVisibleTopicPagesForAnlassraumIds(
+    anlassraumIds: string[],
+  ): Promise<Map<string, RelatedTopicPageTarget>>;
+};
+
 const TOPIC_PAGE_GUARDRAILS: PublicTopicPage["guardrails"] = {
   noAutoPublish: true,
   noAutoPublicOfficial: true,
@@ -335,4 +348,14 @@ export async function listVisibleTopicPagesForAnlassraumIds(anlassraumIds: strin
     });
   }
   return result;
+}
+
+export function getPublicTopicPageRepository(): PublicTopicPageRepository {
+  return {
+    getBySlug: getPublicTopicPageRecordBySlug,
+    getVisibleBySlug: buildVisiblePublicTopicPageBySlug,
+    getPreviewableBySlug: buildPreviewablePublicTopicPageBySlug,
+    getRelatedTopicPageForDossier,
+    listVisibleTopicPagesForAnlassraumIds,
+  };
 }

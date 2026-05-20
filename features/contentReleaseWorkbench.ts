@@ -255,7 +255,7 @@ export type UpdateContentReleaseTargetInput = {
   note?: string | null;
 };
 
-type ContentReleaseWorkbenchRepo = {
+export type ContentReleaseRepository = {
   getTargetRecord(
     sourceKind: ContentReleaseSourceKind,
     sourceResultId: string,
@@ -275,10 +275,12 @@ type ContentReleaseWorkbenchRepo = {
   listAuditEvents(recordId: string): Promise<ContentReleaseAuditEvent[]>;
 };
 
+export type ContentReleaseWorkbenchRepo = ContentReleaseRepository;
+
 const CONTENT_RELEASE_TARGETS_COLLECTION = "content_release_workbench_targets";
 const CONTENT_RELEASE_AUDIT_COLLECTION = "content_release_workbench_audit";
 
-let repoSingleton: ContentReleaseWorkbenchRepo | null = null;
+let repoSingleton: ContentReleaseRepository | null = null;
 let indexesReady = false;
 
 function clone<T>(value: T): T {
@@ -1079,7 +1081,7 @@ function createMongoRepo(): ContentReleaseWorkbenchRepo {
 export function createInMemoryContentReleaseWorkbenchRepo(seed?: {
   records?: ContentReleaseTargetRecord[];
   auditEvents?: ContentReleaseAuditEvent[];
-}): ContentReleaseWorkbenchRepo {
+}): ContentReleaseRepository {
   const records = new Map<string, ContentReleaseTargetRecord>();
   const auditEvents = new Map<string, ContentReleaseAuditEvent>();
   for (const record of seed?.records ?? []) {
@@ -1143,10 +1145,14 @@ function getRepo() {
 }
 
 export function setContentReleaseWorkbenchRepoForTests(
-  repo: ContentReleaseWorkbenchRepo | null,
+  repo: ContentReleaseRepository | null,
 ) {
   repoSingleton = repo;
   indexesReady = false;
+}
+
+export function getContentReleaseRepository(): ContentReleaseRepository {
+  return getRepo();
 }
 
 function buildRecord(params: {

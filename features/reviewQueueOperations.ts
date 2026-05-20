@@ -54,7 +54,7 @@ export type ReviewQueueOperationAuditEvent = {
   nextAssignedToUserId: string | null;
 };
 
-type ReviewQueueOperationRepo = {
+export type ReviewQueueOperationsRepository = {
   saveRecord(record: ReviewQueueOperationRecord): Promise<void>;
   getRecord(itemId: string): Promise<ReviewQueueOperationRecord | null>;
   listRecords(): Promise<ReviewQueueOperationRecord[]>;
@@ -62,10 +62,12 @@ type ReviewQueueOperationRepo = {
   listAuditEvents(itemId: string): Promise<ReviewQueueOperationAuditEvent[]>;
 };
 
+export type ReviewQueueOperationRepo = ReviewQueueOperationsRepository;
+
 const RECORDS_COLLECTION = "review_queue_operation_records";
 const AUDIT_COLLECTION = "review_queue_operation_audit";
 
-let repoSingleton: ReviewQueueOperationRepo | null = null;
+let repoSingleton: ReviewQueueOperationsRepository | null = null;
 let indexesReady = false;
 
 function clone<T>(value: T): T {
@@ -158,7 +160,7 @@ function ensureMutable(record: ReviewQueueOperationRecord, action: ReviewQueueOp
   throw new Error("review_queue_item_archived");
 }
 
-function createMongoRepo(): ReviewQueueOperationRepo {
+function createMongoRepo(): ReviewQueueOperationsRepository {
   return {
     async saveRecord(record) {
       await ensureIndexes();
@@ -217,7 +219,7 @@ function createMongoRepo(): ReviewQueueOperationRepo {
 export function createInMemoryReviewQueueOperationRepo(seed?: {
   records?: ReviewQueueOperationRecord[];
   auditEvents?: ReviewQueueOperationAuditEvent[];
-}): ReviewQueueOperationRepo {
+}): ReviewQueueOperationsRepository {
   const records = new Map<string, ReviewQueueOperationRecord>();
   const auditEvents = new Map<string, ReviewQueueOperationAuditEvent>();
   for (const record of seed?.records ?? []) {
@@ -259,7 +261,11 @@ function getRepo() {
   return repoSingleton;
 }
 
-export function setReviewQueueOperationRepoForTests(repo: ReviewQueueOperationRepo | null) {
+export function getReviewQueueOperationsRepository(): ReviewQueueOperationsRepository {
+  return getRepo();
+}
+
+export function setReviewQueueOperationRepoForTests(repo: ReviewQueueOperationsRepository | null) {
   repoSingleton = repo;
   indexesReady = false;
 }

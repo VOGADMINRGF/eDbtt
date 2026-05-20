@@ -62,15 +62,17 @@ export type PersistedCreateHandoffContext = {
   anlassraumId: string | null;
 };
 
-type PersistedCreateHandoffRepo = {
+export type CreateHandoffRepository = {
   save(record: PersistedCreateHandoffRecord): Promise<void>;
   get(id: string): Promise<PersistedCreateHandoffRecord | null>;
   list(): Promise<PersistedCreateHandoffRecord[]>;
 };
 
+export type PersistedCreateHandoffRepo = CreateHandoffRepository;
+
 const COLLECTION = "create_handoff_review_items";
 
-let repoSingleton: PersistedCreateHandoffRepo | null = null;
+let repoSingleton: CreateHandoffRepository | null = null;
 let indexesReady = false;
 
 function clone<T>(value: T): T {
@@ -195,7 +197,7 @@ export async function resolvePersistedCreateHandoffContext(
   return resolveGraphMatchContext(input.draft.graphMatches);
 }
 
-function createMongoRepo(): PersistedCreateHandoffRepo {
+function createMongoRepo(): CreateHandoffRepository {
   return {
     async save(record) {
       await ensureIndexes();
@@ -235,7 +237,7 @@ function createMongoRepo(): PersistedCreateHandoffRepo {
 
 export function createInMemoryPersistedCreateHandoffRepo(seed?: {
   records?: PersistedCreateHandoffRecord[];
-}): PersistedCreateHandoffRepo {
+}): CreateHandoffRepository {
   const records = new Map<string, PersistedCreateHandoffRecord>();
   for (const record of seed?.records ?? []) {
     records.set(record.id, clone(record));
@@ -264,7 +266,11 @@ function getRepo() {
   return repoSingleton;
 }
 
-export function setPersistedCreateHandoffRepoForTests(repo: PersistedCreateHandoffRepo | null) {
+export function getCreateHandoffRepository(): CreateHandoffRepository {
+  return getRepo();
+}
+
+export function setPersistedCreateHandoffRepoForTests(repo: CreateHandoffRepository | null) {
   repoSingleton = repo;
   indexesReady = false;
 }
