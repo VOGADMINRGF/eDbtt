@@ -42,8 +42,13 @@ import {
 } from "./region/server/participationSignalReviewRuntime";
 import {
   REVIEW_QUEUE_OPERATION_STATUSES,
+  getReviewQueueOperationPersistenceState,
+  listReviewQueueOperationAuditEventsForItems,
   listReviewQueueOperationRecords,
+  reviewQueueOperationActionLabel,
   reviewQueueOperationalStatusLabel,
+  type ReviewQueueOperationAuditEvent,
+  type ReviewQueueOperationPersistenceState,
   type ReviewQueueOperationalStatus,
 } from "./reviewQueueOperations";
 
@@ -104,6 +109,7 @@ export type ReviewQueueItem = {
     text: string;
     at: string;
   } | null;
+  activityTrail: ReviewQueueActivityEntry[];
   createdAt: string;
   updatedAt: string;
   reviewRequired: true;
@@ -141,7 +147,23 @@ type ReviewQueueItemCore = Omit<
   | "assignedByUserId"
   | "noteCount"
   | "latestNote"
+  | "activityTrail"
 >;
+
+export type ReviewQueueActivityEntry = {
+  id: string;
+  action: ReviewQueueOperationAuditEvent["action"];
+  actionLabel: string;
+  byUserId: string;
+  at: string;
+  note: string | null;
+  previousOperationalStatus: ReviewQueueOperationalStatus;
+  previousOperationalStatusLabel: string;
+  nextOperationalStatus: ReviewQueueOperationalStatus;
+  nextOperationalStatusLabel: string;
+  previousAssignedToUserId: string | null;
+  nextAssignedToUserId: string | null;
+};
 
 export type ReviewQueueSummaryEntry = {
   domain: ReviewQueueDomain;
@@ -182,6 +204,7 @@ export type ReviewQueueQuery = Partial<ReviewQueueFilters>;
 
 export type ReviewQueueReadModel = {
   items: ReviewQueueItem[];
+  operationsPersistence: ReviewQueueOperationPersistenceState;
   summary: {
     total: number;
     totalBeforeFilters: number;
@@ -966,6 +989,7 @@ function normalizeReviewQueueQuery(query?: ReviewQueueQuery): ReviewQueueFilters
 function decorateReviewQueueItem(
   item: ReviewQueueItemCore,
   operation: Awaited<ReturnType<typeof listReviewQueueOperationRecords>>[number] | undefined,
+  activityTrail: ReviewQueueActivityEntry[],
 ): ReviewQueueItem {
   const operationalStatus = operation?.operationalStatus ?? "open";
   const priorityScore = priorityScoreFor(item, operationalStatus);
@@ -992,7 +1016,29 @@ function decorateReviewQueueItem(
             at: latestNoteAt,
           }
         : null,
+    activityTrail,
   };
+}
+
+function mapOperationActivityTrail(
+  auditEvents: ReviewQueueOperationAuditEvent[] | undefined,
+): ReviewQueueActivityEntry[] {
+  return (auditEvents ?? []).map((event) => ({
+    id: event.id,
+    action: event.action,
+    actionLabel: reviewQueueOperationActionLabel(event.action),
+    byUserId: event.byUserId,
+    at: event.at,
+    note: event.note ?? null,
+    previousOperationalStatus: event.previousOperationalStatus,
+    previousOperationalStatusLabel: reviewQueueOperationalStatusLabel(
+      event.previousOperationalStatus,
+    ),
+    nextOperationalStatus: event.nextOperationalStatus,
+    nextOperationalStatusLabel: reviewQueueOperationalStatusLabel(event.nextOperationalStatus),
+    previousAssignedToUserId: event.previousAssignedToUserId,
+    nextAssignedToUserId: event.nextAssignedToUserId,
+  }));
 }
 
 function itemMatchesFilters(item: ReviewQueueItem, filters: ReviewQueueFilters) {
@@ -1253,7 +1299,17 @@ export async function buildReviewQueueReadModel(
   const operationMap = new Map(
     (await listReviewQueueOperationRecords()).map((record) => [record.itemId, record]),
   );
-  const decorated = coreItems.map((item) => decorateReviewQueueItem(item, operationMap.get(item.id)));
+  const operationAuditMap = await listReviewQueueOperationAuditEventsForItems(
+    coreItems.map((item) => item.id),
+    3,
+  );
+  const decorated = coreItems.map((item) =>
+    decorateReviewQueueItem(
+      item,
+      operationMap.get(item.id),
+      mapOperationActivityTrail(operationAuditMap[item.id]),
+    ),
+  );
   const filtered = decorated.filter((item) => itemMatchesFilters(item, filters));
   const sorted = sortReviewQueueItems(filters.sort, filtered);
   const filterOptions = buildFilterOptions(decorated);
@@ -1266,6 +1322,7 @@ export async function buildReviewQueueReadModel(
 
   return {
     items: sorted,
+    operationsPersistence: getReviewQueueOperationPersistenceState(),
     summary: {
       total: sorted.length,
       totalBeforeFilters: decorated.length,

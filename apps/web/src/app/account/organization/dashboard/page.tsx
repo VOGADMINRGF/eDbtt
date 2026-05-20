@@ -131,6 +131,13 @@ export default async function AccountOrganizationDashboardPage() {
     isAdmin,
     actorRole: isAdmin ? "admin" : null,
   });
+  const operationsPersistence = readModel.reviewQueueOperationsPersistence ?? {
+    mode: "in_memory_fallback",
+    label: "In-Memory-Fallback",
+    summary:
+      "Fallback-Zustand ohne dauerhafte Produktionswahrheit. Eigene Review-Operationen sind dann nur pro Runtime vorhanden.",
+    productionTruth: false,
+  };
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -393,6 +400,16 @@ export default async function AccountOrganizationDashboardPage() {
             ))}
           </div>
 
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              Operations-Persistenz
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+              {operationsPersistence.label}
+            </p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{operationsPersistence.summary}</p>
+          </div>
+
           <div className="mt-5 space-y-3">
             {readModel.openReviewItems.length === 0 ? (
               <EmptyState
@@ -420,6 +437,15 @@ export default async function AccountOrganizationDashboardPage() {
                   {item.assignedToUserId ? (
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                       Zugewiesen an {item.assignedToUserId}
+                    </p>
+                  ) : null}
+                  {(item.activityTrail ?? [])[0] ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Letzte Aktivität: {(item.activityTrail ?? [])[0]?.actionLabel} ·{" "}
+                      {(item.activityTrail ?? [])[0]?.byUserId}
+                      {(item.activityTrail ?? [])[0]?.note
+                        ? ` · ${(item.activityTrail ?? [])[0]?.note}`
+                        : ""}
                     </p>
                   ) : null}
                   <Link href={item.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">

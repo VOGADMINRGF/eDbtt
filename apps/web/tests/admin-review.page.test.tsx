@@ -73,6 +73,22 @@ describe("/admin/review page", () => {
             text: "Freigabe nur nach expliziter Sichtprüfung.",
             at: "2026-05-19T09:35:00.000Z",
           },
+          activityTrail: [
+            {
+              id: "activity-1",
+              action: "mark_ready",
+              actionLabel: "Als bereit markiert",
+              byUserId: "admin-1",
+              at: "2026-05-19T09:35:00.000Z",
+              note: "Freigabe nur nach expliziter Sichtprüfung.",
+              previousOperationalStatus: "in_review",
+              previousOperationalStatusLabel: "In Review",
+              nextOperationalStatus: "ready",
+              nextOperationalStatusLabel: "Bereit",
+              previousAssignedToUserId: "admin-1",
+              nextAssignedToUserId: "admin-1",
+            },
+          ],
           createdAt: "2026-05-17T09:00:00.000Z",
           updatedAt: "2026-05-17T09:00:00.000Z",
           reviewRequired: true,
@@ -111,6 +127,7 @@ describe("/admin/review page", () => {
           assignedByUserId: null,
           noteCount: 0,
           latestNote: null,
+          activityTrail: [],
           createdAt: "2026-05-18T09:00:00.000Z",
           updatedAt: "2026-05-18T09:00:00.000Z",
           reviewRequired: true,
@@ -237,6 +254,7 @@ describe("/admin/review page", () => {
           assignedByUserId: null,
           noteCount: 0,
           latestNote: null,
+          activityTrail: [],
           createdAt: "2026-05-19T09:00:00.000Z",
           updatedAt: "2026-05-19T09:00:00.000Z",
           reviewRequired: true,
@@ -329,6 +347,17 @@ describe("/admin/review page", () => {
           },
         },
       ],
+      operationsPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Operations-Store",
+        summary:
+          "Zuweisungen, Notizen und Statuswechsel liegen dauerhaft in den Review-Queue-Collections und bleiben über Restart/Deployment rekonstruierbar.",
+        repositoryInterface: "ReviewQueueOperationsRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
       summary: {
         total: 3,
         totalBeforeFilters: 3,
@@ -414,6 +443,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Zentrale Review-Queue");
     expect(html).toContain("Review-to-Visible Journey");
     expect(html).toContain("Review, Vorschau, Sichtbarkeit und Widerruf laufen auf demselben Pfad");
+    expect(html).toContain("Operations-Persistenz");
+    expect(html).toContain("Persistenter Operations-Store");
     expect(html).toContain("Keine Sammelentscheidung");
     expect(html).toContain("Region-Intelligence-Vorschläge");
     expect(html).toContain("reviewpflichtige Source Results");
@@ -425,6 +456,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Mir zuweisen");
     expect(html).toContain("Berlin Reinickendorf");
     expect(html).toContain("Prüfen");
+    expect(html).toContain("Letzte Aktivität");
+    expect(html).toContain("Als bereit markiert");
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");

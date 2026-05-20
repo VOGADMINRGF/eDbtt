@@ -19,6 +19,7 @@ import {
 } from "@features/dossier/server/studioPersistence";
 import { buildReviewQueueReadModel } from "@features/reviewQueue";
 import {
+  applyReviewQueueOperation,
   createInMemoryReviewQueueOperationRepo,
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
@@ -646,6 +647,20 @@ describe("review queue readmodel", () => {
             updatedAt: "2026-05-19T10:05:00.000Z",
           },
         ],
+        auditEvents: [
+          {
+            id: "review-queue-audit-1",
+            itemId: "region_source_result:source-result-1",
+            action: "block",
+            byUserId: "admin-1",
+            at: "2026-05-19T10:05:00.000Z",
+            note: "Regionenzuordnung vor Sichtbarkeit klären.",
+            previousOperationalStatus: "open",
+            nextOperationalStatus: "blocked",
+            previousAssignedToUserId: null,
+            nextAssignedToUserId: "admin-2",
+          },
+        ],
       }),
     );
 
@@ -675,6 +690,10 @@ describe("review queue readmodel", () => {
 
     expect(readModel.summary.total).toBe(1);
     expect(readModel.summary.blockedCount).toBe(1);
+    expect(readModel.operationsPersistence).toMatchObject({
+      mode: "in_memory_fallback",
+      productionTruth: false,
+    });
     expect(readModel.items[0]).toMatchObject({
       id: "region_source_result:source-result-1",
       operationalStatus: "blocked",
@@ -683,7 +702,114 @@ describe("review queue readmodel", () => {
       latestNote: {
         text: "Regionenzuordnung vor Sichtbarkeit klären.",
       },
-      priorityBucket: "medium",
+      priorityBucket: "high",
+    });
+    expect(readModel.items[0]?.activityTrail).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "block",
+          actionLabel: "Blockiert",
+          note: "Regionenzuordnung vor Sichtbarkeit klären.",
+          nextOperationalStatus: "blocked",
+          nextAssignedToUserId: "admin-2",
+        }),
+      ]),
+    );
+  });
+
+  it("changes operational status without ever turning review items into public_official", async () => {
+    await applyReviewQueueOperation({
+      itemId: "region_source_result:source-result-1",
+      action: "request_changes",
+      requestedByUserId: "admin-1",
+      note: "Bitte offene Fragen vor Sichtbarkeit klären.",
+    });
+
+    let readModel = await buildReviewQueueReadModel({
+      mode: "global_operator",
+      userId: "admin-1",
+      isAdmin: true,
+      visibleRegionIds: [],
+      organizationIds: [],
+      canApproveOfficial: true,
+      governanceActor: {
+        userId: "admin-1",
+        role: "admin",
+        isAdmin: true,
+        scopedOwnerIds: ["admin-1"],
+        scopedEntityIds: ["admin-1"],
+        personTrust: null,
+      },
+    });
+
+    expect(
+      readModel.items.find((item) => item.id === "region_source_result:source-result-1"),
+    ).toMatchObject({
+      operationalStatus: "request_changes",
+      visibilityState: "internal_review",
+    });
+
+    setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
+    await applyReviewQueueOperation({
+      itemId: "region_source_result:source-result-1",
+      action: "block",
+      requestedByUserId: "admin-1",
+      note: "Blockiert bis Zuständigkeit geklärt ist.",
+    });
+
+    readModel = await buildReviewQueueReadModel({
+      mode: "global_operator",
+      userId: "admin-1",
+      isAdmin: true,
+      visibleRegionIds: [],
+      organizationIds: [],
+      canApproveOfficial: true,
+      governanceActor: {
+        userId: "admin-1",
+        role: "admin",
+        isAdmin: true,
+        scopedOwnerIds: ["admin-1"],
+        scopedEntityIds: ["admin-1"],
+        personTrust: null,
+      },
+    });
+
+    expect(
+      readModel.items.find((item) => item.id === "region_source_result:source-result-1"),
+    ).toMatchObject({
+      operationalStatus: "blocked",
+      visibilityState: "internal_review",
+    });
+
+    setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
+    await applyReviewQueueOperation({
+      itemId: "region_source_result:source-result-1",
+      action: "archive",
+      requestedByUserId: "admin-1",
+    });
+
+    readModel = await buildReviewQueueReadModel({
+      mode: "global_operator",
+      userId: "admin-1",
+      isAdmin: true,
+      visibleRegionIds: [],
+      organizationIds: [],
+      canApproveOfficial: true,
+      governanceActor: {
+        userId: "admin-1",
+        role: "admin",
+        isAdmin: true,
+        scopedOwnerIds: ["admin-1"],
+        scopedEntityIds: ["admin-1"],
+        personTrust: null,
+      },
+    });
+
+    expect(
+      readModel.items.find((item) => item.id === "region_source_result:source-result-1"),
+    ).toMatchObject({
+      operationalStatus: "archived",
+      visibilityState: "internal_review",
     });
   });
 });

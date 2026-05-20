@@ -54,12 +54,41 @@ export type ReviewQueueOperationAuditEvent = {
   nextAssignedToUserId: string | null;
 };
 
+export const REVIEW_QUEUE_OPERATION_PERSISTENCE_MODES = [
+  "persistent_primary",
+  "in_memory_fallback",
+] as const;
+
+export type ReviewQueueOperationPersistenceMode =
+  (typeof REVIEW_QUEUE_OPERATION_PERSISTENCE_MODES)[number];
+
+export type ReviewQueueOperationPersistenceState = {
+  mode: ReviewQueueOperationPersistenceMode;
+  label: string;
+  summary: string;
+  repositoryInterface: "ReviewQueueOperationsRepository";
+  storeKind: "mongo_collection" | "in_memory";
+  productionTruth: boolean;
+  restartReconstructable: boolean;
+  deploymentReconstructable: boolean;
+};
+
+export type ReviewQueueOperationAuditByItem = Record<
+  string,
+  ReviewQueueOperationAuditEvent[]
+>;
+
 export type ReviewQueueOperationsRepository = {
   saveRecord(record: ReviewQueueOperationRecord): Promise<void>;
   getRecord(itemId: string): Promise<ReviewQueueOperationRecord | null>;
   listRecords(): Promise<ReviewQueueOperationRecord[]>;
   appendAuditEvent(event: ReviewQueueOperationAuditEvent): Promise<void>;
   listAuditEvents(itemId: string): Promise<ReviewQueueOperationAuditEvent[]>;
+  listAuditEventsForItems(
+    itemIds: string[],
+    limitPerItem?: number,
+  ): Promise<ReviewQueueOperationAuditByItem>;
+  getPersistenceState(): ReviewQueueOperationPersistenceState;
 };
 
 export type ReviewQueueOperationRepo = ReviewQueueOperationsRepository;
@@ -72,6 +101,10 @@ let indexesReady = false;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
 }
 
 function nowIso() {
@@ -131,6 +164,29 @@ function statusLabel(status: ReviewQueueOperationalStatus) {
   }
 }
 
+function actionLabel(action: ReviewQueueOperationAction) {
+  switch (action) {
+    case "assign":
+      return "Zugewiesen";
+    case "unassign":
+      return "Zuweisung entfernt";
+    case "add_note":
+      return "Notiz ergänzt";
+    case "request_changes":
+      return "Änderungen angefragt";
+    case "mark_in_review":
+      return "In Review gesetzt";
+    case "mark_ready":
+      return "Als bereit markiert";
+    case "archive":
+      return "Archiviert";
+    case "block":
+      return "Blockiert";
+    default:
+      return action;
+  }
+}
+
 function nextStatusForAction(
   currentStatus: ReviewQueueOperationalStatus,
   action: ReviewQueueOperationAction,
@@ -158,6 +214,24 @@ function ensureMutable(record: ReviewQueueOperationRecord, action: ReviewQueueOp
   if (record.operationalStatus !== "archived") return;
   if (action === "add_note") return;
   throw new Error("review_queue_item_archived");
+}
+
+function buildPersistenceState(
+  mode: ReviewQueueOperationPersistenceMode,
+): ReviewQueueOperationPersistenceState {
+  const persistent = mode === "persistent_primary";
+  return {
+    mode,
+    label: persistent ? "Persistenter Operations-Store" : "In-Memory-Fallback",
+    summary: persistent
+      ? "Zuweisungen, Notizen und Statuswechsel liegen dauerhaft in den Review-Queue-Collections und bleiben über Restart/Deployment rekonstruierbar."
+      : "Nur Dev-/Test-/Runtime-Fallback: der Operations-Overlay lebt pro Prozess und darf nicht als Produktionswahrheit ausgegeben werden.",
+    repositoryInterface: "ReviewQueueOperationsRepository",
+    storeKind: persistent ? "mongo_collection" : "in_memory",
+    productionTruth: persistent,
+    restartReconstructable: persistent,
+    deploymentReconstructable: persistent,
+  };
 }
 
 function createMongoRepo(): ReviewQueueOperationsRepository {
@@ -213,6 +287,34 @@ function createMongoRepo(): ReviewQueueOperationsRepository {
         return clone(event as ReviewQueueOperationAuditEvent);
       });
     },
+    async listAuditEventsForItems(itemIds, limitPerItem = 3) {
+      await ensureIndexes();
+      const normalizedIds = uniqueNonEmpty(itemIds);
+      const grouped: ReviewQueueOperationAuditByItem = {};
+      for (const itemId of normalizedIds) grouped[itemId] = [];
+      if (normalizedIds.length === 0) return grouped;
+      const col = await coreCol<any>(AUDIT_COLLECTION);
+      const docs = await col
+        .find({ itemId: { $in: normalizedIds } })
+        .sort({ at: -1 })
+        .toArray();
+      const limits = new Map<string, number>();
+      for (const doc of docs) {
+        const { _id: _ignored, ...event } = doc;
+        const normalizedItemId = String(event?.itemId ?? "").trim();
+        if (!normalizedItemId) continue;
+        const existing = grouped[normalizedItemId] ?? [];
+        const currentCount = limits.get(normalizedItemId) ?? 0;
+        if (currentCount >= limitPerItem) continue;
+        existing.push(clone(event as ReviewQueueOperationAuditEvent));
+        grouped[normalizedItemId] = existing;
+        limits.set(normalizedItemId, currentCount + 1);
+      }
+      return grouped;
+    },
+    getPersistenceState() {
+      return buildPersistenceState("persistent_primary");
+    },
   };
 }
 
@@ -248,6 +350,21 @@ export function createInMemoryReviewQueueOperationRepo(seed?: {
         .filter((event) => event.itemId === itemId)
         .map((event) => clone(event))
         .sort((left, right) => String(right.at).localeCompare(String(left.at)));
+    },
+    async listAuditEventsForItems(itemIds, limitPerItem = 3) {
+      const normalizedIds = uniqueNonEmpty(itemIds);
+      const grouped: ReviewQueueOperationAuditByItem = {};
+      for (const itemId of normalizedIds) {
+        grouped[itemId] = Array.from(auditEvents.values())
+          .filter((event) => event.itemId === itemId)
+          .map((event) => clone(event))
+          .sort((left, right) => String(right.at).localeCompare(String(left.at)))
+          .slice(0, limitPerItem);
+      }
+      return grouped;
+    },
+    getPersistenceState() {
+      return buildPersistenceState("in_memory_fallback");
     },
   };
 }
@@ -296,6 +413,17 @@ export async function listReviewQueueOperationAuditEvents(itemId: string) {
   const normalized = String(itemId ?? "").trim();
   if (!normalized) return [];
   return getRepo().listAuditEvents(normalized);
+}
+
+export async function listReviewQueueOperationAuditEventsForItems(
+  itemIds: string[],
+  limitPerItem = 3,
+) {
+  return getRepo().listAuditEventsForItems(itemIds, limitPerItem);
+}
+
+export function getReviewQueueOperationPersistenceState() {
+  return getRepo().getPersistenceState();
 }
 
 export async function applyReviewQueueOperation(input: {
@@ -384,4 +512,8 @@ export async function applyReviewQueueOperation(input: {
 
 export function reviewQueueOperationalStatusLabel(status: ReviewQueueOperationalStatus) {
   return statusLabel(status);
+}
+
+export function reviewQueueOperationActionLabel(action: ReviewQueueOperationAction) {
+  return actionLabel(action);
 }
