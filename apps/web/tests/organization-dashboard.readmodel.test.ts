@@ -861,6 +861,17 @@ describe("organization dashboard readmodel", () => {
           id: "region_signal_draft:draft-record-dossier-1",
           assignedToUserId: "user-2",
           operationalStatus: "in_review",
+          moderationPermission: expect.objectContaining({
+            canOperateOwnReviewItem: true,
+            canPrepareOwnContentRelease: true,
+            canMakeOwnContentVisible: false,
+            allowedActions: expect.arrayContaining([
+              "add_note",
+              "request_changes",
+              "mark_in_review",
+              "mark_ready",
+            ]),
+          }),
           latestNote: expect.objectContaining({
             text: "Bitte zuerst offene Fragen priorisieren.",
           }),
@@ -881,5 +892,51 @@ describe("organization dashboard readmodel", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps organization-verified members on their own scope without ready or visibility powers", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [
+          membership({
+            verificationStatus: "organization_verified",
+            allowedActions: ["read_region_dashboard", "review_region_signal"],
+          }),
+        ],
+      }),
+    );
+
+    const draftPersistence = createInMemoryRegionSignalDraftPersistence();
+    await draftPersistence.saveRecord(dossierDraftRecord());
+    setRegionSignalDraftPersistenceForTests(draftPersistence);
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.openReviewItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "region_signal_draft:draft-record-dossier-1",
+          moderationPermission: expect.objectContaining({
+            role: "organization_verified",
+            canOperateOwnReviewItem: true,
+            canPrepareOwnContentRelease: false,
+            canMakeOwnContentVisible: false,
+            allowedActions: expect.arrayContaining([
+              "add_note",
+              "request_changes",
+              "mark_in_review",
+            ]),
+          }),
+        }),
+      ]),
+    );
+    expect(
+      readModel.openReviewItems[0]?.moderationPermission.allowedActions.includes("mark_ready"),
+    ).toBe(false);
   });
 });

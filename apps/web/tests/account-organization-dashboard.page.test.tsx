@@ -38,6 +38,16 @@ vi.mock("@/lib/server/auth/admin", () => ({
   userIsAdminDashboard: (...args: unknown[]) => mocks.userIsAdminDashboard(...args),
 }));
 
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  return {
+    ...actual,
+    useRouter: () => ({
+      refresh: vi.fn(),
+    }),
+  };
+});
+
 import AccountOrganizationDashboardPage from "@/app/account/organization/dashboard/page";
 
 describe("/account/organization/dashboard page", () => {
@@ -106,6 +116,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("In-Memory-Fallback");
     expect(html).toContain("Noch keine regionale Startlage vorbereitet.");
     expect(html).toContain("Noch keine offenen Reviews.");
+    expect(html).not.toContain("Notiz speichern");
     expect(html).toContain("Hohe Priorität");
     expect(html).toContain("Noch keine Dossier-Entwürfe.");
     expect(html).toContain("Noch keine Anlassräume.");
@@ -465,12 +476,17 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Sichtbarkeit vorbereiten");
     expect(html).toContain("Veröffentlichbare Inhalte");
     expect(html).toContain("Sichtbare Inhalte");
+    expect(html).toContain("Meine Review-Aufgaben");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");
     expect(html).toContain("Audit-Verlauf");
     expect(html).toContain("Öffentliche URL");
     expect(html).toContain("Share-Link");
     expect(html).toContain("Dort wird Sichtbarkeit auch wieder zurückgenommen oder archiviert");
+    expect(html).toContain("Diese Aktion betrifft nur den Arbeitsstand deiner Organisation.");
+    expect(html).toContain("Notiz speichern");
+    expect(html).toContain("In Prüfung setzen");
+    expect(html).toContain("Bereit markieren");
     expect(html).toContain("Offen");
     expect(html).toContain("Mittlere Priorität");
     expect(html).toContain("Sanierung von Schulen im Bezirk");

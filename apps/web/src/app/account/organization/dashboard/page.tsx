@@ -8,6 +8,8 @@ import {
   type OrganizationDashboardReadModel,
 } from "@features/region";
 import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
+import ContentReleaseWorkbenchActions from "@/app/admin/review/ContentReleaseWorkbenchActions";
+import ReviewQueueItemActions from "@/app/admin/review/ReviewQueueItemActions";
 
 export const metadata = {
   title: "Organisationsbereich · eDebatte",
@@ -369,7 +371,11 @@ export default async function AccountOrganizationDashboardPage() {
           className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Meine Aufgaben
+            Meine Review-Aufgaben
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Verifizierte Organisationen sehen hier nur ihre eigenen Review-, Quellen- und
+            Content-Release-Aufgaben. `/admin/review` bleibt die globale Betreiber-Arbeitsliste.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -455,12 +461,21 @@ export default async function AccountOrganizationDashboardPage() {
                     {publicationVisibilityLabel(item.visibilityState)} · {item.scopeLabel} ·{" "}
                     {item.reviewAuthorityLabel}
                   </p>
+                  {item.moderationPermission.role ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Eigener Moderationsscope · {item.moderationPermission.role}
+                      {item.moderationPermission.operatorModeLabel
+                        ? ` · ${item.moderationPermission.operatorModeLabel}`
+                        : ""}
+                    </p>
+                  ) : null}
                   {item.assignedToUserId ? (
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                       Zugewiesen an {item.assignedToUserId}
                     </p>
                   ) : null}
-                  {(item.unifiedAuditTrail ?? []).slice(-1)[0] ? (
+                  {item.moderationPermission.canViewOwnAuditTrail &&
+                  (item.unifiedAuditTrail ?? []).slice(-1)[0] ? (
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                       Letzte Aktivität:{" "}
                       {compactAuditLine({
@@ -475,9 +490,59 @@ export default async function AccountOrganizationDashboardPage() {
                       })}
                     </p>
                   ) : null}
-                  <Link href={item.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
-                    Review öffnen
-                  </Link>
+                  {item.moderationPermission.canOperateOwnReviewItem ? (
+                    <ReviewQueueItemActions
+                      item={item}
+                      currentUserId={userId}
+                      endpoint={`/api/account/organization/review/items/${encodeURIComponent(item.id)}`}
+                      visibleActions={item.moderationPermission.allowedActions.filter(
+                        (action) =>
+                          action === "add_note" ||
+                          action === "request_changes" ||
+                          action === "mark_in_review" ||
+                          action === "mark_ready" ||
+                          action === "archive" ||
+                          action === "block",
+                      )}
+                      showAssignmentActions={false}
+                      scopeCopy={item.moderationPermission.scopeCopy}
+                    />
+                  ) : null}
+                  {item.contentReleaseWorkbench &&
+                  (item.moderationPermission.canPrepareOwnContentRelease ||
+                    item.moderationPermission.canMakeOwnContentVisible ||
+                    item.moderationPermission.canArchiveOwnContent) ? (
+                    <ContentReleaseWorkbenchActions
+                      itemId={item.id}
+                      sourceKind={item.contentReleaseWorkbench.sourceKind}
+                      sourceId={item.contentReleaseWorkbench.sourceId}
+                      contentReleasePersistence={contentReleasePersistence}
+                      contentReleaseWorkbench={item.contentReleaseWorkbench}
+                      endpoint="/api/account/organization/review/content-release"
+                      scopeCopy={item.moderationPermission.scopeCopy}
+                      allowPrepare={item.moderationPermission.canPrepareOwnContentRelease}
+                      allowMakeVisible={item.moderationPermission.canMakeOwnContentVisible}
+                      allowPreparePublication={item.moderationPermission.canMakeOwnContentVisible}
+                      allowRevokeVisibility={item.moderationPermission.canMakeOwnContentVisible}
+                      allowArchive={item.moderationPermission.canArchiveOwnContent}
+                    />
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Link
+                      href={item.href}
+                      className="inline-flex text-sm font-semibold text-[rgb(var(--fg))]"
+                    >
+                      Review öffnen
+                    </Link>
+                    {readModel.organization.isOperatorMode ? (
+                      <Link
+                        href="/admin/review"
+                        className="inline-flex text-sm font-semibold text-[rgb(var(--muted))]"
+                      >
+                        Betreiber-Arbeitsliste öffnen
+                      </Link>
+                    ) : null}
+                  </div>
                 </article>
               ))
             )}
