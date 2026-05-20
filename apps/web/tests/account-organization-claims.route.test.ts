@@ -21,7 +21,7 @@ describe("/api/account/organization-claims", () => {
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
     mocks.getSessionUser.mockResolvedValue({
       _id: { toHexString: () => "user-1" },
-      email: "kontakt@reinickendorf.example",
+      email: "kontakt@example.org",
       sessionValid: true,
     });
   });
@@ -32,11 +32,33 @@ describe("/api/account/organization-claims", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          organizationName: "Bezirksamt Reinickendorf",
-          organizationType: "district_office",
-          regionId: "berlin-reinickendorf",
-          optionalLocation: "Rathaus Reinickendorf",
+          organizationName: "Stadt Beispielstadt",
+          organizationType: "municipality",
+          regionId: "kommune-beispielstadt",
+          optionalLocation: "Rathaus Beispielstadt",
           roleLabel: "Sachbearbeitung",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      verificationStatus: "pending_review",
+      noAutoAuthority: true,
+    });
+  });
+
+  it("accepts media partners as pending org-scoped claims without authority", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/account/organization-claims", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organizationName: "Lokalredaktion Mitte",
+          organizationType: "media",
+          regionId: "kommune-beispielstadt",
+          roleLabel: "Redaktion",
         }),
       }),
     );

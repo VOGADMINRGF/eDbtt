@@ -285,7 +285,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale.");
     expect(html).toContain("Selbstauskunft ist nicht verifiziert.");
     expect(html).toContain("In Prüfung hat keine Behördenrechte.");
-    expect(html).toContain("Standortangaben wie Rathaus Reinickendorf bleiben optional.");
+    expect(html).toContain(
+      "Standortangaben wie Rathaus, Geschäftsstelle oder Redaktionsbüro bleiben optional.",
+    );
     expect(html).not.toContain("userId");
     expect(html).not.toContain("Standort ist Pflicht");
   });

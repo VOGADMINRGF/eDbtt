@@ -15,9 +15,9 @@ describe("organization claims runtime contract", () => {
     const repo = createInMemoryRegionOrganizationRuntimeRepo();
     const claim = await repo.createOrganizationClaim({
       userId: "user-1",
-      organizationName: "Bezirksamt Reinickendorf",
-      organizationType: "district_office",
-      regionId: "berlin-reinickendorf",
+      organizationName: "Stadt Beispielstadt",
+      organizationType: "municipality",
+      regionId: "kommune-beispielstadt",
       roleLabel: "Sachbearbeitung",
     });
 
@@ -31,12 +31,12 @@ describe("organization claims runtime contract", () => {
       membershipId: "membership-pending",
       organizationId: "org-pending",
       userId: "user-1",
-      requestedRegionId: "berlin-reinickendorf",
+      requestedRegionId: "kommune-beispielstadt",
       createdAt: "2026-05-14T00:00:00.000Z",
       profile: {
         countryCode: "DE",
         countryName: "Deutschland",
-        organizationName: "Bezirksamt Reinickendorf",
+        organizationName: "Stadt Beispielstadt",
         roleLabel: "Sachbearbeitung",
       },
     });
@@ -51,12 +51,12 @@ describe("organization claims runtime contract", () => {
       membershipId: "membership-no-location",
       organizationId: "org-no-location",
       userId: "user-2",
-      requestedRegionId: "berlin-reinickendorf",
+      requestedRegionId: "kommune-beispielstadt",
       createdAt: "2026-05-14T00:00:00.000Z",
       profile: {
         countryCode: "DE",
         countryName: "Deutschland",
-        organizationName: "Bezirksamt Reinickendorf",
+        organizationName: "Stadt Beispielstadt",
         unitName: "Bauen und Wohnen",
         roleLabel: "Sachbearbeitung",
       },
@@ -66,33 +66,49 @@ describe("organization claims runtime contract", () => {
       membershipId: "membership-location",
       organizationId: "org-location",
       userId: "user-3",
-      requestedRegionId: "berlin-reinickendorf",
+      requestedRegionId: "kommune-beispielstadt",
       createdAt: "2026-05-14T00:00:00.000Z",
       profile: {
         countryCode: "DE",
         countryName: "Deutschland",
-        organizationName: "Bezirksamt Reinickendorf",
-        locationName: "Rathaus Reinickendorf",
+        organizationName: "Stadt Beispielstadt",
+        locationName: "Rathaus Beispielstadt",
         roleLabel: "Sachbearbeitung",
       },
     });
 
     expect(withoutLocation.claim.optionalLocation).toBeNull();
-    expect(withLocation.claim.optionalLocation?.name).toBe("Rathaus Reinickendorf");
+    expect(withLocation.claim.optionalLocation?.name).toBe("Rathaus Beispielstadt");
     expect(withLocation.unit).toBeNull();
   });
 
-  it("lets associations and NGOs submit claims without granting authority", async () => {
+  it("lets associations, traeger and NGOs submit claims without granting authority", async () => {
     const repo = createInMemoryRegionOrganizationRuntimeRepo();
     const claim = await repo.createOrganizationClaim({
       userId: "user-ngo-1",
-      organizationName: "Nachbarschaftsverein Reinickendorf",
+      organizationName: "Sozialträger Nord",
       organizationType: "association",
       countryCode: "DE",
-      evidence: { note: "Lokaler Verein" },
+      evidence: { note: "Lokaler Verein oder Träger" },
     });
 
     expect(claim.organizationType).toBe("association");
+    expect(claim.verificationStatus).toBe("pending_review");
+    expect(claim.noAutoAuthority).toBe(true);
+  });
+
+  it("lets media partners register without any implicit authority claim", async () => {
+    const repo = createInMemoryRegionOrganizationRuntimeRepo();
+    const claim = await repo.createOrganizationClaim({
+      userId: "user-media-1",
+      organizationName: "Lokalredaktion Mitte",
+      organizationType: "media",
+      regionId: "kommune-beispielstadt",
+      countryCode: "DE",
+      evidence: { website: "https://lokalredaktion.example" },
+    });
+
+    expect(claim.organizationType).toBe("media");
     expect(claim.verificationStatus).toBe("pending_review");
     expect(claim.noAutoAuthority).toBe(true);
   });

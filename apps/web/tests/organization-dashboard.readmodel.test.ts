@@ -261,6 +261,97 @@ describe("organization dashboard readmodel", () => {
     );
   });
 
+  it("supports a generic municipality workspace without any Reinickendorf special casing", async () => {
+    const municipality: Organization = {
+      id: "org-beispielstadt-1",
+      name: "Stadt Beispielstadt",
+      type: "municipality",
+      countryCode: "DE",
+      primaryRegionId: "kommune-beispielstadt",
+      website: "https://beispielstadt.example",
+      verificationStatus: "organization_verified",
+      createdByUserId: "admin-1",
+    };
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [municipality],
+        memberships: [
+          membership({
+            organizationId: municipality.id,
+            organizationName: municipality.name,
+            organizationType: municipality.type,
+            regionId: municipality.primaryRegionId,
+          }),
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.organization.name).toBe("Stadt Beispielstadt");
+    expect(readModel.organizationType).toBe("municipality");
+    expect(readModel.regionSummary).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          regionId: "kommune-beispielstadt",
+          regionName: "Beispielstadt",
+          source: "verified_membership",
+        }),
+      ]),
+    );
+  });
+
+  it("supports media partners as their own scoped organization workspace without official release by default", async () => {
+    const mediaPartner: Organization = {
+      id: "org-media-1",
+      name: "Lokalredaktion Mitte",
+      type: "media",
+      countryCode: "DE",
+      primaryRegionId: "kommune-beispielstadt",
+      website: "https://lokalredaktion.example",
+      verificationStatus: "organization_verified",
+      createdByUserId: "admin-1",
+    };
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [mediaPartner],
+        memberships: [
+          membership({
+            organizationId: mediaPartner.id,
+            organizationName: mediaPartner.name,
+            organizationType: mediaPartner.type,
+            regionId: mediaPartner.primaryRegionId,
+            roleLabel: "Redaktion",
+            verificationStatus: "publication_approved",
+            allowedActions: [
+              "read_region_dashboard",
+              "review_region_signal",
+              "create_region_draft",
+              "create_dossier_draft",
+              "create_anlassraum_draft",
+              "approve_publication",
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.organization.name).toBe("Lokalredaktion Mitte");
+    expect(readModel.organizationType).toBe("media");
+    expect(readModel.allowedActions).toContain("approve_publication");
+    expect(readModel.allowedActions).not.toContain("public_official");
+  });
+
   it("shows KI-vorqualifizierte Startlage when verified membership and freischaltung exist", async () => {
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({
@@ -938,5 +1029,78 @@ describe("organization dashboard readmodel", () => {
     expect(
       readModel.openReviewItems[0]?.moderationPermission.allowedActions.includes("mark_ready"),
     ).toBe(false);
+  });
+
+  it("keeps verified organizations isolated from foreign review items and regions", async () => {
+    const draftPersistence = createInMemoryRegionSignalDraftPersistence();
+    await draftPersistence.saveRecord({
+      ...dossierDraftRecord(),
+      id: "draft-record-beispielstadt-1",
+      uniqueKey: "region-signal-draft:kommune-beispielstadt:dossier:signal-1",
+      regionId: "kommune-beispielstadt",
+      title: "Bibliothek und Jugendhaus Beispielstadt",
+      relatedPlaces: ["Beispielstadt"],
+      provenance: {
+        ...dossierDraftRecord().provenance,
+        sourceRegionId: "kommune-beispielstadt",
+      },
+    });
+    await draftPersistence.saveRecord({
+      ...dossierDraftRecord(),
+      id: "draft-record-foreign-1",
+      uniqueKey: "region-signal-draft:bezirk-berlin-reinickendorf:dossier:signal-9",
+      title: "Fremdes Thema Reinickendorf",
+      createdByUserId: "user-2",
+    });
+    setRegionSignalDraftPersistenceForTests(draftPersistence);
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [
+          {
+            id: "org-beispielstadt-1",
+            name: "Stadt Beispielstadt",
+            type: "municipality",
+            countryCode: "DE",
+            primaryRegionId: "kommune-beispielstadt",
+            website: "https://beispielstadt.example",
+            verificationStatus: "organization_verified",
+            createdByUserId: "admin-1",
+          },
+          organization,
+        ],
+        memberships: [
+          membership({
+            organizationId: "org-beispielstadt-1",
+            organizationName: "Stadt Beispielstadt",
+            organizationType: "municipality",
+            regionId: "kommune-beispielstadt",
+          }),
+          membership({
+            id: "membership-foreign-1",
+            userId: "user-2",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+          }),
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.regionSummary.every((entry) => entry.regionId !== "bezirk-berlin-reinickendorf")).toBe(true);
+    expect(readModel.openReviewItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Bibliothek und Jugendhaus Beispielstadt",
+        }),
+      ]),
+    );
+    expect(readModel.openReviewItems.some((item) => item.title === "Fremdes Thema Reinickendorf")).toBe(false);
   });
 });

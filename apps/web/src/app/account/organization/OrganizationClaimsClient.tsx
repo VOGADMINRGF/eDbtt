@@ -12,7 +12,7 @@ const ORGANIZATION_TYPE_OPTIONS: Array<{ value: OrganizationType; label: string 
   { value: "ministry", label: "Ministerium" },
   { value: "public_body", label: "Öffentliche Einrichtung" },
   { value: "school", label: "Schule" },
-  { value: "association", label: "Verein / Verband" },
+  { value: "association", label: "Verein / Verband / Träger" },
   { value: "ngo", label: "NGO" },
   { value: "civic_initiative", label: "Initiative" },
   { value: "foundation", label: "Stiftung" },
@@ -108,10 +108,12 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
           Organisationsantrag
         </p>
         <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
-          Organisation oder Einheit angeben
+          Organisation, Region oder Wirkraum angeben
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Selbstauskunft ist nicht verifiziert. Erst Review und bestätigte Membership erzeugen Rechte und mögliche Freischaltungen.
+          Starte mit deiner Organisation, deiner Region oder deinem Wirkraum. Selbstauskunft ist
+          nicht verifiziert. Erst Review und bestätigte Membership erzeugen Rechte und mögliche
+          Freischaltungen.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -134,8 +136,8 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
             <input name="countryCode" placeholder="DE" className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2" />
           </label>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
-            Region / Bezirk / Kommune
-            <input name="regionId" placeholder="berlin-reinickendorf" className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2" />
+            Region / Gebiet / Wirkraum
+            <input name="regionId" placeholder="kommune-beispiel oder wirkraum-nord" className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2" />
           </label>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
             Abteilung / Einheit
@@ -143,7 +145,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
           </label>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
             Standort optional
-            <input name="optionalLocation" placeholder="Rathaus Reinickendorf" className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2" />
+            <input name="optionalLocation" placeholder="Rathaus, Geschäftsstelle oder Redaktionsbüro" className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2" />
           </label>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
             Rolle

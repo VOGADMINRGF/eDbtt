@@ -195,11 +195,17 @@ function inferDepartmentHints(input: string) {
 }
 
 function inferOrtsteilHints(input: string, regionName: string | null) {
+  const regionTokens = uniqueNonEmpty(
+    String(regionName ?? "")
+      .split(/[\s,/()-]+/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length >= 3),
+  );
   const blocked = new Set(
     uniqueNonEmpty([
       regionName,
+      ...regionTokens,
       "Berlin",
-      "Reinickendorf",
       "Bezirksamt",
       "Bezirk",
       "Amt",

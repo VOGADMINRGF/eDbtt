@@ -197,7 +197,8 @@ export default async function AdminRegionsPage() {
           Region Intelligence bleibt reviewpflichtig. Produktive, kuratierte und manuelle Quellen
           sind getrennt vorbereitet; keine Live-Crawler-Behauptung, kein Scraping und keine
           DeepSearch-Automatikkosten. Generische regionale Snapshot-Templates halten die
-          URL-to-Publish-Strecke reproduzierbar; Reinickendorf bleibt höchstens Beispiel-Seed.
+          URL-to-Publish-Strecke reproduzierbar; Reinickendorf bleibt höchstens Beispiel-Seed oder
+          erster Pilot.
         </p>
         <div className="mt-4">
           <Link
