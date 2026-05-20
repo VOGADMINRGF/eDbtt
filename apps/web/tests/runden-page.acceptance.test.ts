@@ -406,4 +406,48 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("reason=round_inline_contribution");
     expect(html).toContain("returnTo=%2Frunden%3Fview%3Dactive%26anlassraumId%3D65f000000000000000000251");
   });
+
+  it("Scenario J: linked public topic pages are shown on runden cards when available", async () => {
+    mocks.listRundenEntryItems.mockResolvedValue([
+      {
+        id: "seed-topic-link-1",
+        anlassraumId: "65f000000000000000000261",
+        isPublic: true,
+        title: "Laufender Anlass mit Themenseite",
+        summary: "Aktiver Kontext",
+        topicKey: "mobility",
+        anlassraumType: "policy",
+        sourceMode: "feed",
+        anlassraumStatus: "active",
+        outputStatus: "review",
+        reviewState: "pending",
+        publishTarget: "/round/thema-verknuepft",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000261",
+        operatingHref: "/round/thema-verknuepft?anlassraumId=65f000000000000000000261",
+        resultsHref: null,
+        entryHref: "/round/thema-verknuepft?anlassraumId=65f000000000000000000261",
+        lifecycle: "active",
+        finished: false,
+        finishedAt: null,
+        lastAction: null,
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+        relatedTopicPageHref: "/topic/mobilitaet-und-kosten-berlin-demo123",
+        relatedTopicPageTitle: "Mobilität und Kosten in Berlin",
+        relatedTopicPageVisibilityLabel: "geprüft",
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      await RundenPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(html).toContain("Verbundenes Thema:");
+    expect(html).toContain("Mobilität und Kosten in Berlin");
+    expect(html).toContain("/topic/mobilitaet-und-kosten-berlin-demo123");
+  });
 });

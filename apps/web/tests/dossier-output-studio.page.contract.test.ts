@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
+import {
+  createInMemoryContentReleaseWorkbenchRepo,
+  setContentReleaseWorkbenchRepoForTests,
+} from "@features/contentReleaseWorkbench";
 
 async function renderStudioPage(dossierId = "dossier_demo_mobility_berlin") {
   const element = await DossierOutputStudioPage({
@@ -10,6 +14,10 @@ async function renderStudioPage(dossierId = "dossier_demo_mobility_berlin") {
 }
 
 describe("/dossier/[id]/studio social distribution workspace", () => {
+  beforeEach(() => {
+    setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
+  });
+
   it("renders studio hero and master post section", async () => {
     const html = await renderStudioPage();
 
@@ -65,6 +73,84 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Sichtbar heißt hier nicht automatisch geprüft oder amtlich.");
     expect(html).not.toContain("extern veröffentlicht");
     expect(html).not.toContain("Jetzt veröffentlichen");
+  });
+
+  it("shows a connected topic page when the dossier already has a lightweight public topic target", async () => {
+    setContentReleaseWorkbenchRepoForTests(
+      createInMemoryContentReleaseWorkbenchRepo({
+        records: [
+          {
+            id: "dossier-topic-link-1",
+            sourceKind: "region_source_result",
+            sourceResultId: "source-result-dossier-demo",
+            sourceReviewItemId: "region_source_result:source-result-dossier-demo",
+            regionId: "berlin",
+            organizationId: "org-1",
+            targetType: "dossier",
+            targetId: "dossier_demo_mobility_berlin",
+            title: "Demo-Dossier Mobilität",
+            summary: "Dossier-Vertiefung.",
+            previewHref: "/dossier/dossier_demo_mobility_berlin/studio",
+            publicHref: "/dossier/dossier_demo_mobility_berlin",
+            topicPageData: null,
+            visibilityState: "public_unverified",
+            createdByUserId: "admin-1",
+            createdAt: "2026-05-20T09:00:00.000Z",
+            updatedByUserId: "admin-1",
+            updatedAt: "2026-05-20T09:05:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
+          {
+            id: "topic-page-dossier-demo-1",
+            sourceKind: "region_source_result",
+            sourceResultId: "source-result-dossier-demo",
+            sourceReviewItemId: "region_source_result:source-result-dossier-demo",
+            regionId: "berlin",
+            organizationId: "org-1",
+            targetType: "topic_page",
+            targetId: "mobilitaet-und-kosten-berlin-demo123",
+            title: "Mobilität und Kosten in Berlin",
+            summary: "Leichte öffentliche Themenseite.",
+            previewHref: "/topic/mobilitaet-und-kosten-berlin-demo123?previewTopicPage=1",
+            publicHref: "/topic/mobilitaet-und-kosten-berlin-demo123",
+            topicPageData: {
+              title: "Mobilität und Kosten in Berlin",
+              summary: "Leichte öffentliche Themenseite.",
+              claimCandidates: [],
+              evidenceHints: [],
+              openQuestions: [],
+              reviewStatus: "review_required",
+            },
+            visibilityState: "public_reviewed",
+            createdByUserId: "admin-1",
+            createdAt: "2026-05-20T09:00:00.000Z",
+            updatedByUserId: "admin-1",
+            updatedAt: "2026-05-20T09:05:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
+        ],
+      }),
+    );
+
+    const html = await renderStudioPage();
+
+    expect(html).toContain("Verbundene Themenseite:");
+    expect(html).toContain("Mobilität und Kosten in Berlin");
+    expect(html).toContain("geprüft");
   });
 
   it("blocks silent demo fallback for region draft dossier ids without runtime studio data", async () => {

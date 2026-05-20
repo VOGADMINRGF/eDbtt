@@ -179,7 +179,7 @@ export type OrganizationDashboardNextAction = {
 
 export type OrganizationDashboardPublishItem = {
   itemId: string;
-  targetType: "dossier" | "anlassraum";
+  targetType: "dossier" | "anlassraum" | "topic_page";
   targetLabel: string;
   regionName: string | null;
   title: string;

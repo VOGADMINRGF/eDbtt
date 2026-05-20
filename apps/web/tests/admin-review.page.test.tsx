@@ -180,6 +180,31 @@ describe("/admin/review page", () => {
                 canCreateQrLink: false,
                 auditEvents: [],
               },
+              {
+                targetType: "topic_page",
+                targetLabel: "Öffentliche Themenseite",
+                suggestedTitle: "Schule Reinickendorf",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                shareHref: null,
+                qrHref: null,
+                publicLink: null,
+                publishStatus: "draft",
+                publishStatusLabel: "Arbeitsstand",
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                statusHint: "Noch nicht übernommen.",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canRevokeVisibility: false,
+                canArchive: false,
+                canCreateQrLink: false,
+                auditEvents: [],
+              },
             ],
           },
         },
@@ -253,6 +278,31 @@ describe("/admin/review page", () => {
               {
                 targetType: "anlassraum",
                 targetLabel: "Anlassraum",
+                suggestedTitle: "Schulsanierung im Bezirk",
+                targetId: null,
+                prepared: false,
+                previewHref: null,
+                publicHref: null,
+                shareHref: null,
+                qrHref: null,
+                publicLink: null,
+                publishStatus: "draft",
+                publishStatusLabel: "Arbeitsstand",
+                visibilityState: "internal_review",
+                visibilityLabel: "reviewpflichtig",
+                statusLabel: "Arbeitsstand",
+                statusHint: "Noch nicht übernommen.",
+                canPrepare: true,
+                canMakeVisible: false,
+                canPreparePublication: false,
+                canRevokeVisibility: false,
+                canArchive: false,
+                canCreateQrLink: false,
+                auditEvents: [],
+              },
+              {
+                targetType: "topic_page",
+                targetLabel: "Öffentliche Themenseite",
                 suggestedTitle: "Schulsanierung im Bezirk",
                 targetId: null,
                 prepared: false,
@@ -381,6 +431,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
+    expect(html).toContain("Als öffentliche Themenseite vorbereiten");
+    expect(html).toContain("Öffentliche Themenseite");
     expect(html).toContain("Arbeitsstand");
     expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
     expect(html).toContain("Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.");

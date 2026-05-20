@@ -13,7 +13,7 @@ type Props = {
 };
 
 type ActionState = {
-  targetType: "dossier" | "anlassraum";
+  targetType: "dossier" | "anlassraum" | "topic_page";
   action:
     | "prepare_target"
     | "make_visible"
@@ -25,7 +25,7 @@ type ActionState = {
 async function postAction(input: {
   sourceKind: "region_source_result" | "create_handoff";
   sourceId: string;
-  targetType: "dossier" | "anlassraum";
+  targetType: "dossier" | "anlassraum" | "topic_page";
   action: ActionState["action"];
 }) {
   const res = await fetch("/api/admin/review/content-release", {
@@ -104,7 +104,9 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                   >
                     {target.targetType === "dossier"
                       ? "Als Dossier-Entwurf übernehmen"
-                      : "Als Anlassraum vorbereiten"}
+                      : target.targetType === "anlassraum"
+                        ? "Als Anlassraum vorbereiten"
+                        : "Als öffentliche Themenseite vorbereiten"}
                   </button>
                 ) : null}
                 {target.prepared && target.previewHref ? (

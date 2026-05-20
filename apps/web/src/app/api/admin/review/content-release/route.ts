@@ -33,7 +33,7 @@ const ContentReleaseBodySchema = z
   .object({
     sourceKind: z.enum(["region_source_result", "create_handoff"]),
     sourceId: z.string().trim().min(1),
-    targetType: z.enum(["dossier", "anlassraum"]),
+    targetType: z.enum(["dossier", "anlassraum", "topic_page"]),
     action: ContentReleaseActionSchema,
     note: z.string().trim().min(1).optional(),
   })
@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
           (
             body.targetType === "dossier"
               ? canCreateDossierDraft(accessContext, region.id)
-              : canCreateAnlassraumDraft(accessContext, region.id)
+              : body.targetType === "anlassraum"
+                ? canCreateAnlassraumDraft(accessContext, region.id)
+                : true
           )
         )
       );

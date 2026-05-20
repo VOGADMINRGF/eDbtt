@@ -653,7 +653,7 @@ export default async function AccountOrganizationDashboardPage() {
           {readModel.publishSummary.items.filter((item) => !item.archived).length === 0 ? (
             <EmptyState
               title="Noch keine sichtbaren oder vorbereiteten Inhalte."
-              body="Sobald Review-Items bewusst als Dossier oder Anlassraum vorbereitet werden, erscheinen Vorschau- und Sichtbarkeitsschritte hier."
+              body="Sobald Review-Items bewusst als Dossier, Anlassraum oder öffentliche Themenseite vorbereitet werden, erscheinen Vorschau- und Sichtbarkeitsschritte hier."
             />
           ) : (
             readModel.publishSummary.items

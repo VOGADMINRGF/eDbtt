@@ -574,6 +574,11 @@ describe("review queue readmodel", () => {
                 prepared: false,
                 statusLabel: "Arbeitsstand",
               }),
+              expect.objectContaining({
+                targetType: "topic_page",
+                prepared: false,
+                statusLabel: "Arbeitsstand",
+              }),
             ]),
           }),
         }),
