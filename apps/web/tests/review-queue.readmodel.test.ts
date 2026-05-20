@@ -694,6 +694,10 @@ describe("review queue readmodel", () => {
       mode: "in_memory_fallback",
       productionTruth: false,
     });
+    expect(readModel.contentReleasePersistence).toMatchObject({
+      mode: "in_memory_fallback",
+      productionTruth: false,
+    });
     expect(readModel.items[0]).toMatchObject({
       id: "region_source_result:source-result-1",
       operationalStatus: "blocked",

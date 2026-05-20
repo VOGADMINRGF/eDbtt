@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import type { ReviewQueueItem } from "@features/reviewQueue";
+import type { ContentReleasePersistenceState } from "@features/contentReleaseWorkbench";
 
 type Props = {
   itemId: string;
   sourceKind: "region_source_result" | "create_handoff";
   sourceId: string;
+  contentReleasePersistence: ContentReleasePersistenceState;
   contentReleaseWorkbench: NonNullable<ReviewQueueItem["contentReleaseWorkbench"]>;
 };
 
@@ -73,6 +75,17 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
         eDebatte bereitet Inhalte veröffentlichbar vor. Du entscheidest, was sichtbar wird.
         Sichtbar heißt nicht automatisch amtlich.
       </p>
+      <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+          Persistierte Sichtbarkeit
+        </p>
+        <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+          {props.contentReleasePersistence.label}
+        </p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          {props.contentReleasePersistence.summary}
+        </p>
+      </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         {props.contentReleaseWorkbench.targets.map((target) => {
           const prepareKey = `${target.targetType}:prepare_target`;

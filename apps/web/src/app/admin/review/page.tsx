@@ -133,6 +133,17 @@ export default async function AdminReviewPage({
       "Fallback-Zustand ohne dauerhafte Produktionswahrheit. Review-Operationen sind dann nur pro Runtime vorhanden.",
     productionTruth: false,
   };
+  const contentReleasePersistence = readModel.contentReleasePersistence ?? {
+    mode: "in_memory_fallback",
+    label: "In-Memory-Fallback",
+    summary:
+      "Fallback-Zustand ohne dauerhafte Produktionswahrheit. Sichtbarkeits- und Archivzustände leben dann nur pro Runtime.",
+    repositoryInterface: "ContentReleaseRepository",
+    storeKind: "in_memory",
+    productionTruth: false,
+    restartReconstructable: false,
+    deploymentReconstructable: false,
+  };
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -339,6 +350,23 @@ export default async function AdminReviewPage({
           </p>
         </div>
 
+        <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            Content-Release-Persistenz
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+            {contentReleasePersistence.label}
+          </p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+            {contentReleasePersistence.summary}
+          </p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            {contentReleasePersistence.productionTruth
+              ? "Sichtbarkeit, Archivierung, Public URL, Share-Link und QR leiten sich aus persistierten Content-Release-Records ab."
+              : "Nur Dev-/Test-/Runtime-Fallback: Sichtbarkeits- und Archivzustände dürfen so nicht als Produktionswahrheit erscheinen."}
+          </p>
+        </div>
+
         <div className="mt-5 space-y-3">
           {readModel.items.length === 0 ? (
             <EmptyState />
@@ -428,6 +456,7 @@ export default async function AdminReviewPage({
                     itemId={item.id}
                     sourceKind={item.contentReleaseWorkbench.sourceKind}
                     sourceId={item.contentReleaseWorkbench.sourceId}
+                    contentReleasePersistence={contentReleasePersistence}
                     contentReleaseWorkbench={item.contentReleaseWorkbench}
                   />
                 ) : null}

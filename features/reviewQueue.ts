@@ -6,6 +6,8 @@ import {
 import {
   buildContentReleaseWorkbenchTargets,
   buildContentReleaseWorkbenchTargetsForCreateHandoff,
+  getContentReleasePersistenceState,
+  type ContentReleasePersistenceState,
   type ContentReleaseWorkbenchTarget,
 } from "@features/contentReleaseWorkbench";
 import type { RegionSourceSnapshotTemplateResult } from "./region/sourceConnections";
@@ -205,6 +207,7 @@ export type ReviewQueueQuery = Partial<ReviewQueueFilters>;
 export type ReviewQueueReadModel = {
   items: ReviewQueueItem[];
   operationsPersistence: ReviewQueueOperationPersistenceState;
+  contentReleasePersistence: ContentReleasePersistenceState;
   summary: {
     total: number;
     totalBeforeFilters: number;
@@ -1323,6 +1326,7 @@ export async function buildReviewQueueReadModel(
   return {
     items: sorted,
     operationsPersistence: getReviewQueueOperationPersistenceState(),
+    contentReleasePersistence: getContentReleasePersistenceState(),
     summary: {
       total: sorted.length,
       totalBeforeFilters: decorated.length,

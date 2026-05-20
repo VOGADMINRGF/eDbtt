@@ -851,6 +851,10 @@ describe("organization dashboard readmodel", () => {
       mode: "in_memory_fallback",
       productionTruth: false,
     });
+    expect(readModel.contentReleasePersistence).toMatchObject({
+      mode: "in_memory_fallback",
+      productionTruth: false,
+    });
     expect(readModel.openReviewItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

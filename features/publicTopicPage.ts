@@ -1,8 +1,10 @@
 import {
+  getContentReleasePersistenceState,
   getContentReleaseTargetRecordByTargetId,
   listContentReleaseTargetsByType,
   listContentReleaseTargetsForSourceResult,
   type ContentPublishStatus,
+  type ContentReleasePersistenceState,
   type ContentReleaseSourceKind,
   type ContentReleaseTargetRecord,
   type ContentReleaseTopicPageData,
@@ -97,6 +99,7 @@ export type PublicTopicPageRepository = {
   listVisibleTopicPagesForAnlassraumIds(
     anlassraumIds: string[],
   ): Promise<Map<string, RelatedTopicPageTarget>>;
+  getPersistenceState(): ContentReleasePersistenceState;
 };
 
 const TOPIC_PAGE_GUARDRAILS: PublicTopicPage["guardrails"] = {
@@ -357,5 +360,6 @@ export function getPublicTopicPageRepository(): PublicTopicPageRepository {
     getPreviewableBySlug: buildPreviewablePublicTopicPageBySlug,
     getRelatedTopicPageForDossier,
     listVisibleTopicPagesForAnlassraumIds,
+    getPersistenceState: getContentReleasePersistenceState,
   };
 }
