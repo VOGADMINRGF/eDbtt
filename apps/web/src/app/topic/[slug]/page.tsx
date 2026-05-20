@@ -27,6 +27,7 @@ import { publicationVisibilityLabel } from "@features/region/publicationRiskLadd
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { BRAND } from "@/lib/brand";
+import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -63,6 +64,63 @@ async function canPreviewHiddenTopicPage(slug: string) {
   });
 }
 
+function topicHoldingStateCopy(visibilityState: RegionPublicationVisibilityState) {
+  switch (visibilityState) {
+    case "archived":
+      return {
+        eyebrow: "Themenseite archiviert",
+        title: "Dieser Themenstand ist aktuell archiviert.",
+        body: "Die öffentliche Themenseite war bereits sichtbar und wurde anschließend bewusst aus dem aktiven Rollout genommen.",
+        hint: "Öffentliche URL, Share-Link und QR bleiben deshalb deaktiviert. Archivierung löscht den Arbeitsstand nicht hart.",
+      };
+    case "blocked":
+      return {
+        eyebrow: "Themenseite derzeit nicht öffentlich verfügbar",
+        title: "Dieser Themenstand ist aktuell blockiert.",
+        body: "Der öffentliche Zielpfad wurde bewusst gestoppt. Die Inhalte sind deshalb nicht frei lesbar.",
+        hint: "Öffentliche URL, Share-Link und QR bleiben deaktiviert, bis ein berechtigter Review-Pfad die Sichtbarkeit wieder freigibt.",
+      };
+    case "internal_review":
+    default:
+      return {
+        eyebrow: "Themenseite in Vorbereitung",
+        title: "Dieser Themenstand ist noch nicht öffentlich sichtbar.",
+        body: "Die Inhalte werden weiterhin intern geprüft oder vorbereitet und sind deshalb noch kein freier öffentlicher Lesepfad.",
+        hint: "Share-Link und QR erscheinen erst nach einer bewussten sichtbaren Freigabe. Sichtbar heißt auch dann nicht automatisch amtlich.",
+      };
+  }
+}
+
+function TopicHoldingStatePage(props: {
+  title: string;
+  visibilityState: RegionPublicationVisibilityState;
+}) {
+  const copy = topicHoldingStateCopy(props.visibilityState);
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-10 sm:px-6 sm:py-12">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          {copy.eyebrow}
+        </p>
+        <h1 className="mt-3 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">
+          {props.title}
+        </h1>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+            {publicationVisibilityLabel(props.visibilityState)}
+          </span>
+        </div>
+        <p className="mt-5 text-sm leading-6 text-[rgb(var(--muted))]">{copy.title}</p>
+        <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{copy.body}</p>
+        <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{copy.hint}</p>
+        <p className="mt-4 text-xs text-[rgb(var(--muted))]">
+          Amtlich freigegeben bleibt ausschließlich der separate Official-Release-Pfad.
+        </p>
+      </section>
+    </main>
+  );
+}
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const publicTopicPage = await buildVisiblePublicTopicPageBySlug(slug);
@@ -83,6 +141,21 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       twitter: {
         title: publicTopicPage.title,
         description: publicTopicPage.summary,
+      },
+    };
+  }
+
+  const topicPageRecord = await getPublicTopicPageRecordBySlug(slug);
+  if (topicPageRecord) {
+    return {
+      title: `${topicPageRecord.title} | öffentliche Themenseite`,
+      description: "Dieser Themenstand ist aktuell nicht als frei lesbare öffentliche Themenseite verfügbar.",
+      alternates: {
+        canonical: `/topic/${topicPageRecord.targetId}`,
+      },
+      robots: {
+        index: false,
+        follow: false,
       },
     };
   }
@@ -169,6 +242,7 @@ export default async function TopicPage({
   const resolvedSearch = searchParams ? await searchParams : {};
   const previewRequested = readStringParam(resolvedSearch.previewTopicPage) === "1";
   const canPreview = previewRequested ? await canPreviewHiddenTopicPage(slug) : false;
+  const topicPageRecord = await getPublicTopicPageRecordBySlug(slug);
   const publicTopicPage = await buildPreviewablePublicTopicPageBySlug({
     slug,
     allowInternalPreview: canPreview,
@@ -321,6 +395,15 @@ export default async function TopicPage({
           </div>
         </section>
       </main>
+    );
+  }
+
+  if (topicPageRecord) {
+    return (
+      <TopicHoldingStatePage
+        title={topicPageRecord.title}
+        visibilityState={topicPageRecord.visibilityState}
+      />
     );
   }
 

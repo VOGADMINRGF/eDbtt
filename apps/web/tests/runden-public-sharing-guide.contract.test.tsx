@@ -34,6 +34,7 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("reviewpflichtig");
     expect(html).toContain("geprüft");
     expect(html).toContain("amtlich freigegeben");
+    expect(html).toContain("archiviert");
     expect(html).toContain("Keine automatische amtliche Antwort.");
     expect(html).toContain("Keine automatische Dossier- oder Anlassraum-Finalisierung.");
   });

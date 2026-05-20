@@ -160,6 +160,76 @@ describe("/topic/[slug] public topic page target", () => {
             revokable: true,
             archivable: true,
           },
+          {
+            id: "topic-page-archived-1",
+            sourceKind: "region_source_result",
+            sourceResultId: "source-result-archived-1",
+            sourceReviewItemId: "region_source_result:source-result-archived-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            organizationId: "org-reinickendorf-1",
+            targetType: "topic_page",
+            targetId: "archivierte-themenseite-a7b8c9",
+            title: "Archivierte Themenseite",
+            summary: "War sichtbar und ist nun archiviert.",
+            previewHref: "/topic/archivierte-themenseite-a7b8c9?previewTopicPage=1",
+            publicHref: "/topic/archivierte-themenseite-a7b8c9",
+            topicPageData: {
+              title: "Archivierte Themenseite",
+              summary: "War sichtbar und ist nun archiviert.",
+              claimCandidates: [],
+              evidenceHints: [],
+              openQuestions: [],
+              reviewStatus: "reviewed",
+            },
+            visibilityState: "archived",
+            createdByUserId: "user-1",
+            createdAt: "2026-05-20T08:12:00.000Z",
+            updatedByUserId: "user-1",
+            updatedAt: "2026-05-20T08:13:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
+          {
+            id: "topic-page-blocked-1",
+            sourceKind: "region_source_result",
+            sourceResultId: "source-result-blocked-1",
+            sourceReviewItemId: "region_source_result:source-result-blocked-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            organizationId: "org-reinickendorf-1",
+            targetType: "topic_page",
+            targetId: "blockierte-themenseite-g1h2i3",
+            title: "Blockierte Themenseite",
+            summary: "Nicht öffentlich verfügbar.",
+            previewHref: "/topic/blockierte-themenseite-g1h2i3?previewTopicPage=1",
+            publicHref: "/topic/blockierte-themenseite-g1h2i3",
+            topicPageData: {
+              title: "Blockierte Themenseite",
+              summary: "Nicht öffentlich verfügbar.",
+              claimCandidates: [],
+              evidenceHints: [],
+              openQuestions: [],
+              reviewStatus: "review_required",
+            },
+            visibilityState: "blocked",
+            createdByUserId: "user-1",
+            createdAt: "2026-05-20T08:14:00.000Z",
+            updatedByUserId: "user-1",
+            updatedAt: "2026-05-20T08:15:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
         ],
       }),
     );
@@ -210,10 +280,48 @@ describe("/topic/[slug] public topic page target", () => {
     expect(html).not.toContain("QR-Link");
   });
 
-  it("does not expose a hidden topic page without visible status or preview access", async () => {
+  it("shows a public holding state for hidden topic pages without preview access", async () => {
+    const html = renderToStaticMarkup(
+      await TopicPage({
+        params: Promise.resolve({ slug: "verdeckte-themenseite-d4e5f6" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(html).toContain("Themenseite in Vorbereitung");
+    expect(html).toContain("Verdeckte Themenseite");
+    expect(html).toContain("noch nicht öffentlich sichtbar");
+    expect(html).not.toContain("/qrcodegenerator?target=");
+    expect(html).not.toContain(">Öffentliche URL<");
+    expect(html).not.toContain("Was muss vor Sichtbarkeit noch geprüft werden?");
+  });
+
+  it("renders archived and blocked topic states without public share affordances", async () => {
+    const archivedHtml = renderToStaticMarkup(
+      await TopicPage({
+        params: Promise.resolve({ slug: "archivierte-themenseite-a7b8c9" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+    const blockedHtml = renderToStaticMarkup(
+      await TopicPage({
+        params: Promise.resolve({ slug: "blockierte-themenseite-g1h2i3" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(archivedHtml).toContain("Themenseite archiviert");
+    expect(archivedHtml).toContain("Öffentliche URL, Share-Link und QR bleiben deshalb deaktiviert.");
+    expect(archivedHtml).not.toContain("/qrcodegenerator?target=");
+    expect(blockedHtml).toContain("Themenseite derzeit nicht öffentlich verfügbar");
+    expect(blockedHtml).toContain("Dieser Themenstand ist aktuell blockiert.");
+    expect(blockedHtml).not.toContain(">Öffentliche URL<");
+  });
+
+  it("returns not found for unknown slugs without topic target or legacy topic", async () => {
     await expect(
       TopicPage({
-        params: Promise.resolve({ slug: "verdeckte-themenseite-d4e5f6" }),
+        params: Promise.resolve({ slug: "unbekanntes-thema-ohne-zielpfad" }),
         searchParams: Promise.resolve({}),
       }),
     ).rejects.toBeTruthy();
