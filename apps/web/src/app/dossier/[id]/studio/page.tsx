@@ -216,6 +216,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           Für Beteiligungsbüros, Moderations- und Dialogprofis: Dossier-Inhalte in professionelle Kommunikation
           übersetzen — ohne automatische Live-Veröffentlichung.
         </p>
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+          Public URL, Share-Link und QR werden erst im bestehenden Review-to-Publish-Workspace nach
+          bewusster Sichtbarkeit freigeschaltet. Dort kann Sichtbarkeit auch wieder zurückgenommen
+          oder archiviert werden.
+        </p>
         <p className="mt-3 text-xs text-[rgb(var(--muted))]">
           Datenherkunft: {runtimeState.guardrailLabel}. LocalStorage-Arbeitsstände bleiben lokal und gelten nicht
           als produktive Behördenpersistenz.

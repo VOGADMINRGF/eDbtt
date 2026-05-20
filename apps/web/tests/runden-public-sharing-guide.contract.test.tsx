@@ -19,6 +19,7 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Amtliche Antworten nur durch verifizierte Rollen.");
     expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
     expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
+    expect(html).toContain("Link und QR gehören nur zu sichtbaren Anlässen.");
     expect(html).toContain("Für Veranstaltungen nutzen");
     expect(html).toContain("Für Artikel oder Berichte nutzen");
     expect(html).toContain("Frage");

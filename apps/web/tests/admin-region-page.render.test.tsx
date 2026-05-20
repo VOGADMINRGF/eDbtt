@@ -212,6 +212,7 @@ describe("admin-region-page.render", () => {
 
     expect(html).toContain('data-testid="admin-region-page"');
     expect(html).toContain('data-testid="admin-region-context"');
+    expect(html).toContain('data-testid="admin-region-journey"');
     expect(html).toContain('data-testid="admin-region-summary"');
     expect(html).toContain('data-testid="admin-region-access-summary"');
     expect(html).toContain('data-testid="admin-region-guardrails"');
@@ -224,6 +225,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-modules"');
     expect(html).toContain('data-testid="admin-region-source-connections"');
     expect(html).toContain("Verwaltung, Akteure und Signale");
+    expect(html).toContain("Quelle oder Snapshot prüfen, dann bewusst in Review und Sichtbarkeit gehen");
+    expect(html).toContain("Hier entstehen reviewpflichtige Signals, Claims, Themencluster sowie Dossier- und Anlassraum-Vorschläge.");
+    expect(html).toContain("Sichtbarkeit kann anschließend wieder zurückgenommen oder archiviert werden.");
     expect(html).toContain("Zur Regionen-Übersicht");
     expect(html).toContain("Arbeitsansicht: berlin-reinickendorf");
     expect(html).toContain("Detailroute: `/admin/region?regionId=...`");

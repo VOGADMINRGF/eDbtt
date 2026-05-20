@@ -196,6 +196,9 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         Sichtbar heißt nicht automatisch geprüft oder amtlich.
       </p>
       <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+        Wird Sichtbarkeit zurückgenommen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.
+      </p>
+      <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
         Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.
       </p>
       {message ? (

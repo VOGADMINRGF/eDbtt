@@ -362,6 +362,8 @@ describe("/admin/review page", () => {
     const html = renderToStaticMarkup(await AdminReviewPage());
 
     expect(html).toContain("Zentrale Review-Queue");
+    expect(html).toContain("Review-to-Visible Journey");
+    expect(html).toContain("Review, Vorschau, Sichtbarkeit und Widerruf laufen auf demselben Pfad");
     expect(html).toContain("Keine Sammelentscheidung");
     expect(html).toContain("Region-Intelligence-Vorschläge");
     expect(html).toContain("reviewpflichtige Source Results");
@@ -381,5 +383,6 @@ describe("/admin/review page", () => {
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Arbeitsstand");
     expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
+    expect(html).toContain("Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.");
   });
 });

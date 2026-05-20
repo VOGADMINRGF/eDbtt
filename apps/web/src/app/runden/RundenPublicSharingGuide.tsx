@@ -111,6 +111,10 @@ export default function RundenPublicSharingGuide(props: {
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
               Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.
             </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              Link und QR gehören nur zu sichtbaren Anlässen. Wenn Sichtbarkeit zurückgenommen
+              oder archiviert wird, verschwindet dieser öffentliche Pfad wieder.
+            </p>
           </article>
 
           <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
