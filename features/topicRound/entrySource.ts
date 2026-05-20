@@ -1,5 +1,6 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
+import { listVisibleTopicPagesForAnlassraumIds } from "@features/publicTopicPage";
 import {
   resolveShareReadyAssetContract,
   type ShareSocialQualification,
@@ -74,6 +75,9 @@ export type RundenEntryItem = {
   legacyIncomplete: boolean;
   sourceKind: RundenEntrySourceKind;
   shareActions: RundenEntryShareActions | null;
+  relatedTopicPageHref: string | null;
+  relatedTopicPageTitle: string | null;
+  relatedTopicPageVisibilityLabel: string | null;
 };
 
 export type ListRundenEntryItemsInput = {
@@ -113,7 +117,21 @@ export async function listRundenEntryItems(
       rooms.map((room) => [room._id?.toHexString?.() ?? "", room] as const),
     );
 
-    return items.map((item) => mapToEntry(item as Record<string, unknown>, roomById));
+    const entries = items.map((item) => mapToEntry(item as Record<string, unknown>, roomById));
+    const relatedTopicPages = await listVisibleTopicPagesForAnlassraumIds(
+      entries.map((entry) => entry.anlassraumId ?? ""),
+    );
+    return entries.map((entry) => {
+      const related = entry.anlassraumId
+        ? relatedTopicPages.get(entry.anlassraumId) ?? null
+        : null;
+      return {
+        ...entry,
+        relatedTopicPageHref: related?.publicHref ?? null,
+        relatedTopicPageTitle: related?.title ?? null,
+        relatedTopicPageVisibilityLabel: related?.visibilityLabel ?? null,
+      };
+    });
   } catch {
     throw new Error("round_entry_source_unavailable");
   }
@@ -214,6 +232,9 @@ function mapToEntry(
     legacyIncomplete,
     sourceKind,
     shareActions,
+    relatedTopicPageHref: null,
+    relatedTopicPageTitle: null,
+    relatedTopicPageVisibilityLabel: null,
   };
 }
 

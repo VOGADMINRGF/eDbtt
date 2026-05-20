@@ -720,6 +720,17 @@ export default async function RundenPage({
                       Letzte Aktion: {featured.lastAction ?? "noch offen"}
                     </span>
                   </div>
+                  {featured.relatedTopicPageHref && featured.relatedTopicPageTitle ? (
+                    <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+                      Verbundenes Thema:{" "}
+                      <Link href={featured.relatedTopicPageHref} className="font-semibold text-[rgb(var(--fg))]">
+                        {featured.relatedTopicPageTitle}
+                      </Link>
+                      {featured.relatedTopicPageVisibilityLabel
+                        ? ` · ${featured.relatedTopicPageVisibilityLabel}`
+                        : ""}
+                    </p>
+                  ) : null}
 
                   <Link
                     href={roundOpenHref(featured)}
@@ -780,6 +791,17 @@ export default async function RundenPage({
                         <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
                           {entry.title}
                         </h3>
+                        {entry.relatedTopicPageHref && entry.relatedTopicPageTitle ? (
+                          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                            Verbundenes Thema:{" "}
+                            <Link href={entry.relatedTopicPageHref} className="font-semibold text-[rgb(var(--fg))]">
+                              {entry.relatedTopicPageTitle}
+                            </Link>
+                            {entry.relatedTopicPageVisibilityLabel
+                              ? ` · ${entry.relatedTopicPageVisibilityLabel}`
+                              : ""}
+                          </p>
+                        ) : null}
 
                         <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                           Anlass öffnen, um Beiträge und aktuellen Stand einzusehen.
@@ -872,6 +894,17 @@ export default async function RundenPage({
                     <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
                       {entry.title}
                     </h3>
+                    {entry.relatedTopicPageHref && entry.relatedTopicPageTitle ? (
+                      <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                        Verbundenes Thema:{" "}
+                        <Link href={entry.relatedTopicPageHref} className="font-semibold text-[rgb(var(--fg))]">
+                          {entry.relatedTopicPageTitle}
+                        </Link>
+                        {entry.relatedTopicPageVisibilityLabel
+                          ? ` · ${entry.relatedTopicPageVisibilityLabel}`
+                          : ""}
+                      </p>
+                    ) : null}
 
                     <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                       Anlass öffnen, um Verlauf und Abschlussstand anzusehen.

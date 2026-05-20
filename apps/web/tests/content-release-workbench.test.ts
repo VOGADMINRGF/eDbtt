@@ -391,6 +391,27 @@ describe("content release workbench", () => {
     expect(record.publicHref).toBe("/anlassraum?anlassraumId=anlassraum-release-1");
   });
 
+  it("prepares a public topic page target from the same review workbench", async () => {
+    const record = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "topic_page",
+      requestedBy: "admin-1",
+      organizationId: "org-reinickendorf-1",
+    });
+
+    expect(record.targetType).toBe("topic_page");
+    expect(record.targetId).toContain("schule-reinickendorf");
+    expect(record.previewHref).toContain("/topic/");
+    expect(record.previewHref).toContain("previewTopicPage=1");
+    expect(record.publicHref).toContain(`/topic/${record.targetId}`);
+    expect(record.topicPageData).toMatchObject({
+      title: "Schule Reinickendorf",
+      summary: sourceResult.sourceSnapshotSummary,
+      reviewStatus: "review_required",
+    });
+  });
+
   it("creates a publish preview contract from the existing workbench layer", async () => {
     const preview = await preparePublishPreview({
       sourceKind: "region_source_result",
@@ -572,12 +593,17 @@ describe("content release workbench", () => {
           prepared: true,
           statusLabel: "Arbeitsstand",
         }),
-        expect.objectContaining({
-          targetType: "anlassraum",
-          prepared: true,
-          statusLabel: "Arbeitsstand",
-        }),
-      ]),
+            expect.objectContaining({
+              targetType: "anlassraum",
+              prepared: true,
+              statusLabel: "Arbeitsstand",
+            }),
+            expect.objectContaining({
+              targetType: "topic_page",
+              prepared: false,
+              statusLabel: "Arbeitsstand",
+            }),
+          ]),
     );
   });
 });

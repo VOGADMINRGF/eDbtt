@@ -535,17 +535,65 @@ describe("organization dashboard readmodel", () => {
             sourceResultId: "create-handoff-dashboard-1",
             sourceReviewItemId: "create_handoff:create-handoff-dashboard-1",
             regionId: "bezirk-berlin-reinickendorf",
+            organizationId: "org-reinickendorf-1",
             targetType: "dossier",
             targetId: "create-handoff-dossier-1",
             title: "Schulsanierung im Bezirk",
             summary: "Bewusst vorbereiteter veröffentlichbarer Arbeitsstand.",
             previewHref: "/dossier/create-handoff-dossier-1/studio",
             publicHref: "/dossier/create-handoff-dossier-1",
+            topicPageData: null,
             visibilityState: "public_unverified",
             createdByUserId: "user-1",
             createdAt: "2026-05-19T08:05:00.000Z",
             updatedByUserId: "user-1",
             updatedAt: "2026-05-19T08:06:00.000Z",
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noSocialPublishing: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            revokable: true,
+            archivable: true,
+          },
+          {
+            id: "content-release-topic-create-handoff-dashboard-1",
+            sourceKind: "create_handoff",
+            sourceResultId: "create-handoff-dashboard-1",
+            sourceReviewItemId: "create_handoff:create-handoff-dashboard-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            organizationId: "org-reinickendorf-1",
+            targetType: "topic_page",
+            targetId: "schulsanierung-im-bezirk-a1b2c3",
+            title: "Schulsanierung im Bezirk",
+            summary: "Leichter öffentlicher Themenpfad aus demselben Review-Arbeitsstand.",
+            previewHref: "/topic/schulsanierung-im-bezirk-a1b2c3?previewTopicPage=1",
+            publicHref: "/topic/schulsanierung-im-bezirk-a1b2c3",
+            topicPageData: {
+              title: "Schulsanierung im Bezirk",
+              summary: "Leichter öffentlicher Themenpfad aus demselben Review-Arbeitsstand.",
+              claimCandidates: [
+                {
+                  text: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+                  excerpt: null,
+                },
+              ],
+              evidenceHints: [
+                {
+                  label: "Link 1",
+                  url: "https://reinickendorf.example/aktuelles",
+                  excerpt: null,
+                },
+              ],
+              openQuestions: ["Welche Standorte haben Priorität?"],
+              reviewStatus: "review_required",
+            },
+            visibilityState: "public_reviewed",
+            createdByUserId: "user-1",
+            createdAt: "2026-05-19T08:07:00.000Z",
+            updatedByUserId: "user-1",
+            updatedAt: "2026-05-19T08:08:00.000Z",
             reviewRequired: true,
             noAutoPublish: true,
             noPublicOfficial: true,
@@ -635,11 +683,20 @@ describe("organization dashboard readmodel", () => {
       ]),
     );
     expect(readModel.publishSummary).toMatchObject({
-      totalPrepared: 1,
-      visibleCount: 1,
-      shareableCount: 1,
+      totalPrepared: 2,
+      visibleCount: 2,
+      shareableCount: 2,
       archivedCount: 0,
     });
+    expect(readModel.publishSummary.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetType: "topic_page",
+          targetLabel: "Öffentliche Themenseite",
+          publicHref: "/topic/schulsanierung-im-bezirk-a1b2c3",
+        }),
+      ]),
+    );
     expect(readModel.nextActions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

@@ -26,6 +26,7 @@ import {
   resolveExplicitOfficialVisibility,
   type RegionPublicationVisibilityState,
 } from "@features/region/publicationRiskLadder";
+import { getRelatedTopicPageForDossier } from "@features/publicTopicPage";
 import {
   buildRuntimeDataGuardrail,
   isExplicitDemoDossierId,
@@ -204,6 +205,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
   const persistedDistributionDraft = studioWorkspace?.distributionDraft ?? null;
   const sourceNarrative = masterPost.sourceSituation;
   const reviewStateLabel = reviewRequired ? "Review erforderlich" : "Review abgeschlossen";
+  const relatedTopicPage = await getRelatedTopicPageForDossier(id);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -272,6 +274,23 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Region/Vergleichsraum: {carousel.regionalContext}
         </p>
+        {relatedTopicPage ? (
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+            Verbundene Themenseite:{" "}
+            <Link
+              href={
+                relatedTopicPage.visibilityState === "internal_review"
+                  ? relatedTopicPage.previewHref
+                  : relatedTopicPage.publicHref
+              }
+              className="font-semibold text-[rgb(var(--fg))]"
+            >
+              {relatedTopicPage.title}
+            </Link>
+            {" · "}
+            {relatedTopicPage.visibilityLabel}
+          </p>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[rgb(var(--muted))]">

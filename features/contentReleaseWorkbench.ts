@@ -24,7 +24,7 @@ import {
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
 
-export const CONTENT_RELEASE_TARGET_TYPES = ["dossier", "anlassraum"] as const;
+export const CONTENT_RELEASE_TARGET_TYPES = ["dossier", "anlassraum", "topic_page"] as const;
 export type ContentReleaseTargetType = (typeof CONTENT_RELEASE_TARGET_TYPES)[number];
 export const CONTENT_RELEASE_SOURCE_KINDS = ["region_source_result", "create_handoff"] as const;
 export type ContentReleaseSourceKind = (typeof CONTENT_RELEASE_SOURCE_KINDS)[number];
@@ -65,6 +65,35 @@ export type ContentReleaseStatusLabel =
   | "archiviert"
   | "blockiert";
 
+export const PUBLIC_TOPIC_PAGE_REVIEW_STATUSES = [
+  "review_required",
+  "reviewed",
+  "official_release_only",
+] as const;
+
+export type PublicTopicPageReviewStatus =
+  (typeof PUBLIC_TOPIC_PAGE_REVIEW_STATUSES)[number];
+
+export type ContentReleaseTopicPageClaimCandidate = {
+  text: string;
+  excerpt: string | null;
+};
+
+export type ContentReleaseTopicPageEvidenceHint = {
+  label: string;
+  url: string | null;
+  excerpt: string | null;
+};
+
+export type ContentReleaseTopicPageData = {
+  title: string;
+  summary: string;
+  claimCandidates: ContentReleaseTopicPageClaimCandidate[];
+  evidenceHints: ContentReleaseTopicPageEvidenceHint[];
+  openQuestions: string[];
+  reviewStatus: PublicTopicPageReviewStatus;
+};
+
 const ContentReleaseTargetRecordSchema = z
   .object({
     id: z.string().trim().min(1),
@@ -72,12 +101,40 @@ const ContentReleaseTargetRecordSchema = z
     sourceResultId: z.string().trim().min(1),
     sourceReviewItemId: z.string().trim().min(1),
     regionId: z.string().trim().min(1).nullable().optional(),
+    organizationId: z.string().trim().min(1).nullable().optional(),
     targetType: z.enum(CONTENT_RELEASE_TARGET_TYPES),
     targetId: z.string().trim().min(1),
     title: z.string().trim().min(1),
     summary: z.string().trim().min(1),
     previewHref: z.string().trim().min(1),
     publicHref: z.string().trim().min(1),
+    topicPageData: z
+      .object({
+        title: z.string().trim().min(1),
+        summary: z.string().trim().min(1),
+        claimCandidates: z.array(
+          z
+            .object({
+              text: z.string().trim().min(1),
+              excerpt: z.string().trim().min(1).nullable(),
+            })
+            .strict(),
+        ),
+        evidenceHints: z.array(
+          z
+            .object({
+              label: z.string().trim().min(1),
+              url: z.string().trim().min(1).nullable(),
+              excerpt: z.string().trim().min(1).nullable(),
+            })
+            .strict(),
+        ),
+        openQuestions: z.array(z.string().trim().min(1)),
+        reviewStatus: z.enum(PUBLIC_TOPIC_PAGE_REVIEW_STATUSES),
+      })
+      .strict()
+      .nullable()
+      .optional(),
     visibilityState: z.enum(CONTENT_RELEASE_VISIBILITY_STATES),
     createdByUserId: z.string().trim().min(1),
     createdAt: z.string().datetime({ offset: true }),
@@ -208,6 +265,11 @@ type ContentReleaseWorkbenchRepo = {
     sourceKind: ContentReleaseSourceKind,
     sourceResultId: string,
   ): Promise<ContentReleaseTargetRecord[]>;
+  listTargetRecordsByType(targetType: ContentReleaseTargetType): Promise<ContentReleaseTargetRecord[]>;
+  getTargetRecordByTargetId(
+    targetType: ContentReleaseTargetType,
+    targetId: string,
+  ): Promise<ContentReleaseTargetRecord | null>;
   saveTargetRecord(record: ContentReleaseTargetRecord): Promise<void>;
   appendAuditEvent(event: ContentReleaseAuditEvent): Promise<void>;
   listAuditEvents(recordId: string): Promise<ContentReleaseAuditEvent[]>;
@@ -228,7 +290,9 @@ function isoNow() {
 }
 
 function targetLabel(targetType: ContentReleaseTargetType) {
-  return targetType === "dossier" ? "Dossier-Entwurf" : "Anlassraum";
+  if (targetType === "dossier") return "Dossier-Entwurf";
+  if (targetType === "anlassraum") return "Anlassraum";
+  return "Öffentliche Themenseite";
 }
 
 function recordIdFor(
@@ -269,15 +333,23 @@ function anlassraumTopicKey(title: string) {
 }
 
 function previewHrefFor(targetType: ContentReleaseTargetType, targetId: string) {
-  return targetType === "dossier"
-    ? `/dossier/${encodeURIComponent(targetId)}/studio`
-    : `/runden?view=active&anlassraumId=${encodeURIComponent(targetId)}`;
+  if (targetType === "dossier") {
+    return `/dossier/${encodeURIComponent(targetId)}/studio`;
+  }
+  if (targetType === "anlassraum") {
+    return `/runden?view=active&anlassraumId=${encodeURIComponent(targetId)}`;
+  }
+  return `/topic/${encodeURIComponent(targetId)}?previewTopicPage=1`;
 }
 
 function publicHrefFor(targetType: ContentReleaseTargetType, targetId: string) {
-  return targetType === "dossier"
-    ? `/dossier/${encodeURIComponent(targetId)}`
-    : `/anlassraum?anlassraumId=${encodeURIComponent(targetId)}`;
+  if (targetType === "dossier") {
+    return `/dossier/${encodeURIComponent(targetId)}`;
+  }
+  if (targetType === "anlassraum") {
+    return `/anlassraum?anlassraumId=${encodeURIComponent(targetId)}`;
+  }
+  return `/topic/${encodeURIComponent(targetId)}`;
 }
 
 function qrHrefFor(publicHref: string | null, visibilityState: RegionPublicationVisibilityState) {
@@ -420,10 +492,18 @@ function suggestedTitleForTarget(
       result.title.replace(/\s+·\s+Dry Run$/u, "").trim()
     );
   }
+  if (targetType === "anlassraum") {
+    return (
+      String(result.anlassraumSuggestions[0]?.title ?? "").trim() ||
+      String(result.topicClusters[0]?.label ?? "").trim() ||
+      String(result.sourceSnapshotTitle ?? "").trim() ||
+      result.title.replace(/\s+·\s+Dry Run$/u, "").trim()
+    );
+  }
   return (
-    String(result.anlassraumSuggestions[0]?.title ?? "").trim() ||
     String(result.topicClusters[0]?.label ?? "").trim() ||
     String(result.sourceSnapshotTitle ?? "").trim() ||
+    String(result.dossierSuggestions[0]?.title ?? "").trim() ||
     result.title.replace(/\s+·\s+Dry Run$/u, "").trim()
   );
 }
@@ -432,7 +512,77 @@ function suggestedTitleForCreateHandoff(
   record: PersistedCreateHandoffRecord,
   targetType: ContentReleaseTargetType,
 ) {
+  if (targetType === "topic_page") {
+    return (
+      String(record.topicSeed?.topicLabel ?? "").trim() ||
+      String(record.plannerResult?.plannerTopic ?? "").trim() ||
+      buildPersistedCreateHandoffSuggestedTitle(record, "dossier")
+    );
+  }
   return buildPersistedCreateHandoffSuggestedTitle(record, targetType);
+}
+
+function topicPageSlugBase(title: string) {
+  return String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "thema";
+}
+
+function topicPageSlugFor(sourceId: string, title: string) {
+  return `${topicPageSlugBase(title)}-${stableHash(sourceId).slice(0, 6)}`;
+}
+
+function topicPageDataFromSourceResult(
+  result: RegionSourceTestResult,
+): ContentReleaseTopicPageData {
+  const title = suggestedTitleForTarget(result, "topic_page");
+  return {
+    title,
+    summary: summaryFromSourceResult(result),
+    claimCandidates: result.possibleClaims.map((claim) => ({
+      text: claim.text,
+      excerpt: safeTrim(claim.excerpt) || null,
+    })),
+    evidenceHints: result.evidenceReferences.map((reference) => ({
+      label: safeTrim(reference.label) || result.connectionLabel,
+      url: safeTrim(reference.url) || null,
+      excerpt: safeTrim(reference.excerpt) || null,
+    })),
+    openQuestions: result.openQuestions.map((question) => safeTrim(question)).filter(Boolean),
+    reviewStatus: "review_required",
+  };
+}
+
+function topicPageDataFromCreateHandoff(
+  record: PersistedCreateHandoffRecord,
+): ContentReleaseTopicPageData {
+  const title = suggestedTitleForCreateHandoff(record, "topic_page");
+  return {
+    title,
+    summary: summaryFromCreateHandoff(record),
+    claimCandidates: record.claims.map((claim) => ({
+      text: claim.text,
+      excerpt: null,
+    })),
+    evidenceHints: record.sourceGrounding.map((reference) => ({
+      label: safeTrim(reference.label) || "Quellenhinweis",
+      url: reference.status === "link_reference" ? safeTrim(reference.detail) || null : null,
+      excerpt:
+        reference.status === "source_excerpt" || reference.status === "source_text"
+          ? safeTrim(reference.detail) || null
+          : null,
+    })),
+    openQuestions: record.openQuestions
+      .map((question) => safeTrim(question.question))
+      .filter(Boolean),
+    reviewStatus: "review_required",
+  };
 }
 
 function nextVisibilityStateForAction(
@@ -663,6 +813,18 @@ async function ensureAnlassraumFromSourceResult(input: {
   };
 }
 
+async function ensureTopicPageFromSourceResult(input: {
+  result: RegionSourceTestResult;
+}) {
+  const topicPageData = topicPageDataFromSourceResult(input.result);
+  return {
+    targetId: topicPageSlugFor(input.result.id, topicPageData.title),
+    title: topicPageData.title,
+    summary: topicPageData.summary,
+    topicPageData,
+  };
+}
+
 async function ensureDossierDraftFromCreateHandoff(input: {
   record: PersistedCreateHandoffRecord;
   requestedBy: string;
@@ -805,6 +967,18 @@ async function ensureAnlassraumFromCreateHandoff(input: {
   };
 }
 
+async function ensureTopicPageFromCreateHandoff(input: {
+  record: PersistedCreateHandoffRecord;
+}) {
+  const topicPageData = topicPageDataFromCreateHandoff(input.record);
+  return {
+    targetId: topicPageSlugFor(input.record.id, topicPageData.title),
+    title: topicPageData.title,
+    summary: topicPageData.summary,
+    topicPageData,
+  };
+}
+
 async function ensureIndexes() {
   if (indexesReady) return;
   const [targets, audit] = await Promise.all([
@@ -813,6 +987,7 @@ async function ensureIndexes() {
   ]);
   await Promise.all([
     targets.createIndex({ sourceKind: 1, sourceResultId: 1, targetType: 1 }, { unique: true }),
+    targets.createIndex({ targetType: 1, targetId: 1 }),
     targets.createIndex({ regionId: 1, updatedAt: -1 }),
     audit.createIndex({ recordId: 1, at: -1 }),
     audit.createIndex({ sourceKind: 1, sourceResultId: 1, at: -1 }),
@@ -845,6 +1020,29 @@ function createMongoRepo(): ContentReleaseWorkbenchRepo {
         "record.sourceResultId": sourceResultId,
       }).toArray();
       return docs.map((doc) => ContentReleaseTargetRecordSchema.parse(clone(doc.record)));
+    },
+
+    async listTargetRecordsByType(targetType) {
+      await ensureIndexes();
+      const col = await coreCol<{ _id: string; record: ContentReleaseTargetRecord }>(
+        CONTENT_RELEASE_TARGETS_COLLECTION,
+      );
+      const docs = await col.find({
+        "record.targetType": targetType,
+      }).toArray();
+      return docs.map((doc) => ContentReleaseTargetRecordSchema.parse(clone(doc.record)));
+    },
+
+    async getTargetRecordByTargetId(targetType, targetId) {
+      await ensureIndexes();
+      const col = await coreCol<{ _id: string; record: ContentReleaseTargetRecord }>(
+        CONTENT_RELEASE_TARGETS_COLLECTION,
+      );
+      const doc = await col.findOne({
+        "record.targetType": targetType,
+        "record.targetId": targetId,
+      });
+      return doc?.record ? ContentReleaseTargetRecordSchema.parse(clone(doc.record)) : null;
     },
 
     async saveTargetRecord(record) {
@@ -908,6 +1106,18 @@ export function createInMemoryContentReleaseWorkbenchRepo(seed?: {
         .filter((record) => record.sourceKind === sourceKind && record.sourceResultId === sourceResultId)
         .map((record) => clone(record));
     },
+    async listTargetRecordsByType(targetType) {
+      return Array.from(records.values())
+        .filter((record) => record.targetType === targetType)
+        .map((record) => clone(record));
+    },
+    async getTargetRecordByTargetId(targetType, targetId) {
+      return (
+        Array.from(records.values()).find(
+          (record) => record.targetType === targetType && record.targetId === targetId,
+        ) ?? null
+      );
+    },
     async saveTargetRecord(record) {
       records.set(record.id, clone(record));
     },
@@ -944,10 +1154,12 @@ function buildRecord(params: {
   sourceResultId: string;
   sourceReviewItemId: string;
   regionId: string | null;
+  organizationId: string | null;
   targetType: ContentReleaseTargetType;
   targetId: string;
   title: string;
   summary: string;
+  topicPageData?: ContentReleaseTopicPageData | null;
   requestedBy: string;
 }) {
   const now = isoNow();
@@ -958,12 +1170,14 @@ function buildRecord(params: {
     sourceResultId: params.sourceResultId,
     sourceReviewItemId: params.sourceReviewItemId,
     regionId: params.regionId,
+    organizationId: params.organizationId,
     targetType: params.targetType,
     targetId: params.targetId,
     title: params.title,
     summary: params.summary,
     previewHref: previewHrefFor(params.targetType, params.targetId),
     publicHref,
+    topicPageData: params.topicPageData ?? null,
     visibilityState: "internal_review",
     createdByUserId: params.requestedBy,
     createdAt: now,
@@ -1001,20 +1215,30 @@ export async function prepareContentReleaseTargetFromSourceResult(
             requestedBy: input.requestedBy,
             organizationId: input.organizationId,
           })
-        : await ensureAnlassraumFromSourceResult({
-            result,
-            requestedBy: input.requestedBy,
-          });
+        : input.targetType === "anlassraum"
+          ? await ensureAnlassraumFromSourceResult({
+              result,
+              requestedBy: input.requestedBy,
+            })
+          : await ensureTopicPageFromSourceResult({
+              result,
+            });
 
+    const topicPageData =
+      input.targetType === "topic_page"
+        ? (prepared as Awaited<ReturnType<typeof ensureTopicPageFromSourceResult>>).topicPageData
+        : null;
     const record = buildRecord({
       sourceKind: input.sourceKind,
       sourceResultId: result.id,
       sourceReviewItemId: `region_source_result:${result.id}`,
       regionId: result.regionId,
+      organizationId: input.organizationId ?? result.organizationId ?? null,
       targetType: input.targetType,
       targetId: prepared.targetId,
       title: prepared.title,
       summary: prepared.summary,
+      topicPageData,
       requestedBy: input.requestedBy,
     });
     await getRepo().saveTargetRecord(record);
@@ -1041,19 +1265,29 @@ export async function prepareContentReleaseTargetFromSourceResult(
           requestedBy: input.requestedBy,
           organizationId: input.organizationId,
         })
-      : await ensureAnlassraumFromCreateHandoff({
-          record: handoff,
-          requestedBy: input.requestedBy,
-        });
+      : input.targetType === "anlassraum"
+        ? await ensureAnlassraumFromCreateHandoff({
+            record: handoff,
+            requestedBy: input.requestedBy,
+          })
+        : await ensureTopicPageFromCreateHandoff({
+            record: handoff,
+          });
+  const topicPageData =
+    input.targetType === "topic_page"
+      ? (prepared as Awaited<ReturnType<typeof ensureTopicPageFromCreateHandoff>>).topicPageData
+      : null;
   const record = buildRecord({
     sourceKind: input.sourceKind,
     sourceResultId: handoff.id,
     sourceReviewItemId: `create_handoff:${handoff.id}`,
     regionId: handoff.regionId,
+    organizationId: input.organizationId ?? handoff.organizationId ?? null,
     targetType: input.targetType,
     targetId: prepared.targetId,
     title: prepared.title,
     summary: prepared.summary,
+    topicPageData,
     requestedBy: input.requestedBy,
   });
   await getRepo().saveTargetRecord(record);
@@ -1113,6 +1347,12 @@ export async function listContentReleaseTargetsForSourceResult(
   return getRepo().listTargetRecordsForSourceResult(sourceKind, sourceResultId);
 }
 
+export async function listContentReleaseTargetsByType(
+  targetType: ContentReleaseTargetType,
+) {
+  return getRepo().listTargetRecordsByType(targetType);
+}
+
 export async function listContentReleaseAuditEvents(recordId: string) {
   return getRepo().listAuditEvents(recordId);
 }
@@ -1123,6 +1363,13 @@ export async function getContentReleaseTargetRecord(
   targetType: ContentReleaseTargetType,
 ) {
   return getRepo().getTargetRecord(sourceKind, sourceResultId, targetType);
+}
+
+export async function getContentReleaseTargetRecordByTargetId(
+  targetType: ContentReleaseTargetType,
+  targetId: string,
+) {
+  return getRepo().getTargetRecordByTargetId(targetType, targetId);
 }
 
 export async function buildContentReleaseWorkbenchTargets(params: {
@@ -1294,4 +1541,50 @@ export async function getPublicContentLink(input: {
   );
   if (!record) return null;
   return publicContentLinkFor(record.publicHref, record.visibilityState);
+}
+
+export async function prepareTopicPagePreview(
+  input: Omit<PrepareContentReleaseTargetInput, "targetType">,
+) {
+  return preparePublishPreview({
+    ...input,
+    targetType: "topic_page",
+  });
+}
+
+export async function makeTopicPageVisible(
+  input: Omit<UpdateContentReleaseTargetInput, "targetType" | "action">,
+) {
+  return makeContentVisible({
+    ...input,
+    targetType: "topic_page",
+  });
+}
+
+export async function archiveTopicPage(
+  input: Omit<UpdateContentReleaseTargetInput, "targetType" | "action">,
+) {
+  return archiveVisibleContent({
+    ...input,
+    targetType: "topic_page",
+  });
+}
+
+export async function revokeTopicPageVisibility(
+  input: Omit<UpdateContentReleaseTargetInput, "targetType" | "action">,
+) {
+  return revokeVisibility({
+    ...input,
+    targetType: "topic_page",
+  });
+}
+
+export async function getTopicPagePublicLink(input: {
+  sourceKind: ContentReleaseSourceKind;
+  sourceResultId: string;
+}) {
+  return getPublicContentLink({
+    ...input,
+    targetType: "topic_page",
+  });
 }
