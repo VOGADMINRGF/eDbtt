@@ -5,9 +5,11 @@ import {
   type RegionAccessContext,
 } from "./access";
 import {
+  buildNonAdminModerationPermission,
   buildOrganizationScopeContext,
   buildRegionScopeContext,
   canViewRegionResource,
+  type NonAdminModerationPermission,
 } from "./scope";
 import {
   type Region,
@@ -87,7 +89,9 @@ export type OrganizationDashboardMembershipStatus = {
   highestVerificationStatus: VerificationStatus | "none" | "admin_fallback";
 };
 
-export type OrganizationDashboardReviewItem = ReviewQueueItem;
+export type OrganizationDashboardReviewItem = ReviewQueueItem & {
+  moderationPermission: NonAdminModerationPermission;
+};
 
 export type OrganizationDashboardReviewSummary = ReviewQueueReadModel["summary"];
 
@@ -252,6 +256,28 @@ function sortRecentAuditTrail(events: UnifiedAuditEvent[], limit: number) {
   return [...events]
     .sort((left, right) => String(left.at).localeCompare(String(right.at)))
     .slice(-limit);
+}
+
+function attachModerationPermission(params: {
+  items: ReviewQueueItem[];
+  scope: ReturnType<typeof buildRegionScopeContext>;
+  verificationStatus: VerificationStatus | "none" | "admin_fallback";
+  allowedActions: RegionAllowedAction[];
+}): OrganizationDashboardReviewItem[] {
+  return params.items.map((item) => ({
+    ...item,
+    moderationPermission: buildNonAdminModerationPermission({
+      scope: params.scope,
+      verificationStatus: params.verificationStatus,
+      allowedActions: params.allowedActions,
+      resource: {
+        organizationId: item.organizationId,
+        ownerUserId: item.ownerUserId,
+        regionId: item.regionId,
+        reviewAuthority: item.reviewAuthority,
+      },
+    }),
+  }));
 }
 
 function isVerifiedMembershipStatus(
@@ -1166,6 +1192,12 @@ export async function buildOrganizationDashboardReadModel(input: {
           reviewQueue.items.flatMap((item) => item.unifiedAuditTrail ?? []),
           6,
         );
+  const openReviewItems = attachModerationPermission({
+    items: reviewQueue.items,
+    scope: regionScope,
+    verificationStatus,
+    allowedActions,
+  });
   const firstRun = buildOrganizationFirstRun({
     primaryOrganizationId: primaryOrganization?.id ?? null,
     hasPendingClaim: pendingClaims.length > 0,
@@ -1181,11 +1213,11 @@ export async function buildOrganizationDashboardReadModel(input: {
       regionSummary.find((entry) => entry.dashboardAccess)?.regionId ??
       regionSummary[0]?.regionId ??
       null,
-    openReviewItems: reviewQueue.items,
+    openReviewItems,
     dossierDrafts,
     anlassraumDrafts,
   });
-  const publishSummary = buildPublishSummary(reviewQueue.items);
+  const publishSummary = buildPublishSummary(openReviewItems);
   const nextActions = buildNextActions({
     pendingClaims,
     hasVerifiedMembership: verifiedMemberships.length > 0,
@@ -1227,7 +1259,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     pendingOrganizationClaims: pendingClaims,
     verifiedMemberships: verifiedMemberships.map((membership) => clone(membership)),
     firstRun,
-    openReviewItems: reviewQueue.items,
+    openReviewItems,
     reviewQueueSummary: reviewQueue.summary,
     reviewQueueOperationsPersistence: reviewQueue.operationsPersistence,
     contentReleasePersistence: reviewQueue.contentReleasePersistence,

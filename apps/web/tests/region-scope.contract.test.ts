@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildNonAdminModerationPermission,
   buildOrganizationScopeContext,
   buildRegionScopeContext,
   buildReviewQueueScopeContext,
+  canMakeOwnContentVisible,
+  canOperateOwnReviewItem,
+  canPrepareOwnContentRelease,
   canEditOrganizationResource,
-  canOperateReviewItem,
   canViewOrganizationResource,
   canViewRegionResource,
+  canOperateReviewItem,
 } from "@features/region";
 
 describe("region organization scope contract", () => {
@@ -91,5 +95,65 @@ describe("region organization scope contract", () => {
         reviewAuthority: "publication_approved_or_admin",
       }),
     ).toBe(true);
+  });
+
+  it("derives non-admin moderation actions by verification level without granting public_official", () => {
+    const ownScope = buildRegionScopeContext({
+      userId: "staff-1",
+      isAdmin: false,
+      organizationIds: ["org-reinickendorf-1"],
+      visibleRegionIds: ["bezirk-berlin-reinickendorf"],
+      status: "verified_membership",
+      canApproveOfficial: false,
+    });
+    const ownResource = {
+      regionId: "bezirk-berlin-reinickendorf",
+      organizationId: "org-reinickendorf-1",
+      reviewAuthority: "standard_review" as const,
+    };
+
+    expect(
+      canOperateOwnReviewItem({
+        scope: ownScope,
+        verificationStatus: "organization_verified",
+        resource: ownResource,
+        action: "mark_in_review",
+      }),
+    ).toBe(true);
+    expect(
+      canOperateOwnReviewItem({
+        scope: ownScope,
+        verificationStatus: "organization_verified",
+        resource: ownResource,
+        action: "mark_ready",
+      }),
+    ).toBe(false);
+    expect(
+      canPrepareOwnContentRelease({
+        scope: ownScope,
+        verificationStatus: "unit_verified",
+        resource: ownResource,
+        allowedActions: ["create_dossier_draft"],
+      }),
+    ).toBe(true);
+    expect(
+      canMakeOwnContentVisible({
+        scope: ownScope,
+        verificationStatus: "publication_approved",
+        resource: ownResource,
+        allowedActions: ["approve_publication"],
+      }),
+    ).toBe(true);
+
+    const permission = buildNonAdminModerationPermission({
+      scope: ownScope,
+      verificationStatus: "publication_approved",
+      allowedActions: ["read_region_dashboard", "approve_publication", "create_dossier_draft"],
+      resource: ownResource,
+    });
+
+    expect(permission.allowedActions).toContain("make_content_visible");
+    expect(permission.allowedActions).not.toContain("public_official" as never);
+    expect(permission.scopeCopy).toContain("deiner Organisation");
   });
 });

@@ -12,6 +12,13 @@ type Props = {
   sourceId: string;
   contentReleasePersistence: ContentReleasePersistenceState;
   contentReleaseWorkbench: NonNullable<ReviewQueueItem["contentReleaseWorkbench"]>;
+  endpoint?: string;
+  scopeCopy?: string | null;
+  allowPrepare?: boolean;
+  allowMakeVisible?: boolean;
+  allowPreparePublication?: boolean;
+  allowRevokeVisibility?: boolean;
+  allowArchive?: boolean;
 };
 
 type ActionState = {
@@ -25,12 +32,13 @@ type ActionState = {
 };
 
 async function postAction(input: {
+  endpoint: string;
   sourceKind: "region_source_result" | "create_handoff";
   sourceId: string;
   targetType: "dossier" | "anlassraum" | "topic_page";
   action: ActionState["action"];
 }) {
-  const res = await fetch("/api/admin/review/content-release", {
+  const res = await fetch(input.endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
@@ -45,6 +53,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
   const router = useRouter();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const actionEndpoint = props.endpoint ?? "/api/admin/review/content-release";
 
   async function runAction(actionState: ActionState) {
     const key = `${actionState.targetType}:${actionState.action}`;
@@ -52,6 +61,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
     setError(null);
     try {
       await postAction({
+        endpoint: actionEndpoint,
         sourceKind: props.sourceKind,
         sourceId: props.sourceId,
         targetType: actionState.targetType,
@@ -75,6 +85,9 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
         eDebatte bereitet Inhalte veröffentlichbar vor. Du entscheidest, was sichtbar wird.
         Sichtbar heißt nicht automatisch amtlich.
       </p>
+      {props.scopeCopy ? (
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">{props.scopeCopy}</p>
+      ) : null}
       <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
           Persistierte Sichtbarkeit
@@ -108,7 +121,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                 </p>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
-                {target.canPrepare ? (
+                {target.canPrepare && props.allowPrepare !== false ? (
                   <button
                     type="button"
                     disabled={pendingKey === prepareKey}
@@ -130,7 +143,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     Vorschau ansehen
                   </Link>
                 ) : null}
-                {target.canMakeVisible ? (
+                {target.canMakeVisible && props.allowMakeVisible !== false ? (
                   <button
                     type="button"
                     disabled={pendingKey === visibleKey}
@@ -140,7 +153,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     Sichtbar machen
                   </button>
                 ) : null}
-                {target.canPreparePublication ? (
+                {target.canPreparePublication && props.allowPreparePublication !== false ? (
                   <button
                     type="button"
                     disabled={pendingKey === publicationKey}
@@ -174,7 +187,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     QR-Link erstellen
                   </Link>
                 ) : null}
-                {target.canRevokeVisibility ? (
+                {target.canRevokeVisibility && props.allowRevokeVisibility !== false ? (
                   <button
                     type="button"
                     disabled={pendingKey === revokeKey}
@@ -184,7 +197,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     Sichtbarkeit zurücknehmen
                   </button>
                 ) : null}
-                {target.canArchive ? (
+                {target.canArchive && props.allowArchive !== false ? (
                   <button
                     type="button"
                     disabled={pendingKey === archiveKey}

@@ -7,20 +7,29 @@ import type { ReviewQueueItem } from "@features/reviewQueue";
 type Props = {
   item: ReviewQueueItem;
   currentUserId: string;
+  endpoint?: string;
+  visibleActions?: ReviewQueueAction[];
+  showAssignmentActions?: boolean;
+  scopeCopy?: string | null;
 };
 
 async function postReviewAction(input: {
+  endpoint: string;
   itemId: string;
   action: ReviewQueueAction;
   assignedToUserId?: string | null;
   note?: string | null;
 }) {
-  const res = await fetch(`/api/admin/review/items/${encodeURIComponent(input.itemId)}`, {
+  const res = await fetch(input.endpoint, {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      action: input.action,
+      assignedToUserId: input.assignedToUserId,
+      note: input.note,
+    }),
   });
   const body = await res.json().catch(() => null);
   if (!res.ok || !body?.ok) {
@@ -28,7 +37,7 @@ async function postReviewAction(input: {
   }
 }
 
-type ReviewQueueAction =
+export type ReviewQueueAction =
   | "assign"
   | "unassign"
   | "add_note"
@@ -38,12 +47,30 @@ type ReviewQueueAction =
   | "archive"
   | "block";
 
-export default function ReviewQueueItemActions({ item, currentUserId }: Props) {
+export default function ReviewQueueItemActions({
+  item,
+  currentUserId,
+  endpoint,
+  visibleActions,
+  showAssignmentActions = true,
+  scopeCopy = null,
+}: Props) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [assignee, setAssignee] = useState(item.assignedToUserId ?? "");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const actionEndpoint = endpoint ?? `/api/admin/review/items/${encodeURIComponent(item.id)}`;
+  const allowedActions = new Set<ReviewQueueAction>(visibleActions ?? [
+    "assign",
+    "unassign",
+    "add_note",
+    "request_changes",
+    "mark_in_review",
+    "mark_ready",
+    "archive",
+    "block",
+  ]);
 
   async function runAction(
     action: ReviewQueueAction,
@@ -58,6 +85,7 @@ export default function ReviewQueueItemActions({ item, currentUserId }: Props) {
     setError(null);
     try {
       await postReviewAction({
+        endpoint: actionEndpoint,
         itemId: item.id,
         action,
         assignedToUserId: nextAssignee,
@@ -93,46 +121,54 @@ export default function ReviewQueueItemActions({ item, currentUserId }: Props) {
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
-        <label className="space-y-2 text-xs text-[rgb(var(--muted))]">
-          Zugewiesen an
-          <input
-            value={assignee}
-            onChange={(event) => setAssignee(event.target.value)}
-            placeholder="user- oder team-id"
-            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none"
-          />
-        </label>
-        <div className="flex flex-wrap items-end gap-2">
-          <button
-            type="button"
-            disabled={archived || pendingAction === "assign"}
-            onClick={() => runAction("assign", { assignedToUserId: assignee.trim() || currentUserId })}
-            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-          >
-            Zuweisen
-          </button>
-          <button
-            type="button"
-            disabled={archived || pendingAction === "assign"}
-            onClick={() => {
-              setAssignee(currentUserId);
-              void runAction("assign", { assignedToUserId: currentUserId });
-            }}
-            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-          >
-            Mir zuweisen
-          </button>
-          <button
-            type="button"
-            disabled={archived || pendingAction === "unassign" || !item.assignedToUserId}
-            onClick={() => runAction("unassign", { assignedToUserId: null })}
-            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
-          >
-            Zuweisung entfernen
-          </button>
+      {showAssignmentActions ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <label className="space-y-2 text-xs text-[rgb(var(--muted))]">
+            Zugewiesen an
+            <input
+              value={assignee}
+              onChange={(event) => setAssignee(event.target.value)}
+              placeholder="user- oder team-id"
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none"
+            />
+          </label>
+          <div className="flex flex-wrap items-end gap-2">
+            {allowedActions.has("assign") ? (
+              <button
+                type="button"
+                disabled={archived || pendingAction === "assign"}
+                onClick={() => runAction("assign", { assignedToUserId: assignee.trim() || currentUserId })}
+                className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+              >
+                Zuweisen
+              </button>
+            ) : null}
+            {allowedActions.has("assign") ? (
+              <button
+                type="button"
+                disabled={archived || pendingAction === "assign"}
+                onClick={() => {
+                  setAssignee(currentUserId);
+                  void runAction("assign", { assignedToUserId: currentUserId });
+                }}
+                className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+              >
+                Mir zuweisen
+              </button>
+            ) : null}
+            {allowedActions.has("unassign") ? (
+              <button
+                type="button"
+                disabled={archived || pendingAction === "unassign" || !item.assignedToUserId}
+                onClick={() => runAction("unassign", { assignedToUserId: null })}
+                className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
+              >
+                Zuweisung entfernen
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <label className="mt-4 block space-y-2 text-xs text-[rgb(var(--muted))]">
         Notiz
@@ -150,56 +186,69 @@ export default function ReviewQueueItemActions({ item, currentUserId }: Props) {
           Letzte Notiz ({new Date(item.latestNote.at).toLocaleString("de-DE")}): {item.latestNote.text}
         </p>
       ) : null}
+      {scopeCopy ? <p className="mt-3 text-xs text-[rgb(var(--muted))]">{scopeCopy}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={pendingAction === "add_note"}
-          onClick={() => runAction("add_note")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-        >
-          Notiz speichern
-        </button>
-        <button
-          type="button"
-          disabled={archived || pendingAction === "mark_in_review"}
-          onClick={() => runAction("mark_in_review")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-        >
-          In Review
-        </button>
-        <button
-          type="button"
-          disabled={archived || pendingAction === "request_changes"}
-          onClick={() => runAction("request_changes")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-        >
-          Änderungen anfragen
-        </button>
-        <button
-          type="button"
-          disabled={archived || pendingAction === "mark_ready"}
-          onClick={() => runAction("mark_ready")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-        >
-          Bereit
-        </button>
-        <button
-          type="button"
-          disabled={archived || pendingAction === "block"}
-          onClick={() => runAction("block")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-        >
-          Blockieren
-        </button>
-        <button
-          type="button"
-          disabled={archived || pendingAction === "archive"}
-          onClick={() => runAction("archive")}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
-        >
-          Archivieren
-        </button>
+        {allowedActions.has("add_note") ? (
+          <button
+            type="button"
+            disabled={pendingAction === "add_note"}
+            onClick={() => runAction("add_note")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+          >
+            Notiz speichern
+          </button>
+        ) : null}
+        {allowedActions.has("mark_in_review") ? (
+          <button
+            type="button"
+            disabled={archived || pendingAction === "mark_in_review"}
+            onClick={() => runAction("mark_in_review")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+          >
+            In Prüfung setzen
+          </button>
+        ) : null}
+        {allowedActions.has("request_changes") ? (
+          <button
+            type="button"
+            disabled={archived || pendingAction === "request_changes"}
+            onClick={() => runAction("request_changes")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+          >
+            Änderungen anfordern
+          </button>
+        ) : null}
+        {allowedActions.has("mark_ready") ? (
+          <button
+            type="button"
+            disabled={archived || pendingAction === "mark_ready"}
+            onClick={() => runAction("mark_ready")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+          >
+            Bereit markieren
+          </button>
+        ) : null}
+        {allowedActions.has("block") ? (
+          <button
+            type="button"
+            disabled={archived || pendingAction === "block"}
+            onClick={() => runAction("block")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+          >
+            Blockieren
+          </button>
+        ) : null}
+        {allowedActions.has("archive") ? (
+          <button
+            type="button"
+            disabled={archived || pendingAction === "archive"}
+            onClick={() => runAction("archive")}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
+          >
+            Archivieren
+          </button>
+        ) : null}
       </div>
 
       {item.assignedToUserId ? (
