@@ -34,7 +34,7 @@ function verificationLabel(value: OrganizationDashboardReadModel["verificationSt
     case "revoked":
       return "Widerrufen";
     case "admin_fallback":
-      return "Betreiber-Fallback";
+      return "Betreiber-Modus";
     default:
       return "Noch kein Status";
   }
@@ -126,6 +126,18 @@ function compactAuditLine(input: {
   note: string | null;
 }) {
   return `${input.title} · ${input.detail} · ${input.actorLabel} · ${new Date(input.at).toLocaleString("de-DE")}${input.note ? ` · ${input.note}` : ""}`;
+}
+
+function scopeSummary(readModel: OrganizationDashboardReadModel) {
+  const organizationCount = readModel.organization.organizations.length;
+  const readableRegionCount = readModel.regionSummary.filter((entry) => entry.dashboardAccess).length;
+  if (readModel.organization.isOperatorMode) {
+    return "Globaler Betreiberkontext. Diese Oberfläche zeigt zusätzlich den Organisationsblick auf denselben Arbeitsstand.";
+  }
+  if (organizationCount === 0 && readableRegionCount === 0) {
+    return "Noch kein bestätigter Organisations- oder Regionscope. Moderationsaktionen bleiben gesperrt, bis Membership und Rolle aufgelöst sind.";
+  }
+  return `${organizationCount} Organisation · ${readableRegionCount} Regionen im bestätigten Scope`;
 }
 
 export default async function AccountOrganizationDashboardPage() {
@@ -234,6 +246,10 @@ export default async function AccountOrganizationDashboardPage() {
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                 {readModel.organization.roleLabel ?? "Noch keine Rolle bestätigt"}
               </p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="text-xs text-[rgb(var(--muted))]">Scope</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{scopeSummary(readModel)}</p>
             </div>
           </div>
           <div id="regionen" className="mt-5 space-y-3">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, type SessionUser } from "./sessionUser";
+import { resolveRequestScopeContext, type RequestScopeContext } from "./requestScope";
 import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "./twoFactor";
 import { userIsAdminDashboard, userIsSuperadmin } from "./roles";
 
@@ -17,10 +18,13 @@ export async function requireAdminOrResponse(req: NextRequest) {
   return gate;
 }
 
-async function gateAdmin(req: NextRequest): Promise<SessionUser | Response> {
-  const user = await getSessionUser(req);
+async function gateAdmin(
+  req: NextRequest,
+): Promise<(SessionUser & { requestScope: RequestScopeContext }) | Response> {
+  const requestScope = await resolveRequestScopeContext(req, { allowOperatorFallback: true });
+  const user = requestScope?.user ?? null;
   const sessionValid = user?.sessionValid ?? false;
-  const isAdmin = userIsAdminDashboard(user);
+  const isAdmin = requestScope?.isOperatorMode ?? userIsAdminDashboard(user);
   const hasTwoFactorSetup = userRequiresTwoFactor(user);
   const hasDirectTwoFactor = sessionHasPassedTwoFactor(user);
   const hasProtectedTwoFactor = sessionSatisfiesProtectedTwoFactor(user);
@@ -42,5 +46,5 @@ async function gateAdmin(req: NextRequest): Promise<SessionUser | Response> {
     return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 
-  return user;
+  return Object.assign(user, { requestScope });
 }

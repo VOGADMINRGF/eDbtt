@@ -37,6 +37,20 @@ vi.mock("@features/contentReleaseWorkbench", async () => {
 
 import { POST } from "@/app/api/account/organization/review/content-release/route";
 
+function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    organizationId: "org-1",
+    membershipStatus: "publication_approved",
+    organizationRole: "participation_officer",
+    regionIds: ["bezirk-berlin-reinickendorf"],
+    isOperatorMode: false,
+    operatorModeLabel: null,
+    sourceOfTruth: "persisted_membership_runtime",
+    confidence: "high",
+    ...overrides,
+  };
+}
+
 describe("/api/account/organization/review/content-release", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,6 +61,7 @@ describe("/api/account/organization/review/content-release", () => {
         isAdmin: false,
       },
       roles: ["user"],
+      requestScope: buildRequestScope(),
     });
     mocks.updateContentReleaseTargetFromSourceResult.mockResolvedValue({
       id: "content-release-1",
@@ -112,6 +127,10 @@ describe("/api/account/organization/review/content-release", () => {
         requestedBy: "user-1",
       }),
     );
+    expect(body.requestScope).toMatchObject({
+      organizationId: "org-1",
+      isOperatorMode: false,
+    });
     expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalledWith(
       expect.objectContaining({
         visibilityState: "public_official",

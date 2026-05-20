@@ -33,7 +33,7 @@ export async function POST(
     }>;
   },
 ) {
-  const gate = await requireGovernanceActorOrResponse(req);
+  const gate = await requireGovernanceActorOrResponse(req, { allowOperatorFallback: false });
   if (gate instanceof Response) return gate;
 
   try {
@@ -75,6 +75,16 @@ export async function POST(
         itemId,
         record: result.record,
         auditEvent: result.auditEvent,
+        requestScope: {
+          organizationId: gate.requestScope.organizationId,
+          membershipStatus: gate.requestScope.membershipStatus,
+          organizationRole: gate.requestScope.organizationRole,
+          regionIds: gate.requestScope.regionIds,
+          isOperatorMode: gate.requestScope.isOperatorMode,
+          operatorModeLabel: gate.requestScope.operatorModeLabel,
+          sourceOfTruth: gate.requestScope.sourceOfTruth,
+          confidence: gate.requestScope.confidence,
+        },
       },
       { status: 200 },
     );

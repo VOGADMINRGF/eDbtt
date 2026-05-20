@@ -27,6 +27,20 @@ vi.mock("@features/region", async () => {
 
 import { POST } from "@/app/api/account/organization/review/items/[itemId]/route";
 
+function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    organizationId: "org-reinickendorf-1",
+    membershipStatus: "unit_verified",
+    organizationRole: "participation_officer",
+    regionIds: ["bezirk-berlin-reinickendorf"],
+    isOperatorMode: false,
+    operatorModeLabel: null,
+    sourceOfTruth: "persisted_membership_runtime",
+    confidence: "high",
+    ...overrides,
+  };
+}
+
 describe("/api/account/organization/review/items/[itemId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,6 +52,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
         isAdmin: false,
       },
       roles: ["user"],
+      requestScope: buildRequestScope(),
     });
   });
 
@@ -78,6 +93,10 @@ describe("/api/account/organization/review/items/[itemId]", () => {
       itemId: "region_signal_draft:draft-1",
       operationalStatus: "in_review",
       latestNote: "Bitte im eigenen Team zuerst prüfen.",
+    });
+    expect(body.requestScope).toMatchObject({
+      organizationId: "org-reinickendorf-1",
+      isOperatorMode: false,
     });
     const auditEvents = await listReviewQueueOperationAuditEvents("region_signal_draft:draft-1");
     expect(auditEvents).toEqual(
@@ -175,5 +194,48 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     const body = await denied.json();
     expect(denied.status).toBe(403);
     expect(body.error).toBe("organization_review_operation_forbidden");
+  });
+
+  it("keeps pending or unverified contexts out of moderation actions", async () => {
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      actor: {
+        userId: "user-1",
+        role: "institutional_actor",
+        isAdmin: false,
+      },
+      roles: ["user"],
+      requestScope: buildRequestScope({
+        membershipStatus: "pending_review",
+      }),
+    });
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      openReviewItems: [
+        {
+          id: "region_signal_draft:pending-1",
+          moderationPermission: {
+            canOperateOwnReviewItem: false,
+            allowedActions: [],
+          },
+        },
+      ],
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/items/region_signal_draft%3Apending-1", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add_note",
+          note: "Noch kein bestätigter Scope.",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        params: Promise.resolve({
+          itemId: "region_signal_draft%3Apending-1",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(403);
   });
 });

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   RegionSourceConnectionDryRunSchema,
-  buildPersistedRegionAccessContext,
   canEditOrganizationResource,
   canCreateRegionDraft,
   canReviewRegionSignal,
@@ -22,14 +21,7 @@ async function canManageRegionSources(params: {
   organizationId?: string | null;
 }) {
   if (params.gate instanceof Response) return false;
-  const accessContext = await buildPersistedRegionAccessContext({
-    userId: params.gate.actor.userId,
-    actorRole: params.gate.actor.role,
-    isAdmin: params.gate.actor.isAdmin,
-    roles: params.gate.roles,
-    organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId,
-  });
+  const accessContext = params.gate.requestScope.regionAccess;
   const scope = regionScopeFromRegionAccessContext({ accessContext });
   return (
     canViewRegionResource(scope, {
@@ -51,8 +43,6 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
   try {
     RegionSourceConnectionDryRunSchema.parse(await req.json());
 
@@ -65,6 +55,8 @@ export async function POST(
     if (!region) {
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
+    const gate = await requireGovernanceActorOrResponse(req, { regionId: region.id });
+    if (gate instanceof Response) return gate;
     if (
       !(await canManageRegionSources({
         gate,
@@ -82,7 +74,16 @@ export async function POST(
       actorRole: gate.actor.role,
       organizationIds: gate.actor.scopedOwnerIds,
     });
-    return NextResponse.json({ ok: true, result });
+    return NextResponse.json({
+      ok: true,
+      result,
+      requestScope: {
+        isOperatorMode: gate.requestScope.isOperatorMode,
+        operatorModeLabel: gate.requestScope.operatorModeLabel,
+        organizationId: gate.requestScope.organizationId,
+        regionIds: gate.requestScope.regionIds,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "region_source_test_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

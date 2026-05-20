@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   RegionSourceConnectionUpsertSchema,
-  buildPersistedRegionAccessContext,
   canEditOrganizationResource,
   canCreateRegionDraft,
   canReviewRegionSignal,
@@ -29,14 +28,7 @@ async function buildScopedAccess(params: {
   regionId?: string | null;
 }) {
   if (params.gate instanceof Response) return false;
-  const accessContext = await buildPersistedRegionAccessContext({
-    userId: params.gate.actor.userId,
-    actorRole: params.gate.actor.role,
-    isAdmin: params.gate.actor.isAdmin,
-    roles: params.gate.roles,
-    organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId ?? undefined,
-  });
+  const accessContext = params.gate.requestScope.regionAccess;
   return {
     accessContext,
     scope: regionScopeFromRegionAccessContext({ accessContext }),
@@ -66,14 +58,14 @@ async function canManageRegionSources(params: {
 }
 
 export async function GET(req: NextRequest) {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
   try {
     const parsed = QuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams.entries()));
     const region = parsed.regionId ? await getOperationalRegionById(parsed.regionId) : null;
     if (parsed.regionId && !region) {
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
+    const gate = await requireGovernanceActorOrResponse(req, { regionId: region?.id ?? null });
+    if (gate instanceof Response) return gate;
 
     if (region && !(await canManageRegionSources({ gate, regionId: region.id }))) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
@@ -101,7 +93,17 @@ export async function GET(req: NextRequest) {
         organizationId: result.organizationId ?? null,
       }),
     );
-    return NextResponse.json({ ok: true, connections: filteredConnections, results: filteredResults });
+    return NextResponse.json({
+      ok: true,
+      connections: filteredConnections,
+      results: filteredResults,
+      requestScope: {
+        isOperatorMode: gate.requestScope.isOperatorMode,
+        operatorModeLabel: gate.requestScope.operatorModeLabel,
+        organizationId: gate.requestScope.organizationId,
+        regionIds: gate.requestScope.regionIds,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "region_source_list_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
@@ -109,14 +111,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
   try {
     const parsed = RegionSourceConnectionUpsertSchema.parse(await req.json());
     const region = await getOperationalRegionById(parsed.regionId);
     if (!region) {
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
+    const gate = await requireGovernanceActorOrResponse(req, { regionId: region.id });
+    if (gate instanceof Response) return gate;
 
     if (!(await canManageRegionSources({ gate, regionId: region.id }))) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
@@ -135,7 +137,16 @@ export async function POST(req: NextRequest) {
           ? scoped.accessContext.organization.primaryOrganizationId
           : null,
     });
-    return NextResponse.json({ ok: true, connection });
+    return NextResponse.json({
+      ok: true,
+      connection,
+      requestScope: {
+        isOperatorMode: gate.requestScope.isOperatorMode,
+        operatorModeLabel: gate.requestScope.operatorModeLabel,
+        organizationId: gate.requestScope.organizationId,
+        regionIds: gate.requestScope.regionIds,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "region_source_save_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

@@ -7,7 +7,6 @@ import {
 } from "@features/contentReleaseWorkbench";
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import {
-  buildPersistedRegionAccessContext,
   canEditOrganizationResource,
   canApprovePublication,
   canCreateAnlassraumDraft,
@@ -39,20 +38,12 @@ const ContentReleaseBodySchema = z
   })
   .strict();
 
-async function buildAccessContext(input: {
-  req: NextRequest;
-  regionId?: string | null;
-}) {
-  const gate = await requireGovernanceActorOrResponse(input.req);
-  if (gate instanceof Response) return gate;
-  const accessContext = await buildPersistedRegionAccessContext({
-    userId: gate.actor.userId,
-    actorRole: gate.actor.role,
-    isAdmin: gate.actor.isAdmin,
-    roles: gate.roles,
-    organizationIds: gate.actor.scopedOwnerIds,
-    regionId: input.regionId ?? undefined,
+async function buildAccessContext(input: { req: NextRequest; regionId?: string | null }) {
+  const gate = await requireGovernanceActorOrResponse(input.req, {
+    regionId: input.regionId ?? null,
   });
+  if (gate instanceof Response) return gate;
+  const accessContext = gate.requestScope.regionAccess;
   return { gate, accessContext, scope: regionScopeFromRegionAccessContext({ accessContext }) };
 }
 
@@ -126,7 +117,19 @@ export async function POST(req: NextRequest) {
         requestedBy: gate.actor.userId,
         organizationId: accessContext?.organization.primaryOrganizationId ?? null,
       });
-      return NextResponse.json({ ok: true, record }, { status: 201 });
+      return NextResponse.json(
+        {
+          ok: true,
+          record,
+          requestScope: {
+            isOperatorMode: gate.requestScope.isOperatorMode,
+            operatorModeLabel: gate.requestScope.operatorModeLabel,
+            sourceOfTruth: gate.requestScope.sourceOfTruth,
+            confidence: gate.requestScope.confidence,
+          },
+        },
+        { status: 201 },
+      );
     }
 
     if (body.action === "make_visible" && !canPrepareTarget) {
@@ -149,7 +152,19 @@ export async function POST(req: NextRequest) {
       requestedBy: gate.actor.userId,
       note: body.note,
     });
-    return NextResponse.json({ ok: true, record }, { status: 200 });
+    return NextResponse.json(
+      {
+        ok: true,
+        record,
+        requestScope: {
+          isOperatorMode: gate.requestScope.isOperatorMode,
+          operatorModeLabel: gate.requestScope.operatorModeLabel,
+          sourceOfTruth: gate.requestScope.sourceOfTruth,
+          confidence: gate.requestScope.confidence,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "content_release_failed";
     const status =

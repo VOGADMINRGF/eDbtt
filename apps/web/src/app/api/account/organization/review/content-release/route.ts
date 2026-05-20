@@ -31,7 +31,7 @@ function denied(error: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const gate = await requireGovernanceActorOrResponse(req);
+  const gate = await requireGovernanceActorOrResponse(req, { allowOperatorFallback: false });
   if (gate instanceof Response) return gate;
 
   try {
@@ -85,7 +85,21 @@ export async function POST(req: NextRequest) {
         requestedBy: userId,
         organizationId: readModel.organization.primaryOrganizationId ?? null,
       });
-      return NextResponse.json({ ok: true, record }, { status: 201 });
+      return NextResponse.json(
+        {
+          ok: true,
+          record,
+          requestScope: {
+            organizationId: gate.requestScope.organizationId,
+            membershipStatus: gate.requestScope.membershipStatus,
+            organizationRole: gate.requestScope.organizationRole,
+            regionIds: gate.requestScope.regionIds,
+            isOperatorMode: gate.requestScope.isOperatorMode,
+            operatorModeLabel: gate.requestScope.operatorModeLabel,
+          },
+        },
+        { status: 201 },
+      );
     }
 
     const record = await updateContentReleaseTargetFromSourceResult({
@@ -96,7 +110,21 @@ export async function POST(req: NextRequest) {
       requestedBy: userId,
       note: body.note,
     });
-    return NextResponse.json({ ok: true, record }, { status: 200 });
+    return NextResponse.json(
+      {
+        ok: true,
+        record,
+        requestScope: {
+          organizationId: gate.requestScope.organizationId,
+          membershipStatus: gate.requestScope.membershipStatus,
+          organizationRole: gate.requestScope.organizationRole,
+          regionIds: gate.requestScope.regionIds,
+          isOperatorMode: gate.requestScope.isOperatorMode,
+          operatorModeLabel: gate.requestScope.operatorModeLabel,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "content_release_failed";
     const status =

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
-  buildPersistedRegionAccessContext,
   canApprovePublication,
   canReviewRegionSignal,
   canViewRegionResource,
@@ -39,14 +38,7 @@ async function buildAccessContext(params: {
   regionId: string;
 }) {
   if (params.gate instanceof Response) return null;
-  const accessContext = await buildPersistedRegionAccessContext({
-    userId: params.gate.actor.userId,
-    actorRole: params.gate.actor.role,
-    isAdmin: params.gate.actor.isAdmin,
-    roles: params.gate.roles,
-    organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId,
-  });
+  const accessContext = params.gate.requestScope.regionAccess;
   return {
     accessContext,
     scope: regionScopeFromRegionAccessContext({ accessContext }),
@@ -71,9 +63,6 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
-
   const body = ReviewBodySchema.parse(await req.json());
   const { id } = await params;
   const regions = await listOperationalRegions();
@@ -83,26 +72,29 @@ export async function POST(
   if (!existing) {
     return NextResponse.json({ ok: false, error: "signal_not_found" }, { status: 404 });
   }
+  const targetRegionId = body.regionId ?? existing.regionId ?? existing.proposedRegionId ?? null;
+  const resolvedTargetRegion = targetRegionId ? await getOperationalRegionById(targetRegionId) : null;
+  if (targetRegionId && !resolvedTargetRegion) {
+    return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
+  }
+  const gate = await requireGovernanceActorOrResponse(req, {
+    regionId: resolvedTargetRegion?.id ?? null,
+  });
+  if (gate instanceof Response) return gate;
 
   if (!gate.actor.isAdmin) {
-    const targetRegion =
-      body.regionId ?? existing.regionId ?? existing.proposedRegionId ?? null;
-    if (!targetRegion) {
+    if (!resolvedTargetRegion?.id) {
       return NextResponse.json({ ok: false, error: "region_review_forbidden" }, { status: 403 });
     }
-    const region = await getOperationalRegionById(targetRegion);
-    if (!region) {
-      return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
-    }
-    const scoped = await buildAccessContext({ gate, regionId: region.id });
+    const scoped = await buildAccessContext({ gate, regionId: resolvedTargetRegion.id });
     const hasReviewAccess =
       scoped &&
-      canViewRegionResource(scoped.scope, { regionId: region.id }) &&
-      canReviewRegionSignal(scoped.accessContext, region.id);
+      canViewRegionResource(scoped.scope, { regionId: resolvedTargetRegion.id }) &&
+      canReviewRegionSignal(scoped.accessContext, resolvedTargetRegion.id);
     const hasPublicationApprovalAccess =
       scoped &&
-      canViewRegionResource(scoped.scope, { regionId: region.id }) &&
-      canApprovePublication(scoped.accessContext, region.id);
+      canViewRegionResource(scoped.scope, { regionId: resolvedTargetRegion.id }) &&
+      canApprovePublication(scoped.accessContext, resolvedTargetRegion.id);
     const requiresPublicationApproval =
       body.decision === "approve_official" || body.decision === "revoke_official";
     if (
@@ -115,12 +107,7 @@ export async function POST(
     }
   }
 
-  const regionId = body.regionId
-    ? ((await getOperationalRegionById(body.regionId))?.id ?? null)
-    : null;
-  if (body.regionId && !regionId) {
-    return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
-  }
+  const regionId = body.regionId ? resolvedTargetRegion?.id ?? null : null;
 
   const result =
     body.decision === "approve_official"
@@ -155,5 +142,11 @@ export async function POST(
     ok: true,
     record: result.record,
     review: result.review,
+    requestScope: {
+      isOperatorMode: gate.requestScope.isOperatorMode,
+      operatorModeLabel: gate.requestScope.operatorModeLabel,
+      organizationId: gate.requestScope.organizationId,
+      regionIds: gate.requestScope.regionIds,
+    },
   });
 }
