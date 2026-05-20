@@ -60,7 +60,9 @@ import {
   buildContentReleaseWorkbenchTargets,
   buildContentReleaseWorkbenchTargetsForCreateHandoff,
   createInMemoryContentReleaseWorkbenchRepo,
+  getContentReleasePersistenceState,
   getPublicContentLink,
+  listContentReleaseAuditEventsForRecords,
   makeContentVisible,
   listContentReleaseAuditEvents,
   preparePublishPreview,
@@ -511,6 +513,10 @@ describe("content release workbench", () => {
       shareHref: expect.stringContaining("/dossier/"),
       visibilityState: "public_unverified",
     });
+    expect(getContentReleasePersistenceState()).toMatchObject({
+      mode: "in_memory_fallback",
+      productionTruth: false,
+    });
   });
 
   it("retracts visibility without hard delete and archives consciously", async () => {
@@ -604,6 +610,50 @@ describe("content release workbench", () => {
               statusLabel: "Arbeitsstand",
             }),
           ]),
+    );
+  });
+
+  it("keeps visibility and archive audit events reconstructable through the repository", async () => {
+    const dossier = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "dossier",
+      requestedBy: "admin-1",
+    });
+    const topicPage = await prepareContentReleaseTargetFromSourceResult({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "topic_page",
+      requestedBy: "admin-1",
+    });
+
+    await makeContentVisible({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "dossier",
+      requestedBy: "admin-1",
+    });
+    await archiveVisibleContent({
+      sourceKind: "region_source_result",
+      sourceResultId: sourceResult.id,
+      targetType: "topic_page",
+      requestedBy: "admin-1",
+    });
+
+    const grouped = await listContentReleaseAuditEventsForRecords([
+      dossier.id,
+      topicPage.id,
+    ]);
+
+    expect(grouped[dossier.id]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "visibility_made_public" }),
+      ]),
+    );
+    expect(grouped[topicPage.id]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "archived" }),
+      ]),
     );
   });
 });

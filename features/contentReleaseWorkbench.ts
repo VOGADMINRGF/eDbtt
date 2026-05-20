@@ -1,6 +1,7 @@
 import { coreCol, ObjectId, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { z } from "zod";
+import { recordAuditEvent } from "@features/audit/recordAuditEvent";
 import {
   getDossierStudioWorkspaceRepo,
   type DossierStudioWorkspaceSource,
@@ -170,6 +171,27 @@ const ContentReleaseAuditEventSchema = z
 export type ContentReleaseAuditEvent = z.infer<typeof ContentReleaseAuditEventSchema>;
 export type ContentPublishAuditEvent = ContentReleaseAuditEvent;
 
+export const CONTENT_RELEASE_PERSISTENCE_MODES = [
+  "persistent_primary",
+  "in_memory_fallback",
+] as const;
+
+export type ContentReleasePersistenceMode =
+  (typeof CONTENT_RELEASE_PERSISTENCE_MODES)[number];
+
+export type ContentReleasePersistenceState = {
+  mode: ContentReleasePersistenceMode;
+  label: string;
+  summary: string;
+  repositoryInterface: "ContentReleaseRepository";
+  storeKind: "mongo_collection" | "in_memory";
+  productionTruth: boolean;
+  restartReconstructable: boolean;
+  deploymentReconstructable: boolean;
+};
+
+export type ContentReleaseAuditByRecord = Record<string, ContentReleaseAuditEvent[]>;
+
 export const CONTENT_PUBLISH_STATUSES = [
   "draft",
   "internal_review",
@@ -210,6 +232,7 @@ export type ContentPublishPreview = {
   statusHint: string;
   publicLink: PublicContentLink | null;
   auditEvents: ContentPublishAuditEvent[];
+  persistence: ContentReleasePersistenceState;
 };
 
 export type ContentReleaseWorkbenchTarget = {
@@ -273,6 +296,11 @@ export type ContentReleaseRepository = {
   saveTargetRecord(record: ContentReleaseTargetRecord): Promise<void>;
   appendAuditEvent(event: ContentReleaseAuditEvent): Promise<void>;
   listAuditEvents(recordId: string): Promise<ContentReleaseAuditEvent[]>;
+  listAuditEventsForRecords(
+    recordIds: string[],
+    limitPerRecord?: number,
+  ): Promise<ContentReleaseAuditByRecord>;
+  getPersistenceState(): ContentReleasePersistenceState;
 };
 
 export type ContentReleaseWorkbenchRepo = ContentReleaseRepository;
@@ -287,8 +315,30 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function uniqueNonEmpty(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
 function isoNow() {
   return new Date().toISOString();
+}
+
+function buildPersistenceState(
+  mode: ContentReleasePersistenceMode,
+): ContentReleasePersistenceState {
+  const persistent = mode === "persistent_primary";
+  return {
+    mode,
+    label: persistent ? "Persistenter Content-Release-Store" : "In-Memory-Fallback",
+    summary: persistent
+      ? "Sichtbarkeit, Archivierung, Public Links und Workbench-Aktivität liegen dauerhaft in den Content-Release-Collections und bleiben über Restart/Deployment rekonstruierbar."
+      : "Nur Dev-/Test-/Runtime-Fallback: Sichtbarkeits- und Archivzustände leben pro Prozess und dürfen nicht als Produktionswahrheit ausgegeben werden.",
+    repositoryInterface: "ContentReleaseRepository",
+    storeKind: persistent ? "mongo_collection" : "in_memory",
+    productionTruth: persistent,
+    restartReconstructable: persistent,
+    deploymentReconstructable: persistent,
+  };
 }
 
 function targetLabel(targetType: ContentReleaseTargetType) {
@@ -626,17 +676,62 @@ function auditActionForVisibilityAction(
   }
 }
 
+function globalAuditActionForContentRelease(
+  action: ContentReleaseAuditAction,
+): string | null {
+  switch (action) {
+    case "visibility_made_public":
+      return "content_release.visibility_made_public";
+    case "visibility_retracted":
+      return "content_release.visibility_revoked";
+    case "archived":
+      return "content_release.content_archived";
+    default:
+      return null;
+  }
+}
+
+async function recordPersistentContentReleaseAudit(params: {
+  record: ContentReleaseTargetRecord;
+  action: ContentReleaseAuditAction;
+  note?: string | null;
+  before?: RegionPublicationVisibilityState | null;
+  after?: RegionPublicationVisibilityState | null;
+}) {
+  const globalAction = globalAuditActionForContentRelease(params.action);
+  if (!globalAction) return;
+  if (!getRepo().getPersistenceState().productionTruth) return;
+  await recordAuditEvent({
+    scope: params.record.organizationId ? "org" : "admin",
+    action: globalAction,
+    actorUserId: params.record.updatedByUserId,
+    target: {
+      type: `content_release_${params.record.targetType}`,
+      id: params.record.id,
+    },
+    before:
+      params.before === undefined
+        ? undefined
+        : { visibilityState: params.before, targetType: params.record.targetType },
+    after:
+      params.after === undefined
+        ? undefined
+        : { visibilityState: params.after, targetType: params.record.targetType },
+    reason: params.note ?? null,
+  });
+}
+
 async function buildPublishPreview(params: {
   targetType: ContentReleaseTargetType;
   suggestedTitle: string;
   record: ContentReleaseTargetRecord | null;
+  auditEvents?: ContentPublishAuditEvent[];
 }) {
   const visibilityState = params.record?.visibilityState ?? "internal_review";
   const publicHref = params.record?.publicHref ?? null;
   const publicLink = publicContentLinkFor(publicHref, visibilityState);
-  const auditEvents = params.record
-    ? await listContentReleaseAuditEvents(params.record.id)
-    : [];
+  const auditEvents =
+    params.auditEvents ?? (params.record ? await listContentReleaseAuditEvents(params.record.id) : []);
   return {
     target: {
       targetType: params.targetType,
@@ -656,6 +751,7 @@ async function buildPublishPreview(params: {
     }),
     publicLink,
     auditEvents,
+    persistence: getContentReleasePersistenceState(),
   } satisfies ContentPublishPreview;
 }
 
@@ -1075,6 +1171,32 @@ function createMongoRepo(): ContentReleaseWorkbenchRepo {
       const docs = await col.find({ "event.recordId": recordId }).sort({ "event.at": -1 }).toArray();
       return docs.map((doc) => ContentReleaseAuditEventSchema.parse(clone(doc.event)));
     },
+    async listAuditEventsForRecords(recordIds, limitPerRecord = 5) {
+      await ensureIndexes();
+      const normalizedIds = uniqueNonEmpty(recordIds);
+      const grouped: ContentReleaseAuditByRecord = {};
+      for (const recordId of normalizedIds) grouped[recordId] = [];
+      if (normalizedIds.length === 0) return grouped;
+      const col = await coreCol<{ _id: string; event: ContentReleaseAuditEvent }>(
+        CONTENT_RELEASE_AUDIT_COLLECTION,
+      );
+      const docs = await col
+        .find({ "event.recordId": { $in: normalizedIds } } as any)
+        .sort({ "event.at": -1 })
+        .toArray();
+      const counts = new Map<string, number>();
+      for (const doc of docs) {
+        const event = ContentReleaseAuditEventSchema.parse(clone(doc.event));
+        const currentCount = counts.get(event.recordId) ?? 0;
+        if (currentCount >= limitPerRecord) continue;
+        grouped[event.recordId] = [...(grouped[event.recordId] ?? []), event];
+        counts.set(event.recordId, currentCount + 1);
+      }
+      return grouped;
+    },
+    getPersistenceState() {
+      return buildPersistenceState("persistent_primary");
+    },
   };
 }
 
@@ -1132,6 +1254,21 @@ export function createInMemoryContentReleaseWorkbenchRepo(seed?: {
         .map((event) => clone(event))
         .sort((left, right) => String(right.at).localeCompare(String(left.at)));
     },
+    async listAuditEventsForRecords(recordIds, limitPerRecord = 5) {
+      const normalizedIds = uniqueNonEmpty(recordIds);
+      const grouped: ContentReleaseAuditByRecord = {};
+      for (const recordId of normalizedIds) {
+        grouped[recordId] = Array.from(auditEvents.values())
+          .filter((event) => event.recordId === recordId)
+          .map((event) => clone(event))
+          .sort((left, right) => String(right.at).localeCompare(String(left.at)))
+          .slice(0, limitPerRecord);
+      }
+      return grouped;
+    },
+    getPersistenceState() {
+      return buildPersistenceState("in_memory_fallback");
+    },
   };
 }
 
@@ -1153,6 +1290,10 @@ export function setContentReleaseWorkbenchRepoForTests(
 
 export function getContentReleaseRepository(): ContentReleaseRepository {
   return getRepo();
+}
+
+export function getContentReleasePersistenceState() {
+  return getRepo().getPersistenceState();
 }
 
 function buildRecord(params: {
@@ -1332,16 +1473,24 @@ export async function updateContentReleaseTargetFromSourceResult(
     updatedAt,
   });
   await getRepo().saveTargetRecord(next);
+  const auditAction = auditActionForVisibilityAction(input.action);
   await getRepo().appendAuditEvent({
-    id: auditEventIdFor(next.id, auditActionForVisibilityAction(input.action), updatedAt),
+    id: auditEventIdFor(next.id, auditAction, updatedAt),
     recordId: next.id,
     sourceKind: next.sourceKind,
     sourceResultId: next.sourceResultId,
     targetType: next.targetType,
-    action: auditActionForVisibilityAction(input.action),
+    action: auditAction,
     byUserId: input.requestedBy,
     note: input.note ?? null,
     at: updatedAt,
+  });
+  await recordPersistentContentReleaseAudit({
+    record: next,
+    action: auditAction,
+    note: input.note ?? null,
+    before: existing.visibilityState,
+    after: next.visibilityState,
   });
   return next;
 }
@@ -1361,6 +1510,13 @@ export async function listContentReleaseTargetsByType(
 
 export async function listContentReleaseAuditEvents(recordId: string) {
   return getRepo().listAuditEvents(recordId);
+}
+
+export async function listContentReleaseAuditEventsForRecords(
+  recordIds: string[],
+  limitPerRecord = 5,
+) {
+  return getRepo().listAuditEventsForRecords(recordIds, limitPerRecord);
 }
 
 export async function getContentReleaseTargetRecord(
@@ -1388,6 +1544,9 @@ export async function buildContentReleaseWorkbenchTargets(params: {
     params.sourceKind,
     params.result.id,
   );
+  const auditByRecord = await listContentReleaseAuditEventsForRecords(
+    existingRecords.map((record) => record.id),
+  );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
   return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
     const record = recordByType.get(targetType) ?? null;
@@ -1395,6 +1554,7 @@ export async function buildContentReleaseWorkbenchTargets(params: {
       targetType,
       suggestedTitle: record?.title ?? suggestedTitleForTarget(params.result, targetType),
       record,
+      auditEvents: record ? auditByRecord[record.id] ?? [] : [],
     });
     const publicHref = preview.publicLink?.href ?? null;
     const shareHref = preview.publicLink?.shareHref ?? null;
@@ -1446,6 +1606,9 @@ export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params
     params.sourceKind,
     params.record.id,
   );
+  const auditByRecord = await listContentReleaseAuditEventsForRecords(
+    existingRecords.map((record) => record.id),
+  );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
   return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
     const existing = recordByType.get(targetType) ?? null;
@@ -1453,6 +1616,7 @@ export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params
       targetType,
       suggestedTitle: existing?.title ?? suggestedTitleForCreateHandoff(params.record, targetType),
       record: existing,
+      auditEvents: existing ? auditByRecord[existing.id] ?? [] : [],
     });
     const publicHref = preview.publicLink?.href ?? null;
     const shareHref = preview.publicLink?.shareHref ?? null;

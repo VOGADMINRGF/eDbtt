@@ -57,7 +57,10 @@ describe("persistence inventory contract", () => {
     expect(typeof registry.reviewQueueOperations.listAuditEventsForItems).toBe("function");
     expect(typeof registry.sourceConnections.listConnections).toBe("function");
     expect(typeof registry.contentRelease.getTargetRecord).toBe("function");
+    expect(typeof registry.contentRelease.listAuditEventsForRecords).toBe("function");
+    expect(typeof registry.contentRelease.getPersistenceState).toBe("function");
     expect(typeof registry.publicTopicPages.getVisibleBySlug).toBe("function");
+    expect(typeof registry.publicTopicPages.getPersistenceState).toBe("function");
     expect(typeof registry.auditEvents.listContentReleaseEvents).toBe("function");
     expect(typeof registry.auditEvents.listReviewQueueOperationEvents).toBe("function");
   });

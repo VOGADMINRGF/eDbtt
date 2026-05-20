@@ -358,6 +358,17 @@ describe("/admin/review page", () => {
         restartReconstructable: true,
         deploymentReconstructable: true,
       },
+      contentReleasePersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Content-Release-Store",
+        summary:
+          "Sichtbarkeit, Archivierung, Public Links und Workbench-Aktivität liegen dauerhaft in den Content-Release-Collections und bleiben über Restart/Deployment rekonstruierbar.",
+        repositoryInterface: "ContentReleaseRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
       summary: {
         total: 3,
         totalBeforeFilters: 3,
@@ -445,6 +456,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Review, Vorschau, Sichtbarkeit und Widerruf laufen auf demselben Pfad");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Persistenter Operations-Store");
+    expect(html).toContain("Content-Release-Persistenz");
+    expect(html).toContain("Persistenter Content-Release-Store");
     expect(html).toContain("Keine Sammelentscheidung");
     expect(html).toContain("Region-Intelligence-Vorschläge");
     expect(html).toContain("reviewpflichtige Source Results");
@@ -459,6 +472,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Letzte Aktivität");
     expect(html).toContain("Als bereit markiert");
     expect(html).toContain("Review-to-Publish Workspace");
+    expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");

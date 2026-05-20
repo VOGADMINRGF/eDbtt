@@ -332,7 +332,7 @@ export function buildPersistenceInventory(): PersistenceInventoryReadModel {
       restartRisk: repoBackedRestartRisk(fallbackActive),
       deploymentRisk: repoBackedDeploymentRisk(fallbackActive),
       currentTruth:
-        "Prepared Targets, Sichtbarkeit und Audit liegen in `content_release_workbench_targets` plus Audit-Collection, solange keine In-Memory-Runtime aktiv ist.",
+        "Prepared Targets, Sichtbarkeit, Archivierung und Audit liegen in `content_release_workbench_targets` plus Audit-Collection; persistente Visibility-Aktionen werden zusätzlich in den bestehenden Audit-Stream gespiegelt, solange keine In-Memory-Runtime aktiv ist.",
       restartRiskSummary: fallbackActive
         ? "Prepared Targets und Visibility-Schritte gehen im Fallback bei Restart verloren."
         : "Workbench-Status bleibt über Restart erhalten.",
@@ -358,7 +358,7 @@ export function buildPersistenceInventory(): PersistenceInventoryReadModel {
       restartRisk: fallbackActive ? "high" : "low",
       deploymentRisk: fallbackActive ? "high" : "medium",
       currentTruth:
-        "Publish Preview ist ein derived readmodel aus Content-Release-Targets plus Audit-Events; es ist kein eigener zweiter Persistenzpfad.",
+        "Publish Preview ist ein derived readmodel aus persistierten Content-Release-Targets plus Audit-Events; Public URL, Share-Link und QR sind kein eigener zweiter Persistenzpfad.",
       restartRiskSummary: fallbackActive
         ? "Derived Publish-Preview fällt aus, wenn Targets nur im In-Memory-Overlay leben."
         : "Derived Visibility bleibt stabil, solange die zugrunde liegenden Records persistent sind.",
@@ -381,7 +381,7 @@ export function buildPersistenceInventory(): PersistenceInventoryReadModel {
       restartRisk: fallbackActive ? "high" : "low",
       deploymentRisk: fallbackActive ? "high" : "medium",
       currentTruth:
-        "Öffentliche Topic Pages haben keinen separaten Persistenzpfad; sie werden aus Content-Release-Targets abgeleitet.",
+        "Öffentliche Topic Pages haben keinen separaten Persistenzpfad; sie werden aus denselben persistierten Content-Release-Targets über `PublicTopicPageRepository` abgeleitet.",
       restartRiskSummary: fallbackActive
         ? "Topic Pages verschwinden bei Restart, wenn die zugrunde liegenden Targets nur in-memory existieren."
         : "Topic Pages bleiben stabil, solange Content-Release persistent bleibt.",
@@ -404,7 +404,7 @@ export function buildPersistenceInventory(): PersistenceInventoryReadModel {
       restartRisk: repoBackedRestartRisk(fallbackActive),
       deploymentRisk: repoBackedDeploymentRisk(fallbackActive),
       currentTruth:
-        "Audit-Events liegen heute verteilt in Review-Queue- und Content-Release-Stores; Activity-Readmodels leiten sich daraus ab.",
+        "Audit-Events liegen heute verteilt in Review-Queue-Stores, Content-Release-Stores und dem bestehenden globalen Audit-Stream; Activity-Readmodels leiten sich daraus ab.",
       restartRiskSummary: fallbackActive
         ? "Audit-Historie geht im In-Memory-Fallback bei Restart verloren."
         : "Persistente Audit-Collections halten Visibility- und Operations-Historie über Restart.",
