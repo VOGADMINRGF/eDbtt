@@ -29,6 +29,7 @@ import {
   type ReviewQueueItem,
   type ReviewQueueReadModel,
 } from "../reviewQueue";
+import { listUnifiedAuditEvents, type UnifiedAuditEvent } from "../unifiedAuditReadside";
 import type {
   Organization,
   OrganizationClaim,
@@ -221,6 +222,7 @@ export type OrganizationDashboardReadModel = {
   reviewQueueSummary: OrganizationDashboardReviewSummary;
   reviewQueueOperationsPersistence: ReviewQueueReadModel["operationsPersistence"];
   contentReleasePersistence: ReviewQueueReadModel["contentReleasePersistence"];
+  recentUnifiedAuditTrail: UnifiedAuditEvent[];
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
   dossierDrafts: OrganizationDashboardDraftSummary[];
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
@@ -244,6 +246,12 @@ function clone<T>(value: T): T {
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
+function sortRecentAuditTrail(events: UnifiedAuditEvent[], limit: number) {
+  return [...events]
+    .sort((left, right) => String(left.at).localeCompare(String(right.at)))
+    .slice(-limit);
 }
 
 function isVerifiedMembershipStatus(
@@ -1134,6 +1142,30 @@ export async function buildOrganizationDashboardReadModel(input: {
         }
       : null,
   });
+  const queriedUnifiedAuditTrail = (
+    await listUnifiedAuditEvents({
+      scope: regionScope,
+      itemIds: reviewQueue.items.map((item) => item.id),
+      itemResources: Object.fromEntries(
+        reviewQueue.items.map((item) => [
+          item.id,
+          {
+            organizationId: item.organizationId,
+            regionId: item.regionId,
+            ownerUserId: item.ownerUserId,
+          },
+        ]),
+      ),
+      limit: 6,
+    })
+  ).events;
+  const recentUnifiedAuditTrail =
+    queriedUnifiedAuditTrail.length > 0
+      ? queriedUnifiedAuditTrail
+      : sortRecentAuditTrail(
+          reviewQueue.items.flatMap((item) => item.unifiedAuditTrail ?? []),
+          6,
+        );
   const firstRun = buildOrganizationFirstRun({
     primaryOrganizationId: primaryOrganization?.id ?? null,
     hasPendingClaim: pendingClaims.length > 0,
@@ -1199,6 +1231,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     reviewQueueSummary: reviewQueue.summary,
     reviewQueueOperationsPersistence: reviewQueue.operationsPersistence,
     contentReleasePersistence: reviewQueue.contentReleasePersistence,
+    recentUnifiedAuditTrail,
     regionalStartingPoints,
     dossierDrafts,
     anlassraumDrafts,

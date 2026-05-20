@@ -873,5 +873,13 @@ describe("organization dashboard readmodel", () => {
         }),
       ]),
     );
+    expect(readModel.recentUnifiedAuditTrail).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "review_operation_applied",
+          detail: "In Review gesetzt",
+        }),
+      ]),
+    );
   });
 });

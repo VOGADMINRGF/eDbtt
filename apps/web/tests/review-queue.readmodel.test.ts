@@ -719,6 +719,14 @@ describe("review queue readmodel", () => {
         }),
       ]),
     );
+    expect(readModel.items[0]?.unifiedAuditTrail).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "review_operation_applied",
+          detail: "Blockiert",
+        }),
+      ]),
+    );
   });
 
   it("changes operational status without ever turning review items into public_official", async () => {

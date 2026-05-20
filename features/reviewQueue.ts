@@ -53,6 +53,10 @@ import {
   type ReviewQueueOperationPersistenceState,
   type ReviewQueueOperationalStatus,
 } from "./reviewQueueOperations";
+import {
+  listUnifiedAuditEvents,
+  type UnifiedAuditEvent,
+} from "./unifiedAuditReadside";
 
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
@@ -97,6 +101,7 @@ export type ReviewQueueItem = {
   visibilityState: RegionPublicationVisibilityState;
   visibilityLabel: string;
   scopeLabel: string;
+  ownerUserId: string | null;
   priorityScore: number;
   priorityBucket: ReviewQueuePriorityBucket;
   priorityLabel: string;
@@ -112,6 +117,7 @@ export type ReviewQueueItem = {
     at: string;
   } | null;
   activityTrail: ReviewQueueActivityEntry[];
+  unifiedAuditTrail: UnifiedAuditEvent[];
   createdAt: string;
   updatedAt: string;
   reviewRequired: true;
@@ -150,6 +156,7 @@ type ReviewQueueItemCore = Omit<
   | "noteCount"
   | "latestNote"
   | "activityTrail"
+  | "unifiedAuditTrail"
 >;
 
 export type ReviewQueueActivityEntry = {
@@ -518,6 +525,7 @@ function mapParticipationReviewItem(params: {
     href: reviewLinkForRegion(regionId),
     regionId,
     regionName: regionNameFor(params.regionMap, regionId),
+    ownerUserId: null,
     organizationId: null,
     dossierId: record.relatedDossierIds[0] ?? null,
     draftId: null,
@@ -553,6 +561,7 @@ function mapParticipationOfficialApprovalItem(params: {
     href: reviewLinkForRegion(regionId),
     regionId,
     regionName: regionNameFor(params.regionMap, regionId),
+    ownerUserId: null,
     organizationId: null,
     dossierId: params.record.relatedDossierIds[0] ?? null,
     draftId: null,
@@ -585,6 +594,7 @@ function mapRegionSignalDraftItem(params: {
     href: draftLinkForRecord(params.record),
     regionId: params.record.regionId,
     regionName: regionNameFor(params.regionMap, params.record.regionId),
+    ownerUserId: params.record.createdByUserId,
     organizationId: null,
     dossierId: params.record.draftType === "dossier" ? params.record.draftId : null,
     draftId: params.record.draftId,
@@ -620,6 +630,7 @@ function mapRegionIntelligenceSuggestionItem(params: {
     href: `${reviewLinkForRegion(params.regionId)}#intelligence-review-suggestions`,
     regionId: params.regionId,
     regionName: params.regionName,
+    ownerUserId: null,
     organizationId: null,
     dossierId: null,
     draftId: null,
@@ -679,6 +690,7 @@ async function mapRegionSourceResultItem(params: {
     href: `${reviewLinkForRegion(params.result.regionId)}#source-results`,
     regionId: params.result.regionId,
     regionName: regionNameFor(params.regionMap, params.result.regionId),
+    ownerUserId: params.result.testedBy ?? null,
     organizationId: params.result.organizationId ?? null,
     dossierId: null,
     draftId: params.result.connectionId,
@@ -731,6 +743,7 @@ function mapWorkspaceItem(params: {
     href: workspaceLink(params.workspace.dossierId),
     regionId: params.workspace.regionId ?? null,
     regionName: regionNameFor(params.regionMap, params.workspace.regionId),
+    ownerUserId: params.workspace.createdBy,
     organizationId: params.workspace.organizationId ?? null,
     dossierId: params.workspace.dossierId,
     draftId: null,
@@ -765,6 +778,7 @@ function mapWorkspaceOfficialApprovalItem(params: {
     href: workspaceLink(params.workspace.dossierId),
     regionId: params.workspace.regionId ?? null,
     regionName: regionNameFor(params.regionMap, params.workspace.regionId),
+    ownerUserId: params.workspace.createdBy,
     organizationId: params.workspace.organizationId ?? null,
     dossierId: params.workspace.dossierId,
     draftId: null,
@@ -795,6 +809,7 @@ function mapWorkspaceOutputItems(params: {
     href: workspaceLink(params.workspace.dossierId),
     regionId: params.workspace.regionId ?? null,
     regionName: regionNameFor(params.regionMap, params.workspace.regionId),
+    ownerUserId: params.workspace.createdBy,
     organizationId: params.workspace.organizationId ?? null,
     dossierId: params.workspace.dossierId,
     draftId: null,
@@ -868,6 +883,7 @@ function mapCreateAttachItem(item: CreatePrepareAttachDraftQueueItem): ReviewQue
     href: `/admin/create/attach-drafts?draftId=${encodeURIComponent(item.draftId)}`,
     regionId: null,
     regionName: null,
+    ownerUserId: null,
     organizationId: null,
     dossierId: null,
     draftId: item.draftId,
@@ -934,6 +950,7 @@ async function mapPersistedCreateHandoffItem(params: {
     href: params.record.resumeHref,
     regionId: params.record.regionId,
     regionName: regionNameFor(params.regionMap, params.record.regionId),
+    ownerUserId: params.record.createdByUserId,
     organizationId: params.record.organizationId,
     dossierId: params.record.dossierId,
     draftId: params.record.id,
@@ -993,6 +1010,7 @@ function decorateReviewQueueItem(
   item: ReviewQueueItemCore,
   operation: Awaited<ReturnType<typeof listReviewQueueOperationRecords>>[number] | undefined,
   activityTrail: ReviewQueueActivityEntry[],
+  unifiedAuditTrail: UnifiedAuditEvent[],
 ): ReviewQueueItem {
   const operationalStatus = operation?.operationalStatus ?? "open";
   const priorityScore = priorityScoreFor(item, operationalStatus);
@@ -1020,6 +1038,7 @@ function decorateReviewQueueItem(
           }
         : null,
     activityTrail,
+    unifiedAuditTrail,
   };
 }
 
@@ -1306,11 +1325,36 @@ export async function buildReviewQueueReadModel(
     coreItems.map((item) => item.id),
     3,
   );
+  const unifiedAuditReadModel = await listUnifiedAuditEvents({
+    scope: scoped,
+    itemIds: coreItems.map((item) => item.id),
+    itemResources: Object.fromEntries(
+      coreItems.map((item) => [
+        item.id,
+        {
+          organizationId: item.organizationId,
+          regionId: item.regionId,
+          ownerUserId: item.ownerUserId,
+        },
+      ]),
+    ),
+    limit: Math.max(coreItems.length * 4, 12),
+  });
+  const unifiedAuditByItem = unifiedAuditReadModel.events.reduce<Record<string, UnifiedAuditEvent[]>>(
+    (acc, event) => {
+      if (!event.itemId) return acc;
+      acc[event.itemId] ??= [];
+      acc[event.itemId]?.push(clone(event));
+      return acc;
+    },
+    {},
+  );
   const decorated = coreItems.map((item) =>
     decorateReviewQueueItem(
       item,
       operationMap.get(item.id),
       mapOperationActivityTrail(operationAuditMap[item.id]),
+      unifiedAuditByItem[item.id] ?? [],
     ),
   );
   const filtered = decorated.filter((item) => itemMatchesFilters(item, filters));
