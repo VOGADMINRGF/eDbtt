@@ -154,6 +154,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
       <div className="mt-3 space-y-1 text-[11px] text-[rgb(var(--muted))]">
         <p>Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.</p>
         <p>Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.</p>
+        <p>Link, Share und QR erscheinen erst nach einer bewussten sichtbaren Freigabe.</p>
       </div>
 
       {showQr ? (
