@@ -126,6 +126,13 @@ export default async function AdminReviewPage({
     readModel.filters.applied.assignedToUserId !== "all",
     readModel.filters.applied.visibilityState !== "all",
   ].filter(Boolean).length;
+  const operationsPersistence = readModel.operationsPersistence ?? {
+    mode: "in_memory_fallback",
+    label: "In-Memory-Fallback",
+    summary:
+      "Fallback-Zustand ohne dauerhafte Produktionswahrheit. Review-Operationen sind dann nur pro Runtime vorhanden.",
+    productionTruth: false,
+  };
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -317,6 +324,21 @@ export default async function AdminReviewPage({
           ))}
         </div>
 
+        <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            Operations-Persistenz
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+            {operationsPersistence.label}
+          </p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{operationsPersistence.summary}</p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            {operationsPersistence.productionTruth
+              ? "Zuweisungen, Notizen und Statuswechsel sind über Restart und Deployment rekonstruierbar."
+              : "Nur Dev-/Test-/Runtime-Fallback: dieser Zustand darf nicht als Produktionswahrheit ausgegeben werden."}
+          </p>
+        </div>
+
         <div className="mt-5 space-y-3">
           {readModel.items.length === 0 ? (
             <EmptyState />
@@ -357,6 +379,22 @@ export default async function AdminReviewPage({
                           ? ` · ${new Date(item.assignedAt).toLocaleString("de-DE")}`
                           : ""}
                       </p>
+                    ) : null}
+                    {(item.activityTrail ?? []).length > 0 ? (
+                      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                          Letzte Aktivität
+                        </p>
+                        <div className="mt-2 space-y-1">
+                          {(item.activityTrail ?? []).slice(0, 2).map((event) => (
+                            <p key={event.id} className="text-xs text-[rgb(var(--muted))]">
+                              {event.actionLabel} · {event.byUserId} ·{" "}
+                              {new Date(event.at).toLocaleString("de-DE")}
+                              {event.note ? ` · ${event.note}` : ""}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
                     ) : null}
                     {item.sourceSnapshotTemplate ? (
                       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">

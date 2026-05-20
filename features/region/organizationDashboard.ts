@@ -219,6 +219,7 @@ export type OrganizationDashboardReadModel = {
   firstRun: OrganizationFirstRunReadModel;
   openReviewItems: OrganizationDashboardReviewItem[];
   reviewQueueSummary: OrganizationDashboardReviewSummary;
+  reviewQueueOperationsPersistence: ReviewQueueReadModel["operationsPersistence"];
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
   dossierDrafts: OrganizationDashboardDraftSummary[];
   anlassraumDrafts: OrganizationDashboardDraftSummary[];
@@ -1195,6 +1196,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     firstRun,
     openReviewItems: reviewQueue.items,
     reviewQueueSummary: reviewQueue.summary,
+    reviewQueueOperationsPersistence: reviewQueue.operationsPersistence,
     regionalStartingPoints,
     dossierDrafts,
     anlassraumDrafts,

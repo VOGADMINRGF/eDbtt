@@ -24,6 +24,10 @@ import {
   createInMemoryContentReleaseWorkbenchRepo,
   setContentReleaseWorkbenchRepoForTests,
 } from "@features/contentReleaseWorkbench";
+import {
+  createInMemoryReviewQueueOperationRepo,
+  setReviewQueueOperationRepoForTests,
+} from "@features/reviewQueueOperations";
 
 const organization: Organization = {
   id: "org-reinickendorf-1",
@@ -165,6 +169,7 @@ function anlassraumDraftRecord(): RegionSignalDraftRecord {
 beforeEach(() => {
   setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
   setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
+  setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
   setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
   setRegionDataRepoForTests(createInMemoryRegionDataRepo());
@@ -783,6 +788,84 @@ describe("organization dashboard readmodel", () => {
         expect.objectContaining({
           id: "review_official_release",
           label: "Amtliche Freigabe prüfen",
+        }),
+      ]),
+    );
+  });
+
+  it("reuses the persisted review-operations source in the organization scope", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [membership()],
+      }),
+    );
+
+    const draftPersistence = createInMemoryRegionSignalDraftPersistence();
+    await draftPersistence.saveRecord(dossierDraftRecord());
+    setRegionSignalDraftPersistenceForTests(draftPersistence);
+
+    setReviewQueueOperationRepoForTests(
+      createInMemoryReviewQueueOperationRepo({
+        records: [
+          {
+            itemId: "region_signal_draft:draft-record-dossier-1",
+            operationalStatus: "in_review",
+            assignedToUserId: "user-2",
+            assignedByUserId: "user-1",
+            assignedAt: "2026-05-19T10:00:00.000Z",
+            noteCount: 1,
+            latestNote: "Bitte zuerst offene Fragen priorisieren.",
+            latestNoteAt: "2026-05-19T10:05:00.000Z",
+            latestAction: "mark_in_review",
+            latestActionAt: "2026-05-19T10:05:00.000Z",
+            latestActionByUserId: "user-1",
+            createdAt: "2026-05-19T10:00:00.000Z",
+            updatedAt: "2026-05-19T10:05:00.000Z",
+          },
+        ],
+        auditEvents: [
+          {
+            id: "review-queue-org-audit-1",
+            itemId: "region_signal_draft:draft-record-dossier-1",
+            action: "mark_in_review",
+            byUserId: "user-1",
+            at: "2026-05-19T10:05:00.000Z",
+            note: "Bitte zuerst offene Fragen priorisieren.",
+            previousOperationalStatus: "open",
+            nextOperationalStatus: "in_review",
+            previousAssignedToUserId: null,
+            nextAssignedToUserId: "user-2",
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.reviewQueueOperationsPersistence).toMatchObject({
+      mode: "in_memory_fallback",
+      productionTruth: false,
+    });
+    expect(readModel.openReviewItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "region_signal_draft:draft-record-dossier-1",
+          assignedToUserId: "user-2",
+          operationalStatus: "in_review",
+          latestNote: expect.objectContaining({
+            text: "Bitte zuerst offene Fragen priorisieren.",
+          }),
+          activityTrail: expect.arrayContaining([
+            expect.objectContaining({
+              action: "mark_in_review",
+              actionLabel: "In Review gesetzt",
+            }),
+          ]),
         }),
       ]),
     );

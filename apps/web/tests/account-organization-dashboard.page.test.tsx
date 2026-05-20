@@ -20,6 +20,10 @@ import {
   createInMemoryPersistedCreateHandoffRepo,
   setPersistedCreateHandoffRepoForTests,
 } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  createInMemoryReviewQueueOperationRepo,
+  setReviewQueueOperationRepoForTests,
+} from "@features/reviewQueueOperations";
 
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
@@ -55,6 +59,7 @@ describe("/account/organization/dashboard page", () => {
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
     setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+    setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   });
 
   it("renders pending organization claims with friendly empty states", async () => {
@@ -95,6 +100,8 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Organisation vervollständigen");
     expect(html).toContain("Region auswählen");
     expect(html).toContain("Noch keine Freischaltung aktiv.");
+    expect(html).toContain("Operations-Persistenz");
+    expect(html).toContain("In-Memory-Fallback");
     expect(html).toContain("Noch keine regionale Startlage vorbereitet.");
     expect(html).toContain("Noch keine offenen Reviews.");
     expect(html).toContain("Hohe Priorität");
@@ -456,6 +463,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Sichtbarkeit vorbereiten");
     expect(html).toContain("Veröffentlichbare Inhalte");
     expect(html).toContain("Sichtbare Inhalte");
+    expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Öffentliche URL");
     expect(html).toContain("Share-Link");
     expect(html).toContain("Dort wird Sichtbarkeit auch wieder zurückgenommen oder archiviert");
