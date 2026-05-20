@@ -116,6 +116,16 @@ function EmptyState({
   );
 }
 
+function compactAuditLine(input: {
+  title: string;
+  detail: string;
+  actorLabel: string;
+  at: string;
+  note: string | null;
+}) {
+  return `${input.title} · ${input.detail} · ${input.actorLabel} · ${new Date(input.at).toLocaleString("de-DE")}${input.note ? ` · ${input.note}` : ""}`;
+}
+
 export default async function AccountOrganizationDashboardPage() {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
@@ -450,18 +460,75 @@ export default async function AccountOrganizationDashboardPage() {
                       Zugewiesen an {item.assignedToUserId}
                     </p>
                   ) : null}
-                  {(item.activityTrail ?? [])[0] ? (
+                  {(item.unifiedAuditTrail ?? []).slice(-1)[0] ? (
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                      Letzte Aktivität: {(item.activityTrail ?? [])[0]?.actionLabel} ·{" "}
-                      {(item.activityTrail ?? [])[0]?.byUserId}
-                      {(item.activityTrail ?? [])[0]?.note
-                        ? ` · ${(item.activityTrail ?? [])[0]?.note}`
-                        : ""}
+                      Letzte Aktivität:{" "}
+                      {compactAuditLine({
+                        title: (item.unifiedAuditTrail ?? []).slice(-1)[0]?.title ?? "",
+                        detail: (item.unifiedAuditTrail ?? []).slice(-1)[0]?.detail ?? "",
+                        actorLabel:
+                          (item.unifiedAuditTrail ?? []).slice(-1)[0]?.actor.label ?? "unbekannt",
+                        at:
+                          (item.unifiedAuditTrail ?? []).slice(-1)[0]?.at ??
+                          new Date(0).toISOString(),
+                        note: (item.unifiedAuditTrail ?? []).slice(-1)[0]?.note ?? null,
+                      })}
                     </p>
                   ) : null}
                   <Link href={item.href} className="mt-3 inline-flex text-sm font-semibold text-[rgb(var(--fg))]">
                     Review öffnen
                   </Link>
+                </article>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Audit-Verlauf
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+                Letzte Aktivitäten im eigenen Scope
+              </h2>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Review-, Content-Release- und Official-Release-Ereignisse werden hier aus
+                denselben persistierten Quellen zusammengeführt.
+              </p>
+            </div>
+            {readModel.organization.isOperatorMode ? (
+              <span className="rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+                Betreiber-Modus
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-5 space-y-3">
+            {readModel.recentUnifiedAuditTrail.length === 0 ? (
+              <EmptyState
+                title="Noch kein Verlauf im eigenen Scope."
+                body="Sobald persistierte Review- oder Release-Schritte vorliegen, erscheinen sie hier."
+              />
+            ) : (
+              readModel.recentUnifiedAuditTrail.map((event) => (
+                <article
+                  key={event.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                    {compactAuditLine({
+                      title: event.title,
+                      detail: event.detail,
+                      actorLabel: event.actor.label,
+                      at: event.at,
+                      note: event.note,
+                    })}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {event.regionId ?? "übergreifend"}
+                    {event.organizationId ? ` · ${event.organizationId}` : ""}
+                  </p>
                 </article>
               ))
             )}

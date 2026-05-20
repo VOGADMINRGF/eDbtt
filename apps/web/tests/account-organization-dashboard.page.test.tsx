@@ -102,6 +102,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Noch keine Freischaltung aktiv.");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");
+    expect(html).toContain("Audit-Verlauf");
     expect(html).toContain("In-Memory-Fallback");
     expect(html).toContain("Noch keine regionale Startlage vorbereitet.");
     expect(html).toContain("Noch keine offenen Reviews.");
@@ -466,6 +467,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Sichtbare Inhalte");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");
+    expect(html).toContain("Audit-Verlauf");
     expect(html).toContain("Öffentliche URL");
     expect(html).toContain("Share-Link");
     expect(html).toContain("Dort wird Sichtbarkeit auch wieder zurückgenommen oder archiviert");

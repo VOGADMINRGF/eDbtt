@@ -81,6 +81,16 @@ function FilterSelect({
   );
 }
 
+function compactAuditLine(input: {
+  title: string;
+  detail: string;
+  actorLabel: string;
+  at: string;
+  note: string | null;
+}) {
+  return `${input.title} · ${input.detail} · ${input.actorLabel} · ${new Date(input.at).toLocaleString("de-DE")}${input.note ? ` · ${input.note}` : ""}`;
+}
+
 export default async function AdminReviewPage({
   searchParams,
 }: {
@@ -408,17 +418,21 @@ export default async function AdminReviewPage({
                           : ""}
                       </p>
                     ) : null}
-                    {(item.activityTrail ?? []).length > 0 ? (
+                    {(item.unifiedAuditTrail ?? []).length > 0 ? (
                       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                          Letzte Aktivität
+                          Kompakter Verlauf
                         </p>
                         <div className="mt-2 space-y-1">
-                          {(item.activityTrail ?? []).slice(0, 2).map((event) => (
+                          {(item.unifiedAuditTrail ?? []).slice(-3).map((event) => (
                             <p key={event.id} className="text-xs text-[rgb(var(--muted))]">
-                              {event.actionLabel} · {event.byUserId} ·{" "}
-                              {new Date(event.at).toLocaleString("de-DE")}
-                              {event.note ? ` · ${event.note}` : ""}
+                              {compactAuditLine({
+                                title: event.title,
+                                detail: event.detail,
+                                actorLabel: event.actor.label,
+                                at: event.at,
+                                note: event.note,
+                              })}
                             </p>
                           ))}
                         </div>

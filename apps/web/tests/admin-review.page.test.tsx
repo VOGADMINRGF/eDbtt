@@ -89,6 +89,38 @@ describe("/admin/review page", () => {
               nextAssignedToUserId: "admin-1",
             },
           ],
+          unifiedAuditTrail: [
+            {
+              id: "unified-1",
+              source: "official_release",
+              type: "official_release_granted",
+              itemId: "public_official_approval:signal:1",
+              at: "2026-05-19T09:35:00.000Z",
+              title: "Official Release erteilt",
+              detail: "Sanierungsbedarf an Schulen ist bestätigt",
+              note: "Freigabe nur nach expliziter Sichtprüfung.",
+              actor: {
+                userId: "admin-1",
+                label: "admin-1 · district_office",
+                authority: "district_office",
+              },
+              scope: {
+                mode: "region",
+                organizationId: null,
+                regionId: "bezirk-berlin-reinickendorf",
+                ownerUserId: null,
+                operatorModeLabel: null,
+                status: null,
+                isGlobal: false,
+              },
+              regionId: "bezirk-berlin-reinickendorf",
+              organizationId: null,
+              ownerUserId: null,
+              sourceRecordId: "signal-1",
+              targetId: "signal-1",
+              targetType: "participation_signal",
+            },
+          ],
           createdAt: "2026-05-17T09:00:00.000Z",
           updatedAt: "2026-05-17T09:00:00.000Z",
           reviewRequired: true,
@@ -128,6 +160,7 @@ describe("/admin/review page", () => {
           noteCount: 0,
           latestNote: null,
           activityTrail: [],
+          unifiedAuditTrail: [],
           createdAt: "2026-05-18T09:00:00.000Z",
           updatedAt: "2026-05-18T09:00:00.000Z",
           reviewRequired: true,
@@ -255,6 +288,7 @@ describe("/admin/review page", () => {
           noteCount: 0,
           latestNote: null,
           activityTrail: [],
+          unifiedAuditTrail: [],
           createdAt: "2026-05-19T09:00:00.000Z",
           updatedAt: "2026-05-19T09:00:00.000Z",
           reviewRequired: true,
@@ -469,8 +503,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Mir zuweisen");
     expect(html).toContain("Berlin Reinickendorf");
     expect(html).toContain("Prüfen");
-    expect(html).toContain("Letzte Aktivität");
-    expect(html).toContain("Als bereit markiert");
+    expect(html).toContain("Kompakter Verlauf");
+    expect(html).toContain("Official Release erteilt");
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");
