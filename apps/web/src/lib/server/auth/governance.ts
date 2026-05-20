@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GovernanceActor, GovernanceActorRole } from "@features/trust/types";
-import { mapUserRolesToGovernanceRole } from "@features/trust/gates";
-import { getOrgContext } from "./org";
-import { userIsAdminDashboard } from "./roles";
-import { getSessionUser, type SessionUser } from "./sessionUser";
+import { resolveRequestScopeContext, type RequestScopeContext } from "./requestScope";
 import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "./twoFactor";
 
 export type GovernanceAccess = {
-  user: SessionUser;
+  user: RequestScopeContext["user"];
   actor: GovernanceActor;
   roles: string[];
+  requestScope: RequestScopeContext;
 };
 
 export async function requireGovernanceActorOrResponse(
   req: NextRequest,
+  options: {
+    regionId?: string | null;
+    allowOperatorFallback?: boolean;
+  } = {},
 ): Promise<GovernanceAccess | Response> {
-  const user = await getSessionUser(req);
-  const sessionValid = user?.sessionValid ?? false;
-  if (!user || !sessionValid) {
+  const requestScope = await resolveRequestScopeContext(req, options);
+  const user = requestScope?.user ?? null;
+  if (!requestScope || !user) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -31,21 +33,22 @@ export async function requireGovernanceActorOrResponse(
     return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 
-  const roles = collectRoles(user.roles, user.role);
-  const isAdmin = userIsAdminDashboard(user);
-  const actorRole = resolveGovernanceRole(roles, isAdmin);
+  const roles = requestScope.actor.roles;
+  const isAdmin = requestScope.isOperatorMode;
+  const actorRole = requestScope.actor.governanceRole;
   if (!actorRole) {
     return NextResponse.json({ ok: false, error: "forbidden_governance_role" }, { status: 403 });
   }
 
-  const userId = user._id?.toHexString?.() ?? "";
+  const userId = requestScope.actorId;
   if (!userId) {
     return NextResponse.json({ ok: false, error: "missing_actor_id" }, { status: 400 });
   }
 
-  const orgContext = await getOrgContext(userId).catch(() => null);
-  const orgIds = Array.isArray(orgContext?.orgIds) ? orgContext.orgIds : [];
-  const scopedOwnerIds = uniqueNonEmpty([userId, ...orgIds]);
+  const scopedOwnerIds = uniqueNonEmpty([
+    userId,
+    ...requestScope.organizationMembership.organizationIds,
+  ]);
 
   return {
     user,
@@ -58,36 +61,8 @@ export async function requireGovernanceActorOrResponse(
       scopedEntityIds: scopedOwnerIds,
       personTrust: null,
     },
+    requestScope,
   };
-}
-
-function resolveGovernanceRole(
-  roles: string[],
-  isAdmin: boolean,
-): GovernanceActorRole | null {
-  if (isAdmin) return "admin";
-  const mapped = mapUserRolesToGovernanceRole(roles);
-  if (mapped === "reviewer") return mapped;
-  if (mapped === "editorial_actor") return mapped;
-  if (mapped === "institutional_actor") return mapped;
-  return null;
-}
-
-function collectRoles(
-  roles: SessionUser["roles"] | null | undefined,
-  role: SessionUser["role"] | null | undefined,
-): string[] {
-  const direct = Array.isArray(roles)
-    ? roles.map((value) => String(value || "").trim()).filter(Boolean)
-    : [];
-  const fallback =
-    typeof role === "string"
-      ? role
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : [];
-  return uniqueNonEmpty([...direct, ...fallback]).map((value) => value.toLowerCase());
 }
 
 function uniqueNonEmpty(values: string[]): string[] {

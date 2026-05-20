@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { resolveRequestScopeContext } from "@/lib/server/auth/requestScope";
 import type {
   CreateArgumentDraft,
   CreateClaimDraft,
@@ -19,7 +19,6 @@ import type { CreatePlannerResult } from "@/features/create/createPlanner";
 import type { CreateGraphMatchResult } from "@/features/create/intelligentFollowupContract";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
 import {
-  buildPersistedRegionAccessContext,
   canEditOrganizationResource,
   canViewRegionResource,
   regionScopeFromRegionAccessContext,
@@ -211,17 +210,8 @@ function normalizeCreateHandoffDraft(value: unknown): CreateHandoffDraft {
   };
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser();
-    const userId = user?._id?.toHexString?.() ?? null;
-    if (!user || !user.sessionValid || !userId) return unauthorized();
-    const roles = Array.isArray(user.roles)
-      ? user.roles.map((role) => String(role ?? "").trim()).filter(Boolean)
-      : [];
-    const isAdmin = roles.includes("admin");
-    const actorRole = String(roles[0] ?? (isAdmin ? "admin" : "organization_member")).trim() || "organization_member";
-
     const body = CreateHandoffBodySchema.parse(await req.json());
     const draft = normalizeCreateHandoffDraft(body.draft);
     const context = await resolvePersistedCreateHandoffContext({
@@ -229,16 +219,16 @@ export async function POST(req: Request) {
       dossierId: body.dossierId ?? null,
       anlassraumId: body.anlassraumId ?? null,
     });
-    const accessContext = await buildPersistedRegionAccessContext({
-      userId,
-      actorRole,
-      isAdmin,
-      roles,
+    const scopeContext = await resolveRequestScopeContext(req, {
       regionId: context.regionId,
+      allowOperatorFallback: false,
     });
+    const userId = scopeContext?.actorId ?? null;
+    if (!scopeContext || !userId) return unauthorized();
+    const accessContext = scopeContext.regionAccess;
     const scope = regionScopeFromRegionAccessContext({ accessContext });
     if (
-      !isAdmin &&
+      !scopeContext.isOperatorMode &&
       ((
         context.regionId &&
         !canViewRegionResource(scope, {
@@ -272,6 +262,16 @@ export async function POST(req: Request) {
         dossierId: record.dossierId,
         anlassraumId: record.anlassraumId,
         reviewState: record.reviewState,
+      },
+      requestScope: {
+        organizationId: scopeContext.organizationId,
+        membershipStatus: scopeContext.membershipStatus,
+        organizationRole: scopeContext.organizationRole,
+        regionIds: scopeContext.regionIds,
+        isOperatorMode: scopeContext.isOperatorMode,
+        operatorModeLabel: scopeContext.operatorModeLabel,
+        sourceOfTruth: scopeContext.sourceOfTruth,
+        confidence: scopeContext.confidence,
       },
     });
   } catch (error) {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   buildRegionAccessContext,
+  buildPersistedRegionAccessContext,
   createInMemoryRegionDataRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
@@ -178,6 +179,44 @@ function buildStudioPayload(dossierId: string) {
   return { masterPost, carouselDraft, distributionDraft };
 }
 
+async function buildGovernanceRequestScope(input: {
+  userId: string;
+  roles: string[];
+  actorRole: string;
+  isAdmin?: boolean;
+  memberships?: typeof unitMembership;
+  organizations?: typeof organizations;
+}) {
+  const memberships = input.memberships ?? [];
+  const scopedOrganizations = input.organizations ?? [];
+  const organizationId = memberships[0]?.organizationId ?? scopedOrganizations[0]?.id ?? null;
+  const regionIds = Array.from(
+    new Set(
+      memberships
+        .map((membership) => membership.regionId)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  return {
+    organizationId,
+    membershipStatus: memberships[0]?.verificationStatus ?? (input.isAdmin ? "admin_fallback" : "none"),
+    organizationRole: memberships[0]?.roleType ?? (input.isAdmin ? "operator_admin" : null),
+    regionIds,
+    isOperatorMode: Boolean(input.isAdmin),
+    operatorModeLabel: input.isAdmin ? "Betreiber-Modus" : null,
+    sourceOfTruth: input.isAdmin ? "session_admin_fallback" : "persisted_membership_runtime",
+    confidence: input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "high" : "limited",
+    regionAccess: await buildPersistedRegionAccessContext({
+      userId: input.userId,
+      actorRole: input.actorRole,
+      isAdmin: Boolean(input.isAdmin),
+      roles: input.roles,
+      organizationIds: organizationId ? [organizationId] : [],
+      regionId: regionIds[0] ?? null,
+    }),
+  };
+}
+
 async function seedRegionDraftDossier() {
   const accessContext = buildRegionAccessContext({
     userId: "admin-1",
@@ -199,7 +238,7 @@ async function seedRegionDraftDossier() {
 }
 
 describe("/api/dossier/[id]/studio/workspace", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
@@ -217,6 +256,12 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "admin-1",
+        roles: ["admin"],
+        actorRole: "admin",
+        isAdmin: true,
+      }),
     });
   });
 
@@ -308,6 +353,13 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "staff-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: unitMembership,
+        organizations,
+      }),
     });
 
     const created = await POST(
@@ -371,6 +423,11 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "pending-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+      }),
     });
 
     const res = await POST(
@@ -451,6 +508,13 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-spandau-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "staff-2",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: spandauMembership,
+        organizations: spandauOrganizations,
+      }),
     });
 
     const res = await POST(
@@ -531,6 +595,13 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "org-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: organizationMembership,
+        organizations,
+      }),
     });
 
     const readRes = await GET(
@@ -599,6 +670,13 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "staff-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: unitMembership,
+        organizations,
+      }),
     });
 
     const blocked = await PATCH(
@@ -629,6 +707,16 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "publisher-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: publicationApprovedMembership.map((membership) => ({
+          ...membership,
+          userId: "publisher-1",
+        })),
+        organizations,
+      }),
     });
 
     const approved = await PATCH(

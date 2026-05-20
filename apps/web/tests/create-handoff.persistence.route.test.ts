@@ -221,6 +221,12 @@ describe("/api/create/handoffs", () => {
       organizationId: "org-reinickendorf-1",
       dossierId: "dossier-1",
     });
+    expect(body.requestScope).toMatchObject({
+      organizationId: "org-reinickendorf-1",
+      membershipStatus: "unit_verified",
+      organizationRole: "participation_officer",
+      isOperatorMode: false,
+    });
 
     const stored = await getPersistedCreateHandoffRecord("create-handoff-route-1");
     expect(stored).toMatchObject({

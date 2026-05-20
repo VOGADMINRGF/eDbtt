@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
+  buildPersistedRegionAccessContext,
   createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
@@ -21,6 +22,113 @@ vi.mock("@/lib/server/auth/governance", () => ({
 
 import { GET } from "@/app/api/admin/region/participation-signals/route";
 import { POST } from "@/app/api/admin/region/participation-signals/[id]/review/route";
+
+function buildGovernanceRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    organizationId: null,
+    regionIds: [],
+    isOperatorMode: true,
+    operatorModeLabel: "Betreiber-Modus",
+    regionAccess: {
+      userId: "admin-1",
+      actorRole: "admin",
+      isAdmin: true,
+      authoritySource: "admin_fallback",
+      adminFallback: true,
+      verificationStatus: "admin_fallback",
+      roles: ["admin"],
+      hintedRegionIds: [],
+      verifiedRegionIds: [],
+      scopedRegionIds: [],
+      organization: {
+        organizationIds: [],
+        primaryOrganizationId: null,
+        paidDashboardEntitlement: "admin_fallback",
+        entitlementSource: "admin_fallback",
+        entitlementStatus: "admin_fallback",
+        entitlementReason: "admin_fallback",
+        entitlementPlanId: null,
+        entitlementPlanLabel: "Admin-Fallback",
+        entitlementScope: null,
+        entitlementLimits: null,
+        entitlementUsage: null,
+        requiresVerifiedMembership: true,
+        dashboard: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
+        dossierDraft: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
+        anlassraumDraft: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
+      },
+      allowedActions: [
+        "read_region_dashboard",
+        "review_region_signal",
+        "create_region_draft",
+        "attach_signal_to_dossier",
+        "create_dossier_draft",
+        "create_anlassraum_draft",
+        "submit_for_review",
+        "approve_publication",
+        "manage_organization_members",
+      ],
+    },
+    ...overrides,
+  };
+}
+
+async function buildMembershipRequestScope(input: {
+  userId: string;
+  memberships: typeof unitMembership;
+  roles?: string[];
+}) {
+  const organizationId = input.memberships[0]?.organizationId ?? null;
+  const regionId = input.memberships[0]?.regionId ?? null;
+  return buildGovernanceRequestScope({
+    organizationId,
+    membershipStatus: input.memberships[0]?.verificationStatus ?? "none",
+    organizationRole: input.memberships[0]?.roleType ?? null,
+    regionIds: regionId ? [regionId] : [],
+    isOperatorMode: false,
+    operatorModeLabel: null,
+    sourceOfTruth: "persisted_membership_runtime",
+    confidence: "high",
+    regionAccess: await buildPersistedRegionAccessContext({
+      userId: input.userId,
+      actorRole: "institutional_actor",
+      isAdmin: false,
+      roles: input.roles ?? ["institutional_actor"],
+      organizationIds: organizationId ? [organizationId] : [],
+      regionId,
+    }),
+  });
+}
 
 const unitMembership = [
   {
@@ -118,6 +226,7 @@ describe("admin participation signal review routes", () => {
         scopedEntityIds: ["org-1"],
         personTrust: null,
       },
+      requestScope: buildGovernanceRequestScope(),
     });
     await seedRuntime();
   });
@@ -212,6 +321,72 @@ describe("admin participation signal review routes", () => {
         scopedEntityIds: [],
         personTrust: null,
       },
+      requestScope: buildGovernanceRequestScope({
+        organizationId: null,
+        regionIds: ["bezirk-berlin-reinickendorf"],
+        isOperatorMode: false,
+        operatorModeLabel: null,
+        regionAccess: {
+          userId: "raw-1",
+          actorRole: "institutional_actor",
+          isAdmin: false,
+          authoritySource: "unverified_hint_only",
+          adminFallback: false,
+          verificationStatus: "none",
+          roles: ["region_staff:bezirk-berlin-reinickendorf"],
+          hintedRegionIds: ["bezirk-berlin-reinickendorf"],
+          verifiedRegionIds: [],
+          scopedRegionIds: ["bezirk-berlin-reinickendorf"],
+          organization: {
+            organizationIds: [],
+            primaryOrganizationId: null,
+            paidDashboardEntitlement: "missing",
+            entitlementSource: "not_checked",
+            entitlementStatus: null,
+            entitlementReason: "not_checked",
+            entitlementPlanId: null,
+            entitlementPlanLabel: null,
+            entitlementScope: null,
+            entitlementLimits: null,
+            entitlementUsage: null,
+            requiresVerifiedMembership: true,
+            dashboard: {
+              allowed: false,
+              reason: "not_checked",
+              status: null,
+              planId: null,
+              planLabel: null,
+              scope: null,
+              source: "not_checked",
+              limits: null,
+              usage: null,
+            },
+            dossierDraft: {
+              allowed: false,
+              reason: "not_checked",
+              status: null,
+              planId: null,
+              planLabel: null,
+              scope: null,
+              source: "not_checked",
+              limits: null,
+              usage: null,
+            },
+            anlassraumDraft: {
+              allowed: false,
+              reason: "not_checked",
+              status: null,
+              planId: null,
+              planLabel: null,
+              scope: null,
+              source: "not_checked",
+              limits: null,
+              usage: null,
+            },
+          },
+          allowedActions: [],
+        },
+      }),
     });
 
     const listRes = await GET(
@@ -278,6 +453,10 @@ describe("admin participation signal review routes", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: await buildMembershipRequestScope({
+        userId: "staff-1",
+        memberships: unitMembership,
+      }),
     });
 
     const res = await POST(
@@ -312,6 +491,50 @@ describe("admin participation signal review routes", () => {
         scopedEntityIds: ["org-reinickendorf-1"],
         personTrust: null,
       },
+      requestScope: buildGovernanceRequestScope({
+        organizationId: "org-reinickendorf-1",
+        regionIds: ["bezirk-berlin-reinickendorf"],
+        isOperatorMode: false,
+        operatorModeLabel: null,
+        regionAccess: {
+          userId: "staff-1",
+          actorRole: "institutional_actor",
+          isAdmin: false,
+          authoritySource: "verified_membership",
+          adminFallback: false,
+          verificationStatus: "unit_verified",
+          roles: ["institutional_actor"],
+          hintedRegionIds: [],
+          verifiedRegionIds: ["bezirk-berlin-reinickendorf"],
+          scopedRegionIds: ["bezirk-berlin-reinickendorf"],
+          organization: {
+            organizationIds: ["org-reinickendorf-1"],
+            primaryOrganizationId: "org-reinickendorf-1",
+            paidDashboardEntitlement: "granted",
+            entitlementSource: "admin_grant",
+            entitlementStatus: "active",
+            entitlementReason: "matched_region",
+            entitlementPlanId: "kommune-aktivierung",
+            entitlementPlanLabel: "Kommune Aktivierung",
+            entitlementScope: "organization_unit",
+            entitlementLimits: null,
+            entitlementUsage: null,
+            requiresVerifiedMembership: true,
+            dashboard: { allowed: true, reason: "matched_region", status: "active", planId: "kommune-aktivierung", planLabel: "Kommune Aktivierung", scope: "organization_unit", source: "admin_grant", limits: null, usage: null },
+            dossierDraft: { allowed: true, reason: "matched_region", status: "active", planId: "kommune-aktivierung", planLabel: "Kommune Aktivierung", scope: "organization_unit", source: "admin_grant", limits: null, usage: null },
+            anlassraumDraft: { allowed: true, reason: "matched_region", status: "active", planId: "kommune-aktivierung", planLabel: "Kommune Aktivierung", scope: "organization_unit", source: "admin_grant", limits: null, usage: null },
+          },
+          allowedActions: [
+            "read_region_dashboard",
+            "review_region_signal",
+            "create_region_draft",
+            "create_dossier_draft",
+            "create_anlassraum_draft",
+            "attach_signal_to_dossier",
+            "submit_for_review",
+          ],
+        },
+      }),
     });
 
     const blocked = await POST(
@@ -331,6 +554,22 @@ describe("admin participation signal review routes", () => {
         memberships: publicationApprovedMembership,
       }),
     );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+      requestScope: await buildMembershipRequestScope({
+        userId: "staff-1",
+        memberships: publicationApprovedMembership,
+      }),
+    });
     await syncParticipationSignalRecords(await listOperationalRegions());
     await POST(
       buildRequest(

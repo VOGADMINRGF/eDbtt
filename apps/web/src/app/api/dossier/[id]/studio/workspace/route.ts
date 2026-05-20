@@ -12,7 +12,6 @@ import {
   SocialDistributionDraftSchema,
 } from "@features/outputEngine";
 import {
-  buildPersistedRegionAccessContext,
   canEditOrganizationResource,
   canApprovePublication,
   canCreateDossierDraft,
@@ -21,6 +20,7 @@ import {
   findRegionSignalDraftRecordByDraftId,
   getOperationalRegionById,
   regionScopeFromRegionAccessContext,
+  type RegionAccessContext,
 } from "@features/region";
 import { isExplicitDemoDossierId } from "@/features/runtimeDataGuardrails";
 
@@ -67,35 +67,22 @@ type ResolvedStudioAccess = {
     notProductionData?: boolean;
     fixture?: boolean;
   };
-  accessContext: Awaited<ReturnType<typeof buildPersistedRegionAccessContext>> | null;
+  accessContext: RegionAccessContext | null;
 };
 
 async function buildAccessContextFromRuntime(input: {
-  userId: string;
-  actorRole: string;
-  isAdmin: boolean;
-  roles: string[];
-  organizationIds: string[];
+  gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
   regionId: string | null;
 }) {
-  if (!input.regionId && !input.isAdmin) return null;
-  return buildPersistedRegionAccessContext({
-    userId: input.userId,
-    actorRole: input.actorRole,
-    isAdmin: input.isAdmin,
-    roles: input.roles,
-    organizationIds: input.organizationIds,
-    regionId: input.regionId ?? undefined,
-  });
+  if (input.gate instanceof Response) return null;
+  if (!input.regionId && !input.gate.actor.isAdmin) return null;
+  return input.gate.requestScope.regionAccess;
 }
 
 async function resolveStudioAccess(
   req: NextRequest,
   params: RouteParams,
 ): Promise<ResolvedStudioAccess | Response> {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
-
   const { id } = await params.params;
   const repo = getDossierStudioWorkspaceRepo();
   const workspace = await repo.getDossierStudioWorkspace(id);
@@ -105,12 +92,10 @@ async function resolveStudioAccess(
   const inferredRegionId = workspace?.regionId ?? draftRecord?.regionId ?? null;
   const region = inferredRegionId ? await getOperationalRegionById(inferredRegionId) : null;
   const regionId = region?.id ?? inferredRegionId ?? null;
+  const gateWithRegion = await requireGovernanceActorOrResponse(req, { regionId });
+  if (gateWithRegion instanceof Response) return gateWithRegion;
   const accessContext = await buildAccessContextFromRuntime({
-    userId: gate.actor.userId,
-    actorRole: gate.actor.role,
-    isAdmin: gate.actor.isAdmin,
-    roles: gate.roles,
-    organizationIds: gate.actor.scopedOwnerIds,
+    gate: gateWithRegion,
     regionId,
   });
 
@@ -206,6 +191,7 @@ function workspaceResponseBody(
     workspace,
     access: {
       adminFallback: access.accessContext?.adminFallback ?? false,
+      operatorModeLabel: access.accessContext?.adminFallback ? "Betreiber-Modus" : null,
       authoritySource: access.accessContext?.authoritySource ?? "unverified_hint_only",
       verificationStatus: access.accessContext?.verificationStatus ?? "none",
       canRead: canReadWorkspace(access),

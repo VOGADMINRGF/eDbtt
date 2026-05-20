@@ -48,8 +48,9 @@ export async function POST(
       mode: "global_operator",
       userId,
       isAdmin: true,
-      visibleRegionIds: [],
-      organizationIds: [],
+      visibleRegionIds: gate.requestScope.regionIds,
+      organizationIds: gate.requestScope.organizationMembership.organizationIds,
+      primaryOrganizationId: gate.requestScope.organizationId,
       canApproveOfficial: true,
       governanceActor: {
         userId,
@@ -79,6 +80,12 @@ export async function POST(
         itemId,
         record: result.record,
         auditEvent: result.auditEvent,
+        requestScope: {
+          isOperatorMode: gate.requestScope.isOperatorMode,
+          operatorModeLabel: gate.requestScope.operatorModeLabel,
+          sourceOfTruth: gate.requestScope.sourceOfTruth,
+          confidence: gate.requestScope.confidence,
+        },
       },
       { status: 200 },
     );

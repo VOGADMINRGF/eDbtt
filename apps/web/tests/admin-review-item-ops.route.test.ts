@@ -21,6 +21,21 @@ vi.mock("@features/reviewQueue", () => ({
 
 import { POST } from "@/app/api/admin/review/items/[itemId]/route";
 
+function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    regionIds: [],
+    organizationId: null,
+    sourceOfTruth: "session_admin_fallback",
+    confidence: "admin_fallback",
+    isOperatorMode: true,
+    operatorModeLabel: "Betreiber-Modus",
+    organizationMembership: {
+      organizationIds: [],
+    },
+    ...overrides,
+  };
+}
+
 describe("/api/admin/review/items/[itemId]", () => {
   beforeEach(() => {
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
@@ -28,6 +43,7 @@ describe("/api/admin/review/items/[itemId]", () => {
       _id: { toHexString: () => "admin-1" },
       roles: ["admin"],
       sessionValid: true,
+      requestScope: buildRequestScope(),
     });
     mocks.buildReviewQueueReadModel.mockResolvedValue({
       items: [
@@ -63,6 +79,10 @@ describe("/api/admin/review/items/[itemId]", () => {
       itemId: "region_source_result:source-result-1",
       operationalStatus: "open",
       assignedToUserId: "admin-2",
+    });
+    expect(body.requestScope).toMatchObject({
+      isOperatorMode: true,
+      operatorModeLabel: "Betreiber-Modus",
     });
     const auditEvents = await listReviewQueueOperationAuditEvents(
       "region_source_result:source-result-1",

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
-  buildPersistedRegionAccessContext,
   canReviewRegionSignal,
   canViewRegionResource,
   getOperationalRegionById,
@@ -38,14 +37,7 @@ async function buildAccessContext(params: {
   regionId?: string | null;
 }) {
   if (params.gate instanceof Response) return null;
-  const accessContext = await buildPersistedRegionAccessContext({
-    userId: params.gate.actor.userId,
-    actorRole: params.gate.actor.role,
-    isAdmin: params.gate.actor.isAdmin,
-    roles: params.gate.roles,
-    organizationIds: params.gate.actor.scopedOwnerIds,
-    regionId: params.regionId ?? undefined,
-  });
+  const accessContext = params.gate.requestScope.regionAccess;
   return {
     accessContext,
     scope: regionScopeFromRegionAccessContext({ accessContext }),
@@ -53,9 +45,6 @@ async function buildAccessContext(params: {
 }
 
 export async function GET(req: NextRequest) {
-  const gate = await requireGovernanceActorOrResponse(req);
-  if (gate instanceof Response) return gate;
-
   const parsed = QuerySchema.parse(
     Object.fromEntries(req.nextUrl.searchParams.entries()),
   );
@@ -68,6 +57,8 @@ export async function GET(req: NextRequest) {
     }
     resolvedRegionId = region.id;
   }
+  const gate = await requireGovernanceActorOrResponse(req, { regionId: resolvedRegionId });
+  if (gate instanceof Response) return gate;
 
   if (!gate.actor.isAdmin) {
     if (!resolvedRegionId) {
@@ -114,6 +105,12 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    requestScope: {
+      isOperatorMode: gate.requestScope.isOperatorMode,
+      operatorModeLabel: gate.requestScope.operatorModeLabel,
+      organizationId: gate.requestScope.organizationId,
+      regionIds: gate.requestScope.regionIds,
+    },
     signals: filteredSignals.map((signal) => ({
       id: signal.id,
       regionId: signal.regionId,
