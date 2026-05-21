@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { coreCol, getCol, ObjectId } from "@core/db/triMongo";
 import { createAuditEvent } from "@features/dossier/infra/auditChain";
 import type { AuditEvent, MaterialLink } from "@features/dossier/infra/types";
@@ -19,6 +18,7 @@ import {
   type CreateClaimPublicationStatus,
   type CreateClaimSafetyResult,
 } from "@/features/create/safety/createClaimSafety";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -187,9 +187,9 @@ type FinalizeSuccessResponse = {
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("u_id")?.value;
-    if (!userId) {
+    const sessionUser = await getSessionUser(req);
+    const userId = sessionUser?._id?.toHexString?.() ?? null;
+    if (!sessionUser || !sessionUser.sessionValid || !userId) {
       return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
     }
 

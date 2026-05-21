@@ -45,12 +45,15 @@ const mocks = vi.hoisted(() => {
     getColCalls() {
       return [...getColCalls];
     },
-    cookies: vi.fn(async () => ({
-      get(name: string) {
-        if (name !== "u_id" || !userId) return undefined;
-        return { value: userId };
-      },
-    })),
+    getSessionUser: vi.fn(async () =>
+      userId
+        ? {
+            _id: { toHexString: () => userId },
+            roles: ["user"],
+            sessionValid: true,
+          }
+        : null,
+    ),
     getCol: vi.fn(async (name: string) => {
       getColCalls.push(String(name));
       if (name === "contribution_drafts") {
@@ -129,10 +132,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("next/headers", () => ({
-  cookies: () => mocks.cookies(),
-}));
-
 vi.mock("@core/db/triMongo", async () => {
   const mongodb = await import("mongodb");
   return {
@@ -141,6 +140,10 @@ vi.mock("@core/db/triMongo", async () => {
     coreCol: (...args: unknown[]) => mocks.coreCol(...args),
   };
 });
+
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
+}));
 
 import { POST as finalizePOST } from "@/app/api/contributions/finalize/route";
 import { POST as createFinalizePOST } from "@/app/api/create/finalize/route";
@@ -454,5 +457,25 @@ describe("create mode split - finalize route", () => {
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({ ok: false, error: "no_claims_selected" });
+  });
+
+  it("requires a valid session user before finalizing claims", async () => {
+    const draftId = seedDraft();
+    mocks.setUser(null);
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(401);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "not_authenticated",
+    });
   });
 });

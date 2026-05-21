@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import { CREATE_MODE_VALUES, parseCreateMode, type CreateMode } from "@/features/create/intents";
@@ -18,6 +17,7 @@ import {
   resolveRequestScopeContext,
   summarizeRequestScopeContext,
 } from "@/lib/server/auth/requestScope";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
 
 const DraftSaveSchema = z.object({
   draftId: z.string().optional(),
@@ -175,9 +175,9 @@ function buildClaimSafety(analysis: unknown, locale: string): CreateClaimSafetyR
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("u_id")?.value;
-  if (!userId) {
+  const sessionUser = await getSessionUser(req);
+  const userId = sessionUser?._id?.toHexString?.() ?? null;
+  if (!sessionUser || !sessionUser.sessionValid || !userId) {
     return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
   }
 

@@ -27,12 +27,15 @@ const mocks = vi.hoisted(() => {
     readAll() {
       return docs.map((doc) => ({ ...doc }));
     },
-    cookies: vi.fn(async () => ({
-      get(name: string) {
-        if (name !== "u_id" || !userId) return undefined;
-        return { value: userId };
-      },
-    })),
+    getSessionUser: vi.fn(async () =>
+      userId
+        ? {
+            _id: { toHexString: () => userId },
+            roles: ["user"],
+            sessionValid: true,
+          }
+        : null,
+    ),
     getCol: vi.fn(async (name: string) => {
       if (name !== "contribution_drafts") throw new Error(`unexpected_collection_${name}`);
       return {
@@ -66,10 +69,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("next/headers", () => ({
-  cookies: () => mocks.cookies(),
-}));
-
 vi.mock("@core/db/triMongo", async () => {
   const mongodb = await import("mongodb");
   return {
@@ -81,6 +80,10 @@ vi.mock("@core/db/triMongo", async () => {
 vi.mock("@/lib/server/auth/requestScope", () => ({
   resolveRequestScopeContext: (...args: unknown[]) => mocks.resolveRequestScopeContext(...args),
   summarizeRequestScopeContext: (...args: unknown[]) => mocks.summarizeRequestScopeContext(...args),
+}));
+
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
 }));
 
 import { POST as savePOST } from "@/app/api/contributions/save/route";
@@ -263,6 +266,24 @@ describe("create mode split - save route", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       requestScope: null,
+    });
+  });
+
+  it("requires a valid session user instead of trusting a bare uid cookie", async () => {
+    mocks.setUser(null);
+
+    const res = await savePOST(
+      req({
+        textPrepared: "Ohne valide Session darf kein Draft gespeichert werden.",
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(401);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "not_authenticated",
     });
   });
 });
