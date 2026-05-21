@@ -31,11 +31,14 @@ describe("dashboard role contracts", () => {
   it("keeps account and admin dashboards textually differentiated", () => {
     const accountPage = readFileSync(path.join(APP_DIR, "account/page.tsx"), "utf8");
     const adminPage = readFileSync(path.join(APP_DIR, "admin/page.tsx"), "utf8");
+    const adminLayout = readFileSync(path.join(APP_DIR, "admin/layout.tsx"), "utf8");
 
     expect(accountPage).toContain("Mein Profil");
     expect(accountPage).toContain("/login?next=");
     expect(adminPage).toContain("Steuerzentrale");
     expect(adminPage).toContain("Pricing Orders");
+    expect(adminPage).toContain("Betreiber-Modus aktiv");
+    expect(adminLayout).toContain("Betreiber-Modus aktiv");
   });
 
   it("keeps admin-only visibility restricted to admin/backoffice role", () => {

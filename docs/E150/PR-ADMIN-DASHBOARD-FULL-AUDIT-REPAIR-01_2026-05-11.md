@@ -88,12 +88,41 @@ CDP-gestuetzter Realbrowserlauf gegen `http://127.0.0.1:3001` mit Admin-Session-
 | `/api/admin/dashboard/summary` | pass | Graph-Repair-KPI zaehlt jetzt aktive Tickets (`pending`, `open`, `in_review`, `blocked`) statt nur `pending` |
 | `/admin/responsibility` | pass | `Import / Export` ist kein `coming soon`-Scheinbutton mehr, sondern ein erklaerter Disabled-Zustand mit Batch-/Audit-Hinweis; Ladefehler werden im UI gezeigt |
 
+## Operator-States / KPI-Ehrlichkeit (2026-05-21)
+
+### Umgesetzte Nachhaertung
+
+- `apps/web/src/app/admin/layout.tsx`
+  - Betreiber-Modus ist jetzt im gemeinsamen Admin-Layout als globaler Zustand markiert.
+  - Die Copy trennt ausdruecklich globale Betreiber-/Systemsicht von organisationslokalen Arbeitsstaenden.
+- `apps/web/src/app/admin/page.tsx`
+  - fehlende Dashboard-Werte werden nicht mehr als echte `0` ausgegeben.
+  - KPI-Karten zeigen stattdessen `Nicht geladen` mit erklaerter Betriebszustands-Copy.
+  - Paket- und Rollenbereiche haben jetzt ehrliche Leerdatenzustaende statt stiller Leerflaechen.
+- `apps/web/src/app/admin/responsibility/page.tsx`
+  - kaputte oder nicht-ok Antworten von Directory-/Path-APIs werden jetzt als sichtbarer Fehler behandelt.
+  - der Screen darf damit keinen defekten Backendzustand mehr als normale Leerseite tarnen.
+
+### Wirkung
+
+- `/admin`, `/admin/review`, `/admin/region`, `/admin/regions`, `/admin/feeds`, `/admin/users`, `/admin/graph/*` und `/admin/responsibility` tragen ueber das gemeinsame Layout jetzt sichtbar einen Betreiberkontext.
+- Fake-KPI-Drift auf dem Dashboard ist fuer fehlende Summary-Werte reduziert: unbekannte Werte sehen nicht mehr wie belastbare Echtzahlen aus.
+- Responsibility ist fuer kaputte API-Antworten ehrlicher und fuehrt Betreiber nicht mehr in eine false-negative Empty-State-Diagnose.
+
+### Tests / Verifikation
+
+- `pnpm -C apps/web exec vitest run tests/admin-dashboard-graph-repairs-link.contract.test.ts tests/dashboard-role-contracts.test.ts tests/admin-responsibility.page.render.test.tsx tests/admin-review.page.test.tsx tests/admin-region-page.render.test.tsx tests/admin-regions-page.render.test.tsx tests/admin-feed-drafts.page.test.tsx tests/admin-graph-health.page.render.test.tsx tests/admin-graph-repairs.page.render.test.tsx tests/admin-users-page.contract.test.tsx` ✅
+- `pnpm -C apps/web run typecheck` ✅
+- `pnpm -C apps/web run lint` ✅
+- `pnpm --filter @vog/web build` ✅
+
 ## Live-Blocker / offen
 
 1. Die Feed-/Anlassraum-Live-Datenbasis war in diesem Lauf leer. Deshalb konnte der reale Pfad `Feed-Liste -> Detail -> Statement-/Quellenzahl` nicht end-to-end mit echtem Inhalt bestaetigt werden.
 2. Der Slice bleibt deshalb bewusst `in_progress`. Die Count-/Detail-Paritaet ist bereits testlich abgesichert, aber die echte Browser-Revalidierung mit vorhandenen Live-Items fehlt noch.
 3. Graph Health/Repairs ist jetzt technisch ehrlich und testlich abgesichert, aber noch nicht browsernah gegen eine echte verfuegbare Graph-Instanz mit realen KPIs/Tickets revalidiert worden.
 4. Der groessere Rest des vollstaendigen Admin-Audits ueber weitere Bereiche wie `editorial`, `reports`, `support`, `pricing orders` ist in diesem Slice noch nicht durchgeklickt worden.
+5. Betreiber-Markierung und KPI-/Error-Ehrlichkeit sind jetzt weiter geschlossen, aber die noch offenen Live-Pfade fuer Feeds, weitere Hubs und echte End-to-End-Browserpruefung halten den Parent-Task weiterhin offen.
 
 ## Tests / Verifikation
 
@@ -142,6 +171,7 @@ Ergebnis:
 - `features/graphAdmin/diagnostics.ts`
 - `features/graphAdmin/types.ts`
 - `features/graphAdmin/schemas.ts`
+- `apps/web/src/app/admin/layout.tsx`
 - `apps/web/src/app/admin/page.tsx`
 - `apps/web/src/app/api/admin/dashboard/summary/route.ts`
 - `apps/web/src/app/admin/responsibility/page.tsx`
@@ -161,6 +191,7 @@ Ergebnis:
 - `apps/web/tests/admin-graph-repairs.page.render.test.tsx`
 - `apps/web/tests/admin-dashboard-graph-repairs-link.contract.test.ts`
 - `apps/web/tests/admin-responsibility.page.render.test.tsx`
+- `apps/web/tests/dashboard-role-contracts.test.ts`
 
 ### Docs
 

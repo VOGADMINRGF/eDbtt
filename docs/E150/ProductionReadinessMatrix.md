@@ -125,7 +125,7 @@ Deutsche Lesefassung fuer Copy und FAQ:
 ## E) Rollout-Lesart
 
 - Demo/Pfadbeweis: Die Journey `Organisation -> Quelle/Snapshot -> Review -> Sichtbarkeit -> Public URL` ist auf bestehenden Flächen erklaert und testseitig eingefroren, bleibt aber kein Betriebsnachweis fuer breiten Self-Service.
-- Kontrollierter Pilot mit Betreiberkanten: Der generische Organisations-/Regionen-Pfad ist fuer verifizierte Organisationen, manuelle Freischaltungen und klar markierten Betreiber-Modus plausibel. Offen bleiben `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01`, `AUTH-PROVIDER-RUNTIME-INTEGRATION-01` sowie `GOV-SEC-02`.
+- Kontrollierter Pilot mit Betreiberkanten: Der generische Organisations-/Regionen-Pfad ist fuer verifizierte Organisationen, manuelle Freischaltungen und klar markierten Betreiber-Modus plausibel. Offen bleiben `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01`, `AUTH-PROVIDER-RUNTIME-INTEGRATION-01` sowie `GOV-SEC-02`. Das Admin-Audit hat inzwischen sichtbare Betreiber-Markierung sowie ehrliche KPI-/Error-States in Dashboard, Graph und Responsibility, ist aber fuer verbleibende Live-Pfade noch nicht vollstaendig geschlossen.
 - Breiter Self-Service-Rollout: Noch nicht ehrlich. Dafuer fehlen insbesondere echte externe Membership-/Directory-Aufloesung, vollstaendige Admin-/Route-Haertung, feinere AllowedActions-Paritaet und das Zonen-/Auditmodell aus `GOV-SEC-03`.
 - `production_ready`: Derzeit bewusst kein externer Hauptpfad. Vor `production_ready` muessen mindestens Provider-/Membership-Anbindung, strukturierter Route-/Auth-/AI-Audit, operatives Zonenmodell und Admin-Gesamtaudit geschlossen sein.
 

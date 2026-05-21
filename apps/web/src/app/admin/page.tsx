@@ -71,7 +71,10 @@ export default function AdminDashboardPage() {
     };
   }, [router]);
 
-  const newUsers30d = data?.registrationsLast30Days?.reduce((sum, d) => sum + d.count, 0) ?? 0;
+  const newUsers30d = data ? data.registrationsLast30Days?.reduce((sum, d) => sum + d.count, 0) : undefined;
+  const packageTotal = data ? data.packages?.reduce((sum, item) => sum + item.count, 0) : undefined;
+  const editorialTriageCount = data?.editorialCounts?.triage;
+  const editorialReviewCount = data?.editorialCounts?.review;
 
   return (
     <div className="space-y-6">
@@ -80,6 +83,9 @@ export default function AdminDashboardPage() {
         <h1 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Steuerzentrale</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Überblick über Nutzer, Inhalte, Graph, Telemetrie und operative Warteschlangen.
+        </p>
+        <p className="mt-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+          Betreiber-Modus aktiv: globale Sicht mit ehrlichen Betriebszuständen statt Demo-KPIs.
         </p>
       </header>
 
@@ -126,7 +132,7 @@ export default function AdminDashboardPage() {
         {renderCard("Newsletter Opt-in", data?.newsletterOptIn, loading, nf, undefined, "/admin/users?newsletter=true")}
         {renderCard(
           "Pakete (aktiv)",
-          data?.packages?.reduce((a, b) => a + b.count, 0) ?? 0,
+          packageTotal,
           loading,
           nf,
         )}
@@ -144,6 +150,9 @@ export default function AdminDashboardPage() {
                   <span className="text-[rgb(var(--muted))]">{nf.format(p.count)}</span>
                 </div>
               ))}
+            {!loading && (!data || !Array.isArray(data.packages) || data.packages.length === 0) && (
+              <p className="text-sm text-[rgb(var(--muted))]">Noch keine belastbaren Paketdaten verfügbar.</p>
+            )}
           </div>
         </div>
 
@@ -158,6 +167,9 @@ export default function AdminDashboardPage() {
                   <span className="text-[rgb(var(--muted))]">{nf.format(r.count)}</span>
                 </div>
               ))}
+            {!loading && (!data || !Array.isArray(data.roles) || data.roles.length === 0) && (
+              <p className="text-sm text-[rgb(var(--muted))]">Noch keine belastbaren Rollendaten verfügbar.</p>
+            )}
           </div>
         </div>
       </section>
@@ -201,7 +213,7 @@ export default function AdminDashboardPage() {
         {renderCard("Organisationen", data?.orgsTotal, loading, nf, undefined, "/admin/orgs")}
         {renderCard(
           "Editorial Triage",
-          data?.editorialCounts?.triage ?? 0,
+          editorialTriageCount,
           loading,
           nf,
           undefined,
@@ -209,7 +221,7 @@ export default function AdminDashboardPage() {
         )}
         {renderCard(
           "Editorial Review",
-          data?.editorialCounts?.review ?? 0,
+          editorialReviewCount,
           loading,
           nf,
           undefined,
@@ -310,9 +322,14 @@ function renderCard(
       {loading ? (
         <div className="mt-2 h-6 w-16 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{nf.format(value ?? 0)}</p>
+        <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+          {typeof value === "number" ? nf.format(value) : "Nicht geladen"}
+        </p>
       )}
       {subtitle && <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{subtitle}</p>}
+      {!loading && typeof value !== "number" && (
+        <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">Der aktuelle Betriebswert wurde noch nicht belastbar geladen.</p>
+      )}
     </div>
   );
   if (href) {

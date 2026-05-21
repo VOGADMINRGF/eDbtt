@@ -49,9 +49,15 @@ export default async function AdminLayout({ children }: Props) {
 
         <main className="min-w-0 flex-1 space-y-5">
           <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--card))] px-5 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-[rgb(var(--border))]">
-            <div>
+            <div className="space-y-2">
+              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
+                Betreiber-Modus aktiv
+              </span>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-600 dark:text-sky-300">Admin Dashboard</p>
               <h1 className="text-xl font-semibold text-[rgb(var(--fg))]">Kontrolle & Insights</h1>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Diese Flächen zeigen globale Betreiber- und Systemzustände, nicht nur den Arbeitsstand einer einzelnen Organisation.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <AdminSearchButton />
