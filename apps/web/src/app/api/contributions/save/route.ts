@@ -14,6 +14,10 @@ import {
   evaluateCreateInputSafety,
   type CreateInputSafetyResult,
 } from "@/features/create/safety/createInputSafety";
+import {
+  resolveRequestScopeContext,
+  summarizeRequestScopeContext,
+} from "@/lib/server/auth/requestScope";
 
 const DraftSaveSchema = z.object({
   draftId: z.string().optional(),
@@ -193,6 +197,9 @@ export async function POST(req: NextRequest) {
 
   const Drafts = await getCol<ContributionDraftDoc>("contribution_drafts");
   const now = new Date();
+  const requestScope = summarizeRequestScopeContext(
+    await resolveRequestScopeContext(req).catch(() => null),
+  );
   const normalizedText =
     body.textPrepared?.trim() || body.textOriginal?.trim() || body.text?.trim() || "";
   const normalizedCreateMode: CreateMode =
@@ -267,6 +274,7 @@ export async function POST(req: NextRequest) {
       anlassraumId: updated.anlassraumId ?? normalizedAnlassraumId,
       updatedAt: updated.updatedAt?.toISOString() ?? now.toISOString(),
       safety,
+      requestScope,
     });
   }
 
@@ -293,5 +301,6 @@ export async function POST(req: NextRequest) {
     anlassraumId: normalizedAnlassraumId,
     updatedAt: now.toISOString(),
     safety,
+    requestScope,
   });
 }

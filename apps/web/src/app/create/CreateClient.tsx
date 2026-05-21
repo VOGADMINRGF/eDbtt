@@ -84,6 +84,7 @@ import {
   buildCreateAttachmentMaterialItems,
   resolveMaterialRouting,
 } from "@/features/create/materialRouting";
+import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -98,6 +99,7 @@ export type CreateClientProps = {
   initialText?: string | null;
   initialIntakeContext?: CreateIntakeContext | null;
   initialReturnTo?: string | null;
+  initialRequestScope?: RequestScopeSummary | null;
 };
 
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
@@ -484,6 +486,67 @@ function normalizeAnlassraumId(value?: string | null): string | null {
   return normalized;
 }
 
+function membershipStatusLabel(value: RequestScopeSummary["membershipStatus"]): string {
+  switch (value) {
+    case "publication_approved":
+      return "Publikationsfreigabe bestätigt";
+    case "unit_verified":
+      return "Unit-verifiziert";
+    case "organization_verified":
+      return "Organisations-verifiziert";
+    case "email_verified":
+      return "E-Mail verifiziert";
+    case "pending_review":
+      return "In Prüfung";
+    case "unverified":
+      return "Unverifiziert";
+    case "rejected":
+      return "Abgelehnt";
+    case "revoked":
+      return "Widerrufen";
+    case "admin_fallback":
+      return "Betreiber-Modus";
+    default:
+      return "Noch kein bestätigter Scope";
+  }
+}
+
+function buildCreateScopeNotice(scope: RequestScopeSummary | null): {
+  title: string;
+  body: string;
+  tone: "neutral" | "operator" | "limited";
+} | null {
+  if (!scope) return null;
+  if (scope.isOperatorMode) {
+    return {
+      title: "Betreiber-Modus sichtbar",
+      body:
+        "Du arbeitest hier im globalen Betreiberkontext. /create bleibt trotzdem review-first: keine automatische Veröffentlichung und kein automatisches public_official.",
+      tone: "operator",
+    };
+  }
+  if (scope.organizationId) {
+    const organizationLabel = scope.organizationLabel ?? "deiner Organisation";
+    const regionPart =
+      scope.regionIds.length > 0
+        ? ` ${scope.regionIds.length} Regionen sind im bestätigten Scope vorhanden.`
+        : " Ein Regionsscope ist noch nicht bestätigt.";
+    return {
+      title: `${organizationLabel} · ${membershipStatusLabel(scope.membershipStatus)}`,
+      body:
+        "Wenn du hier speicherst oder weiterführst, bleibt der Arbeitsstand im Scope deiner Organisation reviewfähig." +
+        regionPart,
+      tone: "neutral",
+    };
+  }
+  return {
+    title: membershipStatusLabel(scope.membershipStatus),
+    body:
+      "Du kannst den Arbeitsstand vorbereiten, aber noch ohne bestätigten Organisationsscope. Nichts wird automatisch veröffentlicht oder amtlich freigegeben.",
+    tone: "limited",
+  };
+}
+
 export function hasPrimaryIntakeText(value?: string | null): boolean {
   return Boolean(String(value ?? "").trim());
 }
@@ -645,6 +708,7 @@ export default function CreateClient({
   initialText,
   initialIntakeContext,
   initialReturnTo,
+  initialRequestScope,
 }: CreateClientProps) {
   const privacyGate = usePrivacyGate();
   const router = useRouter();
@@ -666,6 +730,10 @@ export default function CreateClient({
   const surfaceHelperLinks = React.useMemo(() => getCreateHelperLinks(surfaceLocale), [surfaceLocale]);
   const operatorLocale = resolveOperatorLocale(locale);
   const text = getOperatorCreateTexts(operatorLocale);
+  const scopeNotice = React.useMemo(
+    () => buildCreateScopeNotice(initialRequestScope ?? null),
+    [initialRequestScope],
+  );
 
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
@@ -1404,18 +1472,20 @@ export default function CreateClient({
       if (!response.ok || !body?.ok || typeof body?.draftId !== "string") {
         throw new Error(body?.error || "save_failed");
       }
+      const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
+      const scopedSavedMessage = requestScope?.isOperatorMode
+        ? "Arbeitsstand gespeichert. Betreiber-Modus bleibt sichtbar. Keine automatische Veröffentlichung."
+        : requestScope?.organizationId
+          ? "Arbeitsstand gespeichert. Der Arbeitsstand bleibt im Scope deiner Organisation reviewfähig."
+          : null;
+      const successMessage =
+        manualReviewRequested
+          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
+          : scopedSavedMessage ?? "Arbeitsstand gespeichert.";
       setSavedDraftId(body.draftId);
       setReviewRequestState("saved");
-      setReviewRequestMessage(
-        manualReviewRequested
-          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
-          : "Arbeitsstand gespeichert.",
-      );
-      setActionNotice(
-        manualReviewRequested
-          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
-          : "Arbeitsstand gespeichert.",
-      );
+      setReviewRequestMessage(successMessage);
+      setActionNotice(successMessage);
     } catch {
       setReviewRequestState("error");
       setReviewRequestMessage("Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.");
@@ -1459,6 +1529,7 @@ export default function CreateClient({
       });
       saveCreateHandoffDraft(draft);
       setActionNotice("Reviewbarer Handoff wird gespeichert. Keine automatische Veröffentlichung.");
+      let successMessage = "Reviewbarer Handoff vorbereitet. Keine automatische Veröffentlichung.";
       try {
         const response = await fetch("/api/create/handoffs", {
           method: "POST",
@@ -1473,12 +1544,20 @@ export default function CreateClient({
         if (!response.ok || !body?.ok) {
           throw new Error(body?.error ?? "create_handoff_persist_failed");
         }
+        const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
+        if (requestScope?.isOperatorMode) {
+          successMessage =
+            "Reviewbarer Handoff vorbereitet. Betreiber-Modus bleibt sichtbar. Keine automatische Veröffentlichung.";
+        } else if (requestScope?.organizationId) {
+          successMessage =
+            "Reviewbarer Handoff vorbereitet. Der Arbeitsstand bleibt im Scope deiner Organisation.";
+        }
       } catch {
         setActionNotice("Handoff konnte nicht persistent in die Review-Queue geschrieben werden. Bitte erneut versuchen.");
         return;
       }
       setShowFollowupCorrectionComposer(false);
-      setActionNotice("Reviewbarer Handoff vorbereitet. Keine automatische Veröffentlichung.");
+      setActionNotice(successMessage);
       const targetHref = buildCreateHandoffTargetHref({
         baseHref,
         handoffId: draft.id,
@@ -1645,8 +1724,26 @@ export default function CreateClient({
         subline={surfaceTexts.sublineCanonical}
         texts={surfaceComposerTexts}
         topMeta={
-          intakeRestoreInfo ? (
-            <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
+          intakeRestoreInfo || scopeNotice ? (
+            <div className="space-y-2">
+              {intakeRestoreInfo ? (
+                <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
+              ) : null}
+              {scopeNotice ? (
+                <div
+                  className={`rounded-2xl border px-3 py-2 text-xs ${
+                    scopeNotice.tone === "operator"
+                      ? "border-amber-300/70 bg-amber-50 text-amber-900"
+                      : scopeNotice.tone === "limited"
+                        ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                        : "border-sky-300/60 bg-sky-50 text-sky-900"
+                  }`}
+                >
+                  <p className="font-semibold">{scopeNotice.title}</p>
+                  <p className="mt-1">{scopeNotice.body}</p>
+                </div>
+              ) : null}
+            </div>
           ) : undefined
         }
         modeOrder={CREATE_PRODUCT_MODES}
