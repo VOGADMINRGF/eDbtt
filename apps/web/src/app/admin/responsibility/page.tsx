@@ -66,10 +66,27 @@ export default function ResponsibilityAdminPage() {
         fetch("/api/admin/responsibility/directory"),
         fetch("/api/admin/responsibility/paths"),
       ]);
-      const dirJson = await dirRes.json();
-      const pathJson = await pathRes.json();
-      if (dirJson.ok) setEntries(dirJson.entries ?? []);
-      if (pathJson.ok) setPaths(pathJson.paths ?? []);
+      const dirJson = await dirRes.json().catch(() => ({}));
+      const pathJson = await pathRes.json().catch(() => ({}));
+
+      if (!dirRes.ok || !dirJson?.ok) {
+        throw new Error(
+          typeof dirJson?.error === "string" && dirJson.error.length > 0
+            ? dirJson.error
+            : "Directory konnte nicht geladen werden.",
+        );
+      }
+
+      if (!pathRes.ok || !pathJson?.ok) {
+        throw new Error(
+          typeof pathJson?.error === "string" && pathJson.error.length > 0
+            ? pathJson.error
+            : "Responsibility-Pfade konnten nicht geladen werden.",
+        );
+      }
+
+      setEntries(dirJson.entries ?? []);
+      setPaths(pathJson.paths ?? []);
     } catch (err: unknown) {
       setLoadError(err instanceof Error ? err.message : "Verantwortungsverzeichnis konnte nicht geladen werden.");
     } finally {
@@ -132,6 +149,9 @@ export default function ResponsibilityAdminPage() {
         <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">Responsibility Directory</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Pflege die zentrale Directory-Liste und Responsibility-Pfade für Statements.
+        </p>
+        <p className="mt-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+          Betreiber-Modus aktiv: globale Zuständigkeiten und Pfade, keine organisationslokale Sicht.
         </p>
       </header>
 
