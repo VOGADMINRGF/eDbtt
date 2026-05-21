@@ -117,7 +117,7 @@ async function buildMembershipRequestScope(input: {
     regionIds: regionId ? [regionId] : [],
     isOperatorMode: false,
     operatorModeLabel: null,
-    sourceOfTruth: "persisted_membership_runtime",
+    sourceOfTruth: "local_membership_store",
     confidence: "high",
     regionAccess: await buildPersistedRegionAccessContext({
       userId: input.userId,

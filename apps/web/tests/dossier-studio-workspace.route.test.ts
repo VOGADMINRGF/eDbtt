@@ -204,7 +204,7 @@ async function buildGovernanceRequestScope(input: {
     regionIds,
     isOperatorMode: Boolean(input.isAdmin),
     operatorModeLabel: input.isAdmin ? "Betreiber-Modus" : null,
-    sourceOfTruth: input.isAdmin ? "session_admin_fallback" : "persisted_membership_runtime",
+    sourceOfTruth: input.isAdmin ? "session" : "local_membership_store",
     confidence: input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "high" : "limited",
     regionAccess: await buildPersistedRegionAccessContext({
       userId: input.userId,

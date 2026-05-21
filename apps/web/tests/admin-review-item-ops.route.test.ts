@@ -25,7 +25,7 @@ function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     regionIds: [],
     organizationId: null,
-    sourceOfTruth: "session_admin_fallback",
+    sourceOfTruth: "session",
     confidence: "admin_fallback",
     isOperatorMode: true,
     operatorModeLabel: "Betreiber-Modus",
