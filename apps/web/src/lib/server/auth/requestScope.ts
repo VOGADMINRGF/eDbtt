@@ -2,24 +2,21 @@ import type { NextRequest } from "next/server";
 import { mapUserRolesToGovernanceRole } from "@features/trust/gates";
 import type { GovernanceActorRole } from "@features/trust/types";
 import {
-  buildRegionAccessContext,
-  buildPersistedRegionAccessContext,
-  getRegionOrganizationRuntimeRepo,
   type Organization,
   type OrganizationMembership,
   type OrganizationRoleType,
   type RegionAccessContext as PersistedRegionAccessContext,
   type VerificationStatus,
 } from "@features/region";
-import { getSessionUser, type SessionUser } from "./sessionUser";
+import type { SessionUser } from "./sessionUser";
 import { userIsAdminDashboard } from "./roles";
-
-export type RequestScopeSourceOfTruth =
-  | "persisted_membership_runtime"
-  | "session_admin_fallback"
-  | "session_only_fallback";
-
-export type RequestScopeConfidence = "high" | "admin_fallback" | "limited";
+import {
+  getAuthProviderRuntimeAdapter,
+  getMembershipDirectoryAdapter,
+  type RequestScopeConfidence,
+  type RequestScopeRuntimeMarker,
+  type RequestScopeSourceOfTruth,
+} from "./runtimeAdapters";
 
 export type AuthenticatedActorContext = {
   actorId: string;
@@ -31,6 +28,7 @@ export type AuthenticatedActorContext = {
   operatorModeLabel: string | null;
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
 };
 
 export type OrganizationMembershipContext = {
@@ -42,6 +40,7 @@ export type OrganizationMembershipContext = {
   organizations: Organization[];
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
 };
 
 export type OrganizationRoleContext = {
@@ -50,6 +49,14 @@ export type OrganizationRoleContext = {
   membershipId: string | null;
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
+};
+
+export type RequestScopeSourceBreakdown = {
+  actor: RequestScopeSourceOfTruth;
+  organization: RequestScopeSourceOfTruth;
+  organizationRole: RequestScopeSourceOfTruth;
+  regionAccess: RequestScopeSourceOfTruth;
 };
 
 export type RegionAccessContext = PersistedRegionAccessContext;
@@ -66,10 +73,15 @@ export type RequestScopeContext = {
   operatorModeLabel: string | null;
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
+  sourceBreakdown: RequestScopeSourceBreakdown;
   actor: AuthenticatedActorContext;
   organizationMembership: OrganizationMembershipContext;
   organizationRoleContext: OrganizationRoleContext;
   regionAccess: PersistedRegionAccessContext;
+  regionAccessSourceOfTruth: RequestScopeSourceOfTruth;
+  regionAccessConfidence: RequestScopeConfidence;
+  regionAccessRuntimeMarker: RequestScopeRuntimeMarker;
   user: SessionUser;
 };
 
@@ -90,11 +102,15 @@ export type RequestScopeSummary = {
   operatorModeLabel: string | null;
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
+  sourceBreakdown: RequestScopeSourceBreakdown;
 };
 
 type ResolveOrganizationMembershipInput = {
   actorId: string;
   isOperatorMode: boolean;
+  actorSourceOfTruth: RequestScopeSourceOfTruth;
+  actorRuntimeMarker: RequestScopeRuntimeMarker;
 };
 
 const VERIFIED_MEMBERSHIP_STATUSES = new Set<VerificationStatus>([
@@ -222,17 +238,16 @@ export async function resolveOrganizationMembershipForActor(
       membershipStatus: "admin_fallback",
       memberships: [],
       organizations: [],
-      sourceOfTruth: "session_admin_fallback",
+      sourceOfTruth: input.actorSourceOfTruth,
       confidence: "admin_fallback",
+      runtimeMarker: input.actorRuntimeMarker,
     };
   }
 
   try {
-    const repo = getRegionOrganizationRuntimeRepo();
-    const memberships = await repo.listMembershipsForUser(input.actorId);
-    const organizations = await repo.listOrganizationsByIds(
-      memberships.map((membership) => membership.organizationId),
-    );
+    const resolved = await getMembershipDirectoryAdapter().listMembershipDirectoryForActor(input.actorId);
+    const memberships = resolved.memberships;
+    const organizations = resolved.organizations;
     const primaryMembership = pickPrimaryMembership(memberships);
     return {
       organizationId: primaryMembership?.organizationId ?? null,
@@ -241,8 +256,9 @@ export async function resolveOrganizationMembershipForActor(
       membershipStatus: deriveMembershipStatus(false, memberships),
       memberships,
       organizations,
-      sourceOfTruth: "persisted_membership_runtime",
-      confidence: memberships.length > 0 ? "high" : "limited",
+      sourceOfTruth: resolved.sourceOfTruth,
+      confidence: resolved.confidence,
+      runtimeMarker: resolved.runtimeMarker,
     };
   } catch {
     return {
@@ -252,24 +268,29 @@ export async function resolveOrganizationMembershipForActor(
       membershipStatus: "none",
       memberships: [],
       organizations: [],
-      sourceOfTruth: "session_only_fallback",
+      sourceOfTruth: "external_provider_pending",
       confidence: "limited",
+      runtimeMarker: "external_provider_pending",
     };
   }
 }
 
 export function mapSessionToOrganizationRole(input: {
-  roles: string[];
   isOperatorMode: boolean;
   memberships: OrganizationMembership[];
+  actorSourceOfTruth: RequestScopeSourceOfTruth;
+  actorRuntimeMarker: RequestScopeRuntimeMarker;
+  membershipSourceOfTruth: RequestScopeSourceOfTruth;
+  membershipRuntimeMarker: RequestScopeRuntimeMarker;
 }): OrganizationRoleContext {
   if (input.isOperatorMode) {
     return {
       organizationRole: "operator_admin",
       roleLabel: "Betreiber-Modus",
       membershipId: null,
-      sourceOfTruth: "session_admin_fallback",
+      sourceOfTruth: input.actorSourceOfTruth,
       confidence: "admin_fallback",
+      runtimeMarker: input.actorRuntimeMarker,
     };
   }
   const primaryMembership = pickPrimaryMembership(input.memberships);
@@ -278,16 +299,18 @@ export function mapSessionToOrganizationRole(input: {
       organizationRole: primaryMembership.roleType,
       roleLabel: primaryMembership.roleLabel,
       membershipId: primaryMembership.id,
-      sourceOfTruth: "persisted_membership_runtime",
+      sourceOfTruth: input.membershipSourceOfTruth,
       confidence: "high",
+      runtimeMarker: input.membershipRuntimeMarker,
     };
   }
   return {
     organizationRole: null,
     roleLabel: null,
     membershipId: null,
-    sourceOfTruth: "session_only_fallback",
+    sourceOfTruth: "external_provider_pending",
     confidence: "limited",
+    runtimeMarker: "external_provider_pending",
   };
 }
 
@@ -298,29 +321,18 @@ export async function resolveRegionAccessForOrganization(input: {
   roles: string[];
   organizationIds?: string[] | null;
   regionId?: string | null;
-}): Promise<PersistedRegionAccessContext> {
-  try {
-    return await buildPersistedRegionAccessContext({
-      userId: input.actorId,
-      actorRole: input.actorRole,
-      isAdmin: input.isOperatorMode,
-      roles: input.roles,
-      organizationIds: input.organizationIds,
-      regionId: input.regionId,
-    });
-  } catch {
-    return buildRegionAccessContext({
-      userId: input.actorId,
-      actorRole: input.actorRole,
-      isAdmin: input.isOperatorMode,
-      roles: input.roles,
-      organizationIds: input.organizationIds,
-    });
-  }
+}): Promise<{
+  regionAccess: PersistedRegionAccessContext;
+  sourceOfTruth: RequestScopeSourceOfTruth;
+  confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
+}> {
+  return getMembershipDirectoryAdapter().resolveRegionAccess(input);
 }
 
 function buildRequestScopeContextFromUser(
   user: SessionUser | null,
+  actorRuntime: Awaited<ReturnType<ReturnType<typeof getAuthProviderRuntimeAdapter>["getAuthenticatedActor"]>>,
   options: ResolveRequestScopeContextOptions = {},
 ): Promise<RequestScopeContext | null> {
   return (async () => {
@@ -333,11 +345,16 @@ function buildRequestScopeContextFromUser(
     const organizationMembership = await resolveOrganizationMembershipForActor({
       actorId,
       isOperatorMode,
+      actorSourceOfTruth: actorRuntime.sourceOfTruth,
+      actorRuntimeMarker: actorRuntime.runtimeMarker,
     });
     const organizationRoleContext = mapSessionToOrganizationRole({
-      roles,
       isOperatorMode,
       memberships: organizationMembership.memberships,
+      actorSourceOfTruth: actorRuntime.sourceOfTruth,
+      actorRuntimeMarker: actorRuntime.runtimeMarker,
+      membershipSourceOfTruth: organizationMembership.sourceOfTruth,
+      membershipRuntimeMarker: organizationMembership.runtimeMarker,
     });
     const governanceRole = deriveGovernanceRole({
       roles,
@@ -352,15 +369,16 @@ function buildRequestScopeContextFromUser(
       governanceRole,
       isOperatorMode,
       operatorModeLabel: isOperatorMode ? "Betreiber-Modus" : null,
-      sourceOfTruth: organizationMembership.sourceOfTruth,
-      confidence: organizationMembership.confidence,
+      sourceOfTruth: actorRuntime.sourceOfTruth,
+      confidence: isOperatorMode ? "admin_fallback" : actorRuntime.confidence,
+      runtimeMarker: actorRuntime.runtimeMarker,
     };
     const actorRoleKey =
       governanceRole ??
       organizationRoleContext.organizationRole ??
       roles[0] ??
       "organization_member";
-    const regionAccess = await resolveRegionAccessForOrganization({
+    const regionAccessResolved = await resolveRegionAccessForOrganization({
       actorId,
       actorRole: String(actorRoleKey),
       isOperatorMode,
@@ -368,6 +386,22 @@ function buildRequestScopeContextFromUser(
       organizationIds: organizationMembership.organizationIds,
       regionId: options.regionId ?? null,
     });
+    const regionAccess = regionAccessResolved.regionAccess;
+    const organizationSourceOfTruth =
+      organizationMembership.organizationId || organizationMembership.organizationIds.length > 0
+        ? organizationMembership.sourceOfTruth
+        : regionAccess.organization.primaryOrganizationId
+          ? regionAccessResolved.sourceOfTruth
+          : actor.sourceOfTruth;
+    const topLevelConfidence = isOperatorMode
+      ? "admin_fallback"
+      : organizationMembership.organizationIds.length > 0
+        ? organizationMembership.confidence
+        : actor.confidence;
+    const topLevelRuntimeMarker =
+      organizationMembership.organizationIds.length > 0
+        ? organizationMembership.runtimeMarker
+        : actor.runtimeMarker;
 
     return {
       actorId,
@@ -382,12 +416,22 @@ function buildRequestScopeContextFromUser(
       regionIds: regionAccess.scopedRegionIds,
       isOperatorMode,
       operatorModeLabel: actor.operatorModeLabel,
-      sourceOfTruth: actor.sourceOfTruth,
-      confidence: actor.confidence,
+      sourceOfTruth: organizationSourceOfTruth,
+      confidence: topLevelConfidence,
+      runtimeMarker: topLevelRuntimeMarker,
+      sourceBreakdown: {
+        actor: actor.sourceOfTruth,
+        organization: organizationSourceOfTruth,
+        organizationRole: organizationRoleContext.sourceOfTruth,
+        regionAccess: regionAccessResolved.sourceOfTruth,
+      },
       actor,
       organizationMembership,
       organizationRoleContext,
       regionAccess,
+      regionAccessSourceOfTruth: regionAccessResolved.sourceOfTruth,
+      regionAccessConfidence: regionAccessResolved.confidence,
+      regionAccessRuntimeMarker: regionAccessResolved.runtimeMarker,
       user,
     };
   })();
@@ -428,20 +472,22 @@ export function summarizeRequestScopeContext(
     operatorModeLabel: scopeContext.operatorModeLabel,
     sourceOfTruth: scopeContext.sourceOfTruth,
     confidence: scopeContext.confidence,
+    runtimeMarker: scopeContext.runtimeMarker,
+    sourceBreakdown: scopeContext.sourceBreakdown,
   };
 }
 
 export async function resolveCurrentRequestScopeContext(
   options: ResolveRequestScopeContextOptions = {},
 ): Promise<RequestScopeContext | null> {
-  const user = await getSessionUser();
-  return buildRequestScopeContextFromUser(user, options);
+  const actorRuntime = await getAuthProviderRuntimeAdapter().getAuthenticatedActor();
+  return buildRequestScopeContextFromUser(actorRuntime.user, actorRuntime, options);
 }
 
 export async function resolveRequestScopeContext(
   request: NextRequest,
   options: ResolveRequestScopeContextOptions = {},
 ): Promise<RequestScopeContext | null> {
-  const user = await getSessionUser(request);
-  return buildRequestScopeContextFromUser(user, options);
+  const actorRuntime = await getAuthProviderRuntimeAdapter().getAuthenticatedActor(request);
+  return buildRequestScopeContextFromUser(actorRuntime.user, actorRuntime, options);
 }

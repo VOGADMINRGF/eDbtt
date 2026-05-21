@@ -172,7 +172,7 @@ describe("/create start surface", () => {
       primaryRegionId: "kommune-nord",
       isOperatorMode: false,
       operatorModeLabel: null,
-      sourceOfTruth: "persisted_membership_runtime",
+      sourceOfTruth: "local_membership_store",
       confidence: "high",
     });
 

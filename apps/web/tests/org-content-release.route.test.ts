@@ -45,7 +45,7 @@ function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
     regionIds: ["bezirk-berlin-reinickendorf"],
     isOperatorMode: false,
     operatorModeLabel: null,
-    sourceOfTruth: "persisted_membership_runtime",
+    sourceOfTruth: "local_membership_store",
     confidence: "high",
     ...overrides,
   };
