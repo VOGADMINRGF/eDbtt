@@ -182,3 +182,39 @@ Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum
 - Der eingebettete `?intent=check`-Pfad ist browsernah noch nicht vollständig stabil bis `Claims sichtbar -> auswählen -> Einreichen -> Redirect`.
 - Im Live-Lauf kippt die Surface inkonsistent zwischen Embedded-Prüfmodus und planner-first-Follow-up, sodass der finale Verify-Schritt noch nicht als stabil `pass` markiert werden kann.
 - Deshalb bleibt `PR-CREATE-WORKFLOW-LIVE-QA-01` bewusst weiter `in_progress`.
+
+## Abschlussslice 2026-05-21
+
+### Ziel dieses Rest-Slices
+
+- den verbleibenden `/create`-Rest nicht mit einer neuen UI, sondern durch Scope-, Save- und Handoff-Haertung auf den bestehenden Pfaden schliessen
+- Request-/Org-/Region-Kontext im echten Arbeitsraum sichtbar machen
+- sicherstellen, dass reviewfaehige Handoffs ohne bereits gewaehlten Dossier-/Anlassraum-Zielkontext nicht scope-arm in der Queue landen
+
+### Umgesetzt
+
+- `apps/web/src/lib/server/auth/requestScope.ts` bietet jetzt zusaetzlich einen requestlosen Resolver fuer Server-Pages sowie ein serialisierbares `RequestScopeSummary`.
+- `apps/web/src/app/create/page.tsx` loest den aktuellen Scope bereits serverseitig auf und reicht ihn in denselben `/create`-Arbeitsraum weiter.
+- `apps/web/src/app/create/CreateClient.tsx` zeigt den bestaetigten Organisations-/Regionscope oder Betreiber-Modus sichtbar im bestehenden Composer-Kontext; Save- und Handoff-Feedback bleiben explizit review-first und markieren bei vorhandenem Scope, dass der Arbeitsstand im Scope der Organisation bleibt.
+- `apps/web/src/app/api/contributions/save/route.ts` antwortet jetzt ebenfalls mit dem aufgeloesten `requestScope`, damit der Save-Schritt keine scope-blinde Blackbox mehr ist.
+- `apps/web/src/app/api/create/handoffs/route.ts` nutzt fuer reviewfaehige Handoffs ohne bereits gewaehlten Dossier-/Anlassraum-Kontext den bestaetigten Organisations-/Regionscope als persistente Fallback-Einordnung statt scope-arme Records zu schreiben.
+
+### Guardrails bestaetigt
+
+- kein Auto-Publish
+- kein automatisches `public_official`
+- Link-Intake bleibt Quellenhinweis und behauptet kein Scraping
+- Faktencheck / Deep Search bleibt bestaetigungspflichtig und ohne automatische Kostenbuchung
+- Mobile-CTA-Flow bleibt inline und ohne grosses Overlay
+
+### Verifikation 2026-05-21
+
+- `pnpm -C apps/web exec vitest run tests/create-mode.page.test.ts tests/create-mode.save.route.test.ts tests/create-handoff.persistence.route.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-analyze.workspace-ui.test.ts tests/create-link-intake-clarification.contract.test.tsx tests/create-anlassraum-handoff.contract.test.tsx tests/create-factcheck-handoff.contract.test.ts tests/review-queue.readmodel.test.ts`
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `pnpm --filter @vog/web build`
+
+### Schluss
+
+- Der `/create`-Pfad bleibt derselbe kanonische Einstieg; es wurde keine neue Produktparallelwelt eingefuehrt.
+- Fuer den generischen Organisations-/Regionen-Rollout ist `/create` damit produktionsnah genug gehaertet: Scope ist sichtbar, Save/Handoff bleiben reviewfaehig, und reviewrelevante Arbeitsstaende verlieren ihren Organisations-/Regionsbezug nicht mehr still.

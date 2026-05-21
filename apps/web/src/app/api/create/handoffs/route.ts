@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveRequestScopeContext } from "@/lib/server/auth/requestScope";
+import { summarizeRequestScopeContext } from "@/lib/server/auth/requestScope";
 import type {
   CreateArgumentDraft,
   CreateClaimDraft,
@@ -244,11 +245,22 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json({ ok: false, error: "create_handoff_scope_forbidden" }, { status: 403 });
     }
+    const requestScope = summarizeRequestScopeContext(scopeContext);
+    const fallbackRegionId =
+      context.regionId ??
+      requestScope?.primaryRegionId ??
+      scopeContext.regionIds[0] ??
+      null;
+    const fallbackOrganizationId =
+      context.organizationId ??
+      requestScope?.organizationId ??
+      scopeContext.regionAccess.organization.primaryOrganizationId ??
+      null;
     const record = await persistCreateHandoffForReview({
       draft,
       createdByUserId: userId,
-      regionId: context.regionId,
-      organizationId: context.organizationId,
+      regionId: fallbackRegionId,
+      organizationId: fallbackOrganizationId,
       dossierId: context.dossierId,
       anlassraumId: context.anlassraumId,
     });
@@ -263,16 +275,7 @@ export async function POST(req: NextRequest) {
         anlassraumId: record.anlassraumId,
         reviewState: record.reviewState,
       },
-      requestScope: {
-        organizationId: scopeContext.organizationId,
-        membershipStatus: scopeContext.membershipStatus,
-        organizationRole: scopeContext.organizationRole,
-        regionIds: scopeContext.regionIds,
-        isOperatorMode: scopeContext.isOperatorMode,
-        operatorModeLabel: scopeContext.operatorModeLabel,
-        sourceOfTruth: scopeContext.sourceOfTruth,
-        confidence: scopeContext.confidence,
-      },
+      requestScope,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "create_handoff_persist_failed";

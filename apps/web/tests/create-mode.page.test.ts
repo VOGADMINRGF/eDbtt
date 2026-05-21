@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
   getDraft: vi.fn(),
+  resolveCurrentRequestScopeContext: vi.fn(),
+  summarizeRequestScopeContext: vi.fn(),
   analyzeWorkspaceCalls: [] as Array<Record<string, unknown>>,
 }));
 
@@ -20,12 +22,25 @@ vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
 }));
 
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: (...args: unknown[]) =>
+    mocks.resolveCurrentRequestScopeContext(...args),
+  summarizeRequestScopeContext: (...args: unknown[]) =>
+    mocks.summarizeRequestScopeContext(...args),
+}));
+
 vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   __esModule: true,
   default: (props: Record<string, unknown>) => {
     mocks.analyzeWorkspaceCalls.push(props);
     return null;
   },
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 import CreatePage from "@/app/create/page";
@@ -86,6 +101,8 @@ describe("/create start surface", () => {
     mocks.getCreateEntitlementsForRequest.mockResolvedValue(AUTH_ENTITLEMENTS);
     mocks.getAccountOverview.mockResolvedValue(OVERVIEW);
     mocks.getDraft.mockResolvedValue(null);
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
+    mocks.summarizeRequestScopeContext.mockReturnValue(null);
     mocks.analyzeWorkspaceCalls.length = 0;
   });
 
@@ -95,8 +112,8 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Beschreibe,");
-    expect(html).toContain("was geklärt werden soll");
+    expect(html).toContain("Was möchtest du einbringen?");
+    expect(html).toContain("Beschreibe dein Thema");
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
@@ -141,5 +158,30 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Intake-Kontext (Anlassraum-first)");
     expect(html).not.toContain("manual_fast_path_via_create");
     expect(html).not.toContain("feed_drafts_queue");
+  });
+
+  it("shows the resolved organization scope when available", async () => {
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue({ actorId: "user-1" });
+    mocks.summarizeRequestScopeContext.mockReturnValue({
+      organizationId: "org-1",
+      organizationLabel: "Stadtverwaltung Nord",
+      membershipStatus: "organization_verified",
+      organizationRole: "communications",
+      roleLabel: "Kommunikation",
+      regionIds: ["kommune-nord"],
+      primaryRegionId: "kommune-nord",
+      isOperatorMode: false,
+      operatorModeLabel: null,
+      sourceOfTruth: "persisted_membership_runtime",
+      confidence: "high",
+    });
+
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({}),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Stadtverwaltung Nord · Organisations-verifiziert");
+    expect(html).toContain("im Scope deiner Organisation reviewfähig");
   });
 });

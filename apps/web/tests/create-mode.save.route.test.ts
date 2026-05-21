@@ -52,6 +52,17 @@ const mocks = vi.hoisted(() => {
         },
       };
     }),
+    resolveRequestScopeContext: vi.fn(async () => ({
+      organizationId: "org-1",
+      membershipStatus: "organization_verified",
+      organizationRole: "communications",
+      regionIds: ["kommune-nord"],
+      isOperatorMode: false,
+      operatorModeLabel: null,
+      sourceOfTruth: "persisted_membership_runtime",
+      confidence: "high",
+    })),
+    summarizeRequestScopeContext: vi.fn((scope) => scope),
   };
 });
 
@@ -66,6 +77,11 @@ vi.mock("@core/db/triMongo", async () => {
     getCol: (...args: unknown[]) => mocks.getCol(...args),
   };
 });
+
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveRequestScopeContext: (...args: unknown[]) => mocks.resolveRequestScopeContext(...args),
+  summarizeRequestScopeContext: (...args: unknown[]) => mocks.summarizeRequestScopeContext(...args),
+}));
 
 import { POST as savePOST } from "@/app/api/contributions/save/route";
 
@@ -94,7 +110,15 @@ describe("create mode split - save route", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toMatchObject({ ok: true, createMode: "manual" });
+    expect(body).toMatchObject({
+      ok: true,
+      createMode: "manual",
+      requestScope: {
+        organizationId: "org-1",
+        membershipStatus: "organization_verified",
+        regionIds: ["kommune-nord"],
+      },
+    });
 
     const saved = mocks.readAll();
     expect(saved).toHaveLength(1);
@@ -221,5 +245,24 @@ describe("create mode split - save route", () => {
 
     const saved = mocks.readAll();
     expect(saved[0].createMode).toBe("manual");
+  });
+
+  it("returns null requestScope when no organization context is resolved", async () => {
+    mocks.resolveRequestScopeContext.mockResolvedValueOnce(null);
+    mocks.summarizeRequestScopeContext.mockReturnValueOnce(null);
+
+    const res = await savePOST(
+      req({
+        textPrepared: "Speichert ohne bestätigten Organisationsscope, aber weiterhin als Draft.",
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      requestScope: null,
+    });
   });
 });

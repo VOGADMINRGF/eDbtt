@@ -21,6 +21,10 @@ import {
   resolveOperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 import { LocaleProvider } from "@/context/LocaleContext";
+import {
+  resolveCurrentRequestScopeContext,
+  summarizeRequestScopeContext,
+} from "@/lib/server/auth/requestScope";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -129,6 +133,11 @@ export default async function CreatePage({
   const intakeContext = parseCreateIntakeContextFromQuery(resolved);
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
+  const requestScope = summarizeRequestScopeContext(
+    await resolveCurrentRequestScopeContext({
+      regionId: intakeContext?.region ?? null,
+    }),
+  );
 
   let initialText = prefillText ?? null;
   if (!initialText && draftId) {
@@ -154,6 +163,7 @@ export default async function CreatePage({
             initialText={initialText}
             initialIntakeContext={intakeContext}
             initialReturnTo={returnTo}
+            initialRequestScope={requestScope}
           />
         </LocaleProvider>
       </div>

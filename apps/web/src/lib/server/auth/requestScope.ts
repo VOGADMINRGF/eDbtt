@@ -78,6 +78,20 @@ type ResolveRequestScopeContextOptions = {
   allowOperatorFallback?: boolean;
 };
 
+export type RequestScopeSummary = {
+  organizationId: string | null;
+  organizationLabel: string | null;
+  membershipStatus: RequestScopeContext["membershipStatus"];
+  organizationRole: RequestScopeContext["organizationRole"];
+  roleLabel: string | null;
+  regionIds: string[];
+  primaryRegionId: string | null;
+  isOperatorMode: boolean;
+  operatorModeLabel: string | null;
+  sourceOfTruth: RequestScopeSourceOfTruth;
+  confidence: RequestScopeConfidence;
+};
+
 type ResolveOrganizationMembershipInput = {
   actorId: string;
   isOperatorMode: boolean;
@@ -305,75 +319,129 @@ export async function resolveRegionAccessForOrganization(input: {
   }
 }
 
+function buildRequestScopeContextFromUser(
+  user: SessionUser | null,
+  options: ResolveRequestScopeContextOptions = {},
+): Promise<RequestScopeContext | null> {
+  return (async () => {
+    const actorId = user?._id?.toHexString?.() ?? "";
+    if (!user || !user.sessionValid || !actorId) return null;
+
+    const roles = collectRoles(user.roles, user.role);
+    const allowOperatorFallback = options.allowOperatorFallback !== false;
+    const isOperatorMode = allowOperatorFallback && userIsAdminDashboard(user);
+    const organizationMembership = await resolveOrganizationMembershipForActor({
+      actorId,
+      isOperatorMode,
+    });
+    const organizationRoleContext = mapSessionToOrganizationRole({
+      roles,
+      isOperatorMode,
+      memberships: organizationMembership.memberships,
+    });
+    const governanceRole = deriveGovernanceRole({
+      roles,
+      isOperatorMode,
+      membershipStatus: organizationMembership.membershipStatus,
+    });
+    const actor: AuthenticatedActorContext = {
+      actorId,
+      actorType: "session_user",
+      email: user.email?.trim() || null,
+      roles,
+      governanceRole,
+      isOperatorMode,
+      operatorModeLabel: isOperatorMode ? "Betreiber-Modus" : null,
+      sourceOfTruth: organizationMembership.sourceOfTruth,
+      confidence: organizationMembership.confidence,
+    };
+    const actorRoleKey =
+      governanceRole ??
+      organizationRoleContext.organizationRole ??
+      roles[0] ??
+      "organization_member";
+    const regionAccess = await resolveRegionAccessForOrganization({
+      actorId,
+      actorRole: String(actorRoleKey),
+      isOperatorMode,
+      roles,
+      organizationIds: organizationMembership.organizationIds,
+      regionId: options.regionId ?? null,
+    });
+
+    return {
+      actorId,
+      actorType: actor.actorType,
+      email: actor.email,
+      organizationId:
+        organizationMembership.organizationId ??
+        regionAccess.organization.primaryOrganizationId ??
+        null,
+      membershipStatus: organizationMembership.membershipStatus,
+      organizationRole: organizationRoleContext.organizationRole,
+      regionIds: regionAccess.scopedRegionIds,
+      isOperatorMode,
+      operatorModeLabel: actor.operatorModeLabel,
+      sourceOfTruth: actor.sourceOfTruth,
+      confidence: actor.confidence,
+      actor,
+      organizationMembership,
+      organizationRoleContext,
+      regionAccess,
+      user,
+    };
+  })();
+}
+
+export function summarizeRequestScopeContext(
+  scopeContext: RequestScopeContext | null,
+): RequestScopeSummary | null {
+  if (!scopeContext) return null;
+  const primaryOrganization =
+    scopeContext.organizationMembership.organizations.find(
+      (organization) => organization.id === scopeContext.organizationId,
+    ) ??
+    scopeContext.organizationMembership.organizations[0] ??
+    null;
+  const primaryMembership =
+    scopeContext.organizationMembership.memberships.find(
+      (membership) =>
+        membership.id === scopeContext.organizationRoleContext.membershipId ||
+        membership.organizationId === scopeContext.organizationId,
+    ) ?? scopeContext.organizationMembership.memberships[0] ?? null;
+
+  return {
+    organizationId: scopeContext.organizationId,
+    organizationLabel:
+      primaryOrganization?.name?.trim() ||
+      primaryMembership?.organizationName?.trim() ||
+      null,
+    membershipStatus: scopeContext.membershipStatus,
+    organizationRole: scopeContext.organizationRole,
+    roleLabel:
+      scopeContext.organizationRoleContext.roleLabel?.trim() ||
+      primaryMembership?.roleLabel?.trim() ||
+      scopeContext.operatorModeLabel,
+    regionIds: [...scopeContext.regionIds],
+    primaryRegionId: scopeContext.regionIds[0] ?? null,
+    isOperatorMode: scopeContext.isOperatorMode,
+    operatorModeLabel: scopeContext.operatorModeLabel,
+    sourceOfTruth: scopeContext.sourceOfTruth,
+    confidence: scopeContext.confidence,
+  };
+}
+
+export async function resolveCurrentRequestScopeContext(
+  options: ResolveRequestScopeContextOptions = {},
+): Promise<RequestScopeContext | null> {
+  const user = await getSessionUser();
+  return buildRequestScopeContextFromUser(user, options);
+}
+
 export async function resolveRequestScopeContext(
   request: NextRequest,
   options: ResolveRequestScopeContextOptions = {},
 ): Promise<RequestScopeContext | null> {
   const user = await getSessionUser(request);
-  const actorId = user?._id?.toHexString?.() ?? "";
-  if (!user || !user.sessionValid || !actorId) return null;
-
-  const roles = collectRoles(user.roles, user.role);
-  const allowOperatorFallback = options.allowOperatorFallback !== false;
-  const isOperatorMode = allowOperatorFallback && userIsAdminDashboard(user);
-  const organizationMembership = await resolveOrganizationMembershipForActor({
-    actorId,
-    isOperatorMode,
-  });
-  const organizationRoleContext = mapSessionToOrganizationRole({
-    roles,
-    isOperatorMode,
-    memberships: organizationMembership.memberships,
-  });
-  const governanceRole = deriveGovernanceRole({
-    roles,
-    isOperatorMode,
-    membershipStatus: organizationMembership.membershipStatus,
-  });
-  const actor: AuthenticatedActorContext = {
-    actorId,
-    actorType: "session_user",
-    email: user.email?.trim() || null,
-    roles,
-    governanceRole,
-    isOperatorMode,
-    operatorModeLabel: isOperatorMode ? "Betreiber-Modus" : null,
-    sourceOfTruth: organizationMembership.sourceOfTruth,
-    confidence: organizationMembership.confidence,
-  };
-  const actorRoleKey =
-    governanceRole ??
-    organizationRoleContext.organizationRole ??
-    roles[0] ??
-    "organization_member";
-  const regionAccess = await resolveRegionAccessForOrganization({
-    actorId,
-    actorRole: String(actorRoleKey),
-    isOperatorMode,
-    roles,
-    organizationIds: organizationMembership.organizationIds,
-    regionId: options.regionId ?? null,
-  });
-
-  return {
-    actorId,
-    actorType: actor.actorType,
-    email: actor.email,
-    organizationId:
-      organizationMembership.organizationId ??
-      regionAccess.organization.primaryOrganizationId ??
-      null,
-    membershipStatus: organizationMembership.membershipStatus,
-    organizationRole: organizationRoleContext.organizationRole,
-    regionIds: regionAccess.scopedRegionIds,
-    isOperatorMode,
-    operatorModeLabel: actor.operatorModeLabel,
-    sourceOfTruth: actor.sourceOfTruth,
-    confidence: actor.confidence,
-    actor,
-    organizationMembership,
-    organizationRoleContext,
-    regionAccess,
-    user,
-  };
+  return buildRequestScopeContextFromUser(user, options);
 }

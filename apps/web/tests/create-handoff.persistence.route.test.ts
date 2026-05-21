@@ -265,6 +265,39 @@ describe("/api/create/handoffs", () => {
     });
   });
 
+  it("falls back to the resolved organization and region scope when no target workspace is chosen yet", async () => {
+    const response = await persistRoute(
+      new NextRequest("http://localhost/api/create/handoffs", {
+        method: "POST",
+        body: JSON.stringify({ draft: draftPayload }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.record).toMatchObject({
+      id: "create-handoff-route-1",
+      regionId: "bezirk-berlin-reinickendorf",
+      organizationId: "org-reinickendorf-1",
+      dossierId: null,
+      anlassraumId: null,
+    });
+    expect(body.requestScope).toMatchObject({
+      organizationId: "org-reinickendorf-1",
+      primaryRegionId: "bezirk-berlin-reinickendorf",
+      membershipStatus: "unit_verified",
+    });
+
+    const stored = await getPersistedCreateHandoffRecord("create-handoff-route-1");
+    expect(stored).toMatchObject({
+      regionId: "bezirk-berlin-reinickendorf",
+      organizationId: "org-reinickendorf-1",
+      noAutoPublish: true,
+      noPublicOfficial: true,
+    });
+  });
+
   it("rejects persisting a handoff into a foreign organization workspace", async () => {
     const workspaceRepo = createInMemoryDossierStudioWorkspaceRepo();
     await workspaceRepo.createOrGetDossierStudioWorkspace({
