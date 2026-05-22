@@ -187,8 +187,18 @@ export default async function AccountOrganizationDashboardPage() {
     isAdmin,
     actorRole: isAdmin ? "admin" : null,
   });
-  const membershipDirectory = await getMembershipDirectoryRepository().listMembershipDirectoryForActor(userId);
-  const primaryMembership = pickPrimaryMembership(membershipDirectory.memberships);
+  const membershipDirectory = readModel.organization.isOperatorMode
+    ? {
+        memberships: [],
+        organizations: [],
+        sourceOfTruth: "session" as const,
+        confidence: "admin_fallback" as const,
+        runtimeMarker: "session",
+      }
+    : await getMembershipDirectoryRepository().listMembershipDirectoryForActor(userId);
+  const primaryMembership = readModel.organization.isOperatorMode
+    ? null
+    : pickPrimaryMembership(membershipDirectory.memberships);
   const normalizedMembershipStatus = readModel.organization.isOperatorMode
     ? "verified"
     : normalizeMembershipStatus(primaryMembership);
