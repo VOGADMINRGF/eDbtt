@@ -12,6 +12,7 @@ import {
   setRegionOrganizationRuntimeRepoForTests,
   setRegionSignalDraftPersistenceForTests,
 } from "@features/region";
+import * as regionFeatures from "@features/region";
 import {
   createInMemoryContentReleaseWorkbenchRepo,
   setContentReleaseWorkbenchRepoForTests,
@@ -50,6 +51,66 @@ vi.mock("next/navigation", async () => {
 });
 
 import AccountOrganizationDashboardPage from "@/app/account/organization/dashboard/page";
+
+function buildOperatorDashboardReadModel() {
+  return {
+    organization: {
+      primaryOrganizationId: null,
+      name: null,
+      organizations: [],
+      roleLabel: null,
+      isOperatorMode: true,
+    },
+    organizationType: null,
+    verificationStatus: "admin_fallback",
+    membershipStatus: "verified",
+    regionSummary: [],
+    entitlementSummary: {
+      state: "Nicht freigeschaltet",
+      hasActiveEntitlement: false,
+      hasTrialEntitlement: false,
+      hasExpiredEntitlement: false,
+      planLabels: [],
+    },
+    allowedActions: [],
+    pendingOrganizationClaims: [],
+    verifiedMemberships: [],
+    firstRun: {
+      intro: "Betreiberkontext zeigt denselben Arbeitsstand ohne Org-Membership-Auflösung.",
+      steps: [],
+    },
+    openReviewItems: [],
+    reviewQueueSummary: {
+      total: 0,
+      highPriorityCount: 0,
+      readyCount: 0,
+      blockedCount: 0,
+      byOperationalStatus: [],
+    },
+    reviewQueueOperationsPersistence: null,
+    contentReleasePersistence: null,
+    recentUnifiedAuditTrail: [],
+    regionalStartingPoints: [],
+    dossierDrafts: [],
+    anlassraumDrafts: [],
+    participationSignals: [],
+    publishSummary: {
+      totalPrepared: 0,
+      visibleCount: 0,
+      shareableCount: 0,
+      archivedCount: 0,
+      items: [],
+    },
+    nextActions: [],
+    guardrails: {
+      noAutoOfficialClaim: true,
+      noAutoPublish: true,
+      noAutoDossierFinalization: true,
+      noAutoAnlassraumFinalization: true,
+      reviewRequiredForOfficialStatus: true,
+    },
+  } as const;
+}
 
 describe("/account/organization/dashboard page", () => {
   beforeEach(() => {
@@ -510,13 +571,28 @@ describe("/account/organization/dashboard page", () => {
       sessionValid: true,
     });
     mocks.userIsAdminDashboard.mockReturnValue(true);
+    const readModelSpy = vi
+      .spyOn(regionFeatures, "buildOrganizationDashboardReadModel")
+      .mockResolvedValue(buildOperatorDashboardReadModel() as never);
+    setMembershipDirectoryRepositoryForTests({
+      async listMembershipDirectoryForActor() {
+        throw new Error("operator dashboard must not resolve membership directory");
+      },
+      async resolveRegionAccess() {
+        throw new Error("operator dashboard must not resolve region access");
+      },
+    });
 
-    const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+    try {
+      const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
 
-    expect(html).toContain("Betreiber-Modus aktiv.");
-    expect(html).toContain("`/admin` bleibt Betreiberbereich");
-    expect(html).toContain("Globaler Betreiberkontext.");
-    expect(html).toContain("Betreiberkontext");
+      expect(html).toContain("Betreiber-Modus aktiv.");
+      expect(html).toContain("`/admin` bleibt Betreiberbereich");
+      expect(html).toContain("Globaler Betreiberkontext.");
+      expect(html).toContain("Betreiberkontext");
+    } finally {
+      readModelSpy.mockRestore();
+    }
   });
 
   it("shows an honest directory blocker when the external directory is still pending", async () => {
