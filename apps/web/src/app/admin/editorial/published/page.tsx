@@ -26,7 +26,7 @@ export default function AdminEditorialPublishedPage() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<EditorialResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function AdminEditorialPublishedPage() {
             {!loading && data?.items?.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Keine Items gefunden.
+                  Keine publizierten Items gefunden. Prüfe die Suche oder ob aktuell noch keine veröffentlichten Datensätze vorliegen.
                 </td>
               </tr>
             )}
