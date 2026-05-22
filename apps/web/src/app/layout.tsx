@@ -52,6 +52,14 @@ export const viewport = {
   themeColor: "#06b6d4",
 };
 
+function normalizeInitialUserRoles(value: unknown): string[] {
+  if (!Array.isArray(value)) return ["user"];
+  const safeRoles = value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter(Boolean);
+  return safeRoles.length > 0 ? safeRoles : ["user"];
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const initialLocale = await detectInitialLocale(cookieStore);
@@ -114,13 +122,13 @@ async function loadServerUser(cookieStore: Awaited<ReturnType<typeof cookies>>):
       { projection: { email: 1, name: 1, roles: 1, accessTier: 1, b2cPlanId: 1, profile: 1 } },
     );
     if (!doc) return null;
-    const roles = Array.isArray(doc.roles) ? doc.roles : [];
+    const roles = normalizeInitialUserRoles(doc.roles);
     const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? null);
     return {
       id: String(doc._id),
       email: doc.email ?? null,
       name: doc.name ?? null,
-      roles: roles.length ? roles : ["user"],
+      roles,
       accessTier,
       b2cPlanId: doc.b2cPlanId ?? null,
       engagementXp: null,

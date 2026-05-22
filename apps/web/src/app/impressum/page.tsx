@@ -1,18 +1,7 @@
-"use client";
-
-import { useLocale } from "@/context/LocaleContext";
 import { getImpressumStrings } from "./strings";
-import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
 export default function ImpressumPage() {
-  const { locale } = useLocale();
-  const baseStrings = getImpressumStrings(locale);
-  const sourceStrings = getImpressumStrings("de");
-  const t = useAutoTranslateText({ locale, namespace: "impressum" });
-  const strings =
-    locale === "de" || locale === "en"
-      ? baseStrings
-      : mapTranslatableStrings(sourceStrings, t, { namespace: "impressum" });
+  const strings = getImpressumStrings("de");
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">

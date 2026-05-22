@@ -1,19 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { useLocale } from "@/context/LocaleContext";
 import { getPrivacyStrings } from "./strings";
-import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
 export default function DatenschutzPage() {
-  const { locale } = useLocale();
-  const baseStrings = getPrivacyStrings(locale);
-  const sourceStrings = getPrivacyStrings("de");
-  const t = useAutoTranslateText({ locale, namespace: "datenschutz" });
-  const strings =
-    locale === "de" || locale === "en"
-      ? baseStrings
-      : mapTranslatableStrings(sourceStrings, t, { namespace: "datenschutz" });
+  const strings = getPrivacyStrings("de");
   const dataPoints = Array.isArray(strings.dataPoints) ? strings.dataPoints : [];
   const rightsPoints = Array.isArray(strings.rightsPoints) ? strings.rightsPoints : [];
 
@@ -23,7 +12,7 @@ export default function DatenschutzPage() {
         <div className="rounded-3xl bg-[rgb(var(--card))] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] md:p-10">
           <header className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              {t("Datenschutz", "static.overline")}
+              Datenschutz
             </p>
             <h1 className="text-3xl font-extrabold leading-tight text-[rgb(var(--fg))] md:text-4xl">
               {strings.title}
@@ -36,11 +25,11 @@ export default function DatenschutzPage() {
           <div className="mt-8 grid gap-4">
             <InfoCard title={strings.controllerTitle} body={strings.controllerBody} />
             <p className="text-xs text-[rgb(var(--muted))]">
-              {t("Rechtliche Angaben findest du im", "static.legalHint")}{" "}
+              Rechtliche Angaben findest du im{" "}
               <Link href="/impressum" className="font-semibold text-sky-700 underline underline-offset-4">
-                {t("Impressum", "static.impressum")}
+                Impressum
               </Link>
-              {t(".", "static.dot")}
+              .
             </p>
 
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--fg))]">
@@ -65,8 +54,8 @@ export default function DatenschutzPage() {
               </p>
               <p className="mt-1">{strings.rightsIntro}</p>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                {rightsPoints.map((item, idx) => (
-                  <li key={idx}>{item}</li>
+                {rightsPoints.map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
               <p className="mt-2 whitespace-pre-line text-[rgb(var(--muted))]">
@@ -80,7 +69,7 @@ export default function DatenschutzPage() {
               </p>
               <p className="whitespace-pre-line">{strings.contactBody}</p>
               <p className="pt-2">
-                {t("Kontakt-E-Mail:", "static.contactEmailLabel")}{" "}
+                Kontakt-E-Mail:{" "}
                 <a
                   className="font-semibold text-sky-700 underline underline-offset-4"
                   href={`mailto:${strings.contactEmail}`}
@@ -89,10 +78,8 @@ export default function DatenschutzPage() {
                 </a>
               </p>
               <p className="mt-1 text-[rgb(var(--muted))]">
-                {t(
-                  "Diese Hinweise werden laufend aktualisiert und rechtlich überprüft, sobald sich unser Angebot oder die Rechtslage ändert.",
-                  "static.updateNote",
-                )}
+                Diese Hinweise werden laufend aktualisiert und rechtlich überprüft, sobald sich
+                unser Angebot oder die Rechtslage ändert.
               </p>
             </div>
           </div>
