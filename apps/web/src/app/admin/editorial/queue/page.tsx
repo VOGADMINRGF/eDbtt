@@ -35,7 +35,7 @@ export default function AdminEditorialQueuePage() {
   const [orgId, setOrgId] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<EditorialResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<string>("review");
@@ -241,7 +241,7 @@ export default function AdminEditorialQueuePage() {
             {!loading && data?.items?.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Keine Items gefunden.
+                  Keine Items gefunden. Prüfe Status-, Such- oder Org-Filter oder ob aktuell keine editorialen Datensätze vorliegen.
                 </td>
               </tr>
             )}

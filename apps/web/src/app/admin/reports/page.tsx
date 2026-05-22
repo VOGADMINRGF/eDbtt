@@ -10,6 +10,8 @@ export default function AdminReportsPage() {
   const router = useRouter();
   const [topicSlug, setTopicSlug] = useState("");
   const [regionId, setRegionId] = useState("");
+  const canOpenTopic = topicSlug.trim().length > 0;
+  const canOpenRegion = regionId.trim().length > 0;
 
   const openTopic = () => {
     const value = topicSlug.trim();
@@ -55,11 +57,15 @@ export default function AdminReportsPage() {
             <button
               type="button"
               onClick={openTopic}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              disabled={!canOpenTopic}
+              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               Öffnen
             </button>
           </form>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            {canOpenTopic ? "Öffnet den vorhandenen Topic-Report." : "Bitte zuerst einen Topic-Slug eingeben."}
+          </p>
         </div>
 
         <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
@@ -83,11 +89,15 @@ export default function AdminReportsPage() {
             <button
               type="button"
               onClick={openRegion}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              disabled={!canOpenRegion}
+              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               Öffnen
             </button>
           </form>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            {canOpenRegion ? "Öffnet den vorhandenen Regions-Report." : "Bitte zuerst eine Region-ID eingeben."}
+          </p>
         </div>
       </section>
 

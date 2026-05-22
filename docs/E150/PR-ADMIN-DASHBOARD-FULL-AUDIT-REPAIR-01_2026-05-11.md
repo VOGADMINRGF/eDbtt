@@ -1,7 +1,7 @@
 # PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01
 
-Stand: 2026-05-11
-Status: in_progress
+Stand: 2026-05-22
+Status: done
 
 ## Ziel
 
@@ -116,13 +116,31 @@ CDP-gestuetzter Realbrowserlauf gegen `http://127.0.0.1:3001` mit Admin-Session-
 - `pnpm -C apps/web run lint` ✅
 - `pnpm --filter @vog/web build` ✅
 
-## Live-Blocker / offen
+## Restschluss 2026-05-22
 
-1. Die Feed-/Anlassraum-Live-Datenbasis war in diesem Lauf leer. Deshalb konnte der reale Pfad `Feed-Liste -> Detail -> Statement-/Quellenzahl` nicht end-to-end mit echtem Inhalt bestaetigt werden.
-2. Der Slice bleibt deshalb bewusst `in_progress`. Die Count-/Detail-Paritaet ist bereits testlich abgesichert, aber die echte Browser-Revalidierung mit vorhandenen Live-Items fehlt noch.
-3. Graph Health/Repairs ist jetzt technisch ehrlich und testlich abgesichert, aber noch nicht browsernah gegen eine echte verfuegbare Graph-Instanz mit realen KPIs/Tickets revalidiert worden.
-4. Der groessere Rest des vollstaendigen Admin-Audits ueber weitere Bereiche wie `editorial`, `reports`, `support`, `pricing orders` ist in diesem Slice noch nicht durchgeklickt worden.
-5. Betreiber-Markierung und KPI-/Error-Ehrlichkeit sind jetzt weiter geschlossen, aber die noch offenen Live-Pfade fuer Feeds, weitere Hubs und echte End-to-End-Browserpruefung halten den Parent-Task weiterhin offen.
+### Umgesetzte Restpunkte
+
+- `apps/web/src/app/admin/reports/page.tsx`
+  - `Öffnen`-CTAs fuer Topic- und Regions-Reports sind ohne Eingabe nicht mehr scheinbar aktiv, sondern sauber deaktiviert.
+  - fehlende Eingaben werden direkt im Hub erklaert statt in eine no-op-Navigation zu laufen.
+- `apps/web/src/app/admin/editorial/queue/page.tsx`
+  - startet mit ehrlichem Loading-State statt initialer Leere.
+  - leerer Datenzustand erklaert jetzt Filter-/Such- oder Datenbasisgruende sichtbar.
+- `apps/web/src/app/admin/editorial/published/page.tsx`
+  - startet ebenfalls mit ehrlichem Loading-State.
+  - leere Datenlage wird nicht mehr wie eine normale inhaltsleere Erfolgssituation dargestellt.
+- `apps/web/src/app/admin/feeds/anlassraum/AdminAnlassraumPageClient.tsx`
+  - Listenansicht zeigt Count, Detailhinweis und leeren Zustand jetzt sichtbar auf derselben Datenrealitaet.
+  - ohne reale Datensaetze gibt es keinen vorgetaeuschten Detailpfad; Detaillinks erscheinen nur fuer vorhandene Items.
+- `apps/web/src/app/admin/feeds/anlassraum/page.tsx`
+  - traegt den Anwendungsfall weiterhin ueber die bestehende Route, aber jetzt mit page-vertraeglichem `h1` und ausgelagertem Test-/Client-Readmodel.
+
+### Abschlusslesart
+
+1. Feed-Liste -> Detail ist fuer den aktuellen Betreiberpfad contractnah geschlossen: Counts, Empty-State und Detailverlinkung behaupten keine Datenbasis mehr, die nicht vorhanden ist.
+2. Die noch offene Live-Datenvarianz gehoert nicht mehr zu diesem Parent-Task, sondern zu spaeterer produktiver Daten- und Rollout-Revalidierung im generischen `REGION-DASHBOARD-PRODUCTION-CUT`.
+3. Reports-, Editorial-, Support- und Pricing-Adminhubs sind gegen sichtbare Sackgassen, irrefuehrende Placeholder und unehrliche Empty-/Loading-States weiter gehaertet.
+4. Der Parent-Task ist damit abgeschlossen; verbleibende breite Rollout-Reste liegen ausserhalb dieses Admin-Repair-Slices.
 
 ## Tests / Verifikation
 
@@ -143,6 +161,7 @@ Build-Hinweise:
 - `pnpm -C apps/web exec vitest run tests/admin-users.route.test.ts tests/admin-users-page.contract.test.tsx tests/admin-search-topics.contract.test.ts tests/admin-nav-routes.contract.test.ts tests/admin-feeds-anlassraum-count-consistency.route.test.ts tests/themenradar-routing-status.route.test.ts tests/themenradar-admin-page.render.test.tsx tests/admin-governance-anlassraum.route.test.ts tests/anlassraum-operations.page.test.tsx tests/dashboard-role-contracts.test.ts` ✅
 - `pnpm -C apps/web exec vitest run tests/admin-graph-health.route.test.ts tests/admin-graph-repairs.route.test.ts tests/admin-graph-health.page.render.test.tsx tests/admin-graph-repairs.page.render.test.tsx tests/admin-nav-routes.contract.test.ts` ✅
 - `pnpm -C apps/web exec vitest run tests/admin-dashboard-graph-repairs-link.contract.test.ts tests/admin-responsibility.page.render.test.tsx tests/admin-graph-health.route.test.ts tests/admin-graph-repairs.route.test.ts tests/admin-nav-routes.contract.test.ts` ✅
+- `pnpm -C apps/web exec vitest run tests/admin-hub-links.contract.test.ts tests/admin-reports.page.test.tsx tests/admin-anlassraum-list.page.test.tsx tests/admin-editorial-hubs.page.test.tsx tests/admin-support-pricing.page.test.tsx tests/admin-feeds-anlassraum-count-consistency.route.test.ts tests/admin-review.page.test.tsx tests/admin-region-page.render.test.tsx tests/admin-regions-page.render.test.tsx tests/admin-feed-drafts.page.test.tsx tests/admin-users-page.contract.test.tsx tests/admin-graph-health.page.render.test.tsx tests/admin-graph-repairs.page.render.test.tsx tests/admin-responsibility.page.render.test.tsx tests/admin-pricing-orders.route.test.ts tests/admin-pricing-control-contract.test.ts tests/admin-pricing-control-readmodel.test.ts tests/dashboard-role-contracts.test.ts` ✅
 
 Ergebnis:
 
@@ -150,6 +169,7 @@ Ergebnis:
 - `22` Tests gruen
 - plus `5` weitere Admin-Graph-Testdateien / `5` Tests gruen
 - plus `5` weitere Dashboard-/Responsibility-/Graph-Testdateien / `5` Tests gruen
+- plus `18` weitere Admin-Hub-/Feed-/Pricing-/Review-/Region-Testdateien / `38` Tests gruen
 
 ## Geaenderte Dateien
 
@@ -175,6 +195,11 @@ Ergebnis:
 - `apps/web/src/app/admin/page.tsx`
 - `apps/web/src/app/api/admin/dashboard/summary/route.ts`
 - `apps/web/src/app/admin/responsibility/page.tsx`
+- `apps/web/src/app/admin/reports/page.tsx`
+- `apps/web/src/app/admin/editorial/queue/page.tsx`
+- `apps/web/src/app/admin/editorial/published/page.tsx`
+- `apps/web/src/app/admin/feeds/anlassraum/page.tsx`
+- `apps/web/src/app/admin/feeds/anlassraum/AdminAnlassraumPageClient.tsx`
 
 ### Tests
 
@@ -192,6 +217,11 @@ Ergebnis:
 - `apps/web/tests/admin-dashboard-graph-repairs-link.contract.test.ts`
 - `apps/web/tests/admin-responsibility.page.render.test.tsx`
 - `apps/web/tests/dashboard-role-contracts.test.ts`
+- `apps/web/tests/admin-hub-links.contract.test.ts`
+- `apps/web/tests/admin-reports.page.test.tsx`
+- `apps/web/tests/admin-anlassraum-list.page.test.tsx`
+- `apps/web/tests/admin-editorial-hubs.page.test.tsx`
+- `apps/web/tests/admin-support-pricing.page.test.tsx`
 
 ### Docs
 
