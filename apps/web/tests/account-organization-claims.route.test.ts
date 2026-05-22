@@ -33,10 +33,11 @@ describe("/api/account/organization-claims", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           organizationName: "Stadt Beispielstadt",
-          organizationType: "municipality",
+          organizationKind: "municipality",
           regionId: "kommune-beispielstadt",
           optionalLocation: "Rathaus Beispielstadt",
           roleLabel: "Sachbearbeitung",
+          applicantName: "Mara Beispiel",
         }),
       }),
     );
@@ -45,6 +46,37 @@ describe("/api/account/organization-claims", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       verificationStatus: "pending_review",
+      provisioningRequest: expect.objectContaining({
+        status: "submitted",
+        latestDecision: "submit",
+      }),
+      noAutoAuthority: true,
+    });
+  });
+
+  it("stores drafts without granting review or publication rights", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/account/organization-claims", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organizationName: "Verein Bildungsdialog",
+          organizationKind: "association",
+          roleLabel: "Koordination",
+          applicantName: "Mara Beispiel",
+          submissionMode: "save_draft",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      verificationStatus: "unverified",
+      provisioningRequest: expect.objectContaining({
+        status: "draft",
+        latestDecision: "save_draft",
+      }),
       noAutoAuthority: true,
     });
   });
@@ -56,9 +88,10 @@ describe("/api/account/organization-claims", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           organizationName: "Lokalredaktion Mitte",
-          organizationType: "media",
+          organizationKind: "media_partner",
           regionId: "kommune-beispielstadt",
           roleLabel: "Redaktion",
+          applicantName: "Lea Beispiel",
         }),
       }),
     );

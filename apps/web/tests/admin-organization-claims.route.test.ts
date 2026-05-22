@@ -70,7 +70,10 @@ describe("/api/admin/organization-claims", () => {
     expect(organizationRes.status).toBe(200);
     await expect(organizationRes.json()).resolves.toMatchObject({
       ok: true,
-      claim: expect.objectContaining({ verificationStatus: "organization_verified" }),
+      claim: expect.objectContaining({
+        verificationStatus: "organization_verified",
+        provisioningRequest: expect.objectContaining({ status: "approved" }),
+      }),
       membership: expect.objectContaining({ verificationStatus: "organization_verified" }),
       auditEvents: expect.arrayContaining([
         expect.objectContaining({ eventType: "claim_reviewed" }),
@@ -128,7 +131,10 @@ describe("/api/admin/organization-claims", () => {
     expect(rejectRes.status).toBe(200);
     await expect(rejectRes.json()).resolves.toMatchObject({
       ok: true,
-      claim: expect.objectContaining({ verificationStatus: "rejected" }),
+      claim: expect.objectContaining({
+        verificationStatus: "rejected",
+        provisioningRequest: expect.objectContaining({ status: "rejected" }),
+      }),
       membership: null,
     });
 
@@ -160,7 +166,10 @@ describe("/api/admin/organization-claims", () => {
     expect(revokeRes.status).toBe(200);
     await expect(revokeRes.json()).resolves.toMatchObject({
       ok: true,
-      claim: expect.objectContaining({ verificationStatus: "revoked" }),
+      claim: expect.objectContaining({
+        verificationStatus: "revoked",
+        provisioningRequest: expect.objectContaining({ status: "suspended" }),
+      }),
       membership: expect.objectContaining({ verificationStatus: "revoked" }),
     });
   });

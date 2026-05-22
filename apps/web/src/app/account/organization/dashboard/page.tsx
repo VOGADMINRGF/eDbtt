@@ -113,6 +113,30 @@ function organizationScopeRoleLabel(value: OrganizationMembershipRole | null) {
   }
 }
 
+function provisioningStatusLabel(
+  value: OrganizationDashboardReadModel["provisioningSummary"]["currentStatus"],
+) {
+  switch (value) {
+    case "draft":
+      return "Antrag gestartet";
+    case "submitted":
+      return "Eingereicht";
+    case "verification_required":
+      return "Prüfung erforderlich";
+    case "operator_review_required":
+      return "Betreiberprüfung läuft";
+    case "approved":
+      return "Freigeschaltet";
+    case "rejected":
+      return "Abgelehnt";
+    case "suspended":
+      return "Gesperrt";
+    case "none":
+    default:
+      return "Noch kein Antrag";
+  }
+}
+
 function draftTitle(value: OrganizationDashboardDraftSummary["draftType"]) {
   return value === "dossier" ? "Dossier-Entwurf" : "Anlassraum";
 }
@@ -384,6 +408,41 @@ export default async function AccountOrganizationDashboardPage() {
             </div>
           </div>
           <p className="mt-4 text-xs text-[rgb(var(--muted))]">{membershipTruthSummary}</p>
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Onboarding-Status
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                  {provisioningStatusLabel(readModel.provisioningSummary.currentStatus)}
+                </p>
+              </div>
+              <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                {readModel.provisioningSummary.storeLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {readModel.provisioningSummary.nextStepTitle}
+            </p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+              {readModel.provisioningSummary.nextStepBody}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              {readModel.provisioningSummary.productionTruth
+                ? "Anträge liegen im persistenten Claim-Store."
+                : "Anträge laufen derzeit auf lokalem oder In-Memory-Fallback und sind damit kein production_ready-Nachweis."}
+            </p>
+            {readModel.provisioningSummary.latestRequest ? (
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Antragsteller:{" "}
+                {readModel.provisioningSummary.latestRequest.applicantName ?? "nicht hinterlegt"}
+                {readModel.provisioningSummary.latestRequest.responsiblePersonName
+                  ? ` · Verantwortlich: ${readModel.provisioningSummary.latestRequest.responsiblePersonName}`
+                  : ""}
+              </p>
+            ) : null}
+          </div>
           {accessBlockers.length > 0 ? (
             <div className="mt-4 grid gap-3">
               {accessBlockers.map((entry) => (

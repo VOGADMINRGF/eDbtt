@@ -1,3 +1,4 @@
+import { shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import {
   REGION_ALLOWED_ACTIONS,
   canReadRegionDashboard,
@@ -36,8 +37,14 @@ import type {
   Organization,
   OrganizationClaim,
   OrganizationMembership,
+  OrganizationProvisioningRequest,
+  OrganizationProvisioningStatus,
   OrganizationType,
   VerificationStatus,
+} from "./organizationOnboarding";
+import {
+  inferProvisioningRequestFromClaim,
+  resolveProvisioningRequestStatus,
 } from "./organizationOnboarding";
 import {
   buildPersistedRegionAccessContext,
@@ -87,6 +94,17 @@ export type OrganizationDashboardMembershipStatus = {
   verifiedMemberships: number;
   pendingClaims: number;
   highestVerificationStatus: VerificationStatus | "none" | "admin_fallback";
+};
+
+export type OrganizationDashboardProvisioningSummary = {
+  currentStatus: OrganizationProvisioningStatus | "none";
+  latestRequest: OrganizationProvisioningRequest | null;
+  requests: OrganizationProvisioningRequest[];
+  operatorReviewRequired: boolean;
+  nextStepTitle: string;
+  nextStepBody: string;
+  storeLabel: string;
+  productionTruth: boolean;
 };
 
 export type OrganizationDashboardReviewItem = ReviewQueueItem & {
@@ -216,6 +234,7 @@ export type OrganizationDashboardReadModel = {
   organizationType: OrganizationType | null;
   verificationStatus: VerificationStatus | "none" | "admin_fallback";
   membershipStatus: OrganizationDashboardMembershipStatus;
+  provisioningSummary: OrganizationDashboardProvisioningSummary;
   regionSummary: OrganizationDashboardRegionSummary[];
   entitlementSummary: OrganizationDashboardEntitlementSummary;
   allowedActions: RegionAllowedAction[];
@@ -426,6 +445,132 @@ function buildPendingClaims(claims: OrganizationClaim[]): OrganizationClaim[] {
         claim.verificationStatus !== "publication_approved",
     )
     .map((claim) => clone(claim));
+}
+
+function buildProvisioningRequestView(
+  claim: OrganizationClaim,
+): OrganizationProvisioningRequest {
+  const request = inferProvisioningRequestFromClaim(claim);
+  return {
+    ...request,
+    status: resolveProvisioningRequestStatus(claim),
+  };
+}
+
+function buildProvisioningSummary(input: {
+  claims: OrganizationClaim[];
+  verifiedMemberships: OrganizationMembership[];
+}): OrganizationDashboardProvisioningSummary {
+  const requests = input.claims.map((claim) => buildProvisioningRequestView(claim));
+  const latestRequest = requests[0] ?? null;
+  const currentStatus =
+    input.verifiedMemberships.length > 0
+      ? "approved"
+      : latestRequest?.status ?? "none";
+  const operatorReviewRequired = requests.some(
+    (request) => request.status === "operator_review_required",
+  );
+  const productionTruth = !shouldUseInMemoryMongoFallback();
+
+  switch (currentStatus) {
+    case "draft":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Antrag gestartet",
+        nextStepBody:
+          "Dein Antrag ist als Entwurf gespeichert. Prüfe Organisation, Region oder Wirkraum und reiche ihn erst bewusst zur Prüfung ein.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "submitted":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Antrag eingegangen",
+        nextStepBody:
+          "Dein Antrag ist eingegangen, aber noch nicht vollständig reviewfähig. Ergänze sichere Nachweise oder warte auf den nächsten Hinweis.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "verification_required":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Prüfung erforderlich",
+        nextStepBody:
+          "Bevor Betreiber die Freischaltung entscheiden können, braucht der Antrag noch belastbare Angaben zu Antragsteller, Region oder verantwortlicher Person.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "operator_review_required":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Betreiberprüfung läuft",
+        nextStepBody:
+          "Der Antrag ist vollständig genug für die Betreiberprüfung. Bis zur bewussten Entscheidung entstehen keine Moderations-, Veröffentlichungs- oder Betreiberrechte.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "approved":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Freigeschaltet",
+        nextStepBody:
+          "Die Organisation ist freigeschaltet. Rechte entstehen nur im bestätigten Org-Scope; `publication_approved` und `public_official` bleiben getrennte, bewusste Entscheidungen.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "rejected":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Abgelehnt",
+        nextStepBody:
+          "Dieser Antrag wurde nicht freigeschaltet. Schreibrouten bleiben gesperrt, bis ein korrigierter Antrag bewusst neu eingereicht wird.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "suspended":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Gesperrt",
+        nextStepBody:
+          "Der Antrag oder die daraus entstandene Freischaltung ist ausgesetzt. Schreibrouten bleiben blockiert, bis Betreiber den Scope erneut freigeben.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+    case "none":
+    default:
+      return {
+        currentStatus: "none",
+        latestRequest: null,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Sicherer Antragseinstieg",
+        nextStepBody:
+          "Du hast noch keine bestätigte Organisation. Starte einen Organisations- oder Wirkraum-Antrag; ohne Freigabe bleiben Review und Sichtbarkeit gesperrt.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
+  }
 }
 
 function buildClaimOnlyRegionSummaries(params: {
@@ -1098,6 +1243,10 @@ export async function buildOrganizationDashboardReadModel(input: {
     claims,
     isAdmin: input.isAdmin,
   });
+  const provisioningSummary = buildProvisioningSummary({
+    claims,
+    verifiedMemberships,
+  });
   const allowedActions = uniqueNonEmpty([
     ...(input.isAdmin ? REGION_ALLOWED_ACTIONS : []),
     ...activeMemberships.flatMap((membership) => membership.allowedActions),
@@ -1253,6 +1402,7 @@ export async function buildOrganizationDashboardReadModel(input: {
       pendingClaims: pendingClaims.length,
       highestVerificationStatus: verificationStatus,
     },
+    provisioningSummary,
     regionSummary,
     entitlementSummary,
     allowedActions,

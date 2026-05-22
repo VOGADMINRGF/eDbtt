@@ -3,10 +3,12 @@ import { buildRegionAccessContext, type RegionAccessContext } from "../access";
 import { getRegionEntitlementRuntimeRepo } from "./paidEntitlements";
 import {
   allowedActionsForVerificationStatus,
+  inferProvisioningRequestFromClaim,
   parseMembershipAuditEvent,
   parseOrganization,
   parseOrganizationClaim,
   parseOrganizationMembership,
+  parseOrganizationProvisioningRequest,
   parseOrganizationUnit,
   parseVerificationReview,
   type MembershipAuditEvent,
@@ -16,6 +18,7 @@ import {
   type OrganizationClaim,
   type OrganizationClaimSource,
   type OrganizationMembership,
+  type OrganizationProvisioningRequest,
   type OrganizationType,
   type OrganizationUnit,
   type VerificationReview,
@@ -86,8 +89,10 @@ export type CreateOrganizationClaimInput = {
     website?: string | null;
     note?: string | null;
   };
+  verificationStatus?: VerificationStatus;
   source?: OrganizationClaimSource;
   selfDeclaredProfile?: OrganizationClaim["selfDeclaredProfile"];
+  provisioningRequest?: OrganizationProvisioningRequest | null;
 };
 
 export type ReviewOrganizationClaimInput = {
@@ -161,6 +166,42 @@ function nextStatusForDecision(decision: VerificationReviewDecision): Verificati
     default:
       return "pending_review";
   }
+}
+
+function nextProvisioningRequestFromReview(input: {
+  claim: OrganizationClaim;
+  reviewedBy: string;
+  decision: VerificationReviewDecision;
+  note?: string | null;
+  reviewedAt: string;
+}): OrganizationProvisioningRequest {
+  const existing = inferProvisioningRequestFromClaim(input.claim);
+  const status =
+    input.decision === "reject"
+      ? "rejected"
+      : input.decision === "revoke"
+        ? "suspended"
+        : input.decision === "needs_more_information"
+          ? "verification_required"
+          : "approved";
+  const latestDecision =
+    input.decision === "reject"
+      ? "reject"
+      : input.decision === "revoke"
+        ? "suspend"
+        : input.decision === "needs_more_information"
+          ? "request_verification"
+          : "approve";
+
+  return parseOrganizationProvisioningRequest({
+    ...existing,
+    status,
+    latestDecision,
+    note: input.note ?? existing.note ?? null,
+    submittedAt: existing.submittedAt ?? input.claim.createdAt,
+    decidedAt: input.reviewedAt,
+    decidedBy: input.reviewedBy,
+  });
 }
 
 function buildOrganizationLookupKey(input: {
@@ -353,7 +394,8 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
           website: input.evidence?.website ?? null,
           note: input.evidence?.note ?? null,
         },
-        verificationStatus: "pending_review",
+        verificationStatus: input.verificationStatus ?? "pending_review",
+        provisioningRequest: input.provisioningRequest ?? null,
         selfDeclaredProfile: input.selfDeclaredProfile ?? null,
         createdAt,
         updatedAt: createdAt,
@@ -577,6 +619,13 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
       const claim = parseOrganizationClaim({
         ...existingClaim,
         verificationStatus: nextStatus,
+        provisioningRequest: nextProvisioningRequestFromReview({
+          claim: existingClaim,
+          reviewedBy: input.reviewedBy,
+          decision: input.decision,
+          note: input.note ?? null,
+          reviewedAt,
+        }),
         updatedAt: reviewedAt,
         reviewedBy: input.reviewedBy,
         reviewedAt,
@@ -741,7 +790,8 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
           website: input.evidence?.website ?? null,
           note: input.evidence?.note ?? null,
         },
-        verificationStatus: "pending_review",
+        verificationStatus: input.verificationStatus ?? "pending_review",
+        provisioningRequest: input.provisioningRequest ?? null,
         selfDeclaredProfile: input.selfDeclaredProfile ?? null,
         createdAt,
         updatedAt: createdAt,
@@ -946,6 +996,13 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
       const claim = parseOrganizationClaim({
         ...existingClaim,
         verificationStatus: nextStatus,
+        provisioningRequest: nextProvisioningRequestFromReview({
+          claim: existingClaim,
+          reviewedBy: input.reviewedBy,
+          decision: input.decision,
+          note: input.note ?? null,
+          reviewedAt,
+        }),
         updatedAt: reviewedAt,
         reviewedBy: input.reviewedBy,
         reviewedAt,

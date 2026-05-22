@@ -5,7 +5,7 @@ import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
 
 export const metadata = {
-  title: "Organisationsantrag & Verifizierung · eDebatte",
+  title: "Organisations-Onboarding · eDebatte",
 };
 
 export default async function AccountOrganizationPage() {
@@ -26,11 +26,13 @@ export default async function AccountOrganizationPage() {
           Organisation
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">
-          Organisationsantrag und Verifizierung
+          Organisations-Onboarding und Freischaltung
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Angaben zu Organisation, Einheit und Standort bleiben zunächst Selbstauskunft. Rechte und
-          Freischaltungen entstehen erst nach Review und bestätigter Membership.
+          Self-Provisioning bleibt review-first: Angaben zu Organisation, Region oder Wirkraum,
+          verantwortlicher Person und Rolle sind zunächst Selbstauskunft. Rechte und
+          Freischaltungen entstehen erst nach bewusster Betreiberentscheidung und bestätigter
+          Membership.
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
           Der Arbeitsbereich deiner Organisation liegt unter{" "}

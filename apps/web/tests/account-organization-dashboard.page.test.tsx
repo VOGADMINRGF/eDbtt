@@ -63,14 +63,35 @@ function buildOperatorDashboardReadModel() {
     },
     organizationType: null,
     verificationStatus: "admin_fallback",
-    membershipStatus: "verified",
+    membershipStatus: {
+      totalMemberships: 0,
+      verifiedMemberships: 0,
+      pendingClaims: 0,
+      highestVerificationStatus: "admin_fallback",
+    },
+    provisioningSummary: {
+      currentStatus: "none",
+      latestRequest: null,
+      requests: [],
+      operatorReviewRequired: false,
+      nextStepTitle: "Sicherer Antragseinstieg",
+      nextStepBody: "Ohne bestätigte Organisation bleiben Organisationsrouten schreibgeschützt.",
+      storeLabel: "Persistenter Claim-Store",
+      productionTruth: true,
+    },
     regionSummary: [],
     entitlementSummary: {
-      state: "Nicht freigeschaltet",
+      state: "fehlt",
       hasActiveEntitlement: false,
       hasTrialEntitlement: false,
+      hasMissingEntitlement: true,
       hasExpiredEntitlement: false,
       planLabels: [],
+      organizationIds: [],
+      guardrails: {
+        noPaymentClaim: true,
+        noCheckout: true,
+      },
     },
     allowedActions: [],
     pendingOrganizationClaims: [],
@@ -152,6 +173,23 @@ describe("/account/organization/dashboard page", () => {
             optionalLocation: null,
             evidence: { emailDomain: null, website: "https://bildungsdialog.example", note: "Bitte prüfen" },
             verificationStatus: "pending_review",
+            provisioningRequest: {
+              organizationKind: "association",
+              status: "submitted",
+              latestDecision: "submit",
+              source: "self_service",
+              requestedRegionId: "bezirk-berlin-reinickendorf",
+              requestedRegionLabel: "Berlin Reinickendorf",
+              applicantName: "Mara Beispiel",
+              applicantEmail: "mara@bildungsdialog.example",
+              responsiblePersonName: "Mara Beispiel",
+              responsiblePersonEmail: "mara@bildungsdialog.example",
+              requestedRoleLabel: "Koordination",
+              note: "Bitte prüfen",
+              submittedAt: "2026-05-17T08:00:00.000Z",
+              decidedAt: null,
+              decidedBy: null,
+            },
             selfDeclaredProfile: null,
             createdAt: "2026-05-17T08:00:00.000Z",
             updatedAt: "2026-05-17T08:00:00.000Z",
@@ -177,6 +215,10 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Directory-Wahrheit");
     expect(html).toContain("Demo- oder Testwahrheit");
     expect(html).toContain("Nicht als produktive Membership-Wahrheit werten");
+    expect(html).toContain("Onboarding-Status");
+    expect(html).toContain("Betreiberprüfung läuft");
+    expect(html).toContain("Anträge laufen derzeit auf lokalem oder In-Memory-Fallback");
+    expect(html).toContain("Antragsteller: Mara Beispiel");
     expect(html).toContain("Organisation noch nicht verifiziert");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");

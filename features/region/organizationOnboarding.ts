@@ -216,6 +216,82 @@ export const ORGANIZATION_CLAIM_SOURCES = [
 
 export type OrganizationClaimSource = (typeof ORGANIZATION_CLAIM_SOURCES)[number];
 
+export const ORGANIZATION_PROVISIONING_KINDS = [
+  "administration",
+  "municipality",
+  "district",
+  "association",
+  "carrier",
+  "media_partner",
+  "civic_group",
+  "other",
+] as const;
+
+export type OrganizationProvisioningKind =
+  (typeof ORGANIZATION_PROVISIONING_KINDS)[number];
+
+export const ORGANIZATION_PROVISIONING_STATUSES = [
+  "draft",
+  "submitted",
+  "verification_required",
+  "operator_review_required",
+  "approved",
+  "rejected",
+  "suspended",
+] as const;
+
+export type OrganizationProvisioningStatus =
+  (typeof ORGANIZATION_PROVISIONING_STATUSES)[number];
+
+export const ORGANIZATION_PROVISIONING_DECISIONS = [
+  "save_draft",
+  "submit",
+  "request_verification",
+  "approve",
+  "reject",
+  "suspend",
+] as const;
+
+export type OrganizationProvisioningDecision =
+  (typeof ORGANIZATION_PROVISIONING_DECISIONS)[number];
+
+export const ORGANIZATION_PROVISIONING_SOURCES = [
+  "self_service",
+  "operator_created",
+  "migration",
+  "fixture",
+] as const;
+
+export type OrganizationProvisioningSource =
+  (typeof ORGANIZATION_PROVISIONING_SOURCES)[number];
+
+export const OrganizationProvisioningRequestSchema = z
+  .object({
+    organizationKind: z.enum(ORGANIZATION_PROVISIONING_KINDS),
+    status: z.enum(ORGANIZATION_PROVISIONING_STATUSES),
+    latestDecision: z
+      .enum(ORGANIZATION_PROVISIONING_DECISIONS)
+      .nullable()
+      .optional(),
+    source: z.enum(ORGANIZATION_PROVISIONING_SOURCES),
+    requestedRegionId: z.string().trim().min(1).nullable().optional(),
+    requestedRegionLabel: z.string().trim().min(1).nullable().optional(),
+    applicantName: z.string().trim().min(1).nullable().optional(),
+    applicantEmail: z.string().trim().email().nullable().optional(),
+    responsiblePersonName: z.string().trim().min(1).nullable().optional(),
+    responsiblePersonEmail: z.string().trim().email().nullable().optional(),
+    requestedRoleLabel: z.string().trim().min(1).nullable().optional(),
+    note: z.string().trim().min(1).nullable().optional(),
+    submittedAt: z.string().datetime({ offset: true }).nullable().optional(),
+    decidedAt: z.string().datetime({ offset: true }).nullable().optional(),
+    decidedBy: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
+
+export type OrganizationProvisioningRequest = z.infer<
+  typeof OrganizationProvisioningRequestSchema
+>;
+
 export const OrganizationClaimSchema = z
   .object({
     id: z.string().trim().min(1),
@@ -230,6 +306,7 @@ export const OrganizationClaimSchema = z
     optionalLocation: OptionalLocationSchema.nullable().optional(),
     evidence: OrganizationClaimEvidenceSchema,
     verificationStatus: z.enum(VERIFICATION_STATUSES),
+    provisioningRequest: OrganizationProvisioningRequestSchema.nullable().optional(),
     selfDeclaredProfile: SelfDeclaredOrganizationProfileSchema.nullable().optional(),
     createdAt: z.string().datetime({ offset: true }),
     updatedAt: z.string().datetime({ offset: true }),
@@ -319,6 +396,12 @@ export function parseOrganizationClaim(value: unknown): OrganizationClaim {
   return OrganizationClaimSchema.parse(value);
 }
 
+export function parseOrganizationProvisioningRequest(
+  value: unknown,
+): OrganizationProvisioningRequest {
+  return OrganizationProvisioningRequestSchema.parse(value);
+}
+
 export function parseOptionalLocation(value: unknown): OptionalLocation {
   return OptionalLocationSchema.parse(value);
 }
@@ -358,6 +441,155 @@ export function allowedActionsForVerificationStatus(
     default:
       return [];
   }
+}
+
+export function mapProvisioningKindToOrganizationType(
+  kind: OrganizationProvisioningKind,
+): OrganizationType {
+  switch (kind) {
+    case "administration":
+      return "public_administration";
+    case "municipality":
+      return "municipality";
+    case "district":
+      return "district_office";
+    case "association":
+      return "association";
+    case "carrier":
+      return "association";
+    case "media_partner":
+      return "media";
+    case "civic_group":
+      return "civic_initiative";
+    case "other":
+    default:
+      return "custom";
+  }
+}
+
+export function mapOrganizationTypeToProvisioningKind(
+  type: OrganizationType,
+): OrganizationProvisioningKind {
+  switch (type) {
+    case "public_administration":
+    case "city_administration":
+    case "county_administration":
+    case "ministry":
+    case "agency":
+    case "public_body":
+    case "school":
+      return "administration";
+    case "municipality":
+      return "municipality";
+    case "district_office":
+      return "district";
+    case "association":
+    case "ngo":
+    case "foundation":
+      return "association";
+    case "media":
+      return "media_partner";
+    case "civic_initiative":
+      return "civic_group";
+    case "company":
+    case "research_institution":
+    case "custom":
+    default:
+      return "other";
+  }
+}
+
+export function mapClaimSourceToProvisioningSource(
+  source: OrganizationClaimSource,
+): OrganizationProvisioningSource {
+  switch (source) {
+    case "admin_created":
+    case "invite":
+      return "operator_created";
+    case "migration":
+      return "migration";
+    case "fixture":
+      return "fixture";
+    case "self_declared":
+    default:
+      return "self_service";
+  }
+}
+
+export function inferProvisioningStatusFromVerificationStatus(
+  status: VerificationStatus,
+): OrganizationProvisioningStatus {
+  switch (status) {
+    case "organization_verified":
+    case "unit_verified":
+    case "publication_approved":
+      return "approved";
+    case "rejected":
+      return "rejected";
+    case "revoked":
+      return "suspended";
+    case "email_verified":
+      return "verification_required";
+    case "pending_review":
+      return "submitted";
+    case "unverified":
+    default:
+      return "draft";
+  }
+}
+
+export function inferProvisioningRequestFromClaim(
+  claim: OrganizationClaim,
+): OrganizationProvisioningRequest {
+  const request = claim.provisioningRequest;
+  if (request) return parseOrganizationProvisioningRequest(request);
+  return parseOrganizationProvisioningRequest({
+    organizationKind: mapOrganizationTypeToProvisioningKind(claim.organizationType),
+    status: inferProvisioningStatusFromVerificationStatus(claim.verificationStatus),
+    latestDecision: null,
+    source: mapClaimSourceToProvisioningSource(claim.source),
+    requestedRegionId: claim.regionId ?? null,
+    requestedRegionLabel: claim.optionalLocation?.label ?? null,
+    applicantName: claim.selfDeclaredProfile?.referencePersonName ?? null,
+    applicantEmail: null,
+    responsiblePersonName: claim.selfDeclaredProfile?.referencePersonName ?? null,
+    responsiblePersonEmail: null,
+    requestedRoleLabel: claim.roleLabel ?? null,
+    note: claim.evidence.note ?? null,
+    submittedAt:
+      claim.verificationStatus === "pending_review" ||
+      claim.verificationStatus === "email_verified" ||
+      claim.verificationStatus === "organization_verified" ||
+      claim.verificationStatus === "unit_verified" ||
+      claim.verificationStatus === "publication_approved"
+        ? claim.createdAt
+        : null,
+    decidedAt: claim.reviewedAt ?? null,
+    decidedBy: claim.reviewedBy ?? null,
+  });
+}
+
+export function provisioningRequestReadyForOperatorReview(
+  request: OrganizationProvisioningRequest,
+): boolean {
+  return Boolean(
+    request.applicantName?.trim() &&
+      request.requestedRegionId?.trim() &&
+      request.requestedRoleLabel?.trim(),
+  );
+}
+
+export function resolveProvisioningRequestStatus(
+  claim: OrganizationClaim,
+): OrganizationProvisioningStatus {
+  const request = inferProvisioningRequestFromClaim(claim);
+  if (
+    request.status === "submitted" &&
+    provisioningRequestReadyForOperatorReview(request)
+  ) {
+    return "operator_review_required";
+  }
+  return request.status;
 }
 
 function extractEmailDomain(value: string | null | undefined): string | null {

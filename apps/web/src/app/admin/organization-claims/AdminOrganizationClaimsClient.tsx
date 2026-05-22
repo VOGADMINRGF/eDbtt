@@ -2,6 +2,10 @@
 
 import { useState, useTransition } from "react";
 import type { OrganizationClaim, VerificationReviewDecision } from "@features/region";
+import {
+  inferProvisioningRequestFromClaimView,
+  resolveProvisioningRequestStatusView,
+} from "@/lib/organizationProvisioning";
 
 function decisionLabel(decision: VerificationReviewDecision) {
   switch (decision) {
@@ -17,6 +21,28 @@ function decisionLabel(decision: VerificationReviewDecision) {
       return "Widerrufen";
     default:
       return "Mehr Informationen anfordern";
+  }
+}
+
+function provisioningStatusLabel(claim: OrganizationClaim) {
+  const status = resolveProvisioningRequestStatusView(claim);
+  switch (status) {
+    case "draft":
+      return "Antrag gestartet";
+    case "submitted":
+      return "Eingereicht";
+    case "verification_required":
+      return "Nachweise nachreichen";
+    case "operator_review_required":
+      return "Entscheidungsreif";
+    case "approved":
+      return "Freigeschaltet";
+    case "rejected":
+      return "Abgelehnt";
+    case "suspended":
+      return "Gesperrt";
+    default:
+      return "Unbekannt";
   }
 }
 
@@ -80,46 +106,58 @@ export function AdminOrganizationClaimsClient({ initialClaims }: Props) {
           Keine offenen Organisationsanträge.
         </p>
       ) : (
-        claims.map((claim) => (
-          <article
-            key={claim.id}
-            className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.organizationName}</p>
-                <p className="text-xs text-[rgb(var(--muted))]">
-                  {claim.organizationType}
-                  {claim.regionId ? ` · ${claim.regionId}` : ""}
-                  {claim.unitName ? ` · ${claim.unitName}` : ""}
-                </p>
-                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                  Standort optional: {claim.optionalLocation?.name ?? "nicht gesetzt"}
-                </p>
-                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                  noAutoAuthority: {claim.noAutoAuthority ? "true" : "false"}
-                </p>
+        claims.map((claim) => {
+          const provisioning = inferProvisioningRequestFromClaimView(claim);
+          return (
+            <article
+              key={claim.id}
+              className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.organizationName}</p>
+                  <p className="text-xs text-[rgb(var(--muted))]">
+                    {claim.organizationType}
+                    {claim.regionId ? ` · ${claim.regionId}` : ""}
+                    {claim.unitName ? ` · ${claim.unitName}` : ""}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Provisioning-Status: {provisioningStatusLabel(claim)}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Standort optional: {claim.optionalLocation?.name ?? "nicht gesetzt"}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Antragsteller: {provisioning.applicantName ?? "nicht hinterlegt"}
+                    {provisioning.responsiblePersonName
+                      ? ` · Verantwortlich: ${provisioning.responsiblePersonName}`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    noAutoAuthority: {claim.noAutoAuthority ? "true" : "false"}
+                  </p>
+                </div>
+                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                  {claim.verificationStatus}
+                </span>
               </div>
-              <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                {claim.verificationStatus}
-              </span>
-            </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {DECISIONS.map((decision) => (
-                <button
-                  key={decision}
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => reviewClaim(claim.id, decision)}
-                  className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
-                >
-                  {decisionLabel(decision)}
-                </button>
-              ))}
-            </div>
-          </article>
-        ))
+              <div className="mt-4 flex flex-wrap gap-2">
+                {DECISIONS.map((decision) => (
+                  <button
+                    key={decision}
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => reviewClaim(claim.id, decision)}
+                    className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+                  >
+                    {decisionLabel(decision)}
+                  </button>
+                ))}
+              </div>
+            </article>
+          );
+        })
       )}
     </div>
   );

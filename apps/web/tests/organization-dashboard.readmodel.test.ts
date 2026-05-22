@@ -199,7 +199,27 @@ describe("organization dashboard readmodel", () => {
   it("keeps pending claims visible but hides internal foreign region data for unverified users", async () => {
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({
-        claims: [claim()],
+        claims: [
+          claim({
+            provisioningRequest: {
+              organizationKind: "association",
+              status: "submitted",
+              latestDecision: "submit",
+              source: "self_service",
+              requestedRegionId: "bezirk-berlin-reinickendorf",
+              requestedRegionLabel: "Berlin Reinickendorf",
+              applicantName: "Mara Beispiel",
+              applicantEmail: "mara@bildungsdialog.example",
+              responsiblePersonName: "Mara Beispiel",
+              responsiblePersonEmail: "mara@bildungsdialog.example",
+              requestedRoleLabel: "Koordination",
+              note: "Bitte prüfen",
+              submittedAt: "2026-05-17T08:00:00.000Z",
+              decidedAt: null,
+              decidedBy: null,
+            },
+          }),
+        ],
       }),
     );
 
@@ -210,6 +230,10 @@ describe("organization dashboard readmodel", () => {
     });
 
     expect(readModel.pendingOrganizationClaims).toHaveLength(1);
+    expect(readModel.provisioningSummary.currentStatus).toBe("operator_review_required");
+    expect(readModel.provisioningSummary.operatorReviewRequired).toBe(true);
+    expect(readModel.provisioningSummary.latestRequest?.applicantName).toBe("Mara Beispiel");
+    expect(readModel.provisioningSummary.productionTruth).toBe(false);
     expect(readModel.regionSummary).toEqual([
       expect.objectContaining({
         regionId: "bezirk-berlin-reinickendorf",
@@ -236,6 +260,48 @@ describe("organization dashboard readmodel", () => {
         }),
       ]),
     );
+  });
+
+  it("marks the provisioning summary as approved once a verified membership exists", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [membership()],
+        claims: [
+          claim({
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            provisioningRequest: {
+              organizationKind: "district",
+              status: "submitted",
+              latestDecision: "submit",
+              source: "self_service",
+              requestedRegionId: organization.primaryRegionId,
+              requestedRegionLabel: "Berlin Reinickendorf",
+              applicantName: "Jasmin Beispiel",
+              applicantEmail: "jasmin@reinickendorf.example",
+              responsiblePersonName: "Jasmin Beispiel",
+              responsiblePersonEmail: "jasmin@reinickendorf.example",
+              requestedRoleLabel: "Beteiligung",
+              note: "Bitte freischalten",
+              submittedAt: "2026-05-17T08:00:00.000Z",
+              decidedAt: null,
+              decidedBy: null,
+            },
+          }),
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.provisioningSummary.currentStatus).toBe("approved");
+    expect(readModel.provisioningSummary.nextStepTitle).toBe("Freigeschaltet");
   });
 
   it("shows own region summary for verified memberships even without active freischaltung", async () => {
