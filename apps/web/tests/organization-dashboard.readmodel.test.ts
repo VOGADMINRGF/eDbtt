@@ -182,6 +182,20 @@ beforeEach(() => {
 });
 
 describe("organization dashboard readmodel", () => {
+  it("keeps users without organization, claim or verified membership out of org data", async () => {
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-without-org",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.organization.name).toBeNull();
+    expect(readModel.organization.organizations).toEqual([]);
+    expect(readModel.regionSummary).toEqual([]);
+    expect(readModel.openReviewItems).toEqual([]);
+    expect(readModel.publishSummary.items).toEqual([]);
+  });
+
   it("keeps pending claims visible but hides internal foreign region data for unverified users", async () => {
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({

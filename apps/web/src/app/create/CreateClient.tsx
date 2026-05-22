@@ -488,24 +488,14 @@ function normalizeAnlassraumId(value?: string | null): string | null {
 
 function membershipStatusLabel(value: RequestScopeSummary["membershipStatus"]): string {
   switch (value) {
-    case "publication_approved":
-      return "Publikationsfreigabe bestätigt";
-    case "unit_verified":
-      return "Unit-verifiziert";
-    case "organization_verified":
-      return "Organisations-verifiziert";
-    case "email_verified":
-      return "E-Mail verifiziert";
-    case "pending_review":
+    case "verified":
+      return "Verifizierte Membership";
+    case "pending":
       return "In Prüfung";
-    case "unverified":
-      return "Unverifiziert";
-    case "rejected":
-      return "Abgelehnt";
+    case "suspended":
+      return "Ausgesetzt";
     case "revoked":
       return "Widerrufen";
-    case "admin_fallback":
-      return "Betreiber-Modus";
     default:
       return "Noch kein bestätigter Scope";
   }

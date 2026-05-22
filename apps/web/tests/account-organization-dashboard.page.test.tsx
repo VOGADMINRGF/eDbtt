@@ -24,6 +24,7 @@ import {
   createInMemoryReviewQueueOperationRepo,
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
+import { setMembershipDirectoryRepositoryForTests } from "@/lib/server/auth/runtimeAdapters";
 
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
@@ -70,6 +71,7 @@ describe("/account/organization/dashboard page", () => {
     setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
+    setMembershipDirectoryRepositoryForTests(null);
   });
 
   it("renders pending organization claims with friendly empty states", async () => {
@@ -110,6 +112,11 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Organisation vervollständigen");
     expect(html).toContain("Region auswählen");
     expect(html).toContain("Noch keine Freischaltung aktiv.");
+    expect(html).toContain("Membership-Status");
+    expect(html).toContain("Directory-Wahrheit");
+    expect(html).toContain("Demo- oder Testwahrheit");
+    expect(html).toContain("Nicht als produktive Membership-Wahrheit werten");
+    expect(html).toContain("Organisation noch nicht verifiziert");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");
     expect(html).toContain("Audit-Verlauf");
@@ -509,5 +516,29 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Betreiber-Modus aktiv.");
     expect(html).toContain("`/admin` bleibt Betreiberbereich");
     expect(html).toContain("Globaler Betreiberkontext.");
+    expect(html).toContain("Betreiberkontext");
+  });
+
+  it("shows an honest directory blocker when the external directory is still pending", async () => {
+    setMembershipDirectoryRepositoryForTests({
+      async listMembershipDirectoryForActor() {
+        return {
+          memberships: [],
+          organizations: [],
+          sourceOfTruth: "external_directory_pending",
+          confidence: "limited",
+          runtimeMarker: "external_directory_pending",
+        };
+      },
+      async resolveRegionAccess() {
+        throw new Error("not_needed");
+      },
+    });
+
+    const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+
+    expect(html).toContain("Directory-Anbindung ausstehend");
+    expect(html).toContain("Directory-Anbindung fehlt");
+    expect(html).toContain("blockiert ehrliche `production_ready`-Aussagen für Auth / Membership / Directory");
   });
 });

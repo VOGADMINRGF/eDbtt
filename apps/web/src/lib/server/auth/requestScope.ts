@@ -4,18 +4,27 @@ import type { GovernanceActorRole } from "@features/trust/types";
 import {
   type Organization,
   type OrganizationMembership,
-  type OrganizationRoleType,
   type RegionAccessContext as PersistedRegionAccessContext,
-  type VerificationStatus,
 } from "@features/region";
 import type { SessionUser } from "./sessionUser";
-import { userIsAdminDashboard } from "./roles";
 import {
-  getAuthProviderRuntimeAdapter,
-  getMembershipDirectoryAdapter,
+  collectCurrentOrganizationIds,
+  collectVerifiedOrganizationIds,
+  hasPublicationVisibilityAccess,
+  hasVerifiedMembershipWriteAccess,
+  type MembershipStatus,
+  type OrganizationMembershipRole,
+  pickPrimaryMembership,
+  mapMembershipToOrganizationRole,
+  normalizeMembershipStatus,
   type RequestScopeConfidence,
   type RequestScopeRuntimeMarker,
   type RequestScopeSourceOfTruth,
+} from "./membershipDirectoryRepository";
+import { userIsAdminDashboard } from "./roles";
+import {
+  getAuthProviderRuntimeAdapter,
+  getMembershipDirectoryRepository,
 } from "./runtimeAdapters";
 
 export type AuthenticatedActorContext = {
@@ -34,8 +43,9 @@ export type AuthenticatedActorContext = {
 export type OrganizationMembershipContext = {
   organizationId: string | null;
   organizationIds: string[];
+  verifiedOrganizationIds: string[];
   membershipId: string | null;
-  membershipStatus: VerificationStatus | "none" | "admin_fallback";
+  membershipStatus: MembershipStatus;
   memberships: OrganizationMembership[];
   organizations: Organization[];
   sourceOfTruth: RequestScopeSourceOfTruth;
@@ -44,7 +54,7 @@ export type OrganizationMembershipContext = {
 };
 
 export type OrganizationRoleContext = {
-  organizationRole: OrganizationRoleType | "operator_admin" | null;
+  organizationRole: OrganizationMembershipRole | null;
   roleLabel: string | null;
   membershipId: string | null;
   sourceOfTruth: RequestScopeSourceOfTruth;
@@ -113,12 +123,6 @@ type ResolveOrganizationMembershipInput = {
   actorRuntimeMarker: RequestScopeRuntimeMarker;
 };
 
-const VERIFIED_MEMBERSHIP_STATUSES = new Set<VerificationStatus>([
-  "organization_verified",
-  "unit_verified",
-  "publication_approved",
-]);
-
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
 }
@@ -140,88 +144,26 @@ function collectRoles(
   return uniqueNonEmpty([...direct, ...fallback]).map((value) => value.toLowerCase());
 }
 
-function membershipIsActive(membership: OrganizationMembership): boolean {
-  if (membership.revokedAt) return false;
-  if (membership.expiresAt && Date.parse(membership.expiresAt) <= Date.now()) return false;
-  return true;
-}
-
-function verificationRank(status: VerificationStatus | "none" | "admin_fallback") {
-  switch (status) {
-    case "publication_approved":
-      return 7;
-    case "unit_verified":
-      return 6;
-    case "organization_verified":
-      return 5;
-    case "email_verified":
-      return 4;
-    case "pending_review":
-      return 3;
-    case "unverified":
-      return 2;
-    case "rejected":
-      return 1;
-    case "revoked":
-      return 0;
-    case "admin_fallback":
-      return 99;
-    default:
-      return -1;
-  }
-}
-
-function organizationRolePriority(role: OrganizationRoleType) {
-  switch (role) {
-    case "admin":
-      return 6;
-    case "lead":
-      return 5;
-    case "communications":
-      return 4;
-    case "participation_officer":
-      return 3;
-    case "staff":
-      return 2;
-    case "external_contractor":
-      return 1;
-    case "custom":
-    default:
-      return 0;
-  }
-}
-
-function pickPrimaryMembership(memberships: OrganizationMembership[]): OrganizationMembership | null {
-  const active = memberships.filter(membershipIsActive);
-  if (active.length === 0) return null;
-  return [...active].sort((left, right) => {
-    const verificationDelta =
-      verificationRank(right.verificationStatus) - verificationRank(left.verificationStatus);
-    if (verificationDelta !== 0) return verificationDelta;
-    return organizationRolePriority(right.roleType) - organizationRolePriority(left.roleType);
-  })[0] ?? null;
-}
-
 function deriveMembershipStatus(
   isOperatorMode: boolean,
   memberships: OrganizationMembership[],
-): VerificationStatus | "none" | "admin_fallback" {
-  if (isOperatorMode) return "admin_fallback";
+) : MembershipStatus {
+  if (isOperatorMode) return "verified";
   const primaryMembership = pickPrimaryMembership(memberships);
-  return primaryMembership?.verificationStatus ?? "none";
+  return normalizeMembershipStatus(primaryMembership);
 }
 
 function deriveGovernanceRole(input: {
   roles: string[];
   isOperatorMode: boolean;
-  membershipStatus: VerificationStatus | "none" | "admin_fallback";
+  membershipStatus: MembershipStatus;
 }): GovernanceActorRole | null {
   if (input.isOperatorMode) return "admin";
   const mapped = mapUserRolesToGovernanceRole(input.roles);
   if (mapped === "reviewer" || mapped === "editorial_actor" || mapped === "institutional_actor") {
     return mapped;
   }
-  if (VERIFIED_MEMBERSHIP_STATUSES.has(input.membershipStatus as VerificationStatus)) {
+  if (input.membershipStatus === "verified") {
     return "institutional_actor";
   }
   return null;
@@ -234,8 +176,9 @@ export async function resolveOrganizationMembershipForActor(
     return {
       organizationId: null,
       organizationIds: [],
+      verifiedOrganizationIds: [],
       membershipId: null,
-      membershipStatus: "admin_fallback",
+      membershipStatus: "verified",
       memberships: [],
       organizations: [],
       sourceOfTruth: input.actorSourceOfTruth,
@@ -245,15 +188,22 @@ export async function resolveOrganizationMembershipForActor(
   }
 
   try {
-    const resolved = await getMembershipDirectoryAdapter().listMembershipDirectoryForActor(input.actorId);
+    const resolved = await getMembershipDirectoryRepository().listMembershipDirectoryForActor(input.actorId);
     const memberships = resolved.memberships;
     const organizations = resolved.organizations;
     const primaryMembership = pickPrimaryMembership(memberships);
+    const membershipStatus = deriveMembershipStatus(false, memberships);
+    const organizationIds = collectCurrentOrganizationIds(memberships);
+    const verifiedOrganizationIds = collectVerifiedOrganizationIds(memberships);
     return {
-      organizationId: primaryMembership?.organizationId ?? null,
-      organizationIds: uniqueNonEmpty(memberships.map((membership) => membership.organizationId)),
+      organizationId:
+        membershipStatus === "pending" || membershipStatus === "verified"
+          ? primaryMembership?.organizationId ?? null
+          : null,
+      organizationIds,
+      verifiedOrganizationIds,
       membershipId: primaryMembership?.id ?? null,
-      membershipStatus: deriveMembershipStatus(false, memberships),
+      membershipStatus,
       memberships,
       organizations,
       sourceOfTruth: resolved.sourceOfTruth,
@@ -264,13 +214,14 @@ export async function resolveOrganizationMembershipForActor(
     return {
       organizationId: null,
       organizationIds: [],
+      verifiedOrganizationIds: [],
       membershipId: null,
       membershipStatus: "none",
       memberships: [],
       organizations: [],
-      sourceOfTruth: "external_provider_pending",
+      sourceOfTruth: "external_directory_pending",
       confidence: "limited",
-      runtimeMarker: "external_provider_pending",
+      runtimeMarker: "external_directory_pending",
     };
   }
 }
@@ -285,7 +236,7 @@ export function mapSessionToOrganizationRole(input: {
 }): OrganizationRoleContext {
   if (input.isOperatorMode) {
     return {
-      organizationRole: "operator_admin",
+      organizationRole: "operator",
       roleLabel: "Betreiber-Modus",
       membershipId: null,
       sourceOfTruth: input.actorSourceOfTruth,
@@ -296,7 +247,7 @@ export function mapSessionToOrganizationRole(input: {
   const primaryMembership = pickPrimaryMembership(input.memberships);
   if (primaryMembership) {
     return {
-      organizationRole: primaryMembership.roleType,
+      organizationRole: mapMembershipToOrganizationRole(primaryMembership),
       roleLabel: primaryMembership.roleLabel,
       membershipId: primaryMembership.id,
       sourceOfTruth: input.membershipSourceOfTruth,
@@ -308,9 +259,9 @@ export function mapSessionToOrganizationRole(input: {
     organizationRole: null,
     roleLabel: null,
     membershipId: null,
-    sourceOfTruth: "external_provider_pending",
+    sourceOfTruth: "external_directory_pending",
     confidence: "limited",
-    runtimeMarker: "external_provider_pending",
+    runtimeMarker: "external_directory_pending",
   };
 }
 
@@ -327,7 +278,7 @@ export async function resolveRegionAccessForOrganization(input: {
   confidence: RequestScopeConfidence;
   runtimeMarker: RequestScopeRuntimeMarker;
 }> {
-  return getMembershipDirectoryAdapter().resolveRegionAccess(input);
+  return getMembershipDirectoryRepository().resolveRegionAccess(input);
 }
 
 function buildRequestScopeContextFromUser(
@@ -383,23 +334,29 @@ function buildRequestScopeContextFromUser(
       actorRole: String(actorRoleKey),
       isOperatorMode,
       roles,
-      organizationIds: organizationMembership.organizationIds,
+      organizationIds: organizationMembership.verifiedOrganizationIds,
       regionId: options.regionId ?? null,
     });
     const regionAccess = regionAccessResolved.regionAccess;
     const organizationSourceOfTruth =
-      organizationMembership.organizationId || organizationMembership.organizationIds.length > 0
+      organizationMembership.sourceOfTruth === "external_directory_pending"
+        ? "external_directory_pending"
+        : organizationMembership.organizationId || organizationMembership.organizationIds.length > 0
         ? organizationMembership.sourceOfTruth
         : regionAccess.organization.primaryOrganizationId
           ? regionAccessResolved.sourceOfTruth
-          : actor.sourceOfTruth;
+          : organizationMembership.sourceOfTruth !== actor.sourceOfTruth
+            ? organizationMembership.sourceOfTruth
+            : actor.sourceOfTruth;
     const topLevelConfidence = isOperatorMode
       ? "admin_fallback"
-      : organizationMembership.organizationIds.length > 0
+      : organizationMembership.organizationIds.length > 0 ||
+          organizationMembership.sourceOfTruth === "external_directory_pending"
         ? organizationMembership.confidence
         : actor.confidence;
     const topLevelRuntimeMarker =
-      organizationMembership.organizationIds.length > 0
+      organizationMembership.organizationIds.length > 0 ||
+        organizationMembership.sourceOfTruth === "external_directory_pending"
         ? organizationMembership.runtimeMarker
         : actor.runtimeMarker;
 
@@ -490,4 +447,32 @@ export async function resolveRequestScopeContext(
 ): Promise<RequestScopeContext | null> {
   const actorRuntime = await getAuthProviderRuntimeAdapter().getAuthenticatedActor(request);
   return buildRequestScopeContextFromUser(actorRuntime.user, actorRuntime, options);
+}
+
+export function requestScopeCanWriteOrganizationRoutes(
+  scopeContext: Pick<
+    RequestScopeContext,
+    "membershipStatus" | "organizationRole" | "isOperatorMode" | "sourceOfTruth"
+  >,
+): boolean {
+  return hasVerifiedMembershipWriteAccess({
+    membershipStatus: scopeContext.membershipStatus,
+    organizationRole: scopeContext.organizationRole,
+    isOperatorMode: scopeContext.isOperatorMode,
+    sourceOfTruth: scopeContext.sourceOfTruth,
+  });
+}
+
+export function requestScopeCanManageOrganizationVisibility(
+  scopeContext: Pick<
+    RequestScopeContext,
+    "membershipStatus" | "organizationRole" | "isOperatorMode" | "sourceOfTruth"
+  >,
+): boolean {
+  return hasPublicationVisibilityAccess({
+    membershipStatus: scopeContext.membershipStatus,
+    organizationRole: scopeContext.organizationRole,
+    isOperatorMode: scopeContext.isOperatorMode,
+    sourceOfTruth: scopeContext.sourceOfTruth,
+  });
 }

@@ -40,12 +40,12 @@ import { POST } from "@/app/api/account/organization/review/content-release/rout
 function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     organizationId: "org-1",
-    membershipStatus: "publication_approved",
-    organizationRole: "participation_officer",
+    membershipStatus: "verified",
+    organizationRole: "publication_approved",
     regionIds: ["bezirk-berlin-reinickendorf"],
     isOperatorMode: false,
     operatorModeLabel: null,
-    sourceOfTruth: "local_membership_store",
+    sourceOfTruth: "persistent_membership_store",
     confidence: "high",
     ...overrides,
   };
@@ -179,5 +179,88 @@ describe("/api/account/organization/review/content-release", () => {
 
     expect(response.status).toBe(403);
     expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
+  });
+
+  it("blocks content release writes for pending or non-writing memberships", async () => {
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      actor: {
+        userId: "user-1",
+        role: "institutional_actor",
+        isAdmin: false,
+      },
+      roles: ["user"],
+      requestScope: buildRequestScope({
+        membershipStatus: "pending",
+        organizationRole: "reviewer",
+      }),
+    });
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-1",
+      },
+      openReviewItems: [
+        {
+          id: "create_handoff:own-1",
+          contentReleaseWorkbench: {
+            sourceKind: "create_handoff",
+            sourceId: "handoff-1",
+            targets: [
+              {
+                targetType: "topic_page",
+              },
+            ],
+          },
+          moderationPermission: {
+            canPrepareOwnContentRelease: true,
+            canMakeOwnContentVisible: true,
+            canArchiveOwnContent: true,
+          },
+        },
+      ],
+    });
+
+    const pendingResponse = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "prepare_target",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    expect(pendingResponse.status).toBe(403);
+    expect(mocks.prepareContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
+
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      actor: {
+        userId: "user-1",
+        role: "institutional_actor",
+        isAdmin: false,
+      },
+      roles: ["user"],
+      requestScope: buildRequestScope({
+        membershipStatus: "verified",
+        organizationRole: "viewer",
+      }),
+    });
+
+    const viewerResponse = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "archive_target",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    expect(viewerResponse.status).toBe(403);
   });
 });

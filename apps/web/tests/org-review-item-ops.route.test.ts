@@ -30,12 +30,12 @@ import { POST } from "@/app/api/account/organization/review/items/[itemId]/route
 function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     organizationId: "org-reinickendorf-1",
-    membershipStatus: "unit_verified",
-    organizationRole: "participation_officer",
+    membershipStatus: "verified",
+    organizationRole: "reviewer",
     regionIds: ["bezirk-berlin-reinickendorf"],
     isOperatorMode: false,
     operatorModeLabel: null,
-    sourceOfTruth: "local_membership_store",
+    sourceOfTruth: "persistent_membership_store",
     confidence: "high",
     ...overrides,
   };
@@ -205,7 +205,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
       },
       roles: ["user"],
       requestScope: buildRequestScope({
-        membershipStatus: "pending_review",
+        membershipStatus: "pending",
       }),
     });
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
@@ -237,5 +237,80 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it("keeps suspended or revoked memberships out of write actions", async () => {
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      actor: {
+        userId: "user-1",
+        role: "institutional_actor",
+        isAdmin: false,
+      },
+      roles: ["user"],
+      requestScope: buildRequestScope({
+        membershipStatus: "suspended",
+        organizationRole: null,
+      }),
+    });
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      openReviewItems: [
+        {
+          id: "region_signal_draft:suspended-1",
+          moderationPermission: {
+            canOperateOwnReviewItem: true,
+            allowedActions: ["add_note"],
+          },
+        },
+      ],
+    });
+
+    const suspendedResponse = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/items/region_signal_draft%3Asuspended-1", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add_note",
+          note: "Kein Schreibzugriff bei suspendierter Membership.",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        params: Promise.resolve({
+          itemId: "region_signal_draft%3Asuspended-1",
+        }),
+      },
+    );
+
+    expect(suspendedResponse.status).toBe(403);
+
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      actor: {
+        userId: "user-1",
+        role: "institutional_actor",
+        isAdmin: false,
+      },
+      roles: ["user"],
+      requestScope: buildRequestScope({
+        membershipStatus: "revoked",
+        organizationRole: null,
+      }),
+    });
+
+    const revokedResponse = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/items/region_signal_draft%3Arevoked-1", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add_note",
+          note: "Kein Schreibzugriff bei widerrufener Membership.",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        params: Promise.resolve({
+          itemId: "region_signal_draft%3Arevoked-1",
+        }),
+      },
+    );
+
+    expect(revokedResponse.status).toBe(403);
   });
 });

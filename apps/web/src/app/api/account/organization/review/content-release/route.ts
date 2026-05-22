@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
+  hasPublicationVisibilityAccess,
+  hasVerifiedMembershipWriteAccess,
+} from "@/lib/server/auth/membershipDirectoryRepository";
+import {
   prepareContentReleaseTargetFromSourceResult,
   updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
@@ -35,6 +39,18 @@ export async function POST(req: NextRequest) {
   if (gate instanceof Response) return gate;
 
   try {
+    const canWriteOrganizationRoute = hasVerifiedMembershipWriteAccess({
+      membershipStatus: gate.requestScope.membershipStatus,
+      organizationRole: gate.requestScope.organizationRole,
+      isOperatorMode: gate.requestScope.isOperatorMode,
+      sourceOfTruth: gate.requestScope.sourceOfTruth,
+    });
+    const canManageVisibility = hasPublicationVisibilityAccess({
+      membershipStatus: gate.requestScope.membershipStatus,
+      organizationRole: gate.requestScope.organizationRole,
+      isOperatorMode: gate.requestScope.isOperatorMode,
+      sourceOfTruth: gate.requestScope.sourceOfTruth,
+    });
     const userId = String(gate.actor.userId ?? "").trim();
     if (!userId) {
       return NextResponse.json({ ok: false, error: "governance_user_id_missing" }, { status: 400 });
@@ -62,8 +78,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "content_release_target_not_found" }, { status: 404 });
     }
 
+    if (body.action === "prepare_target" && !canWriteOrganizationRoute) {
+      return denied("content_release_membership_write_forbidden");
+    }
     if (body.action === "prepare_target" && !existingItem.moderationPermission.canPrepareOwnContentRelease) {
       return denied("content_release_prepare_forbidden");
+    }
+    if (
+      (body.action === "make_visible" ||
+        body.action === "prepare_publication" ||
+        body.action === "retract_visibility") &&
+      !canManageVisibility
+    ) {
+      return denied("content_release_visibility_membership_forbidden");
     }
     if (
       (body.action === "make_visible" ||
@@ -72,6 +99,9 @@ export async function POST(req: NextRequest) {
       !existingItem.moderationPermission.canMakeOwnContentVisible
     ) {
       return denied("content_release_visibility_forbidden");
+    }
+    if (body.action === "archive_target" && !canWriteOrganizationRoute) {
+      return denied("content_release_membership_write_forbidden");
     }
     if (body.action === "archive_target" && !existingItem.moderationPermission.canArchiveOwnContent) {
       return denied("content_release_archive_forbidden");
@@ -131,6 +161,8 @@ export async function POST(req: NextRequest) {
       message === "content_release_item_not_found" || message === "content_release_target_not_found"
         ? 404
         : message === "content_release_prepare_forbidden" ||
+            message === "content_release_membership_write_forbidden" ||
+            message === "content_release_visibility_membership_forbidden" ||
             message === "content_release_visibility_forbidden" ||
             message === "content_release_archive_forbidden"
           ? 403

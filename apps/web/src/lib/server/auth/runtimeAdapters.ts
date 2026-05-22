@@ -8,20 +8,16 @@ import {
   type OrganizationMembership,
   type RegionAccessContext,
 } from "@features/region";
+import type {
+  MembershipDirectoryAdapter,
+  MembershipDirectoryRepository,
+  MembershipDirectoryRuntimeRecord,
+  RegionAccessRuntimeRecord,
+  RequestScopeConfidence,
+  RequestScopeRuntimeMarker,
+  RequestScopeSourceOfTruth,
+} from "./membershipDirectoryRepository";
 import { getSessionUser, type SessionUser } from "./sessionUser";
-
-export type RequestScopeSourceOfTruth =
-  | "session"
-  | "local_membership_store"
-  | "fixture_demo"
-  | "external_provider_pending";
-
-export type RequestScopeConfidence = "high" | "admin_fallback" | "limited";
-
-export type RequestScopeRuntimeMarker =
-  | "production_runtime"
-  | "demo_or_test_runtime"
-  | "external_provider_pending";
 
 export type AuthProviderActorRuntimeRecord = {
   user: SessionUser | null;
@@ -31,39 +27,12 @@ export type AuthProviderActorRuntimeRecord = {
   runtimeMarker: RequestScopeRuntimeMarker;
 };
 
-export type MembershipDirectoryRuntimeRecord = {
-  memberships: OrganizationMembership[];
-  organizations: Organization[];
-  sourceOfTruth: RequestScopeSourceOfTruth;
-  confidence: RequestScopeConfidence;
-  runtimeMarker: RequestScopeRuntimeMarker;
-};
-
-export type RegionAccessRuntimeRecord = {
-  regionAccess: RegionAccessContext;
-  sourceOfTruth: RequestScopeSourceOfTruth;
-  confidence: RequestScopeConfidence;
-  runtimeMarker: RequestScopeRuntimeMarker;
-};
-
 export interface AuthProviderRuntimeAdapter {
   getAuthenticatedActor(request?: NextRequest): Promise<AuthProviderActorRuntimeRecord>;
 }
 
-export interface MembershipDirectoryAdapter {
-  listMembershipDirectoryForActor(actorId: string): Promise<MembershipDirectoryRuntimeRecord>;
-  resolveRegionAccess(input: {
-    actorId: string;
-    actorRole: string;
-    isOperatorMode: boolean;
-    roles: string[];
-    organizationIds?: string[] | null;
-    regionId?: string | null;
-  }): Promise<RegionAccessRuntimeRecord>;
-}
-
 let authProviderRuntimeAdapter: AuthProviderRuntimeAdapter | null = null;
-let membershipDirectoryAdapter: MembershipDirectoryAdapter | null = null;
+let membershipDirectoryRepository: MembershipDirectoryRepository | null = null;
 
 function defaultRuntimeMarker(): RequestScopeRuntimeMarker {
   if (process.env.NODE_ENV === "test") return "demo_or_test_runtime";
@@ -83,7 +52,7 @@ function defaultDirectorySource(): {
     };
   }
   return {
-    sourceOfTruth: "local_membership_store",
+    sourceOfTruth: "persistent_membership_store",
     runtimeMarker,
   };
 }
@@ -103,7 +72,7 @@ function createDefaultAuthProviderRuntimeAdapter(): AuthProviderRuntimeAdapter {
   };
 }
 
-function createDefaultMembershipDirectoryAdapter(): MembershipDirectoryAdapter {
+function createDefaultMembershipDirectoryRepository(): MembershipDirectoryRepository {
   return {
     async listMembershipDirectoryForActor(actorId) {
       const repo = getRegionOrganizationRuntimeRepo();
@@ -147,9 +116,9 @@ function createDefaultMembershipDirectoryAdapter(): MembershipDirectoryAdapter {
             roles: input.roles,
             organizationIds: input.organizationIds,
           }),
-          sourceOfTruth: "external_provider_pending",
+          sourceOfTruth: "external_directory_pending",
           confidence: input.isOperatorMode ? "admin_fallback" : "limited",
-          runtimeMarker: "external_provider_pending",
+          runtimeMarker: "external_directory_pending",
         };
       }
     },
@@ -163,17 +132,25 @@ export function getAuthProviderRuntimeAdapter(): AuthProviderRuntimeAdapter {
   return authProviderRuntimeAdapter;
 }
 
-export function getMembershipDirectoryAdapter(): MembershipDirectoryAdapter {
-  if (!membershipDirectoryAdapter) {
-    membershipDirectoryAdapter = createDefaultMembershipDirectoryAdapter();
+export function getMembershipDirectoryRepository(): MembershipDirectoryRepository {
+  if (!membershipDirectoryRepository) {
+    membershipDirectoryRepository = createDefaultMembershipDirectoryRepository();
   }
-  return membershipDirectoryAdapter;
+  return membershipDirectoryRepository;
+}
+
+export function getMembershipDirectoryAdapter(): MembershipDirectoryAdapter {
+  return getMembershipDirectoryRepository();
 }
 
 export function setAuthProviderRuntimeAdapterForTests(adapter: AuthProviderRuntimeAdapter | null) {
   authProviderRuntimeAdapter = adapter;
 }
 
+export function setMembershipDirectoryRepositoryForTests(adapter: MembershipDirectoryRepository | null) {
+  membershipDirectoryRepository = adapter;
+}
+
 export function setMembershipDirectoryAdapterForTests(adapter: MembershipDirectoryAdapter | null) {
-  membershipDirectoryAdapter = adapter;
+  setMembershipDirectoryRepositoryForTests(adapter);
 }

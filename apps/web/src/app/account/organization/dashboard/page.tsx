@@ -3,6 +3,17 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import {
+  hasVerifiedMembershipWriteAccess,
+  isProductionMembershipTruth,
+  mapMembershipToOrganizationRole,
+  membershipStatusLabel,
+  normalizeMembershipStatus,
+  pickPrimaryMembership,
+  sourceOfTruthLabel,
+  type OrganizationMembershipRole,
+} from "@/lib/server/auth/membershipDirectoryRepository";
+import { getMembershipDirectoryRepository } from "@/lib/server/auth/runtimeAdapters";
+import {
   buildOrganizationDashboardReadModel,
   type OrganizationDashboardDraftSummary,
   type OrganizationDashboardReadModel,
@@ -81,6 +92,27 @@ function organizationTypeLabel(value: OrganizationDashboardReadModel["organizati
   }
 }
 
+function organizationScopeRoleLabel(value: OrganizationMembershipRole | null) {
+  switch (value) {
+    case "owner":
+      return "Owner";
+    case "admin":
+      return "Admin";
+    case "editor":
+      return "Editor";
+    case "reviewer":
+      return "Reviewer";
+    case "viewer":
+      return "Viewer";
+    case "publication_approved":
+      return "Publikationsfreigabe";
+    case "operator":
+      return "Betreiberkontext";
+    default:
+      return "Noch keine Rolle bestätigt";
+  }
+}
+
 function draftTitle(value: OrganizationDashboardDraftSummary["draftType"]) {
   return value === "dossier" ? "Dossier-Entwurf" : "Anlassraum";
 }
@@ -155,6 +187,59 @@ export default async function AccountOrganizationDashboardPage() {
     isAdmin,
     actorRole: isAdmin ? "admin" : null,
   });
+  const membershipDirectory = await getMembershipDirectoryRepository().listMembershipDirectoryForActor(userId);
+  const primaryMembership = pickPrimaryMembership(membershipDirectory.memberships);
+  const normalizedMembershipStatus = readModel.organization.isOperatorMode
+    ? "verified"
+    : normalizeMembershipStatus(primaryMembership);
+  const normalizedOrganizationRole = readModel.organization.isOperatorMode
+    ? "operator"
+    : mapMembershipToOrganizationRole(primaryMembership);
+  const hasWritableOrganizationContext = hasVerifiedMembershipWriteAccess({
+    membershipStatus: normalizedMembershipStatus,
+    organizationRole: normalizedOrganizationRole,
+    isOperatorMode: readModel.organization.isOperatorMode,
+    sourceOfTruth: membershipDirectory.sourceOfTruth,
+  });
+  const hasReadableRegion = readModel.regionSummary.some((entry) => entry.dashboardAccess);
+  const accessBlockers = [
+    membershipDirectory.sourceOfTruth === "external_directory_pending"
+      ? {
+          title: "Directory-Anbindung fehlt",
+          body: "Die Membership-Wahrheit ist noch nicht produktiv angebunden. Der Organisationsbereich bleibt deshalb auf sichere Status- und Nächste-Schritte-Hinweise begrenzt.",
+        }
+      : null,
+    !readModel.organization.isOperatorMode && normalizedMembershipStatus !== "verified"
+      ? {
+          title: "Organisation noch nicht verifiziert",
+          body: "Ohne verifizierte Membership bleiben Moderation, Sichtbarkeit und interne Regionsdaten gesperrt. Sichtbar bleiben nur sichere nächste Schritte.",
+        }
+      : null,
+    !readModel.organization.isOperatorMode &&
+    normalizedMembershipStatus === "verified" &&
+    !hasWritableOrganizationContext
+      ? {
+          title: "Rolle reicht nicht aus",
+          body: "Dein Membership-Kontext ist verifiziert, aber diese Rolle darf keine eigenen Review- oder Release-Aktionen ausführen.",
+        }
+      : null,
+    !readModel.organization.isOperatorMode &&
+    normalizedMembershipStatus === "verified" &&
+    !hasReadableRegion
+      ? {
+          title: "Regionzugriff fehlt",
+          body: "Die Membership ist verifiziert, aber es ist noch kein lesbarer Regionscope aufgelöst. Ohne Regionscope bleiben interne Arbeitsstände unsichtbar.",
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; body: string }>;
+  const membershipTruthSummary =
+    membershipDirectory.sourceOfTruth === "persistent_membership_store"
+      ? "Membership und Organisationszuordnung kommen aus dem persistenten Store. Das ist produktionsnahe Scope-Wahrheit, aber noch keine externe Register- oder Directory-Integration."
+      : membershipDirectory.sourceOfTruth === "external_directory_pending"
+        ? "Die Directory-Auflösung ist noch nicht produktionsfähig. Dieser Zustand blockiert ehrliche `production_ready`-Aussagen für Auth / Membership / Directory."
+        : membershipDirectory.sourceOfTruth === "fixture_demo"
+          ? "Die Membership-Wahrheit kommt aus einer Demo- oder Test-Runtime. Das ist ausdrücklich keine produktive Source-of-truth."
+          : "Der Scope stammt nur aus dem Session-Kontext und ersetzt keine belastbare Membership-Wahrheit.";
   const operationsPersistence = readModel.reviewQueueOperationsPersistence ?? {
     mode: "in_memory_fallback",
     label: "In-Memory-Fallback",
@@ -245,7 +330,9 @@ export default async function AccountOrganizationDashboardPage() {
             <div>
               <p className="text-xs text-[rgb(var(--muted))]">Rolle</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                {readModel.organization.roleLabel ?? "Noch keine Rolle bestätigt"}
+                {readModel.organization.isOperatorMode
+                  ? "Betreiberkontext"
+                  : readModel.organization.roleLabel ?? "Noch keine Rolle bestätigt"}
               </p>
             </div>
             <div className="sm:col-span-2">
@@ -253,6 +340,47 @@ export default async function AccountOrganizationDashboardPage() {
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{scopeSummary(readModel)}</p>
             </div>
           </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Membership-Status</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {readModel.organization.isOperatorMode
+                  ? "Betreiberkontext"
+                  : membershipStatusLabel(normalizedMembershipStatus)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Directory-Wahrheit</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {sourceOfTruthLabel(membershipDirectory.sourceOfTruth)}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                {isProductionMembershipTruth(membershipDirectory.sourceOfTruth)
+                  ? "Produktionsnahe Membership-Wahrheit"
+                  : "Nicht als produktive Membership-Wahrheit werten"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Normalisierte Rolle</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {organizationScopeRoleLabel(normalizedOrganizationRole)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Schreibzugriff</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {hasWritableOrganizationContext ? "Im eigenen Scope möglich" : "Gesperrt"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-[rgb(var(--muted))]">{membershipTruthSummary}</p>
+          {accessBlockers.length > 0 ? (
+            <div className="mt-4 grid gap-3">
+              {accessBlockers.map((entry) => (
+                <EmptyState key={entry.title} title={entry.title} body={entry.body} />
+              ))}
+            </div>
+          ) : null}
           <div id="regionen" className="mt-5 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               Region
@@ -346,7 +474,7 @@ export default async function AccountOrganizationDashboardPage() {
           </div>
           {readModel.organization.isOperatorMode ? (
             <span className="rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
-              Admin-Modus
+              Betreiberkontext
             </span>
           ) : null}
         </div>

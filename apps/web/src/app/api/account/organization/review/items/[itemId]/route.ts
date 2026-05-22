@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
+import { hasVerifiedMembershipWriteAccess } from "@/lib/server/auth/membershipDirectoryRepository";
 import { buildOrganizationDashboardReadModel } from "@features/region";
 import { applyReviewQueueOperation } from "@features/reviewQueueOperations";
 
@@ -37,6 +38,17 @@ export async function POST(
   if (gate instanceof Response) return gate;
 
   try {
+    if (
+      !hasVerifiedMembershipWriteAccess({
+        membershipStatus: gate.requestScope.membershipStatus,
+        organizationRole: gate.requestScope.organizationRole,
+        isOperatorMode: gate.requestScope.isOperatorMode,
+        sourceOfTruth: gate.requestScope.sourceOfTruth,
+      })
+    ) {
+      return denied("organization_membership_write_forbidden");
+    }
+
     const userId = String(gate.actor.userId ?? "").trim();
     if (!userId) {
       return NextResponse.json({ ok: false, error: "governance_user_id_missing" }, { status: 400 });
@@ -95,7 +107,8 @@ export async function POST(
         ? 404
         : message === "review_queue_item_archived"
           ? 409
-          : message === "organization_review_operation_forbidden"
+          : message === "organization_review_operation_forbidden" ||
+              message === "organization_membership_write_forbidden"
             ? 403
             : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
