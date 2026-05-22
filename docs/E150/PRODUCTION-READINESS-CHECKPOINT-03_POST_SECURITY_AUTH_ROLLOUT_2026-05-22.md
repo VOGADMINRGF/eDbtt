@@ -59,34 +59,36 @@ Leitlinie:
 
 ## Echte Blocker vor breitem Self-Service-Rollout
 
-- `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01`
-  - Betreiberflaechen sind weiter `in_progress`; fuer breiteren Rollout fehlt der vollstaendige
-    browsernahe Admin-Healthcheck ueber Feeds, weitere Admin-Hubs und Datenparitaet.
-- `REGION-DASHBOARD-PRODUCTION-CUT`
-  - Der Produktionsschnitt bleibt als Klammer `in_progress`, weil feinere AllowedActions-Paritaet,
-    restliche Legacy-/Betreiberpfad-Isolation und der letzte generische Self-Service-Rest noch
-    nicht vollstaendig geschlossen sind.
+- breitere externe Membership-/Directory-/Register-Anbindung
+  - Der Runtime-Store ist fuer kontrollierte Piloten ausreichend, aber kein ehrlicher
+    breit skalierter Self-Service-Ersatz fuer externe Directory-/Provider-Aufloesung.
+- Self-Provisionierung
+  - Organisationen koennen noch nicht durchgaengig ohne Betreiberkante ihren Arbeitsraum,
+    ihre Freischaltung und ihren Regionszugang selbst staendig anlegen und fortfuehren.
+- Billing-/Checkout-Automatisierung
+  - Kommerzielle Freischaltung, Provisionierung und wiederholbare Abrechnung sind nicht als
+    geschlossener Self-Service-Pfad vorhanden.
+- breitere produktive Quellenabdeckung
+  - Die review-first Source-Connection-Workbench ist produktionsnah, aber kein allgemeiner
+    Live-Crawler und keine automatische Vollabdeckung externer Quellenlandschaften.
 
 ## Fuer kontrollierten Pilot akzeptabel offen
 
-- `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01`, solange der Pilot nur wenige klar bekannte
-  Betreiberflaechen nutzt und Betreiber-Modus sichtbar bleibt
-- offener Rest in `REGION-DASHBOARD-PRODUCTION-CUT`, solange der Pilot auf verifizierte
-  Organisationen, manuelle Freischaltungen und die bereits gehärteten Review-/Visibility-/Audit-
-  Pfade begrenzt bleibt
 - breitere externe Directory-/Membership-Anbindung, solange der lokale Runtime-Store mit
   sichtbarem Source-of-Truth-/Confidence-Marker den Pilot kontrolliert traegt
+- Self-Provisionierung, solange Betreiber gefuehrte Einrichtung und Freischaltung uebernehmen
 - Payment/Billing-/Checkout-Automatisierung
 - breitere produktive Quellenabdeckung jenseits expliziter Einzel-URLs
 
 ## Vor production_ready zwingend
 
-- `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01` abschliessen
-- offenen Rest in `REGION-DASHBOARD-PRODUCTION-CUT` schliessen
 - breitere externe Provider-/Membership-/Directory-Anbindung ueber den lokalen Runtime-Store
   hinaus schaffen
-- verbleibende Self-Service-Grenzen in AllowedActions, Admin-/Legacy-Pfaden und Betreiber-
-  Abhaengigkeiten schliessen
+- Self-Provisionierung und belastbare Rollout-Freischaltung fuer Organisation/Wirkraum schliessen
+- Billing-/Checkout- und Provisionierungsgrenzen fuer die betroffenen kommerziellen Pfade
+  schliessen
+- verbleibende Self-Service-Grenzen ausserhalb des kontrollierten Betreiber-Pilotmodus
+  explizit abbauen oder aus dem Produktversprechen herausnehmen
 
 ## Bereits erledigte Pflichtbausteine
 
@@ -99,11 +101,20 @@ Leitlinie:
 Diese Bausteine entlasten den Rollout wesentlich, ersetzen aber die offenen Admin- und
 Self-Service-Blocker nicht.
 
+- `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01`
+- `REGION-DASHBOARD-PRODUCTION-CUT`
+
+Diese beiden Parent-/Haertungsslices sind inzwischen ebenfalls geschlossen und muessen vor
+`production_ready` nur regressionssicher aktuell gehalten werden; sie sind keine offenen
+Blocker mehr.
+
 ## Zusammenfassung
 
 Der aktuelle Stand ist plausibel fuer einen kontrollierten, review-first Pilot mit
 Betreiberkanten und generischer Organisations-/Regionen-Lesart. Gegenueber Checkpoint 02 sind
 Auth-/Scope-, Route-/AI- und Content-Zonen-Haertung jetzt als erledigte Produktionsbausteine
-einzustufen. Nicht ehrlich behauptbar bleiben ein breiter Self-Service-Rollout und
-`production_ready`, solange Admin-Gesamthaertung, restliche AllowedActions-/Legacy-Paritaet und
-breitere externe Membership-/Directory-Anbindung offen sind.
+einzustufen; auch `PR-ADMIN-DASHBOARD-FULL-AUDIT-REPAIR-01` und
+`REGION-DASHBOARD-PRODUCTION-CUT` gelten inzwischen als geschlossen. Nicht ehrlich behauptbar
+bleiben ein breiter Self-Service-Rollout und `production_ready`, solange externe Membership-/
+Directory-/Register-Anbindung, Self-Provisionierung, Billing-/Checkout-Automatisierung und
+breitere produktive Quellenabdeckung offen sind.
