@@ -609,7 +609,7 @@ Status: **In Progress (canonical docs hardening / 2026-03-23)**
 - **GOV-SAFETY-03** Fruehes Matching/DM/Gruppensog nur nach expliziten Schutz- und Freigaberegeln
 - **GOV-SEC-01** Security-Hardening / Secret-Hygiene / lokale Prod-URI-Risiken dokumentieren und absichern
 - **GOV-SEC-02** Route-/Auth-/AI-Anbindungs-Audit als Pflicht vor naechstem groesseren Slice
-- **GOV-SEC-03** PII-/Content-/AI-Zonenmodell + High-impact Audit-/Trace-/Review-Pflicht operationalisieren
+- **GOV-SEC-03** PII-/Content-/AI-Zonenmodell + High-impact Audit-/Trace-/Review-Pflicht operationalisieren (rollout refresh done / 2026-05-22)
 
 ### Welle 3 — Kommune / Verwaltung
 - **GOV-MUNI-01** Buergermeister-Dashboard
@@ -651,7 +651,7 @@ Status: **In Progress (canonical docs hardening / 2026-03-23)**
 | GOV-SAFETY-03 Social-Eskalation (DM, Gruppen, Kontakt) nur gestuft/opt-in/moderierbar | Done (decision canonized / 2026-03-26) | GOV-SAFETY-03A | Entscheidung gesetzt: kein DM-/Gruppen-Default; Start nur moderiert/kuratiert und nur mit Opt-in, Verifikation/Trust, Cooldown/Rate-Limits, Abuse-/Moderations-Gates und Auditierbarkeit. Umsetzung folgt ueber GOV-SAFETY-03A/03B. |
 | GOV-SEC-01 Secret-Hygiene / lokale Prod-URI-Risiken dokumentieren und absichern | In Progress (doc baseline active / 2026-03-23) | GOV-SEC-02 | Klare Vorgabe: Prod-Secrets/Prod-URIs nicht als lokaler Alltagsstandard; Rotation/Hygiene/Risikoaufklaerung verpflichtend. |
 | GOV-SEC-02 Route-/Auth-/AI-Anbindungs-Audit als Pflicht vor naechstem groesseren Slice | Done (baseline 2026-03-26, rollout refresh 2026-05-21) | GOV-SEC-03 | Strukturierter Auditlauf fuer Auth-/Route-/AI-Anbindung liegt vor; fuer den generischen Org-/Region-Rollout wurde zusaetzlich eine maschinenlesbare Sicherheitsinventur mit Guardrail-Regressionen und Session-Haertung der Create-Save/Finalize-Pfade nachgezogen (`docs/E150/GOV-SEC-02_ROUTE_AUTH_AI_ROLLOUT_REFRESH_2026-05-21.md`). |
-| GOV-SEC-03 PII-/Content-/AI-Zonenmodell + High-impact Audit/Trace/Review operationalisieren | Open (implementation pending) | GOV-AI-ORCH-02 | Architekturpflicht: Datenzonen und minimierte externe KI-Payloads; High-impact Klassen (Moderation, Trust/Score, Dossier-Verdichtung, Publish-nahe Vorstufen, Personen-Matching) nur mit nachvollziehbarem Audit-/Review-Pfad. |
+| GOV-SEC-03 PII-/Content-/AI-Zonenmodell + High-impact Audit/Trace/Review operationalisieren | Done (baseline 2026-03-28, rollout refresh 2026-05-22) | GOV-AI-ORCH-02 | Architekturpflicht ist fuer den generischen Org-/Region-Rollout jetzt maschinenlesbar operationalisiert: `ContentZoneInventory` klassifiziert Create, Save/Handoff, Review Queue, Source Results, Content Release, Topic Pages, Dossier, Anlassraum/Runden, Public URL/QR/Share und Unified Audit entlang PII-, Content- und AI-Zonen; High-impact-Aktionen bleiben auditpflichtig markiert; Review-only, PII- und Source-Material-Zustaende werden nicht als oeffentliche Wahrheit ausgegeben (`docs/E150/GOV-SEC-03_PII_CONTENT_AI_ZONES_2026-05-21.md`). |
 | PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | Done (parent closure frozen / 2026-04-04) | GOV-AI-02 | `/create` ist als kanonischer Intake deutlich staerker verdrahtet: Fast-Path-Hrefs tragen kontextreiche Felder (`signalTitle`, `sourceUrl`, `sourceLabel`, `region`, `scope`, `clusterHint`, `reviewState`, `candidateId`, `reason`, `prefill`) ohne erzwungene Legacy-Defaults (`intent=claim&mode=manual`). Create-UI zeigt uebernommenen Handoff-Kontext sichtbar; relevante Einstiege aus Feed-Drafts, Anlassraum Operations, CTA-Handoff und Match-Service sind vereinheitlicht. 01C/01D bleiben unveraendert, 01E friert den Rest ein (Wrapper passt `entry_intent`/`entry_mode` durch, invalid entry hints degradieren stabil auf kanonischen Intake). Evidenz: `docs/E150/PR-AI-CREATE-01E_CREATE_PARENT_CLOSURE_2026-04-04.md`; Tests inkl. `create-mode.page`, `contributions-new.redirect`, `create-orchestrator-intent-contract`, `create-intake-context`, `create-mode.finalize.route`. |
 | PR-CREATE-CHAT-FIRST-MOBILE-DIALOG-02 `/create` Focus-Rail + CTA-Hierarchie nachgeschaerft | Done (visual hierarchy hardened + mobile QA revalidated / 2026-05-09) | Monitoring/Polish | Der lightweight Follow-up in `/create` wirkt naeher an einem mobilen Produkt: Fokusbereiche stehen als vertikale Rail statt als Dashboard-Zeile, nur eine aktive Focus Card bleibt dominant, Details und Composer-Chrome sind sichtbar nachgeordnet, und die mobile Primaeraktion sitzt inline unter dem aktiven Arbeitsstand statt als Overlay. Revalidierung fuer Issue #122 / PR #121: einspaltiges Mobile-Layout ohne breite Selector-Karten, kein grosses Fixed-Overlay, keine `Kontingente und Zugriff`-Zeile im Mobile-Hauptflow, Reset aktiver Focus-Flaechen bei neuem Ergebnis sowie saubere Tab-/Panel-Semantik mit Keyboard-Navigation fuer Fokusbereiche und Strukturäste. Keine neue Taxonomie, keine Backend-/Routing-/Erkennungslogik. Evidenz: `docs/E150/PR-CREATE-CHAT-FIRST-MOBILE-DIALOG-02_2026-05-09.md`; Tests: `create-curated-dialog-workspace.contract`, `create-chat-first-mobile-dialog-experience.contract`, `analyze-workbench-hidden-until-start`. |
 | DOCS-HARM-06 Anlassraum (`/runden`) vs. Dossier vs. Swipes final harmonisieren | Done (`2026-03-27`) | DOMAIN-HARM-01 | Option-B-Wording in den relevanten Parts ist harmonisiert: `/runden` bleibt aktive Public-Surface, `Anlassraum` bleibt Domänenbegriff, `/anlassraum` bleibt Alias-/Zielbegriff ohne harte Migration. |
@@ -1231,7 +1231,13 @@ Scope:
 - externe KI nur minimal-notwendige, moeglichst entpersonalisierte Ausschnitte
 - High-impact-Klassen nur mit Audit-/Trace-/Review-Anspruch
 
-Status: **Open (implementation pending / 2026-03-23)**
+Status: **Done (rollout refresh / 2026-05-22)**
+
+Refresh (2026-05-22):
+- Maschinenlesbare `ContentZoneInventory` fuer den aktuellen generischen Organisations-/Regionen-Rollout eingefuehrt (`apps/web/src/features/security/contentZoneInventory.ts`)
+- Zonen fuer `Create`, `Save/Handoff`, `Review Queue`, `Source Results`, `Content Release`, `Topic Pages`, `Dossier`, `Anlassraum/Runden`, `Public URL/QR/Share` und `Unified Audit Trail` klassifiziert
+- Guardrails fuer `review_only`, `public_official`, PII-Leakage, Source-/Material-Reviewpflicht und explizit gegatete DeepSearch-/Research-Pfade regressionssicher verankert
+- Evidenz: `docs/E150/GOV-SEC-03_PII_CONTENT_AI_ZONES_2026-05-21.md`
 
 Priorisierung (2026-03-20):
 - Ohne GOV-AI-01 bleibt `/create` fachlich widerspruechlich (legacy mode split vs. Freistart-Zielbild).
