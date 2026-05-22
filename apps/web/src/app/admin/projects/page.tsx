@@ -14,6 +14,10 @@ type ProjectRow = {
   updatedAt: string;
 };
 
+function normalizeProjectRows(input: ProjectRow[] | null | undefined): ProjectRow[] {
+  return Array.isArray(input) ? input.filter(Boolean) : [];
+}
+
 export default function AdminProjectsPage() {
   const [items, setItems] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,14 +46,20 @@ export default function AdminProjectsPage() {
     };
   }, []);
 
+  const safeItems = useMemo(() => normalizeProjectRows(items), [items]);
+
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return items;
-    return items.filter(
+    if (!term) return safeItems;
+    return safeItems.filter(
       (item) =>
         item.title.toLowerCase().includes(term) || (item.regionCode?.toLowerCase().includes(term) ?? false),
     );
-  }, [items, searchTerm]);
+  }, [safeItems, searchTerm]);
+
+  const emptyStateLabel = searchTerm.trim()
+    ? "Keine Projekte für diese Suche gefunden."
+    : "Noch keine Projektdaten verfügbar.";
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -103,7 +113,7 @@ export default function AdminProjectsPage() {
             {!loading && filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Keine Projekte gefunden.
+                  {emptyStateLabel}
                 </td>
               </tr>
             )}
