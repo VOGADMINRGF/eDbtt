@@ -494,4 +494,20 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Keine automatische Veröffentlichung");
     expect(html).toContain("keine automatische amtliche Freigabe");
   });
+
+  it("marks operator mode explicitly when the global admin context is used", async () => {
+    mocks.getSessionUser.mockResolvedValue({
+      _id: { toHexString: () => "admin-1" },
+      email: "admin@example.org",
+      roles: ["admin"],
+      sessionValid: true,
+    });
+    mocks.userIsAdminDashboard.mockReturnValue(true);
+
+    const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+
+    expect(html).toContain("Betreiber-Modus aktiv.");
+    expect(html).toContain("`/admin` bleibt Betreiberbereich");
+    expect(html).toContain("Globaler Betreiberkontext.");
+  });
 });
