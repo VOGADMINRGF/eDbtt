@@ -5,11 +5,13 @@ import {
 } from "@/features/create/persistedHandoffReviewQueue";
 import {
   buildOrganizationDashboardReadModel,
+  buildPersistedRegionAccessContext,
   createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
   createInMemoryRegionSignalDraftPersistence,
+  getRegionalAdminCockpitReadModel,
   setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionEntitlementRuntimeRepoForTests,
@@ -879,6 +881,114 @@ describe("organization dashboard readmodel", () => {
         expect.objectContaining({
           id: "review_official_release",
           label: "Amtliche Freigabe prüfen",
+        }),
+      ]),
+    );
+  });
+
+  it("keeps allowed actions aligned between organization dashboard and region cockpit", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [
+          membership({
+            verificationStatus: "unit_verified",
+            allowedActions: [
+              "read_region_dashboard",
+              "review_region_signal",
+              "create_region_draft",
+              "create_dossier_draft",
+              "create_anlassraum_draft",
+              "submit_for_review",
+            ],
+          }),
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-allowed-actions",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-17T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-17T08:00:00.000Z",
+            updatedAt: "2026-05-17T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "admin_grant",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+    const accessContext = await buildPersistedRegionAccessContext({
+      userId: "user-1",
+      actorRole: "participation_officer",
+      isAdmin: false,
+      roles: ["user"],
+      organizationIds: [organization.id],
+      regionId: organization.primaryRegionId ?? "bezirk-berlin-reinickendorf",
+    });
+    const cockpit = await getRegionalAdminCockpitReadModel(
+      organization.primaryRegionId ?? "bezirk-berlin-reinickendorf",
+      { accessContext },
+    );
+
+    expect([...readModel.allowedActions].sort()).toEqual(
+      [...cockpit.accessSummary.allowedActions].sort(),
+    );
+    expect(readModel.allowedActions).toEqual(
+      expect.arrayContaining([
+        "read_region_dashboard",
+        "review_region_signal",
+        "create_region_draft",
+        "create_dossier_draft",
+        "create_anlassraum_draft",
+        "submit_for_review",
+      ]),
+    );
+    expect(readModel.allowedActions).not.toContain("approve_publication");
+    expect(cockpit.accessSummary.canCreateDossierDraft).toBe(true);
+    expect(cockpit.accessSummary.canCreateAnlassraumDraft).toBe(true);
+    expect(cockpit.accessSummary.allowedActions).not.toContain("approve_publication");
+    expect(readModel.nextActions).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "review_official_release",
         }),
       ]),
     );
