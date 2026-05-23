@@ -5,11 +5,23 @@ import type { PaidDashboardEntitlement } from "@features/region";
 
 type Props = {
   initialEntitlements: PaidDashboardEntitlement[];
+  initialEntitlementHints: Array<{
+    claimId: string;
+    organizationId: string | null;
+    organizationName: string;
+    regionId: string | null;
+    applicantName: string | null;
+    requestedRoleLabel: string | null;
+    hasEntitlementDecision: boolean;
+  }>;
 };
 
 const STATUS_OPTIONS = ["trial", "active", "suspended", "revoked"] as const;
 
-export function AdminEntitlementsClient({ initialEntitlements }: Props) {
+export function AdminEntitlementsClient({
+  initialEntitlements,
+  initialEntitlementHints,
+}: Props) {
   const [entitlements, setEntitlements] = useState(initialEntitlements);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,9 +94,60 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Entitlement-Entscheidungsbedarf</p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Eine freigeschaltete Organisation bekommt keine Zugänge automatisch. Sichtbar ist hier nur,
+          wo nach einer Organisationsfreigabe noch eine bewusste Betreiberentscheidung fehlt.
+        </p>
+        <div className="mt-4 space-y-3">
+          {initialEntitlementHints.filter((item) => !item.hasEntitlementDecision).length === 0 ? (
+            <p className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
+              Kein offener Entitlement-Entscheidungsbedarf.
+            </p>
+          ) : (
+            initialEntitlementHints
+              .filter((item) => !item.hasEntitlementDecision)
+              .map((item) => (
+                <article
+                  key={item.claimId}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.organizationName}</p>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {item.regionId ?? "Noch ohne bestätigte Region"}
+                        {item.requestedRoleLabel ? ` · Rolle: ${item.requestedRoleLabel}` : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-sky-300/70 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+                      Betreiberentscheidung offen
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Antragsteller: {item.applicantName ?? "nicht hinterlegt"}
+                  </p>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Nächster sicherer Schritt: expliziten Scope-Grant setzen. Kein automatisches
+                    `publication_approved`, kein `public_official`, kein Auto-Publish.
+                  </p>
+                  {!item.organizationId ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Hinweis: Für die eigentliche Freischaltung muss die Organisation im Formular über
+                      eine belastbare `organizationId` adressiert werden.
+                    </p>
+                  ) : null}
+                </article>
+              ))
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">Pilot- oder Admin-Freischaltung setzen</p>
         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-          Diese Eingaben erzeugen nur eine serverseitige Freischaltung. Kein Checkout, keine Abbuchung, keine Rechnung.
+          Diese Eingaben erzeugen nur eine serverseitige Freischaltung. Kein Checkout, keine
+          Abbuchung, keine Rechnung und keine automatische Publikationsfreigabe.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <input
@@ -163,6 +226,9 @@ export function AdminEntitlementsClient({ initialEntitlements }: Props) {
                 <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                   noAutoBilling: {entitlement.noAutoBilling ? "true" : "false"} · noAutoCharge:{" "}
                   {entitlement.noAutoCharge ? "true" : "false"}
+                </p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  `publication_approved` und `public_official` bleiben getrennte, bewusste Entscheidungen.
                 </p>
               </div>
               <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">

@@ -47,11 +47,17 @@ import {
   resolveProvisioningRequestStatus,
 } from "./organizationOnboarding";
 import {
+  buildOrganizationEntitlementSummary,
+  type OrganizationEntitlementGrant,
+  type OrganizationEntitlementStatus,
+} from "./organizationEntitlements";
+import {
   buildPersistedRegionAccessContext,
   getRegionOrganizationRuntimeRepo,
 } from "./server/membershipRuntime";
 import {
   getRegionEntitlementRuntimeRepo,
+  type EntitlementAuditEvent,
   type PaidDashboardEntitlement,
 } from "./server/paidEntitlements";
 
@@ -76,13 +82,28 @@ export type OrganizationDashboardRegionSummary = {
 };
 
 export type OrganizationDashboardEntitlementSummary = {
-  state: "aktiv" | "Testzugang" | "fehlt" | "abgelaufen";
+  currentStatus: OrganizationEntitlementStatus;
+  state:
+    | "aktiv"
+    | "Testzugang"
+    | "fehlt"
+    | "abgelaufen"
+    | "eingeschränkt"
+    | "in Entscheidung"
+    | "gesperrt";
   hasActiveEntitlement: boolean;
   hasTrialEntitlement: boolean;
   hasMissingEntitlement: boolean;
   hasExpiredEntitlement: boolean;
   planLabels: string[];
   organizationIds: string[];
+  grants: OrganizationEntitlementGrant[];
+  operatorDecisionRequired: boolean;
+  billingPending: boolean;
+  nextStepTitle: string;
+  nextStepBody: string;
+  storeLabel: string;
+  productionTruth: boolean;
   guardrails: {
     noPaymentClaim: true;
     noCheckout: true;
@@ -403,35 +424,51 @@ function toRoleLabel(memberships: OrganizationMembership[], isAdmin: boolean): s
 }
 
 function buildEntitlementSummary(
-  entitlements: PaidDashboardEntitlement[],
-  regionContexts: Array<{ accessContext: RegionAccessContext }>,
+  params: {
+    organization: Organization | null;
+    claims: OrganizationClaim[];
+    verifiedMemberships: OrganizationMembership[];
+    entitlements: PaidDashboardEntitlement[];
+    auditEvents: EntitlementAuditEvent[];
+  },
 ): OrganizationDashboardEntitlementSummary {
-  const active = entitlements.some((entry) => entry.status === "active");
-  const trial = entitlements.some((entry) => entry.status === "trial");
-  const expired = entitlements.some((entry) =>
+  const active = params.entitlements.some((entry) => entry.status === "active");
+  const trial = params.entitlements.some((entry) => entry.status === "trial");
+  const expired = params.entitlements.some((entry) =>
     entry.status === "expired" ||
     entry.status === "cancelled" ||
     entry.status === "revoked" ||
     entry.status === "suspended" ||
     entry.status === "past_due",
   );
-  const missing = regionContexts.some(
-    (entry) =>
-      entry.accessContext.organization.entitlementReason === "missing_entitlement" ||
-      entry.accessContext.organization.entitlementReason === "not_checked",
-  );
+  const grantSummary = buildOrganizationEntitlementSummary({
+    organization: params.organization,
+    claims: params.claims,
+    verifiedMemberships: params.verifiedMemberships,
+    entitlements: params.entitlements,
+    auditEvents: params.auditEvents,
+    productionTruth: !shouldUseInMemoryMongoFallback(),
+  });
 
   return {
-    state: active ? "aktiv" : trial ? "Testzugang" : expired ? "abgelaufen" : "fehlt",
+    currentStatus: grantSummary.currentStatus,
+    state: grantSummary.state,
     hasActiveEntitlement: active,
     hasTrialEntitlement: trial,
     hasMissingEntitlement: !active && !trial,
     hasExpiredEntitlement: expired,
-    planLabels: uniqueNonEmpty(entitlements.map((entry) => entry.planLabel)),
-    organizationIds: uniqueNonEmpty(entitlements.map((entry) => entry.organizationId)),
+    planLabels: uniqueNonEmpty(params.entitlements.map((entry) => entry.planLabel)),
+    organizationIds: uniqueNonEmpty(params.entitlements.map((entry) => entry.organizationId)),
+    grants: grantSummary.grants,
+    operatorDecisionRequired: grantSummary.operatorDecisionRequired,
+    billingPending: grantSummary.billingPending,
+    nextStepTitle: grantSummary.nextStepTitle,
+    nextStepBody: grantSummary.nextStepBody,
+    storeLabel: grantSummary.storeLabel,
+    productionTruth: grantSummary.productionTruth,
     guardrails: {
-      noPaymentClaim: true,
-      noCheckout: true,
+      noPaymentClaim: grantSummary.noAutoPaymentClaim,
+      noCheckout: grantSummary.noCheckout,
     },
   };
 }
@@ -1195,6 +1232,9 @@ export async function buildOrganizationDashboardReadModel(input: {
       organizations.map((organization) => entitlementRepo.getEntitlementsForOrganization(organization.id)),
     )
   ).flatMap((entries) => entries);
+  const entitlementAuditEvents = primaryOrganization
+    ? await entitlementRepo.listEntitlementAuditEventsForOrganization(primaryOrganization.id)
+    : [];
 
   const regionSummary: OrganizationDashboardRegionSummary[] = [
     ...regionContexts
@@ -1276,7 +1316,17 @@ export async function buildOrganizationDashboardReadModel(input: {
     visibleRegionIds,
     canApproveOfficial: allowedActions.includes("approve_publication"),
   });
-  const entitlementSummary = buildEntitlementSummary(entitlements, regionContexts);
+  const entitlementSummary = buildEntitlementSummary(
+    {
+      organization: primaryOrganization,
+      claims,
+      verifiedMemberships,
+      entitlements: primaryOrganization
+        ? entitlements.filter((entry) => entry.organizationId === primaryOrganization.id)
+        : entitlements,
+      auditEvents: entitlementAuditEvents,
+    },
+  );
   const visibleDrafts = draftRecords.filter((record) =>
     canViewRegionResource(regionScope, {
       ownerUserId: record.createdByUserId,

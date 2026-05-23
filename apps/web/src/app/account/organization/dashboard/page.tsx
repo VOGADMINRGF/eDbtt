@@ -15,6 +15,8 @@ import {
 import { getMembershipDirectoryRepository } from "@/lib/server/auth/runtimeAdapters";
 import {
   buildOrganizationDashboardReadModel,
+  organizationEntitlementScopeLabel,
+  organizationEntitlementStatusLabel,
   type OrganizationDashboardDraftSummary,
   type OrganizationDashboardReadModel,
 } from "@features/region";
@@ -134,6 +136,26 @@ function provisioningStatusLabel(
     case "none":
     default:
       return "Noch kein Antrag";
+  }
+}
+
+function entitlementStatusTone(
+  status: OrganizationDashboardReadModel["entitlementSummary"]["currentStatus"],
+) {
+  switch (status) {
+    case "granted":
+      return "border-emerald-300/70 bg-emerald-50 text-emerald-900";
+    case "limited":
+      return "border-amber-300/70 bg-amber-50 text-amber-900";
+    case "pending_operator_decision":
+      return "border-sky-300/70 bg-sky-50 text-sky-900";
+    case "suspended":
+    case "revoked":
+    case "expired":
+      return "border-rose-300/70 bg-rose-50 text-rose-900";
+    case "none":
+    default:
+      return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
   }
 }
 
@@ -499,7 +521,7 @@ export default async function AccountOrganizationDashboardPage() {
             Freischaltung
           </p>
           <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
-            {readModel.entitlementSummary.state}
+            {organizationEntitlementStatusLabel(readModel.entitlementSummary.currentStatus)}
           </h2>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
             Freischaltung zeigt den Arbeitszugang, nicht Checkout oder Payment. Keine
@@ -509,13 +531,7 @@ export default async function AccountOrganizationDashboardPage() {
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <p className="text-xs text-[rgb(var(--muted))]">Status</p>
               <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-                {readModel.entitlementSummary.hasActiveEntitlement
-                  ? "Aktiv"
-                  : readModel.entitlementSummary.hasTrialEntitlement
-                    ? "Testzugang"
-                    : readModel.entitlementSummary.hasExpiredEntitlement
-                      ? "Abgelaufen"
-                      : "Fehlt"}
+                {organizationEntitlementStatusLabel(readModel.entitlementSummary.currentStatus)}
               </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -524,6 +540,76 @@ export default async function AccountOrganizationDashboardPage() {
                 {readModel.entitlementSummary.planLabels.join(", ") || "Noch keine Freischaltung aktiv."}
               </p>
             </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Entitlement-Status
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                  {readModel.entitlementSummary.nextStepTitle}
+                </p>
+              </div>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${entitlementStatusTone(
+                  readModel.entitlementSummary.currentStatus,
+                )}`}
+              >
+                {readModel.entitlementSummary.storeLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {readModel.entitlementSummary.nextStepBody}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              {readModel.entitlementSummary.productionTruth
+                ? "Die Entitlement-Runtime ist persistent und auditierbar, bleibt aber weiterhin ohne Checkout- oder Payment-Behauptung."
+                : "Der aktuelle Entitlement-Zustand läuft noch auf lokalem oder In-Memory-Fallback und ist kein production_ready-Nachweis."}
+            </p>
+            {readModel.entitlementSummary.billingPending ? (
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Zahlung oder Vertrag offen: Zugriff kann markiert sein, wird hier aber bewusst nicht
+                als bezahlt dargestellt.
+              </p>
+            ) : null}
+          </div>
+          <div className="mt-4 space-y-3">
+            {readModel.entitlementSummary.grants.length === 0 ? (
+              <EmptyState
+                title="Noch keine scope-genaue Freischaltung."
+                body="Auch nach Organisationsfreigabe entstehen Arbeitszugänge nicht automatisch. Betreiber setzen sie bewusst und auditierbar pro Scope."
+              />
+            ) : (
+              readModel.entitlementSummary.grants.map((grant) => (
+                <article
+                  key={grant.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                        {organizationEntitlementScopeLabel(grant.scope)}
+                      </p>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        {organizationEntitlementStatusLabel(grant.status)}
+                        {grant.linkedPlanLabel ? ` · ${grant.linkedPlanLabel}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${entitlementStatusTone(
+                        grant.status,
+                      )}`}
+                    >
+                      {organizationEntitlementStatusLabel(grant.status)}
+                    </span>
+                  </div>
+                  {grant.note ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">{grant.note}</p>
+                  ) : null}
+                </article>
+              ))
+            )}
           </div>
         </article>
       </section>

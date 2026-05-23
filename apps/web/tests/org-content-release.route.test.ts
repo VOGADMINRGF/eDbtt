@@ -51,6 +51,72 @@ function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    currentStatus: "granted",
+    state: "aktiv",
+    hasActiveEntitlement: true,
+    hasTrialEntitlement: false,
+    hasMissingEntitlement: false,
+    hasExpiredEntitlement: false,
+    planLabels: ["Kommune Aktivierung"],
+    organizationIds: ["org-1"],
+    grants: [
+      {
+        id: "org-1:content_release",
+        organizationId: "org-1",
+        organizationName: "Bezirksamt Reinickendorf",
+        regionId: "bezirk-berlin-reinickendorf",
+        scope: "content_release",
+        status: "granted",
+        latestDecision: "grant",
+        source: "paid_dashboard_entitlement",
+        linkedEntitlementId: "entitlement-1",
+        linkedPlanLabel: "Kommune Aktivierung",
+        note: null,
+        billingPending: false,
+        productionTruth: true,
+        noAutoPublicationApproved: true,
+        noAutoPublicOfficial: true,
+        noAutoPublish: true,
+        auditEvents: [],
+        updatedAt: "2026-05-23T07:04:00.000Z",
+      },
+      {
+        id: "org-1:public_share",
+        organizationId: "org-1",
+        organizationName: "Bezirksamt Reinickendorf",
+        regionId: "bezirk-berlin-reinickendorf",
+        scope: "public_share",
+        status: "granted",
+        latestDecision: "grant",
+        source: "paid_dashboard_entitlement",
+        linkedEntitlementId: "entitlement-1",
+        linkedPlanLabel: "Kommune Aktivierung",
+        note: null,
+        billingPending: false,
+        productionTruth: true,
+        noAutoPublicationApproved: true,
+        noAutoPublicOfficial: true,
+        noAutoPublish: true,
+        auditEvents: [],
+        updatedAt: "2026-05-23T07:04:00.000Z",
+      },
+    ],
+    operatorDecisionRequired: false,
+    billingPending: false,
+    nextStepTitle: "Zugriff freigeschaltet",
+    nextStepBody: "Scope ist bewusst gesetzt.",
+    storeLabel: "Persistente Entitlement-Runtime",
+    productionTruth: true,
+    guardrails: {
+      noPaymentClaim: true,
+      noCheckout: true,
+    },
+    ...overrides,
+  };
+}
+
 describe("/api/account/organization/review/content-release", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,6 +146,7 @@ describe("/api/account/organization/review/content-release", () => {
       organization: {
         primaryOrganizationId: "org-1",
       },
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "create_handoff:own-1",
@@ -143,6 +210,7 @@ describe("/api/account/organization/review/content-release", () => {
       organization: {
         primaryOrganizationId: "org-1",
       },
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "create_handoff:own-1",
@@ -198,6 +266,7 @@ describe("/api/account/organization/review/content-release", () => {
       organization: {
         primaryOrganizationId: "org-1",
       },
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "create_handoff:own-1",
@@ -262,5 +331,58 @@ describe("/api/account/organization/review/content-release", () => {
     );
 
     expect(viewerResponse.status).toBe(403);
+  });
+
+  it("blocks visibility changes when the public_share entitlement scope is missing", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-1",
+      },
+      entitlementSummary: buildEntitlementSummary({
+        currentStatus: "limited",
+        state: "eingeschränkt",
+        grants: [
+          {
+            ...buildEntitlementSummary().grants[0],
+          },
+        ],
+      }),
+      openReviewItems: [
+        {
+          id: "create_handoff:own-1",
+          contentReleaseWorkbench: {
+            sourceKind: "create_handoff",
+            sourceId: "handoff-1",
+            targets: [
+              {
+                targetType: "topic_page",
+              },
+            ],
+          },
+          moderationPermission: {
+            canPrepareOwnContentRelease: true,
+            canMakeOwnContentVisible: true,
+            canArchiveOwnContent: true,
+          },
+        },
+      ],
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "make_visible",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const body = await response.json();
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("content_release_public_share_scope_forbidden");
   });
 });

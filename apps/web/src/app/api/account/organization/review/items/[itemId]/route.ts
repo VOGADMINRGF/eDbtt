@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import { hasVerifiedMembershipWriteAccess } from "@/lib/server/auth/membershipDirectoryRepository";
-import { buildOrganizationDashboardReadModel } from "@features/region";
+import {
+  buildOrganizationDashboardReadModel,
+  organizationEntitlementAllowsScope,
+} from "@features/region";
 import { applyReviewQueueOperation } from "@features/reviewQueueOperations";
 
 export const runtime = "nodejs";
@@ -67,6 +70,9 @@ export async function POST(
     if (!existingItem) {
       return NextResponse.json({ ok: false, error: "review_queue_item_not_found" }, { status: 404 });
     }
+    if (!organizationEntitlementAllowsScope(readModel.entitlementSummary, "review_queue")) {
+      return denied("organization_entitlement_scope_forbidden");
+    }
     if (
       !existingItem.moderationPermission.canOperateOwnReviewItem ||
       !existingItem.moderationPermission.allowedActions.includes(body.action)
@@ -104,11 +110,12 @@ export async function POST(
     const message = error instanceof Error ? error.message : "review_queue_operation_failed";
     const status =
       message === "review_queue_item_not_found"
-        ? 404
-        : message === "review_queue_item_archived"
-          ? 409
+          ? 404
+          : message === "review_queue_item_archived"
+            ? 409
           : message === "organization_review_operation_forbidden" ||
-              message === "organization_membership_write_forbidden"
+              message === "organization_membership_write_forbidden" ||
+              message === "organization_entitlement_scope_forbidden"
             ? 403
             : 400;
     return NextResponse.json({ ok: false, error: message }, { status });

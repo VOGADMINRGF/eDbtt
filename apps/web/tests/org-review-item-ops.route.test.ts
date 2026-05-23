@@ -41,6 +41,52 @@ function buildRequestScope(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    currentStatus: "granted",
+    state: "aktiv",
+    hasActiveEntitlement: true,
+    hasTrialEntitlement: false,
+    hasMissingEntitlement: false,
+    hasExpiredEntitlement: false,
+    planLabels: ["Kommune Aktivierung"],
+    organizationIds: ["org-reinickendorf-1"],
+    grants: [
+      {
+        id: "org-reinickendorf-1:review_queue",
+        organizationId: "org-reinickendorf-1",
+        organizationName: "Bezirksamt Reinickendorf",
+        regionId: "bezirk-berlin-reinickendorf",
+        scope: "review_queue",
+        status: "granted",
+        latestDecision: "grant",
+        source: "paid_dashboard_entitlement",
+        linkedEntitlementId: "entitlement-1",
+        linkedPlanLabel: "Kommune Aktivierung",
+        note: null,
+        billingPending: false,
+        productionTruth: true,
+        noAutoPublicationApproved: true,
+        noAutoPublicOfficial: true,
+        noAutoPublish: true,
+        auditEvents: [],
+        updatedAt: "2026-05-23T07:04:00.000Z",
+      },
+    ],
+    operatorDecisionRequired: false,
+    billingPending: false,
+    nextStepTitle: "Zugriff freigeschaltet",
+    nextStepBody: "Scope ist bewusst gesetzt.",
+    storeLabel: "Persistente Entitlement-Runtime",
+    productionTruth: true,
+    guardrails: {
+      noPaymentClaim: true,
+      noCheckout: true,
+    },
+    ...overrides,
+  };
+}
+
 describe("/api/account/organization/review/items/[itemId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,6 +104,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
 
   it("lets a verified organization add notes and set its own item in review", async () => {
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "region_signal_draft:draft-1",
@@ -111,6 +158,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
 
   it("keeps foreign items out of the organization-scoped route", async () => {
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [],
     });
 
@@ -136,6 +184,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
 
   it("allows unit-verified ready only for own scope and rejects missing permission", async () => {
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "create_handoff:own-1",
@@ -165,6 +214,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     expect(success.status).toBe(200);
 
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "create_handoff:own-1",
@@ -209,6 +259,10 @@ describe("/api/account/organization/review/items/[itemId]", () => {
       }),
     });
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary({
+        currentStatus: "none",
+        grants: [],
+      }),
       openReviewItems: [
         {
           id: "region_signal_draft:pending-1",
@@ -239,6 +293,47 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     expect(response.status).toBe(403);
   });
 
+  it("blocks review actions when no review_queue entitlement scope is granted", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary({
+        currentStatus: "pending_operator_decision",
+        state: "in Entscheidung",
+        hasActiveEntitlement: false,
+        hasMissingEntitlement: true,
+        grants: [],
+      }),
+      openReviewItems: [
+        {
+          id: "region_signal_draft:decision-open",
+          moderationPermission: {
+            canOperateOwnReviewItem: true,
+            allowedActions: ["add_note"],
+          },
+        },
+      ],
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/items/region_signal_draft%3Adecision-open", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add_note",
+          note: "Ohne expliziten Grant gesperrt.",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        params: Promise.resolve({
+          itemId: "region_signal_draft%3Adecision-open",
+        }),
+      },
+    );
+
+    const body = await response.json();
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("organization_entitlement_scope_forbidden");
+  });
+
   it("keeps suspended or revoked memberships out of write actions", async () => {
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       actor: {
@@ -253,6 +348,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
       }),
     });
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary(),
       openReviewItems: [
         {
           id: "region_signal_draft:suspended-1",

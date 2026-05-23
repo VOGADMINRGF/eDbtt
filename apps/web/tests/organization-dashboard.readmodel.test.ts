@@ -302,6 +302,16 @@ describe("organization dashboard readmodel", () => {
 
     expect(readModel.provisioningSummary.currentStatus).toBe("approved");
     expect(readModel.provisioningSummary.nextStepTitle).toBe("Freigeschaltet");
+    expect(readModel.entitlementSummary.currentStatus).toBe("pending_operator_decision");
+    expect(readModel.entitlementSummary.operatorDecisionRequired).toBe(true);
+    expect(readModel.entitlementSummary.grants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "review_queue",
+          status: "pending_operator_decision",
+        }),
+      ]),
+    );
   });
 
   it("shows own region summary for verified memberships even without active freischaltung", async () => {
@@ -328,7 +338,8 @@ describe("organization dashboard readmodel", () => {
         }),
       ]),
     );
-    expect(readModel.entitlementSummary.state).toBe("fehlt");
+    expect(readModel.entitlementSummary.state).toBe("in Entscheidung");
+    expect(readModel.entitlementSummary.currentStatus).toBe("pending_operator_decision");
     expect(readModel.firstRun.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -492,7 +503,16 @@ describe("organization dashboard readmodel", () => {
       isAdmin: false,
     });
 
-    expect(readModel.entitlementSummary.state).toBe("aktiv");
+    expect(readModel.entitlementSummary.state).toBe("eingeschränkt");
+    expect(readModel.entitlementSummary.currentStatus).toBe("limited");
+    expect(readModel.entitlementSummary.grants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "public_share",
+          status: "limited",
+        }),
+      ]),
+    );
     expect(readModel.regionalStartingPoints).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -523,6 +543,93 @@ describe("organization dashboard readmodel", () => {
           ctas: expect.arrayContaining([
             expect.objectContaining({ label: "Review Queue öffnen" }),
           ]),
+        }),
+      ]),
+    );
+  });
+
+  it("marks billing_pending grants as limited without claiming paid access", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [
+          membership({
+            verificationStatus: "publication_approved",
+            allowedActions: [
+              "read_region_dashboard",
+              "review_region_signal",
+              "create_region_draft",
+              "create_dossier_draft",
+              "create_anlassraum_draft",
+              "approve_publication",
+            ],
+          }),
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-billing-pending",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "past_due",
+            scope: "organization_unit",
+            validFrom: "2026-05-17T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-17T08:00:00.000Z",
+            updatedAt: "2026-05-17T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "order_request",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.entitlementSummary.currentStatus).toBe("limited");
+    expect(readModel.entitlementSummary.billingPending).toBe(true);
+    expect(readModel.entitlementSummary.nextStepTitle).toBe("Zahlung oder Vertrag offen");
+    expect(readModel.entitlementSummary.grants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "billing_pending",
+          status: "limited",
+        }),
+        expect.objectContaining({
+          scope: "public_share",
+          status: "limited",
         }),
       ]),
     );

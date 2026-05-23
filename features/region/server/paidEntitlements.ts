@@ -214,6 +214,7 @@ export type EntitlementCheckInput = {
 export type RegionEntitlementRuntimeRepo = {
   createPaidDashboardEntitlement(input: CreatePaidDashboardEntitlementInput): Promise<PaidDashboardEntitlement>;
   getEntitlementsForOrganization(organizationId: string): Promise<PaidDashboardEntitlement[]>;
+  listEntitlementAuditEventsForOrganization(organizationId: string): Promise<EntitlementAuditEvent[]>;
   getActiveEntitlementForOrganizationRegion(input: {
     organizationId: string;
     regionId?: string | null;
@@ -623,6 +624,19 @@ export function createMongoRegionEntitlementRuntimeRepo(): RegionEntitlementRunt
         .filter((entry): entry is PaidDashboardEntitlement => Boolean(entry));
     },
 
+    async listEntitlementAuditEventsForOrganization(organizationId) {
+      await ensureMongoIndexes();
+      const col = await coreCol<EntitlementAuditDoc>(ENTITLEMENT_AUDIT_EVENTS_COLLECTION);
+      const docs = await col
+        .find({ "event.organizationId": organizationId })
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .toArray();
+      return docs
+        .map((doc) => (doc?.event ? clone(doc.event) : null))
+        .filter((entry): entry is EntitlementAuditEvent => Boolean(entry));
+    },
+
     async getActiveEntitlementForOrganizationRegion(input) {
       const all = await this.getEntitlementsForOrganization(input.organizationId);
       const targetRegion = normalizeRegionId(input.regionId ?? null);
@@ -817,6 +831,13 @@ export function createInMemoryRegionEntitlementRuntimeRepo(seed?: {
         .map((entitlement) => clone(entitlement))
         .filter((entitlement) => entitlement.organizationId === organizationId)
         .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    },
+
+    async listEntitlementAuditEventsForOrganization(organizationId) {
+      return Array.from(auditEvents.values())
+        .map((event) => clone(event))
+        .filter((event) => event.organizationId === organizationId)
+        .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
     },
 
     async getActiveEntitlementForOrganizationRegion(input) {

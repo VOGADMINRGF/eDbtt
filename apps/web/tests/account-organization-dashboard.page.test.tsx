@@ -81,6 +81,7 @@ function buildOperatorDashboardReadModel() {
     },
     regionSummary: [],
     entitlementSummary: {
+      currentStatus: "none",
       state: "fehlt",
       hasActiveEntitlement: false,
       hasTrialEntitlement: false,
@@ -88,6 +89,13 @@ function buildOperatorDashboardReadModel() {
       hasExpiredEntitlement: false,
       planLabels: [],
       organizationIds: [],
+      grants: [],
+      operatorDecisionRequired: false,
+      billingPending: false,
+      nextStepTitle: "Kein freigegebener Arbeitszugang",
+      nextStepBody: "Ohne bestätigte Freischaltung bleiben Schreibpfade gesperrt.",
+      storeLabel: "Persistente Entitlement-Runtime",
+      productionTruth: true,
       guardrails: {
         noPaymentClaim: true,
         noCheckout: true,

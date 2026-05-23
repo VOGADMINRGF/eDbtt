@@ -9,7 +9,10 @@ import {
   prepareContentReleaseTargetFromSourceResult,
   updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
-import { buildOrganizationDashboardReadModel } from "@features/region";
+import {
+  buildOrganizationDashboardReadModel,
+  organizationEntitlementAllowsScope,
+} from "@features/region";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,8 +84,22 @@ export async function POST(req: NextRequest) {
     if (body.action === "prepare_target" && !canWriteOrganizationRoute) {
       return denied("content_release_membership_write_forbidden");
     }
+    if (
+      (body.action === "prepare_target" || body.action === "archive_target") &&
+      !organizationEntitlementAllowsScope(readModel.entitlementSummary, "content_release")
+    ) {
+      return denied("content_release_entitlement_scope_forbidden");
+    }
     if (body.action === "prepare_target" && !existingItem.moderationPermission.canPrepareOwnContentRelease) {
       return denied("content_release_prepare_forbidden");
+    }
+    if (
+      (body.action === "make_visible" ||
+        body.action === "prepare_publication" ||
+        body.action === "retract_visibility") &&
+      !organizationEntitlementAllowsScope(readModel.entitlementSummary, "public_share")
+    ) {
+      return denied("content_release_public_share_scope_forbidden");
     }
     if (
       (body.action === "make_visible" ||
@@ -162,6 +179,8 @@ export async function POST(req: NextRequest) {
         ? 404
         : message === "content_release_prepare_forbidden" ||
             message === "content_release_membership_write_forbidden" ||
+            message === "content_release_entitlement_scope_forbidden" ||
+            message === "content_release_public_share_scope_forbidden" ||
             message === "content_release_visibility_membership_forbidden" ||
             message === "content_release_visibility_forbidden" ||
             message === "content_release_archive_forbidden"
