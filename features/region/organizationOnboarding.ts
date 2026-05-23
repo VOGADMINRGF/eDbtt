@@ -7,11 +7,27 @@ export const VERIFICATION_STATUSES = [
   "organization_verified",
   "unit_verified",
   "publication_approved",
+  "limited",
+  "suspended",
   "rejected",
   "revoked",
 ] as const;
 
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+
+export const DIRECTORY_VERIFICATION_STATUSES = [
+  "none",
+  "pending",
+  "evidence_required",
+  "operator_review_required",
+  "verified",
+  "limited",
+  "suspended",
+  "revoked",
+] as const;
+
+export type DirectoryVerificationStatus =
+  (typeof DIRECTORY_VERIFICATION_STATUSES)[number];
 
 export const ADMINISTRATIVE_REGION_TYPES = [
   "country",
@@ -236,6 +252,7 @@ export const ORGANIZATION_PROVISIONING_STATUSES = [
   "verification_required",
   "operator_review_required",
   "approved",
+  "limited",
   "rejected",
   "suspended",
 ] as const;
@@ -248,6 +265,7 @@ export const ORGANIZATION_PROVISIONING_DECISIONS = [
   "submit",
   "request_verification",
   "approve",
+  "limit",
   "reject",
   "suspend",
 ] as const;
@@ -324,6 +342,8 @@ export const VERIFICATION_REVIEW_DECISIONS = [
   "approve_organization",
   "approve_unit",
   "approve_publication",
+  "limit",
+  "suspend",
   "reject",
   "revoke",
   "needs_more_information",
@@ -351,9 +371,12 @@ export type VerificationReview = z.infer<typeof VerificationReviewSchema>;
 export const MEMBERSHIP_AUDIT_EVENT_TYPES = [
   "claim_created",
   "claim_reviewed",
-  "membership_created",
-  "membership_updated",
+  "membership_verified",
+  "membership_limited",
+  "membership_suspended",
   "membership_revoked",
+  "role_granted",
+  "region_granted",
 ] as const;
 
 export type MembershipAuditEventType = (typeof MEMBERSHIP_AUDIT_EVENT_TYPES)[number];
@@ -369,6 +392,23 @@ export const MembershipAuditEventSchema = z
     eventType: z.enum(MEMBERSHIP_AUDIT_EVENT_TYPES),
     verificationStatus: z.enum(VERIFICATION_STATUSES),
     note: z.string().trim().min(1).nullable().optional(),
+    reason: z.string().trim().min(1).nullable().optional(),
+    evidenceReference: z.string().trim().min(1).nullable().optional(),
+    regionCode: z.string().trim().min(1).nullable().optional(),
+    grantedRole: z.string().trim().min(1).nullable().optional(),
+    grantedBy: z.string().trim().min(1).nullable().optional(),
+    grantedAt: z.string().datetime({ offset: true }).nullable().optional(),
+    source: z
+      .enum([
+        "session",
+        "persistent_membership_store",
+        "operator_verified_directory",
+        "external_directory_integrated",
+        "external_directory_pending",
+        "fixture_demo",
+      ])
+      .default("operator_verified_directory"),
+    confidence: z.enum(["high", "admin_fallback", "limited"]).default("high"),
     createdBy: z.string().trim().min(1),
     createdAt: z.string().datetime({ offset: true }),
   })
@@ -422,6 +462,8 @@ export function allowedActionsForVerificationStatus(
   status: VerificationStatus,
 ): OnboardingAllowedAction[] {
   switch (status) {
+    case "limited":
+      return ["read_region_dashboard"];
     case "organization_verified":
       return [
         "read_region_dashboard",
@@ -520,10 +562,14 @@ export function inferProvisioningStatusFromVerificationStatus(
   status: VerificationStatus,
 ): OrganizationProvisioningStatus {
   switch (status) {
+    case "limited":
+      return "limited";
     case "organization_verified":
     case "unit_verified":
     case "publication_approved":
       return "approved";
+    case "suspended":
+      return "suspended";
     case "rejected":
       return "rejected";
     case "revoked":
@@ -535,6 +581,81 @@ export function inferProvisioningStatusFromVerificationStatus(
     case "unverified":
     default:
       return "draft";
+  }
+}
+
+export function isVerificationAuditBacked(input: {
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  revokedAt?: string | null;
+}): boolean {
+  return Boolean(
+    (input.reviewedBy && input.reviewedAt) ||
+      (input.verifiedBy && input.verifiedAt) ||
+      input.revokedAt,
+  );
+}
+
+export function normalizeDirectoryVerificationStatus(input: {
+  verificationStatus: VerificationStatus | null | undefined;
+  provisioningStatus?: OrganizationProvisioningStatus | null;
+  hasRequiredEvidence?: boolean;
+  revokedAt?: string | null;
+  expiresAt?: string | null;
+}): DirectoryVerificationStatus {
+  if (!input.verificationStatus) return "none";
+  if (input.revokedAt || input.verificationStatus === "revoked") return "revoked";
+  if (input.expiresAt && Date.parse(input.expiresAt) <= Date.now()) return "suspended";
+
+  switch (input.verificationStatus) {
+    case "suspended":
+      return "suspended";
+    case "limited":
+      return "limited";
+    case "organization_verified":
+    case "unit_verified":
+    case "publication_approved":
+      return "verified";
+    case "pending_review":
+      return input.provisioningStatus === "operator_review_required"
+        ? "operator_review_required"
+        : "pending";
+    case "email_verified":
+    case "rejected":
+    case "unverified":
+      return input.provisioningStatus === "operator_review_required"
+        ? "operator_review_required"
+        : input.hasRequiredEvidence
+          ? "pending"
+          : "evidence_required";
+    default:
+      return "pending";
+  }
+}
+
+export function directoryVerificationStatusLabel(
+  status: DirectoryVerificationStatus,
+): string {
+  switch (status) {
+    case "pending":
+      return "Prüfung läuft";
+    case "evidence_required":
+      return "Nachweis einreichen";
+    case "operator_review_required":
+      return "Betreiberprüfung läuft";
+    case "verified":
+      return "Freigeschaltet";
+    case "limited":
+      return "Eingeschränkt";
+    case "suspended":
+      return "Gesperrt";
+    case "revoked":
+      return "Widerrufen";
+    case "none":
+    default:
+      return "Noch kein Verifikationsstatus";
   }
 }
 

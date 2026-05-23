@@ -8,6 +8,9 @@ import {
   type OrganizationMembership,
   type RegionAccessContext,
 } from "@features/region";
+import {
+  buildMembershipDirectorySummary,
+} from "./membershipDirectoryRepository";
 import type {
   MembershipDirectoryAdapter,
   MembershipDirectoryRepository,
@@ -81,12 +84,17 @@ function createDefaultMembershipDirectoryRepository(): MembershipDirectoryReposi
         memberships.map((membership) => membership.organizationId),
       );
       const source = defaultDirectorySource();
-      return {
+      const record: MembershipDirectoryRuntimeRecord = {
         memberships,
         organizations,
         sourceOfTruth: source.sourceOfTruth,
         confidence: memberships.length > 0 ? "high" : "limited",
         runtimeMarker: source.runtimeMarker,
+      };
+      const summary = buildMembershipDirectorySummary(record);
+      return {
+        ...record,
+        sourceOfTruth: summary.sourceOfTruth,
       };
     },
 
@@ -103,7 +111,10 @@ function createDefaultMembershipDirectoryRepository(): MembershipDirectoryReposi
         });
         return {
           regionAccess,
-          sourceOfTruth: source.sourceOfTruth,
+          sourceOfTruth:
+            input.organizationIds && input.organizationIds.length > 0 && source.sourceOfTruth !== "fixture_demo"
+              ? "operator_verified_directory"
+              : source.sourceOfTruth,
           confidence: input.isOperatorMode ? "admin_fallback" : "high",
           runtimeMarker: source.runtimeMarker,
         };

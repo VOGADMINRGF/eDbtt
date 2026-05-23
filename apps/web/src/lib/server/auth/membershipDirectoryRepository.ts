@@ -3,10 +3,16 @@ import type {
   OrganizationMembership,
   RegionAccessContext,
 } from "@features/region";
+import {
+  isVerificationAuditBacked,
+  normalizeDirectoryVerificationStatus,
+} from "@features/region";
 
 export type RequestScopeSourceOfTruth =
   | "session"
   | "persistent_membership_store"
+  | "operator_verified_directory"
+  | "external_directory_integrated"
   | "external_directory_pending"
   | "fixture_demo";
 
@@ -17,7 +23,15 @@ export type RequestScopeRuntimeMarker =
   | "demo_or_test_runtime"
   | "external_directory_pending";
 
-export type MembershipStatus = "none" | "pending" | "verified" | "suspended" | "revoked";
+export type MembershipStatus =
+  | "none"
+  | "pending"
+  | "evidence_required"
+  | "operator_review_required"
+  | "verified"
+  | "limited"
+  | "suspended"
+  | "revoked";
 
 export type OrganizationMembershipRole =
   | "owner"
@@ -34,6 +48,15 @@ export type MembershipDirectoryRuntimeRecord = {
   sourceOfTruth: RequestScopeSourceOfTruth;
   confidence: RequestScopeConfidence;
   runtimeMarker: RequestScopeRuntimeMarker;
+};
+
+export type MembershipDirectorySummary = {
+  sourceOfTruth: RequestScopeSourceOfTruth;
+  confidence: RequestScopeConfidence;
+  runtimeMarker: RequestScopeRuntimeMarker;
+  auditBacked: boolean;
+  productionTruth: boolean;
+  membershipStatus: MembershipStatus;
 };
 
 export type RegionAccessRuntimeRecord = {
@@ -69,32 +92,42 @@ export function normalizeMembershipStatus(
   membership: OrganizationMembership | null | undefined,
 ): MembershipStatus {
   if (!membership) return "none";
-  if (membership.revokedAt || membership.verificationStatus === "revoked" || membership.verificationStatus === "rejected") {
+  if (
+    membership.revokedAt ||
+    membership.verificationStatus === "revoked" ||
+    membership.verificationStatus === "rejected"
+  ) {
     return "revoked";
   }
-  if (isMembershipExpired(membership)) {
+  if (
+    isMembershipExpired(membership) ||
+    membership.verificationStatus === "suspended"
+  ) {
     return "suspended";
   }
-  if (
-    membership.verificationStatus === "organization_verified" ||
-    membership.verificationStatus === "unit_verified" ||
-    membership.verificationStatus === "publication_approved"
-  ) {
-    return "verified";
-  }
-  return "pending";
+  return normalizeDirectoryVerificationStatus({
+    verificationStatus: membership.verificationStatus,
+    revokedAt: membership.revokedAt ?? null,
+    expiresAt: membership.expiresAt ?? null,
+  });
 }
 
 export function membershipStatusRank(status: MembershipStatus): number {
   switch (status) {
     case "verified":
+      return 60;
+    case "limited":
       return 50;
-    case "pending":
+    case "operator_review_required":
       return 40;
-    case "suspended":
+    case "pending":
+      return 35;
+    case "evidence_required":
       return 30;
-    case "revoked":
+    case "suspended":
       return 20;
+    case "revoked":
+      return 10;
     case "none":
     default:
       return 0;
@@ -105,7 +138,13 @@ export function mapMembershipToOrganizationRole(
   membership: OrganizationMembership | null | undefined,
 ): OrganizationMembershipRole | null {
   if (!membership) return null;
-  if (normalizeMembershipStatus(membership) === "revoked" || normalizeMembershipStatus(membership) === "suspended") {
+  if (
+    normalizeMembershipStatus(membership) === "revoked" ||
+    normalizeMembershipStatus(membership) === "suspended" ||
+    normalizeMembershipStatus(membership) === "evidence_required" ||
+    normalizeMembershipStatus(membership) === "operator_review_required" ||
+    normalizeMembershipStatus(membership) === "pending"
+  ) {
     return null;
   }
   if (
@@ -177,7 +216,13 @@ export function collectCurrentOrganizationIds(
   return uniqueNonEmpty(
     memberships.flatMap((membership) => {
       const status = normalizeMembershipStatus(membership);
-      return status === "pending" || status === "verified" ? [membership.organizationId] : [];
+      return status === "pending" ||
+        status === "evidence_required" ||
+        status === "operator_review_required" ||
+        status === "verified" ||
+        status === "limited"
+        ? [membership.organizationId]
+        : [];
     }),
   );
 }
@@ -187,7 +232,10 @@ export function collectVerifiedOrganizationIds(
 ): string[] {
   return uniqueNonEmpty(
     memberships.flatMap((membership) =>
-      normalizeMembershipStatus(membership) === "verified" ? [membership.organizationId] : [],
+      normalizeMembershipStatus(membership) === "verified" ||
+      normalizeMembershipStatus(membership) === "limited"
+        ? [membership.organizationId]
+        : [],
     ),
   );
 }
@@ -221,16 +269,73 @@ export function hasPublicationVisibilityAccess(input: {
   return input.membershipStatus === "verified" && input.organizationRole === "publication_approved";
 }
 
-export function isProductionMembershipTruth(sourceOfTruth: RequestScopeSourceOfTruth): boolean {
-  return sourceOfTruth === "persistent_membership_store";
+export function isMembershipAuditBacked(
+  membership: OrganizationMembership | null | undefined,
+): boolean {
+  if (!membership) return false;
+  return isVerificationAuditBacked({
+    verifiedBy: membership.verifiedBy,
+    verifiedAt: membership.verifiedAt,
+    revokedAt: membership.revokedAt,
+  });
+}
+
+export function buildMembershipDirectorySummary(
+  record: MembershipDirectoryRuntimeRecord,
+): MembershipDirectorySummary {
+  const primaryMembership = pickPrimaryMembership(record.memberships);
+  const auditBacked = record.memberships.some((membership) =>
+    isMembershipAuditBacked(membership),
+  );
+  const sourceOfTruth =
+    record.runtimeMarker === "demo_or_test_runtime" || record.sourceOfTruth === "fixture_demo"
+      ? "fixture_demo"
+      : record.sourceOfTruth === "external_directory_integrated" ||
+          record.sourceOfTruth === "external_directory_pending"
+        ? record.sourceOfTruth
+        : auditBacked
+          ? "operator_verified_directory"
+          : record.sourceOfTruth;
+
+  return {
+    sourceOfTruth,
+    confidence: record.confidence,
+    runtimeMarker: record.runtimeMarker,
+    auditBacked,
+    productionTruth: isProductionMembershipTruth({
+      sourceOfTruth,
+      auditBacked,
+      membershipStatus: normalizeMembershipStatus(primaryMembership),
+    }),
+    membershipStatus: normalizeMembershipStatus(primaryMembership),
+  };
+}
+
+export function isProductionMembershipTruth(input: {
+  sourceOfTruth: RequestScopeSourceOfTruth;
+  auditBacked?: boolean;
+  membershipStatus?: MembershipStatus;
+}): boolean {
+  if (input.sourceOfTruth === "fixture_demo") return false;
+  if (input.sourceOfTruth === "external_directory_pending") return false;
+  if (input.sourceOfTruth === "operator_verified_directory") return true;
+  if (input.sourceOfTruth === "external_directory_integrated") return true;
+  if (input.sourceOfTruth === "persistent_membership_store") {
+    return Boolean(input.auditBacked);
+  }
+  return false;
 }
 
 export function sourceOfTruthLabel(sourceOfTruth: RequestScopeSourceOfTruth): string {
   switch (sourceOfTruth) {
+    case "operator_verified_directory":
+      return "Betreiber-verifiziertes Directory";
+    case "external_directory_integrated":
+      return "Externe Directory-Integration";
     case "persistent_membership_store":
       return "Persistenter Membership-Store";
     case "external_directory_pending":
-      return "Directory-Anbindung ausstehend";
+      return "Externe Directory-Anbindung ausstehend";
     case "fixture_demo":
       return "Demo- oder Testwahrheit";
     case "session":
@@ -242,11 +347,17 @@ export function sourceOfTruthLabel(sourceOfTruth: RequestScopeSourceOfTruth): st
 export function membershipStatusLabel(status: MembershipStatus): string {
   switch (status) {
     case "verified":
-      return "Verifiziert";
+      return "Freigeschaltet";
+    case "limited":
+      return "Eingeschränkt";
+    case "evidence_required":
+      return "Nachweis einreichen";
+    case "operator_review_required":
+      return "Betreiberprüfung läuft";
     case "pending":
-      return "In Prüfung";
+      return "Prüfung läuft";
     case "suspended":
-      return "Ausgesetzt";
+      return "Gesperrt";
     case "revoked":
       return "Widerrufen";
     case "none":

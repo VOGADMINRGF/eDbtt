@@ -10,11 +10,15 @@ import {
 function decisionLabel(decision: VerificationReviewDecision) {
   switch (decision) {
     case "approve_organization":
-      return "Organisation bestätigen";
+      return "Verifizieren";
     case "approve_unit":
-      return "Einheit bestätigen";
+      return "Wirkraum verifizieren";
     case "approve_publication":
-      return "Publikationsfreigabe";
+      return "Publikation freigeben";
+    case "limit":
+      return "Einschränken";
+    case "suspend":
+      return "Suspendieren";
     case "reject":
       return "Ablehnen";
     case "revoke":
@@ -30,13 +34,15 @@ function provisioningStatusLabel(claim: OrganizationClaim) {
     case "draft":
       return "Antrag gestartet";
     case "submitted":
-      return "Eingereicht";
+      return "Prüfung läuft";
     case "verification_required":
       return "Nachweise nachreichen";
     case "operator_review_required":
-      return "Entscheidungsreif";
+      return "Betreiberprüfung läuft";
     case "approved":
       return "Freigeschaltet";
+    case "limited":
+      return "Eingeschränkt";
     case "rejected":
       return "Abgelehnt";
     case "suspended":
@@ -50,6 +56,8 @@ const DECISIONS: VerificationReviewDecision[] = [
   "approve_organization",
   "approve_unit",
   "approve_publication",
+  "limit",
+  "suspend",
   "needs_more_information",
   "reject",
   "revoke",
@@ -100,6 +108,10 @@ export function AdminOrganizationClaimsClient({ initialClaims }: Props) {
     <div className="space-y-4">
       {notice ? <p className="text-sm text-emerald-700">{notice}</p> : null}
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
+      <p className="text-xs text-[rgb(var(--muted))]">
+        Betreiberentscheidungen sind persistent und auditierbar. `publication_approved` und
+        `public_official` entstehen nie automatisch.
+      </p>
 
       {claims.length === 0 ? (
         <p className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
@@ -123,6 +135,10 @@ export function AdminOrganizationClaimsClient({ initialClaims }: Props) {
                   </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     Provisioning-Status: {provisioningStatusLabel(claim)}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Audit-Hinweis: Entscheidungen werden mit Quelle, Rolle und Regionscope
+                    protokolliert.
                   </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     Standort optional: {claim.optionalLocation?.name ?? "nicht gesetzt"}

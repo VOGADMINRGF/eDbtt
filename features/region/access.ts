@@ -165,7 +165,8 @@ function deriveVerifiedRegionIdsFromMemberships(
         !membershipIsActive(membership) ||
         membership.verificationStatus !== "organization_verified" &&
         membership.verificationStatus !== "unit_verified" &&
-        membership.verificationStatus !== "publication_approved"
+        membership.verificationStatus !== "publication_approved" &&
+        membership.verificationStatus !== "limited"
       ) {
         return [];
       }
@@ -186,6 +187,8 @@ function resolveHighestVerificationStatus(
     "publication_approved",
     "unit_verified",
     "organization_verified",
+    "limited",
+    "suspended",
     "email_verified",
     "pending_review",
     "unverified",

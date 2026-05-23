@@ -42,6 +42,7 @@ import {
 } from "../reviewQueue";
 import { listUnifiedAuditEvents, type UnifiedAuditEvent } from "../unifiedAuditReadside";
 import type {
+  DirectoryVerificationStatus,
   Organization,
   OrganizationClaim,
   OrganizationMembership,
@@ -51,7 +52,9 @@ import type {
   VerificationStatus,
 } from "./organizationOnboarding";
 import {
+  isVerificationAuditBacked,
   inferProvisioningRequestFromClaim,
+  normalizeDirectoryVerificationStatus,
   resolveProvisioningRequestStatus,
 } from "./organizationOnboarding";
 import {
@@ -133,6 +136,24 @@ export type OrganizationDashboardMembershipStatus = {
   verifiedMemberships: number;
   pendingClaims: number;
   highestVerificationStatus: VerificationStatus | "none" | "admin_fallback";
+};
+
+export type OrganizationDashboardDirectorySummary = {
+  sourceOfTruth:
+    | "session"
+    | "persistent_membership_store"
+    | "operator_verified_directory"
+    | "external_directory_integrated"
+    | "external_directory_pending"
+    | "fixture_demo";
+  confidence: "high" | "admin_fallback" | "limited";
+  runtimeMarker:
+    | "production_runtime"
+    | "demo_or_test_runtime"
+    | "external_directory_pending";
+  productionTruth: boolean;
+  auditBacked: boolean;
+  verificationStatus: DirectoryVerificationStatus;
 };
 
 export type OrganizationDashboardProvisioningSummary = {
@@ -309,6 +330,7 @@ export type OrganizationDashboardReadModel = {
   organizationType: OrganizationType | null;
   verificationStatus: VerificationStatus | "none" | "admin_fallback";
   membershipStatus: OrganizationDashboardMembershipStatus;
+  directorySummary: OrganizationDashboardDirectorySummary;
   provisioningSummary: OrganizationDashboardProvisioningSummary;
   materialIntakeSummary: MaterialIntakeDashboardSummary;
   sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
@@ -382,7 +404,8 @@ function isVerifiedMembershipStatus(
   return (
     status === "organization_verified" ||
     status === "unit_verified" ||
-    status === "publication_approved"
+    status === "publication_approved" ||
+    status === "limited"
   );
 }
 
@@ -402,10 +425,14 @@ function verificationRank(status: VerificationStatus | "none" | "admin_fallback"
       return 60;
     case "organization_verified":
       return 50;
+    case "limited":
+      return 45;
     case "email_verified":
       return 40;
     case "pending_review":
       return 30;
+    case "suspended":
+      return 15;
     case "unverified":
       return 20;
     case "rejected":
@@ -552,12 +579,27 @@ function buildProvisioningRequestView(
 
 function buildProvisioningSummary(input: {
   claims: OrganizationClaim[];
+  memberships: OrganizationMembership[];
   verifiedMemberships: OrganizationMembership[];
 }): OrganizationDashboardProvisioningSummary {
   const requests = input.claims.map((claim) => buildProvisioningRequestView(claim));
   const latestRequest = requests[0] ?? null;
+  const hasLimitedMembership = input.memberships.some(
+    (membership) =>
+      isMembershipActive(membership) && membership.verificationStatus === "limited",
+  );
+  const hasSuspendedMembership = input.memberships.some(
+    (membership) =>
+      membership.verificationStatus === "suspended" ||
+      membership.verificationStatus === "revoked" ||
+      Boolean(membership.revokedAt),
+  );
   const currentStatus =
-    input.verifiedMemberships.length > 0
+    hasSuspendedMembership
+      ? "suspended"
+      : hasLimitedMembership
+        ? "limited"
+      : input.verifiedMemberships.length > 0
       ? "approved"
       : latestRequest?.status ?? "none";
   const operatorReviewRequired = requests.some(
@@ -626,6 +668,18 @@ function buildProvisioningSummary(input: {
         storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
         productionTruth,
       };
+    case "limited":
+      return {
+        currentStatus,
+        latestRequest,
+        requests,
+        operatorReviewRequired,
+        nextStepTitle: "Eingeschränkt",
+        nextStepBody:
+          "Der Organisationszugang ist bewusst eingeschränkt. Leserechte oder enge Basisscopes können aktiv bleiben; Moderation, Veröffentlichung und größere Schreibpfade bleiben bewusst begrenzt.",
+        storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
+        productionTruth,
+      };
     case "rejected":
       return {
         currentStatus,
@@ -664,6 +718,79 @@ function buildProvisioningSummary(input: {
         productionTruth,
       };
   }
+}
+
+function buildDirectorySummary(input: {
+  isAdmin: boolean;
+  claims: OrganizationClaim[];
+  memberships: OrganizationMembership[];
+}): OrganizationDashboardDirectorySummary {
+  const runtimeMarker = shouldUseInMemoryMongoFallback()
+    ? "demo_or_test_runtime"
+    : "production_runtime";
+  if (input.isAdmin) {
+    return {
+      sourceOfTruth: "session",
+      confidence: "admin_fallback",
+      runtimeMarker,
+      productionTruth: false,
+      auditBacked: false,
+      verificationStatus: "verified",
+    };
+  }
+
+  const sortedMemberships = [...input.memberships].sort(
+    (left, right) => verificationRank(right.verificationStatus) - verificationRank(left.verificationStatus),
+  );
+  const primaryMembership = sortedMemberships[0] ?? null;
+  const latestClaim = input.claims[0] ?? null;
+  const latestClaimStatus = latestClaim ? buildProvisioningRequestView(latestClaim).status : null;
+  const auditBacked =
+    input.memberships.some((membership) =>
+      isVerificationAuditBacked({
+        verifiedBy: membership.verifiedBy,
+        verifiedAt: membership.verifiedAt,
+        revokedAt: membership.revokedAt,
+      }),
+    ) ||
+    input.claims.some((claim) =>
+      isVerificationAuditBacked({
+        reviewedBy: claim.reviewedBy,
+        reviewedAt: claim.reviewedAt,
+      }),
+    );
+
+  const verificationStatus = primaryMembership
+    ? normalizeDirectoryVerificationStatus({
+        verificationStatus: primaryMembership.verificationStatus,
+        revokedAt: primaryMembership.revokedAt ?? null,
+        expiresAt: primaryMembership.expiresAt ?? null,
+      })
+    : latestClaim
+      ? normalizeDirectoryVerificationStatus({
+          verificationStatus: latestClaim.verificationStatus,
+          provisioningStatus: latestClaimStatus,
+          hasRequiredEvidence: latestClaimStatus === "operator_review_required",
+        })
+      : "none";
+
+  const sourceOfTruth =
+    runtimeMarker === "demo_or_test_runtime"
+      ? "fixture_demo"
+      : auditBacked
+        ? "operator_verified_directory"
+        : input.memberships.length > 0 || input.claims.length > 0
+          ? "persistent_membership_store"
+          : "session";
+
+  return {
+    sourceOfTruth,
+    confidence: input.memberships.length > 0 || input.claims.length > 0 ? "high" : "limited",
+    runtimeMarker,
+    productionTruth: sourceOfTruth === "operator_verified_directory",
+    auditBacked,
+    verificationStatus,
+  };
 }
 
 function sourceConnectionPriority(status: SourceConnectionStatus | undefined): number {
@@ -1538,7 +1665,13 @@ export async function buildOrganizationDashboardReadModel(input: {
   });
   const provisioningSummary = buildProvisioningSummary({
     claims,
+    memberships: activeMemberships,
     verifiedMemberships,
+  });
+  const directorySummary = buildDirectorySummary({
+    isAdmin: input.isAdmin,
+    claims,
+    memberships: activeMemberships,
   });
   const allowedActions = uniqueNonEmpty([
     ...(input.isAdmin ? REGION_ALLOWED_ACTIONS : []),
@@ -1720,6 +1853,7 @@ export async function buildOrganizationDashboardReadModel(input: {
       pendingClaims: pendingClaims.length,
       highestVerificationStatus: verificationStatus,
     },
+    directorySummary,
     provisioningSummary,
     materialIntakeSummary,
     sourceConnectionSummary,

@@ -249,7 +249,7 @@ describe("/api/account/organization/review/content-release", () => {
     expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
   });
 
-  it("blocks content release writes for pending or non-writing memberships", async () => {
+  it("blocks content release writes for evidence-required or non-writing memberships", async () => {
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       actor: {
         userId: "user-1",
@@ -258,7 +258,7 @@ describe("/api/account/organization/review/content-release", () => {
       },
       roles: ["user"],
       requestScope: buildRequestScope({
-        membershipStatus: "pending",
+        membershipStatus: "evidence_required",
         organizationRole: "reviewer",
       }),
     });
@@ -288,7 +288,7 @@ describe("/api/account/organization/review/content-release", () => {
       ],
     });
 
-    const pendingResponse = await POST(
+    const evidenceRequiredResponse = await POST(
       new NextRequest("http://localhost/api/account/organization/review/content-release", {
         method: "POST",
         body: JSON.stringify({
@@ -301,7 +301,7 @@ describe("/api/account/organization/review/content-release", () => {
       }),
     );
 
-    expect(pendingResponse.status).toBe(403);
+    expect(evidenceRequiredResponse.status).toBe(403);
     expect(mocks.prepareContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
 
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({

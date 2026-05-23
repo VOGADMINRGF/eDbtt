@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import {
   getRegionOrganizationRuntimeRepo,
+  normalizeDirectoryVerificationStatus,
   mapOrganizationTypeToProvisioningKind,
   mapProvisioningKindToOrganizationType,
   ORGANIZATION_TYPES,
@@ -138,6 +139,12 @@ export async function POST(req: NextRequest) {
         ok: true,
         claimId: claim.id,
         verificationStatus: claim.verificationStatus,
+        directoryVerificationStatus: normalizeDirectoryVerificationStatus({
+          verificationStatus: claim.verificationStatus,
+          provisioningStatus: claim.provisioningRequest?.status ?? null,
+          hasRequiredEvidence:
+            claim.provisioningRequest?.status === "operator_review_required",
+        }),
         provisioningRequest: claim.provisioningRequest ?? null,
         noAutoAuthority: claim.noAutoAuthority,
       },

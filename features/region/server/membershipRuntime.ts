@@ -158,6 +158,10 @@ function nextStatusForDecision(decision: VerificationReviewDecision): Verificati
       return "unit_verified";
     case "approve_publication":
       return "publication_approved";
+    case "limit":
+      return "limited";
+    case "suspend":
+      return "suspended";
     case "reject":
       return "rejected";
     case "revoke":
@@ -179,16 +183,22 @@ function nextProvisioningRequestFromReview(input: {
   const status =
     input.decision === "reject"
       ? "rejected"
-      : input.decision === "revoke"
+      : input.decision === "suspend" || input.decision === "revoke"
         ? "suspended"
+        : input.decision === "limit"
+          ? "limited"
         : input.decision === "needs_more_information"
           ? "verification_required"
           : "approved";
   const latestDecision =
     input.decision === "reject"
       ? "reject"
+      : input.decision === "limit"
+        ? "limit"
       : input.decision === "revoke"
         ? "suspend"
+        : input.decision === "suspend"
+          ? "suspend"
         : input.decision === "needs_more_information"
           ? "request_verification"
           : "approve";
@@ -446,7 +456,16 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
       const docs = await claims
         .find({
           "claim.verificationStatus": {
-            $in: ["pending_review", "email_verified", "organization_verified", "unit_verified"],
+            $in: [
+              "pending_review",
+              "email_verified",
+              "organization_verified",
+              "unit_verified",
+              "publication_approved",
+              "limited",
+              "suspended",
+              "revoked",
+            ],
           },
         })
         .sort({ createdAt: -1 })
@@ -480,7 +499,8 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
         if (
           membership.verificationStatus !== "organization_verified" &&
           membership.verificationStatus !== "unit_verified" &&
-          membership.verificationStatus !== "publication_approved"
+          membership.verificationStatus !== "publication_approved" &&
+          membership.verificationStatus !== "limited"
         ) {
           return false;
         }
@@ -512,7 +532,10 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
       const nextStatus = nextStatusForDecision(input.decision);
       const nowIso = isoNow();
 
-      if (input.decision === "reject" || input.decision === "needs_more_information") {
+      if (
+        input.decision === "reject" ||
+        input.decision === "needs_more_information"
+      ) {
         return null;
       }
 
@@ -634,6 +657,8 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
             ? input.note ?? existingClaim.rejectionReason ?? null
             : input.decision === "revoke"
               ? input.note ?? "revoked_by_admin"
+              : input.decision === "suspend"
+                ? input.note ?? "suspended_by_admin"
               : null,
       });
       await claims.updateOne(
@@ -676,6 +701,14 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
         eventType: "claim_reviewed",
         verificationStatus: claim.verificationStatus,
         note: input.note ?? null,
+        reason: input.note ?? null,
+        evidenceReference: claim.evidence.website ?? null,
+        regionCode: membership?.regionId ?? claim.regionId ?? null,
+        grantedRole: membership?.roleType ?? null,
+        grantedBy: input.reviewedBy,
+        grantedAt: reviewedAt,
+        source: "operator_verified_directory",
+        confidence: "high",
         createdBy: input.reviewedBy,
         createdAt: reviewedAt,
       });
@@ -693,16 +726,82 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
           eventType:
             input.decision === "revoke"
               ? "membership_revoked"
-              : membership.createdAt === membership.updatedAt
-                ? "membership_created"
-                : "membership_updated",
+              : input.decision === "suspend"
+                ? "membership_suspended"
+                : input.decision === "limit"
+                  ? "membership_limited"
+                  : "membership_verified",
           verificationStatus: membership.verificationStatus,
           note: input.note ?? null,
+          reason: input.note ?? null,
+          evidenceReference: claim.evidence.website ?? null,
+          regionCode: membership.regionId ?? null,
+          grantedRole: membership.roleType,
+          grantedBy: input.reviewedBy,
+          grantedAt: reviewedAt,
+          source: "operator_verified_directory",
+          confidence: "high",
           createdBy: input.reviewedBy,
           createdAt: reviewedAt,
         });
         auditEvents.push(membershipEvent);
         await appendAuditEventMongo(membershipEvent);
+
+        if (input.decision !== "revoke" && input.decision !== "suspend") {
+          const roleGrantEvent = parseMembershipAuditEvent({
+            id: new ObjectId().toHexString(),
+            membershipId: membership.id,
+            claimId: claim.id,
+            userId: membership.userId,
+            organizationId: membership.organizationId,
+            regionId: membership.regionId ?? null,
+            eventType: "role_granted",
+            verificationStatus: membership.verificationStatus,
+            note: membership.roleLabel,
+            reason: input.note ?? null,
+            evidenceReference: claim.evidence.website ?? null,
+            regionCode: membership.regionId ?? null,
+            grantedRole: membership.roleType,
+            grantedBy: input.reviewedBy,
+            grantedAt: reviewedAt,
+            source: "operator_verified_directory",
+            confidence: "high",
+            createdBy: input.reviewedBy,
+            createdAt: reviewedAt,
+          });
+          auditEvents.push(roleGrantEvent);
+          await appendAuditEventMongo(roleGrantEvent);
+        }
+
+        if (
+          membership.regionId &&
+          input.decision !== "revoke" &&
+          input.decision !== "suspend"
+        ) {
+          const regionGrantEvent = parseMembershipAuditEvent({
+            id: new ObjectId().toHexString(),
+            membershipId: membership.id,
+            claimId: claim.id,
+            userId: membership.userId,
+            organizationId: membership.organizationId,
+            regionId: membership.regionId,
+            eventType: "region_granted",
+            verificationStatus: membership.verificationStatus,
+            note: membership.organizationName,
+            reason: input.note ?? null,
+            evidenceReference: claim.evidence.website ?? null,
+            regionCode: membership.regionId,
+            grantedRole: membership.roleType,
+            grantedBy: input.reviewedBy,
+            grantedAt: reviewedAt,
+            source: "operator_verified_directory",
+            confidence: "high",
+            createdBy: input.reviewedBy,
+            createdAt: reviewedAt,
+          });
+          auditEvents.push(regionGrantEvent);
+          await appendAuditEventMongo(regionGrantEvent);
+        }
       }
 
       return { claim, membership, review, auditEvents };
@@ -744,6 +843,13 @@ export function createMongoRegionOrganizationRuntimeRepo(): RegionOrganizationRu
           eventType: "membership_revoked",
           verificationStatus: "revoked",
           note: note ?? null,
+          reason: note ?? null,
+          regionCode: membership.regionId ?? null,
+          grantedRole: membership.roleType,
+          grantedBy: reviewedBy,
+          grantedAt: updatedAt,
+          source: "operator_verified_directory",
+          confidence: "high",
           createdBy: reviewedBy,
           createdAt: updatedAt,
         }),
@@ -832,6 +938,9 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
         .filter((claim) =>
           ["pending_review", "email_verified", "organization_verified", "unit_verified"].includes(
             claim.verificationStatus,
+          ) ||
+          ["publication_approved", "limited", "suspended", "revoked"].includes(
+            claim.verificationStatus,
           ),
         )
         .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
@@ -855,7 +964,8 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
         if (
           membership.verificationStatus !== "organization_verified" &&
           membership.verificationStatus !== "unit_verified" &&
-          membership.verificationStatus !== "publication_approved"
+          membership.verificationStatus !== "publication_approved" &&
+          membership.verificationStatus !== "limited"
         ) {
           return false;
         }
@@ -1011,6 +1121,8 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
             ? input.note ?? existingClaim.rejectionReason ?? null
             : input.decision === "revoke"
               ? input.note ?? "revoked_by_admin"
+              : input.decision === "suspend"
+                ? input.note ?? "suspended_by_admin"
               : null,
       });
       claims.set(claim.id, clone(claim));
@@ -1038,6 +1150,14 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
         eventType: "claim_reviewed",
         verificationStatus: claim.verificationStatus,
         note: input.note ?? null,
+        reason: input.note ?? null,
+        evidenceReference: claim.evidence.website ?? null,
+        regionCode: membership?.regionId ?? claim.regionId ?? null,
+        grantedRole: membership?.roleType ?? null,
+        grantedBy: input.reviewedBy,
+        grantedAt: reviewedAt,
+        source: "operator_verified_directory",
+        confidence: "high",
         createdBy: input.reviewedBy,
         createdAt: reviewedAt,
       });
@@ -1054,16 +1174,82 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
           eventType:
             input.decision === "revoke"
               ? "membership_revoked"
-              : membership.createdAt === membership.updatedAt
-                ? "membership_created"
-                : "membership_updated",
+              : input.decision === "suspend"
+                ? "membership_suspended"
+                : input.decision === "limit"
+                  ? "membership_limited"
+                  : "membership_verified",
           verificationStatus: membership.verificationStatus,
           note: input.note ?? null,
+          reason: input.note ?? null,
+          evidenceReference: claim.evidence.website ?? null,
+          regionCode: membership.regionId ?? null,
+          grantedRole: membership.roleType,
+          grantedBy: input.reviewedBy,
+          grantedAt: reviewedAt,
+          source: "operator_verified_directory",
+          confidence: "high",
           createdBy: input.reviewedBy,
           createdAt: reviewedAt,
         });
         auditEvents.set(membershipEvent.id, clone(membershipEvent));
         events.push(membershipEvent);
+
+        if (input.decision !== "revoke" && input.decision !== "suspend") {
+          const roleGrantEvent = parseMembershipAuditEvent({
+            id: new ObjectId().toHexString(),
+            membershipId: membership.id,
+            claimId: claim.id,
+            userId: membership.userId,
+            organizationId: membership.organizationId,
+            regionId: membership.regionId ?? null,
+            eventType: "role_granted",
+            verificationStatus: membership.verificationStatus,
+            note: membership.roleLabel,
+            reason: input.note ?? null,
+            evidenceReference: claim.evidence.website ?? null,
+            regionCode: membership.regionId ?? null,
+            grantedRole: membership.roleType,
+            grantedBy: input.reviewedBy,
+            grantedAt: reviewedAt,
+            source: "operator_verified_directory",
+            confidence: "high",
+            createdBy: input.reviewedBy,
+            createdAt: reviewedAt,
+          });
+          auditEvents.set(roleGrantEvent.id, clone(roleGrantEvent));
+          events.push(roleGrantEvent);
+        }
+
+        if (
+          membership.regionId &&
+          input.decision !== "revoke" &&
+          input.decision !== "suspend"
+        ) {
+          const regionGrantEvent = parseMembershipAuditEvent({
+            id: new ObjectId().toHexString(),
+            membershipId: membership.id,
+            claimId: claim.id,
+            userId: membership.userId,
+            organizationId: membership.organizationId,
+            regionId: membership.regionId,
+            eventType: "region_granted",
+            verificationStatus: membership.verificationStatus,
+            note: membership.organizationName,
+            reason: input.note ?? null,
+            evidenceReference: claim.evidence.website ?? null,
+            regionCode: membership.regionId,
+            grantedRole: membership.roleType,
+            grantedBy: input.reviewedBy,
+            grantedAt: reviewedAt,
+            source: "operator_verified_directory",
+            confidence: "high",
+            createdBy: input.reviewedBy,
+            createdAt: reviewedAt,
+          });
+          auditEvents.set(regionGrantEvent.id, clone(regionGrantEvent));
+          events.push(regionGrantEvent);
+        }
       }
       return { claim, membership, review, auditEvents: events };
     },
@@ -1092,6 +1278,13 @@ export function createInMemoryRegionOrganizationRuntimeRepo(seed?: {
         eventType: "membership_revoked",
         verificationStatus: "revoked",
         note: note ?? null,
+        reason: note ?? null,
+        regionCode: membership.regionId ?? null,
+        grantedRole: membership.roleType,
+        grantedBy: reviewedBy,
+        grantedAt: updatedAt,
+        source: "operator_verified_directory",
+        confidence: "high",
         createdBy: reviewedBy,
         createdAt: updatedAt,
       });

@@ -37,6 +37,8 @@ function provisioningStatusLabel(status: OrganizationProvisioningStatus) {
       return "Betreiberprüfung läuft";
     case "approved":
       return "Freigeschaltet";
+    case "limited":
+      return "Eingeschränkt";
     case "rejected":
       return "Abgelehnt";
     case "suspended":
@@ -58,6 +60,8 @@ function nextStepLabel(status: OrganizationProvisioningStatus) {
       return "Der Antrag ist vollständig genug für die Betreiberprüfung. Bitte auf die Entscheidung warten.";
     case "approved":
       return "Org-Scoped Rechte entstehen nur im bestätigten Scope. `publication_approved` bleibt ein separater Schritt.";
+    case "limited":
+      return "Der Zugang ist bewusst eingeschränkt. Sichtbar bleiben nur die explizit freigegebenen Basisschritte.";
     case "rejected":
       return "Ein neuer oder korrigierter Antrag ist möglich, aber Rechte bleiben bis dahin gesperrt.";
     case "suspended":

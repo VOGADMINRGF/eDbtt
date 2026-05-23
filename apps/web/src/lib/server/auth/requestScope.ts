@@ -8,6 +8,7 @@ import {
 } from "@features/region";
 import type { SessionUser } from "./sessionUser";
 import {
+  buildMembershipDirectorySummary,
   collectCurrentOrganizationIds,
   collectVerifiedOrganizationIds,
   hasPublicationVisibilityAccess,
@@ -16,7 +17,6 @@ import {
   type OrganizationMembershipRole,
   pickPrimaryMembership,
   mapMembershipToOrganizationRole,
-  normalizeMembershipStatus,
   type RequestScopeConfidence,
   type RequestScopeRuntimeMarker,
   type RequestScopeSourceOfTruth,
@@ -144,15 +144,6 @@ function collectRoles(
   return uniqueNonEmpty([...direct, ...fallback]).map((value) => value.toLowerCase());
 }
 
-function deriveMembershipStatus(
-  isOperatorMode: boolean,
-  memberships: OrganizationMembership[],
-) : MembershipStatus {
-  if (isOperatorMode) return "verified";
-  const primaryMembership = pickPrimaryMembership(memberships);
-  return normalizeMembershipStatus(primaryMembership);
-}
-
 function deriveGovernanceRole(input: {
   roles: string[];
   isOperatorMode: boolean;
@@ -189,15 +180,18 @@ export async function resolveOrganizationMembershipForActor(
 
   try {
     const resolved = await getMembershipDirectoryRepository().listMembershipDirectoryForActor(input.actorId);
+    const summary = buildMembershipDirectorySummary(resolved);
     const memberships = resolved.memberships;
     const organizations = resolved.organizations;
     const primaryMembership = pickPrimaryMembership(memberships);
-    const membershipStatus = deriveMembershipStatus(false, memberships);
+    const membershipStatus = summary.membershipStatus;
     const organizationIds = collectCurrentOrganizationIds(memberships);
     const verifiedOrganizationIds = collectVerifiedOrganizationIds(memberships);
     return {
       organizationId:
-        membershipStatus === "pending" || membershipStatus === "verified"
+        membershipStatus !== "none" &&
+        membershipStatus !== "suspended" &&
+        membershipStatus !== "revoked"
           ? primaryMembership?.organizationId ?? null
           : null,
       organizationIds,
@@ -206,9 +200,9 @@ export async function resolveOrganizationMembershipForActor(
       membershipStatus,
       memberships,
       organizations,
-      sourceOfTruth: resolved.sourceOfTruth,
-      confidence: resolved.confidence,
-      runtimeMarker: resolved.runtimeMarker,
+      sourceOfTruth: summary.sourceOfTruth,
+      confidence: summary.confidence,
+      runtimeMarker: summary.runtimeMarker,
     };
   } catch {
     return {

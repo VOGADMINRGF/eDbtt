@@ -4,17 +4,15 @@ import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import {
   hasVerifiedMembershipWriteAccess,
-  isProductionMembershipTruth,
   mapMembershipToOrganizationRole,
   membershipStatusLabel,
-  normalizeMembershipStatus,
   pickPrimaryMembership,
   sourceOfTruthLabel,
   type OrganizationMembershipRole,
 } from "@/lib/server/auth/membershipDirectoryRepository";
-import { getMembershipDirectoryRepository } from "@/lib/server/auth/runtimeAdapters";
 import {
   buildOrganizationDashboardReadModel,
+  directoryVerificationStatusLabel,
   organizationEntitlementScopeLabel,
   organizationEntitlementStatusLabel,
   type OrganizationDashboardDraftSummary,
@@ -36,6 +34,10 @@ function verificationLabel(value: OrganizationDashboardReadModel["verificationSt
   switch (value) {
     case "publication_approved":
       return "Publikationsfreigabe bestätigt";
+    case "limited":
+      return "Eingeschränkt";
+    case "suspended":
+      return "Gesperrt";
     case "unit_verified":
       return "Unit-verifiziert";
     case "organization_verified":
@@ -126,13 +128,15 @@ function provisioningStatusLabel(
     case "draft":
       return "Antrag gestartet";
     case "submitted":
-      return "Eingereicht";
+      return "Prüfung läuft";
     case "verification_required":
       return "Prüfung erforderlich";
     case "operator_review_required":
       return "Betreiberprüfung läuft";
     case "approved":
       return "Freigeschaltet";
+    case "limited":
+      return "Eingeschränkt";
     case "rejected":
       return "Abgelehnt";
     case "suspended":
@@ -237,21 +241,12 @@ export default async function AccountOrganizationDashboardPage() {
     isAdmin,
     actorRole: isAdmin ? "admin" : null,
   });
-  const membershipDirectory = readModel.organization.isOperatorMode
-    ? {
-        memberships: [],
-        organizations: [],
-        sourceOfTruth: "session" as const,
-        confidence: "admin_fallback" as const,
-        runtimeMarker: "session",
-      }
-    : await getMembershipDirectoryRepository().listMembershipDirectoryForActor(userId);
   const primaryMembership = readModel.organization.isOperatorMode
     ? null
-    : pickPrimaryMembership(membershipDirectory.memberships);
+    : pickPrimaryMembership(readModel.verifiedMemberships);
   const normalizedMembershipStatus = readModel.organization.isOperatorMode
     ? "verified"
-    : normalizeMembershipStatus(primaryMembership);
+    : readModel.directorySummary.verificationStatus;
   const normalizedOrganizationRole = readModel.organization.isOperatorMode
     ? "operator"
     : mapMembershipToOrganizationRole(primaryMembership);
@@ -259,14 +254,20 @@ export default async function AccountOrganizationDashboardPage() {
     membershipStatus: normalizedMembershipStatus,
     organizationRole: normalizedOrganizationRole,
     isOperatorMode: readModel.organization.isOperatorMode,
-    sourceOfTruth: membershipDirectory.sourceOfTruth,
+    sourceOfTruth: readModel.directorySummary.sourceOfTruth,
   });
   const hasReadableRegion = readModel.regionSummary.some((entry) => entry.dashboardAccess);
   const accessBlockers = [
-    membershipDirectory.sourceOfTruth === "external_directory_pending"
+    readModel.directorySummary.sourceOfTruth === "external_directory_pending"
       ? {
           title: "Directory-Anbindung fehlt",
           body: "Die Membership-Wahrheit ist noch nicht produktiv angebunden. Der Organisationsbereich bleibt deshalb auf sichere Status- und Nächste-Schritte-Hinweise begrenzt.",
+        }
+      : null,
+    readModel.directorySummary.sourceOfTruth === "fixture_demo"
+      ? {
+          title: "Demo- oder Testwahrheit",
+          body: "Dieser Bereich läuft nicht auf belastbarer Produktionswahrheit. Betreiber-Verifikation und Audit sind damit nur als Test- oder Demospur sichtbar.",
         }
       : null,
     !readModel.organization.isOperatorMode && normalizedMembershipStatus !== "verified"
@@ -293,13 +294,17 @@ export default async function AccountOrganizationDashboardPage() {
       : null,
   ].filter(Boolean) as Array<{ title: string; body: string }>;
   const membershipTruthSummary =
-    membershipDirectory.sourceOfTruth === "persistent_membership_store"
-      ? "Membership und Organisationszuordnung kommen aus dem persistenten Store. Das ist produktionsnahe Scope-Wahrheit, aber noch keine externe Register- oder Directory-Integration."
-      : membershipDirectory.sourceOfTruth === "external_directory_pending"
-        ? "Die Directory-Auflösung ist noch nicht produktionsfähig. Dieser Zustand blockiert ehrliche `production_ready`-Aussagen für Auth / Membership / Directory."
-        : membershipDirectory.sourceOfTruth === "fixture_demo"
-          ? "Die Membership-Wahrheit kommt aus einer Demo- oder Test-Runtime. Das ist ausdrücklich keine produktive Source-of-truth."
-          : "Der Scope stammt nur aus dem Session-Kontext und ersetzt keine belastbare Membership-Wahrheit.";
+    readModel.directorySummary.sourceOfTruth === "operator_verified_directory"
+      ? "Betreiber-verifizierte Directory-Daten sind für v1 die autoritative, persistente und auditierbare Produktionswahrheit."
+      : readModel.directorySummary.sourceOfTruth === "persistent_membership_store"
+        ? "Die Daten liegen persistent vor, sind ohne audit-backed Betreiber-Verifikation aber noch keine belastbare Produktionswahrheit."
+        : readModel.directorySummary.sourceOfTruth === "external_directory_integrated"
+          ? "Eine externe Directory-Anbindung wäre ein späterer Zusatzpfad. Für v1 ist sie optional und nicht Voraussetzung für production_ready."
+          : readModel.directorySummary.sourceOfTruth === "external_directory_pending"
+            ? "Eine spätere externe Directory-Anbindung bleibt optional. Dieser Status ist sichtbar, aber nicht die v1-Produktionswahrheit."
+            : readModel.directorySummary.sourceOfTruth === "fixture_demo"
+              ? "Die Membership-Wahrheit kommt aus einer Demo- oder Test-Runtime. Das ist ausdrücklich keine produktive Source-of-truth."
+              : "Der Scope stammt nur aus dem Session-Kontext und ersetzt keine belastbare Membership-Wahrheit.";
   const operationsPersistence = readModel.reviewQueueOperationsPersistence ?? {
     mode: "in_memory_fallback",
     label: "In-Memory-Fallback",
@@ -420,7 +425,7 @@ export default async function AccountOrganizationDashboardPage() {
             <div>
               <p className="text-xs text-[rgb(var(--muted))]">Status</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                {verificationLabel(readModel.verificationStatus)}
+                {directoryVerificationStatusLabel(readModel.directorySummary.verificationStatus)}
               </p>
             </div>
             <div>
@@ -438,22 +443,34 @@ export default async function AccountOrganizationDashboardPage() {
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-              <p className="text-xs text-[rgb(var(--muted))]">Membership-Status</p>
+              <p className="text-xs text-[rgb(var(--muted))]">Verifikationsstatus</p>
               <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
                 {readModel.organization.isOperatorMode
                   ? "Betreiberkontext"
                   : membershipStatusLabel(normalizedMembershipStatus)}
               </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                {directoryVerificationStatusLabel(readModel.directorySummary.verificationStatus)}
+              </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <p className="text-xs text-[rgb(var(--muted))]">Directory-Wahrheit</p>
               <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-                {sourceOfTruthLabel(membershipDirectory.sourceOfTruth)}
+                {sourceOfTruthLabel(readModel.directorySummary.sourceOfTruth)}
               </p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                {isProductionMembershipTruth(membershipDirectory.sourceOfTruth)
-                  ? "Produktionsnahe Membership-Wahrheit"
+                {readModel.directorySummary.productionTruth
+                  ? "Produktionswahrheit v1"
                   : "Nicht als produktive Membership-Wahrheit werten"}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Confidence:{" "}
+                {readModel.directorySummary.confidence === "high"
+                  ? "hoch"
+                  : readModel.directorySummary.confidence === "admin_fallback"
+                    ? "Betreiberkontext"
+                    : "begrenzt"}
+                {readModel.directorySummary.auditBacked ? " · audit-backed" : ""}
               </p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">

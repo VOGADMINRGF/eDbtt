@@ -41,10 +41,14 @@ function inferProvisioningStatusFromVerificationStatus(
   status: OrganizationClaim["verificationStatus"],
 ): OrganizationProvisioningStatus {
   switch (status) {
+    case "limited":
+      return "limited";
     case "organization_verified":
     case "unit_verified":
     case "publication_approved":
       return "approved";
+    case "suspended":
+      return "suspended";
     case "rejected":
       return "rejected";
     case "revoked":

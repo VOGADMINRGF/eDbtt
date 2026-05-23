@@ -46,6 +46,7 @@ describe("/api/account/organization-claims", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       verificationStatus: "pending_review",
+      directoryVerificationStatus: "pending",
       provisioningRequest: expect.objectContaining({
         status: "submitted",
         latestDecision: "submit",
@@ -73,6 +74,7 @@ describe("/api/account/organization-claims", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       verificationStatus: "unverified",
+      directoryVerificationStatus: "evidence_required",
       provisioningRequest: expect.objectContaining({
         status: "draft",
         latestDecision: "save_draft",
@@ -100,6 +102,7 @@ describe("/api/account/organization-claims", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       verificationStatus: "pending_review",
+      directoryVerificationStatus: "pending",
       noAutoAuthority: true,
     });
   });

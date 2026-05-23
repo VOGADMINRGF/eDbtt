@@ -101,7 +101,12 @@ describe("request scope context resolver", () => {
       sourceOfTruth: "fixture_demo",
       runtimeMarker: "demo_or_test_runtime",
     });
-    expect(isProductionMembershipTruth(orgScope!.sourceOfTruth)).toBe(false);
+    expect(
+      isProductionMembershipTruth({
+        sourceOfTruth: orgScope!.sourceOfTruth,
+        auditBacked: false,
+      }),
+    ).toBe(false);
     expect(orgScope?.actor.governanceRole).toBe("institutional_actor");
     expect(orgScope?.regionIds).toContain("bezirk-berlin-reinickendorf");
     expect(orgScope?.sourceBreakdown).toMatchObject({
@@ -324,7 +329,7 @@ describe("request scope context resolver", () => {
     );
     expect(pendingScope).toMatchObject({
       membershipStatus: "pending",
-      organizationRole: "reviewer",
+      organizationRole: null,
       sourceOfTruth: "fixture_demo",
     });
     expect(requestScopeCanWriteOrganizationRoutes(pendingScope!)).toBe(false);

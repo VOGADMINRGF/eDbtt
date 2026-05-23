@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import {
   getRegionOrganizationRuntimeRepo,
+  normalizeDirectoryVerificationStatus,
   ONBOARDING_ALLOWED_ACTIONS,
   VERIFICATION_REVIEW_DECISIONS,
 } from "@features/region";
@@ -46,6 +47,14 @@ export async function POST(
       ok: true,
       claim: result.claim,
       membership: result.membership,
+      directoryVerificationStatus: normalizeDirectoryVerificationStatus({
+        verificationStatus: result.membership?.verificationStatus ?? result.claim.verificationStatus,
+        provisioningStatus: result.claim.provisioningRequest?.status ?? null,
+        hasRequiredEvidence:
+          result.claim.provisioningRequest?.status === "operator_review_required",
+        revokedAt: result.membership?.revokedAt ?? null,
+        expiresAt: result.membership?.expiresAt ?? null,
+      }),
       review: result.review,
       auditEvents: result.auditEvents,
     });

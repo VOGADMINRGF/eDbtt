@@ -70,6 +70,7 @@ describe("/api/admin/organization-claims", () => {
     expect(organizationRes.status).toBe(200);
     await expect(organizationRes.json()).resolves.toMatchObject({
       ok: true,
+      directoryVerificationStatus: "verified",
       claim: expect.objectContaining({
         verificationStatus: "organization_verified",
         provisioningRequest: expect.objectContaining({ status: "approved" }),
@@ -77,6 +78,8 @@ describe("/api/admin/organization-claims", () => {
       membership: expect.objectContaining({ verificationStatus: "organization_verified" }),
       auditEvents: expect.arrayContaining([
         expect.objectContaining({ eventType: "claim_reviewed" }),
+        expect.objectContaining({ eventType: "role_granted" }),
+        expect.objectContaining({ eventType: "region_granted" }),
       ]),
     });
 
@@ -91,6 +94,7 @@ describe("/api/admin/organization-claims", () => {
     expect(unitRes.status).toBe(200);
     await expect(unitRes.json()).resolves.toMatchObject({
       ok: true,
+      directoryVerificationStatus: "verified",
       claim: expect.objectContaining({ verificationStatus: "unit_verified" }),
       membership: expect.objectContaining({ verificationStatus: "unit_verified" }),
     });
@@ -106,11 +110,12 @@ describe("/api/admin/organization-claims", () => {
     expect(publicationRes.status).toBe(200);
     await expect(publicationRes.json()).resolves.toMatchObject({
       ok: true,
+      directoryVerificationStatus: "verified",
       membership: expect.objectContaining({ verificationStatus: "publication_approved" }),
     });
   });
 
-  it("supports reject and revoke review outcomes", async () => {
+  it("supports reject, limit, suspend and revoke review outcomes", async () => {
     const repo = createInMemoryRegionOrganizationRuntimeRepo();
     setRegionOrganizationRuntimeRepoForTests(repo);
     const claim = await repo.createOrganizationClaim({
@@ -131,6 +136,7 @@ describe("/api/admin/organization-claims", () => {
     expect(rejectRes.status).toBe(200);
     await expect(rejectRes.json()).resolves.toMatchObject({
       ok: true,
+      directoryVerificationStatus: "evidence_required",
       claim: expect.objectContaining({
         verificationStatus: "rejected",
         provisioningRequest: expect.objectContaining({ status: "rejected" }),
@@ -155,6 +161,50 @@ describe("/api/admin/organization-claims", () => {
       { params: Promise.resolve({ id: approvedClaim.id }) },
     );
 
+    const limitRes = await POST(
+      new NextRequest(`http://localhost/api/admin/organization-claims/${approvedClaim.id}/review`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ decision: "limit", note: "Nur Lesezugriff" }),
+      }),
+      { params: Promise.resolve({ id: approvedClaim.id }) },
+    );
+    expect(limitRes.status).toBe(200);
+    await expect(limitRes.json()).resolves.toMatchObject({
+      ok: true,
+      directoryVerificationStatus: "limited",
+      claim: expect.objectContaining({
+        verificationStatus: "limited",
+        provisioningRequest: expect.objectContaining({ status: "limited" }),
+      }),
+      membership: expect.objectContaining({ verificationStatus: "limited" }),
+      auditEvents: expect.arrayContaining([
+        expect.objectContaining({ eventType: "membership_limited" }),
+      ]),
+    });
+
+    const suspendRes = await POST(
+      new NextRequest(`http://localhost/api/admin/organization-claims/${approvedClaim.id}/review`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ decision: "suspend", note: "Prüfung pausiert" }),
+      }),
+      { params: Promise.resolve({ id: approvedClaim.id }) },
+    );
+    expect(suspendRes.status).toBe(200);
+    await expect(suspendRes.json()).resolves.toMatchObject({
+      ok: true,
+      directoryVerificationStatus: "suspended",
+      claim: expect.objectContaining({
+        verificationStatus: "suspended",
+        provisioningRequest: expect.objectContaining({ status: "suspended" }),
+      }),
+      membership: expect.objectContaining({ verificationStatus: "suspended" }),
+      auditEvents: expect.arrayContaining([
+        expect.objectContaining({ eventType: "membership_suspended" }),
+      ]),
+    });
+
     const revokeRes = await POST(
       new NextRequest(`http://localhost/api/admin/organization-claims/${approvedClaim.id}/review`, {
         method: "POST",
@@ -166,6 +216,7 @@ describe("/api/admin/organization-claims", () => {
     expect(revokeRes.status).toBe(200);
     await expect(revokeRes.json()).resolves.toMatchObject({
       ok: true,
+      directoryVerificationStatus: "revoked",
       claim: expect.objectContaining({
         verificationStatus: "revoked",
         provisioningRequest: expect.objectContaining({ status: "suspended" }),

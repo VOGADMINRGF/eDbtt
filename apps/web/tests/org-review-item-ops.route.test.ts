@@ -246,7 +246,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     expect(body.error).toBe("organization_review_operation_forbidden");
   });
 
-  it("keeps pending or unverified contexts out of moderation actions", async () => {
+  it("keeps pending or evidence-required contexts out of moderation actions", async () => {
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       actor: {
         userId: "user-1",
@@ -255,7 +255,7 @@ describe("/api/account/organization/review/items/[itemId]", () => {
       },
       roles: ["user"],
       requestScope: buildRequestScope({
-        membershipStatus: "pending",
+        membershipStatus: "evidence_required",
       }),
     });
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
