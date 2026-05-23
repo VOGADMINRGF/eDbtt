@@ -20,6 +20,10 @@ import {
   type OrganizationDashboardDraftSummary,
   type OrganizationDashboardReadModel,
 } from "@features/region";
+import {
+  materialIntakeStatusLabel,
+  materialIntakeTypeLabel,
+} from "@/features/material/materialIntakeContract";
 import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 import ContentReleaseWorkbenchActions from "@/app/admin/review/ContentReleaseWorkbenchActions";
 import ReviewQueueItemActions from "@/app/admin/review/ReviewQueueItemActions";
@@ -314,6 +318,30 @@ export default async function AccountOrganizationDashboardPage() {
     entitlementRequired: true,
     operatorReviewRequired: false,
     connections: [],
+  };
+  const materialIntakeSummary = readModel.materialIntakeSummary ?? {
+    currentState: "limited_intake" as const,
+    statusLabel: "Eingeschränkter Material-Intake",
+    nextStepTitle: "Nur sicherer Intake, kein produktiver Workflow",
+    nextStepBody:
+      "Für diesen Organisationsblick liegt noch keine gehärtete Material-Intake-Lesart vor. Rohmaterial bleibt privat, reviewpflichtig und ohne automatische Auswertung.",
+    storeLabel: "Request-/lokaler Pending-Status",
+    productionTruth: false,
+    entitlementRequired: true,
+    entitlementScope: "dossier_studio" as const,
+    productiveWorkflowEnabled: false,
+    items: [],
+    riskFlags: [],
+    guardrails: {
+      noAutoResearch: true as const,
+      noAutoDeepSearch: true as const,
+      noAutoNotebook: true as const,
+      noAutoGemini: true as const,
+      noAutoPublish: true as const,
+      noAutoPublicOfficial: true as const,
+      rawMaterialNeverPublic: true as const,
+      reviewRequiredBeforePublicReference: true as const,
+    },
   };
   const contentReleasePersistence = readModel.contentReleasePersistence ?? {
     mode: "in_memory_fallback",
@@ -624,6 +652,84 @@ export default async function AccountOrganizationDashboardPage() {
             )}
           </div>
         </article>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Material &amp; Uploads
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+              {materialIntakeSummary.statusLabel}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+              {materialIntakeSummary.nextStepBody}
+            </p>
+          </div>
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+            {materialIntakeSummary.storeLabel}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Nächster Schritt</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {materialIntakeSummary.nextStepTitle}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Produktiver Workflow</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {materialIntakeSummary.productiveWorkflowEnabled ? "Freigeschaltet" : "Noch gesperrt"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Materialstände</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {materialIntakeSummary.items.length}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          {materialIntakeSummary.productionTruth
+            ? "Material liegt in einem persistenten Material-Store."
+            : "Material läuft derzeit über Request-Metadaten oder lokalen Pending-Status und ist damit kein production_ready-Nachweis für Upload-/Extraktionspersistenz."}
+        </p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Kein automatisches NotebookLM, kein automatischer Gemini-/DeepSearch-/Research-Lauf,
+          keine Dossier-Mutation, kein Auto-Publish und kein automatisches public_official.
+        </p>
+        <div className="mt-4 space-y-3">
+          {materialIntakeSummary.items.length === 0 ? (
+            <EmptyState
+              title={materialIntakeSummary.statusLabel}
+              body="Reiche Material bewusst über den bestehenden Create- oder Review-Pfad ein. Scan, Extraktion und öffentliche Referenz bleiben getrennte Review-Schritte."
+            />
+          ) : (
+            materialIntakeSummary.items.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.label}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {materialIntakeTypeLabel(item.type)} · {materialIntakeStatusLabel(item.status)}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                    Review nötig
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Risiken: {item.riskFlags.join(", ") || "keine zusätzlichen Marker"}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">

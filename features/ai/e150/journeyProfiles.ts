@@ -88,18 +88,17 @@ export const E150_JOURNEY_PROFILES: Record<E150JourneyKey, E150JourneyProfile> =
     journey: "material_grounding",
     lane: "material_grounding",
     primaryRoles: {
-      material_research: ["gemini"],
       structure: ["mistral"],
       readable_summary: ["anthropic"],
     },
     secondaryRoles: {
-      disagreement_cross_check: ["anthropic", "gemini"],
+      disagreement_cross_check: ["anthropic"],
     },
-    fallbackProviders: ["openai"],
-    openAiRoles: ["fallback", "presentation_pass"],
+    fallbackProviders: [],
+    openAiRoles: [],
     verificationDefaults: {
       verificationMode: "precheck",
-      researchUsed: "gemini",
+      researchUsed: "none",
       sealEligible: false,
       sealGranted: false,
     },

@@ -54,7 +54,7 @@ import {
   resolveMaterialRouting,
   type MaterialRoutingResult,
 } from "@/features/create/materialRouting";
-import { runNotebookMaterialAdapter } from "@/features/material/notebookMaterialAdapter";
+import { buildMaterialIntakeAnalyzeManifest } from "@/features/material/materialIntakeContract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -306,17 +306,17 @@ export async function POST(req: NextRequest): Promise<Response> {
     allowDeepSearch: body.allowDeepSearch,
     researchConfirmed: body.researchConfirmed,
   });
-  const notebookMaterial =
+  const materialManifest =
     materialRouting.lane === "material_grounding"
-      ? await runNotebookMaterialAdapter({
-          locale,
+      ? buildMaterialIntakeAnalyzeManifest({
           items: materialRouting.materialItems,
           userText: body.text ?? null,
+          productionTruth: false,
         })
       : null;
   const text =
     body.text?.trim() ||
-    notebookMaterial?.summary?.trim() ||
+    materialManifest?.summary?.trim() ||
     materialRouting.materialItems
       .map((item) => item.label || item.url || item.fileName || item.uploadId || "")
       .filter(Boolean)
@@ -332,7 +332,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const contributionId = resolveContributionId(body.contributionId, text);
   const mergedEvidenceItems = mergeAnalyzeEvidenceItems(
     body.evidenceItems,
-    notebookMaterial?.evidenceItems,
+    materialManifest?.evidenceItems,
   );
   const sourceGrounding = buildSourceGroundingContext({
     analysisMode,
@@ -453,6 +453,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
+          materialIntake: materialManifest?.intake ?? null,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -556,6 +557,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
+          materialIntake: materialManifest?.intake ?? null,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -660,6 +662,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
+          materialIntake: materialManifest?.intake ?? null,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -800,6 +803,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
             materialProvider: materialRouting.materialProvider,
             researchProvider: materialRouting.researchProvider,
+            materialIntake: materialManifest?.intake ?? null,
             sealEligible: verification.sealEligible,
             sealGranted: verification.sealGranted,
             verificationLabel: deriveVerificationLabel(verification),

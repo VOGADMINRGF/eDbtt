@@ -46,17 +46,18 @@ describe("GOV-AI-ORCH-05 journey defaults", () => {
     expect(profile.fallbackProviders).toEqual(["openai"]);
   });
 
-  it("routes material grounding into its own lane with gemini research defaults", () => {
+  it("routes material grounding into its own lane without default research providers", () => {
     const profile = getJourneyProfile("material_grounding");
 
     expect(resolveJourneyKey({ journeyHint: "material_grounding" })).toBe("material_grounding");
     expect(profile.lane).toBe("material_grounding");
     expect(profile.verificationDefaults.verificationMode).toBe("precheck");
-    expect(profile.verificationDefaults.researchUsed).toBe("gemini");
-    expect(flattenRoleProviders(profile.primaryRoles)).toContain("gemini");
+    expect(profile.verificationDefaults.researchUsed).toBe("none");
+    expect(flattenRoleProviders(profile.primaryRoles)).not.toContain("gemini");
     expect(flattenRoleProviders(profile.primaryRoles)).toContain("mistral");
     expect(flattenRoleProviders(profile.primaryRoles)).toContain("anthropic");
-    expect(profile.fallbackProviders).toEqual(["openai"]);
+    expect(profile.fallbackProviders).toEqual([]);
+    expect(profile.openAiRoles).toEqual([]);
   });
 
   it("allows presentation pass only for OpenAI and keeps stub non-mutative", () => {

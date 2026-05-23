@@ -171,7 +171,7 @@ function sanitizeEvidenceItems(input: unknown): SourceGroundingInventoryItem[] {
         pickFirstText(raw, ["label", "title", "fileName", "filename", "name"]) ??
         (url ? `Webquelle ${index + 1}` : `Quelle ${index + 1}`);
       const kind = inferKind(raw, url);
-      if (!text && !url && kind !== "upload_document") return null;
+      if (!text && !url && kind !== "upload_document" && kind !== "pdf_document") return null;
       return {
         id: pickFirstText(raw, ["id", "documentId", "uploadId"]) ?? `${kind}-${index + 1}`,
         kind,

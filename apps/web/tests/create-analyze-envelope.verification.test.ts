@@ -37,12 +37,12 @@ describe("create analyze envelope verification parsing", () => {
     expect(parsed.verification?.lane).toBe("standard");
   });
 
-  it("parses material-grounding verification and gemini research from meta", () => {
+  it("parses material-grounding verification without default research from meta", () => {
     const parsed = parseCreateAnalyzeEnvelope({
       meta: {
         lane: "material_grounding",
         verificationMode: "precheck",
-        researchUsed: "gemini",
+        researchUsed: "none",
         sealEligible: false,
         sealGranted: false,
       },
@@ -51,7 +51,7 @@ describe("create analyze envelope verification parsing", () => {
     expect(parsed.verification).toEqual({
       lane: "material_grounding",
       verificationMode: "precheck",
-      researchUsed: "gemini",
+      researchUsed: "none",
       sealEligible: false,
       sealGranted: false,
       verificationLabel: "geprueft",

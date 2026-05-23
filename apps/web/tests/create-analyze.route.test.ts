@@ -520,7 +520,7 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.meta?.sourceGrounding?.synthesis?.documentGroundedClaims).toBeGreaterThanOrEqual(1);
   });
 
-  it("routes YouTube material intake through material grounding with notebooklm and gemini", async () => {
+  it("routes YouTube material intake through review-first material grounding without auto research", async () => {
     mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
 
     const res = await analyzePOST(
@@ -536,17 +536,32 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.ok).toBe(true);
     expect(body.meta?.lane).toBe("material_grounding");
     expect(body.meta?.journeyProfile).toBe("material_grounding");
-    expect(body.meta?.materialProvider).toBe("notebooklm");
-    expect(body.meta?.researchProvider).toBe("gemini");
+    expect(body.meta?.materialProvider).toBe("none");
+    expect(body.meta?.researchProvider).toBe("none");
     expect(body.meta?.fallbackUsed).toBe(false);
-    expect(body.researchUsed).toBe("gemini");
+    expect(body.researchUsed).toBe("none");
     expect(body.createAnalyze?.requiresHumanReview).toBe(true);
-    expect(body.meta?.sourceGrounding?.sourceInventory?.youtubeTranscripts).toBe(1);
-    expect(body.meta?.sourceGrounding?.materialExtraction?.total).toBeGreaterThanOrEqual(1);
+    expect(body.meta?.sourceGrounding?.sourceInventory?.youtubeTranscripts).toBe(0);
+    expect(body.meta?.materialIntake?.items?.[0]).toEqual(
+      expect.objectContaining({
+        type: "youtube_video",
+        status: "extraction_pending",
+        reviewRequired: true,
+        publicReferenceAllowed: false,
+      }),
+    );
+    expect(body.meta?.materialIntake?.guardrails).toEqual(
+      expect.objectContaining({
+        noAutoNotebook: true,
+        noAutoGemini: true,
+        noAutoDeepSearch: true,
+        noAutoPublish: true,
+      }),
+    );
     expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
       expect.objectContaining({
         journeyHint: "material_grounding",
-        text: expect.stringContaining("Material erkannt"),
+        text: expect.stringContaining("Material eingereicht"),
       }),
     );
   });
@@ -566,10 +581,18 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.meta?.lane).toBe("material_grounding");
-    expect(body.meta?.materialProvider).toBe("notebooklm");
-    expect(body.researchUsed).toBe("gemini");
+    expect(body.meta?.materialProvider).toBe("none");
+    expect(body.researchUsed).toBe("none");
     expect(body.createAnalyze?.noAutoPublish).toBe(true);
     expect(body.createAnalyze?.noSilentMerge).toBe(true);
+    expect(body.meta?.materialIntake?.items?.[0]).toEqual(
+      expect.objectContaining({
+        type: "pdf",
+        status: "scan_needed",
+        reviewRequired: true,
+        publicReferenceAllowed: false,
+      }),
+    );
     expect(body.meta?.sourceGrounding?.sourceInventory?.pdfDocuments).toBeGreaterThanOrEqual(1);
   });
 

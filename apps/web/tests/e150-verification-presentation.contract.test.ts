@@ -56,11 +56,11 @@ describe("e150 verification presentation contract", () => {
     expect(view.isVerified).toBe(false);
   });
 
-  it("labels material grounding separately and preserves gemini research context", () => {
+  it("labels material grounding separately without default research context", () => {
     const view = resolveVerificationPresentationView({
       lane: "material_grounding",
       verificationMode: "precheck",
-      researchUsed: "gemini",
+      researchUsed: "none",
       sealEligible: false,
       sealGranted: false,
     });
@@ -68,8 +68,8 @@ describe("e150 verification presentation contract", () => {
     expect(view.lane).toBe("material_grounding");
     expect(view.laneLabel).toBe("Material-Grounding-Lane");
     expect(view.verificationLabel).toBe("geprueft");
-    expect(view.researchUsed).toBe("gemini");
-    expect(view.researchLabel).toBe("Gemini Research");
+    expect(view.researchUsed).toBe("none");
+    expect(view.researchLabel).toBe("keine Recherche");
   });
 
   it("marks verifiziert only for sealed lane with seal granted", () => {

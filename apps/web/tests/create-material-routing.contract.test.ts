@@ -5,17 +5,18 @@ import {
 } from "@/features/create/materialRouting";
 
 describe("create material routing contract", () => {
-  it("routes YouTube-only intake into material grounding with notebooklm + gemini", () => {
+  it("routes YouTube-only intake into material grounding without automatic notebook or gemini research", () => {
     const result = resolveMaterialRouting({
       text: "https://youtu.be/demo12345",
       researchMode: "auto",
     });
 
     expect(result.lane).toBe("material_grounding");
-    expect(result.materialProvider).toBe("notebooklm");
-    expect(result.researchUsed).toBe("gemini");
-    expect(result.researchProvider).toBe("gemini");
+    expect(result.materialProvider).toBe("none");
+    expect(result.researchUsed).toBe("none");
+    expect(result.researchProvider).toBe("none");
     expect(result.materialItems[0]?.kind).toBe("youtube_url");
+    expect(result.requiresHumanReview).toBe(true);
   });
 
   it("routes PDF uploads into material grounding", () => {
@@ -85,5 +86,17 @@ describe("create material routing contract", () => {
       delete process.env.E150_DEEPSEARCH_ENABLED;
       delete process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION;
     }
+  });
+
+  it("uses gemini only when material research is explicitly confirmed", () => {
+    const result = resolveMaterialRouting({
+      sourceUrls: ["https://example.org/bericht.pdf"],
+      researchMode: "gemini",
+      researchConfirmed: true,
+    });
+
+    expect(result.lane).toBe("material_grounding");
+    expect(result.researchUsed).toBe("gemini");
+    expect(result.researchProvider).toBe("gemini");
   });
 });

@@ -399,20 +399,24 @@ export function resolveMaterialRouting(input: ResolveMaterialRoutingInput): Mate
   let fallbackUsed = false;
   let requiresHumanReview = false;
 
-  if (lane === "material_grounding" && researchMode !== "none") {
+  if (lane === "material_grounding" && researchMode === "gemini" && parseBool(input.researchConfirmed, false)) {
     researchProvider = "gemini";
     researchUsed = "gemini";
+  } else if (lane === "material_grounding" && researchMode === "gemini") {
+    requiresHumanReview = true;
+  }
 
+  if (lane === "material_grounding" && researchMode === "gpt_deepsearch") {
     const deepSearchAllowed =
       allowDeepSearch &&
       deepSearchEnabled &&
       (!deepSearchRequiresConfirmation || deepSearchConfirmed);
 
-    if (researchMode === "gpt_deepsearch" && deepSearchAllowed) {
+    if (deepSearchAllowed) {
       researchProvider = "openai_deep_research";
       researchUsed = "deep_search";
       fallbackUsed = true;
-    } else if (researchMode === "gpt_deepsearch" && !deepSearchAllowed) {
+    } else {
       requiresHumanReview = true;
     }
   }
@@ -427,7 +431,7 @@ export function resolveMaterialRouting(input: ResolveMaterialRoutingInput): Mate
 
   return {
     lane,
-    materialProvider: lane === "material_grounding" ? "notebooklm" : "none",
+    materialProvider: "none",
     researchMode,
     researchUsed,
     researchProvider,

@@ -1,5 +1,9 @@
 import { shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import {
+  buildMaterialIntakeDashboardSummary,
+  type MaterialIntakeDashboardSummary,
+} from "@/features/material/materialIntakeContract";
+import {
   REGION_ALLOWED_ACTIONS,
   canReadRegionDashboard,
   type RegionAllowedAction,
@@ -302,6 +306,7 @@ export type OrganizationDashboardReadModel = {
   verificationStatus: VerificationStatus | "none" | "admin_fallback";
   membershipStatus: OrganizationDashboardMembershipStatus;
   provisioningSummary: OrganizationDashboardProvisioningSummary;
+  materialIntakeSummary: MaterialIntakeDashboardSummary;
   sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
   regionSummary: OrganizationDashboardRegionSummary[];
   entitlementSummary: OrganizationDashboardEntitlementSummary;
@@ -836,6 +841,21 @@ function buildSourceConnectionSummary(input: {
         connections,
       };
   }
+}
+
+function buildOrganizationMaterialIntakeSummary(input: {
+  verifiedMemberships: OrganizationMembership[];
+  entitlementSummary: OrganizationDashboardEntitlementSummary;
+}): MaterialIntakeDashboardSummary {
+  return buildMaterialIntakeDashboardSummary({
+    hasVerifiedMembership: input.verifiedMemberships.length > 0,
+    hasProductiveEntitlement: organizationEntitlementAllowsScope(
+      input.entitlementSummary,
+      "dossier_studio",
+    ),
+    productionTruth: false,
+    items: [],
+  });
 }
 
 function buildClaimOnlyRegionSummaries(params: {
@@ -1560,6 +1580,10 @@ export async function buildOrganizationDashboardReadModel(input: {
     entitlementSummary,
     cockpits: readableCockpits,
   });
+  const materialIntakeSummary = buildOrganizationMaterialIntakeSummary({
+    verifiedMemberships,
+    entitlementSummary,
+  });
   const visibleDrafts = draftRecords.filter((record) =>
     canViewRegionResource(regionScope, {
       ownerUserId: record.createdByUserId,
@@ -1686,6 +1710,7 @@ export async function buildOrganizationDashboardReadModel(input: {
       highestVerificationStatus: verificationStatus,
     },
     provisioningSummary,
+    materialIntakeSummary,
     sourceConnectionSummary,
     regionSummary,
     entitlementSummary,

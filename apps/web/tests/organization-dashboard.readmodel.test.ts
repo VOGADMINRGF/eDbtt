@@ -194,6 +194,8 @@ describe("organization dashboard readmodel", () => {
     expect(readModel.regionSummary).toEqual([]);
     expect(readModel.openReviewItems).toEqual([]);
     expect(readModel.publishSummary.items).toEqual([]);
+    expect(readModel.materialIntakeSummary.currentState).toBe("verification_required");
+    expect(readModel.materialIntakeSummary.productiveWorkflowEnabled).toBe(false);
   });
 
   it("keeps pending claims visible but hides internal foreign region data for unverified users", async () => {
@@ -244,6 +246,8 @@ describe("organization dashboard readmodel", () => {
     expect(readModel.regionalStartingPoints).toEqual([]);
     expect(readModel.openReviewItems).toEqual([]);
     expect(readModel.entitlementSummary.state).toBe("fehlt");
+    expect(readModel.materialIntakeSummary.currentState).toBe("verification_required");
+    expect(readModel.materialIntakeSummary.productiveWorkflowEnabled).toBe(false);
     expect(readModel.firstRun.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -340,6 +344,8 @@ describe("organization dashboard readmodel", () => {
     );
     expect(readModel.entitlementSummary.state).toBe("in Entscheidung");
     expect(readModel.entitlementSummary.currentStatus).toBe("pending_operator_decision");
+    expect(readModel.materialIntakeSummary.currentState).toBe("limited_intake");
+    expect(readModel.materialIntakeSummary.productiveWorkflowEnabled).toBe(false);
     expect(readModel.firstRun.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -530,6 +536,12 @@ describe("organization dashboard readmodel", () => {
     expect(readModel.sourceConnectionSummary).toMatchObject({
       currentState: "requested",
       statusLabel: "Quelle beantragen",
+      productionTruth: false,
+    });
+    expect(readModel.materialIntakeSummary).toMatchObject({
+      currentState: "ready_for_review",
+      statusLabel: "Material-Intake bereit",
+      productiveWorkflowEnabled: true,
       productionTruth: false,
     });
     expect(readModel.firstRun.steps).toEqual(

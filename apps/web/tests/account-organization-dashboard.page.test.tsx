@@ -227,6 +227,11 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Betreiberprüfung läuft");
     expect(html).toContain("Anträge laufen derzeit auf lokalem oder In-Memory-Fallback");
     expect(html).toContain("Antragsteller: Mara Beispiel");
+    expect(html).toContain("Material &amp; Uploads");
+    expect(html).toContain("Organisation noch nicht verifiziert");
+    expect(html).toContain("Produktiver Workflow");
+    expect(html).toContain("Noch gesperrt");
+    expect(html).toContain("kein automatischer Gemini-/DeepSearch-/Research-Lauf");
     expect(html).toContain("Organisation noch nicht verifiziert");
     expect(html).toContain("Operations-Persistenz");
     expect(html).toContain("Content-Release-Persistenz");
@@ -586,6 +591,10 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
     expect(html).toContain("Erste Schritte");
+    expect(html).toContain("Material &amp; Uploads");
+    expect(html).toContain("Material-Intake bereit");
+    expect(html).toContain("Material bewusst einreichen");
+    expect(html).toContain("Kein automatisches NotebookLM");
     expect(html).toContain("Quellen &amp; Snapshots");
     expect(html).toContain("Quelle beantragen oder testen");
     expect(html).toContain("Quelle auswerten");
