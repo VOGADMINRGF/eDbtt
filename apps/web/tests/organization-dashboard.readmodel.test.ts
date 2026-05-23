@@ -30,6 +30,11 @@ import {
   createInMemoryReviewQueueOperationRepo,
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
+import {
+  createInMemoryMaterialIntakeRepository,
+  createMaterialIntakeRecords,
+  setMaterialIntakeRepositoryForTests,
+} from "@/features/material/materialIntakeRepository";
 
 const organization: Organization = {
   id: "org-reinickendorf-1",
@@ -179,6 +184,7 @@ beforeEach(() => {
     createInMemoryParticipationSignalReviewRuntimeRepo(),
   );
   setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
+  setMaterialIntakeRepositoryForTests(createInMemoryMaterialIntakeRepository());
 });
 
 describe("organization dashboard readmodel", () => {
@@ -502,6 +508,29 @@ describe("organization dashboard readmodel", () => {
         ],
       }),
     );
+    await createMaterialIntakeRecords({
+      items: [
+        {
+          id: "material-org-1",
+          kind: "upload_document",
+          label: "Schulbericht.pdf",
+          url: null,
+          uploadId: "material-org-1",
+          mimeType: "application/pdf",
+          fileName: "Schulbericht.pdf",
+          text: null,
+          pageRef: null,
+          timestampRef: null,
+          extractedBy: null,
+          extractionStatus: "none",
+          sizeBytes: 42_000,
+        },
+      ],
+      actorId: "user-1",
+      organizationId: organization.id,
+      regionId: organization.primaryRegionId,
+      workflowState: "review_queue_ready",
+    });
 
     const readModel = await buildOrganizationDashboardReadModel({
       userId: "user-1",
@@ -539,11 +568,20 @@ describe("organization dashboard readmodel", () => {
       productionTruth: false,
     });
     expect(readModel.materialIntakeSummary).toMatchObject({
-      currentState: "ready_for_review",
-      statusLabel: "Material-Intake bereit",
+      currentState: "material_pending_review",
+      statusLabel: "Material reviewpflichtig",
       productiveWorkflowEnabled: true,
       productionTruth: false,
     });
+    expect(readModel.materialIntakeSummary.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "pdf",
+          status: "scan_needed",
+          publicReferenceAllowed: false,
+        }),
+      ]),
+    );
     expect(readModel.firstRun.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

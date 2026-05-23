@@ -51,6 +51,7 @@ export type MaterialIntakeGuardrails = {
 
 export type MaterialIntakeSourceTruth =
   | "request_metadata"
+  | "persistent_material_metadata_store"
   | "persistent_material_store"
   | "local_pending"
   | "external_extraction_pending";
@@ -93,7 +94,11 @@ export type MaterialIntakeContract = {
   riskFlags: MaterialIntakeRiskFlag[];
   reviewRequired: boolean;
   productionTruth: boolean;
-  storageMode: "persistent_material_store" | "request_metadata_only" | "local_pending";
+  storageMode:
+    | "persistent_material_store"
+    | "persistent_metadata_store"
+    | "request_metadata_only"
+    | "local_pending";
   extractionMode: "none" | "submitted_text_only" | "external_extraction_pending";
   guardrails: MaterialIntakeGuardrails;
 };
@@ -229,14 +234,18 @@ export function buildMaterialIntakeContract(input: {
   storageMode?: MaterialIntakeContract["storageMode"];
 }): MaterialIntakeContract {
   const productionTruth = input.productionTruth === true;
+  const storageMode = input.storageMode ?? (productionTruth ? "persistent_material_store" : "request_metadata_only");
   const items = input.items.map((item): MaterialIntakeItem => {
     const type = materialTypeForItem(item);
     const status = statusForItem(item, type);
-    const sourceTruth: MaterialIntakeSourceTruth = productionTruth
-      ? "persistent_material_store"
-      : item.text?.trim()
-        ? "request_metadata"
-        : "external_extraction_pending";
+    const sourceTruth: MaterialIntakeSourceTruth =
+      storageMode === "persistent_metadata_store"
+        ? "persistent_material_metadata_store"
+        : productionTruth
+          ? "persistent_material_store"
+          : item.text?.trim()
+            ? "request_metadata"
+            : "external_extraction_pending";
     return {
       id: item.id,
       type,
@@ -267,7 +276,7 @@ export function buildMaterialIntakeContract(input: {
     riskFlags,
     reviewRequired: items.length > 0,
     productionTruth,
-    storageMode: input.storageMode ?? (productionTruth ? "persistent_material_store" : "request_metadata_only"),
+    storageMode,
     extractionMode: hasSubmittedText
       ? "submitted_text_only"
       : items.length > 0
@@ -327,11 +336,16 @@ export function buildMaterialIntakeDashboardSummary(input: {
   hasProductiveEntitlement: boolean;
   productionTruth: boolean;
   items?: MaterialIntakeInputItem[];
+  materialItems?: MaterialIntakeItem[];
 }): MaterialIntakeDashboardSummary {
-  const intake = buildMaterialIntakeContract({
-    items: input.items ?? [],
-    productionTruth: input.productionTruth,
-  });
+  const intake = input.materialItems
+    ? null
+    : buildMaterialIntakeContract({
+        items: input.items ?? [],
+        productionTruth: input.productionTruth,
+      });
+  const materialItems = input.materialItems ?? intake?.items ?? [];
+  const riskFlags = unique(materialItems.flatMap((item) => item.riskFlags));
   const storeLabel = input.productionTruth
     ? "Persistenter Material-Store"
     : "Request-/lokaler Pending-Status";
@@ -348,8 +362,8 @@ export function buildMaterialIntakeDashboardSummary(input: {
       entitlementRequired: true,
       entitlementScope: "dossier_studio",
       productiveWorkflowEnabled: false,
-      items: intake.items,
-      riskFlags: intake.riskFlags,
+      items: materialItems,
+      riskFlags,
       guardrails: MATERIAL_INTAKE_GUARDRAILS,
     };
   }
@@ -366,13 +380,13 @@ export function buildMaterialIntakeDashboardSummary(input: {
       entitlementRequired: true,
       entitlementScope: "dossier_studio",
       productiveWorkflowEnabled: false,
-      items: intake.items,
-      riskFlags: intake.riskFlags,
+      items: materialItems,
+      riskFlags,
       guardrails: MATERIAL_INTAKE_GUARDRAILS,
     };
   }
 
-  if (intake.items.length > 0) {
+  if (materialItems.length > 0) {
     return {
       currentState: "material_pending_review",
       statusLabel: "Material reviewpflichtig",
@@ -384,8 +398,8 @@ export function buildMaterialIntakeDashboardSummary(input: {
       entitlementRequired: false,
       entitlementScope: "dossier_studio",
       productiveWorkflowEnabled: true,
-      items: intake.items,
-      riskFlags: intake.riskFlags,
+      items: materialItems,
+      riskFlags,
       guardrails: MATERIAL_INTAKE_GUARDRAILS,
     };
   }
@@ -401,8 +415,8 @@ export function buildMaterialIntakeDashboardSummary(input: {
     entitlementRequired: false,
     entitlementScope: "dossier_studio",
     productiveWorkflowEnabled: true,
-    items: intake.items,
-    riskFlags: intake.riskFlags,
+    items: materialItems,
+    riskFlags,
     guardrails: MATERIAL_INTAKE_GUARDRAILS,
   };
 }

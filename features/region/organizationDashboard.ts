@@ -4,6 +4,10 @@ import {
   type MaterialIntakeDashboardSummary,
 } from "@/features/material/materialIntakeContract";
 import {
+  listMaterialIntakeRecords,
+  type MaterialIntakeRecord,
+} from "@/features/material/materialIntakeRepository";
+import {
   REGION_ALLOWED_ACTIONS,
   canReadRegionDashboard,
   type RegionAllowedAction,
@@ -846,6 +850,7 @@ function buildSourceConnectionSummary(input: {
 function buildOrganizationMaterialIntakeSummary(input: {
   verifiedMemberships: OrganizationMembership[];
   entitlementSummary: OrganizationDashboardEntitlementSummary;
+  materialRecords: MaterialIntakeRecord[];
 }): MaterialIntakeDashboardSummary {
   return buildMaterialIntakeDashboardSummary({
     hasVerifiedMembership: input.verifiedMemberships.length > 0,
@@ -853,8 +858,8 @@ function buildOrganizationMaterialIntakeSummary(input: {
       input.entitlementSummary,
       "dossier_studio",
     ),
-    productionTruth: false,
-    items: [],
+    productionTruth: input.materialRecords.some((record) => record.metadataPersisted),
+    materialItems: input.materialRecords.map((record) => record.intakeItem),
   });
 }
 
@@ -1580,9 +1585,15 @@ export async function buildOrganizationDashboardReadModel(input: {
     entitlementSummary,
     cockpits: readableCockpits,
   });
+  const materialRecords = await listMaterialIntakeRecords({
+    organizationIds: organizations.map((organization) => organization.id),
+    actorId: verifiedMemberships.length > 0 ? null : input.userId,
+    limit: 20,
+  });
   const materialIntakeSummary = buildOrganizationMaterialIntakeSummary({
     verifiedMemberships,
     entitlementSummary,
+    materialRecords,
   });
   const visibleDrafts = draftRecords.filter((record) =>
     canViewRegionResource(regionScope, {
