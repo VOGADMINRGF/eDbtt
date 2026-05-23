@@ -3,18 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ORGANIZATION_SOURCE_CONNECTION_TYPES,
   REGION_SOURCE_SNAPSHOT_SEED_KINDS,
-  REGION_SOURCE_CONNECTION_TYPES,
   regionSourceConnectionCategoryLabel,
   regionSourceConnectionTypeLabel,
   regionSourceSnapshotSeedKindLabel,
+  sourceConnectionScopeLabel,
+  sourceConnectionStatusLabel,
+  sourceConnectionTestResultLabel,
   type RegionSourceConnection,
-  type RegionSourceConnectionType,
   type RegionSourceTestResult,
+  type SourceConnectionType,
 } from "@features/region/sourceConnections";
 
 type FormState = {
-  sourceType: RegionSourceConnectionType;
+  sourceType: SourceConnectionType;
   label: string;
   url: string;
   notes: string;
@@ -26,7 +29,7 @@ type FormState = {
 };
 
 const INITIAL_FORM: FormState = {
-  sourceType: "manual_source",
+  sourceType: "website_url",
   label: "",
   url: "",
   notes: "",
@@ -115,7 +118,10 @@ export function RegionSourceConnectionsPanel(props: {
       return;
     }
 
-    setMessage("Quelle gespeichert.");
+    const statusLabel = body?.connection?.status
+      ? sourceConnectionStatusLabel(body.connection.status)
+      : "Quelle gespeichert.";
+    setMessage(statusLabel);
     setForm(INITIAL_FORM);
     startTransition(() => router.refresh());
   }
@@ -133,7 +139,7 @@ export function RegionSourceConnectionsPanel(props: {
       setError(body?.error ?? "Dry Run konnte nicht ausgeführt werden.");
       return;
     }
-    setMessage("Dry Run gespeichert.");
+    setMessage("Reviewpflichtiger Snapshot gespeichert.");
     startTransition(() => router.refresh());
   }
 
@@ -151,10 +157,10 @@ export function RegionSourceConnectionsPanel(props: {
           Explizite URL kontrolliert und reviewpflichtig auswerten
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Keine allgemeine Live-Suche, kein unkontrolliertes Scraping. `official_feed` und
-          `municipal_news` funktionieren nur mit expliziter URL. Der Dry Run liest höchstens die
-          angegebene Seite, erzeugt daraus reviewpflichtige Vorschläge und veröffentlicht nichts
-          automatisch.
+          Keine allgemeine Live-Suche, kein unkontrolliertes Scraping und kein automatischer
+          DeepSearch- oder Research-Lauf. Der Dry Run prüft nur leichte Erreichbarkeit und Format,
+          liest höchstens die angegebene Seite oder einen manuellen Snapshot, erzeugt daraus
+          reviewpflichtige Vorschläge und veröffentlicht nichts automatisch.
         </p>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Regionale Source-Snapshot-Templates funktionieren für beliebige `regionId` und halten
@@ -168,11 +174,11 @@ export function RegionSourceConnectionsPanel(props: {
             <select
               value={form.sourceType}
               onChange={(event) =>
-                setForm((current) => ({ ...current, sourceType: event.target.value as RegionSourceConnectionType }))
+                setForm((current) => ({ ...current, sourceType: event.target.value as SourceConnectionType }))
               }
               className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2 text-sm"
             >
-              {REGION_SOURCE_CONNECTION_TYPES.map((type) => (
+              {ORGANIZATION_SOURCE_CONNECTION_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {regionSourceConnectionTypeLabel(type)}
                 </option>
@@ -304,7 +310,10 @@ export function RegionSourceConnectionsPanel(props: {
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {regionSourceConnectionTypeLabel(connection.sourceType)} ·{" "}
                       {regionSourceConnectionCategoryLabel(connection.sourceType)} ·{" "}
-                      {connection.enabled ? "aktiv" : "deaktiviert"}
+                      {sourceConnectionStatusLabel(
+                        connection.status ??
+                          (connection.enabled ? "active_review_required" : "draft"),
+                      )}
                     </p>
                   </div>
                   <button
@@ -319,6 +328,15 @@ export function RegionSourceConnectionsPanel(props: {
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                   {connection.url || "Keine externe URL hinterlegt."}
                 </p>
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Scope: {sourceConnectionScopeLabel(connection.scope ?? "organization_region")} · Test:{" "}
+                  {sourceConnectionTestResultLabel(connection.latestTestResult?.status ?? "not_run")}
+                </p>
+                {connection.latestTestResult?.summary ? (
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {connection.latestTestResult.summary}
+                  </p>
+                ) : null}
                 {connection.sourceSnapshotTemplate ? (
                   <div className="mt-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -352,7 +370,8 @@ export function RegionSourceConnectionsPanel(props: {
               <div key={result.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{result.title}</p>
                 <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                  {regionSourceConnectionTypeLabel(result.sourceType)} · {result.visibilityLabel} · Confidence{" "}
+                  {regionSourceConnectionTypeLabel(result.sourceType)} · {result.visibilityLabel} ·{" "}
+                  {sourceConnectionTestResultLabel(result.testResult.status)} · Confidence{" "}
                   {result.confidence.toFixed(2)}
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">{result.summary}</p>

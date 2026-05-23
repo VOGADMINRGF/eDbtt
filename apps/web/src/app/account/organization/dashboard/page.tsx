@@ -303,6 +303,18 @@ export default async function AccountOrganizationDashboardPage() {
       "Fallback-Zustand ohne dauerhafte Produktionswahrheit. Eigene Review-Operationen sind dann nur pro Runtime vorhanden.",
     productionTruth: false,
   };
+  const sourceConnectionSummary = readModel.sourceConnectionSummary ?? {
+    currentState: "not_enabled",
+    statusLabel: "Quellenzugang nicht freigeschaltet",
+    nextStepTitle: "Quellenzugang nicht freigeschaltet",
+    nextStepBody:
+      "Für diesen Organisationsblick liegt noch keine gehärtete Quellenstatus-Lesart vor. Sichtbar bleiben nur sichere nächste Schritte.",
+    storeLabel: "Lokaler/In-Memory-Fallback",
+    productionTruth: false,
+    entitlementRequired: true,
+    operatorReviewRequired: false,
+    connections: [],
+  };
   const contentReleasePersistence = readModel.contentReleasePersistence ?? {
     mode: "in_memory_fallback",
     label: "In-Memory-Fallback",
@@ -612,6 +624,83 @@ export default async function AccountOrganizationDashboardPage() {
             )}
           </div>
         </article>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Quellen &amp; Snapshots
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+              {sourceConnectionSummary.statusLabel}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+              {sourceConnectionSummary.nextStepBody}
+            </p>
+          </div>
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+            {sourceConnectionSummary.storeLabel}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Zustand</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {sourceConnectionSummary.nextStepTitle}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Verbundene Quellen</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {sourceConnectionSummary.connections.length}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          {sourceConnectionSummary.productionTruth
+            ? "Quellenverbindungen und Snapshots liegen auf dem persistenten Source-Store."
+            : "Quellenverbindungen laufen derzeit auf lokalem oder In-Memory-Fallback und sind damit kein production_ready-Nachweis."}
+        </p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Kein automatisches Crawling-Versprechen, kein automatischer DeepSearch- oder Research-Lauf,
+          kein Auto-Publish und kein automatisches `public_official`.
+        </p>
+        <div className="mt-4 space-y-3">
+          {sourceConnectionSummary.connections.length === 0 ? (
+            <EmptyState
+              title={sourceConnectionSummary.statusLabel}
+              body={sourceConnectionSummary.nextStepBody}
+            />
+          ) : (
+            sourceConnectionSummary.connections.map((connection) => (
+              <article
+                key={connection.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connection.label}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {connection.sourceTypeLabel} · {connection.statusLabel}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                    {connection.scopeLabel}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Test: {connection.latestTestLabel}
+                </p>
+                {connection.latestTestSummary ? (
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {connection.latestTestSummary}
+                  </p>
+                ) : null}
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">

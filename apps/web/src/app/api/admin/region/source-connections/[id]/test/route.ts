@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
+  buildOrganizationDashboardReadModel,
   RegionSourceConnectionDryRunSchema,
   canEditOrganizationResource,
   canCreateRegionDraft,
@@ -8,6 +9,7 @@ import {
   canViewRegionResource,
   getOperationalRegionById,
   listRegionSourceConnections,
+  organizationEntitlementAllowsScope,
   regionScopeFromRegionAccessContext,
   runRegionSourceConnectionDryRun,
 } from "@features/region";
@@ -39,6 +41,28 @@ async function canManageRegionSources(params: {
   );
 }
 
+async function resolveSourceConnectionTestAccess(params: {
+  gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
+}) {
+  if (params.gate instanceof Response) return null;
+  if (params.gate.actor.isAdmin) {
+    return { verifiedMembership: true, hasSourceEntitlement: true };
+  }
+  const readModel = await buildOrganizationDashboardReadModel({
+    userId: params.gate.actor.userId,
+    roles: (params.gate.roles ?? []).map((role) => String(role).toLowerCase()),
+    isAdmin: false,
+    actorRole: params.gate.actor.role,
+  });
+  return {
+    verifiedMembership: readModel.membershipStatus.verifiedMemberships > 0,
+    hasSourceEntitlement: organizationEntitlementAllowsScope(
+      readModel.entitlementSummary,
+      "source_connection",
+    ),
+  };
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -65,6 +89,19 @@ export async function POST(
       }))
     ) {
       return NextResponse.json({ ok: false, error: "region_source_forbidden" }, { status: 403 });
+    }
+    const sourceAccess = await resolveSourceConnectionTestAccess({ gate });
+    if (!gate.actor.isAdmin && sourceAccess && !sourceAccess.verifiedMembership) {
+      return NextResponse.json(
+        { ok: false, error: "source_connection_verification_required" },
+        { status: 403 },
+      );
+    }
+    if (!gate.actor.isAdmin && sourceAccess && !sourceAccess.hasSourceEntitlement) {
+      return NextResponse.json(
+        { ok: false, error: "source_connection_entitlement_required" },
+        { status: 403 },
+      );
     }
 
     const result = await runRegionSourceConnectionDryRun({

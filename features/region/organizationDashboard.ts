@@ -48,9 +48,18 @@ import {
 } from "./organizationOnboarding";
 import {
   buildOrganizationEntitlementSummary,
+  organizationEntitlementAllowsScope,
   type OrganizationEntitlementGrant,
   type OrganizationEntitlementStatus,
 } from "./organizationEntitlements";
+import {
+  regionSourceConnectionTypeLabel,
+  sourceConnectionScopeLabel,
+  sourceConnectionStatusLabel,
+  sourceConnectionTestResultLabel,
+  type RegionSourceConnection,
+  type SourceConnectionStatus,
+} from "./sourceConnections";
 import {
   buildPersistedRegionAccessContext,
   getRegionOrganizationRuntimeRepo,
@@ -60,6 +69,7 @@ import {
   type EntitlementAuditEvent,
   type PaidDashboardEntitlement,
 } from "./server/paidEntitlements";
+import { isRegionSourceConnectionProductionTruth } from "./server/sourceConnectionRuntime";
 
 export type OrganizationDashboardGuardrails = {
   noAutoOfficialClaim: true;
@@ -126,6 +136,42 @@ export type OrganizationDashboardProvisioningSummary = {
   nextStepBody: string;
   storeLabel: string;
   productionTruth: boolean;
+};
+
+export type OrganizationDashboardSourceConnectionItem = {
+  id: string;
+  regionId: string;
+  regionName: string;
+  label: string;
+  sourceTypeLabel: string;
+  status: SourceConnectionStatus;
+  statusLabel: string;
+  scopeLabel: string;
+  latestTestLabel: string;
+  latestTestSummary: string | null;
+  productionTruth: boolean;
+  reviewRequired: true;
+  noAutoPublish: true;
+  noPublicOfficial: true;
+};
+
+export type OrganizationDashboardSourceConnectionSummary = {
+  currentState:
+    | "not_enabled"
+    | "requested"
+    | "verification_required"
+    | "testing"
+    | "test_failed"
+    | "active_review_required"
+    | "paused_or_revoked";
+  statusLabel: string;
+  nextStepTitle: string;
+  nextStepBody: string;
+  storeLabel: string;
+  productionTruth: boolean;
+  entitlementRequired: boolean;
+  operatorReviewRequired: boolean;
+  connections: OrganizationDashboardSourceConnectionItem[];
 };
 
 export type OrganizationDashboardReviewItem = ReviewQueueItem & {
@@ -256,6 +302,7 @@ export type OrganizationDashboardReadModel = {
   verificationStatus: VerificationStatus | "none" | "admin_fallback";
   membershipStatus: OrganizationDashboardMembershipStatus;
   provisioningSummary: OrganizationDashboardProvisioningSummary;
+  sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
   regionSummary: OrganizationDashboardRegionSummary[];
   entitlementSummary: OrganizationDashboardEntitlementSummary;
   allowedActions: RegionAllowedAction[];
@@ -606,6 +653,187 @@ function buildProvisioningSummary(input: {
           "Du hast noch keine bestätigte Organisation. Starte einen Organisations- oder Wirkraum-Antrag; ohne Freigabe bleiben Review und Sichtbarkeit gesperrt.",
         storeLabel: productionTruth ? "Persistenter Claim-Store" : "In-Memory-/lokaler Fallback",
         productionTruth,
+      };
+  }
+}
+
+function sourceConnectionPriority(status: SourceConnectionStatus | undefined): number {
+  switch (status) {
+    case "test_failed":
+      return 70;
+    case "testing":
+      return 60;
+    case "paused":
+    case "revoked":
+    case "archived":
+      return 50;
+    case "active_limited":
+    case "active_review_required":
+      return 40;
+    case "submitted":
+      return 30;
+    case "draft":
+    default:
+      return 10;
+  }
+}
+
+function buildSourceConnectionSummary(input: {
+  verifiedMemberships: OrganizationMembership[];
+  entitlementSummary: OrganizationDashboardEntitlementSummary;
+  cockpits: RegionalAdminCockpitReadModel[];
+}): OrganizationDashboardSourceConnectionSummary {
+  const productionTruth = isRegionSourceConnectionProductionTruth();
+  const hasVerifiedMembership = input.verifiedMemberships.length > 0;
+  const hasSourceEntitlement = organizationEntitlementAllowsScope(
+    input.entitlementSummary,
+    "source_connection",
+  );
+  const connections = input.cockpits.flatMap((cockpit) =>
+    cockpit.sourceConnections.map((connection) => ({
+      id: connection.id,
+      regionId: connection.regionId,
+      regionName: cockpit.region.name,
+      label: connection.label,
+      sourceTypeLabel: regionSourceConnectionTypeLabel(connection.sourceType),
+      status:
+        connection.status ??
+        (connection.enabled ? "active_review_required" : "draft"),
+      statusLabel: sourceConnectionStatusLabel(
+        connection.status ??
+          (connection.enabled ? "active_review_required" : "draft"),
+      ),
+      scopeLabel: sourceConnectionScopeLabel(connection.scope ?? "organization_region"),
+      latestTestLabel: sourceConnectionTestResultLabel(
+        connection.latestTestResult?.status ?? "not_run",
+      ),
+      latestTestSummary: connection.latestTestResult?.summary ?? null,
+      productionTruth: connection.productionTruth,
+      reviewRequired: true as const,
+      noAutoPublish: true as const,
+      noPublicOfficial: true as const,
+    })),
+  );
+  const primaryConnection =
+    [...connections].sort(
+      (left, right) => sourceConnectionPriority(right.status) - sourceConnectionPriority(left.status),
+    )[0] ?? null;
+
+  if (!hasVerifiedMembership) {
+    return {
+      currentState: "verification_required",
+      statusLabel: "Prüfung erforderlich",
+      nextStepTitle: "Prüfung erforderlich",
+      nextStepBody:
+        "Ohne verifizierte Organisation bleibt Quellenarbeit auf sichere Hinweise und den Antrag begrenzt. Produktive Tests oder Verbindungen werden nicht aktiviert.",
+      storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+      productionTruth,
+      entitlementRequired: true,
+      operatorReviewRequired: false,
+      connections,
+    };
+  }
+
+  if (!hasSourceEntitlement && connections.length === 0) {
+    return {
+      currentState: "not_enabled",
+      statusLabel: "Quellenzugang nicht freigeschaltet",
+      nextStepTitle: "Quellenzugang nicht freigeschaltet",
+      nextStepBody:
+        "Ohne Entitlement `source_connection` bleibt der Organisationsbereich bei Antrag und Erklärung. Es gibt keine produktive Quellenverbindung, keinen automatischen Research-Lauf und keine Veröffentlichung.",
+      storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+      productionTruth,
+      entitlementRequired: true,
+      operatorReviewRequired: input.entitlementSummary.operatorDecisionRequired,
+      connections,
+    };
+  }
+
+  if (!primaryConnection) {
+    return {
+      currentState: "requested",
+      statusLabel: "Quelle beantragen",
+      nextStepTitle: "Quelle beantragen oder testen",
+      nextStepBody:
+        "Mit verifizierter Organisation und passendem Scope kann eine explizite Quelle kontrolliert getestet werden. Alles bleibt reviewpflichtig; es gibt kein Auto-Publish und kein automatisches `public_official`.",
+      storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+      productionTruth,
+      entitlementRequired: !hasSourceEntitlement,
+      operatorReviewRequired: false,
+      connections,
+    };
+  }
+
+  switch (primaryConnection.status) {
+    case "testing":
+      return {
+        currentState: "testing",
+        statusLabel: "Quelle wird getestet",
+        nextStepTitle: "Quelle wird getestet",
+        nextStepBody:
+          "Der Test bleibt leichtgewichtig: nur Erreichbarkeit, Format und reviewpflichtiger Snapshot. Kein DeepSearch, kein automatischer Research-Lauf und keine Veröffentlichung.",
+        storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+        productionTruth,
+        entitlementRequired: true,
+        operatorReviewRequired: true,
+        connections,
+      };
+    case "test_failed":
+      return {
+        currentState: "test_failed",
+        statusLabel: "Test fehlgeschlagen",
+        nextStepTitle: "Test fehlgeschlagen",
+        nextStepBody:
+          "Die Quelle konnte nicht sauber gelesen werden. Ergänze eine erreichbare URL oder einen manuellen Snapshot; es wurde nichts veröffentlicht und kein Research-Kostenpfad gestartet.",
+        storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+        productionTruth,
+        entitlementRequired: true,
+        operatorReviewRequired: true,
+        connections,
+      };
+    case "paused":
+    case "revoked":
+    case "archived":
+      return {
+        currentState: "paused_or_revoked",
+        statusLabel: "Quelle pausiert oder gesperrt",
+        nextStepTitle: "Quelle pausiert oder gesperrt",
+        nextStepBody:
+          "Für diese Quelle sind neue Snapshots blockiert. Betreiber oder die zuständige Organisation müssen den Zustand bewusst klären, bevor wieder getestet werden darf.",
+        storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+        productionTruth,
+        entitlementRequired: true,
+        operatorReviewRequired: true,
+        connections,
+      };
+    case "active_limited":
+    case "active_review_required":
+      return {
+        currentState: "active_review_required",
+        statusLabel: "Quelle aktiv, aber reviewpflichtig",
+        nextStepTitle: "Quelle aktiv, aber reviewpflichtig",
+        nextStepBody:
+          "Die Quelle darf kontrollierte Snapshots liefern, aber nichts mutiert automatisch Topic, Dossier oder Veröffentlichung. Review bleibt Pflicht, `public_official` bleibt getrennt.",
+        storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+        productionTruth,
+        entitlementRequired: true,
+        operatorReviewRequired: true,
+        connections,
+      };
+    case "submitted":
+    case "draft":
+    default:
+      return {
+        currentState: "requested",
+        statusLabel: "Quelle beantragt",
+        nextStepTitle: "Quelle beantragt",
+        nextStepBody:
+          "Die Quelle ist erfasst, aber noch nicht produktiv freigeschaltet. Ohne passende Freigabe bleibt sie bei sicherem Antrag, Review-Hinweisen und manueller Prüfung.",
+        storeLabel: productionTruth ? "Persistenter Source-Store" : "Lokaler/In-Memory-Fallback",
+        productionTruth,
+        entitlementRequired: true,
+        operatorReviewRequired: true,
+        connections,
       };
   }
 }
@@ -1327,6 +1555,11 @@ export async function buildOrganizationDashboardReadModel(input: {
       auditEvents: entitlementAuditEvents,
     },
   );
+  const sourceConnectionSummary = buildSourceConnectionSummary({
+    verifiedMemberships,
+    entitlementSummary,
+    cockpits: readableCockpits,
+  });
   const visibleDrafts = draftRecords.filter((record) =>
     canViewRegionResource(regionScope, {
       ownerUserId: record.createdByUserId,
@@ -1453,6 +1686,7 @@ export async function buildOrganizationDashboardReadModel(input: {
       highestVerificationStatus: verificationStatus,
     },
     provisioningSummary,
+    sourceConnectionSummary,
     regionSummary,
     entitlementSummary,
     allowedActions,

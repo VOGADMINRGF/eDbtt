@@ -586,6 +586,8 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
     expect(html).toContain("Erste Schritte");
+    expect(html).toContain("Quellen &amp; Snapshots");
+    expect(html).toContain("Quelle beantragen oder testen");
     expect(html).toContain("Quelle auswerten");
     expect(html).toContain("Beispiel-Snapshot laden");
     expect(html).toContain("Review Queue öffnen");

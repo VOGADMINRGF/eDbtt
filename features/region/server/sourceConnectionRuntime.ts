@@ -17,9 +17,16 @@ import {
   regionSourceConnectionTypeLabel,
   regionSourceResultVisibilityLabel,
   regionSourceSnapshotSeedKindLabel,
+  requiresExplicitUrl,
+  sourceConnectionStatusLabel,
   type RegionSourceConnection,
   type RegionSourceConnectionSampleItem,
   type RegionSourceConnectionType,
+  type SourceConnectionAuditEvent,
+  type SourceConnectionAuditEventType,
+  type SourceConnectionScope,
+  type SourceConnectionStatus,
+  type SourceConnectionTestResult,
   type RegionSourceEvidenceReference,
   type RegionSourcePossibleClaim,
   type RegionSourceSnapshotSeedKind,
@@ -353,6 +360,10 @@ function defaultSnapshotTemplateLabel(seedKind: RegionSourceSnapshotSeedKind) {
   return seedKind === "example_seed" ? "Beispiel-Snapshot" : "Regionales Snapshot-Template";
 }
 
+export function isRegionSourceConnectionProductionTruth() {
+  return !shouldUseInMemoryMongoFallback();
+}
+
 function buildConnectionSnapshotTemplate(input: {
   connectionId: string;
   sourceType: RegionSourceConnectionType;
@@ -364,7 +375,9 @@ function buildConnectionSnapshotTemplate(input: {
   if (input.sampleItems.length === 0) return null;
   const seedKind = input.snapshotSeedKind ?? "configured_region_source";
   const mode =
-    input.sourceType === "curated_pilot_source" ? "template_only" : "template_plus_explicit_url";
+    input.sourceType === "curated_pilot_source" || input.sourceType === "manual_snapshot"
+      ? "template_only"
+      : "template_plus_explicit_url";
   return {
     id: `region-source-snapshot-template-${input.connectionId}`,
     label:
@@ -388,11 +401,19 @@ function buildConnectionSnapshotTemplate(input: {
 }
 
 function isProductiveSourceConnection(connection: RegionSourceConnection) {
-  return connection.sourceType === "official_feed" || connection.sourceType === "municipal_news";
+  return connection.adapterId === "productive_regional_source";
 }
 
 function hasConnectedSnapshot(connection: RegionSourceConnection) {
-  return connection.enabled && isProductiveSourceConnection(connection) && connection.sampleItems.length > 0;
+  const status =
+    connection.status ??
+    (connection.enabled ? "active_review_required" : "draft");
+  return (
+    connection.enabled &&
+    (status === "active_review_required" || status === "active_limited") &&
+    isProductiveSourceConnection(connection) &&
+    connection.sampleItems.length > 0
+  );
 }
 
 async function ensureMongoIndexes() {
@@ -593,6 +614,69 @@ function buildDryRunTitle(connection: RegionSourceConnection) {
   return `${connection.label} · Dry Run`;
 }
 
+function buildSourceConnectionTestResult(input: {
+  status: SourceConnectionTestResult["status"];
+  checkedAt: string | null;
+  summary: string;
+}): SourceConnectionTestResult {
+  return {
+    status: input.status,
+    checkedAt: input.checkedAt,
+    summary: input.summary,
+    noDeepSearchAutoCosts: true,
+    noAutoResearch: true,
+  };
+}
+
+function buildSourceConnectionAuditEvent(input: {
+  connectionId: string;
+  organizationId: string | null;
+  regionId: string;
+  actorUserId: string | null;
+  eventType: SourceConnectionAuditEventType;
+  status: SourceConnectionStatus;
+  note?: string | null;
+}): SourceConnectionAuditEvent {
+  return {
+    id: `source-connection-audit-${input.connectionId}-${Date.now()}-${input.eventType}`,
+    connectionId: input.connectionId,
+    organizationId: input.organizationId,
+    regionId: input.regionId,
+    actorUserId: input.actorUserId,
+    eventType: input.eventType,
+    status: input.status,
+    note: String(input.note ?? "").trim() || null,
+    createdAt: buildIsoNow(),
+    noAutoPublish: true,
+    noPublicOfficial: true,
+  };
+}
+
+function eventTypeForStatus(status: SourceConnectionStatus): SourceConnectionAuditEventType {
+  switch (status) {
+    case "draft":
+      return "draft_saved";
+    case "submitted":
+      return "submitted";
+    case "testing":
+      return "testing_started";
+    case "test_failed":
+      return "test_failed";
+    case "active_limited":
+      return "activated_limited";
+    case "active_review_required":
+      return "activated_review_required";
+    case "paused":
+      return "paused";
+    case "revoked":
+      return "revoked";
+    case "archived":
+      return "archived";
+    default:
+      return "submitted";
+  }
+}
+
 function buildDryRunTopics(connection: RegionSourceConnection) {
   const fromSamples = uniqueNonEmpty(
     connection.sampleItems.flatMap((item) => item.detectedTopics),
@@ -611,6 +695,8 @@ function normalizeConnection(input: {
   organizationId?: string | null;
   label: string;
   sourceType: RegionSourceConnectionType;
+  status: SourceConnectionStatus;
+  scope: SourceConnectionScope;
   url: string | null;
   notes: string | null;
   enabled: boolean;
@@ -623,6 +709,7 @@ function normalizeConnection(input: {
   snapshotSeedKind?: RegionSourceSnapshotSeedKind | null;
   snapshotTemplateLabel?: string | null;
   userId: string | null;
+  note?: string | null;
   id?: string | null;
 }): RegionSourceConnection {
   const now = buildIsoNow();
@@ -630,12 +717,34 @@ function normalizeConnection(input: {
     String(input.id ?? input.existing?.id ?? "").trim() ||
     `region-source-connection-${input.regionId}-${Date.now()}`;
   const sampleItems = normalizeSampleItems(input.sampleItems);
+  const persistedStatus = input.status;
+  const scope = input.scope;
+  const productionTruth = isRegionSourceConnectionProductionTruth();
+  const auditEvents = [
+    ...(input.existing?.auditEvents ?? []),
+    buildSourceConnectionAuditEvent({
+      connectionId: id,
+      organizationId:
+        String(input.organizationId ?? input.existing?.organizationId ?? "").trim() || null,
+      regionId: input.regionId,
+      actorUserId: input.userId,
+      eventType: eventTypeForStatus(persistedStatus),
+      status: persistedStatus,
+      note:
+        input.note ??
+        `${sourceConnectionStatusLabel(persistedStatus)} · ${regionSourceConnectionTypeLabel(
+          input.sourceType,
+        )}`,
+    }),
+  ].slice(-25);
   return {
     id,
     regionId: input.regionId,
     organizationId: String(input.organizationId ?? input.existing?.organizationId ?? "").trim() || null,
     label: input.label,
     sourceType: input.sourceType,
+    status: persistedStatus,
+    scope,
     adapterId: regionSourceConnectionAdapterId(input.sourceType),
     url: String(input.url ?? "").trim() || null,
     notes: String(input.notes ?? "").trim() || null,
@@ -655,6 +764,24 @@ function normalizeConnection(input: {
         input.existing?.sourceSnapshotTemplate?.label ??
         null,
     }),
+    latestTestResult:
+      input.existing?.latestTestResult ??
+      buildSourceConnectionTestResult({
+        status: "not_run",
+        checkedAt: null,
+        summary: "Quelle wurde noch nicht getestet.",
+      }),
+    latestSnapshotId: input.existing?.latestSnapshotId ?? null,
+    latestSnapshotAt: input.existing?.latestSnapshotAt ?? null,
+    entitlementRequiredScope: "source_connection",
+    operatorReviewRequired:
+      persistedStatus === "submitted" ||
+      persistedStatus === "testing" ||
+      persistedStatus === "test_failed" ||
+      persistedStatus === "active_review_required" ||
+      persistedStatus === "active_limited",
+    productionTruth,
+    auditEvents,
     createdAt: input.existing?.createdAt ?? now,
     updatedAt: now,
     createdBy: input.existing?.createdBy ?? input.userId,
@@ -663,6 +790,9 @@ function normalizeConnection(input: {
     noLiveCrawlerClaim: true,
     noScraping: true,
     noDeepSearchAutoCosts: true,
+    noAutoPublish: true,
+    noPublicOfficial: true,
+    noAutoModerationRights: true,
   };
 }
 
@@ -921,10 +1051,16 @@ export async function getRegionSourceTestResultById(id: string) {
 export async function saveRegionSourceConnection(input: z.input<typeof RegionSourceConnectionUpsertSchema> & {
   userId: string | null;
   organizationId?: string | null;
+  status?: SourceConnectionStatus;
+  scope?: SourceConnectionScope;
+  note?: string | null;
 }) {
   const {
     userId,
     organizationId,
+    status,
+    scope,
+    note,
     ...payload
   } = input;
   const parsed = RegionSourceConnectionUpsertSchema.parse(payload);
@@ -935,13 +1071,19 @@ export async function saveRegionSourceConnection(input: z.input<typeof RegionSou
     organizationId,
     label: parsed.label,
     sourceType: parsed.sourceType,
+    status:
+      status ??
+      existing?.status ??
+      (parsed.enabled ? "submitted" : "draft"),
+    scope: scope ?? existing?.scope ?? (organizationId ? "organization_region" : "operator_review"),
     url: parsed.url ?? null,
     notes: parsed.notes ?? null,
-    enabled: parsed.enabled ?? true,
+    enabled: parsed.enabled ?? false,
     sampleItems: parsed.sampleItems ?? [],
     snapshotSeedKind: parsed.snapshotSeedKind ?? null,
     snapshotTemplateLabel: parsed.snapshotTemplateLabel ?? null,
     userId,
+    note,
     id: parsed.id,
   });
   await getRepo().upsertConnection(connection);
@@ -957,15 +1099,48 @@ export async function runRegionSourceConnectionDryRun(params: {
 }) {
   const connection = await getRepo().getConnectionById(params.connectionId);
   if (!connection) throw new Error("source_connection_not_found");
+  if (connection.status === "paused" || connection.status === "revoked" || connection.status === "archived") {
+    throw new Error("source_connection_status_blocks_testing");
+  }
+  if (requiresExplicitUrl(connection.sourceType) && !String(connection.url ?? "").trim()) {
+    throw new Error("source_connection_missing_explicit_url");
+  }
+
+  const testingNow = buildIsoNow();
+  const testingConnection: RegionSourceConnection = {
+    ...connection,
+    status: "testing",
+    latestTestResult: buildSourceConnectionTestResult({
+      status: "not_run",
+      checkedAt: testingNow,
+      summary: "Leichter Verbindungstest gestartet. Kein DeepSearch und kein automatischer Research-Lauf.",
+    }),
+    operatorReviewRequired: true,
+    updatedAt: testingNow,
+    updatedBy: params.testedBy,
+    auditEvents: [
+      ...connection.auditEvents,
+      buildSourceConnectionAuditEvent({
+        connectionId: connection.id,
+        organizationId: connection.organizationId ?? null,
+        regionId: connection.regionId,
+        actorUserId: params.testedBy,
+        eventType: "testing_started",
+        status: "testing",
+        note: "Leichter Verbindungstest ohne DeepSearch oder automatische KI-Recherche gestartet.",
+      }),
+    ].slice(-25),
+  };
+  await getRepo().upsertConnection(testingConnection);
 
   const sourceSnapshot =
-    connection.sourceSnapshotTemplate?.mode === "template_only"
+    testingConnection.sourceSnapshotTemplate?.mode === "template_only"
       ? null
-      : await fetchExplicitUrlSnapshot(connection.url);
-  const sampleItems = mergeDryRunSampleItems(connection, sourceSnapshot);
+      : await fetchExplicitUrlSnapshot(testingConnection.url);
+  const sampleItems = mergeDryRunSampleItems(testingConnection, sourceSnapshot);
   const preparation = await runRegionIntelligencePreparation(
     buildDryRunPreparationInput({
-      connection,
+      connection: testingConnection,
       region: params.region,
       sampleItems,
       actorRole: String(params.actorRole ?? "admin").trim() || "admin",
@@ -995,37 +1170,61 @@ export async function runRegionSourceConnectionDryRun(params: {
     evidenceReferences,
   });
   const sourceSnapshotTemplate = buildSnapshotTemplateResult({
-    connection,
+    connection: testingConnection,
     possibleClaims,
     topicCandidates: preparation.topicClusterHints,
     evidenceHints: evidenceReferences,
     openQuestions: preparation.openQuestions,
   });
   const now = buildIsoNow();
+  const testResultStatus: SourceConnectionTestResult["status"] =
+    sourceSnapshot?.status === "fetch_failed"
+      ? "failed"
+      : sourceSnapshot?.status === "fetched"
+        ? "passed"
+        : "manual_only";
+  const connectionStatus =
+    testResultStatus === "failed"
+      ? "test_failed"
+      : connection.status === "active_limited"
+        ? "active_limited"
+        : "active_review_required";
+  const testResult = buildSourceConnectionTestResult({
+    status: testResultStatus,
+    checkedAt: now,
+    summary:
+      testResultStatus === "failed"
+        ? "Der leichte Verbindungstest ist fehlgeschlagen. Quelle bleibt reviewpflichtig und unveröffentlicht."
+        : testResultStatus === "manual_only"
+          ? "Nur der manuelle Snapshot wurde ausgewertet. Kein Live-Fetch und kein DeepSearch."
+          : "Die explizite Quelle wurde kontrolliert getestet. Alles bleibt reviewpflichtig und unveröffentlicht.",
+  });
   const result: RegionSourceTestResult = {
-    id: `region-source-test-result-${connection.id}-${Date.now()}`,
-    connectionId: connection.id,
-    regionId: connection.regionId,
-    organizationId: connection.organizationId ?? null,
-    connectionLabel: connection.label,
-    sourceType: connection.sourceType,
-    adapterId: connection.adapterId,
+    id: `region-source-test-result-${testingConnection.id}-${Date.now()}`,
+    connectionId: testingConnection.id,
+    regionId: testingConnection.regionId,
+    organizationId: testingConnection.organizationId ?? null,
+    connectionLabel: testingConnection.label,
+    sourceType: testingConnection.sourceType,
+    adapterId: testingConnection.adapterId,
     resultMode: "dry_run",
-    title: buildDryRunTitle(connection),
+    title: buildDryRunTitle(testingConnection),
     summary: buildDryRunSummary({
-      connection,
+      connection: testingConnection,
       sourceSnapshot,
       reviewTaskSummary,
     }),
-    configuredUrl: connection.url,
-    detectedTopics: detectedTopics.length > 0 ? detectedTopics : buildDryRunTopics(connection),
+    configuredUrl: testingConnection.url,
+    detectedTopics: detectedTopics.length > 0 ? detectedTopics : buildDryRunTopics(testingConnection),
     visibilityState: "internal_review",
     visibilityLabel: regionSourceResultVisibilityLabel("internal_review"),
     reviewStatus: "needs_review",
-    confidence: confidenceForType(connection.sourceType),
+    reviewState: "unreviewed",
+    confidence: confidenceForType(testingConnection.sourceType),
     sourceSnapshotStatus:
       sourceSnapshot?.status ??
       (sampleItems.length > 0 ? "manual_only" : "fetch_failed"),
+    testResult,
     sourceSnapshotTitle: sourceSnapshot?.title ?? sampleItems[0]?.title ?? null,
     sourceSnapshotSummary: sourceSnapshot?.summary ?? sampleItems[0]?.summary ?? null,
     sourceSnapshotExcerpt: sourceSnapshot?.excerpt ?? evidenceReferences[0]?.excerpt ?? null,
@@ -1047,10 +1246,43 @@ export async function runRegionSourceConnectionDryRun(params: {
     createdAt: now,
     updatedAt: now,
     testedBy: params.testedBy,
+    productionTruth: isRegionSourceConnectionProductionTruth(),
     reviewRequired: true,
     noAutoPublish: true,
     noPublicOfficial: true,
   };
+  const persistedConnection: RegionSourceConnection = {
+    ...testingConnection,
+    status: connectionStatus,
+    latestTestResult: testResult,
+    latestSnapshotId: result.id,
+    latestSnapshotAt: now,
+    operatorReviewRequired: true,
+    updatedAt: now,
+    updatedBy: params.testedBy,
+    auditEvents: [
+      ...testingConnection.auditEvents,
+      buildSourceConnectionAuditEvent({
+        connectionId: testingConnection.id,
+        organizationId: testingConnection.organizationId ?? null,
+        regionId: testingConnection.regionId,
+        actorUserId: params.testedBy,
+        eventType: eventTypeForStatus(connectionStatus),
+        status: connectionStatus,
+        note: testResult.summary,
+      }),
+      buildSourceConnectionAuditEvent({
+        connectionId: testingConnection.id,
+        organizationId: testingConnection.organizationId ?? null,
+        regionId: testingConnection.regionId,
+        actorUserId: params.testedBy,
+        eventType: "snapshot_created",
+        status: connectionStatus,
+        note: "Reviewpflichtiger Source-Snapshot wurde erzeugt.",
+      }),
+    ].slice(-25),
+  };
+  await getRepo().upsertConnection(persistedConnection);
   await getRepo().saveTestResult(result);
   return result;
 }

@@ -527,6 +527,11 @@ describe("organization dashboard readmodel", () => {
       ]),
     );
     expect(readModel.participationSignals.some((item) => item.regionId === "bezirk-berlin-reinickendorf")).toBe(true);
+    expect(readModel.sourceConnectionSummary).toMatchObject({
+      currentState: "requested",
+      statusLabel: "Quelle beantragen",
+      productionTruth: false,
+    });
     expect(readModel.firstRun.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

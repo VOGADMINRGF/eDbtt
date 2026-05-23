@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   RegionSourceConnectionUpsertSchema,
+  buildOrganizationDashboardReadModel,
   canEditOrganizationResource,
   canCreateRegionDraft,
   canReviewRegionSignal,
@@ -10,6 +11,7 @@ import {
   getOperationalRegionById,
   listRegionSourceConnections,
   listRegionSourceTestResults,
+  organizationEntitlementAllowsScope,
   regionScopeFromRegionAccessContext,
   saveRegionSourceConnection,
 } from "@features/region";
@@ -57,6 +59,48 @@ async function canManageRegionSources(params: {
   );
 }
 
+async function resolveSourceConnectionAccess(params: {
+  gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>;
+}) {
+  if (params.gate instanceof Response) return null;
+  if (params.gate.actor.isAdmin) {
+    return {
+      organizationId: null,
+      verifiedMembership: true,
+      hasSourceEntitlement: true,
+      limitedEntitlement: false,
+      requestState: "operator_review" as const,
+    };
+  }
+  const readModel = await buildOrganizationDashboardReadModel({
+    userId: params.gate.actor.userId,
+    roles: (params.gate.roles ?? []).map((role) => String(role).toLowerCase()),
+    isAdmin: false,
+    actorRole: params.gate.actor.role,
+  });
+  const sourceGrant = readModel.entitlementSummary.grants.find(
+    (grant) => grant.scope === "source_connection",
+  );
+  const verifiedMembership = readModel.membershipStatus.verifiedMemberships > 0;
+  const hasSourceEntitlement = Boolean(
+    sourceGrant &&
+      organizationEntitlementAllowsScope(readModel.entitlementSummary, "source_connection"),
+  );
+  return {
+    organizationId:
+      params.gate.requestScope.regionAccess.organization.primaryOrganizationId ??
+      readModel.organization.primaryOrganizationId,
+    verifiedMembership,
+    hasSourceEntitlement,
+    limitedEntitlement: sourceGrant?.status === "limited",
+    requestState: !verifiedMembership
+      ? ("verification_required" as const)
+      : hasSourceEntitlement
+        ? ("entitled" as const)
+        : ("entitlement_required" as const),
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const parsed = QuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams.entries()));
@@ -72,6 +116,7 @@ export async function GET(req: NextRequest) {
     }
 
     const scoped = await buildScopedAccess({ gate, regionId: region?.id ?? null });
+    const sourceAccess = await resolveSourceConnectionAccess({ gate });
     const [connections, results] = await Promise.all([
       listRegionSourceConnections(region?.id ?? null),
       listRegionSourceTestResults({ regionId: region?.id ?? null, limit: 50 }),
@@ -103,6 +148,7 @@ export async function GET(req: NextRequest) {
         organizationId: gate.requestScope.organizationId,
         regionIds: gate.requestScope.regionIds,
       },
+      sourceAccess,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "region_source_list_failed";
@@ -125,21 +171,51 @@ export async function POST(req: NextRequest) {
     }
 
     const scoped = await buildScopedAccess({ gate, regionId: region.id });
+    const sourceAccess = await resolveSourceConnectionAccess({ gate });
+    const organizationId = gate.actor.isAdmin
+      ? null
+      : scoped && canEditOrganizationResource(scoped.scope, {
+          organizationId: scoped.accessContext.organization.primaryOrganizationId,
+        })
+        ? scoped.accessContext.organization.primaryOrganizationId
+        : null;
+    const status = !sourceAccess || gate.actor.isAdmin
+      ? parsed.enabled === false
+        ? "draft"
+        : "active_review_required"
+      : !sourceAccess.verifiedMembership
+        ? "submitted"
+        : sourceAccess.hasSourceEntitlement
+          ? sourceAccess.limitedEntitlement
+            ? "active_limited"
+            : "active_review_required"
+          : "submitted";
+    const enabled =
+      gate.actor.isAdmin ||
+      Boolean(sourceAccess?.verifiedMembership && sourceAccess?.hasSourceEntitlement);
     const connection = await saveRegionSourceConnection({
       ...parsed,
       regionId: region.id,
       userId: gate.actor.userId,
-      organizationId: gate.actor.isAdmin
-        ? null
-        : scoped && canEditOrganizationResource(scoped.scope, {
-            organizationId: scoped.accessContext.organization.primaryOrganizationId,
-          })
-          ? scoped.accessContext.organization.primaryOrganizationId
-          : null,
+      organizationId,
+      enabled,
+      status,
+      scope: gate.actor.isAdmin ? "operator_review" : "organization_region",
+      note:
+        !sourceAccess || gate.actor.isAdmin
+          ? "Quelle im Betreiberkontext gespeichert."
+          : !sourceAccess.verifiedMembership
+            ? "Quelle nur beantragt. Ohne verifizierte Organisation bleibt keine produktive Verbindung aktiv."
+            : sourceAccess.hasSourceEntitlement
+              ? sourceAccess.limitedEntitlement
+                ? "Quelle eingeschränkt freigeschaltet. Review bleibt Pflicht."
+                : "Quelle aktiv, aber weiterhin reviewpflichtig."
+              : "Quelle nur beantragt. Ohne Entitlement `source_connection` bleibt keine produktive Verbindung aktiv.",
     });
     return NextResponse.json({
       ok: true,
       connection,
+      sourceAccess,
       requestScope: {
         isOperatorMode: gate.requestScope.isOperatorMode,
         operatorModeLabel: gate.requestScope.operatorModeLabel,

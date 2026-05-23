@@ -170,8 +170,13 @@ describe("admin region source connection routes", () => {
       connection: expect.objectContaining({
         regionId: "bezirk-berlin-reinickendorf",
         sourceType: "municipal_news",
+        status: "active_review_required",
+        scope: "operator_review",
         adapterId: "productive_regional_source",
         noLiveCrawlerClaim: true,
+        latestTestResult: expect.objectContaining({
+          status: "not_run",
+        }),
         sourceSnapshotTemplate: expect.objectContaining({
           label: "Beispiel-Snapshot",
           seedKind: "example_seed",
@@ -211,8 +216,13 @@ describe("admin region source connection routes", () => {
         connectionId: createBody.connection.id,
         visibilityState: "internal_review",
         reviewStatus: "needs_review",
+        reviewState: "unreviewed",
         noAutoPublish: true,
         noPublicOfficial: true,
+        testResult: expect.objectContaining({
+          status: "passed",
+          noAutoResearch: true,
+        }),
         sourceSnapshotStatus: "fetched",
         sourceSnapshotTitle: "Schulsanierung in Reinickendorf",
         sourceSnapshotTemplate: expect.objectContaining({
@@ -226,31 +236,15 @@ describe("admin region source connection routes", () => {
               basisLabel: "Titel",
             }),
           ]),
-          topicCandidates: expect.arrayContaining([
-            expect.objectContaining({
-              label: expect.any(String),
-            }),
-          ]),
           evidenceHints: expect.arrayContaining([
             expect.objectContaining({
               label: expect.any(String),
             }),
           ]),
-          openQuestions: expect.arrayContaining([expect.any(String)]),
         }),
         possibleClaims: expect.arrayContaining([
           expect.objectContaining({
             basisLabel: "Titel",
-          }),
-        ]),
-        topicClusters: expect.arrayContaining([
-          expect.objectContaining({
-            label: expect.any(String),
-          }),
-        ]),
-        dossierSuggestions: expect.arrayContaining([
-          expect.objectContaining({
-            title: expect.stringContaining("Berlin Reinickendorf"),
           }),
         ]),
         evidenceReferences: expect.arrayContaining([
@@ -381,6 +375,360 @@ describe("admin region source connection routes", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
       error: expect.any(String),
+    });
+  });
+
+  it("stores a source request without activation when the org lacks source_connection entitlement", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [
+          {
+            id: "org-reinickendorf-1",
+            name: "Bezirksamt Reinickendorf",
+            type: "district_office",
+            countryCode: "DE",
+            primaryRegionId: "bezirk-berlin-reinickendorf",
+            website: "https://reinickendorf.example",
+            verificationStatus: "organization_verified",
+            createdByUserId: "admin-1",
+          },
+        ],
+        memberships: [
+          {
+            id: "membership-verified-1",
+            userId: "staff-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            unitName: "Beteiligung",
+            optionalLocation: null,
+            roleLabel: "Beteiligung",
+            roleType: "participation_officer",
+            verificationStatus: "unit_verified",
+            allowedActions: ["read_region_dashboard", "review_region_signal", "create_region_draft"],
+            createdAt: "2026-05-19T08:00:00.000Z",
+            updatedAt: "2026-05-19T08:00:00.000Z",
+            verifiedBy: "admin-1",
+            verifiedAt: "2026-05-19T08:00:00.000Z",
+            expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
+          },
+        ],
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["organization_member"],
+      actor: {
+        userId: "staff-1",
+        role: "organization_member",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+      requestScope: buildGovernanceRequestScope({
+        organizationId: "org-reinickendorf-1",
+        regionIds: ["bezirk-berlin-reinickendorf"],
+        isOperatorMode: false,
+        operatorModeLabel: null,
+        regionAccess: {
+          userId: "staff-1",
+          actorRole: "organization_member",
+          isAdmin: false,
+          authoritySource: "verified_membership",
+          adminFallback: false,
+          verificationStatus: "unit_verified",
+          roles: ["organization_member"],
+          hintedRegionIds: [],
+          verifiedRegionIds: ["bezirk-berlin-reinickendorf"],
+          scopedRegionIds: ["bezirk-berlin-reinickendorf"],
+          organization: {
+            organizationIds: ["org-reinickendorf-1"],
+            primaryOrganizationId: "org-reinickendorf-1",
+            paidDashboardEntitlement: "granted",
+            entitlementSource: "admin_grant",
+            entitlementStatus: "active",
+            entitlementReason: "matched_region",
+            entitlementPlanId: "kommune-aktivierung",
+            entitlementPlanLabel: "Kommune Aktivierung",
+            entitlementScope: "organization_unit",
+            entitlementLimits: null,
+            entitlementUsage: null,
+            requiresVerifiedMembership: true,
+            dashboard: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+            dossierDraft: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+            anlassraumDraft: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+          },
+          allowedActions: ["read_region_dashboard", "review_region_signal", "create_region_draft"],
+        },
+      }),
+    });
+
+    const createRes = await POST_CONNECTION(
+      buildRequest("http://localhost/api/admin/region/source-connections", {
+        regionId: "berlin-reinickendorf",
+        sourceType: "website_url",
+        label: "Reinickendorf Presse",
+        url: "https://reinickendorf.example/presse",
+      }),
+    );
+    const createBody = await createRes.json();
+
+    expect(createRes.status).toBe(200);
+    expect(createBody.connection).toMatchObject({
+      organizationId: "org-reinickendorf-1",
+      status: "submitted",
+      enabled: false,
+      scope: "organization_region",
+    });
+
+    const testRes = await POST_TEST(
+      buildRequest(
+        `http://localhost/api/admin/region/source-connections/${createBody.connection.id}/test`,
+        {},
+      ),
+      { params: Promise.resolve({ id: createBody.connection.id }) },
+    );
+    expect(testRes.status).toBe(403);
+    await expect(testRes.json()).resolves.toMatchObject({
+      ok: false,
+      error: "source_connection_entitlement_required",
+    });
+  });
+
+  it("allows verified orgs with source_connection entitlement to test only their own source scope", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [
+          {
+            id: "org-reinickendorf-1",
+            name: "Bezirksamt Reinickendorf",
+            type: "district_office",
+            countryCode: "DE",
+            primaryRegionId: "bezirk-berlin-reinickendorf",
+            website: "https://reinickendorf.example",
+            verificationStatus: "organization_verified",
+            createdByUserId: "admin-1",
+          },
+        ],
+        memberships: [
+          {
+            id: "membership-verified-1",
+            userId: "staff-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            unitName: "Beteiligung",
+            optionalLocation: null,
+            roleLabel: "Beteiligung",
+            roleType: "participation_officer",
+            verificationStatus: "publication_approved",
+            allowedActions: ["read_region_dashboard", "review_region_signal", "create_region_draft"],
+            createdAt: "2026-05-19T08:00:00.000Z",
+            updatedAt: "2026-05-19T08:00:00.000Z",
+            verifiedBy: "admin-1",
+            verifiedAt: "2026-05-19T08:00:00.000Z",
+            expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
+          },
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-source-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-19T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-19T08:00:00.000Z",
+            updatedAt: "2026-05-19T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "admin_grant",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["organization_member"],
+      actor: {
+        userId: "staff-1",
+        role: "organization_member",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+      requestScope: buildGovernanceRequestScope({
+        organizationId: "org-reinickendorf-1",
+        regionIds: ["bezirk-berlin-reinickendorf"],
+        isOperatorMode: false,
+        operatorModeLabel: null,
+        regionAccess: {
+          userId: "staff-1",
+          actorRole: "organization_member",
+          isAdmin: false,
+          authoritySource: "verified_membership",
+          adminFallback: false,
+          verificationStatus: "publication_approved",
+          roles: ["organization_member"],
+          hintedRegionIds: [],
+          verifiedRegionIds: ["bezirk-berlin-reinickendorf"],
+          scopedRegionIds: ["bezirk-berlin-reinickendorf"],
+          organization: {
+            organizationIds: ["org-reinickendorf-1"],
+            primaryOrganizationId: "org-reinickendorf-1",
+            paidDashboardEntitlement: "granted",
+            entitlementSource: "admin_grant",
+            entitlementStatus: "active",
+            entitlementReason: "matched_region",
+            entitlementPlanId: "kommune-aktivierung",
+            entitlementPlanLabel: "Kommune Aktivierung",
+            entitlementScope: "organization_unit",
+            entitlementLimits: null,
+            entitlementUsage: null,
+            requiresVerifiedMembership: true,
+            dashboard: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+            dossierDraft: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+            anlassraumDraft: {
+              allowed: true,
+              reason: "matched_region",
+              status: "active",
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scope: "organization_unit",
+              source: "admin_grant",
+              limits: null,
+              usage: null,
+            },
+          },
+          allowedActions: ["read_region_dashboard", "review_region_signal", "create_region_draft"],
+        },
+      }),
+    });
+
+    const createRes = await POST_CONNECTION(
+      buildRequest("http://localhost/api/admin/region/source-connections", {
+        regionId: "berlin-reinickendorf",
+        sourceType: "rss_feed",
+        label: "Reinickendorf RSS",
+        url: "https://reinickendorf.example/feed.xml",
+      }),
+    );
+    const createBody = await createRes.json();
+    expect(createRes.status).toBe(200);
+    expect(createBody.connection).toMatchObject({
+      organizationId: "org-reinickendorf-1",
+      status: "active_review_required",
+      enabled: true,
+      scope: "organization_region",
+    });
+
+    const dryRunRes = await POST_TEST(
+      buildRequest(
+        `http://localhost/api/admin/region/source-connections/${createBody.connection.id}/test`,
+        {},
+      ),
+      { params: Promise.resolve({ id: createBody.connection.id }) },
+    );
+    expect(dryRunRes.status).toBe(200);
+    await expect(dryRunRes.json()).resolves.toMatchObject({
+      ok: true,
+      result: expect.objectContaining({
+        connectionId: createBody.connection.id,
+        noAutoPublish: true,
+        noPublicOfficial: true,
+        testResult: expect.objectContaining({
+          noAutoResearch: true,
+        }),
+      }),
     });
   });
 
