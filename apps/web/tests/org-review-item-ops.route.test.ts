@@ -66,6 +66,7 @@ function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {
         note: null,
         billingPending: false,
         productionTruth: true,
+        accessEnabled: true,
         noAutoPublicationApproved: true,
         noAutoPublicOfficial: true,
         noAutoPublish: true,
@@ -408,5 +409,49 @@ describe("/api/account/organization/review/items/[itemId]", () => {
     );
 
     expect(revokedResponse.status).toBe(403);
+  });
+
+  it("blocks review actions when the contract-backed scope is suspended", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      entitlementSummary: buildEntitlementSummary({
+        currentStatus: "suspended",
+        grants: [
+          {
+            ...buildEntitlementSummary().grants[0],
+            status: "suspended",
+            latestDecision: "suspend",
+            accessEnabled: false,
+          },
+        ],
+      }),
+      openReviewItems: [
+        {
+          id: "region_signal_draft:contract-suspended-1",
+          moderationPermission: {
+            canOperateOwnReviewItem: true,
+            allowedActions: ["mark_in_review"],
+          },
+        },
+      ],
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/items/region_signal_draft%3Acontract-suspended-1", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "mark_in_review",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        params: Promise.resolve({
+          itemId: "region_signal_draft%3Acontract-suspended-1",
+        }),
+      },
+    );
+
+    const body = await response.json();
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("organization_entitlement_scope_forbidden");
   });
 });

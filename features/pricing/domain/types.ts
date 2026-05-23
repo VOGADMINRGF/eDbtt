@@ -19,6 +19,80 @@ export type PricingOrderStatus =
   | "active"
   | "paused"
   | "cancelled";
+
+export type OrganizationContractStatus =
+  | "none"
+  | "draft"
+  | "offered"
+  | "accepted"
+  | "active"
+  | "limited"
+  | "suspended"
+  | "cancelled"
+  | "expired";
+
+export type OrganizationBillingStatus =
+  | "none"
+  | "billing_pending"
+  | "operator_verified_contract"
+  | "active"
+  | "overdue"
+  | "grace_period"
+  | "suspended"
+  | "cancelled"
+  | "expired";
+
+export type OrganizationBillingSource =
+  | "operator_verified_contract"
+  | "manual_invoice"
+  | "external_checkout_pending"
+  | "external_checkout_integrated"
+  | "fixture_demo";
+
+export type OrganizationPlanAssignment = {
+  planId: string;
+  planLabel: string;
+  scopes: string[];
+};
+
+export type OrganizationAccessProvisioningDecision =
+  | "none"
+  | "offer"
+  | "accept"
+  | "activate"
+  | "limit"
+  | "grace"
+  | "suspend"
+  | "cancel"
+  | "expire"
+  | "reactivate";
+
+export type OrganizationContractAuditEventType =
+  | "offer"
+  | "accept"
+  | "activate"
+  | "limit"
+  | "grace"
+  | "suspend"
+  | "cancel"
+  | "expire"
+  | "reactivate";
+
+export type OrganizationContractAuditEvent = {
+  id: string;
+  eventType: OrganizationContractAuditEventType;
+  organizationId: string | null;
+  orderId: string;
+  previousContractStatus: OrganizationContractStatus | null;
+  nextContractStatus: OrganizationContractStatus | null;
+  previousBillingStatus: OrganizationBillingStatus | null;
+  nextBillingStatus: OrganizationBillingStatus | null;
+  source: OrganizationBillingSource;
+  planAssignment: OrganizationPlanAssignment | null;
+  note: string | null;
+  createdAt: string;
+  createdBy: string;
+};
 export type EDebattePackageId =
   | "basis"
   | "start"
@@ -111,6 +185,13 @@ export type PricingOrderInternalSnapshot = {
   billingFinanceNote: string | null;
   contractReference: string | null;
   invoiceReference: string | null;
+  organizationId: string | null;
+  contractStatus: OrganizationContractStatus | null;
+  billingStatus: OrganizationBillingStatus | null;
+  billingSource: OrganizationBillingSource | null;
+  planAssignment: OrganizationPlanAssignment | null;
+  accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
+  contractAuditEvents: OrganizationContractAuditEvent[];
 };
 
 export type PreorderLeadRecord = {
@@ -144,6 +225,25 @@ export type PreorderLeadRecord = {
   userId: string | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type OrganizationContractOrderRecord = {
+  id: string;
+  orderId: string;
+  packageId: string;
+  planLabel: string;
+  organizationId: string | null;
+  organizationName: string | null;
+  status: PricingOrderStatus;
+  contractStatus: OrganizationContractStatus | null;
+  billingStatus: OrganizationBillingStatus | null;
+  billingSource: OrganizationBillingSource | null;
+  planAssignment: OrganizationPlanAssignment | null;
+  accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
+  auditEvents: OrganizationContractAuditEvent[];
+  source: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
 export type PreorderUserUpdate = {

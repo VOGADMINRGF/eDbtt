@@ -113,6 +113,38 @@ describe("/api/admin/pricing/orders", () => {
     );
   });
 
+  it("accepts explicit contract, billing and provisioning fields", async () => {
+    const req = new NextRequest("http://localhost/api/admin/pricing/orders", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "65a111111111111111111111",
+        status: "active",
+        organizationId: "org-reinickendorf-1",
+        contractStatus: "active",
+        billingStatus: "operator_verified_contract",
+        billingSource: "operator_verified_contract",
+        accessProvisioningDecision: "activate",
+        note: "Betreiber-verifizierter Vertragsprozess freigeschaltet.",
+      }),
+    });
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    expect(mocks.updatePricingOrderReview).toHaveBeenCalledWith(
+      "65a111111111111111111111",
+      expect.objectContaining({
+        status: "active",
+        actorUserId: "admin-1",
+        organizationId: "org-reinickendorf-1",
+        contractStatus: "active",
+        billingStatus: "operator_verified_contract",
+        billingSource: "operator_verified_contract",
+        accessProvisioningDecision: "activate",
+      }),
+    );
+  });
+
   it("maps invalid transition to 409", async () => {
     mocks.updatePricingOrderReview.mockRejectedValue(new Error("invalid_status_transition"));
     const req = new NextRequest("http://localhost/api/admin/pricing/orders", {

@@ -5,7 +5,13 @@ import {
   listPricingOrders,
   updatePricingOrderReview,
 } from "@features/pricing/server/leadsRepo";
-import type { PricingOrderStatus } from "@features/pricing";
+import type {
+  OrganizationAccessProvisioningDecision,
+  OrganizationBillingSource,
+  OrganizationBillingStatus,
+  OrganizationContractStatus,
+  PricingOrderStatus,
+} from "@features/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +46,51 @@ const patchSchema = z.object({
   billingFinanceNote: z.string().max(500).optional().nullable(),
   contractReference: z.string().max(120).optional().nullable(),
   invoiceReference: z.string().max(120).optional().nullable(),
+  organizationId: z.string().max(120).optional().nullable(),
+  contractStatus: z
+    .enum(["none", "draft", "offered", "accepted", "active", "limited", "suspended", "cancelled", "expired"] as [
+      OrganizationContractStatus,
+      ...OrganizationContractStatus[],
+    ])
+    .optional()
+    .nullable(),
+  billingStatus: z
+    .enum(
+      [
+        "none",
+        "billing_pending",
+        "operator_verified_contract",
+        "active",
+        "overdue",
+        "grace_period",
+        "suspended",
+        "cancelled",
+        "expired",
+      ] as [OrganizationBillingStatus, ...OrganizationBillingStatus[]],
+    )
+    .optional()
+    .nullable(),
+  billingSource: z
+    .enum(
+      [
+        "operator_verified_contract",
+        "manual_invoice",
+        "external_checkout_pending",
+        "external_checkout_integrated",
+        "fixture_demo",
+      ] as [OrganizationBillingSource, ...OrganizationBillingSource[]],
+    )
+    .optional()
+    .nullable(),
+  accessProvisioningDecision: z
+    .enum(
+      ["none", "offer", "accept", "activate", "limit", "grace", "suspend", "cancel", "expire", "reactivate"] as [
+        OrganizationAccessProvisioningDecision,
+        ...OrganizationAccessProvisioningDecision[],
+      ],
+    )
+    .optional()
+    .nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -82,6 +133,11 @@ export async function PATCH(req: NextRequest) {
       billingFinanceNote: parsed.data.billingFinanceNote ?? null,
       contractReference: parsed.data.contractReference ?? null,
       invoiceReference: parsed.data.invoiceReference ?? null,
+      organizationId: parsed.data.organizationId ?? null,
+      contractStatus: parsed.data.contractStatus ?? null,
+      billingStatus: parsed.data.billingStatus ?? null,
+      billingSource: parsed.data.billingSource ?? null,
+      accessProvisioningDecision: parsed.data.accessProvisioningDecision ?? null,
     });
     return NextResponse.json({ ok: true, order: updated });
   } catch (error: any) {
@@ -98,4 +154,3 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   }
 }
-

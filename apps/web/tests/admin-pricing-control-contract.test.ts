@@ -3,6 +3,7 @@ import {
   buildAdminPricingControlAuditFields,
   parseAdminPricingControlPolicyContract,
 } from "@/lib/server/pricing/adminPricingControlContract";
+import { isProductionBillingTruth } from "@features/pricing";
 
 function baseExplainability() {
   return {
@@ -160,5 +161,39 @@ describe("admin pricing control contract", () => {
       pricingOverrideReason: "Pilotkorridor fuer verifizierte Team-Organisation.",
       pricingChangedBy: "admin_user_42",
     });
+  });
+
+  it("treats operator-verified contracts as the v1 production billing truth", () => {
+    expect(
+      isProductionBillingTruth({
+        source: "operator_verified_contract",
+        runtimeMarker: "production_runtime",
+        auditBacked: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("never treats fixture or pending checkout modes as production billing truth", () => {
+    expect(
+      isProductionBillingTruth({
+        source: "fixture_demo",
+        runtimeMarker: "production_runtime",
+        auditBacked: true,
+      }),
+    ).toBe(false);
+    expect(
+      isProductionBillingTruth({
+        source: "operator_verified_contract",
+        runtimeMarker: "demo_or_test_runtime",
+        auditBacked: true,
+      }),
+    ).toBe(false);
+    expect(
+      isProductionBillingTruth({
+        source: "external_checkout_pending",
+        runtimeMarker: "external_checkout_pending",
+        auditBacked: true,
+      }),
+    ).toBe(false);
   });
 });

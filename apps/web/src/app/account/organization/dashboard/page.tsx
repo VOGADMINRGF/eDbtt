@@ -12,6 +12,8 @@ import {
 } from "@/lib/server/auth/membershipDirectoryRepository";
 import {
   buildOrganizationDashboardReadModel,
+  organizationBillingStatusLabel,
+  organizationContractStatusLabel,
   directoryVerificationStatusLabel,
   organizationEntitlementScopeLabel,
   organizationEntitlementStatusLabel,
@@ -164,6 +166,46 @@ function entitlementStatusTone(
     case "none":
     default:
       return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+  }
+}
+
+function contractStatusTone(
+  status: OrganizationDashboardReadModel["contractSummary"]["currentContractStatus"],
+) {
+  switch (status) {
+    case "active":
+      return "border-emerald-300/70 bg-emerald-50 text-emerald-900";
+    case "limited":
+      return "border-amber-300/70 bg-amber-50 text-amber-900";
+    case "suspended":
+    case "cancelled":
+    case "expired":
+      return "border-rose-300/70 bg-rose-50 text-rose-900";
+    case "accepted":
+    case "offered":
+    case "draft":
+      return "border-sky-300/70 bg-sky-50 text-sky-900";
+    case "none":
+    default:
+      return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+  }
+}
+
+function billingSourceLabel(
+  source: OrganizationDashboardReadModel["contractSummary"]["sourceOfTruth"],
+) {
+  switch (source) {
+    case "operator_verified_contract":
+      return "Betreiber-verifizierter Vertragsprozess";
+    case "manual_invoice":
+      return "Manuelle Rechnung / Vertragspfad";
+    case "external_checkout_pending":
+      return "Externer Checkout später optional";
+    case "external_checkout_integrated":
+      return "Externer Checkout integriert";
+    case "fixture_demo":
+    default:
+      return "Demo- oder Testpfad";
   }
 }
 
@@ -571,6 +613,76 @@ export default async function AccountOrganizationDashboardPage() {
         </article>
 
         <article
+          id="vertrag"
+          className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Vertrag &amp; Billing
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+            {readModel.contractSummary.nextStepTitle}
+          </h2>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Dieser Bereich zeigt den bewussten Vertrags- und Billing-Stand deiner Organisation.
+            Es wird kein externer Checkout behauptet.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Vertragsstatus</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {organizationContractStatusLabel(readModel.contractSummary.currentContractStatus)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Billing-Status</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {organizationBillingStatusLabel(readModel.contractSummary.billingStatus)}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Vertragswahrheit
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                  {billingSourceLabel(readModel.contractSummary.sourceOfTruth)}
+                </p>
+              </div>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${contractStatusTone(
+                  readModel.contractSummary.currentContractStatus,
+                )}`}
+              >
+                {readModel.contractSummary.storeLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {readModel.contractSummary.nextStepBody}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Confidence: {readModel.contractSummary.confidence} ·
+              {" "}
+              {readModel.contractSummary.productionTruth
+                ? "Persistente, auditierbare Betreiber-Verifikation ist für v1 die Produktionswahrheit."
+                : readModel.contractSummary.sourceOfTruth === "external_checkout_pending"
+                  ? "Externer Checkout bleibt ein optionaler späterer Integrationsmodus und ist hier noch nicht aktiv."
+                  : "Noch kein production_ready-v1 Vertragsstatus. Zugriffe bleiben bewusst begrenzt oder gesperrt."}
+            </p>
+            {readModel.contractSummary.planAssignment ? (
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Plan: {readModel.contractSummary.planAssignment.planLabel} · Scopes:{" "}
+                {readModel.contractSummary.planAssignment.scopes.join(", ")}
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Audit-Hinweis: Vertrags-, Billing- und Plan-Entscheidungen bleiben persistent und auditierbar.
+            </p>
+          </div>
+        </article>
+
+        <article
           id="freischaltung"
           className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
         >
@@ -651,6 +763,7 @@ export default async function AccountOrganizationDashboardPage() {
                       <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                         {organizationEntitlementStatusLabel(grant.status)}
                         {grant.linkedPlanLabel ? ` · ${grant.linkedPlanLabel}` : ""}
+                        {!grant.accessEnabled ? " · aktuell nicht aktiv" : ""}
                       </p>
                     </div>
                     <span
@@ -663,6 +776,11 @@ export default async function AccountOrganizationDashboardPage() {
                   </div>
                   {grant.note ? (
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">{grant.note}</p>
+                  ) : null}
+                  {!grant.accessEnabled ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Dieser Scope ist sichtbar, aber im aktuellen Vertrags- oder Billing-Status nicht aktiv.
+                    </p>
                   ) : null}
                 </article>
               ))

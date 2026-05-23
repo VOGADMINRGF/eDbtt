@@ -64,6 +64,11 @@ import {
   type OrganizationEntitlementStatus,
 } from "./organizationEntitlements";
 import {
+  buildOrganizationContractSummary,
+  type OrganizationContractSummary,
+} from "./organizationContracts";
+import { listPricingOrdersForOrganizationRuntime } from "@features/pricing/orderContractsRuntime";
+import {
   regionSourceConnectionTypeLabel,
   sourceConnectionScopeLabel,
   sourceConnectionStatusLabel,
@@ -332,6 +337,7 @@ export type OrganizationDashboardReadModel = {
   membershipStatus: OrganizationDashboardMembershipStatus;
   directorySummary: OrganizationDashboardDirectorySummary;
   provisioningSummary: OrganizationDashboardProvisioningSummary;
+  contractSummary: OrganizationContractSummary;
   materialIntakeSummary: MaterialIntakeDashboardSummary;
   sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
   regionSummary: OrganizationDashboardRegionSummary[];
@@ -513,17 +519,9 @@ function buildEntitlementSummary(
     verifiedMemberships: OrganizationMembership[];
     entitlements: PaidDashboardEntitlement[];
     auditEvents: EntitlementAuditEvent[];
+    contractSummary: OrganizationContractSummary | null;
   },
 ): OrganizationDashboardEntitlementSummary {
-  const active = params.entitlements.some((entry) => entry.status === "active");
-  const trial = params.entitlements.some((entry) => entry.status === "trial");
-  const expired = params.entitlements.some((entry) =>
-    entry.status === "expired" ||
-    entry.status === "cancelled" ||
-    entry.status === "revoked" ||
-    entry.status === "suspended" ||
-    entry.status === "past_due",
-  );
   const grantSummary = buildOrganizationEntitlementSummary({
     organization: params.organization,
     claims: params.claims,
@@ -531,17 +529,18 @@ function buildEntitlementSummary(
     entitlements: params.entitlements,
     auditEvents: params.auditEvents,
     productionTruth: !shouldUseInMemoryMongoFallback(),
+    contractSummary: params.contractSummary,
   });
 
   return {
     currentStatus: grantSummary.currentStatus,
     state: grantSummary.state,
-    hasActiveEntitlement: active,
-    hasTrialEntitlement: trial,
-    hasMissingEntitlement: !active && !trial,
-    hasExpiredEntitlement: expired,
-    planLabels: uniqueNonEmpty(params.entitlements.map((entry) => entry.planLabel)),
-    organizationIds: uniqueNonEmpty(params.entitlements.map((entry) => entry.organizationId)),
+    hasActiveEntitlement: grantSummary.hasActiveEntitlement,
+    hasTrialEntitlement: grantSummary.hasTrialEntitlement,
+    hasMissingEntitlement: grantSummary.hasMissingEntitlement,
+    hasExpiredEntitlement: grantSummary.hasExpiredEntitlement,
+    planLabels: grantSummary.planLabels,
+    organizationIds: grantSummary.organizationIds,
     grants: grantSummary.grants,
     operatorDecisionRequired: grantSummary.operatorDecisionRequired,
     billingPending: grantSummary.billingPending,
@@ -1612,9 +1611,25 @@ export async function buildOrganizationDashboardReadModel(input: {
       organizations.map((organization) => entitlementRepo.getEntitlementsForOrganization(organization.id)),
     )
   ).flatMap((entries) => entries);
-  const entitlementAuditEvents = primaryOrganization
-    ? await entitlementRepo.listEntitlementAuditEventsForOrganization(primaryOrganization.id)
-    : [];
+  const [entitlementAuditEvents, pricingOrders] = primaryOrganization
+    ? await Promise.all([
+        entitlementRepo.listEntitlementAuditEventsForOrganization(primaryOrganization.id),
+        listPricingOrdersForOrganizationRuntime({
+          organizationId: primaryOrganization.id,
+          organizationName: primaryOrganization.name,
+          limit: 100,
+        }),
+      ])
+    : [[], []];
+  const primaryOrganizationEntitlements = primaryOrganization
+    ? entitlements.filter((entry) => entry.organizationId === primaryOrganization.id)
+    : entitlements;
+  const contractSummary = buildOrganizationContractSummary({
+    organization: primaryOrganization,
+    entitlements: primaryOrganizationEntitlements,
+    entitlementAuditEvents,
+    pricingOrders,
+  });
 
   const regionSummary: OrganizationDashboardRegionSummary[] = [
     ...regionContexts
@@ -1707,10 +1722,9 @@ export async function buildOrganizationDashboardReadModel(input: {
       organization: primaryOrganization,
       claims,
       verifiedMemberships,
-      entitlements: primaryOrganization
-        ? entitlements.filter((entry) => entry.organizationId === primaryOrganization.id)
-        : entitlements,
+      entitlements: primaryOrganizationEntitlements,
       auditEvents: entitlementAuditEvents,
+      contractSummary,
     },
   );
   const sourceConnectionSummary = buildSourceConnectionSummary({
@@ -1855,6 +1869,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     },
     directorySummary,
     provisioningSummary,
+    contractSummary,
     materialIntakeSummary,
     sourceConnectionSummary,
     regionSummary,

@@ -35,6 +35,7 @@ import {
   createMaterialIntakeRecords,
   setMaterialIntakeRepositoryForTests,
 } from "@/features/material/materialIntakeRepository";
+import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
 
 const organization: Organization = {
   id: "org-reinickendorf-1",
@@ -185,6 +186,11 @@ beforeEach(() => {
   );
   setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
   setMaterialIntakeRepositoryForTests(createInMemoryMaterialIntakeRepository());
+  setPricingOrderContractsRuntimeRepoForTests({
+    async listPricingOrdersForOrganization() {
+      return [];
+    },
+  });
 });
 
 describe("organization dashboard readmodel", () => {
@@ -538,8 +544,8 @@ describe("organization dashboard readmodel", () => {
       isAdmin: false,
     });
 
-    expect(readModel.entitlementSummary.state).toBe("eingeschränkt");
-    expect(readModel.entitlementSummary.currentStatus).toBe("limited");
+    expect(readModel.entitlementSummary.state).toBe("aktiv");
+    expect(readModel.entitlementSummary.currentStatus).toBe("granted");
     expect(readModel.entitlementSummary.grants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -603,7 +609,7 @@ describe("organization dashboard readmodel", () => {
     );
   });
 
-  it("marks billing_pending grants as limited without claiming paid access", async () => {
+  it("blocks overdue billing states instead of claiming active paid access", async () => {
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({
         organizations: [organization],
@@ -673,21 +679,305 @@ describe("organization dashboard readmodel", () => {
       isAdmin: false,
     });
 
-    expect(readModel.entitlementSummary.currentStatus).toBe("limited");
+    expect(readModel.contractSummary.billingStatus).toBe("overdue");
+    expect(readModel.entitlementSummary.currentStatus).toBe("suspended");
     expect(readModel.entitlementSummary.billingPending).toBe(true);
-    expect(readModel.entitlementSummary.nextStepTitle).toBe("Zahlung oder Vertrag offen");
+    expect(readModel.entitlementSummary.nextStepTitle).toBe("Zugriff eingeschränkt");
     expect(readModel.entitlementSummary.grants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           scope: "billing_pending",
-          status: "limited",
+          status: "suspended",
         }),
         expect.objectContaining({
           scope: "public_share",
-          status: "limited",
+          status: "suspended",
         }),
       ]),
     );
+  });
+
+  it("activates only the contract-defined entitlement scopes and keeps publish rights explicit", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [
+          membership({
+            verificationStatus: "unit_verified",
+          }),
+        ],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-contract-scopes-1",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-17T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-17T08:00:00.000Z",
+            updatedAt: "2026-05-17T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "manual_contract",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [
+          {
+            id: "pricing-order-1",
+            orderId: "EDE-20260523-ORG1",
+            packageId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            status: "active",
+            contractStatus: "active",
+            billingStatus: "operator_verified_contract",
+            billingSource: "operator_verified_contract",
+            planAssignment: {
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scopes: ["organization_dashboard", "region_cockpit"],
+            },
+            accessProvisioningDecision: "activate",
+            auditEvents: [
+              {
+                id: "contract-audit-1",
+                eventType: "activate",
+                organizationId: organization.id,
+                orderId: "EDE-20260523-ORG1",
+                previousContractStatus: "accepted",
+                nextContractStatus: "active",
+                previousBillingStatus: "operator_verified_contract",
+                nextBillingStatus: "operator_verified_contract",
+                source: "operator_verified_contract",
+                planAssignment: {
+                  planId: "kommune-aktivierung",
+                  planLabel: "Kommune Aktivierung",
+                  scopes: ["organization_dashboard", "region_cockpit"],
+                },
+                note: "Betreiber-verifizierter Vertragsprozess.",
+                createdAt: "2026-05-23T10:00:00.000Z",
+                createdBy: "admin-1",
+              },
+            ],
+            source: "pricing_order",
+            createdAt: "2026-05-23T10:00:00.000Z",
+            updatedAt: "2026-05-23T10:00:00.000Z",
+          },
+        ];
+      },
+    });
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.contractSummary.currentContractStatus).toBe("active");
+    expect(readModel.contractSummary.sourceOfTruth).toBe("operator_verified_contract");
+    expect(readModel.entitlementSummary.currentStatus).toBe("granted");
+    expect(readModel.entitlementSummary.grants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "region_cockpit",
+          accessEnabled: true,
+        }),
+        expect.objectContaining({
+          scope: "review_queue",
+          accessEnabled: false,
+        }),
+        expect.objectContaining({
+          scope: "public_share",
+          accessEnabled: false,
+        }),
+      ]),
+    );
+    expect(readModel.allowedActions).not.toContain("public_official");
+    expect(
+      readModel.entitlementSummary.grants.find((grant) => grant.scope === "public_share")?.status,
+    ).toBe("limited");
+  });
+
+  it("blocks org-scoped contract access when the contract is suspended", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [membership()],
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-contract-suspended-1",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationType: organization.type,
+            regionId: organization.primaryRegionId,
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-17T08:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 1,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-17T08:00:00.000Z",
+            updatedAt: "2026-05-17T08:00:00.000Z",
+            createdBy: "admin-1",
+            source: "manual_contract",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [
+          {
+            id: "pricing-order-1",
+            orderId: "EDE-20260523-ORG1",
+            packageId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            organizationId: organization.id,
+            organizationName: organization.name,
+            status: "paused",
+            contractStatus: "suspended",
+            billingStatus: "suspended",
+            billingSource: "operator_verified_contract",
+            planAssignment: {
+              planId: "kommune-aktivierung",
+              planLabel: "Kommune Aktivierung",
+              scopes: [
+                "organization_dashboard",
+                "region_cockpit",
+                "review_queue",
+                "content_release",
+                "dossier_studio",
+                "source_connection",
+              ],
+            },
+            accessProvisioningDecision: "suspend",
+            auditEvents: [
+              {
+                id: "contract-audit-suspend-1",
+                eventType: "suspend",
+                organizationId: organization.id,
+                orderId: "EDE-20260523-ORG1",
+                previousContractStatus: "active",
+                nextContractStatus: "suspended",
+                previousBillingStatus: "operator_verified_contract",
+                nextBillingStatus: "suspended",
+                source: "operator_verified_contract",
+                planAssignment: {
+                  planId: "kommune-aktivierung",
+                  planLabel: "Kommune Aktivierung",
+                  scopes: [
+                    "organization_dashboard",
+                    "region_cockpit",
+                    "review_queue",
+                    "content_release",
+                    "dossier_studio",
+                    "source_connection",
+                  ],
+                },
+                note: "Vertrag pausiert.",
+                createdAt: "2026-05-23T10:00:00.000Z",
+                createdBy: "admin-1",
+              },
+            ],
+            source: "pricing_order",
+            createdAt: "2026-05-23T10:00:00.000Z",
+            updatedAt: "2026-05-23T10:00:00.000Z",
+          },
+        ];
+      },
+    });
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.contractSummary.currentContractStatus).toBe("suspended");
+    expect(readModel.entitlementSummary.currentStatus).toBe("suspended");
+    expect(readModel.entitlementSummary.grants.every((grant) => grant.accessEnabled === false)).toBe(true);
+  });
+
+  it("keeps foreign organizations out of the contract and billing readmodel", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [membership()],
+      }),
+    );
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [];
+      },
+    });
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["user"],
+      isAdmin: false,
+    });
+
+    expect(readModel.contractSummary.records).toEqual([]);
+    expect(readModel.contractSummary.currentContractStatus).toBe("none");
   });
 
   it("lists dossier and anlassraum drafts as reviewpflichtig work items", async () => {

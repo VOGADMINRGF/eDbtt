@@ -6,6 +6,10 @@ import type {
   OrganizationProvisioningStatus,
 } from "./organizationOnboarding";
 import { resolveProvisioningRequestStatus } from "./organizationOnboarding";
+import {
+  organizationContractAllowsProvisionedScope,
+  type OrganizationContractSummary,
+} from "./organizationContracts";
 import type {
   EntitlementAuditEvent,
   EntitlementSource,
@@ -97,6 +101,7 @@ export const OrganizationEntitlementGrantSchema = z
     note: z.string().trim().min(1).nullable().optional(),
     billingPending: z.boolean(),
     productionTruth: z.boolean(),
+    accessEnabled: z.boolean(),
     noAutoPublicationApproved: z.literal(true),
     noAutoPublicOfficial: z.literal(true),
     noAutoPublish: z.literal(true),
@@ -317,6 +322,7 @@ function buildGrant(params: {
   note: string | null;
   billingPending: boolean;
   productionTruth: boolean;
+  accessEnabled: boolean;
   auditEvents: OrganizationEntitlementAuditEvent[];
   updatedAt: string;
 }): OrganizationEntitlementGrant {
@@ -334,11 +340,119 @@ function buildGrant(params: {
     note: params.note,
     billingPending: params.billingPending,
     productionTruth: params.productionTruth,
+    accessEnabled: params.accessEnabled,
     noAutoPublicationApproved: true,
     noAutoPublicOfficial: true,
     noAutoPublish: true,
     auditEvents: params.auditEvents,
     updatedAt: params.updatedAt,
+  });
+}
+
+function uniqueNotes(values: Array<string | null | undefined>): string | null {
+  const notes = uniqueNonEmpty(values);
+  return notes.length > 0 ? notes.join(" ") : null;
+}
+
+function hasContractBlockingState(summary: OrganizationContractSummary): boolean {
+  return (
+    summary.currentContractStatus === "suspended" ||
+    summary.currentContractStatus === "cancelled" ||
+    summary.currentContractStatus === "expired" ||
+    summary.billingStatus === "overdue" ||
+    summary.billingStatus === "suspended" ||
+    summary.billingStatus === "cancelled" ||
+    summary.billingStatus === "expired"
+  );
+}
+
+function hasContractPendingState(summary: OrganizationContractSummary): boolean {
+  return (
+    summary.currentContractStatus === "none" ||
+    summary.currentContractStatus === "draft" ||
+    summary.currentContractStatus === "offered" ||
+    summary.currentContractStatus === "accepted" ||
+    summary.sourceOfTruth === "external_checkout_pending"
+  );
+}
+
+function hasContractLimitedState(summary: OrganizationContractSummary): boolean {
+  return (
+    summary.currentContractStatus === "limited" ||
+    summary.billingStatus === "grace_period" ||
+    summary.billingStatus === "billing_pending"
+  );
+}
+
+function decorateGrantWithContractContext(params: {
+  grant: OrganizationEntitlementGrant;
+  contractSummary: OrganizationContractSummary | null;
+  hasPublicationApproval: boolean;
+}): OrganizationEntitlementGrant {
+  const { grant, contractSummary, hasPublicationApproval } = params;
+  if (!contractSummary) {
+    return OrganizationEntitlementGrantSchema.parse({
+      ...grant,
+      accessEnabled:
+        (grant.status === "granted" || grant.status === "limited") &&
+        grant.scope !== "billing_pending",
+    });
+  }
+
+  const contractAllowsScope = organizationContractAllowsProvisionedScope(
+    contractSummary,
+    grant.scope,
+  );
+  const publicationAllowed =
+    grant.scope !== "public_share" || hasPublicationApproval;
+  let status = grant.status;
+  let latestDecision = grant.latestDecision;
+  let accessEnabled = false;
+  const note = uniqueNotes([
+    grant.note,
+    !contractAllowsScope && hasContractLimitedState(contractSummary)
+      ? "Dieser Scope ist im aktuellen Vertragsstatus bewusst nicht aktiv."
+      : null,
+    !publicationAllowed && grant.scope === "public_share"
+      ? "Publikationsfreigabe bleibt ein separater manueller Pfad und entsteht nie automatisch aus Vertrag oder Billing."
+      : null,
+  ]);
+
+  if (hasContractBlockingState(contractSummary)) {
+    status =
+      contractSummary.currentContractStatus === "expired" ||
+      contractSummary.billingStatus === "expired"
+        ? "expired"
+        : contractSummary.currentContractStatus === "cancelled" ||
+            contractSummary.billingStatus === "cancelled"
+          ? "revoked"
+          : "suspended";
+    latestDecision = mapGrantDecision(status);
+  } else if (hasContractPendingState(contractSummary)) {
+    status = "pending_operator_decision";
+    latestDecision = "request_operator_decision";
+  } else if (hasContractLimitedState(contractSummary)) {
+    status = "limited";
+    latestDecision = "limit";
+    accessEnabled = contractAllowsScope && publicationAllowed;
+  } else {
+    accessEnabled =
+      (grant.status === "granted" || grant.status === "limited") &&
+      contractAllowsScope &&
+      publicationAllowed &&
+      grant.scope !== "billing_pending";
+    if (grant.scope === "public_share" && !publicationAllowed) {
+      status = "limited";
+      latestDecision = "limit";
+    }
+  }
+
+  return OrganizationEntitlementGrantSchema.parse({
+    ...grant,
+    status,
+    latestDecision,
+    note,
+    accessEnabled,
   });
 }
 
@@ -396,7 +510,7 @@ export function organizationEntitlementAllowsScope(
   return summary.grants.some(
     (grant) =>
       grant.scope === scope &&
-      (grant.status === "granted" || grant.status === "limited"),
+      grant.accessEnabled,
   );
 }
 
@@ -407,9 +521,13 @@ export function buildOrganizationEntitlementSummary(input: {
   entitlements: PaidDashboardEntitlement[];
   auditEvents: EntitlementAuditEvent[];
   productionTruth: boolean;
+  contractSummary?: OrganizationContractSummary | null;
 }): OrganizationEntitlementSummary {
   const organization = input.organization;
-  const planLabels = uniqueNonEmpty(input.entitlements.map((entry) => entry.planLabel));
+  const planLabels = uniqueNonEmpty([
+    ...input.entitlements.map((entry) => entry.planLabel),
+    input.contractSummary?.planAssignment?.planLabel ?? null,
+  ]);
   const organizationIds = uniqueNonEmpty(
     organization ? [organization.id] : input.entitlements.map((entry) => entry.organizationId),
   );
@@ -478,6 +596,7 @@ export function buildOrganizationEntitlementSummary(input: {
             : "Nach der Organisationsfreigabe braucht dieser Zugang noch eine bewusste Betreiberentscheidung.",
         billingPending: false,
         productionTruth,
+        accessEnabled: false,
         auditEvents: buildPendingAuditEvent({
           organizationId: organization.id,
           scope,
@@ -517,6 +636,7 @@ export function buildOrganizationEntitlementSummary(input: {
               : null,
         billingPending,
         productionTruth,
+        accessEnabled: derivedStatus === "granted" || derivedStatus === "limited",
         auditEvents: buildAuditEventsForEntitlement({
           organizationId: organization.id,
           scope,
@@ -550,6 +670,9 @@ export function buildOrganizationEntitlementSummary(input: {
           : "Publikationsfreigabe fehlt noch. Dieser Grant setzt nie automatisch `publication_approved` oder `public_official`.",
         billingPending,
         productionTruth,
+        accessEnabled:
+          hasPublicationApproval &&
+          (publicShareStatus === "granted" || publicShareStatus === "limited"),
         auditEvents: buildAuditEventsForEntitlement({
           organizationId: organization.id,
           scope: "public_share",
@@ -576,6 +699,7 @@ export function buildOrganizationEntitlementSummary(input: {
           note: "Zahlung oder Vertragsklärung ist offen. Dieser Marker ist kein Checkout- oder Paid-Nachweis.",
           billingPending: true,
           productionTruth,
+          accessEnabled: false,
           auditEvents: buildAuditEventsForEntitlement({
             organizationId: organization.id,
             scope: "billing_pending",
@@ -589,20 +713,62 @@ export function buildOrganizationEntitlementSummary(input: {
     }
   }
 
+  grants = grants.map((grant) =>
+    decorateGrantWithContractContext({
+      grant,
+      contractSummary: input.contractSummary ?? null,
+      hasPublicationApproval,
+    }),
+  );
+
+  const hasEnabledGrantedScope = grants.some(
+    (grant) => grant.accessEnabled && grant.status === "granted",
+  );
+  const hasEnabledLimitedScope = grants.some(
+    (grant) => grant.accessEnabled && grant.status === "limited",
+  );
+  const hasBlockedScopes = grants.some(
+    (grant) =>
+      !grant.accessEnabled &&
+      (grant.status === "suspended" ||
+        grant.status === "revoked" ||
+        grant.status === "expired"),
+  );
+  const contractSummary = input.contractSummary ?? null;
+
   const currentStatus: OrganizationEntitlementStatus =
     operatorDecisionRequired
       ? "pending_operator_decision"
-      : grants.some((grant) => grant.status === "suspended")
+      : hasBlockedScopes && contractSummary?.currentContractStatus === "expired"
+        ? "expired"
+        : hasBlockedScopes &&
+            (contractSummary?.currentContractStatus === "cancelled" ||
+              contractSummary?.billingStatus === "cancelled")
+          ? "revoked"
+          : grants.some((grant) => grant.status === "suspended")
         ? "suspended"
         : grants.some((grant) => grant.status === "revoked")
           ? "revoked"
           : grants.some((grant) => grant.status === "expired")
             ? "expired"
-            : grants.some((grant) => grant.status === "limited")
-              ? "limited"
-              : grants.some((grant) => grant.status === "granted")
-                ? "granted"
-                : "none";
+            : hasEnabledGrantedScope
+              ? "granted"
+              : hasEnabledLimitedScope || grants.some((grant) => grant.status === "limited")
+                ? "limited"
+                : contractSummary &&
+                    organization &&
+                    (grants.length > 0 || input.entitlements.length > 0) &&
+                    hasContractPendingState(contractSummary)
+                  ? "pending_operator_decision"
+                  : "none";
+
+  const storeLabel = productionTruth
+    ? "Persistente Entitlement-Runtime"
+    : "Lokaler oder In-Memory-Fallback";
+  const effectiveHasActiveEntitlement = hasEnabledGrantedScope;
+  const effectiveHasTrialEntitlement = hasEnabledLimitedScope;
+  const effectiveHasMissingEntitlement =
+    !effectiveHasActiveEntitlement && !effectiveHasTrialEntitlement;
 
   switch (currentStatus) {
     case "pending_operator_decision":
@@ -612,15 +778,16 @@ export function buildOrganizationEntitlementSummary(input: {
         grants,
         operatorDecisionRequired: true,
         billingPending,
-        nextStepTitle: "Zugang beantragt",
+        nextStepTitle: contractSummary?.nextStepTitle ?? "Zugang beantragt",
         nextStepBody:
+          contractSummary?.nextStepBody ??
           "Die Organisation ist bestätigt, aber die Arbeitszugänge entstehen erst nach einer bewussten Betreiberentscheidung pro Scope. Es gibt keine automatische Publikationsfreigabe und keine automatische Amtlichkeit.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
         hasMissingEntitlement: true,
         hasExpiredEntitlement,
         noAutoPaymentClaim: true,
@@ -636,12 +803,12 @@ export function buildOrganizationEntitlementSummary(input: {
         nextStepTitle: "Zugriff freigeschaltet",
         nextStepBody:
           "Die freigegebenen Scopes sind bewusst gesetzt und auditierbar. `publication_approved`, `public_official` und Auto-Publish entstehen trotzdem nie automatisch aus dem Entitlement.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
         hasMissingEntitlement: false,
         hasExpiredEntitlement,
         noAutoPaymentClaim: true,
@@ -654,16 +821,20 @@ export function buildOrganizationEntitlementSummary(input: {
         grants,
         operatorDecisionRequired: false,
         billingPending,
-        nextStepTitle: billingPending ? "Zahlung oder Vertrag offen" : "Zugriff eingeschränkt",
-        nextStepBody: billingPending
-          ? "Der Zugang ist sichtbar, aber nicht als bezahlt auszugeben. Billing-/Vertragsklärung bleibt ein eigener Betreiberpfad."
-          : "Der Zugang ist absichtlich begrenzt, etwa als Testzugang oder ohne Publikationsfreigabe. Schreib- und Sichtbarkeitspfade bleiben scope-genau getrennt.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        nextStepTitle:
+          contractSummary?.nextStepTitle ??
+          (billingPending ? "Zahlung oder Vertrag offen" : "Zugriff eingeschränkt"),
+        nextStepBody:
+          contractSummary?.nextStepBody ??
+          (billingPending
+            ? "Der Zugang ist sichtbar, aber nicht als bezahlt auszugeben. Billing-/Vertragsklärung bleibt ein eigener Betreiberpfad."
+            : "Der Zugang ist absichtlich begrenzt, etwa als Testzugang oder ohne Publikationsfreigabe. Schreib- und Sichtbarkeitspfade bleiben scope-genau getrennt."),
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
         hasMissingEntitlement: false,
         hasExpiredEntitlement,
         noAutoPaymentClaim: true,
@@ -677,15 +848,16 @@ export function buildOrganizationEntitlementSummary(input: {
         grants,
         operatorDecisionRequired: false,
         billingPending,
-        nextStepTitle: "Zugriff pausiert oder gesperrt",
+        nextStepTitle: contractSummary?.nextStepTitle ?? "Zugriff pausiert oder gesperrt",
         nextStepBody:
+          contractSummary?.nextStepBody ??
           "Die Entitlements blockieren jetzt sichtbar alle scope-gebundenen Schreibpfade. Eine erneute Freischaltung braucht wieder eine bewusste Betreiberentscheidung.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
         hasMissingEntitlement: false,
         hasExpiredEntitlement: true,
         noAutoPaymentClaim: true,
@@ -698,15 +870,16 @@ export function buildOrganizationEntitlementSummary(input: {
         grants,
         operatorDecisionRequired: false,
         billingPending,
-        nextStepTitle: "Zugriff abgelaufen",
+        nextStepTitle: contractSummary?.nextStepTitle ?? "Zugriff abgelaufen",
         nextStepBody:
+          contractSummary?.nextStepBody ??
           "Die bisherige Freischaltung ist abgelaufen. Schreibpfade bleiben gesperrt, bis ein neuer bewusster Grant gesetzt wird.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
         hasMissingEntitlement: false,
         hasExpiredEntitlement: true,
         noAutoPaymentClaim: true,
@@ -723,13 +896,13 @@ export function buildOrganizationEntitlementSummary(input: {
         nextStepTitle: "Kein freigegebener Arbeitszugang",
         nextStepBody:
           "Ohne expliziten Entitlement-Grant bleiben Review, Content Release und öffentliche Sichtbarkeit gesperrt. Auch nach Organisationsprüfung werden Rechte nicht automatisch gesetzt.",
-        storeLabel: productionTruth ? "Persistente Entitlement-Runtime" : "Lokaler oder In-Memory-Fallback",
+        storeLabel,
         productionTruth,
         planLabels,
         organizationIds,
-        hasActiveEntitlement,
-        hasTrialEntitlement,
-        hasMissingEntitlement: true,
+        hasActiveEntitlement: effectiveHasActiveEntitlement,
+        hasTrialEntitlement: effectiveHasTrialEntitlement,
+        hasMissingEntitlement: effectiveHasMissingEntitlement,
         hasExpiredEntitlement,
         noAutoPaymentClaim: true,
         noCheckout: true,

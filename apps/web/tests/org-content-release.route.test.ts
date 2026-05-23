@@ -76,6 +76,7 @@ function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {
         note: null,
         billingPending: false,
         productionTruth: true,
+        accessEnabled: true,
         noAutoPublicationApproved: true,
         noAutoPublicOfficial: true,
         noAutoPublish: true,
@@ -96,6 +97,7 @@ function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {
         note: null,
         billingPending: false,
         productionTruth: true,
+        accessEnabled: true,
         noAutoPublicationApproved: true,
         noAutoPublicOfficial: true,
         noAutoPublish: true,
@@ -384,5 +386,58 @@ describe("/api/account/organization/review/content-release", () => {
     const body = await response.json();
     expect(response.status).toBe(403);
     expect(body.error).toBe("content_release_public_share_scope_forbidden");
+  });
+
+  it("blocks content release writes when contract-backed scopes are suspended", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-1",
+      },
+      entitlementSummary: buildEntitlementSummary({
+        currentStatus: "suspended",
+        grants: buildEntitlementSummary().grants.map((grant) => ({
+          ...grant,
+          status: "suspended",
+          latestDecision: "suspend",
+          accessEnabled: false,
+        })),
+      }),
+      openReviewItems: [
+        {
+          id: "create_handoff:own-1",
+          contentReleaseWorkbench: {
+            sourceKind: "create_handoff",
+            sourceId: "handoff-1",
+            targets: [
+              {
+                targetType: "topic_page",
+              },
+            ],
+          },
+          moderationPermission: {
+            canPrepareOwnContentRelease: true,
+            canMakeOwnContentVisible: true,
+            canArchiveOwnContent: true,
+          },
+        },
+      ],
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "prepare_target",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const body = await response.json();
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("content_release_entitlement_scope_forbidden");
   });
 });

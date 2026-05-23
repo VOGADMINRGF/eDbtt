@@ -26,6 +26,7 @@ import {
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
 import { setMembershipDirectoryRepositoryForTests } from "@/lib/server/auth/runtimeAdapters";
+import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
 
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
@@ -86,6 +87,23 @@ function buildOperatorDashboardReadModel() {
       nextStepBody: "Ohne bestätigte Organisation bleiben Organisationsrouten schreibgeschützt.",
       storeLabel: "Persistenter Claim-Store",
       productionTruth: true,
+    },
+    contractSummary: {
+      currentContractStatus: "none",
+      billingStatus: "none",
+      sourceOfTruth: "fixture_demo",
+      confidence: "limited",
+      runtimeMarker: "demo_or_test_runtime",
+      productionTruth: false,
+      auditBacked: false,
+      planAssignment: null,
+      accessProvisioningDecision: "none",
+      operatorDecisionRequired: true,
+      nextStepTitle: "Vertrag ausstehend",
+      nextStepBody:
+        "Ohne bewussten Betreiber-Vertragsprozess werden keine produktiven Arbeitszugänge als aktiv ausgegeben.",
+      storeLabel: "Demo-/Test-Fallback",
+      records: [],
     },
     regionSummary: [],
     entitlementSummary: {
@@ -170,6 +188,11 @@ describe("/account/organization/dashboard page", () => {
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
     setMembershipDirectoryRepositoryForTests(null);
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [];
+      },
+    });
   });
 
   it("renders pending organization claims with friendly empty states", async () => {
@@ -227,6 +250,9 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Organisation vervollständigen");
     expect(html).toContain("Region auswählen");
     expect(html).toContain("Noch keine Freischaltung aktiv.");
+    expect(html).toContain("Vertrag &amp; Billing");
+    expect(html).toContain("Vertrag ausstehend");
+    expect(html).toContain("Es wird kein externer Checkout behauptet");
     expect(html).toContain("Verifikationsstatus");
     expect(html).toContain("Directory-Wahrheit");
     expect(html).toContain("Demo- oder Testwahrheit");
@@ -699,6 +725,110 @@ describe("/account/organization/dashboard page", () => {
       expect(html).toContain("Externe Directory-Anbindung ausstehend");
       expect(html).toContain("Directory-Anbindung fehlt");
       expect(html).toContain("spätere externe Directory-Anbindung bleibt optional");
+    } finally {
+      readModelSpy.mockRestore();
+    }
+  });
+
+  it("renders contract and billing states honestly for organizations", async () => {
+    const readModelSpy = vi.spyOn(regionFeatures, "buildOrganizationDashboardReadModel");
+    readModelSpy.mockResolvedValue({
+      ...buildOperatorDashboardReadModel(),
+      organization: {
+        primaryOrganizationId: "org-reinickendorf-1",
+        name: "Bezirksamt Reinickendorf",
+        organizations: [],
+        roleLabel: "Beteiligung",
+        isOperatorMode: false,
+      },
+      contractSummary: {
+        currentContractStatus: "limited",
+        billingStatus: "grace_period",
+        sourceOfTruth: "operator_verified_contract",
+        confidence: "high",
+        runtimeMarker: "production_runtime",
+        productionTruth: true,
+        auditBacked: true,
+        planAssignment: {
+          planId: "kommune-aktivierung",
+          planLabel: "Kommune Aktivierung",
+          scopes: ["organization_dashboard", "region_cockpit"],
+        },
+        accessProvisioningDecision: "grace",
+        operatorDecisionRequired: false,
+        nextStepTitle: "Grace Period",
+        nextStepBody:
+          "Der Zugang bleibt vorübergehend begrenzt sichtbar. Schreibende Produktzugänge bleiben auf definierte Basisscopes reduziert.",
+        storeLabel: "Persistenter Betreiber-Vertragsprozess",
+        records: [],
+      },
+      entitlementSummary: {
+        ...buildOperatorDashboardReadModel().entitlementSummary,
+        currentStatus: "limited",
+        state: "eingeschränkt",
+        hasTrialEntitlement: true,
+        hasMissingEntitlement: false,
+        planLabels: ["Kommune Aktivierung"],
+        grants: [
+          {
+            id: "org-reinickendorf-1:region_cockpit",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            regionId: "bezirk-berlin-reinickendorf",
+            scope: "region_cockpit",
+            status: "limited",
+            latestDecision: "limit",
+            source: "paid_dashboard_entitlement",
+            linkedEntitlementId: "entitlement-1",
+            linkedPlanLabel: "Kommune Aktivierung",
+            note: "Dieser Scope bleibt in der Grace Period aktiv.",
+            billingPending: false,
+            productionTruth: true,
+            accessEnabled: true,
+            noAutoPublicationApproved: true,
+            noAutoPublicOfficial: true,
+            noAutoPublish: true,
+            auditEvents: [],
+            updatedAt: "2026-05-23T12:00:00.000Z",
+          },
+          {
+            id: "org-reinickendorf-1:review_queue",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            regionId: "bezirk-berlin-reinickendorf",
+            scope: "review_queue",
+            status: "limited",
+            latestDecision: "limit",
+            source: "paid_dashboard_entitlement",
+            linkedEntitlementId: "entitlement-1",
+            linkedPlanLabel: "Kommune Aktivierung",
+            note: "Dieser Scope ist im aktuellen Vertragsstatus bewusst nicht aktiv.",
+            billingPending: false,
+            productionTruth: true,
+            accessEnabled: false,
+            noAutoPublicationApproved: true,
+            noAutoPublicOfficial: true,
+            noAutoPublish: true,
+            auditEvents: [],
+            updatedAt: "2026-05-23T12:00:00.000Z",
+          },
+        ],
+        operatorDecisionRequired: false,
+        nextStepTitle: "Grace Period",
+        nextStepBody:
+          "Der Zugang bleibt vorübergehend begrenzt sichtbar. Schreibende Produktzugänge bleiben auf definierte Basisscopes reduziert.",
+        storeLabel: "Persistente Entitlement-Runtime",
+        productionTruth: true,
+      },
+    } as any);
+
+    try {
+      const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+      expect(html).toContain("Grace Period");
+      expect(html).toContain("Zugriff eingeschränkt");
+      expect(html).toContain("Betreiber-verifizierter Vertragsprozess");
+      expect(html).toContain("Dieser Scope ist sichtbar, aber im aktuellen Vertrags- oder Billing-Status nicht aktiv.");
+      expect(html).toContain("Audit-Hinweis: Vertrags-, Billing- und Plan-Entscheidungen bleiben persistent und auditierbar.");
     } finally {
       readModelSpy.mockRestore();
     }

@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getInstitutionalSharedAddOns,
+  organizationBillingStatusLabel,
+  organizationContractStatusLabel,
+  type OrganizationAccessProvisioningDecision,
+  type OrganizationBillingSource,
+  type OrganizationBillingStatus,
+  type OrganizationContractStatus,
   type PricingOrderStatus,
 } from "@features/pricing";
 
@@ -40,6 +46,23 @@ type OrderRow = {
     billingFinanceNote: string | null;
     contractReference: string | null;
     invoiceReference: string | null;
+    organizationId: string | null;
+    contractStatus: OrganizationContractStatus | null;
+    billingStatus: OrganizationBillingStatus | null;
+    billingSource: OrganizationBillingSource | null;
+    accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
+    planAssignment: {
+      planId: string;
+      planLabel: string;
+      scopes: string[];
+    } | null;
+    contractAuditEvents: Array<{
+      id: string;
+      eventType: string;
+      createdAt: string;
+      createdBy: string;
+      note?: string | null;
+    }>;
   };
   source: string | null;
   createdAt: string | null;
@@ -58,6 +81,11 @@ type ReviewDraft = {
   billingFinanceNote: string;
   contractReference: string;
   invoiceReference: string;
+  organizationId: string;
+  contractStatus: OrganizationContractStatus | "";
+  billingStatus: OrganizationBillingStatus | "";
+  billingSource: OrganizationBillingSource | "";
+  accessProvisioningDecision: OrganizationAccessProvisioningDecision | "";
 };
 
 const STATUS_OPTIONS: PricingOrderStatus[] = [
@@ -79,6 +107,68 @@ const DISCOUNT_KIND_OPTIONS: Array<{ value: DiscountKind; label: string }> = [
   { value: "manual_special", label: "Sonderfreigabe" },
 ];
 
+const CONTRACT_STATUS_OPTIONS: OrganizationContractStatus[] = [
+  "none",
+  "draft",
+  "offered",
+  "accepted",
+  "active",
+  "limited",
+  "suspended",
+  "cancelled",
+  "expired",
+];
+
+const BILLING_STATUS_OPTIONS: OrganizationBillingStatus[] = [
+  "none",
+  "billing_pending",
+  "operator_verified_contract",
+  "active",
+  "overdue",
+  "grace_period",
+  "suspended",
+  "cancelled",
+  "expired",
+];
+
+const BILLING_SOURCE_OPTIONS: OrganizationBillingSource[] = [
+  "operator_verified_contract",
+  "manual_invoice",
+  "external_checkout_pending",
+  "external_checkout_integrated",
+  "fixture_demo",
+];
+
+const PROVISIONING_DECISION_OPTIONS: OrganizationAccessProvisioningDecision[] = [
+  "none",
+  "offer",
+  "accept",
+  "activate",
+  "limit",
+  "grace",
+  "suspend",
+  "cancel",
+  "expire",
+  "reactivate",
+];
+
+function billingSourceLabel(source: OrganizationBillingSource | null) {
+  switch (source) {
+    case "operator_verified_contract":
+      return "Betreiber-verifizierter Vertrag";
+    case "manual_invoice":
+      return "Manuelle Rechnung";
+    case "external_checkout_pending":
+      return "Externer Checkout später optional";
+    case "external_checkout_integrated":
+      return "Externer Checkout integriert";
+    case "fixture_demo":
+      return "Demo / Fixture";
+    default:
+      return "Noch keine Quelle";
+  }
+}
+
 function toDraft(row: OrderRow): ReviewDraft {
   return {
     note: "",
@@ -92,6 +182,11 @@ function toDraft(row: OrderRow): ReviewDraft {
     billingFinanceNote: row.internal.billingFinanceNote || "",
     contractReference: row.internal.contractReference || "",
     invoiceReference: row.internal.invoiceReference || "",
+    organizationId: row.internal.organizationId || "",
+    contractStatus: row.internal.contractStatus || "",
+    billingStatus: row.internal.billingStatus || "",
+    billingSource: row.internal.billingSource || "",
+    accessProvisioningDecision: row.internal.accessProvisioningDecision || "",
   };
 }
 
@@ -170,6 +265,11 @@ export default function AdminPricingOrdersPage() {
           billingFinanceNote: "",
           contractReference: "",
           invoiceReference: "",
+          organizationId: "",
+          contractStatus: "",
+          billingStatus: "",
+          billingSource: "",
+          accessProvisioningDecision: "",
         }),
         ...patch,
       },
@@ -206,6 +306,11 @@ export default function AdminPricingOrdersPage() {
           billingFinanceNote: draft.billingFinanceNote.trim() || null,
           contractReference: draft.contractReference.trim() || null,
           invoiceReference: draft.invoiceReference.trim() || null,
+          organizationId: draft.organizationId.trim() || null,
+          contractStatus: draft.contractStatus || null,
+          billingStatus: draft.billingStatus || null,
+          billingSource: draft.billingSource || null,
+          accessProvisioningDecision: draft.accessProvisioningDecision || null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -306,6 +411,16 @@ export default function AdminPricingOrdersPage() {
                       ? row.selectedAddOns.map((entry) => addOnLabelMap.get(entry) || entry).join(", ")
                       : "keine"}
                   </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                    Vertrag: {organizationContractStatusLabel(row.internal.contractStatus || "none")}
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                    Billing: {organizationBillingStatusLabel(row.internal.billingStatus || "none")}
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 sm:col-span-2">
+                    Wirkung: {row.internal.accessProvisioningDecision || "none"} · Quelle:{" "}
+                    {billingSourceLabel(row.internal.billingSource)}
+                  </div>
                 </div>
 
                 <div className="mt-3 grid gap-2 lg:grid-cols-[1fr_auto]">
@@ -339,8 +454,81 @@ export default function AdminPricingOrdersPage() {
                 </div>
 
                 <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Review, Rabatt & Finance</summary>
+                  <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Review, Vertrag & Finance</summary>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Organisation-ID
+                      <input
+                        value={draft.organizationId}
+                        onChange={(event) => updateDraft(row.id, { organizationId: event.target.value })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="org-..."
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Vertragsstatus
+                      <select
+                        value={draft.contractStatus}
+                        onChange={(event) => updateDraft(row.id, { contractStatus: event.target.value as ReviewDraft["contractStatus"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">automatisch ableiten</option>
+                        {CONTRACT_STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {organizationContractStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Billing-Status
+                      <select
+                        value={draft.billingStatus}
+                        onChange={(event) => updateDraft(row.id, { billingStatus: event.target.value as ReviewDraft["billingStatus"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">automatisch ableiten</option>
+                        {BILLING_STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {organizationBillingStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Billing-Quelle
+                      <select
+                        value={draft.billingSource}
+                        onChange={(event) => updateDraft(row.id, { billingSource: event.target.value as ReviewDraft["billingSource"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">automatisch ableiten</option>
+                        {BILLING_SOURCE_OPTIONS.map((source) => (
+                          <option key={source} value={source}>
+                            {billingSourceLabel(source)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Provisioning-Entscheidung
+                      <select
+                        value={draft.accessProvisioningDecision}
+                        onChange={(event) =>
+                          updateDraft(row.id, {
+                            accessProvisioningDecision: event.target.value as ReviewDraft["accessProvisioningDecision"],
+                          })
+                        }
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">automatisch ableiten</option>
+                        {PROVISIONING_DECISION_OPTIONS.map((decision) => (
+                          <option key={decision} value={decision}>
+                            {decision}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       Angepasster Preis (Label)
                       <input
@@ -441,8 +629,24 @@ export default function AdminPricingOrdersPage() {
 
                   <div className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">
                     <p>
+                      Audit-Hinweis: Jede bewusste Vertrags-, Billing- oder Plan-Entscheidung bleibt
+                      persistent und auditierbar. Kein externer Checkout wird hier behauptet.
+                    </p>
+                    {row.internal.planAssignment ? (
+                      <p>
+                        Planwirkung: {row.internal.planAssignment.planLabel} · Scopes:{" "}
+                        {row.internal.planAssignment.scopes.join(", ")}
+                      </p>
+                    ) : null}
+                    <p>
                       Letzte Prüfung: {row.internal.reviewedAt ? `${row.internal.reviewedAt}` : "noch nicht geprüft"}
                       {row.internal.reviewedBy ? ` · by ${row.internal.reviewedBy}` : ""}
+                    </p>
+                    <p>
+                      Vertragsaudit: {row.internal.contractAuditEvents.length} Ereignisse
+                      {row.internal.contractAuditEvents.length > 0
+                        ? ` · zuletzt ${row.internal.contractAuditEvents[row.internal.contractAuditEvents.length - 1]?.eventType ?? "n/a"}`
+                        : ""}
                     </p>
                     {row.internal.notes.length ? (
                       <ul className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
@@ -453,6 +657,16 @@ export default function AdminPricingOrdersPage() {
                     ) : (
                       <p>Keine internen Notizen hinterlegt.</p>
                     )}
+                    {row.internal.contractAuditEvents.length ? (
+                      <ul className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+                        {row.internal.contractAuditEvents.slice(-3).reverse().map((event) => (
+                          <li key={event.id}>
+                            {event.eventType} · {event.createdAt} · {event.createdBy}
+                            {event.note ? ` · ${event.note}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                 </details>
               </article>
