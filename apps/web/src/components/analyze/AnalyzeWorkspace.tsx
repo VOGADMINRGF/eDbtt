@@ -70,6 +70,7 @@ import {
   resolveInitialPrepareAttachTargetKey,
   type CreatePrepareAttachTargetOption,
 } from "@/features/create/prepareAttachDraft";
+import { labelCreateInputClassification } from "@/features/create/inputClassification";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 
 const MAX_LEVEL1_STATEMENTS = 3;
@@ -3443,7 +3444,7 @@ export default function AnalyzeWorkspace({
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    input: {createAnalyze.inputType}
+                    input: {labelCreateInputClassification(createAnalyze.intakeClassification)}
                   </span>
                   <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                     match: {createAnalyze.matchStrength}

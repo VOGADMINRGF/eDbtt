@@ -486,14 +486,20 @@ function normalizeAnlassraumId(value?: string | null): string | null {
   return normalized;
 }
 
-function membershipStatusLabel(value: RequestScopeSummary["membershipStatus"]): string {
+function membershipStatusLabel(value: RequestScopeSummary["membershipStatus"] | string | null | undefined): string {
   switch (value) {
     case "verified":
-      return "Verifizierte Membership";
+    case "organization_verified":
+    case "unit_verified":
+      return "Organisations-verifiziert";
+    case "limited":
+      return "Zugriff eingeschränkt";
     case "pending":
+    case "evidence_required":
+    case "operator_review_required":
       return "In Prüfung";
     case "suspended":
-      return "Ausgesetzt";
+      return "Zugang pausiert";
     case "revoked":
       return "Widerrufen";
     default:
@@ -1530,8 +1536,26 @@ export default function CreateClient({
             anlassraumId: effectiveSelectedAnlassraumId ?? null,
           }),
         });
-        const body = await response.json().catch(() => null);
+        const body = await response.json().catch(() => null) as
+          | {
+              ok?: boolean;
+              error?: string;
+              requestScope?: RequestScopeSummary | null;
+              accessDecision?: {
+                title?: string;
+                body?: string;
+              } | null;
+            }
+          | null;
         if (!response.ok || !body?.ok) {
+          if (body?.accessDecision?.title || body?.accessDecision?.body) {
+            const title = body.accessDecision.title?.trim() ?? "Freischaltung nötig";
+            const detail =
+              body.accessDecision.body?.trim() ??
+              "Der Arbeitsstand kann weiter vorbereitet werden, aber noch nicht produktiv in den Organisationspfad übergeben werden.";
+            setActionNotice(`${title}. ${detail}`);
+            return;
+          }
           throw new Error(body?.error ?? "create_handoff_persist_failed");
         }
         const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;

@@ -1,5 +1,9 @@
 import type { AnalyzeResult } from "@features/analyze/schemas";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
+import {
+  classifyCreateInput,
+  type CreateInputClassification,
+} from "@/features/create/inputClassification";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 import type { CreateIntent } from "@/features/create/intentFlows";
 import type { CreateClaimSafetyResult } from "@/features/create/safety/createClaimSafety";
@@ -79,6 +83,7 @@ export type CreateAnalyzeResponse = {
   contentLanguage: string;
   uiLocale: string;
   inputType: CreateAnalyzeInputType;
+  intakeClassification: CreateInputClassification;
   languages: string[];
   normalizedInputSummary: string;
   claims: unknown[];
@@ -218,6 +223,12 @@ export function buildCreateAnalyzeResponse(params: {
   text: string;
   intent: CreateIntent;
   locale?: string | null;
+  classificationContext?: {
+    sourceUrls?: string[] | null;
+    materialItems?: import("@/features/create/materialRouting").NormalizedMaterialItem[] | null;
+    dossierId?: string | null;
+    anlassraumId?: string | null;
+  } | null;
   languageContext?: {
     uiLocale?: string | null;
     contentLanguage?: string | null;
@@ -229,6 +240,13 @@ export function buildCreateAnalyzeResponse(params: {
   const { runId, text, intent, locale, result } = params;
 
   const inputType = inferCreateAnalyzeInputType(text);
+  const intakeClassification = classifyCreateInput({
+    text,
+    sourceUrls: params.classificationContext?.sourceUrls ?? [],
+    materialItems: params.classificationContext?.materialItems ?? [],
+    dossierId: params.classificationContext?.dossierId ?? null,
+    anlassraumId: params.classificationContext?.anlassraumId ?? null,
+  });
   const languages = inferCreateAnalyzeLanguages(text, locale);
   const normalizedInputSummary = summarizeCreateAnalyzeInput(text);
   const claims = Array.isArray(result.claims) ? result.claims : [];
@@ -282,6 +300,7 @@ export function buildCreateAnalyzeResponse(params: {
     contentLanguage: languageContext.contentLanguage,
     uiLocale: languageContext.uiLocale,
     inputType,
+    intakeClassification,
     languages,
     normalizedInputSummary,
     claims,
@@ -300,7 +319,7 @@ export function buildCreateAnalyzeResponse(params: {
     phases: {
       intake: {
         status: "done",
-        summary: `Input als ${inputType} erkannt; languages=${languages.join(", ") || "-"}.`,
+        summary: `Input als ${intakeClassification} erkannt; languages=${languages.join(", ") || "-"}.`,
       },
       quality: {
         status: uncertainties.length > 0 ? "review_required" : "done",

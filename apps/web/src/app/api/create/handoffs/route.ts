@@ -13,6 +13,11 @@ import type {
   SourceGrounding,
 } from "@/features/create/createHandoff";
 import {
+  resolveCreateProductionAccessDecision,
+  type CreateProductionAccessDecision,
+} from "@/features/create/createProductionAccess";
+import { classifyCreateHandoffDraft } from "@/features/create/inputClassification";
+import {
   persistCreateHandoffForReview,
   resolvePersistedCreateHandoffContext,
 } from "@/features/create/persistedHandoffReviewQueue";
@@ -20,6 +25,7 @@ import type { CreatePlannerResult } from "@/features/create/createPlanner";
 import type { CreateGraphMatchResult } from "@/features/create/intelligentFollowupContract";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
 import {
+  buildOrganizationDashboardReadModel,
   canEditOrganizationResource,
   canViewRegionResource,
   regionScopeFromRegionAccessContext,
@@ -38,6 +44,10 @@ const CreateHandoffBodySchema = z
 
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+}
+
+function denied(error: string, extra: Record<string, unknown> = {}) {
+  return NextResponse.json({ ok: false, error, ...extra }, { status: 403 });
 }
 
 function normalizeStringArray(value: unknown): string[] {
@@ -215,6 +225,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = CreateHandoffBodySchema.parse(await req.json());
     const draft = normalizeCreateHandoffDraft(body.draft);
+    const intakeClassification = classifyCreateHandoffDraft(draft);
     const context = await resolvePersistedCreateHandoffContext({
       draft,
       dossierId: body.dossierId ?? null,
@@ -243,9 +254,33 @@ export async function POST(req: NextRequest) {
         })
       ))
     ) {
-      return NextResponse.json({ ok: false, error: "create_handoff_scope_forbidden" }, { status: 403 });
+      return denied("create_handoff_scope_forbidden");
     }
     const requestScope = summarizeRequestScopeContext(scopeContext);
+    let accessDecision: CreateProductionAccessDecision | null = null;
+    if (!scopeContext.isOperatorMode) {
+      const dashboardReadModel = await buildOrganizationDashboardReadModel({
+        userId,
+        roles: scopeContext.actor.roles,
+        isAdmin: scopeContext.isOperatorMode,
+        actorRole:
+          scopeContext.organizationRole ??
+          scopeContext.actor.governanceRole ??
+          scopeContext.user.role ??
+          null,
+      });
+      accessDecision = resolveCreateProductionAccessDecision({
+        requestScope,
+        dashboardReadModel,
+        action: draft.selectedAction,
+      });
+      if (accessDecision.status !== "allowed") {
+        return denied("create_handoff_not_productively_available", {
+          requestScope,
+          accessDecision,
+        });
+      }
+    }
     const fallbackRegionId =
       context.regionId ??
       requestScope?.primaryRegionId ??
@@ -263,6 +298,37 @@ export async function POST(req: NextRequest) {
       organizationId: fallbackOrganizationId,
       dossierId: context.dossierId,
       anlassraumId: context.anlassraumId,
+      intakeClassification,
+      requestScope: requestScope
+        ? {
+            organizationId: requestScope.organizationId,
+            organizationLabel: requestScope.organizationLabel,
+            membershipStatus: requestScope.membershipStatus,
+            organizationRole: requestScope.organizationRole,
+            roleLabel: requestScope.roleLabel,
+            regionIds: requestScope.regionIds,
+            primaryRegionId: requestScope.primaryRegionId,
+            isOperatorMode: requestScope.isOperatorMode,
+            operatorModeLabel: requestScope.operatorModeLabel,
+            sourceOfTruth: requestScope.sourceOfTruth,
+            confidence: requestScope.confidence,
+          }
+        : null,
+      accessDecision: accessDecision
+        ? {
+            status: accessDecision.status,
+            reason: accessDecision.reason,
+            title: accessDecision.title,
+            body: accessDecision.body,
+            requiredEntitlementScopes: accessDecision.requiredEntitlementScopes,
+            missingEntitlementScopes: accessDecision.missingEntitlementScopes,
+            requiredActions: accessDecision.requiredActions,
+            missingActions: accessDecision.missingActions,
+            contractStatus: accessDecision.contractStatus,
+            billingStatus: accessDecision.billingStatus,
+            entitlementStatus: accessDecision.entitlementStatus,
+          }
+        : null,
     });
 
     return NextResponse.json({
@@ -274,8 +340,10 @@ export async function POST(req: NextRequest) {
         dossierId: record.dossierId,
         anlassraumId: record.anlassraumId,
         reviewState: record.reviewState,
+        intakeClassification: record.intakeClassification,
       },
       requestScope,
+      accessDecision,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "create_handoff_persist_failed";

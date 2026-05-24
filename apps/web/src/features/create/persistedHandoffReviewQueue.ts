@@ -12,8 +12,13 @@ import type {
   CreateOpenQuestionDraft,
   SourceGrounding,
 } from "@/features/create/createHandoff";
+import type {
+  CreateProductionAccessDecision,
+} from "@/features/create/createProductionAccess";
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
+import type { CreateInputClassification } from "@/features/create/inputClassification";
 import type { CreateGraphMatchResult } from "@/features/create/intelligentFollowupContract";
+import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
 
 export const PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION = "create_handoff_review_item.v1";
@@ -40,11 +45,40 @@ export type PersistedCreateHandoffRecord = {
   noPublicOfficial: true;
   noAutomaticOfficialResponse: true;
   noAutoFinalization: true;
+  intakeClassification: CreateInputClassification;
   createdByUserId: string;
   regionId: string | null;
   organizationId: string | null;
   dossierId: string | null;
   anlassraumId: string | null;
+  requestScope: Pick<
+    RequestScopeSummary,
+    | "organizationId"
+    | "organizationLabel"
+    | "membershipStatus"
+    | "organizationRole"
+    | "roleLabel"
+    | "regionIds"
+    | "primaryRegionId"
+    | "isOperatorMode"
+    | "operatorModeLabel"
+    | "sourceOfTruth"
+    | "confidence"
+  > | null;
+  accessDecision: Pick<
+    CreateProductionAccessDecision,
+    | "status"
+    | "reason"
+    | "title"
+    | "body"
+    | "requiredEntitlementScopes"
+    | "missingEntitlementScopes"
+    | "requiredActions"
+    | "missingActions"
+    | "contractStatus"
+    | "billingStatus"
+    | "entitlementStatus"
+  > | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -296,6 +330,9 @@ export async function persistCreateHandoffForReview(input: {
   organizationId?: string | null;
   dossierId?: string | null;
   anlassraumId?: string | null;
+  intakeClassification: CreateInputClassification;
+  requestScope?: PersistedCreateHandoffRecord["requestScope"];
+  accessDecision?: PersistedCreateHandoffRecord["accessDecision"];
 }) {
   const timestamp = nowIso();
   const existing = await getRepo().get(input.draft.id);
@@ -321,11 +358,14 @@ export async function persistCreateHandoffForReview(input: {
     noPublicOfficial: true,
     noAutomaticOfficialResponse: true,
     noAutoFinalization: true,
+    intakeClassification: input.intakeClassification,
     createdByUserId: input.createdByUserId,
     regionId: normalizeRegionId(input.regionId),
     organizationId: normalizeOptionalString(input.organizationId),
     dossierId: normalizeOptionalString(input.dossierId),
     anlassraumId: normalizeOptionalString(input.anlassraumId),
+    requestScope: input.requestScope ?? null,
+    accessDecision: input.accessDecision ?? null,
     createdAt: existing?.createdAt ?? input.draft.createdAt ?? timestamp,
     updatedAt: timestamp,
   };
@@ -384,6 +424,12 @@ export function buildPersistedCreateHandoffSummary(record: PersistedCreateHandof
     `${record.openQuestions.length} offene Fragen`,
     factcheckEligibleCount > 0 ? `${factcheckEligibleCount} Faktencheck-Kandidaten` : null,
     record.regionId ? "Regionsvorschlag vorhanden" : "Region noch offen",
+    record.sourceGrounding.some((entry) => entry.id.startsWith("material-reference-"))
+      ? "Materialhinweis erkannt"
+      : null,
+    record.sourceGrounding.some((entry) => entry.status === "link_reference")
+      ? "Quellenhinweis erkannt"
+      : null,
   ].filter(Boolean);
   const headline = parts.join(" · ");
   const summary = String(record.plannerResult.shortSummary || record.sourceText).trim();

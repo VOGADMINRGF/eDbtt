@@ -139,6 +139,13 @@ export type ReviewQueueItem = {
     isExampleSeed: boolean;
     reviewHint: string;
   } | null;
+  createHandoffContext?: {
+    intakeClassification: string;
+    reviewState: string;
+    scopeSummary: string;
+    sourceReferences: string[];
+    provenanceSummary: string;
+  } | null;
 };
 
 type ReviewQueueItemCore = Omit<
@@ -971,6 +978,22 @@ async function mapPersistedCreateHandoffItem(params: {
       targets,
     },
     sourceSnapshotTemplate: null,
+    createHandoffContext: {
+      intakeClassification: params.record.intakeClassification,
+      reviewState: params.record.reviewState,
+      scopeSummary: [
+        params.record.requestScope?.organizationLabel ?? params.record.organizationId ?? "ohne Organisationslabel",
+        params.record.regionId ? `Region ${params.record.regionId}` : "ohne bestätigte Region",
+      ].join(" · "),
+      sourceReferences: (params.record.sourceGrounding ?? [])
+        .map((entry) => entry.detail ?? entry.label)
+        .filter(Boolean)
+        .slice(0, 4),
+      provenanceSummary: [
+        params.record.requestScope?.sourceOfTruth ?? "unknown_scope_source",
+        params.record.accessDecision?.status ?? "review_only",
+      ].join(" · "),
+    },
   };
 }
 

@@ -15,6 +15,7 @@ import {
   setRegionEntitlementRuntimeRepoForTests,
   setRegionOrganizationRuntimeRepoForTests,
 } from "@features/region";
+import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
 
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
@@ -138,6 +139,98 @@ const draftPayload = {
   createdAt: "2026-05-19T09:00:00.000Z",
 } as const;
 
+const activeEntitlement = {
+  id: "entitlement-create-handoff-1",
+  organizationId: "org-reinickendorf-1",
+  organizationName: "Bezirksamt Reinickendorf",
+  organizationType: "district_office",
+  regionId: "bezirk-berlin-reinickendorf",
+  unitId: "unit-1",
+  planId: "kommune-aktivierung",
+  planLabel: "Kommune Aktivierung",
+  status: "active",
+  scope: "organization_unit",
+  validFrom: "2026-05-23T08:00:00.000Z",
+  validUntil: null,
+  limits: {
+    maxRegions: 1,
+    maxDossiers: 10,
+    maxAnlassraeume: 10,
+    maxSignalsPerMonth: 100,
+    maxDraftsPerMonth: 25,
+    maxUsers: 10,
+    factcheckCredits: 0,
+  },
+  usage: {
+    regionsUsed: 0,
+    dossiersUsed: 0,
+    anlassraeumeUsed: 0,
+    signalsThisMonth: 0,
+    draftsThisMonth: 0,
+    usersUsed: 1,
+    factcheckCreditsUsed: 0,
+  },
+  createdAt: "2026-05-23T08:00:00.000Z",
+  updatedAt: "2026-05-23T08:00:00.000Z",
+  createdBy: "admin-1",
+  source: "manual_contract",
+  noAutoBilling: true,
+  noAutoCharge: true,
+} as const;
+
+const activeContractRecord = {
+  id: "pricing-order-create-handoff-1",
+  orderId: "EDE-20260523-CREATE-1",
+  packageId: "kommune-aktivierung",
+  planLabel: "Kommune Aktivierung",
+  organizationId: "org-reinickendorf-1",
+  organizationName: "Bezirksamt Reinickendorf",
+  status: "active",
+  contractStatus: "active",
+  billingStatus: "operator_verified_contract",
+  billingSource: "operator_verified_contract",
+  planAssignment: {
+    planId: "kommune-aktivierung",
+    planLabel: "Kommune Aktivierung",
+    scopes: [
+      "organization_dashboard",
+      "review_queue",
+      "content_release",
+      "dossier_studio",
+    ],
+  },
+  accessProvisioningDecision: "activate",
+  auditEvents: [
+    {
+      id: "contract-audit-create-handoff-1",
+      eventType: "activate",
+      organizationId: "org-reinickendorf-1",
+      orderId: "EDE-20260523-CREATE-1",
+      previousContractStatus: "accepted",
+      nextContractStatus: "active",
+      previousBillingStatus: "operator_verified_contract",
+      nextBillingStatus: "operator_verified_contract",
+      source: "operator_verified_contract",
+      planAssignment: {
+        planId: "kommune-aktivierung",
+        planLabel: "Kommune Aktivierung",
+        scopes: [
+          "organization_dashboard",
+          "review_queue",
+          "content_release",
+          "dossier_studio",
+        ],
+      },
+      note: "Betreiber-verifizierter Vertragsprozess.",
+      createdAt: "2026-05-23T08:00:00.000Z",
+      createdBy: "admin-1",
+    },
+  ],
+  source: "pricing_order",
+  createdAt: "2026-05-23T08:00:00.000Z",
+  updatedAt: "2026-05-23T08:00:00.000Z",
+} as const;
+
 describe("/api/create/handoffs", () => {
   beforeEach(async () => {
     mocks.getSessionUser.mockResolvedValue({
@@ -174,7 +267,7 @@ describe("/api/create/handoffs", () => {
             roleLabel: "Beteiligung",
             roleType: "participation_officer",
             verificationStatus: "unit_verified",
-            allowedActions: ["read_region_dashboard", "create_dossier_draft"],
+            allowedActions: ["read_region_dashboard", "create_dossier_draft", "submit_for_review"],
             createdAt: "2026-05-19T08:00:00.000Z",
             updatedAt: "2026-05-19T08:00:00.000Z",
             verifiedBy: "admin-1",
@@ -186,7 +279,16 @@ describe("/api/create/handoffs", () => {
         ],
       }),
     );
-    setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [activeEntitlement as any],
+      }),
+    );
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [activeContractRecord as any];
+      },
+    });
     const workspaceRepo = createInMemoryDossierStudioWorkspaceRepo();
     await workspaceRepo.createOrGetDossierStudioWorkspace({
       dossierId: "dossier-1",
@@ -223,9 +325,13 @@ describe("/api/create/handoffs", () => {
     });
     expect(body.requestScope).toMatchObject({
       organizationId: "org-reinickendorf-1",
-      membershipStatus: "unit_verified",
-      organizationRole: "participation_officer",
+      membershipStatus: "verified",
+      organizationRole: "reviewer",
       isOperatorMode: false,
+    });
+    expect(body.accessDecision).toMatchObject({
+      status: "allowed",
+      reason: "allowed",
     });
 
     const stored = await getPersistedCreateHandoffRecord("create-handoff-route-1");
@@ -234,6 +340,7 @@ describe("/api/create/handoffs", () => {
       noAutoPublish: true,
       noPublicOfficial: true,
       selectedAction: "create_dossier",
+      intakeClassification: "claim",
     });
   });
 
@@ -286,7 +393,7 @@ describe("/api/create/handoffs", () => {
     expect(body.requestScope).toMatchObject({
       organizationId: "org-reinickendorf-1",
       primaryRegionId: "bezirk-berlin-reinickendorf",
-      membershipStatus: "unit_verified",
+      membershipStatus: "verified",
     });
 
     const stored = await getPersistedCreateHandoffRecord("create-handoff-route-1");
@@ -327,5 +434,74 @@ describe("/api/create/handoffs", () => {
       error: "create_handoff_scope_forbidden",
     });
     expect(response.status).toBe(403);
+  });
+
+  it("blocks productive org handoffs when contract or billing is only pending", async () => {
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [
+          {
+            ...activeContractRecord,
+            status: "pending",
+            contractStatus: "limited",
+            billingStatus: "billing_pending",
+            accessProvisioningDecision: "limit",
+          } as any,
+        ];
+      },
+    });
+
+    const response = await persistRoute(
+      new NextRequest("http://localhost/api/create/handoffs", {
+        method: "POST",
+        body: JSON.stringify({ draft: draftPayload }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "create_handoff_not_productively_available",
+      accessDecision: {
+        status: "limited",
+      },
+    });
+  });
+
+  it("blocks productive org handoffs when review queue or dossier scopes are not freigeschaltet", async () => {
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [
+          {
+            ...activeContractRecord,
+            planAssignment: {
+              ...activeContractRecord.planAssignment,
+              scopes: ["organization_dashboard"],
+            },
+          } as any,
+        ];
+      },
+    });
+
+    const response = await persistRoute(
+      new NextRequest("http://localhost/api/create/handoffs", {
+        method: "POST",
+        body: JSON.stringify({ draft: draftPayload }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "create_handoff_not_productively_available",
+      accessDecision: {
+        status: "limited",
+        reason: "entitlement_missing",
+      },
+    });
   });
 });
