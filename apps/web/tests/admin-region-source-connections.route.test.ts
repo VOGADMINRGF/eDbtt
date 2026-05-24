@@ -11,11 +11,21 @@ import {
 
 const mocks = vi.hoisted(() => ({
   requireGovernanceActorOrResponse: vi.fn(),
+  buildOrganizationDashboardReadModel: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/governance", () => ({
   requireGovernanceActorOrResponse: (...args: unknown[]) => mocks.requireGovernanceActorOrResponse(...args),
 }));
+
+vi.mock("@features/region", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@features/region")>();
+  return {
+    ...actual,
+    buildOrganizationDashboardReadModel: (...args: unknown[]) =>
+      mocks.buildOrganizationDashboardReadModel(...args),
+  };
+});
 
 import { GET, POST as POST_CONNECTION } from "@/app/api/admin/region/source-connections/route";
 import { POST as POST_TEST } from "@/app/api/admin/region/source-connections/[id]/test/route";
@@ -128,6 +138,17 @@ describe("admin region source connection routes", () => {
     );
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
     setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: null,
+      },
+      membershipStatus: {
+        verifiedMemberships: 0,
+      },
+      entitlementSummary: {
+        grants: [],
+      },
+    });
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "admin-1" } },
       roles: ["admin"],
@@ -419,6 +440,17 @@ describe("admin region source connection routes", () => {
         ],
       }),
     );
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-reinickendorf-1",
+      },
+      membershipStatus: {
+        verifiedMemberships: 1,
+      },
+      entitlementSummary: {
+        grants: [],
+      },
+    });
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "staff-1" } },
       roles: ["organization_member"],
@@ -615,6 +647,23 @@ describe("admin region source connection routes", () => {
         ],
       }),
     );
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-reinickendorf-1",
+      },
+      membershipStatus: {
+        verifiedMemberships: 1,
+      },
+      entitlementSummary: {
+        grants: [
+          {
+            scope: "source_connection",
+            status: "active",
+            accessEnabled: true,
+          },
+        ],
+      },
+    });
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "staff-1" } },
       roles: ["organization_member"],
@@ -884,6 +933,23 @@ describe("admin region source connection routes", () => {
       ],
     });
     setRegionSourceConnectionRuntimeRepoForTests(repo);
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
+      organization: {
+        primaryOrganizationId: "org-reinickendorf-1",
+      },
+      membershipStatus: {
+        verifiedMemberships: 1,
+      },
+      entitlementSummary: {
+        grants: [
+          {
+            scope: "source_connection",
+            status: "active",
+            accessEnabled: true,
+          },
+        ],
+      },
+    });
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({
         organizations: [

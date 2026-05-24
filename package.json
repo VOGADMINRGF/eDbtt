@@ -12,6 +12,7 @@
     "dev:landing": "pnpm --filter @vog/landing dev",
     "build:landing": "pnpm -w prisma:gen && pnpm --filter @vog/landing build",
     "start:landing": "pnpm --filter @vog/landing start",
+    "release:validate:production": "node scripts/release/validate-production.mjs",
     "audit:tri": "node tools/audit/tri-usage-audit.mjs apps/web",
     "audit:tri:all": "node tools/audit/tri-usage-audit.mjs .",
     "audit:objectid": "node tools/audit/objectid-import-audit.mjs .",
