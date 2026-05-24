@@ -146,6 +146,12 @@ export type ReviewQueueItem = {
     sourceReferences: string[];
     provenanceSummary: string;
   } | null;
+  anlassraumContext?: {
+    anlassraumIds: string[];
+    inputKindLabel: string;
+    reviewHint: string;
+    publicShareHint: string;
+  } | null;
 };
 
 type ReviewQueueItemCore = Omit<
@@ -293,6 +299,21 @@ function reviewLinkForRegion(regionId: string | null | undefined) {
   const normalized = String(regionId ?? "").trim();
   if (!normalized) return "/admin/region";
   return `/admin/region?regionId=${encodeURIComponent(normalized)}`;
+}
+
+function participationSourceTypeLabel(value: string | null | undefined) {
+  switch (String(value ?? "").trim()) {
+    case "public_question":
+      return "Öffentliche Frage";
+    case "public_source_hint":
+      return "Öffentlicher Quellenhinweis";
+    case "public_claim":
+      return "Öffentliche Aussage";
+    case "public_contribution":
+      return "Öffentlicher Beitrag";
+    default:
+      return "Öffentlicher Input";
+  }
 }
 
 function draftLinkForRecord(record: RegionSignalDraftRecord) {
@@ -547,6 +568,17 @@ function mapParticipationReviewItem(params: {
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
     sourceSnapshotTemplate: null,
+    anlassraumContext:
+      domain === "anlassraum_public_input"
+        ? {
+            anlassraumIds: [...record.relatedAnlassraumIds],
+            inputKindLabel: participationSourceTypeLabel(record.sourceType),
+            reviewHint:
+              "Öffentliche Anlassraum-Eingaben bleiben review-first und führen nie automatisch zu Publish, Vote oder Silent Merge.",
+            publicShareHint:
+              "Link und QR entstehen erst nach bewusster Sichtbarkeitsentscheidung auf dem Anlassraum selbst.",
+          }
+        : null,
   };
 }
 

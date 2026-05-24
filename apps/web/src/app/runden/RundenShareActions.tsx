@@ -155,6 +155,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         <p>Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.</p>
         <p>Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.</p>
         <p>Link, Share und QR erscheinen erst nach einer bewussten sichtbaren Freigabe.</p>
+        <p>Wird der Anlass pausiert, geschlossen oder archiviert, endet auch dieser öffentliche Teilnahmepfad wieder sichtbar.</p>
       </div>
 
       {showQr ? (
@@ -197,7 +198,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         Sichtbar heißt nicht automatisch geprüft oder amtlich.
       </p>
       <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
-        Wird Sichtbarkeit zurückgenommen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.
+        Wird Sichtbarkeit zurückgenommen, pausiert, geschlossen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.
       </p>
       <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
         Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.

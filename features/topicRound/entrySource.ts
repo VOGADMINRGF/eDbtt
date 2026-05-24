@@ -17,6 +17,32 @@ import type {
 
 export type RundenEntryLifecycle = "active" | "closed";
 
+export const RUNDEN_ENTRY_PRODUCTION_STATES = [
+  "in_preparation",
+  "review_required",
+  "ready_for_public_link",
+  "active",
+  "paused",
+  "archived",
+  "closed",
+  "follow_up_required",
+] as const;
+
+export type RundenEntryProductionState =
+  (typeof RUNDEN_ENTRY_PRODUCTION_STATES)[number];
+
+export const RUNDEN_ENTRY_PUBLIC_SHARE_STATES = [
+  "review_only",
+  "ready_for_visibility_decision",
+  "share_active",
+  "paused",
+  "archived",
+  "closed",
+] as const;
+
+export type RundenEntryPublicShareState =
+  (typeof RUNDEN_ENTRY_PUBLIC_SHARE_STATES)[number];
+
 export type RundenEntrySourceKind =
   | "output_seed_with_anlassraum"
   | "output_seed_legacy_incomplete";
@@ -65,6 +91,10 @@ export type RundenEntryItem = {
   resultsHref: string | null;
   entryHref: string | null;
   lifecycle: RundenEntryLifecycle;
+  productionState: RundenEntryProductionState;
+  productionStateLabel: string;
+  publicShareState: RundenEntryPublicShareState;
+  publicShareHint: string;
   finished: boolean;
   finishedAt: string | null;
   lastAction: string | null;
@@ -157,6 +187,13 @@ function mapToEntry(
   const entryHref = resolveSafeEntryHref({ anlassraumId, publishTarget, isPublic });
   const lifecycle = toLifecycle(outputStatus);
   const finished = lifecycle === "closed";
+  const productionState = deriveProductionState({
+    roomStatus: normalizeAnlassraumStatus(room?.status),
+    outputStatus,
+    isPublic,
+    finished,
+  });
+  const publicShareState = derivePublicShareState(productionState);
   const resultsHref = resolveResultsHref({
     anlassraumId,
     publishTarget,
@@ -198,6 +235,7 @@ function mapToEntry(
     lifecycleStatus: asString(room?.status),
     outputStatus,
     isPublic,
+    productionState,
   });
 
   return {
@@ -222,6 +260,10 @@ function mapToEntry(
     resultsHref,
     entryHref,
     lifecycle,
+    productionState,
+    productionStateLabel: productionStateLabel(productionState),
+    publicShareState,
+    publicShareHint: publicShareHint(publicShareState),
     finished,
     finishedAt,
     lastAction: asString(seed?.lastAction),
@@ -248,9 +290,11 @@ function resolveEntryShareActions(input: {
   lifecycleStatus: string | null;
   outputStatus: OutputSeedStatus;
   isPublic: boolean | null;
+  productionState: RundenEntryProductionState;
 }): RundenEntryShareActions | null {
   if (!input.anlassraumId) return null;
   if (input.isPublic !== true) return null;
+  if (input.productionState !== "active") return null;
 
   const shareReady = resolveShareReadyAssetContract({
     anlassraumId: input.anlassraumId,
@@ -297,6 +341,99 @@ function contextKindFromTargetKind(
 function toLifecycle(status: OutputSeedStatus): RundenEntryLifecycle {
   if (status === "published" || status === "discarded") return "closed";
   return "active";
+}
+
+function deriveProductionState(input: {
+  roomStatus: AnlassraumStatus | null;
+  outputStatus: OutputSeedStatus;
+  isPublic: boolean | null;
+  finished: boolean;
+}): RundenEntryProductionState {
+  const normalizedStatus = String(input.roomStatus ?? "").trim().toLowerCase();
+  if (normalizedStatus === "paused") return "paused";
+  if (normalizedStatus === "archived") return "archived";
+  if (normalizedStatus === "closed") return "closed";
+  if (normalizedStatus === "follow_up_required") return "follow_up_required";
+  if (input.finished) return "closed";
+  if (normalizedStatus === "active" && input.isPublic === true) return "active";
+  if (
+    normalizedStatus === "approved" ||
+    normalizedStatus === "ready_for_public_link"
+  ) {
+    return "ready_for_public_link";
+  }
+  if (
+    normalizedStatus === "review_required" ||
+    normalizedStatus === "reviewed" ||
+    normalizedStatus === "curated"
+  ) {
+    return "review_required";
+  }
+  if (normalizedStatus === "draft") return "in_preparation";
+  if (normalizedStatus === "published") return "active";
+  if (input.outputStatus === "discarded") return "closed";
+  return "in_preparation";
+}
+
+function derivePublicShareState(
+  state: RundenEntryProductionState,
+): RundenEntryPublicShareState {
+  switch (state) {
+    case "active":
+      return "share_active";
+    case "ready_for_public_link":
+      return "ready_for_visibility_decision";
+    case "paused":
+      return "paused";
+    case "archived":
+      return "archived";
+    case "closed":
+      return "closed";
+    case "follow_up_required":
+    case "review_required":
+    case "in_preparation":
+    default:
+      return "review_only";
+  }
+}
+
+export function productionStateLabel(state: RundenEntryProductionState): string {
+  switch (state) {
+    case "in_preparation":
+      return "in Vorbereitung";
+    case "review_required":
+      return "Prüfung erforderlich";
+    case "ready_for_public_link":
+      return "bereit für sichtbaren Link";
+    case "active":
+      return "aktiv";
+    case "paused":
+      return "pausiert";
+    case "archived":
+      return "archiviert";
+    case "closed":
+      return "geschlossen";
+    case "follow_up_required":
+      return "Nacharbeit erforderlich";
+  }
+}
+
+export function publicShareHint(state: RundenEntryPublicShareState): string {
+  switch (state) {
+    case "share_active":
+      return "Link, Share und QR sind bewusst freigegeben und bleiben weiterhin review-first statt automatisch amtlich.";
+    case "ready_for_visibility_decision":
+      return "Link, Share und QR erscheinen erst nach einer bewussten Sichtbarkeitsentscheidung mit passendem Public-Share-Scope.";
+    case "paused":
+      return "Teilnahmelink und QR sind pausiert, bis der Anlass bewusst wieder aktiviert wird.";
+    case "archived":
+      return "Der öffentliche Linkpfad ist archiviert. Der Arbeitsstand bleibt nachvollziehbar, aber nicht mehr als aktiver Anlass teilbar.";
+    case "closed":
+      return "Der Anlass ist geschlossen. Öffentliche Teilnahme und QR-Verteilung bleiben deshalb aus.";
+    case "review_only":
+    default:
+      return "Review-only bleibt intern. Öffentliche Links und QR erscheinen erst nach bewusster Freigabe.";
+  }
 }
 
 function normalizeLimit(value: number | undefined) {
@@ -447,6 +584,11 @@ function normalizeAnlassraumStatus(value: unknown): AnlassraumStatus | null {
   if (normalized === "reviewed") return "reviewed";
   if (normalized === "approved") return "approved";
   if (normalized === "active") return "active";
+  if (normalized === "paused") return "paused";
+  if (normalized === "closed") return "closed";
+  if (normalized === "review_required") return "review_required";
+  if (normalized === "ready_for_public_link") return "ready_for_public_link";
+  if (normalized === "follow_up_required") return "follow_up_required";
   if (normalized === "archived") return "archived";
   if (normalized === "auto_ingested") return "auto_ingested";
   if (normalized === "auto_clustered") return "auto_clustered";

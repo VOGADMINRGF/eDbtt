@@ -220,6 +220,12 @@ export default function RundenPublicSharingGuide(props: {
                 </div>
               ))}
             </div>
+            <div className="mt-4 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-sm leading-6 text-[rgb(var(--muted))]">
+              <p>
+                Review-only bleibt intern. Pausiert, archiviert und geschlossen zeigen ehrliche öffentliche Zustände,
+                aber keinen aktiven Teilnahmelink.
+              </p>
+            </div>
           </div>
         </div>
       </div>

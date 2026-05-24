@@ -27,8 +27,9 @@ describe("runden qr participation language contract", () => {
     expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
     expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
     expect(html).toContain("Link, Share und QR erscheinen erst nach einer bewussten sichtbaren Freigabe.");
+    expect(html).toContain("Wird der Anlass pausiert, geschlossen oder archiviert");
     expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
-    expect(html).toContain("Wird Sichtbarkeit zurückgenommen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.");
+    expect(html).toContain("Wird Sichtbarkeit zurückgenommen, pausiert, geschlossen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.");
     expect(html).toContain("Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.");
 
     expect(html).not.toContain("Link kopieren");

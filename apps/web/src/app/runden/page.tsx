@@ -1,7 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listRundenEntryItems, type RundenEntryItem } from "@features/topicRound/entrySource";
+import {
+  listRundenEntryItems,
+  type RundenEntryItem,
+} from "@features/topicRound/entrySource";
+import {
+  buildOrganizationDashboardReadModel,
+  organizationEntitlementAllowsScope,
+  organizationContractAllowsProvisionedScope,
+} from "@features/region";
 import { readSession } from "@/utils/session";
+import {
+  resolveCurrentRequestScopeContext,
+  requestScopeCanManageOrganizationVisibility,
+  requestScopeCanWriteOrganizationRoutes,
+  type RequestScopeContext,
+} from "@/lib/server/auth/requestScope";
 import RundenShareActions from "./RundenShareActions";
 import RundenGuidedQuestionBuilder from "./RundenGuidedQuestionBuilder";
 import RundenCreateHandoffBanner from "./RundenCreateHandoffBanner";
@@ -23,34 +37,6 @@ const VIEW_LABELS: Record<RoundEntryView, string> = {
   results: "Ergebnisse",
 };
 
-const MANAGE_ROLES = new Set([
-  "editor",
-  "journalist",
-  "redaktion",
-  "moderator",
-  "staff",
-  "admin",
-  "superadmin",
-  "owner",
-  "creator",
-]);
-
-const QR_ACTION_ROLES = new Set([
-  "editor",
-  "journalist",
-  "redaktion",
-  "moderator",
-  "staff",
-  "admin",
-  "superadmin",
-  "owner",
-  "creator",
-  "ngo",
-  "politics",
-  "legitimized",
-  "kurator",
-]);
-
 function readStringParam(val?: string | string[]): string | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
@@ -62,14 +48,6 @@ function parseView(val?: string): RoundEntryView {
 
 function viewHref(view: RoundEntryView): string {
   return `/runden?view=${view}`;
-}
-
-function hasManageAccess(roles: string[]): boolean {
-  return roles.some((role) => MANAGE_ROLES.has(role));
-}
-
-function hasQrRoleAccess(roles: string[]): boolean {
-  return roles.some((role) => QR_ACTION_ROLES.has(role));
 }
 
 function hasEntryOwnership(entry: RundenEntryItem, sessionUid: string | null): boolean {
@@ -164,9 +142,34 @@ function roundResultsHref(entry: RundenEntryItem) {
 }
 
 function deriveOperationalStatus(entry: RundenEntryItem): string {
-  if (entry.anlassraumStatus) return entry.anlassraumStatus;
-  if (entry.outputStatus) return entry.outputStatus;
-  return entry.lifecycle === "active" ? "active" : "closed";
+  return entry.productionStateLabel || entry.anlassraumStatus || "in Vorbereitung";
+}
+
+function publicShareStateLabel(entry: RundenEntryItem): string {
+  switch (entry.publicShareState) {
+    case "share_active":
+      return "Link und QR aktiv";
+    case "ready_for_visibility_decision":
+      return "Freigabe für Link/QR offen";
+    case "paused":
+      return "öffentlich pausiert";
+    case "archived":
+      return "öffentlich archiviert";
+    case "closed":
+      return "öffentlich geschlossen";
+    case "review_only":
+    default:
+      return entry.shareActions ? "Link und QR aktiv" : "intern / review-only";
+  }
+}
+
+function publicShareHintForEntry(entry: RundenEntryItem): string {
+  return (
+    entry.publicShareHint ||
+    (entry.shareActions
+      ? "Link, Share und QR sind bewusst freigegeben und bleiben review-first statt automatisch amtlich."
+      : "Review-only bleibt intern. Öffentliche Links und QR erscheinen erst nach bewusster Freigabe.")
+  );
 }
 
 function deriveLastActivity(entry: RundenEntryItem): string {
@@ -341,7 +344,7 @@ function RoundParticipationModule(props: {
   if (!props.canQrActions || !props.entry.shareActions) {
     return (
       <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-        Sobald ein laufender Anlass existiert, kannst du hier Teilnahmelink und QR für die Verteilung nutzen.
+        {publicShareHintForEntry(props.entry)}
       </p>
     );
   }
@@ -358,6 +361,80 @@ function RoundParticipationModule(props: {
   );
 }
 
+function entryBelongsToManagedScope(params: {
+  entry: RundenEntryItem;
+  sessionUid: string | null;
+  requestScope: RequestScopeContext | null;
+}) {
+  if (params.requestScope?.isOperatorMode) return true;
+  if (hasEntryOwnership(params.entry, params.sessionUid)) return true;
+
+  const ownerId = String(params.entry.ownerId ?? "").trim();
+  if (!ownerId) return false;
+
+  return params.requestScope?.organizationMembership.organizationIds.includes(ownerId) ?? false;
+}
+
+function resolveRundenManagementCapabilities(input: {
+  requestScope: RequestScopeContext | null;
+  dashboardReadModel:
+    | Awaited<ReturnType<typeof buildOrganizationDashboardReadModel>>
+    | null;
+}) {
+  const operatorMode = input.requestScope?.isOperatorMode ?? false;
+  if (operatorMode) {
+    return {
+      canManageProductiveRounds: true,
+      canActivatePublicShare: true,
+    } as const;
+  }
+
+  if (!input.requestScope || !input.dashboardReadModel) {
+    return {
+      canManageProductiveRounds: false,
+      canActivatePublicShare: false,
+    } as const;
+  }
+
+  const scopeAllowsWrites = requestScopeCanWriteOrganizationRoutes(input.requestScope);
+  const scopeAllowsVisibility = requestScopeCanManageOrganizationVisibility(
+    input.requestScope,
+  );
+  const reviewQueueEntitled = organizationEntitlementAllowsScope(
+    input.dashboardReadModel.entitlementSummary,
+    "review_queue",
+  );
+  const reviewQueueContracted = organizationContractAllowsProvisionedScope(
+    input.dashboardReadModel.contractSummary,
+    "review_queue",
+  );
+  const publicShareEntitled = organizationEntitlementAllowsScope(
+    input.dashboardReadModel.entitlementSummary,
+    "public_share",
+  );
+  const publicShareContracted = organizationContractAllowsProvisionedScope(
+    input.dashboardReadModel.contractSummary,
+    "public_share",
+  );
+  const canPrepareRounds =
+    input.dashboardReadModel.allowedActions.includes("create_anlassraum_draft") ||
+    input.dashboardReadModel.allowedActions.includes("submit_for_review");
+  const canActivatePublicShare =
+    scopeAllowsVisibility &&
+    publicShareEntitled &&
+    publicShareContracted &&
+    input.dashboardReadModel.allowedActions.includes("approve_publication");
+
+  return {
+    canManageProductiveRounds:
+      scopeAllowsWrites &&
+      reviewQueueEntitled &&
+      reviewQueueContracted &&
+      canPrepareRounds,
+    canActivatePublicShare,
+  } as const;
+}
+
 export default async function RundenPage({
   searchParams,
 }: {
@@ -372,11 +449,24 @@ export default async function RundenPage({
   const session = await readSession().catch(() => null);
   const isSignedIn = Boolean(session?.uid);
   const sessionUid = session?.uid ?? null;
-  const sessionRoles = (session?.roles ?? []).map((role) =>
-    String(role).toLowerCase(),
-  );
-  const canManage = hasManageAccess(sessionRoles);
-  const canQrByRole = hasQrRoleAccess(sessionRoles);
+  const requestScope = isSignedIn
+    ? await resolveCurrentRequestScopeContext({
+        allowOperatorFallback: true,
+      }).catch(() => null)
+    : null;
+  const dashboardReadModel =
+    requestScope?.actorId
+      ? await buildOrganizationDashboardReadModel({
+          userId: requestScope.actorId,
+          roles: requestScope.actor.roles,
+          isAdmin: requestScope.isOperatorMode,
+          actorRole: requestScope.actor.governanceRole,
+        }).catch(() => null)
+      : null;
+  const capabilitySummary = resolveRundenManagementCapabilities({
+    requestScope,
+    dashboardReadModel,
+  });
 
   const signedInViewOrder = VIEW_ORDER;
 
@@ -426,10 +516,20 @@ export default async function RundenPage({
     hasClosedEntries: closedEntries.length > 0,
   });
   const legacyCount = entries.filter((entry) => entry.legacyIncomplete).length;
-  const featuredOwned = featured ? hasEntryOwnership(featured, sessionUid) : false;
-  const canManageFeatured = featured ? canManage || featuredOwned : false;
+  const featuredOwned = featured
+    ? entryBelongsToManagedScope({
+        entry: featured,
+        sessionUid,
+        requestScope,
+      })
+    : false;
+  const canManageFeatured = featured
+    ? featuredOwned && capabilitySummary.canManageProductiveRounds
+    : false;
   const canQrFeatured = featured
-    ? (canQrByRole || featuredOwned) && Boolean(featured.shareActions)
+    ? canManageFeatured &&
+      capabilitySummary.canActivatePublicShare &&
+      Boolean(featured.shareActions)
     : false;
   const quickStartParticipationHref =
     featured ? roundOpenHref(featured) : existingHref ?? "/runden?view=active";
@@ -527,6 +627,16 @@ export default async function RundenPage({
           )}
         </div>
       </header>
+
+      {isSignedIn && !capabilitySummary.canManageProductiveRounds ? (
+        <section className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Produktive Raumverwaltung noch nicht freigeschaltet</p>
+          <p className="mt-1">
+            Lesen und Beiträge bleiben möglich. Produktive Org-Verwaltung, sichtbare Aktivierung sowie Link- und
+            QR-Freigabe verlangen aber verifizierte Membership, passende Entitlements und eine aktive Vertragslage.
+          </p>
+        </section>
+      ) : null}
 
       {handoffId ? (
         <RundenCreateHandoffBanner handoffId={handoffId} createAction={createAction} />
@@ -714,12 +824,15 @@ export default async function RundenPage({
                       Status: {deriveOperationalStatus(featured)}
                     </span>
                     <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
-                      Prozess: {featured.lifecycle === "active" ? "laufend" : "abgeschlossen"}
+                      Share: {publicShareStateLabel(featured)}
                     </span>
                     <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
                       Letzte Aktion: {featured.lastAction ?? "noch offen"}
                     </span>
                   </div>
+                  <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+                    {publicShareHintForEntry(featured)}
+                  </p>
                   {featured.relatedTopicPageHref && featured.relatedTopicPageTitle ? (
                     <p className="mt-3 text-sm text-[rgb(var(--muted))]">
                       Verbundenes Thema:{" "}
@@ -767,12 +880,20 @@ export default async function RundenPage({
                 </article>
               )}
 
-              {remainingActive.length > 0 && (
+                  {remainingActive.length > 0 && (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {remainingActive.map((entry) => {
-                    const entryOwned = hasEntryOwnership(entry, sessionUid);
-                    const canManageEntry = canManage || entryOwned;
-                    const canQrActions = (canQrByRole || entryOwned) && Boolean(entry.shareActions);
+                    const entryOwned = entryBelongsToManagedScope({
+                      entry,
+                      sessionUid,
+                      requestScope,
+                    });
+                    const canManageEntry =
+                      entryOwned && capabilitySummary.canManageProductiveRounds;
+                    const canQrActions =
+                      canManageEntry &&
+                      capabilitySummary.canActivatePublicShare &&
+                      Boolean(entry.shareActions);
 
                     return (
                       <article
@@ -805,6 +926,9 @@ export default async function RundenPage({
 
                         <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                           Anlass öffnen, um Beiträge und aktuellen Stand einzusehen.
+                        </p>
+                        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                          {publicShareHintForEntry(entry)}
                         </p>
 
                         <RoundQuickActions
@@ -873,8 +997,15 @@ export default async function RundenPage({
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {closedEntries.map((entry) => {
-                const entryOwned = hasEntryOwnership(entry, sessionUid);
-                const canQrActions = (canQrByRole || entryOwned) && Boolean(entry.shareActions);
+                const entryOwned = entryBelongsToManagedScope({
+                  entry,
+                  sessionUid,
+                  requestScope,
+                });
+                const canQrActions =
+                  entryOwned &&
+                  capabilitySummary.canActivatePublicShare &&
+                  Boolean(entry.shareActions);
 
                 return (
                   <article
@@ -883,8 +1014,8 @@ export default async function RundenPage({
                   >
                     <div className="flex items-center justify-between gap-3 text-xs text-[rgb(var(--muted))]">
                       <span>Eröffnet: {formatDate(entry.createdAt)}</span>
-                      <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-                        Abgeschlossen
+                      <span className="rounded-full border border-stone-300 bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-800">
+                        {entry.productionStateLabel}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
@@ -908,6 +1039,9 @@ export default async function RundenPage({
 
                     <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                       Anlass öffnen, um Verlauf und Abschlussstand anzusehen.
+                    </p>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      {publicShareHintForEntry(entry)}
                     </p>
 
                     <Link

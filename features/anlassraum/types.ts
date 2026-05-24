@@ -39,6 +39,11 @@ export const ANLASSRAUM_LIFECYCLE_STATUSES = [
   "reviewed",
   "approved",
   "active",
+  "paused",
+  "closed",
+  "review_required",
+  "ready_for_public_link",
+  "follow_up_required",
   "archived",
 ] as const;
 export type AnlassraumLifecycleStatus = (typeof ANLASSRAUM_LIFECYCLE_STATUSES)[number];

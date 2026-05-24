@@ -561,6 +561,15 @@ describe("review queue readmodel", () => {
           operationalStatus: "open",
         }),
         expect.objectContaining({
+          domain: "anlassraum_public_input",
+          anlassraumContext: expect.objectContaining({
+            anlassraumIds: ["anlassraum-1"],
+            inputKindLabel: "Öffentliche Frage",
+            reviewHint: expect.stringContaining("review-first"),
+            publicShareHint: expect.stringContaining("Link und QR entstehen erst nach bewusster Sichtbarkeitsentscheidung"),
+          }),
+        }),
+        expect.objectContaining({
           domain: "create_handoff",
           title: "Schulsanierung im Bezirk · Dossier-Entwurf",
           priorityBucket: expect.any(String),
@@ -650,6 +659,9 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "anlassraum_public_input",
           regionName: "Berlin Reinickendorf",
+          anlassraumContext: expect.objectContaining({
+            anlassraumIds: ["anlassraum-1"],
+          }),
         }),
         expect.objectContaining({
           domain: "output_artifact",

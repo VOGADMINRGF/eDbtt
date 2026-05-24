@@ -7,6 +7,7 @@ import {
   evaluatePublishGate,
 } from "@features/trust/gates";
 import { anlassraumCol, anlassraumSourceLinksCol, anlassraumStructureCol } from "./db";
+import { recordAuditEvent } from "@features/audit/recordAuditEvent";
 import {
   assertAnlassraumStatusTransition,
   normalizeAnlassraumStatus,
@@ -18,6 +19,11 @@ export const ANLASSRAUM_TRANSITION_ACTIONS = [
   "review",
   "approve",
   "activate",
+  "publish_link",
+  "revoke_link",
+  "pause",
+  "close",
+  "reopen",
   "archive",
 ] as const;
 export type AnlassraumTransitionAction = (typeof ANLASSRAUM_TRANSITION_ACTIONS)[number];
@@ -107,6 +113,9 @@ export async function transitionAnlassraumState(
   if (input.action === "activate" && !gateBefore.ok) {
     throw new Error(`publish_gate_failed:${gateBefore.reasons.join(",")}`);
   }
+  if (input.action === "publish_link" && !gateBefore.ok) {
+    throw new Error(`publish_gate_failed:${gateBefore.reasons.join(",")}`);
+  }
 
   const now = new Date();
   const set: Partial<AnlassraumDoc> = {
@@ -123,12 +132,20 @@ export async function transitionAnlassraumState(
     }
     set.approvedBy = input.actor.userId;
   }
-  if (input.action === "activate") {
+  if (input.action === "activate" || input.action === "publish_link") {
     set.isPublic = true;
     set.publishedAt = now;
+    set.archivedAt = null;
   }
-  if (input.action === "archive") {
+  if (
+    input.action === "pause" ||
+    input.action === "close" ||
+    input.action === "archive" ||
+    input.action === "revoke_link"
+  ) {
     set.isPublic = false;
+  }
+  if (input.action === "close" || input.action === "archive") {
     set.archivedAt = now;
   }
 
@@ -138,6 +155,28 @@ export async function transitionAnlassraumState(
   if (!updated) {
     throw new Error("anlassraum_not_found_after_update");
   }
+  await recordAuditEvent({
+    scope: actorAuditScope(updated),
+    action: auditActionForTransition(input.action),
+    actorUserId: input.actor.userId ?? null,
+    target: {
+      type: "anlassraum",
+      id: id.toHexString(),
+    },
+    before: {
+      status: room.status,
+      isPublic: room.isPublic,
+      publishedAt: room.publishedAt ?? null,
+      archivedAt: room.archivedAt ?? null,
+    },
+    after: {
+      status: updated.status,
+      isPublic: updated.isPublic,
+      publishedAt: updated.publishedAt ?? null,
+      archivedAt: updated.archivedAt ?? null,
+    },
+    reason: input.action,
+  }).catch(() => {});
   const gateAfter = await evaluateRoomPublishGate(updated, id);
   return { room: updated, gate: gateAfter };
 }
@@ -153,20 +192,51 @@ export function canActorAccessAnlassraum(
 
   if (actor.role === "reviewer") {
     if (action === "read") return room.roomType !== "internal";
-    if (action === "curate" || action === "review" || action === "archive") return true;
+    if (
+      action === "curate" ||
+      action === "review" ||
+      action === "pause" ||
+      action === "close" ||
+      action === "reopen" ||
+      action === "archive"
+    ) {
+      return true;
+    }
     return false;
   }
 
   if (actor.role === "editorial_actor") {
     if (!isEditorialRoom(room)) return false;
     if (action === "read") return true;
-    return action === "curate" || action === "review" || action === "approve" || action === "activate" || action === "archive";
+    return (
+      action === "curate" ||
+      action === "review" ||
+      action === "approve" ||
+      action === "activate" ||
+      action === "publish_link" ||
+      action === "revoke_link" ||
+      action === "pause" ||
+      action === "close" ||
+      action === "reopen" ||
+      action === "archive"
+    );
   }
 
   if (actor.role === "institutional_actor") {
     if (!isInstitutionalScopeAllowed(room, actor)) return false;
     if (action === "read") return true;
-    return action === "curate" || action === "review" || action === "approve" || action === "activate" || action === "archive";
+    return (
+      action === "curate" ||
+      action === "review" ||
+      action === "approve" ||
+      action === "activate" ||
+      action === "publish_link" ||
+      action === "revoke_link" ||
+      action === "pause" ||
+      action === "close" ||
+      action === "reopen" ||
+      action === "archive"
+    );
   }
 
   return false;
@@ -219,7 +289,14 @@ export function assertActorCanCreateAnlassraum(
 }
 
 function assertRoleAllowed(action: AnlassraumTransitionAction, actor: GovernanceActor) {
-  if (action === "curate" || action === "archive") {
+  if (
+    action === "curate" ||
+    action === "archive" ||
+    action === "pause" ||
+    action === "close" ||
+    action === "reopen" ||
+    action === "revoke_link"
+  ) {
     if (actor.role === "community") {
       throw new Error("actor_role_not_allowed");
     }
@@ -228,7 +305,10 @@ function assertRoleAllowed(action: AnlassraumTransitionAction, actor: Governance
   if (action === "review" && !canRoleReview(actor.role)) {
     throw new Error("actor_cannot_review");
   }
-  if ((action === "approve" || action === "activate") && !canRoleApprove(actor.role)) {
+  if (
+    (action === "approve" || action === "activate" || action === "publish_link") &&
+    !canRoleApprove(actor.role)
+  ) {
     throw new Error("actor_cannot_approve");
   }
 }
@@ -253,7 +333,12 @@ function actionToTargetStatus(action: AnlassraumTransitionAction): AnlassraumLif
   if (action === "curate") return "curated";
   if (action === "review") return "reviewed";
   if (action === "approve") return "approved";
+  if (action === "publish_link") return "active";
   if (action === "activate") return "active";
+  if (action === "pause") return "paused";
+  if (action === "close") return "closed";
+  if (action === "reopen") return "review_required";
+  if (action === "revoke_link") return "ready_for_public_link";
   return "archived";
 }
 
@@ -268,7 +353,7 @@ async function evaluateRoomPublishGate(
   const anonymousOnly = room.originType === "tip" && evidence.sourceCount < Math.max(2, requiredSourceCount);
   const gate = evaluatePublishGate({
     status: normalizeAnlassraumStatus(room.status),
-    requiredStatuses: ["approved", "active"],
+    requiredStatuses: ["approved", "ready_for_public_link", "active"],
     reviewedBy: room.reviewedBy,
     approvedBy: room.approvedBy,
     contentTrust: room.contentTrust,
@@ -301,6 +386,39 @@ async function evaluateRoomPublishGate(
     requiredSourceCount,
     evidence,
   };
+}
+
+function actorAuditScope(room: AnlassraumDoc) {
+  return room.ownerType === "organization" ||
+    room.ownerType === "association" ||
+    room.ownerType === "ngo"
+    ? "org"
+    : "admin";
+}
+
+function auditActionForTransition(action: AnlassraumTransitionAction): string {
+  switch (action) {
+    case "curate":
+      return "anlassraum.configure";
+    case "review":
+      return "anlassraum.review";
+    case "approve":
+      return "anlassraum.ready_for_public_link";
+    case "activate":
+    case "publish_link":
+      return "anlassraum.publish_link";
+    case "revoke_link":
+      return "anlassraum.revoke_link";
+    case "pause":
+      return "anlassraum.pause";
+    case "close":
+      return "anlassraum.close";
+    case "reopen":
+      return "anlassraum.reopen";
+    case "archive":
+    default:
+      return "anlassraum.archive";
+  }
 }
 
 async function collectEvidenceSnapshot(

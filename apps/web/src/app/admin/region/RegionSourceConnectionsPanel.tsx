@@ -371,7 +371,7 @@ export function RegionSourceConnectionsPanel(props: {
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{result.title}</p>
                 <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                   {regionSourceConnectionTypeLabel(result.sourceType)} · {result.visibilityLabel} ·{" "}
-                  {sourceConnectionTestResultLabel(result.testResult.status)} · Confidence{" "}
+                  {sourceConnectionTestResultLabel(result.testResult?.status ?? "not_run")} · Confidence{" "}
                   {result.confidence.toFixed(2)}
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">{result.summary}</p>

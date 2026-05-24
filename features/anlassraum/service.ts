@@ -2,6 +2,7 @@ import { ObjectId } from "@core/db/triMongo";
 import { buildRegionKey, normalizeRegionCode } from "@core/regions/types";
 import { ensureSystemEntityForRegion } from "@features/entities/service";
 import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
+import { recordAuditEvent } from "@features/audit/recordAuditEvent";
 import type {
   StatementCandidate,
   StatementCandidateAnalyzeResultDoc,
@@ -135,6 +136,24 @@ export async function ensureAnlassraumFromFeedDraft(
 
   const inserted = await rooms.insertOne(room);
   const anlassraumId = inserted.insertedId;
+  await recordAuditEvent({
+    scope: "admin",
+    action: "anlassraum.create_from_feed",
+    actorUserId: null,
+    target: {
+      type: "anlassraum",
+      id: anlassraumId.toHexString(),
+    },
+    after: {
+      status: room.status,
+      ownerType: room.ownerType,
+      ownerId: room.ownerId,
+      regionKey: room.regionKey,
+      sourceMode: room.sourceMode,
+      originType: room.originType,
+    },
+    reason: "feed_to_review_first_room",
+  }).catch(() => {});
 
   try {
     await links.insertOne({
@@ -239,6 +258,27 @@ export async function createManualAnlassraum(
   }
 
   const inserted = await rooms.insertOne(doc);
+  await recordAuditEvent({
+    scope: input.ownerType === "organization" || input.ownerType === "association" || input.ownerType === "ngo"
+      ? "org"
+      : "admin",
+    action: "anlassraum.create_manual",
+    actorUserId: String(input.createdBy || "").trim() || null,
+    target: {
+      type: "anlassraum",
+      id: inserted.insertedId.toHexString(),
+    },
+    after: {
+      status: doc.status,
+      ownerType: doc.ownerType,
+      ownerId: doc.ownerId,
+      regionKey: doc.regionKey,
+      scope: doc.scope,
+      decisionScope: doc.decisionScope,
+      isPublic: doc.isPublic,
+    },
+    reason: "review_first_manual_room",
+  }).catch(() => {});
   return { anlassraumId: inserted.insertedId };
 }
 

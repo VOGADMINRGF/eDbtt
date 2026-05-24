@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({
   listRundenEntryItems: vi.fn(),
   readSession: vi.fn(),
+  resolveCurrentRequestScopeContext: vi.fn(),
+  buildOrganizationDashboardReadModel: vi.fn(),
 }));
 
 vi.mock("@features/topicRound/entrySource", () => ({
@@ -14,12 +16,32 @@ vi.mock("@/utils/session", () => ({
   readSession: (...args: unknown[]) => mocks.readSession(...args),
 }));
 
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: (...args: unknown[]) =>
+    mocks.resolveCurrentRequestScopeContext(...args),
+  requestScopeCanManageOrganizationVisibility: () => false,
+  requestScopeCanWriteOrganizationRoutes: () => false,
+}));
+
+vi.mock("@features/region", async () => {
+  const actual = await vi.importActual<object>("@features/region");
+  return {
+    ...actual,
+    buildOrganizationDashboardReadModel: (...args: unknown[]) =>
+      mocks.buildOrganizationDashboardReadModel(...args),
+    organizationEntitlementAllowsScope: () => false,
+    organizationContractAllowsProvisionedScope: () => false,
+  };
+});
+
 import RundenPage from "@/app/runden/page";
 
 describe("/runden acceptance states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.readSession.mockResolvedValue(null);
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(null);
   });
 
   it("Scenario B: productive empty result renders explicit empty state without demo fallback", async () => {
@@ -306,6 +328,25 @@ describe("/runden acceptance states", () => {
       uid: "65f000000000000000000141",
       roles: ["creator"],
     });
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue({
+      actorId: "65f000000000000000000141",
+      isOperatorMode: true,
+      actor: {
+        actorId: "65f000000000000000000141",
+        actorType: "session_user",
+        email: "ops@example.org",
+        roles: ["creator"],
+        governanceRole: "admin",
+        isOperatorMode: true,
+        operatorModeLabel: "Betreiber-Modus",
+        sourceOfTruth: "operator_verified_directory",
+        confidence: "admin_fallback",
+        runtimeMarker: "production_runtime",
+      },
+      organizationMembership: {
+        organizationIds: [],
+      },
+    });
     mocks.listRundenEntryItems.mockResolvedValue([
       {
         id: "seed-active-manager",
@@ -449,5 +490,57 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Verbundenes Thema:");
     expect(html).toContain("Mobilität und Kosten in Berlin");
     expect(html).toContain("/topic/mobilitaet-und-kosten-berlin-demo123");
+  });
+
+  it("Scenario K: paused Anlassräume explain the disabled public share state honestly", async () => {
+    mocks.listRundenEntryItems.mockResolvedValue([
+      {
+        id: "seed-paused-1",
+        anlassraumId: "65f000000000000000000271",
+        isPublic: false,
+        title: "Pausierter Anlassraum",
+        summary: "Temporär pausierter Arbeitsstand",
+        topicKey: "school",
+        anlassraumType: "policy",
+        sourceMode: "manual",
+        anlassraumStatus: "paused",
+        outputStatus: "ready",
+        reviewState: "approved",
+        publishTarget: "/round/pausierter-anlassraum",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000271",
+        operatingHref: "/round/pausierter-anlassraum?anlassraumId=65f000000000000000000271",
+        resultsHref: null,
+        entryHref: "/round/pausierter-anlassraum?anlassraumId=65f000000000000000000271",
+        lifecycle: "active",
+        productionState: "paused",
+        productionStateLabel: "pausiert",
+        publicShareState: "paused",
+        publicShareHint:
+          "Teilnahmelink und QR sind pausiert, bis der Anlass bewusst wieder aktiviert wird.",
+        finished: false,
+        finishedAt: null,
+        lastAction: "pause",
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+        shareActions: null,
+        relatedTopicPageHref: null,
+        relatedTopicPageTitle: null,
+        relatedTopicPageVisibilityLabel: null,
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      await RundenPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(html).toContain("pausiert");
+    expect(html).toContain(
+      "Teilnahmelink und QR sind pausiert, bis der Anlass bewusst wieder aktiviert wird.",
+    );
+    expect(html).not.toContain("Teilnahme per QR öffnen");
   });
 });

@@ -9,11 +9,16 @@ export const ANLASSRAUM_STATUS_TRANSITIONS: Record<
   AnlassraumLifecycleStatus,
   AnlassraumLifecycleStatus[]
 > = {
-  draft: ["curated", "archived"],
-  curated: ["reviewed", "draft", "archived"],
-  reviewed: ["approved", "curated", "archived"],
-  approved: ["active", "reviewed", "archived"],
-  active: ["archived"],
+  draft: ["curated", "review_required", "archived"],
+  curated: ["reviewed", "review_required", "draft", "archived"],
+  reviewed: ["approved", "ready_for_public_link", "curated", "archived"],
+  approved: ["active", "ready_for_public_link", "reviewed", "archived"],
+  active: ["paused", "follow_up_required", "closed", "archived"],
+  paused: ["active", "closed", "archived"],
+  closed: ["follow_up_required", "archived"],
+  review_required: ["ready_for_public_link", "curated", "archived"],
+  ready_for_public_link: ["active", "review_required", "archived"],
+  follow_up_required: ["review_required", "ready_for_public_link", "archived"],
   archived: [],
 };
 
@@ -31,6 +36,11 @@ export function normalizeAnlassraumStatus(status: AnlassraumStatus): AnlassraumL
   if (status === "reviewed") return status;
   if (status === "approved") return status;
   if (status === "active") return status;
+  if (status === "paused") return status;
+  if (status === "closed") return status;
+  if (status === "review_required") return status;
+  if (status === "ready_for_public_link") return status;
+  if (status === "follow_up_required") return status;
   if (status === "archived") return status;
   return mapLegacyStatus(status);
 }
