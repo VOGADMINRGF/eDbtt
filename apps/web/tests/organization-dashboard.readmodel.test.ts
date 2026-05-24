@@ -4,6 +4,10 @@ import {
   setPersistedCreateHandoffRepoForTests,
 } from "@/features/create/persistedHandoffReviewQueue";
 import {
+  createInMemoryFactcheckWorkflowRepo,
+  setFactcheckWorkflowRepoForTests,
+} from "@features/factcheck/db";
+import {
   buildOrganizationDashboardReadModel,
   buildPersistedRegionAccessContext,
   createInMemoryParticipationSignalReviewRuntimeRepo,
@@ -176,6 +180,7 @@ function anlassraumDraftRecord(): RegionSignalDraftRecord {
 
 beforeEach(() => {
   setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+  setFactcheckWorkflowRepoForTests(createInMemoryFactcheckWorkflowRepo());
   setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
   setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());

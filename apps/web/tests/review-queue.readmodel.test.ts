@@ -17,6 +17,10 @@ import {
   createInMemoryDossierStudioWorkspaceRepo,
   setDossierStudioWorkspaceRepoForTests,
 } from "@features/dossier/server/studioPersistence";
+import {
+  createInMemoryFactcheckWorkflowRepo,
+  setFactcheckWorkflowRepoForTests,
+} from "@features/factcheck/db";
 import { buildReviewQueueReadModel } from "@features/reviewQueue";
 import {
   applyReviewQueueOperation,
@@ -519,6 +523,72 @@ describe("review queue readmodel", () => {
         ],
       }),
     );
+    setFactcheckWorkflowRepoForTests(
+      createInMemoryFactcheckWorkflowRepo({
+        records: [
+          {
+            jobId: "factcheck-1",
+            organizationId: "org-reinickendorf-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            requestedByUserId: "user-1",
+            requestedByRole: "Beteiligung",
+            requestedInOperatorMode: false,
+            sourceOfTruth: "operator_verified_directory",
+            confidence: "high",
+            accessContext: {
+              scope: "organization",
+              productionAccess: "allowed",
+              reason: "none",
+            },
+            language: "de",
+            inputText: "Behauptung zur Schulsanierung mit Quellenbezug",
+            status: "seal_review_required",
+            verdict: "UNDETERMINED",
+            confidenceScore: 0,
+            claims: [{ id: "claim-1", text: "Die Schulsanierung ist finanziert." }] as any,
+            sourceRefs: [
+              {
+                id: "source-1",
+                label: "https://reinickendorf.example/schule",
+                url: "https://reinickendorf.example/schule",
+                sourceType: "link",
+              },
+            ],
+            materialRefs: [],
+            serpResults: [],
+            factcheckVerificationMode: "operator_verified",
+            factcheckResearchMode: "manual_review",
+            factcheckSealEligibility: "eligible",
+            factcheckSealDecision: "requested",
+            publicSealVisible: false,
+            limitations: ["Kein automatisches Siegel und kein Auto-Publish."],
+            verificationMode: "precheck",
+            researchUsed: "lite",
+            sealEligible: true,
+            sealGranted: false,
+            sealedAt: null,
+            fallbackUsed: false,
+            disagreement: null,
+            orchestrationConfidence: null,
+            auditEvents: [
+              {
+                id: "audit-1",
+                eventType: "request-seal",
+                actorId: "admin-1",
+                actorLabel: "admin-1",
+                actorMode: "operator",
+                note: "Siegelprüfung angefordert",
+                createdAt: "2026-05-24T10:00:00.000Z",
+              },
+            ],
+            error: null,
+            createdAt: new Date("2026-05-24T09:55:00.000Z"),
+            updatedAt: new Date("2026-05-24T10:00:00.000Z"),
+            finishedAt: null,
+          },
+        ],
+      }),
+    );
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   });
 
@@ -550,6 +620,7 @@ describe("review queue readmodel", () => {
         expect.objectContaining({ domain: "dossier_workspace" }),
         expect.objectContaining({ domain: "output_artifact" }),
         expect.objectContaining({ domain: "create_handoff" }),
+        expect.objectContaining({ domain: "factcheck_request" }),
         expect.objectContaining({ domain: "public_official_approval" }),
       ]),
     );
@@ -587,6 +658,16 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "public_official_approval",
           reviewAuthorityLabel: "Nur Publikationsfreigabe oder Admin-Fallback",
+        }),
+        expect.objectContaining({
+          domain: "factcheck_request",
+          workflowLabel: "Siegelentscheidung prüfen",
+          factcheckContext: expect.objectContaining({
+            researchMode: "manual_review",
+            sealDecision: "requested",
+            sourceRefCount: 1,
+            scopeSummary: expect.stringContaining("org-reinickendorf-1"),
+          }),
         }),
         expect.objectContaining({
           domain: "region_intelligence_suggestion",
@@ -646,6 +727,13 @@ describe("review queue readmodel", () => {
         (item) =>
           item.domain === "create_handoff" &&
           item.title === "Schulsanierung im Bezirk · Dossier-Entwurf",
+      ),
+    ).toBe(true);
+    expect(
+      readModel.items.some(
+        (item) =>
+          item.domain === "factcheck_request" &&
+          item.factcheckContext?.scopeSummary.includes("org-reinickendorf-1"),
       ),
     ).toBe(true);
     expect(

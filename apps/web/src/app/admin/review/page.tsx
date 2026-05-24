@@ -166,11 +166,12 @@ export default async function AdminReviewPage({
           Operative Arbeitsliste für reviewpflichtige Beteiligungssignale, Anlassraum Public Input,
           Region-Intelligence-Vorschläge, reviewpflichtige Source Results aus expliziten
           URL-Auswertungen, RegionSignalDrafts, Dossier Studio Workspaces, Output-/Distribution-Artefakte,
-          Create-Handoffs und explizite public_official-Freigaben.
+          Create-Handoffs, Factcheck-/Siegelentscheidungen und explizite public_official-Freigaben.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           Keine Sammelentscheidung, kein Auto-Publish, kein automatisches public_official und keine
-          automatische Dossier-/Anlassraum-Finalisierung.
+          automatische Dossier-/Anlassraum-Finalisierung. Provider- oder Siegelpfade bleiben
+          bewusste, auditierbare Einzelentscheidungen.
         </p>
       </header>
 
@@ -451,6 +452,20 @@ export default async function AdminReviewPage({
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                           {item.sourceSnapshotTemplate.reviewHint}
+                        </p>
+                      </div>
+                    ) : null}
+                    {item.factcheckContext ? (
+                      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                          Factcheck-Kontext
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {item.factcheckContext.scopeSummary} · Research: {item.factcheckContext.researchMode} ·
+                          Siegel: {item.factcheckContext.sealDecision}
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {item.factcheckContext.sourceRefCount} Quellenhinweise · {item.factcheckContext.limitationHint}
                         </p>
                       </div>
                     ) : null}

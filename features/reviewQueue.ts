@@ -57,6 +57,13 @@ import {
   listUnifiedAuditEvents,
   type UnifiedAuditEvent,
 } from "./unifiedAuditReadside";
+import {
+  getFactcheckWorkflowRepo,
+  type FactcheckJobDoc,
+} from "./factcheck/db";
+import {
+  factcheckStatusLabel,
+} from "./factcheck/workflow";
 
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
@@ -67,6 +74,7 @@ export const REVIEW_QUEUE_DOMAINS = [
   "dossier_workspace",
   "output_artifact",
   "create_handoff",
+  "factcheck_request",
   "public_official_approval",
 ] as const;
 
@@ -151,6 +159,13 @@ export type ReviewQueueItem = {
     inputKindLabel: string;
     reviewHint: string;
     publicShareHint: string;
+  } | null;
+  factcheckContext?: {
+    researchMode: string;
+    sealDecision: string;
+    sourceRefCount: number;
+    limitationHint: string;
+    scopeSummary: string;
   } | null;
 };
 
@@ -345,6 +360,8 @@ function domainLabelFor(domain: ReviewQueueDomain) {
       return "Output-/Distribution-Artefakt";
     case "create_handoff":
       return "Create-Handoff";
+    case "factcheck_request":
+      return "Factcheck-/Siegelprüfung";
     case "public_official_approval":
       return "Amtliche Freigabe";
     default:
@@ -1029,6 +1046,105 @@ async function mapPersistedCreateHandoffItem(params: {
   };
 }
 
+function includeFactcheckQueueItem(job: FactcheckJobDoc) {
+  return (
+    job.status === "requested" ||
+    job.status === "provider_review_required" ||
+    job.status === "needs_source" ||
+    job.status === "seal_review_required"
+  );
+}
+
+function scopeAllowsFactcheck(params: {
+  scope: ReviewQueueScopeContext;
+  job: FactcheckJobDoc;
+}) {
+  return canViewRegionResource(params.scope, {
+    ownerUserId: params.job.requestedByUserId ?? null,
+    regionId: params.job.regionId ?? null,
+    organizationId: params.job.organizationId ?? null,
+  });
+}
+
+function mapFactcheckQueueItem(params: {
+  job: FactcheckJobDoc;
+  regionMap: Map<string, Region>;
+}): ReviewQueueItemCore {
+  const summaryParts = [
+    `${(params.job.claims ?? []).length} Claims`,
+    `${(params.job.sourceRefs ?? []).length} Quellenhinweise`,
+    factcheckStatusLabel(params.job.status),
+  ];
+  if (params.job.factcheckResearchMode !== "none") {
+    summaryParts.push(`Research: ${params.job.factcheckResearchMode}`);
+  }
+
+  return {
+    id: `factcheck_request:${params.job.jobId}`,
+    domain: "factcheck_request",
+    domainLabel: domainLabelFor("factcheck_request"),
+    workflowState:
+      params.job.status === "seal_review_required"
+        ? "official_approval_required"
+        : "review_required",
+    workflowLabel:
+      params.job.status === "seal_review_required"
+        ? "Siegelentscheidung prüfen"
+        : workflowLabelFor("review_required"),
+    title:
+      params.job.claims?.[0]?.text?.trim() ||
+      params.job.inputText.slice(0, 80) ||
+      "Factcheck-Anfrage",
+    summary: summaryParts.join(" · "),
+    href: `/factcheck/${encodeURIComponent(params.job.jobId)}`,
+    regionId: params.job.regionId ?? null,
+    regionName: regionNameFor(params.regionMap, params.job.regionId),
+    ownerUserId: params.job.requestedByUserId ?? null,
+    organizationId: params.job.organizationId ?? null,
+    dossierId: params.job.dossierId ?? null,
+    draftId: params.job.handoffId ?? params.job.draftId ?? null,
+    sourceType: params.job.factcheckResearchMode,
+    visibilityState: "internal_review",
+    visibilityLabel: publicationVisibilityLabel("internal_review"),
+    createdAt:
+      params.job.createdAt instanceof Date
+        ? params.job.createdAt.toISOString()
+        : String(params.job.createdAt),
+    updatedAt:
+      params.job.updatedAt instanceof Date
+        ? params.job.updatedAt.toISOString()
+        : params.job.updatedAt
+          ? String(params.job.updatedAt)
+          : params.job.createdAt instanceof Date
+            ? params.job.createdAt.toISOString()
+            : String(params.job.createdAt),
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority:
+      params.job.status === "seal_review_required"
+        ? "publication_approved_or_admin"
+        : "standard_review",
+    reviewAuthorityLabel:
+      params.job.status === "seal_review_required"
+        ? "Explizite Siegelentscheidung erforderlich"
+        : "Reviewpflichtig",
+    contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
+    factcheckContext: {
+      researchMode: params.job.factcheckResearchMode,
+      sealDecision: params.job.factcheckSealDecision,
+      sourceRefCount: (params.job.sourceRefs ?? []).length,
+      limitationHint:
+        params.job.limitations?.[0] ??
+        "Kein Auto-Seal, kein Auto-Publish und kein automatischer DeepSearch-Lauf.",
+      scopeSummary: [
+        params.job.organizationId ? `Organisation ${params.job.organizationId}` : "requester_only",
+        params.job.regionId ? `Region ${params.job.regionId}` : "ohne Region",
+      ].join(" · "),
+    },
+  };
+}
+
 function normalizeFilterValue(value: string | undefined, fallback: "all") {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
@@ -1352,6 +1468,14 @@ export async function buildReviewQueueReadModel(
   for (const record of persistedCreateHandoffs) {
     if (!scopeAllowsCreateHandoff({ scope: scoped, record })) continue;
     coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope: scoped }));
+  }
+
+  const factcheckJobs = await getFactcheckWorkflowRepo().list().catch(
+    () => [] as FactcheckJobDoc[],
+  );
+  for (const job of factcheckJobs.filter(includeFactcheckQueueItem)) {
+    if (!scopeAllowsFactcheck({ scope: scoped, job })) continue;
+    coreItems.push(mapFactcheckQueueItem({ job, regionMap }));
   }
 
   const intelligenceRegionIds =

@@ -107,11 +107,12 @@ export default function FactcheckReviewPage() {
     <div className="space-y-6">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Redaktion - Factcheck Review
+          Betreiber - Factcheck & Siegel
         </p>
-        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Manuelle Factchecks</h1>
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Review-first Factchecks</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Alle manuellen Einsendungen (Community, Redaktion, KI) warten auf redaktionelle Freigabe.
+          Manuelle Einsendungen bleiben review-first. Ein öffentliches Siegel entsteht nie automatisch,
+          sondern nur nach bewusster Betreiberentscheidung.
         </p>
         <div className="flex flex-wrap gap-3 text-xs text-[rgb(var(--muted))]">
           <span>Offen: {summary.pending}</span>

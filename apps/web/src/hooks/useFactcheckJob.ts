@@ -11,6 +11,8 @@ type FactcheckEnqueueRequest = {
   priority?: number;
   withSerp?: boolean;
   deepSearch?: boolean;
+  sourceRefs?: string[];
+  materialRefs?: string[];
 };
 
 type FactcheckEnvelope = {
@@ -30,7 +32,16 @@ type FactcheckEnvelope = {
   } | null;
 };
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "error"]);
+const TERMINAL_STATUSES = new Set([
+  "completed",
+  "rejected",
+  "sealed",
+  "not_seal_eligible",
+  "archived",
+  "needs_source",
+  "provider_review_required",
+  "requested",
+]);
 const POLL_INTERVAL_MS = 1_800;
 
 function toStatusString(value: unknown): string {
@@ -54,9 +65,9 @@ export function useFactcheckJob() {
   const [verification, setVerification] = React.useState(() =>
     resolveSealedFactcheckStatusView({
       status: "started",
-      verificationMode: "sealed",
-      researchUsed: "search",
-      sealEligible: true,
+      verificationMode: "none",
+      researchUsed: "none",
+      sealEligible: false,
       sealGranted: false,
     }),
   );
@@ -153,9 +164,9 @@ export function useFactcheckJob() {
       setVerification(
         resolveSealedFactcheckStatusView({
           status: "started",
-          verificationMode: "sealed",
-          researchUsed: request?.deepSearch === true ? "deep_search" : "search",
-          sealEligible: true,
+          verificationMode: "none",
+          researchUsed: request?.deepSearch === true ? "deep_search" : "none",
+          sealEligible: false,
           sealGranted: false,
         }),
       );
@@ -173,6 +184,8 @@ export function useFactcheckJob() {
             topic: request?.topic,
             withSerp: request?.withSerp,
             deepSearch: request?.deepSearch,
+            sourceRefs: request?.sourceRefs,
+            materialRefs: request?.materialRefs,
           }),
         });
 

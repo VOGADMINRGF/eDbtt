@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
-import { factcheckJobsCol } from "@features/factcheck/db";
-import { buildSealedFactcheckContract } from "@features/ai/e150/factcheckProfiles";
-import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+import { getFactcheckWorkflowRepo } from "@features/factcheck/db";
+import {
+  createFactcheckAuditEvent,
+  deriveFactcheckSealEligibility,
+  deriveFactcheckVerificationMode,
+  factcheckResearchModeToCompatibilityResearchUsed,
+  factcheckStatusLabel,
+  factcheckVerificationModeToCompatibilityMode,
+} from "@features/factcheck/workflow";
+import {
+  canAdministerFactcheckRecord,
+} from "@features/factcheck/access";
 import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
-import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
 import {
-  internalSystemIdentityAuditFields,
-  resolveInternalSystemIdentity,
+  resolveRequestScopeContext,
+} from "@/lib/server/auth/requestScope";
+import {
   resolveTrustedInternalSystemIdentity,
 } from "@/lib/server/auth/systemIdentity";
 
@@ -17,6 +25,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ParamsSchema = z.object({ jobId: z.string().min(3) });
+const BodySchema = z
+  .object({
+    action: z.enum(["grant", "revoke", "archive"]).optional().default("grant"),
+    note: z.string().trim().optional().nullable(),
+  })
+  .strict();
 
 async function resolveParams(p: any): Promise<{ jobId: string }> {
   const val = p && typeof p.then === "function" ? await p : p;
@@ -27,31 +41,13 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ jobId: string }> },
 ) {
-  const systemIdentity = resolveInternalSystemIdentity(req);
   const trustedSystemIdentity = resolveTrustedInternalSystemIdentity(req);
-  const roleContext = resolveRoleFromRequest(req);
-  const hasSessionAccess =
-    roleContext.source === "cookie" && hasPermission(roleContext.role, PERMISSIONS.FACTCHECK_STATUS);
+  const requestScope = await resolveRequestScopeContext(req).catch(() => null);
   const hasTrustedSystemAccess =
     trustedSystemIdentity?.source === "factcheck_queue" ||
     trustedSystemIdentity?.source === "factcheck_worker";
 
-  if (!hasSessionAccess && !hasTrustedSystemAccess) {
-    logPermissionDenied({
-      req,
-      scope: "factcheck.status.seal",
-      permission: PERMISSIONS.FACTCHECK_STATUS,
-      role: roleContext.role,
-      source: roleContext.source,
-      details: {
-        ...internalSystemIdentityAuditFields(systemIdentity),
-        denyReason: systemIdentity
-          ? "system_identity_untrusted_or_disallowed"
-          : roleContext.source === "header"
-            ? "header_role_not_allowed"
-            : "missing_permission",
-      },
-    });
+  if (!hasTrustedSystemAccess && !canAdministerFactcheckRecord({ requestScope })) {
     return NextResponse.json(
       { ok: false, code: "FORBIDDEN", message: "Permission denied" },
       { status: 403 },
@@ -59,20 +55,10 @@ export async function POST(
   }
 
   const { jobId } = await resolveParams(ctx.params);
+  const payload = BodySchema.parse(await req.json().catch(() => ({})));
   const routeClassification = resolveAiRouteClassification(`/api/factcheck/status/${jobId}/seal`);
-  const col = await factcheckJobsCol();
-  const job = await col.findOne(
-    { jobId },
-    {
-      projection: {
-        jobId: 1,
-        status: 1,
-        claims: 1,
-        error: 1,
-        researchUsed: 1,
-      },
-    },
-  );
+  const repo = getFactcheckWorkflowRepo();
+  const job = await repo.get(jobId);
 
   if (!job) {
     return NextResponse.json(
@@ -81,81 +67,116 @@ export async function POST(
     );
   }
 
-  if (job.status !== "completed") {
-    return NextResponse.json(
-      {
-        ok: false,
-        code: "SEAL_NOT_READY",
-        message: "Seal can only be granted for completed jobs.",
-        status: job.status,
-      },
-      { status: 409 },
-    );
-  }
-
-  if (job.error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        code: "SEAL_NOT_READY",
-        message: "Seal cannot be granted while job has errors.",
-      },
-      { status: 409 },
-    );
-  }
-
-  const claimCount = Array.isArray((job as any)?.claims) ? (job as any).claims.length : 0;
-  if (claimCount === 0) {
-    return NextResponse.json(
-      {
-        ok: false,
-        code: "SEAL_NOT_READY",
-        message: "Seal cannot be granted without evaluated claims.",
-      },
-      { status: 409 },
-    );
-  }
-
-  const verification = buildSealedFactcheckContract({
-    researchUsed: (job as any)?.researchUsed === "deep_search" ? "deep_search" : "search",
-    sealGranted: true,
-  });
+  const actorId = hasTrustedSystemAccess
+    ? `system:${trustedSystemIdentity?.source ?? "factcheck_worker"}`
+    : requestScope?.actorId ?? "operator";
+  const actorLabel = hasTrustedSystemAccess
+    ? `System · ${trustedSystemIdentity?.source ?? "factcheck_worker"}`
+    : requestScope?.email ?? requestScope?.actorId ?? "Betreiber";
+  const actorMode = hasTrustedSystemAccess ? "system" : "operator";
   const now = new Date();
-  await col.updateOne(
-    { jobId },
-    {
-      $set: {
-        verificationMode: verification.verificationMode,
-        researchUsed: verification.researchUsed,
-        sealEligible: verification.sealEligible,
-        sealGranted: verification.sealGranted,
-        sealedAt: now,
-        updatedAt: now,
-      },
-    },
+
+  if (payload.action === "grant") {
+    if (job.factcheckSealEligibility === "not_eligible") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "SEAL_NOT_READY",
+          message: "Seal cannot be granted for not seal-eligible checks.",
+          status: job.status,
+        },
+        { status: 409 },
+      );
+    }
+    job.status = "sealed";
+    job.factcheckSealDecision = "granted";
+    job.publicSealVisible = true;
+    job.sealedAt = now;
+  } else if (payload.action === "revoke") {
+    job.status = "completed";
+    job.factcheckSealDecision = "revoked";
+    job.publicSealVisible = false;
+    job.sealedAt = null;
+  } else {
+    job.status = "archived";
+    job.publicSealVisible = false;
+    job.sealedAt = null;
+  }
+
+  job.factcheckSealEligibility = deriveFactcheckSealEligibility({
+    status: job.status,
+    hasSourceRefs: (job.sourceRefs ?? []).length > 0,
+    hasClaims: (job.claims ?? []).length > 0,
+  });
+  job.factcheckVerificationMode = deriveFactcheckVerificationMode({
+    status: job.status,
+    researchMode: job.factcheckResearchMode,
+    hasSourceRefs: (job.sourceRefs ?? []).length > 0,
+    sealDecision: job.factcheckSealDecision,
+  });
+  job.verificationMode = factcheckVerificationModeToCompatibilityMode(
+    job.factcheckVerificationMode,
   );
+  job.researchUsed = factcheckResearchModeToCompatibilityResearchUsed(
+    job.factcheckResearchMode,
+  );
+  job.sealEligible =
+    job.factcheckSealEligibility === "eligible" ||
+    job.factcheckSealEligibility === "needs_review";
+  job.sealGranted = job.factcheckSealDecision === "granted";
+  job.updatedAt = now;
+  job.finishedAt = now;
+  job.auditEvents = [
+    ...(job.auditEvents ?? []),
+    createFactcheckAuditEvent({
+      eventType:
+        payload.action === "grant"
+          ? "grant-seal"
+          : payload.action === "revoke"
+            ? "revoke-seal"
+            : "archive",
+      actorId,
+      actorLabel,
+      actorMode,
+      note: payload.note ?? null,
+    }),
+  ];
+
+  await repo.save(job);
 
   const statusView = resolveSealedFactcheckStatusView({
-    status: "completed",
-    verification,
-  });
-  const verificationLabel = deriveVerificationLabel({
-    verificationMode: statusView.verificationMode,
-    sealGranted: statusView.sealGranted,
+    status: job.status,
+    verificationMode: job.verificationMode,
+    researchUsed: job.researchUsed,
+    sealEligible: job.sealEligible,
+    sealGranted: job.sealGranted,
+    factcheckVerificationMode: job.factcheckVerificationMode,
+    factcheckResearchMode: job.factcheckResearchMode,
+    factcheckSealEligibility: job.factcheckSealEligibility,
+    factcheckSealDecision: job.factcheckSealDecision,
   });
 
   return NextResponse.json({
     ok: true,
     jobId,
+    status: job.status,
+    statusLabel: factcheckStatusLabel(job.status),
     verificationMode: statusView.verificationMode,
     researchUsed: statusView.researchUsed,
     sealEligible: statusView.sealEligible,
     sealGranted: statusView.sealGranted,
-    verificationLabel,
+    verificationLabel: statusView.verificationLabel,
     workflowStage: statusView.workflowStage,
     workflowLabel: statusView.workflowLabel,
     sealStatus: statusView.sealLabel,
-    sealedAt: now.toISOString(),
+    factcheckStatus: statusView.factcheckStatus,
+    factcheckStatusLabel: statusView.factcheckStatusLabel,
+    factcheckVerificationMode: statusView.factcheckVerificationMode,
+    factcheckResearchMode: statusView.factcheckResearchMode,
+    factcheckSealEligibility: statusView.factcheckSealEligibility,
+    factcheckSealDecision: statusView.factcheckSealDecision,
+    sealedAt: job.sealedAt?.toISOString?.() ?? null,
+    publicSealVisible: job.publicSealVisible === true,
     meta: {
       lane: "sealed_factcheck",
       journeyProfile: "sealed_factcheck",

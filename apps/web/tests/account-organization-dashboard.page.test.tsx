@@ -22,6 +22,10 @@ import {
   setPersistedCreateHandoffRepoForTests,
 } from "@/features/create/persistedHandoffReviewQueue";
 import {
+  createInMemoryFactcheckWorkflowRepo,
+  setFactcheckWorkflowRepoForTests,
+} from "@features/factcheck/db";
+import {
   createInMemoryReviewQueueOperationRepo,
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
@@ -186,6 +190,7 @@ describe("/account/organization/dashboard page", () => {
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
     setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+    setFactcheckWorkflowRepoForTests(createInMemoryFactcheckWorkflowRepo());
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
     setMembershipDirectoryRepositoryForTests(null);
     setPricingOrderContractsRuntimeRepoForTests({

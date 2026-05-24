@@ -2,36 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { formatError } from "@core/errors/formatError";
 import { logger } from "@core/observability/logger";
-import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
 import { safeRandomId } from "@core/utils/random";
-import { analyzeContribution } from "@features/analyze/analyzeContribution";
-import { voteDraftsCol } from "@features/feeds/db";
-import { ObjectId } from "@core/db/triMongo";
-import { callAriSearchSerp, type SerpResultLite } from "@features/ai/providers/ari_search";
-import { factcheckJobsCol, type FactcheckJobStatus } from "@features/factcheck/db";
-import type { AnalyzeResult, StatementRecord } from "@features/analyze/schemas";
-import { stableHash } from "@core/utils/hash";
+import type { StatementRecord } from "@features/analyze/schemas";
 import {
-  buildSealedFactcheckContract,
-  getSealedFactcheckJourneyProfile,
-} from "@features/ai/e150/factcheckProfiles";
-import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+  getFactcheckWorkflowRepo,
+  type FactcheckAccessContext,
+  type FactcheckJobDoc,
+  type FactcheckSourceRef,
+  type FactcheckStatus,
+} from "@features/factcheck/db";
+import {
+  createFactcheckAuditEvent,
+  deriveFactcheckResearchMode,
+  deriveFactcheckSealEligibility,
+  deriveFactcheckVerificationMode,
+  extractSourceRefsFromText,
+  factcheckLimitationsForRequest,
+  factcheckResearchModeToCompatibilityResearchUsed,
+  factcheckStatusLabel,
+  factcheckVerificationModeToCompatibilityMode,
+} from "@features/factcheck/workflow";
 import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import {
-  ensureDossierForStatement,
-  dossierSourcesCol,
-  dossierEdgesCol,
-  dossierFindingsCol,
-  openQuestionsCol,
-  dossierClaimsCol,
-  updateDossierCounts,
-  touchDossierFactchecked,
-} from "@features/dossier/db";
-import { seedDossierFromAnalysis } from "@features/dossier/seed";
-import { logDossierRevision } from "@features/dossier/revisions";
-import { clampPublisher, clampSnippet, clampTitle } from "@features/dossier/limits";
-import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
+  buildOrganizationDashboardReadModel,
+  organizationEntitlementAllowsScope,
+} from "@features/region";
+import {
+  logPermissionDenied,
+  resolveRoleFromRequest,
+} from "@/lib/server/auth/requestRole";
+import {
+  requestScopeCanWriteOrganizationRoutes,
+  resolveRequestScopeContext,
+  summarizeRequestScopeContext,
+} from "@/lib/server/auth/requestScope";
 import {
   internalSystemIdentityAuditFields,
   resolveInternalSystemIdentity,
@@ -42,18 +47,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_CLAIMS = 8;
-const MAX_SERP_QUERY_CHARS = 220;
 
 const EnqueueSchema = z.object({
-  // bevorzugt: draftId (VoteDraft) oder text
   draftId: z.string().optional().nullable(),
   contributionId: z.string().optional().nullable(),
+  dossierId: z.string().optional().nullable(),
+  handoffId: z.string().optional().nullable(),
   text: z.string().optional().nullable(),
-  language: z.string().optional().nullable(), // "de" | "en" | ...
-  // optional: bereits vorhandene claims (z.B. aus Draft)
+  language: z.string().optional().nullable(),
   claims: z.array(z.any()).optional().nullable(),
-  // evidence lookup
-  withSerp: z.boolean().optional().default(true),
+  sourceRefs: z.array(z.string().trim().min(1)).optional().default([]),
+  materialRefs: z.array(z.string().trim().min(1)).optional().default([]),
+  withSerp: z.boolean().optional().default(false),
   deepSearch: z.boolean().optional().default(false),
 });
 
@@ -63,256 +68,206 @@ function toShortLang(v?: string | null): string {
   return t.split(/[-_]/)[0] || "de";
 }
 
-function json(data: any, status = 200) {
-  return NextResponse.json(data, { status, headers: { "content-type": "application/json; charset=utf-8" } });
-}
-
-function coerceClaims(claims: unknown, maxClaims: number): StatementRecord[] {
-  if (!Array.isArray(claims)) return [];
-  // Wir akzeptieren entweder StatementRecord oder string (text)
-  const normalized = claims
-    .map((c, idx) => {
-      if (typeof c === "string") {
-        const text = c.trim();
-        if (!text) return null;
-        return { id: String(idx + 1), text } as any;
-      }
-      if (c && typeof c === "object" && typeof (c as any).text === "string") {
-        const text = String((c as any).text).trim();
-        if (!text) return null;
-        // minimal: id/text
-        return {
-          id: String((c as any).id ?? idx + 1),
-          text,
-          title: (c as any).title ?? null,
-          responsibility: (c as any).responsibility ?? null,
-          importance: (c as any).importance ?? null,
-          topic: (c as any).topic ?? null,
-          domains: (c as any).domains ?? undefined,
-          domain: (c as any).domain ?? undefined,
-        } as any;
-      }
-      return null;
-    })
-    .filter(Boolean) as StatementRecord[];
-  return normalized.slice(0, maxClaims);
-}
-
-function normalizeUrl(raw: string) {
-  try {
-    const url = new URL(raw.trim());
-    url.hash = "";
-    if (url.pathname.endsWith("/") && url.pathname !== "/") {
-      url.pathname = url.pathname.slice(0, -1);
-    }
-    return url.toString();
-  } catch {
-    return raw.trim();
-  }
-}
-
-function parseDate(value?: string | null) {
-  if (!value) return undefined;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
-
-async function syncDossierFromFactcheck(params: {
-  statementId: string;
-  title?: string | null;
-  claims: StatementRecord[];
-  serpResults: SerpResultLite[];
-  withSerp: boolean;
-  analysis?: AnalyzeResult | null;
-}) {
-  const dossier = await ensureDossierForStatement(params.statementId, { title: params.title ?? undefined });
-  if (!dossier) return;
-
-  await seedDossierFromAnalysis({
-    dossierId: dossier.dossierId,
-    claims: params.claims,
-    questions: params.analysis?.questions ?? [],
-    createdByRole: "pipeline",
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
   });
+}
 
-  const dossierId = dossier.dossierId;
-  const now = new Date();
+function coerceClaims(claims: unknown, fallbackText: string): StatementRecord[] {
+  const normalized = Array.isArray(claims)
+    ? claims
+        .map((claim, index) => {
+          if (typeof claim === "string") {
+            const text = claim.trim();
+            if (!text) return null;
+            return { id: String(index + 1), text } as StatementRecord;
+          }
+          if (claim && typeof claim === "object" && typeof (claim as any).text === "string") {
+            const text = String((claim as any).text).trim();
+            if (!text) return null;
+            return {
+              id: String((claim as any).id ?? index + 1),
+              text,
+              title: (claim as any).title ?? null,
+              responsibility: (claim as any).responsibility ?? null,
+              importance: (claim as any).importance ?? null,
+              topic: (claim as any).topic ?? null,
+              domains: (claim as any).domains ?? undefined,
+              domain: (claim as any).domain ?? undefined,
+            } as StatementRecord;
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .slice(0, MAX_CLAIMS)
+    : [];
 
-  if (params.withSerp && params.serpResults.length > 0) {
-    const sourceCol = await dossierSourcesCol();
-    const edgeCol = await dossierEdgesCol();
-    const sources = [];
+  if (normalized.length > 0) return normalized as StatementRecord[];
+  return fallbackText.trim()
+    ? [{ id: "1", text: fallbackText.trim() } as StatementRecord]
+    : [];
+}
 
-    for (const res of params.serpResults) {
-      if (!res.url) continue;
-      const url = normalizeUrl(res.url);
-      const canonicalUrlHash = stableHash(url);
-      const sourceId = `source_${canonicalUrlHash.slice(0, 12)}`;
+function uniqueNonEmpty(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
 
-      let publisher = clampPublisher(res.siteName ?? undefined);
-      if (!publisher) {
-        try {
-          publisher = clampPublisher(new URL(url).hostname);
-        } catch {
-          publisher = "Quelle";
-        }
-      }
-      const title = clampTitle(res.title ?? "Quelle") ?? "Quelle";
-      const snippet = clampSnippet(res.snippet ?? undefined);
+function contractIsBlocked(contractStatus: string | null, billingStatus: string | null) {
+  return (
+    contractStatus === "suspended" ||
+    contractStatus === "cancelled" ||
+    contractStatus === "expired" ||
+    billingStatus === "overdue" ||
+    billingStatus === "suspended" ||
+    billingStatus === "cancelled" ||
+    billingStatus === "expired"
+  );
+}
 
-      const previousSource = await sourceCol.findOneAndUpdate(
-        { dossierId, canonicalUrlHash },
-        {
-          $set: {
-            url,
-            title,
-            publisher,
-            type: "other",
-            snippet,
-            publishedAt: parseDate(res.publishedAt),
-            updatedAt: now,
-          },
-          $setOnInsert: {
-            dossierId,
-            sourceId,
-            canonicalUrlHash,
-            createdAt: now,
-          },
-        },
-        { upsert: true, returnDocument: "before" },
-      );
+function contractIsLimited(contractStatus: string | null, billingStatus: string | null) {
+  return (
+    contractStatus === "limited" ||
+    contractStatus === "none" ||
+    contractStatus === "draft" ||
+    contractStatus === "offered" ||
+    contractStatus === "accepted" ||
+    billingStatus === "none" ||
+    billingStatus === "billing_pending" ||
+    billingStatus === "grace_period"
+  );
+}
 
-      const effectiveSourceId = previousSource?.sourceId ?? sourceId;
-      sources.push({ sourceId: effectiveSourceId, url });
-      await logDossierRevision({
-        dossierId,
-        entityType: "source",
-        entityId: effectiveSourceId,
-        action: previousSource ? "update" : "create",
-        diffSummary: previousSource ? "Quelle aktualisiert (Factcheck)." : "Quelle hinzugefuegt (Factcheck).",
-        byRole: "pipeline",
-      });
-    }
-
-    for (const claim of params.claims) {
-      const claimId = claim.id;
-      for (const source of sources) {
-        const edgeKey = `edge_${stableHash(`${dossierId}:${claimId}:${source.sourceId}:mentions`).slice(0, 12)}`;
-        const edgeRes = await edgeCol.updateOne(
-          { dossierId, fromId: claimId, toId: source.sourceId, rel: "mentions" },
-          {
-            $set: {
-              fromType: "claim",
-              fromId: claimId,
-              toType: "source",
-              toId: source.sourceId,
-              rel: "mentions",
-              active: true,
-            },
-            $unset: { archivedAt: "", archivedReason: "" },
-            $setOnInsert: {
-              dossierId,
-              edgeId: edgeKey,
-              createdBy: "pipeline",
-              createdAt: now,
-            },
-          },
-          { upsert: true },
-        );
-        await logDossierRevision({
-          dossierId,
-          entityType: "edge",
-          entityId: edgeKey,
-          action: edgeRes.upsertedId ? "create" : "update",
-          diffSummary: edgeRes.upsertedId ? "Graph-Edge erstellt (Factcheck)." : "Graph-Edge aktualisiert (Factcheck).",
-          byRole: "pipeline",
-        });
-      }
-    }
+function buildAccessContext(input: {
+  trustedSystemAccess: boolean;
+  scopeSummary: ReturnType<typeof summarizeRequestScopeContext>;
+  canWriteOrganizationRoutes: boolean;
+  hasReviewQueueEntitlement: boolean;
+  contractStatus: string | null;
+  billingStatus: string | null;
+}): {
+  accessContext: FactcheckAccessContext;
+  persistedOrganizationId: string | null;
+  persistedRegionId: string | null;
+} {
+  if (input.trustedSystemAccess) {
+    return {
+      accessContext: {
+        scope: "operator",
+        productionAccess: "allowed",
+        reason: "none",
+      },
+      persistedOrganizationId: null,
+      persistedRegionId: null,
+    };
   }
 
-  if (params.withSerp && params.serpResults.length === 0 && params.claims.length > 0) {
-    const findingCol = await dossierFindingsCol();
-    const questionsCol = await openQuestionsCol();
-    const claimCol = await dossierClaimsCol();
-
-    for (const claim of params.claims) {
-      const claimId = claim.id;
-      const findingId = `finding_${claimId}`;
-      const findingRes = await findingCol.updateOne(
-        { dossierId, claimId, producedBy: "pipeline" },
-        {
-          $set: {
-            findingId,
-            dossierId,
-            claimId,
-            verdict: "unclear",
-            rationale: ["Keine Quellen gefunden."],
-            citations: [],
-            producedBy: "pipeline",
-            updatedAt: now,
-          },
-          $setOnInsert: {
-            createdAt: now,
-          },
-        },
-        { upsert: true },
-      );
-
-      const claimRes = await claimCol.updateOne(
-        { dossierId, claimId },
-        { $set: { status: "unclear", updatedAt: now } },
-      );
-
-      const questionId = `coverage_${claimId}`;
-      const questionRes = await questionsCol.updateOne(
-        { dossierId, questionId },
-        {
-          $set: {
-            text: `Welche Primaerquelle fehlt fuer: ${claim.text}`,
-            status: "open",
-            updatedAt: now,
-          },
-          $setOnInsert: {
-            dossierId,
-            questionId,
-            createdAt: now,
-          },
-        },
-        { upsert: true },
-      );
-
-      await logDossierRevision({
-        dossierId,
-        entityType: "finding",
-        entityId: findingId,
-        action: findingRes.upsertedId ? "create" : "update",
-        diffSummary: findingRes.upsertedId ? "Finding angelegt (keine Quellen)." : "Finding aktualisiert (keine Quellen).",
-        byRole: "pipeline",
-      });
-      if (claimRes.modifiedCount > 0) {
-        await logDossierRevision({
-          dossierId,
-          entityType: "claim",
-          entityId: claimId,
-          action: "status_change",
-          diffSummary: "Claim-Status auf unklar gesetzt (keine Quellen).",
-          byRole: "pipeline",
-        });
-      }
-      await logDossierRevision({
-        dossierId,
-        entityType: "open_question",
-        entityId: questionId,
-        action: questionRes.upsertedId ? "create" : "update",
-        diffSummary: "Coverage-Gap Frage gesetzt.",
-        byRole: "pipeline",
-      });
-    }
+  if (!input.scopeSummary?.organizationId || input.scopeSummary.isOperatorMode) {
+    return {
+      accessContext: {
+        scope: input.scopeSummary?.isOperatorMode ? "operator" : "requester_only",
+        productionAccess: input.scopeSummary?.isOperatorMode ? "allowed" : "limited",
+        reason: "none",
+      },
+      persistedOrganizationId: input.scopeSummary?.isOperatorMode
+        ? input.scopeSummary.organizationId
+        : null,
+      persistedRegionId: input.scopeSummary?.isOperatorMode
+        ? input.scopeSummary.primaryRegionId
+        : null,
+    };
   }
 
-  await updateDossierCounts(dossierId, "Factcheck Sync");
-  await touchDossierFactchecked(dossierId, now);
+  if (!input.canWriteOrganizationRoutes) {
+    return {
+      accessContext: {
+        scope: "requester_only",
+        productionAccess:
+          input.scopeSummary.membershipStatus === "suspended" ||
+          input.scopeSummary.membershipStatus === "revoked"
+            ? "blocked"
+            : "limited",
+        reason:
+          input.scopeSummary.membershipStatus === "suspended" ||
+          input.scopeSummary.membershipStatus === "revoked"
+            ? "membership_blocked"
+            : "membership_pending",
+      },
+      persistedOrganizationId: null,
+      persistedRegionId: null,
+    };
+  }
+
+  if (contractIsBlocked(input.contractStatus, input.billingStatus)) {
+    return {
+      accessContext: {
+        scope: "requester_only",
+        productionAccess: "blocked",
+        reason: "contract_blocked",
+      },
+      persistedOrganizationId: null,
+      persistedRegionId: null,
+    };
+  }
+
+  if (
+    !input.hasReviewQueueEntitlement ||
+    contractIsLimited(input.contractStatus, input.billingStatus)
+  ) {
+    return {
+      accessContext: {
+        scope: "requester_only",
+        productionAccess: "limited",
+        reason: !input.hasReviewQueueEntitlement
+          ? "entitlement_missing"
+          : "contract_pending",
+      },
+      persistedOrganizationId: null,
+      persistedRegionId: null,
+    };
+  }
+
+  return {
+    accessContext: {
+      scope: "organization",
+      productionAccess: "allowed",
+      reason: "none",
+    },
+    persistedOrganizationId: input.scopeSummary.organizationId,
+    persistedRegionId: input.scopeSummary.primaryRegionId,
+  };
+}
+
+function nextSafeStep(status: FactcheckStatus, accessContext: FactcheckAccessContext) {
+  if (accessContext.productionAccess === "blocked") {
+    return {
+      title: "Produktiver Organisationspfad ist gesperrt",
+      body: "Die Anfrage wurde nicht als aktiver Organisations-Check eingeordnet. Bitte Membership-, Entitlement- oder Vertragslage prüfen lassen.",
+    };
+  }
+  if (accessContext.productionAccess === "limited") {
+    return {
+      title: "Prüfung ist vorgemerkt",
+      body: "Die Anfrage ist gespeichert, aber noch nicht als produktiver Organisations-Check freigeschaltet. Sichere nächste Schritte bleiben Quellen nachreichen oder Betreiberentscheidung abwarten.",
+    };
+  }
+  if (status === "needs_source") {
+    return {
+      title: "Quellen nachreichen",
+      body: "Für eine belastbare Prüfung fehlen noch prüfbare Quellenhinweise oder Materialreferenzen.",
+    };
+  }
+  if (status === "provider_review_required") {
+    return {
+      title: "Provider-Freigabe abwarten",
+      body: "Ein kosten- oder providerrelevanter Lauf wurde nur angefragt. Er startet erst nach expliziter Freigabe.",
+    };
+  }
+  return {
+    title: "Review einplanen",
+    body: "Die Anfrage ist gespeichert und bleibt review-first. Ein öffentliches Ergebnis oder Siegel entsteht erst nach bewusster Entscheidung.",
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -321,16 +276,17 @@ export async function POST(req: NextRequest) {
     const systemIdentity = resolveInternalSystemIdentity(req);
     const trustedSystemIdentity = resolveTrustedInternalSystemIdentity(req);
     const roleContext = resolveRoleFromRequest(req);
-    const hasSessionAccess =
-      roleContext.source === "cookie" && hasPermission(roleContext.role, PERMISSIONS.FACTCHECK_ENQUEUE);
+    const scopeContext = await resolveRequestScopeContext(req).catch(() => null);
+    const hasSessionAccess = Boolean(scopeContext?.actorId);
     const hasTrustedSystemAccess =
       trustedSystemIdentity?.source === "factcheck_queue" ||
       trustedSystemIdentity?.source === "factcheck_worker";
+
     if (!hasSessionAccess && !hasTrustedSystemAccess) {
       logPermissionDenied({
         req,
         scope: "factcheck.enqueue",
-        permission: PERMISSIONS.FACTCHECK_ENQUEUE,
+        permission: "factcheck:enqueue",
         role: roleContext.role,
         source: roleContext.source,
         details: {
@@ -339,11 +295,10 @@ export async function POST(req: NextRequest) {
             ? "system_identity_untrusted_or_disallowed"
             : roleContext.source === "header"
               ? "header_role_not_allowed"
-              : "missing_permission",
+              : "missing_session",
         },
       });
-      const fe = formatError("FORBIDDEN", "Permission denied", { role: roleContext.role });
-      return json(fe, 403);
+      return json(formatError("FORBIDDEN", "Permission denied", { role: roleContext.role }), 403);
     }
 
     let body: unknown;
@@ -356,183 +311,236 @@ export async function POST(req: NextRequest) {
     let payload: z.infer<typeof EnqueueSchema>;
     try {
       payload = EnqueueSchema.parse(body);
-    } catch (e) {
-      const ze = e as ZodError;
-      return json({ ok: false, code: "VALIDATION_ERROR", issues: ze.issues }, 400);
+    } catch (error) {
+      const issues = error instanceof ZodError ? error.issues : [];
+      return json({ ok: false, code: "VALIDATION_ERROR", issues }, 400);
     }
 
-    const lang = toShortLang(payload.language);
-    const jobId = safeRandomId();
-    const routeClassification = resolveAiRouteClassification("/api/factcheck/enqueue");
-
-    // 1) Input bestimmen: Text oder Draft laden
-    let inputText = (payload.text ?? "").trim();
-
-    // 1a) Falls draftId vorhanden: VoteDraft laden (triMongo core -> vote_drafts)
-    if (!inputText && payload.draftId) {
-      try {
-        const drafts = await voteDraftsCol();
-        const id = payload.draftId.trim();
-        if (ObjectId.isValid(id)) {
-          const doc = await drafts.findOne({ _id: new ObjectId(id) });
-          if (doc) {
-            inputText = [doc.title, doc.summary].filter(Boolean).join("\n").trim();
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-
+    const inputText = String(payload.text ?? "").trim();
     if (!inputText) {
-      return json({ ok: false, code: "MISSING_INPUT", message: "Provide text or draftId" }, 400);
+      return json(
+        { ok: false, code: "MISSING_INPUT", message: "Provide text or draftId" },
+        400,
+      );
     }
 
-    // 2) Claims bestimmen: entweder payload.claims, oder Analyze via Orchestrator
-    let claims = coerceClaims(payload.claims, MAX_CLAIMS);
-    let serpResults: SerpResultLite[] = [];
-    let analysisError: string | null = null;
-    let analysis: AnalyzeResult | null = null;
-
-    if (claims.length === 0) {
-      try {
-        analysis = await analyzeContribution({
-          text: inputText,
-          locale: lang,
-          pipeline: "factcheck" as any,
-          maxClaims: MAX_CLAIMS,
-          audienceRole: "staff",
-          routePath: "/api/factcheck/enqueue",
-          journeyHint: "sealed_factcheck",
-          sealedFactcheck: true,
-        });
-      } catch (err: any) {
-        analysisError = err?.message ?? "analyze_failed";
-        logger.warn({ err, analysisError }, "FACTCHECK_ANALYZE_FAIL");
-      }
-
-      if (analysis) {
-        claims = coerceClaims(analysis.claims ?? [], MAX_CLAIMS);
-      }
-    }
-
-    const analysisMeta = analysis && typeof (analysis as any)?._meta === "object" ? (analysis as any)._meta : null;
-    const disagreement = analysisMeta?.disagreement ?? null;
-    const orchestrationConfidence = analysisMeta?.confidence ?? null;
-    const fallbackUsed = typeof analysisMeta?.fallbackUsed === "boolean" ? analysisMeta.fallbackUsed : false;
-
-    const status: FactcheckJobStatus = analysisError ? "failed" : "completed";
-
-    // 3) SERP (optional, schnell & begrenzt)
-    if (payload.withSerp !== false && claims.length > 0) {
-      const q = (claims[0]?.text ?? inputText).slice(0, MAX_SERP_QUERY_CHARS);
-      const serp = await callAriSearchSerp(q);
-      if (serp.ok) serpResults = serp.results;
-    }
-
-    // 4) Persist Job (triMongo)
-    const col = await factcheckJobsCol();
-    const now = new Date();
-    const verification = buildSealedFactcheckContract({
-      deepSearch: payload.deepSearch === true,
-      sealGranted: false,
+    const scopeSummary = summarizeRequestScopeContext(scopeContext);
+    const dashboardReadModel =
+      scopeContext?.actorId && !scopeContext.isOperatorMode
+        ? await buildOrganizationDashboardReadModel({
+            userId: scopeContext.actorId,
+            roles: scopeContext.actor.roles,
+            isAdmin: false,
+            actorRole: scopeContext.organizationRole,
+          }).catch(() => null)
+        : null;
+    const accessResolution = buildAccessContext({
+      trustedSystemAccess: hasTrustedSystemAccess,
+      scopeSummary,
+      canWriteOrganizationRoutes: scopeContext
+        ? requestScopeCanWriteOrganizationRoutes(scopeContext)
+        : false,
+      hasReviewQueueEntitlement: dashboardReadModel
+        ? organizationEntitlementAllowsScope(
+            dashboardReadModel.entitlementSummary,
+            "review_queue",
+          )
+        : false,
+      contractStatus: dashboardReadModel?.contractSummary.currentContractStatus ?? null,
+      billingStatus: dashboardReadModel?.contractSummary.billingStatus ?? null,
     });
 
-    await col.insertOne({
+    const lang = toShortLang(payload.language);
+    const claims = coerceClaims(payload.claims, inputText);
+    const sourceRefs: FactcheckSourceRef[] = [
+      ...extractSourceRefsFromText(inputText),
+      ...uniqueNonEmpty(payload.sourceRefs).map((value, index) => {
+        const sourceType: FactcheckSourceRef["sourceType"] = value.endsWith(".pdf")
+          ? "document_url"
+          : value.includes("youtube.com/") || value.includes("youtu.be/")
+            ? "youtube_video_url"
+            : "manual_reference";
+        return {
+          id: `payload-source-${index + 1}`,
+          label: value,
+          url: value.startsWith("http://") || value.startsWith("https://") ? value : null,
+          sourceType,
+        };
+      }),
+    ];
+    const uniqueSourceRefs = Array.from(
+      new Map(sourceRefs.map((entry) => [`${entry.url ?? entry.label}`, entry])).values(),
+    );
+    const researchMode = deriveFactcheckResearchMode({
+      requestedDeepResearch: payload.deepSearch === true,
+      requestedProviderRun: payload.withSerp === true,
+    });
+    const status: FactcheckStatus =
+      uniqueSourceRefs.length === 0
+        ? "needs_source"
+        : researchMode === "provider_assisted" ||
+            researchMode === "deep_research_requested"
+          ? "provider_review_required"
+          : "requested";
+    const sealDecision = "none";
+    const sealEligibility = deriveFactcheckSealEligibility({
+      status,
+      hasSourceRefs: uniqueSourceRefs.length > 0,
+      hasClaims: claims.length > 0,
+    });
+    const factcheckVerificationMode = deriveFactcheckVerificationMode({
+      status,
+      researchMode,
+      hasSourceRefs: uniqueSourceRefs.length > 0,
+      sealDecision,
+    });
+    const compatibilityVerificationMode =
+      factcheckVerificationModeToCompatibilityMode(factcheckVerificationMode);
+    const compatibilityResearchUsed =
+      factcheckResearchModeToCompatibilityResearchUsed(researchMode);
+
+    const actorId =
+      hasTrustedSystemAccess
+        ? `system:${trustedSystemIdentity?.source ?? "factcheck_queue"}`
+        : scopeContext?.actorId ?? "unknown-requester";
+    const actorLabel =
+      hasTrustedSystemAccess
+        ? `System · ${trustedSystemIdentity?.source ?? "factcheck_queue"}`
+        : scopeContext?.email ?? scopeContext?.actorId ?? "Anfragende Person";
+    const actorMode = hasTrustedSystemAccess
+      ? "system"
+      : scopeContext?.isOperatorMode
+        ? "operator"
+        : accessResolution.persistedOrganizationId
+          ? "organization"
+          : "user";
+    const now = new Date();
+    const routeClassification = resolveAiRouteClassification("/api/factcheck/enqueue");
+    const jobId = safeRandomId();
+
+    const record: FactcheckJobDoc = {
       jobId,
       draftId: payload.draftId ?? null,
       contributionId: payload.contributionId ?? null,
+      dossierId: payload.dossierId ?? null,
+      handoffId: payload.handoffId ?? null,
+      organizationId: accessResolution.persistedOrganizationId,
+      regionId: accessResolution.persistedRegionId,
+      requestedByUserId: hasTrustedSystemAccess ? null : scopeContext?.actorId ?? null,
+      requestedByRole: scopeSummary?.roleLabel ?? scopeSummary?.organizationRole ?? roleContext.role,
+      requestedInOperatorMode: scopeSummary?.isOperatorMode ?? hasTrustedSystemAccess,
+      sourceOfTruth: scopeSummary?.sourceOfTruth ?? (hasTrustedSystemAccess ? "session" : null),
+      confidence: scopeSummary?.confidence ?? null,
+      accessContext: accessResolution.accessContext,
       language: lang,
       inputText,
       status,
       verdict: "UNDETERMINED",
-      confidence: 0.5,
+      confidenceScore: 0,
       claims,
-      serpResults,
-      verificationMode: verification.verificationMode,
-      researchUsed: verification.researchUsed,
-      sealEligible: verification.sealEligible,
-      sealGranted: verification.sealGranted,
-      fallbackUsed,
-      disagreement,
-      orchestrationConfidence,
-      error: analysisError,
+      sourceRefs: uniqueSourceRefs,
+      materialRefs: uniqueNonEmpty(payload.materialRefs),
+      serpResults: [],
+      factcheckVerificationMode,
+      factcheckResearchMode: researchMode,
+      factcheckSealEligibility: sealEligibility,
+      factcheckSealDecision: sealDecision,
+      publicSealVisible: false,
+      limitations: factcheckLimitationsForRequest({
+        sourceRefs: uniqueSourceRefs,
+        researchMode,
+      }),
+      verificationMode: compatibilityVerificationMode,
+      researchUsed: compatibilityResearchUsed,
+      sealEligible: sealEligibility === "eligible" || sealEligibility === "needs_review",
+      sealGranted: false,
+      sealedAt: null,
+      fallbackUsed: false,
+      disagreement: null,
+      orchestrationConfidence: null,
+      auditEvents: [
+        createFactcheckAuditEvent({
+          eventType: "request",
+          actorId,
+          actorLabel,
+          actorMode,
+          note:
+            researchMode === "provider_assisted" ||
+            researchMode === "deep_research_requested"
+              ? "Provider- oder Deep-Research-Lauf wurde nur angefragt und nicht automatisch gestartet."
+              : "Prüfauftrag persistiert; kein Auto-Seal und kein Auto-Publish.",
+        }),
+      ],
+      error: null,
       createdAt: now,
       updatedAt: now,
-      finishedAt: now,
-    } as any);
+      finishedAt: null,
+    };
 
-    if (payload.contributionId) {
-      try {
-        await syncDossierFromFactcheck({
-          statementId: payload.contributionId,
-          title: null,
-          claims,
-          serpResults,
-          withSerp: payload.withSerp !== false,
-          analysis,
-        });
-      } catch (err: any) {
-        logger.warn({ err }, "FACTCHECK_DOSSIER_SYNC_FAIL");
-      }
-    }
+    await getFactcheckWorkflowRepo().save(record);
 
-    const journeyProfile = getSealedFactcheckJourneyProfile();
-    const verificationStatus = resolveSealedFactcheckStatusView({
-      status,
-      verification,
+    const statusView = resolveSealedFactcheckStatusView({
+      status: record.status,
+      verificationMode: record.verificationMode,
+      researchUsed: record.researchUsed,
+      sealEligible: record.sealEligible,
+      sealGranted: record.sealGranted,
+      factcheckVerificationMode: record.factcheckVerificationMode,
+      factcheckResearchMode: record.factcheckResearchMode,
+      factcheckSealEligibility: record.factcheckSealEligibility,
+      factcheckSealDecision: record.factcheckSealDecision,
     });
-    const verificationLabel = deriveVerificationLabel({
-      verificationMode: verificationStatus.verificationMode,
-      sealGranted: verificationStatus.sealGranted,
+    const nextStep = nextSafeStep(record.status, record.accessContext ?? {
+      scope: "requester_only",
+      productionAccess: "limited",
+      reason: "none",
     });
 
-    const durationMs = Date.now() - t0;
     return json({
       ok: true,
       jobId,
-      status,
+      status: record.status,
+      statusLabel: factcheckStatusLabel(record.status),
       claimsCount: claims.length,
-      serpCount: serpResults.length,
-      durationMs,
-      analysisError: analysisError ?? undefined,
-      verificationMode: verificationStatus.verificationMode,
-      researchUsed: verificationStatus.researchUsed,
-      sealEligible: verificationStatus.sealEligible,
-      sealGranted: verificationStatus.sealGranted,
-      verificationLabel,
-      fallbackUsed,
-      disagreement,
-      orchestrationConfidence,
-      workflowStage: verificationStatus.workflowStage,
-      workflowLabel: verificationStatus.workflowLabel,
-      sealStatus: verificationStatus.sealLabel,
+      sourceRefCount: uniqueSourceRefs.length,
+      materialRefCount: record.materialRefs.length,
+      durationMs: Date.now() - t0,
+      verificationMode: statusView.verificationMode,
+      researchUsed: statusView.researchUsed,
+      sealEligible: statusView.sealEligible,
+      sealGranted: statusView.sealGranted,
+      verificationLabel: statusView.verificationLabel,
+      workflowStage: statusView.workflowStage,
+      workflowLabel: statusView.workflowLabel,
+      sealStatus: statusView.sealLabel,
+      factcheckStatus: statusView.factcheckStatus,
+      factcheckStatusLabel: statusView.factcheckStatusLabel,
+      factcheckVerificationMode: statusView.factcheckVerificationMode,
+      factcheckResearchMode: statusView.factcheckResearchMode,
+      factcheckSealEligibility: statusView.factcheckSealEligibility,
+      factcheckSealDecision: statusView.factcheckSealDecision,
+      sourceRefs: uniqueSourceRefs,
+      materialRefs: record.materialRefs,
+      limitations: record.limitations,
+      accessContext: record.accessContext,
+      requestScope: scopeSummary,
+      nextStep,
       meta: {
-        journeyProfile: journeyProfile.journey,
-        lane: journeyProfile.lane,
-        roleProviderMapping: {
-          primary: journeyProfile.primaryRoles,
-          secondary: journeyProfile.secondaryRoles,
-          fallback: journeyProfile.fallbackProviders,
-          openAiRoles: journeyProfile.openAiRoles,
-        },
-        verificationMode: verificationStatus.verificationMode,
-        researchUsed: verificationStatus.researchUsed,
-        sealEligible: verificationStatus.sealEligible,
-        sealGranted: verificationStatus.sealGranted,
-        verificationLabel,
-        workflowStage: verificationStatus.workflowStage,
-        workflowLabel: verificationStatus.workflowLabel,
-        sealStatus: verificationStatus.sealLabel,
-        fallbackUsed,
-        disagreement,
-        orchestrationConfidence,
+        lane: "sealed_factcheck",
+        journeyProfile: "sealed_factcheck",
         routeClassification,
+        noAutoDeepSearch: true,
+        noAutoSeal: true,
+        noAutoPublish: true,
       },
     });
-  } catch (e: any) {
-    const fe = formatError("INTERNAL_ERROR", "Unexpected failure", e?.message ?? String(e));
-    logger.error({ fe, e }, "FACTCHECK_ENQUEUE_FAIL");
+  } catch (error: any) {
+    const fe = formatError(
+      "INTERNAL_ERROR",
+      "Unexpected failure",
+      error?.message ?? String(error),
+    );
+    logger.error({ fe, error }, "FACTCHECK_ENQUEUE_FAIL");
     return NextResponse.json(fe, { status: 500 });
   }
 }

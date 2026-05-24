@@ -58,13 +58,6 @@ const RESEARCH_LABEL: Record<ResearchUsed, string> = {
   deep_search: "Deep Search",
 };
 
-const WORKFLOW_LABEL: Record<SealedFactcheckWorkflowStage, string> = {
-  started: "gestartet",
-  queued: "in Warteschlange",
-  in_progress: "in Prüfung",
-  completed: "abgeschlossen",
-};
-
 function asLane(value: unknown): E150Lane | null {
   if (value === "standard" || value === "sealed_factcheck" || value === "material_grounding") return value;
   return null;
@@ -113,7 +106,7 @@ export function resolveVerificationPresentationView(
       sealGranted: sealedView.sealGranted,
       sealLabel: sealedView.sealLabel,
       workflowStage: sealedView.workflowStage,
-      workflowLabel: WORKFLOW_LABEL[sealedView.workflowStage],
+      workflowLabel: sealedView.workflowLabel,
       badgeTone: resolveBadgeTone(sealedView.verificationLabel),
       isVerified: sealedView.verificationLabel === "verifiziert",
     };

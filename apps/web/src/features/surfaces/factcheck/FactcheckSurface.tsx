@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useFactcheckJob } from "@/hooks/useFactcheckJob";
 import { buildCreateHref } from "@/features/create/intents";
 import { getDemoPersonaConfig, type DemoPersona } from "@/features/demo/personas";
-import { DEMO_STATUS_GLOSSARY, getDemoStatusLabel } from "@/features/demo/statusLanguage";
 import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
 import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
@@ -86,7 +85,6 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   const [videoInput, setVideoInput] = useState("");
   const [fileName, setFileName] = useState("");
   const [mode, setMode] = useState<"ai" | "manual">("ai");
-  const [demoAiReady, setDemoAiReady] = useState(false);
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [manualStatus, setManualStatus] = useState<string | null>(null);
   const [editorialSent, setEditorialSent] = useState(false);
@@ -121,8 +119,8 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
         confidence: c.consensus?.confidence ?? 0,
       }));
     }
-    return DEMO_AI_CLAIMS;
-  }, [claims]);
+    return context.mode === "demo" ? DEMO_AI_CLAIMS : [];
+  }, [claims, context.mode]);
 
   const manualCanSubmit = manualClaim.trim().length >= 5 && !sending;
   const effectiveInput = useMemo(() => {
@@ -148,10 +146,15 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
             { label: "Perspektive einreichen", href: buildCreateHref({ intent: "perspective" }) },
             { label: "Quelle melden", href: buildCreateHref({ intent: "source" }) },
           ];
-  const statusLabels = DEMO_STATUS_GLOSSARY.filter((item) =>
-    ["demo", "simulation", "community_submitted", "in_review", "verified"].includes(item.key),
-  ).map((item) => item.label);
-  const hasResult = mode === "ai" ? Boolean(done || demoAiReady) : manualEntries.length > 0;
+  const statusLabels = [
+    "Prüfung angefragt",
+    "Quellen fehlen",
+    "Provider-Freigabe erforderlich",
+    "Ergebnis liegt vor",
+    "Siegelprüfung erforderlich",
+    "versiegelt",
+  ];
+  const hasResult = mode === "ai" ? Boolean(done && aiClaims.length > 0) : manualEntries.length > 0;
   const flowStep: FlowStep = editorialSent
     ? "redaktion"
     : hasResult
@@ -266,7 +269,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
         }
         return [entry, ...prev];
       });
-      setManualStatus(`An Redaktion gesendet (Status: ${getDemoStatusLabel("open")}).`);
+      setManualStatus("Hinweis gespeichert und an die Review-Fläche übergeben.");
       setEditorialSent(true);
       resetManualForm();
     } catch (err: any) {
@@ -277,7 +280,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   }
 
   async function handleSendAiToEditorial(force?: boolean) {
-    if (!force && !demoAiReady && !done) {
+    if (!force && !done) {
       setManualStatus("Bitte zuerst einen Check starten.");
       return;
     }
@@ -293,7 +296,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
           origin: "ai",
         });
       }
-      setManualStatus(`KI-Ergebnis an Redaktion gesendet (Status: ${getDemoStatusLabel("open")}).`);
+      setManualStatus("Prüfhinweis an die Review-Fläche übergeben.");
       setEditorialSent(true);
     } catch (err: any) {
       setManualStatus(`Fehler: ${String(err?.message ?? err)}`);
@@ -319,11 +322,12 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
           {context.mode === "demo" ? "Demo - Factcheck" : "Factcheck"} · {personaCfg.label}
         </div>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">
-          Schnellprüfung mit Demo-Daten
+          Review-first Factcheck
         </h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Multi-Channel Intake für Text, Link, Anlage und Video-URL. Die Prüfung ist als
-          Demo-Simulation markiert, aber der Ablauf folgt dem späteren Produktfluss.
+          Text, Link, Anlage und Video-URL werden als prüfbarer Auftrag gespeichert. Es startet
+          kein automatischer DeepSearch-Lauf, kein automatisches Siegel und keine automatische
+          Veröffentlichung.
         </p>
         <p className="text-xs text-[rgb(var(--muted))]">
           Statussprache: {statusLabels.join(" · ")}.
@@ -450,11 +454,9 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
                 onClick={() => {
                   setEditorialSent(false);
                   enqueue({ text: effectiveInput, language: "de", priority: 5 });
-                  setDemoAiReady(true);
-                  void handleSendAiToEditorial(true);
                 }}
               >
-                {loading ? "Wird geprüft..." : "Factcheck starten"}
+                {loading ? "Wird gespeichert..." : "Prüfung anfragen"}
               </button>
               <button
                 className="btn-secondary text-sm disabled:opacity-50"
@@ -487,7 +489,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
           contextKind="factcheck"
           title="Factcheck"
           routePath="/factcheck"
-          intro="Companion für Rückfragen im Factcheck-Lane. Kein Siegel ohne abgeschlossenen sealed Workflow."
+          intro="Companion für Rückfragen im Factcheck-Lane. Provider-Läufe und Siegel bleiben bewusste Einzelentscheidungen."
           placeholder="Welche Aussage oder Quelle soll als Nächstes geprüft werden?"
           parentStatus={{
             status: status === "idle" ? "started" : status,
@@ -503,10 +505,10 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
         {manualStatus && <div className="text-xs text-[rgb(var(--muted))]">{manualStatus}</div>}
       </div>
 
-      {mode === "ai" && (done || demoAiReady) && aiClaims && (
+      {mode === "ai" && hasResult && aiClaims.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Schritt 3 - KI-Ergebnis (Status Redaktion: {getDemoStatusLabel("open")})
+            Schritt 3 - Vorläufig eingeordnetes Ergebnis
           </h3>
           <div className="grid gap-3 md:grid-cols-2">
             {aiClaims.map((c: any) => (
@@ -603,9 +605,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
                   Abbrechen
                 </button>
               )}
-              <span className="text-xs text-[rgb(var(--muted))]">
-                Status Redaktion: {getDemoStatusLabel("open")}
-              </span>
+              <span className="text-xs text-[rgb(var(--muted))]">Review-first gespeichert</span>
             </div>
           </div>
 
@@ -638,7 +638,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
                       </div>
                     )}
                     <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
-                      <span>Status Redaktion: {getDemoStatusLabel("open")}</span>
+                      <span>Review-first gespeichert</span>
                       <button
                         className="font-semibold text-sky-600 underline"
                         onClick={() => handleEdit(entry)}
@@ -657,9 +657,8 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 4 - Redaktion</p>
         <p className="mt-1">
-          Nach dem Versand landet der Vorgang im Redaktionsstatus{" "}
-          <span className="font-semibold text-[rgb(var(--fg))]">{getDemoStatusLabel("open")}</span> und
-          läuft dann über {getDemoStatusLabel("in_review")} bis {getDemoStatusLabel("verified")}.
+          Nach dem Versand bleibt der Vorgang review-first gespeichert. Öffentliche Sichtbarkeit,
+          Provider-Läufe und ein mögliches Siegel entstehen erst nach bewusster Entscheidung.
         </p>
       </section>
     </div>

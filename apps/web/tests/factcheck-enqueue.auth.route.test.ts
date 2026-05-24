@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import {
+  createInMemoryFactcheckWorkflowRepo,
+  getFactcheckWorkflowRepo,
+  setFactcheckWorkflowRepoForTests,
+} from "@features/factcheck/db";
 
 const mocks = vi.hoisted(() => ({
   loggerWarn: vi.fn(),
-  insertOne: vi.fn(),
-  callAriSearchSerp: vi.fn(),
+  resolveRequestScopeContext: vi.fn(),
+  summarizeRequestScopeContext: vi.fn(),
+  buildOrganizationDashboardReadModel: vi.fn(),
+  requestScopeCanWriteOrganizationRoutes: vi.fn(),
 }));
 
 vi.mock("@core/observability/logger", () => ({
@@ -15,14 +22,19 @@ vi.mock("@core/observability/logger", () => ({
   },
 }));
 
-vi.mock("@features/factcheck/db", () => ({
-  factcheckJobsCol: vi.fn(async () => ({
-    insertOne: (...args: unknown[]) => mocks.insertOne(...args),
-  })),
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveRequestScopeContext: (...args: unknown[]) =>
+    mocks.resolveRequestScopeContext(...args),
+  summarizeRequestScopeContext: (...args: unknown[]) =>
+    mocks.summarizeRequestScopeContext(...args),
+  requestScopeCanWriteOrganizationRoutes: (...args: unknown[]) =>
+    mocks.requestScopeCanWriteOrganizationRoutes(...args),
 }));
 
-vi.mock("@features/ai/providers/ari_search", () => ({
-  callAriSearchSerp: (...args: unknown[]) => mocks.callAriSearchSerp(...args),
+vi.mock("@features/region", () => ({
+  buildOrganizationDashboardReadModel: (...args: unknown[]) =>
+    mocks.buildOrganizationDashboardReadModel(...args),
+  organizationEntitlementAllowsScope: vi.fn(() => true),
 }));
 
 import { POST as factcheckEnqueuePOST } from "@/app/api/factcheck/enqueue/route";
@@ -31,8 +43,11 @@ describe("factcheck enqueue auth contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.INTERNAL_WORKER_TOKEN;
-    mocks.insertOne.mockResolvedValue({ acknowledged: true });
-    mocks.callAriSearchSerp.mockResolvedValue({ ok: true, results: [] });
+    setFactcheckWorkflowRepoForTests(createInMemoryFactcheckWorkflowRepo());
+    mocks.resolveRequestScopeContext.mockResolvedValue(null);
+    mocks.summarizeRequestScopeContext.mockReturnValue(null);
+    mocks.requestScopeCanWriteOrganizationRoutes.mockReturnValue(false);
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(null);
   });
 
   it("blocks query role bypass and keeps denied audit structured", async () => {
@@ -44,7 +59,7 @@ describe("factcheck enqueue auth contract", () => {
     const res = await factcheckEnqueuePOST(req);
     expect(res.status).toBe(403);
     const denyPayload = mocks.loggerWarn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(denyPayload?.denyReason).toBe("missing_permission");
+    expect(denyPayload?.denyReason).toBe("missing_session");
     expect(denyPayload?.systemIdentitySource).toBeNull();
   });
 
@@ -85,7 +100,7 @@ describe("factcheck enqueue auth contract", () => {
     expect(body?.code).toBe("MISSING_INPUT");
   });
 
-  it("returns sealed factcheck contract fields for enqueue responses", async () => {
+  it("stores a review-first request without auto deepsearch or auto seal", async () => {
     process.env.INTERNAL_WORKER_TOKEN = "system_secret";
     const req = new NextRequest("http://localhost/api/factcheck/enqueue", {
       method: "POST",
@@ -96,26 +111,34 @@ describe("factcheck enqueue auth contract", () => {
         "x-internal-actor-kind": "queue_worker",
       },
       body: JSON.stringify({
-        text: "Belastbarer Ausgangstext",
+        text: "Belastbarer Ausgangstext ohne Quelle",
         claims: [{ text: "Claim A" }],
-        withSerp: false,
+        withSerp: true,
+        deepSearch: true,
       }),
     });
     const res = await factcheckEnqueuePOST(req);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body?.ok).toBe(true);
-    expect(body?.verificationMode).toBe("sealed");
-    expect(body?.researchUsed).toBe("search");
-    expect(body?.sealEligible).toBe(true);
+    expect(body?.status).toBe("needs_source");
+    expect(body?.factcheckResearchMode).toBe("deep_research_requested");
     expect(body?.sealGranted).toBe(false);
-    expect(body?.verificationLabel).toBe("geprueft");
-    expect(body?.workflowStage).toBe("completed");
-    expect(body?.workflowLabel).toBe("abgeschlossen");
-    expect(body?.sealStatus).toBe("Siegel ausstehend");
-    expect(body?.meta?.lane).toBe("sealed_factcheck");
-    expect(body?.meta?.journeyProfile).toBe("sealed_factcheck");
-    expect(body?.meta?.verificationMode).toBe("sealed");
-    expect(body?.meta?.roleProviderMapping?.fallback).toEqual(["openai"]);
+    expect(body?.factcheckSealDecision).toBe("none");
+    expect(body?.factcheckSealEligibility).toBe("not_eligible");
+    expect(body?.meta?.noAutoDeepSearch).toBe(true);
+    expect(body?.meta?.noAutoSeal).toBe(true);
+    expect(body?.limitations).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Kein automatischer DeepSearch-Lauf."),
+        expect.stringContaining("Kein automatischer kostenpflichtiger Provider-Lauf."),
+      ]),
+    );
+
+    const stored = await getFactcheckWorkflowRepo().get(String(body?.jobId));
+    expect(stored?.status).toBe("needs_source");
+    expect(stored?.factcheckResearchMode).toBe("deep_research_requested");
+    expect(stored?.publicSealVisible).toBe(false);
+    expect(stored?.auditEvents.map((event) => event.eventType)).toEqual(["request"]);
   });
 });

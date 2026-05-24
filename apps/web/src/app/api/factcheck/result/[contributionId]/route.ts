@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { factcheckJobsCol } from "@features/factcheck/db";
+import { getFactcheckWorkflowRepo } from "@features/factcheck/db";
+import { canViewFactcheckRecord } from "@features/factcheck/access";
+import { factcheckStatusLabel } from "@features/factcheck/workflow";
 import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
+import { resolveRequestScopeContext } from "@/lib/server/auth/requestScope";
 
 const ParamsSchema = z.object({ contributionId: z.string().min(1) });
 
@@ -12,22 +15,16 @@ async function resolveParams(p: any): Promise<{ contributionId: string }> {
 }
 
 export async function GET(
-  _: Request,
+  req: NextRequest,
   context: { params: Promise<{ contributionId: string }> },
 ) {
   const { contributionId } = await resolveParams(context.params);
+  const requestScope = await resolveRequestScopeContext(req).catch(() => null);
   const routeClassification = resolveAiRouteClassification(
     `/api/factcheck/result/${contributionId}`,
   );
 
-  const col = await factcheckJobsCol();
-  const job = await col
-    .find({ contributionId })
-    .sort({ createdAt: -1 })
-    .limit(1)
-    .toArray()
-    .then((xs: any[]) => xs?.[0] ?? null);
-
+  const job = (await getFactcheckWorkflowRepo().listByContributionId(contributionId))[0] ?? null;
   if (!job) {
     return NextResponse.json(
       { ok: false, reason: "No job found for contributionId", results: [] },
@@ -35,12 +32,28 @@ export async function GET(
     );
   }
 
-  const sealedStatus = resolveSealedFactcheckStatusView({
-    status: job.status ?? null,
-    verificationMode: (job as any)?.verificationMode,
-    researchUsed: (job as any)?.researchUsed,
-    sealEligible: (job as any)?.sealEligible,
-    sealGranted: (job as any)?.sealGranted,
+  if (
+    !canViewFactcheckRecord({
+      requestScope,
+      record: job,
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, code: "FORBIDDEN", message: "Permission denied" },
+      { status: 403 },
+    );
+  }
+
+  const statusView = resolveSealedFactcheckStatusView({
+    status: job.status,
+    verificationMode: job.verificationMode,
+    researchUsed: job.researchUsed,
+    sealEligible: job.sealEligible,
+    sealGranted: job.sealGranted,
+    factcheckVerificationMode: job.factcheckVerificationMode,
+    factcheckResearchMode: job.factcheckResearchMode,
+    factcheckSealEligibility: job.factcheckSealEligibility,
+    factcheckSealDecision: job.factcheckSealDecision,
   });
 
   return NextResponse.json({
@@ -48,42 +61,45 @@ export async function GET(
     job: {
       jobId: job.jobId ?? null,
       status: job.status ?? null,
+      statusLabel: factcheckStatusLabel(job.status),
       verdict: job.verdict ?? null,
-      confidence: job.confidence ?? null,
-      durationMs: job.durationMs ?? null,
+      confidence: job.confidenceScore ?? null,
       createdAt: job.createdAt ?? null,
       finishedAt: job.finishedAt ?? null,
-      verificationMode: sealedStatus.verificationMode,
-      researchUsed: sealedStatus.researchUsed,
-      sealEligible: sealedStatus.sealEligible,
-      sealGranted: sealedStatus.sealGranted,
-      sealedAt: (job as any)?.sealedAt ?? null,
-      verificationLabel: sealedStatus.verificationLabel,
-      workflowStage: sealedStatus.workflowStage,
-      workflowLabel: sealedStatus.workflowLabel,
-      sealStatus: sealedStatus.sealLabel,
-      fallbackUsed: (job as any)?.fallbackUsed ?? false,
-      disagreement: (job as any)?.disagreement ?? null,
-      orchestrationConfidence: (job as any)?.orchestrationConfidence ?? null,
+      verificationMode: statusView.verificationMode,
+      researchUsed: statusView.researchUsed,
+      sealEligible: statusView.sealEligible,
+      sealGranted: statusView.sealGranted,
+      sealedAt: job.sealedAt ?? null,
+      verificationLabel: statusView.verificationLabel,
+      workflowStage: statusView.workflowStage,
+      workflowLabel: statusView.workflowLabel,
+      sealStatus: statusView.sealLabel,
+      factcheckStatus: statusView.factcheckStatus,
+      factcheckStatusLabel: statusView.factcheckStatusLabel,
+      factcheckVerificationMode: statusView.factcheckVerificationMode,
+      factcheckResearchMode: statusView.factcheckResearchMode,
+      factcheckSealEligibility: statusView.factcheckSealEligibility,
+      factcheckSealDecision: statusView.factcheckSealDecision,
+      publicSealVisible: job.publicSealVisible === true,
       lane: "sealed_factcheck",
       journeyProfile: "sealed_factcheck",
     },
     results: job.claims ?? [],
-    serpResults: job.serpResults ?? [],
+    sourceRefs: job.sourceRefs ?? [],
+    materialRefs: job.materialRefs ?? [],
+    limitations: job.limitations ?? [],
     error: job.error ?? null,
-    verificationMode: sealedStatus.verificationMode,
-    researchUsed: sealedStatus.researchUsed,
-    sealEligible: sealedStatus.sealEligible,
-    sealGranted: sealedStatus.sealGranted,
-    sealedAt: (job as any)?.sealedAt ?? null,
-    verificationLabel: sealedStatus.verificationLabel,
-    workflowStage: sealedStatus.workflowStage,
-    workflowLabel: sealedStatus.workflowLabel,
-    sealStatus: sealedStatus.sealLabel,
-    confidence: job.confidence ?? null,
-    fallbackUsed: (job as any)?.fallbackUsed ?? false,
-    disagreement: (job as any)?.disagreement ?? null,
-    orchestrationConfidence: (job as any)?.orchestrationConfidence ?? null,
+    verificationMode: statusView.verificationMode,
+    researchUsed: statusView.researchUsed,
+    sealEligible: statusView.sealEligible,
+    sealGranted: statusView.sealGranted,
+    sealedAt: job.sealedAt ?? null,
+    verificationLabel: statusView.verificationLabel,
+    workflowStage: statusView.workflowStage,
+    workflowLabel: statusView.workflowLabel,
+    sealStatus: statusView.sealLabel,
+    confidence: job.confidenceScore ?? null,
     meta: {
       lane: "sealed_factcheck",
       journeyProfile: "sealed_factcheck",
