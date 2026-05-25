@@ -34,6 +34,11 @@ export default async function AccountOrganizationPage() {
           Freischaltungen entstehen erst nach bewusster Betreiberentscheidung und bestätigter
           Membership.
         </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Ein Einstieg, dann eine geführte Auswahl: Verwaltung / Kommune, Verein / Träger /
+          Verband, Medienpartner / Redaktion, Beteiligungsbüro / Agentur oder Stiftung /
+          Programmträger.
+        </p>
         <p className="text-sm text-[rgb(var(--muted))]">
           Der Arbeitsbereich deiner Organisation liegt unter{" "}
           <Link href="/account/organization/dashboard" className="font-semibold text-[rgb(var(--fg))]">

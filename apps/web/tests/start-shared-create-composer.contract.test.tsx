@@ -22,9 +22,11 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Anhang");
     expect(html).not.toContain("Jetzt swipen");
-    expect(html).toContain("Themen");
-    expect(html).toContain("Thema prüfen");
-    expect(html).toContain("Hinweis geben");
+    expect(html).toContain("Beitragen");
+    expect(html).toContain("Etwas beitragen");
+    expect(html).toContain("Themen anschauen");
+    expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
+    expect(html).toContain("Ich melde eine Organisation an");
     expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
     expect(html).toContain("review-first");
     expect(html).toContain("Keine versteckten AI-Kosten");

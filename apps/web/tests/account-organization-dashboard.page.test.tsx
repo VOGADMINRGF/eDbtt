@@ -702,6 +702,11 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Beteiligungssignale");
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
+    expect(html).toContain("Schnell starten");
+    expect(html).toContain("Ich will etwas beitragen");
+    expect(html).toContain("Ich will Themen anschauen");
+    expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
+    expect(html).toContain("Ich melde eine Organisation an");
     expect(html).toContain("Erste Schritte");
     expect(html).toContain("Material &amp; Uploads");
     expect(html).toContain("Material-Intake bereit");

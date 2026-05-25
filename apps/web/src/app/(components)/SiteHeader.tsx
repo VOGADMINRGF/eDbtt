@@ -24,43 +24,30 @@ type NavItem = {
   label: string;
 };
 
-const NAV_LINKS: NavItem[] = [
-  {
-    id: "topics",
-    href: "/themen",
-    label: "Themen",
-  },
-  {
-    id: "swipes",
-    href: "/swipes",
-    label: "Swipes",
-  },
-  {
-    id: "hint",
-    href: "/community/contributions",
-    label: "Hinweis geben",
-  },
-  {
-    id: "how",
-    href: "/howtoworks/edebatte",
-    label: "So funktioniert’s",
-  },
-  {
-    id: "pricing",
-    href: "/pricing",
-    label: "Pakete & Preise",
-  },
-  {
-    id: "pro",
-    href: "/pricing/institutionen",
-    label: "Professionell nutzen",
-  },
-  {
-    id: "initiative",
-    href: "/howtoworks/initiative",
-    label: "Zur Initiative",
-  },
-];
+function buildPrimaryNav(user: AuthUser | null | undefined): NavItem[] {
+  return [
+    {
+      id: "contribute",
+      href: "/create?intent=contribute",
+      label: "Beitragen",
+    },
+    {
+      id: "topics",
+      href: "/themen",
+      label: "Themen",
+    },
+    {
+      id: "rounds",
+      href: "/runden?intent=create",
+      label: "Anlassraum / Event",
+    },
+    {
+      id: "organization",
+      href: user ? "/account/organization/dashboard" : "/account/organization",
+      label: "Organisation",
+    },
+  ];
+}
 
 function deriveInitials(value: string) {
   const parts = value.trim().split(" ").filter(Boolean);
@@ -103,9 +90,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     namespace: "site-header",
   });
   const navLinks = useMemo(() => {
-    if (activeLang === "de") return NAV_LINKS;
-    return NAV_LINKS.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" }));
-  }, [activeLang, t]);
+    const baseLinks = buildPrimaryNav(user ?? null);
+    if (activeLang === "de") return baseLinks;
+    return baseLinks.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" }));
+  }, [activeLang, t, user]);
 
   const resolveHref = (href: string) => {
     if (href === "/referenzarchitektur") return `/${activeLang}${href}`;
@@ -262,15 +250,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             <div className="hidden items-center gap-2 sm:flex">
               <Link
                 href="/login"
-                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
-              >
-                {t("Login", "cta.login")}
-              </Link>
-              <Link
-                href="/register"
                 className="inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
               >
-                {t("Registrieren", "cta.register")}
+                {t("Login", "cta.login")}
               </Link>
             </div>
           )}
@@ -338,14 +320,15 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               className="flex flex-col gap-2 text-sm font-semibold text-[rgb(var(--fg))]"
             >
               {[
-                { id: "start", href: "/start", label: "Start" },
+                { id: "contribute", href: "/create?intent=contribute", label: "Beitragen" },
                 { id: "themen", href: "/themen", label: "Themen" },
-                { id: "swipes", href: "/swipes", label: "Swipes" },
-                { id: "hinweis", href: "/community/contributions", label: "Hinweis geben" },
-                { id: "how", href: "/howtoworks/edebatte", label: "So funktioniert’s" },
-                { id: "pricing", href: "/pricing", label: "Pakete & Preise" },
-                { id: "professional", href: "/pricing/institutionen", label: "Professionell nutzen" },
-                { id: "profile", href: user ? "/account" : "/login", label: user ? "Profil" : "Profil / Login" },
+                { id: "rounds", href: "/runden?intent=create", label: "Anlassraum / Event" },
+                {
+                  id: "organization",
+                  href: user ? "/account/organization/dashboard" : "/account/organization",
+                  label: "Organisation",
+                },
+                { id: "profile", href: user ? "/account" : "/login", label: user ? "Profil" : "Anmelden" },
               ].map((entry) => (
                 <Link
                   key={entry.id}
@@ -358,20 +341,13 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               ))}
 
               {!user && (
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid grid-cols-1 gap-2">
                   <Link
                     href="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
-                  >
-                    {t("Login", "cta.login.mobile")}
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileOpen(false)}
                     className="rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
                   >
-                    {t("Registrieren", "cta.register.mobile")}
+                    {t("Login", "cta.login.mobile")}
                   </Link>
                 </div>
               )}

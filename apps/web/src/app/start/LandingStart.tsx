@@ -19,13 +19,10 @@ type RadarRegion = {
 };
 
 const NAV_LINKS_DE = [
+  { href: "/create?intent=contribute", label: "Beitragen" },
   { href: "/themen", label: "Themen" },
-  { href: "/dossier/demo", label: "Dossiers" },
-  { href: "/howtoworks/edebatte", label: "So funktioniert’s" },
-  { href: "/pricing", label: "Pakete & Preise" },
-  { href: "/pricing/institutionen", label: "Professionell nutzen" },
-  { href: "/howtoworks/initiative", label: "Zur Initiative" },
-  { href: "/login", label: "Anmelden" },
+  { href: "/runden?intent=create", label: "Anlassraum / Event" },
+  { href: "/account/organization", label: "Organisation" },
 ] as const;
 
 const TRUST_PILLS_DE = [
@@ -177,6 +174,37 @@ const PROFESSIONAL_USE_CASES_DE = [
   "Auswertung, Mandat und Umsetzungsstatus",
 ] as const;
 
+const CORE_ACTIONS_DE = [
+  {
+    title: "Ich will etwas beitragen",
+    body: "Starte mit einem Hinweis, einer Frage oder einer Beobachtung. Der Einstieg bleibt leicht und review-first.",
+    href: "/create?intent=contribute",
+    cta: "Beitrag starten",
+    priority: "primary",
+  },
+  {
+    title: "Ich will Themen anschauen",
+    body: "Sieh dir an, welche Themen, Dossiers und Fragen gerade öffentlich sichtbar sind.",
+    href: "/themen",
+    cta: "Themen öffnen",
+    priority: "secondary",
+  },
+  {
+    title: "Ich will einen Anlassraum/Event erstellen",
+    body: "Ein schlanker Start auf dem bestehenden Pfad: Titel, Wirkraum, Ziel. Zeitraum bleibt optional und alles ist review-first.",
+    href: "/runden?intent=create",
+    cta: "Anlassraum starten",
+    priority: "secondary",
+  },
+  {
+    title: "Ich melde eine Organisation an",
+    body: "Ein Einstieg für Verwaltung, Kommune, Verein, Träger, Medienpartner, Agentur oder Stiftung mit geführter Freischaltung.",
+    href: "/account/organization",
+    cta: "Organisation anmelden",
+    priority: "secondary",
+  },
+] as const;
+
 const DIFFERENTIATION_CARDS_DE = [
   {
     title: "Nicht Social Media",
@@ -298,24 +326,23 @@ export default function LandingStart({ blocks }: LandingStartProps) {
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <a
-                href="/create?intent=check"
+                href="/create?intent=contribute"
                 data-requires-privacy-gate="true"
                 className="rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Thema prüfen
+                Etwas beitragen
               </a>
               <a
-                href="/create?intent=contribute"
-                data-requires-privacy-gate="true"
+                href="/themen"
                 className="rounded-full border border-cyan-300/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Hinweis geben
+                Themen anschauen
               </a>
               <a
-                href="/dossier/demo"
+                href="/account/organization"
                 className="rounded-full border border-slate-600 bg-slate-900/70 px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Beispiel ansehen
+                Organisation anmelden
               </a>
             </div>
             <p className="mt-4 text-xs text-slate-300">
@@ -354,6 +381,37 @@ export default function LandingStart({ blocks }: LandingStartProps) {
               {pill}
             </span>
           ))}
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-cyan-300/25 bg-slate-900/80 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+              Schnell starten
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+              Vier Wege, die sofort klar machen, was du hier tun kannst.
+            </h2>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {CORE_ACTIONS_DE.map((action) => (
+              <a
+                key={action.title}
+                href={action.href}
+                data-requires-privacy-gate={
+                  action.href.startsWith("/create") ? "true" : undefined
+                }
+                className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
+                  action.priority === "primary"
+                    ? "border-cyan-300/45 bg-cyan-500/10"
+                    : "border-slate-700 bg-slate-950/55"
+                }`}
+              >
+                <p className="text-sm font-semibold text-white">{action.title}</p>
+                <p className="mt-2 text-sm text-slate-200">{action.body}</p>
+                <p className="mt-4 text-sm font-semibold text-cyan-100">{action.cta} →</p>
+              </a>
+            ))}
+          </div>
         </section>
 
         <section className="mt-10 rounded-3xl border border-slate-700 bg-slate-900/75 p-5 sm:p-7">
@@ -414,14 +472,13 @@ export default function LandingStart({ blocks }: LandingStartProps) {
               data-requires-privacy-gate="true"
               className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              Swipes ansehen
+              Themenlage ansehen
             </a>
             <a
-              href="/create"
-              data-requires-privacy-gate="true"
+              href="/runden?intent=create"
               className="rounded-full border border-slate-600 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              Eigenes Thema starten
+              Anlassraum/Event starten
             </a>
           </div>
         </section>
@@ -614,16 +671,16 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
             <a
-              href="/pricing"
+              href="/account/organization"
               className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              Pakete & Preise ansehen
+              Organisation anmelden
             </a>
             <a
-              href="/pricing/institutionen"
+              href="/account/organization/dashboard"
               className="rounded-full border border-slate-600 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              Für Institutionen
+              Dashboard öffnen
             </a>
           </div>
         </section>

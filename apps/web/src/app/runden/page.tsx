@@ -50,6 +50,16 @@ function viewHref(view: RoundEntryView): string {
   return `/runden?view=${view}`;
 }
 
+function buildCreateIntentHref() {
+  const params = new URLSearchParams();
+  params.set("mode", "source");
+  params.set("intent", "contribute");
+  params.set("entryIntent", "content_companion");
+  params.set("source", "runden");
+  params.set("reason", "round_quick_start");
+  return `/create?${params.toString()}`;
+}
+
 function hasEntryOwnership(entry: RundenEntryItem, sessionUid: string | null): boolean {
   if (!sessionUid) return false;
   return (
@@ -95,10 +105,10 @@ function buildStartCards(params: {
   const resultsHref = params.hasClosedEntries ? viewHref("results") : viewHref("active");
   return [
     {
-      href: "/create?mode=source",
-      title: "Neuen Anlass öffnen",
-      body: "Ein Thema, eine Frage oder ein Konflikt bekommt einen eigenen Raum für Beiträge, Kontext und Weiterarbeit.",
-      cta: "Öffnen",
+      href: buildCreateIntentHref(),
+      title: "Anlassraum/Event starten",
+      body: "Minimaler Einstieg: Titel, Wirkraum und Ziel. Zeitraum bleibt optional. Der Start bleibt review-first.",
+      cta: "Jetzt starten",
       priority: "primary" as const,
     },
     {
@@ -445,6 +455,9 @@ export default async function RundenPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const handoffId = readStringParam(resolvedSearchParams.handoffId) ?? null;
   const createAction = readStringParam(resolvedSearchParams.createAction) ?? null;
+  const createIntent =
+    readStringParam(resolvedSearchParams.intent) === "create" ||
+    readStringParam(resolvedSearchParams.entry) === "create";
 
   const session = await readSession().catch(() => null);
   const isSignedIn = Boolean(session?.uid);
@@ -605,6 +618,17 @@ export default async function RundenPage({
               </Link>
             ))}
           </section>
+          {createIntent ? (
+            <div className="rounded-2xl border border-[rgb(var(--grad-from))]/40 bg-[rgb(var(--bg))] p-4">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                Schlanker Start für Anlassraum oder Event
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Für den ersten Schritt reichen Titel, Wirkraum und Ziel. Ein Zeitraum ist optional.
+                Alles startet review-first und ohne automatische Veröffentlichung.
+              </p>
+            </div>
+          ) : null}
           <p className="text-xs text-[rgb(var(--muted))]">
             <Link href="/runden/demo" className="underline underline-offset-4 hover:text-[rgb(var(--fg))]">
               So funktioniert ein Anlassraum

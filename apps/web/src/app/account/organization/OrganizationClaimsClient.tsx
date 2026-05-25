@@ -15,14 +15,14 @@ const ORGANIZATION_KIND_OPTIONS: Array<{
   value: OrganizationProvisioningKind;
   label: string;
 }> = [
-  { value: "administration", label: "Verwaltung" },
-  { value: "municipality", label: "Kommune" },
+  { value: "administration", label: "Verwaltung / Kommune" },
   { value: "district", label: "Bezirk / Landkreis" },
-  { value: "association", label: "Verein" },
-  { value: "carrier", label: "Träger" },
-  { value: "media_partner", label: "Medienpartner" },
+  { value: "association", label: "Verein / Träger / Verband" },
+  { value: "media_partner", label: "Medienpartner / Redaktion" },
+  { value: "other", label: "Beteiligungsbüro / Agentur" },
+  { value: "carrier", label: "Stiftung / Programmträger" },
   { value: "civic_group", label: "Initiative / zivilgesellschaftliche Gruppe" },
-  { value: "other", label: "Sonstige Organisation" },
+  { value: "municipality", label: "Kommune vor Ort" },
 ];
 
 function provisioningStatusLabel(status: OrganizationProvisioningStatus) {
@@ -159,8 +159,9 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
           Organisation oder Wirkraum beantragen
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Hier startet Self-Provisioning für Organisation, Region oder Wirkraum. Der Antrag bleibt
-          zunächst Selbstauskunft und erzeugt weder Betreiberrechte noch automatische
+          Hier startet der eine Organisations-Einstieg für Verwaltung, Kommune, Verein, Träger,
+          Verband, Medienpartner, Redaktion, Beteiligungsbüro, Agentur oder Stiftung. Der Antrag
+          bleibt zunächst Selbstauskunft und erzeugt weder Betreiberrechte noch automatische
           Veröffentlichungsrechte.
         </p>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
@@ -219,7 +220,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
             Einheit / Team
             <input
               name="unitName"
-              placeholder="Beteiligung / Redaktion / Geschäftsstelle"
+              placeholder="Beteiligung / Redaktion / Geschäftsstelle / Projektteam"
               className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2"
             />
           </label>
@@ -228,7 +229,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
             <input
               name="roleLabel"
               required
-              placeholder="Sachbearbeitung / Koordination / Redaktion"
+              placeholder="Koordination / Sachbearbeitung / Redaktion / Projektleitung"
               className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-3 py-2"
             />
           </label>
