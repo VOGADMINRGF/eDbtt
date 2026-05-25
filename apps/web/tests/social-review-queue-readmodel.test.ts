@@ -48,6 +48,10 @@ function buildEntry(overrides: Partial<RundenEntryItem>): RundenEntryItem {
       factcheckSuggested: true,
       existingContextHint: "Bestehender Kontext vorhanden.",
     },
+    relatedDossierHref: null,
+    relatedTopicPageHref: null,
+    relatedTopicPageTitle: null,
+    relatedTopicPageVisibilityLabel: null,
     ...overrides,
   };
 }

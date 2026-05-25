@@ -20,6 +20,10 @@ import RundenShareActions from "./RundenShareActions";
 import RundenGuidedQuestionBuilder from "./RundenGuidedQuestionBuilder";
 import RundenCreateHandoffBanner from "./RundenCreateHandoffBanner";
 import RundenPublicSharingGuide from "./RundenPublicSharingGuide";
+import {
+  resolveRundenEntryStatusChips,
+  toneClassForB2CStatus,
+} from "@/features/b2cJourney/statusContract";
 
 export const metadata: Metadata = {
   title: "Anlassraum - eDebatte",
@@ -184,6 +188,79 @@ function publicShareHintForEntry(entry: RundenEntryItem): string {
 
 function deriveLastActivity(entry: RundenEntryItem): string {
   return formatDate(entry.lastActionAt ?? entry.updatedAt ?? entry.createdAt);
+}
+
+function RoundJourneyMeta(props: { entry: RundenEntryItem }) {
+  const statusChips = resolveRundenEntryStatusChips({
+    isPublicVisible: props.entry.publicShareState === "share_active",
+    isReviewOnly: props.entry.publicShareState === "review_only",
+    isArchivedOrClosed:
+      props.entry.publicShareState === "archived" ||
+      props.entry.publicShareState === "closed",
+    hasDossierContext: Boolean(props.entry.relatedDossierHref),
+  });
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div className="flex flex-wrap gap-2 text-xs">
+        {statusChips.map((chip) => (
+          <span
+            key={`${props.entry.id}-${chip.key}`}
+            className={`rounded-full border px-2.5 py-1 font-semibold ${toneClassForB2CStatus(chip.tone)}`}
+          >
+            {chip.label}
+          </span>
+        ))}
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1">
+          Beteiligung:{" "}
+          {props.entry.publicShareState === "share_active"
+            ? "möglich"
+            : props.entry.publicShareState === "ready_for_visibility_decision"
+              ? "wartet auf Freigabe"
+              : props.entry.publicShareState === "review_only"
+                ? "erst nach Review"
+                : "aktuell nicht offen"}
+        </span>
+      </div>
+      <div className="grid gap-2 md:grid-cols-3">
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Status</p>
+          <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">{deriveOperationalStatus(props.entry)}</p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            {props.entry.reviewState === "pending"
+              ? "Neue oder ungeprüfte Eingaben bleiben in Prüfung, bevor daraus mehr Sichtbarkeit entsteht."
+              : "Dieser Anlass hat bereits einen bewussten Review- oder Sichtbarkeitsschritt durchlaufen."}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Dossier / Ergebnis</p>
+          {props.entry.relatedDossierHref ? (
+            <Link href={props.entry.relatedDossierHref} className="mt-1 inline-flex text-sm font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]">
+              Zum Dossier
+            </Link>
+          ) : props.entry.resultsHref ? (
+            <Link href={props.entry.resultsHref} className="mt-1 inline-flex text-sm font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]">
+              Zum Ergebnisstand
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">Wird aus dem Anlass weitergeführt</p>
+          )}
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            Quellen, offene Fragen und spätere Ergebnisse bleiben an denselben Anlass anschließbar.
+          </p>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Link / QR</p>
+          <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">
+            {props.entry.publicShareState === "share_active"
+              ? "Sinnvoll freigegeben"
+              : "Nur bei passender Sichtbarkeit"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">{publicShareHintForEntry(props.entry)}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function RoundQuickActions(props: {
@@ -857,6 +934,7 @@ export default async function RundenPage({
                   <p className="mt-3 text-sm text-[rgb(var(--muted))]">
                     {publicShareHintForEntry(featured)}
                   </p>
+                  <RoundJourneyMeta entry={featured} />
                   {featured.relatedTopicPageHref && featured.relatedTopicPageTitle ? (
                     <p className="mt-3 text-sm text-[rgb(var(--muted))]">
                       Verbundenes Thema:{" "}
@@ -951,9 +1029,7 @@ export default async function RundenPage({
                         <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                           Anlass öffnen, um Beiträge und aktuellen Stand einzusehen.
                         </p>
-                        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                          {publicShareHintForEntry(entry)}
-                        </p>
+                        <RoundJourneyMeta entry={entry} />
 
                         <RoundQuickActions
                           entry={entry}
@@ -1064,9 +1140,7 @@ export default async function RundenPage({
                     <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                       Anlass öffnen, um Verlauf und Abschlussstand anzusehen.
                     </p>
-                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                      {publicShareHintForEntry(entry)}
-                    </p>
+                    <RoundJourneyMeta entry={entry} />
 
                     <Link
                       href={roundResultsHref(entry)}

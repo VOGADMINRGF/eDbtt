@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import type { ExampleItem } from "@/lib/examples/types";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
 import { ExamplesMarqueeRows } from "@/components/landing/ExamplesMarqueeRows";
+import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
 import { useLocale } from "@/context/LocaleContext";
+import { buildPublicTaskFirstQuickActionCenter } from "@/features/quickActions/taskFirstQuickActions";
 import { normalizeLang } from "@features/landing/landingCopy";
 
 type LandingStartProps = {
@@ -174,37 +176,6 @@ const PROFESSIONAL_USE_CASES_DE = [
   "Auswertung, Mandat und Umsetzungsstatus",
 ] as const;
 
-const CORE_ACTIONS_DE = [
-  {
-    title: "Ich will etwas beitragen",
-    body: "Starte mit einem Hinweis, einer Frage oder einer Beobachtung. Der Einstieg bleibt leicht und review-first.",
-    href: "/create?intent=contribute",
-    cta: "Beitrag starten",
-    priority: "primary",
-  },
-  {
-    title: "Ich will Themen anschauen",
-    body: "Sieh dir an, welche Themen, Dossiers und Fragen gerade öffentlich sichtbar sind.",
-    href: "/themen",
-    cta: "Themen öffnen",
-    priority: "secondary",
-  },
-  {
-    title: "Ich will einen Anlassraum/Event erstellen",
-    body: "Ein schlanker Start auf dem bestehenden Pfad: Titel, Wirkraum, Ziel. Zeitraum bleibt optional und alles ist review-first.",
-    href: "/runden?intent=create",
-    cta: "Anlassraum starten",
-    priority: "secondary",
-  },
-  {
-    title: "Ich melde eine Organisation an",
-    body: "Ein Einstieg für Verwaltung, Kommune, Verein, Träger, Medienpartner, Agentur oder Stiftung mit geführter Freischaltung.",
-    href: "/account/organization",
-    cta: "Organisation anmelden",
-    priority: "secondary",
-  },
-] as const;
-
 const DIFFERENTIATION_CARDS_DE = [
   {
     title: "Nicht Social Media",
@@ -236,6 +207,7 @@ export default function LandingStart({ blocks }: LandingStartProps) {
   const { locale } = useLocale();
   const lang = useMemo(() => normalizeLang(locale), [locale]);
   const router = useRouter();
+  const quickActionCenter = useMemo(() => buildPublicTaskFirstQuickActionCenter(), []);
 
   const titleForLang = useCallback(
     (item: ExampleItem) => (lang === "en" ? item.title_en || item.title_de : item.title_de),
@@ -383,36 +355,7 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           ))}
         </section>
 
-        <section className="mt-6 rounded-3xl border border-cyan-300/25 bg-slate-900/80 p-5 sm:p-7">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
-              Schnell starten
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-              Vier Wege, die sofort klar machen, was du hier tun kannst.
-            </h2>
-          </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {CORE_ACTIONS_DE.map((action) => (
-              <a
-                key={action.title}
-                href={action.href}
-                data-requires-privacy-gate={
-                  action.href.startsWith("/create") ? "true" : undefined
-                }
-                className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
-                  action.priority === "primary"
-                    ? "border-cyan-300/45 bg-cyan-500/10"
-                    : "border-slate-700 bg-slate-950/55"
-                }`}
-              >
-                <p className="text-sm font-semibold text-white">{action.title}</p>
-                <p className="mt-2 text-sm text-slate-200">{action.body}</p>
-                <p className="mt-4 text-sm font-semibold text-cyan-100">{action.cta} →</p>
-              </a>
-            ))}
-          </div>
-        </section>
+        <TaskFirstQuickActionCenter model={quickActionCenter} tone="dark" />
 
         <section className="mt-10 rounded-3xl border border-slate-700 bg-slate-900/75 p-5 sm:p-7">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">Hier zeigt sich, wo es gerade drückt.</h2>

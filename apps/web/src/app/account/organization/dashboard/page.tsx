@@ -15,6 +15,7 @@ import {
   organizationBillingStatusLabel,
   organizationContractStatusLabel,
   directoryVerificationStatusLabel,
+  organizationEntitlementAllowsScope,
   organizationEntitlementScopeLabel,
   organizationEntitlementStatusLabel,
   type OrganizationDashboardDraftSummary,
@@ -30,6 +31,11 @@ import {
   materialIntakeStatusLabel,
   materialIntakeTypeLabel,
 } from "@/features/material/materialIntakeContract";
+import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
+import {
+  buildOrganizationTaskFirstQuickActionCenter,
+  type TaskFirstQuickActionCenterModel,
+} from "@/features/quickActions/taskFirstQuickActions";
 import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
 import ContentReleaseWorkbenchActions from "@/app/admin/review/ContentReleaseWorkbenchActions";
 import ReviewQueueItemActions from "@/app/admin/review/ReviewQueueItemActions";
@@ -299,42 +305,6 @@ function compactAuditLine(input: {
   return `${input.title} · ${input.detail} · ${input.actorLabel} · ${new Date(input.at).toLocaleString("de-DE")}${input.note ? ` · ${input.note}` : ""}`;
 }
 
-function buildCoreQuickActions() {
-  return [
-    {
-      id: "contribute",
-      label: "Ich will etwas beitragen",
-      description:
-        "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem bestehenden review-first Pfad.",
-      href: "/create?intent=contribute",
-      priority: "primary" as const,
-    },
-    {
-      id: "topics",
-      label: "Ich will Themen anschauen",
-      description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
-      href: "/themen",
-      priority: "secondary" as const,
-    },
-    {
-      id: "rounds",
-      label: "Ich will einen Anlassraum/Event erstellen",
-      description:
-        "Starte schlank mit Titel, Wirkraum und Ziel. Zeitraum bleibt optional und alles bleibt review-first.",
-      href: "/runden?intent=create",
-      priority: "secondary" as const,
-    },
-    {
-      id: "organization",
-      label: "Ich melde eine Organisation an",
-      description:
-        "Öffne Antrag, Status und Freischaltung für Verwaltung, Verein, Medienpartner oder Agentur.",
-      href: "/account/organization",
-      priority: "secondary" as const,
-    },
-  ] as const;
-}
-
 function scopeSummary(readModel: OrganizationDashboardReadModel) {
   const organizationCount = readModel.organization.organizations.length;
   const readableRegionCount = readModel.regionSummary.filter((entry) => entry.dashboardAccess).length;
@@ -378,6 +348,14 @@ export default async function AccountOrganizationDashboardPage() {
     sourceOfTruth: readModel.directorySummary.sourceOfTruth,
   });
   const hasReadableRegion = readModel.regionSummary.some((entry) => entry.dashboardAccess);
+  const hasReviewQueueEntitlement = organizationEntitlementAllowsScope(
+    readModel.entitlementSummary,
+    "review_queue",
+  );
+  const hasDossierStudioEntitlement = organizationEntitlementAllowsScope(
+    readModel.entitlementSummary,
+    "dossier_studio",
+  );
   const accessBlockers = [
     readModel.directorySummary.sourceOfTruth === "external_directory_pending"
       ? {
@@ -498,6 +476,54 @@ export default async function AccountOrganizationDashboardPage() {
       reviewRequiredBeforePublicReference: true as const,
     },
   };
+  const quickActionContext =
+    readModel.organization.isOperatorMode
+      ? "operator"
+      : normalizedMembershipStatus !== "verified" ||
+          readModel.provisioningSummary.currentStatus === "draft" ||
+          readModel.provisioningSummary.currentStatus === "submitted" ||
+          readModel.provisioningSummary.currentStatus === "verification_required" ||
+          readModel.provisioningSummary.currentStatus === "operator_review_required"
+        ? "pending"
+        : readModel.provisioningSummary.currentStatus === "suspended" ||
+            readModel.contractSummary.currentContractStatus === "suspended" ||
+            readModel.contractSummary.currentContractStatus === "cancelled" ||
+            readModel.contractSummary.currentContractStatus === "expired" ||
+            readModel.contractSummary.billingStatus === "suspended" ||
+            readModel.contractSummary.billingStatus === "cancelled" ||
+            readModel.contractSummary.billingStatus === "expired" ||
+            readModel.entitlementSummary.currentStatus === "suspended" ||
+            readModel.entitlementSummary.currentStatus === "revoked" ||
+            readModel.entitlementSummary.currentStatus === "expired"
+          ? "blocked"
+          : !hasWritableOrganizationContext ||
+              readModel.entitlementSummary.currentStatus === "limited" ||
+              readModel.entitlementSummary.currentStatus === "pending_operator_decision" ||
+              readModel.contractSummary.currentContractStatus === "limited" ||
+              readModel.contractSummary.currentContractStatus === "draft" ||
+              readModel.contractSummary.currentContractStatus === "offered" ||
+              readModel.contractSummary.currentContractStatus === "accepted" ||
+              readModel.contractSummary.billingStatus === "billing_pending" ||
+              readModel.contractSummary.billingStatus === "grace_period" ||
+              readModel.contractSummary.billingStatus === "overdue"
+            ? "limited"
+            : "verified";
+  const quickActionCenter: TaskFirstQuickActionCenterModel =
+    buildOrganizationTaskFirstQuickActionCenter({
+      context: quickActionContext,
+      organizationHref:
+        quickActionContext === "verified" || quickActionContext === "operator"
+          ? "/account/organization/dashboard"
+          : "/account/organization",
+      canSourceMaterial:
+        (quickActionContext === "verified" || quickActionContext === "operator") &&
+        materialIntakeSummary.productiveWorkflowEnabled &&
+        hasDossierStudioEntitlement,
+      canReviewApprovals:
+        (quickActionContext === "verified" || quickActionContext === "operator") &&
+        hasReviewQueueEntitlement &&
+        hasWritableOrganizationContext,
+    });
   const contentReleasePersistence = readModel.contentReleasePersistence ?? {
     mode: "in_memory_fallback",
     label: "In-Memory-Fallback",
@@ -554,36 +580,7 @@ export default async function AccountOrganizationDashboardPage() {
         ) : null}
       </header>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Schnell starten
-          </p>
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
-            Vier Kernaktionen für den nächsten Schritt
-          </h2>
-          <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Wenige klare Wege statt eines überladenen Einstiegs: beitragen, Themen öffnen,
-            Anlassraum/Event vorbereiten oder Organisation und Freischaltung steuern.
-          </p>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {buildCoreQuickActions().map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
-                action.priority === "primary"
-                  ? "border-sky-300/70 bg-sky-50 text-sky-950"
-                  : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-              }`}
-            >
-              <p className="text-sm font-semibold">{action.label}</p>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{action.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <TaskFirstQuickActionCenter model={quickActionCenter} />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">

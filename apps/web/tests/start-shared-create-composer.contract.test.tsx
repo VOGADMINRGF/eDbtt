@@ -27,6 +27,11 @@ describe("/start shared create composer contract", () => {
     expect(html).toContain("Themen anschauen");
     expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
     expect(html).toContain("Ich melde eine Organisation an");
+    expect(html).toContain("Du musst nicht wissen, welches Modul richtig ist.");
+    expect(html).toContain("/create?intent=contribute");
+    expect(html).toContain("/themen");
+    expect(html).toContain("/runden?intent=create");
+    expect(html).toContain("/account/organization");
     expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
     expect(html).toContain("review-first");
     expect(html).toContain("Keine versteckten AI-Kosten");

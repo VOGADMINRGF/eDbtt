@@ -105,6 +105,7 @@ export type RundenEntryItem = {
   legacyIncomplete: boolean;
   sourceKind: RundenEntrySourceKind;
   shareActions: RundenEntryShareActions | null;
+  relatedDossierHref: string | null;
   relatedTopicPageHref: string | null;
   relatedTopicPageTitle: string | null;
   relatedTopicPageVisibilityLabel: string | null;
@@ -274,6 +275,9 @@ function mapToEntry(
     legacyIncomplete,
     sourceKind,
     shareActions,
+    relatedDossierHref: toHex(room?.dossierId)
+      ? `/dossier/${encodeURIComponent(toHex(room?.dossierId) as string)}`
+      : null,
     relatedTopicPageHref: null,
     relatedTopicPageTitle: null,
     relatedTopicPageVisibilityLabel: null,

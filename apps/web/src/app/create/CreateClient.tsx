@@ -72,6 +72,7 @@ import {
   saveCreateHandoffDraft,
   type CreateHandoffAction,
 } from "@/features/create/createHandoff";
+import { resolveCreateHandoffJourneySummary } from "@/features/b2cJourney/statusContract";
 import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
 import {
   buildCreateLinkIntakeMeta,
@@ -1470,14 +1471,15 @@ export default function CreateClient({
       }
       const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
       const scopedSavedMessage = requestScope?.isOperatorMode
-        ? "Arbeitsstand gespeichert. Betreiber-Modus bleibt sichtbar. Keine automatische Veröffentlichung."
+        ? "Arbeitsstand gespeichert. Eingereicht, reviewbar und weiterhin ohne automatische Veröffentlichung. Betreiber-Modus bleibt sichtbar."
         : requestScope?.organizationId
-          ? "Arbeitsstand gespeichert. Der Arbeitsstand bleibt im Scope deiner Organisation reviewfähig."
+          ? "Arbeitsstand gespeichert. Eingereicht und reviewbar im Scope deiner Organisation."
           : null;
       const successMessage =
         manualReviewRequested
-          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
-          : scopedSavedMessage ?? "Arbeitsstand gespeichert.";
+          ? "Arbeitsstand eingereicht und in Prüfung. Keine automatische Veröffentlichung."
+          : scopedSavedMessage ??
+            "Arbeitsstand gespeichert. Eingereicht, aber noch nicht veröffentlicht. Du kannst ihn weiter schärfen oder in Dossier, Anlassraum oder Swipes weiterführen.";
       setSavedDraftId(body.draftId);
       setReviewRequestState("saved");
       setReviewRequestMessage(successMessage);
@@ -1523,9 +1525,12 @@ export default function CreateClient({
         sourceUrls: currentMaterialRouting.sourceUrls,
         materialItems: currentMaterialRouting.materialItems,
       });
+      const journeySummary = resolveCreateHandoffJourneySummary(draft);
       saveCreateHandoffDraft(draft);
-      setActionNotice("Reviewbarer Handoff wird gespeichert. Keine automatische Veröffentlichung.");
-      let successMessage = "Reviewbarer Handoff vorbereitet. Keine automatische Veröffentlichung.";
+      setActionNotice(
+        `Handoff wird vorbereitet: ${journeySummary.destinationLabel}. Eingereicht, reviewbar und ohne automatische Veröffentlichung.`,
+      );
+      let successMessage = `Handoff vorbereitet. ${journeySummary.nextStepTitle}.`;
       try {
         const response = await fetch("/api/create/handoffs", {
           method: "POST",
@@ -1561,10 +1566,10 @@ export default function CreateClient({
         const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
         if (requestScope?.isOperatorMode) {
           successMessage =
-            "Reviewbarer Handoff vorbereitet. Betreiber-Modus bleibt sichtbar. Keine automatische Veröffentlichung.";
+            `Handoff vorbereitet. ${journeySummary.nextStepTitle}. Betreiber-Modus bleibt sichtbar.`;
         } else if (requestScope?.organizationId) {
           successMessage =
-            "Reviewbarer Handoff vorbereitet. Der Arbeitsstand bleibt im Scope deiner Organisation.";
+            `Handoff vorbereitet. ${journeySummary.destinationLabel} bleibt im Scope deiner Organisation.`;
         }
       } catch {
         setActionNotice("Handoff konnte nicht persistent in die Review-Queue geschrieben werden. Bitte erneut versuchen.");

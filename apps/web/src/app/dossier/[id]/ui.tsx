@@ -18,6 +18,10 @@ import {
   isRegionDraftDossierId,
   shouldAllowDemoDossierFallback,
 } from "@/features/runtimeDataGuardrails";
+import {
+  resolveDossierStatusChips,
+  toneClassForB2CStatus,
+} from "@/features/b2cJourney/statusContract";
 
 type ApiResponse =
   | { ok: true; dossier: Dossier }
@@ -71,6 +75,10 @@ export function DossierPagePublicBody({
   loadState: DossierLoadState;
 }) {
   const showPublicReadingSurface = shouldShowPublicReadingSurface(loadState);
+  const statusChips = resolveDossierStatusChips({
+    loadState,
+    handoffDraft,
+  });
   const shareAsset = buildShareOutputAsset({
     baseUrl: BRAND.baseUrl,
     canonicalPathOrUrl: `/dossier/${dossierId}`,
@@ -109,9 +117,45 @@ export function DossierPagePublicBody({
           </p>
         </div>
       ) : null}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {statusChips.map((chip) => (
+          <span
+            key={`${dossierId}-${chip.key}`}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClassForB2CStatus(chip.tone)}`}
+          >
+            {chip.label}
+          </span>
+        ))}
+      </div>
       <p className="mb-3 text-xs text-[rgb(var(--muted))]">
         Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).
       </p>
+      <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellenlage</h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Das Dossier sammelt Belege, Material und Referenzen, ohne daraus automatisch amtliche Wahrheit abzuleiten.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Fragen</h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Offene Punkte bleiben sichtbar. Ein Dossier soll Unsicherheit markieren, nicht verstecken.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Verschiedene Perspektiven</h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Beiträge, Gegenpositionen und Einordnungen bleiben nebeneinander nachvollziehbar, statt in einer Meinung zu verschwinden.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Stand und Update</h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Sichtbar heißt hier: aktueller Arbeitsstand. Prüfung, Veröffentlichung und spätere Archivierung bleiben getrennte Schritte.
+          </p>
+        </article>
+      </section>
       {showPublicReadingSurface ? (
         <section className="mb-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
           <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Öffentlich lesbarer Dossierstand</h2>

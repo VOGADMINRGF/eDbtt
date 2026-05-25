@@ -1114,6 +1114,9 @@ function FinalizeArrivalBanner({
           {toggle.label}
         </button>
       </div>
+      <p className="mt-1 text-[11px] text-emerald-700/90 dark:text-emerald-100/90">
+        Hier kannst du zustimmen, anders sehen oder vertiefen. Es werden nur passende Vorschläge gezeigt, keine künstlichen Treffer.
+      </p>
       {showContextReminder ? (
         <p className="mt-1 text-[11px] text-emerald-700/90 dark:text-emerald-100/90">
           Der Themenkontext bleibt im Anlassraum über /runden; Swipes ist der Beteiligungsmodus.

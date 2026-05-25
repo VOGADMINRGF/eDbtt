@@ -20,22 +20,22 @@ const VISIBILITY_GUIDE: ReadonlyArray<{
 }> = [
   {
     state: "public_unverified",
-    label: "ungeprüfter öffentlicher Hinweis",
+    label: "als Vorschlag sichtbar",
     hint: "sichtbar, aber nicht geprüft",
   },
   {
     state: "internal_review",
-    label: "reviewpflichtig",
-    hint: "nicht öffentlich, bis ein Mensch geprüft hat",
+    label: "in Prüfung",
+    hint: "noch nicht öffentlich, bis ein Mensch geprüft hat",
   },
   {
     state: "public_reviewed",
-    label: "geprüft",
+    label: "veröffentlicht",
     hint: "sichtbar nach Review, aber nicht automatisch amtlich",
   },
   {
     state: "public_official",
-    label: "amtlich freigegeben",
+    label: "veröffentlicht",
     hint: "nur nach expliziter Freigabe durch verifizierte Rollen",
   },
   {

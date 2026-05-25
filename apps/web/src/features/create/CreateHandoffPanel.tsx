@@ -8,6 +8,10 @@ import {
   publicationVisibilityLabel,
   resolveCreateHandoffVisibilityState,
 } from "@features/region/publicationRiskLadder";
+import {
+  resolveCreateHandoffJourneySummary,
+  toneClassForB2CStatus,
+} from "@/features/b2cJourney/statusContract";
 
 type CreateHandoffPanelProps = {
   draft: CreateHandoffDraft;
@@ -35,6 +39,10 @@ export function CreateHandoffPanel({
   const visibilityState =
     draft.visibilityState ??
     resolveCreateHandoffVisibilityState({ reviewState: draft.reviewState });
+  const journeySummary = resolveCreateHandoffJourneySummary({
+    ...draft,
+    visibilityState,
+  });
 
   return (
     <section className="rounded-3xl border border-cyan-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-cyan-300/20 dark:bg-[rgb(var(--card))]">
@@ -50,6 +58,42 @@ export function CreateHandoffPanel({
         <span className="rounded-full border border-cyan-300/50 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-cyan-300/30 dark:bg-cyan-500/12 dark:text-cyan-100">
           requiresConfirmation
         </span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {journeySummary.statusChips.map((chip) => (
+          <span
+            key={`${draft.id}-${chip.key}`}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClassForB2CStatus(chip.tone)}`}
+          >
+            {chip.label}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Verstanden</p>
+          <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">{draft.plannerResult.plannerTopic}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+            {draft.arguments[0]?.text ?? draft.sourceText}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Geht jetzt weiter nach</p>
+          <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">{journeySummary.destinationLabel}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">{journeySummary.destinationLead}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Nächster Schritt</p>
+          <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">{journeySummary.nextStepTitle}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">{journeySummary.nextStepBody}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Review und Veröffentlichung</p>
+        <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{journeySummary.reviewLead}</p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -177,6 +221,18 @@ export function CreateHandoffPanel({
           </ul>
         </div>
       ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {journeySummary.followupLinks.map((link) => (
+          <Link
+            key={`${draft.id}-${link.href}-${link.label}`}
+            href={link.href}
+            className="inline-flex items-center justify-center rounded-full border border-cyan-300/50 px-3 py-1.5 text-xs font-semibold text-cyan-900 dark:border-cyan-300/30 dark:text-cyan-100"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full border border-slate-200/80 px-3 py-1 text-xs text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">

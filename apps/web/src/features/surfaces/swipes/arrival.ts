@@ -84,22 +84,22 @@ export function resolveFromDraftArrivalStatus(params: {
   focusedCount: number;
 }): string {
   if (!params.showingFromDraftOnly) {
-    return "Du siehst den allgemeinen Beteiligungsmodus.";
+    return "Du siehst den allgemeinen Beteiligungsmodus mit offenem Themenfeld.";
   }
   if (params.focusedCount <= 0) {
-    return "Vorschläge werden nach Verarbeitung hier sichtbar.";
+    return "Zu deinem eingereichten Beitrag sind noch keine passenden Swipe-Vorschläge sichtbar.";
   }
   if (params.focusedCount > 6) {
-    return `Du siehst jetzt zuerst ${params.focusedCount} abgeleitete Vorschläge.`;
+    return `Du siehst jetzt zuerst ${params.focusedCount} Vorschläge, die aus deinem Beitrag abgeleitet wurden.`;
   }
-  return "Du siehst jetzt zuerst die daraus abgeleiteten Vorschläge.";
+  return "Du siehst jetzt zuerst die Vorschläge, die zu deinem Beitrag passen.";
 }
 
 export function resolveSwipesEmptyStateMessage(params: {
   showingFromDraftOnly: boolean;
 }): string {
   if (params.showingFromDraftOnly) {
-    return "Dein Beitrag ist eingereicht. Für diesen Entwurf sind aktuell noch keine Vorschläge im Swipe-Deck sichtbar.";
+    return "Dein Beitrag ist eingereicht. Für diesen Entwurf sind aktuell noch keine passenden Vorschläge im Swipe-Deck sichtbar.";
   }
   return "Aktuell keine weiteren Themen im Stream. Passe Filter an oder starte mit Trendthemen.";
 }

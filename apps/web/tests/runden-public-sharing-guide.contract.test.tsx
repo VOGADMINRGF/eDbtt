@@ -30,10 +30,10 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Direkt öffentlich einreichen");
     expect(html).toContain("Schulwegsicherheit in Reinickendorf");
     expect(html).toContain("Öffentliche Eingaben sind keine repräsentative Abstimmung.");
-    expect(html).toContain("ungeprüfter öffentlicher Hinweis");
-    expect(html).toContain("reviewpflichtig");
-    expect(html).toContain("geprüft");
-    expect(html).toContain("amtlich freigegeben");
+    expect(html).toContain("als Vorschlag sichtbar");
+    expect(html).toContain("in Prüfung");
+    expect(html).toContain("veröffentlicht");
+    expect(html).toContain("amtlich");
     expect(html).toContain("archiviert");
     expect(html).toContain("Review-only bleibt intern.");
     expect(html).toContain("Pausiert, archiviert und geschlossen");

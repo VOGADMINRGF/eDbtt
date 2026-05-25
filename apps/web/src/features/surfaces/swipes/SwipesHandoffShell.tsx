@@ -24,6 +24,9 @@ export function SwipesHandoffShell(props: {
       {draft ? (
         <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
           <CreateHandoffPanel draft={draft} title="Beteiligungsfrage aus /create vorbereitet" />
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            Das passt zu deinem Beitrag: In Swipes wird nichts automatisch veröffentlicht oder abgestimmt. Du kannst hier zustimmen, anders sehen oder zum Anlassraum beziehungsweise Dossier weitergehen.
+          </p>
         </div>
       ) : null}
       <SwipesSurface
