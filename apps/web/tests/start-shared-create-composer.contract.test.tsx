@@ -24,7 +24,9 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("Jetzt swipen");
     expect(html).toContain("Themen");
     expect(html).toContain("Thema prüfen");
-    expect(html).toContain("Anliegen einbringen");
+    expect(html).toContain("Hinweis geben");
     expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
+    expect(html).toContain("review-first");
+    expect(html).toContain("Keine versteckten AI-Kosten");
   });
 });

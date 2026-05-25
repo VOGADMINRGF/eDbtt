@@ -62,7 +62,7 @@ describe("factcheck status detail sealed contract", () => {
     expect(body?.sealGranted).toBe(false);
     expect(body?.verificationLabel).toBe("geprueft");
     expect(body?.workflowStage).toBe("in_progress");
-    expect(body?.sealStatus).toBe("Siegel ausstehend");
+    expect(body?.sealStatus).toBe("Siegelprüfung ausstehend");
     expect(body?.meta?.lane).toBe("sealed_factcheck");
     expect(body?.job?.verificationMode).toBe("sealed");
   });
@@ -98,6 +98,6 @@ describe("factcheck status detail sealed contract", () => {
     expect(body?.sealGranted).toBe(false);
     expect(body?.verificationLabel).toBe("geprueft");
     expect(body?.workflowStage).toBe("completed");
-    expect(body?.sealStatus).toBe("Siegel ausstehend");
+    expect(body?.sealStatus).toBe("Siegelprüfung ausstehend");
   });
 });

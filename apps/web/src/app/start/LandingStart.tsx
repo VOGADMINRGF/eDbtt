@@ -29,10 +29,10 @@ const NAV_LINKS_DE = [
 ] as const;
 
 const TRUST_PILLS_DE = [
-  "Kostenlos mitmachen",
+  "review-first",
+  "auditierbar",
   "Keine Datenverkäufe",
-  "Keine Paywall für Beteiligung",
-  "Themen statt Empörung",
+  "Keine versteckten AI-Kosten",
 ] as const;
 
 const RADAR_REGIONS_DE: readonly RadarRegion[] = [
@@ -137,28 +137,28 @@ const DOSSIER_RESPONSIBLE_DE = [
 
 const PERSPECTIVES_DE = [
   {
-    title: "Bürgerin / Bürger",
+    title: "Bürger / Nutzer",
     text: "Ich will sagen, was mich betrifft — ohne erst den richtigen Ansprechpartner suchen zu müssen.",
   },
   {
-    title: "Betroffene Person",
-    text: "Ich will, dass mein Anliegen nicht untergeht.",
+    title: "Verwaltung / Kommune",
+    text: "Wir wollen erkennen, wo Hinweise, Fragen und Zielkonflikte entstehen, bevor Beteiligung unübersichtlich wird.",
   },
   {
-    title: "Verwaltung / Gremium",
-    text: "Wir wollen früh erkennen, wo Fragen, Druck und Missverständnisse entstehen.",
+    title: "Verein / Träger / Verband",
+    text: "Wir wollen Themen geordnet weiterentwickeln, ohne Reichweite mit Verlässlichkeit zu verwechseln.",
   },
   {
-    title: "Journalismus / Fachöffentlichkeit",
-    text: "Wir brauchen Quellen, Gegenpositionen und offene Fragen an einem Ort.",
+    title: "Medienpartner / Redaktion",
+    text: "Wir brauchen Quellen, Gegenpositionen und offene Fragen an einem Ort, ohne ungeprüfte Behauptungen zu verstärken.",
   },
   {
-    title: "Verein / Initiative",
-    text: "Wir wollen Themen nicht nur mobilisieren, sondern nachvollziehbar weiterentwickeln.",
+    title: "Beteiligungsbüro / Agentur",
+    text: "Wir brauchen einen auditierbaren Arbeitsraum für Review, Dossiers, Runden und freigegebene Distribution.",
   },
   {
-    title: "Skeptische Nutzer",
-    text: "Ich will wissen, was mit meinen Daten passiert und wer hinter dem Thema steht.",
+    title: "Stiftung / Programmträger",
+    text: "Wir wollen Wirkung, Transparenzhinweise und Reporting sehen, ohne Einfluss auf Ergebnisse oder Siegel zu erhalten.",
   },
 ] as const;
 
@@ -292,8 +292,9 @@ export default function LandingStart({ blocks }: LandingStartProps) {
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">
               Bei eDebatte geht es nicht um laute Kommentare, sondern um echte Anliegen. Wir sammeln Hinweise,
-              Fragen, Erfahrungen und Vorschläge, ordnen sie mit Kontext und machen daraus nachvollziehbare Themen,
-              Anlassräume, Faktenchecks und Dossiers.
+              Fragen, Erfahrungen und Vorschläge, ordnen sie review-first mit Kontext und halten Arbeitsstände
+              auditierbar fest. So entstehen nachvollziehbare Themen, Anlassräume, Faktenchecks und Dossiers
+              ohne automatische Veröffentlichung.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <a
@@ -308,7 +309,7 @@ export default function LandingStart({ blocks }: LandingStartProps) {
                 data-requires-privacy-gate="true"
                 className="rounded-full border border-cyan-300/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Anliegen einbringen
+                Hinweis geben
               </a>
               <a
                 href="/dossier/demo"
@@ -318,8 +319,8 @@ export default function LandingStart({ blocks }: LandingStartProps) {
               </a>
             </div>
             <p className="mt-4 text-xs text-slate-300">
-              Mitmachen ist kostenlos. Neue Hauptthemen starten aktive Mitglieder. Keine Datenverkäufe. Keine
-              versteckten Interessen.
+              Mitmachen ist kostenlos. Produktive Rechte für Organisationen folgen erst nach Betreiber-Verifikation
+              und manueller Freischaltung. Keine Datenverkäufe. Keine versteckten AI-Kosten.
             </p>
           </article>
 
@@ -600,6 +601,10 @@ export default function LandingStart({ blocks }: LandingStartProps) {
             Kommunen, Bezirke, Medien, Vereine und Organisationen können eDebatte nutzen, um Themenräume, Dossiers und
             Beteiligungsrunden aufzusetzen — transparent, nachvollziehbar und anschlussfähig an bestehende Verfahren.
           </p>
+          <p className="mt-3 max-w-4xl text-sm text-slate-200 sm:text-base">
+            Produktive Organisationsrechte laufen review-first über verifizierte Organisationen, manuelle Zugangs- und
+            Vertragsfreigabe sowie klare Scope- und Entitlement-Grenzen.
+          </p>
           <ul className="mt-4 grid gap-2 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-4">
             {PROFESSIONAL_USE_CASES_DE.map((useCase) => (
               <li key={useCase} className="rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-2">
@@ -628,6 +633,10 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           <p className="mt-3 max-w-4xl text-sm text-slate-200 sm:text-base">
             eDebatte ist nicht dafür gebaut, Aufmerksamkeit zu verkaufen. Wir wollen keine Empörung verlängern, keine
             Daten hinten heraus verwerten und keine Beteiligung hinter einer Paywall verstecken.
+          </p>
+          <p className="mt-3 max-w-4xl text-sm text-slate-200 sm:text-base">
+            Quellen, Material, Factchecks und Distribution bleiben geprüft. Partner- und Funding-Hinweise sind
+            transparent, beeinflussen aber weder Quellengewichtung noch Ergebnisse oder Siegelentscheidungen.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {DIFFERENTIATION_CARDS_DE.map((card) => (

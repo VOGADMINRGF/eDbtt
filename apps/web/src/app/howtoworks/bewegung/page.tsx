@@ -58,7 +58,7 @@ const heroCopy = {
   lead_en:
     "VoiceOpenGov is a non-partisan commitment to fair procedures and transparent participation. eDebatte makes it practical: structure contributions, verify facts, compare options, decide — and document impact.",
   secondary_de:
-    "Wir sind keine Partei und kein politischer Block. Entscheidend ist nicht, wer am lautesten ist, sondern ob ein Ergebnis nachvollziehbar zustande kam – mit Quellen, offenen Fragen, Alternativen und dokumentierten Minderheitenpositionen.",
+    "Wir sind keine Partei und kein politischer Block. Entscheidend ist nicht, wer am lautesten ist, sondern ob ein Ergebnis nachvollziehbar zustande kam – mit Quellen, offenen Fragen, Alternativen und dokumentierten Minderheitenpositionen. Keine Datenverkäufe, keine versteckten AI-Kosten und keine automatische Veröffentlichung.",
   secondary_en:
     "We are not a party and not a camp. What matters is not who is loudest, but whether outcomes are traceable — with sources, open questions, alternatives and documented minority positions.",
 };
@@ -133,7 +133,7 @@ const joinModel = {
       title_de: "2) eDebatte nutzen (Basis/Pro)",
       title_en: "2) Use eDebatte (Base/Pro)",
       body_de:
-        "Die Abstimmungen bleiben grundsätzlich offen und fair. Kosten entstehen dort, wo echte Arbeit anfällt: Sichtung, Moderation, Redaktion, KI-gestützte Strukturierung und laufender Betrieb. Dafür gibt es Nutzungspakete.",
+        "Die Abstimmungen bleiben grundsätzlich offen und fair. Kosten entstehen dort, wo echte Arbeit anfällt: Sichtung, Moderation, Redaktion, assistierte Strukturierung und laufender Betrieb. Dafür gibt es Nutzungspakete. Kostenpflichtige Zusatzläufe werden nicht versteckt, sondern nur nach klarer Freigabe genutzt.",
       body_en:
         "Voting stays open and fair. Costs arise where real work happens: review, moderation, editorial work, AI-assisted structuring and ongoing operations. That is covered by usage packages.",
       bullets_de: [
@@ -204,7 +204,7 @@ const joinPanel = {
   segments: [
     {
       id: "segment-citizen",
-      label_de: "Für Bürger:innen",
+      label_de: "Für Bürger:innen und Nutzer",
       label_en: "For citizens",
       body_de:
         "Kostenfrei bei VoiceOpenGov eintragen – und auf eDebatte Anliegen einreichen, abstimmen oder Themen begleiten.",
@@ -213,7 +213,7 @@ const joinPanel = {
     },
     {
       id: "segment-politics",
-      label_de: "Für Kommunen & Organisationen",
+      label_de: "Für Verwaltung, Kommune, Verein, Träger und Verband",
       label_en: "For municipalities & organisations",
       body_de:
         "Pilot starten: 5–10 Themen, klare Metriken, saubere Akten und Rückkopplung in bestehende Beschlusswege.",
@@ -222,10 +222,10 @@ const joinPanel = {
     },
     {
       id: "segment-media",
-      label_de: "Für Medien & Creator",
+      label_de: "Für Medienpartner, Redaktionen, Beteiligungsbüros, Agenturen und Stiftungen",
       label_en: "For media & creators",
       body_de:
-        "Dossiers und Prüfpfade redaktionell begleiten, Streams/Beiträge mit Quellen und Daten fundieren.",
+        "Dossiers und Prüfpfade redaktionell begleiten, Streams/Beiträge mit Quellen und Daten fundieren und Partner- oder Funding-Hinweise transparent halten, ohne Einfluss auf Ergebnisse oder Siegel.",
       body_en:
         "Accompany dossiers editorially and support streams/content with sources and data.",
     },

@@ -52,7 +52,7 @@ describe("e150 verification presentation contract", () => {
     expect(view.verificationLabel).toBe("geprueft");
     expect(view.workflowStage).toBe("queued");
     expect(view.workflowLabel).toBe("in Warteschlange");
-    expect(view.sealLabel).toBe("Siegel ausstehend");
+    expect(view.sealLabel).toBe("Siegelprüfung ausstehend");
     expect(view.isVerified).toBe(false);
   });
 

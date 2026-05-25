@@ -145,7 +145,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           pageKicker: "Pricing",
           heroTitle: "Pakete & Preise",
           heroText:
-            "Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen. Pakete schalten mehr Tiefe für Prüfen und Entwerfen frei.",
+            "Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen. Pakete schalten review-first mehr Tiefe für Prüfen, Entwerfen und auditierbare Zusammenarbeit frei.",
           freeStartCta: "Kostenlos starten",
           confidentialHintCta: "Anonym / vertraulich Hinweis geben",
           packageCta: "Paket wählen",
@@ -217,7 +217,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Reports und Outcomes: ab 390 € / Monat",
           ],
           institutionalHintText:
-            "Für Organisationen, Kommunen, Verbände, Medien und Forschung gibt es gesonderte Konditionen.",
+            "Für Organisationen, Kommunen, Vereine, Verbände, Träger, Medien, Beteiligungsbüros, Agenturen, Stiftungen und Forschung gibt es gesonderte Konditionen.",
         };
 
   return (

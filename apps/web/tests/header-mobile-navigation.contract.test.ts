@@ -9,7 +9,7 @@ describe("header mobile navigation contract", () => {
     expect(source).toContain('label: "Start"');
     expect(source).toContain('label: "Themen"');
     expect(source).toContain('label: "Swipes"');
-    expect(source).toContain('label: "Anliegen / Hinweis einbringen"');
+    expect(source).toContain('label: "Hinweis geben"');
     expect(source).toContain('label: "So funktioniert’s"');
     expect(source).toContain('label: "Pakete & Preise"');
     expect(source).toContain('label: "Professionell nutzen"');

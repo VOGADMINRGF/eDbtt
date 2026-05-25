@@ -8,10 +8,13 @@ function buildFaqCorpus() {
 }
 
 describe("faq product narrative contract", () => {
-  it("explains the ai-orchestrated regional starting point", () => {
+  it("separates initiative and tool while explaining the regional starting point", () => {
     const corpus = buildFaqCorpus().join("\n\n");
+    expect(corpus).toContain("Was ist VoiceOpenGov?");
+    expect(corpus).toContain("review-first Produktmodus");
     expect(corpus).toContain("Was meint eDebatte mit einer regionalen Startlage?");
     expect(corpus).toContain("keine Demo-Strecke, sondern eine kuratierte regionale Startlage");
+    expect(corpus).toContain("sicherer Material- und Quellenprüfung");
     expect(corpus).toContain("nicht automatisch amtlich oder verbindlich");
   });
 
@@ -19,7 +22,7 @@ describe("faq product narrative contract", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Was passiert zuerst in /create?");
     expect(corpus).toContain("Haben wir dich richtig verstanden?");
-    expect(corpus).toContain("Einreichen, sichtbar machen oder veröffentlichen");
+    expect(corpus).toContain("Einreichen, als Arbeitsstand speichern oder zur Prüfung vorbereiten");
   });
 
   it("explains the production maturity path beyond a permanent pilot state", () => {
@@ -40,6 +43,7 @@ describe("faq product narrative contract", () => {
     expect(corpus).toContain("Wie funktioniert die Veröffentlichungslogik?");
     expect(corpus).toContain("public_unverified");
     expect(corpus).toContain("public_official");
+    expect(corpus).toContain("nicht automatisch als amtlich oder geprüft");
     expect(corpus).toContain("Doxxing, Drohungen und sensible Daten werden blockiert");
   });
 
@@ -47,12 +51,12 @@ describe("faq product narrative contract", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Woher kommen Regionen, Verwaltungsdaten und Geobezüge?");
     expect(corpus).toContain("Destatis GV-ISys / Gemeindeverzeichnis");
-    expect(corpus).toContain("XLSX, CSV und APIs sind dabei Importquellen, keine Runtime-Abhängigkeit");
+    expect(corpus).toContain("XLSX, CSV und APIs sind dabei Importquellen, keine Runtime-Abhängigkeit und keine behauptete externe Register-Live-Integration");
     expect(corpus).toContain("Was braucht eine Verwaltung oder Organisation im Dashboard?");
     expect(corpus).toContain("Was sieht eine Verwaltung oder Organisation?");
     expect(corpus).toContain("Was sieht die Öffentlichkeit?");
     expect(corpus).toContain("offene Reviews");
-    expect(corpus).toContain("KI-vorqualifizierte Themenlage");
+    expect(corpus).toContain("review-first vorstrukturierte Themenlage");
     expect(corpus).toContain("Interne Reviews, Freischaltungen und Verwaltungsentwürfe sind nicht automatisch öffentlich");
   });
 

@@ -18,7 +18,7 @@ const hero = {
   title_de: "Vom Thema zum nachvollziehbaren Prozess",
   title_en: "From topic to a traceable process",
   lead_de:
-    "VoiceOpenGov ist die Initiative für faire, nachvollziehbare Beteiligung. eDebatte ist das Werkzeug, das den Ablauf umsetzt: Check → Dossier → Beteiligung → Status. Lass das beste Argument gewinnen.",
+    "VoiceOpenGov ist die Initiative für faire, nachvollziehbare Beteiligung. eDebatte ist das Werkzeug, das den Ablauf review-first und auditierbar umsetzt: Check → Dossier → Beteiligung → Status. Es gibt dabei keine automatische Veröffentlichung und kein automatisches Siegel. Lass das beste Argument gewinnen.",
   lead_en:
     "VoiceOpenGov is the initiative for fair, traceable participation. eDebatte is the tool that executes the flow: check → dossier → participation → status.",
 };
@@ -35,7 +35,7 @@ const journey = {
   title_de: "Die RePro-Nutzerreise",
   title_en: "The RePro user journey",
   lead_de:
-    "Kein Sprung ins Unklare: Jede Station hat einen klaren Zweck und ein sichtbares Ergebnis. Lass das beste Argument gewinnen, nicht die lauteste Behauptung.",
+    "Kein Sprung ins Unklare: Jede Station hat einen klaren Zweck, sichtbare Review-Grenzen und ein nachvollziehbares Ergebnis. Lass das beste Argument gewinnen, nicht die lauteste Behauptung.",
   lead_en:
     "No leap into the unknown: every stage has a clear purpose and visible outcome.",
 };
@@ -47,7 +47,7 @@ const journeySteps = [
     title_de: "Check",
     title_en: "Check",
     body_de:
-      "Ein Thema wird in prüfbare Aussagen und offene Fragen getrennt. Quellen werden sichtbar gemacht, Lücken werden markiert.",
+      "Ein Thema wird in prüfbare Aussagen und offene Fragen getrennt. Quellen werden sichtbar gemacht, Lücken werden markiert und es gibt keine automatische Factcheck- oder Siegel-Freigabe.",
     body_en:
       "A topic is split into verifiable claims and open questions. Sources are made visible and gaps are marked.",
     cta_de: "Check starten",
@@ -247,10 +247,10 @@ export default function HowToWorksEdebattePage() {
           </ul>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/start" className="btn btn-primary">
-              {t("Anlass eröffnen", "cta.start")}
+              {t("Thema starten", "cta.start")}
             </Link>
             <Link href="/runden" className="btn btn-ghost">
-              {t("Anlässe öffnen", "cta.rounds")}
+              {t("Anlassräume ansehen", "cta.rounds")}
             </Link>
             <Link href="/swipes" className="btn btn-ghost">
               {t("Zur Beteiligung", "cta.swipes")}

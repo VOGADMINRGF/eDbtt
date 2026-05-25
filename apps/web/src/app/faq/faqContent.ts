@@ -41,27 +41,27 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     faqs: [
       {
         id: "grundlagen-1",
-        question: "Was ist eDebatte?",
+        question: "Was ist VoiceOpenGov?",
         answer:
-          "eDebatte ist die direktdemokratische Bewegung. Wir heißen alle willkommen, die das Mehrheitsprinzip stärken und an eine gerechtere Welt glauben. Mit eDebatte, unserem eigens entwickelten Werkzeug, bauen wir eine digitale Infrastruktur für nachvollziehbare Entscheidungen.",
+          "VoiceOpenGov ist die Initiative hinter eDebatte. Sie steht für faire, nachvollziehbare Beteiligung und für Regeln, die offen, prüfbar und nicht käuflich sind. eDebatte ist das Werkzeug, mit dem diese Infrastruktur im review-first Produktmodus praktisch nutzbar wird.",
       },
       {
         id: "grundlagen-1b",
         question: "Was ist eDebatte?",
         answer:
-          "eDebatte ist unser eigens entwickeltes Werkzeug. Dort werden Themen vorbereitet, Quellen gesammelt, Pro & Contra sichtbar gemacht und Abstimmungen durchgeführt. So bleibt der Prozess transparent, fair und überprüfbar. Unser Leitsatz dabei ist: „Lass das beste Argument gewinnen.“",
+          "eDebatte ist unser eigens entwickeltes Werkzeug. Dort werden Themen vorbereitet, Quellen gesammelt, Pro & Contra sichtbar gemacht und Beteiligungsschritte dokumentiert. Der Produktmodus ist review-first, auditierbar und ohne automatische Veröffentlichung, automatisches Siegel oder automatische Amtlichkeit. Unser Leitsatz dabei ist: „Lass das beste Argument gewinnen.“",
       },
       {
         id: "grundlagen-1c",
         question: "Was meint eDebatte mit einer regionalen Startlage?",
         answer:
-          "Wenn sich eine Verwaltung, ein Verband, ein Verein oder ein Träger für eine Region interessiert, kann eDebatte aus regionalen Quellen eine hochwertige, aktuelle und vorqualifizierte Themenlage vorbereiten. Das ist keine Demo-Strecke, sondern eine kuratierte regionale Startlage. Sie bleibt reviewpflichtig und wird nicht automatisch amtlich oder verbindlich.",
+          "Wenn sich eine Verwaltung, ein Verband, ein Verein oder ein Träger für eine Region interessiert, kann eDebatte aus regionalen Quellen eine review-first vorstrukturierte Themenlage vorbereiten. Das ist keine Demo-Strecke, sondern eine kuratierte regionale Startlage mit sicherer Material- und Quellenprüfung. Sie bleibt auditierbar, reviewpflichtig und wird nicht automatisch amtlich oder verbindlich.",
       },
       {
         id: "grundlagen-1d",
         question: "Was passiert zuerst in /create?",
         answer:
-          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen, sichtbar machen oder veröffentlichen, je nach Kontext und Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
+          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen, als Arbeitsstand speichern oder zur Prüfung vorbereiten, je nach Kontext und Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
       },
       {
         id: "grundlagen-1e",
@@ -91,7 +91,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "grundlagen-3",
         question: "Warum spricht ihr von Infrastruktur?",
         answer:
-          "Weil wir digitale Teilhabe als dauerhaftes Fundament sehen. Mit eDebatte und eDebatte machen wir Entscheidungsprozesse sichtbar: Wer schlägt was vor, welche Belege gibt es, wie wurde abgestimmt – und warum. Diese Infrastruktur soll überall funktionieren, wo Menschen gemeinsam entscheiden.",
+          "Weil wir digitale Teilhabe als dauerhaftes Fundament sehen. Mit VoiceOpenGov und eDebatte machen wir Entscheidungsprozesse sichtbar: Wer schlägt was vor, welche Belege gibt es, wie wurde abgestimmt – und warum. Diese Infrastruktur soll überall funktionieren, wo Menschen gemeinsam entscheiden.",
       },
       {
         id: "grundlagen-4",
@@ -121,7 +121,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "grundlagen-6b",
         question: "Wie funktioniert die Veröffentlichungslogik?",
         answer:
-          "eDebatte trennt Sichtbarkeit und Prüfstatus über eine Risk Ladder:\n- private_draft: nur als eigener Arbeitsstand\n- internal_review: intern sichtbar zur Prüfung\n- public_unverified: öffentlich sichtbar, aber ungeprüft\n- public_reviewed: öffentlich sichtbar und geprüft\n- public_official: offiziell freigegeben\n- archived: archiviert\n- blocked: gesperrt\nNiedrigrisiko-Beiträge können automatisch sichtbar werden. Faktenstatus, Dossiers und amtliche Antworten bleiben reviewpflichtig. Doxxing, Drohungen und sensible Daten werden blockiert.",
+          "eDebatte trennt Sichtbarkeit und Prüfstatus über eine Risk Ladder:\n- private_draft: nur als eigener Arbeitsstand\n- internal_review: intern sichtbar zur Prüfung\n- public_unverified: öffentlich sichtbar, aber ungeprüft\n- public_reviewed: öffentlich sichtbar und geprüft\n- public_official: offiziell freigegeben\n- archived: archiviert\n- blocked: gesperrt\nNiedrigrisiko-Beiträge können nach den Sichtbarkeitsregeln als `public_unverified` freigegeben werden, aber nicht automatisch als amtlich oder geprüft gelten. Faktenstatus, Dossiers und amtliche Antworten bleiben reviewpflichtig. Doxxing, Drohungen und sensible Daten werden blockiert.",
       },
     ],
   },
@@ -193,7 +193,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "mitmachen-3d",
         question: "Woher kommen Regionen, Verwaltungsdaten und Geobezüge?",
         answer:
-          "Für Regionen nutzt eDebatte zuerst eine RegionRegistry aus Destatis GV-ISys / Gemeindeverzeichnis, später ergänzt um Eurostat NUTS/LAU. Ein OfficialDirectory führt die Anschriften der Gemeinde- und Stadtverwaltungen. Eine GeoBoundaryRegistry auf Basis von BKG VG250 oder Eurostat GISCO und eine StatsRegistry auf Basis von GENESIS / Regionalstatistik sind spätere Ausbaustufen. XLSX, CSV und APIs sind dabei Importquellen, keine Runtime-Abhängigkeit.",
+          "Für Regionen nutzt eDebatte zuerst eine RegionRegistry aus Destatis GV-ISys / Gemeindeverzeichnis. Ein OfficialDirectory führt die Anschriften der Gemeinde- und Stadtverwaltungen. Eine GeoBoundaryRegistry auf Basis von BKG VG250 oder Eurostat GISCO und eine StatsRegistry auf Basis von GENESIS / Regionalstatistik sind spätere Ausbaustufen. XLSX, CSV und APIs sind dabei Importquellen, keine Runtime-Abhängigkeit und keine behauptete externe Register-Live-Integration.",
       },
       {
         id: "mitmachen-3e",
@@ -211,7 +211,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "mitmachen-3g",
         question: "Was sieht die Öffentlichkeit?",
         answer:
-          "Die Öffentlichkeit sieht nur, was entlang der Sichtbarkeits- und Prüfregeln freigegeben ist. Niedrigrisiko-Beiträge können später öffentlich sichtbar werden. Dossiers, Faktenstatus und amtliche Antworten bleiben bis zur Prüfung reviewpflichtig. Interne Reviews, Freischaltungen und Verwaltungsentwürfe sind nicht automatisch öffentlich.",
+          "Die Öffentlichkeit sieht nur, was entlang der Sichtbarkeits- und Prüfregeln freigegeben ist. Niedrigrisiko-Beiträge können nach Freigabe öffentlich sichtbar werden. Dossiers, Faktenstatus und amtliche Antworten bleiben bis zur Prüfung reviewpflichtig. Interne Reviews, Freischaltungen und Verwaltungsentwürfe sind nicht automatisch öffentlich.",
       },
       {
         id: "mitmachen-4",
@@ -235,7 +235,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "datenschutz-2",
         question: "Wie finanziert sich eDebatte?",
         answer:
-          "eDebatte soll sich langfristig über viele kleine Beiträge tragen: Mitgliedschaften, einmalige Gutschriften und Nutzung der Plattform durch Organisationen. So bleibt die Bewegung unabhängig. Details zur aktuellen Finanzierungslogik findest du im Transparenzbericht.",
+          "eDebatte soll sich langfristig über viele kleine Beiträge tragen: Mitgliedschaften, einmalige Gutschriften und Nutzung der Plattform durch Organisationen. So bleibt die Bewegung unabhängig. Es gibt keine Datenverkäufe und keine versteckten AI-Kosten. Details zur aktuellen Finanzierungslogik findest du im Transparenzbericht.",
       },
       {
         id: "datenschutz-3",

@@ -32,6 +32,7 @@ describe("/pricing canonical landing", () => {
     const html = await renderPricing();
 
     expect(html).toContain("Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen.");
+    expect(html).toContain("review-first mehr Tiefe für Prüfen, Entwerfen und auditierbare Zusammenarbeit");
     expect(html).toContain("Kostenlos starten");
     expect(html).toContain("Anonym / vertraulich Hinweis geben");
     expect(html).toContain("Paket wählen");
@@ -63,7 +64,7 @@ describe("/pricing canonical landing", () => {
   it("keeps institutional and newsroom conditions as short secondary hint", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Organisationen, Kommunen, Verbände, Medien und Forschung");
+    expect(html).toContain("Organisationen, Kommunen, Vereine, Verbände, Träger, Medien, Beteiligungsbüros, Agenturen, Stiftungen und Forschung");
     expect(html).toContain("Professionell nutzen");
   });
 

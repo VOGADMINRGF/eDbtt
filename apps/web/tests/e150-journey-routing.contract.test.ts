@@ -87,7 +87,7 @@ describe("GOV-AI-ORCH-05 journey defaults", () => {
     });
     expect(started.workflowStage).toBe("started");
     expect(started.verificationLabel).toBe("geprueft");
-    expect(started.sealLabel).toBe("Siegel ausstehend");
+    expect(started.sealLabel).toBe("Siegelprüfung ausstehend");
 
     const queued = resolveSealedFactcheckStatusView({
       status: "queued",
@@ -98,7 +98,7 @@ describe("GOV-AI-ORCH-05 journey defaults", () => {
     });
     expect(queued.workflowStage).toBe("queued");
     expect(queued.verificationLabel).toBe("geprueft");
-    expect(queued.sealLabel).toBe("Siegel ausstehend");
+    expect(queued.sealLabel).toBe("Siegelprüfung ausstehend");
 
     const completed = resolveSealedFactcheckStatusView({
       status: "completed",

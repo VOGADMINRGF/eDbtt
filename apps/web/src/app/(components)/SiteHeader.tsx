@@ -38,7 +38,7 @@ const NAV_LINKS: NavItem[] = [
   {
     id: "hint",
     href: "/community/contributions",
-    label: "Hinweis einreichen",
+    label: "Hinweis geben",
   },
   {
     id: "how",
@@ -341,7 +341,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 { id: "start", href: "/start", label: "Start" },
                 { id: "themen", href: "/themen", label: "Themen" },
                 { id: "swipes", href: "/swipes", label: "Swipes" },
-                { id: "hinweis", href: "/community/contributions", label: "Anliegen / Hinweis einbringen" },
+                { id: "hinweis", href: "/community/contributions", label: "Hinweis geben" },
                 { id: "how", href: "/howtoworks/edebatte", label: "So funktioniert’s" },
                 { id: "pricing", href: "/pricing", label: "Pakete & Preise" },
                 { id: "professional", href: "/pricing/institutionen", label: "Professionell nutzen" },
