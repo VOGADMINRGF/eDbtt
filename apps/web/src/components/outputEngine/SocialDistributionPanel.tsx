@@ -55,10 +55,12 @@ function connectorLabel(status: SocialDistributionTarget["connectorStatus"]): st
 function distributionStatusLabel(status: SocialDistributionTarget["distributionStatus"]): string {
   if (status === "draft") return "Entwurf";
   if (status === "review_required") return "Review nötig";
-  if (status === "ready_for_schedule") return "Bereit zur Planung";
+  if (status === "approved") return "Freigegeben";
   if (status === "scheduled") return "Geplant";
-  if (status === "prepared") return "Intern vorbereitet";
-  return "Exportiert";
+  if (status === "published_manual") return "Manuell veröffentlicht";
+  if (status === "failed") return "Fehlgeschlagen";
+  if (status === "revoked") return "Widerrufen";
+  return "Archiviert";
 }
 
 function connectorHint(status: SocialDistributionTarget["connectorStatus"]): string {
@@ -71,15 +73,14 @@ function connectorHint(status: SocialDistributionTarget["connectorStatus"]): str
 }
 
 function formatTypeForChannel(channel: SocialDistributionTarget["channel"]): string {
-  if (channel === "website_embed") return "Dossier-Post";
-  if (channel === "instagram") return "Caption + Carousel";
-  if (channel === "facebook") return "Community-Post";
-  if (channel === "linkedin") return "Sachpost";
-  if (channel === "tiktok" || channel === "youtube_shorts") return "Kurzvideo-Skript";
-  if (channel === "x_twitter" || channel === "mastodon" || channel === "bluesky") return "Kurzpost";
-  if (channel === "newsletter") return "Newsletter-Block";
-  if (channel === "qr_print") return "Handout / Poster";
-  return "Kanaltext";
+  if (channel === "website_update") return "Web-Update";
+  if (channel === "newsletter_draft") return "Newsletter-Text";
+  if (channel === "embed_snippet") return "Einbettung";
+  if (channel === "qr_asset") return "Handout / QR";
+  if (channel === "linkedin_draft") return "Sachpost";
+  if (channel === "x_draft" || channel === "mastodon_draft") return "Kurzpost";
+  if (channel === "instagram_asset") return "Caption + Carousel";
+  return "Pressenotiz";
 }
 
 function shortText(value: string, maxLength = 180): string {
@@ -182,6 +183,14 @@ export default function SocialDistributionPanel({
     return "suggested_window";
   };
 
+  const currentPlanForPersistence = () => ({
+    ...plan,
+    targets: targetsWithOverrides,
+    selectedChannels: selectedList,
+    selectedCount: selectedList.length,
+    scheduleMode: scheduleModeFromChoice(scheduleChoice),
+  });
+
   const persistWorkspace = async (distributionDraft: SocialDistributionDraft, reviewNote?: string) => {
     if (!workspaceApiPath) return;
     try {
@@ -211,6 +220,35 @@ export default function SocialDistributionPanel({
     }
   };
 
+  const persistProductionDraft = async (reviewNote?: string) => {
+    if (!workspaceApiPath || selectedList.length === 0) return;
+    try {
+      const res = await fetch(workspaceApiPath, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          socialDistributionAction: "create_draft",
+          plan: currentPlanForPersistence(),
+          selectedChannels: selectedList,
+          note: reviewNote ?? null,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNotice(
+          payload?.message ??
+            "Produktiver Verteilentwurf konnte nicht gespeichert werden. Review- oder Freischaltungsstatus prüfen.",
+        );
+        return;
+      }
+      setNotice("Handoff gespeichert. Review erforderlich, kein Auto-Publish und keine ungeprüfte Verteilung.");
+    } catch {
+      setNotice("Produktiver Verteilentwurf konnte nicht gespeichert werden. Bitte später erneut versuchen.");
+    }
+  };
+
   const savePlan = () => {
     const draft = buildDistributionPlan({
       plan: {
@@ -232,6 +270,7 @@ export default function SocialDistributionPanel({
     });
     setNotice("Verteilplan lokal im Browser als Entwurf gespeichert. Keine produktive Behördenpersistenz.");
     void persistWorkspace(draft, "Verteilplan als Entwurf gespeichert.");
+    void persistProductionDraft("Review-first Verteilentwurf angelegt.");
   };
 
   const requestReview = () => {
@@ -254,6 +293,7 @@ export default function SocialDistributionPanel({
     });
     setNotice("Post-Entwurf lokal für Review markiert. Keine produktive Behördenpersistenz.");
     void persistWorkspace(draft, "Review für Verteilplan angefordert.");
+    void persistProductionDraft("Review für kanalweisen Verteilentwurf angefordert.");
   };
 
   const preparePublication = () => {
@@ -266,7 +306,7 @@ export default function SocialDistributionPanel({
       selectedChannels: selectedList,
       scheduleMode: scheduleModeFromChoice(scheduleChoice),
       reviewRequired: reviewRequired || validation.reviewRequired,
-      status: "prepared_internal",
+      status: "review_required",
     });
     localStorage.setItem(`${keyForPlan(dossierId)}:prepared`, JSON.stringify(draft));
     const preview = buildQrPrintPreview(masterPost);
@@ -277,6 +317,7 @@ export default function SocialDistributionPanel({
         : "Veröffentlichung lokal intern vorbereitet. Keine produktive Behördenpersistenz.",
     );
     void persistWorkspace(draft, "Veröffentlichung nur intern vorbereitet, nicht veröffentlicht.");
+    void persistProductionDraft("Verteilung vorbereitet, aber nicht veröffentlicht.");
   };
 
   const saveDraft = () => {
@@ -393,14 +434,14 @@ export default function SocialDistributionPanel({
             onClick={saveDraft}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
           >
-            Entwurf speichern
+            Entwurf erstellen
           </button>
           <button
             type="button"
             onClick={requestReview}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
           >
-            Post-Entwurf prüfen
+            Review markieren
           </button>
           <button
             type="button"
@@ -417,7 +458,7 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Kanalverbindungen</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Verbindungsstatus pro Kanal ohne Fake-OAuth und ohne Live-Publish.
+          Verbindungsstatus pro Kanal ohne externes API-Posting und ohne Live-Publish.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {targetsWithOverrides.map((target) => (
@@ -521,21 +562,21 @@ export default function SocialDistributionPanel({
             onClick={savePlan}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
           >
-            Verteilplan als Entwurf speichern
+            Entwurf erstellen
           </button>
           <button
             type="button"
-            onClick={savePlan}
+            onClick={requestReview}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
           >
-            Verteilplan übernehmen
+            Review markieren
           </button>
           <button
             type="button"
             onClick={preparePublication}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
           >
-            Veröffentlichung vorbereiten
+            Verteilung vorbereiten
           </button>
         </div>
 
@@ -545,7 +586,7 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Empfohlener Verteilplan</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Ein Batch-Plan für ausgewählte Kanäle. Kein externer Live-Publish.
+          Kanalweise Entwürfe für ausgewählte Ausspielungen. Kein externer Live-Publish.
         </p>
         <ul className="mt-4 space-y-2">
           {queueItems.map((item) => (
@@ -591,11 +632,11 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Admin: Kanal-Konfiguration & Review-Routing</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Connector-Status, Queue und Review-Checkpoints bleiben intern steuerbar und reversibel.
+          Connector-Status, Review-Checkpoints und manuelles Published-Marking bleiben intern steuerbar und reversibel.
         </p>
         <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
-          <li>Realtime-Switch bleibt deaktiviert, bis Admin-Freigabe vorliegt.</li>
-          <li>Queue-Einträge sind bearbeitbar oder stornierbar.</li>
+          <li>Kein Auto-Publish und kein automatisches Scheduling.</li>
+          <li>Freigabe und manuelles Published-Marking bleiben bewusste Einzelaktionen.</li>
           <li>Review-Checkpoints werden vor Export oder interner Vorbereitung gespeichert.</li>
         </ul>
       </section>
@@ -630,7 +671,7 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Kanal-Versionen</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Alle Versionen werden aus dem Master-Post abgeleitet.
+          Alle Versionen werden aus dem Master-Post abgeleitet und bleiben review-first.
         </p>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {plan.channelVersions.map((version) => (

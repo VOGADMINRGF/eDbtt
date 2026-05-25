@@ -191,6 +191,20 @@ function contractStatusTone(
   }
 }
 
+function socialDistributionSourceStateLabel(
+  value: OrganizationDashboardReadModel["socialDistributionSummary"]["items"][number]["sourceState"],
+) {
+  switch (value) {
+    case "approved_context":
+      return "Freigegebener Kontext";
+    case "internal_only":
+      return "Nur intern";
+    case "review_only":
+    default:
+      return "Review-only";
+  }
+}
+
 function billingSourceLabel(
   source: OrganizationDashboardReadModel["contractSummary"]["sourceOfTruth"],
 ) {
@@ -787,6 +801,88 @@ export default async function AccountOrganizationDashboardPage() {
             )}
           </div>
         </article>
+      </section>
+
+      <section
+        id="social-distribution"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Social &amp; Distribution
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+              {readModel.socialDistributionSummary.statusLabel}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+              {readModel.socialDistributionSummary.nextStepBody}
+            </p>
+          </div>
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+            {readModel.socialDistributionSummary.storeLabel}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Nächster Schritt</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {readModel.socialDistributionSummary.nextStepTitle}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Verteilentwürfe</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {readModel.socialDistributionSummary.items.length}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <p className="text-xs text-[rgb(var(--muted))]">Produktionswahrheit</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {readModel.socialDistributionSummary.productionTruth ? "Persistenter Store" : "Nicht produktiv"}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          Kein Auto-Publish, kein automatisches Scheduling, kein `public_official` und keine
+          automatische `publication_approved`-Rolle durch Verteilentwürfe.
+        </p>
+        <div className="mt-4 space-y-3">
+          {readModel.socialDistributionSummary.items.length === 0 ? (
+            <EmptyState
+              title={readModel.socialDistributionSummary.statusLabel}
+              body="Verteilentwürfe entstehen erst aus freigegebenen Inhalten. Review-only- oder interne Kontexte bleiben auf sichere Nächste-Schritte-Hinweise begrenzt."
+            />
+          ) : (
+            readModel.socialDistributionSummary.items.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {item.statusLabel} · {socialDistributionSourceStateLabel(item.sourceState)}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+                    {publicationVisibilityLabel(item.sourceVisibilityState)}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Kanäle: {item.channels.join(", ")}
+                </p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  {item.approvalRequired
+                    ? "Review erforderlich, noch nicht veröffentlicht."
+                    : "Freigegeben, aber nur manuell veröffentlichbar."}
+                  {item.sealGranted ? " Freigegebenes Siegel darf sichtbar werden." : " Kein Siegel ohne explizite Freigabe."}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">

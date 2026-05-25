@@ -38,12 +38,12 @@ describe("output engine export/distribution helpers", () => {
     const { plan } = fixture();
     const draft = buildDraftRecord({
       plan,
-      selectedChannels: ["website_embed", "linkedin"],
+      selectedChannels: ["website_update", "linkedin_draft"],
       reviewRequired: true,
     });
     const planned = buildDistributionPlan({
       plan,
-      selectedChannels: ["website_embed", "linkedin"],
+      selectedChannels: ["website_update", "linkedin_draft"],
       scheduleMode: "suggested_window",
       reviewRequired: true,
     });

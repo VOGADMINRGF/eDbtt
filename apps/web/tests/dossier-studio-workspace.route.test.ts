@@ -26,14 +26,29 @@ import {
   generateSocialCarouselOutput,
   getSocialPublishingPolicy,
 } from "@features/outputEngine";
+import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
+import {
+  createInMemorySocialDistributionRepo,
+  getSocialDistributionRepo,
+  setSocialDistributionRepoForTests,
+} from "@features/outputEngine/socialDistributionRuntime";
+import {
+  mapMembershipToOrganizationRole,
+  normalizeMembershipStatus,
+} from "@/lib/server/auth/membershipDirectoryRepository";
 
 const mocks = vi.hoisted(() => ({
   requireGovernanceActorOrResponse: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/governance", () => ({
   requireGovernanceActorOrResponse: (...args: unknown[]) =>
     mocks.requireGovernanceActorOrResponse(...args),
+}));
+
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
 }));
 
 import {
@@ -141,6 +156,61 @@ const spandauOrganizations = [
   },
 ];
 
+const activeContractRecord = {
+  id: "pricing-order-studio-social-1",
+  orderId: "EDE-20260524-STUDIO-1",
+  packageId: "kommune-aktivierung",
+  planLabel: "Kommune Aktivierung",
+  organizationId: "org-reinickendorf-1",
+  organizationName: "Bezirksamt Reinickendorf",
+  status: "active",
+  contractStatus: "active",
+  billingStatus: "operator_verified_contract",
+  billingSource: "operator_verified_contract",
+  planAssignment: {
+    planId: "kommune-aktivierung",
+    planLabel: "Kommune Aktivierung",
+    scopes: [
+      "organization_dashboard",
+      "review_queue",
+      "content_release",
+      "public_share",
+      "dossier_studio",
+    ],
+  },
+  accessProvisioningDecision: "activate",
+  auditEvents: [
+    {
+      id: "contract-audit-studio-social-1",
+      eventType: "activate",
+      organizationId: "org-reinickendorf-1",
+      orderId: "EDE-20260524-STUDIO-1",
+      previousContractStatus: "accepted",
+      nextContractStatus: "active",
+      previousBillingStatus: "operator_verified_contract",
+      nextBillingStatus: "operator_verified_contract",
+      source: "operator_verified_contract",
+      planAssignment: {
+        planId: "kommune-aktivierung",
+        planLabel: "Kommune Aktivierung",
+        scopes: [
+          "organization_dashboard",
+          "review_queue",
+          "content_release",
+          "public_share",
+          "dossier_studio",
+        ],
+      },
+      note: "Betreiber-verifizierter Vertragsprozess.",
+      createdAt: "2026-05-24T09:00:00.000Z",
+      createdBy: "admin-1",
+    },
+  ],
+  source: "pricing_order",
+  createdAt: "2026-05-24T09:00:00.000Z",
+  updatedAt: "2026-05-24T09:00:00.000Z",
+} as const;
+
 function buildRequest(
   method: "GET" | "POST" | "PATCH",
   url: string,
@@ -176,7 +246,7 @@ function buildStudioPayload(dossierId: string) {
     selectedChannels: plan.selectedChannels,
     reviewRequired: true,
   });
-  return { masterPost, carouselDraft, distributionDraft };
+  return { masterPost, carouselDraft, distributionDraft, plan };
 }
 
 async function buildGovernanceRequestScope(input: {
@@ -197,15 +267,75 @@ async function buildGovernanceRequestScope(input: {
         .filter((value): value is string => Boolean(value)),
     ),
   );
+  const actorSource = input.isAdmin ? "session" : memberships.length > 0 ? "local_membership_store" : "session";
+  const confidence =
+    input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "high" : "limited";
+  const membershipStatus =
+    normalizeMembershipStatus(memberships[0]) ?? (input.isAdmin ? "admin_fallback" : "none");
+  const organizationRole =
+    mapMembershipToOrganizationRole(memberships[0]) ?? (input.isAdmin ? "operator_admin" : null);
+  const roleLabel = memberships[0]?.roleLabel ?? (input.isAdmin ? "Betreiber-Modus" : null);
+  const membershipId = memberships[0]?.id ?? null;
+  const user = {
+    _id: { toHexString: () => input.userId },
+    email: `${input.userId}@example.org`,
+    roles: input.roles,
+    role: input.roles[0] ?? null,
+    sessionValid: true,
+  } as any;
+
   return {
+    actorId: input.userId,
+    actorType: "session_user",
+    email: `${input.userId}@example.org`,
     organizationId,
-    membershipStatus: memberships[0]?.verificationStatus ?? (input.isAdmin ? "admin_fallback" : "none"),
-    organizationRole: memberships[0]?.roleType ?? (input.isAdmin ? "operator_admin" : null),
+    membershipStatus,
+    organizationRole,
     regionIds,
     isOperatorMode: Boolean(input.isAdmin),
     operatorModeLabel: input.isAdmin ? "Betreiber-Modus" : null,
-    sourceOfTruth: input.isAdmin ? "session" : "local_membership_store",
-    confidence: input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "high" : "limited",
+    sourceOfTruth: actorSource,
+    confidence,
+    runtimeMarker: input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "runtime_backed" : "fixture_demo",
+    sourceBreakdown: {
+      actor: actorSource,
+      organization: memberships.length > 0 ? "local_membership_store" : "session",
+      organizationRole: memberships.length > 0 ? "local_membership_store" : "session",
+      regionAccess: input.isAdmin ? "session" : memberships.length > 0 ? "local_membership_store" : "session",
+    },
+    actor: {
+      actorId: input.userId,
+      actorType: "session_user",
+      email: `${input.userId}@example.org`,
+      roles: input.roles,
+      governanceRole: input.isAdmin ? "admin" : input.actorRole,
+      isOperatorMode: Boolean(input.isAdmin),
+      operatorModeLabel: input.isAdmin ? "Betreiber-Modus" : null,
+      sourceOfTruth: actorSource,
+      confidence,
+      runtimeMarker: input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "runtime_backed" : "fixture_demo",
+    },
+    organizationMembership: {
+      organizationId,
+      organizationIds: organizationId ? [organizationId] : [],
+      verifiedOrganizationIds:
+        memberships.length > 0 && membershipStatus !== "none" ? [organizationId].filter(Boolean) as string[] : [],
+      membershipId,
+      membershipStatus,
+      memberships,
+      organizations: scopedOrganizations,
+      sourceOfTruth: memberships.length > 0 ? "local_membership_store" : "session",
+      confidence,
+      runtimeMarker: memberships.length > 0 ? "runtime_backed" : "fixture_demo",
+    },
+    organizationRoleContext: {
+      organizationRole,
+      roleLabel,
+      membershipId,
+      sourceOfTruth: memberships.length > 0 ? "local_membership_store" : "session",
+      confidence,
+      runtimeMarker: memberships.length > 0 ? "runtime_backed" : "fixture_demo",
+    },
     regionAccess: await buildPersistedRegionAccessContext({
       userId: input.userId,
       actorRole: input.actorRole,
@@ -214,6 +344,12 @@ async function buildGovernanceRequestScope(input: {
       organizationIds: organizationId ? [organizationId] : [],
       regionId: regionIds[0] ?? null,
     }),
+    regionAccessSourceOfTruth:
+      input.isAdmin ? "session" : memberships.length > 0 ? "local_membership_store" : "session",
+    regionAccessConfidence: confidence,
+    regionAccessRuntimeMarker:
+      input.isAdmin ? "admin_fallback" : memberships.length > 0 ? "runtime_backed" : "fixture_demo",
+    user,
   };
 }
 
@@ -240,11 +376,18 @@ async function seedRegionDraftDossier() {
 describe("/api/dossier/[id]/studio/workspace", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    mocks.getSessionUser.mockResolvedValue(null);
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
     setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
     setDossierStudioWorkspaceRepoForTests(createInMemoryDossierStudioWorkspaceRepo());
+    setSocialDistributionRepoForTests(createInMemorySocialDistributionRepo());
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [];
+      },
+    });
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "admin-1" } },
       roles: ["admin"],
@@ -316,6 +459,14 @@ describe("/api/dossier/[id]/studio/workspace", () => {
         ],
       }),
     );
+  }
+
+  function seedActiveContract() {
+    setPricingOrderContractsRuntimeRepoForTests({
+      async listPricingOrdersForOrganization() {
+        return [activeContractRecord as any];
+      },
+    });
   }
 
   it("returns an empty server state for admin before a workspace exists", async () => {
@@ -740,6 +891,243 @@ describe("/api/dossier/[id]/studio/workspace", () => {
       access: {
         canApproveOfficialPublication: true,
       },
+    });
+  });
+
+  it("creates a review-first social distribution draft and keeps published_manual explicit", async () => {
+    const draftId = await seedRegionDraftDossier();
+    const payload = buildStudioPayload(draftId);
+    seedActiveContract();
+    const distributionMemberships = [
+      ...unitMembership.map((membership) => ({
+        ...membership,
+        userId: "staff-1",
+      })),
+      ...publicationApprovedMembership.map((membership) => ({
+        ...membership,
+        id: "membership-publication-social-1",
+        userId: "staff-1",
+      })),
+    ];
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations,
+        memberships: distributionMemberships,
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-publisher-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-24T09:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 0,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-24T09:00:00.000Z",
+            updatedAt: "2026-05-24T09:00:00.000Z",
+            createdBy: "admin-1",
+            source: "manual_contract",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "staff-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: distributionMemberships,
+        organizations,
+      }),
+    });
+
+    const created = await PATCH(
+      buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        socialDistributionAction: "create_draft",
+        plan: {
+          ...payload.plan,
+          visibilityState: "public_reviewed",
+        },
+        selectedChannels: ["website_update", "newsletter_draft"],
+        note: "Review-first Verteilentwurf.",
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+
+    expect(created.status).toBe(200);
+    const createdBody = await created.json();
+    expect(createdBody).toMatchObject({
+      ok: true,
+      post: {
+        organizationId: "org-reinickendorf-1",
+        status: "review_required",
+        channels: ["website_update", "newsletter_draft"],
+        sourceVisibilityState: "public_reviewed",
+      },
+    });
+
+    const stored = await getSocialDistributionRepo().getPost(createdBody.post.id);
+    expect(stored?.status).toBe("review_required");
+    expect(stored?.status).not.toBe("published_manual");
+
+    const published = await PATCH(
+      buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        socialDistributionAction: "mark_published",
+        postId: createdBody.post.id,
+        note: "Manuell veröffentlicht nach Freigabe.",
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+
+    expect(published.status).toBe(200);
+    await expect(published.json()).resolves.toMatchObject({
+      ok: true,
+      post: {
+        id: createdBody.post.id,
+        status: "published_manual",
+      },
+    });
+  });
+
+  it("blocks social distribution drafts for review-only source visibility", async () => {
+    const draftId = await seedRegionDraftDossier();
+    const payload = buildStudioPayload(draftId);
+    seedActiveContract();
+    const distributionMemberships = [
+      ...unitMembership.map((membership) => ({
+        ...membership,
+        userId: "staff-1",
+      })),
+      ...publicationApprovedMembership.map((membership) => ({
+        ...membership,
+        id: "membership-publication-social-2",
+        userId: "staff-1",
+      })),
+    ];
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations,
+        memberships: distributionMemberships,
+      }),
+    );
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-publisher-2",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-24T09:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 0,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-24T09:00:00.000Z",
+            updatedAt: "2026-05-24T09:00:00.000Z",
+            createdBy: "admin-1",
+            source: "manual_contract",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+      requestScope: await buildGovernanceRequestScope({
+        userId: "staff-1",
+        roles: ["institutional_actor"],
+        actorRole: "institutional_actor",
+        memberships: distributionMemberships,
+        organizations,
+      }),
+    });
+
+    const response = await PATCH(
+      buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
+        socialDistributionAction: "create_draft",
+        plan: {
+          ...payload.plan,
+          visibilityState: "internal_review",
+        },
+        selectedChannels: ["website_update"],
+      }),
+      { params: Promise.resolve({ id: draftId }) },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: "social_distribution_review_only_source",
     });
   });
 });

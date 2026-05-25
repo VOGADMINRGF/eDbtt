@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
+import {
+  summarizeRequestScopeContext,
+  type RequestScopeSummary,
+} from "@/lib/server/auth/requestScope";
+import { hasVerifiedMembershipWriteAccess } from "@/lib/server/auth/membershipDirectoryRepository";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import {
   type DossierStudioWorkspaceSource,
@@ -8,10 +13,13 @@ import {
 } from "@features/dossier/server/studioPersistence";
 import {
   MasterPostSchema,
+  SocialDistributionPlanSchema,
   SocialCarouselOutputSchema,
   SocialDistributionDraftSchema,
 } from "@features/outputEngine";
+import { getSocialDistributionRepo } from "@features/outputEngine/socialDistributionRuntime";
 import {
+  buildOrganizationDashboardReadModel,
   canEditOrganizationResource,
   canApprovePublication,
   canCreateDossierDraft,
@@ -19,6 +27,7 @@ import {
   canViewRegionResource,
   findRegionSignalDraftRecordByDraftId,
   getOperationalRegionById,
+  organizationEntitlementAllowsScope,
   regionScopeFromRegionAccessContext,
   type RegionAccessContext,
 } from "@features/region";
@@ -48,6 +57,40 @@ const WorkspaceOfficialApprovalSchema = z
   })
   .strict();
 
+const SocialDistributionCreateSchema = z
+  .object({
+    socialDistributionAction: z.literal("create_draft"),
+    plan: SocialDistributionPlanSchema,
+    selectedChannels: z.array(z.enum([
+      "website_update",
+      "newsletter_draft",
+      "embed_snippet",
+      "qr_asset",
+      "linkedin_draft",
+      "x_draft",
+      "mastodon_draft",
+      "instagram_asset",
+      "press_note",
+    ])).min(1),
+    note: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
+
+const SocialDistributionStatusSchema = z
+  .object({
+    socialDistributionAction: z.enum([
+      "approve",
+      "schedule",
+      "mark_published",
+      "fail",
+      "revoke",
+      "archive",
+    ]),
+    postId: z.string().trim().min(1),
+    note: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
+
 type RouteParams = { params: Promise<{ id: string }> };
 
 type ResolvedStudioAccess = {
@@ -68,6 +111,9 @@ type ResolvedStudioAccess = {
     fixture?: boolean;
   };
   accessContext: RegionAccessContext | null;
+  requestScopeSummary: RequestScopeSummary | null;
+  roles: string[];
+  isAdmin: boolean;
 };
 
 async function buildAccessContextFromRuntime(input: {
@@ -132,6 +178,9 @@ async function resolveStudioAccess(
       fixture: draftRecord?.provenance.pilotFixture,
     },
     accessContext,
+    requestScopeSummary: summarizeRequestScopeContext(gateWithRegion.requestScope),
+    roles: [...gateWithRegion.roles],
+    isAdmin: gateWithRegion.actor.isAdmin,
   };
 }
 
@@ -199,6 +248,174 @@ function workspaceResponseBody(
       canApproveOfficialPublication: canApproveWorkspacePublication(access),
     },
   };
+}
+
+function socialDistributionStatusFromAction(
+  action: z.infer<typeof SocialDistributionStatusSchema>["socialDistributionAction"],
+) {
+  switch (action) {
+    case "approve":
+      return "approved" as const;
+    case "schedule":
+      return "scheduled" as const;
+    case "mark_published":
+      return "published_manual" as const;
+    case "fail":
+      return "failed" as const;
+    case "revoke":
+      return "revoked" as const;
+    case "archive":
+    default:
+      return "archived" as const;
+  }
+}
+
+function channelTextMapFromPlan(plan: z.infer<typeof SocialDistributionPlanSchema>) {
+  const versions = new Map(plan.channelVersions.map((entry) => [entry.channel, entry]));
+  return Object.fromEntries(
+    plan.targets.map((target) => {
+      const version = versions.get(target.channel);
+      return [
+        target.channel,
+        [version?.excerpt, version?.detail, target.postText]
+          .filter((value): value is string => Boolean(value))
+          .join(" ")
+          .trim(),
+      ];
+    }),
+  );
+}
+
+async function resolveSocialDistributionDashboard(access: ResolvedStudioAccess) {
+  const userId = access.accessContext?.userId ?? "";
+  if (!userId) return null;
+  return buildOrganizationDashboardReadModel({
+    userId,
+    roles: access.roles,
+    isAdmin: access.isAdmin,
+    actorRole: null,
+  });
+}
+
+async function assertSocialDistributionAccess(params: {
+  access: ResolvedStudioAccess;
+  visibilityState: z.infer<typeof SocialDistributionPlanSchema>["visibilityState"];
+}) {
+  const { access, visibilityState } = params;
+  const requestScope = access.requestScopeSummary;
+
+  if (!canWriteWorkspace(access)) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "social_distribution_write_forbidden",
+      message: "Schreibrechte fehlen für diesen Organisationspfad.",
+    };
+  }
+
+  if (!access.organizationId && !requestScope?.organizationId) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "social_distribution_org_scope_required",
+      message:
+        "Produktive Distribution bleibt organisationsgebunden. Ohne bestätigten Org-Scope entsteht kein aktiver Verteilentwurf.",
+    };
+  }
+
+  if (visibilityState === "internal_review") {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "social_distribution_review_only_source",
+      message:
+        "Review-only- oder interne Inhalte erzeugen keinen produktiven Social-Entwurf. Bitte zuerst Sichtbarkeit und Freigabe klären.",
+    };
+  }
+
+  if (
+    !requestScope ||
+    !hasVerifiedMembershipWriteAccess({
+      membershipStatus: requestScope.membershipStatus,
+      organizationRole: requestScope.organizationRole,
+      isOperatorMode: requestScope.isOperatorMode,
+      sourceOfTruth: requestScope.sourceOfTruth,
+    })
+  ) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "social_distribution_membership_required",
+      message:
+        "Für produktive Verteilentwürfe braucht es verifizierte Membership mit Schreibrechten im bestätigten Org-Scope.",
+    };
+  }
+
+  const dashboard = await resolveSocialDistributionDashboard(access);
+  if (!dashboard) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "social_distribution_contract_pending",
+      message:
+        "Vertrag, Billing-Status und Freischaltung sind noch nicht sauber aufgelöst. Produktive Distribution bleibt blockiert.",
+    };
+  }
+
+  const contractStatus = dashboard.contractSummary.currentContractStatus;
+  const billingStatus = dashboard.contractSummary.billingStatus;
+  if (
+    contractStatus === "none" ||
+    contractStatus === "draft" ||
+    contractStatus === "offered" ||
+    contractStatus === "accepted" ||
+    contractStatus === "limited" ||
+    billingStatus === "none" ||
+    billingStatus === "billing_pending" ||
+    billingStatus === "grace_period"
+  ) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "social_distribution_contract_limited",
+      message:
+        "Verteilentwürfe bleiben bis zu aktiver Vertrags- und Billing-Lage im sicheren Review-/Pending-Status.",
+    };
+  }
+
+  if (
+    contractStatus === "suspended" ||
+    contractStatus === "cancelled" ||
+    contractStatus === "expired" ||
+    billingStatus === "overdue" ||
+    billingStatus === "suspended" ||
+    billingStatus === "cancelled" ||
+    billingStatus === "expired"
+  ) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "social_distribution_contract_blocked",
+      message:
+        "Vertrag oder Billing-Status blockieren produktive Distribution. Der Entwurf bleibt nicht aktiv.",
+    };
+  }
+
+  if (
+    !organizationEntitlementAllowsScope(dashboard.entitlementSummary, "review_queue") ||
+    !organizationEntitlementAllowsScope(dashboard.entitlementSummary, "content_release") ||
+    !organizationEntitlementAllowsScope(dashboard.entitlementSummary, "public_share")
+  ) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "social_distribution_entitlement_missing",
+      message:
+        "Freigegebene Distribution braucht Review-, Content-Release- und Public-Share-Scopes. Diese Freischaltung fehlt noch.",
+    };
+  }
+
+  return { ok: true as const };
 }
 
 export async function GET(req: NextRequest, params: RouteParams) {
@@ -280,6 +497,79 @@ export async function PATCH(req: NextRequest, params: RouteParams) {
       return NextResponse.json(workspaceResponseBody(workspace, access), {
         status: 200,
       });
+    }
+
+    const socialCreate = SocialDistributionCreateSchema.safeParse(rawBody);
+    if (socialCreate.success) {
+      const gate = await assertSocialDistributionAccess({
+        access,
+        visibilityState: socialCreate.data.plan.visibilityState,
+      });
+      if (!gate.ok) {
+        return NextResponse.json(
+          { ok: false, error: gate.error, message: gate.message },
+          { status: gate.status },
+        );
+      }
+
+      const repo = getSocialDistributionRepo();
+      const post = await repo.createOrReplaceDraft({
+        organizationId: access.organizationId ?? access.requestScopeSummary?.organizationId ?? "",
+        regionId: access.regionId,
+        dossierId: access.dossierId,
+        sourceContextType: "dossier",
+        sourceContextId: access.dossierId,
+        sourceVisibilityState: socialCreate.data.plan.visibilityState,
+        title: socialCreate.data.plan.suggestedPostText.slice(0, 120) || access.title,
+        channels: socialCreate.data.selectedChannels,
+        scheduleMode: socialCreate.data.plan.scheduleMode,
+        channelTexts: channelTextMapFromPlan(socialCreate.data.plan),
+        sourceSummary: [
+          socialCreate.data.plan.regionalContext,
+          socialCreate.data.plan.participationQuestion,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        backlinkHref: socialCreate.data.plan.backlinkTarget,
+        embedHref: socialCreate.data.plan.backlinkTarget,
+        qrHref: socialCreate.data.plan.backlinkTarget,
+        reviewRequired: true,
+        createdByUserId: access.accessContext?.userId ?? "unknown",
+        note: socialCreate.data.note ?? null,
+      });
+      return NextResponse.json({ ok: true, post }, { status: 200 });
+    }
+
+    const socialStatus = SocialDistributionStatusSchema.safeParse(rawBody);
+    if (socialStatus.success) {
+      const repo = getSocialDistributionRepo();
+      const existingPost = await repo.getPost(socialStatus.data.postId);
+      if (!existingPost) {
+        return NextResponse.json(
+          { ok: false, error: "social_distribution_post_not_found" },
+          { status: 404 },
+        );
+      }
+
+      const gate = await assertSocialDistributionAccess({
+        access,
+        visibilityState: existingPost.sourceVisibilityState,
+      });
+      if (!gate.ok) {
+        return NextResponse.json(
+          { ok: false, error: gate.error, message: gate.message },
+          { status: gate.status },
+        );
+      }
+
+      const post = await repo.updateStatus({
+        postId: socialStatus.data.postId,
+        organizationId: access.organizationId ?? access.requestScopeSummary?.organizationId ?? "",
+        nextStatus: socialDistributionStatusFromAction(socialStatus.data.socialDistributionAction),
+        updatedByUserId: access.accessContext?.userId ?? "unknown",
+        note: socialStatus.data.note ?? null,
+      });
+      return NextResponse.json({ ok: true, post }, { status: 200 });
     }
 
     if (!canWriteWorkspace(access)) return writeDeniedResponse();

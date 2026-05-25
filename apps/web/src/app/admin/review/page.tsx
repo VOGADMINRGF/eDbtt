@@ -170,7 +170,8 @@ export default async function AdminReviewPage({
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           Keine Sammelentscheidung, kein Auto-Publish, kein automatisches public_official und keine
-          automatische Dossier-/Anlassraum-Finalisierung. Provider- oder Siegelpfade bleiben
+          automatische Dossier-/Anlassraum-Finalisierung. Social-/CI-Distribution bleibt review-first,
+          auditierbar und manuell veröffentlicht. Provider- oder Siegelpfade bleiben
           bewusste, auditierbare Einzelentscheidungen.
         </p>
       </header>

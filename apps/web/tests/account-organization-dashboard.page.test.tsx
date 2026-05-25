@@ -26,6 +26,10 @@ import {
   setFactcheckWorkflowRepoForTests,
 } from "@features/factcheck/db";
 import {
+  createInMemorySocialDistributionRepo,
+  setSocialDistributionRepoForTests,
+} from "@features/outputEngine/socialDistributionRuntime";
+import {
   createInMemoryReviewQueueOperationRepo,
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
@@ -153,6 +157,17 @@ function buildOperatorDashboardReadModel() {
     dossierDrafts: [],
     anlassraumDrafts: [],
     participationSignals: [],
+    socialDistributionSummary: {
+      currentState: "not_enabled",
+      statusLabel: "Keine Verteilentwürfe aktiv",
+      nextStepTitle: "Review-first Verteilung startet erst nach Freigabe",
+      nextStepBody:
+        "Social Publishing bleibt im v1-Pfad kanalweiser Entwurf mit Review, Audit und manuellem Published-Marking.",
+      storeLabel: "In-Memory-/Test-Fallback",
+      productionTruth: false,
+      reviewRequired: true,
+      items: [],
+    },
     publishSummary: {
       totalPrepared: 0,
       visibleCount: 0,
@@ -191,6 +206,7 @@ describe("/account/organization/dashboard page", () => {
     setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
     setFactcheckWorkflowRepoForTests(createInMemoryFactcheckWorkflowRepo());
+    setSocialDistributionRepoForTests(createInMemorySocialDistributionRepo());
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
     setMembershipDirectoryRepositoryForTests(null);
     setPricingOrderContractsRuntimeRepoForTests({
@@ -861,6 +877,50 @@ describe("/account/organization/dashboard page", () => {
       expect(html).toContain("Betreiber-verifizierter Vertragsprozess");
       expect(html).toContain("Dieser Scope ist sichtbar, aber im aktuellen Vertrags- oder Billing-Status nicht aktiv.");
       expect(html).toContain("Audit-Hinweis: Vertrags-, Billing- und Plan-Entscheidungen bleiben persistent und auditierbar.");
+    } finally {
+      readModelSpy.mockRestore();
+    }
+  });
+
+  it("renders social distribution states honestly without auto-publish language", async () => {
+    const readModelSpy = vi.spyOn(regionFeatures, "buildOrganizationDashboardReadModel");
+    readModelSpy.mockResolvedValue({
+      ...buildOperatorDashboardReadModel(),
+      socialDistributionSummary: {
+        currentState: "review_required",
+        statusLabel: "Review erforderlich",
+        nextStepTitle: "Review und Kanalentscheidung stehen an",
+        nextStepBody:
+          "Freigabe heißt nicht veröffentlicht. `approved` und `published_manual` bleiben getrennt, auditierbar und ohne externes API-Posting.",
+        storeLabel: "Persistente Distribution-Runtime",
+        productionTruth: true,
+        reviewRequired: true,
+        items: [
+          {
+            id: "social-dist-1",
+            title: "Eigener Verteilentwurf",
+            status: "review_required",
+            statusLabel: "Review erforderlich",
+            channels: ["website_update", "newsletter_draft"],
+            sourceState: "approved_context",
+            sourceVisibilityState: "public_reviewed",
+            approvalRequired: true,
+            sealGranted: false,
+            updatedAt: "2026-05-24T09:00:00.000Z",
+          },
+        ],
+      },
+    } as any);
+
+    try {
+      const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+      expect(html).toContain("Social &amp; Distribution");
+      expect(html).toContain("Persistente Distribution-Runtime");
+      expect(html).toContain("Review erforderlich");
+      expect(html).toContain("Freigegebener Kontext");
+      expect(html).toContain("Kein Auto-Publish");
+      expect(html).toContain("Kein Siegel ohne explizite Freigabe.");
+      expect(html).not.toContain("Jetzt veröffentlichen");
     } finally {
       readModelSpy.mockRestore();
     }

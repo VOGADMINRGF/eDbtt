@@ -7,19 +7,15 @@ import {
 } from "@features/region/publicationRiskLadder";
 
 export const SOCIAL_DISTRIBUTION_CHANNELS = [
-  "website_embed",
-  "instagram",
-  "facebook",
-  "linkedin",
-  "tiktok",
-  "youtube_shorts",
-  "x_twitter",
-  "mastodon",
-  "bluesky",
-  "whatsapp_channel",
-  "telegram",
-  "newsletter",
-  "qr_print",
+  "website_update",
+  "newsletter_draft",
+  "embed_snippet",
+  "qr_asset",
+  "linkedin_draft",
+  "x_draft",
+  "mastodon_draft",
+  "instagram_asset",
+  "press_note",
 ] as const;
 
 export const SOCIAL_DISTRIBUTION_MODES = [
@@ -32,10 +28,12 @@ export const SOCIAL_DISTRIBUTION_MODES = [
 export const SOCIAL_DISTRIBUTION_STATUSES = [
   "draft",
   "review_required",
-  "ready_for_schedule",
+  "approved",
   "scheduled",
-  "prepared",
-  "export_ready",
+  "published_manual",
+  "failed",
+  "revoked",
+  "archived",
 ] as const;
 
 export const SOCIAL_CONNECTOR_STATUSES = [
@@ -121,11 +119,11 @@ export type SocialDistributionChannelVersion = {
 };
 
 export const SOCIAL_DISTRIBUTION_DRAFT_STATUSES = [
-  "draft_saved",
-  "review_requested",
-  "planned",
-  "prepared_internal",
-  "external_export_only",
+  "draft",
+  "review_required",
+  "approved",
+  "scheduled",
+  "archived",
 ] as const;
 
 export type SocialDistributionDraftStatus =
@@ -256,19 +254,15 @@ export const SocialDistributionPlanSchema = z
   .strict();
 
 const CHANNEL_LABELS: Record<SocialDistributionChannel, string> = {
-  website_embed: "Website / Dossier-Post",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  linkedin: "LinkedIn",
-  tiktok: "TikTok",
-  youtube_shorts: "YouTube Shorts",
-  x_twitter: "X",
-  mastodon: "Mastodon",
-  bluesky: "Bluesky",
-  whatsapp_channel: "WhatsApp-Kanal",
-  telegram: "Telegram",
-  newsletter: "Newsletter",
-  qr_print: "QR / Print",
+  website_update: "Website-Update",
+  newsletter_draft: "Newsletter-Entwurf",
+  embed_snippet: "Embed-Snippet",
+  qr_asset: "QR-Asset",
+  linkedin_draft: "LinkedIn-Entwurf",
+  x_draft: "X-Entwurf",
+  mastodon_draft: "Mastodon-Entwurf",
+  instagram_asset: "Instagram-Asset",
+  press_note: "Pressenotiz",
 };
 
 function envFlag(name: string, fallback: boolean): boolean {
@@ -295,15 +289,22 @@ function resolveConnectorStatus(
   channel: SocialDistributionChannel,
   policy: SocialPublishingPolicy,
 ): SocialConnectorStatus {
-  if (channel === "website_embed" || channel === "qr_print") return "internal_available";
+  if (
+    channel === "website_update" ||
+    channel === "embed_snippet" ||
+    channel === "qr_asset" ||
+    channel === "newsletter_draft" ||
+    channel === "press_note"
+  ) {
+    return "internal_available";
+  }
 
-  if (channel === "newsletter") {
-    if (!policy.externalApisEnabled) return "not_connected";
-    return "configured";
+  if (channel === "instagram_asset") {
+    return "requires_review";
   }
 
   if (!policy.externalApisEnabled) return "disabled_by_policy";
-  return "not_connected";
+  return "configured";
 }
 
 function resolveNextAction(status: SocialConnectorStatus): string {
@@ -320,10 +321,11 @@ function resolveDistributionStatus(
   connectorStatus: SocialConnectorStatus,
 ): SocialDistributionStatus {
   if (!selected) return "draft";
-  if (connectorStatus === "internal_available") return "ready_for_schedule";
-  if (connectorStatus === "disabled_by_policy" || connectorStatus === "not_connected") return "export_ready";
   if (connectorStatus === "requires_review") return "review_required";
-  return "ready_for_schedule";
+  if (connectorStatus === "disabled_by_policy" || connectorStatus === "not_connected") {
+    return "review_required";
+  }
+  return "approved";
 }
 
 function stableKey(input: string): string {
@@ -358,58 +360,73 @@ function buildChannelVersions(input: {
 
   return [
     {
+      id: "version_website_update",
+      channel: "website_update",
+      title: "Website-Update",
+      postType: "Kurztext + Dossier-Link",
+      excerpt: compact(masterPost.body, 190),
+      detail: "Sachlicher Update-Text für öffentliche Web-Einbettung im Review-first-Pfad.",
+    },
+    {
       id: "version_instagram",
-      channel: "instagram",
-      title: "Instagram",
+      channel: "instagram_asset",
+      title: "Instagram-Asset",
       postType: "Caption + Carousel-Outline",
       excerpt: compact(carouselOutput.suggestedPostText, 180),
       detail: `Carousel: ${slideOutline}. ${hashtagLine}`,
     },
     {
-      id: "version_tiktok",
-      channel: "tiktok",
-      title: "TikTok / Reels / YouTube Shorts",
-      postType: "Hook + Szenenplan + Voiceover",
-      excerpt: compact(masterPost.hook, 170),
-      detail:
-        "Szenenplan: 1) Leitfrage, 2) Anlass, 3) Belegt/Offen, 4) Optionen, 5) Beteiligung + Dossier-Link.",
-    },
-    {
       id: "version_linkedin",
-      channel: "linkedin",
-      title: "LinkedIn",
+      channel: "linkedin_draft",
+      title: "LinkedIn-Entwurf",
       postType: "Professioneller Sachpost",
       excerpt: compact(masterPost.body, 210),
       detail: "Fokus auf Quellenlage, Übertragbarkeit, offene Fragen und umsetzbare Optionen.",
     },
     {
-      id: "version_facebook",
-      channel: "facebook",
-      title: "Facebook",
-      postType: "Lokaler Community-Post",
-      excerpt: compact(masterPost.participationQuestion, 180),
-      detail: "Fokus auf lokale Betroffenheit und konkrete Hinweise aus der Bürgerschaft.",
-    },
-    {
-      id: "version_micro",
-      channel: "x_twitter",
-      title: "X / Mastodon / Bluesky",
-      postType: "Kurzpost",
+      id: "version_x",
+      channel: "x_draft",
+      title: "X-Entwurf",
+      postType: "Kurzpost-Entwurf",
       excerpt: compact(`${masterPost.hook} ${masterPost.cta}`, 150),
       detail: "Kurzformat mit Dossier-Link und klarer Review-Hinweispflicht.",
     },
     {
+      id: "version_mastodon",
+      channel: "mastodon_draft",
+      title: "Mastodon-Entwurf",
+      postType: "Kurzpost-Entwurf",
+      excerpt: compact(`${masterPost.hook} ${masterPost.participationQuestion}`, 150),
+      detail: "Kurzformat mit Kontext, Link und ehrlichem Review-Hinweis.",
+    },
+    {
       id: "version_newsletter",
-      channel: "newsletter",
-      title: "Newsletter",
+      channel: "newsletter_draft",
+      title: "Newsletter-Entwurf",
       postType: "Briefing",
       excerpt: compact(masterPost.body, 200),
       detail: "Kurzbriefing mit Quellenlage, offenen Fragen und Entscheidungsoptionen.",
     },
     {
+      id: "version_press_note",
+      channel: "press_note",
+      title: "Pressenotiz",
+      postType: "Kurznotiz",
+      excerpt: compact(masterPost.body, 190),
+      detail: "Kurznotiz mit Kontext, Limitierungen und Verweis auf den Review-Stand.",
+    },
+    {
+      id: "version_embed",
+      channel: "embed_snippet",
+      title: "Embed-Snippet",
+      postType: "Einbettung + Teaser",
+      excerpt: compact(masterPost.title, 150),
+      detail: "Interne Einbettung für Website- oder Dossier-Module ohne externes Posting.",
+    },
+    {
       id: "version_print",
-      channel: "qr_print",
-      title: "QR / Print",
+      channel: "qr_asset",
+      title: "QR-Asset",
       postType: "Poster-/Handout-Text",
       excerpt: "Kurzfassung mit Beteiligungsfrage, QR-Ziel und Review-Hinweis.",
       detail: "Geeignet für Auslage, Veranstaltungsmaterial und Vor-Ort-Dialog.",
@@ -502,10 +519,15 @@ export function buildSocialDistributionPlan(
   ];
   const scheduleMode = options?.scheduleMode ?? "suggested_window";
 
-  const safeSuggestions: SocialDistributionChannel[] = ["website_embed", "linkedin"];
+  const safeSuggestions: SocialDistributionChannel[] = [
+    "website_update",
+    "newsletter_draft",
+    "embed_snippet",
+    "qr_asset",
+  ];
   const defaultSelected = options?.selectedChannels?.length
     ? options.selectedChannels
-    : ["website_embed", "linkedin", "qr_print"];
+    : ["website_update", "newsletter_draft", "qr_asset"];
 
   const postText = masterPost.body;
   const hashtags = hashtagStrings(masterPost);
@@ -531,7 +553,8 @@ export function buildSocialDistributionPlan(
   });
 
   const selectedChannels = targets.filter((target) => target.selected).map((target) => target.channel);
-  const status: SocialDistributionStatus = masterPost.reviewStatus === "approved" ? "ready_for_schedule" : "review_required";
+  const status: SocialDistributionStatus =
+    masterPost.reviewStatus === "approved" ? "approved" : "review_required";
 
   const plan: SocialDistributionPlan = {
     dossierId: masterPost.dossierId,
@@ -559,8 +582,8 @@ export function buildSocialDistributionPlan(
     publishActionEnabled: false,
     policy,
     policyHints: [
-      "Echtzeit-Veröffentlichung ist aktuell deaktiviert.",
-      "Automatisierung erst nach Admin-Freigabe.",
+      "Kein Auto-Publish und keine externe API-Verteilung im v1-Pfad.",
+      "Kanalentwürfe bleiben review-first und werden nur manuell veröffentlicht.",
     ],
     channelVersions: buildChannelVersions({
       masterPost,

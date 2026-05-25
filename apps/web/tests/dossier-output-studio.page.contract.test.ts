@@ -39,27 +39,27 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Kanalverbindungen");
     expect(html).toContain("Veröffentlichungsmodus");
     expect(html).toContain("Verteilung planen");
-    expect(html).toContain("Website / Dossier-Post");
-    expect(html).toContain("Instagram");
-    expect(html).toContain("LinkedIn");
-    expect(html).toContain("Newsletter");
-    expect(html).toContain("QR / Print");
-    expect(html).toContain("Nicht verbunden");
+    expect(html).toContain("Website-Update");
+    expect(html).toContain("Instagram-Asset");
+    expect(html).toContain("LinkedIn-Entwurf");
+    expect(html).toContain("Newsletter-Entwurf");
+    expect(html).toContain("QR-Asset");
+    expect(html).toContain("Intern verfügbar");
     expect(html).toContain("Konfiguration erforderlich");
-    expect(html).toContain("Nur Export");
+    expect(html).toContain("Review erforderlich");
     expect(html).toContain("Nur Export/Kopieren möglich");
-    expect(html).toContain("Echtzeit-Veröffentlichung ist aktuell deaktiviert");
-    expect(html).toContain("Automatisierung erst nach Admin-Freigabe");
-    expect(html).toContain("Verteilplan als Entwurf speichern");
-    expect(html).toContain("Verteilplan übernehmen");
+    expect(html).toContain("Kein Auto-Publish und keine externe API-Verteilung im v1-Pfad");
+    expect(html).toContain("Kanalentwürfe bleiben review-first und werden nur manuell veröffentlicht");
+    expect(html).toContain("Entwurf erstellen");
+    expect(html).toContain("Review markieren");
     expect(html).toContain("Empfohlener Verteilplan");
     expect(html).toContain("Kanal-Versionen");
-    expect(html).toContain("TikTok / Reels / YouTube Shorts");
+    expect(html).toContain("Pressenotiz");
     expect(html).toContain("Kanäle verbinden");
-    expect(html).toContain("Post-Entwurf prüfen");
+    expect(html).toContain("Review markieren");
     expect(html).toContain("Zurück zum Dossier");
     expect(html).toContain("Text kopieren");
-    expect(html).toContain("Entwurf speichern");
+    expect(html).toContain("Entwurf erstellen");
     expect(html).toContain("Admin: Kanal-Konfiguration &amp; Review-Routing");
     expect(html).toContain("QR-/Print-Vorschau");
   });
@@ -67,7 +67,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
   it("keeps publish action non-active and preserves source/review warning", async () => {
     const html = await renderStudioPage();
 
-    expect(html).toContain("Veröffentlichung vorbereiten");
+    expect(html).toContain("Verteilung vorbereiten");
     expect(html).toContain("Quellenlage");
     expect(html).toContain("Review erforderlich");
     expect(html).toContain("Sichtbar heißt hier nicht automatisch geprüft oder amtlich.");
@@ -160,6 +160,6 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("kein `demoDossierForOutputEngine` als Ersatz");
     expect(html).toContain("region draft review only");
     expect(html).not.toContain("Fertiger Post-Entwurf");
-    expect(html).not.toContain("Verteilplan übernehmen");
+    expect(html).not.toContain("Review markieren");
   });
 });

@@ -20,8 +20,8 @@ describe("studio distribution panel contract", () => {
     expect(html).toContain("Admin: Kanal-Konfiguration &amp; Review-Routing");
     expect(html).toContain("QR-/Print-Vorschau");
     expect(html).toContain("Text kopieren");
-    expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Veröffentlichung vorbereiten");
+    expect(html).toContain("Entwurf erstellen");
+    expect(html).toContain("Verteilung vorbereiten");
     expect(html).toContain("LocalStorage-Arbeitsstände bleiben lokal im Browser");
     expect(html).toContain("Browser-Arbeitsstände werden nur lokal gespeichert.");
     expect(html).not.toContain("Jetzt veröffentlichen");

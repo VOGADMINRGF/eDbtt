@@ -21,6 +21,10 @@ import {
   createInMemoryFactcheckWorkflowRepo,
   setFactcheckWorkflowRepoForTests,
 } from "@features/factcheck/db";
+import {
+  createInMemorySocialDistributionRepo,
+  setSocialDistributionRepoForTests,
+} from "@features/outputEngine/socialDistributionRuntime";
 import { buildReviewQueueReadModel } from "@features/reviewQueue";
 import {
   applyReviewQueueOperation,
@@ -209,19 +213,19 @@ describe("review queue readmodel", () => {
           packageId: "package-1",
           visibilityState: "internal_review",
           savedAt: "2026-05-17T10:30:00.000Z",
-          status: "review_requested",
+          status: "review_required",
           scheduleMode: "manual",
-          selectedChannels: ["website_embed"],
+          selectedChannels: ["website_update"],
           reviewRequired: true,
           backlinkTarget: "/dossier/dossier-1",
           queue: [
             {
               id: "queue-1",
-              channel: "website_embed",
-              label: "Website",
+              channel: "website_update",
+              label: "Website-Update",
               recommendedWindow: "Sobald Review abgeschlossen ist",
               status: "review_required",
-              connectorStatus: "disabled_by_policy",
+              connectorStatus: "internal_available",
               actionLabel: "Review abschließen",
             },
           ],
@@ -589,6 +593,60 @@ describe("review queue readmodel", () => {
         ],
       }),
     );
+    setSocialDistributionRepoForTests(
+      createInMemorySocialDistributionRepo({
+        posts: [
+          {
+            id: "social-dist-1",
+            organizationId: "org-reinickendorf-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            dossierId: "dossier-1",
+            sourceContextType: "dossier",
+            sourceContextId: "dossier-1",
+            sourceVisibilityState: "public_reviewed",
+            sourceState: "approved_context",
+            title: "Schulsanierung Studio",
+            status: "review_required",
+            channels: ["website_update", "newsletter_draft"],
+            scheduleMode: "manual",
+            channelTexts: {
+              website_update: "Sachlicher Update-Entwurf für das Dossier.",
+              newsletter_draft: "Newsletter-Entwurf mit Review-Hinweis.",
+            },
+            channelNotes: {},
+            assets: [
+              {
+                id: "asset-1",
+                channel: "website_update",
+                kind: "channel_text",
+                label: "Website-Update",
+                href: "/dossier/dossier-1",
+                text: "Sachlicher Update-Entwurf für das Dossier.",
+                verificationLabel: "analysiert",
+                sealGranted: false,
+                publicSafe: true,
+              },
+            ],
+            approval: {
+              reviewRequired: true,
+              approvedByUserId: null,
+              approvedAt: null,
+              note: null,
+            },
+            sourceSummary: "Freigegebener Dossier-Kontext mit Review-first Verteilung.",
+            limitations: ["Kein Auto-Publish."],
+            noAutoPublish: true,
+            noAutoPublicationApproved: true,
+            noPublicOfficial: true,
+            externalPosting: false,
+            createdByUserId: "user-1",
+            updatedByUserId: "user-1",
+            createdAt: "2026-05-19T09:10:00.000Z",
+            updatedAt: "2026-05-19T09:10:00.000Z",
+          },
+        ],
+      }),
+    );
     setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   });
 
@@ -754,6 +812,10 @@ describe("review queue readmodel", () => {
         expect.objectContaining({
           domain: "output_artifact",
           title: "Schulsanierung Studio · Distribution",
+          socialDistributionContext: expect.objectContaining({
+            channels: ["website_update", "newsletter_draft"],
+            sourceState: "approved_context",
+          }),
         }),
       ]),
     );

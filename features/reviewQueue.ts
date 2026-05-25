@@ -64,6 +64,11 @@ import {
 import {
   factcheckStatusLabel,
 } from "./factcheck/workflow";
+import {
+  getSocialDistributionRepo,
+  socialDistributionStatusLabel,
+  type SocialDistributionPost,
+} from "./outputEngine/socialDistributionRuntime";
 
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
@@ -166,6 +171,11 @@ export type ReviewQueueItem = {
     sourceRefCount: number;
     limitationHint: string;
     scopeSummary: string;
+  } | null;
+  socialDistributionContext?: {
+    channels: string[];
+    sourceState: string;
+    auditHint: string;
   } | null;
 };
 
@@ -915,6 +925,51 @@ function mapWorkspaceOutputItems(params: {
   return items;
 }
 
+function mapSocialDistributionPostItem(params: {
+  post: SocialDistributionPost;
+  regionMap: Map<string, Region>;
+}): ReviewQueueItemCore {
+  const auditHint =
+    params.post.status === "approved"
+      ? "Freigegeben, aber noch nicht manuell veröffentlicht."
+      : params.post.status === "published_manual"
+        ? "Manuell veröffentlicht und auditierbar dokumentiert."
+        : "Review-first Verteilentwurf mit Audit-Hinweis.";
+
+  return {
+    id: `output_artifact:social_distribution:${params.post.id}`,
+    domain: "output_artifact",
+    domainLabel: domainLabelFor("output_artifact"),
+    workflowState: "output_review_required",
+    workflowLabel: workflowLabelFor("output_review_required"),
+    title: `${params.post.title} · Distribution`,
+    summary: `${socialDistributionStatusLabel(params.post.status)} · ${params.post.channels.length} Kanäle · kein Auto-Publish.`,
+    href: workspaceLink(params.post.dossierId ?? params.post.sourceContextId),
+    regionId: params.post.regionId,
+    regionName: regionNameFor(params.regionMap, params.post.regionId),
+    ownerUserId: params.post.createdByUserId,
+    organizationId: params.post.organizationId,
+    dossierId: params.post.dossierId,
+    draftId: params.post.id,
+    sourceType: "social_distribution",
+    visibilityState: params.post.sourceVisibilityState,
+    visibilityLabel: publicationVisibilityLabel(params.post.sourceVisibilityState),
+    createdAt: params.post.createdAt,
+    updatedAt: params.post.updatedAt,
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
+    socialDistributionContext: {
+      channels: [...params.post.channels],
+      sourceState: params.post.sourceState,
+      auditHint,
+    },
+  };
+}
+
 function includeCreateAttachItem(item: CreatePrepareAttachDraftQueueItem) {
   if (item.reviewState === "pending") return true;
   if (item.reviewState === "accepted_for_apply" && item.applyState === "not_applied") return true;
@@ -1384,13 +1439,17 @@ export async function buildReviewQueueReadModel(
   const filters = normalizeReviewQueueQuery(query);
   const regions = await listOperationalRegions();
   const regionMap = new Map(regions.map((region) => [region.id, clone(region)]));
-  const [participationRecords, draftRecords, workspaces] = await Promise.all([
+  const socialDistributionRepo = getSocialDistributionRepo();
+  const [participationRecords, draftRecords, workspaces, socialDistributionPosts] = await Promise.all([
     listParticipationSignalsForReviewRuntime({
       regions,
       query: { reviewStatus: "all", limit: 400 },
     }),
     listRegionSignalDraftRecords(),
     getDossierStudioWorkspaceRepo().listDossierStudioWorkspaces(),
+    scoped.mode === "global_operator"
+      ? socialDistributionRepo.listAllPosts(200)
+      : socialDistributionRepo.listPostsByOrganizationIds(scoped.organizationIds),
   ]);
   const sourceResults = await listRegionSourceTestResults({ limit: 200 });
 
@@ -1446,6 +1505,19 @@ export async function buildReviewQueueReadModel(
       const officialItem = mapWorkspaceOfficialApprovalItem({ workspace, regionMap });
       if (officialItem) coreItems.push(officialItem);
     }
+  }
+
+  for (const post of socialDistributionPosts) {
+    if (
+      !canViewRegionResource(scoped, {
+        ownerUserId: post.createdByUserId,
+        regionId: post.regionId,
+        organizationId: post.organizationId,
+      })
+    ) {
+      continue;
+    }
+    coreItems.push(mapSocialDistributionPostItem({ post, regionMap }));
   }
 
   if (scoped.mode === "global_operator" && scope.governanceActor) {

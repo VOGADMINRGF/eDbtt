@@ -16,7 +16,7 @@ describe("studio telemetry adapter", () => {
     recordStudioTelemetryEvent({
       name: "draft_saved",
       dossierId: "dossier-1",
-      channel: "website_embed",
+      channel: "website_update",
     });
     recordStudioTelemetryEvent({
       name: "plan_adopted",

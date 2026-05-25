@@ -69,6 +69,12 @@ import {
 } from "./organizationContracts";
 import { listPricingOrdersForOrganizationRuntime } from "@features/pricing/orderContractsRuntime";
 import {
+  getSocialDistributionRepo,
+  socialDistributionStatusLabel,
+  type SocialDistributionPost,
+  type SocialDistributionStatus,
+} from "@features/outputEngine/socialDistributionRuntime";
+import {
   regionSourceConnectionTypeLabel,
   sourceConnectionScopeLabel,
   sourceConnectionStatusLabel,
@@ -208,6 +214,38 @@ export type OrganizationDashboardSourceConnectionSummary = {
   connections: OrganizationDashboardSourceConnectionItem[];
 };
 
+export type OrganizationDashboardSocialDistributionItem = {
+  id: string;
+  title: string;
+  status: SocialDistributionStatus;
+  statusLabel: string;
+  channels: string[];
+  sourceState: "review_only" | "approved_context" | "internal_only";
+  sourceVisibilityState: RegionPublicationVisibilityState;
+  approvalRequired: boolean;
+  sealGranted: boolean;
+  updatedAt: string;
+};
+
+export type OrganizationDashboardSocialDistributionSummary = {
+  currentState:
+    | "not_enabled"
+    | "review_required"
+    | "approved"
+    | "scheduled"
+    | "published_manual"
+    | "failed"
+    | "revoked"
+    | "archived";
+  statusLabel: string;
+  nextStepTitle: string;
+  nextStepBody: string;
+  storeLabel: string;
+  productionTruth: boolean;
+  reviewRequired: boolean;
+  items: OrganizationDashboardSocialDistributionItem[];
+};
+
 export type OrganizationDashboardReviewItem = ReviewQueueItem & {
   moderationPermission: NonAdminModerationPermission;
 };
@@ -340,6 +378,7 @@ export type OrganizationDashboardReadModel = {
   contractSummary: OrganizationContractSummary;
   materialIntakeSummary: MaterialIntakeDashboardSummary;
   sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
+  socialDistributionSummary: OrganizationDashboardSocialDistributionSummary;
   regionSummary: OrganizationDashboardRegionSummary[];
   entitlementSummary: OrganizationDashboardEntitlementSummary;
   allowedActions: RegionAllowedAction[];
@@ -1449,6 +1488,7 @@ function buildNextActions(params: {
   regionalStartingPoints: OrganizationDashboardStartingPoint[];
   participationSignals: OrganizationDashboardParticipationSignal[];
   publishSummary: OrganizationDashboardPublishSummary;
+  socialDistributionSummary: OrganizationDashboardSocialDistributionSummary;
 }): OrganizationDashboardNextAction[] {
   const actions: OrganizationDashboardNextAction[] = [];
 
@@ -1536,7 +1576,88 @@ function buildNextActions(params: {
     });
   }
 
+  if (params.socialDistributionSummary.items.length > 0) {
+    actions.push({
+      id: "review_distribution",
+      label: "Verteilentwürfe prüfen",
+      description:
+        "Kanalweise Entwürfe bleiben review-first. Freigabe und manuelles Published-Marking sind getrennte Schritte.",
+      href: "#social-distribution",
+    });
+  }
+
   return actions;
+}
+
+function buildSocialDistributionSummary(input: {
+  items: SocialDistributionPost[];
+}) : OrganizationDashboardSocialDistributionSummary {
+  const items = input.items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    status: item.status,
+    statusLabel: socialDistributionStatusLabel(item.status),
+    channels: item.channels.map((channel) => String(channel)),
+    sourceState: item.sourceState,
+    sourceVisibilityState: item.sourceVisibilityState,
+    approvalRequired: item.approval.reviewRequired,
+    sealGranted: item.assets.some((asset) => asset.sealGranted),
+    updatedAt: item.updatedAt,
+  }));
+
+  if (items.length === 0) {
+    return {
+      currentState: "not_enabled",
+      statusLabel: "Keine Verteilentwürfe aktiv",
+      nextStepTitle: "Review-first Verteilung startet erst nach Freigabe",
+      nextStepBody:
+        "Social Publishing bleibt im v1-Pfad kanalweiser Entwurf mit Review, Audit und manuellem Published-Marking. Ohne freigegebenen Kontext entsteht kein produktiver Draft.",
+      storeLabel: shouldUseInMemoryMongoFallback()
+        ? "In-Memory-/Test-Fallback"
+        : "Persistente Distribution-Runtime",
+      productionTruth: !shouldUseInMemoryMongoFallback(),
+      reviewRequired: true,
+      items,
+    };
+  }
+
+  const primary = items[0]!;
+
+  return {
+    currentState:
+      primary.status === "published_manual"
+        ? "published_manual"
+        : primary.status === "scheduled"
+          ? "scheduled"
+          : primary.status === "approved"
+            ? "approved"
+            : primary.status === "failed"
+              ? "failed"
+              : primary.status === "revoked"
+                ? "revoked"
+                : primary.status === "archived"
+                  ? "archived"
+                  : "review_required",
+    statusLabel: socialDistributionStatusLabel(primary.status),
+    nextStepTitle:
+      primary.status === "approved"
+        ? "Manuelle Veröffentlichung getrennt prüfen"
+        : primary.status === "scheduled"
+          ? "Zeitpunkt und Kanalfreigabe nochmals prüfen"
+          : primary.status === "published_manual"
+            ? "Veröffentlichte Verteilung dokumentiert"
+            : "Review und Kanalentscheidung stehen an",
+    nextStepBody:
+      primary.sourceState === "review_only"
+        ? "Der zugrunde liegende Kontext ist noch review-only. Deshalb bleibt Verteilung auf sichere Entwurfs- und Nächste-Schritte-Hinweise begrenzt."
+        : "Freigabe heißt nicht veröffentlicht. `approved` und `published_manual` bleiben getrennt, auditierbar und ohne externes API-Posting.",
+    storeLabel: shouldUseInMemoryMongoFallback()
+      ? "In-Memory-/Test-Fallback"
+      : "Persistente Distribution-Runtime",
+    productionTruth: !shouldUseInMemoryMongoFallback(),
+    reviewRequired: items.some((item) => item.approvalRequired),
+    items,
+  };
 }
 
 export async function buildOrganizationDashboardReadModel(input: {
@@ -1547,6 +1668,7 @@ export async function buildOrganizationDashboardReadModel(input: {
 }): Promise<OrganizationDashboardReadModel> {
   const repo = getRegionOrganizationRuntimeRepo();
   const entitlementRepo = getRegionEntitlementRuntimeRepo();
+  const socialDistributionRepo = getSocialDistributionRepo();
   const [claims, memberships, draftRecords, regions] = await Promise.all([
     repo.listOrganizationClaimsForUser(input.userId),
     repo.listMembershipsForUser(input.userId),
@@ -1742,6 +1864,11 @@ export async function buildOrganizationDashboardReadModel(input: {
     entitlementSummary,
     materialRecords,
   });
+  const socialDistributionSummary = buildSocialDistributionSummary({
+    items: await socialDistributionRepo.listPostsByOrganizationIds(
+      organizations.map((organization) => organization.id),
+    ),
+  });
   const visibleDrafts = draftRecords.filter((record) =>
     canViewRegionResource(regionScope, {
       ownerUserId: record.createdByUserId,
@@ -1843,6 +1970,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     regionalStartingPoints,
     participationSignals,
     publishSummary,
+    socialDistributionSummary,
   });
 
   return {
@@ -1872,6 +2000,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     contractSummary,
     materialIntakeSummary,
     sourceConnectionSummary,
+    socialDistributionSummary,
     regionSummary,
     entitlementSummary,
     allowedActions,

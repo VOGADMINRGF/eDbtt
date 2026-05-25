@@ -62,7 +62,7 @@ export function buildDistributionPlan(input: {
     selectedChannels: input.selectedChannels,
     scheduleMode: input.scheduleMode,
     reviewRequired: input.reviewRequired,
-    status: input.reviewRequired ? "review_requested" : "planned",
+    status: input.reviewRequired ? "review_required" : "draft",
   });
 }
 
@@ -76,7 +76,7 @@ export function buildDraftRecord(input: {
     selectedChannels: input.selectedChannels,
     scheduleMode: "manual",
     reviewRequired: input.reviewRequired,
-    status: "draft_saved",
+    status: "draft",
   });
 }
 

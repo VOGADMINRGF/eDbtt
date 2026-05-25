@@ -39,6 +39,10 @@ import {
   createMaterialIntakeRecords,
   setMaterialIntakeRepositoryForTests,
 } from "@/features/material/materialIntakeRepository";
+import {
+  createInMemorySocialDistributionRepo,
+  setSocialDistributionRepoForTests,
+} from "@features/outputEngine/socialDistributionRuntime";
 import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
 
 const organization: Organization = {
@@ -181,6 +185,7 @@ function anlassraumDraftRecord(): RegionSignalDraftRecord {
 beforeEach(() => {
   setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
   setFactcheckWorkflowRepoForTests(createInMemoryFactcheckWorkflowRepo());
+  setSocialDistributionRepoForTests(createInMemorySocialDistributionRepo());
   setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
   setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
   setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
@@ -211,8 +216,106 @@ describe("organization dashboard readmodel", () => {
     expect(readModel.regionSummary).toEqual([]);
     expect(readModel.openReviewItems).toEqual([]);
     expect(readModel.publishSummary.items).toEqual([]);
+    expect(readModel.socialDistributionSummary.items).toEqual([]);
+    expect(readModel.socialDistributionSummary.currentState).toBe("not_enabled");
     expect(readModel.materialIntakeSummary.currentState).toBe("verification_required");
     expect(readModel.materialIntakeSummary.productiveWorkflowEnabled).toBe(false);
+  });
+
+  it("keeps social distribution org-scoped and status-honest", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [organization],
+        memberships: [membership()],
+      }),
+    );
+    setSocialDistributionRepoForTests(
+      createInMemorySocialDistributionRepo({
+        posts: [
+          {
+            id: "social-dist-owned",
+            organizationId: "org-reinickendorf-1",
+            regionId: "bezirk-berlin-reinickendorf",
+            dossierId: "dossier-1",
+            sourceContextType: "dossier",
+            sourceContextId: "dossier-1",
+            sourceVisibilityState: "public_reviewed",
+            sourceState: "approved_context",
+            title: "Eigener Verteilentwurf",
+            status: "review_required",
+            channels: ["website_update", "newsletter_draft"],
+            scheduleMode: "manual",
+            channelTexts: {
+              website_update: "Eigener Update-Entwurf",
+            },
+            channelNotes: {},
+            assets: [],
+            approval: {
+              reviewRequired: true,
+              approvedByUserId: null,
+              approvedAt: null,
+              note: null,
+            },
+            sourceSummary: "Eigener Scope",
+            limitations: ["Kein Auto-Publish."],
+            noAutoPublish: true,
+            noAutoPublicationApproved: true,
+            noPublicOfficial: true,
+            externalPosting: false,
+            createdByUserId: "user-1",
+            updatedByUserId: "user-1",
+            createdAt: "2026-05-24T09:00:00.000Z",
+            updatedAt: "2026-05-24T09:00:00.000Z",
+          },
+          {
+            id: "social-dist-foreign",
+            organizationId: "org-fremd-1",
+            regionId: "bezirk-berlin-mitte",
+            dossierId: "dossier-2",
+            sourceContextType: "dossier",
+            sourceContextId: "dossier-2",
+            sourceVisibilityState: "public_reviewed",
+            sourceState: "approved_context",
+            title: "Fremder Verteilentwurf",
+            status: "published_manual",
+            channels: ["press_note"],
+            scheduleMode: "manual",
+            channelTexts: {
+              press_note: "Fremder Entwurf",
+            },
+            channelNotes: {},
+            assets: [],
+            approval: {
+              reviewRequired: false,
+              approvedByUserId: "admin-1",
+              approvedAt: "2026-05-24T09:10:00.000Z",
+              note: null,
+            },
+            sourceSummary: "Fremder Scope",
+            limitations: ["Kein Auto-Publish."],
+            noAutoPublish: true,
+            noAutoPublicationApproved: true,
+            noPublicOfficial: true,
+            externalPosting: false,
+            createdByUserId: "user-2",
+            updatedByUserId: "user-2",
+            createdAt: "2026-05-24T09:00:00.000Z",
+            updatedAt: "2026-05-24T09:10:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const readModel = await buildOrganizationDashboardReadModel({
+      userId: "user-1",
+      roles: ["editor"],
+      isAdmin: false,
+    });
+
+    expect(readModel.socialDistributionSummary.items).toHaveLength(1);
+    expect(readModel.socialDistributionSummary.items[0]?.title).toBe("Eigener Verteilentwurf");
+    expect(readModel.socialDistributionSummary.items[0]?.statusLabel).toBe("Review erforderlich");
+    expect(readModel.socialDistributionSummary.items[0]?.sourceState).toBe("approved_context");
   });
 
   it("keeps pending claims visible but hides internal foreign region data for unverified users", async () => {
