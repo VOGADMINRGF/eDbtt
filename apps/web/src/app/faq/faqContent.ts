@@ -199,13 +199,13 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "mitmachen-3e",
         question: "Was braucht eine Verwaltung oder Organisation im Dashboard?",
         answer:
-          "Ein Verwaltungs- oder Organisationsdashboard braucht mindestens Status, Region, Freischaltung, Rollen, offene Reviews sowie Dossier- und Anlassraum-Drafts. Dazu gehört auch die KI-vorqualifizierte Themenlage für die jeweilige Region. Das Dashboard ist damit nicht nur eine Nutzerliste, sondern der operative Review- und Arbeitsraum.",
+          "Ein Verwaltungs- oder Organisationsdashboard braucht mindestens Status, Region, Freischaltung, Rollen, offene Reviews sowie Dossier- und Anlassraum-Drafts. Dazu gehört auch eine review-first vorstrukturierte Themenlage für die jeweilige Region. Das Dashboard ist damit nicht nur eine Nutzerliste, sondern der operative Review- und Arbeitsraum.",
       },
       {
         id: "mitmachen-3f",
         question: "Was sieht eine Verwaltung oder Organisation?",
         answer:
-          "Eine Verwaltung oder Organisation soll im eigenen Arbeitsraum Status, Region, Freischaltung, Rollen, offene Reviews, Dossier- und Anlassraum-Drafts sowie die KI-vorqualifizierte Themenlage ihrer Region sehen. Das ist ein Review- und Arbeitsraum, nicht bloß eine Liste von Nutzerkonten.",
+          "Eine Verwaltung oder Organisation soll im eigenen Arbeitsraum Status, Region, Freischaltung, Rollen, offene Reviews, Dossier- und Anlassraum-Drafts sowie die review-first vorstrukturierte Themenlage ihrer Region sehen. Das ist ein Review- und Arbeitsraum, nicht bloß eine Liste von Nutzerkonten.",
       },
       {
         id: "mitmachen-3g",

@@ -23,6 +23,8 @@ const PAGE_COPY = {
     heroTitle: "Institutionelle Konditionen",
     heroIntro:
       "Beantworte ein paar Fragen zu Einsatz, Ziel und Rahmen. Wir schlagen dir das passende Modell und sinnvolle Erweiterungen vor.",
+    heroAuditNote:
+      "Freischaltungen laufen review-first über Betreiber-Verifikation und manuelle Vertragsfreigabe. Es wird kein externer Checkout und keine automatische Veröffentlichung behauptet.",
     directToSelection: "Direkt zur Auswahl",
     contact: "Kontakt",
     toPrivateOverview: "Zur Privatübersicht",
@@ -45,11 +47,11 @@ const PAGE_COPY = {
     needBasedAddOns: "Nur bei Bedarf",
     needBasedAddOnsHint: "Diese Bausteine brauchen meist zusätzliche Klärung.",
     statusLabel: "Status",
-    statusDirect: "Direkt bestellbar",
+    statusDirect: "Direkt anfragbar",
     statusWithQuestions: "Mit Rückfragen",
     statusClarification: "Nur nach Klärung",
     ctaApply: "Empfehlung übernehmen",
-    ctaOrder: "Direkt bestellen",
+    ctaOrder: "Freischaltung anfragen",
     ctaQuote: "Kostenvoranschlag anfordern",
     ctaQuoteDownload: "Downloadlink anfordern",
     ctaConversation: "Gespräch anfragen",
@@ -90,6 +92,8 @@ const PAGE_COPY = {
     heroTitle: "Institutional conditions",
     heroIntro:
       "Answer a few questions about target use and operating frame. We recommend the best-fit model and useful extensions.",
+    heroAuditNote:
+      "Activations stay review-first through operator verification and manual contract approval. No external checkout or automatic publishing is claimed.",
     directToSelection: "Jump to guided selection",
     contact: "Contact",
     toPrivateOverview: "Back to civic pricing",
@@ -112,11 +116,11 @@ const PAGE_COPY = {
     needBasedAddOns: "Need-based only",
     needBasedAddOnsHint: "These modules usually require additional alignment.",
     statusLabel: "Status",
-    statusDirect: "Directly orderable",
+    statusDirect: "Directly requestable",
     statusWithQuestions: "With follow-up questions",
     statusClarification: "Clarification required",
     ctaApply: "Apply recommendation",
-    ctaOrder: "Direct order",
+    ctaOrder: "Request activation",
     ctaQuote: "Request quote",
     ctaQuoteDownload: "Request download link",
     ctaConversation: "Request conversation",
@@ -1020,6 +1024,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{text.heroTitle}</h1>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">{text.heroIntro}</p>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">{text.heroAuditNote}</p>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
           {text.legalPricingHint} {text.annualHint}
         </p>

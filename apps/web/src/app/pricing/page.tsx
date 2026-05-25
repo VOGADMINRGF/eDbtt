@@ -233,6 +233,11 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             Sie erzeugen kein Auto-Publish, kein automatisches <code>public_official</code> und
             keine automatische Publikationsfreigabe.
           </p>
+          <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Produktive Freischaltungen laufen über Betreiber-Verifikation und manuelle
+            Vertragsfreigabe. Es wird kein externer Checkout, keine versteckte CRM-Integration
+            und keine automatische Verteilung behauptet.
+          </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/register", locale)} className="btn-primary">
               {labels.freeStartCta}
