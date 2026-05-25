@@ -21,6 +21,12 @@ import {
   type OrganizationDashboardReadModel,
 } from "@features/region";
 import {
+  partnerFundingDisclosureRoleLabel,
+  partnerPackageScopeLabel,
+  partnerPackageStatusLabel,
+  partnerPackageTypeLabel,
+} from "@features/pricing";
+import {
   materialIntakeStatusLabel,
   materialIntakeTypeLabel,
 } from "@/features/material/materialIntakeContract";
@@ -182,6 +188,29 @@ function contractStatusTone(
     case "expired":
       return "border-rose-300/70 bg-rose-50 text-rose-900";
     case "accepted":
+    case "offered":
+    case "draft":
+      return "border-sky-300/70 bg-sky-50 text-sky-900";
+    case "none":
+    default:
+      return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+  }
+}
+
+function partnerPackageStatusTone(
+  status: OrganizationDashboardReadModel["partnerPackageSummary"]["currentStatus"],
+) {
+  switch (status) {
+    case "active":
+      return "border-emerald-300/70 bg-emerald-50 text-emerald-900";
+    case "limited":
+    case "reporting_required":
+      return "border-amber-300/70 bg-amber-50 text-amber-900";
+    case "paused":
+    case "cancelled":
+    case "archived":
+    case "completed":
+      return "border-rose-300/70 bg-rose-50 text-rose-900";
     case "offered":
     case "draft":
       return "border-sky-300/70 bg-sky-50 text-sky-900";
@@ -379,6 +408,35 @@ export default async function AccountOrganizationDashboardPage() {
     entitlementRequired: true,
     operatorReviewRequired: false,
     connections: [],
+  };
+  const partnerPackageSummary = readModel.partnerPackageSummary ?? {
+    currentStatus: "none" as const,
+    statusLabel: "Kein Projektpaket aktiv",
+    currentType: null,
+    typeLabel: null,
+    sourceOfTruth: readModel.contractSummary.sourceOfTruth,
+    confidence: "limited" as const,
+    runtimeMarker: readModel.contractSummary.runtimeMarker,
+    productionTruth: false,
+    auditBacked: false,
+    enabledScopes: [],
+    reportingState: null,
+    reportingLabel: null,
+    transparency: null,
+    transparencyRoleLabel: null,
+    nextStepTitle: "Kein Projektpaket aktiv",
+    nextStepBody:
+      "Projektpakete werden erst nach bewusster Betreiberentscheidung, passendem Vertrag und auditierbarer Transparenz als aktiv geführt.",
+    storeLabel: "Persistenter Partner-/Projektpaket-Store",
+    items: [],
+    guardrails: {
+      noOperatorRights: true,
+      noPublicOfficial: true,
+      noPublicationApproved: true,
+      noSourceWeightInfluence: true,
+      noVoteOutcomeInfluence: true,
+      noFactcheckSealInfluence: true,
+    },
   };
   const materialIntakeSummary = readModel.materialIntakeSummary ?? {
     currentState: "limited_intake" as const,
@@ -694,6 +752,118 @@ export default async function AccountOrganizationDashboardPage() {
               Audit-Hinweis: Vertrags-, Billing- und Plan-Entscheidungen bleiben persistent und auditierbar.
             </p>
           </div>
+        </article>
+
+        <article
+          id="projektpaket"
+          className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Partner- &amp; Projektpaket
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+            {partnerPackageSummary.nextStepTitle}
+          </h2>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Projektpakete zeigen Leistungsumfang, Transparenz und Reporting, ohne
+            Quellengewichtung, Abstimmungsergebnis oder Factcheck-Siegel zu beeinflussen.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Paketstatus</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {partnerPackageSummary.statusLabel}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-xs text-[rgb(var(--muted))]">Pakettyp</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {partnerPackageSummary.typeLabel || "Noch kein Pakettyp"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Transparenz &amp; Reporting
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                  {partnerPackageSummary.reportingLabel || "Kein Reportingstatus"}
+                </p>
+              </div>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${partnerPackageStatusTone(
+                  partnerPackageSummary.currentStatus,
+                )}`}
+              >
+                {partnerPackageSummary.storeLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {partnerPackageSummary.nextStepBody}
+            </p>
+            {partnerPackageSummary.transparency ? (
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Transparenzhinweis:{" "}
+                {partnerFundingDisclosureRoleLabel(partnerPackageSummary.transparency.role)} ·{" "}
+                {partnerPackageSummary.transparency.label}
+                {partnerPackageSummary.transparency.transparencyNote
+                  ? ` · ${partnerPackageSummary.transparency.transparencyNote}`
+                  : ""}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Noch kein auditierter Transparenzhinweis hinterlegt.
+              </p>
+            )}
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Freigeschaltete Leistungen:{" "}
+              {partnerPackageSummary.enabledScopes.length > 0
+                ? partnerPackageSummary.enabledScopes.map((scope) => partnerPackageScopeLabel(scope)).join(", ")
+                : "noch keine"}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              {partnerPackageSummary.productionTruth
+                ? "Projektpaket, Transparenz und Reporting sind für v1 persistent, auditierbar und an denselben Betreiber-Vertragsprozess gekoppelt."
+                : "Ohne auditierte Paketentscheidung oder mit Demo-/Pending-Quelle bleibt dieser Bereich bewusst nicht produktiv."}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Audit-Hinweis: Funding- oder Partnerstatus setzen nie `public_official`, nie automatisch `publication_approved` und nie Betreiberrechte.
+            </p>
+          </div>
+          {partnerPackageSummary.items.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {partnerPackageSummary.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                        {partnerPackageTypeLabel(item.type)}
+                      </p>
+                      <p className="text-xs text-[rgb(var(--muted))]">
+                        {partnerPackageStatusLabel(item.status)}
+                        {item.reportingLabel ? ` · ${item.reportingLabel}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${partnerPackageStatusTone(
+                        item.status,
+                      )}`}
+                    >
+                      {item.productionTruth ? "Persistenter Paketpfad" : "Nicht produktiv"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Scopes: {item.scopeLabels.join(", ") || "keine"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </article>
 
         <article

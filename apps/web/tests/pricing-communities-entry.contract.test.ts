@@ -14,6 +14,7 @@ describe("pricing communities entry bridge", () => {
     expect(html).toContain("Dossier &amp; Beteiligungsrunde");
     expect(html).toContain("Beteiligungsbetrieb Kommune");
     expect(html).toContain("Rahmenvertrag / Vergabepaket");
+    expect(html).toContain("Projekt- und Partnerpakete bleiben review-first");
   });
 
   it("avoids rendering kommunen as a second full monthly package grid", async () => {
@@ -24,4 +25,3 @@ describe("pricing communities entry bridge", () => {
     expect(html).not.toContain("Kommune / Verwaltung Betrieb Plus");
   });
 });
-

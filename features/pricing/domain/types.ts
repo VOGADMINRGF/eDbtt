@@ -93,6 +93,100 @@ export type OrganizationContractAuditEvent = {
   createdAt: string;
   createdBy: string;
 };
+
+export type PartnerPackageType =
+  | "municipality_pilot"
+  | "association_workspace"
+  | "media_dossier_series"
+  | "newsroom_qr_dossier"
+  | "foundation_program"
+  | "participation_office"
+  | "agency_workspace"
+  | "public_dialog_project";
+
+export type PartnerPackageStatus =
+  | "draft"
+  | "offered"
+  | "active"
+  | "limited"
+  | "reporting_required"
+  | "paused"
+  | "completed"
+  | "cancelled"
+  | "archived";
+
+export type PartnerPackageScope =
+  | "dossier_studio"
+  | "social_distribution"
+  | "source_connections"
+  | "runden_qr"
+  | "reporting_export";
+
+export type PartnerFundingDisclosureRole =
+  | "auftraggeber"
+  | "partner"
+  | "foerderer"
+  | "traeger";
+
+export type PartnerFundingDisclosure = {
+  partnerName: string;
+  role: PartnerFundingDisclosureRole;
+  label: string;
+  transparencyNote: string | null;
+  sourceReference: string | null;
+  shownToUsers: boolean;
+  shownToAdmins: boolean;
+  noSourceWeightInfluence: true;
+  noVoteOutcomeInfluence: true;
+  noFactcheckSealInfluence: true;
+  noAutoOfficial: true;
+  noAutoPublicationApproved: true;
+};
+
+export type PartnerReportingState = "draft" | "review_required" | "approved" | "archived";
+
+export type PartnerPackageAuditEventType =
+  | "create_draft"
+  | "offer"
+  | "activate"
+  | "limit"
+  | "reporting_required"
+  | "pause"
+  | "complete"
+  | "cancel"
+  | "archive"
+  | "update";
+
+export type PartnerPackageAuditEvent = {
+  id: string;
+  eventType: PartnerPackageAuditEventType;
+  packageId: string;
+  organizationId: string | null;
+  previousStatus: PartnerPackageStatus | null;
+  nextStatus: PartnerPackageStatus | null;
+  source: OrganizationBillingSource;
+  changedScopes: PartnerPackageScope[];
+  note: string | null;
+  createdAt: string;
+  createdBy: string;
+};
+
+export type PartnerProjectPackage = {
+  id: string;
+  type: PartnerPackageType;
+  status: PartnerPackageStatus;
+  organizationId: string | null;
+  organizationName: string | null;
+  scopes: PartnerPackageScope[];
+  contractLinked: boolean;
+  billingLinked: boolean;
+  reviewOnlyOutputs: true;
+  noOperatorRights: true;
+  noAutoOfficial: true;
+  noAutoPublicationApproved: true;
+  createdAt: string;
+  updatedAt: string;
+};
 export type EDebattePackageId =
   | "basis"
   | "start"
@@ -192,6 +286,10 @@ export type PricingOrderInternalSnapshot = {
   planAssignment: OrganizationPlanAssignment | null;
   accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
   contractAuditEvents: OrganizationContractAuditEvent[];
+  partnerProjectPackage?: PartnerProjectPackage | null;
+  partnerFundingDisclosure?: PartnerFundingDisclosure | null;
+  partnerReportingState?: PartnerReportingState | null;
+  partnerPackageAuditEvents?: PartnerPackageAuditEvent[];
 };
 
 export type PreorderLeadRecord = {
@@ -241,6 +339,10 @@ export type OrganizationContractOrderRecord = {
   planAssignment: OrganizationPlanAssignment | null;
   accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
   auditEvents: OrganizationContractAuditEvent[];
+  partnerProjectPackage: PartnerProjectPackage | null;
+  partnerFundingDisclosure: PartnerFundingDisclosure | null;
+  partnerReportingState: PartnerReportingState | null;
+  partnerPackageAuditEvents: PartnerPackageAuditEvent[];
   source: string | null;
   createdAt: string | null;
   updatedAt: string | null;

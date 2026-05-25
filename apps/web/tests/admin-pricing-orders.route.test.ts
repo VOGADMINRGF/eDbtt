@@ -145,6 +145,66 @@ describe("/api/admin/pricing/orders", () => {
     );
   });
 
+  it("accepts partner package, transparency and reporting fields", async () => {
+    const req = new NextRequest("http://localhost/api/admin/pricing/orders", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "65a111111111111111111111",
+        status: "active",
+        organizationId: "org-media-1",
+        partnerProjectPackage: {
+          id: "pkg-media-1",
+          type: "media_dossier_series",
+          status: "active",
+          scopes: ["dossier_studio", "social_distribution"],
+          createdAt: "2026-05-24T10:00:00.000Z",
+        },
+        partnerFundingDisclosure: {
+          partnerName: "Lokalredaktion Mitte",
+          role: "partner",
+          label: "Medienpartner im Dossier-Kontext",
+          transparencyNote:
+            "Die Partnerschaft ermöglicht Distribution und Dossierarbeit, beeinflusst aber keine Quellengewichtung.",
+          sourceReference: "MEDIA-CON-2026-05",
+          shownToUsers: true,
+          shownToAdmins: true,
+        },
+        partnerReportingState: "review_required",
+        note: "Projektpaket mit Transparenzhinweis aktiviert.",
+      }),
+    });
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    expect(mocks.updatePricingOrderReview).toHaveBeenCalledWith(
+      "65a111111111111111111111",
+      expect.objectContaining({
+        status: "active",
+        actorUserId: "admin-1",
+        organizationId: "org-media-1",
+        partnerProjectPackage: expect.objectContaining({
+          id: "pkg-media-1",
+          type: "media_dossier_series",
+          status: "active",
+          scopes: ["dossier_studio", "social_distribution"],
+          noOperatorRights: true,
+          noAutoOfficial: true,
+          noAutoPublicationApproved: true,
+        }),
+        partnerFundingDisclosure: expect.objectContaining({
+          partnerName: "Lokalredaktion Mitte",
+          role: "partner",
+          label: "Medienpartner im Dossier-Kontext",
+          noSourceWeightInfluence: true,
+          noVoteOutcomeInfluence: true,
+          noFactcheckSealInfluence: true,
+        }),
+        partnerReportingState: "review_required",
+      }),
+    );
+  });
+
   it("maps invalid transition to 409", async () => {
     mocks.updatePricingOrderReview.mockRejectedValue(new Error("invalid_status_transition"));
     const req = new NextRequest("http://localhost/api/admin/pricing/orders", {

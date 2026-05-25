@@ -5,10 +5,20 @@ import {
   getInstitutionalSharedAddOns,
   organizationBillingStatusLabel,
   organizationContractStatusLabel,
+  partnerFundingDisclosureRoleLabel,
+  partnerPackageScopeLabel,
+  partnerPackageStatusLabel,
+  partnerPackageTypeLabel,
+  partnerReportingStateLabel,
   type OrganizationAccessProvisioningDecision,
   type OrganizationBillingSource,
   type OrganizationBillingStatus,
   type OrganizationContractStatus,
+  type PartnerFundingDisclosureRole,
+  type PartnerPackageScope,
+  type PartnerPackageStatus,
+  type PartnerPackageType,
+  type PartnerReportingState,
   type PricingOrderStatus,
 } from "@features/pricing";
 
@@ -56,7 +66,32 @@ type OrderRow = {
       planLabel: string;
       scopes: string[];
     } | null;
+    partnerProjectPackage: {
+      id: string;
+      type: PartnerPackageType;
+      status: PartnerPackageStatus;
+      scopes: PartnerPackageScope[];
+      createdAt: string;
+      updatedAt: string;
+    } | null;
+    partnerFundingDisclosure: {
+      partnerName: string;
+      role: PartnerFundingDisclosureRole;
+      label: string;
+      transparencyNote: string | null;
+      sourceReference: string | null;
+      shownToUsers: boolean;
+      shownToAdmins: boolean;
+    } | null;
+    partnerReportingState: PartnerReportingState | null;
     contractAuditEvents: Array<{
+      id: string;
+      eventType: string;
+      createdAt: string;
+      createdBy: string;
+      note?: string | null;
+    }>;
+    partnerPackageAuditEvents: Array<{
       id: string;
       eventType: string;
       createdAt: string;
@@ -86,6 +121,19 @@ type ReviewDraft = {
   billingStatus: OrganizationBillingStatus | "";
   billingSource: OrganizationBillingSource | "";
   accessProvisioningDecision: OrganizationAccessProvisioningDecision | "";
+  partnerPackageId: string;
+  partnerPackageType: PartnerPackageType | "";
+  partnerPackageStatus: PartnerPackageStatus | "";
+  partnerPackageScopes: PartnerPackageScope[];
+  partnerPackageCreatedAt: string;
+  partnerDisclosurePartnerName: string;
+  partnerDisclosureRole: PartnerFundingDisclosureRole | "";
+  partnerDisclosureLabel: string;
+  partnerDisclosureTransparencyNote: string;
+  partnerDisclosureSourceReference: string;
+  partnerDisclosureShownToUsers: boolean;
+  partnerDisclosureShownToAdmins: boolean;
+  partnerReportingState: PartnerReportingState | "";
 };
 
 const STATUS_OPTIONS: PricingOrderStatus[] = [
@@ -152,6 +200,51 @@ const PROVISIONING_DECISION_OPTIONS: OrganizationAccessProvisioningDecision[] = 
   "reactivate",
 ];
 
+const PARTNER_PACKAGE_TYPE_OPTIONS: PartnerPackageType[] = [
+  "municipality_pilot",
+  "association_workspace",
+  "media_dossier_series",
+  "newsroom_qr_dossier",
+  "foundation_program",
+  "participation_office",
+  "agency_workspace",
+  "public_dialog_project",
+];
+
+const PARTNER_PACKAGE_STATUS_OPTIONS: PartnerPackageStatus[] = [
+  "draft",
+  "offered",
+  "active",
+  "limited",
+  "reporting_required",
+  "paused",
+  "completed",
+  "cancelled",
+  "archived",
+];
+
+const PARTNER_PACKAGE_SCOPE_OPTIONS: PartnerPackageScope[] = [
+  "dossier_studio",
+  "social_distribution",
+  "source_connections",
+  "runden_qr",
+  "reporting_export",
+];
+
+const PARTNER_REPORTING_STATE_OPTIONS: PartnerReportingState[] = [
+  "draft",
+  "review_required",
+  "approved",
+  "archived",
+];
+
+const PARTNER_DISCLOSURE_ROLE_OPTIONS: PartnerFundingDisclosureRole[] = [
+  "auftraggeber",
+  "partner",
+  "foerderer",
+  "traeger",
+];
+
 function billingSourceLabel(source: OrganizationBillingSource | null) {
   switch (source) {
     case "operator_verified_contract":
@@ -187,6 +280,19 @@ function toDraft(row: OrderRow): ReviewDraft {
     billingStatus: row.internal.billingStatus || "",
     billingSource: row.internal.billingSource || "",
     accessProvisioningDecision: row.internal.accessProvisioningDecision || "",
+    partnerPackageId: row.internal.partnerProjectPackage?.id || "",
+    partnerPackageType: row.internal.partnerProjectPackage?.type || "",
+    partnerPackageStatus: row.internal.partnerProjectPackage?.status || "",
+    partnerPackageScopes: row.internal.partnerProjectPackage?.scopes || [],
+    partnerPackageCreatedAt: row.internal.partnerProjectPackage?.createdAt || new Date().toISOString(),
+    partnerDisclosurePartnerName: row.internal.partnerFundingDisclosure?.partnerName || "",
+    partnerDisclosureRole: row.internal.partnerFundingDisclosure?.role || "",
+    partnerDisclosureLabel: row.internal.partnerFundingDisclosure?.label || "",
+    partnerDisclosureTransparencyNote: row.internal.partnerFundingDisclosure?.transparencyNote || "",
+    partnerDisclosureSourceReference: row.internal.partnerFundingDisclosure?.sourceReference || "",
+    partnerDisclosureShownToUsers: row.internal.partnerFundingDisclosure?.shownToUsers ?? true,
+    partnerDisclosureShownToAdmins: row.internal.partnerFundingDisclosure?.shownToAdmins ?? true,
+    partnerReportingState: row.internal.partnerReportingState || "",
   };
 }
 
@@ -270,6 +376,19 @@ export default function AdminPricingOrdersPage() {
           billingStatus: "",
           billingSource: "",
           accessProvisioningDecision: "",
+          partnerPackageId: "",
+          partnerPackageType: "",
+          partnerPackageStatus: "",
+          partnerPackageScopes: [],
+          partnerPackageCreatedAt: new Date().toISOString(),
+          partnerDisclosurePartnerName: "",
+          partnerDisclosureRole: "",
+          partnerDisclosureLabel: "",
+          partnerDisclosureTransparencyNote: "",
+          partnerDisclosureSourceReference: "",
+          partnerDisclosureShownToUsers: true,
+          partnerDisclosureShownToAdmins: true,
+          partnerReportingState: "",
         }),
         ...patch,
       },
@@ -311,6 +430,33 @@ export default function AdminPricingOrdersPage() {
           billingStatus: draft.billingStatus || null,
           billingSource: draft.billingSource || null,
           accessProvisioningDecision: draft.accessProvisioningDecision || null,
+          partnerProjectPackage:
+            draft.partnerPackageId.trim() &&
+            draft.partnerPackageType &&
+            draft.partnerPackageStatus
+              ? {
+                  id: draft.partnerPackageId.trim(),
+                  type: draft.partnerPackageType,
+                  status: draft.partnerPackageStatus,
+                  scopes: draft.partnerPackageScopes,
+                  createdAt: draft.partnerPackageCreatedAt,
+                }
+              : null,
+          partnerFundingDisclosure:
+            draft.partnerDisclosurePartnerName.trim() &&
+            draft.partnerDisclosureRole &&
+            draft.partnerDisclosureLabel.trim()
+              ? {
+                  partnerName: draft.partnerDisclosurePartnerName.trim(),
+                  role: draft.partnerDisclosureRole,
+                  label: draft.partnerDisclosureLabel.trim(),
+                  transparencyNote: draft.partnerDisclosureTransparencyNote.trim() || null,
+                  sourceReference: draft.partnerDisclosureSourceReference.trim() || null,
+                  shownToUsers: draft.partnerDisclosureShownToUsers,
+                  shownToAdmins: draft.partnerDisclosureShownToAdmins,
+                }
+              : null,
+          partnerReportingState: draft.partnerReportingState || null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -421,6 +567,24 @@ export default function AdminPricingOrdersPage() {
                     Wirkung: {row.internal.accessProvisioningDecision || "none"} · Quelle:{" "}
                     {billingSourceLabel(row.internal.billingSource)}
                   </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                    Projektpaket:{" "}
+                    {row.internal.partnerProjectPackage
+                      ? `${partnerPackageTypeLabel(row.internal.partnerProjectPackage.type)} · ${partnerPackageStatusLabel(row.internal.partnerProjectPackage.status)}`
+                      : "kein aktives Paket"}
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                    Reporting:{" "}
+                    {row.internal.partnerReportingState
+                      ? partnerReportingStateLabel(row.internal.partnerReportingState)
+                      : "kein Reportingstatus"}
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 sm:col-span-2">
+                    Transparenz:{" "}
+                    {row.internal.partnerFundingDisclosure
+                      ? `${partnerFundingDisclosureRoleLabel(row.internal.partnerFundingDisclosure.role)} · ${row.internal.partnerFundingDisclosure.label}`
+                      : "kein Transparenzhinweis hinterlegt"}
+                  </div>
                 </div>
 
                 <div className="mt-3 grid gap-2 lg:grid-cols-[1fr_auto]">
@@ -530,6 +694,60 @@ export default function AdminPricingOrdersPage() {
                       </select>
                     </label>
                     <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Projektpaket-ID
+                      <input
+                        value={draft.partnerPackageId}
+                        onChange={(event) => updateDraft(row.id, { partnerPackageId: event.target.value })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="pkg-..."
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Pakettyp
+                      <select
+                        value={draft.partnerPackageType}
+                        onChange={(event) => updateDraft(row.id, { partnerPackageType: event.target.value as ReviewDraft["partnerPackageType"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">kein Pakettyp</option>
+                        {PARTNER_PACKAGE_TYPE_OPTIONS.map((type) => (
+                          <option key={type} value={type}>
+                            {partnerPackageTypeLabel(type)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Paketstatus
+                      <select
+                        value={draft.partnerPackageStatus}
+                        onChange={(event) => updateDraft(row.id, { partnerPackageStatus: event.target.value as ReviewDraft["partnerPackageStatus"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">kein Paketstatus</option>
+                        {PARTNER_PACKAGE_STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {partnerPackageStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Reportingstatus
+                      <select
+                        value={draft.partnerReportingState}
+                        onChange={(event) => updateDraft(row.id, { partnerReportingState: event.target.value as ReviewDraft["partnerReportingState"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">kein Reportingstatus</option>
+                        {PARTNER_REPORTING_STATE_OPTIONS.map((state) => (
+                          <option key={state} value={state}>
+                            {partnerReportingStateLabel(state)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       Angepasster Preis (Label)
                       <input
                         value={draft.adjustedPriceLabel}
@@ -627,10 +845,114 @@ export default function AdminPricingOrdersPage() {
                     </label>
                   </div>
 
+                  <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Paket-Scopes</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {PARTNER_PACKAGE_SCOPE_OPTIONS.map((scope) => {
+                        const checked = draft.partnerPackageScopes.includes(scope);
+                        return (
+                          <label
+                            key={scope}
+                            className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs text-[rgb(var(--fg))]"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) =>
+                                updateDraft(row.id, {
+                                  partnerPackageScopes: event.target.checked
+                                    ? [...draft.partnerPackageScopes, scope]
+                                    : draft.partnerPackageScopes.filter((entry) => entry !== scope),
+                                })
+                              }
+                            />
+                            {partnerPackageScopeLabel(scope)}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Paket-Scopes schalten nur explizit zugewiesene Leistungen frei. Sie setzen weder Betreiberrechte noch automatische Veröffentlichungsrechte.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Transparenz: Name
+                      <input
+                        value={draft.partnerDisclosurePartnerName}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosurePartnerName: event.target.value })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="z. B. Stiftung Musterstadt"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                      Transparenz: Rolle
+                      <select
+                        value={draft.partnerDisclosureRole}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureRole: event.target.value as ReviewDraft["partnerDisclosureRole"] })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                      >
+                        <option value="">keine Rolle</option>
+                        {PARTNER_DISCLOSURE_ROLE_OPTIONS.map((role) => (
+                          <option key={role} value={role}>
+                            {partnerFundingDisclosureRoleLabel(role)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))] md:col-span-2">
+                      Transparenz: Kurzlabel
+                      <input
+                        value={draft.partnerDisclosureLabel}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureLabel: event.target.value })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="z. B. Förderhinweis im Projektraum"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))] md:col-span-2">
+                      Transparenznotiz
+                      <textarea
+                        value={draft.partnerDisclosureTransparencyNote}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureTransparencyNote: event.target.value })}
+                        className="min-h-[88px] w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="Beschreibt Partner-, Förder- oder Auftraggeberkontext ohne Einflussbehauptung."
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-[rgb(var(--muted))] md:col-span-2">
+                      Quellen- / Vertragsreferenz
+                      <input
+                        value={draft.partnerDisclosureSourceReference}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureSourceReference: event.target.value })}
+                        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-normal text-[rgb(var(--fg))]"
+                        placeholder="CON-..., Förderzusage, Beschluss, Projektnummer"
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
+                      <input
+                        type="checkbox"
+                        checked={draft.partnerDisclosureShownToUsers}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureShownToUsers: event.target.checked })}
+                      />
+                      Hinweis im Nutzerkontext zeigen
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
+                      <input
+                        type="checkbox"
+                        checked={draft.partnerDisclosureShownToAdmins}
+                        onChange={(event) => updateDraft(row.id, { partnerDisclosureShownToAdmins: event.target.checked })}
+                      />
+                      Hinweis im Adminkontext zeigen
+                    </label>
+                  </div>
+
                   <div className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">
                     <p>
                       Audit-Hinweis: Jede bewusste Vertrags-, Billing- oder Plan-Entscheidung bleibt
                       persistent und auditierbar. Kein externer Checkout wird hier behauptet.
+                    </p>
+                    <p>
+                      Paket-/Funding-Hinweis: Partner- und Förderstatus beeinflussen weder Quellengewichtung noch Abstimmungsergebnis oder Factcheck-/Seal-Entscheidung.
                     </p>
                     {row.internal.planAssignment ? (
                       <p>
@@ -648,6 +970,12 @@ export default function AdminPricingOrdersPage() {
                         ? ` · zuletzt ${row.internal.contractAuditEvents[row.internal.contractAuditEvents.length - 1]?.eventType ?? "n/a"}`
                         : ""}
                     </p>
+                    <p>
+                      Paketaudit: {row.internal.partnerPackageAuditEvents.length} Ereignisse
+                      {row.internal.partnerPackageAuditEvents.length > 0
+                        ? ` · zuletzt ${row.internal.partnerPackageAuditEvents[row.internal.partnerPackageAuditEvents.length - 1]?.eventType ?? "n/a"}`
+                        : ""}
+                    </p>
                     {row.internal.notes.length ? (
                       <ul className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
                         {row.internal.notes.slice(-5).reverse().map((entry) => (
@@ -660,6 +988,16 @@ export default function AdminPricingOrdersPage() {
                     {row.internal.contractAuditEvents.length ? (
                       <ul className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
                         {row.internal.contractAuditEvents.slice(-3).reverse().map((event) => (
+                          <li key={event.id}>
+                            {event.eventType} · {event.createdAt} · {event.createdBy}
+                            {event.note ? ` · ${event.note}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {row.internal.partnerPackageAuditEvents.length ? (
+                      <ul className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+                        {row.internal.partnerPackageAuditEvents.slice(-3).reverse().map((event) => (
                           <li key={event.id}>
                             {event.eventType} · {event.createdAt} · {event.createdBy}
                             {event.note ? ` · ${event.note}` : ""}

@@ -8,6 +8,14 @@ import type {
   OrganizationContractOrderRecord,
   OrganizationContractStatus,
   OrganizationPlanAssignment,
+  PartnerFundingDisclosure,
+  PartnerFundingDisclosureRole,
+  PartnerPackageAuditEvent,
+  PartnerPackageScope,
+  PartnerPackageStatus,
+  PartnerPackageType,
+  PartnerProjectPackage,
+  PartnerReportingState,
   PreorderLeadRecord,
   PreorderUserUpdate,
   PricingOrderStatus,
@@ -21,6 +29,7 @@ import {
   mapPricingOrderStatusToBillingStatus,
   mapPricingOrderStatusToContractStatus,
 } from "../domain/organizationContract";
+import { partnerPackageAuditEventTypeForStatus } from "../domain/partnerProjectPackage";
 
 function toObjectId(value: string | null) {
   if (!value) return null;
@@ -133,6 +142,10 @@ export type PricingOrderAdminListItem = {
     planAssignment: OrganizationPlanAssignment | null;
     accessProvisioningDecision: OrganizationAccessProvisioningDecision | null;
     contractAuditEvents: OrganizationContractAuditEvent[];
+    partnerProjectPackage: PartnerProjectPackage | null;
+    partnerFundingDisclosure: PartnerFundingDisclosure | null;
+    partnerReportingState: PartnerReportingState | null;
+    partnerPackageAuditEvents: PartnerPackageAuditEvent[];
   };
   source: string | null;
   createdAt: string | null;
@@ -159,6 +172,9 @@ type AdminUpdateInput = {
   billingSource?: OrganizationBillingSource | null;
   planAssignment?: OrganizationPlanAssignment | null;
   accessProvisioningDecision?: OrganizationAccessProvisioningDecision | null;
+  partnerProjectPackage?: PartnerProjectPackage | null;
+  partnerFundingDisclosure?: PartnerFundingDisclosure | null;
+  partnerReportingState?: PartnerReportingState | null;
 };
 
 let pricingOrdersForTests: PricingOrderAdminListItem[] | null = null;
@@ -229,6 +245,101 @@ function normalizeBillingSource(value: unknown): OrganizationBillingSource | nul
   }
 }
 
+function normalizePartnerPackageType(value: unknown): PartnerPackageType | null {
+  switch (value) {
+    case "municipality_pilot":
+    case "association_workspace":
+    case "media_dossier_series":
+    case "newsroom_qr_dossier":
+    case "foundation_program":
+    case "participation_office":
+    case "agency_workspace":
+    case "public_dialog_project":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizePartnerPackageStatus(value: unknown): PartnerPackageStatus | null {
+  switch (value) {
+    case "draft":
+    case "offered":
+    case "active":
+    case "limited":
+    case "reporting_required":
+    case "paused":
+    case "completed":
+    case "cancelled":
+    case "archived":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizePartnerPackageScopes(value: unknown): PartnerPackageScope[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is PartnerPackageScope => {
+    return (
+      entry === "dossier_studio" ||
+      entry === "social_distribution" ||
+      entry === "source_connections" ||
+      entry === "runden_qr" ||
+      entry === "reporting_export"
+    );
+  });
+}
+
+function normalizePartnerReportingState(value: unknown): PartnerReportingState | null {
+  switch (value) {
+    case "draft":
+    case "review_required":
+    case "approved":
+    case "archived":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizePartnerFundingDisclosureRole(
+  value: unknown,
+): PartnerFundingDisclosureRole | null {
+  switch (value) {
+    case "auftraggeber":
+    case "partner":
+    case "foerderer":
+    case "traeger":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function normalizePartnerFundingDisclosure(value: unknown): PartnerFundingDisclosure | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const partnerName = normalizeText(source.partnerName);
+  const role = normalizePartnerFundingDisclosureRole(source.role);
+  const label = normalizeText(source.label);
+  if (!partnerName || !role || !label) return null;
+  return {
+    partnerName,
+    role,
+    label,
+    transparencyNote: normalizeText(source.transparencyNote),
+    sourceReference: normalizeText(source.sourceReference),
+    shownToUsers: source.shownToUsers !== false,
+    shownToAdmins: source.shownToAdmins !== false,
+    noSourceWeightInfluence: true,
+    noVoteOutcomeInfluence: true,
+    noFactcheckSealInfluence: true,
+    noAutoOfficial: true,
+    noAutoPublicationApproved: true,
+  };
+}
+
 function normalizePlanAssignment(value: unknown, fallback: { packageId: string; planLabel: string }): OrganizationPlanAssignment | null {
   if (!value || typeof value !== "object") {
     return defaultPlanAssignmentForOrder(fallback);
@@ -241,6 +352,32 @@ function normalizePlanAssignment(value: unknown, fallback: { packageId: string; 
     planId,
     planLabel,
     scopes: scopes.length > 0 ? scopes : defaultPlanAssignmentForOrder(fallback).scopes,
+  };
+}
+
+function normalizePartnerProjectPackage(value: unknown): PartnerProjectPackage | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const id = normalizeText(source.id);
+  const type = normalizePartnerPackageType(source.type);
+  const status = normalizePartnerPackageStatus(source.status);
+  const scopes = normalizePartnerPackageScopes(source.scopes);
+  if (!id || !type || !status) return null;
+  return {
+    id,
+    type,
+    status,
+    organizationId: normalizeText(source.organizationId),
+    organizationName: normalizeText(source.organizationName),
+    scopes,
+    contractLinked: source.contractLinked !== false,
+    billingLinked: source.billingLinked !== false,
+    reviewOnlyOutputs: true,
+    noOperatorRights: true,
+    noAutoOfficial: true,
+    noAutoPublicationApproved: true,
+    createdAt: normalizeText(source.createdAt) ?? new Date().toISOString(),
+    updatedAt: normalizeText(source.updatedAt) ?? new Date().toISOString(),
   };
 }
 
@@ -284,6 +421,44 @@ function normalizeContractAuditEvents(value: unknown): OrganizationContractAudit
       } satisfies OrganizationContractAuditEvent;
     })
     .filter((entry): entry is OrganizationContractAuditEvent => Boolean(entry));
+}
+
+function normalizePartnerPackageAuditEvents(value: unknown): PartnerPackageAuditEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const source = entry as Record<string, unknown>;
+      const eventType = normalizeText(source.eventType);
+      if (
+        eventType !== "create_draft" &&
+        eventType !== "offer" &&
+        eventType !== "activate" &&
+        eventType !== "limit" &&
+        eventType !== "reporting_required" &&
+        eventType !== "pause" &&
+        eventType !== "complete" &&
+        eventType !== "cancel" &&
+        eventType !== "archive" &&
+        eventType !== "update"
+      ) {
+        return null;
+      }
+      return {
+        id: normalizeText(source.id) ?? new ObjectId().toHexString(),
+        eventType,
+        packageId: normalizeText(source.packageId) ?? "",
+        organizationId: normalizeText(source.organizationId),
+        previousStatus: normalizePartnerPackageStatus(source.previousStatus),
+        nextStatus: normalizePartnerPackageStatus(source.nextStatus),
+        source: normalizeBillingSource(source.source) ?? "operator_verified_contract",
+        changedScopes: normalizePartnerPackageScopes(source.changedScopes),
+        note: normalizeText(source.note),
+        createdAt: normalizeText(source.createdAt) ?? new Date().toISOString(),
+        createdBy: normalizeText(source.createdBy) ?? "system",
+      } satisfies PartnerPackageAuditEvent;
+    })
+    .filter((entry): entry is PartnerPackageAuditEvent => Boolean(entry));
 }
 
 function normalizeStatus(value: unknown): PricingOrderStatus {
@@ -389,6 +564,10 @@ function deriveContractFieldsFromOrder(params: {
     planAssignment,
     accessProvisioningDecision,
     contractAuditEvents: normalizeContractAuditEvents(params.internalDoc.contractAuditEvents),
+    partnerProjectPackage: normalizePartnerProjectPackage(params.internalDoc.partnerProjectPackage),
+    partnerFundingDisclosure: normalizePartnerFundingDisclosure(params.internalDoc.partnerFundingDisclosure),
+    partnerReportingState: normalizePartnerReportingState(params.internalDoc.partnerReportingState),
+    partnerPackageAuditEvents: normalizePartnerPackageAuditEvents(params.internalDoc.partnerPackageAuditEvents),
   };
 }
 
@@ -469,6 +648,43 @@ function buildContractAuditEvent(params: {
   };
 }
 
+function buildPartnerPackageAuditEvent(params: {
+  actorUserId: string;
+  organizationId: string | null;
+  source: OrganizationBillingSource;
+  previousPackage: PartnerProjectPackage | null;
+  nextPackage: PartnerProjectPackage | null;
+  note: string | null;
+}): PartnerPackageAuditEvent | null {
+  if (!params.previousPackage && !params.nextPackage) return null;
+  const previousStatus = params.previousPackage?.status ?? null;
+  const nextStatus = params.nextPackage?.status ?? null;
+  const packageId = params.nextPackage?.id ?? params.previousPackage?.id ?? "";
+  if (!packageId) return null;
+
+  const previousScopes = params.previousPackage?.scopes ?? [];
+  const nextScopes = params.nextPackage?.scopes ?? [];
+  const changed =
+    previousStatus !== nextStatus ||
+    JSON.stringify(previousScopes) !== JSON.stringify(nextScopes) ||
+    JSON.stringify(params.previousPackage) !== JSON.stringify(params.nextPackage);
+  if (!changed) return null;
+
+  return {
+    id: new ObjectId().toHexString(),
+    eventType: partnerPackageAuditEventTypeForStatus(previousStatus, nextStatus),
+    packageId,
+    organizationId: params.organizationId,
+    previousStatus,
+    nextStatus,
+    source: params.source,
+    changedScopes: nextScopes,
+    note: params.note,
+    createdAt: new Date().toISOString(),
+    createdBy: params.actorUserId,
+  };
+}
+
 export async function listPricingOrders(options?: { status?: PricingOrderStatus; limit?: number }) {
   if (pricingOrdersForTests) {
     return clone(pricingOrdersForTests).filter((item) =>
@@ -527,6 +743,10 @@ export async function listPricingOrdersForOrganization(input: {
       planAssignment: item.internal.planAssignment,
       accessProvisioningDecision: item.internal.accessProvisioningDecision,
       auditEvents: item.internal.contractAuditEvents,
+      partnerProjectPackage: item.internal.partnerProjectPackage,
+      partnerFundingDisclosure: item.internal.partnerFundingDisclosure,
+      partnerReportingState: item.internal.partnerReportingState,
+      partnerPackageAuditEvents: item.internal.partnerPackageAuditEvents,
       source: item.source,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
@@ -571,6 +791,33 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
         billingStatus: nextBillingStatus,
         previousContractStatus: existing.internal.contractStatus,
       });
+    const nextPartnerFundingDisclosure =
+      typeof input.partnerFundingDisclosure !== "undefined"
+        ? input.partnerFundingDisclosure
+        : existing.internal.partnerFundingDisclosure;
+    const nextPartnerReportingState =
+      typeof input.partnerReportingState !== "undefined"
+        ? input.partnerReportingState
+        : existing.internal.partnerReportingState;
+    const nextPartnerProjectPackage = (() => {
+      if (typeof input.partnerProjectPackage !== "undefined") {
+        if (!input.partnerProjectPackage) return null;
+        return {
+          ...input.partnerProjectPackage,
+          organizationId: input.organizationId ?? existing.internal.organizationId,
+          organizationName: existing.organizationName,
+          contractLinked: true,
+          billingLinked: true,
+          reviewOnlyOutputs: true,
+          noOperatorRights: true,
+          noAutoOfficial: true,
+          noAutoPublicationApproved: true,
+          createdAt: input.partnerProjectPackage.createdAt,
+          updatedAt: new Date().toISOString(),
+        } satisfies PartnerProjectPackage;
+      }
+      return existing.internal.partnerProjectPackage;
+    })();
     const contractAuditEvent = buildContractAuditEvent({
       orderId: existing.orderId,
       actorUserId: input.actorUserId,
@@ -581,6 +828,14 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
       nextBillingStatus,
       source: nextBillingSource,
       planAssignment,
+      note,
+    });
+    const partnerPackageAuditEvent = buildPartnerPackageAuditEvent({
+      actorUserId: input.actorUserId,
+      organizationId: input.organizationId ?? existing.internal.organizationId,
+      source: nextBillingSource,
+      previousPackage: existing.internal.partnerProjectPackage,
+      nextPackage: nextPartnerProjectPackage,
       note,
     });
     pricingOrdersForTests[index] = {
@@ -612,6 +867,12 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
         contractAuditEvents: contractAuditEvent
           ? [...existing.internal.contractAuditEvents, contractAuditEvent]
           : existing.internal.contractAuditEvents,
+        partnerProjectPackage: nextPartnerProjectPackage,
+        partnerFundingDisclosure: nextPartnerFundingDisclosure ?? null,
+        partnerReportingState: nextPartnerReportingState ?? null,
+        partnerPackageAuditEvents: partnerPackageAuditEvent
+          ? [...existing.internal.partnerPackageAuditEvents, partnerPackageAuditEvent]
+          : existing.internal.partnerPackageAuditEvents,
       },
     };
     return {
@@ -675,6 +936,44 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
       previousContractStatus,
     });
   const existingContractAuditEvents = normalizeContractAuditEvents(internalBefore.contractAuditEvents);
+  const existingPartnerProjectPackage = normalizePartnerProjectPackage(internalBefore.partnerProjectPackage);
+  const existingPartnerFundingDisclosure = normalizePartnerFundingDisclosure(
+    internalBefore.partnerFundingDisclosure,
+  );
+  const existingPartnerReportingState = normalizePartnerReportingState(
+    internalBefore.partnerReportingState,
+  );
+  const existingPartnerPackageAuditEvents = normalizePartnerPackageAuditEvents(
+    internalBefore.partnerPackageAuditEvents,
+  );
+  const nextPartnerFundingDisclosure =
+    typeof input.partnerFundingDisclosure !== "undefined"
+      ? input.partnerFundingDisclosure
+      : existingPartnerFundingDisclosure;
+  const nextPartnerReportingState =
+    typeof input.partnerReportingState !== "undefined"
+      ? input.partnerReportingState
+      : existingPartnerReportingState;
+  const nextPartnerProjectPackage = (() => {
+    if (typeof input.partnerProjectPackage !== "undefined") {
+      if (!input.partnerProjectPackage) return null;
+      return {
+        ...input.partnerProjectPackage,
+        organizationId: input.organizationId ?? normalizeText(internalBefore.organizationId),
+        organizationName:
+          normalizeText((existing as any).organizationName) ?? existingPartnerProjectPackage?.organizationName ?? null,
+        contractLinked: true,
+        billingLinked: true,
+        reviewOnlyOutputs: true,
+        noOperatorRights: true,
+        noAutoOfficial: true,
+        noAutoPublicationApproved: true,
+        createdAt: input.partnerProjectPackage.createdAt,
+        updatedAt: now.toISOString(),
+      } satisfies PartnerProjectPackage;
+    }
+    return existingPartnerProjectPackage;
+  })();
   const contractAuditEvent = buildContractAuditEvent({
     orderId: typeof (existing as any).orderId === "string" ? (existing as any).orderId : id,
     actorUserId: input.actorUserId,
@@ -685,6 +984,14 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
     nextBillingStatus,
     source: nextBillingSource,
     planAssignment,
+    note: note ?? null,
+  });
+  const partnerPackageAuditEvent = buildPartnerPackageAuditEvent({
+    actorUserId: input.actorUserId,
+    organizationId: input.organizationId ?? normalizeText(internalBefore.organizationId),
+    source: nextBillingSource,
+    previousPackage: existingPartnerProjectPackage,
+    nextPackage: nextPartnerProjectPackage,
     note: note ?? null,
   });
 
@@ -712,6 +1019,12 @@ export async function updatePricingOrderReview(id: string, input: AdminUpdateInp
     contractAuditEvents: contractAuditEvent
       ? [...existingContractAuditEvents, contractAuditEvent]
       : existingContractAuditEvents,
+    partnerProjectPackage: nextPartnerProjectPackage,
+    partnerFundingDisclosure: nextPartnerFundingDisclosure ?? null,
+    partnerReportingState: nextPartnerReportingState ?? null,
+    partnerPackageAuditEvents: partnerPackageAuditEvent
+      ? [...existingPartnerPackageAuditEvents, partnerPackageAuditEvent]
+      : existingPartnerPackageAuditEvents,
   };
 
   await Leads.updateOne(

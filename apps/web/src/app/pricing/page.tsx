@@ -228,6 +228,11 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.pageKicker}</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{labels.heroTitle}</h1>
           <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{labels.heroText}</p>
+          <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Projekt- und Partnerpakete bleiben review-first, transparent und vertraglich gebunden.
+            Sie erzeugen kein Auto-Publish, kein automatisches <code>public_official</code> und
+            keine automatische Publikationsfreigabe.
+          </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/register", locale)} className="btn-primary">
               {labels.freeStartCta}

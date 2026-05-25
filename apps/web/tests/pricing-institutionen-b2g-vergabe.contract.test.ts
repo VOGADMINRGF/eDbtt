@@ -43,6 +43,8 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
     expect(html).toContain("Rahmenvertrag geeignet");
     expect(html).toContain("Ergebnisdokumentation");
     expect(html).toContain("Kommunale Einordnung vor dem Paket");
+    expect(html).toContain("Projektpakete schalten nur explizit zugewiesene Leistungen frei.");
+    expect(html).toContain("Finanzierung erzeugt weder");
     expect(html).toContain("Regionaler Anlass / Gebiet");
     expect(html).toContain("formelle oder informelle Beteiligung");
     expect(html).toContain("B2B- und B2G-Preise verstehen sich zzgl. MwSt.");

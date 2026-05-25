@@ -7,6 +7,7 @@ export * from "./intelligence";
 export * from "./organizationDashboard";
 export * from "./organizationContracts";
 export * from "./organizationEntitlements";
+export * from "./organizationPartnerPackages";
 export * from "./organizationOnboarding";
 export * from "./publicationRiskLadder";
 export * from "./regionFeedSignals";

@@ -113,6 +113,35 @@ function buildOperatorDashboardReadModel() {
       storeLabel: "Demo-/Test-Fallback",
       records: [],
     },
+    partnerPackageSummary: {
+      currentStatus: "none",
+      statusLabel: "Kein Projektpaket aktiv",
+      currentType: null,
+      typeLabel: null,
+      sourceOfTruth: "fixture_demo",
+      confidence: "limited",
+      runtimeMarker: "demo_or_test_runtime",
+      productionTruth: false,
+      auditBacked: false,
+      enabledScopes: [],
+      reportingState: null,
+      reportingLabel: null,
+      transparency: null,
+      transparencyRoleLabel: null,
+      nextStepTitle: "Kein Projektpaket aktiv",
+      nextStepBody:
+        "Projektpakete werden erst nach bewusster Betreiberentscheidung, passendem Vertrag und auditierbarer Transparenz als aktiv geführt.",
+      storeLabel: "In-Memory-/Test-Fallback",
+      items: [],
+      guardrails: {
+        noOperatorRights: true,
+        noPublicOfficial: true,
+        noPublicationApproved: true,
+        noSourceWeightInfluence: true,
+        noVoteOutcomeInfluence: true,
+        noFactcheckSealInfluence: true,
+      },
+    },
     regionSummary: [],
     entitlementSummary: {
       currentStatus: "none",
@@ -921,6 +950,114 @@ describe("/account/organization/dashboard page", () => {
       expect(html).toContain("Kein Auto-Publish");
       expect(html).toContain("Kein Siegel ohne explizite Freigabe.");
       expect(html).not.toContain("Jetzt veröffentlichen");
+    } finally {
+      readModelSpy.mockRestore();
+    }
+  });
+
+  it("renders partner package transparency and reporting honestly", async () => {
+    const readModelSpy = vi.spyOn(regionFeatures, "buildOrganizationDashboardReadModel");
+    readModelSpy.mockResolvedValue({
+      ...buildOperatorDashboardReadModel(),
+      contractSummary: {
+        ...buildOperatorDashboardReadModel().contractSummary,
+        currentContractStatus: "active",
+        billingStatus: "operator_verified_contract",
+        sourceOfTruth: "operator_verified_contract",
+        confidence: "high",
+        runtimeMarker: "production_runtime",
+        productionTruth: true,
+        auditBacked: true,
+      },
+      partnerPackageSummary: {
+        currentStatus: "reporting_required",
+        statusLabel: "Reporting erforderlich",
+        currentType: "foundation_program",
+        typeLabel: "Stiftungsprogramm",
+        sourceOfTruth: "operator_verified_contract",
+        confidence: "high",
+        runtimeMarker: "production_runtime",
+        productionTruth: true,
+        auditBacked: true,
+        enabledScopes: ["dossier_studio", "social_distribution", "reporting_export"],
+        reportingState: "review_required",
+        reportingLabel: "Reporting prüfen",
+        transparency: {
+          partnerName: "Stiftung Beispielstadt",
+          role: "foerderer",
+          label: "Förderhinweis im Projektraum",
+          transparencyNote:
+            "Förderung trägt den Arbeitsraum, beeinflusst aber weder Quellengewichtung noch Ergebnisdarstellung.",
+          sourceReference: "CON-FOUNDATION-2026-01",
+          shownToUsers: true,
+          shownToAdmins: true,
+          noSourceWeightInfluence: true,
+          noVoteOutcomeInfluence: true,
+          noFactcheckSealInfluence: true,
+          noAutoOfficial: true,
+          noAutoPublicationApproved: true,
+        },
+        transparencyRoleLabel: "Förderer",
+        nextStepTitle: "Reporting erforderlich",
+        nextStepBody:
+          "Das Paket verlangt einen nachvollziehbaren Reporting- oder Exportschritt. Es werden keine Live-Analytics oder Ergebnisgewichte behauptet.",
+        storeLabel: "Persistenter Betreiber-Vertrags- und Paketprozess",
+        items: [
+          {
+            id: "pkg-foundation-1",
+            type: "foundation_program",
+            typeLabel: "Stiftungsprogramm",
+            status: "reporting_required",
+            statusLabel: "Reporting erforderlich",
+            sourceOfTruth: "operator_verified_contract",
+            productionTruth: true,
+            auditBacked: true,
+            scopes: ["dossier_studio", "social_distribution", "reporting_export"],
+            scopeLabels: ["Dossier Studio", "Social Distribution", "Reporting / Export"],
+            enabledScopes: ["dossier_studio", "social_distribution", "reporting_export"],
+            reportingState: "review_required",
+            reportingLabel: "Reporting prüfen",
+            transparency: {
+              partnerName: "Stiftung Beispielstadt",
+              role: "foerderer",
+              label: "Förderhinweis im Projektraum",
+              transparencyNote:
+                "Förderung trägt den Arbeitsraum, beeinflusst aber weder Quellengewichtung noch Ergebnisdarstellung.",
+              sourceReference: "CON-FOUNDATION-2026-01",
+              shownToUsers: true,
+              shownToAdmins: true,
+              noSourceWeightInfluence: true,
+              noVoteOutcomeInfluence: true,
+              noFactcheckSealInfluence: true,
+              noAutoOfficial: true,
+              noAutoPublicationApproved: true,
+            },
+            transparencyRoleLabel: "Förderer",
+            auditEvents: [],
+            createdAt: "2026-05-24T09:00:00.000Z",
+            updatedAt: "2026-05-24T09:15:00.000Z",
+          },
+        ],
+        guardrails: {
+          noOperatorRights: true,
+          noPublicOfficial: true,
+          noPublicationApproved: true,
+          noSourceWeightInfluence: true,
+          noVoteOutcomeInfluence: true,
+          noFactcheckSealInfluence: true,
+        },
+      },
+    } as any);
+
+    try {
+      const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+      expect(html).toContain("Partner- &amp; Projektpaket");
+      expect(html).toContain("Reporting erforderlich");
+      expect(html).toContain("Stiftungsprogramm");
+      expect(html).toContain("Förderhinweis im Projektraum");
+      expect(html).toContain("Freigeschaltete Leistungen: Dossier Studio, Social Distribution, Reporting / Export");
+      expect(html).toContain("setzen nie `public_official`");
+      expect(html).not.toContain("automatisch veröffentlicht");
     } finally {
       readModelSpy.mockRestore();
     }

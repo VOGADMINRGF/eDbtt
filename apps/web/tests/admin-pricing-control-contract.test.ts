@@ -3,7 +3,11 @@ import {
   buildAdminPricingControlAuditFields,
   parseAdminPricingControlPolicyContract,
 } from "@/lib/server/pricing/adminPricingControlContract";
-import { isProductionBillingTruth } from "@features/pricing";
+import {
+  isProductionBillingTruth,
+  isProductionPartnerPackageTruth,
+  partnerProjectPackageAllowsScope,
+} from "@features/pricing";
 
 function baseExplainability() {
   return {
@@ -194,6 +198,57 @@ describe("admin pricing control contract", () => {
         runtimeMarker: "external_checkout_pending",
         auditBacked: true,
       }),
+    ).toBe(false);
+  });
+
+  it("treats operator-verified partner packages as production truth only when audit-backed", () => {
+    expect(
+      isProductionPartnerPackageTruth({
+        source: "operator_verified_contract",
+        runtimeMarker: "production_runtime",
+        auditBacked: true,
+      }),
+    ).toBe(true);
+    expect(
+      isProductionPartnerPackageTruth({
+        source: "fixture_demo",
+        runtimeMarker: "production_runtime",
+        auditBacked: true,
+      }),
+    ).toBe(false);
+    expect(
+      isProductionPartnerPackageTruth({
+        source: "external_checkout_pending",
+        runtimeMarker: "external_checkout_pending",
+        auditBacked: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("lets partner packages activate only their explicitly assigned scopes", () => {
+    expect(
+      partnerProjectPackageAllowsScope(
+        {
+          status: "active",
+          scopes: ["dossier_studio", "reporting_export"],
+          source: "operator_verified_contract",
+          runtimeMarker: "production_runtime",
+          auditBacked: true,
+        },
+        "dossier_studio",
+      ),
+    ).toBe(true);
+    expect(
+      partnerProjectPackageAllowsScope(
+        {
+          status: "active",
+          scopes: ["dossier_studio", "reporting_export"],
+          source: "operator_verified_contract",
+          runtimeMarker: "production_runtime",
+          auditBacked: true,
+        },
+        "social_distribution",
+      ),
     ).toBe(false);
   });
 });

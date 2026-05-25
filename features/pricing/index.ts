@@ -9,6 +9,7 @@ export * from "./domain/institutionalPricing.de";
 export * from "./domain/orderFlow";
 export * from "./domain/orderFollowup.de";
 export * from "./domain/organizationContract";
+export * from "./domain/partnerProjectPackage";
 export * from "./domain/orderEntry";
 export * from "./domain/trustLoop.de";
 export * from "./domain/helpers";

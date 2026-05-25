@@ -10,6 +10,13 @@ import type {
   OrganizationBillingSource,
   OrganizationBillingStatus,
   OrganizationContractStatus,
+  PartnerFundingDisclosure,
+  PartnerFundingDisclosureRole,
+  PartnerPackageScope,
+  PartnerPackageStatus,
+  PartnerPackageType,
+  PartnerProjectPackage,
+  PartnerReportingState,
   PricingOrderStatus,
 } from "@features/pricing";
 
@@ -91,6 +98,71 @@ const patchSchema = z.object({
     )
     .optional()
     .nullable(),
+  partnerProjectPackage: z
+    .object({
+      id: z.string().min(1),
+      type: z.enum(
+        [
+          "municipality_pilot",
+          "association_workspace",
+          "media_dossier_series",
+          "newsroom_qr_dossier",
+          "foundation_program",
+          "participation_office",
+          "agency_workspace",
+          "public_dialog_project",
+        ] as [PartnerPackageType, ...PartnerPackageType[]],
+      ),
+      status: z.enum(
+        [
+          "draft",
+          "offered",
+          "active",
+          "limited",
+          "reporting_required",
+          "paused",
+          "completed",
+          "cancelled",
+          "archived",
+        ] as [PartnerPackageStatus, ...PartnerPackageStatus[]],
+      ),
+      scopes: z.array(
+        z.enum(
+          [
+            "dossier_studio",
+            "social_distribution",
+            "source_connections",
+            "runden_qr",
+            "reporting_export",
+          ] as [PartnerPackageScope, ...PartnerPackageScope[]],
+        ),
+      ),
+      createdAt: z.string().min(1),
+    })
+    .optional()
+    .nullable(),
+  partnerFundingDisclosure: z
+    .object({
+      partnerName: z.string().min(1).max(160),
+      role: z.enum(["auftraggeber", "partner", "foerderer", "traeger"] as [
+        PartnerFundingDisclosureRole,
+        ...PartnerFundingDisclosureRole[],
+      ]),
+      label: z.string().min(1).max(160),
+      transparencyNote: z.string().max(600).optional().nullable(),
+      sourceReference: z.string().max(240).optional().nullable(),
+      shownToUsers: z.boolean().optional(),
+      shownToAdmins: z.boolean().optional(),
+    })
+    .optional()
+    .nullable(),
+  partnerReportingState: z
+    .enum(["draft", "review_required", "approved", "archived"] as [
+      PartnerReportingState,
+      ...PartnerReportingState[],
+    ])
+    .optional()
+    .nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -119,6 +191,39 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
+    const partnerProjectPackage: PartnerProjectPackage | null | undefined = parsed.data.partnerProjectPackage
+      ? {
+          ...parsed.data.partnerProjectPackage,
+          contractLinked: true,
+          billingLinked: true,
+          reviewOnlyOutputs: true,
+          noOperatorRights: true,
+          noAutoOfficial: true,
+          noAutoPublicationApproved: true,
+          organizationId: parsed.data.organizationId ?? null,
+          organizationName: null,
+          updatedAt: parsed.data.partnerProjectPackage.createdAt,
+        }
+      : parsed.data.partnerProjectPackage === null
+        ? null
+        : undefined;
+    const partnerFundingDisclosure: PartnerFundingDisclosure | null | undefined =
+      parsed.data.partnerFundingDisclosure
+        ? {
+            ...parsed.data.partnerFundingDisclosure,
+            transparencyNote: parsed.data.partnerFundingDisclosure.transparencyNote ?? null,
+            sourceReference: parsed.data.partnerFundingDisclosure.sourceReference ?? null,
+            shownToUsers: parsed.data.partnerFundingDisclosure.shownToUsers !== false,
+            shownToAdmins: parsed.data.partnerFundingDisclosure.shownToAdmins !== false,
+            noSourceWeightInfluence: true,
+            noVoteOutcomeInfluence: true,
+            noFactcheckSealInfluence: true,
+            noAutoOfficial: true,
+            noAutoPublicationApproved: true,
+          }
+        : parsed.data.partnerFundingDisclosure === null
+          ? null
+          : undefined;
     const updated = await updatePricingOrderReview(parsed.data.id, {
       status: parsed.data.status,
       actorUserId: String(actor._id),
@@ -138,6 +243,9 @@ export async function PATCH(req: NextRequest) {
       billingStatus: parsed.data.billingStatus ?? null,
       billingSource: parsed.data.billingSource ?? null,
       accessProvisioningDecision: parsed.data.accessProvisioningDecision ?? null,
+      partnerProjectPackage,
+      partnerFundingDisclosure,
+      partnerReportingState: parsed.data.partnerReportingState ?? undefined,
     });
     return NextResponse.json({ ok: true, order: updated });
   } catch (error: any) {

@@ -67,6 +67,10 @@ import {
   buildOrganizationContractSummary,
   type OrganizationContractSummary,
 } from "./organizationContracts";
+import {
+  buildOrganizationPartnerPackageSummary,
+  type OrganizationPartnerPackageSummary,
+} from "./organizationPartnerPackages";
 import { listPricingOrdersForOrganizationRuntime } from "@features/pricing/orderContractsRuntime";
 import {
   getSocialDistributionRepo,
@@ -246,6 +250,8 @@ export type OrganizationDashboardSocialDistributionSummary = {
   items: OrganizationDashboardSocialDistributionItem[];
 };
 
+export type OrganizationDashboardPartnerPackageSummary = OrganizationPartnerPackageSummary;
+
 export type OrganizationDashboardReviewItem = ReviewQueueItem & {
   moderationPermission: NonAdminModerationPermission;
 };
@@ -376,6 +382,7 @@ export type OrganizationDashboardReadModel = {
   directorySummary: OrganizationDashboardDirectorySummary;
   provisioningSummary: OrganizationDashboardProvisioningSummary;
   contractSummary: OrganizationContractSummary;
+  partnerPackageSummary: OrganizationPartnerPackageSummary;
   materialIntakeSummary: MaterialIntakeDashboardSummary;
   sourceConnectionSummary: OrganizationDashboardSourceConnectionSummary;
   socialDistributionSummary: OrganizationDashboardSocialDistributionSummary;
@@ -1752,6 +1759,10 @@ export async function buildOrganizationDashboardReadModel(input: {
     entitlementAuditEvents,
     pricingOrders,
   });
+  const partnerPackageSummary = buildOrganizationPartnerPackageSummary({
+    contractSummary,
+    pricingOrders,
+  });
 
   const regionSummary: OrganizationDashboardRegionSummary[] = [
     ...regionContexts
@@ -1998,6 +2009,7 @@ export async function buildOrganizationDashboardReadModel(input: {
     directorySummary,
     provisioningSummary,
     contractSummary,
+    partnerPackageSummary,
     materialIntakeSummary,
     sourceConnectionSummary,
     socialDistributionSummary,

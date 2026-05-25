@@ -1045,6 +1045,11 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
       <section id="guided-selection" className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
         <div className="space-y-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.selectionTitle}</p>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Projektpakete schalten nur explizit zugewiesene Leistungen frei. Transparenzhinweise,
+            Reporting und Vertragslage bleiben auditierbar; Finanzierung erzeugt weder
+            Quellengewichtung noch Factcheck- oder Veröffentlichungsprivilegien.
+          </p>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.step1}</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
