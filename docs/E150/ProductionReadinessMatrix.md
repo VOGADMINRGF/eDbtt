@@ -168,11 +168,11 @@ Post-V1 oder bewusst out of scope:
 - Mandat als read-only Statusraum ausserhalb des engeren V1-Versprechens.
 - Pricing/Order als Angebots-/Vormerkpfad statt Self-Checkout.
 
-## C) Grundlage vorhanden, aber noch kein Produktpfad
+## C) Grundlage vorhanden, aber noch kein eigenstaendiger V1-Produktpfad
 
-- VoiceOpenGov Membership-/Register-Sync als fertiger Runtime-Prozess.
-- Journalismus-/Medienpakete nur im definierten `production_ready-v1`-Produktmodus als transparentes Projektpaket, nicht als autonomes Publishing- oder Faktencheck-Produkt.
-- Funding-/Partnerpfade nur im definierten `production_ready-v1`-Produktmodus als auditierbarer Paket- und Transparenzpfad, nicht als Einfluss- oder Ergebnislogik.
+- VoiceOpenGov Membership-/Register-Sync als spaetere externe Anschlussoption hinter der operator-verifizierten v1-Wahrheit.
+- Journalismus-/Medienpakete nicht als autonomes Publishing- oder Faktencheck-Produkt, sondern nur im bereits begrenzten `production_ready-v1`-Projektpaketmodus.
+- Funding-/Partnerpfade nicht als Einfluss- oder Ergebnislogik, sondern nur im bereits begrenzten `production_ready-v1`-Paket- und Transparenzpfad.
 - Beteiligungsradar als spaeterer Themen-/Signalradar.
 
 ## D) Pausiert / aus eDebatte-MVP herausnehmen
