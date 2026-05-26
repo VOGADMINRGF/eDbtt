@@ -24,6 +24,15 @@ export function SwipeDetailSheet({
 }: SwipeDetailSheetProps) {
   if (!open || !item) return null;
 
+  const contextHref = typeof item.contextHref === "string" ? item.contextHref : null;
+  const contextLabel = contextHref?.startsWith("/runden")
+    ? "Zum Anlassraum"
+    : contextHref?.startsWith("/create")
+      ? "Beitrag ergänzen"
+      : contextHref
+        ? "Kontext öffnen"
+        : null;
+
   return (
     <div className="fixed inset-0 z-[70]">
       <button
@@ -54,6 +63,17 @@ export function SwipeDetailSheet({
         </header>
 
         <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          {item.supplyLabel ? (
+            <div className="mb-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Warum wird dir das angezeigt?
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--fg))]">{item.supplyLabel}</p>
+              {item.supplyHint ? (
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">{item.supplyHint}</p>
+              ) : null}
+            </div>
+          ) : null}
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Varianten / mögliche Folgen</p>
           {loadingEventualities ? (
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">Lade Varianten …</p>
@@ -82,6 +102,11 @@ export function SwipeDetailSheet({
             {dossierHref ? (
               <Link href={dossierHref} className="mt-3 inline-flex vog-chip vog-chip--active">
                 Dossier öffnen
+              </Link>
+            ) : null}
+            {contextHref && contextLabel ? (
+              <Link href={contextHref} className="mt-3 ml-2 inline-flex vog-chip">
+                {contextLabel}
               </Link>
             ) : null}
           </article>

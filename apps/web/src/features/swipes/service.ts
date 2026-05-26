@@ -29,6 +29,7 @@ import { shouldAllowSwipeSeedFallback } from "@/features/runtimeDataGuardrails";
 import { anlassraumCol } from "@features/anlassraum/db";
 import { voteDraftsCol } from "@features/feeds/db";
 import { resolveFeedRadarStatusFromDraft } from "@features/feeds/statusContract";
+import { buildPublicTopicSupplyReadModel } from "./publicTopicSupply";
 import type { VoteDraftDoc } from "@features/feeds/types";
 
 type ProposalDoc = {
@@ -380,19 +381,54 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   const allowSeedFallback = shouldAllowSwipeSeedFallback({
     fromDraftId,
     regionId: filter?.regionId ?? null,
+    viewerRegionIds: filter?.viewerRegionIds ?? null,
+    organizationId: filter?.organizationId ?? null,
+    organizationIds: filter?.organizationIds ?? null,
     adminContext: filter?.adminContext,
     reviewContext: filter?.reviewContext,
   });
 
   let proposalDocs: ProposalDoc[] = [];
+  let supplyLayerItems: SwipeItem[] = [];
   try {
     const Proposals = await getCol<ProposalDoc>("statement_proposals");
     proposalDocs = await Proposals.find({ status: { $in: ["proposed", null] } })
       .sort({ createdAt: -1 })
       .limit(req.limit ?? 20)
       .toArray();
+    try {
+      const supply = await buildPublicTopicSupplyReadModel({
+        userId: req.userId ?? null,
+        filter: req.filter,
+        limit: req.limit ?? 20,
+      });
+      supplyLayerItems = supply.items;
+    } catch (supplyError) {
+      console.error("[swipes] public topic supply unavailable", supplyError);
+    }
   } catch (error) {
+    try {
+      const supply = await buildPublicTopicSupplyReadModel({
+        userId: req.userId ?? null,
+        filter: req.filter,
+        limit: req.limit ?? 20,
+      });
+      supplyLayerItems = supply.items;
+    } catch (supplyError) {
+      console.error("[swipes] public topic supply unavailable", supplyError);
+    }
     if (fromDraftId) {
+      if (supplyLayerItems.length > 0) {
+        const counts = await loadEventualityCounts(supplyLayerItems.map((item) => item.id));
+        return {
+          items: supplyLayerItems.map((item) => ({
+            ...item,
+            eventualitiesCount: counts[item.id] ?? 0,
+            hasEventualities: (counts[item.id] ?? 0) > 0,
+          })),
+          nextCursor: null,
+        };
+      }
       try {
         const fallbackItems = await loadFeedDraftSwipeFallback({
           fromDraftId,
@@ -416,6 +452,17 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
       }
       console.error("[swipes] proposal feed unavailable, preserving explicit fromDraft no-match", error);
       return { items: [], nextCursor: null };
+    }
+    if (supplyLayerItems.length > 0) {
+      const counts = await loadEventualityCounts(supplyLayerItems.map((item) => item.id));
+      return {
+        items: supplyLayerItems.map((item) => ({
+          ...item,
+          eventualitiesCount: counts[item.id] ?? 0,
+          hasEventualities: (counts[item.id] ?? 0) > 0,
+        })),
+        nextCursor: null,
+      };
     }
     try {
       const fallbackItems = await loadFeedDraftSwipeFallback({
@@ -447,15 +494,46 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   }
 
   let items = proposalDocs.length > 0 ? proposalDocs.map(mapProposalToSwipe) : [];
+  if (supplyLayerItems.length > 0) {
+    const itemsById = new Map<string, SwipeItem>();
+    for (const item of [...items, ...supplyLayerItems]) {
+      const existing = itemsById.get(item.id);
+      if (!existing) {
+        itemsById.set(item.id, item);
+        continue;
+      }
+      itemsById.set(item.id, {
+        ...existing,
+        ...item,
+        text: existing.text ?? item.text,
+        contextHref: existing.contextHref ?? item.contextHref,
+        dossierHref: existing.dossierHref ?? item.dossierHref,
+        sourceDraftId: existing.sourceDraftId ?? item.sourceDraftId,
+        statusLabel: existing.statusLabel ?? item.statusLabel,
+        statusHint: existing.statusHint ?? item.statusHint,
+        sourceLabel: existing.sourceLabel ?? item.sourceLabel,
+        supplyLabel: existing.supplyLabel ?? item.supplyLabel,
+        supplyHint: existing.supplyHint ?? item.supplyHint,
+        supplyBuckets: Array.from(
+          new Set([...(existing.supplyBuckets ?? []), ...(item.supplyBuckets ?? [])]),
+        ),
+      });
+    }
+    items = Array.from(itemsById.values());
+  }
 
   if (items.length === 0) {
     try {
-      items = await loadFeedDraftSwipeFallback({
-        fromDraftId,
-        topicQuery,
-        level,
-        limit: req.limit ?? 20,
-      });
+      if (supplyLayerItems.length > 0) {
+        items = supplyLayerItems;
+      } else {
+        items = await loadFeedDraftSwipeFallback({
+          fromDraftId,
+          topicQuery,
+          level,
+          limit: req.limit ?? 20,
+        });
+      }
     } catch (error) {
       console.error("[swipes] feed draft fallback unavailable", error);
     }

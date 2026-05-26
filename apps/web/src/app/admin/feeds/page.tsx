@@ -74,6 +74,25 @@ type FeedRuntimeResponse = {
       attachedAnlassraum: number;
       attachedDossier: number;
     };
+    topicSupply: {
+      totalVisible: number;
+      reviewRequired: number;
+      buckets: Array<{
+        bucket: string;
+        label: string;
+        count: number;
+      }>;
+      sources: Array<{
+        source: string;
+        label: string;
+        count: number;
+      }>;
+      nextAction: {
+        label: string;
+        description: string;
+        href: string;
+      };
+    };
   };
   error?: string;
 };
@@ -401,6 +420,74 @@ export default function AdminFeedsPage() {
                 </div>
               </article>
             </div>
+
+            <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Topic Supply
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Öffentliche, regionale und organisationsbezogene Themen werden auf bestehenden Pfaden gebündelt.
+              </p>
+              <div className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Verfügbare Swipe-Themen</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.topicSupply.totalVisible, operatorLocale)} sichtbare Themen im aktuellen Supply-Layer.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Reviewbedarf</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.topicSupply.reviewRequired, operatorLocale)} Themenhinweise bleiben bewusst in Prüfung.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{runtimeData.topicSupply.nextAction.label}</p>
+                    <p className="mt-1">{runtimeData.topicSupply.nextAction.description}</p>
+                    <Link href={runtimeData.topicSupply.nextAction.href} className={`mt-2 inline-flex ${INLINE_LINK_CLASS}`}>
+                      Öffnen
+                    </Link>
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+                    <p className="text-xs font-semibold text-[rgb(var(--fg))]">Buckets</p>
+                    <div className="mt-2 space-y-2 text-xs text-[rgb(var(--muted))]">
+                      {runtimeData.topicSupply.buckets.length > 0 ? (
+                        runtimeData.topicSupply.buckets.map((bucket) => (
+                          <div key={bucket.bucket} className="flex items-center justify-between gap-2">
+                            <span>{bucket.label}</span>
+                            <span className="font-semibold text-[rgb(var(--fg))]">
+                              {formatOperatorNumber(bucket.count, operatorLocale)}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p>Noch keine sichtbaren Bucket-Zähler.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+                    <p className="text-xs font-semibold text-[rgb(var(--fg))]">Quellen</p>
+                    <div className="mt-2 space-y-2 text-xs text-[rgb(var(--muted))]">
+                      {runtimeData.topicSupply.sources.length > 0 ? (
+                        runtimeData.topicSupply.sources.map((source) => (
+                          <div key={source.source} className="flex items-center justify-between gap-2">
+                            <span>{source.label}</span>
+                            <span className="font-semibold text-[rgb(var(--fg))]">
+                              {formatOperatorNumber(source.count, operatorLocale)}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p>Aktuell keine produktiven Quellen im Supply-Layer.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
 
             <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">

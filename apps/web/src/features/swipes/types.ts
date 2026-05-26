@@ -21,6 +21,16 @@ export type SwipeNeutralReason =
   | "decide_later";
 
 export type SwipeScopeLevel = "Bund" | "Land" | "Kommune" | "EU";
+export type PublicTopicSupplyBucket =
+  | "public_general"
+  | "public_recent"
+  | "regional"
+  | "organization"
+  | "from_create"
+  | "from_feed"
+  | "from_dossier"
+  | "needs_review";
+export type SwipeSourceKind = "proposal" | "feed" | "dossier" | "anlassraum" | "create" | "seed";
 
 export type SwipeItem = {
   id: string; // Statement-ID
@@ -35,12 +45,17 @@ export type SwipeItem = {
   domainLabel: string;
   hasEventualities: boolean;
   eventualitiesCount: number;
+  sourceType?: SwipeSourceKind;
+  sourceLabel?: string | null;
   sourceDraftId?: string | null;
   anlassraumId?: string | null;
   contextHref?: string | null;
   dossierHref?: string | null;
   statusLabel?: string | null;
   statusHint?: string | null;
+  supplyBuckets?: PublicTopicSupplyBucket[];
+  supplyLabel?: string | null;
+  supplyHint?: string | null;
   fromDraftMatch?: boolean;
 };
 
@@ -57,6 +72,9 @@ export type SwipeFeedFilter = {
   statementId?: string;
   fromDraftId?: string;
   regionId?: string;
+  viewerRegionIds?: string[];
+  organizationId?: string;
+  organizationIds?: string[];
   adminContext?: boolean;
   reviewContext?: boolean;
 };

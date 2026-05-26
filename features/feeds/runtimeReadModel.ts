@@ -15,6 +15,7 @@ import {
   type FeedRadarRuntimeStatus,
 } from "./statusContract";
 import { listRecentFeedRuntimeRuns, type FeedRuntimeRunDoc } from "./runtimeLog";
+import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 
 export type FeedRadarRuntimeNextAction =
   | "run_pull"
@@ -72,6 +73,17 @@ export type FeedRadarRuntimeReadModel = {
     attachedAnlassraum: number;
     attachedDossier: number;
   };
+  topicSupply: {
+    totalVisible: number;
+    reviewRequired: number;
+    buckets: Array<{ bucket: string; label: string; count: number }>;
+    sources: Array<{ source: string; label: string; count: number }>;
+    nextAction: {
+      label: string;
+      description: string;
+      href: string;
+    };
+  };
 };
 
 export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntimeReadModel> {
@@ -82,6 +94,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     statementCol,
     roomCol,
     runs,
+    topicSupplyModel,
   ] = await Promise.all([
     statementCandidatesCol(),
     voteDraftsCol(),
@@ -89,6 +102,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     feedStatementsCol(),
     anlassraumCol(),
     listRecentFeedRuntimeRuns(12),
+    buildPublicTopicSupplyReadModel({ limit: 60 }).catch(() => null),
   ]);
 
   const [
@@ -219,6 +233,17 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
       clusteredCandidates: clusterCandidateCount,
       attachedAnlassraum: attachedToAnlassraum,
       attachedDossier: attachedToDossier,
+    },
+    topicSupply: topicSupplyModel?.summary ?? {
+      totalVisible: 0,
+      reviewRequired: 0,
+      buckets: [],
+      sources: [],
+      nextAction: {
+        label: "Supply prüfen",
+        description: "Noch keine belastbaren Themensignale sichtbar.",
+        href: "/admin/feeds",
+      },
     },
   };
 }

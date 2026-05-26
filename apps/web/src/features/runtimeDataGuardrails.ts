@@ -14,6 +14,9 @@ export type RuntimeDataGuardrail = {
 type SwipeFallbackContext = {
   fromDraftId?: string | null;
   regionId?: string | null;
+  viewerRegionIds?: string[] | null;
+  organizationId?: string | null;
+  organizationIds?: string[] | null;
   adminContext?: boolean;
   reviewContext?: boolean;
 };
@@ -48,6 +51,9 @@ export function shouldAllowSwipeSeedFallback(context: SwipeFallbackContext | nul
   if (!context) return true;
   if (String(context.fromDraftId || "").trim()) return false;
   if (String(context.regionId || "").trim()) return false;
+  if ((context.viewerRegionIds ?? []).some((value) => String(value || "").trim().length > 0)) return false;
+  if (String(context.organizationId || "").trim()) return false;
+  if ((context.organizationIds ?? []).some((value) => String(value || "").trim().length > 0)) return false;
   if (context.adminContext) return false;
   if (context.reviewContext) return false;
   return true;

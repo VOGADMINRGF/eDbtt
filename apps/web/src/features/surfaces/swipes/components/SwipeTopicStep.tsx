@@ -215,6 +215,15 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
           <span className="font-semibold text-[rgb(var(--fg))]">Kernthese:</span> {coreThesis}
         </p>
       ) : null}
+      {item.supplyLabel ? (
+        <div className="relative mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs">
+          <p className="font-semibold text-[rgb(var(--fg))]">Warum wird dir das angezeigt?</p>
+          <p className="mt-1 text-[rgb(var(--muted))]">
+            {item.supplyLabel}
+            {item.supplyHint ? ` · ${item.supplyHint}` : ""}
+          </p>
+        </div>
+      ) : null}
       <p className="relative mt-2 text-xs text-[rgb(var(--muted))] md:hidden">
         Wische links/rechts für Nein/Ja oder nutze die fixe Leiste unten.
       </p>

@@ -5,12 +5,14 @@ const mocks = vi.hoisted(() => {
   let proposalDocs: Array<Record<string, any>> = [];
   let eventualityCounts: Record<string, number> = {};
   let failProposalCollection = false;
+  let supplyItems: Array<Record<string, any>> = [];
 
   return {
     reset() {
       proposalDocs = [];
       eventualityCounts = {};
       failProposalCollection = false;
+      supplyItems = [];
     },
     setProposals(docs: Array<Record<string, any>>) {
       proposalDocs = docs.map((doc) => ({ ...doc }));
@@ -20,6 +22,9 @@ const mocks = vi.hoisted(() => {
     },
     setProposalCollectionFailure(enabled: boolean) {
       failProposalCollection = enabled;
+    },
+    setSupplyItems(items: Array<Record<string, any>>) {
+      supplyItems = items.map((item) => ({ ...item }));
     },
     getCol: vi.fn(async (name: string) => {
       if (name !== "statement_proposals") throw new Error(`unexpected_collection_${name}`);
@@ -66,6 +71,10 @@ const mocks = vi.hoisted(() => {
         })),
       })),
     })),
+    buildPublicTopicSupplyReadModel: vi.fn(async () => ({
+      items: supplyItems.map((item) => ({ ...item })),
+      summary: null,
+    })),
   };
 });
 
@@ -80,6 +89,10 @@ vi.mock("@core/db/triMongo", async () => {
 
 vi.mock("@core/eventualities/db", () => ({
   eventualityNodesCol: () => mocks.eventualityNodesCol(),
+}));
+
+vi.mock("@/features/swipes/publicTopicSupply", () => ({
+  buildPublicTopicSupplyReadModel: (...args: unknown[]) => mocks.buildPublicTopicSupplyReadModel(...args),
 }));
 
 vi.mock("@/features/graph/swipes", () => ({
