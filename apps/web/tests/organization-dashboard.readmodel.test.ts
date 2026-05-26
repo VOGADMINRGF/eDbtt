@@ -242,7 +242,7 @@ describe("organization dashboard readmodel", () => {
             sourceVisibilityState: "public_reviewed",
             sourceState: "approved_context",
             title: "Eigener Verteilentwurf",
-            status: "review_required",
+            status: "review_requested",
             channels: ["website_update", "newsletter_draft"],
             scheduleMode: "manual",
             channelTexts: {
@@ -277,7 +277,7 @@ describe("organization dashboard readmodel", () => {
             sourceVisibilityState: "public_reviewed",
             sourceState: "approved_context",
             title: "Fremder Verteilentwurf",
-            status: "published_manual",
+            status: "exported",
             channels: ["press_note"],
             scheduleMode: "manual",
             channelTexts: {
@@ -314,7 +314,7 @@ describe("organization dashboard readmodel", () => {
 
     expect(readModel.socialDistributionSummary.items).toHaveLength(1);
     expect(readModel.socialDistributionSummary.items[0]?.title).toBe("Eigener Verteilentwurf");
-    expect(readModel.socialDistributionSummary.items[0]?.statusLabel).toBe("Review erforderlich");
+    expect(readModel.socialDistributionSummary.items[0]?.statusLabel).toBe("Prüfung angefordert");
     expect(readModel.socialDistributionSummary.items[0]?.sourceState).toBe("approved_context");
   });
 

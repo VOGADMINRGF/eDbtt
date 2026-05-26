@@ -41,6 +41,12 @@ export function SwipeDetailSheet({
             <p className="text-sm text-[rgb(var(--muted))]">
               Haltungsentscheidung ist gespeichert. Starte mit Varianten und vertiefe danach Dossier und Quellenlage.
             </p>
+            {item.statusLabel ? (
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {item.statusLabel}
+                {item.statusHint ? ` · ${item.statusHint}` : ""}
+              </p>
+            ) : null}
           </div>
           <button type="button" onClick={onClose} className="vog-chip">
             Schließen

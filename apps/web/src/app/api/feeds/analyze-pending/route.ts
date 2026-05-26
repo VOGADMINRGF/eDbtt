@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzePendingStatementCandidates } from "@features/feeds/analyzePending";
+import { recordFeedRuntimeRun } from "@features/feeds/runtimeLog";
 import { requireAdminOrEditor } from "../_auth";
 
 export const runtime = "nodejs";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   const gate = await requireAdminOrEditor(request);
   if (gate) return gate;
+  const requestedAt = new Date();
 
   let limit: number | undefined;
   try {
@@ -23,9 +25,31 @@ export async function POST(request: NextRequest) {
     const result = await analyzePendingStatementCandidates({
       limit,
     });
+    await recordFeedRuntimeRun({
+      runType: "analyze",
+      status: result.errors > 0 ? "error" : "success",
+      requestedAt,
+      completedAt: new Date(),
+      counts: {
+        analyzed: result.analyzed,
+        errors: result.errors,
+        limit: limit ?? null,
+      },
+      error: result.errors > 0 ? "analyze_pending_partial_error" : null,
+    });
     return NextResponse.json({ ok: true, ...result });
   } catch (error: any) {
     console.error("[/api/feeds/analyze-pending] error", error);
+    await recordFeedRuntimeRun({
+      runType: "analyze",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      counts: {
+        limit: limit ?? null,
+      },
+      error: "analyze_pending_failed",
+    });
     return NextResponse.json(
       {
         ok: false,

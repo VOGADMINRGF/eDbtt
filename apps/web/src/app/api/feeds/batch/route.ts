@@ -14,6 +14,7 @@ import {
   saveFeedItemsRaw,
   upsertStatementCandidates,
 } from "@features/feeds/storage";
+import { recordFeedRuntimeRun } from "@features/feeds/runtimeLog";
 import { normalizeRegionCode } from "@core/regions/types";
 import { requireAdminOrEditor } from "../_auth";
 
@@ -32,15 +33,30 @@ function fail(message: string, status = 400) {
 export async function POST(req: NextRequest): Promise<Response> {
   const gate = await requireAdminOrEditor(req);
   if (gate) return gate;
+  const requestedAt = new Date();
 
   let body: FeedBatchBody | null = null;
   try {
     body = await req.json();
   } catch {
+    await recordFeedRuntimeRun({
+      runType: "batch_import",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      error: "invalid_json_body",
+    });
     return fail("Invalid JSON body", 400);
   }
 
   if (!body || !Array.isArray(body.items)) {
+    await recordFeedRuntimeRun({
+      runType: "batch_import",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      error: "batch_body_must_contain_items_array",
+    });
     return fail("Body muss { items: FeedItemInput[] } enthalten", 400);
   }
 
@@ -84,6 +100,21 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
     await upsertStatementCandidates(candidates);
   }
+
+  await recordFeedRuntimeRun({
+    runType: "batch_import",
+    status: "success",
+    requestedAt,
+    completedAt: new Date(),
+    counts: {
+      received: body.items.length,
+      normalized: normalized.length,
+      inserted: candidates.length,
+      skippedInvalidUrl,
+      skippedDuplicateInBatch,
+      skippedExisting,
+    },
+  });
 
   return NextResponse.json(
     {

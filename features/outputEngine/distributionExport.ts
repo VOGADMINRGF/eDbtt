@@ -22,6 +22,18 @@ export type QrPrintPreview = {
   caveats: string[];
 };
 
+export type SocialDistributionExportPayload = {
+  dossierId: string;
+  packageId: string;
+  backlinkTarget: string;
+  channels: SocialDistributionChannel[];
+  scheduleMode: SocialScheduleMode;
+  reviewRequired: boolean;
+  queue: SocialDistributionDraft["queue"];
+  text: string;
+  generatedAt: string;
+};
+
 function validateCoreTargets(post: MasterPost): ExportValidationResult {
   const errors: string[] = [];
   if (!post.cta.trim()) errors.push("cta_missing");
@@ -62,7 +74,7 @@ export function buildDistributionPlan(input: {
     selectedChannels: input.selectedChannels,
     scheduleMode: input.scheduleMode,
     reviewRequired: input.reviewRequired,
-    status: input.reviewRequired ? "review_required" : "draft",
+    status: input.reviewRequired ? "review_requested" : "draft_created",
   });
 }
 
@@ -76,7 +88,7 @@ export function buildDraftRecord(input: {
     selectedChannels: input.selectedChannels,
     scheduleMode: "manual",
     reviewRequired: input.reviewRequired,
-    status: "draft",
+    status: "draft_created",
   });
 }
 
@@ -95,4 +107,21 @@ export function buildQrPrintPreview(post: MasterPost): QrPrintPreview {
 
 export function validateDistributionExport(post: MasterPost): ExportValidationResult {
   return validateCoreTargets(post);
+}
+
+export function buildSocialDistributionExportPayload(input: {
+  post: MasterPost;
+  draft: SocialDistributionDraft;
+}): SocialDistributionExportPayload {
+  return {
+    dossierId: input.draft.dossierId,
+    packageId: input.draft.packageId,
+    backlinkTarget: input.post.backlinkTarget,
+    channels: [...input.draft.selectedChannels],
+    scheduleMode: input.draft.scheduleMode,
+    reviewRequired: input.draft.reviewRequired,
+    queue: [...input.draft.queue],
+    text: buildCopyText(input.post),
+    generatedAt: new Date().toISOString(),
+  };
 }

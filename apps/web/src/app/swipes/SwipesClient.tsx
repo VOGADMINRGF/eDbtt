@@ -1062,7 +1062,7 @@ export function SwipesClient({
         item={detailItem}
         eventualities={detailEventualities}
         loadingEventualities={detailLoading}
-        dossierHref={detailItem ? openDossierRoute(detailItem.id) : null}
+        dossierHref={detailItem ? detailItem.dossierHref ?? openDossierRoute(detailItem.id) : null}
         evidenceHref={detailItem ? openEvidenceRoute(detailItem.id) : null}
         votesHref={detailItem ? openVotesRoute(detailItem.id, detailItem.title) : null}
         onClose={() => {

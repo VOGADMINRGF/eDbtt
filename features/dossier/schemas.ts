@@ -65,7 +65,15 @@ export type DisputeStatus = z.infer<typeof DisputeStatusSchema>;
 export const SuggestionStatusSchema = z.enum(["pending", "accepted", "rejected"]);
 export type SuggestionStatus = z.infer<typeof SuggestionStatusSchema>;
 
-export const SuggestionTypeSchema = z.enum(["source", "claim", "counter", "question", "flag"]);
+export const SuggestionTypeSchema = z.enum([
+  "source",
+  "claim",
+  "counter",
+  "question",
+  "flag",
+  "perspective",
+  "update",
+]);
 export type SuggestionType = z.infer<typeof SuggestionTypeSchema>;
 
 export const EvidenceIndicatorSchema = z

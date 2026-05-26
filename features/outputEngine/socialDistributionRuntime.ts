@@ -11,27 +11,27 @@ import {
   type SocialScheduleMode,
 } from "./socialDistribution";
 import { buildShareOutputAsset } from "@features/share/socialOutputContract";
+import {
+  SOCIAL_DISTRIBUTION_V1_STATUSES,
+  socialDistributionStatusLabel as socialDistributionStatusLabelFromContract,
+  type SocialDistributionV1Status,
+} from "./socialDistributionStatusContract";
 
-export const SOCIAL_DISTRIBUTION_STATUSES = [
-  "draft",
-  "review_required",
-  "approved",
-  "scheduled",
-  "published_manual",
-  "failed",
-  "revoked",
-  "archived",
-] as const;
+export const SOCIAL_DISTRIBUTION_STATUSES = SOCIAL_DISTRIBUTION_V1_STATUSES;
 
-export type SocialDistributionStatus = (typeof SOCIAL_DISTRIBUTION_STATUSES)[number];
+export type SocialDistributionStatus = SocialDistributionV1Status;
 
 export const SOCIAL_DISTRIBUTION_AUDIT_ACTIONS = [
   "create_draft",
+  "generate_assets",
+  "request_review",
   "approve",
-  "schedule",
-  "mark_published",
+  "queue",
+  "mark_scheduled_ready",
+  "mark_exported",
+  "mark_copied",
+  "block",
   "fail",
-  "revoke",
   "archive",
 ] as const;
 
@@ -168,6 +168,7 @@ export type CreateSocialDistributionPostInput = {
   reviewRequired: boolean;
   createdByUserId: string;
   note?: string | null;
+  initialStatus?: SocialDistributionStatus | null;
   factcheck?: {
     verificationMode?: "none" | "precheck" | "sealed" | null;
     researchUsed?: "none" | "lite" | "search" | "deep_search" | "gemini" | null;
@@ -363,20 +364,28 @@ function buildAssets(input: {
 
 function auditActionForStatus(status: SocialDistributionStatus): SocialDistributionAuditAction {
   switch (status) {
+    case "asset_generated":
+      return "generate_assets";
+    case "needs_review":
+    case "review_requested":
+      return "request_review";
     case "approved":
       return "approve";
-    case "scheduled":
-      return "schedule";
-    case "published_manual":
-      return "mark_published";
-    case "failed":
+    case "queued":
+      return "queue";
+    case "scheduled_ready":
+      return "mark_scheduled_ready";
+    case "exported":
+      return "mark_exported";
+    case "copied":
+      return "mark_copied";
+    case "error":
       return "fail";
-    case "revoked":
-      return "revoke";
+    case "blocked":
+      return "block";
     case "archived":
       return "archive";
-    case "review_required":
-    case "draft":
+    case "draft_created":
     default:
       return "create_draft";
   }
@@ -385,12 +394,13 @@ function auditActionForStatus(status: SocialDistributionStatus): SocialDistribut
 function buildPost(input: CreateSocialDistributionPostInput): SocialDistributionPost {
   const now = isoNow();
   const sourceState = sourceStateFromVisibility(input.sourceVisibilityState);
-  const status: SocialDistributionStatus =
+  const defaultStatus: SocialDistributionStatus =
     sourceState === "approved_context"
       ? input.reviewRequired
-        ? "review_required"
-        : "draft"
-      : "draft";
+        ? "needs_review"
+        : "draft_created"
+      : "draft_created";
+  const status = input.initialStatus ?? defaultStatus;
 
   return SocialDistributionPostSchema.parse({
     id: postIdFor(input),
@@ -751,22 +761,5 @@ export function getSocialDistributionRepo(): SocialDistributionRepo {
 }
 
 export function socialDistributionStatusLabel(status: SocialDistributionStatus) {
-  switch (status) {
-    case "draft":
-      return "Entwurf erstellt";
-    case "review_required":
-      return "Review erforderlich";
-    case "approved":
-      return "Freigegeben";
-    case "scheduled":
-      return "Geplant";
-    case "published_manual":
-      return "Manuell veröffentlicht";
-    case "failed":
-      return "Fehlgeschlagen";
-    case "revoked":
-      return "Widerrufen";
-    case "archived":
-      return "Archiviert";
-  }
+  return socialDistributionStatusLabelFromContract(status);
 }

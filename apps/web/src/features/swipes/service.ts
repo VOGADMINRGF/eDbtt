@@ -1,5 +1,6 @@
 import type {
   EDebattePackage,
+  SwipeFeedFilter,
   SwipeFeedRequest,
   SwipeFeedResponse,
   SwipeItem,
@@ -25,6 +26,10 @@ import { applySwipeForCredits } from "@features/user/credits";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { FEATURE_MATRIX_DEFAULTS } from "@/config/featureMatrix";
 import { shouldAllowSwipeSeedFallback } from "@/features/runtimeDataGuardrails";
+import { anlassraumCol } from "@features/anlassraum/db";
+import { voteDraftsCol } from "@features/feeds/db";
+import { resolveFeedRadarStatusFromDraft } from "@features/feeds/statusContract";
+import type { VoteDraftDoc } from "@features/feeds/types";
 
 type ProposalDoc = {
   _id?: any;
@@ -40,6 +45,21 @@ type ProposalDoc = {
   status?: string;
   createdAt?: Date;
 };
+
+type FeedDraftSwipeDoc = Pick<
+  VoteDraftDoc,
+  | "_id"
+  | "anlassraumId"
+  | "title"
+  | "summary"
+  | "claims"
+  | "status"
+  | "feedReviewState"
+  | "sourceUrl"
+  | "regionCode"
+  | "createdAt"
+  | "publishedAt"
+>;
 
 type SwipeVoteDoc = {
   _id?: any;
@@ -127,6 +147,151 @@ function mapProposalToSwipe(proposal: ProposalDoc): SwipeItem {
       : null,
     fromDraftMatch: false,
   };
+}
+
+function buildFeedSwipeStatus(params: {
+  draftStatus?: string | null;
+  feedReviewState?: string | null;
+  hasAnlassraum: boolean;
+  hasDossier: boolean;
+}): Pick<SwipeItem, "statusLabel" | "statusHint"> {
+  const status = resolveFeedRadarStatusFromDraft({
+    draftStatus:
+      params.draftStatus === "review" || params.draftStatus === "published" || params.draftStatus === "discarded"
+        ? params.draftStatus
+        : "draft",
+    feedReviewState:
+      params.feedReviewState === "queued" ||
+      params.feedReviewState === "ignored" ||
+      params.feedReviewState === "attached" ||
+      params.feedReviewState === "candidate_created" ||
+      params.feedReviewState === "weak_signal"
+        ? params.feedReviewState
+        : null,
+    hasAnlassraum: params.hasAnlassraum,
+    hasDossier: params.hasDossier,
+    hasPublishedStatement: params.draftStatus === "published",
+  });
+
+  if (status === "published_update") {
+    return {
+      statusLabel: "Update aus dem Feed-Radar",
+      statusHint: "Bewusst freigegebenes Update. Sichtbar heißt nicht automatisch amtlich.",
+    };
+  }
+  if (status === "attached_to_dossier") {
+    return {
+      statusLabel: "Quellenhinweis im Dossier-Kontext",
+      statusHint: "Dieser Vorschlag ist an ein Dossier gekoppelt und bleibt als Kontextfläche lesbar.",
+    };
+  }
+  return {
+    statusLabel: "Vorschlag aus dem Feed-Radar",
+    statusHint: "Dieser Vorschlag ist review-first vorbereitet und noch keine behauptete Wahrheit.",
+  };
+}
+
+function mapFeedDraftToSwipe(params: {
+  draft: FeedDraftSwipeDoc;
+  dossierHref: string | null;
+}): SwipeItem {
+  const firstClaim = params.draft.claims?.[0] ?? null;
+  const responsibility = firstClaim?.responsibility ?? "Zuständigkeit offen";
+  const topic = firstClaim?.topic ?? "Feed-Radar";
+  const anlassraumId = toObjectIdHex(params.draft.anlassraumId);
+  const statusCopy = buildFeedSwipeStatus({
+    draftStatus: params.draft.status ?? null,
+    feedReviewState: params.draft.feedReviewState ?? null,
+    hasAnlassraum: Boolean(anlassraumId),
+    hasDossier: Boolean(params.dossierHref),
+  });
+
+  return {
+    id: params.draft._id?.toHexString?.() ?? "",
+    title: params.draft.title,
+    text: params.draft.summary ?? firstClaim?.text ?? params.draft.title,
+    category: topic,
+    level: deriveScopeLevel(responsibility),
+    topicTags: topic ? [topic] : [],
+    evidenceCount: 0,
+    responsibilityLabel: `${statusCopy.statusLabel} · Zuständigkeit: ${responsibility}`,
+    domainLabel: topic,
+    hasEventualities: false,
+    eventualitiesCount: 0,
+    sourceDraftId: params.draft._id?.toHexString?.() ?? null,
+    anlassraumId,
+    contextHref: anlassraumId ? `/runden?anlassraumId=${encodeURIComponent(anlassraumId)}` : null,
+    dossierHref: params.dossierHref,
+    statusLabel: statusCopy.statusLabel,
+    statusHint: statusCopy.statusHint,
+    fromDraftMatch: false,
+  };
+}
+
+async function loadFeedDraftSwipeFallback(params: {
+  fromDraftId: string | null;
+  topicQuery: string;
+  level: SwipeFeedFilter["level"];
+  limit: number;
+}): Promise<SwipeItem[]> {
+  const drafts = await voteDraftsCol();
+  const draftFilter: Record<string, unknown> = {
+    status: { $in: ["review", "published"] },
+  };
+  if (params.fromDraftId) {
+    draftFilter._id = new ObjectId(params.fromDraftId);
+  }
+
+  const draftDocs = (await drafts
+    .find(draftFilter)
+    .sort({ publishedAt: -1, createdAt: -1 })
+    .limit(Math.min(params.limit, 20))
+    .toArray()) as FeedDraftSwipeDoc[];
+
+  if (draftDocs.length === 0) return [];
+
+  const roomIds = Array.from(
+    new Set(
+      draftDocs
+        .map((draft) => toObjectIdHex(draft.anlassraumId))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const roomById = new Map<string, { dossierId?: ObjectId | null }>();
+  if (roomIds.length > 0) {
+    const rooms = await (await anlassraumCol())
+      .find({ _id: { $in: roomIds.map((id) => new ObjectId(id)) } })
+      .toArray();
+    for (const room of rooms) {
+      const id = toObjectIdHex(room?._id);
+      if (!id) continue;
+      roomById.set(id, { dossierId: room?.dossierId ?? null });
+    }
+  }
+
+  let items = draftDocs.map((draft) => {
+    const anlassraumId = toObjectIdHex(draft.anlassraumId);
+    const dossierId = anlassraumId ? toObjectIdHex(roomById.get(anlassraumId)?.dossierId) : null;
+    return mapFeedDraftToSwipe({
+      draft,
+      dossierHref: dossierId ? `/dossier/${encodeURIComponent(dossierId)}` : null,
+    });
+  });
+
+  if (params.topicQuery) {
+    items = items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(params.topicQuery) ||
+        item.topicTags.some((tag) => tag.toLowerCase().includes(params.topicQuery)),
+    );
+  }
+  if (params.level && params.level !== "ALL") {
+    items = items.filter((item) => item.level === params.level);
+  }
+  if (params.fromDraftId) {
+    items = items.map((item) => ({ ...item, fromDraftMatch: true }));
+  }
+  return items;
 }
 
 async function loadEventualityCounts(statementIds: string[]) {
@@ -228,9 +393,50 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
       .toArray();
   } catch (error) {
     if (fromDraftId) {
-      // fromDraft arrival must not fabricate unrelated fallback cards.
+      try {
+        const fallbackItems = await loadFeedDraftSwipeFallback({
+          fromDraftId,
+          topicQuery,
+          level,
+          limit: req.limit ?? 20,
+        });
+        if (fallbackItems.length > 0) {
+          const counts = await loadEventualityCounts(fallbackItems.map((item) => item.id));
+          return {
+            items: fallbackItems.map((item) => ({
+              ...item,
+              eventualitiesCount: counts[item.id] ?? 0,
+              hasEventualities: (counts[item.id] ?? 0) > 0,
+            })),
+            nextCursor: null,
+          };
+        }
+      } catch (fallbackError) {
+        console.error("[swipes] feed draft fallback unavailable", fallbackError);
+      }
       console.error("[swipes] proposal feed unavailable, preserving explicit fromDraft no-match", error);
       return { items: [], nextCursor: null };
+    }
+    try {
+      const fallbackItems = await loadFeedDraftSwipeFallback({
+        fromDraftId: null,
+        topicQuery,
+        level,
+        limit: req.limit ?? 20,
+      });
+      if (fallbackItems.length > 0) {
+        const counts = await loadEventualityCounts(fallbackItems.map((item) => item.id));
+        return {
+          items: fallbackItems.map((item) => ({
+            ...item,
+            eventualitiesCount: counts[item.id] ?? 0,
+            hasEventualities: (counts[item.id] ?? 0) > 0,
+          })),
+          nextCursor: null,
+        };
+      }
+    } catch (fallbackError) {
+      console.error("[swipes] feed draft fallback unavailable", fallbackError);
     }
     if (!allowSeedFallback) {
       console.error("[swipes] proposal feed unavailable, seed fallback blocked for guarded context", error);
@@ -241,6 +447,19 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   }
 
   let items = proposalDocs.length > 0 ? proposalDocs.map(mapProposalToSwipe) : [];
+
+  if (items.length === 0) {
+    try {
+      items = await loadFeedDraftSwipeFallback({
+        fromDraftId,
+        topicQuery,
+        level,
+        limit: req.limit ?? 20,
+      });
+    } catch (error) {
+      console.error("[swipes] feed draft fallback unavailable", error);
+    }
+  }
 
   if (statementId) {
     items = items.filter((item) => item.id === statementId);

@@ -234,12 +234,14 @@ export type OrganizationDashboardSocialDistributionItem = {
 export type OrganizationDashboardSocialDistributionSummary = {
   currentState:
     | "not_enabled"
-    | "review_required"
+    | "needs_review"
+    | "review_requested"
     | "approved"
-    | "scheduled"
-    | "published_manual"
-    | "failed"
-    | "revoked"
+    | "queued"
+    | "scheduled_ready"
+    | "exported"
+    | "copied"
+    | "blocked"
     | "archived";
   statusLabel: string;
   nextStepTitle: string;
@@ -1632,32 +1634,38 @@ function buildSocialDistributionSummary(input: {
 
   return {
     currentState:
-      primary.status === "published_manual"
-        ? "published_manual"
-        : primary.status === "scheduled"
-          ? "scheduled"
-          : primary.status === "approved"
-            ? "approved"
-            : primary.status === "failed"
-              ? "failed"
-              : primary.status === "revoked"
-                ? "revoked"
-                : primary.status === "archived"
-                  ? "archived"
-                  : "review_required",
+      primary.status === "archived"
+        ? "archived"
+        : primary.status === "blocked"
+          ? "blocked"
+          : primary.status === "copied"
+            ? "copied"
+            : primary.status === "exported"
+              ? "exported"
+              : primary.status === "scheduled_ready"
+                ? "scheduled_ready"
+                : primary.status === "queued"
+                  ? "queued"
+                  : primary.status === "approved"
+                    ? "approved"
+                    : primary.status === "review_requested"
+                      ? "review_requested"
+                      : "needs_review",
     statusLabel: socialDistributionStatusLabel(primary.status),
     nextStepTitle:
       primary.status === "approved"
-        ? "Manuelle Veröffentlichung getrennt prüfen"
-        : primary.status === "scheduled"
-          ? "Zeitpunkt und Kanalfreigabe nochmals prüfen"
-          : primary.status === "published_manual"
-            ? "Veröffentlichte Verteilung dokumentiert"
-            : "Review und Kanalentscheidung stehen an",
+        ? "Queue, Export oder Planung bewusst wählen"
+        : primary.status === "queued"
+          ? "Zeitfenster und Kanalreihenfolge festlegen"
+          : primary.status === "scheduled_ready"
+            ? "Interne Planung dokumentieren"
+            : primary.status === "exported" || primary.status === "copied"
+              ? "Manuelle Weitergabe sauber nachhalten"
+              : "Review und Kanalentscheidung stehen an",
     nextStepBody:
       primary.sourceState === "review_only"
         ? "Der zugrunde liegende Kontext ist noch review-only. Deshalb bleibt Verteilung auf sichere Entwurfs- und Nächste-Schritte-Hinweise begrenzt."
-        : "Freigabe heißt nicht veröffentlicht. `approved` und `published_manual` bleiben getrennt, auditierbar und ohne externes API-Posting.",
+        : "Freigabe heißt nicht veröffentlicht. Queue-, Export- und Planungsstatus bleiben getrennt, auditierbar und ohne externes API-Posting.",
     storeLabel: shouldUseInMemoryMongoFallback()
       ? "In-Memory-/Test-Fallback"
       : "Persistente Distribution-Runtime",

@@ -14,14 +14,15 @@ export default function StreamPage() {
       <section className="mx-auto max-w-6xl space-y-5 px-4 py-10">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-            Live &amp; Replay
+            Öffentliche Event-Beteiligung
           </p>
           <h1 className="text-2xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
-            Streams zu aktuellen Themen
+            Streams und Events zu aktuellen Themen
           </h1>
           <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-            Verfolge Debatten live, kommend oder im Replay. Wenn gerade nichts läuft, findest du
-            passende Themen zum Folgen.
+            Verfolge Debatten live, kommend oder im Rückblick. Der eigentliche Bürgerpfad läuft
+            über Fragen, Quellen und Perspektiven, die reviewpflichtig in Anlassraum und Dossier
+            weitergehen.
           </p>
         </header>
 
@@ -46,7 +47,7 @@ export default function StreamPage() {
             </>
           ) : null}
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[rgb(var(--muted))]">
-            Live-Votes nur mit Verifizierung.
+            Öffentliche Hinweise bleiben reviewpflichtig.
           </span>
           {needsVerification ? (
             <Link
@@ -66,9 +67,16 @@ export default function StreamPage() {
           </div>
           <StreamList showViews={canSeeViews} statusSections />
           <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
-            Aktuell läuft keine Live-Runde? Folge Themen, um informiert zu werden, wenn eine
-            Diskussion startet.
+            Aktuell läuft kein offener Event? Dann nutze Anlassraum, Dossier oder Swipes als
+            Folgeflächen. Sobald ein Stream offen ist, führen Link und QR in denselben
+            reviewpflichtigen Beteiligungspfad.
             <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/runden" className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]">
+                Zum Anlassraum
+              </Link>
+              <Link href="/dossier" className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]">
+                Zu Dossiers
+              </Link>
               <Link href="/themen" className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]">
                 Themen folgen
               </Link>

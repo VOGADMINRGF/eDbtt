@@ -13,6 +13,7 @@ import SocialDistributionPanel from "@/components/outputEngine/SocialDistributio
 import {
   OutputPackageSchema,
   buildSocialDistributionPlan,
+  loadSocialDistributionQueueReadModel,
   demoDossierForOutputEngine,
   generateMasterPost,
   generateSocialCarouselOutput,
@@ -206,6 +207,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
   const sourceNarrative = masterPost.sourceSituation;
   const reviewStateLabel = reviewRequired ? "Review erforderlich" : "Review abgeschlossen";
   const relatedTopicPage = await getRelatedTopicPageForDossier(id);
+  const queueReadModel = await loadSocialDistributionQueueReadModel({
+    dossierId: id,
+    limit: 16,
+  }).catch(() => null);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -217,6 +222,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         <p className="mt-3 text-sm text-[rgb(var(--muted))]">
           Für Beteiligungsbüros, Moderations- und Dialogprofis: Dossier-Inhalte in professionelle Kommunikation
           übersetzen — ohne automatische Live-Veröffentlichung.
+        </p>
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+          Das Studio erzeugt Masterpost, kurze Caption, Carousel-Outline, QR-/Print-Text und Newsletter-Block
+          als reviewpflichtige CI-Ausgaben. Externe Kanäle bleiben Export- und Planungsziele, keine Live-Connectoren.
         </p>
         <p className="mt-3 text-sm text-[rgb(var(--muted))]">
           Public URL, Share-Link und QR werden erst im bestehenden Review-to-Publish-Workspace nach
@@ -441,6 +450,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           carouselDraft={carousel}
           workspaceApiPath={`/api/dossier/${encodeURIComponent(id)}/studio/workspace`}
           initialDistributionDraft={persistedDistributionDraft}
+          queueReadModel={queueReadModel}
         />
         <SocialCarouselPreview carousel={carousel} reviewRequired={reviewRequired} />
       </section>

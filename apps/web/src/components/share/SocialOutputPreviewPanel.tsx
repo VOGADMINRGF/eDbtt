@@ -43,7 +43,7 @@ export default function SocialOutputPreviewPanel({
           Share-/Output-Vorbereitung
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Neutraler Vorschaupfad ohne werbliche Zuspitzung.
+          Neutraler Vorschaupfad ohne werbliche Zuspitzung. Ausgabe vorbereitet, nicht automatisch verbreitet.
         </p>
       </div>
 
@@ -56,6 +56,9 @@ export default function SocialOutputPreviewPanel({
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
           Recherche: {asset.verification.researchUsed}
+        </span>
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
+          Kommunikationsentwurf in Prüfung
         </span>
       </div>
 

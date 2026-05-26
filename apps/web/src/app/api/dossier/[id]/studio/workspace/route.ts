@@ -72,6 +72,16 @@ const SocialDistributionCreateSchema = z
       "instagram_asset",
       "press_note",
     ])).min(1),
+    initialStatus: z
+      .enum([
+        "draft_created",
+        "asset_generated",
+        "needs_review",
+        "review_requested",
+        "queued",
+        "scheduled_ready",
+      ])
+      .optional(),
     note: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
@@ -79,11 +89,14 @@ const SocialDistributionCreateSchema = z
 const SocialDistributionStatusSchema = z
   .object({
     socialDistributionAction: z.enum([
+      "request_review",
       "approve",
-      "schedule",
-      "mark_published",
+      "queue",
+      "schedule_ready",
+      "mark_exported",
+      "mark_copied",
+      "block",
       "fail",
-      "revoke",
       "archive",
     ]),
     postId: z.string().trim().min(1),
@@ -254,16 +267,22 @@ function socialDistributionStatusFromAction(
   action: z.infer<typeof SocialDistributionStatusSchema>["socialDistributionAction"],
 ) {
   switch (action) {
+    case "request_review":
+      return "review_requested" as const;
     case "approve":
       return "approved" as const;
-    case "schedule":
-      return "scheduled" as const;
-    case "mark_published":
-      return "published_manual" as const;
+    case "queue":
+      return "queued" as const;
+    case "schedule_ready":
+      return "scheduled_ready" as const;
+    case "mark_exported":
+      return "exported" as const;
+    case "mark_copied":
+      return "copied" as const;
+    case "block":
+      return "blocked" as const;
     case "fail":
-      return "failed" as const;
-    case "revoke":
-      return "revoked" as const;
+      return "error" as const;
     case "archive":
     default:
       return "archived" as const;
@@ -535,6 +554,7 @@ export async function PATCH(req: NextRequest, params: RouteParams) {
         qrHref: socialCreate.data.plan.backlinkTarget,
         reviewRequired: true,
         createdByUserId: access.accessContext?.userId ?? "unknown",
+        initialStatus: socialCreate.data.initialStatus ?? "draft_created",
         note: socialCreate.data.note ?? null,
       });
       return NextResponse.json({ ok: true, post }, { status: 200 });

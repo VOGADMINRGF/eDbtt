@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dossierSuggestionsCol } from "@features/dossier/db";
+import { buildDossierUpdateReadModel } from "@features/dossier/updateReadModel";
 import { requireDossierEditor } from "@/lib/server/auth/dossier";
 
 export const runtime = "nodejs";
@@ -13,6 +14,7 @@ export async function GET(
   if (auth instanceof Response) return auth;
 
   const { dossierId } = await context.params;
+  await buildDossierUpdateReadModel({ dossierId, materialize: true, publicVisible: false }).catch(() => null);
   const items = await (await dossierSuggestionsCol())
     .find({ dossierId })
     .sort({ status: 1, createdAt: -1 })

@@ -935,11 +935,11 @@ describe("/account/organization/dashboard page", () => {
     readModelSpy.mockResolvedValue({
       ...buildOperatorDashboardReadModel(),
       socialDistributionSummary: {
-        currentState: "review_required",
-        statusLabel: "Review erforderlich",
+        currentState: "review_requested",
+        statusLabel: "Prüfung angefordert",
         nextStepTitle: "Review und Kanalentscheidung stehen an",
         nextStepBody:
-          "Freigabe heißt nicht veröffentlicht. `approved` und `published_manual` bleiben getrennt, auditierbar und ohne externes API-Posting.",
+          "Freigabe heißt nicht veröffentlicht. Queue-, Export- und Planungsstatus bleiben getrennt, auditierbar und ohne externes API-Posting.",
         storeLabel: "Persistente Distribution-Runtime",
         productionTruth: true,
         reviewRequired: true,
@@ -947,8 +947,8 @@ describe("/account/organization/dashboard page", () => {
           {
             id: "social-dist-1",
             title: "Eigener Verteilentwurf",
-            status: "review_required",
-            statusLabel: "Review erforderlich",
+            status: "review_requested",
+            statusLabel: "Prüfung angefordert",
             channels: ["website_update", "newsletter_draft"],
             sourceState: "approved_context",
             sourceVisibilityState: "public_reviewed",
@@ -964,7 +964,7 @@ describe("/account/organization/dashboard page", () => {
       const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
       expect(html).toContain("Social &amp; Distribution");
       expect(html).toContain("Persistente Distribution-Runtime");
-      expect(html).toContain("Review erforderlich");
+      expect(html).toContain("Prüfung angefordert");
       expect(html).toContain("Freigegebener Kontext");
       expect(html).toContain("Kein Auto-Publish");
       expect(html).toContain("Kein Siegel ohne explizite Freigabe.");

@@ -1,11 +1,13 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
+import { dossiersCol } from "@features/dossier/db";
 import { listVisibleTopicPagesForAnlassraumIds } from "@features/publicTopicPage";
 import {
   resolveShareReadyAssetContract,
   type ShareSocialQualification,
   type ShareReadyTargetKind,
 } from "@features/anlassraum/shareReadyAssetContract";
+import { listPublicStreamLinksByTopicKeys } from "@features/stream/publicRuntime";
 import type {
   AnlassraumSourceMode,
   AnlassraumStatus,
@@ -52,7 +54,8 @@ export type RundenEntryShareContextKind =
   | "runde"
   | "ergebnis"
   | "dossier"
-  | "companion";
+  | "companion"
+  | "event";
 
 export type RundenEntryShareActions = {
   contextKind: RundenEntryShareContextKind;
@@ -106,9 +109,14 @@ export type RundenEntryItem = {
   sourceKind: RundenEntrySourceKind;
   shareActions: RundenEntryShareActions | null;
   relatedDossierHref: string | null;
+  relatedDossierUpdateLabel: string | null;
+  relatedDossierUpdatedAt: string | null;
   relatedTopicPageHref: string | null;
   relatedTopicPageTitle: string | null;
   relatedTopicPageVisibilityLabel: string | null;
+  relatedStreamHref: string | null;
+  relatedStreamTitle: string | null;
+  relatedStreamStatusLabel: string | null;
 };
 
 export type ListRundenEntryItemsInput = {
@@ -149,18 +157,51 @@ export async function listRundenEntryItems(
     );
 
     const entries = items.map((item) => mapToEntry(item as Record<string, unknown>, roomById));
+    const dossierObjectIds = Array.from(
+      new Set(
+        entries
+          .map((entry) => entry.relatedDossierHref?.split("/").pop() ?? null)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+    const dossierById = new Map<string, { label: string; updatedAt: string | null }>();
+    if (dossierObjectIds.length > 0) {
+      const dossiers = await (await dossiersCol())
+        .find({ _id: { $in: dossierObjectIds.map((value) => new ObjectId(value)) } } as Record<string, unknown>)
+        .project({ dossierId: 1, status: 1, updatedAt: 1, lastRevisionAt: 1, createdAt: 1 })
+        .toArray();
+      for (const dossier of dossiers) {
+        const key = dossier._id?.toHexString?.() ?? "";
+        if (!key) continue;
+        dossierById.set(key, {
+          label: dossier.status === "archived" ? "Dossier archiviert" : "Dossier-Kontext aktiv",
+          updatedAt: toIso(dossier.lastRevisionAt ?? dossier.updatedAt ?? dossier.createdAt),
+        });
+      }
+    }
     const relatedTopicPages = await listVisibleTopicPagesForAnlassraumIds(
       entries.map((entry) => entry.anlassraumId ?? ""),
     );
+    const relatedStreams = await listPublicStreamLinksByTopicKeys(
+      entries.map((entry) => entry.topicKey ?? ""),
+    ).catch(() => new Map());
     return entries.map((entry) => {
       const related = entry.anlassraumId
         ? relatedTopicPages.get(entry.anlassraumId) ?? null
         : null;
+      const relatedDossierId = entry.relatedDossierHref?.split("/").pop() ?? null;
+      const relatedDossier = relatedDossierId ? dossierById.get(relatedDossierId) ?? null : null;
+      const relatedStream = entry.topicKey ? relatedStreams.get(entry.topicKey) ?? null : null;
       return {
         ...entry,
+        relatedDossierUpdateLabel: relatedDossier?.label ?? null,
+        relatedDossierUpdatedAt: relatedDossier?.updatedAt ?? null,
         relatedTopicPageHref: related?.publicHref ?? null,
         relatedTopicPageTitle: related?.title ?? null,
         relatedTopicPageVisibilityLabel: related?.visibilityLabel ?? null,
+        relatedStreamHref: relatedStream?.href ?? null,
+        relatedStreamTitle: relatedStream?.title ?? null,
+        relatedStreamStatusLabel: relatedStream?.statusLabel ?? null,
       };
     });
   } catch {
@@ -278,9 +319,14 @@ function mapToEntry(
     relatedDossierHref: toHex(room?.dossierId)
       ? `/dossier/${encodeURIComponent(toHex(room?.dossierId) as string)}`
       : null,
+    relatedDossierUpdateLabel: null,
+    relatedDossierUpdatedAt: null,
     relatedTopicPageHref: null,
     relatedTopicPageTitle: null,
     relatedTopicPageVisibilityLabel: null,
+    relatedStreamHref: null,
+    relatedStreamTitle: null,
+    relatedStreamStatusLabel: null,
   };
 }
 

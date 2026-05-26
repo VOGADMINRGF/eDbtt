@@ -931,9 +931,9 @@ function mapSocialDistributionPostItem(params: {
 }): ReviewQueueItemCore {
   const auditHint =
     params.post.status === "approved"
-      ? "Freigegeben, aber noch nicht manuell veröffentlicht."
-      : params.post.status === "published_manual"
-        ? "Manuell veröffentlicht und auditierbar dokumentiert."
+      ? "Freigegeben, aber noch nicht als Queue-, Export- oder Planungsstatus weitergeführt."
+      : params.post.status === "exported" || params.post.status === "copied"
+        ? "Manuell übernommen oder exportiert und auditierbar dokumentiert."
         : "Review-first Verteilentwurf mit Audit-Hinweis.";
 
   return {

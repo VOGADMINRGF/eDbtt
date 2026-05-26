@@ -7,20 +7,25 @@ import {
   buildCopyText,
   buildDistributionPlan,
   buildDraftRecord,
-  buildSocialDistributionDraft,
   buildQrPrintPreview,
+  buildSocialDistributionExportPayload,
+  validateDistributionExport,
+} from "@features/outputEngine/distributionExport";
+import {
+  buildSocialDistributionDraft,
   buildSocialDistributionQueue,
-  recordStudioTelemetryEvent,
   type SocialDistributionChannel,
   type SocialConnectorStatus,
-  type SocialDistributionPlan,
   type SocialDistributionDraft,
+  type SocialDistributionPlan,
   type SocialDistributionTarget,
   type SocialScheduleMode,
-  type MasterPost,
-  type SocialCarouselOutput,
-  validateDistributionExport,
-} from "@features/outputEngine";
+} from "@features/outputEngine/socialDistribution";
+import type { SocialDistributionQueueReadModel } from "@features/outputEngine/socialDistributionQueueReadModel";
+import { socialDistributionStatusLabel } from "@features/outputEngine/socialDistributionStatusContract";
+import { recordStudioTelemetryEvent } from "@features/outputEngine/studioTelemetry";
+import type { MasterPost } from "@features/outputEngine/masterPost";
+import type { SocialCarouselOutput } from "@features/outputEngine/socialCarousel";
 
 type SocialDistributionPanelProps = {
   plan: SocialDistributionPlan;
@@ -31,6 +36,7 @@ type SocialDistributionPanelProps = {
   carouselDraft: SocialCarouselOutput;
   workspaceApiPath?: string;
   initialDistributionDraft?: SocialDistributionDraft | null;
+  queueReadModel?: SocialDistributionQueueReadModel | null;
 };
 
 type StudioScheduleChoice = "draft" | "suggested" | "scheduled" | "after_review";
@@ -53,14 +59,7 @@ function connectorLabel(status: SocialDistributionTarget["connectorStatus"]): st
 }
 
 function distributionStatusLabel(status: SocialDistributionTarget["distributionStatus"]): string {
-  if (status === "draft") return "Entwurf";
-  if (status === "review_required") return "Review nötig";
-  if (status === "approved") return "Freigegeben";
-  if (status === "scheduled") return "Geplant";
-  if (status === "published_manual") return "Manuell veröffentlicht";
-  if (status === "failed") return "Fehlgeschlagen";
-  if (status === "revoked") return "Widerrufen";
-  return "Archiviert";
+  return socialDistributionStatusLabel(status);
 }
 
 function connectorHint(status: SocialDistributionTarget["connectorStatus"]): string {
@@ -98,6 +97,7 @@ export default function SocialDistributionPanel({
   carouselDraft,
   workspaceApiPath,
   initialDistributionDraft,
+  queueReadModel,
 }: SocialDistributionPanelProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
     new Set(initialDistributionDraft?.selectedChannels ?? plan.selectedChannels),
@@ -119,6 +119,7 @@ export default function SocialDistributionPanel({
   });
   const [notice, setNotice] = useState<string | null>(null);
   const [queueCancelled, setQueueCancelled] = useState<Set<string>>(new Set());
+  const [persistedPostId, setPersistedPostId] = useState<string | null>(null);
 
   const nextWindow = plan.suggestedPostingWindows[0] ?? "Kein Zeitfenster vorhanden";
 
@@ -220,7 +221,16 @@ export default function SocialDistributionPanel({
     }
   };
 
-  const persistProductionDraft = async (reviewNote?: string) => {
+  const persistProductionDraft = async (
+    reviewNote?: string,
+    initialStatus:
+      | "draft_created"
+      | "asset_generated"
+      | "needs_review"
+      | "review_requested"
+      | "queued"
+      | "scheduled_ready" = "draft_created",
+  ) => {
     if (!workspaceApiPath || selectedList.length === 0) return;
     try {
       const res = await fetch(workspaceApiPath, {
@@ -232,6 +242,7 @@ export default function SocialDistributionPanel({
           socialDistributionAction: "create_draft",
           plan: currentPlanForPersistence(),
           selectedChannels: selectedList,
+          initialStatus,
           note: reviewNote ?? null,
         }),
       });
@@ -243,9 +254,58 @@ export default function SocialDistributionPanel({
         );
         return;
       }
+      const postId = typeof payload?.post?.id === "string" ? payload.post.id : null;
+      if (postId) setPersistedPostId(postId);
       setNotice("Handoff gespeichert. Review erforderlich, kein Auto-Publish und keine ungeprüfte Verteilung.");
     } catch {
       setNotice("Produktiver Verteilentwurf konnte nicht gespeichert werden. Bitte später erneut versuchen.");
+    }
+  };
+
+  const updateProductionStatus = async (
+    action:
+      | "request_review"
+      | "approve"
+      | "queue"
+      | "schedule_ready"
+      | "mark_exported"
+      | "mark_copied"
+      | "block"
+      | "archive",
+    note: string,
+  ) => {
+    if (!workspaceApiPath || !persistedPostId) {
+      setNotice("Produktiver Queue-Eintrag fehlt noch. Erst einen Verteilentwurf anlegen.");
+      return;
+    }
+    try {
+      const res = await fetch(workspaceApiPath, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          socialDistributionAction: action,
+          postId: persistedPostId,
+          note,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNotice(
+          payload?.message ??
+            "Queue-Status konnte nicht aktualisiert werden. Review- und Scope-Hinweise prüfen.",
+        );
+        return;
+      }
+      const status = typeof payload?.post?.status === "string" ? payload.post.status : null;
+      setNotice(
+        status
+          ? `Queue-Status aktualisiert: ${socialDistributionStatusLabel(status)}.`
+          : "Queue-Status aktualisiert.",
+      );
+    } catch {
+      setNotice("Queue-Status konnte nicht aktualisiert werden.");
     }
   };
 
@@ -270,7 +330,7 @@ export default function SocialDistributionPanel({
     });
     setNotice("Verteilplan lokal im Browser als Entwurf gespeichert. Keine produktive Behördenpersistenz.");
     void persistWorkspace(draft, "Verteilplan als Entwurf gespeichert.");
-    void persistProductionDraft("Review-first Verteilentwurf angelegt.");
+    void persistProductionDraft("Review-first Verteilentwurf angelegt.", "asset_generated");
   };
 
   const requestReview = () => {
@@ -293,7 +353,10 @@ export default function SocialDistributionPanel({
     });
     setNotice("Post-Entwurf lokal für Review markiert. Keine produktive Behördenpersistenz.");
     void persistWorkspace(draft, "Review für Verteilplan angefordert.");
-    void persistProductionDraft("Review für kanalweisen Verteilentwurf angefordert.");
+    void persistProductionDraft(
+      "Review für kanalweisen Verteilentwurf angefordert.",
+      "review_requested",
+    );
   };
 
   const preparePublication = () => {
@@ -306,7 +369,7 @@ export default function SocialDistributionPanel({
       selectedChannels: selectedList,
       scheduleMode: scheduleModeFromChoice(scheduleChoice),
       reviewRequired: reviewRequired || validation.reviewRequired,
-      status: "review_required",
+      status: "review_requested",
     });
     localStorage.setItem(`${keyForPlan(dossierId)}:prepared`, JSON.stringify(draft));
     const preview = buildQrPrintPreview(masterPost);
@@ -317,7 +380,7 @@ export default function SocialDistributionPanel({
         : "Veröffentlichung lokal intern vorbereitet. Keine produktive Behördenpersistenz.",
     );
     void persistWorkspace(draft, "Veröffentlichung nur intern vorbereitet, nicht veröffentlicht.");
-    void persistProductionDraft("Verteilung vorbereitet, aber nicht veröffentlicht.");
+    void persistProductionDraft("Verteilung vorbereitet, aber nicht veröffentlicht.", "queued");
   };
 
   const saveDraft = () => {
@@ -349,6 +412,29 @@ export default function SocialDistributionPanel({
       setNotice("Text kopiert.");
     } catch {
       setNotice("Kopieren nicht möglich.");
+    }
+  };
+
+  const copyExportPayload = async () => {
+    const draft = buildDistributionPlan({
+      plan: {
+        ...plan,
+        targets: targetsWithOverrides,
+      },
+      selectedChannels: selectedList,
+      scheduleMode: scheduleModeFromChoice(scheduleChoice),
+      reviewRequired: true,
+    });
+    const payload = buildSocialDistributionExportPayload({
+      post: masterPost,
+      draft,
+    });
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setNotice("JSON-Export kopiert. Keine externe Veröffentlichung ausgelöst.");
+      void updateProductionStatus("mark_exported", "Strukturierter Export vorbereitet.");
+    } catch {
+      setNotice("JSON-Export konnte nicht kopiert werden.");
     }
   };
 
@@ -445,9 +531,10 @@ export default function SocialDistributionPanel({
           </button>
           <button
             type="button"
-            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+            disabled
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Kanäle verbinden
+            Kanäle verbinden (später)
           </button>
           <Link href={dossierBacklink} className="btn-secondary">
             Zurück zum Dossier
@@ -578,6 +665,13 @@ export default function SocialDistributionPanel({
           >
             Verteilung vorbereiten
           </button>
+          <button
+            type="button"
+            onClick={copyExportPayload}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+          >
+            JSON-Export kopieren
+          </button>
         </div>
 
         {notice ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{notice}</p> : null}
@@ -630,13 +724,64 @@ export default function SocialDistributionPanel({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">Queue & nächste Schritte</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Review, Queue, Export und Planung bleiben intern steuerbar. Es gibt keinen Live-Connector und kein Auto-Publish.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            Review offen: {queueReadModel?.summary.reviewOpen ?? 0}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            In Queue: {queueReadModel?.summary.queued ?? 0}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            Planung bereit: {queueReadModel?.summary.scheduledReady ?? 0}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            Exportiert/Kopiert: {queueReadModel?.summary.exported ?? 0}
+          </span>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => void updateProductionStatus("queue", "In interne Verteilungsqueue übernommen.")}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
+          >
+            In Queue setzen
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void updateProductionStatus(
+                "schedule_ready",
+                "Bereit zur Planung, aber ohne externen Versand.",
+              )
+            }
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
+          >
+            Als Planung bereit markieren
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void updateProductionStatus("mark_copied", "Text manuell übernommen, kein Connector genutzt.")
+            }
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
+          >
+            Als kopiert markieren
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Admin: Kanal-Konfiguration & Review-Routing</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Connector-Status, Review-Checkpoints und manuelles Published-Marking bleiben intern steuerbar und reversibel.
+          Connector-Status, Review-Checkpoints und Export-/Planungsstatus bleiben intern steuerbar und reversibel.
         </p>
         <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
           <li>Kein Auto-Publish und kein automatisches Scheduling.</li>
-          <li>Freigabe und manuelles Published-Marking bleiben bewusste Einzelaktionen.</li>
+          <li>Freigabe, Queue, Export und Planung bleiben bewusste Einzelaktionen.</li>
           <li>Review-Checkpoints werden vor Export oder interner Vorbereitung gespeichert.</li>
         </ul>
       </section>

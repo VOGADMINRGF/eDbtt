@@ -35,6 +35,7 @@ import {
   loadFeeds,
   type FeedRef,
 } from "@features/feeds/feedConfig";
+import { recordFeedRuntimeRun } from "@features/feeds/runtimeLog";
 import { normalizeRegionCode } from "@core/regions/types";
 import { filterFeedRefsByRegion } from "@/lib/region/filters";
 import { requireAdminOrEditor } from "../_auth";
@@ -299,6 +300,7 @@ async function processFeed(
 export async function POST(req: NextRequest) {
   const gate = await requireAdminOrEditor(req);
   if (gate) return gate;
+  const requestedAt = new Date();
 
   const body = await req.json().catch(() => ({} as any));
   const scope = (body?.scope === "global" ? "global" : "de") as "de" | "global";
@@ -320,6 +322,15 @@ export async function POST(req: NextRequest) {
 
   const { config: cfg, searched, source } = await loadFeeds(scope);
   if (!cfg) {
+    await recordFeedRuntimeRun({
+      runType: "pull",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      scope,
+      regionCode,
+      error: "feeds_config_missing",
+    });
     const payload: Record<string, any> = { ok: false, error: "feeds_config_missing", scope };
     if (process.env.NODE_ENV !== "production") payload.searched = searched;
     return NextResponse.json(payload, { status: 500, headers: JSON_HEADERS });
@@ -329,12 +340,30 @@ export async function POST(req: NextRequest) {
   const regionFilter = filterFeedRefsByRegion(collected, regionCode);
   const feedRefs = (regionCode && !regionFilter.isGlobal ? regionFilter.feedRefs : collected).slice(0, maxFeeds);
   if (regionCode && !regionFilter.isValid) {
+    await recordFeedRuntimeRun({
+      runType: "pull",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      scope,
+      regionCode,
+      error: "invalid_region",
+    });
     return NextResponse.json(
       { ok: false, error: "invalid_region", regionCode },
       { status: 400, headers: JSON_HEADERS },
     );
   }
   if (feedRefs.length === 0) {
+    await recordFeedRuntimeRun({
+      runType: "pull",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      scope,
+      regionCode,
+      error: "feeds_config_empty",
+    });
     const payload: Record<string, any> = { ok: false, error: "feeds_config_empty", scope };
     if (regionCode) payload.regionCode = regionCode;
     if (process.env.NODE_ENV !== "production") {
@@ -373,6 +402,28 @@ export async function POST(req: NextRequest) {
           invalidFeedUrls: invalidFeedUrls.slice(0, 20),
         }
       : {};
+
+  await recordFeedRuntimeRun({
+    runType: "pull",
+    status: dryRun ? "dry_run" : errors.length > 0 ? "error" : "success",
+    requestedAt,
+    completedAt: new Date(),
+    scope,
+    regionCode,
+    counts: {
+      fetchedFeeds,
+      fetchedItems,
+      inserted,
+      skippedExisting,
+      skippedInvalidFeeds: invalidFeedUrls.length,
+      errors: errors.length,
+    },
+    error: errors.length > 0 ? errors[0]?.error ?? "feed_pull_partial_error" : null,
+    notes:
+      errors.length > 0
+        ? errors.slice(0, 3).map((entry) => `${entry.feedUrl}: ${entry.error}`)
+        : [],
+  });
 
   return NextResponse.json(
     {

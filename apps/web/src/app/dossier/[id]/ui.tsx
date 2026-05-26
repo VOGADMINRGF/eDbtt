@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Dossier } from "@features/dossier";
+import type { DossierPublicUpdateContext } from "@features/dossier/updateReadModel";
 import demoFallback from "@features/dossier/data/demoDossier";
 import { DossierViewer } from "@/components/dossier/DossierViewer";
 import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
@@ -24,7 +25,7 @@ import {
 } from "@/features/b2cJourney/statusContract";
 
 type ApiResponse =
-  | { ok: true; dossier: Dossier }
+  | { ok: true; dossier: Dossier; updateContext?: DossierPublicUpdateContext | null }
   | { ok: false; error?: string; dossierId?: string; status?: string };
 
 type DossierLoadState = "loading" | "ready" | "review_only" | "not_found" | "load_failed";
@@ -63,16 +64,47 @@ function shouldShowPublicReadingSurface(loadState: DossierLoadState) {
   return loadState === "ready";
 }
 
+function updateToneClass(tone: DossierPublicUpdateContext["publishedItems"][number]["tone"]) {
+  switch (tone) {
+    case "success":
+      return "border-emerald-300/70 bg-emerald-500/10 text-emerald-950";
+    case "warning":
+      return "border-amber-300/70 bg-amber-500/10 text-amber-950";
+    case "danger":
+      return "border-rose-300/70 bg-rose-500/10 text-rose-950";
+    case "info":
+      return "border-sky-300/70 bg-sky-500/10 text-sky-950";
+    case "neutral":
+    default:
+      return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]";
+  }
+}
+
+function formatShortDate(value?: string | null) {
+  if (!value) return null;
+  try {
+    return new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return null;
+  }
+}
+
 export function DossierPagePublicBody({
   dossierId,
   handoffDraft,
   dossier,
   loadState,
+  updateContext = null,
 }: {
   dossierId: string;
   handoffDraft: ReturnType<typeof useCreateHandoffDraft>;
   dossier: Dossier | null;
   loadState: DossierLoadState;
+  updateContext?: DossierPublicUpdateContext | null;
 }) {
   const showPublicReadingSurface = shouldShowPublicReadingSurface(loadState);
   const statusChips = resolveDossierStatusChips({
@@ -156,6 +188,138 @@ export function DossierPagePublicBody({
           </p>
         </article>
       </section>
+      {updateContext ? (
+        <section className="mb-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Stand, neue Hinweise und nächste Schritte</h2>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                {updateContext.checkedStandLabel}: {updateContext.checkedStandHint}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {updateContext.originSummary.map((entry) => (
+                  <span
+                    key={`origin-${entry.origin}`}
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 font-medium text-[rgb(var(--fg))]"
+                  >
+                    {entry.label}: {entry.count}
+                  </span>
+                ))}
+                {updateContext.sectionSummary.map((entry) => (
+                  <span
+                    key={`section-${entry.section}`}
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 font-medium text-[rgb(var(--fg))]"
+                  >
+                    {entry.label}: {entry.count}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Neu oder in Prüfung</h3>
+                  {updateContext.reviewItems.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      {updateContext.reviewItems.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                          <div className="flex flex-wrap gap-2 text-[11px]">
+                            <span className={`rounded-full border px-2 py-0.5 font-semibold ${updateToneClass(item.tone)}`}>
+                              {item.statusLabel}
+                            </span>
+                            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                              {item.originLabel}
+                            </span>
+                            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                              {item.sectionLabel}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{item.summary}</p>
+                          <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                            {item.reviewHint}
+                            {item.riskHint ? ` ${item.riskHint}` : ""}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                      Aktuell liegen keine zusätzlichen Update-Vorschläge in Prüfung vor.
+                    </p>
+                  )}
+                </article>
+                <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Bereits im Dossier-Kontext</h3>
+                  {updateContext.publishedItems.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      {updateContext.publishedItems.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                          <div className="flex flex-wrap gap-2 text-[11px]">
+                            <span className={`rounded-full border px-2 py-0.5 font-semibold ${updateToneClass(item.tone)}`}>
+                              {item.statusLabel}
+                            </span>
+                            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                              {item.originLabel}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{item.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                      Dieser Dossierstand zeigt vor allem Kontext, Quellen und offene Fragen. Neue Übernahmen bleiben getrennt reviewbar.
+                    </p>
+                  )}
+                </article>
+              </div>
+            </div>
+            <aside className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Verknüpfte Bürgerpfade</h3>
+              <div className="mt-3 space-y-3 text-sm text-[rgb(var(--muted))]">
+                {updateContext.relatedContext.anlassraumHref ? (
+                  <div>
+                    <p className="font-medium text-[rgb(var(--fg))]">Anlassraum</p>
+                    <p className="mt-1">{updateContext.relatedContext.anlassraumLabel ?? "Beteiligung läuft im Anlassraum weiter."}</p>
+                    <a
+                      href={updateContext.relatedContext.anlassraumHref}
+                      className="mt-2 inline-flex font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+                    >
+                      Zum Anlassraum
+                    </a>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-medium text-[rgb(var(--fg))]">Anlassraum</p>
+                    <p className="mt-1">Noch kein direkter Anlassraum verknüpft. Beteiligung kann später dort weiterlaufen.</p>
+                  </div>
+                )}
+                {updateContext.relatedContext.swipesHref ? (
+                  <div>
+                    <p className="font-medium text-[rgb(var(--fg))]">Swipes</p>
+                    <p className="mt-1">Wenn aus dem Dossier eine konkrete Aussage oder Entscheidungslinie entsteht, kann sie dort weiter beteiligt werden.</p>
+                    <a
+                      href={updateContext.relatedContext.swipesHref}
+                      className="mt-2 inline-flex font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+                    >
+                      {updateContext.relatedContext.swipesLabel ?? "Zu Swipes"}
+                    </a>
+                  </div>
+                ) : null}
+                <div>
+                  <p className="font-medium text-[rgb(var(--fg))]">Letzter sichtbarer Stand</p>
+                  <p className="mt-1">
+                    Öffentlich eingebundene Updates: {formatShortDate(updateContext.latestPublicUpdateAt) ?? "noch kein zusätzlicher Updatehinweis"}
+                  </p>
+                  <p className="mt-1">
+                    Offene Prüfung: {formatShortDate(updateContext.latestReviewUpdateAt) ?? "derzeit keine neuen Review-Hinweise"}
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      ) : null}
       {showPublicReadingSurface ? (
         <section className="mb-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
           <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Öffentlich lesbarer Dossierstand</h2>
@@ -176,6 +340,9 @@ export function DossierPagePublicBody({
       ) : null}
       {showPublicReadingSurface ? (
         <div className="mb-4">
+          <p className="mb-2 text-xs text-[rgb(var(--muted))]">
+            Die folgende Share-/Output-Vorschau ist ein Kommunikationsentwurf. Sie zeigt vorbereitete Ausgabeformen, nicht eine externe Veröffentlichung.
+          </p>
           <SocialOutputPreviewPanel asset={shareAsset} carousel={carousel} />
         </div>
       ) : null}
@@ -252,6 +419,7 @@ export default function DossierPageClient({
   const demoAllowed = shouldAllowDemoDossierFallback(dossierId);
   const [dossier, setDossier] = useState<Dossier | null>(demoAllowed ? demoFallback : null);
   const [loadState, setLoadState] = useState<DossierLoadState>(demoAllowed ? "ready" : "loading");
+  const [updateContext, setUpdateContext] = useState<DossierPublicUpdateContext | null>(null);
   const handoffDraft = useCreateHandoffDraft(handoffId);
 
   useEffect(() => {
@@ -263,16 +431,19 @@ export default function DossierPageClient({
         if (cancelled) return;
         if (data.ok) {
           setDossier(data.dossier);
+          setUpdateContext(data.updateContext ?? null);
           setLoadState("ready");
           return;
         }
         const errorCode = "error" in data ? data.error : undefined;
         setDossier(null);
+        setUpdateContext(null);
         setLoadState(errorCode === "dossier_review_only" ? "review_only" : "not_found");
       })
       .catch(() => {
         if (cancelled) return;
         setDossier(null);
+        setUpdateContext(null);
         setLoadState("load_failed");
       });
     return () => {
@@ -285,6 +456,7 @@ export default function DossierPageClient({
       handoffDraft={handoffDraft}
       dossier={dossier}
       loadState={loadState}
+      updateContext={updateContext}
     />
   );
 }

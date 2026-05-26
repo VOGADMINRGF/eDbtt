@@ -2,6 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  dossierUpdateOriginLabel,
+  dossierUpdateSectionLabel,
+  resolveDossierUpdateStatus,
+  resolveDossierUpdateStatusMeta,
+  type DossierUpdateOrigin,
+  type DossierUpdateSection,
+} from "@features/dossier/updateStatusContract";
+import type { DossierPublicUpdateContext } from "@features/dossier/updateReadModel";
 
 type DossierBundle = {
   dossier: any;
@@ -10,6 +19,13 @@ type DossierBundle = {
   findings: any[];
   findingsRaw?: any[];
   openQuestions: any[];
+  updateContext?: DossierPublicUpdateContext | null;
+  updateSummary?: {
+    total: number;
+    reviewRequired: number;
+    published: number;
+    rejected: number;
+  } | null;
 };
 
 const CLAIM_KINDS = ["fact", "interpretation", "value", "question"];
@@ -61,6 +77,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
 
   const dossierKey = bundle?.dossier?.dossierId ?? dossierId;
   const rawFindings = bundle?.findingsRaw ?? bundle?.findings ?? [];
+  const dossierUpdateSummary = bundle?.updateSummary ?? null;
 
   const claimMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -86,6 +103,8 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           findings: dossierBody.findings ?? [],
           findingsRaw: dossierBody.findingsRaw ?? [],
           openQuestions: dossierBody.openQuestions ?? [],
+          updateContext: dossierBody.updateContext ?? null,
+          updateSummary: dossierBody.updateSummary ?? null,
         };
         const key = dossierBody.dossier?.dossierId ?? dossierId;
 
@@ -158,6 +177,8 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
       findings: dossierBody.findings ?? [],
       findingsRaw: dossierBody.findingsRaw ?? [],
       openQuestions: dossierBody.openQuestions ?? [],
+      updateContext: dossierBody.updateContext ?? null,
+      updateSummary: dossierBody.updateSummary ?? null,
     });
   }
 
@@ -343,6 +364,38 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         {error ? <div className="text-xs text-rose-600">{error}</div> : null}
         {busy ? <div className="text-xs text-[rgb(var(--muted))]">Aktion läuft...</div> : null}
       </header>
+
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Update-Engine</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+            <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Vorschläge</div>
+            <div className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{dossierUpdateSummary?.total ?? suggestions.length}</div>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+            <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">In Prüfung</div>
+            <div className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{dossierUpdateSummary?.reviewRequired ?? suggestions.filter((item) => item.status === "pending").length}</div>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+            <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Im Dossier sichtbar</div>
+            <div className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{dossierUpdateSummary?.published ?? 0}</div>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+            <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Abgelehnt</div>
+            <div className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{dossierUpdateSummary?.rejected ?? suggestions.filter((item) => item.status === "rejected").length}</div>
+          </div>
+        </div>
+        {bundle.updateContext ? (
+          <div className="mt-3 text-sm text-[rgb(var(--muted))]">
+            <p>
+              {bundle.updateContext.checkedStandLabel}: {bundle.updateContext.checkedStandHint}
+            </p>
+            <p className="mt-2">
+              Verknüpft: {bundle.updateContext.originSummary.map((entry) => `${entry.label} (${entry.count})`).join(" · ") || "keine Herkunftssignale"}
+            </p>
+          </div>
+        ) : null}
+      </section>
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neue Claim</h2>
@@ -801,23 +854,20 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           ) : (
             suggestions.map((s) => (
               <div key={s.suggestionId} className="rounded-2xl border border-[rgb(var(--border))] p-3 text-sm">
-                <div className="text-xs text-[rgb(var(--muted))]">{s.type} · {s.status}</div>
-                <pre className="mt-2 whitespace-pre-wrap text-xs text-[rgb(var(--muted))]">
-                  {JSON.stringify(s.payload, null, 2)}
-                </pre>
+                <SuggestionMetaCard suggestion={s} />
                 {s.status === "pending" ? (
                   <div className="mt-2 flex gap-2">
                     <button
                       onClick={() => moderateSuggestion(s.suggestionId, "accepted")}
                       className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
                     >
-                      Accept
+                      Übernehmen
                     </button>
                     <button
                       onClick={() => moderateSuggestion(s.suggestionId, "rejected")}
                       className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
                     >
-                      Reject
+                      Ablehnen
                     </button>
                   </div>
                 ) : null}
@@ -905,4 +955,104 @@ function formatDate(value?: string | null) {
   } catch {
     return value;
   }
+}
+
+function normalizeSuggestionSection(value: unknown): DossierUpdateSection {
+  const normalized = String(value ?? "").trim();
+  if (normalized === "sources") return "sources";
+  if (normalized === "claim") return "claim";
+  if (normalized === "perspective") return "perspective";
+  if (normalized === "question") return "question";
+  if (normalized === "result") return "result";
+  return "update";
+}
+
+function normalizeSuggestionOrigin(value: unknown): DossierUpdateOrigin {
+  const normalized = String(value ?? "").trim();
+  if (normalized === "create") return "create";
+  if (normalized === "feed") return "feed";
+  if (normalized === "swipe") return "swipe";
+  if (normalized === "anlassraum") return "anlassraum";
+  if (normalized === "evidence") return "evidence";
+  return "manual";
+}
+
+function suggestionToneClass(tone: ReturnType<typeof resolveDossierUpdateStatusMeta>["tone"]) {
+  if (tone === "success") return "border-emerald-300/70 bg-emerald-500/10 text-emerald-950";
+  if (tone === "warning") return "border-amber-300/70 bg-amber-500/10 text-amber-950";
+  if (tone === "danger") return "border-rose-300/70 bg-rose-500/10 text-rose-950";
+  if (tone === "info") return "border-sky-300/70 bg-sky-500/10 text-sky-950";
+  return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]";
+}
+
+function SuggestionMetaCard({ suggestion }: { suggestion: any }) {
+  const payload = suggestion?.payload ?? {};
+  const section = normalizeSuggestionSection(payload.section ?? suggestion?.type);
+  const origin = normalizeSuggestionOrigin(payload.origin);
+  const status = resolveDossierUpdateStatus({
+    moderationStatus: suggestion?.status,
+    section,
+    publicVisible: true,
+    attachedToDossier: true,
+    archived: payload.archived === true,
+    superseded: payload.superseded === true,
+    hasError: payload.hasError === true,
+  });
+  const meta = resolveDossierUpdateStatusMeta(status);
+  const title = String(payload.title ?? payload.text ?? "Reviewpflichtiger Vorschlag").trim();
+  const summary = String(payload.summary ?? payload.reason ?? payload.text ?? "").trim();
+  const riskHint = String(payload.riskHint ?? "").trim();
+  const reviewHint = String(payload.reviewHint ?? "").trim();
+  const nextAction = String(payload.nextAction ?? "").trim();
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 text-[11px]">
+        <span className={`rounded-full border px-2 py-0.5 font-semibold ${suggestionToneClass(meta.tone)}`}>
+          {meta.label}
+        </span>
+        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+          {dossierUpdateOriginLabel(origin)}
+        </span>
+        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+          {dossierUpdateSectionLabel(section)}
+        </span>
+      </div>
+      <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{title}</p>
+      {summary ? <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[rgb(var(--muted))]">{summary}</p> : null}
+      <div className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))] md:grid-cols-2">
+        <div>
+          <span className="font-semibold text-[rgb(var(--fg))]">Review-Hinweis:</span> {reviewHint || meta.description}
+        </div>
+        <div>
+          <span className="font-semibold text-[rgb(var(--fg))]">Nächste Aktion:</span> {nextAction || "Im Dossier prüfen."}
+        </div>
+        {riskHint ? (
+          <div className="md:col-span-2">
+            <span className="font-semibold text-[rgb(var(--fg))]">Risiko:</span> {riskHint}
+          </div>
+        ) : null}
+        <div>
+          <span className="font-semibold text-[rgb(var(--fg))]">Letzte Änderung:</span> {formatDate(suggestion?.updatedAt ?? suggestion?.createdAt ?? null)}
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-3 text-xs">
+        {payload.sourceHref ? (
+          <Link href={String(payload.sourceHref)} className="font-semibold text-[rgb(var(--fg))] underline">
+            Ursprung öffnen
+          </Link>
+        ) : null}
+        {payload.anlassraumHref ? (
+          <Link href={String(payload.anlassraumHref)} className="font-semibold text-[rgb(var(--fg))] underline">
+            Anlassraum
+          </Link>
+        ) : null}
+        {payload.swipesHref ? (
+          <Link href={String(payload.swipesHref)} className="font-semibold text-[rgb(var(--fg))] underline">
+            Swipes
+          </Link>
+        ) : null}
+      </div>
+    </>
+  );
 }

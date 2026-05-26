@@ -5,6 +5,10 @@ import {
   REGION_PUBLICATION_VISIBILITY_STATES,
   type RegionPublicationVisibilityState,
 } from "@features/region/publicationRiskLadder";
+import {
+  SOCIAL_DISTRIBUTION_V1_STATUSES,
+  type SocialDistributionV1Status,
+} from "./socialDistributionStatusContract";
 
 export const SOCIAL_DISTRIBUTION_CHANNELS = [
   "website_update",
@@ -25,16 +29,7 @@ export const SOCIAL_DISTRIBUTION_MODES = [
   "realtime_allowed",
 ] as const;
 
-export const SOCIAL_DISTRIBUTION_STATUSES = [
-  "draft",
-  "review_required",
-  "approved",
-  "scheduled",
-  "published_manual",
-  "failed",
-  "revoked",
-  "archived",
-] as const;
+export const SOCIAL_DISTRIBUTION_STATUSES = SOCIAL_DISTRIBUTION_V1_STATUSES;
 
 export const SOCIAL_CONNECTOR_STATUSES = [
   "internal_available",
@@ -54,7 +49,7 @@ export const SOCIAL_SCHEDULE_MODES = [
 
 export type SocialDistributionChannel = (typeof SOCIAL_DISTRIBUTION_CHANNELS)[number];
 export type SocialDistributionMode = (typeof SOCIAL_DISTRIBUTION_MODES)[number];
-export type SocialDistributionStatus = (typeof SOCIAL_DISTRIBUTION_STATUSES)[number];
+export type SocialDistributionStatus = SocialDistributionV1Status;
 export type SocialConnectorStatus = (typeof SOCIAL_CONNECTOR_STATUSES)[number];
 export type SocialScheduleMode = (typeof SOCIAL_SCHEDULE_MODES)[number];
 
@@ -119,10 +114,15 @@ export type SocialDistributionChannelVersion = {
 };
 
 export const SOCIAL_DISTRIBUTION_DRAFT_STATUSES = [
-  "draft",
-  "review_required",
+  "draft_created",
+  "asset_generated",
+  "needs_review",
+  "review_requested",
   "approved",
-  "scheduled",
+  "queued",
+  "scheduled_ready",
+  "exported",
+  "copied",
   "archived",
 ] as const;
 
@@ -320,12 +320,12 @@ function resolveDistributionStatus(
   selected: boolean,
   connectorStatus: SocialConnectorStatus,
 ): SocialDistributionStatus {
-  if (!selected) return "draft";
-  if (connectorStatus === "requires_review") return "review_required";
+  if (!selected) return "draft_created";
+  if (connectorStatus === "requires_review") return "needs_review";
   if (connectorStatus === "disabled_by_policy" || connectorStatus === "not_connected") {
-    return "review_required";
+    return "needs_review";
   }
-  return "approved";
+  return "asset_generated";
 }
 
 function stableKey(input: string): string {
@@ -554,7 +554,7 @@ export function buildSocialDistributionPlan(
 
   const selectedChannels = targets.filter((target) => target.selected).map((target) => target.channel);
   const status: SocialDistributionStatus =
-    masterPost.reviewStatus === "approved" ? "approved" : "review_required";
+    masterPost.reviewStatus === "approved" ? "approved" : "needs_review";
 
   const plan: SocialDistributionPlan = {
     dossierId: masterPost.dossierId,

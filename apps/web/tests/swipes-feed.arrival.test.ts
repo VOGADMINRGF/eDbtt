@@ -56,6 +56,16 @@ const mocks = vi.hoisted(() => {
         };
       },
     })),
+    coreCol: vi.fn(async () => ({
+      createIndex: vi.fn(async () => "ok"),
+      find: vi.fn(() => ({
+        sort: vi.fn(() => ({
+          limit: vi.fn(() => ({
+            toArray: vi.fn(async () => []),
+          })),
+        })),
+      })),
+    })),
   };
 });
 
@@ -64,6 +74,7 @@ vi.mock("@core/db/triMongo", async () => {
   return {
     ObjectId: mongodb.ObjectId,
     getCol: (...args: unknown[]) => mocks.getCol(...args),
+    coreCol: (...args: unknown[]) => mocks.coreCol(...args),
   };
 });
 

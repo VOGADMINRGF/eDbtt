@@ -90,12 +90,12 @@ describe("output engine social distribution plan", () => {
       selectedChannels: ["website_update", "linkedin_draft"],
       scheduleMode: "suggested_window",
       reviewRequired: true,
-      status: "review_required",
+      status: "review_requested",
       savedAt: "2026-04-30T10:30:00.000Z",
     });
 
     expect(draft.dossierId).toBe(plan.dossierId);
-    expect(draft.status).toBe("review_required");
+    expect(draft.status).toBe("review_requested");
     expect(draft.externalPublish).toBe(false);
     expect(draft.queue.length).toBeGreaterThan(0);
     expect(draft.notes.some((entry) => entry.includes("Keine externe Live-Veröffentlichung"))).toBe(true);

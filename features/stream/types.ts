@@ -1,4 +1,6 @@
 import type { ObjectId } from "@core/db/triMongo";
+import type { RegionParticipationReviewStatus } from "@features/region";
+import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
 
 export type StreamVisibility = "public" | "unlisted";
 export type StreamAgendaKind = "statement" | "question" | "poll" | "info";
@@ -38,6 +40,7 @@ export interface StreamDeliberationState {
 export interface StreamSessionDoc {
   _id?: ObjectId;
   creatorId: string;
+  slug?: string | null;
   title: string;
   description?: string | null;
   regionCode?: string | null;
@@ -59,6 +62,37 @@ export interface StreamSessionDoc {
   updatedAt: Date;
   startedAt?: Date | null;
   endedAt?: Date | null;
+}
+
+export type StreamPublicInputKind =
+  | "question"
+  | "source_hint"
+  | "perspective"
+  | "option"
+  | "concern"
+  | "correction"
+  | "support";
+
+export interface StreamPublicInputDoc {
+  _id?: ObjectId;
+  inputId: string;
+  origin: "stream";
+  streamSessionId: ObjectId;
+  streamSlug?: string | null;
+  streamTitle: string;
+  eventTitle: string;
+  anlassraumId?: string | null;
+  dossierId?: string | null;
+  kind: StreamPublicInputKind;
+  text: string;
+  sourceUrl?: string | null;
+  reviewState: RegionParticipationReviewStatus;
+  visibilityState: RegionPublicationVisibilityState;
+  publicVisibilityMarker: "review_only" | "public_unverified" | "public_reviewed";
+  riskHint: string;
+  piiHint: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface StreamAgendaItemDoc {

@@ -4,18 +4,21 @@ import type {
   StreamAgendaItemDoc,
   StreamModerationQueueItemDoc,
   StreamCallInDoc,
+  StreamPublicInputDoc,
 } from "./types";
 
 const SESSION_COLLECTION = "stream_sessions";
 const AGENDA_COLLECTION = "stream_agenda_items";
 const MODERATION_COLLECTION = "stream_moderation_queue";
 const CALLIN_COLLECTION = "stream_callins";
+const PUBLIC_INPUT_COLLECTION = "stream_public_inputs";
 
 const ensured = {
   sessions: false,
   agenda: false,
   moderation: false,
   callins: false,
+  publicInputs: false,
 };
 
 async function ensureSessionIndexes() {
@@ -23,6 +26,8 @@ async function ensureSessionIndexes() {
   const col = await coreCol<StreamSessionDoc>(SESSION_COLLECTION);
   await col.createIndex({ creatorId: 1, createdAt: -1 });
   await col.createIndex({ isLive: 1 });
+  await col.createIndex({ slug: 1 }, { sparse: true });
+  await col.createIndex({ visibility: 1, topicKey: 1, updatedAt: -1 });
   ensured.sessions = true;
 }
 
@@ -50,6 +55,16 @@ async function ensureCallInIndexes() {
   ensured.callins = true;
 }
 
+async function ensurePublicInputIndexes() {
+  if (ensured.publicInputs) return;
+  const col = await coreCol<StreamPublicInputDoc>(PUBLIC_INPUT_COLLECTION);
+  await col.createIndex({ inputId: 1 }, { unique: true });
+  await col.createIndex({ streamSessionId: 1, createdAt: -1 });
+  await col.createIndex({ anlassraumId: 1, createdAt: -1 }, { sparse: true });
+  await col.createIndex({ dossierId: 1, createdAt: -1 }, { sparse: true });
+  ensured.publicInputs = true;
+}
+
 export async function streamSessionsCol() {
   await ensureSessionIndexes();
   return coreCol<StreamSessionDoc>(SESSION_COLLECTION);
@@ -68,6 +83,11 @@ export async function streamModerationQueueCol() {
 export async function streamCallInsCol() {
   await ensureCallInIndexes();
   return coreCol<StreamCallInDoc>(CALLIN_COLLECTION);
+}
+
+export async function streamPublicInputsCol() {
+  await ensurePublicInputIndexes();
+  return coreCol<StreamPublicInputDoc>(PUBLIC_INPUT_COLLECTION);
 }
 
 export function toObjectId(id: string | ObjectIdType): ObjectId {

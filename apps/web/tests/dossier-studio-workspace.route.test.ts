@@ -894,7 +894,7 @@ describe("/api/dossier/[id]/studio/workspace", () => {
     });
   });
 
-  it("creates a review-first social distribution draft and keeps published_manual explicit", async () => {
+  it("creates a review-first social distribution draft and keeps export status explicit", async () => {
     const draftId = await seedRegionDraftDossier();
     const payload = buildStudioPayload(draftId);
     seedActiveContract();
@@ -987,6 +987,7 @@ describe("/api/dossier/[id]/studio/workspace", () => {
           visibilityState: "public_reviewed",
         },
         selectedChannels: ["website_update", "newsletter_draft"],
+        initialStatus: "review_requested",
         note: "Review-first Verteilentwurf.",
       }),
       { params: Promise.resolve({ id: draftId }) },
@@ -998,21 +999,21 @@ describe("/api/dossier/[id]/studio/workspace", () => {
       ok: true,
       post: {
         organizationId: "org-reinickendorf-1",
-        status: "review_required",
+        status: "review_requested",
         channels: ["website_update", "newsletter_draft"],
         sourceVisibilityState: "public_reviewed",
       },
     });
 
     const stored = await getSocialDistributionRepo().getPost(createdBody.post.id);
-    expect(stored?.status).toBe("review_required");
-    expect(stored?.status).not.toBe("published_manual");
+    expect(stored?.status).toBe("review_requested");
+    expect(stored?.status).not.toBe("exported");
 
     const published = await PATCH(
       buildRequest("PATCH", `http://localhost/api/dossier/${draftId}/studio/workspace`, {
-        socialDistributionAction: "mark_published",
+        socialDistributionAction: "mark_exported",
         postId: createdBody.post.id,
-        note: "Manuell veröffentlicht nach Freigabe.",
+        note: "Als Exportpaket vorbereitet, ohne externe Veröffentlichung.",
       }),
       { params: Promise.resolve({ id: draftId }) },
     );
@@ -1022,7 +1023,7 @@ describe("/api/dossier/[id]/studio/workspace", () => {
       ok: true,
       post: {
         id: createdBody.post.id,
-        status: "published_manual",
+        status: "exported",
       },
     });
   });

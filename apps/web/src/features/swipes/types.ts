@@ -38,6 +38,9 @@ export type SwipeItem = {
   sourceDraftId?: string | null;
   anlassraumId?: string | null;
   contextHref?: string | null;
+  dossierHref?: string | null;
+  statusLabel?: string | null;
+  statusHint?: string | null;
   fromDraftMatch?: boolean;
 };
 

@@ -1,10 +1,6 @@
-// apps/web/src/app/stream/[slug]/page.tsx
-import Link from "next/link";
-import { VOG_SUPPORT_URL } from "@/config/links";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ObjectId } from "@core/db/triMongo";
-import { streamSessionsCol } from "@features/stream/db";
 import { buildShareMetadata } from "@/features/share/metadata";
 import SocialOutputPreviewPanel from "@/components/share/SocialOutputPreviewPanel";
 import {
@@ -13,20 +9,12 @@ import {
   buildStreamPreparationOutput,
 } from "@features/share/socialOutputContract";
 import { BRAND } from "@/lib/brand";
-import {
-  resolveSessionStatus,
-  type StreamFollowUpState,
-  type StreamFollowUpUpdate,
-  type StreamLiveBoardOption,
-  type StreamLiveBoardState,
-  type StreamSessionDoc,
-} from "@features/stream/types";
+import { buildStreamPublicRuntime, buildStreamShareContext } from "@features/stream/publicRuntime";
+import StreamPublicInputPanel from "../StreamPublicInputPanel";
+import RundenShareActions from "@/app/runden/RundenShareActions";
+import { getStreamPublicStatusMeta } from "@features/stream/statusContract";
 
 export const dynamic = "force-dynamic";
-
-function isObjectId(value: string) {
-  return /^[0-9a-fA-F]{24}$/.test(value);
-}
 
 function isVideoUrl(value: string) {
   return /\.(mp4|webm|m3u8)(\?|#|$)/i.test(value);
@@ -40,17 +28,30 @@ function isEmbedUrl(value: string) {
   );
 }
 
-async function fetchSessionBySlug(slug: string, projection?: Record<string, 1 | 0>) {
-  const sessions = await streamSessionsCol();
-  const query: Record<string, unknown> = {
-    visibility: { $in: ["public", "unlisted"] },
-  };
-  if (isObjectId(slug)) {
-    query._id = new ObjectId(slug);
-  } else {
-    query.slug = slug;
+function toneClass(tone: ReturnType<typeof getStreamPublicStatusMeta>["tone"]) {
+  switch (tone) {
+    case "success":
+      return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    case "warning":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    case "danger":
+      return "border-rose-300 bg-rose-50 text-rose-900";
+    case "info":
+      return "border-sky-300 bg-sky-50 text-sky-900";
+    case "neutral":
+    default:
+      return "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]";
   }
-  return (await sessions.findOne(query, projection ? { projection } : undefined)) as StreamSessionDoc | null;
+}
+
+function formatDateTime(value?: string | Date | null) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 export async function generateMetadata({
@@ -59,28 +60,21 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const session = await fetchSessionBySlug(slug, {
-    title: 1,
-    description: 1,
-    topicKey: 1,
-    regionCode: 1,
-  });
-  if (!session) {
+  const runtime = await buildStreamPublicRuntime(slug);
+  if (!runtime) {
     return {
       title: "Stream nicht gefunden",
       description: "Der angefragte Stream ist nicht verfügbar.",
       robots: { index: false },
     };
   }
-  const title = `${session.title} · Stream`;
-  const description =
-    session.description ??
-    `Live-Stream zu ${session.topicKey ?? "aktuellen Themen"}${session.regionCode ? ` in ${session.regionCode}` : ""}.`;
   return buildShareMetadata({
     objectType: "stream",
-    pathOrUrl: `/stream/${slug}`,
-    title,
-    description,
+    pathOrUrl: `/stream/${runtime.session.slugOrId}`,
+    title: `${runtime.session.title} · Event-Beteiligung`,
+    description:
+      runtime.session.description ??
+      "Öffentlicher Event- und Streamkontext mit reviewpflichtigen Fragen, Quellen und Perspektiven.",
     ogType: "video.other",
   });
 }
@@ -91,172 +85,288 @@ export default async function StreamDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const session = await fetchSessionBySlug(slug);
-  if (!session) return notFound();
+  const runtime = await buildStreamPublicRuntime(slug);
+  if (!runtime) return notFound();
 
-  const status = resolveSessionStatus(session);
-  const startsAt = session.startsAt ? new Date(session.startsAt) : null;
-  const playerUrl = session.playerUrl ?? null;
-  const liveBoard: StreamLiveBoardState | null = session.liveBoard ?? null;
-  const followUp: StreamFollowUpState | null = session.followUp ?? null;
-  const recordingAllowed = Boolean(session.recordingAllowed);
-  const requireVerifiedParticipants = session.requireVerifiedParticipants !== false;
-  const supportEnabled = Boolean(session.supportEnabled);
-  const supportBlind = Boolean(session.supportBlind);
-  const hideViewerCount = session.hideViewerCount !== false;
-  const canonicalPath = `/stream/${slug}`;
+  const canonicalPath = `/stream/${runtime.session.slugOrId}`;
   const streamPreparation = buildStreamPreparationOutput({
-    title: session.title,
-    summary: session.description,
+    title: runtime.session.title,
+    summary: runtime.session.description,
     highlights: [
-      ...(liveBoard?.options?.slice(0, 2).map((option) => option.title) ?? []),
-      ...(followUp?.updates?.slice(0, 1).map((entry) => entry.note) ?? []),
-    ],
-    transcriptSnippets: [],
-    quoteCandidate: liveBoard?.summary ?? null,
+      runtime.context.anlassraumTitle ? `Anlassraum: ${runtime.context.anlassraumTitle}` : null,
+      runtime.recap.dossierUpdateHint,
+      runtime.recap.socialDraftHint,
+    ].filter((value): value is string => Boolean(value)),
+    transcriptSnippets: runtime.participation.items.slice(0, 2).map((item) => item.text),
+    quoteCandidate: runtime.recap.latestFollowUp?.note ?? runtime.session.liveBoard?.summary ?? null,
   });
   const shareAsset = buildShareOutputAsset({
     baseUrl: BRAND.baseUrl,
     canonicalPathOrUrl: canonicalPath,
     objectType: "stream",
-    title: session.title,
+    title: runtime.session.title,
     subtitle:
-      session.description ??
-      `Diskussionskontext zu ${session.topicKey ?? "aktuellen Themen"}${session.regionCode ? ` in ${session.regionCode}` : ""}.`,
+      runtime.session.description ??
+      "Öffentlicher Event-Kontext mit reviewpflichtiger Beteiligung und Anschluss an Anlassraum und Dossier.",
     lane: "standard",
     verificationMode: "none",
     researchUsed: "none",
     sealEligible: false,
     sealGranted: false,
-    topic: session.topicKey ?? null,
-    region: session.regionCode ?? null,
-    neutralCtaLabel: "Stream öffnen",
+    topic: runtime.session.topicKey ?? null,
+    region: runtime.session.regionCode ?? null,
+    neutralCtaLabel: "Event öffnen",
     deepLinkPath: canonicalPath,
   });
   const shareCarousel = buildNeutralCarouselDraft(shareAsset, {
-    highlights: streamPreparation.highlightBullets,
+    highlights: [
+      runtime.session.statusLabel,
+      runtime.context.anlassraumTitle ? `Beteiligung im Anlassraum` : null,
+      runtime.context.dossierHref ? "Dossier-Kontext verfügbar" : null,
+    ].filter((value): value is string => Boolean(value)),
   });
-  const policyCards = [
-    requireVerifiedParticipants && {
-      title: "Teilnahme nur verifiziert",
-      body: "Abstimmungen und Einreichungen sind nur mit verifiziertem Konto möglich.",
-      ctaLabel: "Verifizierung starten",
-      ctaHref: "/verify",
-      tone: "amber",
-    },
-    recordingAllowed && {
-      title: "Mitschnitt erlaubt",
-      body: "Dieser Stream darf aufgezeichnet und nachbereitet werden.",
-      tone: "slate",
-    },
-    supportEnabled && {
-      title: supportBlind ? "Support (blind)" : "Support aktiv",
-      body: supportBlind
-        ? "Unterstützung läuft im Hintergrund, ohne öffentliche Anzeige."
-        : "Unterstützung ist sichtbar und kann die Nachbereitung fördern.",
-      tone: "emerald",
-    },
-    hideViewerCount && {
-      title: "Zuschauerzahl verborgen",
-      body: "Die Zuschauerzahl ist für die Öffentlichkeit ausgeblendet.",
-      tone: "neutral",
-    },
-  ].filter(Boolean) as Array<{
-    title: string;
-    body: string;
-    tone: "amber" | "slate" | "emerald" | "neutral";
-    ctaLabel?: string;
-    ctaHref?: string;
-  }>;
+  const shareContext = buildStreamShareContext(runtime);
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
-      <section className="mx-auto max-w-4xl px-4 py-12 space-y-8">
-        <div className="space-y-3">
-          <Link href="/stream" className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-            Zur Übersicht
+      <section className="mx-auto max-w-5xl space-y-8 px-4 py-12">
+        <header className="space-y-4">
+          <Link
+            href="/stream"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600"
+          >
+            Zur Stream-Übersicht
           </Link>
-          <h1 className="text-3xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
-            {session.title}
-          </h1>
-          <div className="flex flex-wrap gap-3 text-xs text-[rgb(var(--muted))]">
-            {session.regionCode && (
-              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-                Region: {session.regionCode}
-              </span>
-            )}
-            {session.topicKey && (
-              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-                Thema: {session.topicKey}
-              </span>
-            )}
-            {startsAt && (
-              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-                Start:{" "}
-                {new Intl.DateTimeFormat("de-DE", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(startsAt)}
-              </span>
-            )}
-            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-              Status: {status}
-            </span>
-            {requireVerifiedParticipants && (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
-                Verifizierung erforderlich
-              </span>
-            )}
-            {recordingAllowed && (
-              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-                Mitschnitt erlaubt
-              </span>
-            )}
-          </div>
-        </div>
-
-        {playerUrl && isEmbedUrl(playerUrl) && (
-          <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
-            <div className="aspect-video w-full">
-              <iframe
-                title={`Stream ${session.title}`}
-                src={playerUrl}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        )}
-
-        {playerUrl && !isEmbedUrl(playerUrl) && isVideoUrl(playerUrl) && (
-          <video
-            className="w-full rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm"
-            controls
-            preload="metadata"
-            src={playerUrl}
-          />
-        )}
-
-        {playerUrl && !isEmbedUrl(playerUrl) && !isVideoUrl(playerUrl) && (
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
-            <p className="font-semibold">Stream-Link</p>
-            <p className="mt-1 break-all">
-              <a
-                href={playerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-sky-600 underline underline-offset-4"
-              >
-                {playerUrl}
-              </a>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
+              {runtime.session.title}
+            </h1>
+            <p className="max-w-3xl text-base leading-7 text-[rgb(var(--muted))] md:text-lg">
+              {runtime.session.description ??
+                "Dieser Stream ist vor allem eine öffentliche Beteiligungsfläche: Fragen, Quellen und Perspektiven gehen reviewpflichtig in Anlassraum, Dossier und Nachbereitung ein."}
             </p>
           </div>
-        )}
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className={`rounded-full border px-3 py-1 font-semibold ${toneClass(runtime.session.statusTone)}`}>
+              {runtime.session.statusLabel}
+            </span>
+            {runtime.session.topicKey ? (
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
+                Thema: {runtime.session.topicKey}
+              </span>
+            ) : null}
+            {runtime.session.regionCode ? (
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
+                Region: {runtime.session.regionCode}
+              </span>
+            ) : null}
+            {runtime.session.startsAt ? (
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
+                Start: {formatDateTime(runtime.session.startsAt)}
+              </span>
+            ) : null}
+            {runtime.participation.openForInput ? (
+              <span className="rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-sky-900">
+                Öffentliche Beteiligung offen
+              </span>
+            ) : null}
+          </div>
+          <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+            {runtime.session.statusDescription} {runtime.session.nextAction}
+          </p>
+        </header>
 
-        {session.description && (
-          <p className="text-base text-[rgb(var(--muted))] md:text-lg">{session.description}</p>
-        )}
+        <section className="grid gap-4 lg:grid-cols-3">
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Worum geht es?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              Der Stream ist kein eigener Abschlussraum. Er sammelt Fragen und Hinweise für denselben
+              Thema-Kontext weiter, der im Anlassraum und Dossier sichtbar bleibt.
+            </p>
+          </article>
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Was passiert mit deinem Beitrag?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              Beiträge gehen reviewpflichtig ein. Erst danach können sie als Anlassraum-Hinweis,
+              Dossier-Update oder Kommunikationsentwurf weitergeführt werden.
+            </p>
+          </article>
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Wo findest du später Ergebnisse?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              Öffentliche Ergebnisse erscheinen später im Anlassraum oder Dossier. Nichts wird aus dem
+              Stream automatisch als amtliche Wahrheit veröffentlicht.
+            </p>
+          </article>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="space-y-4">
+            {runtime.session.playerUrl && isEmbedUrl(runtime.session.playerUrl) ? (
+              <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+                <div className="aspect-video w-full">
+                  <iframe
+                    title={`Stream ${runtime.session.title}`}
+                    src={runtime.session.playerUrl}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {runtime.session.playerUrl && !isEmbedUrl(runtime.session.playerUrl) && isVideoUrl(runtime.session.playerUrl) ? (
+              <video
+                className="w-full rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm"
+                controls
+                preload="metadata"
+                src={runtime.session.playerUrl}
+              />
+            ) : null}
+
+            {runtime.session.playerUrl && !isEmbedUrl(runtime.session.playerUrl) && !isVideoUrl(runtime.session.playerUrl) ? (
+              <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                  Externer Stream-Link
+                </p>
+                <a
+                  href={runtime.session.playerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex text-sm font-semibold text-sky-700 underline underline-offset-4"
+                >
+                  Stream in neuem Fenster öffnen
+                </a>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  Video ist optional. Der zentrale öffentliche Mehrwert liegt in der reviewpflichtigen
+                  Beteiligung und der späteren Nachbereitung.
+                </p>
+              </div>
+            ) : null}
+
+            {!runtime.session.playerUrl ? (
+              <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                  Event ohne Videozwang
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  Dieser Pfad funktioniert auch ohne eingebettetes Video. Entscheidender sind
+                  Fragen, Quellen, Perspektiven und die reviewpflichtige Nachbereitung.
+                </p>
+              </div>
+            ) : null}
+
+            <StreamPublicInputPanel
+              streamId={runtime.session.id}
+              streamTitle={runtime.session.title}
+              anlassraumHref={runtime.context.anlassraumHref}
+              dossierHref={runtime.context.dossierHref}
+              openForInput={runtime.participation.openForInput}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Anschlussflächen
+              </p>
+              <div className="mt-3 space-y-3 text-sm">
+                {runtime.context.anlassraumHref ? (
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Anlassraum</p>
+                    <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
+                      {runtime.context.anlassraumTitle ?? "Öffentlicher Anlassraum"} hält Beteiligung,
+                      Review und spätere Ergebnisse im selben Bürgerpfad zusammen.
+                    </p>
+                    <Link
+                      href={runtime.context.anlassraumHref}
+                      className="mt-2 inline-flex font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+                    >
+                      Zum Anlassraum
+                    </Link>
+                  </div>
+                ) : null}
+                {runtime.context.dossierHref ? (
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Dossier</p>
+                    <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
+                      Quellenlage, offene Fragen und verschiedene Perspektiven bleiben im Dossier nachvollziehbar.
+                    </p>
+                    <Link
+                      href={runtime.context.dossierHref}
+                      className="mt-2 inline-flex font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+                    >
+                      Zum Dossier
+                    </Link>
+                  </div>
+                ) : null}
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="font-semibold text-[rgb(var(--fg))]">Swipes</p>
+                  <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
+                    Zustimmung, Gegenposition oder Vertiefung laufen in die bestehende Swipe-Fläche,
+                    ohne falsche Auto-Matches zu behaupten.
+                  </p>
+                  <Link
+                    href={runtime.context.swipesHref ?? "/swipes"}
+                    className="mt-2 inline-flex font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+                  >
+                    Zu Swipes
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Beteiligungsstand
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">Fragen & Hinweise</p>
+                  <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
+                    {runtime.participation.pendingCount} in Prüfung, {runtime.participation.visibleCount} sichtbar
+                    {runtime.participation.latestAt ? ` · zuletzt ${formatDateTime(runtime.participation.latestAt)}` : ""}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">Nachbereitung</p>
+                  <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
+                    {runtime.recap.reviewHint}
+                  </p>
+                </div>
+              </div>
+              {runtime.recap.dossierUpdateHint || runtime.recap.anlassraumUpdateHint || runtime.recap.socialDraftHint ? (
+                <div className="mt-4 space-y-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  {runtime.recap.dossierUpdateHint ? <p>{runtime.recap.dossierUpdateHint}</p> : null}
+                  {runtime.recap.anlassraumUpdateHint ? <p>{runtime.recap.anlassraumUpdateHint}</p> : null}
+                  {runtime.recap.socialDraftHint ? <p>{runtime.recap.socialDraftHint}</p> : null}
+                </div>
+              ) : null}
+            </section>
+
+            {shareContext ? (
+              <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                  Teilen / QR
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  Link und QR öffnen die öffentliche Teilnahmefläche. Sie behaupten keine veröffentlichte
+                  Wahrheit und bleiben bei blockierten oder archivierten Zuständen deaktiviert.
+                </p>
+                <div className="mt-3">
+                  <RundenShareActions share={shareContext} />
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </section>
 
         <SocialOutputPreviewPanel
           asset={shareAsset}
@@ -264,174 +374,89 @@ export default async function StreamDetail({
           streamPreparation={streamPreparation}
         />
 
-        {policyCards.length > 0 && (
-          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Leitlinien</p>
-              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Hinweise zum Stream</h2>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {policyCards.map((item, idx) => (
-                <div
-                  key={`${item.title}-${idx}`}
-                  className={`rounded-2xl border px-4 py-3 text-sm ${
-                    item.tone === "amber"
-                      ? "border-amber-200 bg-amber-50 text-amber-900"
-                      : item.tone === "emerald"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                        : item.tone === "slate"
-                          ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
-                  }`}
-                >
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">{item.body}</p>
-                  {item.ctaLabel && item.ctaHref && (
-                    <Link
-                      href={item.ctaHref}
-                      className="mt-2 inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
-                    >
-                      {item.ctaLabel}
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {supportEnabled && !supportBlind && (
-          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Support</p>
-              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Unterstützen</h2>
-              <p className="text-sm text-[rgb(var(--muted))]">
-                Unterstütze die Moderation und Nachbereitung dieses Streams. Keine Stimme,
-                keine Priorität – nur Transparenz.
+        {runtime.participation.items.length > 0 ? (
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Hinweise aus dem Event
+              </p>
+              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">
+                Was bereits reviewpflichtig eingegangen ist
+              </h2>
+              <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+                Die Liste zeigt Eingaben als Bürgerhinweise, nicht als endgültige Aussage oder Ergebnis.
               </p>
             </div>
-            <a
-              href={VOG_SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
-            >
-              Unterstützen
-            </a>
-          </section>
-        )}
-
-        {liveBoard?.options?.length ? (
-          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Live-Dossier</p>
-              <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">{liveBoard.title ?? "Live-Dossier"}</h2>
-              {liveBoard.summary && <p className="text-sm text-[rgb(var(--muted))]">{liveBoard.summary}</p>}
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {liveBoard.options.map((opt: StreamLiveBoardOption, index: number) => (
-                <div key={opt.id ?? index} className="rounded-2xl border border-[rgb(var(--border))] p-4 space-y-3">
-                  <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{opt.title}</h3>
-                  <div className="grid gap-3 text-sm text-[rgb(var(--muted))]">
-                    {Array.isArray(opt.pros) && opt.pros.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Pro</p>
-                        <ul className="mt-1 list-disc pl-4">
-                          {opt.pros.map((item: string, idx: number) => (
-                            <li key={idx}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {Array.isArray(opt.cons) && opt.cons.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Contra</p>
-                        <ul className="mt-1 list-disc pl-4">
-                          {opt.cons.map((item: string, idx: number) => (
-                            <li key={idx}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {Array.isArray(opt.sources) && opt.sources.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</p>
-                        <ul className="mt-1 space-y-1">
-                          {opt.sources.map((item: string, idx: number) => (
-                            <li key={idx}>
-                              <a
-                                className="text-sky-700 underline"
-                                href={item}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {item}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {Array.isArray(opt.openQuestions) && opt.openQuestions.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Offene Fragen</p>
-                        <ul className="mt-1 list-disc pl-4">
-                          {opt.openQuestions.map((item: string, idx: number) => (
-                            <li key={idx}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+            <div className="mt-4 space-y-3">
+              {runtime.participation.items.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 font-semibold text-[rgb(var(--fg))]">
+                      {item.kindLabel}
+                    </span>
+                    <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                      {item.publicVisibilityLabel}
+                    </span>
+                    <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                      {formatDateTime(item.createdAt)}
+                    </span>
                   </div>
-                </div>
+                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]">{item.text}</p>
+                  {item.sourceUrl ? (
+                    <a
+                      href={item.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex text-xs font-semibold text-sky-700 underline underline-offset-4"
+                    >
+                      Quelle öffnen
+                    </a>
+                  ) : null}
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{item.riskHint}</p>
+                </article>
               ))}
             </div>
           </section>
         ) : null}
 
-        {followUp?.updates?.length ? (
-          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
+        {runtime.session.liveBoard?.options?.length ? (
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Follow-up</p>
-              <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">Status & Wirkung</h2>
-              {followUp.nextReminderAt && (
-                <p className="text-xs text-[rgb(var(--muted))]">
-                  Nächste Erinnerung:{" "}
-                  {new Date(followUp.nextReminderAt).toLocaleDateString("de-DE", { dateStyle: "medium" })}
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Live-Dossier
+              </p>
+              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">
+                {runtime.session.liveBoard.title}
+              </h2>
+              {runtime.session.liveBoard.summary ? (
+                <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+                  {runtime.session.liveBoard.summary}
                 </p>
-              )}
+              ) : null}
             </div>
-            <div className="space-y-3">
-              {followUp.updates.map((update: StreamFollowUpUpdate, idx: number) => (
-                <div key={update.id ?? idx} className="rounded-2xl border border-[rgb(var(--border))] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
-                      {update.status === "submitted"
-                        ? "Eingereicht"
-                        : update.status === "in_review"
-                          ? "In Prüfung"
-                          : update.status === "accepted"
-                            ? "Angenommen"
-                            : update.status === "partial"
-                              ? "Teilweise"
-                              : "Abgelehnt"}
-                    </span>
-                    {update.createdAt && (
-                      <span className="text-[rgb(var(--muted))]">
-                        {new Date(update.createdAt).toLocaleString("de-DE", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{update.note}</p>
-                  {update.link && (
-                    <a className="mt-2 block text-xs text-sky-700 underline" href={update.link} target="_blank" rel="noreferrer">
-                      {update.link}
-                    </a>
-                  )}
-                </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {runtime.session.liveBoard.options.map((option) => (
+                <article
+                  key={option.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{option.title}</h3>
+                  {option.openQuestions.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                        Offene Fragen
+                      </p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-[rgb(var(--muted))]">
+                        {option.openQuestions.map((entry, index) => (
+                          <li key={`${option.id}-question-${index}`}>{entry}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </article>
               ))}
             </div>
           </section>

@@ -7,3 +7,5 @@ export * from "./masterPost";
 export * from "./formatMappers";
 export * from "./distributionExport";
 export * from "./studioTelemetry";
+export * from "./socialDistributionStatusContract";
+export * from "./socialDistributionQueueReadModel";

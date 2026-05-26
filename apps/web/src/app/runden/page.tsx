@@ -186,6 +186,16 @@ function publicShareHintForEntry(entry: RundenEntryItem): string {
   );
 }
 
+function feedSourceHint(entry: RundenEntryItem): string | null {
+  if (entry.sourceMode === "feed") {
+    return "Quellenhinweis aus dem Feed-Radar: Der Anlass wurde aus abgerufenen Signalen vorbereitet und bleibt review-first.";
+  }
+  if (entry.sourceMode === "cluster") {
+    return "Themenbündel aus dem Feed-Radar: Mehrere Hinweise wurden zu einem gemeinsamen Anlass verdichtet.";
+  }
+  return null;
+}
+
 function deriveLastActivity(entry: RundenEntryItem): string {
   return formatDate(entry.lastActionAt ?? entry.updatedAt ?? entry.createdAt);
 }
@@ -247,6 +257,35 @@ function RoundJourneyMeta(props: { entry: RundenEntryItem }) {
           )}
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
             Quellen, offene Fragen und spätere Ergebnisse bleiben an denselben Anlass anschließbar.
+          </p>
+          {props.entry.relatedDossierUpdateLabel || props.entry.relatedDossierUpdatedAt ? (
+            <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+              {props.entry.relatedDossierUpdateLabel ?? "Dossier-Kontext vorhanden"}
+              {props.entry.relatedDossierUpdatedAt
+                ? ` · letzter Dossierstand ${formatDate(props.entry.relatedDossierUpdatedAt)}`
+                : ""}
+            </p>
+          ) : null}
+          {feedSourceHint(props.entry) ? (
+            <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{feedSourceHint(props.entry)}</p>
+          ) : null}
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Live-/Event-Beteiligung</p>
+          {props.entry.relatedStreamHref ? (
+            <Link
+              href={props.entry.relatedStreamHref}
+              className="mt-1 inline-flex text-sm font-semibold text-[rgb(var(--fg))] hover:text-[rgb(var(--grad-from))]"
+            >
+              {props.entry.relatedStreamTitle ?? "Zum Event-Stream"}
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">Wird bei passender Event-Lage sichtbar</p>
+          )}
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            {props.entry.relatedStreamStatusLabel
+              ? `${props.entry.relatedStreamStatusLabel}: Fragen und Hinweise laufen im Stream reviewpflichtig ein.`
+              : "Wenn ein öffentlicher Event- oder Streamkontext offen ist, führt er in denselben Anlassraum- und Dossierpfad."}
           </p>
         </div>
         <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">

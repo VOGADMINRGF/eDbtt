@@ -27,6 +27,18 @@ const CreateSessionBodySchema = z.object({
   autofillAgenda: z.boolean().optional(),
 });
 
+function slugify(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 async function isTopicRegistered(topicKey: string): Promise<boolean> {
   if (TOPIC_CHOICES.some((t) => t.key === topicKey)) return true;
   const col = await coreCol("statements");
@@ -112,6 +124,7 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const doc: StreamSessionDoc = {
     creatorId: ctx.userId,
+    slug: slugify(title) || null,
     title,
     description: body?.description ?? null,
     regionCode,

@@ -7,10 +7,13 @@ import type {
   SocialReviewQueueItem,
   SocialReviewQueueReadModel,
 } from "@features/anlassraum/socialReviewQueueReadModel";
+import type { SocialDistributionQueueReadModel } from "@features/outputEngine";
 
 type SocialReviewQueueClientProps = {
   queue: SocialReviewQueueReadModel;
   sourceState?: "live" | "fallback";
+  distributionQueue: SocialDistributionQueueReadModel;
+  distributionState?: "live" | "fallback";
 };
 
 type DecisionFilter = "all" | SocialReviewQueueDecision;
@@ -23,9 +26,9 @@ type PersistedDecisionMeta = {
 };
 
 function baseStatusLabel(value: SocialReviewQueueItem["baseStatus"]) {
-  if (value === "qualified_context") return "Qualified Context";
-  if (value === "review_required") return "Review Required";
-  return "Candidate";
+  if (value === "qualified_context") return "Kontext qualifiziert";
+  if (value === "review_required") return "Prüfung nötig";
+  return "Kandidat";
 }
 
 function decisionLabel(value: SocialReviewQueueDecision) {
@@ -75,6 +78,8 @@ const DECISIONS: SocialReviewQueueDecision[] = [
 export default function SocialReviewQueueClient({
   queue,
   sourceState = "live",
+  distributionQueue,
+  distributionState = "live",
 }: SocialReviewQueueClientProps) {
   const [decisions, setDecisions] = useState<Record<string, SocialReviewQueueDecision>>(() =>
     Object.fromEntries(queue.items.map((item) => [item.id, item.persistedDecision])),
@@ -267,11 +272,93 @@ export default function SocialReviewQueueClient({
         </section>
       ) : null}
 
+      {distributionState === "fallback" ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Die Social-Distribution-Queue ist derzeit nur degradierbar lesbar. Export- und Planungsstatus
+          bleiben bis zur nächsten erfolgreichen Runtime-Antwort unverändert.
+        </section>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Kandidaten" value={queue.totals.candidates} />
-        <MetricCard label="Review Required" value={queue.totals.reviewRequired} />
-        <MetricCard label="Qualified Context" value={queue.totals.qualifiedContext} />
+        <MetricCard label="Prüfung offen" value={queue.totals.reviewRequired} />
+        <MetricCard label="Kontext qualifiziert" value={queue.totals.qualifiedContext} />
         <MetricCard label="Factcheck-Hinweise" value={queue.totals.factcheckSuggested} />
+      </section>
+
+      <section className="rounded-2xl border bg-[rgb(var(--card))] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
+              Social Distribution Queue
+            </h2>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+              Abgeleitete V1-Queue aus Dossier-, Anlassraum- und Feed-Signalen. Keine externe Veröffentlichung und keine Fake-Connectoren.
+            </p>
+          </div>
+          <Link
+            href="/admin/feeds"
+            className="inline-flex items-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))]"
+          >
+            Feed-Leitstand
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <MetricCard label="Queue-Items" value={distributionQueue.summary.total} />
+          <MetricCard label="Prüfung offen" value={distributionQueue.summary.reviewOpen} />
+          <MetricCard label="In Queue" value={distributionQueue.summary.queued} />
+          <MetricCard label="Planbar" value={distributionQueue.summary.scheduledReady} />
+          <MetricCard label="Exportiert/Kopiert" value={distributionQueue.summary.exported} />
+        </div>
+        <div className="mt-4 space-y-3">
+          {distributionQueue.items.slice(0, 6).map((item) => (
+            <article
+              key={item.id}
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {item.originLabel} · {item.targetLabel}
+                  </p>
+                </div>
+                <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] text-[rgb(var(--muted))]">
+                  {item.statusLabel}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{item.summary}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-[rgb(var(--muted))]">
+                <Tag>{item.channels.join(" · ")}</Tag>
+                <Tag>{item.reviewRequired ? "Reviewpflichtig" : "Freigegeben"}</Tag>
+                {item.exportReady ? <Tag>Exportfähig</Tag> : null}
+                {item.schedulingReady ? <Tag>Planbar</Tag> : null}
+              </div>
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                Nächste Aktion: {item.nextAction}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Risiko: {item.riskHint}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <a
+                  href={item.targetHref}
+                  className="inline-flex rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--fg))]"
+                >
+                  Öffnen
+                </a>
+                {item.sourceHref ? (
+                  <a
+                    href={item.sourceHref}
+                    className="inline-flex rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--fg))]"
+                  >
+                    Quelle
+                  </a>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-2xl border bg-[rgb(var(--card))] p-4">

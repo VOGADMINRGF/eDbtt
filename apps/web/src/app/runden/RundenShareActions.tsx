@@ -21,6 +21,7 @@ function toAbsoluteInternalUrl(pathOrUrl: string): string {
 }
 
 function contextLabel(contextKind: RundenEntryShareActions["contextKind"]) {
+  if (contextKind === "event") return "Event";
   if (contextKind === "runde") return "Runde";
   if (contextKind === "ergebnis") return "Ergebnis";
   if (contextKind === "dossier") return "Dossier";

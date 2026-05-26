@@ -8,6 +8,7 @@ import {
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { sanitizeClaimPublic, selectEffectiveFindings } from "@features/dossier/effective";
+import { buildDossierUpdateReadModel } from "@features/dossier/updateReadModel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,11 @@ export async function GET(
     edges: 0,
     openQuestions: openQuestions.length,
   };
+  const updateReadModel = await buildDossierUpdateReadModel({
+    dossierId: dossierKey,
+    materialize: true,
+    publicVisible: true,
+  }).catch(() => null);
 
   return NextResponse.json({
     ok: true,
@@ -60,5 +66,7 @@ export async function GET(
     findings: effectiveFindings.map(stripId),
     findingsRaw: includeRaw ? findings.map(stripId) : undefined,
     openQuestions: openQuestions.map(stripId),
+    updateContext: updateReadModel?.publicContext ?? null,
+    updateSummary: updateReadModel?.summary ?? null,
   });
 }

@@ -30,6 +30,54 @@ type FeedConfigResponse = {
   scopes: FeedConfigScope[];
 };
 
+type FeedRuntimeMetric = {
+  key: string;
+  label: string;
+  value: number;
+  status: string;
+  description: string;
+};
+
+type FeedRuntimeResponse = {
+  ok: boolean;
+  runtime?: {
+    sourceStatus: {
+      status: string;
+      label: string;
+      description: string;
+    };
+    metrics: Record<string, FeedRuntimeMetric>;
+    runs: Array<{
+      runType: string;
+      status: string;
+      requestedAt: string | null;
+      completedAt: string | null;
+      label: string;
+      detail: string;
+      error: string | null;
+    }>;
+    nextAction: {
+      action: string;
+      label: string;
+      description: string;
+      href: string;
+    };
+    publicHandoffs: Array<{
+      surface: string;
+      href: string;
+      label: string;
+      description: string;
+    }>;
+    queue: {
+      queuedDrafts: number;
+      clusteredCandidates: number;
+      attachedAnlassraum: number;
+      attachedDossier: number;
+    };
+  };
+  error?: string;
+};
+
 type ActionState = {
   loading: boolean;
   error: string | null;
@@ -68,6 +116,9 @@ export default function AdminFeedsPage() {
   const [config, setConfig] = useState<FeedConfigResponse | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [runtimeData, setRuntimeData] = useState<FeedRuntimeResponse["runtime"] | null>(null);
+  const [runtimeLoading, setRuntimeLoading] = useState(true);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   const [pullScope, setPullScope] = useState<"de" | "global">("de");
   const [pullRegionCode, setPullRegionCode] = useState("");
@@ -105,6 +156,33 @@ export default function AdminFeedsPage() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadRuntime() {
+      setRuntimeLoading(true);
+      setRuntimeError(null);
+      try {
+        const res = await fetch("/api/admin/feeds/runtime", { cache: "no-store" });
+        const body = (await res.json().catch(() => ({}))) as FeedRuntimeResponse;
+        if (!res.ok || !body.ok || !body.runtime) {
+          throw new Error(body?.error ?? res.statusText);
+        }
+        if (!ignore) setRuntimeData(body.runtime);
+      } catch (err: any) {
+        if (!ignore) {
+          setRuntimeData(null);
+          setRuntimeError(err?.message ?? "feed_runtime_unavailable");
+        }
+      } finally {
+        if (!ignore) setRuntimeLoading(false);
+      }
+    }
+    loadRuntime();
+    return () => {
+      ignore = true;
+    };
+  }, [pullState.result, analyzeState.result, batchState.result]);
 
   const feedCount = useMemo(() => {
     if (!config?.scopes?.length) return 0;
@@ -197,6 +275,201 @@ export default function AdminFeedsPage() {
           </Link>
         </div>
       </header>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Feed-Radar Runtime</h2>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              Manual-first Leitstand: Abruf, Analyse, Review, Cluster und öffentlicher Anschluss
+              bleiben getrennte Schritte. Es gibt hier keinen behaupteten Auto-Publish- oder Scheduler-Pfad.
+            </p>
+          </div>
+          {runtimeData ? (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm">
+              <p className="font-semibold text-[rgb(var(--fg))]">{runtimeData.sourceStatus.label}</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">{runtimeData.sourceStatus.description}</p>
+            </div>
+          ) : null}
+        </div>
+        {runtimeLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">Runtime-Leitstand wird geladen.</p>}
+        {runtimeError && <p className="mt-3 text-sm text-rose-700">{runtimeError}</p>}
+        {runtimeData ? (
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {Object.values(runtimeData.metrics).map((metric) => (
+                <article
+                  key={metric.key}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                    {metric.label}
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">
+                    {formatOperatorNumber(metric.value, operatorLocale)}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--fg))]">{humanizeFeedStatus(metric.status)}</p>
+                  <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">{metric.description}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+              <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                  Nächste Aktion
+                </p>
+                <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+                  {runtimeData.nextAction.label}
+                </p>
+                <p className="mt-1 text-sm text-[rgb(var(--muted))]">{runtimeData.nextAction.description}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href={runtimeData.nextAction.href} className={PRIMARY_ACTION_CLASS}>
+                    {runtimeData.nextAction.label}
+                  </Link>
+                  <Link
+                    href="/admin/feeds/drafts"
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
+                  >
+                    Review-Queue öffnen
+                  </Link>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Reviewpflichtige Vorschläge</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.queue.queuedDrafts, operatorLocale)} neue Statement-,
+                      Swipe- oder Hinweisvorschläge.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Themenbündel</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.queue.clusteredCandidates, operatorLocale)} Cluster-Kandidaten
+                      für den Anlassraum.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Anlassraum-Anschluss</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.queue.attachedAnlassraum, operatorLocale)} Vorschläge hängen
+                      bereits an einem Anlassraum.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Dossier-Anschluss</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.queue.attachedDossier, operatorLocale)} Verknüpfungen laufen
+                      bereits in einen Dossier-Kontext.
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                  Öffentlicher Anschluss
+                </p>
+                <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                  Diese Folgeflächen nutzen freigegebene Updates weiter, ohne Wahrheit oder Amtlichkeit zu behaupten.
+                </p>
+                <div className="mt-3 space-y-3">
+                  {runtimeData.publicHandoffs.length > 0 ? (
+                    runtimeData.publicHandoffs.map((handoff) => (
+                      <div
+                        key={handoff.surface}
+                        className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{handoff.label}</p>
+                            <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+                              {handoff.description}
+                            </p>
+                          </div>
+                          <Link href={handoff.href} className={INLINE_LINK_CLASS}>
+                            Öffnen
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-[rgb(var(--border))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                      Noch kein öffentlicher Anschluss vorbereitet. Das ist ein ehrlicher Leerzustand und kein Seed-Fallback.
+                    </div>
+                  )}
+                </div>
+              </article>
+            </div>
+
+            <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Letzte Läufe
+              </p>
+              <div className="mt-3 space-y-2">
+                {runtimeData.runs.length > 0 ? (
+                  runtimeData.runs.map((run) => (
+                    <div
+                      key={`${run.runType}-${run.completedAt ?? run.requestedAt ?? "na"}`}
+                      className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                          {run.label} · {humanizeRunStatus(run.status)}
+                        </p>
+                        <p className="text-xs text-[rgb(var(--muted))]">
+                          {formatRunDate(run.completedAt)}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">{run.detail}</p>
+                      {run.error ? (
+                        <p className="mt-1 text-xs text-rose-700">
+                          Fehler: {run.error}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-[rgb(var(--muted))]">
+                    Noch keine Laufhistorie vorhanden. Pull, Import, Analyse und Cluster werden erst nach manueller Auslösung protokolliert.
+                  </p>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                Scheduler-Claim bewusst ausgeschlossen: Der aktuelle Pfad ist manuell auslösbar und cron-ready, aber nicht als laufender Auto-Abruf behauptet.
+              </p>
+            </article>
+          </>
+        ) : (
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+            <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Nächste Aktion
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Der Leitstand lädt noch. Danach erscheinen hier echte Zähler statt Demo- oder Seed-Werte.
+              </p>
+            </article>
+            <article className="rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Öffentlicher Anschluss
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Noch kein öffentlicher Anschluss vorbereitet. Das ist ein ehrlicher Leerzustand und kein Seed-Fallback.
+              </p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Letzte Läufe
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Laufhistorie wird nach dem ersten erfolgreichen Abruf, Import, Analyse- oder Cluster-Lauf sichtbar.
+              </p>
+              <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                Scheduler-Claim bewusst ausgeschlossen: Der aktuelle Pfad ist manuell auslösbar und cron-ready, aber nicht als laufender Auto-Abruf behauptet.
+              </p>
+            </article>
+          </div>
+        )}
+      </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -392,4 +665,42 @@ export default function AdminFeedsPage() {
       </section>
     </main>
   );
+}
+
+function humanizeFeedStatus(status: string): string {
+  const map: Record<string, string> = {
+    source_registered: "Quelle verbunden",
+    pulled: "abgerufen",
+    candidate_created: "als Hinweis erfasst",
+    analyzing: "in Analyse",
+    analyzed: "analysiert",
+    draft_created: "als Vorschlag vorbereitet",
+    clustered: "gebündelt",
+    needs_review: "in Prüfung",
+    accepted: "angenommen",
+    attached_to_anlassraum: "an Anlassraum angehängt",
+    attached_to_dossier: "im Dossier-Kontext",
+    published_update: "als Update sichtbar",
+    rejected: "abgelehnt",
+    error: "Fehler",
+  };
+  return map[status] ?? status;
+}
+
+function humanizeRunStatus(status: string): string {
+  if (status === "success") return "erfolgreich";
+  if (status === "dry_run") return "Dry Run";
+  return "Fehler";
+}
+
+function formatRunDate(value: string | null) {
+  if (!value) return "ohne Zeitstempel";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "ohne Zeitstempel";
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }

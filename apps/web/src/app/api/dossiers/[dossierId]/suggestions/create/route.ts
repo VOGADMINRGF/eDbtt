@@ -26,6 +26,17 @@ const QuestionSuggestionPayload = z.object({
   text: z.string().min(1).max(400),
 });
 
+const PerspectiveSuggestionPayload = z.object({
+  text: z.string().min(1).max(600),
+  stance: z.string().max(80).optional(),
+});
+
+const UpdateSuggestionPayload = z.object({
+  title: z.string().min(1).max(DOSSIER_LIMITS.title),
+  text: z.string().min(1).max(600),
+  section: z.string().max(80).optional(),
+});
+
 const FlagSuggestionPayload = z.object({
   entityType: z.string().min(1).max(80),
   entityId: z.string().min(1).max(120),
@@ -37,6 +48,8 @@ const SuggestionPayloadSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("claim"), payload: ClaimSuggestionPayload }),
   z.object({ type: z.literal("counter"), payload: ClaimSuggestionPayload }),
   z.object({ type: z.literal("question"), payload: QuestionSuggestionPayload }),
+  z.object({ type: z.literal("perspective"), payload: PerspectiveSuggestionPayload }),
+  z.object({ type: z.literal("update"), payload: UpdateSuggestionPayload }),
   z.object({ type: z.literal("flag"), payload: FlagSuggestionPayload }),
 ]);
 

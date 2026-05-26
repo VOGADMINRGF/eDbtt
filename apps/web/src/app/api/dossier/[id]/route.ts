@@ -3,6 +3,7 @@ import { coreCol } from "@core/db/triMongo";
 import demoDossier from "@features/dossier/data/demoDossier";
 import type { MaterialLink, StoredDossier } from "@features/dossier/infra/types";
 import { findDossierByAnyId } from "@features/dossier/lookup";
+import { buildDossierUpdateReadModel } from "@features/dossier/updateReadModel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +48,21 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     } catch {
       materialLinks = [];
     }
-    return NextResponse.json({ ok: true, dossier: doc.dossier, materialLinks }, { status: 200 });
+    const updateReadModel = await buildDossierUpdateReadModel({
+      dossierId: id,
+      materialize: true,
+      publicVisible: true,
+    }).catch(() => null);
+    return NextResponse.json(
+      {
+        ok: true,
+        dossier: doc.dossier,
+        materialLinks,
+        updateContext: updateReadModel?.publicContext ?? null,
+        updateSummary: updateReadModel?.summary ?? null,
+      },
+      { status: 200 },
+    );
   } catch {
     return NextResponse.json({ ok: false, error: "dossier_load_failed" }, { status: 500 });
   }

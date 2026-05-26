@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runFeedAnlassraumClusterJob } from "@features/feeds/clusterJob";
+import { recordFeedRuntimeRun } from "@features/feeds/runtimeLog";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 type ClusterRunBody = {
@@ -12,6 +13,7 @@ type ClusterRunBody = {
 export async function POST(req: NextRequest) {
   const gate = await requireGovernanceActorOrResponse(req);
   if (gate instanceof Response) return gate;
+  const requestedAt = new Date();
 
   try {
     const body = await parseBody(req);
@@ -24,9 +26,31 @@ export async function POST(req: NextRequest) {
       ),
       dryRun: body.dryRun === true,
     });
+    await recordFeedRuntimeRun({
+      runType: "cluster",
+      status: body.dryRun === true ? "dry_run" : result.status === "success" ? "success" : "error",
+      requestedAt,
+      completedAt: new Date(),
+      counts: {
+        scannedDrafts: result.source.scannedDrafts,
+        eligibleDrafts: result.source.eligibleDrafts,
+        totalClusters: result.summary.totalClusters,
+        created: result.summary.created,
+        updated: result.summary.updated,
+        unchanged: result.summary.unchanged,
+      },
+      error: result.emptyReason ?? null,
+    });
     return NextResponse.json({ ok: true, ...result });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "feed_anlassraum_cluster_job_failed";
+    await recordFeedRuntimeRun({
+      runType: "cluster",
+      status: "error",
+      requestedAt,
+      completedAt: new Date(),
+      error: message,
+    });
     if (
       message === "invalid_body" ||
       message === "invalid_limit" ||
