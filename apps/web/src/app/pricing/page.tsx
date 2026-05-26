@@ -230,8 +230,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{labels.heroText}</p>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
             Projekt- und Partnerpakete bleiben review-first, transparent und vertraglich gebunden.
-            Sie erzeugen kein Auto-Publish, kein automatisches <code>public_official</code> und
-            keine automatische Publikationsfreigabe.
+            Sie erzeugen kein Auto-Publish, keine automatische amtliche Freigabe und keine
+            automatische Publikationsfreigabe.
           </p>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
             Produktive Freischaltungen laufen über Betreiber-Verifikation und manuelle

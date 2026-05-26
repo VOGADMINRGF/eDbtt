@@ -39,7 +39,7 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
     expect(html).toContain("Leistungsbeschreibung");
     expect(html).toContain("Losstruktur");
     expect(html).toContain("Kostenvoranschlag");
-    expect(html).toContain("Pilotpaket");
+    expect(html).toContain("Start / kleiner Leistungsbaustein");
     expect(html).toContain("Rahmenvertrag geeignet");
     expect(html).toContain("Ergebnisdokumentation");
     expect(html).toContain("Kommunale Einordnung vor dem Paket");
