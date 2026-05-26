@@ -2,6 +2,7 @@
  
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
 import Badge from "@ui/design/badge";
 import StreamModal from "./StreamModal";
 import { badgeColors } from "@ui/design/badgeColor";
@@ -35,6 +36,14 @@ interface StreamCardProps {
 function isMobile() {
   if (typeof window === "undefined") return false;
   return window.innerWidth <= 640 || "ontouchstart" in window;
+}
+
+function resolveCoverImageSrc(image?: string) {
+  if (!image) return null;
+  if (image.startsWith("/") || image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+  return null;
 }
 
 export default function StreamCard(props: StreamCardProps) {
@@ -82,11 +91,9 @@ export default function StreamCard(props: StreamCardProps) {
   const hasAI =
     ai && (ai.toxicity != null || ai.sentiment != null || (Array.isArray(ai.subjectAreas) && ai.subjectAreas.length > 0));
 
-  const srcToUse = !image
-    ? "/dummy/dummy1.jpg"
-    : image.startsWith("/")
-    ? image
-    : `/dummy/${image}`;
+  const srcToUse = resolveCoverImageSrc(image);
+  const contextHref = beitragVerfuegbar ? `/stream/${encodeURIComponent(id)}` : null;
+  const contextTitle = contextHref ? "Zum Event-Kontext" : "Event-Kontext noch nicht freigegeben";
   const CARD_HEIGHT = 190;
 
   // *** MOBILE: Blockstruktur ***
@@ -97,12 +104,20 @@ export default function StreamCard(props: StreamCardProps) {
         <h3 className="font-bold text-coral text-lg px-4 pt-3 pb-2">{titleToShow}</h3>
         {/* Bild */}
         <div className="relative w-full h-[180px] flex items-center justify-center bg-gray-100 overflow-hidden">
-          <img
-            src={srcToUse}
-            alt={titleToShow}
-            className="object-cover w-full h-full"
-            draggable={false}
-          />
+          {srcToUse ? (
+            <img
+              src={srcToUse}
+              alt={titleToShow}
+              className="object-cover w-full h-full"
+              draggable={false}
+            />
+          ) : (
+            <div className="flex h-full w-full items-end bg-gradient-to-br from-slate-100 via-white to-sky-100 p-4">
+              <p className="text-sm font-semibold text-slate-700">
+                Öffentlicher Event-Kontext statt Trailer-Vorschau
+              </p>
+            </div>
+          )}
           {/* Status-Badge oben links */}
           <span className="absolute top-2 left-2 z-10">
             <Badge text={status} className="text-xs p-1" />
@@ -128,31 +143,35 @@ export default function StreamCard(props: StreamCardProps) {
         {/* Links */}
         <div className="flex flex-col gap-2 px-4 pb-2">
           {trailerUrl && (
-            <a
-              href="#"
+            <button
+              type="button"
               className="block bg-coral text-white font-bold px-3 py-1 rounded-full shadow text-center hover:scale-105 transition"
-              onClick={e => {
-                e.preventDefault();
+              onClick={() => {
                 setModalOpen(true);
               }}
             >
-              {status === "Geplant" ? "Stream vormerken" : "Zum Stream"}
-            </a>
+              {status === "Geplant" ? "Vorschau öffnen" : "Event öffnen"}
+            </button>
           )}
-          <a
-            href={beitragVerfuegbar ? `/beitrag/${id}` : undefined}
-            className={`block font-bold px-3 py-1 rounded-full shadow text-center hover:scale-105 transition ${
-              beitragVerfuegbar
-                ? "bg-indigo-600 text-white"
-                : "bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
-            }`}
-            style={beitragVerfuegbar ? {} : { pointerEvents: "none", opacity: 0.5 }}
-            aria-disabled={!beitragVerfuegbar}
-            tabIndex={beitragVerfuegbar ? 0 : -1}
-            title={beitragVerfuegbar ? "Zum Beitrag" : "Demnächst verfügbar"}
-          >
-            Zum Beitrag
-          </a>
+          {contextHref ? (
+            <Link
+              href={contextHref}
+              className="block bg-indigo-600 text-white font-bold px-3 py-1 rounded-full shadow text-center hover:scale-105 transition"
+              title={contextTitle}
+            >
+              Zum Event-Kontext
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="block font-bold px-3 py-1 rounded-full shadow text-center bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
+              aria-disabled
+              title={contextTitle}
+              disabled
+            >
+              Event-Kontext noch nicht freigegeben
+            </button>
+          )}
         </div>
         {/* Accessibility / KI-Analyse */}
         {(accessibilityStatus || typeof barrierescore === "number") && (
@@ -182,7 +201,7 @@ export default function StreamCard(props: StreamCardProps) {
         <div className="px-4 pb-3 pt-1 text-xs text-gray-400 text-right">
           {region} · {topic} · <span className="uppercase">{language}</span>
           <br />
-          {showViewers ? `${viewers ?? 0} Beteiligte` : "Zuschauer verborgen"}
+          {showViewers ? `${viewers ?? 0} Beteiligte` : "Teilnahmezahlen nicht öffentlich"}
           {date && (
             <span className="block text-[10px] text-gray-300">
               {new Date(date).toLocaleDateString("de-DE")}
@@ -243,13 +262,24 @@ export default function StreamCard(props: StreamCardProps) {
               style={{ height: CARD_HEIGHT }}
             />
           ) : (
-            <img
-              src={srcToUse}
-              alt={titleToShow}
-              className="object-cover w-full h-full transition-all"
-              style={{ height: CARD_HEIGHT }}
-              draggable={false}
-            />
+            srcToUse ? (
+              <img
+                src={srcToUse}
+                alt={titleToShow}
+                className="object-cover w-full h-full transition-all"
+                style={{ height: CARD_HEIGHT }}
+                draggable={false}
+              />
+            ) : (
+              <div
+                className="flex h-full w-full items-end bg-gradient-to-br from-slate-100 via-white to-sky-100 p-4"
+                style={{ height: CARD_HEIGHT }}
+              >
+                <p className="text-sm font-semibold text-slate-700">
+                  Öffentlicher Event-Kontext statt Trailer-Vorschau
+                </p>
+              </div>
+            )
           )}
           <span className="absolute top-2 left-2 z-10">
             <Badge text={status} />
@@ -278,25 +308,31 @@ export default function StreamCard(props: StreamCardProps) {
             </div>
             <div className="flex gap-3 mt-1">
               <button
+                type="button"
                 className="bg-coral text-white font-bold px-3 py-1 rounded-full shadow hover:scale-105 transition"
                 onClick={() => setModalOpen(true)}
               >
-                {status === "Geplant" ? "Stream vormerken" : "Zum Stream"}
+                {status === "Geplant" ? "Vorschau öffnen" : "Event öffnen"}
               </button>
-              <a
-                href={beitragVerfuegbar ? `/beitrag/${id}` : undefined}
-                className={`font-bold px-3 py-1 rounded-full shadow hover:scale-105 transition ${
-                  beitragVerfuegbar
-                    ? "bg-indigo-600 text-white"
-                    : "bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
-                }`}
-                style={beitragVerfuegbar ? {} : { pointerEvents: "none", opacity: 0.5 }}
-                aria-disabled={!beitragVerfuegbar}
-                tabIndex={beitragVerfuegbar ? 0 : -1}
-                title={beitragVerfuegbar ? "Zum Beitrag" : "Demnächst verfügbar"}
-              >
-                Zum Beitrag
-              </a>
+              {contextHref ? (
+                <Link
+                  href={contextHref}
+                  className="font-bold px-3 py-1 rounded-full shadow hover:scale-105 transition bg-indigo-600 text-white"
+                  title={contextTitle}
+                >
+                  Zum Event-Kontext
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="font-bold px-3 py-1 rounded-full shadow bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
+                  aria-disabled
+                  title={contextTitle}
+                  disabled
+                >
+                  Event-Kontext noch nicht freigegeben
+                </button>
+              )}
             </div>
             {/* Accessibility / KI-Analyse */}
             {(accessibilityStatus || typeof barrierescore === "number") && (
@@ -325,7 +361,7 @@ export default function StreamCard(props: StreamCardProps) {
             <div className="text-xs text-gray-400 text-right mt-1">
               {region} · {topic} · <span className="uppercase">{language}</span>
               <br />
-              {showViewers ? `${viewers ?? 0} Beteiligte` : "Zuschauer verborgen"}
+              {showViewers ? `${viewers ?? 0} Beteiligte` : "Teilnahmezahlen nicht öffentlich"}
               {date && (
                 <span className="block text-[10px] text-gray-300">
                   {new Date(date).toLocaleDateString("de-DE")}

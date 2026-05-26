@@ -85,4 +85,25 @@ describe("live click hardening contract", () => {
     expect(institutionalHtml).toContain('href="/order?segment=organisationen');
     expect(institutionalHtml).toContain("sales@edebatte.org");
   });
+
+  it("removes placeholder and legacy stream/report CTA paths from productive source components", () => {
+    const streamCardSource = readFileSync(
+      resolve(process.cwd(), "..", "..", "features/stream/components/StreamCard.tsx"),
+      "utf8",
+    );
+    const reportSidebarSource = readFileSync(
+      resolve(process.cwd(), "..", "..", "features/report/components/LeftSidebar.tsx"),
+      "utf8",
+    );
+
+    expect(streamCardSource).not.toContain('href="#"');
+    expect(streamCardSource).not.toContain("/beitrag/");
+    expect(streamCardSource).not.toContain("/dummy/");
+    expect(streamCardSource).not.toContain("dummy1.jpg");
+    expect(streamCardSource).toContain("/stream/");
+    expect(streamCardSource).toContain("Zum Event-Kontext");
+
+    expect(reportSidebarSource).not.toContain('href="#"');
+    expect(reportSidebarSource).toContain('href="/report"');
+  });
 });

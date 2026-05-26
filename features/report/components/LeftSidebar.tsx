@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function LeftSidebar() {
   return (
     <aside className="flex flex-col gap-8 pr-4 sticky top-8 text-sm max-w-[14rem]">
@@ -12,7 +14,11 @@ export default function LeftSidebar() {
       <div>
         <h4 className="font-bold text-neutral-700 mb-2">Shortcuts</h4>
         <ul>
-          <li><a href="#" className="text-indigo-700 underline">Alle Reports</a></li>
+          <li>
+            <Link href="/report" className="text-indigo-700 underline">
+              Alle Reports
+            </Link>
+          </li>
         </ul>
       </div>
     </aside>
