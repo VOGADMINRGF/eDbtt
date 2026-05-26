@@ -15,20 +15,156 @@ export type TaskFirstQuickActionCenterModel = {
   secondaryActions: TaskFirstQuickAction[];
 };
 
-type DashboardQuickActionContext =
+export type DashboardQuickActionContext =
   | "public"
+  | "signed_in"
   | "pending"
   | "verified"
   | "limited"
   | "blocked"
   | "operator";
 
-export function buildPublicTaskFirstQuickActionCenter(): TaskFirstQuickActionCenterModel {
+export type StartQuickActionContext =
+  | "unknown_visitor"
+  | "returning_visitor"
+  | "signed_in"
+  | "organization_pending"
+  | "organization_verified"
+  | "organization_blocked"
+  | "operator";
+
+export function buildPublicTaskFirstQuickActionCenter(input?: {
+  context?: StartQuickActionContext;
+  workspaceHref?: string;
+}): TaskFirstQuickActionCenterModel {
+  const context = input?.context ?? "unknown_visitor";
+  const workspaceHref = input?.workspaceHref ?? "/account/organization";
+
+  if (context === "operator") {
+    return {
+      eyebrow: "Schon dabei?",
+      title: "Öffne deinen Arbeitsbereich und geh direkt in die nächste Aufgabe.",
+      description:
+        "Du bist bereits im Betreiber- oder Review-Kontext. Die wichtigsten Wege liegen direkt auf den bestehenden produktiven Pfaden.",
+      primaryActions: [
+        {
+          id: "review",
+          label: "Ich öffne die Review-Queue",
+          description:
+            "Gehe direkt in die zentrale Prüf- und Freigabestrecke. Sichtbarkeit bleibt bewusst und review-first.",
+          href: "/admin/review",
+          priority: "primary",
+          badge: "Arbeitsbereich",
+        },
+        {
+          id: "workspace",
+          label: "Ich öffne meinen Arbeitsbereich",
+          description:
+            "Öffne den Organisations- und Scope-Blick auf dieselben produktiven V1-Pfade.",
+          href: "/account/organization/dashboard",
+          priority: "secondary",
+          badge: "Betreiberkontext",
+        },
+        {
+          id: "rounds",
+          label: "Ich will einen Anlassraum/Event erstellen",
+          description:
+            "Starte direkt auf dem bestehenden Anlassraum-Pfad mit Titel, Wirkraum und Ziel.",
+          href: "/runden?intent=create",
+          priority: "secondary",
+          badge: "Produktiver Pfad",
+        },
+      ],
+      secondaryActions: [
+        {
+          id: "contribute",
+          label: "Ich will etwas beitragen",
+          description:
+            "Starte einen neuen Hinweis, eine Frage oder einen Arbeitsstand auf dem review-first Create-Pfad.",
+          href: "/create?intent=contribute",
+          priority: "secondary",
+        },
+        {
+          id: "topics",
+          label: "Ich will Themen anschauen",
+          description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
+          href: "/themen",
+          priority: "secondary",
+        },
+      ],
+    };
+  }
+
+  if (
+    context === "signed_in" ||
+    context === "returning_visitor" ||
+    context === "organization_pending" ||
+    context === "organization_verified" ||
+    context === "organization_blocked"
+  ) {
+    const isVerified = context === "organization_verified";
+    const isBlocked = context === "organization_blocked";
+    return {
+      eyebrow: "Schon dabei?",
+      title: isVerified
+        ? "Öffne deinen Arbeitsbereich oder arbeite direkt weiter."
+        : isBlocked
+          ? "Klare nächste Schritte statt gesperrter Vollzugriffe."
+          : "Öffne deinen Arbeitsbereich oder kläre den nächsten sicheren Schritt.",
+      description: isVerified
+        ? "Du bist schon im produktiven V1-Pfad. Arbeitsbereich, Anlassraum und Beitragseinstieg liegen direkt vorne."
+        : isBlocked
+          ? "Produktive Organisationsschritte bleiben bis zur Klärung gesperrt. Du siehst hier nur sichere nächste Wege."
+          : "Du musst nicht neu einsteigen. Arbeitsbereich, Status und die nächsten sicheren Aktionen stehen vorne.",
+      primaryActions: [
+        {
+          id: "workspace",
+          label: "Ich öffne meinen Arbeitsbereich",
+          description: isVerified
+            ? "Öffne Status, Aufgaben, Dossier-, Anlassraum- und Review-Kontext deiner Organisation."
+            : isBlocked
+              ? "Prüfe Status, Sperre und nächste sichere Schritte deiner Organisation."
+              : "Prüfe Antrag, Freischaltung, Status und nächste sichere Schritte deiner Organisation.",
+          href: isVerified ? "/account/organization/dashboard" : workspaceHref,
+          priority: "primary",
+          badge: isVerified ? "Arbeitsbereich" : "Nächster Schritt",
+        },
+        {
+          id: "rounds",
+          label: "Ich kläre Anlassraum/Event-Freischaltung",
+          description: isVerified
+            ? "Starte direkt im bestehenden produktiven Anlassraum-Pfad."
+            : "Produktive Anlassräume folgen nach passender Freischaltung. Hier siehst du den sicheren nächsten Schritt.",
+          href: isVerified ? "/runden?intent=create" : workspaceHref,
+          priority: "secondary",
+          badge: isVerified ? "Produktiver Pfad" : "Freischaltung nötig",
+        },
+        {
+          id: "contribute",
+          label: "Ich will etwas beitragen",
+          description:
+            "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem review-first Create-Pfad.",
+          href: "/create?intent=contribute",
+          priority: "secondary",
+        },
+      ],
+      secondaryActions: [
+        {
+          id: "topics",
+          label: "Ich will Themen anschauen",
+          description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
+          href: "/themen",
+          priority: "secondary",
+        },
+      ],
+    };
+  }
+
   return {
-    eyebrow: "Schnell starten",
-    title: "Vier Wege, die sofort klar machen, was du hier tun kannst.",
+    eyebrow: "Neu hier?",
+    title: "Starte mit einem Beitrag oder schau dir Themen an.",
     description:
-      "Du musst nicht wissen, welches Modul richtig ist. Diese Einstiege führen direkt auf die bestehenden review-first Pfade.",
+      "Du musst nicht wissen, welches Modul richtig ist. Diese vier Einstiege führen direkt auf die bestehenden review-first Pfade.",
     primaryActions: [
       {
         id: "contribute",
@@ -54,6 +190,8 @@ export function buildPublicTaskFirstQuickActionCenter(): TaskFirstQuickActionCen
         href: "/runden?intent=create",
         priority: "secondary",
       },
+    ],
+    secondaryActions: [
       {
         id: "organization",
         label: "Ich melde eine Organisation an",
@@ -63,7 +201,6 @@ export function buildPublicTaskFirstQuickActionCenter(): TaskFirstQuickActionCen
         priority: "secondary",
       },
     ],
-    secondaryActions: [],
   };
 }
 
@@ -118,7 +255,7 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
       : input.context === "blocked"
         ? {
             id: "rounds",
-            label: "Ich will einen Anlassraum/Event erstellen",
+            label: "Ich kläre Anlassraum/Event-Freischaltung",
             description:
               "Anlassräume bleiben bis zur Klärung von Vertrag, Freischaltung oder Sperre im sicheren Hinweis-Modus.",
             href: input.organizationHref,
@@ -127,7 +264,7 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
           }
         : {
             id: "rounds",
-            label: "Ich will einen Anlassraum/Event erstellen",
+            label: "Ich kläre Anlassraum/Event-Freischaltung",
             description:
               "Für einen produktiven Anlassraum braucht deine Organisation zuerst die passende Freischaltung. Hier siehst du den nächsten sicheren Schritt.",
             href: input.organizationHref,
@@ -159,11 +296,26 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
         badge: "Optional",
       });
     }
+  } else if (input.context === "blocked") {
+    secondaryActions.push({
+      id: "contact",
+      label: "Kontakt aufnehmen",
+      description:
+        "Wenn Vertrag, Billing oder Freischaltung gesperrt sind, klärst du hier den nächsten Schritt.",
+      href: "/kontakt",
+      priority: "secondary",
+      badge: "Sicherer Weg",
+    });
   }
 
   return {
     eyebrow: "Schnell starten",
-    title: "Aufgaben zuerst, nicht Module",
+    title:
+      input.context === "verified" || input.context === "operator"
+        ? "Arbeite direkt auf den produktiven V1-Pfaden weiter"
+        : input.context === "blocked"
+          ? "Klare nächste Schritte statt gesperrter Vollzugriffe"
+          : "Nächste sichere Schritte statt Modulteppich",
     description:
       input.context === "verified" || input.context === "operator"
         ? "Diese Einstiege führen direkt in die produktiven V1-Pfade deiner Organisation. Review-first und ohne falsche Vollzugriffsversprechen."
@@ -176,13 +328,6 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
           "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem bestehenden review-first Pfad.",
         href: "/create?intent=contribute",
         priority: "primary",
-      },
-      {
-        id: "topics",
-        label: "Ich will Themen anschauen",
-        description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
-        href: "/themen",
-        priority: "secondary",
       },
       roundsAction,
       organizationAction,

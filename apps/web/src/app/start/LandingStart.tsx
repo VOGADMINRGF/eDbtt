@@ -9,10 +9,12 @@ import { ExamplesMarqueeRows } from "@/components/landing/ExamplesMarqueeRows";
 import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
 import { useLocale } from "@/context/LocaleContext";
 import { buildPublicTaskFirstQuickActionCenter } from "@/features/quickActions/taskFirstQuickActions";
+import type { StartExperienceModel } from "@/features/start/startExperience";
 import { normalizeLang } from "@features/landing/landingCopy";
 
 type LandingStartProps = {
   blocks: BucketBlock[];
+  experience?: StartExperienceModel;
 };
 
 type RadarRegion = {
@@ -29,7 +31,7 @@ const NAV_LINKS_DE = [
 
 const TRUST_PILLS_DE = [
   "review-first",
-  "auditierbar",
+  "kein Auto-Publish",
   "Keine Datenverkäufe",
   "Keine versteckten AI-Kosten",
 ] as const;
@@ -203,11 +205,29 @@ const ALWAYS_REACHABLE_POINTS_DE = [
   "Verlauf nachvollziehbar machen",
 ] as const;
 
-export default function LandingStart({ blocks }: LandingStartProps) {
+const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
+  familiarity: "unknown_visitor",
+  eyebrow: "Öffentliche Debatten verständlich machen",
+  title: "Was Menschen bewegt, wird sichtbar.",
+  description:
+    "Bei eDebatte geht es nicht um laute Kommentare, sondern um echte Anliegen. Wir sammeln Hinweise, Fragen, Erfahrungen und Vorschläge, ordnen sie review-first mit Kontext und halten Arbeitsstände auditierbar fest.",
+  helperText: "Neu hier? Starte mit einem Beitrag oder schau dir Themen an.",
+  trustText:
+    "Wir veröffentlichen nichts ungeprüft. Keine Datenverkäufe. Keine versteckten AI-Kosten.",
+  showExtendedOrientation: true,
+  workspaceHref: null,
+  workspaceLabel: null,
+  quickActionCenter: buildPublicTaskFirstQuickActionCenter({
+    context: "unknown_visitor",
+  }),
+};
+
+export default function LandingStart({ blocks, experience = DEFAULT_START_EXPERIENCE }: LandingStartProps) {
   const { locale } = useLocale();
   const lang = useMemo(() => normalizeLang(locale), [locale]);
   const router = useRouter();
-  const quickActionCenter = useMemo(() => buildPublicTaskFirstQuickActionCenter(), []);
+  const quickActionCenter = useMemo(() => experience.quickActionCenter, [experience.quickActionCenter]);
+  const quickActionsBeforeHero = experience.familiarity !== "unknown_visitor";
 
   const titleForLang = useCallback(
     (item: ExampleItem) => (lang === "en" ? item.title_en || item.title_de : item.title_de),
@@ -282,66 +302,83 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           </nav>
         </div>
 
+        {quickActionsBeforeHero ? (
+          <TaskFirstQuickActionCenter model={quickActionCenter} tone="dark" />
+        ) : null}
+
         <section className="mt-6 grid gap-5 lg:grid-cols-[1.2fr,0.8fr]">
           <article className="rounded-3xl border border-cyan-300/30 bg-slate-900/75 p-6 shadow-[0_24px_70px_rgba(14,116,144,0.25)] backdrop-blur-xl sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
-              Öffentliche Debatten verständlich machen
+              {experience.eyebrow}
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-              Was Menschen bewegt, wird sichtbar.
+              {experience.title}
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">
-              Bei eDebatte geht es nicht um laute Kommentare, sondern um echte Anliegen. Wir sammeln Hinweise,
-              Fragen, Erfahrungen und Vorschläge, ordnen sie review-first mit Kontext und halten Arbeitsstände
-              auditierbar fest. So entstehen nachvollziehbare Themen, Anlassräume, Faktenchecks und Dossiers
-              ohne automatische Veröffentlichung.
+              {experience.description}
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <a
-                href="/create?intent=contribute"
-                data-requires-privacy-gate="true"
-                className="rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                Etwas beitragen
-              </a>
-              <a
-                href="/themen"
-                className="rounded-full border border-cyan-300/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                Themen anschauen
-              </a>
-              <a
-                href="/account/organization"
-                className="rounded-full border border-slate-600 bg-slate-900/70 px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                Organisation anmelden
-              </a>
-            </div>
+            <p className="mt-4 max-w-3xl text-sm font-semibold text-cyan-100">
+              {experience.helperText}
+            </p>
             <p className="mt-4 text-xs text-slate-300">
-              Mitmachen ist kostenlos. Produktive Rechte für Organisationen folgen erst nach Betreiber-Verifikation
-              und manueller Freischaltung. Keine Datenverkäufe. Keine versteckten AI-Kosten.
+              {experience.trustText}
             </p>
+            {experience.workspaceHref && experience.workspaceLabel ? (
+              <p className="mt-4 text-sm text-slate-200">
+                <a
+                  href={experience.workspaceHref}
+                  className="font-semibold text-cyan-100 underline decoration-cyan-300/50 underline-offset-4"
+                >
+                  {experience.workspaceLabel}
+                </a>{" "}
+                ist direkt erreichbar. Du siehst immer, was als nächstes passiert.
+              </p>
+            ) : null}
           </article>
 
-          <aside className="rounded-3xl border border-slate-700 bg-slate-900/75 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
-              Debattenradar · Alltagsthemen
-            </p>
-            <div className="mt-3 space-y-3 overflow-x-auto pb-2 lg:overflow-visible">
-              {RADAR_REGIONS_DE.map((region) => (
-                <section key={region.level} className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200">{region.level}</p>
-                  <ul className="mt-2 space-y-1">
-                    {region.topics.map((topic) => (
-                      <li key={topic} className="rounded-xl border border-slate-700/80 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200">
-                        {topic}
-                      </li>
-                    ))}
+          {experience.showExtendedOrientation ? (
+            <aside className="rounded-3xl border border-slate-700 bg-slate-900/75 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                Debattenradar · Alltagsthemen
+              </p>
+              <div className="mt-3 space-y-3 overflow-x-auto pb-2 lg:overflow-visible">
+                {RADAR_REGIONS_DE.map((region) => (
+                  <section key={region.level} className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200">{region.level}</p>
+                    <ul className="mt-2 space-y-1">
+                      {region.topics.map((topic) => (
+                        <li key={topic} className="rounded-xl border border-slate-700/80 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200">
+                          {topic}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            </aside>
+          ) : (
+            <aside className="rounded-3xl border border-slate-700 bg-slate-900/75 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                Schneller Überblick
+              </p>
+              <div className="mt-3 space-y-3">
+                <section className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200">So arbeitest du weiter</p>
+                  <ul className="mt-2 space-y-1 text-xs text-slate-200">
+                    <li>Beitrag starten oder weiter schärfen</li>
+                    <li>Anlassraum vorbereiten oder Status prüfen</li>
+                    <li>Arbeitsstände bleiben review-first und nachvollziehbar</li>
                   </ul>
                 </section>
-              ))}
-            </div>
-          </aside>
+                <section className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200">Vertrauen</p>
+                  <p className="mt-2 text-xs text-slate-200">
+                    Wir veröffentlichen nichts ungeprüft. Du siehst immer, was als nächstes passiert.
+                  </p>
+                </section>
+              </div>
+            </aside>
+          )}
         </section>
 
         <section className="mt-4 flex flex-wrap gap-2">
@@ -355,7 +392,9 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           ))}
         </section>
 
-        <TaskFirstQuickActionCenter model={quickActionCenter} tone="dark" />
+        {!quickActionsBeforeHero ? (
+          <TaskFirstQuickActionCenter model={quickActionCenter} tone="dark" />
+        ) : null}
 
         <section className="mt-10 rounded-3xl border border-slate-700 bg-slate-900/75 p-5 sm:p-7">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">Hier zeigt sich, wo es gerade drückt.</h2>
@@ -366,6 +405,8 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           </p>
         </section>
 
+        {experience.showExtendedOrientation ? (
+          <>
         <section className="mt-10 rounded-3xl border border-cyan-300/25 bg-slate-900/80 p-5 sm:p-7">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">Nicht noch ein Feed. Nicht nur Ja oder Nein.</h2>
           <p className="mt-3 max-w-4xl text-sm text-slate-200 sm:text-base">
@@ -594,6 +635,30 @@ export default function LandingStart({ blocks }: LandingStartProps) {
             ))}
           </div>
         </section>
+          </>
+        ) : (
+          <section className="mt-10 rounded-3xl border border-cyan-300/25 bg-slate-900/80 p-5 sm:p-7">
+            <h2 className="text-2xl font-semibold text-white sm:text-3xl">Schon dabei? Arbeite direkt weiter.</h2>
+            <p className="mt-3 max-w-4xl text-sm text-slate-200 sm:text-base">
+              Beitrag, Anlassraum, Themen und Organisationsbereich bleiben dieselben production-ready-v1 Pfade.
+              Der Unterschied liegt nur in der Gewichtung: Arbeitsaktionen stehen vorne, Orientierung bleibt kurz.
+            </p>
+            <ul className="mt-4 grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
+              <li className="rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-2">
+                Wir veröffentlichen nichts ungeprüft.
+              </li>
+              <li className="rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-2">
+                Du siehst immer, was als nächstes passiert.
+              </li>
+              <li className="rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-2">
+                Arbeitsbereich und Freischaltung bleiben klar getrennt.
+              </li>
+              <li className="rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-2">
+                Keine versteckten AI-Kosten. Keine Datenverkäufe.
+              </li>
+            </ul>
+          </section>
+        )}
 
         <section className="mt-10 rounded-3xl border border-slate-700 bg-slate-900/80 p-5 sm:p-7">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">Beteiligung organisieren, ohne bei null anzufangen.</h2>

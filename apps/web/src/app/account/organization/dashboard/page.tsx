@@ -34,6 +34,7 @@ import {
 import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
 import {
   buildOrganizationTaskFirstQuickActionCenter,
+  type DashboardQuickActionContext,
   type TaskFirstQuickActionCenterModel,
 } from "@/features/quickActions/taskFirstQuickActions";
 import { publicationVisibilityLabel } from "@features/region/publicationRiskLadder";
@@ -476,16 +477,10 @@ export default async function AccountOrganizationDashboardPage() {
       reviewRequiredBeforePublicReference: true as const,
     },
   };
-  const quickActionContext =
+  const quickActionContext: DashboardQuickActionContext =
     readModel.organization.isOperatorMode
       ? "operator"
-      : normalizedMembershipStatus !== "verified" ||
-          readModel.provisioningSummary.currentStatus === "draft" ||
-          readModel.provisioningSummary.currentStatus === "submitted" ||
-          readModel.provisioningSummary.currentStatus === "verification_required" ||
-          readModel.provisioningSummary.currentStatus === "operator_review_required"
-        ? "pending"
-        : readModel.provisioningSummary.currentStatus === "suspended" ||
+      : readModel.provisioningSummary.currentStatus === "suspended" ||
             readModel.contractSummary.currentContractStatus === "suspended" ||
             readModel.contractSummary.currentContractStatus === "cancelled" ||
             readModel.contractSummary.currentContractStatus === "expired" ||
@@ -496,6 +491,12 @@ export default async function AccountOrganizationDashboardPage() {
             readModel.entitlementSummary.currentStatus === "revoked" ||
             readModel.entitlementSummary.currentStatus === "expired"
           ? "blocked"
+          : normalizedMembershipStatus !== "verified" ||
+              readModel.provisioningSummary.currentStatus === "draft" ||
+              readModel.provisioningSummary.currentStatus === "submitted" ||
+              readModel.provisioningSummary.currentStatus === "verification_required" ||
+              readModel.provisioningSummary.currentStatus === "operator_review_required"
+            ? "pending"
           : !hasWritableOrganizationContext ||
               readModel.entitlementSummary.currentStatus === "limited" ||
               readModel.entitlementSummary.currentStatus === "pending_operator_decision" ||
@@ -524,6 +525,86 @@ export default async function AccountOrganizationDashboardPage() {
         hasReviewQueueEntitlement &&
         hasWritableOrganizationContext,
     });
+  const workspacePriorityPanel =
+    quickActionContext === "operator"
+      ? {
+          title: "Betreiberkontext: direkt in Review oder Freigaben weitergehen.",
+          body:
+            "Du arbeitest im Betreiberkontext. Review, Freigaben und Anlassraum laufen auf denselben produktiven Pfaden.",
+          primaryCta: {
+            href: "/admin/review",
+            label: "Review öffnen",
+          },
+          secondaryCtas: [
+            {
+              href: "/runden?intent=create",
+              label: "Anlassraum/Event starten",
+            },
+            {
+              href: "/create?intent=contribute",
+              label: "Beitrag starten",
+            },
+          ],
+        }
+      : quickActionContext === "verified"
+        ? {
+            title: "Du kannst jetzt produktiv weiterarbeiten.",
+            body:
+              "Arbeitsbereich, Anlassraum, Review und Sichtbarkeit bleiben getrennte, aber direkt erreichbare Schritte.",
+            primaryCta: {
+              href: "/runden?intent=create",
+              label: "Anlassraum/Event starten",
+            },
+            secondaryCtas: [
+              {
+                href: "/create?intent=contribute",
+                label: "Beitrag starten",
+              },
+              {
+                href: "/account/organization/dashboard#aufgaben",
+                label: "Meine Aufgaben",
+              },
+            ],
+          }
+        : quickActionContext === "blocked"
+          ? {
+              title: "Produktive Organisationsschritte sind aktuell gesperrt.",
+              body:
+                "Prüfe Status, Vertrag oder Freischaltung zuerst. Bis zur Klärung zeigen wir hier nur sichere nächste Schritte.",
+              primaryCta: {
+                href: "/account/organization",
+                label: "Status prüfen",
+              },
+              secondaryCtas: [
+                {
+                  href: "/kontakt",
+                  label: "Kontakt aufnehmen",
+                },
+                {
+                  href: "/themen",
+                  label: "Themen anschauen",
+                },
+              ],
+            }
+          : {
+              title: "Klare nächste Schritte statt voller Modulauswahl.",
+              body:
+                "Öffne Antrag und Status zuerst. Produktive Organisationsrechte werden erst nach bewusster Freischaltung sichtbar.",
+              primaryCta: {
+                href: "/account/organization",
+                label: "Antrag und Status öffnen",
+              },
+              secondaryCtas: [
+                {
+                  href: "/create?intent=contribute",
+                  label: "Beitrag starten",
+                },
+                {
+                  href: "/themen",
+                  label: "Themen anschauen",
+                },
+              ],
+            };
   const contentReleasePersistence = readModel.contentReleasePersistence ?? {
     mode: "in_memory_fallback",
     label: "In-Memory-Fallback",
@@ -539,36 +620,31 @@ export default async function AccountOrganizationDashboardPage() {
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               Organisationsbereich
             </p>
             <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Organisationsbereich</h1>
             <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-              Starte mit deiner Organisation, deiner Region oder deinem Wirkraum. Hier sieht deine
-              Organisation ihren Scope, offene Aufgaben und vorbereitete Themen.
+              Hier arbeitet deine Organisation auf denselben production-ready-v1 Pfaden weiter:
+              Scope, offene Aufgaben, Anlassraum, Dossier, Review und Sichtbarkeit bleiben klar
+              getrennt und nachvollziehbar.
             </p>
             <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
               Aussage, Dossier, Anlassraum und Beteiligungssignal bleiben reviewpflichtige
-              Arbeitsstände. Keine automatische Veröffentlichung und keine automatische amtliche
-              Freigabe.
+              Arbeitsstände. Wir veröffentlichen nichts ungeprüft.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/account/organization"
-              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
-            >
-              Antrag und Status
-            </Link>
-            <Link
-              href="/runden?intent=create"
-              className="inline-flex items-center justify-center rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white"
-            >
-              Anlassraum/Event starten
-            </Link>
-          </div>
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
+            {quickActionContext === "verified"
+              ? "Produktiver Arbeitsmodus"
+              : quickActionContext === "operator"
+                ? "Betreiberkontext"
+                : quickActionContext === "blocked"
+                  ? "Sicherer Statusmodus"
+                  : "Freischaltung zuerst"}
+          </span>
         </div>
 
         {readModel.organization.isOperatorMode ? (
@@ -581,6 +657,38 @@ export default async function AccountOrganizationDashboardPage() {
       </header>
 
       <TaskFirstQuickActionCenter model={quickActionCenter} />
+
+      <section
+        data-testid="organization-dashboard-next-step"
+        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Nächster sicherer Schritt
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+          {workspacePriorityPanel.title}
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {workspacePriorityPanel.body}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href={workspacePriorityPanel.primaryCta.href}
+            className="inline-flex items-center justify-center rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white"
+          >
+            {workspacePriorityPanel.primaryCta.label}
+          </Link>
+          {workspacePriorityPanel.secondaryCtas.map((action) => (
+            <Link
+              key={`${action.href}:${action.label}`}
+              href={action.href}
+              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+            >
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">

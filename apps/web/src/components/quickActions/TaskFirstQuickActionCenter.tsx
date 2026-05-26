@@ -15,9 +15,13 @@ export default function TaskFirstQuickActionCenter({
   tone = "light",
 }: TaskFirstQuickActionCenterProps) {
   const isDark = tone === "dark";
+  const primaryAction = model.primaryActions[0] ?? null;
+  const visibleSecondaryActions = [...model.primaryActions.slice(1), ...model.secondaryActions].slice(0, 2);
+  const overflowActions = [...model.primaryActions.slice(1), ...model.secondaryActions].slice(2);
 
   return (
     <section
+      data-testid="task-first-quick-action-center"
       className={
         isDark
           ? "rounded-3xl border border-cyan-300/25 bg-slate-900/80 p-5 sm:p-7"
@@ -54,46 +58,80 @@ export default function TaskFirstQuickActionCenter({
         </p>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {model.primaryActions.map((action) => (
+      {primaryAction ? (
+        <div className="mt-5">
           <Link
-            key={action.id}
-            href={action.href}
+            href={primaryAction.href}
+            data-testid="task-first-primary-action"
             data-requires-privacy-gate={
-              actionHrefNeedsPrivacyGate(action.href) ? "true" : undefined
+              actionHrefNeedsPrivacyGate(primaryAction.href) ? "true" : undefined
             }
-            className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
+            className={`block rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
               isDark
-                ? action.priority === "primary"
-                  ? "border-cyan-300/45 bg-cyan-500/10"
-                  : "border-slate-700 bg-slate-950/55"
-                : action.priority === "primary"
-                  ? "border-sky-300/70 bg-sky-50 text-sky-950"
-                  : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                ? "border-cyan-300/45 bg-cyan-500/10"
+                : "border-sky-300/70 bg-sky-50 text-sky-950"
             }`}
           >
-            {action.badge ? (
+            {primaryAction.badge ? (
               <span
                 className={
                   isDark
                     ? "inline-flex rounded-full border border-cyan-300/35 px-2.5 py-1 text-[11px] font-semibold text-cyan-100"
-                    : "inline-flex rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]"
+                    : "inline-flex rounded-full border border-sky-200 px-2.5 py-1 text-[11px] font-semibold text-sky-900"
                 }
               >
-                {action.badge}
+                {primaryAction.badge}
               </span>
             ) : null}
-            <p className={isDark ? "mt-3 text-sm font-semibold text-white" : "mt-3 text-sm font-semibold"}>
-              {action.label}
+            <p className={isDark ? "mt-3 text-base font-semibold text-white" : "mt-3 text-base font-semibold"}>
+              {primaryAction.label}
             </p>
             <p className={isDark ? "mt-2 text-sm text-slate-200" : "mt-2 text-sm text-[rgb(var(--muted))]"}>
-              {action.description}
+              {primaryAction.description}
             </p>
           </Link>
-        ))}
-      </div>
+        </div>
+      ) : null}
 
-      {model.secondaryActions.length > 0 ? (
+      {visibleSecondaryActions.length > 0 ? (
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {visibleSecondaryActions.map((action) => (
+            <Link
+              key={action.id}
+              href={action.href}
+              data-testid="task-first-secondary-action"
+              data-requires-privacy-gate={
+                actionHrefNeedsPrivacyGate(action.href) ? "true" : undefined
+              }
+              className={
+                isDark
+                  ? "rounded-2xl border border-slate-700 bg-slate-950/55 p-4 transition hover:-translate-y-0.5"
+                  : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5"
+              }
+            >
+              {action.badge ? (
+                <span
+                  className={
+                    isDark
+                      ? "inline-flex rounded-full border border-slate-600 px-2.5 py-1 text-[11px] font-semibold text-slate-200"
+                      : "inline-flex rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]"
+                  }
+                >
+                  {action.badge}
+                </span>
+              ) : null}
+              <p className={isDark ? "mt-3 text-sm font-semibold text-white" : "mt-3 text-sm font-semibold"}>
+                {action.label}
+              </p>
+              <p className={isDark ? "mt-2 text-sm text-slate-200" : "mt-2 text-sm text-[rgb(var(--muted))]"}>
+                {action.description}
+              </p>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
+      {overflowActions.length > 0 ? (
         <div className="mt-5 space-y-3">
           <p
             className={
@@ -104,48 +142,29 @@ export default function TaskFirstQuickActionCenter({
           >
             Weitere passende Einstiege
           </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {model.secondaryActions.map((action) => (
-              <Link
-                key={action.id}
-                href={action.href}
-                data-requires-privacy-gate={
-                  actionHrefNeedsPrivacyGate(action.href) ? "true" : undefined
-                }
-                className={
-                  isDark
-                    ? "rounded-2xl border border-slate-700 bg-slate-950/55 p-4 transition hover:-translate-y-0.5"
-                    : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5"
-                }
-              >
-                {action.badge ? (
-                  <span
-                    className={
-                      isDark
-                        ? "inline-flex rounded-full border border-slate-600 px-2.5 py-1 text-[11px] font-semibold text-slate-200"
-                        : "inline-flex rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]"
-                    }
-                  >
-                    {action.badge}
+          <ul className="grid gap-2 md:grid-cols-2">
+            {overflowActions.map((action) => (
+              <li key={action.id}>
+                <Link
+                  href={action.href}
+                  data-testid="task-first-overflow-action"
+                  data-requires-privacy-gate={
+                    actionHrefNeedsPrivacyGate(action.href) ? "true" : undefined
+                  }
+                  className={
+                    isDark
+                      ? "flex flex-col gap-1 rounded-2xl border border-slate-700 bg-slate-950/55 p-4 text-sm text-slate-200 transition hover:-translate-y-0.5"
+                      : "flex flex-col gap-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] transition hover:-translate-y-0.5"
+                  }
+                >
+                  <span className={isDark ? "font-semibold text-white" : "font-semibold text-[rgb(var(--fg))]"}>
+                    {action.label}
                   </span>
-                ) : null}
-                <p
-                  className={
-                    isDark ? "mt-3 text-sm font-semibold text-white" : "mt-3 text-sm font-semibold"
-                  }
-                >
-                  {action.label}
-                </p>
-                <p
-                  className={
-                    isDark ? "mt-2 text-sm text-slate-200" : "mt-2 text-sm text-[rgb(var(--muted))]"
-                  }
-                >
-                  {action.description}
-                </p>
-              </Link>
+                  <span>{action.description}</span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : null}
     </section>

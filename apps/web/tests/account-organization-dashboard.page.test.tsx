@@ -295,7 +295,7 @@ describe("/account/organization/dashboard page", () => {
     const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
 
     expect(html).toContain("Organisationsbereich");
-    expect(html).toContain("Starte mit deiner Organisation, deiner Region oder deinem Wirkraum.");
+    expect(html).toContain("Hier arbeitet deine Organisation auf denselben production-ready-v1 Pfaden weiter");
     expect(html).toContain("Geführter Einstieg für deine Organisation");
     expect(html).toContain("Organisation vervollständigen");
     expect(html).toContain("Region auswählen");
@@ -313,13 +313,16 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Anträge laufen derzeit auf lokalem oder In-Memory-Fallback");
     expect(html).toContain("Antragsteller: Mara Beispiel");
     expect(html).toContain("Schnell starten");
-    expect(html).toContain("Aufgaben zuerst, nicht Module");
+    expect(html).toContain("Nächste sichere Schritte statt Modulteppich");
     expect(html).toContain("Ich will etwas beitragen");
-    expect(html).toContain("Ich will Themen anschauen");
-    expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
+    expect(html).toContain("Themen anschauen");
+    expect(html).toContain("Ich kläre Anlassraum/Event-Freischaltung");
     expect(html).toContain("Ich prüfe meine Organisation");
     expect(html).toContain("Freischaltung nötig");
     expect(html).toContain("/account/organization");
+    expect(html).toContain("Nächster sicherer Schritt");
+    expect(html).toContain("Antrag und Status öffnen");
+    expect(html).toContain("Beitrag starten");
     expect(html).toContain("Material &amp; Uploads");
     expect(html).toContain("Organisation noch nicht verifiziert");
     expect(html).toContain("Produktiver Workflow");
@@ -338,6 +341,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Noch keine Anlassräume.");
     expect(html).toContain("Stelle zuerst einen Organisationsantrag oder warte auf Freigabe.");
     expect(html).not.toContain("Verwaltungscockpit Berlin Reinickendorf");
+    expect(html.indexOf("Schnell starten")).toBeLessThan(html.indexOf("Meine Organisation"));
   });
 
   it("renders verified organization workspace with freischaltung, startlage and reviewpflichtige drafts", async () => {
@@ -711,9 +715,8 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Aussage");
     expect(html).toContain("reviewpflichtig");
     expect(html).toContain("Schnell starten");
-    expect(html).toContain("Aufgaben zuerst, nicht Module");
+    expect(html).toContain("Arbeite direkt auf den produktiven V1-Pfaden weiter");
     expect(html).toContain("Ich will etwas beitragen");
-    expect(html).toContain("Ich will Themen anschauen");
     expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
     expect(html).toContain("Ich öffne meinen Arbeitsbereich");
     expect(html).toContain("Produktiver Pfad");
@@ -721,6 +724,10 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Freigaben prüfen");
     expect(html).toContain("/create?intent=contribute&amp;mode=source");
     expect(html).toContain("/account/organization/dashboard#aufgaben");
+    expect(html).toContain("Nächster sicherer Schritt");
+    expect(html).toContain("Du kannst jetzt produktiv weiterarbeiten.");
+    expect(html).toContain("Anlassraum/Event starten");
+    expect(html).toContain("Beitrag starten");
     expect(html).toContain("Erste Schritte");
     expect(html).toContain("Material &amp; Uploads");
     expect(html).toContain("Material-Intake bereit");
@@ -751,8 +758,76 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Mittlere Priorität");
     expect(html).toContain("Sanierung von Schulen im Bezirk");
     expect(html).toContain("Bildung &amp; Schulinfrastruktur Reinickendorf");
-    expect(html).toContain("Keine automatische Veröffentlichung");
-    expect(html).toContain("keine automatische amtliche Freigabe");
+    expect(html).toContain("Wir veröffentlichen nichts ungeprüft.");
+    expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
+    expect(html.indexOf("Schnell starten")).toBeLessThan(html.indexOf("Meine Organisation"));
+  });
+
+  it("shows only safe actions when the organization context is suspended or blocked", async () => {
+    const readModelSpy = vi.spyOn(regionFeatures, "buildOrganizationDashboardReadModel");
+    readModelSpy.mockResolvedValue({
+      ...buildOperatorDashboardReadModel(),
+      organization: {
+        primaryOrganizationId: "org-blocked-1",
+        name: "Verband Beispielstadt",
+        organizations: [],
+        roleLabel: "Koordination",
+        isOperatorMode: false,
+      },
+      verificationStatus: "suspended",
+      membershipStatus: {
+        totalMemberships: 1,
+        verifiedMemberships: 1,
+        pendingClaims: 0,
+        highestVerificationStatus: "suspended",
+      },
+      directorySummary: {
+        sourceOfTruth: "operator_verified_directory",
+        confidence: "high",
+        runtimeMarker: "production_runtime",
+        productionTruth: true,
+        auditBacked: true,
+        verificationStatus: "suspended",
+      },
+      provisioningSummary: {
+        ...buildOperatorDashboardReadModel().provisioningSummary,
+        currentStatus: "suspended",
+        nextStepTitle: "Freischaltung pausiert",
+        nextStepBody: "Produktive Organisationsschritte bleiben bis zur Klärung gesperrt.",
+      },
+      contractSummary: {
+        ...buildOperatorDashboardReadModel().contractSummary,
+        currentContractStatus: "suspended",
+        billingStatus: "suspended",
+        sourceOfTruth: "operator_verified_contract",
+        confidence: "high",
+        runtimeMarker: "production_runtime",
+        productionTruth: true,
+        auditBacked: true,
+      },
+      entitlementSummary: {
+        ...buildOperatorDashboardReadModel().entitlementSummary,
+        currentStatus: "suspended",
+        state: "gesperrt",
+        hasMissingEntitlement: false,
+        productionTruth: true,
+      },
+    } as any);
+
+    try {
+      const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+
+      expect(html).toContain("Sicherer Statusmodus");
+      expect(html).toContain("Klare nächste Schritte statt gesperrter Vollzugriffe");
+      expect(html).toContain("Ich prüfe meine Freischaltung");
+      expect(html).toContain("Ich kläre Anlassraum/Event-Freischaltung");
+      expect(html).toContain("Kontakt aufnehmen");
+      expect(html).toContain("Produktive Organisationsschritte sind aktuell gesperrt.");
+      expect(html).toContain("Status prüfen");
+      expect(html).not.toContain('href="/runden?intent=create"');
+    } finally {
+      readModelSpy.mockRestore();
+    }
   });
 
   it("marks operator mode explicitly when the global admin context is used", async () => {

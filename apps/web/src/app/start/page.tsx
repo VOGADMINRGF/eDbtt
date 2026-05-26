@@ -3,6 +3,9 @@ import { getGeoFromHeaders } from "@/lib/geo/getGeoFromHeaders";
 import { getNeighbors } from "@/lib/geo/neighbors";
 import { selectExamples } from "@/lib/examples/selectExamples";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { userIsAdminDashboard } from "@/lib/server/auth/admin";
+import { buildStartExperienceModel } from "@/features/start/startExperience";
 
 function yyyymmdd() {
   const d = new Date();
@@ -14,6 +17,9 @@ function yyyymmdd() {
 
 export default async function StartPage() {
   const geo = await getGeoFromHeaders();
+  const user = await getSessionUser();
+  const isAdmin = user ? userIsAdminDashboard(user) : false;
+  const experience = await buildStartExperienceModel({ user, isAdmin });
   const neighbors = getNeighbors(geo.country);
 
   const seedKey = `${geo.country || "XX"}-${geo.region || "NA"}-${yyyymmdd()}`;
@@ -56,7 +62,7 @@ export default async function StartPage() {
   return (
     <main className="min-h-screen">
       <h1 className="sr-only">Start</h1>
-      <LandingStart blocks={blocks} />
+      <LandingStart blocks={blocks} experience={experience} />
     </main>
   );
 }
