@@ -70,7 +70,7 @@ const PAGE_COPY = {
     maturity: "Bestellbarkeit",
     segmentBoundaryTitle: "B2G und B2B klar getrennt",
     segmentBoundaryMunicipal:
-      "Kommunen kaufen Beteiligungsleistungen, Pilotpakete oder vergabefähige Leistungsbausteine.",
+      "Kommunen kaufen Beteiligungsleistungen, Startpakete oder vergabefähige Leistungsbausteine.",
     segmentBoundaryOrg:
       "Organisationen/Beteiligungsbüros nutzen eDebatte als Werkzeug-, Dossier-, Studio- und Beteiligungsinfrastruktur für eigene Projekte.",
     municipalContextTitle: "Kommunale Einordnung vor dem Paket",
@@ -139,7 +139,7 @@ const PAGE_COPY = {
     maturity: "Orderability",
     segmentBoundaryTitle: "B2G and B2B are distinct",
     segmentBoundaryMunicipal:
-      "Municipalities buy participation services, pilot packages or procurement-ready service modules.",
+      "Municipalities buy participation services, start packages or procurement-ready service modules.",
     segmentBoundaryOrg:
       "Organizations/participation offices use eDebatte as tooling, dossier, studio and participation infrastructure for their own projects.",
     municipalContextTitle: "Municipal classification before package choice",
@@ -309,7 +309,7 @@ function buildMunicipalTenderCards(args: {
         typicalUseCases: [
           "Topic scoping before public launch",
           "Pre-briefing for administration and committees",
-          "Pilot assessment before procurement escalation",
+          "Initial assessment before procurement escalation",
         ],
         services: [
           "Classify topic and trigger context",
@@ -317,10 +317,10 @@ function buildMunicipalTenderCards(args: {
           "Assess participation readiness",
           "Recommend suitable next format",
         ],
-        deliverable: "Participation check memo with next-step recommendation and pilot scope.",
+        deliverable: "Participation check memo with next-step recommendation and clearly defined initial scope.",
         orderability: "Cost estimate possible · directly reservable",
-        procurementHint: "Suitable as pilot package and preparatory service package.",
-        ctaLabel: "Reserve pilot",
+        procurementHint: "Suitable as preparatory service package.",
+        ctaLabel: "Reserve starter package",
         href: card1Href,
       },
       {
@@ -332,7 +332,7 @@ function buildMunicipalTenderCards(args: {
         typicalUseCases: [
           "District-level issue discussions",
           "Topic-focused feedback rounds",
-          "Project-specific pilot participation",
+          "Project-specific participation setup",
         ],
         services: [
           "Dossier with source and position structure",
@@ -341,7 +341,7 @@ function buildMunicipalTenderCards(args: {
           "Result overview and result documentation",
         ],
         deliverable: "Topic dossier plus documented participation round with outcome summary.",
-        orderability: "Orderable with follow-up questions · pilot package suitable",
+        orderability: "Orderable with follow-up questions",
         procurementHint: "Cost estimate and service description request available.",
         ctaLabel: "Request cost estimate",
         href: card2Href,
@@ -405,7 +405,7 @@ function buildMunicipalTenderCards(args: {
       typicalUseCases: [
         "Thema vor öffentlichem Start einordnen",
         "Vorbereitung für Verwaltung und Gremien",
-        "Pilotprüfung vor weiterer Vergabetiefe",
+        "Vorprüfung vor weiterer Vergabetiefe",
       ],
       services: [
         "Thema und Anlass einordnen",
@@ -413,10 +413,10 @@ function buildMunicipalTenderCards(args: {
         "Beteiligungsreife bewerten",
         "Empfehlung für Format und nächsten Schritt",
       ],
-      deliverable: "Kurzbericht zur Beteiligungsreife mit nächstem Schritt und Pilotrahmen.",
+      deliverable: "Kurzbericht zur Beteiligungsreife mit nächstem Schritt und Startumfang.",
       orderability: "Kostenvoranschlag möglich · direkt vormerkbar",
-      procurementHint: "Als Pilotpaket und vorbereitender Leistungsbaustein geeignet.",
-      ctaLabel: "Pilot vormerken",
+      procurementHint: "Als Startpaket und vorbereitender Leistungsbaustein geeignet.",
+      ctaLabel: "Startpaket vormerken",
       href: card1Href,
     },
     {
@@ -428,7 +428,7 @@ function buildMunicipalTenderCards(args: {
       typicalUseCases: [
         "Stadtteil- und Projektthemen",
         "Beteiligungsrunde zu klarer Fragestellung",
-        "Pilotpaket mit dokumentierter Ergebnislage",
+        "Startpaket mit dokumentierter Ergebnislage",
       ],
       services: [
         "Dossier mit Quellen- und Positionenstruktur",
@@ -437,7 +437,7 @@ function buildMunicipalTenderCards(args: {
         "Ergebnisübersicht und Ergebnisdokumentation",
       ],
       deliverable: "Themenbezogenes Dossier plus dokumentierte Beteiligungsrunde mit Ergebnissicht.",
-      orderability: "Mit Rückfragen bestellbar · als Pilotpaket geeignet",
+      orderability: "Mit Rückfragen bestellbar · als Startpaket geeignet",
       procurementHint: "Kostenvoranschlag und Leistungsbeschreibung anforderbar.",
       ctaLabel: "Kostenvoranschlag anfordern",
       href: card2Href,
@@ -558,10 +558,10 @@ function buildB2BPartnerCards(args: {
           "Output Studio export preparation",
           "Result documentation for client handover",
         ],
-        result: "Pilot-ready dossier and communication package for first client projects.",
-        orderability: "Directly reservable as pilot package",
+        result: "Operational dossier and communication package for first client projects.",
+        orderability: "Directly reservable as starter package",
         note: "eDebatte supports process design work, it does not replace participation offices.",
-        ctaLabel: "Reserve pilot",
+        ctaLabel: "Reserve starter package",
         href: starterHref,
         secondaryCtaLabel: "Request demo",
         secondaryHref: starterDemoHref,
@@ -610,7 +610,7 @@ function buildB2BPartnerCards(args: {
         priceTag: "offer after clarification + VAT",
         billingMode: "clarification-first / framework-based",
         forWhom: "Larger networks, foundations, media partners and public-dialogue consultancies.",
-        typicalUse: "Recurring cooperation model with pilots, training and support framework.",
+        typicalUse: "Recurring cooperation model with initial deployments, training and support framework.",
         services: [
           "Partner terms and recurring support scope",
           "Method catalog and enablement/training",
@@ -643,10 +643,10 @@ function buildB2BPartnerCards(args: {
         "Output-Studio für Export-/Veröffentlichungsvorbereitung",
         "Ergebnisdokumentation für Auftraggeber",
       ],
-      result: "Pilotfähiges Dossier- und Kommunikationspaket für erste Kundenprojekte.",
-      orderability: "Direkt vormerkbar als Pilotpaket",
+      result: "Belastbares Dossier- und Kommunikationspaket für erste Kundenprojekte.",
+      orderability: "Direkt vormerkbar als Startpaket",
       note: "eDebatte ersetzt keine Moderation, sondern ergänzt bestehende Beteiligungsarbeit.",
-      ctaLabel: "Pilot vormerken",
+      ctaLabel: "Startpaket vormerken",
       href: starterHref,
       secondaryCtaLabel: "Demo anfragen",
       secondaryHref: starterDemoHref,
@@ -698,7 +698,7 @@ function buildB2BPartnerCards(args: {
       billingMode: "nach Klärung / rahmenvertragsbasiert",
       forWhom:
         "Größere Büros, Netzwerke, Stiftungsprogramme, Medien- und Public-Affairs-Dienstleister.",
-      typicalUse: "Wiederkehrende Partnerschaft mit Pilotkommunen/-themen, Schulung und Support.",
+      typicalUse: "Wiederkehrende Partnerschaft mit ersten Kommunen/Themen, Schulung und Support.",
       services: [
         "Partnerkonditionen und Betriebsrahmen",
         "Methodenkatalog und Enablement",
@@ -791,14 +791,14 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
   const municipalFrameOptions: readonly { id: FrameOptionId; title: string; detail: string }[] =
     locale === "en"
       ? [
-          { id: "pilot", title: "Pilot / small service module", detail: "Small pilot module with clear scope." },
+          { id: "pilot", title: "Start / small service module", detail: "Small starter module with clear scope." },
           { id: "einmaliger_einsatz", title: "Single project / concrete procedure", detail: "One defined municipal procedure." },
           { id: "laufender_betrieb", title: "Recurring operations", detail: "Continuous participation operations." },
           { id: "fokus_reporting", title: "Framework agreement / multiple topics", detail: "Multi-topic frame for recurring procurement." },
           { id: "fokus_moderation", title: "Offer after clarification", detail: "Needs follow-up alignment before final order path." },
         ]
       : [
-          { id: "pilot", title: "Pilot / kleiner Leistungsbaustein", detail: "Kleiner Pilot mit klar abgegrenztem Umfang." },
+          { id: "pilot", title: "Start / kleiner Leistungsbaustein", detail: "Kleines Startmodul mit klar abgegrenztem Umfang." },
           { id: "einmaliger_einsatz", title: "Einzelprojekt / konkretes Verfahren", detail: "Ein definiertes kommunales Verfahren." },
           { id: "laufender_betrieb", title: "wiederkehrender Betrieb", detail: "Regelbetrieb über mehrere Beteiligungsanlässe." },
           { id: "fokus_reporting", title: "Rahmenvertrag / mehrere Themen", detail: "Mehrere Themen als wiederkehrender Beschaffungsrahmen." },
