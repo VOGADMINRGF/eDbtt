@@ -9,13 +9,14 @@ Nach `PUBLIC-TOPIC-SUPPLY-LAYER-01` und `POST-V1-CONSOLIDATION-BUNDLE-01` den do
 
 ## Remote- / Deploy-Parität
 
-- Lokales `main` und `origin/main` stehen auf demselben Commit:
-  - `HEAD`: `d8227dbe5c108a9a8706bf997b380a5a5cef3f39`
-  - `origin/main`: `d8227dbe5c108a9a8706bf997b380a5a5cef3f39`
+- Lokales `main` und `origin/main` stehen jetzt auf demselben Follow-up-Commit:
+  - `HEAD`: `abe59466`
+  - `origin/main`: `abe59466`
   - `git rev-list --left-right --count origin/main...HEAD`: `0 0`
-- Die erwarteten lokalen Commits sind damit remote enthalten:
+- Die relevanten Post-V1-Commits sind damit remote enthalten:
   - `b710af56 feat(swipes): add public topic supply layer`
   - `d8227dbe chore(post-v1): consolidate backlog persistence and release gates`
+  - `abe59466 chore(post-v1): verify consolidation follow-up`
 - GitHub-Web-/API-Livestatus fuer Commit-Checks und Vercel war aus der aktuellen Umgebung nicht stabil verifizierbar:
   - `gh run list` und `gh api .../status` schlugen wiederholt mit `error connecting to api.github.com` fehl.
   - Deshalb wird in diesem Follow-up **nicht** behauptet, dass GitHub Actions oder Vercel fuer `d8227dbe` live-gruen aus der aktuellen Shell bewiesen wurden.
@@ -113,7 +114,22 @@ Diese Issues bleiben offen und passen weiterhin zur Bundle-Einordnung:
 ### Hinweis
 
 - Fuer diese verbleibenden V2/V3-/Audit-Issues wurde in diesem Follow-up **kein** weiterer GitHub-Kommentar oder Label-Mutationslauf erzwungen.
-- Der Grund war nicht fachliche Unsicherheit, sondern die instabile GitHub-API-Erreichbarkeit in dieser Umgebung. Der SSOT-/Evidence-Abgleich ist trotzdem sauber dokumentiert.
+- Der Grund war nicht fachliche Unsicherheit, sondern die instabile GitHub-API-Erreichbarkeit in dieser Umgebung. Kommentarversuche fuer offene Folge-Issues liefen auf `error connecting to api.github.com`. Der SSOT-/Evidence-Abgleich ist trotzdem sauber dokumentiert.
+
+### Entscheidungstabelle fuer die verbleibenden offenen Issues
+
+| Issue | Entscheidung | OpenTasks-Spiegel | GitHub-Mutation |
+| --- | --- | --- | --- |
+| #75 | V2 candidate | `V2-THEMENRADAR-BRAND-EXPORT-01` | offen gelassen; Kommentarversuch scheiterte an GitHub-API-Erreichbarkeit |
+| #74 | V2 candidate | `V2-OUTPUT-STUDIO-FORMATS-01` | offen gelassen; Kommentarversuch scheiterte an GitHub-API-Erreichbarkeit |
+| #48 | V2 candidate | `V2-AI-ORCHESTRATION-CONSOLIDATION-01` | offen gelassen; Kommentarversuch scheiterte an GitHub-API-Erreichbarkeit |
+| #43 | Audit candidate | `V2-AI-ORCHESTRATION-CONSOLIDATION-01` plus separater Audit-Hinweis | offen gelassen; Kommentarversuch scheiterte an GitHub-API-Erreichbarkeit |
+| #40 | Audit candidate | `V2-AI-ORCHESTRATION-CONSOLIDATION-01` plus separater Audit-Hinweis | offen gelassen; Kommentarversuch scheiterte an GitHub-API-Erreichbarkeit |
+| #36 | V2 candidate | `V2-OUTPUT-STUDIO-FORMATS-01` | offen gelassen; kein sicherer GitHub-Mutationslauf |
+| #35 | V2 candidate | `V2-OUTPUT-STUDIO-FORMATS-01` | offen gelassen; kein sicherer GitHub-Mutationslauf |
+| #34 | V3 candidate | `V3-MEDIA-SCRIPT-FORMATS-01` | offen gelassen; kein sicherer GitHub-Mutationslauf |
+| #33 | V2 candidate | `V2-OUTPUT-STUDIO-FORMATS-01` | offen gelassen; kein sicherer GitHub-Mutationslauf |
+| #32 | V2 candidate | `V2-OUTPUT-STUDIO-FORMATS-01` | offen gelassen; kein sicherer GitHub-Mutationslauf |
 
 ## Remote-Gate-Befund
 
@@ -131,6 +147,7 @@ Die Workflow-Konfiguration bleibt im Follow-up korrekt:
 
 - Der Workflow ist **guarded/aktiv vorbereitet**, nicht unehrlich als immer-vollstaendig aktiv beschrieben.
 - Die Live-Ausfuehrung auf GitHub war aus dieser Shell nicht sicher verifizierbar, weil `gh run list` / `gh api` die GitHub-API nicht stabil erreichten.
+- Der lokale Gate-Lauf blieb dagegen erneut grün und ist damit weiter die belastbare Referenz fuer diesen Slice.
 
 ## Pricing- / Freemium-Befund
 
@@ -167,7 +184,7 @@ Es wurde **keine weitere Copy-Korrektur** mehr noetig.
 ## Bewusst offene Punkte
 
 - GitHub Actions / Commit-Status live per API aus dieser Shell nicht belastbar verifizierbar
-- Vercel-Livestatus fuer `d8227dbe` aus dieser Shell nicht belastbar verifizierbar
+- Vercel-Livestatus fuer `abe59466` aus dieser Shell nicht belastbar verifizierbar
 - V2/V3-/Audit-Issues bleiben offen und werden nicht zu V1-Blockern umgedeutet
 - keine Aenderung an `PUBLIC-TOPIC-SUPPLY-LAYER-01`-Runtime
 - keine neue Persistenz- oder Release-Architektur
@@ -176,8 +193,9 @@ Es wurde **keine weitere Copy-Korrektur** mehr noetig.
 
 Der dokumentierte Post-V1-Stand bleibt konsistent:
 
-- Remote-Parität zu `origin/main` ist hergestellt.
+- Remote-Parität zu `origin/main` ist hergestellt und umfasst jetzt auch `abe59466`.
 - Der Public Topic Supply Layer haelt seine Guardrails und zeigt keine neue Runtime-Luecke.
 - `/admin/feeds` bleibt ein ehrlicher review-first Leitstand statt Vollcrawler- oder Auto-Publish-Surface.
 - Die im Bundle als erledigt/obsolet markierten Alt-Issues `#80`, `#58` und `#73` sind jetzt auch auf GitHub geschlossen.
+- Die verbleibenden Folge-Issues sind jetzt sauber als V2-, V3- oder Audit-Kandidaten in `OpenTasks.md` gespiegelt.
 - GitHub- und Vercel-Livestatus konnten aus dieser Shell nicht vollstaendig API-seitig belegt werden; das ist bewusst dokumentiert und nicht weich umformuliert.
