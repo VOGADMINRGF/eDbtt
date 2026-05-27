@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
+import { resolveAiSmokeStatusCopy } from "@/features/ai/v2OrchestrationPolicy";
 
 type SmokeMode = "provider_probe" | "runtime_smoke" | "full_contract";
 
@@ -107,6 +108,16 @@ type SmokeResponse = {
       | "dossier_enrichment"
       | "sealed_factcheck"
       | "premium_deep_research";
+    normalizedLane:
+      | "standard"
+      | "material_extraction"
+      | "feed_signal"
+      | "themenradar_cluster"
+      | "sealed_factcheck"
+      | "research_addon"
+      | "fallback_only";
+    normalizedLaneLabel: string;
+    normalizedLaneDescription: string;
     primaryAnalyzeProvider: string | null;
     draftFallbackProviders: string[];
     optionalProviders: string[];
@@ -125,6 +136,17 @@ type SmokeResponse = {
     safeToRunStandardAnalyze: boolean;
     safeToRunSealedFactcheck: boolean;
     safeToRunPremiumDeepResearch: boolean;
+    reviewRequired: boolean;
+    sealEligible: boolean;
+    publicOutputAllowed: boolean;
+    costApprovalRequired: boolean;
+    researchAllowed: boolean;
+    providerRoleSummary: Array<{
+      provider: string;
+      displayName: string;
+      roles: string[];
+      requiresExplicitApproval: boolean;
+    }>;
     nextResearchAction: string;
     nextAction: string;
   };
@@ -245,6 +267,22 @@ function formatModeLabel(mode: SmokeMode): string {
   if (mode === "provider_probe") return "Provider Probe";
   if (mode === "full_contract") return "Full Contract";
   return "Runtime Smoke";
+}
+
+function formatSmokeStatus(row: ProviderDiagnostic) {
+  return resolveAiSmokeStatusCopy({
+    status: row.status,
+    journeyDecision: row.journeyDecision as
+      | "selected"
+      | "skipped"
+      | "fallback_not_needed"
+      | "not_in_plan"
+      | "disabled"
+      | "config_missing",
+    errorKind: row.errorKind,
+    providerErrorCode: row.providerErrorCode,
+    finalContractStatus: row.finalContractStatus,
+  });
 }
 
 type ProviderHealthStatus = "green" | "yellow" | "red" | "gray";
@@ -494,16 +532,48 @@ export default function OrchestratorTelemetryPage() {
           <p className="text-sm text-[rgb(var(--muted))]">
             Lane-/Provider-Entscheidung gemäß Policy-Routing (#48) für Diagnose und spätere Orchestrierungsentscheide.
           </p>
-          <div className="mt-3 grid gap-2 text-xs text-[rgb(var(--muted))]">
-            <div>selectedLane={operationalSummary.selectedLane} · productionEligible={String(operationalSummary.productionEligible)} · researchRequired={String(operationalSummary.researchRequired)}</div>
-            <div>primaryAnalyzeProvider={operationalSummary.primaryAnalyzeProvider ?? "none"} · draftFallbackProviders={operationalSummary.draftFallbackProviders.join(",") || "none"}</div>
-            <div>optionalProviders={operationalSummary.optionalProviders.join(",") || "none"} · researchProviders={operationalSummary.researchProviders.join(",") || "none"}</div>
-            <div>blockedProviders={operationalSummary.blockedProviders.join(",") || "none"}</div>
-            <div>selectedResearchProvider={operationalSummary.selectedResearchProvider ?? "none"} · researchProviderAvailable={String(operationalSummary.researchProviderAvailable)}</div>
-            <div>availableResearchProviders={operationalSummary.availableResearchProviders.join(",") || "none"} · blockedResearchProviders={operationalSummary.blockedResearchProviders.map((entry) => `${entry.provider}:${entry.reason ?? "blocked"}`).join(",") || "none"}</div>
-            <div>researchCreditRequired={String(operationalSummary.researchCreditRequired)} · researchCreditSatisfied={String(operationalSummary.researchCreditSatisfied)} · researchDisabledReason={operationalSummary.researchDisabledReason ?? "none"}</div>
-            <div>safeToRunStandardAnalyze={String(operationalSummary.safeToRunStandardAnalyze)} · safeToRunSealedFactcheck={String(operationalSummary.safeToRunSealedFactcheck)} · safeToRunPremiumDeepResearch={String(operationalSummary.safeToRunPremiumDeepResearch)}</div>
-            <div>standardAnalyzeUnaffected={String(operationalSummary.standardAnalyzeUnaffected)} · nextResearchAction={operationalSummary.nextResearchAction}</div>
+          <div className="mt-3 space-y-3 text-sm text-[rgb(var(--muted))]">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+              <div className="font-semibold text-[rgb(var(--fg))]">
+                {operationalSummary.normalizedLaneLabel}
+              </div>
+              <div>{operationalSummary.normalizedLaneDescription}</div>
+              <div className="mt-1 text-xs">
+                normalizedLane={operationalSummary.normalizedLane} · selectedLane={operationalSummary.selectedLane} ·
+                productionEligible={String(operationalSummary.productionEligible)}
+              </div>
+              <div className="mt-1 text-xs">
+                reviewRequired={String(operationalSummary.reviewRequired)} ·
+                researchAllowed={String(operationalSummary.researchAllowed)} ·
+                costApprovalRequired={String(operationalSummary.costApprovalRequired)} ·
+                sealEligible={String(operationalSummary.sealEligible)} ·
+                publicOutputAllowed={String(operationalSummary.publicOutputAllowed)}
+              </div>
+            </div>
+            <div className="grid gap-2 text-xs text-[rgb(var(--muted))]">
+              <div>primaryAnalyzeProvider={operationalSummary.primaryAnalyzeProvider ?? "none"} · draftFallbackProviders={operationalSummary.draftFallbackProviders.join(",") || "none"}</div>
+              <div>optionalProviders={operationalSummary.optionalProviders.join(",") || "none"} · researchProviders={operationalSummary.researchProviders.join(",") || "none"}</div>
+              <div>blockedProviders={operationalSummary.blockedProviders.join(",") || "none"}</div>
+              <div>selectedResearchProvider={operationalSummary.selectedResearchProvider ?? "none"} · researchProviderAvailable={String(operationalSummary.researchProviderAvailable)}</div>
+              <div>availableResearchProviders={operationalSummary.availableResearchProviders.join(",") || "none"} · blockedResearchProviders={operationalSummary.blockedResearchProviders.map((entry) => `${entry.provider}:${entry.reason ?? "blocked"}`).join(",") || "none"}</div>
+              <div>researchCreditRequired={String(operationalSummary.researchCreditRequired)} · researchCreditSatisfied={String(operationalSummary.researchCreditSatisfied)} · researchDisabledReason={operationalSummary.researchDisabledReason ?? "none"}</div>
+              <div>safeToRunStandardAnalyze={String(operationalSummary.safeToRunStandardAnalyze)} · safeToRunSealedFactcheck={String(operationalSummary.safeToRunSealedFactcheck)} · safeToRunPremiumDeepResearch={String(operationalSummary.safeToRunPremiumDeepResearch)}</div>
+              <div>standardAnalyzeUnaffected={String(operationalSummary.standardAnalyzeUnaffected)} · nextResearchAction={operationalSummary.nextResearchAction}</div>
+            </div>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Provider Roles
+              </div>
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
+                {operationalSummary.providerRoleSummary.map((provider) => (
+                  <div key={provider.provider} className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs">
+                    <div className="font-semibold text-[rgb(var(--fg))]">{provider.displayName}</div>
+                    <div>roles={provider.roles.join(", ")}</div>
+                    <div>requiresExplicitApproval={String(provider.requiresExplicitApproval)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="font-semibold text-[rgb(var(--fg))]">nextAction={operationalSummary.nextAction}</div>
           </div>
         </section>
@@ -736,6 +806,7 @@ export default function OrchestratorTelemetryPage() {
                       {rows.map((row) => {
                         const rowKey = `${card.mode}-${row.stage}-${row.provider}`;
                         const expanded = expandedRows[rowKey] ?? false;
+                        const smokeStatus = formatSmokeStatus(row);
                         return (
                           <Fragment key={rowKey}>
                             <tr key={rowKey}>
@@ -746,7 +817,7 @@ export default function OrchestratorTelemetryPage() {
                               <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.model ?? "unknown"}</td>
                               <td className="px-3 py-2">
                                 <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusChipClass(row.status)}`}>
-                                  {row.status}
+                                  {smokeStatus.label}
                                 </span>
                                 <div className="mt-1 text-xs text-[rgb(var(--muted))]">
                                   provider={row.providerStatus} · adapter={row.adapterStatus} · parse={row.parseStatus} · schema={row.schemaStatus}
@@ -770,6 +841,8 @@ export default function OrchestratorTelemetryPage() {
                                   </button>
                                   {expanded && (
                                     <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+                                      <div>smokeStatus={smokeStatus.code} · smokeStatusLabel={smokeStatus.label}</div>
+                                      <div>{smokeStatus.description}</div>
                                       <div>mode={formatModeLabel(row.mode)} · stage={row.stage} · journeyDecision={row.journeyDecision} · validationMode={row.validationMode}</div>
                                       <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
                                       <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>

@@ -41,4 +41,16 @@ describe("admin ai telemetry ui contracts", () => {
     expect(page).toContain("schemaPath=");
     expect(diag).toContain("Schema-Contract und Pflichtfelder pruefen.");
   });
+
+  it("orchestrator page explains normalized lanes and skipped states without false alarms", () => {
+    const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
+    const policy = read("src/features/ai/v2OrchestrationPolicy.ts");
+
+    expect(page).toContain("normalizedLane=");
+    expect(page).toContain("Provider Roles");
+    expect(page).toContain("smokeStatus=");
+    expect(policy).toContain("Übersprungen, nicht nötig");
+    expect(policy).toContain("Übersprungen, nicht in dieser Lane");
+    expect(policy).toContain("Konfiguration fehlt");
+  });
 });

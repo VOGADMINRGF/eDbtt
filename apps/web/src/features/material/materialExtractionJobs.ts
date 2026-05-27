@@ -2,6 +2,7 @@ import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { normalizeGermanSearchText, normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import type { AutonomousThemenradarScope } from "@features/themenradar/autonomousSupply";
+import { resolveAiFlowIntegration } from "@/features/ai/v2OrchestrationPolicy";
 import {
   getMaterialIntakePersistenceState,
   getMaterialIntakeRecord,
@@ -114,6 +115,16 @@ export type MaterialExtractionJob = {
   dossierHandoff: MaterialExtractionDossierHandoff | null;
   anlassraumHandoff: MaterialExtractionAnlassraumHandoff | null;
   themenradarHandoff: MaterialExtractionThemenradarHandoff | null;
+  aiOrchestration: {
+    lane: string;
+    laneLabel: string;
+    outputLabel: string;
+    reviewRequired: true;
+    draftOnly: true;
+    publicOutputAllowed: false;
+    costApprovalRequired: boolean;
+    researchAllowed: boolean;
+  };
   nextSuggestedAction: {
     label: string;
     description: string;
@@ -528,6 +539,7 @@ function nextActionForJob(job: Pick<MaterialExtractionJob, "status" | "costGuard
 }
 
 function buildJob(input: CreateMaterialExtractionJobInput & { record: MaterialIntakeRecord; persistence: MaterialExtractionJobPersistenceState }) {
+  const aiIntegration = resolveAiFlowIntegration("material_extraction");
   const createdAt = nowIso();
   const sourceType = sourceTypeFromRecord(input.record);
   const claimDrafts = deriveClaimDrafts(input.record);
@@ -606,6 +618,16 @@ function buildJob(input: CreateMaterialExtractionJobInput & { record: MaterialIn
     dossierHandoff,
     anlassraumHandoff,
     themenradarHandoff,
+    aiOrchestration: {
+      lane: aiIntegration.lane,
+      laneLabel: aiIntegration.laneLabel,
+      outputLabel: aiIntegration.outputLabel,
+      reviewRequired: true,
+      draftOnly: true,
+      publicOutputAllowed: false,
+      costApprovalRequired: aiIntegration.costApprovalRequired,
+      researchAllowed: aiIntegration.researchAllowed,
+    },
     nextSuggestedAction: {
       label: "Review öffnen",
       description: "Extrahierte Hinweise bleiben intern, bis ein Mensch den nächsten Schritt entscheidet.",

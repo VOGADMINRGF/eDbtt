@@ -17,6 +17,7 @@ import {
 import { buildFeedSourceAutomationReadModel } from "./sourceAutomation";
 import { listRecentFeedRuntimeRuns, type FeedRuntimeRunDoc } from "./runtimeLog";
 import { buildMaterialExtractionJobReadModel } from "@/features/material/materialExtractionJobs";
+import { resolveAiFlowIntegration } from "@/features/ai/v2OrchestrationPolicy";
 import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 
 export type FeedRadarRuntimeNextAction =
@@ -177,9 +178,39 @@ export type FeedRadarRuntimeReadModel = {
       };
     };
   };
+  aiOrchestration: {
+    feedSignal: {
+      lane: string;
+      laneLabel: string;
+      outputLabel: string;
+      reviewRequired: boolean;
+      draftOnly: boolean;
+      publicOutputAllowed: boolean;
+    };
+    themenradar: {
+      lane: string;
+      laneLabel: string;
+      outputLabel: string;
+      reviewRequired: boolean;
+      draftOnly: boolean;
+      publicOutputAllowed: boolean;
+    };
+    materialExtraction: {
+      lane: string;
+      laneLabel: string;
+      outputLabel: string;
+      reviewRequired: boolean;
+      draftOnly: boolean;
+      publicOutputAllowed: boolean;
+      costApprovalRequired: boolean;
+    };
+  };
 };
 
 export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntimeReadModel> {
+  const feedSignalAi = resolveAiFlowIntegration("feed_signal");
+  const themenradarAi = resolveAiFlowIntegration("themenradar");
+  const materialAi = resolveAiFlowIntegration("material_extraction");
   const [
     candidateCol,
     draftCol,
@@ -409,6 +440,33 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
             },
           },
         },
+    aiOrchestration: {
+      feedSignal: {
+        lane: feedSignalAi.lane,
+        laneLabel: feedSignalAi.laneLabel,
+        outputLabel: feedSignalAi.outputLabel,
+        reviewRequired: feedSignalAi.reviewRequired,
+        draftOnly: feedSignalAi.draftOnly,
+        publicOutputAllowed: feedSignalAi.publicOutputAllowed,
+      },
+      themenradar: {
+        lane: themenradarAi.lane,
+        laneLabel: themenradarAi.laneLabel,
+        outputLabel: themenradarAi.outputLabel,
+        reviewRequired: themenradarAi.reviewRequired,
+        draftOnly: themenradarAi.draftOnly,
+        publicOutputAllowed: themenradarAi.publicOutputAllowed,
+      },
+      materialExtraction: {
+        lane: materialAi.lane,
+        laneLabel: materialAi.laneLabel,
+        outputLabel: materialAi.outputLabel,
+        reviewRequired: materialAi.reviewRequired,
+        draftOnly: materialAi.draftOnly,
+        publicOutputAllowed: materialAi.publicOutputAllowed,
+        costApprovalRequired: materialAi.costApprovalRequired,
+      },
+    },
   };
 }
 

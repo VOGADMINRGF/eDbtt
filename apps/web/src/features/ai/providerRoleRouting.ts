@@ -5,6 +5,13 @@ import {
   resolveResearchEntitlements,
   type ResearchProviderId,
 } from "@/features/ai/researchProviderRegistry";
+import {
+  getAiExecutionActor,
+  getAiLanePolicy,
+  mapLegacyLaneToAiV2Lane,
+  type AiExecutionActorId,
+  type AiV2Lane,
+} from "@/features/ai/v2OrchestrationPolicy";
 
 export type OrchestrationLane =
   | "fast_draft"
@@ -51,6 +58,9 @@ export type LaneRoutingPolicy = {
 
 export type OperationalProviderRoutingSummary = {
   selectedLane: OrchestrationLane;
+  normalizedLane: AiV2Lane;
+  normalizedLaneLabel: string;
+  normalizedLaneDescription: string;
   primaryAnalyzeProvider: ProviderRoleId | null;
   draftFallbackProviders: ProviderRoleId[];
   optionalProviders: ProviderRoleId[];
@@ -69,6 +79,17 @@ export type OperationalProviderRoutingSummary = {
   safeToRunStandardAnalyze: boolean;
   safeToRunSealedFactcheck: boolean;
   safeToRunPremiumDeepResearch: boolean;
+  reviewRequired: boolean;
+  sealEligible: boolean;
+  publicOutputAllowed: boolean;
+  costApprovalRequired: boolean;
+  researchAllowed: boolean;
+  providerRoleSummary: Array<{
+    provider: ProviderRoleId;
+    displayName: string;
+    roles: string[];
+    requiresExplicitApproval: boolean;
+  }>;
   nextResearchAction: string;
   nextAction: string;
 };
@@ -330,6 +351,8 @@ export function resolveOperationalProviderRoutingSummary(params: {
       ? params.directContractRows
       : params.rows;
   const providerMap = byProvider(evaluationRows);
+  const normalizedLane = mapLegacyLaneToAiV2Lane(params.lane);
+  const normalizedPolicy = getAiLanePolicy(normalizedLane);
 
   const openaiRow = providerMap.get("openai");
   const primaryAnalyzeProvider = hasStrictOk(openaiRow) ? "openai" : null;
@@ -351,6 +374,22 @@ export function resolveOperationalProviderRoutingSummary(params: {
   const researchEligible =
     !researchRequired || (researchDecision.researchProviderAvailable && researchDecision.researchCreditSatisfied);
   const productionEligible = baseAnalyzeEligible && researchEligible;
+  const providerRoleSummary = Array.from(
+    new Set<ProviderRoleId>([
+      ...policy.primaryAnalyzeCandidates,
+      ...policy.draftFallbackCandidates,
+      ...policy.optionalCandidates,
+      ...researchProviders,
+    ]),
+  ).map((provider) => {
+    const actor = getAiExecutionActor(provider as AiExecutionActorId);
+    return {
+      provider,
+      displayName: actor.displayName,
+      roles: [...actor.roles],
+      requiresExplicitApproval: actor.requiresExplicitApproval,
+    };
+  });
 
   let nextAction = "Keine Aktion";
   if (!baseAnalyzeEligible) {
@@ -366,6 +405,9 @@ export function resolveOperationalProviderRoutingSummary(params: {
 
   return {
     selectedLane: params.lane,
+    normalizedLane,
+    normalizedLaneLabel: normalizedPolicy.label,
+    normalizedLaneDescription: normalizedPolicy.description,
     primaryAnalyzeProvider,
     draftFallbackProviders,
     optionalProviders,
@@ -384,6 +426,12 @@ export function resolveOperationalProviderRoutingSummary(params: {
     safeToRunStandardAnalyze: researchDecision.safeToRunStandardAnalyze,
     safeToRunSealedFactcheck: researchDecision.safeToRunSealedFactcheck,
     safeToRunPremiumDeepResearch: researchDecision.safeToRunPremiumDeepResearch,
+    reviewRequired: normalizedPolicy.reviewRequired,
+    sealEligible: normalizedPolicy.sealEligible,
+    publicOutputAllowed: normalizedPolicy.publicOutputAllowed,
+    costApprovalRequired: normalizedPolicy.costApprovalRequired,
+    researchAllowed: normalizedPolicy.researchAllowed,
+    providerRoleSummary,
     nextResearchAction: researchDecision.nextResearchAction,
     nextAction,
   };

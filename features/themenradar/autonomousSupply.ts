@@ -18,6 +18,7 @@ import {
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
 import { listMaterialExtractionThemenradarSeeds } from "@/features/material/materialExtractionJobs";
+import { resolveAiFlowIntegration } from "@/features/ai/v2OrchestrationPolicy";
 import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 import type { SwipeItem } from "@/features/swipes/types";
 
@@ -134,6 +135,14 @@ export type AutonomousTopicCluster = {
   visibleInSwipes: boolean;
   dossierContext: boolean;
   anlassraumContext: boolean;
+  aiOrchestration: {
+    lane: string;
+    laneLabel: string;
+    outputLabel: string;
+    reviewRequired: true;
+    draftOnly: true;
+    publicOutputAllowed: false;
+  };
   autoPublishAllowed: false;
   reviewRequired: true;
   createdAt: string | null;
@@ -726,6 +735,7 @@ export async function buildAutonomousThemenradarReadModel(input?: {
   scope?: AutonomousThemenradarScope;
   limit?: number;
 }): Promise<AutonomousThemenradarReadModel> {
+  const aiIntegration = resolveAiFlowIntegration("themenradar");
   const scope = input?.scope;
   const limit = Math.max(1, Math.min(40, Math.floor(input?.limit ?? 16)));
   const [supplyModel, proposalSeeds, feedSeeds, dossierSeeds, anlassraumSeeds, createSeeds, clusterSeeds, materialSeeds] =
@@ -873,6 +883,14 @@ export async function buildAutonomousThemenradarReadModel(input?: {
         visibleInSwipes,
         dossierContext,
         anlassraumContext,
+        aiOrchestration: {
+          lane: aiIntegration.lane,
+          laneLabel: aiIntegration.laneLabel,
+          outputLabel: aiIntegration.outputLabel,
+          reviewRequired: true,
+          draftOnly: true,
+          publicOutputAllowed: false,
+        },
         autoPublishAllowed: false,
         reviewRequired: true,
         createdAt,
