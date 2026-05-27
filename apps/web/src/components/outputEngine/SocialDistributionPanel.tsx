@@ -12,6 +12,12 @@ import {
   validateDistributionExport,
 } from "@features/outputEngine/distributionExport";
 import {
+  socialChannelConnectionLabel,
+  socialSchedulerStatusLabel,
+  type SocialChannelConnection,
+  type SocialSchedulerEntry,
+} from "@features/outputEngine/socialConnectorScheduler";
+import {
   buildSocialDistributionDraft,
   buildSocialDistributionQueue,
   type SocialDistributionChannel,
@@ -40,6 +46,13 @@ type SocialDistributionPanelProps = {
 };
 
 type StudioScheduleChoice = "draft" | "suggested" | "scheduled" | "after_review";
+
+type PersistedDistributionSnapshot = {
+  postId: string;
+  status: string;
+  channelConnections: SocialChannelConnection[];
+  scheduler: SocialSchedulerEntry[];
+};
 
 function keyForPlan(dossierId: string) {
   return `edebatte:studio:distribution-plan:${dossierId}`;
@@ -88,6 +101,85 @@ function shortText(value: string, maxLength = 180): string {
   return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
+function connectionAuthModeLabel(authMode: SocialChannelConnection["authMode"]): string {
+  switch (authMode) {
+    case "internal":
+      return "Interner Systempfad";
+    case "oauth_optional":
+      return "Optionaler OAuth-Connector";
+    case "token_optional":
+      return "Optionaler Token-Connector";
+    case "disabled":
+      return "Deaktiviert";
+    case "manual_export":
+    default:
+      return "Manueller Export";
+  }
+}
+
+function schedulerActionHint(status: SocialSchedulerEntry["status"]): string {
+  switch (status) {
+    case "approved":
+      return "Freigegeben, aber noch nicht terminiert.";
+    case "scheduled":
+      return "Termin gesetzt, aber noch nicht gepostet.";
+    case "posting":
+      return "Posting läuft kontrolliert und bleibt auditierbar.";
+    case "posted":
+      return "Posting wurde protokolliert, kein Multi-Channel-Autopublish.";
+    case "failed":
+      return "Fehler protokolliert, manueller Export bleibt möglich.";
+    case "cancelled":
+      return "Planung wurde bewusst gestoppt.";
+    case "draft":
+    default:
+      return "Noch kein freigegebener Scheduler-Schritt.";
+  }
+}
+
+function snapshotFromQueueReadModel(
+  queueReadModel: SocialDistributionQueueReadModel | null | undefined,
+  dossierId: string,
+): PersistedDistributionSnapshot | null {
+  const source = queueReadModel?.items.find(
+    (item) => item.dossierId === dossierId && item.derived === false,
+  );
+  if (!source) return null;
+  const postId = source.id.split(":")[0]?.trim();
+  if (!postId) return null;
+  return {
+    postId,
+    status: source.status,
+    channelConnections: source.channelConnections,
+    scheduler: source.scheduler,
+  };
+}
+
+function snapshotFromPayload(payload: unknown): PersistedDistributionSnapshot | null {
+  const post = payload as
+    | {
+        post?: {
+          id?: unknown;
+          status?: unknown;
+          channelConnections?: unknown;
+          scheduler?: unknown;
+        };
+      }
+    | null;
+  if (!post?.post || typeof post.post.id !== "string" || typeof post.post.status !== "string") {
+    return null;
+  }
+  if (!Array.isArray(post.post.channelConnections) || !Array.isArray(post.post.scheduler)) {
+    return null;
+  }
+  return {
+    postId: post.post.id,
+    status: post.post.status,
+    channelConnections: post.post.channelConnections as SocialChannelConnection[],
+    scheduler: post.post.scheduler as SocialSchedulerEntry[],
+  };
+}
+
 export default function SocialDistributionPanel({
   plan,
   dossierId,
@@ -99,6 +191,7 @@ export default function SocialDistributionPanel({
   initialDistributionDraft,
   queueReadModel,
 }: SocialDistributionPanelProps) {
+  const initialPersistedSnapshot = snapshotFromQueueReadModel(queueReadModel, dossierId);
   const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
     new Set(initialDistributionDraft?.selectedChannels ?? plan.selectedChannels),
   );
@@ -119,9 +212,12 @@ export default function SocialDistributionPanel({
   });
   const [notice, setNotice] = useState<string | null>(null);
   const [queueCancelled, setQueueCancelled] = useState<Set<string>>(new Set());
-  const [persistedPostId, setPersistedPostId] = useState<string | null>(null);
+  const [persistedSnapshot, setPersistedSnapshot] = useState<PersistedDistributionSnapshot | null>(
+    initialPersistedSnapshot,
+  );
 
   const nextWindow = plan.suggestedPostingWindows[0] ?? "Kein Zeitfenster vorhanden";
+  const persistedPostId = persistedSnapshot?.postId ?? null;
 
   const targetsWithOverrides = useMemo(
     () =>
@@ -157,6 +253,11 @@ export default function SocialDistributionPanel({
     [plan, selectedList, targetsWithOverrides],
   );
   const qrPrintPreview = useMemo(() => buildQrPrintPreview(masterPost), [masterPost]);
+  const schedulerEntries = persistedSnapshot?.scheduler ?? [];
+  const connectionByChannel = useMemo(
+    () => new Map((persistedSnapshot?.channelConnections ?? []).map((entry) => [entry.channel, entry])),
+    [persistedSnapshot],
+  );
 
   useEffect(() => {
     recordStudioTelemetryEvent({
@@ -164,6 +265,12 @@ export default function SocialDistributionPanel({
       dossierId,
     });
   }, [dossierId]);
+
+  useEffect(() => {
+    if (!persistedSnapshot && initialPersistedSnapshot) {
+      setPersistedSnapshot(initialPersistedSnapshot);
+    }
+  }, [initialPersistedSnapshot, persistedSnapshot]);
 
   const toggleChannel = (channel: SocialDistributionChannel) => {
     setSelectedChannels((current) => {
@@ -254,8 +361,8 @@ export default function SocialDistributionPanel({
         );
         return;
       }
-      const postId = typeof payload?.post?.id === "string" ? payload.post.id : null;
-      if (postId) setPersistedPostId(postId);
+      const snapshot = snapshotFromPayload(payload);
+      if (snapshot) setPersistedSnapshot(snapshot);
       setNotice("Handoff gespeichert. Review erforderlich, kein Auto-Publish und keine ungeprüfte Verteilung.");
     } catch {
       setNotice("Produktiver Verteilentwurf konnte nicht gespeichert werden. Bitte später erneut versuchen.");
@@ -298,6 +405,8 @@ export default function SocialDistributionPanel({
         );
         return;
       }
+      const snapshot = snapshotFromPayload(payload);
+      if (snapshot) setPersistedSnapshot(snapshot);
       const status = typeof payload?.post?.status === "string" ? payload.post.status : null;
       setNotice(
         status
@@ -306,6 +415,50 @@ export default function SocialDistributionPanel({
       );
     } catch {
       setNotice("Queue-Status konnte nicht aktualisiert werden.");
+    }
+  };
+
+  const updateSchedulerStatus = async (
+    action:
+      | "schedule_channel"
+      | "mark_posting"
+      | "mark_posted"
+      | "mark_failed"
+      | "cancel_channel",
+    channel: SocialDistributionChannel,
+    note: string,
+  ) => {
+    if (!workspaceApiPath || !persistedPostId) {
+      setNotice("Produktiver Queue-Eintrag fehlt noch. Erst einen Verteilentwurf anlegen.");
+      return;
+    }
+    try {
+      const res = await fetch(workspaceApiPath, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          socialSchedulerAction: action,
+          postId: persistedPostId,
+          channel,
+          scheduledAt: action === "schedule_channel" ? new Date().toISOString() : null,
+          note,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNotice(
+          payload?.message ??
+            "Scheduler-Status konnte nicht aktualisiert werden. Review-, Approval- oder Connector-Status prüfen.",
+        );
+        return;
+      }
+      const snapshot = snapshotFromPayload(payload);
+      if (snapshot) setPersistedSnapshot(snapshot);
+      setNotice("Scheduler-Status aktualisiert. Posting bleibt review-first und auditierbar.");
+    } catch {
+      setNotice("Scheduler-Status konnte nicht aktualisiert werden.");
     }
   };
 
@@ -579,6 +732,120 @@ export default function SocialDistributionPanel({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">Connector- und Scheduler-Status</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Echte Kanal-Connectoren werden nur genutzt, wenn sie freigeschaltet und konfiguriert sind.
+          Andernfalls bleibt manueller Export der Fallback.
+        </p>
+        {!persistedSnapshot ? (
+          <article className="mt-4 rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
+            Noch kein persistierter Queue-Eintrag vorhanden. Lege zuerst einen Verteilentwurf an, dann werden
+            Connector-Status, Approval und Scheduling kanalweise sichtbar.
+          </article>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {targetsWithOverrides.map((target) => {
+              const connection = connectionByChannel.get(target.channel) ?? null;
+              const scheduler = schedulerEntries.find((entry) => entry.channel === target.channel) ?? null;
+              const schedulingBlocked =
+                !scheduler ||
+                connection?.connectionStatus === "disabled_by_policy" ||
+                connection?.connectionStatus === "missing_secret" ||
+                persistedSnapshot.status === "review_requested" ||
+                persistedSnapshot.status === "needs_review" ||
+                persistedSnapshot.status === "blocked";
+
+              return (
+                <article
+                  key={`scheduler-${target.channel}`}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+                >
+                  <p className="text-sm font-semibold">{target.label}</p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Connector:{" "}
+                    {connection ? socialChannelConnectionLabel(connection.connectionStatus) : "Noch nicht geprüft"}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Auth-Modus: {connection ? connectionAuthModeLabel(connection.authMode) : "Manueller Export"}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Scopes: {connection?.scopes.join(", ") || "Nur lokaler Export"}
+                  </p>
+                  {connection?.disabledReason ? (
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">{connection.disabledReason}</p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                    Scheduler: {scheduler ? socialSchedulerStatusLabel(scheduler.status) : "Noch kein Kanalstatus"}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {scheduler ? schedulerActionHint(scheduler.status) : "Review und Approval fehlen noch."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={schedulingBlocked}
+                      onClick={() =>
+                        void updateSchedulerStatus(
+                          "schedule_channel",
+                          target.channel,
+                          "Kanal kontrolliert terminiert, kein Auto-Publish.",
+                        )
+                      }
+                      className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Termin setzen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!scheduler || scheduler.status !== "scheduled"}
+                      onClick={() =>
+                        void updateSchedulerStatus(
+                          "mark_posting",
+                          target.channel,
+                          "Posting manuell gestartet, weiterhin auditierbar.",
+                        )
+                      }
+                      className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Posting starten
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!scheduler || (scheduler.status !== "scheduled" && scheduler.status !== "posting")}
+                      onClick={() =>
+                        void updateSchedulerStatus(
+                          "mark_posted",
+                          target.channel,
+                          "Posting bestätigt. Kein Multi-Channel-Autopublish ausgelöst.",
+                        )
+                      }
+                      className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Als gepostet markieren
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!scheduler}
+                      onClick={() =>
+                        void updateSchedulerStatus(
+                          "cancel_channel",
+                          target.channel,
+                          "Scheduler-Eintrag bewusst gestoppt.",
+                        )
+                      }
+                      className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Veröffentlichungsmodus</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Veröffentlichung wird nur vorbereitet. Externe Live-Veröffentlichung bleibt deaktiviert.
@@ -726,7 +993,8 @@ export default function SocialDistributionPanel({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <h3 className="text-lg font-semibold">Queue & nächste Schritte</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Review, Queue, Export und Planung bleiben intern steuerbar. Es gibt keinen Live-Connector und kein Auto-Publish.
+          Review, Queue, Export und Planung bleiben intern steuerbar. Externe Connectoren werden nur bei
+          Freigabe genutzt, Auto-Publish bleibt aus.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
@@ -743,6 +1011,15 @@ export default function SocialDistributionPanel({
           </span>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              void updateProductionStatus("approve", "Review abgeschlossen, kanalweise Freigabe liegt vor.")
+            }
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
+          >
+            Freigeben
+          </button>
           <button
             type="button"
             onClick={() => void updateProductionStatus("queue", "In interne Verteilungsqueue übernommen.")}
@@ -780,7 +1057,7 @@ export default function SocialDistributionPanel({
           Connector-Status, Review-Checkpoints und Export-/Planungsstatus bleiben intern steuerbar und reversibel.
         </p>
         <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
-          <li>Kein Auto-Publish und kein automatisches Scheduling.</li>
+          <li>Kein Auto-Publish und kein unkontrolliertes Multi-Channel-Scheduling.</li>
           <li>Freigabe, Queue, Export und Planung bleiben bewusste Einzelaktionen.</li>
           <li>Review-Checkpoints werden vor Export oder interner Vorbereitung gespeichert.</li>
         </ul>

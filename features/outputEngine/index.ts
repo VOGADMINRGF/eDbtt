@@ -9,3 +9,4 @@ export * from "./distributionExport";
 export * from "./studioTelemetry";
 export * from "./socialDistributionStatusContract";
 export * from "./socialDistributionQueueReadModel";
+export * from "./socialConnectorScheduler";

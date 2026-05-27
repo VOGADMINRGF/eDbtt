@@ -13,6 +13,7 @@ import {
 } from "@features/dossier/server/studioPersistence";
 import {
   MasterPostSchema,
+  SOCIAL_DISTRIBUTION_CHANNELS,
   SocialDistributionPlanSchema,
   SocialCarouselOutputSchema,
   SocialDistributionDraftSchema,
@@ -100,6 +101,22 @@ const SocialDistributionStatusSchema = z
       "archive",
     ]),
     postId: z.string().trim().min(1),
+    note: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
+
+const SocialDistributionSchedulerSchema = z
+  .object({
+    socialSchedulerAction: z.enum([
+      "schedule_channel",
+      "mark_posting",
+      "mark_posted",
+      "mark_failed",
+      "cancel_channel",
+    ]),
+    postId: z.string().trim().min(1),
+    channel: z.enum(SOCIAL_DISTRIBUTION_CHANNELS),
+    scheduledAt: z.string().datetime({ offset: true }).nullable().optional(),
     note: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
@@ -286,6 +303,24 @@ function socialDistributionStatusFromAction(
     case "archive":
     default:
       return "archived" as const;
+  }
+}
+
+function schedulerStatusFromAction(
+  action: z.infer<typeof SocialDistributionSchedulerSchema>["socialSchedulerAction"],
+) {
+  switch (action) {
+    case "schedule_channel":
+      return "scheduled" as const;
+    case "mark_posting":
+      return "posting" as const;
+    case "mark_posted":
+      return "posted" as const;
+    case "mark_failed":
+      return "failed" as const;
+    case "cancel_channel":
+    default:
+      return "cancelled" as const;
   }
 }
 
@@ -588,6 +623,40 @@ export async function PATCH(req: NextRequest, params: RouteParams) {
         nextStatus: socialDistributionStatusFromAction(socialStatus.data.socialDistributionAction),
         updatedByUserId: access.accessContext?.userId ?? "unknown",
         note: socialStatus.data.note ?? null,
+      });
+      return NextResponse.json({ ok: true, post }, { status: 200 });
+    }
+
+    const socialScheduler = SocialDistributionSchedulerSchema.safeParse(rawBody);
+    if (socialScheduler.success) {
+      const repo = getSocialDistributionRepo();
+      const existingPost = await repo.getPost(socialScheduler.data.postId);
+      if (!existingPost) {
+        return NextResponse.json(
+          { ok: false, error: "social_distribution_post_not_found" },
+          { status: 404 },
+        );
+      }
+
+      const gate = await assertSocialDistributionAccess({
+        access,
+        visibilityState: existingPost.sourceVisibilityState,
+      });
+      if (!gate.ok) {
+        return NextResponse.json(
+          { ok: false, error: gate.error, message: gate.message },
+          { status: gate.status },
+        );
+      }
+
+      const post = await repo.updateScheduler({
+        postId: socialScheduler.data.postId,
+        organizationId: access.organizationId ?? access.requestScopeSummary?.organizationId ?? "",
+        channel: socialScheduler.data.channel,
+        nextStatus: schedulerStatusFromAction(socialScheduler.data.socialSchedulerAction),
+        updatedByUserId: access.accessContext?.userId ?? "unknown",
+        scheduledAt: socialScheduler.data.scheduledAt ?? null,
+        note: socialScheduler.data.note ?? null,
       });
       return NextResponse.json({ ok: true, post }, { status: 200 });
     }

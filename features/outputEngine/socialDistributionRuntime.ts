@@ -10,6 +10,14 @@ import {
   type SocialDistributionChannel,
   type SocialScheduleMode,
 } from "./socialDistribution";
+import {
+  buildSocialChannelConnections,
+  buildSocialSchedulerEntries,
+  SocialChannelConnectionSchema,
+  SocialSchedulerEntrySchema,
+  transitionSocialSchedulerEntry,
+  type SocialSchedulerStatus,
+} from "./socialConnectorScheduler";
 import { buildShareOutputAsset } from "@features/share/socialOutputContract";
 import {
   SOCIAL_DISTRIBUTION_V1_STATUSES,
@@ -28,6 +36,11 @@ export const SOCIAL_DISTRIBUTION_AUDIT_ACTIONS = [
   "approve",
   "queue",
   "mark_scheduled_ready",
+  "schedule_channel",
+  "posting_started",
+  "posting_succeeded",
+  "posting_failed",
+  "cancel_channel",
   "mark_exported",
   "mark_copied",
   "block",
@@ -114,6 +127,8 @@ export const SocialDistributionPostSchema = z
     channelTexts: z.record(z.string(), z.string().trim().min(1)),
     channelNotes: z.record(z.string(), z.string().trim().min(1)),
     assets: z.array(SocialDistributionAssetSchema),
+    channelConnections: z.array(SocialChannelConnectionSchema).default([]),
+    scheduler: z.array(SocialSchedulerEntrySchema).default([]),
     approval: SocialDistributionApprovalSchema,
     sourceSummary: z.string().trim().min(1),
     limitations: z.array(z.string().trim().min(1)),
@@ -185,9 +200,20 @@ export type UpdateSocialDistributionStatusInput = {
   note?: string | null;
 };
 
+export type UpdateSocialDistributionSchedulerInput = {
+  postId: string;
+  organizationId: string;
+  channel: SocialDistributionChannel;
+  nextStatus: SocialSchedulerStatus;
+  updatedByUserId: string;
+  scheduledAt?: string | null;
+  note?: string | null;
+};
+
 export type SocialDistributionRepo = {
   createOrReplaceDraft(input: CreateSocialDistributionPostInput): Promise<SocialDistributionPost>;
   updateStatus(input: UpdateSocialDistributionStatusInput): Promise<SocialDistributionPost | null>;
+  updateScheduler(input: UpdateSocialDistributionSchedulerInput): Promise<SocialDistributionPost | null>;
   getPost(postId: string): Promise<SocialDistributionPost | null>;
   listAllPosts(limit?: number): Promise<SocialDistributionPost[]>;
   listPostsByOrganizationIds(organizationIds: string[]): Promise<SocialDistributionPost[]>;
@@ -391,6 +417,33 @@ function auditActionForStatus(status: SocialDistributionStatus): SocialDistribut
   }
 }
 
+function auditActionForSchedulerStatus(status: SocialSchedulerStatus): SocialDistributionAuditAction {
+  switch (status) {
+    case "scheduled":
+      return "schedule_channel";
+    case "posting":
+      return "posting_started";
+    case "posted":
+      return "posting_succeeded";
+    case "failed":
+      return "posting_failed";
+    case "cancelled":
+      return "cancel_channel";
+    default:
+      return "queue";
+  }
+}
+
+function updatePostStatusFromScheduler(
+  current: SocialDistributionStatus,
+  nextSchedulerStatus: SocialSchedulerStatus,
+): SocialDistributionStatus {
+  if (nextSchedulerStatus === "failed") return "error";
+  if (nextSchedulerStatus === "posting") return "queued";
+  if (nextSchedulerStatus === "scheduled") return "scheduled_ready";
+  return current;
+}
+
 function buildPost(input: CreateSocialDistributionPostInput): SocialDistributionPost {
   const now = isoNow();
   const sourceState = sourceStateFromVisibility(input.sourceVisibilityState);
@@ -401,8 +454,14 @@ function buildPost(input: CreateSocialDistributionPostInput): SocialDistribution
         : "draft_created"
       : "draft_created";
   const status = input.initialStatus ?? defaultStatus;
+  const channelConnections = buildSocialChannelConnections({
+    channels: input.channels,
+    organizationId: input.organizationId,
+    createdBy: input.createdByUserId,
+    checkedAt: now,
+  });
 
-  return SocialDistributionPostSchema.parse({
+  const draftLike = {
     id: postIdFor(input),
     organizationId: input.organizationId,
     regionId: normalizeOptionalText(input.regionId) ?? null,
@@ -459,6 +518,23 @@ function buildPost(input: CreateSocialDistributionPostInput): SocialDistribution
     updatedByUserId: input.createdByUserId,
     createdAt: now,
     updatedAt: now,
+  };
+  const scheduler = buildSocialSchedulerEntries({
+    post: {
+      id: draftLike.id,
+      channels: draftLike.channels,
+      status: draftLike.status,
+      approval: draftLike.approval,
+      organizationId: draftLike.organizationId,
+      createdByUserId: draftLike.createdByUserId,
+    },
+    connections: channelConnections,
+  });
+
+  return SocialDistributionPostSchema.parse({
+    ...draftLike,
+    channelConnections,
+    scheduler,
   });
 }
 
@@ -576,6 +652,51 @@ function createMongoSocialDistributionRepo(): SocialDistributionRepo {
       });
       await appendAuditEventMongo(auditEvent);
       return next;
+    },
+
+    async updateScheduler(input) {
+      await ensureMongoIndexes();
+      const col = await coreCol<SocialDistributionPostDoc>(POSTS_COLLECTION);
+      const existing = await col.findOne({ _id: input.postId, "post.organizationId": input.organizationId });
+      if (!existing?.post) return null;
+      const connection = existing.post.channelConnections.find((entry) => entry.channel === input.channel) ?? null;
+      const currentEntry = existing.post.scheduler.find((entry) => entry.channel === input.channel);
+      if (!currentEntry) return null;
+      const transitioned = transitionSocialSchedulerEntry({
+        entry: currentEntry,
+        nextStatus: input.nextStatus,
+        post: existing.post,
+        connection,
+        scheduledAt: normalizeOptionalText(input.scheduledAt) ?? null,
+        error: normalizeOptionalText(input.note) ?? null,
+      });
+      if (transitioned.ok !== true) {
+        throw new Error(transitioned.error);
+      }
+      const nextScheduler = existing.post.scheduler.map((entry) =>
+        entry.channel === input.channel ? transitioned.entry : entry,
+      );
+      const nextPost = SocialDistributionPostSchema.parse({
+        ...existing.post,
+        status: updatePostStatusFromScheduler(existing.post.status, input.nextStatus),
+        scheduler: nextScheduler,
+        updatedByUserId: input.updatedByUserId,
+        updatedAt: isoNow(),
+      });
+      await col.updateOne(
+        { _id: input.postId },
+        { $set: { post: clone(nextPost), updatedAt: new Date(nextPost.updatedAt) } },
+      );
+      const auditEvent = buildAuditEvent({
+        post: nextPost,
+        action: auditActionForSchedulerStatus(input.nextStatus),
+        previousStatus: existing.post.status,
+        nextStatus: nextPost.status,
+        createdByUserId: input.updatedByUserId,
+        note: input.note ?? `${input.channel}:${input.nextStatus}`,
+      });
+      await appendAuditEventMongo(auditEvent);
+      return nextPost;
     },
 
     async getPost(postId) {
@@ -700,6 +821,45 @@ export function createInMemorySocialDistributionRepo(
         nextStatus: input.nextStatus,
         createdByUserId: input.updatedByUserId,
         note: input.note ?? null,
+      });
+      events.set(next.id, [auditEvent, ...(events.get(next.id) ?? [])]);
+      return clone(next);
+    },
+
+    async updateScheduler(input) {
+      const existing = posts.get(input.postId);
+      if (!existing || existing.organizationId !== input.organizationId) return null;
+      const connection = existing.channelConnections.find((entry) => entry.channel === input.channel) ?? null;
+      const currentEntry = existing.scheduler.find((entry) => entry.channel === input.channel);
+      if (!currentEntry) return null;
+      const transitioned = transitionSocialSchedulerEntry({
+        entry: currentEntry,
+        nextStatus: input.nextStatus,
+        post: existing,
+        connection,
+        scheduledAt: normalizeOptionalText(input.scheduledAt) ?? null,
+        error: normalizeOptionalText(input.note) ?? null,
+      });
+      if (transitioned.ok !== true) {
+        throw new Error(transitioned.error);
+      }
+      const next = SocialDistributionPostSchema.parse({
+        ...existing,
+        status: updatePostStatusFromScheduler(existing.status, input.nextStatus),
+        scheduler: existing.scheduler.map((entry) =>
+          entry.channel === input.channel ? transitioned.entry : entry,
+        ),
+        updatedByUserId: input.updatedByUserId,
+        updatedAt: isoNow(),
+      });
+      posts.set(next.id, clone(next));
+      const auditEvent = buildAuditEvent({
+        post: next,
+        action: auditActionForSchedulerStatus(input.nextStatus),
+        previousStatus: existing.status,
+        nextStatus: next.status,
+        createdByUserId: input.updatedByUserId,
+        note: input.note ?? `${input.channel}:${input.nextStatus}`,
       });
       events.set(next.id, [auditEvent, ...(events.get(next.id) ?? [])]);
       return clone(next);

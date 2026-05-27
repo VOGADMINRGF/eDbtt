@@ -13,6 +13,10 @@ import {
   getSocialDistributionRepo,
   type SocialDistributionPost,
 } from "./socialDistributionRuntime";
+import type {
+  SocialChannelConnection,
+  SocialSchedulerEntry,
+} from "./socialConnectorScheduler";
 import {
   getSocialDistributionStatusMeta,
   type SocialDistributionV1Status,
@@ -58,6 +62,8 @@ export type SocialDistributionQueueEntry = {
   copyReady: boolean;
   payloadAvailable: boolean;
   derived: boolean;
+  channelConnections: SocialChannelConnection[];
+  scheduler: SocialSchedulerEntry[];
   updatedAt: string | null;
 };
 
@@ -161,6 +167,8 @@ function itemsFromPost(post: SocialDistributionPost): SocialDistributionQueueEnt
     copyReady: true,
     payloadAvailable: true,
     derived: false,
+    channelConnections: post.channelConnections,
+    scheduler: post.scheduler,
     updatedAt: post.updatedAt,
   };
 
@@ -262,6 +270,8 @@ function itemFromDossierSuggestion(item: DossierUpdateSuggestion): SocialDistrib
     copyReady: true,
     payloadAvailable: true,
     derived: true,
+    channelConnections: [],
+    scheduler: [],
     updatedAt: item.updatedAt,
   });
 }
@@ -294,6 +304,8 @@ function itemFromRundenEntry(item: RundenEntryItem): SocialDistributionQueueEntr
     copyReady: true,
     payloadAvailable: true,
     derived: true,
+    channelConnections: [],
+    scheduler: [],
     updatedAt: item.updatedAt,
   });
 }
@@ -328,6 +340,8 @@ function itemFromFeedRuntime(input: Awaited<ReturnType<typeof buildFeedRadarRunt
     copyReady: false,
     payloadAvailable: true,
     derived: true,
+    channelConnections: [],
+    scheduler: [],
     updatedAt: input.runs[0]?.completedAt ?? input.runs[0]?.requestedAt ?? null,
   });
 }
