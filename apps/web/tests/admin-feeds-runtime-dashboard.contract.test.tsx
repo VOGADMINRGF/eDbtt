@@ -19,6 +19,7 @@ describe("admin feeds runtime dashboard contract", () => {
     expect(html).toContain("Manual-first Leitstand");
     expect(html).toContain("Nächste Aktion");
     expect(html).toContain("Öffentlicher Anschluss");
+    expect(html).toContain("Quellen-Health");
     expect(html).toContain("Letzte Läufe");
     expect(html).toContain("Scheduler-Claim bewusst ausgeschlossen");
     expect(html).toContain("Noch kein öffentlicher Anschluss vorbereitet");

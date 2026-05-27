@@ -14,6 +14,7 @@ import {
   resolveFeedRadarStatusFromSource,
   type FeedRadarRuntimeStatus,
 } from "./statusContract";
+import { buildFeedSourceAutomationReadModel } from "./sourceAutomation";
 import { listRecentFeedRuntimeRuns, type FeedRuntimeRunDoc } from "./runtimeLog";
 import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 
@@ -84,6 +85,53 @@ export type FeedRadarRuntimeReadModel = {
       href: string;
     };
   };
+  sourceAutomation: {
+    generatedAt: string;
+    items: Array<{
+      sourceId: string;
+      organizationId: string | null;
+      regionId: string | null;
+      sourceType: string;
+      sourceLabel: string;
+      sourceHref: string | null;
+      sourceKind: "feed_ref" | "source_connection";
+      healthStatus: string;
+      healthLabel: string;
+      healthHint: string;
+      lastPullAt: string | null;
+      nextSuggestedPullAt: string | null;
+      errorCount: number;
+      backoffUntil: string | null;
+      signalCount: number;
+      reviewCandidateCount: number;
+      automationMode: string;
+      reviewRequired: true;
+      noAutoPublish: true;
+      noDeepSearchAuto: true;
+      nextAction: {
+        label: string;
+        description: string;
+        href: string;
+      };
+    }>;
+    summary: {
+      totalSources: number;
+      healthySources: number;
+      noisySources: number;
+      failingSources: number;
+      quietSources: number;
+      backoffSources: number;
+      reviewCandidateCount: number;
+      cronReadySources: number;
+      manualSources: number;
+      themenradarReadySources: number;
+      nextAction: {
+        label: string;
+        description: string;
+        href: string;
+      };
+    };
+  };
 };
 
 export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntimeReadModel> {
@@ -95,6 +143,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     roomCol,
     runs,
     topicSupplyModel,
+    sourceAutomationModel,
   ] = await Promise.all([
     statementCandidatesCol(),
     voteDraftsCol(),
@@ -103,6 +152,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     anlassraumCol(),
     listRecentFeedRuntimeRuns(12),
     buildPublicTopicSupplyReadModel({ limit: 60 }).catch(() => null),
+    buildFeedSourceAutomationReadModel({ limit: 8 }).catch(() => null),
   ]);
 
   const [
@@ -243,6 +293,27 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
         label: "Supply prüfen",
         description: "Noch keine belastbaren Themensignale sichtbar.",
         href: "/admin/feeds",
+      },
+    },
+    sourceAutomation: sourceAutomationModel ?? {
+      generatedAt: new Date().toISOString(),
+      items: [],
+      summary: {
+        totalSources: 0,
+        healthySources: 0,
+        noisySources: 0,
+        failingSources: 0,
+        quietSources: 0,
+        backoffSources: 0,
+        reviewCandidateCount: 0,
+        cronReadySources: 0,
+        manualSources: 0,
+        themenradarReadySources: 0,
+        nextAction: {
+          label: "Quellen prüfen",
+          description: "Noch keine Quellen-Health-Daten sichtbar.",
+          href: "/admin/feeds",
+        },
       },
     },
   };

@@ -36,6 +36,10 @@ import {
   type FeedRef,
 } from "@features/feeds/feedConfig";
 import { recordFeedRuntimeRun } from "@features/feeds/runtimeLog";
+import {
+  buildFeedSourceAutomationId,
+  recordFeedSourceAutomationEvent,
+} from "@features/feeds/sourceAutomation";
 import { normalizeRegionCode } from "@core/regions/types";
 import { filterFeedRefsByRegion } from "@/lib/region/filters";
 import { requireAdminOrEditor } from "../_auth";
@@ -393,6 +397,34 @@ export async function POST(req: NextRequest) {
       errors.push({ feedUrl: result.feedUrl, error: err });
     }
   }
+
+  await Promise.all(
+    results.map((result, index) =>
+      recordFeedSourceAutomationEvent({
+        sourceId: buildFeedSourceAutomationId({
+          feedUrl: feedRefs[index]?.feedUrl ?? result.feedUrl,
+          regionId: feedRefs[index]?.regionCode ?? regionCode,
+        }),
+        regionId: feedRefs[index]?.regionCode ?? regionCode,
+        sourceType: "rss_feed",
+        sourceLabel: (() => {
+          try {
+            return new URL(feedRefs[index]?.feedUrl ?? result.feedUrl).hostname.replace(/^www\./, "");
+          } catch {
+            return feedRefs[index]?.feedUrl ?? result.feedUrl;
+          }
+        })(),
+        sourceHref: feedRefs[index]?.feedUrl ?? result.feedUrl,
+        automationMode: "cron_ready",
+        runStatus: dryRun ? "dry_run" : result.errors.length > 0 ? "error" : "success",
+        completedAt: new Date(),
+        fetchedItems: result.fetchedItems,
+        insertedSignals: result.inserted,
+        reviewCandidateCount: result.inserted,
+        error: result.errors[0] ?? null,
+      }),
+    ),
+  );
 
   const debug =
     process.env.NODE_ENV !== "production"

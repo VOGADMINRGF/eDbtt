@@ -93,6 +93,53 @@ type FeedRuntimeResponse = {
         href: string;
       };
     };
+    sourceAutomation: {
+      generatedAt: string;
+      items: Array<{
+        sourceId: string;
+        organizationId: string | null;
+        regionId: string | null;
+        sourceType: string;
+        sourceLabel: string;
+        sourceHref: string | null;
+        sourceKind: "feed_ref" | "source_connection";
+        healthStatus: string;
+        healthLabel: string;
+        healthHint: string;
+        lastPullAt: string | null;
+        nextSuggestedPullAt: string | null;
+        errorCount: number;
+        backoffUntil: string | null;
+        signalCount: number;
+        reviewCandidateCount: number;
+        automationMode: string;
+        reviewRequired: true;
+        noAutoPublish: true;
+        noDeepSearchAuto: true;
+        nextAction: {
+          label: string;
+          description: string;
+          href: string;
+        };
+      }>;
+      summary: {
+        totalSources: number;
+        healthySources: number;
+        noisySources: number;
+        failingSources: number;
+        quietSources: number;
+        backoffSources: number;
+        reviewCandidateCount: number;
+        cronReadySources: number;
+        manualSources: number;
+        themenradarReadySources: number;
+        nextAction: {
+          label: string;
+          description: string;
+          href: string;
+        };
+      };
+    };
   };
   error?: string;
 };
@@ -491,6 +538,92 @@ export default function AdminFeedsPage() {
 
             <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Quellen-Health
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Guarded Automation: cron-ready statt behauptetem Dauer-Scheduler, review-first statt Auto-Publish.
+              </p>
+              <div className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Quellen liefern Signale</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.healthySources, operatorLocale)} von{" "}
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.totalSources, operatorLocale)} Quellen liefern aktuell verwertbare review-first Signale.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Rauschen, Stille und Fehler</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.noisySources, operatorLocale)} rauschen,{" "}
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.quietSources, operatorLocale)} sind seit Tagen still und{" "}
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.failingSources + runtimeData.sourceAutomation.summary.backoffSources, operatorLocale)} brauchen Fehler- oder Backoff-Prüfung.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Themenradar-Anschluss</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.reviewCandidateCount, operatorLocale)} reviewfähige Signale aus{" "}
+                      {formatOperatorNumber(runtimeData.sourceAutomation.summary.themenradarReadySources, operatorLocale)} Quellen können in Themenradar und Review weiterlaufen.
+                    </p>
+                    <Link href="/admin/themenradar?mode=autonomous" className={`mt-2 inline-flex ${INLINE_LINK_CLASS}`}>
+                      Themenradar öffnen
+                    </Link>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{runtimeData.sourceAutomation.summary.nextAction.label}</p>
+                    <p className="mt-1">{runtimeData.sourceAutomation.summary.nextAction.description}</p>
+                    <Link href={runtimeData.sourceAutomation.summary.nextAction.href} className={`mt-2 inline-flex ${INLINE_LINK_CLASS}`}>
+                      Öffnen
+                    </Link>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {runtimeData.sourceAutomation.items.length > 0 ? (
+                    runtimeData.sourceAutomation.items.map((item) => (
+                      <div
+                        key={item.sourceId}
+                        className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.sourceLabel}</p>
+                            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                              {item.healthLabel} · {humanizeAutomationMode(item.automationMode)} · {humanizeSourceKind(item.sourceKind)}
+                              {item.regionId ? ` · ${item.regionId}` : ""}
+                              {item.organizationId ? ` · ${item.organizationId}` : ""}
+                            </p>
+                          </div>
+                          <Link href={item.nextAction.href} className={INLINE_LINK_CLASS}>
+                            {item.nextAction.label}
+                          </Link>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{item.healthHint}</p>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs text-[rgb(var(--muted))]">
+                          <p>
+                            Signale: {formatOperatorNumber(item.signalCount, operatorLocale)} · Reviewfähig:{" "}
+                            {formatOperatorNumber(item.reviewCandidateCount, operatorLocale)}
+                          </p>
+                          <p>
+                            Fehler: {formatOperatorNumber(item.errorCount, operatorLocale)}
+                            {item.backoffUntil ? ` · Backoff bis ${formatRunDate(item.backoffUntil)}` : ""}
+                          </p>
+                          <p>Letzter Abruf: {formatRunDate(item.lastPullAt)}</p>
+                          <p>Nächster Pull-Vorschlag: {formatRunDate(item.nextSuggestedPullAt)}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-[rgb(var(--border))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                      Noch keine Guarded-Automation-Daten sichtbar. Das ist ein ehrlicher Leerzustand ohne behaupteten Dauer-Scheduler.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </article>
+
+            <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
                 Letzte Läufe
               </p>
               <div className="mt-3 space-y-2">
@@ -543,6 +676,12 @@ export default function AdminFeedsPage() {
               </p>
               <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                 Noch kein öffentlicher Anschluss vorbereitet. Das ist ein ehrlicher Leerzustand und kein Seed-Fallback.
+              </p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Quellen-Health
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Guarded-Automation-Zustände erscheinen nach dem ersten sichtbaren Feed- oder Snapshot-Lauf. Bis dahin gibt es keinen behaupteten Dauer-Scheduler.
               </p>
               <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
                 Letzte Läufe
@@ -778,6 +917,20 @@ function humanizeRunStatus(status: string): string {
   if (status === "success") return "erfolgreich";
   if (status === "dry_run") return "Dry Run";
   return "Fehler";
+}
+
+function humanizeAutomationMode(mode: string) {
+  if (mode === "cron_ready") return "Cron-ready";
+  if (mode === "manual") return "manuell";
+  if (mode === "paused") return "pausiert";
+  if (mode === "disabled") return "deaktiviert";
+  return mode;
+}
+
+function humanizeSourceKind(kind: string) {
+  if (kind === "feed_ref") return "Feed";
+  if (kind === "source_connection") return "Quellenverbindung";
+  return kind;
 }
 
 function formatRunDate(value: string | null) {
