@@ -10,13 +10,14 @@ Nach `PUBLIC-TOPIC-SUPPLY-LAYER-01` und `POST-V1-CONSOLIDATION-BUNDLE-01` den do
 ## Remote- / Deploy-Parität
 
 - Lokales `main` und `origin/main` stehen jetzt auf demselben Follow-up-Commit:
-  - `HEAD`: `abe59466`
-  - `origin/main`: `abe59466`
+  - `HEAD`: `9a237861`
+  - `origin/main`: `9a237861`
   - `git rev-list --left-right --count origin/main...HEAD`: `0 0`
 - Die relevanten Post-V1-Commits sind damit remote enthalten:
   - `b710af56 feat(swipes): add public topic supply layer`
   - `d8227dbe chore(post-v1): consolidate backlog persistence and release gates`
   - `abe59466 chore(post-v1): verify consolidation follow-up`
+  - `9a237861 chore(post-v1): sync github state and v2 backlog`
 - GitHub-Web-/API-Livestatus fuer Commit-Checks und Vercel war aus der aktuellen Umgebung nicht stabil verifizierbar:
   - `gh run list` und `gh api .../status` schlugen wiederholt mit `error connecting to api.github.com` fehl.
   - Deshalb wird in diesem Follow-up **nicht** behauptet, dass GitHub Actions oder Vercel fuer `d8227dbe` live-gruen aus der aktuellen Shell bewiesen wurden.
@@ -193,7 +194,7 @@ Es wurde **keine weitere Copy-Korrektur** mehr noetig.
 
 Der dokumentierte Post-V1-Stand bleibt konsistent:
 
-- Remote-Parität zu `origin/main` ist hergestellt und umfasst jetzt auch `abe59466`.
+- Remote-Parität zu `origin/main` ist hergestellt und umfasst jetzt auch `9a237861`.
 - Der Public Topic Supply Layer haelt seine Guardrails und zeigt keine neue Runtime-Luecke.
 - `/admin/feeds` bleibt ein ehrlicher review-first Leitstand statt Vollcrawler- oder Auto-Publish-Surface.
 - Die im Bundle als erledigt/obsolet markierten Alt-Issues `#80`, `#58` und `#73` sind jetzt auch auf GitHub geschlossen.
