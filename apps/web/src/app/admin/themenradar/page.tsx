@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -27,6 +27,62 @@ type ThemenradarItem = {
   officialSocialRequiresReview: true;
   createdAt: string;
   updatedAt: string;
+};
+
+type AutonomousThemenradarCluster = {
+  id: string;
+  title: string;
+  topicLabel: string;
+  sourceTypes: Array<"proposal" | "feed" | "dossier" | "anlassraum" | "create" | "cluster">;
+  regionId: string | null;
+  organizationId: string | null;
+  claims: string[];
+  questions: string[];
+  options: string[];
+  evidenceHints: string[];
+  urgencyScore: number;
+  relevanceScore: number;
+  regionalityScore: number;
+  participationPotential: number;
+  reviewState: "needs_review" | "review_candidate" | "weak_evidence" | "stale_signal";
+  reviewStateLabel: string;
+  reviewHint: string;
+  nextSuggestedAction: {
+    key: string;
+    label: string;
+    description: string;
+    href: string;
+  };
+  duplicateSuggestionCount: number;
+  strongSignal: boolean;
+  weakEvidence: boolean;
+  reactivated: boolean;
+  stale: boolean;
+  visibleInSwipes: boolean;
+  dossierContext: boolean;
+  anlassraumContext: boolean;
+  autoPublishAllowed: false;
+  reviewRequired: true;
+};
+
+type AutonomousThemenradarReadModel = {
+  generatedAt: string;
+  items: AutonomousThemenradarCluster[];
+  summary: {
+    totalClusters: number;
+    strongSignals: number;
+    duplicates: number;
+    reviewRequired: number;
+    weakEvidence: number;
+    regionalHotspots: number;
+    reactivated: number;
+    stale: number;
+    nextAction: {
+      label: string;
+      description: string;
+      href: string;
+    };
+  };
 };
 
 const STATUS_OPTIONS = [
@@ -60,6 +116,9 @@ export default function ThemenradarAdminPage() {
   const [items, setItems] = useState<ThemenradarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [autonomous, setAutonomous] = useState<AutonomousThemenradarReadModel | null>(null);
+  const [autonomousLoading, setAutonomousLoading] = useState(true);
+  const [autonomousError, setAutonomousError] = useState<string | null>(null);
 
   const [title, setTitle] = useState(prefillTitle);
   const [rawSignal, setRawSignal] = useState(prefillSignal);
@@ -98,6 +157,41 @@ export default function ThemenradarAdminPage() {
     loadList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, sourceFilter, query]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAutonomousReadModel() {
+      setAutonomousLoading(true);
+      setAutonomousError(null);
+      try {
+        const res = await fetch("/api/admin/themenradar/autonomous?limit=8", {
+          cache: "no-store",
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body?.ok || !body?.readModel) {
+          throw new Error(body?.error ?? "themenradar_autonomous_load_failed");
+        }
+        if (!ignore) {
+          setAutonomous(body.readModel as AutonomousThemenradarReadModel);
+        }
+      } catch (loadError: any) {
+        if (!ignore) {
+          setAutonomous(null);
+          setAutonomousError(loadError?.message ?? "themenradar_autonomous_load_failed");
+        }
+      } finally {
+        if (!ignore) {
+          setAutonomousLoading(false);
+        }
+      }
+    }
+
+    loadAutonomousReadModel();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const counts = useMemo(() => {
     const result: Record<string, number> = {
@@ -165,6 +259,116 @@ export default function ThemenradarAdminPage() {
         <MetricCard label="Raw" value={counts.raw ?? 0} />
         <MetricCard label="Content ready" value={counts.content_ready ?? 0} />
         <MetricCard label="Review ready" value={counts.review_ready ?? 0} />
+      </section>
+
+      <section
+        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+        data-testid="themenradar-autonomous-supply"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
+              Autonome Themenversorgung
+            </h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Feed-, Dossier-, Anlassraum-, Create- und Vorschlagssignale werden als Cluster gebündelt.
+              Sichtbarkeit bleibt review-first, ohne Auto-Publish und ohne zweite Themenwelt.
+            </p>
+          </div>
+          <Link
+            href={autonomous?.summary.nextAction.href ?? "/admin/review"}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
+          >
+            {autonomous?.summary.nextAction.label ?? "Review öffnen"}
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="themenradar-autonomous-metrics">
+          <MetricCard label="Starke Themen" value={autonomous?.summary.strongSignals ?? 0} />
+          <MetricCard label="Dublettenvorschläge" value={autonomous?.summary.duplicates ?? 0} />
+          <MetricCard label="Schwache Quellenlage" value={autonomous?.summary.weakEvidence ?? 0} />
+          <MetricCard label="Regionale Hotspots" value={autonomous?.summary.regionalHotspots ?? 0} />
+        </div>
+
+        {autonomousError ? (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {autonomousError}
+          </div>
+        ) : null}
+
+        {autonomousLoading ? (
+          <p className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-sm text-[rgb(var(--muted))]">
+            Lade autonome Themencluster …
+          </p>
+        ) : null}
+
+        {!autonomousLoading && !autonomousError && (autonomous?.items.length ?? 0) === 0 ? (
+          <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-sm text-[rgb(var(--muted))]">
+            Noch keine gebündelten Themensignale. Das ist ein ehrlicher Leerzustand ohne Seed-Ersatz.
+            Prüfe Feed-Radar, Create-Handoffs oder Dossier-Vorschläge als nächste Quelle.
+          </div>
+        ) : null}
+
+        {!autonomousLoading && (autonomous?.items.length ?? 0) > 0 ? (
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {autonomous?.items.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                data-testid="themenradar-autonomous-item"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
+                    <p className="text-xs text-[rgb(var(--muted))]">
+                      {item.topicLabel} · {item.reviewStateLabel}
+                    </p>
+                    <p className="text-xs text-[rgb(var(--muted))]">
+                      Quellen: {item.sourceTypes.join(", ")}
+                      {item.regionId ? ` · Region ${item.regionId}` : ""}
+                      {item.organizationId ? ` · Organisation ${item.organizationId}` : ""}
+                    </p>
+                  </div>
+                  <Link
+                    href={item.nextSuggestedAction.href}
+                    className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
+                  >
+                    {item.nextSuggestedAction.label}
+                  </Link>
+                </div>
+
+                <p className="mt-3 text-sm text-[rgb(var(--muted))]">{item.reviewHint}</p>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                  <ScorePill label="Dringlichkeit" value={item.urgencyScore} />
+                  <ScorePill label="Relevanz" value={item.relevanceScore} />
+                  <ScorePill label="Regionalität" value={item.regionalityScore} />
+                  <ScorePill label="Beteiligung" value={item.participationPotential} />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+                  <SupplyChip active={item.visibleInSwipes}>Swipe-Anschluss</SupplyChip>
+                  <SupplyChip active={item.dossierContext}>Dossier-Kontext</SupplyChip>
+                  <SupplyChip active={item.anlassraumContext}>Anlassraum-Kontext</SupplyChip>
+                  <SupplyChip active={item.duplicateSuggestionCount > 0}>Dublettenvorschlag</SupplyChip>
+                  <SupplyChip active={item.reactivated}>Reaktiviert</SupplyChip>
+                  <SupplyChip active={!item.weakEvidence}>Quellenlage tragfähig</SupplyChip>
+                </div>
+
+                <div className="mt-3 text-xs text-[rgb(var(--muted))]">
+                  <p>
+                    Claims: {item.claims.length} · Fragen: {item.questions.length} · Optionen: {item.options.length} ·
+                    Hinweise: {item.evidenceHints.length}
+                  </p>
+                  <p className="mt-1">
+                    Guardrails: reviewRequired={String(item.reviewRequired)} · autoPublishAllowed=
+                    {String(item.autoPublishAllowed)}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
@@ -374,5 +578,25 @@ function MetricCard({ label, value }: { label: string; value: number }) {
       </p>
       <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{value}</p>
     </div>
+  );
+}
+
+function SupplyChip({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={
+        active
+          ? "rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200"
+          : "rounded-full border border-[rgb(var(--border))] px-2.5 py-1"
+      }
+    >
+      {children}
+    </span>
   );
 }

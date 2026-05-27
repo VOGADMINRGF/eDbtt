@@ -18,5 +18,7 @@ describe("themenradar-admin-page.render", () => {
     expect(html).toContain('data-testid="themenradar-query-filter"');
     expect(html).toContain("Neues Thema anlegen");
     expect(html).toContain("Operator-Fläche");
+    expect(html).toContain('data-testid="themenradar-autonomous-supply"');
+    expect(html).toContain("Autonome Themenversorgung");
   });
 });
