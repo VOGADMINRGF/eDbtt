@@ -33,7 +33,7 @@ type AutonomousThemenradarCluster = {
   id: string;
   title: string;
   topicLabel: string;
-  sourceTypes: Array<"proposal" | "feed" | "dossier" | "anlassraum" | "create" | "cluster">;
+  sourceTypes: Array<"proposal" | "feed" | "dossier" | "anlassraum" | "create" | "cluster" | "material">;
   regionId: string | null;
   organizationId: string | null;
   claims: string[];

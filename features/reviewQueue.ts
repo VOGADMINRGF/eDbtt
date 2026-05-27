@@ -69,12 +69,17 @@ import {
   socialDistributionStatusLabel,
   type SocialDistributionPost,
 } from "./outputEngine/socialDistributionRuntime";
+import {
+  listMaterialExtractionJobs,
+  type MaterialExtractionJob,
+} from "@/features/material/materialExtractionJobs";
 
 export const REVIEW_QUEUE_DOMAINS = [
   "participation_signal",
   "anlassraum_public_input",
   "region_intelligence_suggestion",
   "region_source_result",
+  "material_extraction",
   "region_signal_draft",
   "dossier_workspace",
   "output_artifact",
@@ -362,6 +367,8 @@ function domainLabelFor(domain: ReviewQueueDomain) {
       return "Region-Intelligence-Vorschlag";
     case "region_source_result":
       return "Quellen-Testresultat";
+    case "material_extraction":
+      return "Material-Extraktionsjob";
     case "region_signal_draft":
       return "RegionSignalDraft";
     case "dossier_workspace":
@@ -705,6 +712,69 @@ function mapRegionIntelligenceSuggestionItem(params: {
     visibilityLabel: publicationVisibilityLabel(params.suggestion.visibilityState),
     createdAt: "2026-05-17T00:00:00.000Z",
     updatedAt: "2026-05-17T00:00:00.000Z",
+    reviewRequired: true,
+    publicOfficialCandidate: false,
+    reviewAuthority: "standard_review",
+    reviewAuthorityLabel: "Reviewpflichtig",
+    contentReleaseWorkbench: null,
+    sourceSnapshotTemplate: null,
+  };
+}
+
+function scopeAllowsMaterialExtraction(params: {
+  scope: ReviewQueueScopeContext;
+  job: MaterialExtractionJob;
+}) {
+  return canViewRegionResource(params.scope, {
+    regionId: params.job.regionId,
+    organizationId: params.job.organizationId,
+    ownerUserId: params.job.submittedBy,
+  });
+}
+
+function includeMaterialExtractionItem(job: MaterialExtractionJob) {
+  return [
+    "extraction_pending",
+    "needs_review",
+    "attached_to_dossier",
+    "attached_to_themenradar",
+    "failed",
+    "blocked",
+  ].includes(job.status);
+}
+
+function mapMaterialExtractionItem(params: {
+  job: MaterialExtractionJob;
+  regionMap: Map<string, Region>;
+}): ReviewQueueItemCore {
+  const summaryParts = [
+    params.job.statusLabel,
+    params.job.costGuardLabel,
+    params.job.claimDrafts.length > 0 ? `${params.job.claimDrafts.length} Claim-Drafts` : null,
+    params.job.questionDrafts.length > 0 ? `${params.job.questionDrafts.length} Frage-Entwürfe` : null,
+    params.job.evidenceHints.length > 0 ? `${params.job.evidenceHints.length} Evidence-Hints` : null,
+  ].filter(Boolean);
+
+  return {
+    id: `material_extraction:${params.job.id}`,
+    domain: "material_extraction",
+    domainLabel: domainLabelFor("material_extraction"),
+    workflowState: "review_required",
+    workflowLabel: workflowLabelFor("review_required"),
+    title: params.job.materialLabel,
+    summary: summaryParts.join(" · ") || "Material-Extraktionsjob bleibt review-first.",
+    href: "/admin/feeds#material-extraction-jobs",
+    regionId: params.job.regionId,
+    regionName: regionNameFor(params.regionMap, params.job.regionId),
+    ownerUserId: params.job.submittedBy,
+    organizationId: params.job.organizationId,
+    dossierId: params.job.dossierId,
+    draftId: params.job.id,
+    sourceType: params.job.sourceType,
+    visibilityState: "internal_review",
+    visibilityLabel: publicationVisibilityLabel("internal_review"),
+    createdAt: params.job.createdAt,
+    updatedAt: params.job.updatedAt,
     reviewRequired: true,
     publicOfficialCandidate: false,
     reviewAuthority: "standard_review",
@@ -1440,7 +1510,7 @@ export async function buildReviewQueueReadModel(
   const regions = await listOperationalRegions();
   const regionMap = new Map(regions.map((region) => [region.id, clone(region)]));
   const socialDistributionRepo = getSocialDistributionRepo();
-  const [participationRecords, draftRecords, workspaces, socialDistributionPosts] = await Promise.all([
+  const [participationRecords, draftRecords, workspaces, socialDistributionPosts, materialExtractionJobs] = await Promise.all([
     listParticipationSignalsForReviewRuntime({
       regions,
       query: { reviewStatus: "all", limit: 400 },
@@ -1450,6 +1520,7 @@ export async function buildReviewQueueReadModel(
     scoped.mode === "global_operator"
       ? socialDistributionRepo.listAllPosts(200)
       : socialDistributionRepo.listPostsByOrganizationIds(scoped.organizationIds),
+    listMaterialExtractionJobs({ limit: 200 }),
   ]);
   const sourceResults = await listRegionSourceTestResults({ limit: 200 });
 
@@ -1518,6 +1589,11 @@ export async function buildReviewQueueReadModel(
       continue;
     }
     coreItems.push(mapSocialDistributionPostItem({ post, regionMap }));
+  }
+
+  for (const job of materialExtractionJobs.filter(includeMaterialExtractionItem)) {
+    if (!scopeAllowsMaterialExtraction({ scope: scoped, job })) continue;
+    coreItems.push(mapMaterialExtractionItem({ job, regionMap }));
   }
 
   if (scoped.mode === "global_operator" && scope.governanceActor) {

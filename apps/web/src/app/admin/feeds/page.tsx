@@ -140,6 +140,50 @@ type FeedRuntimeResponse = {
         };
       };
     };
+    materialExtraction: {
+      generatedAt: string;
+      items: Array<{
+        id: string;
+        materialId: string;
+        materialLabel: string;
+        sourceType: string;
+        organizationId: string | null;
+        regionId: string | null;
+        dossierId: string | null;
+        anlassraumId: string | null;
+        status: string;
+        statusLabel: string;
+        extractionMode: string;
+        costGuard: string;
+        costGuardLabel: string;
+        error: string | null;
+        reviewRequired: true;
+        noAutoPublish: true;
+        noAutoDeepSearch: true;
+        sourceHints: string[];
+        evidenceHints: string[];
+        nextAction: {
+          label: string;
+          description: string;
+          href: string;
+        };
+      }>;
+      summary: {
+        totalJobs: number;
+        waitingJobs: number;
+        failedJobs: number;
+        blockedJobs: number;
+        approvalRequiredJobs: number;
+        reviewReadyJobs: number;
+        dossierHandoffs: number;
+        themenradarHandoffs: number;
+        nextAction: {
+          label: string;
+          description: string;
+          href: string;
+        };
+      };
+    };
   };
   error?: string;
 };
@@ -358,7 +402,11 @@ export default function AdminFeedsPage() {
             </div>
           ) : null}
         </div>
-        {runtimeLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">Runtime-Leitstand wird geladen.</p>}
+        {runtimeLoading && (
+          <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+            Runtime-Leitstand wird geladen. Danach erscheinen hier auch Quellen-Health und Material-Extraktionsjobs ohne Demo-Fallback.
+          </p>
+        )}
         {runtimeError && <p className="mt-3 text-sm text-rose-700">{runtimeError}</p>}
         {runtimeData ? (
           <>
@@ -616,6 +664,86 @@ export default function AdminFeedsPage() {
                   ) : (
                     <div className="rounded-xl border border-dashed border-[rgb(var(--border))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
                       Noch keine Guarded-Automation-Daten sichtbar. Das ist ein ehrlicher Leerzustand ohne behaupteten Dauer-Scheduler.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </article>
+
+            <article id="material-extraction-jobs" className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Material-Extraktionsjobs
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Guarded Extraction: nur explizite Jobs, nur review-first Hints und Entwürfe, kein Auto-Publish und kein automatischer DeepSearch-Kostenpfad.
+              </p>
+              <div className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Wartende Jobs</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.waitingJobs, operatorLocale)} von{" "}
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.totalJobs, operatorLocale)} Jobs sind vorbereitet oder warten auf Review.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Blocker und Freigaben</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.approvalRequiredJobs, operatorLocale)} brauchen bewusste Kostenfreigabe,{" "}
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.blockedJobs, operatorLocale)} sind blockiert und{" "}
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.failedJobs, operatorLocale)} sind fehlgeschlagen.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Dossier- und Themenradar-Anschluss</p>
+                    <p className="mt-1">
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.dossierHandoffs, operatorLocale)} Jobs liefern Dossier-Hinweise,{" "}
+                      {formatOperatorNumber(runtimeData.materialExtraction.summary.themenradarHandoffs, operatorLocale)} andocken review-first an den Themenradar.
+                    </p>
+                    <Link href="/admin/themenradar?mode=autonomous" className={`mt-2 inline-flex ${INLINE_LINK_CLASS}`}>
+                      Themenradar öffnen
+                    </Link>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{runtimeData.materialExtraction.summary.nextAction.label}</p>
+                    <p className="mt-1">{runtimeData.materialExtraction.summary.nextAction.description}</p>
+                    <Link href={runtimeData.materialExtraction.summary.nextAction.href} className={`mt-2 inline-flex ${INLINE_LINK_CLASS}`}>
+                      Öffnen
+                    </Link>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {runtimeData.materialExtraction.items.length > 0 ? (
+                    runtimeData.materialExtraction.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.materialLabel}</p>
+                            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                              {item.statusLabel} · {humanizeExtractionMode(item.extractionMode)} · {item.costGuardLabel}
+                              {item.regionId ? ` · ${item.regionId}` : ""}
+                              {item.organizationId ? ` · ${item.organizationId}` : ""}
+                            </p>
+                          </div>
+                          <Link href={item.nextAction.href} className={INLINE_LINK_CLASS}>
+                            {item.nextAction.label}
+                          </Link>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{item.nextAction.description}</p>
+                        <div className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))] sm:grid-cols-2">
+                          <p>Typ: {item.sourceType}</p>
+                          <p>Material-ID: {item.materialId}</p>
+                          <p>Hints: {formatOperatorNumber(item.sourceHints.length + item.evidenceHints.length, operatorLocale)}</p>
+                          <p>{item.error ? `Blocker: ${item.error}` : "Keine automatische Veröffentlichung."}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-[rgb(var(--border))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                      Noch keine Material-Extraktionsjobs vorhanden. Material bleibt metadata-only, bis ein expliziter Job angelegt wird.
                     </div>
                   )}
                 </div>
@@ -931,6 +1059,14 @@ function humanizeSourceKind(kind: string) {
   if (kind === "feed_ref") return "Feed";
   if (kind === "source_connection") return "Quellenverbindung";
   return kind;
+}
+
+function humanizeExtractionMode(mode: string) {
+  if (mode === "metadata_only") return "Metadaten only";
+  if (mode === "text_extract") return "Text-Extraktion";
+  if (mode === "transcript_extract") return "Transkript-Extraktion";
+  if (mode === "manual_review") return "Manuelle Sichtung";
+  return mode;
 }
 
 function formatRunDate(value: string | null) {

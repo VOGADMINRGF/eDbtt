@@ -16,6 +16,7 @@ import {
 } from "./statusContract";
 import { buildFeedSourceAutomationReadModel } from "./sourceAutomation";
 import { listRecentFeedRuntimeRuns, type FeedRuntimeRunDoc } from "./runtimeLog";
+import { buildMaterialExtractionJobReadModel } from "@/features/material/materialExtractionJobs";
 import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 
 export type FeedRadarRuntimeNextAction =
@@ -132,6 +133,50 @@ export type FeedRadarRuntimeReadModel = {
       };
     };
   };
+  materialExtraction: {
+    generatedAt: string;
+    items: Array<{
+      id: string;
+      materialId: string;
+      materialLabel: string;
+      sourceType: string;
+      organizationId: string | null;
+      regionId: string | null;
+      dossierId: string | null;
+      anlassraumId: string | null;
+      status: string;
+      statusLabel: string;
+      extractionMode: string;
+      costGuard: string;
+      costGuardLabel: string;
+      error: string | null;
+      reviewRequired: true;
+      noAutoPublish: true;
+      noAutoDeepSearch: true;
+      sourceHints: string[];
+      evidenceHints: string[];
+      nextAction: {
+        label: string;
+        description: string;
+        href: string;
+      };
+    }>;
+    summary: {
+      totalJobs: number;
+      waitingJobs: number;
+      failedJobs: number;
+      blockedJobs: number;
+      approvalRequiredJobs: number;
+      reviewReadyJobs: number;
+      dossierHandoffs: number;
+      themenradarHandoffs: number;
+      nextAction: {
+        label: string;
+        description: string;
+        href: string;
+      };
+    };
+  };
 };
 
 export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntimeReadModel> {
@@ -144,6 +189,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     runs,
     topicSupplyModel,
     sourceAutomationModel,
+    materialExtractionModel,
   ] = await Promise.all([
     statementCandidatesCol(),
     voteDraftsCol(),
@@ -153,6 +199,7 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
     listRecentFeedRuntimeRuns(12),
     buildPublicTopicSupplyReadModel({ limit: 60 }).catch(() => null),
     buildFeedSourceAutomationReadModel({ limit: 8 }).catch(() => null),
+    buildMaterialExtractionJobReadModel({ limit: 8 }).catch(() => null),
   ]);
 
   const [
@@ -316,6 +363,52 @@ export async function buildFeedRadarRuntimeReadModel(): Promise<FeedRadarRuntime
         },
       },
     },
+    materialExtraction: materialExtractionModel
+      ? {
+          generatedAt: materialExtractionModel.generatedAt,
+          items: materialExtractionModel.items.map((job) => ({
+            id: job.id,
+            materialId: job.materialId,
+            materialLabel: job.materialLabel,
+            sourceType: job.sourceType,
+            organizationId: job.organizationId,
+            regionId: job.regionId,
+            dossierId: job.dossierId,
+            anlassraumId: job.anlassraumId,
+            status: job.status,
+            statusLabel: job.statusLabel,
+            extractionMode: job.extractionMode,
+            costGuard: job.costGuard,
+            costGuardLabel: job.costGuardLabel,
+            error: job.error,
+            reviewRequired: true,
+            noAutoPublish: true,
+            noAutoDeepSearch: true,
+            sourceHints: [...job.sourceHints],
+            evidenceHints: [...job.evidenceHints],
+            nextAction: job.nextSuggestedAction,
+          })),
+          summary: materialExtractionModel.summary,
+        }
+      : {
+          generatedAt: new Date().toISOString(),
+          items: [],
+          summary: {
+            totalJobs: 0,
+            waitingJobs: 0,
+            failedJobs: 0,
+            blockedJobs: 0,
+            approvalRequiredJobs: 0,
+            reviewReadyJobs: 0,
+            dossierHandoffs: 0,
+            themenradarHandoffs: 0,
+            nextAction: {
+              label: "Material-Jobs prüfen",
+              description: "Noch keine Extraktionsjobs vorhanden. Material bleibt metadata-only, bis ein expliziter Job angelegt wird.",
+              href: "/admin/feeds#material-extraction-jobs",
+            },
+          },
+        },
   };
 }
 

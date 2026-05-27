@@ -62,6 +62,9 @@ export type MaterialIntakeRecord = {
   sizeBytes: number | null;
   url: string | null;
   uploadId: string | null;
+  textPreview: string | null;
+  pageRef: string | null;
+  timestampRef: string | null;
   scanState: MaterialIntakeScanState;
   extractionState: MaterialIntakeExtractionState;
   reviewState: MaterialIntakeReviewState;
@@ -123,6 +126,7 @@ export type MaterialIntakeRepository = {
     auditEvents: MaterialIntakeAuditEvent[];
     persistence: MaterialIntakePersistenceState;
   }>;
+  getRecord(recordId: string): Promise<MaterialIntakeRecord | null>;
   listRecords(query?: {
     organizationIds?: string[];
     actorId?: string | null;
@@ -270,6 +274,9 @@ function buildRecords(input: CreateMaterialIntakeRecordsInput, persistence: Mate
       sizeBytes: typeof rawInput?.sizeBytes === "number" ? rawInput.sizeBytes : null,
       url: item.url,
       uploadId: item.uploadId,
+      textPreview: normalizeTextPreview(rawInput?.text ?? null),
+      pageRef: normalizeTextPreview(rawInput?.pageRef ?? null, 120),
+      timestampRef: normalizeTextPreview(rawInput?.timestampRef ?? null, 120),
       scanState: scanStateFor(item),
       extractionState: extractionStateFor(item),
       reviewState: "queued",
@@ -299,6 +306,12 @@ function buildRecords(input: CreateMaterialIntakeRecordsInput, persistence: Mate
   });
 
   return { records, auditEvents };
+}
+
+function normalizeTextPreview(value: string | null | undefined, maxLength = 500) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return normalized.slice(0, maxLength);
 }
 
 function recordDoc(record: MaterialIntakeRecord) {
@@ -335,6 +348,14 @@ function createMongoRepo(): MaterialIntakeRepository {
         ),
       ]);
       return { ...built, persistence };
+    },
+    async getRecord(recordId) {
+      await ensureIndexes();
+      const normalized = String(recordId ?? "").trim();
+      if (!normalized) return null;
+      const records = await coreCol<any>(MATERIAL_RECORDS_COLLECTION);
+      const doc = await records.findOne({ _id: normalized });
+      return doc?.record ? clone(doc.record as MaterialIntakeRecord) : null;
     },
     async listRecords(query = {}) {
       await ensureIndexes();
@@ -384,6 +405,12 @@ export function createInMemoryMaterialIntakeRepository(seed?: {
       for (const record of built.records) records.set(record.id, clone(record));
       for (const event of built.auditEvents) auditEvents.set(event.id, clone(event));
       return { ...built, persistence };
+    },
+    async getRecord(recordId) {
+      const normalized = String(recordId ?? "").trim();
+      if (!normalized) return null;
+      const record = records.get(normalized);
+      return record ? clone(record) : null;
     },
     async listRecords(query = {}) {
       const organizationIds = new Set(uniqueNonEmpty(query.organizationIds ?? []));
@@ -441,6 +468,10 @@ export async function listMaterialIntakeRecords(query?: Parameters<MaterialIntak
 
 export async function listMaterialIntakeAuditEvents(recordId: string) {
   return getRepo().listAuditEvents(recordId);
+}
+
+export async function getMaterialIntakeRecord(recordId: string) {
+  return getRepo().getRecord(recordId);
 }
 
 async function ensureIndexes() {

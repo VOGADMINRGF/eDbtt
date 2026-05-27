@@ -17,6 +17,7 @@ import {
   listPersistedCreateHandoffRecords,
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
+import { listMaterialExtractionThemenradarSeeds } from "@/features/material/materialExtractionJobs";
 import { buildPublicTopicSupplyReadModel } from "@/features/swipes/publicTopicSupply";
 import type { SwipeItem } from "@/features/swipes/types";
 
@@ -57,7 +58,8 @@ type AutonomousSeedSource =
   | "dossier"
   | "anlassraum"
   | "create"
-  | "cluster";
+  | "cluster"
+  | "material";
 
 type AutonomousSeed = {
   sourceId: string;
@@ -695,13 +697,38 @@ async function loadClusterSeeds(scope?: AutonomousThemenradarScope): Promise<Aut
     .filter((seed) => matchesScope({ regionId: seed.regionId, organizationId: seed.organizationId, scope }));
 }
 
+async function loadMaterialSeeds(scope?: AutonomousThemenradarScope): Promise<AutonomousSeed[]> {
+  const jobs = await listMaterialExtractionThemenradarSeeds(scope).catch(() => []);
+  return jobs.map((job) => ({
+    sourceId: job.sourceId,
+    sourceType: "material" as const,
+    title: job.title,
+    topicLabel: job.topicLabel,
+    clusterTopicKey: job.clusterTopicKey,
+    regionId: job.regionId,
+    organizationId: job.organizationId,
+    claims: job.claims,
+    questions: job.questions,
+    options: job.options,
+    evidenceHints: job.evidenceHints,
+    reviewRequired: true,
+    weakEvidence: job.weakEvidence,
+    createdAt: job.createdAt,
+    sourceHref: job.sourceHref,
+    swipesHref: job.swipesHref,
+    dossierHref: job.dossierHref,
+    anlassraumHref: job.anlassraumHref,
+    priorityBoost: job.priorityBoost,
+  }));
+}
+
 export async function buildAutonomousThemenradarReadModel(input?: {
   scope?: AutonomousThemenradarScope;
   limit?: number;
 }): Promise<AutonomousThemenradarReadModel> {
   const scope = input?.scope;
   const limit = Math.max(1, Math.min(40, Math.floor(input?.limit ?? 16)));
-  const [supplyModel, proposalSeeds, feedSeeds, dossierSeeds, anlassraumSeeds, createSeeds, clusterSeeds] =
+  const [supplyModel, proposalSeeds, feedSeeds, dossierSeeds, anlassraumSeeds, createSeeds, clusterSeeds, materialSeeds] =
     await Promise.all([
       buildPublicTopicSupplyReadModel({
         filter: {
@@ -717,6 +744,7 @@ export async function buildAutonomousThemenradarReadModel(input?: {
       loadAnlassraumSeeds(scope),
       loadCreateSeeds(scope),
       loadClusterSeeds(scope),
+      loadMaterialSeeds(scope),
     ]);
 
   const visibleSupplySourceIds = supplyItemVisibleSet(supplyModel.items ?? []);
@@ -728,6 +756,7 @@ export async function buildAutonomousThemenradarReadModel(input?: {
     ...anlassraumSeeds,
     ...createSeeds,
     ...clusterSeeds,
+    ...materialSeeds,
   ];
 
   for (const seed of allSeeds) {
