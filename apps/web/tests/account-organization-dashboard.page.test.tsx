@@ -302,7 +302,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Noch keine Freischaltung aktiv.");
     expect(html).toContain("Vertrag &amp; Billing");
     expect(html).toContain("Vertrag ausstehend");
-    expect(html).toContain("Es wird kein externer Checkout behauptet");
+    expect(html).toContain("Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider");
     expect(html).toContain("Verifikationsstatus");
     expect(html).toContain("Directory-Wahrheit");
     expect(html).toContain("Demo- oder Testwahrheit");

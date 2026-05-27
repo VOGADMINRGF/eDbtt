@@ -75,6 +75,8 @@ function sourceFromEntitlement(entitlement: PaidDashboardEntitlement): Organizat
       return "fixture_demo";
     case "order_request":
       return "manual_invoice";
+    case "external_checkout":
+      return "external_checkout_integrated";
     case "admin_grant":
     case "pilot_grant":
     case "manual_contract":
@@ -541,7 +543,7 @@ export function buildOrganizationContractSummary(input: {
             ? "Vertrag ausstehend"
             : "Angebot oder Vertrag in Prüfung",
         nextStepBody:
-          "Der Vertragsprozess ist sichtbar, aber noch nicht aktiv. Es wird bewusst kein externer Checkout behauptet und keine aktive Vollfreischaltung vorgetäuscht.",
+          "Der Vertragsprozess ist sichtbar, aber noch nicht aktiv. Optionaler Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; bis dahin bleiben manuelle Freigabe und keine aktive Vollfreischaltung der ehrliche Zustand.",
         storeLabel: runtimeMarker === "demo_or_test_runtime" ? "Demo-/Test-Fallback" : "Persistenter Vertragsprozess",
         records,
       };

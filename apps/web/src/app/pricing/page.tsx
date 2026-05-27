@@ -118,6 +118,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustTwo: "Counting and status display are transparent and traceable.",
           trustThree: "Cancellation, revocation and data protection are documented clearly.",
           trustFour: "No official election result unless explicitly configured as legally binding.",
+          trustFive: "No hidden AI costs. Extra research or review services stay opt-in.",
           membershipTitle: "Membership in the initiative",
           membershipIntro:
             "Membership remains optional and separate from package purchase.",
@@ -196,6 +197,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustThree: "Widerruf, Kündigung und Datenschutz sind verständlich dokumentiert.",
           trustFour:
             "Keine amtliche Wahl oder verbindliche Abstimmung, außer wenn ein rechtssicheres Verfahren ausdrücklich eingerichtet ist.",
+          trustFive:
+            "Keine versteckten AI-Kosten. Zusätzliche Recherche- oder Prüfpfade werden nur bewusst aktiviert.",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro:
             "Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.",
@@ -235,8 +238,10 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           </p>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
             Produktive Freischaltungen laufen über Betreiber-Verifikation und manuelle
-            Vertragsfreigabe. Es wird kein externer Checkout, keine versteckte CRM-Integration
-            und keine automatische Verteilung behauptet.
+            Vertragsfreigabe. Self-Service-Checkout erscheint nur, wenn ein Zahlungsprovider
+            bewusst aktiviert ist; sonst bleiben manuelle Rechnung, Betreiberfreigabe und
+            auditierbare Zusatzleistungen der ehrliche Pfad. Keine versteckte CRM-Integration
+            und keine automatische Verteilung.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/register", locale)} className="btn-primary">
@@ -361,6 +366,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             <li>{labels.trustTwo}</li>
             <li>{labels.trustThree}</li>
             <li>{labels.trustFour}</li>
+            <li>{labels.trustFive}</li>
           </ul>
           <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>
           <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{labels.membershipIntro}</p>

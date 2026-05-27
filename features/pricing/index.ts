@@ -15,6 +15,7 @@ export * from "./domain/trustLoop.de";
 export * from "./domain/helpers";
 export * from "./domain/formatters";
 export * from "./domain/i18n";
+export * from "./checkoutProvider";
 
 // reine Logik/Typen (client-safe)
 export * from "./types";

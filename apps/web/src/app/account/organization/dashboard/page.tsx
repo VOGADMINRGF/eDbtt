@@ -868,7 +868,8 @@ export default async function AccountOrganizationDashboardPage() {
           </h2>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
             Dieser Bereich zeigt den bewussten Vertrags- und Billing-Stand deiner Organisation.
-            Es wird kein externer Checkout behauptet.
+            Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; sonst
+            bleibt der Vertragspfad manuell und auditierbar.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -911,7 +912,7 @@ export default async function AccountOrganizationDashboardPage() {
               {readModel.contractSummary.productionTruth
                 ? "Persistente, auditierbare Betreiber-Verifikation ist für v1 die Produktionswahrheit."
                 : readModel.contractSummary.sourceOfTruth === "external_checkout_pending"
-                  ? "Externer Checkout bleibt ein optionaler späterer Integrationsmodus und ist hier noch nicht aktiv."
+                  ? "Self-Service-Checkout ist vorbereitet, aber noch nicht als aktive Produktionswahrheit bestätigt."
                   : "Noch kein production_ready-v1 Vertragsstatus. Zugriffe bleiben bewusst begrenzt oder gesperrt."}
             </p>
             {readModel.contractSummary.planAssignment ? (
@@ -1049,8 +1050,8 @@ export default async function AccountOrganizationDashboardPage() {
             {organizationEntitlementStatusLabel(readModel.entitlementSummary.currentStatus)}
           </h2>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            Freischaltung zeigt den Arbeitszugang, nicht Checkout oder Payment. Keine
-            Payment-Behauptung in diesem Bereich.
+            Freischaltung zeigt den Arbeitszugang, nicht automatische Amtlichkeit. Zahlung,
+            Vertrag und Arbeitszugang bleiben getrennt und auditierbar.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -1089,7 +1090,7 @@ export default async function AccountOrganizationDashboardPage() {
             </p>
             <p className="mt-2 text-xs text-[rgb(var(--muted))]">
               {readModel.entitlementSummary.productionTruth
-                ? "Die Entitlement-Runtime ist persistent und auditierbar, bleibt aber weiterhin ohne Checkout- oder Payment-Behauptung."
+                ? "Die Entitlement-Runtime ist persistent und auditierbar. Sie zeigt freigeschaltete Arbeitsrechte, nicht automatische Amtlichkeit oder Auto-Publish."
                 : "Der aktuelle Entitlement-Zustand läuft noch auf lokalem oder In-Memory-Fallback und ist kein production_ready-Nachweis."}
             </p>
             {readModel.entitlementSummary.billingPending ? (

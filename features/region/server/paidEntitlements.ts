@@ -32,6 +32,7 @@ export const ENTITLEMENT_SOURCES = [
   "admin_grant",
   "pilot_grant",
   "order_request",
+  "external_checkout",
   "manual_contract",
   "migration",
   "fixture",

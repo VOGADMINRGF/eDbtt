@@ -1294,7 +1294,7 @@ function buildOrganizationFirstRun(input: {
       id: "status",
       title: "Freischaltung verstehen",
       description:
-        "Freischaltung zeigt den Arbeitszugang, nicht Checkout oder Payment. Sichtbarkeit und Veröffentlichung bleiben davon getrennt reviewpflichtig.",
+        "Freischaltung zeigt den Arbeitszugang. Optionaler Checkout, Vertrag, Sichtbarkeit und Veröffentlichung bleiben getrennte, reviewpflichtige Schritte.",
       status: input.hasEntitlement
         ? "done"
         : input.hasSelectedRegion

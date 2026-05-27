@@ -24,7 +24,7 @@ const PAGE_COPY = {
     heroIntro:
       "Beantworte ein paar Fragen zu Einsatz, Ziel und Rahmen. Wir schlagen dir das passende Modell und sinnvolle Erweiterungen vor.",
     heroAuditNote:
-      "Freischaltungen laufen review-first über Betreiber-Verifikation und manuelle Vertragsfreigabe. Es wird kein externer Checkout und keine automatische Veröffentlichung behauptet.",
+      "Freischaltungen laufen review-first über Betreiber-Verifikation und Vertragsaudit. Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; sonst bleiben manuelle Rechnung und Betreiberfreigabe der Standard. Keine automatische Veröffentlichung.",
     directToSelection: "Direkt zur Auswahl",
     contact: "Kontakt",
     toPrivateOverview: "Zur Privatübersicht",
@@ -93,7 +93,7 @@ const PAGE_COPY = {
     heroIntro:
       "Answer a few questions about target use and operating frame. We recommend the best-fit model and useful extensions.",
     heroAuditNote:
-      "Activations stay review-first through operator verification and manual contract approval. No external checkout or automatic publishing is claimed.",
+      "Activations stay review-first through operator verification and contract audit. Self-service checkout appears only when a payment provider is explicitly enabled; otherwise manual invoicing and operator approval remain the default. No automatic publishing is claimed.",
     directToSelection: "Jump to guided selection",
     contact: "Contact",
     toPrivateOverview: "Back to civic pricing",
