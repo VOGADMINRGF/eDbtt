@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
 type Question = {
   id: string;
@@ -73,25 +75,50 @@ export function QuestionSetClient({ code }: { code: string }) {
     }
   }
 
-  if (loading) {
-    return <div className="p-6 text-sm text-[rgb(var(--muted))]">Fragen werden geladen …</div>;
-  }
-  if (error || !data?.set) {
-    return <div className="p-6 text-sm text-rose-600">Fragen-Set nicht gefunden.</div>;
-  }
-
-  const questions = data.set.questions ?? [];
+  const questions = data?.set?.questions ?? [];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 space-y-6">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">QR Fragen-Set</p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{data.set.title ?? "Abstimmung"}</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{data?.set?.title ?? "Abstimmung"}</h1>
         {notice && <p className="text-sm text-[rgb(var(--muted))]">{notice}</p>}
       </header>
 
-      {questions.length === 0 ? (
-        <p className="text-sm text-[rgb(var(--muted))]">Noch keine Fragen hinterlegt.</p>
+      <PwaRouteStatusHint
+        title="QR- und Event-Einstieg"
+        body="Du bist auf einem bestehenden Beteiligungspfad gelandet. Fragen, Event-Hinweise und Folgekontext bleiben auf denselben Anlassraum-, Stream- und Dossier-Routen."
+        caution="Wenn die Verbindung abreißt, bleiben nur bereits geladene Fragen sichtbar. Stimmen oder Folgeaktionen werden erst mit Verbindung gesendet; es gibt keine stille Offline-Synchronisation."
+        actions={[
+          { href: "/runden", label: "Zum Anlassraum" },
+          { href: "/stream", label: "Zu Events" },
+          { href: "/dossier", label: "Zum Dossier-Kontext" },
+        ]}
+        tone="light"
+      />
+
+      {loading ? (
+        <p className="text-sm text-[rgb(var(--muted))]">Fragen werden geladen …</p>
+      ) : error || !data?.set ? (
+        <p className="text-sm text-rose-600">Fragen-Set nicht gefunden.</p>
+      ) : questions.length === 0 ? (
+        <div className="space-y-3">
+          <p className="text-sm text-[rgb(var(--muted))]">Noch keine Fragen hinterlegt.</p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Link
+              href="/runden"
+              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
+            >
+              Öffentlichen Anlass öffnen
+            </Link>
+            <Link
+              href="/stream"
+              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
+            >
+              Event-Kontext ansehen
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="space-y-4">
           {questions.map((q) => (

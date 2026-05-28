@@ -39,6 +39,7 @@ const CORE_EXACT_PATHS = new Set<InternalRedirectPath>([
   "/themen",
   "/runden",
   "/anlassraum",
+  "/dossier",
   "/factcheck",
   "/stream",
   "/pricing",
@@ -58,6 +59,7 @@ const CORE_PREFIX_PATHS: readonly InternalRedirectPath[] = [
   "/stream/",
   "/topic/",
   "/round/",
+  "/qr/",
   "/pricing/",
 ];
 

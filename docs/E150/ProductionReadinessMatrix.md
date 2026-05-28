@@ -71,7 +71,7 @@ Deutsche Lesefassung fuer Copy und FAQ:
 | Stream Public Runtime | production_ready | oeffentliche Event-/Beteiligungsflaeche mit reviewpflichtigen Inputs und Nachbereitung | kein Video-Encoding, kein WebRTC, kein unmoderierter Chat |
 | Review Queue / Moderation / Audit | production_ready | globale Betreiber- und org-scoped Review-/Release-/Audit-Pfade fuer die V1-Kette | keine automatische `public_official`-Freigabe, keine zweite Queue |
 | Org-/Region-Scope fuer V1 | production_ready | manuell oder operatorisch freigeschaltete Organisations- und Verwaltungsarbeit mit sauberem Scope | kein breiter Self-Service-Rollout ohne Betreiberkante |
-| Public Routes | production_ready | `/start`, `/create`, `/swipes`, `/runden`, `/anlassraum`, `/dossier/[id]`, `/stream`, `/pricing`, `/pricing/institutionen` | keine Pilot-/Candidate-Copy, keine Fake-Live-Claims |
+| Public Routes | production_ready | `/start`, `/create`, `/swipes`, `/runden`, `/anlassraum`, `/dossier/[id]`, `/stream`, `/pricing`, `/pricing/institutionen`; `/start` bleibt installierbarer PWA-Einstieg, QR-/Dossier-/Stream-Pfade laufen in derselben Mobile-Core-Shell und Offline-Hinweise bleiben ehrlich | keine Pilot-/Candidate-Copy, keine Fake-Live-Claims, keine stille Offline-Synchronisation |
 | Pricing / Membership fuer V1 | production_ready | kostenlose oeffentliche Teilnahme plus manuell/operatorisch freigeschaltete Organisationsrechte und transparente Angebots-/Aktivierungspfade | kein Self-Checkout, keine automatische Billing-/Provisionierungsautomation |
 
 Post-V1 oder bewusst out of scope:

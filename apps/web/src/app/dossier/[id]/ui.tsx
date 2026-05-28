@@ -23,6 +23,7 @@ import {
   resolveDossierStatusChips,
   toneClassForB2CStatus,
 } from "@/features/b2cJourney/statusContract";
+import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
 type ApiResponse =
   | { ok: true; dossier: Dossier; updateContext?: DossierPublicUpdateContext | null }
@@ -158,6 +159,19 @@ export function DossierPagePublicBody({
             {chip.label}
           </span>
         ))}
+      </div>
+      <div className="mb-4">
+        <PwaRouteStatusHint
+          title="Dossier-Kontext mobil"
+          body="Dieses Dossier bleibt ein lesbarer Kontextpfad zwischen Swipes, Anlassraum und späteren Event-/Stream-Follow-ups. Sichtbar ist nur der aktuelle Stand, nicht automatisch eine Freigabe."
+          caution="Ohne Verbindung bleiben nur bereits geladene Dossier-Inhalte lesbar. Share-, Watchlist- oder Folgeaktionen werden nicht offline übernommen."
+          actions={[
+            { href: "/swipes", label: "Themenlage öffnen" },
+            { href: "/runden", label: "Anlassraum ansehen" },
+            { href: "/stream", label: "Event-Pfade öffnen" },
+          ]}
+          tone="light"
+        />
       </div>
       <p className="mb-3 text-xs text-[rgb(var(--muted))]">
         Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).

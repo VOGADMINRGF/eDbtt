@@ -11,6 +11,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { buildPublicTaskFirstQuickActionCenter } from "@/features/quickActions/taskFirstQuickActions";
 import type { StartExperienceModel } from "@/features/start/startExperience";
 import { normalizeLang } from "@features/landing/landingCopy";
+import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
 type LandingStartProps = {
   blocks: BucketBlock[];
@@ -306,6 +307,20 @@ export default function LandingStart({ blocks, experience = DEFAULT_START_EXPERI
           <TaskFirstQuickActionCenter model={quickActionCenter} tone="dark" />
         ) : null}
 
+        <div className="mt-6">
+          <PwaRouteStatusHint
+            title="Mobil starten"
+            body="Swipes bleibt der schnellste Bürgerpfad. QR- und Event-Links führen in dieselben bestehenden Anlassraum-, Stream- und Dossier-Kontexte statt in eine zweite App-Welt."
+            caution="Wenn die Verbindung schwankt, bleiben bereits geladene Inhalte sichtbar. Neue Swipes, Beiträge oder QR-Schritte werden erst mit stabiler Verbindung übertragen."
+            actions={[
+              { href: "/swipes", label: "Swipes öffnen" },
+              { href: "/runden", label: "Anlassraum ansehen" },
+              { href: "/stream", label: "Event-Pfade öffnen" },
+              { href: "/dossier", label: "Dossier-Kontext öffnen" },
+            ]}
+          />
+        </div>
+
         <section className="mt-6 grid gap-5 lg:grid-cols-[1.2fr,0.8fr]">
           <article className="rounded-3xl border border-cyan-300/30 bg-slate-900/75 p-6 shadow-[0_24px_70px_rgba(14,116,144,0.25)] backdrop-blur-xl sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
@@ -591,10 +606,10 @@ export default function LandingStart({ blocks, experience = DEFAULT_START_EXPERI
             </article>
           </div>
           <a
-            href="/dossier/demo"
+            href="/dossier"
             className="mt-5 inline-flex rounded-full border border-cyan-300/45 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
-            Dossier öffnen
+            Dossier-Kontext öffnen
           </a>
         </section>
 

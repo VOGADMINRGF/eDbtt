@@ -3,6 +3,7 @@
 import Link from "next/link";
 import useUser from "@features/user/context/UserContext";
 import StreamList from "@features/stream/components/StreamList";
+import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
 export default function StreamPage() {
   const { user, role } = useUser();
@@ -58,6 +59,17 @@ export default function StreamPage() {
             </Link>
           ) : null}
         </div>
+
+        <PwaRouteStatusHint
+          title="Event- und QR-Einstieg mobil"
+          body="Stream-Links, Event-QRs und spätere Anschlusswege bleiben auf denselben bestehenden Routen. Von hier aus geht es in Anlassraum, Dossier oder Swipes weiter, ohne stillen Sync- oder Live-Claim."
+          caution="Fällt die Verbindung aus, bleiben nur bereits geladene Hinweise sichtbar. Neue Fragen oder Quellen werden nicht offline zwischensynchronisiert."
+          actions={[
+            { href: "/runden", label: "Zum Anlassraum" },
+            { href: "/swipes", label: "Zu Swipes" },
+            { href: "/dossier", label: "Zu Dossiers" },
+          ]}
+        />
 
         <div className="min-w-0 overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
           <div className="mb-4 flex flex-wrap items-center gap-2 overflow-x-auto text-xs text-[rgb(var(--muted))]">
