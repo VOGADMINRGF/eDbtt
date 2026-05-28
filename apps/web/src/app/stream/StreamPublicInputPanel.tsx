@@ -1,8 +1,9 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   STREAM_PUBLIC_INPUT_EMPTY_STATE_COPY,
   STREAM_PUBLIC_INPUT_KINDS,
@@ -24,14 +25,44 @@ type SubmissionState =
 export default function StreamPublicInputPanel(props: {
   streamId: string;
   streamTitle: string;
+  entryHref: string;
   anlassraumHref: string | null;
   dossierHref: string | null;
+  swipesHref: string | null;
   openForInput: boolean;
 }) {
+  const searchParams = useSearchParams();
   const [kind, setKind] = useState<StreamPublicInputKind>("question");
   const [text, setText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "idle" });
+
+  useEffect(() => {
+    const requestedKind = searchParams.get("kind");
+    if (!requestedKind) return;
+    if (
+      STREAM_PUBLIC_INPUT_KINDS.includes(
+        requestedKind as StreamPublicInputKind,
+      )
+    ) {
+      setKind(requestedKind as StreamPublicInputKind);
+    }
+  }, [searchParams]);
+
+  const quickActionLinks = [
+    {
+      href: `${props.entryHref}?kind=question#event-input`,
+      label: "Frage stellen",
+    },
+    {
+      href: `${props.entryHref}?kind=source_hint#event-input`,
+      label: "Quelle/Hinweis geben",
+    },
+    {
+      href: `${props.entryHref}?kind=option#event-input`,
+      label: "Option vorschlagen",
+    },
+  ];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,7 +126,10 @@ export default function StreamPublicInputPanel(props: {
   }
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+    <section
+      id="event-input"
+      className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"
+    >
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           Öffentliche Beteiligung
@@ -110,6 +144,22 @@ export default function StreamPublicInputPanel(props: {
         <p className="text-sm leading-6 text-[rgb(var(--muted))]">
           Nichts erscheint automatisch als Chat, amtliche Aussage oder veröffentlichtes Ergebnis.
         </p>
+        <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+          Der Eventmodus bleibt mobil und QR-tauglich: erst Beitrag einreichen, dann später Ergebnis,
+          Anlassraum oder Dossier prüfen.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {quickActionLinks.map((entry) => (
+          <Link
+            key={entry.label}
+            href={entry.href}
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--card))]"
+          >
+            {entry.label}
+          </Link>
+        ))}
       </div>
 
       {!props.openForInput ? (
@@ -220,6 +270,24 @@ export default function StreamPublicInputPanel(props: {
                 Sichtbar heißt nicht automatisch geprüft oder veröffentlicht. Dossier-, Anlassraum-
                 und Social-Folgepfade bleiben review-first.
               </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {props.anlassraumHref ? (
+                  <Link
+                    href={props.anlassraumHref}
+                    className="inline-flex items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                  >
+                    Ergebnis später im Anlassraum sehen
+                  </Link>
+                ) : null}
+                {props.dossierHref ? (
+                  <Link
+                    href={props.dossierHref}
+                    className="inline-flex items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                  >
+                    Dossier öffnen
+                  </Link>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -235,6 +303,11 @@ export default function StreamPublicInputPanel(props: {
         Keine automatische Veröffentlichung. Keine ungeprüfte Chat-Anzeige. Keine stille Weitergabe
         an Dossier oder Social-Kanäle.
       </p>
+      {props.swipesHref ? (
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Swipes bleiben ein eigener Folgepfad und ersetzen weder Review noch Nachbereitung.
+        </p>
+      ) : null}
     </section>
   );
 }

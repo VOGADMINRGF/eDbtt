@@ -452,10 +452,10 @@ export function buildStreamShareContext(runtime: StreamPublicRuntime) {
     shareTitle: runtime.session.title,
     sharePrompt:
       runtime.participation.openForInput
-        ? "Öffne den Event-Kontext und reiche Fragen oder Hinweise reviewpflichtig ein."
-        : "Öffne den Event-Kontext mit Anlassraum- und Dossier-Anschluss.",
+        ? "Öffne den Event-Kontext per Link oder QR und reiche Fragen, Quellen oder Optionen reviewpflichtig ein."
+        : "Öffne den Event-Kontext mit Anlassraum-, Dossier- und Ergebnisanschluss.",
     shareSummary:
-      "Link und QR führen in die öffentliche Beteiligungsfläche. Keine automatische Veröffentlichung, keine ungeprüfte Ergebnisbehauptung.",
+      "Link und QR führen in denselben mobilen Beteiligungspfad. Keine automatische Veröffentlichung, kein Live-Chat und keine ungeprüfte Ergebnisbehauptung.",
     socialCandidate: runtime.session.resolvedStatus !== "closed",
     needsReviewBeforeOfficialSocial: true,
     existingContextHint: runtime.recap.reviewHint,

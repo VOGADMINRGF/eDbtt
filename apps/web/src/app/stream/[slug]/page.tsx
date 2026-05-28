@@ -126,6 +126,17 @@ export default async function StreamDetail({
     ].filter((value): value is string => Boolean(value)),
   });
   const shareContext = buildStreamShareContext(runtime);
+  const eventInputBaseHref = canonicalPath;
+  const resultHref =
+    runtime.context.anlassraumHref ??
+    runtime.context.dossierHref ??
+    runtime.context.swipesHref ??
+    canonicalPath;
+  const resultLabel = runtime.context.anlassraumHref
+    ? "Ergebnis später im Anlassraum sehen"
+    : runtime.context.dossierHref
+      ? "Ergebnis später im Dossier sehen"
+      : "Ergebnis später sehen";
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
@@ -175,6 +186,61 @@ export default async function StreamDetail({
             {runtime.session.statusDescription} {runtime.session.nextAction}
           </p>
         </header>
+
+        <section className="rounded-3xl border border-sky-200 bg-sky-50/80 p-5 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-800">
+                QR-first Eventmodus
+              </p>
+              <h2 className="text-2xl font-bold text-sky-950">
+                Mit dem QR-Code direkt in denselben Beteiligungspfad
+              </h2>
+              <p className="text-sm leading-6 text-sky-900/90">
+                Mobile Teilnahme läuft auf derselben Stream-Seite: Frage stellen, Quelle oder Hinweis
+                geben, Option vorschlagen, Dossier öffnen und den Ergebnisstand später wiederfinden.
+              </p>
+              <p className="text-sm leading-6 text-sky-900/90">
+                Kein Live-Chat, keine automatische Veröffentlichung und keine ungeprüfte Event-Wahrheit.
+                Alles bleibt reviewpflichtig.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`${eventInputBaseHref}?kind=question#event-input`}
+                className="inline-flex items-center justify-center rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Frage stellen
+              </Link>
+              <Link
+                href={`${eventInputBaseHref}?kind=source_hint#event-input`}
+                className="inline-flex items-center justify-center rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100"
+              >
+                Quelle/Hinweis geben
+              </Link>
+              <Link
+                href={`${eventInputBaseHref}?kind=option#event-input`}
+                className="inline-flex items-center justify-center rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100"
+              >
+                Option vorschlagen
+              </Link>
+              {runtime.context.dossierHref ? (
+                <Link
+                  href={runtime.context.dossierHref}
+                  className="inline-flex items-center justify-center rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100"
+                >
+                  Dossier öffnen
+                </Link>
+              ) : null}
+              <Link
+                href={resultHref}
+                className="inline-flex items-center justify-center rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100"
+              >
+                {resultLabel}
+              </Link>
+            </div>
+          </div>
+        </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
           <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
@@ -266,8 +332,10 @@ export default async function StreamDetail({
             <StreamPublicInputPanel
               streamId={runtime.session.id}
               streamTitle={runtime.session.title}
+              entryHref={eventInputBaseHref}
               anlassraumHref={runtime.context.anlassraumHref}
               dossierHref={runtime.context.dossierHref}
+              swipesHref={runtime.context.swipesHref}
               openForInput={runtime.participation.openForInput}
             />
           </div>
@@ -357,8 +425,9 @@ export default async function StreamDetail({
                   Teilen / QR
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                  Link und QR öffnen die öffentliche Teilnahmefläche. Sie behaupten keine veröffentlichte
-                  Wahrheit und bleiben bei blockierten oder archivierten Zuständen deaktiviert.
+                  Link und QR öffnen dieselbe mobile Teilnahmefläche für Frage, Quelle, Option und
+                  spätere Nachbereitung. Sie behaupten keine veröffentlichte Wahrheit und bleiben bei
+                  blockierten oder archivierten Zuständen deaktiviert.
                 </p>
                 <div className="mt-3">
                   <RundenShareActions share={shareContext} />
