@@ -12,13 +12,12 @@ describe("admin dashboard graph repairs link contract", () => {
     expect(adminPage).toContain("Graph Repairs (aktiv)");
   });
 
-  it("does not turn missing dashboard values into fake zero KPIs", () => {
+  it("keeps the admin landing focused on operator routes instead of fake KPI defaults", () => {
     const adminPage = readFileSync(path.join(APP_DIR, "admin/page.tsx"), "utf8");
-    expect(adminPage).toContain("Nicht geladen");
-    expect(adminPage).toContain("Noch keine belastbaren Paketdaten verfügbar.");
-    expect(adminPage).toContain("Noch keine belastbaren Rollendaten verfügbar.");
-    expect(adminPage).not.toContain("editorialCounts?.triage ?? 0");
-    expect(adminPage).not.toContain("editorialCounts?.review ?? 0");
-    expect(adminPage).not.toContain("packages?.reduce((a, b) => a + b.count, 0) ?? 0");
+    expect(adminPage).toContain("Ruhige Operator-Konsole");
+    expect(adminPage).toContain("Nächste sichere Schritte");
+    expect(adminPage).toContain("Review Queue");
+    expect(adminPage).toContain("Pricing Orders");
+    expect(adminPage).not.toContain('href="#"');
   });
 });
