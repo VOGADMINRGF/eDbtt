@@ -315,11 +315,11 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Schnell starten");
     expect(html).toContain("Nächste sichere Schritte statt Modulteppich");
     expect(html).toContain("Ich will etwas beitragen");
-    expect(html).toContain("Themen anschauen");
-    expect(html).toContain("Ich kläre Anlassraum/Event-Freischaltung");
+    expect(html).toContain("Ich kläre die Anlassraum-Freischaltung");
     expect(html).toContain("Ich prüfe meine Organisation");
     expect(html).toContain("Freischaltung nötig");
     expect(html).toContain("/account/organization");
+    expect(html).toContain("/themen");
     expect(html).toContain("Nächster sicherer Schritt");
     expect(html).toContain("Antrag und Status öffnen");
     expect(html).toContain("Beitrag starten");
@@ -717,7 +717,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Schnell starten");
     expect(html).toContain("Arbeite direkt auf den produktiven V1-Pfaden weiter");
     expect(html).toContain("Ich will etwas beitragen");
-    expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
+    expect(html).toContain("Ich lege einen Anlassraum an");
     expect(html).toContain("Ich öffne meinen Arbeitsbereich");
     expect(html).toContain("Produktiver Pfad");
     expect(html).toContain("Quelle/Material einreichen");
@@ -820,7 +820,7 @@ describe("/account/organization/dashboard page", () => {
       expect(html).toContain("Sicherer Statusmodus");
       expect(html).toContain("Klare nächste Schritte statt gesperrter Vollzugriffe");
       expect(html).toContain("Ich prüfe meine Freischaltung");
-      expect(html).toContain("Ich kläre Anlassraum/Event-Freischaltung");
+      expect(html).toContain("Ich kläre die Anlassraum-Freischaltung");
       expect(html).toContain("Kontakt aufnehmen");
       expect(html).toContain("Produktive Organisationsschritte sind aktuell gesperrt.");
       expect(html).toContain("Status prüfen");

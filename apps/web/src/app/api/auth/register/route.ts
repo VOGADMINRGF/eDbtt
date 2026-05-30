@@ -18,6 +18,11 @@ import { ensureFounderWelcomeForUser } from "@/lib/onboarding/founderWelcome";
 import { logOnboardingEvent } from "@/lib/onboarding/events";
 import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
 import { runContentTranslationProduction } from "@/features/i18n/contentTranslationProduction";
+import {
+  LEGACY_REGISTER_HONEYPOT_FIELD_NAME,
+  REGISTER_HONEYPOT_FIELD_NAME,
+  readRegisterHoneypotValue,
+} from "@/features/auth/registerSecurityContract";
 import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles";
 
 export const runtime = "nodejs";
@@ -55,6 +60,7 @@ const schema = z.object({
   humanToken: z.string().min(10).max(1024),
   formStartedAt: z.coerce.number().optional(),
   hp_register: z.string().optional(),
+  reg_guardian_reference: z.string().optional(),
   inviteCode: z.string().trim().max(128).optional(),
 });
 
@@ -305,7 +311,17 @@ export async function POST(req: NextRequest) {
   }
 
   const body = parsed.data;
-  if (body.hp_register && body.hp_register.trim().length > 0) {
+  const honeypotValue = readRegisterHoneypotValue({
+    [REGISTER_HONEYPOT_FIELD_NAME]: body[REGISTER_HONEYPOT_FIELD_NAME],
+    [LEGACY_REGISTER_HONEYPOT_FIELD_NAME]: body[LEGACY_REGISTER_HONEYPOT_FIELD_NAME],
+  });
+  if (honeypotValue) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[register] honeypot tripped", {
+        hasCurrentFieldValue: Boolean(String(body[REGISTER_HONEYPOT_FIELD_NAME] ?? "").trim()),
+        hasLegacyFieldValue: Boolean(String(body[LEGACY_REGISTER_HONEYPOT_FIELD_NAME] ?? "").trim()),
+      });
+    }
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 

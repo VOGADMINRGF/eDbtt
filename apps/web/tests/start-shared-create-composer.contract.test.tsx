@@ -15,7 +15,7 @@ describe("/start shared create composer contract", () => {
   it("does not use the shared create composer as primary start interaction", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
-        <LandingStart blocks={[]} />
+        <LandingStart />
       </LocaleProvider>,
     );
 
@@ -23,32 +23,30 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Anhang");
     expect(html).not.toContain("Jetzt swipen");
-    expect(html).toContain("Neu hier?");
-    expect(html).toContain("Beitragen");
-    expect(html).toContain("Starte mit einem Beitrag oder schau dir Themen an.");
-    expect(html).toContain("Themen anschauen");
-    expect(html).toContain("Ich will einen Anlassraum/Event erstellen");
-    expect(html).toContain("Ich melde eine Organisation an");
-    expect(html).toContain("Du musst nicht wissen, welches Modul richtig ist.");
-    expect(html).toContain("Wir veröffentlichen nichts ungeprüft.");
+    expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
+    expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
+    expect(html).toContain("Anliegen einreichen");
+    expect(html).toContain("Themen ansehen");
+    expect(html).toContain("Anlassraum anlegen");
+    expect(html).toContain("Anliegen schildern");
+    expect(html).toContain("Was bewegt dich gerade?");
+    expect(html).toContain("Öffne einen Dialog, statt ein Formular auszufüllen.");
+    expect(html).toContain("Du entscheidest, was als Nächstes passiert.");
     expect(html).toContain("/create?intent=contribute");
     expect(html).toContain("/themen");
-    expect(html).toContain("/runden?intent=create");
+    expect(html).toContain("/runden/new");
     expect(html).toContain("/account/organization");
     expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
     expect(html).toContain("review-first");
-    expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid="task-first-secondary-action"/g) ?? []).length).toBe(2);
-    expect((html.match(/data-testid="task-first-overflow-action"/g) ?? []).length).toBe(1);
-    expect(html).toContain("kein Auto-Publish");
-    expect(html).toContain("Keine versteckten AI-Kosten");
+    expect(html).not.toContain("task-first-primary-action");
+    expect(html).toContain("kostenlos mitmachen");
+    expect(html).toContain("keine versteckten KI-Kosten");
   });
 
   it("prioritizes direct work for signed-in or returning context without replaying the full landing flow", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart
-          blocks={[]}
           experience={{
             familiarity: "organization_verified",
             eyebrow: "Schon dabei?",
@@ -72,10 +70,11 @@ describe("/start shared create composer contract", () => {
 
     expect(html).toContain("Schon dabei?");
     expect(html).toContain("Öffne deinen Arbeitsbereich oder erstelle einen Anlassraum.");
-    expect(html).toContain("Zum Organisationsbereich");
     expect(html).toContain("Ich öffne meinen Arbeitsbereich");
     expect(html).toContain("Arbeitsbereich");
+    expect(html).toContain("Ich lege einen Anlassraum an");
     expect(html).toContain("Schon dabei? Arbeite direkt weiter.");
+    expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
     expect(html).not.toContain("Faktencheck statt Behauptung gegen Behauptung.");
   });

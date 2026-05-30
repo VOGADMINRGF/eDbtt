@@ -144,10 +144,10 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         description: "Hinweise, Quellen oder Anliegen einbringen.",
         inputLabel: "Beitrag einbringen",
         helperText:
-          "Teile einen Hinweis, eine Beobachtung, eine Quelle oder ein Anliegen. eDebatte antwortet darauf im Dialog und schlägt passende nächste Schritte vor.",
+          "Schreibe dein Anliegen, deine Frage oder deinen Vorschlag zuerst in eigenen Worten. Danach entscheidest du selbst, ob du direkt einreichst oder weiter vertiefst.",
         placeholder:
-          "Beschreibe deinen Hinweis, deine Beobachtung oder dein Anliegen …",
-        ctaLabel: "Beitrag strukturieren",
+          "Beschreibe dein Anliegen, deine Frage oder deinen Vorschlag …",
+        ctaLabel: "Beitrag einreichen",
         minimumInputHint:
           "Beschreibe dein Anliegen noch etwas genauer, damit eDebatte daraus einen Arbeitsstand bilden kann.",
         firstQuestion: "Was ist der wichtigste Punkt, der aus deinem Beitrag nicht verloren gehen darf?",
@@ -310,8 +310,8 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         line2Tail: "",
       },
       modeSwitchAriaLabel: "Modusauswahl",
-      alternateModeLabel: "Anderer Arbeitsmodus",
-      alternateModeLead: "Wenn du statt eines Beitrags etwas prüfen oder entwerfen willst, kannst du hier umschalten.",
+      alternateModeLabel: "Weitere Wege",
+      alternateModeLead: "Wenn du statt eines direkten Beitrags lieber mit KI weiterarbeiten oder eine Quelle prüfen willst, kannst du hier umschalten.",
       inputLabel: "Beitrag",
       attachLabel: "Anhang",
       attachAria: "Anhang hinzufügen",
@@ -333,7 +333,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       voiceFailed: "Sprachaufnahme ist fehlgeschlagen. Bitte erneut versuchen.",
     },
     texts: {
-      badgeCanonical: "THEMA STARTEN",
+      badgeCanonical: "EINFACH STARTEN",
       sublineCanonical:
         "Ob Hinweis, Prüfanfrage oder Entwurf: eDebatte macht aus deinem Text einen strukturierten Arbeitsstand mit offenen Fragen, möglichen Quellen, Optionen und Zuständigkeiten.",
       followupQuestionLabel: "Erste Rückfrage zum Arbeitsstart",

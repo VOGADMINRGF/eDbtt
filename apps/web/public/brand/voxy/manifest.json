@@ -1,0 +1,84 @@
+{
+  "name": "Voxy Production Pack v1",
+  "purpose": "Final asset basis for eDebatte UX overhaul. Character assets are exported as true-alpha PNG/WebP; exact brand typography is included as SVG overlays.",
+  "rules": [
+    "VOG pin belongs on viewer-right side of Voxy whenever visible.",
+    "eDebatte should appear blue/gradient; use overlays/edebatte-gradient.svg for exact typography.",
+    "No fake checkerboard backgrounds in character assets.",
+    "Use Voxy as a decision guide, not decorative clutter.",
+    "Subtle Framer Motion only; respect reduced-motion."
+  ],
+  "assets": [
+    {
+      "id": "voxy-neutral",
+      "png": "/brand/voxy/voxy-neutral.png",
+      "webp": "/brand/voxy/voxy-neutral.webp",
+      "background": "transparent-alpha",
+      "role": "neutral"
+    },
+    {
+      "id": "voxy-thinking",
+      "png": "/brand/voxy/voxy-thinking.png",
+      "webp": "/brand/voxy/voxy-thinking.webp",
+      "background": "transparent-alpha",
+      "role": "thinking"
+    },
+    {
+      "id": "voxy-check",
+      "png": "/brand/voxy/voxy-check.png",
+      "webp": "/brand/voxy/voxy-check.webp",
+      "background": "transparent-alpha",
+      "role": "check"
+    },
+    {
+      "id": "voxy-hint",
+      "png": "/brand/voxy/voxy-hint.png",
+      "webp": "/brand/voxy/voxy-hint.webp",
+      "background": "transparent-alpha",
+      "role": "hint"
+    },
+    {
+      "id": "voxy-welcome",
+      "png": "/brand/voxy/voxy-welcome.png",
+      "webp": "/brand/voxy/voxy-welcome.webp",
+      "background": "transparent-alpha",
+      "role": "welcome"
+    },
+    {
+      "id": "voxy-presenting",
+      "png": "/brand/voxy/voxy-presenting.png",
+      "webp": "/brand/voxy/voxy-presenting.webp",
+      "background": "transparent-alpha",
+      "role": "presenting"
+    },
+    {
+      "id": "voxy-mini-avatar",
+      "png": "/brand/voxy/voxy-mini-avatar.png",
+      "webp": "/brand/voxy/voxy-mini-avatar.webp",
+      "background": "transparent-alpha",
+      "role": "mini-avatar"
+    },
+    {
+      "id": "voxy-podcast-stage",
+      "png": "/brand/voxy/voxy-podcast-stage.png",
+      "webp": "/brand/voxy/voxy-podcast-stage.webp",
+      "background": "dark-scene",
+      "role": "hero/studio scene"
+    }
+  ],
+  "overlays": {
+    "vogPin": "/brand/voxy/overlays/vog-pin.svg",
+    "edebatteGradient": "/brand/voxy/overlays/edebatte-gradient.svg",
+    "voxyWordmark": "/brand/voxy/overlays/voxy-wordmark.svg"
+  },
+  "usage": {
+    "voxy-neutral": "Default guide, neutral onboarding, standard explanation.",
+    "voxy-thinking": "AI optional, review, graph check, unresolved questions.",
+    "voxy-check": "Saved, confirmed, ready for review or publish.",
+    "voxy-hint": "Important hint, visibility choice, warning before public state.",
+    "voxy-welcome": "Start page, first visit, onboarding step one.",
+    "voxy-presenting": "Explaining choices or showing next step.",
+    "voxy-mini-avatar": "Small inline hints, chat/assistant bubble, mobile compact UI.",
+    "voxy-podcast-stage": "Hero, media/studio, newsroom/demo surface."
+  }
+}

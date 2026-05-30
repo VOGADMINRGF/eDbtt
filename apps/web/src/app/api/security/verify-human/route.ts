@@ -3,9 +3,9 @@ import { createHash } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { signHumanToken } from "@/lib/security/human-token";
 import { validatePuzzleAnswer } from "@/lib/security/human-puzzle";
+import { parseHumanPuzzleAnswer } from "@/lib/security/humanCheckContract";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 
-const MIN_TIME_MS = 800;
 const RATE_LIMIT_MAX = 8;
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes
 
@@ -33,30 +33,41 @@ export async function POST(request: NextRequest) {
   }
 
   if (honeypotValue) {
-    return NextResponse.json({ ok: false, code: "honeypot" }, { status: 400 });
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[verify-human] honeypot tripped", {
+        formId: formId ?? "unknown",
+      });
+    }
+    return NextResponse.json({ ok: false, verified: false, code: "honeypot" }, { status: 400 });
   }
 
   if (typeof puzzleSeed !== "string" || puzzleSeed.length < 8) {
-    return NextResponse.json({ ok: false, code: "puzzle" }, { status: 400 });
+    return NextResponse.json({ ok: false, verified: false, code: "puzzle" }, { status: 400 });
   }
 
-  if (!validatePuzzleAnswer(puzzleSeed, Number(puzzleAnswer))) {
-    return NextResponse.json({ ok: false, code: "puzzle" }, { status: 400 });
+  const normalizedAnswer = parseHumanPuzzleAnswer(puzzleAnswer);
+  if (normalizedAnswer === null || !validatePuzzleAnswer(puzzleSeed, normalizedAnswer)) {
+    return NextResponse.json({ ok: false, verified: false, code: "puzzle" }, { status: 400 });
   }
 
-  if (typeof timeToSolve !== "number" || timeToSolve < MIN_TIME_MS) {
-    return NextResponse.json({ ok: false, code: "speed" }, { status: 400 });
-  }
+  const normalizedTimeToSolve =
+    typeof timeToSolve === "number" && Number.isFinite(timeToSolve) && timeToSolve >= 0
+      ? Math.floor(timeToSolve)
+      : 0;
 
   let humanToken: string;
   try {
-    humanToken = await signHumanToken({ formId, timeToSolve, puzzleSeed });
+    humanToken = await signHumanToken({
+      formId,
+      timeToSolve: normalizedTimeToSolve,
+      puzzleSeed,
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "human_token_secret_not_configured") {
-      return NextResponse.json({ ok: false, code: "human_token_secret_not_configured" }, { status: 503 });
+      return NextResponse.json({ ok: false, verified: false, code: "human_token_secret_not_configured" }, { status: 503 });
     }
     throw error;
   }
 
-  return NextResponse.json({ ok: true, humanToken });
+  return NextResponse.json({ ok: true, verified: true, humanToken });
 }

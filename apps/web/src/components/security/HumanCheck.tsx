@@ -3,6 +3,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { derivePuzzle } from "@/lib/security/human-puzzle";
+import {
+  getHumanCheckFailureMessage,
+  normalizeHumanPuzzleAnswerInput,
+  parseHumanPuzzleAnswer,
+} from "@/lib/security/humanCheckContract";
 import { safeRandomId } from "@core/utils/random";
 
 interface HumanCheckProps {
@@ -10,8 +15,9 @@ interface HumanCheckProps {
   onSolved: (result: { token: string; meta?: Record<string, unknown> }) => void;
   onError?: (reason: string) => void;
   variant?: "full" | "compact";
+  disabled?: boolean;
+  resetSignal?: number;
 }
-
 
 const STORAGE_PREFIX = "edb_human_check";
 const TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -56,6 +62,8 @@ export function HumanCheck({
   onSolved,
   onError,
   variant = "full",
+  disabled = false,
+  resetSignal = 0,
 }: HumanCheckProps) {
   const isCompact = variant === "compact";
   const [isOpen, setIsOpen] = useState(!isCompact);
@@ -65,9 +73,11 @@ export function HumanCheck({
   const [message, setMessage] = useState<string | null>(null);
   const startRef = useRef<number | null>(null);
   const solvedRef = useRef(false);
+  const resetInitializedRef = useRef(false);
   const [puzzleSeed, setPuzzleSeed] = useState<string | null>(null);
-  const answerValue = answer.trim();
-  const isAnswerValid = /^\d+$/.test(answerValue);
+  const answerValue = normalizeHumanPuzzleAnswerInput(answer);
+  const parsedAnswer = parseHumanPuzzleAnswer(answerValue);
+  const isAnswerValid = parsedAnswer !== null;
 
   useEffect(() => {
     // Erst auf dem Client einen Seed erzeugen, damit SSR/CSR übereinstimmen.
@@ -77,24 +87,31 @@ export function HumanCheck({
   }, []);
 
   useEffect(() => {
+    if (!resetInitializedRef.current) {
+      resetInitializedRef.current = true;
+      return;
+    }
+    solvedRef.current = false;
+    clearStoredToken(formId);
+    setStatus("idle");
+    setMessage(null);
+    setAnswer("");
+  }, [formId, resetSignal]);
+
+  useEffect(() => {
     const cached = readStoredToken(formId);
     if (!cached || solvedRef.current) return;
     solvedRef.current = true;
     setStatus("solved");
-    setMessage("Sicherheitscheck bereits erledigt.");
+    setMessage("Bereits bestätigt.");
     if (isCompact) setIsOpen(true);
     onSolved({ token: cached.token, meta: { restored: true } });
   }, [formId, isCompact, onSolved]);
 
   const puzzle = useMemo(() => (puzzleSeed ? derivePuzzle(puzzleSeed) : null), [puzzleSeed]);
-  const refreshPuzzle = () => {
-    const seed = safeRandomId();
-    setPuzzleSeed(seed);
-    startRef.current = performance.now();
-    setAnswer("");
-  };
 
   const handleVerify = async () => {
+    if (disabled || status === "checking" || status === "solved") return;
     if (!isAnswerValid) {
       setStatus("error");
       setMessage("Bitte trage das Ergebnis als Zahl ein.");
@@ -113,34 +130,32 @@ export function HumanCheck({
         body: JSON.stringify({
           formId,
           honeypotValue: honeypot,
-          puzzleAnswer: Number(answerValue),
+          puzzleAnswer: parsedAnswer,
           puzzleSeed,
           timeToSolve,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         const reason = data?.code ?? "unknown";
         setStatus("error");
-        setMessage("Die Bestätigung hat nicht geklappt. Bitte kurz erneut versuchen.");
+        setMessage(getHumanCheckFailureMessage(reason));
         onError?.(reason);
         clearStoredToken(formId);
-        refreshPuzzle();
         return;
       }
 
       setStatus("solved");
-      setMessage("Danke – kurz bestätigt.");
+      setMessage("Bestätigt.");
       solvedRef.current = true;
       storeToken(formId, data.humanToken);
       onSolved({ token: data.humanToken, meta: { timeToSolve, puzzleSeed } });
     } catch (err) {
       setStatus("error");
-      setMessage("Es gab ein technisches Problem. Bitte später erneut versuchen.");
+      setMessage(getHumanCheckFailureMessage("technical"));
       onError?.(err instanceof Error ? err.message : "unknown");
       clearStoredToken(formId);
-      refreshPuzzle();
     }
   };
 
@@ -178,7 +193,7 @@ export function HumanCheck({
 
   return (
     <div
-      className={`space-y-3 rounded-xl border p-4 ${
+      className={`space-y-3 overflow-hidden rounded-xl border p-4 ${
         isCompact
           ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm"
           : "border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)]"
@@ -198,7 +213,7 @@ export function HumanCheck({
               isCompact ? "text-[rgb(var(--muted))]" : "text-emerald-600 dark:text-emerald-300"
             }`}
           >
-            ✓ geprüft
+            Bestätigt
           </span>
         )}
       </div>
@@ -211,7 +226,10 @@ export function HumanCheck({
         Bitte leer lassen
         <input
           tabIndex={-1}
-          autoComplete="off"
+          autoComplete="new-password"
+          data-form-type="other"
+          data-1p-ignore="true"
+          data-lpignore="true"
           value={honeypot}
           onChange={(e) => setHoneypot(e.target.value)}
           className="absolute opacity-0"
@@ -238,7 +256,7 @@ export function HumanCheck({
           pattern="[0-9]*"
           value={answer}
           onChange={(e) => {
-            setAnswer(e.target.value);
+            setAnswer(normalizeHumanPuzzleAnswerInput(e.target.value));
             if (status !== "checking") {
               if (status !== "idle") setStatus("idle");
               if (message) setMessage(null);
@@ -256,10 +274,11 @@ export function HumanCheck({
               : "border-[rgb(var(--border))] text-[rgb(var(--fg))] focus:border-[rgb(var(--grad-from))] focus:ring-2 focus:ring-[rgb(var(--border))]"
           }`}
           aria-label="Ergebnis eintragen"
+          disabled={disabled || status === "checking" || status === "solved"}
         />
         <button
           type="button"
-          disabled={status === "checking"}
+          disabled={disabled || status === "checking" || status === "solved"}
           onClick={() => {
             if (status !== "checking") void handleVerify();
           }}
@@ -274,7 +293,11 @@ export function HumanCheck({
       </div>
 
       {message && (
-        <p className={`text-xs ${isCompact ? "text-[rgb(var(--muted))]" : "text-[rgb(var(--muted))]"}`}>
+        <p
+          className={`text-xs break-words whitespace-normal ${
+            isCompact ? "text-[rgb(var(--muted))]" : "text-[rgb(var(--muted))]"
+          }`}
+        >
           {message}
         </p>
       )}

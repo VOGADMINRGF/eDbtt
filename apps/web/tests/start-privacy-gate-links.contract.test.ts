@@ -10,6 +10,6 @@ describe("start privacy gate link contract", () => {
     expect(source).toContain('href="/create?intent=check"');
     expect(source).toContain('href="/create?intent=contribute"');
     expect(source).toContain('href="/swipes"');
-    expect(source).toContain('href="/create"');
+    expect(source).not.toContain('href="/create"');
   });
 });
