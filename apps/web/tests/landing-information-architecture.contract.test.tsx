@@ -15,34 +15,39 @@ vi.mock("@/context/LocaleContext", () => ({
 
 describe("landing information architecture contract", () => {
   it("keeps the human landing journey and trust boundaries visible", () => {
-    const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
+    const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
+    expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
+    expect(html).toContain("Anliegen einreichen");
+    expect(html).toContain("Anlassraum anlegen");
+    expect(html).toContain("Themen ansehen");
+    expect(html).toContain("Anliegen schildern");
     expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
     expect(html).toContain("Schnell einsteigen mit Swipe.");
     expect(html).toContain("Der Anlassraum");
     expect(html).toContain("Faktencheck statt Behauptung gegen Behauptung.");
     expect(html).toContain("Aus Hinweisen wird ein Dossier.");
     expect(html).toContain("Kostenlos mitmachen. Verbindlich weiterentwickeln.");
-    expect(html).toContain("Ein Thema. Verschiedene Blickpunkte.");
-    expect(html).toContain("Keine Datenverkäufe");
+    expect(html).toContain("keine Datenverkäufe");
     expect(html).toContain("VoiceOpenGov ist die Initiative");
 
-    const primaryIndex = html.indexOf("Thema prüfen");
-    const secondaryIndex = html.indexOf("Anliegen einbringen");
+    const primaryIndex = html.indexOf("Anliegen einreichen");
+    const secondaryIndex = html.indexOf("Anlassraum anlegen");
     expect(primaryIndex).toBeGreaterThan(-1);
     expect(secondaryIndex).toBeGreaterThan(primaryIndex);
-    expect(html).toContain("href=\"/create?intent=check\"");
     expect(html).toContain("href=\"/create?intent=contribute\"");
+    expect(html).toContain("href=\"/runden/new\"");
     expect(html).toContain("href=\"/swipes\"");
+    expect(html).toContain("href=\"/create?intent=check\"");
 
     expect(html).toContain("Öffentliche Beteiligung braucht einen besseren Ort.");
-    expect(html).toContain("Nicht Partei");
     expect(html).toContain("Mehr als Bürgerbüro");
+    expect(html).toContain("Nicht Social Media");
 
     expect(html).not.toContain("Kanonischer Einstieg");
     expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Whistleblower");
     expect(html).not.toContain("für Parteien");
+    expect(html).not.toContain("Entitlement");
   });
 });

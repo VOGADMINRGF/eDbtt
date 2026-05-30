@@ -8,6 +8,14 @@ vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   default: () => null,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: () => {},
+    replace: () => {},
+    refresh: () => {},
+  }),
+}));
+
 import CreateClient, {
   getCreateContextAnchorsForMode,
   type CreateClientProps,
@@ -118,5 +126,6 @@ describe("create no chip overload contract", () => {
     expect(html).not.toContain("Checkliste");
     expect(html).not.toContain("Kontingente und Zugriff</span></div><section");
     expect(html).toContain("Deine Struktur auf einen Blick");
+    expect(html).not.toContain("Developer-Hinweis");
   });
 });

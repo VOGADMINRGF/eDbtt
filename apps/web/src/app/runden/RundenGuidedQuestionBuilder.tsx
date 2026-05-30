@@ -70,7 +70,7 @@ export default function RundenGuidedQuestionBuilder({
           </h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/create?mode=source" className="vog-chip vog-chip--active">
+          <Link href="/runden/new" className="vog-chip vog-chip--active">
             Anlass starten
           </Link>
           <a href={participationTarget} className="vog-chip">

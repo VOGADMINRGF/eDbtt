@@ -1,3 +1,5 @@
+import { parseHumanPuzzleAnswer } from "./humanCheckContract";
+
 // E200: Deterministic lightweight math puzzle for HumanCheck.
 const DEFAULT_SEED = "vog-human-check";
 
@@ -17,7 +19,8 @@ export function derivePuzzle(seed: string = DEFAULT_SEED) {
   return { seed, first, second, expected };
 }
 
-export function validatePuzzleAnswer(seed: string, answer: number) {
+export function validatePuzzleAnswer(seed: string, answer: number | string) {
   const { expected } = derivePuzzle(seed);
-  return Number(answer) === expected;
+  const normalized = parseHumanPuzzleAnswer(answer);
+  return normalized === expected;
 }

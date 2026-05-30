@@ -93,9 +93,11 @@ describe("create entry hierarchy contract", () => {
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
     expect(html).toContain("Was möchtest du einbringen?");
-    expect(html).toContain("Deinen Beitrag verfassen");
-    expect(html).toContain("Strukturiert. Verständlich. Wirkungsvoll.");
-    expect(html).toContain("Beitrag strukturieren");
+    expect(html).toContain("Beitrag einreichen");
+    expect(html).toContain("Schreib zuerst in deinen eigenen Worten.");
+    expect(html).toContain("KI strukturiert meinen Text");
+    expect(html).toContain("Quelle/Datei prüfen");
+    expect(html).toContain("Zu bestehendem Anlass hinzufügen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("Deine Struktur auf einen Blick");
@@ -125,5 +127,9 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Test stadt");
     expect(html).not.toContain("Checkliste");
     expect(html).not.toContain("Kontingente und Zugriff");
+    expect(html).not.toContain("Developer-Hinweis");
+    expect(html).not.toContain("Operator");
+    expect(html).not.toContain("Provider");
+    expect(html).not.toContain("Pipeline");
   });
 });

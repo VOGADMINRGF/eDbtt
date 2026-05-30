@@ -96,13 +96,13 @@ const CREATE_COMPOSER_STAGES = [
 
 function CreateComposerSceneRail() {
   return (
-    <div className="rounded-[26px] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,rgba(11,21,42,0.96),rgba(13,24,46,0.92))] px-4 py-4 shadow-[0_18px_36px_rgba(2,6,23,0.18)]">
+    <div className="vog-surface-muted px-4 py-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Geführter Ablauf</p>
-          <p className="mt-1 text-sm font-semibold text-white">Vom ersten Signal bis zur nächsten Aktion</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Geführter Ablauf</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Vom ersten Signal bis zur nächsten Aktion</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-slate-300">
+        <span className="vog-chip">
           Dialogisch geführt
         </span>
       </div>
@@ -110,13 +110,13 @@ function CreateComposerSceneRail() {
         <div className="flex min-w-max items-center gap-3">
           {CREATE_COMPOSER_STAGES.map((stage, index) => (
             <React.Fragment key={stage.title}>
-              <div className="flex min-w-[9rem] items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-all duration-300 ease-out">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-cyan-300/35 text-[11px] font-semibold text-cyan-200">
+              <div className="flex min-w-[9rem] items-center gap-3 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 transition-all duration-300 ease-out">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[rgb(var(--grad-from))]/35 text-[11px] font-semibold text-[rgb(var(--fg))]">
                   {index + 1}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{stage.title}</p>
-                  <p className="text-[11px] leading-relaxed text-slate-400">{stage.lead}</p>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
+                  <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
                 </div>
               </div>
               {index < CREATE_COMPOSER_STAGES.length - 1 ? (
@@ -404,13 +404,13 @@ export default function SharedCreateComposer({
       className={
         embeddedWorkspace
           ? "rounded-2xl bg-transparent p-0"
-          : "rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_64px_rgba(2,6,23,0.18)] sm:p-6 md:p-9 lg:p-10"
+          : "vog-surface-elevated rounded-[2rem] p-4 sm:p-6 md:p-8 lg:p-10"
       }
     >
       <div
         className={
           embeddedWorkspace
-            ? `mx-auto w-full ${isMinimalCreate ? "max-w-[430px] md:max-w-4xl xl:max-w-[58rem]" : "max-w-5xl"} ${compactMetaMode ? "space-y-4 md:space-y-6" : "space-y-6 md:space-y-7"}`
+            ? `mx-auto w-full ${isMinimalCreate ? "max-w-[42rem] md:max-w-[64rem] xl:max-w-[72rem]" : "max-w-5xl"} ${compactMetaMode ? "space-y-4 md:space-y-6" : "space-y-6 md:space-y-7"}`
             : "mx-auto w-full max-w-5xl space-y-6 md:space-y-7"
         }
       >
@@ -457,20 +457,23 @@ export default function SharedCreateComposer({
         {contextBanner}
 
         <div className={`space-y-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] ${isMinimalCreate ? "overflow-x-hidden" : ""}`}>
-          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,rgba(34,211,238,0.34),rgba(59,130,246,0.22),rgba(148,163,184,0.12))] p-[1px] shadow-[0_24px_56px_rgba(2,6,23,0.22)]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px] shadow-[0_14px_30px_rgba(2,6,23,0.13)]"}`}>
-            <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(12,26,48,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" : "rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"}`}>
-              <div className={`flex items-start justify-between gap-3 ${isMinimalCreate ? "border-b border-white/10 px-4 py-4 sm:px-5" : "border-b border-[rgb(var(--border))] px-4 py-3 sm:px-5"}`}>
+          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--grad-from))_44%,transparent),color-mix(in_oklab,rgb(var(--grad-to))_24%,transparent),color-mix(in_oklab,rgb(var(--border))_24%,transparent))] p-[1px] shadow-[0_24px_56px_rgba(2,6,23,0.16)]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px] shadow-[0_14px_30px_rgba(2,6,23,0.13)]"}`}>
+            <div
+              data-create-focus-stage={isMinimalCreate ? "true" : "false"}
+              className={`${isMinimalCreate ? "vog-focus-stage rounded-[30px]" : "rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"}`}
+            >
+              <div className={`flex items-start justify-between gap-3 ${isMinimalCreate ? "border-b border-[rgb(var(--focus-panel-border))] px-4 py-4 sm:px-5" : "border-b border-[rgb(var(--border))] px-4 py-3 sm:px-5"}`}>
                 {isMinimalCreate ? (
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100 shadow-[0_10px_30px_rgba(34,211,238,0.16)]">
+                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-fg))] shadow-[0_10px_30px_rgba(34,211,238,0.16)]">
                       <IconCompose />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-lg font-semibold text-white sm:text-[1.4rem]">
-                        {isEnglishMinimal ? "Write your contribution" : "Deinen Beitrag verfassen"}
+                      <p className="text-lg font-semibold text-[rgb(var(--focus-panel-fg))] sm:text-[1.4rem]">
+                        {isEnglishMinimal ? "Submit your contribution" : "Beitrag einreichen"}
                       </p>
-                      <p className="mt-1 text-sm leading-relaxed text-slate-300">
-                        {isEnglishMinimal ? "Structured. Clear. Effective." : "Strukturiert. Verständlich. Wirkungsvoll."}
+                      <p className="vog-focus-stage-muted mt-1 text-sm leading-relaxed">
+                        {isEnglishMinimal ? "Start with your own words." : "Schreib zuerst in deinen eigenen Worten."}
                       </p>
                     </div>
                   </div>
@@ -485,11 +488,11 @@ export default function SharedCreateComposer({
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className={`hidden rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex ${isMinimalCreate ? "border border-white/10 bg-white/[0.03] text-slate-300" : "border border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`}>
+                  <span className={`hidden rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex ${isMinimalCreate ? "vog-focus-stage-chip" : "border border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`}>
                     {isEnglishMinimal ? "Not published yet" : "Noch nicht veröffentlicht"}
                   </span>
                   {isMinimalCreate ? (
-                    <svg aria-hidden="true" viewBox="0 0 20 20" className="mt-1 h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <svg aria-hidden="true" viewBox="0 0 20 20" className="vog-focus-stage-muted mt-1 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path d="M7 4.5 13 10l-6 5.5" />
                     </svg>
                   ) : null}
@@ -500,16 +503,16 @@ export default function SharedCreateComposer({
               </label>
               {isMinimalCreate ? (
                 <div className="px-4 pt-4 sm:px-5">
-                  <div className="rounded-[24px] border border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <div className="rounded-[24px] border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_82%,white_18%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                     <textarea
                       id={inputId}
                       value={inputValue}
                       onChange={(event) => onInputChange(event.target.value)}
                       rows={minRows}
-                      className="min-h-[210px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-white outline-none shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-cyan-300 sm:min-h-[250px] sm:px-5 sm:py-5"
+                      className="min-h-[210px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none shadow-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[250px] sm:px-5 sm:py-5"
                       placeholder={resolvedPlaceholder}
                     />
-                    <div className="border-t border-white/8 px-4 py-2 text-xs text-slate-400 sm:px-5">
+                    <div className="vog-focus-stage-muted border-t border-[rgb(var(--focus-panel-border))] px-4 py-2 text-xs sm:px-5">
                       {characterCount} / 2.000
                     </div>
                   </div>
@@ -529,7 +532,7 @@ export default function SharedCreateComposer({
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
-                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition ${isMinimalCreate ? "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06] hover:text-white" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
                     onClick={() => fileInputRef.current?.click()}
                     aria-label={texts.attachAria}
                     title={texts.attachAria}
@@ -545,7 +548,7 @@ export default function SharedCreateComposer({
                       voiceActive
                         ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
                         : isMinimalCreate
-                          ? "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06] hover:text-white"
+                          ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]"
                           : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]",
                       !speechSupported ? "opacity-50" : "",
                     ].join(" ")}
@@ -605,9 +608,9 @@ export default function SharedCreateComposer({
                   {attachments.map((file) => (
                     <li
                       key={`${file.name}-${file.size}`}
-                      className={`max-w-[15rem] shrink-0 rounded-xl border px-3 py-2 sm:max-w-full ${isMinimalCreate ? "border-white/10 bg-white/[0.03]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}
+                      className={`max-w-[15rem] shrink-0 rounded-xl border px-3 py-2 sm:max-w-full ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}
                     >
-                      <p className={`break-all text-xs ${isMinimalCreate ? "text-slate-200" : "text-[rgb(var(--fg))]"}`}>{file.name}</p>
+                      <p className={`break-all text-xs ${isMinimalCreate ? "text-[rgb(var(--focus-panel-fg))]" : "text-[rgb(var(--fg))]"}`}>{file.name}</p>
                     </li>
                   ))}
                 </ul>
@@ -630,19 +633,11 @@ export default function SharedCreateComposer({
             </details>
           ) : null}
 
-          {attachmentsError ? (
-            <p className="text-xs text-rose-700 dark:text-rose-300" role="alert">
-              {attachmentsError}
-            </p>
-          ) : null}
+          {attachmentsError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
 
-          {voiceError ? (
-            <p className="text-xs text-rose-700 dark:text-rose-300" role="alert">
-              {voiceError}
-            </p>
-          ) : null}
+          {voiceError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
 
-          {error ? <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p> : null}
+          {error ? <p className="text-sm text-[rgb(var(--fg))]">{error}</p> : null}
         </div>
       </div>
     </section>

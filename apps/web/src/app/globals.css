@@ -35,6 +35,11 @@
   --dossier-top: #faf8f2;
   --dossier-mid: #f4f3ef;
   --dossier-bottom: #ece8de;
+  --focus-panel-top: 11 21 42;
+  --focus-panel-bottom: 15 28 52;
+  --focus-panel-fg: 241 245 249;
+  --focus-panel-muted: 191 219 254;
+  --focus-panel-border: 51 65 85;
   --status-open: 148 163 184;
   --status-review: 139 92 246;
   --status-done: 16 185 129;
@@ -62,6 +67,11 @@
   --dossier-top: #1a263a;
   --dossier-mid: #0f1b2e;
   --dossier-bottom: #0b1320;
+  --focus-panel-top: 15 23 42;
+  --focus-panel-bottom: 22 34 57;
+  --focus-panel-fg: 248 250 252;
+  --focus-panel-muted: 203 213 225;
+  --focus-panel-border: 71 85 105;
   --status-open: 148 163 184;
   --status-review: 139 92 246;
   --status-done: 16 185 129;
@@ -225,6 +235,298 @@ body h1:not(.no-grad) {
   border-radius: 1rem;
   border: 1px solid rgb(var(--border));
   background: color-mix(in oklab, rgb(var(--card)) 75%, rgb(var(--bg)) 25%);
+}
+
+.vog-page-stage {
+  background:
+    radial-gradient(
+      1100px 520px at 50% 0%,
+      color-mix(in oklab, rgb(var(--grad-from)) 18%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      900px 440px at 100% 0%,
+      color-mix(in oklab, rgb(var(--grad-to)) 12%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--bg)) 94%, rgb(var(--card)) 6%) 0%,
+      rgb(var(--bg)) 34%,
+      color-mix(in oklab, rgb(var(--bg)) 90%, rgb(var(--grad-to)) 10%) 100%
+    );
+}
+
+.vog-stage-backdrop {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.075;
+  filter: blur(12px);
+  transform: scale(1.02);
+}
+
+.vog-main-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 92rem;
+  padding-inline: 1rem;
+  padding-top: 1.5rem;
+  padding-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .vog-main-shell {
+    padding-inline: 2rem;
+    padding-top: 2.5rem;
+    padding-bottom: 3.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vog-main-shell {
+    padding-inline: 2.5rem;
+  }
+}
+
+.vog-surface-elevated {
+  border-radius: 1.75rem;
+  border: 1px solid rgb(var(--border));
+  background: color-mix(in oklab, rgb(var(--card)) 96%, rgb(var(--bg)) 4%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 22px 54px rgba(2, 6, 23, 0.1);
+}
+
+.vog-surface-muted {
+  border-radius: 1.25rem;
+  border: 1px solid rgb(var(--border));
+  background: color-mix(in oklab, rgb(var(--card)) 78%, rgb(var(--bg)) 22%);
+}
+
+.vog-surface-soft {
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in oklab, rgb(var(--border)) 84%, transparent);
+  background: color-mix(in oklab, rgb(var(--card)) 88%, rgb(var(--bg)) 12%);
+}
+
+.vog-surface-brand {
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 28%, rgb(var(--border)) 72%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 88%, rgb(var(--grad-from)) 12%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 94%, rgb(var(--bg)) 6%) 100%
+    );
+}
+
+.vog-voxy-panel {
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 18%, rgb(var(--border)) 82%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--grad-from)) 16%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 94%, rgb(var(--bg)) 6%) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 24px 56px rgba(2, 6, 23, 0.12);
+}
+
+.vog-text-primary {
+  color: rgb(var(--fg));
+}
+
+.vog-text-secondary {
+  color: rgb(var(--muted));
+}
+
+.vog-border-subtle {
+  border-color: color-mix(in oklab, rgb(var(--border)) 86%, transparent);
+}
+
+.vog-accent-soft {
+  background: color-mix(in oklab, rgb(var(--grad-from)) 10%, rgb(var(--card)) 90%);
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 22%, rgb(var(--border)) 78%);
+}
+
+.vog-focus-ring:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-focus-stage {
+  border-radius: 1.9rem;
+  border: 1px solid rgb(var(--focus-panel-border));
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--focus-panel-top)) 0%,
+      rgb(var(--focus-panel-bottom)) 100%
+    );
+  color: rgb(var(--focus-panel-fg));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 28px 60px rgba(2, 6, 23, 0.22);
+}
+
+.vog-focus-stage-muted {
+  color: rgb(var(--focus-panel-muted));
+}
+
+.vog-focus-stage-chip {
+  border: 1px solid color-mix(in oklab, rgb(var(--focus-panel-border)) 72%, white 28%);
+  background: color-mix(in oklab, rgb(var(--focus-panel-top)) 82%, white 18%);
+  color: rgb(var(--focus-panel-muted));
+}
+
+.vog-btn-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, rgb(var(--grad-from)) 70%, rgb(var(--border)) 30%);
+  background-image: linear-gradient(94deg, rgb(var(--grad-from)), rgb(var(--grad-to)));
+  padding-inline: 1rem;
+  padding-block: 0.625rem;
+  color: rgb(var(--btn-primary-fg));
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 12px 26px rgba(14, 165, 233, 0.24);
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.vog-btn-brand:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 16px 32px rgba(14, 165, 233, 0.3);
+}
+
+.vog-btn-brand:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, rgb(var(--border)) 72%, rgb(var(--fg)) 28%);
+  background: color-mix(in oklab, rgb(var(--card)) 94%, rgb(var(--bg)) 6%);
+  padding-inline: 1rem;
+  padding-block: 0.625rem;
+  color: rgb(var(--fg));
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.vog-btn-secondary:hover {
+  transform: translateY(-1px);
+  background: color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--bg)) 16%);
+  border-color: color-mix(in oklab, rgb(var(--border)) 58%, rgb(var(--fg)) 42%);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.13);
+}
+
+.vog-btn-secondary:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-landing-band {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid color-mix(in oklab, rgb(var(--border)) 82%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 92%, rgb(var(--bg)) 8%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 82%, rgb(var(--bg)) 18%) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 18px 44px rgba(2, 6, 23, 0.08);
+}
+
+.vog-landing-band::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: auto -5% -60% auto;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, rgb(var(--grad-to)) 8%, transparent);
+  filter: blur(18px);
+}
+
+.vog-landing-band--accent {
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 26%, rgb(var(--border)) 74%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 86%, rgb(var(--grad-from)) 14%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 90%, rgb(var(--bg)) 10%) 100%
+    );
+}
+
+.vog-landing-band--calm {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 88%, rgb(var(--grad-to)) 12%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 92%, rgb(var(--bg)) 8%) 100%
+    );
+}
+
+.vog-landing-composer {
+  border-radius: 1.75rem;
+  border: 1px solid color-mix(in oklab, rgb(var(--grad-from)) 26%, rgb(var(--border)) 74%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--card)) 90%, rgb(var(--grad-from)) 10%) 0%,
+      color-mix(in oklab, rgb(var(--card)) 96%, rgb(var(--bg)) 4%) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 18px 40px rgba(2, 6, 23, 0.08);
+}
+
+.vog-landing-top-glow {
+  background:
+    radial-gradient(
+      1000px 480px at 15% 0%,
+      color-mix(in oklab, rgb(var(--grad-from)) 14%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 440px at 100% 10%,
+      color-mix(in oklab, rgb(var(--grad-to)) 12%, transparent) 0%,
+      transparent 62%
+    );
+}
+
+.vog-flow-line {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, rgb(var(--grad-from)) 34%, transparent),
+    color-mix(in oklab, rgb(var(--grad-to)) 34%, transparent)
+  );
 }
 
 /* === Buttons & Chips ====================================================== */

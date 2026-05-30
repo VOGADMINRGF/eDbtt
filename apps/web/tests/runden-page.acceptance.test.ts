@@ -1,11 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Fragment, createElement } from "react";
 
 const mocks = vi.hoisted(() => ({
   listRundenEntryItems: vi.fn(),
   readSession: vi.fn(),
   resolveCurrentRequestScopeContext: vi.fn(),
   buildOrganizationDashboardReadModel: vi.fn(),
+}));
+
+vi.mock("next/image", () => ({
+  default: (props: Record<string, unknown>) => {
+    const { alt, fill: _fill, onError: _onError, priority: _priority, ...rest } = props;
+    return createElement("img", {
+      alt: typeof alt === "string" ? alt : "",
+      ...rest,
+    });
+  },
+}));
+
+vi.mock("framer-motion", () => ({
+  AnimatePresence: ({ children }: { children: any }) => createElement(Fragment, null, children),
+  motion: {
+    div: (props: Record<string, unknown>) => {
+      const {
+        animate: _animate,
+        children,
+        exit: _exit,
+        initial: _initial,
+        onAnimationComplete: _onAnimationComplete,
+        transition: _transition,
+        variants: _variants,
+        ...rest
+      } = props;
+
+      return createElement("div", rest, children);
+    },
+  },
+  useReducedMotion: () => false,
 }));
 
 vi.mock("@features/topicRound/entrySource", () => ({
@@ -54,16 +86,39 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Schritt 1");
     expect(html).toContain("Schritt 2");
     expect(html).toContain("Schritt 3");
-    expect(html).toContain("Neuen Anlass öffnen");
+    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.");
+    expect(html).toContain("Neuen Anlassraum anlegen");
+    expect(html).toContain("Bestehenden Anlass weiterführen");
+    expect(html).toContain("Ergebnisse ansehen");
+    expect(html).toContain("Was Menschen einreichen können");
+    expect(html).toContain("Sichtbarkeit &amp; Review");
+    expect(html).toContain("Weiterarbeiten mit /create oder Dossier");
     expect(html).toContain("Ersten Beitrag vorbereiten");
     expect(html).toContain("Mehr erfahren");
     expect(html).toContain('href="/runden/demo"');
+    expect(html).toContain('href="/runden/new"');
     expect(html).toContain("Beiträge einsammeln");
     expect(html).toContain("Stand sichtbar weiterführen");
+    expect(html).toContain("Voxy begleitet den Einstieg");
+    expect(html).toContain('data-voxy-appearance="hero"');
+    expect(html).toContain("Du startest mit dem Rahmen. Thema, Optionen und Sichtbarkeit zuerst. Alles Weitere bleibt optional.");
     expect(html).not.toContain("Neu starten in /create");
     expect(html).not.toContain("Laufendes in /runden");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Gesamt:");
+
+    const voxyBlockStart = html.indexOf("data-voxy-guide");
+    const voxyBlock = voxyBlockStart >= 0 ? html.slice(voxyBlockStart, voxyBlockStart + 420) : "";
+    expect(voxyBlock).not.toContain("Dev");
+    expect(voxyBlock).not.toContain("Operator");
+
+    const heroStart = html.indexOf('data-runden-hero="true"');
+    const modulesStart = html.indexOf('data-runden-primary-modules="true"');
+    expect(heroStart).toBeGreaterThan(-1);
+    expect(modulesStart).toBeGreaterThan(heroStart);
+    const heroSlice = heroStart >= 0 && modulesStart > heroStart ? html.slice(heroStart, modulesStart) : "";
+    expect(heroSlice).not.toContain("Was Menschen einreichen können");
+    expect(heroSlice).not.toContain("Sichtbarkeit &amp; Review");
   });
 
   it("Scenario C: productive source failure renders explicit error state without fallback", async () => {
@@ -156,23 +211,24 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({ view: "mine" }) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("ANLASSRAUM");
-    expect(html).toContain(">Anlassraum<");
-    expect(html).toContain("Ein öffentlicher Themenraum zu einem konkreten Anlass.");
-    expect(html).toContain("Lass das beste Argument gewinnen.");
-    expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
-    expect(html).toContain("Für Veranstaltungen nutzen");
-    expect(html).toContain("Für Artikel oder Berichte nutzen");
-    expect(html).toContain("Direkt öffentlich einreichen");
-    expect(html).toContain("Öffentliche Eingaben sind keine repräsentative Abstimmung.");
-    expect(html).toContain("Neuen Anlass öffnen");
-    expect(html).toContain("Laufenden Anlass weiterführen");
-    expect(html).toContain("Stand und Ergebnisse ansehen");
+    expect(html).toContain("eDebatte Anlassraum");
+    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.");
+    expect(html).toContain("Starte einen Anlassraum, wenn aus einem Anliegen eine nachvollziehbare Frage mit Optionen werden soll.");
+    expect(html).toContain("Neuen Anlassraum anlegen");
+    expect(html).toContain('href="/runden/new"');
+    expect(html).toContain("Bestehenden Anlass weiterführen");
+    expect(html).toContain("Ergebnisse ansehen");
+    expect(html).toContain("Was Menschen einreichen können");
     expect(html).toContain("So funktioniert ein Anlassraum");
+    expect(html).toContain("Voxy begleitet den Einstieg");
+    expect(html).toContain("Du startest mit dem Rahmen. Thema, Optionen und Sichtbarkeit zuerst. Alles Weitere bleibt optional.");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Meine Anlässe");
     expect(html).not.toContain("Verwalten");
     expect(html).not.toContain("Gesamt:");
+    expect(html).not.toContain("Operator");
+    expect(html).not.toContain("Pipeline");
+    expect(html).not.toContain("RunReceipt");
   });
 
   it("Scenario F: signed-in member does not see management tab", async () => {

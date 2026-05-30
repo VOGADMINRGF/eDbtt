@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CORE_LOCALES, EXTENDED_LOCALES } from "@/config/locales";
 import { HumanCheck } from "@/components/security/HumanCheck";
+import {
+  REGISTER_FEEDBACK_MESSAGE_CLASSNAME,
+  REGISTER_HONEYPOT_FIELD_NAME,
+  validateRegisterStep3,
+} from "@/features/auth/registerSecurityContract";
 import { RegisterStepper } from "./RegisterStepper";
 import { resolveRegisterBridge } from "./registerFlowBridge";
 
@@ -200,7 +205,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   const [preferredLocale, setPreferredLocale] = useState<string>("de");
   const [newsletterOptIn, setNewsletterOptIn] = useState(true);
   const [humanToken, setHumanToken] = useState<string | null>(null);
-  const [humanNote, setHumanNote] = useState<string | null>(null);
+  const [humanResetSignal, setHumanResetSignal] = useState(0);
   const [formStartedAt, setFormStartedAt] = useState<number | null>(null);
   const [hpRegister, setHpRegister] = useState("");
   const [geoSuggestions, setGeoSuggestions] = useState<GeoAddressSuggestion[]>([]);
@@ -284,14 +289,11 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   }
 
   function validateStep3(): string | null {
-    if (!email.trim()) return "E-Mail: bitte angeben.";
-    if (!okPwd(password)) {
-      return "Passwort: min. 12 Zeichen, inkl. Zahl und Sonderzeichen.";
-    }
-    if (!humanToken) {
-      return "Bitte Sicherheitscheck bestätigen.";
-    }
-    return null;
+    return validateRegisterStep3({
+      email,
+      password,
+      humanToken,
+    });
   }
 
   function nextStep() {
@@ -431,7 +433,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           },
           humanToken,
           formStartedAt: startedAt,
-          hp_register: hpRegister,
+          [REGISTER_HONEYPOT_FIELD_NAME]: hpRegister,
           inviteCode: inviteCode ?? undefined,
         }),
         signal: ac.signal,
@@ -447,14 +449,11 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
       if (!r.ok) {
         if (data?.error === "human_token_expired" || data?.error === "human_token_invalid") {
           const isExpired = data?.error === "human_token_expired";
-          const note = isExpired
-            ? "Sicherheitscheck abgelaufen. Bitte erneut."
-            : "Sicherheitscheck ungültig. Bitte erneut.";
           const err = isExpired
-            ? "Sicherheitscheck abgelaufen. Bitte erneut bestätigen."
-            : "Sicherheitscheck ungültig. Bitte erneut bestätigen.";
+            ? "Der Sicherheitscheck ist abgelaufen. Bitte bestätige ihn kurz erneut."
+            : "Der Sicherheitscheck konnte nicht bestätigt werden. Bitte löse ihn kurz erneut.";
           setHumanToken(null);
-          setHumanNote(note);
+          setHumanResetSignal((value) => value + 1);
           setErrMsg(err);
           return;
         }
@@ -550,13 +549,17 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
       <form onSubmit={onSubmit} className="space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
-          <label htmlFor="hp_register">Bitte leer lassen</label>
+          <label htmlFor={REGISTER_HONEYPOT_FIELD_NAME}>Bitte leer lassen</label>
           <input
-            id="hp_register"
-            name="hp_register"
+            id={REGISTER_HONEYPOT_FIELD_NAME}
+            name={REGISTER_HONEYPOT_FIELD_NAME}
             type="text"
             tabIndex={-1}
-            autoComplete="off"
+            autoComplete="new-password"
+            inputMode="none"
+            data-form-type="other"
+            data-1p-ignore="true"
+            data-lpignore="true"
             value={hpRegister}
             onChange={(e) => setHpRegister(e.target.value)}
           />
@@ -953,27 +956,25 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
               <HumanCheck
                 formId="register"
+                disabled={busy}
+                resetSignal={humanResetSignal}
                 onSolved={(res) => {
                   setHumanToken(res.token);
-                  setHumanNote("Sicherheitscheck bestanden.");
+                  setErrMsg((current) =>
+                    current?.includes("Sicherheitscheck") ? undefined : current,
+                  );
                 }}
                 onError={() => {
                   setHumanToken(null);
-                  setHumanNote("Sicherheitscheck fehlgeschlagen. Bitte erneut.");
                 }}
               />
-              {humanNote && (
-                <p className="text-xs text-[rgb(var(--muted))]" aria-live="polite">
-                  {humanNote}
-                </p>
-              )}
             </div>
           </section>
         )}
 
         {errMsg && (
           <p
-            className="rounded-xl border border-rose-200/80 bg-rose-50/80 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-100"
+            className={`${REGISTER_FEEDBACK_MESSAGE_CLASSNAME} border-rose-200/80 bg-rose-50/80 text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-100`}
             aria-live="assertive"
           >
             {String(errMsg)}
@@ -981,7 +982,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         )}
         {okMsg && (
           <p
-            className="rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-100"
+            className={`${REGISTER_FEEDBACK_MESSAGE_CLASSNAME} border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-100`}
             aria-live="polite"
           >
             {okMsg}

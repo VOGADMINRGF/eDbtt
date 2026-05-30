@@ -63,8 +63,8 @@ describe("create mode selector contract", () => {
   });
 
   it("defines stable CTA copy for each mode", () => {
-    expect(resolveCreateProductModeConfig("analyze").ctaLabel).toBe("Beitrag strukturieren");
-    expect(resolveCreateProductModeConfig("media").ctaLabel).toBe("Prüfung starten");
-    expect(resolveCreateProductModeConfig("guided").ctaLabel).toBe("Entwurf ausarbeiten");
+    expect(resolveCreateProductModeConfig("analyze").ctaLabel).toBe("Beitrag einreichen");
+    expect(resolveCreateProductModeConfig("media").ctaLabel).toBe("Dialog starten");
+    expect(resolveCreateProductModeConfig("guided").ctaLabel).toBe("Dialog starten");
   });
 });

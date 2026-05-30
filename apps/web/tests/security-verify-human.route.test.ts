@@ -3,18 +3,14 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   incrementRateLimit: vi.fn(),
-  validatePuzzleAnswer: vi.fn(),
 }));
 
 vi.mock("@/lib/security/rate-limit", () => ({
   incrementRateLimit: (...args: unknown[]) => mocks.incrementRateLimit(...args),
 }));
 
-vi.mock("@/lib/security/human-puzzle", () => ({
-  validatePuzzleAnswer: (...args: unknown[]) => mocks.validatePuzzleAnswer(...args),
-}));
-
 import { POST as verifyHumanPOST } from "@/app/api/security/verify-human/route";
+import { derivePuzzle } from "@/lib/security/human-puzzle";
 
 function req(body: unknown) {
   return new NextRequest("http://localhost/api/security/verify-human", {
@@ -24,15 +20,77 @@ function req(body: unknown) {
   });
 }
 
+const THREE_PLUS_THREE_SEED = "seed-0034-41";
+
 describe("/api/security/verify-human", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.incrementRateLimit.mockResolvedValue(1);
-    mocks.validatePuzzleAnswer.mockReturnValue(true);
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it("accepts the correct captcha answer for a deterministic 3 + 3 challenge", async () => {
+    expect(derivePuzzle(THREE_PLUS_THREE_SEED)).toMatchObject({
+      first: 3,
+      second: 3,
+      expected: 6,
+    });
+
+    const res = await verifyHumanPOST(
+      req({
+        puzzleSeed: THREE_PLUS_THREE_SEED,
+        puzzleAnswer: "6",
+        timeToSolve: 0,
+        formId: "register",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      verified: true,
+      humanToken: expect.any(String),
+    });
+  });
+
+  it("rejects a wrong captcha answer for the same 3 + 3 challenge", async () => {
+    const res = await verifyHumanPOST(
+      req({
+        puzzleSeed: THREE_PLUS_THREE_SEED,
+        puzzleAnswer: "7",
+        timeToSolve: 0,
+        formId: "register",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      verified: false,
+      code: "puzzle",
+    });
+  });
+
+  it("rejects a filled honeypot without leaking public details", async () => {
+    const res = await verifyHumanPOST(
+      req({
+        honeypotValue: "bot-filled",
+        puzzleSeed: THREE_PLUS_THREE_SEED,
+        puzzleAnswer: "6",
+        timeToSolve: 0,
+        formId: "register",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      verified: false,
+      code: "honeypot",
+    });
   });
 
   it("returns explicit 503 when production secret is missing", async () => {
@@ -42,9 +100,9 @@ describe("/api/security/verify-human", () => {
 
     const res = await verifyHumanPOST(
       req({
-        puzzleSeed: "seed-12345678",
-        puzzleAnswer: 12,
-        timeToSolve: 1200,
+        puzzleSeed: THREE_PLUS_THREE_SEED,
+        puzzleAnswer: "6",
+        timeToSolve: 0,
         formId: "register",
       }),
     );
@@ -52,6 +110,7 @@ describe("/api/security/verify-human", () => {
     expect(res.status).toBe(503);
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
+      verified: false,
       code: "human_token_secret_not_configured",
     });
   });

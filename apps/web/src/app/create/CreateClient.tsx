@@ -86,6 +86,8 @@ import {
   resolveMaterialRouting,
 } from "@/features/create/materialRouting";
 import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
+import VoxyGuide from "@/components/voxy/VoxyGuide";
+import { getVoxyCopy } from "@/features/voxy/voxyCopy";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -261,11 +263,11 @@ export function buildCreateLightweightFollowupSnapshot(params: {
 function CreateSubmittedContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
-      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
       <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="whitespace-pre-wrap text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Du</p>
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3 shadow-sm shadow-slate-950/5">
+          <p className="whitespace-pre-wrap text-sm text-[rgb(var(--fg))] md:text-base">
             {props.text}
           </p>
         </div>
@@ -282,15 +284,15 @@ function CreateAssistantStatusBubble(props: {
 }) {
   return (
     <div className="create-chat-message flex gap-3">
-      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--grad-from))] ring-4 ring-[rgb(var(--card))]" />
       <div className="max-w-5xl flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-[linear-gradient(180deg,rgba(241,247,251,0.98),rgba(230,240,247,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
-          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{props.title}</p>
-          <p className="mt-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100 md:text-base">{props.body}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">eDebatte</p>
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] md:px-5 md:py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.eyebrow}</p>
+          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.title}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--fg))] md:text-base">{props.body}</p>
           {props.notice ? (
-            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-[color-mix(in_oklab,rgba(207,242,255,0.72)_78%,rgb(var(--card))_22%)] px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
+            <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
               {props.notice}
             </p>
           ) : null}
@@ -1311,6 +1313,9 @@ export default function CreateClient({
   const normalizedReturnTo = normalizeInternalRedirectPath(initialReturnTo);
   const fromRundenFlow =
     isRundenSourceContext(initialIntakeContext) || Boolean(normalizedReturnTo?.startsWith("/runden"));
+  const fromManualAnlassraumContinueCreate =
+    initialIntakeContext?.reason === "manual_anlassraum_continue_create" ||
+    Boolean(normalizedReturnTo?.startsWith("/runden/new"));
   const contextualReturnHref =
     normalizedReturnTo ??
     (fromRundenFlow
@@ -1736,8 +1741,19 @@ export default function CreateClient({
   }
 
   return (
-    <div className="mx-auto max-w-[430px] space-y-4 px-3 md:max-w-4xl md:px-4 md:space-y-8 xl:max-w-7xl">
-      <section className="create-dialog-workspace overflow-hidden rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
+    <section className="vog-page-stage min-h-screen">
+    <div className="vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
+      <section
+        className="create-dialog-workspace vog-surface-elevated overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
+        data-create-stage-shell="true"
+      >
+      {fromManualAnlassraumContinueCreate ? (
+        <div className="mb-4 md:mb-5">
+          <VoxyGuide appearance="panel" title="Voxy begleitet den Übergang" variant="neutral">
+            {getVoxyCopy("createContinue")}
+          </VoxyGuide>
+        </div>
+      ) : null}
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
@@ -1752,10 +1768,10 @@ export default function CreateClient({
                 <div
                   className={`rounded-2xl border px-3 py-2 text-xs ${
                     scopeNotice.tone === "operator"
-                      ? "border-amber-300/70 bg-amber-50 text-amber-900"
+                      ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
                       : scopeNotice.tone === "limited"
                         ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
-                        : "border-sky-300/60 bg-sky-50 text-sky-900"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
                   }`}
                 >
                   <p className="font-semibold">{scopeNotice.title}</p>
@@ -1830,7 +1846,7 @@ export default function CreateClient({
         error={intakeError}
         contextBanner={
           fromRundenFlow ? (
-            <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-100">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--fg))]">
               <p className="font-semibold">{surfaceTexts.rundenContextTitle}</p>
               <p className="mt-1">
                 {readableRundenContextLabel
@@ -1848,10 +1864,53 @@ export default function CreateClient({
         minimalHeading={
           surfaceLocale === "en" ? "What would you like to contribute?" : "Was möchtest du einbringen?"
         }
+        minimalLead={
+          surfaceLocale === "en"
+            ? "Start with your topic, question, or proposal in your own words."
+            : "Schreib dein Anliegen, deine Frage oder deinen Vorschlag zuerst in deinen eigenen Worten."
+        }
       />
 
+      {!hasStarted ? (
+        <section className="mt-4 rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {surfaceLocale === "en" ? "Optional next steps" : "Weitere Wege"}
+          </p>
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <button
+              type="button"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+              onClick={() => {
+                setProductMode("guided");
+                setActiveContextAnchorId(null);
+                setActionNotice(surfaceLocale === "en" ? "AI stays optional." : getVoxyCopy("ai"));
+              }}
+            >
+              {surfaceLocale === "en" ? "AI structures my text" : "KI strukturiert meinen Text"}
+            </button>
+            <button
+              type="button"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+              onClick={() => {
+                setProductMode("media");
+                setActiveContextAnchorId("source");
+                setActionNotice(null);
+              }}
+            >
+              {surfaceLocale === "en" ? "Review source or file" : "Quelle/Datei prüfen"}
+            </button>
+            <Link
+              href="/runden"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+            >
+              {surfaceLocale === "en" ? "Add to an existing round" : "Zu bestehendem Anlass hinzufügen"}
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
       {showTooShortHint ? (
-        <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+        <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
           {productModeConfig.minimumInputHint}
         </p>
       ) : null}
@@ -2096,12 +2155,7 @@ export default function CreateClient({
           {contextLoadState === "error" ? (
             <div className="mt-3 rounded-xl border border-rose-300/50 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
               <p>{text.contextUnavailable}.</p>
-              {contextLoadError ? (
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-xs font-semibold">Developer-Hinweis</summary>
-                  <p className="mt-1 text-xs">{contextLoadError}</p>
-                </details>
-              ) : null}
+              {contextLoadError ? <p className="mt-2 text-xs">Bitte versuche es gleich noch einmal.</p> : null}
               <button type="button" onClick={() => void loadContextItems()} className="btn-secondary mt-2 text-xs">
                 {text.reload}
               </button>
@@ -2148,7 +2202,6 @@ export default function CreateClient({
           {selectedContext ? (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
               <span className="vog-chip">{text.selectedLabel}: {selectedContext.title}</span>
-              <span className="vog-chip">{text.anlassraumIdLabel}: {selectedContext.anlassraumId}</span>
               <button
                 type="button"
                 className="vog-chip border border-[rgb(var(--border))] bg-transparent"
@@ -2242,5 +2295,6 @@ export default function CreateClient({
         </section>
       ) : null}
     </div>
+    </section>
   );
 }

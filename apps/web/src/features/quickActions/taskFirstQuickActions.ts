@@ -67,10 +67,10 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
         },
         {
           id: "rounds",
-          label: "Ich will einen Anlassraum/Event erstellen",
+          label: "Ich lege einen Anlassraum an",
           description:
-            "Starte direkt auf dem bestehenden Anlassraum-Pfad mit Titel, Wirkraum und Ziel.",
-          href: "/runden?intent=create",
+            "Starte direkt mit Rahmen, Optionen und Sichtbarkeit. KI bleibt optional.",
+          href: "/runden/new",
           priority: "secondary",
           badge: "Produktiver Pfad",
         },
@@ -86,7 +86,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
         },
         {
           id: "topics",
-          label: "Ich will Themen anschauen",
+          label: "Ich sehe Themen an",
           description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
           href: "/themen",
           priority: "secondary",
@@ -131,11 +131,11 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
         },
         {
           id: "rounds",
-          label: "Ich kläre Anlassraum/Event-Freischaltung",
+          label: "Ich lege einen Anlassraum an",
           description: isVerified
-            ? "Starte direkt im bestehenden produktiven Anlassraum-Pfad."
+            ? "Starte direkt mit Rahmen, Optionen und Sichtbarkeit."
             : "Produktive Anlassräume folgen nach passender Freischaltung. Hier siehst du den sicheren nächsten Schritt.",
-          href: isVerified ? "/runden?intent=create" : workspaceHref,
+          href: isVerified ? "/runden/new" : workspaceHref,
           priority: "secondary",
           badge: isVerified ? "Produktiver Pfad" : "Freischaltung nötig",
         },
@@ -151,7 +151,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
       secondaryActions: [
         {
           id: "topics",
-          label: "Ich will Themen anschauen",
+          label: "Ich sehe Themen an",
           description: "Öffne sichtbare Themen, Dossiers und öffentliche Arbeitsstände.",
           href: "/themen",
           priority: "secondary",
@@ -162,13 +162,13 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
 
   return {
     eyebrow: "Neu hier?",
-    title: "Starte mit einem Beitrag oder schau dir Themen an.",
+    title: "Starte mit einem Beitrag oder einem Anlassraum.",
     description:
-      "Du musst nicht wissen, welches Modul richtig ist. Diese vier Einstiege führen direkt auf die bestehenden review-first Pfade.",
+      "Drei klare Einstiege reichen für den Anfang: ein Anliegen einreichen, einen Anlassraum anlegen oder sichtbare Themen ansehen.",
     primaryActions: [
       {
         id: "contribute",
-        label: "Ich will etwas beitragen",
+        label: "Ich reiche ein Anliegen ein",
         description:
           "Starte mit einem Hinweis, einer Frage oder einer Beobachtung. Der Einstieg bleibt leicht und review-first.",
         href: "/create?intent=contribute",
@@ -176,7 +176,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
       },
       {
         id: "topics",
-        label: "Ich will Themen anschauen",
+        label: "Ich sehe Themen an",
         description:
           "Sieh dir an, welche Themen, Dossiers und Fragen gerade öffentlich sichtbar sind.",
         href: "/themen",
@@ -184,10 +184,10 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
       },
       {
         id: "rounds",
-        label: "Ich will einen Anlassraum/Event erstellen",
+        label: "Ich lege einen Anlassraum an",
         description:
-          "Ein schlanker Start auf dem bestehenden Pfad: Titel, Wirkraum, Ziel. Zeitraum bleibt optional und alles ist review-first.",
-        href: "/runden?intent=create",
+          "Rahmen, Optionen und Sichtbarkeit zuerst. KI und Prüfung bleiben optionale nächste Schritte.",
+        href: "/runden/new",
         priority: "secondary",
       },
     ],
@@ -245,26 +245,26 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
     input.context === "verified" || input.context === "operator"
       ? {
           id: "rounds",
-          label: "Ich will einen Anlassraum/Event erstellen",
+          label: "Ich lege einen Anlassraum an",
           description:
-            "Starte schlank mit Titel, Wirkraum und Ziel. Zeitraum bleibt optional und alles bleibt review-first.",
-          href: "/runden?intent=create",
+            "Starte schlank mit Rahmen, Optionen und Sichtbarkeit. KI bleibt optional.",
+          href: "/runden/new",
           priority: "secondary" as const,
           badge: "Produktiver Pfad",
         }
       : input.context === "blocked"
         ? {
-            id: "rounds",
-            label: "Ich kläre Anlassraum/Event-Freischaltung",
-            description:
-              "Anlassräume bleiben bis zur Klärung von Vertrag, Freischaltung oder Sperre im sicheren Hinweis-Modus.",
-            href: input.organizationHref,
-            priority: "secondary" as const,
-            badge: "Freischaltung nötig",
-          }
+          id: "rounds",
+          label: "Ich kläre die Anlassraum-Freischaltung",
+          description:
+            "Anlassräume bleiben bis zur Klärung von Vertrag, Freischaltung oder Sperre im sicheren Hinweis-Modus.",
+          href: input.organizationHref,
+          priority: "secondary" as const,
+          badge: "Freischaltung nötig",
+        }
         : {
             id: "rounds",
-            label: "Ich kläre Anlassraum/Event-Freischaltung",
+            label: "Ich kläre die Anlassraum-Freischaltung",
             description:
               "Für einen produktiven Anlassraum braucht deine Organisation zuerst die passende Freischaltung. Hier siehst du den nächsten sicheren Schritt.",
             href: input.organizationHref,

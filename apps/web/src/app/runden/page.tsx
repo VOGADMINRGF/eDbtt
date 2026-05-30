@@ -24,6 +24,9 @@ import {
   resolveRundenEntryStatusChips,
   toneClassForB2CStatus,
 } from "@/features/b2cJourney/statusContract";
+import MotionReveal from "@/components/motion/MotionReveal";
+import VoxyGuide from "@/components/voxy/VoxyGuide";
+import { VOXY_COPY } from "@/features/voxy/voxyCopy";
 
 export const metadata: Metadata = {
   title: "Anlassraum - eDebatte",
@@ -55,13 +58,7 @@ function viewHref(view: RoundEntryView): string {
 }
 
 function buildCreateIntentHref() {
-  const params = new URLSearchParams();
-  params.set("mode", "source");
-  params.set("intent", "contribute");
-  params.set("entryIntent", "content_companion");
-  params.set("source", "runden");
-  params.set("reason", "round_quick_start");
-  return `/create?${params.toString()}`;
+  return "/runden/new";
 }
 
 function hasEntryOwnership(entry: RundenEntryItem, sessionUid: string | null): boolean {
@@ -110,21 +107,21 @@ function buildStartCards(params: {
   return [
     {
       href: buildCreateIntentHref(),
-      title: "Anlassraum/Event starten",
-      body: "Minimaler Einstieg: Titel, Wirkraum und Ziel. Zeitraum bleibt optional. Der Start bleibt review-first.",
-      cta: "Jetzt starten",
+      title: "Neuen Anlassraum anlegen",
+      body: "Rahmen, Optionen und Sichtbarkeit zuerst selbst festlegen. KI bleibt optional.",
+      cta: "Anlegen",
       priority: "primary" as const,
     },
     {
       href: params.existingHref ?? viewHref("active"),
-      title: "Laufenden Anlass weiterführen",
+      title: "Bestehenden Anlass weiterführen",
       body: "Aktive Anlässe pflegen, Rückmeldungen bündeln und den aktuellen Stand sichtbar halten.",
       cta: "Weiterführen",
       priority: params.hasActiveEntries ? ("secondary" as const) : ("tertiary" as const),
     },
     {
       href: resultsHref,
-      title: "Stand und Ergebnisse ansehen",
+      title: "Ergebnisse ansehen",
       body:
         "Sobald ein Anlass gewachsen ist, werden Arbeitsstand, Dossier und spätere Ergebnisse nachvollziehbar sichtbar.",
       cta: "Ansehen",
@@ -343,7 +340,7 @@ function RoundQuickActions(props: {
           {props.canQrActions && props.entry.shareActions ? (
             <a
               href={qrAnchorHref}
-              className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              className="vog-btn-brand"
             >
               Teilnahme öffnen
             </a>
@@ -384,7 +381,7 @@ function RoundQuickActions(props: {
       >
         <a
           href={composeAnchorHref}
-          className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          className="vog-btn-brand"
         >
           Beitrag verfassen
         </a>
@@ -447,7 +444,7 @@ function RoundInlineContributionModule(props: {
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            className="vog-btn-brand"
           >
             Beitrag verfassen
           </button>
@@ -664,109 +661,125 @@ export default async function RundenPage({
     featured ? roundOpenHref(featured) : existingHref ?? "/runden?view=active";
   const quickStartParticipationAnchorId =
     featured && canQrFeatured ? `share-${featured.id}` : null;
+  const firstScreenGuideCards = [
+    {
+      title: "Was Menschen einreichen können",
+      body: "Hinweise, Widerspruch, Quellen und Ergänzungen lassen sich gezielt in denselben Anlass einbringen.",
+    },
+    {
+      title: "Sichtbarkeit & Review",
+      body: "Öffentlichkeit, Prüfung und spätere Freigaben bleiben getrennte Entscheidungen.",
+    },
+    {
+      title: "Weiterarbeiten mit /create oder Dossier",
+      body: "Wenn der Rahmen steht, kannst du Quellen, Frage oder Optionen später weiter ausarbeiten.",
+    },
+  ] as const;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[92rem] space-y-6 px-4 py-6 md:px-8 md:py-10 lg:px-10">
-      <header className="relative overflow-hidden rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm md:p-6">
+    <section className="vog-page-stage min-h-screen">
+    <main className="vog-main-shell min-h-screen space-y-6 md:space-y-8">
+      <header
+        className="vog-surface-elevated vog-surface-brand relative overflow-hidden p-5 md:p-6 lg:p-8"
+        data-runden-hero="true"
+      >
         <div className="pointer-events-none absolute -right-28 -top-24 h-72 w-72 rounded-full bg-[rgb(var(--grad-from))]/15 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 bottom-0 h-56 w-56 rounded-full bg-[rgb(var(--grad-to))]/10 blur-3xl" />
 
-        <div className="relative space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-            ANLASSRAUM
-          </p>
+        <div className="relative grid gap-6 lg:min-h-[26.5rem] lg:grid-cols-12 lg:items-center lg:gap-8">
+          <div className="space-y-5 lg:col-span-7">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+                eDebatte Anlassraum
+              </p>
+              <h1
+                className="text-3xl font-semibold leading-tight md:text-4xl"
+                style={{
+                  backgroundImage: `linear-gradient(120deg,
+                    rgba(var(--fg),0.98) 0%,
+                    rgba(var(--grad-to),0.82) 92%)`,
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.
+              </h1>
 
-          <div className="space-y-2">
-            <h1
-              className="text-3xl font-semibold leading-tight md:text-4xl"
-              style={{
-                backgroundImage: `linear-gradient(120deg,
-                  rgba(var(--fg),0.98) 0%,
-                  rgba(var(--grad-to),0.82) 92%)`,
-                WebkitBackgroundClip: "text",
-                color: "transparent",
-              }}
-            >
-              Anlassraum
-            </h1>
+              <p className="max-w-3xl text-base leading-7 text-[rgb(var(--fg))] md:text-[1.05rem]">
+                Starte einen Anlassraum, wenn aus einem Anliegen eine nachvollziehbare Frage mit Optionen werden soll.
+                KI, Prüfung und Dossier kommen nur dazu, wenn du sie auswählst.
+              </p>
+            </div>
 
-            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Ein öffentlicher Themenraum zu einem konkreten Anlass.
-            </p>
-            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Lass das beste Argument gewinnen.
-            </p>
-            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Hier sammelst du Fragen, Perspektiven, Quellen und Optionen. Ein Anlassraum hilft dabei,
-              Hinweise, Widerspruch und Vorschläge nicht im Kommentarstrom zu verlieren, sondern
-              geordnet in einen gemeinsamen Arbeitsstand mit offenen Fragen und nächsten Schritten zu
-              überführen.
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Link href={startCards[0].href} className="vog-btn-brand">
+                Neuen Anlassraum anlegen
+              </Link>
+              <Link href={startCards[1].href} className="vog-btn-secondary">
+                Bestehenden Anlass weiterführen
+              </Link>
+            </div>
+            <div>
+              <Link
+                href={startCards[2].href}
+                className="text-sm font-semibold text-[rgb(var(--muted))] underline underline-offset-4 transition hover:text-[rgb(var(--fg))]"
+              >
+                Ergebnisse ansehen
+              </Link>
+            </div>
+
+            {createIntent ? (
+              <div className="vog-surface-muted p-4">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  Schlanker Start für Anlassraum oder Event
+                </p>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                  Für den ersten Schritt reichen Titel, Wirkraum und Ziel. Ein Zeitraum ist optional.
+                  Alles startet review-first und ohne automatische Veröffentlichung.
+                </p>
+              </div>
+            ) : null}
+
+            <p className="text-xs text-[rgb(var(--muted))]">
+              <Link href="/runden/demo" className="underline underline-offset-4 hover:text-[rgb(var(--fg))]">
+                So funktioniert ein Anlassraum
+              </Link>
             </p>
           </div>
 
-          <section
-            aria-label="Schneller Einstieg"
-            className="grid gap-3 md:grid-cols-3"
-          >
-            {startCards.map((card) => (
-              <Link
-                key={card.title}
-                href={card.href}
-                aria-label={card.title}
-                className={
-                  "group block h-full rounded-xl border bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] " +
-                  (card.priority === "primary"
-                    ? "border-[rgb(var(--grad-from))]/45"
-                    : card.priority === "secondary"
-                      ? "border-[rgb(var(--border))]"
-                      : "border-[rgb(var(--border))] opacity-75")
-                }
-              >
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  {card.title}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-                  {card.body}
-                </p>
-                <p className="mt-3 text-xs font-semibold text-[rgb(var(--grad-from))] transition group-hover:text-[rgb(var(--grad-to))]">
-                  {card.cta} →
-                </p>
-              </Link>
-            ))}
-          </section>
-          {createIntent ? (
-            <div className="rounded-2xl border border-[rgb(var(--grad-from))]/40 bg-[rgb(var(--bg))] p-4">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                Schlanker Start für Anlassraum oder Event
-              </p>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Für den ersten Schritt reichen Titel, Wirkraum und Ziel. Ein Zeitraum ist optional.
-                Alles startet review-first und ohne automatische Veröffentlichung.
-              </p>
+          <MotionReveal delay={0.04}>
+            <div className="lg:col-span-5">
+            <VoxyGuide appearance="hero" title="Voxy begleitet den Einstieg" variant="presenting">
+              <p>{VOXY_COPY.rundenHero}</p>
+            </VoxyGuide>
             </div>
-          ) : null}
-          <p className="text-xs text-[rgb(var(--muted))]">
-            <Link href="/runden/demo" className="underline underline-offset-4 hover:text-[rgb(var(--fg))]">
-              So funktioniert ein Anlassraum
-            </Link>
-          </p>
-
-          {!isSignedIn ? (
-            <p className="text-xs text-[rgb(var(--muted))]">
-              {activeEntries.length === 0
-                ? "Aktuell sind noch keine laufenden Anlässe sichtbar."
-                : `${activeEntries.length} laufende Anlässe sind aktuell verfügbar.`}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[rgb(var(--muted))]">
-              <span>Gesamt: {entries.length}</span>
-              <span>Laufend: {activeEntries.length}</span>
-              <span>Abgeschlossen: {closedEntries.length}</span>
-              <span>Offener Altstand: {legacyCount}</span>
-            </div>
-          )}
+          </MotionReveal>
         </div>
       </header>
+
+      <section className="grid gap-3 lg:grid-cols-3" data-runden-primary-modules="true">
+        {firstScreenGuideCards.map((card) => (
+          <section key={card.title} className="vog-surface-muted p-4 md:p-5">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{card.body}</p>
+          </section>
+        ))}
+      </section>
+
+      {!isSignedIn ? (
+        <p className="text-xs text-[rgb(var(--muted))]">
+          {activeEntries.length === 0
+            ? "Aktuell sind noch keine laufenden Anlässe sichtbar."
+            : `${activeEntries.length} laufende Anlässe sind aktuell verfügbar.`}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[rgb(var(--muted))]">
+          <span>Gesamt: {entries.length}</span>
+          <span>Laufend: {activeEntries.length}</span>
+          <span>Abgeschlossen: {closedEntries.length}</span>
+          <span>Offener Altstand: {legacyCount}</span>
+        </div>
+      )}
 
       {isSignedIn && !capabilitySummary.canManageProductiveRounds ? (
         <section className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900">
@@ -874,10 +887,10 @@ export default async function RundenPage({
           </ol>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
-              href="/create?mode=source"
-              className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              href="/runden/new"
+              className="vog-btn-brand"
             >
-              Neuen Anlass öffnen
+              Neuen Anlassraum anlegen
             </Link>
             <Link
               href={`/create?${new URLSearchParams({
@@ -916,10 +929,10 @@ export default async function RundenPage({
             </div>
 
             <Link
-              href="/create?mode=source"
+              href="/runden/new"
               className="inline-flex w-full items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))] sm:w-auto"
             >
-              Neuen Anlass öffnen
+              Neuen Anlassraum anlegen
             </Link>
           </div>
 
@@ -988,7 +1001,7 @@ export default async function RundenPage({
 
                   <Link
                     href={roundOpenHref(featured)}
-                    className="mt-4 block w-full rounded-md bg-[rgb(var(--grad-from))] px-4 py-2 text-center text-sm font-semibold text-white shadow transition hover:opacity-90"
+                    className="vog-btn-brand mt-4 flex w-full"
                   >
                     Anlass öffnen
                   </Link>
@@ -1201,5 +1214,6 @@ export default async function RundenPage({
       )}
 
     </main>
+    </section>
   );
 }

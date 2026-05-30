@@ -113,14 +113,23 @@ describe("/create start surface", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("Was möchtest du einbringen?");
-    expect(html).toContain("Beschreibe dein Thema");
+    expect(html).toContain("Schreib dein Anliegen, deine Frage oder deinen Vorschlag zuerst in deinen eigenen Worten.");
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
-    expect(html).toContain("Beitrag strukturieren");
+    expect(html).toContain("Beitrag einreichen");
+    expect(html).toContain("KI strukturiert meinen Text");
+    expect(html).toContain("Quelle/Datei prüfen");
+    expect(html).toContain("Zu bestehendem Anlass hinzufügen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
+    expect(html).toContain('data-create-focus-stage="true"');
+    expect(html).toContain('data-create-stage-shell="true"');
+    expect(html).not.toContain("Developer-Hinweis");
+    expect(html).not.toContain("Operator");
+    expect(html).not.toContain("Provider");
+    expect(html).not.toContain("Pipeline");
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");
@@ -158,6 +167,27 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Intake-Kontext (Anlassraum-first)");
     expect(html).not.toContain("manual_fast_path_via_create");
     expect(html).not.toContain("feed_drafts_queue");
+  });
+
+  it("shows the manual runden continue hint without auto-analyzing", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        source: "runden",
+        reason: "manual_anlassraum_continue_create",
+        returnTo: "/runden/new",
+        signalTitle: "Verkehr im Kiez",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Der Rahmen steht. Ich kann jetzt Frage, Optionen oder Quellenstruktur verbessern.");
+    expect(html).toContain("Voxy begleitet den Übergang");
+    expect(html).toContain('data-voxy-appearance="panel"');
+    expect(html).toContain('data-create-focus-stage="true"');
+    expect(html).toContain('data-create-stage-shell="true"');
+    expect(html).toContain("Aus laufendem Anlass gestartet");
+    expect(html).not.toContain("autoAnalyze");
+    expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
   });
 
   it("shows the resolved organization scope when available", async () => {

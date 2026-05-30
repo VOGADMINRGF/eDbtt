@@ -57,6 +57,13 @@ function deriveInitials(value: string) {
   return `${first}${second}` || first || "DU";
 }
 
+function isActiveNavHref(pathname: string | null, href: string) {
+  const normalizedHref = href.split("?")[0] ?? href;
+  if (!pathname) return false;
+  if (normalizedHref === "/") return pathname === "/";
+  return pathname === normalizedHref || pathname.startsWith(`${normalizedHref}/`);
+}
+
 export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const { locale, setLocale } = useLocale();
   const { lang: contentLang, setLang: setContentLang } = useContentLang();
@@ -172,15 +179,15 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     <header
       ref={headerRef}
       data-site-header="true"
-      className={`sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_90%,rgb(var(--card))_10%)] backdrop-blur-xl ${
+      className={`sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_88%,rgb(var(--card))_12%)] shadow-[0_10px_28px_rgba(2,6,23,0.06)] backdrop-blur-xl ${
         isSwipeFocusPath ? "max-md:hidden" : ""
       }`}
     >
-      <div className={`mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 md:gap-3 md:px-4 md:py-3 ${compactMobileShell ? "max-md:py-1.5" : ""}`}>
+      <div className={`mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 md:gap-4 md:px-5 md:py-3.5 ${compactMobileShell ? "max-md:py-1.5" : ""}`}>
         {/* Logo / Brand */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 rounded-full px-1 py-1 transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)]">
           <span
-            className="text-base font-extrabold leading-tight tracking-tight md:text-lg"
+            className="text-xl font-extrabold leading-tight tracking-tight md:text-[1.4rem] lg:text-[1.55rem]"
             style={{
               backgroundImage:
                 "linear-gradient(120deg,var(--brand-cyan),var(--brand-blue))",
@@ -198,7 +205,12 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             <Link
               key={item.id}
               href={resolveHref(item.href)}
-              className="inline-flex items-center gap-2 rounded-full border border-transparent px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
+              aria-current={isActiveNavHref(pathname, item.href) ? "page" : undefined}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                isActiveNavHref(pathname, item.href)
+                  ? "border-[rgb(var(--grad-from))]/35 bg-[color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%)] text-[rgb(var(--fg))] shadow-sm"
+                  : "border-transparent text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
+              }`}
             >
               <span>{item.label}</span>
             </Link>
@@ -250,7 +262,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             <div className="hidden items-center gap-2 sm:flex">
               <Link
                 href="/login"
-                className="inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
+                className="vog-btn-brand px-4 py-2 text-xs uppercase tracking-wide text-white"
               >
                 {t("Login", "cta.login")}
               </Link>
