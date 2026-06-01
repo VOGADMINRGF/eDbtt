@@ -126,16 +126,23 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html).toContain("Wir konnten deinen Beitrag noch nicht exakt zuordnen.");
-    expect(html).toContain("KI-Suche aktivieren");
-    expect(html).toContain("Bericht an die Redaktion senden");
-    expect(html).toContain("Thema selbst auswählen");
+    expect(html).toContain("Wir konnten dein Anliegen noch nicht sicher einordnen.");
+    expect(html).toContain("Du kannst trotzdem weitermachen.");
+    expect(html).toContain("Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.");
+    expect(html).toContain("Text sortieren lassen");
+    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("Mögliche Startpunkte");
+    expect(html).toContain("So kannst du weitermachen");
+    expect(html.match(/Wir konnten dein Anliegen noch nicht sicher einordnen\./g)?.length ?? 0).toBe(1);
     expect(html).toContain("Gleichberechtigung und Frauenquote");
     expect(html).not.toContain("Haben wir dich richtig verstanden?");
     expect(html).not.toContain("Öffentliches Anliegen</p>");
     expect(html).not.toContain("Kern</p>");
     expect(html).not.toContain("Ja, so einreichen");
     expect(html).not.toContain("Faktencheck anfragen");
+    expect(html).not.toContain("KI-Suche aktivieren");
+    expect(html).not.toContain("Bericht an die Redaktion senden");
   });
 });

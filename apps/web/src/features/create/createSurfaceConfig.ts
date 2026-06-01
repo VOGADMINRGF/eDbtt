@@ -181,7 +181,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
           "Prüfe eine Behauptung, einen Text, eine Quelle oder ein Thema auf Belege, offene Fragen, Gegenpositionen und Zuständigkeiten. eDebatte hält den Text fest und fragt dann nach dem passenden Prüfweg.",
         placeholder:
           "Füge eine Aussage, einen Text, eine Quelle oder ein Thema ein, das geprüft werden soll …",
-        ctaLabel: "Dialog starten",
+        ctaLabel: "Weiter zur Prüfung",
         minimumInputHint:
           "Nenne die Aussage oder den Text etwas genauer, damit die Prüfung sinnvoll starten kann.",
         firstQuestion: "Welche Aussage oder welcher Teil soll zuerst geprüft werden?",
@@ -214,7 +214,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
           "Skizziere ein Thema, eine Idee oder ein Ziel. eDebatte fragt nach, ordnet ein und hilft dir, daraus Beitrag, Fragenkatalog oder Beteiligungsrunde zu entwickeln.",
         placeholder:
           "Beschreibe kurz, was du vorbereiten möchtest …",
-        ctaLabel: "Dialog starten",
+        ctaLabel: "Beitrag vorbereiten",
         minimumInputHint:
           "Beschreibe den Entwurfswunsch etwas konkreter, damit daraus ein belastbarer Arbeitsstand werden kann.",
         firstQuestion:

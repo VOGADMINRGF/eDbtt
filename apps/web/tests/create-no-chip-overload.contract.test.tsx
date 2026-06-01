@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 
 import CreateClient, {
   getCreateContextAnchorsForMode,
+  resolveCreatePostStartSectionOrder,
   type CreateClientProps,
 } from "@/app/create/CreateClient";
 import { LocaleProvider } from "@/context/LocaleContext";
@@ -109,21 +110,28 @@ describe("create no chip overload contract", () => {
     expect(guidedAnchors[0]?.id).toBe("option");
   });
 
-  it("keeps mode switching behind a secondary disclosure on first load", () => {
+  it("keeps the first load free of extra disclosure and public quota chips", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <CreateClient {...PROPS} />
       </LocaleProvider>,
     );
-    const composerSource = readFileSync(
-      resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
       "utf8",
     );
+    const order = resolveCreatePostStartSectionOrder({
+      showIntelligentFollowup: true,
+      showPostInputModules: true,
+      showFollowupQuestionCard: false,
+      pickerEnabled: true,
+    });
 
-    expect(composerSource).toContain("data-create-alternate-mode-disclosure");
-    expect(composerSource).toContain("px-4 py-3 md:block");
+    expect(clientSource).toContain("hideAlternateModeDisclosure");
+    expect(order).not.toContain("quotas");
     expect(html).not.toContain("Test stadt");
     expect(html).not.toContain("Checkliste");
+    expect(html).not.toContain("Weitere Wege");
     expect(html).not.toContain("Kontingente und Zugriff</span></div><section");
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).not.toContain("Developer-Hinweis");

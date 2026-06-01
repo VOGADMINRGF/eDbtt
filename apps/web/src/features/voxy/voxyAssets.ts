@@ -12,6 +12,9 @@ export const VOXY_VARIANTS = [
   "wave",
   "miniAvatar",
   "podcastStage",
+  "createGuide",
+  "createGuideLight",
+  "createGuideDark",
 ] as const;
 
 export type VoxyVariant = (typeof VOXY_VARIANTS)[number];
@@ -140,13 +143,37 @@ export const VOXY_ASSET_MAP: Record<VoxyVariant, VoxyAssetDefinition> = {
     usageHint:
       "Legacy-Alias für frühere Stage-Verwendungen. Rendert bewusst auf dieselbe ruhige Hero-Figur wie `confident`.",
   },
+  createGuide: {
+    alt: "Voxy hilft beim Sortieren",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-create-guide.png",
+    webp: "/brand/voxy/voxy-create-guide.png",
+    usage: "default_guide",
+    usageHint: "Für die öffentliche /create-Begleitung mit freigestellter Figur ohne Bildfläche nutzen.",
+  },
+  createGuideLight: {
+    alt: "Voxy hilft beim Sortieren",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-create-guide-light.png",
+    webp: "/brand/voxy/voxy-create-guide-light.png",
+    usage: "default_guide",
+    usageHint: "Light-Variante für /create mit hellem Kopf und klar blauem Anzug.",
+  },
+  createGuideDark: {
+    alt: "Voxy hilft beim Sortieren",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-create-guide-dark.png",
+    webp: "/brand/voxy/voxy-create-guide-dark.png",
+    usage: "default_guide",
+    usageHint: "Dark-Variante für /create mit hellem Kopf und dunklerem Anzug.",
+  },
 };
 
 export const VOXY_PUBLIC_ROUTE_ASSETS = {
   startLight: "confident",
   startDark: "confident",
-  createLight: "presenting",
-  createDark: "thinking",
+  createLight: "createGuideLight",
+  createDark: "createGuideDark",
   dossierLight: "hint",
   dossierDark: "thinking",
   rundenLight: "open",

@@ -176,6 +176,7 @@ export type SharedCreateComposerProps = {
   experienceVariant?: "standard" | "create_minimal";
   minimalHeading?: string;
   minimalLead?: string;
+  hideAlternateModeDisclosure?: boolean;
 };
 
 export default function SharedCreateComposer({
@@ -213,6 +214,7 @@ export default function SharedCreateComposer({
   experienceVariant = "standard",
   minimalHeading,
   minimalLead,
+  hideAlternateModeDisclosure = false,
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -410,12 +412,12 @@ export default function SharedCreateComposer({
       <div
         className={
           embeddedWorkspace
-            ? `mx-auto w-full ${isMinimalCreate ? "max-w-[42rem] md:max-w-[64rem] xl:max-w-[72rem]" : "max-w-5xl"} ${compactMetaMode ? "space-y-4 md:space-y-6" : "space-y-6 md:space-y-7"}`
+            ? `mx-auto w-full ${isMinimalCreate ? "create-public-composer max-w-[42rem] md:max-w-[64rem] xl:max-w-[72rem]" : "max-w-5xl"} ${compactMetaMode ? "space-y-4 md:space-y-6" : "space-y-6 md:space-y-7"}`
             : "mx-auto w-full max-w-5xl space-y-6 md:space-y-7"
         }
       >
         {isMinimalCreate ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {topMeta}
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
               {badge}
@@ -457,7 +459,7 @@ export default function SharedCreateComposer({
         {contextBanner}
 
         <div className={`space-y-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] ${isMinimalCreate ? "overflow-x-hidden" : ""}`}>
-          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--grad-from))_44%,transparent),color-mix(in_oklab,rgb(var(--grad-to))_24%,transparent),color-mix(in_oklab,rgb(var(--border))_24%,transparent))] p-[1px]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px]"}`}>
+          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent),color-mix(in_oklab,rgb(var(--grad-to))_12%,transparent),color-mix(in_oklab,rgb(var(--border))_52%,transparent))] p-[1px]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px]"}`}>
             <div
               data-create-focus-stage={isMinimalCreate ? "true" : "false"}
               className={`${isMinimalCreate ? "vog-focus-stage rounded-[30px]" : "rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)]"}`}
@@ -618,7 +620,7 @@ export default function SharedCreateComposer({
             </details>
           ) : null}
 
-          {isMinimalCreate ? (
+          {isMinimalCreate && !hideAlternateModeDisclosure ? (
             <details
               data-create-alternate-mode-disclosure
               className="hidden rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 md:block"

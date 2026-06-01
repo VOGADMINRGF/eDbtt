@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  analyzeContribution: vi.fn(),
   buildCreatePlanner: vi.fn(),
-}));
-
-vi.mock("@features/analyze/analyzeContribution", () => ({
-  analyzeContribution: (...args: unknown[]) => mocks.analyzeContribution(...args),
 }));
 
 vi.mock("@/features/create/createPlanner", () => ({
@@ -82,42 +77,6 @@ describe("create planner routing contract", () => {
         qualityGatePassed: true,
       },
     });
-    mocks.analyzeContribution.mockResolvedValue({
-      mode: "E150",
-      sourceText: null,
-      language: "de",
-      claims: [
-        {
-          id: "c1",
-          text: "Es braucht bessere Standards.",
-          topic: "Öffentliches Anliegen",
-          domain: "politik",
-          domains: ["politik"],
-          stance: "pro",
-          statementType: "interpretation",
-          importance: 3,
-        },
-      ],
-      findings: [],
-      notes: [],
-      questions: [],
-      missingPerspectives: [],
-      knots: [],
-      consequences: { consequences: [], responsibilities: [] },
-      responsibilityPaths: [],
-      eventualities: [],
-      decisionTrees: [],
-      impactAndResponsibility: { impacts: [], responsibleActors: [] },
-      participationCandidates: [],
-      report: {
-        summary: "Generische Analyse.",
-        keyConflicts: [],
-        facts: { local: [], international: [] },
-        openQuestions: [],
-        takeaways: [],
-      },
-    });
-
     const result = await buildCreateIntelligentFollowup({
       text: "Ich bin für bessere Tierwohlstandards.",
       locale: "de",
@@ -137,6 +96,7 @@ describe("create planner routing contract", () => {
     expect(result.meta?.graphMatch.stage).toBe("after_structure");
     expect(result.meta?.graphMatch.requiresConfirmation).toBe(true);
     expect(result.meta?.graphMatch.searchTerms).toEqual(expect.arrayContaining(["Tierwohl"]));
+    expect(result.degraded).toBe(false);
     expect(result.understanding.topics[0]?.label).toBe("Tierschutz, Tierhaltung und Agrarstandards");
     expect(result.understanding.statements[0]?.text).toBe("Forderung nach besseren Tierschutz- und Tierhaltungsstandards");
   });
@@ -200,31 +160,6 @@ describe("create planner routing contract", () => {
         qualityGatePassed: false,
       },
     });
-    mocks.analyzeContribution.mockResolvedValue({
-      mode: "E150",
-      sourceText: null,
-      language: "de",
-      claims: [],
-      findings: [],
-      notes: [],
-      questions: [],
-      missingPerspectives: [],
-      knots: [],
-      consequences: { consequences: [], responsibilities: [] },
-      responsibilityPaths: [],
-      eventualities: [],
-      decisionTrees: [],
-      impactAndResponsibility: { impacts: [], responsibleActors: [] },
-      participationCandidates: [],
-      report: {
-        summary: "Generische Analyse.",
-        keyConflicts: [],
-        facts: { local: [], international: [] },
-        openQuestions: [],
-        takeaways: [],
-      },
-    });
-
     const result = await buildCreateIntelligentFollowup({
       text: "Ein längerer Mehrthemenbeitrag ohne brauchbaren Planner-Vertrag.",
       locale: "de",
@@ -238,6 +173,7 @@ describe("create planner routing contract", () => {
     expect(result.meta?.graphMatch.searchTerms).toEqual([]);
     expect(result.meta?.planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(result.meta?.planner.plannerDebug.usedProvider).toBe("local_fallback");
+    expect(result.degraded).toBe(true);
   });
 
   it("builds a concrete local planner for mixed quota and equality text when AI is unavailable", async () => {

@@ -417,18 +417,21 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("keeps the local quota fallback in a clearly provisional clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
-    expect(html).toContain("Vorläufige Einordnung");
-    expect(html).toContain("Wir konnten deinen Beitrag noch nicht exakt zuordnen.");
-    expect(html).toContain("Die KI-Einordnung wurde nicht vollständig abgeschlossen.");
+    expect(html).toContain("So kannst du weitermachen");
+    expect(html).toContain("Wir konnten dein Anliegen noch nicht sicher einordnen.");
+    expect(html).toContain("Du kannst trotzdem weitermachen.");
     expect(html).toContain("Gleichberechtigung");
     expect(html).toContain("Frauenquote");
     expect(html).toContain("Minderheitenförderung");
     expect(html).toContain("wirtschaftliche Auswirkungen für Unternehmen");
-    expect(html).toContain("KI-Suche aktivieren");
-    expect(html).toContain("Bericht an die Redaktion senden");
-    expect(html).toContain("Thema selbst auswählen");
+    expect(html).toContain("Text sortieren lassen");
+    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Thema selbst wählen");
     expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
     expect(html).not.toContain("Kern");
+    expect(html).not.toContain("KI-Suche aktivieren");
+    expect(html).not.toContain("Bericht an die Redaktion senden");
   });
 
   it("only opens the correction composer after edit mode is active", () => {
@@ -559,7 +562,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
     expect(followupSource).toContain("unreadLabel");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("sm:grid-cols-2 md:grid-cols-4");
+    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
     expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
     expect(followupSource).toContain("{detailsOpen ? (");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");
