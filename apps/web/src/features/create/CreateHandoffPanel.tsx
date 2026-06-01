@@ -21,12 +21,72 @@ type CreateHandoffPanelProps = {
 };
 
 function renderReviewStateLabel(state: CreateHandoffDraft["reviewState"]): string {
-  if (state === "clarification_required") return "Klärung erforderlich";
-  if (state === "graph_review_required") return "Graph-Review erforderlich";
-  if (state === "factcheck_candidate") return "Faktencheck-Kandidat";
-  if (state === "manual_review_required") return "Manuelle Prüfung erforderlich";
-  if (state === "ready_for_confirmation") return "Bereit zur Bestätigung";
+  if (state === "clarification_required") return "Weitere Klärung nötig";
+  if (state === "graph_review_required") return "Anschlüsse prüfen";
+  if (state === "factcheck_candidate") return "Für Faktenprüfung vorbereitet";
+  if (state === "manual_review_required") return "Zur Prüfung eingereicht";
+  if (state === "ready_for_confirmation") return "Bereit zur Freigabe";
   return "Entwurf";
+}
+
+function readableMatchRelation(value: string): string {
+  switch (value) {
+    case "new":
+      return "neuer möglicher Anschluss";
+    case "duplicate_risk":
+      return "ähnlicher bestehender Anlass";
+    case "needs_review":
+      return "vor Freigabe prüfen";
+    case "related":
+      return "passt thematisch dazu";
+    case "supports":
+      return "stützt die Aussage";
+    case "contradicts":
+      return "spricht dagegen";
+    default:
+      return value.replaceAll("_", " ");
+  }
+}
+
+function readableClaimKind(value: CreateHandoffDraft["claims"][number]["kind"]): string {
+  switch (value) {
+    case "factual_claim":
+      return "Tatsachenbehauptung";
+    case "policy_claim":
+      return "Vorschlag";
+    case "normative_claim":
+      return "Bewertung";
+    default:
+      return value;
+  }
+}
+
+function readableJurisdiction(value: CreateHandoffDraft["topicSeed"]["jurisdiction"]): string {
+  switch (value) {
+    case "kommune":
+      return "Kommune";
+    case "land":
+      return "Land";
+    case "bund":
+      return "Bund";
+    default:
+      return "Mehrere Ebenen";
+  }
+}
+
+function readableSourceStatus(value: CreateHandoffDraft["sourceGrounding"][number]["status"]): string {
+  switch (value) {
+    case "source_text":
+      return "Ausgangstext";
+    case "source_excerpt":
+      return "Quellenausschnitt";
+    case "link_reference":
+      return "Link oder Material";
+    case "missing":
+      return "keine Zusatzquelle";
+    default:
+      return value;
+  }
 }
 
 export function CreateHandoffPanel({
@@ -50,13 +110,13 @@ export function CreateHandoffPanel({
         <div className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
           <p className="text-lg font-semibold text-[rgb(var(--fg))]">{draft.plannerResult.plannerCore}</p>
-          <p className="text-sm text-[rgb(var(--muted))]">Reviewstatus: {renderReviewStateLabel(draft.reviewState)}</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Prüfstatus: {renderReviewStateLabel(draft.reviewState)}</p>
           <p className="text-sm text-[rgb(var(--muted))]">
             Sichtbarkeit: {publicationVisibilityLabel(visibilityState)}
           </p>
         </div>
         <span className="rounded-full border border-cyan-300/50 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-cyan-300/30 dark:bg-cyan-500/12 dark:text-cyan-100">
-          requiresConfirmation
+          Bestätigung nötig
         </span>
       </div>
 
@@ -113,7 +173,7 @@ export function CreateHandoffPanel({
           <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--fg))]">
             {draft.graphMatches.matches.slice(0, 5).map((match) => (
               <li key={match.id}>
-                {match.label} · {match.relation}
+                {match.label} · {readableMatchRelation(match.relation)}
               </li>
             ))}
           </ul>
@@ -138,7 +198,7 @@ export function CreateHandoffPanel({
               <li key={claim.id}>
                 {claim.text}
                 <span className="ml-2 text-[rgb(var(--muted))]">
-                  {claim.kind} · {claim.factcheckEligible ? "prüfbar" : "nicht automatisch prüfbar"}
+                  {readableClaimKind(claim.kind)} · {claim.factcheckEligible ? "prüfbar" : "nicht automatisch prüfbar"}
                 </span>
               </li>
             ))}
@@ -148,11 +208,10 @@ export function CreateHandoffPanel({
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenaufbau</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Thema</p>
           <div className="mt-2 space-y-1 text-sm text-[rgb(var(--fg))]">
-            <p><span className="font-semibold">Topic-Key:</span> {draft.topicSeed.topicKey}</p>
-            <p><span className="font-semibold">Label:</span> {draft.topicSeed.topicLabel}</p>
-            <p><span className="font-semibold">Zuständigkeit:</span> {draft.topicSeed.jurisdiction}</p>
+            <p><span className="font-semibold">Thema:</span> {draft.topicSeed.topicLabel}</p>
+            <p><span className="font-semibold">Ebene:</span> {readableJurisdiction(draft.topicSeed.jurisdiction)}</p>
             <p className="text-[rgb(var(--muted))]">
               Review-first anschlussfähig für Themenaufbau, Feed-Weiterführung und adminseitigen Themenradar-Import.
             </p>
@@ -193,7 +252,7 @@ export function CreateHandoffPanel({
               <li key={source.id}>
                 <div>
                   <span>
-                    {source.label} <span className="text-[rgb(var(--muted))]">({source.status})</span>
+                    {source.label} <span className="text-[rgb(var(--muted))]">({readableSourceStatus(source.status)})</span>
                   </span>
                   {source.detail ? (
                     <p className="mt-1 break-all text-xs text-[rgb(var(--muted))]">{source.detail}</p>

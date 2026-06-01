@@ -23,7 +23,7 @@ export default async function DossierIndexPage({
 }) {
   const resolved = searchParams ? await searchParams : {};
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))]">
+    <main className="public-canvas min-h-screen">
       <h1 className="sr-only">Dossier vorbereiten</h1>
       <DossierIndexClient
         handoffId={firstParam(resolved?.handoffId)}

@@ -18,10 +18,11 @@ describe("landing information architecture contract", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
     expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
-    expect(html).toContain("Anliegen einreichen");
-    expect(html).toContain("Anlassraum anlegen");
+    expect(html).toContain("Anliegen einbringen");
+    expect(html).toContain("Ich reiche ein Anliegen ein");
+    expect(html).toContain("Anlassraum/Event starten");
     expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Anliegen schildern");
+    expect(html).toContain("Thema ansehen");
     expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
     expect(html).toContain("Schnell einsteigen mit Swipe.");
     expect(html).toContain("Der Anlassraum");
@@ -31,14 +32,17 @@ describe("landing information architecture contract", () => {
     expect(html).toContain("keine Datenverkäufe");
     expect(html).toContain("VoiceOpenGov ist die Initiative");
 
-    const primaryIndex = html.indexOf("Anliegen einreichen");
-    const secondaryIndex = html.indexOf("Anlassraum anlegen");
+    const primaryIndex = html.indexOf("Anliegen einbringen");
+    const secondaryIndex = html.indexOf("Thema ansehen");
     expect(primaryIndex).toBeGreaterThan(-1);
     expect(secondaryIndex).toBeGreaterThan(primaryIndex);
     expect(html).toContain("href=\"/create?intent=contribute\"");
     expect(html).toContain("href=\"/runden/new\"");
+    expect(html).toContain("href=\"/themen\"");
     expect(html).toContain("href=\"/swipes\"");
     expect(html).toContain("href=\"/create?intent=check\"");
+    expect(html).toContain("href=\"/dossier\"");
+    expect(html).toContain("href=\"/account/organization\"");
 
     expect(html).toContain("Öffentliche Beteiligung braucht einen besseren Ort.");
     expect(html).toContain("Mehr als Bürgerbüro");

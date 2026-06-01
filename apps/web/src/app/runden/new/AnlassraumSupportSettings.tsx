@@ -17,7 +17,7 @@ export default function AnlassraumSupportSettings(
 ) {
   return (
     <section
-      className="vog-surface-elevated p-4 md:p-5"
+      className="public-flow-line p-0"
       data-manual-anlassraum-step="unterstuetzung"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">

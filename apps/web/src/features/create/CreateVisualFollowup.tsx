@@ -2663,7 +2663,7 @@ export default function CreateVisualFollowup({
                     </p>
                     <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
                     <p className="mt-2">
-                      Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Handoffs, solange die
+                      Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Anschlüssen, solange die
                       KI-Einordnung nicht belastbar genug ist.
                     </p>
                     <p className="mt-2">{plannerClarificationReason}</p>

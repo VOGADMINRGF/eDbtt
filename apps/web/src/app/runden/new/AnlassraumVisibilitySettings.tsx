@@ -21,7 +21,7 @@ export default function AnlassraumVisibilitySettings(
 ) {
   return (
     <section
-      className="vog-surface-elevated p-4 md:p-5"
+      className="public-flow-line p-0"
       data-manual-anlassraum-step="sichtbarkeit"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
@@ -33,7 +33,7 @@ export default function AnlassraumVisibilitySettings(
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div className="vog-surface-muted p-3">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
             Rahmen
           </p>
@@ -61,7 +61,7 @@ export default function AnlassraumVisibilitySettings(
           </div>
         </div>
 
-        <div className="vog-surface-muted p-3">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
             Sichtbarkeit
           </p>

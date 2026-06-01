@@ -847,7 +847,7 @@ export function SwipesClient({
       <div className={isSolo ? "space-y-3" : "grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]"}>
         <div className="space-y-3">
           {loading ? (
-            <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">
+            <div className="public-flow-line rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
               Lade Thema …
             </div>
           ) : activeItem ? (
@@ -1109,7 +1109,7 @@ function FinalizeArrivalBanner({
           type="button"
           onClick={() => onSwitchMode(toggle.nextMode)}
           aria-pressed={showingFromDraftOnly}
-          className="inline-flex items-center rounded-full border border-emerald-300/70 bg-white/70 px-3 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-100"
+          className="inline-flex items-center rounded-full border border-emerald-300/70 bg-emerald-500/[0.08] px-3 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-500/[0.12] dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-100"
         >
           {toggle.label}
         </button>
@@ -1128,10 +1128,10 @@ function FinalizeArrivalBanner({
 
 function SoloHeader({ statementId }: { statementId?: string }) {
   return (
-    <header className="flex items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]">
+    <header className="public-flow-line flex items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3">
       <Link
         href="/swipes"
-        className="inline-flex items-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--fg))] shadow-sm ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200"
+        className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-transparent px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--fg))] transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)] focus:outline-none focus:ring-2 focus:ring-sky-200"
       >
         Alle Swipes anzeigen
       </Link>
@@ -1146,7 +1146,7 @@ function SoloHeader({ statementId }: { statementId?: string }) {
 
 function DesktopDetailHint({ item, onOpenDetail }: { item: SwipeItem | null; onOpenDetail: () => void }) {
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-4 shadow-[0_20px_48px_rgba(2,6,23,0.18)]">
+    <article className="public-proof-zone relative overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_100%_0%,rgba(56,189,248,0.14),rgba(15,23,42,0)_45%)]" />
       <div className="pointer-events-none absolute -top-16 -right-10 h-32 w-32 rounded-full bg-cyan-500/12 blur-2xl" />
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Vertiefung</p>
@@ -1188,7 +1188,7 @@ function EmptyState({
   onResetFilters,
 }: EmptyStateProps) {
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))] shadow-sm">
+    <section className="public-proof-zone rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">
       <p>{message}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {onResetFilters ? (
@@ -1217,7 +1217,7 @@ function EmptyState({
 
 function NeutralReasonPrompt({ onSelect }: { onSelect: (reason: SwipeNeutralReason | null) => void }) {
   return (
-    <section className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+10.5rem)] z-40 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-3 shadow-[0_20px_50px_rgba(2,6,23,0.25)] backdrop-blur md:right-4 md:left-auto md:w-[25rem]">
+    <section className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+10.5rem)] z-40 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-3 backdrop-blur md:right-4 md:left-auto md:w-[25rem]">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Optional bei Offen</p>
       <p className="mt-1 text-sm text-[rgb(var(--fg))]">Was fehlt dir gerade für eine Entscheidung?</p>
       <div className="mt-2 flex flex-wrap gap-2">

@@ -96,7 +96,7 @@ const CREATE_COMPOSER_STAGES = [
 
 function CreateComposerSceneRail() {
   return (
-    <div className="vog-surface-muted px-4 py-4">
+    <div className="public-process-line px-4 py-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Geführter Ablauf</p>
@@ -385,7 +385,7 @@ export default function SharedCreateComposer({
           onClick={() => onModeChange(modeOption)}
           className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
             isActive
-              ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+              ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
               : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))]/35 hover:text-[rgb(var(--fg))]"
           }`}
           aria-pressed={isActive}
@@ -404,7 +404,7 @@ export default function SharedCreateComposer({
       className={
         embeddedWorkspace
           ? "rounded-2xl bg-transparent p-0"
-          : "vog-surface-elevated rounded-[2rem] p-4 sm:p-6 md:p-8 lg:p-10"
+          : "public-dialog-surface rounded-[2rem] p-4 sm:p-6 md:p-8 lg:p-10"
       }
     >
       <div
@@ -440,7 +440,7 @@ export default function SharedCreateComposer({
 
             <CreateComposerSceneRail />
 
-            <div className={`space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4`}>
+            <div className="public-flow-line space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4">
               <div className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   {collapseModeSelector ? "Arbeitsweg optional" : texts.modeSwitchAriaLabel}
@@ -457,15 +457,15 @@ export default function SharedCreateComposer({
         {contextBanner}
 
         <div className={`space-y-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] ${isMinimalCreate ? "overflow-x-hidden" : ""}`}>
-          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--grad-from))_44%,transparent),color-mix(in_oklab,rgb(var(--grad-to))_24%,transparent),color-mix(in_oklab,rgb(var(--border))_24%,transparent))] p-[1px] shadow-[0_24px_56px_rgba(2,6,23,0.16)]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px] shadow-[0_14px_30px_rgba(2,6,23,0.13)]"}`}>
+          <div className={`${isMinimalCreate ? "rounded-[30px] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--grad-from))_44%,transparent),color-mix(in_oklab,rgb(var(--grad-to))_24%,transparent),color-mix(in_oklab,rgb(var(--border))_24%,transparent))] p-[1px]" : "rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px]"}`}>
             <div
               data-create-focus-stage={isMinimalCreate ? "true" : "false"}
-              className={`${isMinimalCreate ? "vog-focus-stage rounded-[30px]" : "rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"}`}
+              className={`${isMinimalCreate ? "vog-focus-stage rounded-[30px]" : "rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)]"}`}
             >
               <div className={`flex items-start justify-between gap-3 ${isMinimalCreate ? "border-b border-[rgb(var(--focus-panel-border))] px-4 py-4 sm:px-5" : "border-b border-[rgb(var(--border))] px-4 py-3 sm:px-5"}`}>
                 {isMinimalCreate ? (
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-fg))] shadow-[0_10px_30px_rgba(34,211,238,0.16)]">
+                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-fg))]">
                       <IconCompose />
                     </span>
                     <div className="min-w-0">
@@ -503,13 +503,13 @@ export default function SharedCreateComposer({
               </label>
               {isMinimalCreate ? (
                 <div className="px-4 pt-4 sm:px-5">
-                  <div className="rounded-[24px] border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_82%,white_18%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <div className="rounded-[24px] border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_82%,white_18%)]">
                     <textarea
                       id={inputId}
                       value={inputValue}
                       onChange={(event) => onInputChange(event.target.value)}
                       rows={minRows}
-                      className="min-h-[210px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none shadow-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[250px] sm:px-5 sm:py-5"
+                      className="min-h-[210px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[250px] sm:px-5 sm:py-5"
                       placeholder={resolvedPlaceholder}
                     />
                     <div className="vog-focus-stage-muted border-t border-[rgb(var(--focus-panel-border))] px-4 py-2 text-xs sm:px-5">
@@ -523,7 +523,7 @@ export default function SharedCreateComposer({
                   value={inputValue}
                   onChange={(event) => onInputChange(event.target.value)}
                   rows={minRows}
-                  className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:px-5 sm:py-5 ${compactMetaMode ? "min-h-[148px] sm:min-h-[190px]" : "min-h-[170px] sm:min-h-[220px]"}`}
+                  className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:px-5 sm:py-5 ${compactMetaMode ? "min-h-[148px] sm:min-h-[190px]" : "min-h-[170px] sm:min-h-[220px]"}`}
                   placeholder={resolvedPlaceholder}
                 />
               )}
@@ -532,7 +532,7 @@ export default function SharedCreateComposer({
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
-                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
                     onClick={() => fileInputRef.current?.click()}
                     aria-label={texts.attachAria}
                     title={texts.attachAria}
@@ -544,7 +544,7 @@ export default function SharedCreateComposer({
                   <button
                     type="button"
                     className={[
-                      "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition",
+                      "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition",
                       voiceActive
                         ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
                         : isMinimalCreate
@@ -569,7 +569,7 @@ export default function SharedCreateComposer({
                   <button
                     type="button"
                     onClick={onStart}
-                    className={`btn-primary ${isMinimalCreate ? "min-h-[50px] w-full px-4 text-sm shadow-[0_16px_36px_rgba(34,211,238,0.18)] sm:w-auto" : ""}`}
+                    className={`btn-primary ${isMinimalCreate ? "min-h-[50px] w-full px-4 text-sm sm:w-auto" : ""}`}
                     disabled={startBusy || startDisabled}
                     aria-busy={startBusy}
                   >

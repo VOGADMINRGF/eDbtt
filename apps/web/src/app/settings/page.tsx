@@ -212,7 +212,7 @@ export default function SettingsPage() {
             }}
             disabled={loading || saving}
           >
-            Nur Notwendiges nutzen
+            Ohne freiwillige Optionen speichern
           </button>
         </div>
 

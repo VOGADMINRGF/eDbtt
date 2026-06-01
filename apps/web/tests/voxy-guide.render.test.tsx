@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { VOXY_PUBLIC_ROUTE_ASSETS } from "@/features/voxy/voxyAssets";
 
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
@@ -13,6 +14,21 @@ vi.mock("next/image", () => ({
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 
 describe("VoxyGuide render contract", () => {
+  it("keeps explicit public light and dark route mappings", () => {
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.startLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.startDark).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.createLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.createDark).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.dossierLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.dossierDark).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.rundenLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.rundenDark).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.swipesLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.swipesDark).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.miniLight).toBeTruthy();
+    expect(VOXY_PUBLIC_ROUTE_ASSETS.miniDark).toBeTruthy();
+  });
+
   it("renders with the neutral variant and panel appearance by default", () => {
     const html = renderToStaticMarkup(
       <VoxyGuide title="Voxy Hinweis">
@@ -55,12 +71,14 @@ describe("VoxyGuide render contract", () => {
   it("keeps voxy guide token-based without hardcoded dark-only surface classes", () => {
     const source = readFileSync(resolve(process.cwd(), "src/components/voxy/VoxyGuide.tsx"), "utf8");
 
-    expect(source).toContain("rgb(var(--bg))");
-    expect(source).toContain("rgb(var(--card))");
+    expect(source).toContain("public-voxy-stage");
+    expect(source).toContain("public-voxy-image");
+    expect(source).toContain("public-voxy-aura");
     expect(source).toContain("rgb(var(--fg))");
     expect(source).toContain("rgb(var(--muted))");
-    expect(source).toContain("rgb(var(--border))");
     expect(source).not.toContain("bg-slate-");
     expect(source).not.toContain("dark:bg-");
+    expect(source).not.toContain("shadow-");
+    expect(source).not.toContain("bg-white");
   });
 });

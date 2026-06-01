@@ -3,6 +3,12 @@ import { VOXY_COPY, getVoxyCopy } from "@/features/voxy/voxyCopy";
 
 describe("voxy copy contract", () => {
   it("keeps the Anlassraum, KI and Optionen guidance stable", () => {
+    expect(VOXY_COPY.start).toBe(
+      "Ich zeige dir die nächsten sinnvollen Schritte, ohne dein Anliegen zu überlagern.",
+    );
+    expect(VOXY_COPY.create).toBe(
+      "Ich helfe dir, dein Anliegen zu sortieren. Nichts wird automatisch veröffentlicht.",
+    );
     expect(VOXY_COPY.anlassraum).toBe(
       "Du entscheidest zuerst den Rahmen. KI und Prüfung kommen nur dazu, wenn du sie auswählst.",
     );
@@ -27,6 +33,9 @@ describe("voxy copy contract", () => {
     );
     expect(getVoxyCopy("dossier")).toBe(
       "Du bist im Überblick. Quellen und Prüfung findest du im Prüfmodus.",
+    );
+    expect(getVoxyCopy("swipes")).toBe(
+      "Deine Reaktion ist kein Endpunkt. Daraus können Fragen, Faktenchecks oder Anlassräume entstehen.",
     );
   });
 });

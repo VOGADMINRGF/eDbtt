@@ -58,29 +58,15 @@ function persistSetup(setup: ManualAnlassraumSetup) {
 type StepGuideProps = {
   copy: string;
   stepId: string;
-  title: string;
-  variant: "welcome" | "presenting" | "hint" | "thinking" | "check";
+  label: string;
 };
 
-function MobileStepGuide(props: StepGuideProps) {
+function StepMarker(props: StepGuideProps) {
   return (
-    <div className="lg:hidden" data-manual-anlassraum-voxy-step={props.stepId}>
-      <VoxyGuide appearance="compact" title={props.title} variant={props.variant}>
-        <p>{props.copy}</p>
-      </VoxyGuide>
+    <div className="public-voxy-marker" data-manual-anlassraum-voxy-step={props.stepId}>
+      <span aria-hidden="true" className="inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--grad-to))]" />
+      <span>{props.label}: {props.copy}</span>
     </div>
-  );
-}
-
-function DesktopStepGuide(props: StepGuideProps) {
-  return (
-    <aside className="hidden lg:block" data-manual-anlassraum-voxy-step={props.stepId}>
-      <div className="sticky top-24">
-        <VoxyGuide appearance="panel" title={props.title} variant={props.variant}>
-          <p>{props.copy}</p>
-        </VoxyGuide>
-      </div>
-    </aside>
   );
 }
 
@@ -125,9 +111,15 @@ export default function AnlassraumSetupForm() {
 
   return (
     <div className="mx-auto w-full max-w-[78rem] space-y-5">
-      <section className="vog-surface-elevated vog-surface-brand p-5 md:p-6 lg:p-8">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,26rem)] lg:items-start lg:gap-8">
-          <div>
+      <section className="public-dialog-surface p-5 md:p-6 lg:p-8">
+        <div className="public-reader-grid lg:gap-8">
+          <aside className="public-voxy-rail order-2 lg:order-1">
+            <VoxyGuide appearance="panel" title="Voxy als Anlassraum-Begleiter" variant="welcome">
+              <p>{VOXY_COPY.manualFrame}</p>
+            </VoxyGuide>
+          </aside>
+
+          <div className="public-dialog-area order-1 lg:order-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               eDebatte Anlassraum
             </p>
@@ -150,13 +142,9 @@ export default function AnlassraumSetupForm() {
               </span>
             </div>
           </div>
-
-          <VoxyGuide appearance="panel" title="Voxy begleitet den Start" variant="welcome">
-            <p>{VOXY_COPY.manualFrame}</p>
-          </VoxyGuide>
         </div>
 
-        <div className="mt-5 grid gap-2 md:grid-cols-2 xl:grid-cols-4" data-manual-anlassraum-stepper="true">
+        <div className="landing-process-grid mt-5 grid gap-2 md:grid-cols-2 xl:grid-cols-4" data-manual-anlassraum-stepper="true">
           {MANUAL_STEP_SUMMARY.map((step, index) => (
             <div
               key={step.id}
@@ -189,13 +177,12 @@ export default function AnlassraumSetupForm() {
       </section>
 
       <MotionStep stepIndex={0}>
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] lg:items-start lg:gap-6">
+        <section className="space-y-4">
           <div className="space-y-4">
-            <MobileStepGuide
+            <StepMarker
               copy={VOXY_COPY.manualFrame}
               stepId="rahmen"
-              title="Voxy begleitet Schritt 1"
-              variant="welcome"
+              label="Schritt 1"
             />
             <section
               className="vog-surface-elevated p-4 md:p-5"
@@ -262,23 +249,16 @@ export default function AnlassraumSetupForm() {
               </label>
             </section>
           </div>
-          <DesktopStepGuide
-            copy={VOXY_COPY.manualFrame}
-            stepId="rahmen"
-            title="Voxy begleitet Schritt 1"
-            variant="welcome"
-          />
         </section>
       </MotionStep>
 
       <MotionStep stepIndex={1}>
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] lg:items-start lg:gap-6">
+        <section className="space-y-4">
           <div className="space-y-4">
-            <MobileStepGuide
+            <StepMarker
               copy={VOXY_COPY.manualOptions}
               stepId="optionen"
-              title="Voxy begleitet Schritt 2"
-              variant="presenting"
+              label="Schritt 2"
             />
             <AnlassraumOptionEditor
               communityOptionsMode={setup.communityOptionsMode}
@@ -315,23 +295,16 @@ export default function AnlassraumSetupForm() {
               options={setup.options}
             />
           </div>
-          <DesktopStepGuide
-            copy={VOXY_COPY.manualOptions}
-            stepId="optionen"
-            title="Voxy begleitet Schritt 2"
-            variant="presenting"
-          />
         </section>
       </MotionStep>
 
       <MotionStep stepIndex={2}>
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] lg:items-start lg:gap-6">
+        <section className="space-y-4">
           <div className="space-y-4">
-            <MobileStepGuide
+            <StepMarker
               copy={VOXY_COPY.manualVisibility}
               stepId="sichtbarkeit"
-              title="Voxy begleitet Schritt 3"
-              variant="hint"
+              label="Schritt 3"
             />
             <AnlassraumVisibilitySettings
               onScopeChange={(value: ManualAnlassraumScope) =>
@@ -350,23 +323,16 @@ export default function AnlassraumSetupForm() {
               visibility={setup.visibility}
             />
           </div>
-          <DesktopStepGuide
-            copy={VOXY_COPY.manualVisibility}
-            stepId="sichtbarkeit"
-            title="Voxy begleitet Schritt 3"
-            variant="hint"
-          />
         </section>
       </MotionStep>
 
       <MotionStep stepIndex={3}>
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] lg:items-start lg:gap-6">
+        <section className="space-y-4">
           <div className="space-y-4">
-            <MobileStepGuide
+            <StepMarker
               copy={VOXY_COPY.manualSupport}
               stepId="unterstuetzung"
-              title="Voxy begleitet Schritt 4"
-              variant={setup.aiSupportMode === "disabled" ? "thinking" : "check"}
+              label="Schritt 4"
             />
             <div className="space-y-4">
               <AnlassraumSupportSettings
@@ -411,12 +377,6 @@ export default function AnlassraumSetupForm() {
               />
             </div>
           </div>
-          <DesktopStepGuide
-            copy={VOXY_COPY.manualSupport}
-            stepId="unterstuetzung"
-            title="Voxy begleitet Schritt 4"
-            variant={setup.aiSupportMode === "disabled" ? "thinking" : "check"}
-          />
         </section>
       </MotionStep>
 
