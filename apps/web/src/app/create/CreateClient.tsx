@@ -109,6 +109,15 @@ export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
 
 const MIN_INTENT_INPUT_LENGTH = 24;
 
+function buildCreateToRundenHref(text: string): string {
+  const normalized = text.trim();
+  if (!normalized) return "/runden";
+  const params = new URLSearchParams();
+  params.set("prefill", normalized.slice(0, 2000));
+  params.set("from", "create");
+  return `/runden?${params.toString()}`;
+}
+
 type CreateWorkingState = {
   summary: string;
   recognizedType: string;
@@ -266,7 +275,7 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
       <div className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3 shadow-sm shadow-slate-950/5">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
           <p className="whitespace-pre-wrap text-sm text-[rgb(var(--fg))] md:text-base">
             {props.text}
           </p>
@@ -287,7 +296,7 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--grad-from))] ring-4 ring-[rgb(var(--card))]" />
       <div className="max-w-5xl flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] md:px-5 md:py-5">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.eyebrow}</p>
           <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.title}</p>
           <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--fg))] md:text-base">{props.body}</p>
@@ -347,7 +356,7 @@ function CreateInlineAnalysisScene(props: {
   ] as const;
 
   return (
-    <section className="space-y-4 rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] p-4 shadow-[0_24px_56px_rgba(2,6,23,0.12)] md:p-5">
+    <section className="public-dialog-surface space-y-4 rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] p-4 md:p-5">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -389,7 +398,7 @@ function CreateInlineAnalysisScene(props: {
                           ? "border-cyan-300/60 text-cyan-900 dark:text-cyan-100"
                           : isDone
                             ? "border-emerald-300/60 text-emerald-800 dark:text-emerald-100"
-                            : "border-slate-300/70 text-slate-500 dark:border-slate-400/35 dark:text-slate-300"
+                            : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
                       }`}
                     >
                       {isDone ? "✓" : index + 1}
@@ -842,8 +851,8 @@ export default function CreateClient({
       if (localDraft) {
         if (cancelled) return;
         setIntakeText(localDraft.sourceText);
-        setActionNotice("Arbeitsstand aus Handoff geladen. Du kannst jetzt überarbeiten und neu einordnen.");
-        setIntakeRestoreInfo("Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+        setActionNotice("Vorbereiteter Arbeitsstand geladen. Du kannst jetzt überarbeiten und neu einordnen.");
+        setIntakeRestoreInfo("Vorbereiteter Arbeitsstand zur Weiterbearbeitung geladen.");
         return;
       }
 
@@ -857,8 +866,8 @@ export default function CreateClient({
         saveCreateHandoffDraft(draft);
         if (cancelled) return;
         setIntakeText(String(draft.sourceText ?? ""));
-        setActionNotice("Persistenter Handoff-Arbeitsstand geladen. Du kannst jetzt weiterbearbeiten.");
-        setIntakeRestoreInfo("Persistenter Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+        setActionNotice("Vorbereiteter Arbeitsstand geladen. Du kannst jetzt weiterbearbeiten.");
+        setIntakeRestoreInfo("Vorbereiteter Arbeitsstand zur Weiterbearbeitung geladen.");
       } catch {
         // ignore persisted resume errors here; local flow still works when available
       }
@@ -1533,9 +1542,9 @@ export default function CreateClient({
       const journeySummary = resolveCreateHandoffJourneySummary(draft);
       saveCreateHandoffDraft(draft);
       setActionNotice(
-        `Handoff wird vorbereitet: ${journeySummary.destinationLabel}. Eingereicht, reviewbar und ohne automatische Veröffentlichung.`,
+        `Dein Beitrag wird vorbereitet für ${journeySummary.destinationLabel}. Eingereicht, reviewbar und ohne automatische Veröffentlichung.`,
       );
-      let successMessage = `Handoff vorbereitet. ${journeySummary.nextStepTitle}.`;
+      let successMessage = `Beitrag vorbereitet. ${journeySummary.nextStepTitle}.`;
       try {
         const response = await fetch("/api/create/handoffs", {
           method: "POST",
@@ -1571,13 +1580,13 @@ export default function CreateClient({
         const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
         if (requestScope?.isOperatorMode) {
           successMessage =
-            `Handoff vorbereitet. ${journeySummary.nextStepTitle}. Betreiber-Modus bleibt sichtbar.`;
+            `Beitrag vorbereitet. ${journeySummary.nextStepTitle}. Betreiber-Modus bleibt sichtbar.`;
         } else if (requestScope?.organizationId) {
           successMessage =
-            `Handoff vorbereitet. ${journeySummary.destinationLabel} bleibt im Scope deiner Organisation.`;
+            `Beitrag vorbereitet. ${journeySummary.destinationLabel} bleibt im Scope deiner Organisation.`;
         }
       } catch {
-        setActionNotice("Handoff konnte nicht persistent in die Review-Queue geschrieben werden. Bitte erneut versuchen.");
+        setActionNotice("Der vorbereitete Beitrag konnte nicht gespeichert werden. Bitte erneut versuchen.");
         return;
       }
       setShowFollowupCorrectionComposer(false);
@@ -1669,6 +1678,16 @@ export default function CreateClient({
     void navigateWithCreateHandoff("prepare_anlassraum", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
+  const handleOpenExistingAnlassraum = React.useCallback(() => {
+    const prefill = normalizedIntakeText.trim();
+    if (prefill) {
+      setActionNotice("Dein Beitrag ist vorbereitet. Wähle jetzt einen Anlassraum oder starte einen neuen.");
+    } else {
+      setActionNotice(null);
+    }
+    router.push(buildCreateToRundenHref(prefill) as Parameters<typeof router.push>[0]);
+  }, [normalizedIntakeText, router]);
+
   const handleOpenDossierAppend = React.useCallback(() => {
     if (!intelligentFollowup) {
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
@@ -1740,20 +1759,29 @@ export default function CreateClient({
     );
   }
 
+  const createVoxyVariant =
+    productMode === "analyze" ? "thinking" : productMode === "media" ? "hint" : "presenting";
+  const createVoxyCopy = fromManualAnlassraumContinueCreate ? getVoxyCopy("createContinue") : getVoxyCopy("create");
+
   return (
-    <section className="vog-page-stage min-h-screen">
-    <div className="vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
+    <section className="public-canvas vog-page-stage min-h-screen">
+    <div className="public-shell vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
       <section
-        className="create-dialog-workspace vog-surface-elevated overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
+        className="create-dialog-workspace public-dialog-surface overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
         data-create-stage-shell="true"
       >
-      {fromManualAnlassraumContinueCreate ? (
-        <div className="mb-4 md:mb-5">
-          <VoxyGuide appearance="panel" title="Voxy begleitet den Übergang" variant="neutral">
-            {getVoxyCopy("createContinue")}
+      <div className="public-reader-grid">
+        <aside className="public-voxy-rail">
+          <VoxyGuide
+            appearance="panel"
+            title={fromManualAnlassraumContinueCreate ? "Voxy begleitet den Übergang" : "Voxy als Dialoghelfer"}
+            variant={fromManualAnlassraumContinueCreate ? "neutral" : createVoxyVariant}
+          >
+            {createVoxyCopy}
           </VoxyGuide>
-        </div>
-      ) : null}
+        </aside>
+
+        <div className="public-dialog-area">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
@@ -1872,14 +1900,14 @@ export default function CreateClient({
       />
 
       {!hasStarted ? (
-        <section className="mt-4 rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+        <section className="public-flow-line mt-4 p-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             {surfaceLocale === "en" ? "Optional next steps" : "Weitere Wege"}
           </p>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <button
               type="button"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
               onClick={() => {
                 setProductMode("guided");
                 setActiveContextAnchorId(null);
@@ -1890,7 +1918,7 @@ export default function CreateClient({
             </button>
             <button
               type="button"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
               onClick={() => {
                 setProductMode("media");
                 setActiveContextAnchorId("source");
@@ -1899,15 +1927,18 @@ export default function CreateClient({
             >
               {surfaceLocale === "en" ? "Review source or file" : "Quelle/Datei prüfen"}
             </button>
-            <Link
-              href="/runden"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+            <button
+              type="button"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
+              onClick={handleOpenExistingAnlassraum}
             >
               {surfaceLocale === "en" ? "Add to an existing round" : "Zu bestehendem Anlass hinzufügen"}
-            </Link>
+            </button>
           </div>
         </section>
       ) : null}
+        </div>
+      </div>
 
       {showTooShortHint ? (
         <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
@@ -2121,7 +2152,7 @@ export default function CreateClient({
               }));
               if (actionNotice) setActionNotice(null);
             }}
-            className="mt-3 w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="mt-3 w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
             placeholder={productModeConfig.firstQuestionPlaceholder}
           />
           <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -36,7 +36,7 @@ import AnlassraumOptionEditor from "@/app/runden/new/AnlassraumOptionEditor";
 import AnlassraumVisibilitySettings from "@/app/runden/new/AnlassraumVisibilitySettings";
 
 describe("/runden/new manual create contract", () => {
-  it("renders all four manual setup steps with the expected Voxy guidance", () => {
+  it("renders all four manual setup steps with one prominent Voxy guide and inline markers", () => {
     const html = renderToStaticMarkup(<RundenManualCreatePage />);
 
     expect(html).toContain("Anlassraum zuerst manuell aufsetzen");
@@ -59,6 +59,7 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain('data-manual-anlassraum-voxy-step="optionen"');
     expect(html).toContain('data-manual-anlassraum-voxy-step="sichtbarkeit"');
     expect(html).toContain('data-manual-anlassraum-voxy-step="unterstuetzung"');
+    expect((html.match(/data-voxy-guide=/g) ?? []).length).toBe(1);
     expect(html).toContain("Noch keine perfekte Formulierung nötig. Lege erst den Rahmen fest.");
     expect(html).toContain("Feste Optionen geben Kontrolle. Community-Vorschläge machen den Raum offener.");
     expect(html).toContain("Öffentlich heißt nicht automatisch geprüft. Du bestimmst, wann sichtbar wird.");

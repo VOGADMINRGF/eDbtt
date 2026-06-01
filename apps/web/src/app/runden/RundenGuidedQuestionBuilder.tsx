@@ -14,6 +14,7 @@ type RundenGuidedQuestionBuilderProps = {
   featuredAnlassraumId?: string | null;
   participationHref?: string | null;
   participationAnchorId?: string | null;
+  initialInput?: string | null;
 };
 
 export default function RundenGuidedQuestionBuilder({
@@ -21,9 +22,10 @@ export default function RundenGuidedQuestionBuilder({
   featuredAnlassraumId,
   participationHref,
   participationAnchorId,
+  initialInput,
 }: RundenGuidedQuestionBuilderProps) {
   const [direction, setDirection] = useState<RundenFlowDirection>("prepare");
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() => initialInput?.trim() ?? "");
   const [started, setStarted] = useState(false);
   const [questionOverride, setQuestionOverride] = useState("");
   const [optionsOverride, setOptionsOverride] = useState<string[]>([]);

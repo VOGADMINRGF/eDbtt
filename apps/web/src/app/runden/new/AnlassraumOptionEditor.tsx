@@ -20,7 +20,7 @@ function joinClasses(...values: Array<string | false | null | undefined>) {
 export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProps) {
   return (
     <section
-      className="vog-surface-elevated p-4 md:p-5"
+      className="public-flow-line p-0"
       data-manual-anlassraum-step="optionen"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -38,11 +38,11 @@ export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProp
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="public-proof-zone mt-4">
         {props.options.map((option, index) => (
           <div
             key={`manual-option-${index}`}
-            className="vog-surface-muted p-3"
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
           >
             <div className="flex items-center justify-between gap-3">
               <label
@@ -81,7 +81,7 @@ export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProp
         </button>
       </div>
 
-      <div className="vog-surface-muted mt-4 p-3">
+      <div className="public-proof-zone mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
           Community-Vorschläge
         </p>

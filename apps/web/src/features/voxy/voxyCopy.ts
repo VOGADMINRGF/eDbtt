@@ -1,4 +1,8 @@
 export const VOXY_COPY = {
+  start:
+    "Ich zeige dir die nächsten sinnvollen Schritte, ohne dein Anliegen zu überlagern.",
+  create:
+    "Ich helfe dir, dein Anliegen zu sortieren. Nichts wird automatisch veröffentlicht.",
   anlassraum:
     "Du entscheidest zuerst den Rahmen. KI und Prüfung kommen nur dazu, wenn du sie auswählst.",
   rundenEntry: "Du entscheidest zuerst den Rahmen. Alles Weitere bleibt optional.",
@@ -21,6 +25,8 @@ export const VOXY_COPY = {
     "Der Rahmen steht. Ich kann jetzt Frage, Optionen oder Quellenstruktur verbessern.",
   dossier:
     "Du bist im Überblick. Quellen und Prüfung findest du im Prüfmodus.",
+  swipes:
+    "Deine Reaktion ist kein Endpunkt. Daraus können Fragen, Faktenchecks oder Anlassräume entstehen.",
 } as const;
 
 export type VoxyCopyKey = keyof typeof VOXY_COPY;

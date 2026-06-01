@@ -292,7 +292,7 @@ export function PrivacyGateProvider(props: {
                   </div>
                   <div className="space-y-2">
                     <h2 id="privacy-gate-title" className="text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-[2rem]">
-                      Bevor du startest: Datenschutz verständlich machen
+                      Bevor du startest: Datenschutz verständlich erklärt
                     </h2>
                     <p id="privacy-gate-description" className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
                       eDebatte verarbeitet deine Eingabe, damit daraus Themen, Fragen, Quellenhinweise, mögliche Argumente oder Beteiligungsoptionen entstehen können. Dafür sind einige technische und sicherheitsbezogene Daten notwendig. Alles Weitere bleibt freiwillig.
@@ -354,7 +354,7 @@ export function PrivacyGateProvider(props: {
                           setFormNotice(null);
                         }}
                       >
-                        Optionen anpassen
+                        Freiwillige Optionen
                       </button>
                       <button type="button" className="btn btn-ghost text-sm" onClick={openPrivacyDossier}>
                         Datenschutz-Dossier öffnen
@@ -434,7 +434,7 @@ export function PrivacyGateProvider(props: {
                           });
                         }}
                       >
-                        Nur Notwendiges nutzen
+                        Ohne freiwillige Optionen speichern
                       </button>
                       <button
                         type="button"
@@ -451,7 +451,7 @@ export function PrivacyGateProvider(props: {
                           });
                         }}
                       >
-                        Auswahl speichern
+                        Freiwillige Optionen speichern
                       </button>
                       <button
                         type="button"

@@ -1455,6 +1455,24 @@ Rabatt:
 
 ## Erledigt (bestehend)
 
+### Seit 2026-06-01
+
+| Task | Status | Evidenz |
+| --- | --- | --- |
+| Follow-up-Härtung für `PRIVACY-GATE-DOSSIER-01`, `PR-AUTH-2FA-SETUP-UX-EMAIL-OTP-01` und `PR-CREATE-HANDOFF-INTEGRITY-01`: Datenschutz-CTA vereinfacht, Login-Mailcode kontraktisch abgesichert, `/create -> /runden` übernimmt vorbereiteten Beitrag sichtbar ohne Textverlust, öffentliche Übergabe-Copy von DEV-Begriffen bereinigt | Done | `apps/web/src/{components/privacy/PrivacyGateProvider.tsx,app/settings/page.tsx,app/create/CreateClient.tsx,app/runden/page.tsx,app/runden/RundenGuidedQuestionBuilder.tsx,app/runden/RundenCreateHandoffBanner.tsx,app/dossier/ui.tsx,features/create/{CreateHandoffPanel.tsx,CreateVisualFollowup.tsx}}`, `apps/web/tests/{privacy-gate-dialog.contract.test.tsx,login-page-shell.contract.test.tsx,runden-page.acceptance.test.ts}` |
+
+### Seit 2026-05-31
+
+| Task | Status | Evidenz |
+| --- | --- | --- |
+| Public Visual-System-Pass fuer `/start`, `/create`, `/runden`, `/runden/new`, `/dossier` und `/swipes` vereinheitlicht; gemeinsame `.public-*`-Canvas, VOXY-Light/Dark-Mapping und Card-Regression-Guards nachgezogen | Done | `apps/web/src/{app/globals.css,app/start/LandingStart.tsx,app/create/CreateClient.tsx,features/create/SharedCreateComposer.tsx,app/runden/page.tsx,app/runden/new/{page.tsx,AnlassraumSetupForm.tsx},app/dossier/{page.tsx,ui.tsx},app/dossier/[id]/ui.tsx,app/swipes/SwipesClient.tsx,features/surfaces/swipes/SwipesSurface.tsx,components/voxy/VoxyGuide.tsx,features/voxy/voxyAssets.ts}`, `apps/web/public/brand/voxy/manifest.json`, `apps/web/tests/{visual-system-lock.contract.test.ts,voxy-guide.render.test.tsx,landing-clarity.contract.test.tsx,landing-information-architecture.contract.test.tsx,start-shared-create-composer.contract.test.tsx,start-privacy-gate-links.contract.test.ts,voxy-copy.contract.test.ts,create-entry-hierarchy.contract.test.tsx,create-mode-selector.contract.test.ts,create-mode.page.test.ts,create-no-chip-overload.contract.test.tsx,runden-page.acceptance.test.ts,runden-manual-create.page.contract.test.tsx,manual-anlassraum-setup.contract.test.ts}` |
+
+### Seit 2026-05-30
+
+| Task | Status | Evidenz |
+| --- | --- | --- |
+| Landing-Canvas diagonal finalisiert (`/start`), VOXY frei eingebettet, Quick Actions entkastet, Landing-Contracts/Privacy-Guards nachgezogen | Done | `apps/web/src/{app/start/LandingStart.tsx,components/quickActions/TaskFirstQuickActionCenter.tsx,app/globals.css}`, `apps/web/tests/{landing-clarity.contract.test.tsx,landing-information-architecture.contract.test.tsx,start-shared-create-composer.contract.test.tsx,start-privacy-gate-links.contract.test.ts,voxy-guide.render.test.tsx}` |
+
 ### Seit 2026-03-04
 
 | Task | Status | Evidenz |

@@ -48,6 +48,15 @@ function readStringParam(val?: string | string[]): string | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
 
+function decodeMaybe(value?: string): string | undefined {
+  if (!value) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function parseView(val?: string): RoundEntryView {
   if (val === "mine" || val === "results") return val;
   return "active";
@@ -568,6 +577,10 @@ export default async function RundenPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const handoffId = readStringParam(resolvedSearchParams.handoffId) ?? null;
   const createAction = readStringParam(resolvedSearchParams.createAction) ?? null;
+  const createPrefillRaw = decodeMaybe(
+    readStringParam(resolvedSearchParams.prefill) ?? readStringParam(resolvedSearchParams.text),
+  );
+  const createPrefill = createPrefillRaw ? createPrefillRaw.trim().slice(0, 2000) : null;
   const createIntent =
     readStringParam(resolvedSearchParams.intent) === "create" ||
     readStringParam(resolvedSearchParams.entry) === "create";
@@ -677,17 +690,25 @@ export default async function RundenPage({
   ] as const;
 
   return (
-    <section className="vog-page-stage min-h-screen">
-    <main className="vog-main-shell min-h-screen space-y-6 md:space-y-8">
+    <section className="public-canvas vog-page-stage min-h-screen">
+    <main className="public-shell vog-main-shell min-h-screen space-y-6 md:space-y-8">
       <header
-        className="vog-surface-elevated vog-surface-brand relative overflow-hidden p-5 md:p-6 lg:p-8"
+        className="public-dialog-surface relative overflow-hidden p-5 md:p-6 lg:p-8"
         data-runden-hero="true"
       >
         <div className="pointer-events-none absolute -right-28 -top-24 h-72 w-72 rounded-full bg-[rgb(var(--grad-from))]/15 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 bottom-0 h-56 w-56 rounded-full bg-[rgb(var(--grad-to))]/10 blur-3xl" />
 
-        <div className="relative grid gap-6 lg:min-h-[26.5rem] lg:grid-cols-12 lg:items-center lg:gap-8">
-          <div className="space-y-5 lg:col-span-7">
+        <div className="public-reader-grid relative lg:min-h-[26.5rem]">
+          <MotionReveal delay={0.04}>
+            <div className="public-voxy-rail order-2 lg:order-1">
+              <VoxyGuide appearance="hero" title="Voxy begleitet den Einstieg" variant="open">
+                <p>{VOXY_COPY.rundenHero}</p>
+              </VoxyGuide>
+            </div>
+          </MotionReveal>
+
+          <div className="public-dialog-area order-1 space-y-5 lg:order-2">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                 eDebatte Anlassraum
@@ -729,7 +750,7 @@ export default async function RundenPage({
             </div>
 
             {createIntent ? (
-              <div className="vog-surface-muted p-4">
+              <div className="public-flow-line p-4">
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                   Schlanker Start für Anlassraum oder Event
                 </p>
@@ -746,20 +767,12 @@ export default async function RundenPage({
               </Link>
             </p>
           </div>
-
-          <MotionReveal delay={0.04}>
-            <div className="lg:col-span-5">
-            <VoxyGuide appearance="hero" title="Voxy begleitet den Einstieg" variant="presenting">
-              <p>{VOXY_COPY.rundenHero}</p>
-            </VoxyGuide>
-            </div>
-          </MotionReveal>
         </div>
       </header>
 
       <section className="grid gap-3 lg:grid-cols-3" data-runden-primary-modules="true">
         {firstScreenGuideCards.map((card) => (
-          <section key={card.title} className="vog-surface-muted p-4 md:p-5">
+          <section key={card.title} className="public-flow-line p-4 md:p-5">
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{card.body}</p>
           </section>
@@ -795,6 +808,23 @@ export default async function RundenPage({
         <RundenCreateHandoffBanner handoffId={handoffId} createAction={createAction} />
       ) : null}
 
+      {createPrefill ? (
+        <section className="public-proof-zone space-y-3 p-4 md:p-5" data-runden-prefill="true">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Vorbereiteter Beitrag
+            </p>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Dein Beitrag ist vorbereitet</h2>
+            <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+              Wähle jetzt einen bestehenden Anlassraum oder starte einen neuen. Nichts wird automatisch veröffentlicht.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm leading-6 text-[rgb(var(--fg))]">
+            {createPrefill}
+          </div>
+        </section>
+      ) : null}
+
       <RundenPublicSharingGuide
         featuredAnlassraumId={featured?.anlassraumId ?? null}
         featuredAnlassraumTitle={featured?.title ?? null}
@@ -805,6 +835,7 @@ export default async function RundenPage({
         featuredAnlassraumId={featured?.anlassraumId ?? null}
         participationHref={quickStartParticipationHref}
         participationAnchorId={quickStartParticipationAnchorId}
+        initialInput={createPrefill}
       />
 
       {isSignedIn && (
@@ -824,7 +855,7 @@ export default async function RundenPage({
                     className={
                       "flex-1 whitespace-nowrap rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] " +
                       (isActive
-                        ? "bg-[rgb(var(--bg))] text-[rgb(var(--fg))] shadow-sm"
+                        ? "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
                         : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]")
                     }
                   >
@@ -947,7 +978,7 @@ export default async function RundenPage({
           ) : (
             <>
               {featured && (
-                <article className="rounded-2xl border border-[rgb(var(--grad-from))]/40 bg-[rgb(var(--card))] p-5 shadow-sm">
+                <article className="public-proof-zone rounded-2xl border border-[rgb(var(--grad-from))]/40 bg-[rgb(var(--card))] p-5">
                   <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr] lg:items-end">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -1052,7 +1083,7 @@ export default async function RundenPage({
                     return (
                       <article
                         key={entry.id}
-                        className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
+                        className="public-proof-zone rounded-2xl border bg-[rgb(var(--card))] p-5"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                           <span>Eröffnet: {formatDate(entry.createdAt)}</span>
@@ -1162,7 +1193,7 @@ export default async function RundenPage({
                 return (
                   <article
                     key={entry.id}
-                    className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
+                    className="public-proof-zone rounded-2xl border bg-[rgb(var(--card))] p-5"
                   >
                     <div className="flex items-center justify-between gap-3 text-xs text-[rgb(var(--muted))]">
                       <span>Eröffnet: {formatDate(entry.createdAt)}</span>

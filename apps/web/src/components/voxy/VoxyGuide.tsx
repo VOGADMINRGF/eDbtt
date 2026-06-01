@@ -48,27 +48,28 @@ export function VoxyAvatar({
   return (
     <div
       className={joinClasses(
-        "relative shrink-0 overflow-hidden border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_84%,rgb(var(--grad-from))_16%),color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%))] shadow-[0_18px_38px_rgba(15,23,42,0.12)]",
+        "public-voxy-image relative shrink-0",
         resolvedAppearance === "hero"
           ? isStage
-            ? "w-full max-w-[24rem] rounded-[2rem]"
-            : "w-52 rounded-[2rem] sm:w-60 lg:w-64"
+            ? "w-[14rem] sm:w-[16rem] lg:w-[18rem]"
+            : "w-[13rem] sm:w-[15rem] lg:w-[17rem]"
           : resolvedAppearance === "panel"
             ? isStage
-              ? "w-full max-w-[22rem] rounded-[1.9rem]"
-              : "w-40 rounded-[1.85rem] sm:w-44 lg:w-52"
+              ? "w-[10rem] sm:w-[11rem] lg:w-[12rem]"
+              : "w-[9rem] sm:w-[10rem] lg:w-[11rem]"
             : resolvedAppearance === "inline"
-              ? "w-14 rounded-xl"
-              : "w-16 rounded-xl",
+              ? "w-12"
+              : "w-14",
       )}
       style={{ aspectRatio: asset.aspectRatio }}
       data-voxy-avatar=""
       data-voxy-appearance={resolvedAppearance}
       data-voxy-variant={asset.variant}
     >
+      <span className="public-voxy-aura" aria-hidden="true" />
       <Image
         alt={asset.alt}
-        className="object-contain p-1.5"
+        className="relative z-[1] object-contain"
         fill
         priority={priority}
         sizes={
@@ -111,12 +112,12 @@ export default function VoxyGuide({
   return (
     <aside
       className={joinClasses(
-        "vog-voxy-panel border text-[rgb(var(--fg))]",
+        "public-voxy-stage text-[rgb(var(--fg))]",
         isHero
-          ? "min-h-[22rem] rounded-[2rem] p-5 md:min-h-[24rem] md:p-6 lg:p-7"
+          ? "min-h-[22rem] md:min-h-[24rem]"
           : isInline || isCompact
-            ? "rounded-xl p-3"
-            : "rounded-[1.9rem] p-4 md:p-5",
+            ? "gap-2"
+            : "gap-3",
       )}
       data-voxy-guide=""
       data-voxy-appearance={resolvedAppearance}
@@ -135,28 +136,34 @@ export default function VoxyGuide({
         <VoxyAvatar
           appearance={resolvedAppearance}
           compact={isCompact || isInline}
-          priority={asset.variant === "welcome" || asset.variant === "podcastStage"}
+          priority={asset.variant === "welcome" || asset.variant === "confident"}
           variant={asset.variant}
         />
         <div className="min-w-0 flex-1">
           {title ? (
-            <p
-              className={joinClasses(
-                "font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]",
-                isHero ? "text-[11px]" : "text-[10px] sm:text-xs",
-              )}
-            >
-              {title}
-            </p>
+            <div className="public-voxy-marker">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--grad-to))]"
+              />
+              <p
+                className={joinClasses(
+                  "font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]",
+                  isHero ? "text-[11px]" : "text-[10px] sm:text-xs",
+                )}
+              >
+                {title}
+              </p>
+            </div>
           ) : null}
           <div
             className={joinClasses(
-              "border border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]",
+              "text-[rgb(var(--fg))]",
               isHero
-                ? "mt-2 rounded-[1.6rem] px-4 py-4 text-[15px] leading-7 md:px-5 md:py-5"
+                ? "mt-2 max-w-xl text-[15px] leading-7"
                 : isInline || isCompact
-                  ? "mt-1.5 rounded-xl px-3 py-2.5 text-sm leading-5"
-                  : "mt-2 rounded-[1.35rem] px-4 py-3 text-sm leading-6",
+                  ? "mt-1.5 text-sm leading-5"
+                  : "mt-2 max-w-lg text-sm leading-6",
             )}
           >
             {children}

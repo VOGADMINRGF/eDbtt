@@ -25,11 +25,10 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("Jetzt swipen");
     expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
     expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
-    expect(html).toContain("Anliegen einreichen");
+    expect(html).toContain("Anliegen einbringen");
+    expect(html).toContain("Ich reiche ein Anliegen ein");
     expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Anlassraum anlegen");
-    expect(html).toContain("Anliegen schildern");
-    expect(html).toContain("Was bewegt dich gerade?");
+    expect(html).toContain("Anlassraum/Event starten");
     expect(html).toContain("Öffne einen Dialog, statt ein Formular auszufüllen.");
     expect(html).toContain("Du entscheidest, was als Nächstes passiert.");
     expect(html).toContain("/create?intent=contribute");
@@ -38,7 +37,7 @@ describe("/start shared create composer contract", () => {
     expect(html).toContain("/account/organization");
     expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
     expect(html).toContain("review-first");
-    expect(html).not.toContain("task-first-primary-action");
+    expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
     expect(html).toContain("kostenlos mitmachen");
     expect(html).toContain("keine versteckten KI-Kosten");
   });

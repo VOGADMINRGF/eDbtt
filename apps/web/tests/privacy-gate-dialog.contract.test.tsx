@@ -23,9 +23,9 @@ describe("privacy gate dialog contract", () => {
       </PrivacyGateProvider>,
     );
 
-    expect(html).toContain("Bevor du startest: Datenschutz verständlich machen");
+    expect(html).toContain("Bevor du startest: Datenschutz verständlich erklärt");
     expect(html).toContain("Notwendiges verstanden – weiter");
-    expect(html).toContain("Optionen anpassen");
+    expect(html).toContain("Freiwillige Optionen");
     expect(html).toContain("Datenschutz-Dossier öffnen");
     const source = readFileSync(resolve(process.cwd(), "src/components/privacy/PrivacyGateProvider.tsx"), "utf8");
     expect(source).toContain('router.push("/datenschutz-dossier")');
@@ -63,6 +63,6 @@ describe("privacy gate dialog contract", () => {
     );
 
     expect(html).toContain("Hintergrund-CTA");
-    expect(html).not.toContain("Bevor du startest: Datenschutz verständlich machen");
+    expect(html).not.toContain("Bevor du startest: Datenschutz verständlich erklärt");
   });
 });

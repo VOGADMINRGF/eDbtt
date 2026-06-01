@@ -1,5 +1,7 @@
 import { SwipesClient } from "@/app/swipes/SwipesClient";
 import type { SurfaceContext } from "@/features/surface";
+import VoxyGuide from "@/components/voxy/VoxyGuide";
+import { getVoxyCopy } from "@/features/voxy/voxyCopy";
 
 type SwipesSurfaceProps = {
   context: SurfaceContext;
@@ -23,7 +25,7 @@ export function SwipesSurface({
   showWelcomeHint = false,
 }: SwipesSurfaceProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[rgb(var(--bg))] pb-14 text-[rgb(var(--fg))]">
+    <main className="public-canvas relative min-h-screen overflow-hidden pb-14 text-[rgb(var(--fg))]">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-500/10 via-transparent to-emerald-500/8 dark:from-sky-500/18 dark:to-emerald-500/12" />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 -left-20 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
@@ -31,7 +33,12 @@ export function SwipesSurface({
         <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-emerald-300/15 blur-3xl dark:bg-emerald-600/10" />
       </div>
 
-      <div className="relative z-10">
+      <div className="public-shell relative z-10">
+        <div className="mb-3">
+          <VoxyGuide appearance="compact" title="Voxy als Hinweis" variant="miniAvatar">
+            {getVoxyCopy("swipes")}
+          </VoxyGuide>
+        </div>
         <SwipesClient
           initialTopic={initialTopic}
           initialClaim={initialClaim}

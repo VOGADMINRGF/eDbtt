@@ -7,6 +7,9 @@ export const VOXY_VARIANTS = [
   "hint",
   "welcome",
   "presenting",
+  "open",
+  "confident",
+  "wave",
   "miniAvatar",
   "podcastStage",
 ] as const;
@@ -96,6 +99,30 @@ export const VOXY_ASSET_MAP: Record<VoxyVariant, VoxyAssetDefinition> = {
     usage: "next_step",
     usageHint: "Für das Erklären von Optionen oder nächsten Schritten nutzen.",
   },
+  open: {
+    alt: "Voxy öffnet den Raum für Beteiligung",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-open.png",
+    webp: "/brand/voxy/voxy-open.webp",
+    usage: "next_step",
+    usageHint: "Für offene Beteiligung, Anschluss-Hinweise und Raum-Metaphern nutzen.",
+  },
+  confident: {
+    alt: "Voxy begleitet ruhig und verlässlich",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-confident.png",
+    webp: "/brand/voxy/voxy-confident.webp",
+    usage: "hero_stage",
+    usageHint: "Für ruhige Hero- oder Vertrauensflächen ohne laute Gestik nutzen.",
+  },
+  wave: {
+    alt: "Voxy gibt einen leichten Begrüßungshinweis",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-wave.png",
+    webp: "/brand/voxy/voxy-wave.webp",
+    usage: "first_visit",
+    usageHint: "Nur für leichte Einstiegs- oder Begrüßungshinweise einsetzen.",
+  },
   miniAvatar: {
     alt: "Voxy als kompakter Avatar",
     aspectRatio: "1 / 1",
@@ -105,14 +132,36 @@ export const VOXY_ASSET_MAP: Record<VoxyVariant, VoxyAssetDefinition> = {
     usageHint: "Für kleine Inline-Hinweise, kompakte Module und mobile Kontexte nutzen.",
   },
   podcastStage: {
-    alt: "Voxy auf einer ruhigen Studio-Bühne",
-    aspectRatio: "16 / 9",
-    png: "/brand/voxy/voxy-podcast-stage.png",
-    webp: "/brand/voxy/voxy-podcast-stage.webp",
+    alt: "Voxy in einer ruhigen Hero-Komposition",
+    aspectRatio: "4 / 5",
+    png: "/brand/voxy/voxy-confident.png",
+    webp: "/brand/voxy/voxy-confident.webp",
     usage: "hero_stage",
-    usageHint: "Nur für explizite Hero- oder Stage-Flächen verwenden, nicht als Standard-Guide.",
+    usageHint:
+      "Legacy-Alias für frühere Stage-Verwendungen. Rendert bewusst auf dieselbe ruhige Hero-Figur wie `confident`.",
   },
 };
+
+export const VOXY_PUBLIC_ROUTE_ASSETS = {
+  startLight: "confident",
+  startDark: "confident",
+  createLight: "presenting",
+  createDark: "thinking",
+  dossierLight: "hint",
+  dossierDark: "thinking",
+  rundenLight: "open",
+  rundenDark: "confident",
+  swipesLight: "miniAvatar",
+  swipesDark: "miniAvatar",
+  miniLight: "miniAvatar",
+  miniDark: "miniAvatar",
+} as const satisfies Record<string, VoxyVariant>;
+
+export type VoxyPublicRouteAssetSlot = keyof typeof VOXY_PUBLIC_ROUTE_ASSETS;
+
+export function resolveVoxyPublicRouteVariant(slot: VoxyPublicRouteAssetSlot): VoxyVariant {
+  return VOXY_PUBLIC_ROUTE_ASSETS[slot];
+}
 
 export type ResolvedVoxyAsset = VoxyAssetDefinition & {
   candidates: string[];

@@ -131,6 +131,27 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("später erneut");
   });
 
+  it("shows a prepared contribution from /create without losing the text", async () => {
+    mocks.listRundenEntryItems.mockResolvedValue([]);
+
+    const tree = await RundenPage({
+      searchParams: Promise.resolve({
+        prefill: encodeURIComponent("Der Bus fährt am Abend zu selten und viele Haltestellen sind schlecht beleuchtet."),
+        from: "create",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Dein Beitrag ist vorbereitet");
+    expect(html).toContain("Wähle jetzt einen bestehenden Anlassraum oder starte einen neuen.");
+    expect(html).toContain("Der Bus fährt am Abend zu selten und viele Haltestellen sind schlecht beleuchtet.");
+    expect(html).toContain('data-runden-prefill="true"');
+    expect(html).toContain("Ausgangstext");
+    expect(html).toContain(
+      "Der Bus fährt am Abend zu selten und viele Haltestellen sind schlecht beleuchtet.",
+    );
+  });
+
   it("Scenario D: entries without operating link still keep active view stable", async () => {
     mocks.readSession.mockResolvedValue({
       uid: "65f000000000000000000111",

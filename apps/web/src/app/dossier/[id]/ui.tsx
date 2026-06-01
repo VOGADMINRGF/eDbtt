@@ -138,7 +138,7 @@ export function DossierPagePublicBody({
   });
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+    <div className="public-shell mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
       {loadState === "loading" ? (
         <p className="text-xs text-[rgb(var(--muted))]">Dossier wird geladen…</p>
       ) : null}

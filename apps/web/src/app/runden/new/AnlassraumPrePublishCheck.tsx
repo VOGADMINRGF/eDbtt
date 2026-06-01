@@ -18,8 +18,8 @@ export default function AnlassraumPrePublishCheck(
   props: AnlassraumPrePublishCheckProps,
 ) {
   return (
-    <section className="vog-surface-elevated p-4 md:p-5">
-      <div className="vog-surface-muted p-4">
+    <section className="public-proof-zone">
+      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
           Vor dem Start
         </p>

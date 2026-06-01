@@ -20,19 +20,22 @@ describe("landing clarity contract", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
     expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
+    expect(html).toContain("Was Menschen");
     expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
     expect(html).toContain("eDebatte macht aus Themen, Fragen und Vorschlägen einen nachvollziehbaren Arbeitsraum");
-    expect(html).toContain("Anliegen einreichen");
-    expect(html).toContain("Anlassraum anlegen");
+    expect(html).toContain("Anliegen einbringen");
+    expect(html).toContain("Thema ansehen");
+    expect(html).toContain("Ich reiche ein Anliegen ein");
+    expect(html).toContain("Anlassraum/Event starten");
     expect(html).toContain("Themen ansehen");
     expect(html).toContain("Öffne einen Dialog, statt ein Formular auszufüllen.");
-    expect(html).toContain("Was bewegt dich gerade?");
-    expect(html).toContain("Anliegen schildern");
+    expect(html).toContain("Ich sortiere Anliegen.");
     expect(html).toContain("kostenlos mitmachen");
     expect(html).toContain("keine Datenverkäufe");
     expect(html).toContain("keine versteckten KI-Kosten");
     expect(html).toContain("Voxy als Orientierung");
     expect(html).toContain('data-voxy-appearance="hero"');
+    expect(html).toContain("Review vor Veröffentlichung.");
     expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
     expect(html).toContain("Schnell einsteigen mit Swipe.");
     expect(html).toContain("Der Anlassraum: ein Ort, an dem ein Thema nicht verloren geht.");
@@ -46,6 +49,8 @@ describe("landing clarity contract", () => {
     expect(html).toContain("href=\"/runden/new\"");
     expect(html).toContain("href=\"/swipes\"");
     expect(html).toContain("href=\"/create?intent=check\"");
+    expect(html).toContain("href=\"/dossier\"");
+    expect(html).toContain("href=\"/account/organization\"");
 
     expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Beteiligungs- und Dossier-Tool");
@@ -55,17 +60,29 @@ describe("landing clarity contract", () => {
     expect(html).not.toContain("/demo/");
   });
 
-  it("keeps the polished landing, quick actions and voxy guide free of raw light/dark utility surfaces", () => {
+  it("keeps landing source files free of forbidden card utility tokens", () => {
     const sources = [
       "src/app/start/LandingStart.tsx",
       "src/components/quickActions/TaskFirstQuickActionCenter.tsx",
-      "src/components/voxy/VoxyGuide.tsx",
     ].map((path) => readFileSync(resolve(process.cwd(), path), "utf8"));
 
+    const forbiddenTokens = [
+      "shadow-",
+      "drop-shadow",
+      "bg-white",
+      "bg-black",
+      "bg-slate-",
+      "bg-zinc-",
+      "bg-neutral-",
+      "border-slate-",
+      "border-zinc-",
+      "ring-1",
+    ];
+
     for (const source of sources) {
-      expect(source).not.toContain("bg-slate-950");
-      expect(source).not.toContain("bg-white");
-      expect(source).not.toContain("text-black");
+      for (const token of forbiddenTokens) {
+        expect(source).not.toContain(token);
+      }
       expect(source).not.toContain("Developer-Hinweis");
     }
   });
