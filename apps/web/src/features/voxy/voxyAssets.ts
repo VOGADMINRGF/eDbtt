@@ -172,8 +172,8 @@ export const VOXY_ASSET_MAP: Record<VoxyVariant, VoxyAssetDefinition> = {
 export const VOXY_PUBLIC_ROUTE_ASSETS = {
   startLight: "confident",
   startDark: "confident",
-  createLight: "createGuideLight",
-  createDark: "createGuideDark",
+  createLight: "presenting",
+  createDark: "thinking",
   dossierLight: "hint",
   dossierDark: "thinking",
   rundenLight: "open",
