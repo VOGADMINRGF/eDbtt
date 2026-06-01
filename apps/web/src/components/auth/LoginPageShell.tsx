@@ -24,14 +24,17 @@ export function LoginPageShell({
   const {
     step,
     method,
+    availableMethods,
     expiresAt,
     loading,
     requestingEmail,
+    switchingMethod,
     allowEmailFallback,
     error,
     submitCredentials,
     submitTwoFactor,
     requestEmailCode,
+    selectTwoFactorMethod,
     reset,
   } = useLoginFlow({ redirectTo, initialStep, initialMethod });
 
@@ -43,6 +46,8 @@ export function LoginPageShell({
   }, [expiresAt]);
   const normalizedCode = useMemo(() => normalizeTwoFactorCode(code), [code]);
   const canSubmitTwoFactor = normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !loading;
+  const showOtpOption = availableMethods.includes("otp");
+  const showEmailOption = availableMethods.includes("email");
 
   const primaryButtonClass =
     "inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,116,144,0.35)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:opacity-60";
@@ -153,6 +158,49 @@ export function LoginPageShell({
 
       {step === "twofactor" && (
         <form onSubmit={handleTwoFactorSubmit} className="space-y-4">
+          {(showOtpOption || showEmailOption) && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                Sicherheitscode erhalten über
+              </p>
+              <div className={`grid gap-2 ${showOtpOption && showEmailOption ? "grid-cols-2" : "grid-cols-1"}`}>
+                {showOtpOption && (
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-sky-200 ${
+                      method === "otp"
+                        ? "border-sky-400 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-100"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                    }`}
+                    onClick={async () => {
+                      const ok = await selectTwoFactorMethod("otp");
+                      if (ok) setCode("");
+                    }}
+                    disabled={switchingMethod || requestingEmail || loading}
+                  >
+                    Authenticator-App
+                  </button>
+                )}
+                {showEmailOption && (
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-sky-200 ${
+                      method === "email"
+                        ? "border-sky-400 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-100"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                    }`}
+                    onClick={async () => {
+                      const ok = await selectTwoFactorMethod("email");
+                      if (ok) setCode("");
+                    }}
+                    disabled={switchingMethod || requestingEmail || loading}
+                  >
+                    Code per E-Mail
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="rounded-lg bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
             {method === "email"
               ? "Wir haben dir einen 6-stelligen Code per E-Mail gesendet. Bitte Posteingang/Spam prüfen."
@@ -177,7 +225,7 @@ export function LoginPageShell({
               required
             />
           </div>
-          {allowEmailFallback && method !== "email" && (
+          {allowEmailFallback && method === "email" && (
             <button
               type="button"
               className="text-xs font-semibold text-sky-700 underline-offset-2 hover:underline disabled:opacity-60"
@@ -185,9 +233,9 @@ export function LoginPageShell({
                 const ok = await requestEmailCode();
                 if (ok) setCode("");
               }}
-              disabled={requestingEmail || loading}
+              disabled={requestingEmail || switchingMethod || loading}
             >
-              {requestingEmail ? "Sende Code per E-Mail …" : "Code per E-Mail senden"}
+              {requestingEmail ? "Sende neuen Code per E-Mail …" : "Neuen Code per E-Mail senden"}
             </button>
           )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
