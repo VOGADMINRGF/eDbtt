@@ -114,13 +114,10 @@ describe("/create start surface", () => {
 
     expect(html).toContain("Was möchtest du einbringen?");
     expect(html).toContain("Schreib dein Anliegen, deine Frage oder deinen Vorschlag zuerst in deinen eigenen Worten.");
-    expect(html).toContain("Beitragen");
-    expect(html).toContain("Prüfen");
-    expect(html).toContain("Entwerfen");
     expect(html).toContain("Beitrag einreichen");
-    expect(html).toContain("KI strukturiert meinen Text");
+    expect(html).toContain("Text sortieren lassen");
     expect(html).toContain("Quelle/Datei prüfen");
-    expect(html).toContain("Zu bestehendem Anlass hinzufügen");
+    expect(html).toContain("Zu Anlassraum hinzufügen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
@@ -130,6 +127,7 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
     expect(html).not.toContain("Pipeline");
+    expect(html).not.toContain("Weitere Wege");
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");
@@ -212,6 +210,6 @@ describe("/create start surface", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("Stadtverwaltung Nord · Organisations-verifiziert");
-    expect(html).toContain("im Scope deiner Organisation reviewfähig");
+    expect(html).toContain("im Bereich deiner Organisation und wird vor Veröffentlichung geprüft");
   });
 });

@@ -3,9 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
 import type { AccountOverview } from "@features/account/types";
-import { getAccessTierConfigForUser, getUserAccessTier } from "@core/access/accessTiers";
 import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitlements";
 import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
@@ -47,7 +47,6 @@ import {
   resolveCreateModeDefinition,
 } from "@/features/create/createSurfaceConfig";
 import {
-  formatOperatorNumber,
   getOperatorCreateTexts,
   resolveOperatorLocale,
   type OperatorCreateTexts,
@@ -88,6 +87,7 @@ import {
 import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 import { getVoxyCopy } from "@/features/voxy/voxyCopy";
+import { resolveVoxyPublicRouteVariant } from "@/features/voxy/voxyAssets";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -160,7 +160,6 @@ export function resolveCreatePostStartSectionOrder(params: {
   if (params.showPostInputModules && !params.showIntelligentFollowup) sections.push("post-start-meta");
   if (params.showFollowupQuestionCard) sections.push("followup-question");
   if (params.showPostInputModules && params.pickerEnabled) sections.push("context-picker");
-  if (params.showPostInputModules) sections.push("quotas");
   return sections;
 }
 
@@ -527,9 +526,9 @@ function buildCreateScopeNotice(scope: RequestScopeSummary | null): {
   if (!scope) return null;
   if (scope.isOperatorMode) {
     return {
-      title: "Betreiber-Modus sichtbar",
+      title: "Entwurf wird geprüft",
       body:
-        "Du arbeitest hier im globalen Betreiberkontext. /create bleibt trotzdem review-first: keine automatische Veröffentlichung und kein automatisches public_official.",
+        "Dein Beitrag wird nicht automatisch veröffentlicht. Er bleibt als Entwurf erhalten, bis du vor Veröffentlichung bewusst weitergehst.",
       tone: "operator",
     };
   }
@@ -542,7 +541,7 @@ function buildCreateScopeNotice(scope: RequestScopeSummary | null): {
     return {
       title: `${organizationLabel} · ${membershipStatusLabel(scope.membershipStatus)}`,
       body:
-        "Wenn du hier speicherst oder weiterführst, bleibt der Arbeitsstand im Scope deiner Organisation reviewfähig." +
+        "Wenn du hier speicherst oder weiterführst, bleibt der Arbeitsstand im Bereich deiner Organisation und wird vor Veröffentlichung geprüft." +
         regionPart,
       tone: "neutral",
     };
@@ -550,7 +549,7 @@ function buildCreateScopeNotice(scope: RequestScopeSummary | null): {
   return {
     title: membershipStatusLabel(scope.membershipStatus),
     body:
-      "Du kannst den Arbeitsstand vorbereiten, aber noch ohne bestätigten Organisationsscope. Nichts wird automatisch veröffentlicht oder amtlich freigegeben.",
+      "Du kannst den Arbeitsstand vorbereiten, aber noch ohne bestätigten Organisationsbereich. Nichts wird automatisch veröffentlicht.",
     tone: "limited",
   };
 }
@@ -720,6 +719,8 @@ export default function CreateClient({
 }: CreateClientProps) {
   const privacyGate = usePrivacyGate();
   const router = useRouter();
+  const themeState = useTheme();
+  const resolvedTheme = themeState?.resolvedTheme ?? "light";
   const { locale } = useLocale();
   const surfaceLocale = resolveCreateSurfaceLocale(locale);
   const surfaceTexts = React.useMemo(() => getCreateSurfaceTexts(surfaceLocale), [surfaceLocale]);
@@ -773,7 +774,7 @@ export default function CreateClient({
   const intakeRestoreInfoText =
     surfaceLocale === "en"
       ? "Your draft was restored from local browser storage."
-      : "Dein Entwurf wurde aus der lokalen Browser-Sicherung wiederhergestellt.";
+      : "Dein Entwurf wurde wiederhergestellt.";
   const contextLoadedRef = React.useRef(false);
   const intakeHydratedRef = React.useRef(false);
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
@@ -1342,11 +1343,6 @@ export default function CreateClient({
       ? overview.verificationLevel
       : undefined;
 
-  const tierCfg = getAccessTierConfigForUser(overview);
-  const tierLabel = getUserAccessTier(overview);
-  const monthlyLimit = tierCfg.monthlyContributionLimit;
-  const credits = entitlements.contributionCredits;
-
   const hasLegacyModeParam = Boolean(initialMode);
   const showIntakeContext = hasCreateIntakeContext(initialIntakeContext);
   const readableRundenContextLabel = renderRundenContextLabel(initialIntakeContext);
@@ -1485,9 +1481,9 @@ export default function CreateClient({
       }
       const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
       const scopedSavedMessage = requestScope?.isOperatorMode
-        ? "Arbeitsstand gespeichert. Eingereicht, reviewbar und weiterhin ohne automatische Veröffentlichung. Betreiber-Modus bleibt sichtbar."
+        ? "Arbeitsstand gespeichert. Entwurf wird geprüft und nicht automatisch veröffentlicht."
         : requestScope?.organizationId
-          ? "Arbeitsstand gespeichert. Eingereicht und reviewbar im Scope deiner Organisation."
+          ? "Arbeitsstand gespeichert. Der Entwurf wird im Bereich deiner Organisation geprüft."
           : null;
       const successMessage =
         manualReviewRequested
@@ -1542,7 +1538,7 @@ export default function CreateClient({
       const journeySummary = resolveCreateHandoffJourneySummary(draft);
       saveCreateHandoffDraft(draft);
       setActionNotice(
-        `Dein Beitrag wird vorbereitet für ${journeySummary.destinationLabel}. Eingereicht, reviewbar und ohne automatische Veröffentlichung.`,
+        `Dein Beitrag wird vorbereitet für ${journeySummary.destinationLabel}. Er wird nicht automatisch veröffentlicht.`,
       );
       let successMessage = `Beitrag vorbereitet. ${journeySummary.nextStepTitle}.`;
       try {
@@ -1580,10 +1576,10 @@ export default function CreateClient({
         const requestScope = body?.requestScope as RequestScopeSummary | null | undefined;
         if (requestScope?.isOperatorMode) {
           successMessage =
-            `Beitrag vorbereitet. ${journeySummary.nextStepTitle}. Betreiber-Modus bleibt sichtbar.`;
+            `Beitrag vorbereitet. ${journeySummary.nextStepTitle}. Der Entwurf wird geprüft.`;
         } else if (requestScope?.organizationId) {
           successMessage =
-            `Beitrag vorbereitet. ${journeySummary.destinationLabel} bleibt im Scope deiner Organisation.`;
+            `Beitrag vorbereitet. ${journeySummary.destinationLabel} bleibt im Bereich deiner Organisation und wird geprüft.`;
         }
       } catch {
         setActionNotice("Der vorbereitete Beitrag konnte nicht gespeichert werden. Bitte erneut versuchen.");
@@ -1617,7 +1613,7 @@ export default function CreateClient({
     }
     if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
 
-    setActionNotice("KI-Einordnung wird erneut versucht …");
+    setActionNotice("Automatische Einordnung wird erneut versucht …");
     try {
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
@@ -1643,10 +1639,10 @@ export default function CreateClient({
       setActionNotice(
         isPlannerReadyForStructuredHandoff(nextFollowup)
           ? "Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen."
-          : "Die Einordnung bleibt noch offen. Du kannst das Thema jetzt gezielt bestätigen oder an die Redaktion geben.",
+          : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
       );
     } catch {
-      setActionNotice("Die genauere KI-Einordnung konnte gerade nicht geladen werden.");
+      setActionNotice("Die automatische Einordnung konnte gerade nicht abgeschlossen werden. Du kannst trotzdem weitermachen.");
     }
   }, [
     activeIntent,
@@ -1759,25 +1755,73 @@ export default function CreateClient({
     );
   }
 
-  const createVoxyVariant =
-    productMode === "analyze" ? "thinking" : productMode === "media" ? "hint" : "presenting";
+  const createVoxyVariant = resolveVoxyPublicRouteVariant(
+    resolvedTheme === "dark" ? "createDark" : "createLight",
+  );
   const createVoxyCopy = fromManualAnlassraumContinueCreate ? getVoxyCopy("createContinue") : getVoxyCopy("create");
+  const createEntryPills = [
+    {
+      id: "submit",
+      label: surfaceLocale === "en" ? "Submit contribution" : "Beitrag einreichen",
+      active: productMode === "analyze",
+      onClick: () => {
+        setProductMode("analyze");
+        setActiveContextAnchorId(null);
+        setActionNotice(null);
+      },
+    },
+    {
+      id: "guided",
+      label: surfaceLocale === "en" ? "Sort my text" : "Text sortieren lassen",
+      active: productMode === "guided",
+      onClick: () => {
+        setProductMode("guided");
+        setActiveContextAnchorId(null);
+        setActionNotice(surfaceLocale === "en" ? "AI stays optional." : getVoxyCopy("ai"));
+      },
+    },
+    {
+      id: "review",
+      label: surfaceLocale === "en" ? "Review source/file" : "Quelle/Datei prüfen",
+      active: productMode === "media",
+      onClick: () => {
+        setProductMode("media");
+        setActiveContextAnchorId("source");
+        setActionNotice(null);
+      },
+    },
+    {
+      id: "round",
+      label: surfaceLocale === "en" ? "Add to round" : "Zu Anlassraum hinzufügen",
+      active: false,
+      onClick: handleOpenExistingAnlassraum,
+    },
+  ] as const;
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
     <div className="public-shell vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
       <section
-        className="create-dialog-workspace public-dialog-surface overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
+        className="create-public-shell create-dialog-workspace public-dialog-surface overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
         data-create-stage-shell="true"
       >
       <div className="public-reader-grid">
         <aside className="public-voxy-rail">
           <VoxyGuide
             appearance="panel"
-            title={fromManualAnlassraumContinueCreate ? "Voxy begleitet den Übergang" : "Voxy als Dialoghelfer"}
             variant={fromManualAnlassraumContinueCreate ? "neutral" : createVoxyVariant}
           >
-            {createVoxyCopy}
+            {fromManualAnlassraumContinueCreate ? (
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Voxy begleitet den Übergang</p>
+                <p>{createVoxyCopy}</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Voxy hilft beim Sortieren</p>
+                <p>Nichts wird automatisch veröffentlicht.</p>
+              </div>
+            )}
           </VoxyGuide>
         </aside>
 
@@ -1787,8 +1831,26 @@ export default function CreateClient({
         subline={surfaceTexts.sublineCanonical}
         texts={surfaceComposerTexts}
         topMeta={
-          intakeRestoreInfo || scopeNotice ? (
+          !hasStarted || intakeRestoreInfo || scopeNotice ? (
             <div className="space-y-2">
+              {!hasStarted ? (
+                <div className="flex flex-wrap gap-2">
+                  {createEntryPills.map((pill) => (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={pill.onClick}
+                      className={`public-soft-pill transition ${
+                        pill.active
+                          ? "border-[rgb(var(--grad-from))]/35 text-[rgb(var(--fg))]"
+                          : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      }`}
+                    >
+                      {pill.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {intakeRestoreInfo ? (
                 <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
               ) : null}
@@ -1889,6 +1951,7 @@ export default function CreateClient({
         collapseModeSelector
         embeddedWorkspace
         experienceVariant="create_minimal"
+        hideAlternateModeDisclosure
         minimalHeading={
           surfaceLocale === "en" ? "What would you like to contribute?" : "Was möchtest du einbringen?"
         }
@@ -1899,44 +1962,6 @@ export default function CreateClient({
         }
       />
 
-      {!hasStarted ? (
-        <section className="public-flow-line mt-4 p-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            {surfaceLocale === "en" ? "Optional next steps" : "Weitere Wege"}
-          </p>
-          <div className="mt-3 grid gap-2 md:grid-cols-3">
-            <button
-              type="button"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
-              onClick={() => {
-                setProductMode("guided");
-                setActiveContextAnchorId(null);
-                setActionNotice(surfaceLocale === "en" ? "AI stays optional." : getVoxyCopy("ai"));
-              }}
-            >
-              {surfaceLocale === "en" ? "AI structures my text" : "KI strukturiert meinen Text"}
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
-              onClick={() => {
-                setProductMode("media");
-                setActiveContextAnchorId("source");
-                setActionNotice(null);
-              }}
-            >
-              {surfaceLocale === "en" ? "Review source or file" : "Quelle/Datei prüfen"}
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl border border-[rgb(var(--border))] bg-transparent px-4 py-3 text-left text-sm font-medium text-[rgb(var(--fg))] transition hover:border-cyan-300/55 hover:bg-[color-mix(in_oklab,rgb(var(--card))_72%,transparent)]"
-              onClick={handleOpenExistingAnlassraum}
-            >
-              {surfaceLocale === "en" ? "Add to an existing round" : "Zu bestehendem Anlass hinzufügen"}
-            </button>
-          </div>
-        </section>
-      ) : null}
         </div>
       </div>
 
@@ -1953,22 +1978,6 @@ export default function CreateClient({
         questionsCount={structureOverviewMetrics.questionsCount}
         nextStepsCount={structureOverviewMetrics.nextStepsCount}
       />
-
-      {showPostInputModules && !showLinkClarification && !showAnalyzeWorkspace ? (
-        <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
-          <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
-          <Link href="/account" className="vog-chip">
-            {text.quotasTitle}
-          </Link>
-          <span className="sr-only">
-            {monthlyLimit === null
-              ? `${text.monthlyLimitLabel}: ${text.monthlyLimitUnlimited}`
-              : `${text.monthlyLimitLabel}: ${formatOperatorNumber(monthlyLimit, operatorLocale)}`}
-          </span>
-          <span className="sr-only">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
-        </div>
-      ) : null}
 
       {showStartChatPreview && followupSnapshot ? (
         <div className="create-start-chat-preview create-chat-workspace hidden rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:block md:px-5">
@@ -2041,7 +2050,7 @@ export default function CreateClient({
             onEdit={() => {
               setUnderstandingConfirmed(false);
               setShowFollowupCorrectionComposer(true);
-              setActionNotice("Einordnung zur Korrektur geöffnet. Passe den Text an und starte erneut.");
+              setActionNotice("Manuelle Weiterführung geöffnet. Passe den Text an oder wähle selbst ein Thema.");
             }}
             onPrepareSubmission={handlePrepareSubmission}
             onPrepareAnlassraum={handlePrepareAnlassraum}

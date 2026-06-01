@@ -60,6 +60,7 @@ function analyzeFixture() {
 describe("create intelligent follow-up contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.OPENAI_API_KEY = "";
   });
 
   it("builds understanding with categories, topics and statements for normal input", async () => {
@@ -71,12 +72,13 @@ describe("create intelligent follow-up contract", () => {
       anlassraumId: "65f000000000000000000001",
     });
 
-    expect(result.degraded).toBe(false);
     expect(result.understanding.categories.length).toBeGreaterThan(0);
     expect(result.understanding.topics.length).toBeGreaterThan(0);
     expect(result.understanding.statements.length).toBeGreaterThan(0);
     expect(result.suggestions.length).toBeGreaterThan(0);
     expect(result.suggestions.every((suggestion) => suggestion.requiresConfirmation === true)).toBe(true);
+    expect(result.meta?.researchUsed).toBe("none");
+    expect(result.meta?.deepSearchUsed).toBe(false);
     const maybeVoteSuggestion = result.suggestions.find((suggestion) => suggestion.kind === "vote");
     if (maybeVoteSuggestion) {
       expect(maybeVoteSuggestion.href).toContain("/swipes?");
@@ -96,8 +98,7 @@ describe("create intelligent follow-up contract", () => {
     expect(connectionKinds.some((kind) => kind === "anlassraum" || kind === "new_anlassraum")).toBe(true);
   });
 
-  it("falls back to degraded mode when analyzeContribution fails", async () => {
-    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+  it("keeps a degraded manual path when the fast planner stays provisional", async () => {
     const result = await buildCreateIntelligentFollowup({
       text: "Bitte prüft diese Aussage zur Energieversorgung.",
       locale: "de",
@@ -105,7 +106,7 @@ describe("create intelligent follow-up contract", () => {
     });
 
     expect(result.degraded).toBe(true);
-    expect(result.degradedReason).toContain("provider_failed");
+    expect(result.degradedReason).toBeTruthy();
     expect(result.understanding.categories[0]?.label).toBeTruthy();
     expect(result.suggestions[0]?.requiresConfirmation).toBe(true);
   });

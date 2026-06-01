@@ -40,7 +40,7 @@ type CreateVisualFollowupProps = {
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
   headline: "Haben wir dich richtig verstanden?",
   headlineProvisional: "Haben wir dich vorläufig richtig verstanden?",
-  headlineNeedsClarification: "Wir konnten deinen Beitrag noch nicht exakt zuordnen.",
+  headlineNeedsClarification: "Wir konnten dein Anliegen noch nicht sicher einordnen.",
   structureTitle: "Vorläufig verstanden",
   structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
@@ -301,50 +301,59 @@ function isTechnicalPlannerFallback(result: CreateIntelligentFollowupResult): bo
 function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
   const planner = result.meta?.planner;
   if (!planner) {
-    return "Konnte nicht exakt zugeordnet werden.";
+    return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
   }
+  if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
+    return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
+  }
+  return "Du kannst manuell fortfahren und den nächsten Schritt selbst wählen.";
+}
+
+function resolvePlannerClarificationDetails(result: CreateIntelligentFollowupResult): string | null {
+  const planner = result.meta?.planner;
+  if (!planner) return null;
   if (planner.degradedReason === "missing_provider_key") {
-    return "Die KI-Einordnung ist gerade nicht verfügbar.";
+    return "Die automatische Einordnung ist gerade nicht verfügbar.";
   }
   if (planner.degradedReason === "timeout") {
-    return "Das Zeitlimit für die KI-Einordnung wurde erreicht.";
+    return "Die automatische Einordnung hat zu lange gebraucht.";
   }
   if (
     planner.degradedReason === "invalid_json" ||
     planner.degradedReason === "invalid_provider_payload" ||
     planner.degradedReason === "normalization_failed"
   ) {
-    return "Die KI-Antwort konnte nicht sauber in den erwarteten Vertrag überführt werden.";
+    return "Die automatische Einordnung konnte nicht sauber verarbeitet werden.";
   }
   if (planner.degradedReason === "quality_gate_failed") {
-    return "Die Antwort war zu allgemein, um daraus sicher einen Arbeitsstand vorzubereiten.";
+    return "Der Text enthält mehrere mögliche Themen oder braucht eine genauere Auswahl.";
   }
   if (planner.degradedReason === "rate_limited") {
-    return "Die KI-Einordnung ist gerade ausgelastet.";
+    return "Die automatische Einordnung ist gerade ausgelastet.";
   }
   if (planner.degradedReason === "provider_error") {
-    return "Die KI-Einordnung konnte gerade nicht geladen werden.";
+    return "Die automatische Einordnung konnte gerade nicht geladen werden.";
   }
   if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
-    return "Konnte nicht exakt zugeordnet werden.";
+    return "Der Text enthält mehrere mögliche Themen oder braucht eine genauere Auswahl.";
   }
-  return "Die Einordnung braucht noch eine kurze Bestätigung.";
+  return null;
 }
 
 function resolvePlannerProvisionalNotice(result: CreateIntelligentFollowupResult): string | null {
   const planner = result.meta?.planner;
   if (!planner || !hasProvisionalPlannerStructure(result)) return null;
   if (planner.degradedReason === "missing_provider_key") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung ist gerade nicht verfügbar.";
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung ist gerade nicht verfügbar.";
   }
   if (planner.degradedReason === "timeout") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung hat das Zeitlimit erreicht.";
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung hat zu lange gebraucht.";
   }
   if (planner.degradedReason === "rate_limited") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung ist gerade ausgelastet.";
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung ist gerade ausgelastet.";
   }
   if (planner.degradedReason === "provider_error") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung konnte gerade nicht geladen werden.";
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung konnte gerade nicht geladen werden.";
   }
   if (
     planner.degradedReason === "invalid_json" ||
@@ -500,7 +509,7 @@ function buildNextStepChecklist(params: {
     {
       id: "confirm",
       label: "Tiefer ins Thema gehen",
-      detail: "Der vorgeschlagene Arbeitsstand bleibt reviewbar und unveröffentlicht.",
+      detail: "Der vorgeschlagene Arbeitsstand wird geprüft und noch nicht veröffentlicht.",
       done: params.isConfirmed,
     },
     {
@@ -1040,7 +1049,7 @@ function StructureBranchCard(props: {
             </button>
           ))}
         </div>
-        <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden zur Prüfung vorbereitet.</p>
       </details>
       <details className="mt-3 rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Weitere Details zum Ast</summary>
@@ -1234,36 +1243,34 @@ function CreateStructureOverviewCard(props: {
   onClick?: () => void;
 }) {
   const content = (
-    <div data-mobile-structure-card className="flex h-full flex-col gap-2.5">
-      <div className="flex items-start gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
-          <FocusAreaIcon area={props.area} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
-            {props.unreadLabel ? (
-              <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white dark:bg-cyan-300 dark:text-slate-950">
-                {props.unreadLabel}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+    <div data-mobile-structure-card className="flex items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.05] dark:border-cyan-300/20 dark:bg-cyan-500/10">
+        <FocusAreaIcon area={props.area} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
+            {props.pillLabel}
+          </span>
+          {props.unreadLabel ? (
+            <span className="rounded-full border border-cyan-300/45 px-2 py-0.5 text-[10px] font-semibold text-cyan-800 dark:text-cyan-100">
+              {props.unreadLabel}
+            </span>
+          ) : null}
         </div>
+        <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
-      <div className="mt-auto flex items-center justify-between gap-2">
-        <span className="rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
-          {props.pillLabel}
+      {props.onClick ? (
+        <span className="text-sm text-[rgb(var(--muted))]" aria-hidden="true">
+          ·
         </span>
-        <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M7 4.5 13 10l-6 5.5" />
-        </svg>
-      </div>
+      ) : null}
     </div>
   );
 
   const className =
-    "h-full rounded-[20px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]";
+    "inline-flex min-h-[3rem] items-center rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-3 py-2";
 
   if (!props.onClick) {
     return <article className={className}>{content}</article>;
@@ -1273,7 +1280,7 @@ function CreateStructureOverviewCard(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className={`${className} w-full text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05]`}
+      className={`${className} text-left transition hover:border-cyan-300/45 hover:text-[rgb(var(--fg))]`}
     >
       {content}
     </button>
@@ -1283,7 +1290,7 @@ function CreateStructureOverviewCard(props: {
 export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   const isEnglish = props.locale === "en";
   return (
-    <section data-mobile-structure-overview className="space-y-3 rounded-[26px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_16px_36px_rgba(2,6,23,0.05)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+    <section data-mobile-structure-overview className="space-y-3 border-t border-[rgb(var(--border))] px-0 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
@@ -1294,7 +1301,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
             : "Kompakt zuerst, Details bei Bedarf."}
         </p>
       </div>
-      <div data-structure-overview-grid className="grid items-stretch gap-2 sm:grid-cols-2 md:grid-cols-4">
+      <div data-structure-overview-grid className="flex flex-wrap items-center gap-2.5">
         <CreateStructureOverviewCard
           area="priorities"
           title={isEnglish ? "Priorities" : "Prioritäten"}
@@ -1305,15 +1312,15 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
         />
         <CreateStructureOverviewCard
           area="clusters"
-          title={isEnglish ? "Topic clusters" : "Themencluster"}
-          description={isEnglish ? "Recognized clusters" : "Erkannte Cluster"}
+          title={isEnglish ? "Topics" : "Themen"}
+          description={isEnglish ? "Recognized clusters" : "Erkannte Schwerpunkte"}
           pillLabel={String(props.clustersCount)}
           unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("clusters") : undefined}
         />
         <CreateStructureOverviewCard
           area="questions"
-          title={isEnglish ? "Questions & participation" : "Fragen & Abstimmung"}
+          title={isEnglish ? "Questions" : "Fragen"}
           description={isEnglish ? "Open questions" : "Offene Fragen"}
           pillLabel={String(props.questionsCount)}
           unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
@@ -1321,7 +1328,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
         />
         <CreateStructureOverviewCard
           area="next_steps"
-          title={isEnglish ? "Next steps" : "Nächste Schritte"}
+          title={isEnglish ? "Next step" : "Nächster Schritt"}
           description={isEnglish ? "What happens next" : "Was als Nächstes folgt"}
           pillLabel={String(props.nextStepsCount)}
           unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
@@ -2136,11 +2143,13 @@ function StructureProposalPanel(props: {
 
 function PlannerClarificationPanel(props: {
   reason: string;
+  details?: string | null;
   startPoints: string[];
   technicalFallback?: boolean;
   onRetryPlanner?: () => void;
   onEdit: () => void;
-  onRequestEditorialReview?: () => void;
+  onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
 }) {
@@ -2148,15 +2157,14 @@ function PlannerClarificationPanel(props: {
     <div className="space-y-3 rounded-[28px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
       <div className="space-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
-          {props.technicalFallback ? "Vorläufige Einordnung" : "Einordnung offen"}
+          So kannst du weitermachen
         </p>
-        <p className="text-base font-semibold text-amber-950 dark:text-amber-50">Konnte nicht exakt zugeordnet werden.</p>
         <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
-          {props.technicalFallback
-            ? "Die KI-Einordnung wurde nicht vollständig abgeschlossen."
-            : "Die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden oder dein Beitrag enthält mehrere mögliche Themen."}
+          Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.
         </p>
-        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
+        {props.technicalFallback ? (
+          <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
+        ) : null}
       </div>
       {props.startPoints.length > 0 ? (
         <div className="space-y-2">
@@ -2173,7 +2181,13 @@ function PlannerClarificationPanel(props: {
           </div>
         </div>
       ) : null}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
+          Thema selbst wählen
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareSubmission}>
+          Beitrag vorbereiten
+        </button>
         <button
           type="button"
           className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
@@ -2181,19 +2195,10 @@ function PlannerClarificationPanel(props: {
           disabled={!props.onRetryPlanner}
           aria-disabled={!props.onRetryPlanner}
         >
-          KI-Suche aktivieren
+          Text sortieren lassen
         </button>
-        <button
-          type="button"
-          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={props.onRequestEditorialReview}
-          disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
-          aria-disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
-        >
-          Bericht an die Redaktion senden
-        </button>
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
-          Thema selbst auswählen
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
+          Anlassraum vorbereiten
         </button>
       </div>
       {props.reviewRequestMessage ? (
@@ -2202,8 +2207,9 @@ function PlannerClarificationPanel(props: {
         </p>
       ) : null}
       <p className="text-xs leading-relaxed text-amber-950/85 dark:text-amber-100/85">
-        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung. Keine stille Zuordnung.
+        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
       </p>
+      {props.details ? <p className="text-xs leading-relaxed text-amber-950/75 dark:text-amber-100/75">{props.details}</p> : null}
     </div>
   );
 }
@@ -2394,14 +2400,12 @@ export default function CreateVisualFollowup({
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
   const plannerClarificationRequired = needsPlannerClarification(result);
   const plannerClarificationReason = resolvePlannerClarificationReason(result);
+  const plannerClarificationDetails = resolvePlannerClarificationDetails(result);
   const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
-  const plannerClarificationLeadText =
-    plannerTechnicalFallback
-      ? "Die KI-Einordnung wurde nicht vollständig abgeschlossen."
-      : "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
+  const plannerClarificationLeadText = "Du kannst trotzdem weitermachen.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
@@ -2584,11 +2588,13 @@ export default function CreateVisualFollowup({
               <div className="mt-4">
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}
+                  details={plannerClarificationDetails}
                   startPoints={degradedStartPoints}
                   technicalFallback={plannerTechnicalFallback}
                   onRetryPlanner={onRetryPlanner}
                   onEdit={() => openCorrection("Thema")}
-                  onRequestEditorialReview={onRequestEditorialReview}
+                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
                   reviewRequestState={reviewRequestState}
                   reviewRequestMessage={reviewRequestMessage}
                 />
@@ -2664,9 +2670,9 @@ export default function CreateVisualFollowup({
                     <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
                     <p className="mt-2">
                       Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Anschlüssen, solange die
-                      KI-Einordnung nicht belastbar genug ist.
+                      automatische Einordnung noch nicht belastbar genug ist.
                     </p>
-                    <p className="mt-2">{plannerClarificationReason}</p>
+                    {plannerClarificationDetails ? <p className="mt-2">{plannerClarificationDetails}</p> : null}
                     {degradedStartPoints.length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {degradedStartPoints.map((label) => (
