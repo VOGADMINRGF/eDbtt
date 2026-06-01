@@ -4,6 +4,9 @@ import { createSession } from "@/utils/session";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
 import { normalizeInternalRedirectPath } from "@/features/create/finalizeRedirect";
+import { piiCol } from "@core/db/triMongo";
+import { sendMail } from "@/utils/mailer";
+import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { ensureVerificationDefaults } from "@core/auth/verificationTypes";
 import type { ObjectId } from "@core/db/triMongo";
 import type { UserRole } from "@/types/user";
@@ -80,6 +83,29 @@ export type CoreUserAuthSnapshot = {
   };
 };
 
+export function resolveAvailableTwoFactorMethods(
+  creds?: PiiUserCredentials | null,
+  user?: CoreUserAuthSnapshot | null,
+): TwoFactorMethod[] {
+  const methods = new Set<TwoFactorMethod>();
+  const hasEmail = Boolean((creds?.email || user?.email || "").trim());
+  const hasOtp = Boolean(
+    (creds?.otpSecret || creds?.otpTempSecret || user?.verification?.twoFA?.secret || "")
+      .toString()
+      .trim(),
+  );
+  const resolvedMethod = resolveTwoFactorMethod(creds, user);
+
+  if (hasOtp || resolvedMethod === "otp") {
+    methods.add("otp");
+  }
+  if (hasEmail || resolvedMethod === "email") {
+    methods.add("email");
+  }
+
+  return Array.from(methods);
+}
+
 export function normalizeIdentifier(raw?: string | null) {
   const v = (raw ?? "").trim();
   return v.toLowerCase();
@@ -107,6 +133,46 @@ export function resolveTwoFactorMethod(
   const method = creds?.twoFactorMethod || user?.verification?.twoFA?.method;
   if (!method) return null;
   return method === "totp" ? "otp" : method;
+}
+
+export async function issueTwoFactorChallenge(opts: {
+  userId: ObjectId;
+  method: TwoFactorMethod;
+  emailForCode?: string | null;
+  purpose?: TwoFactorChallengePurpose;
+  redirectTo?: string | null;
+}) {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + TWO_FA_WINDOW_MS);
+  const challenge: TwoFactorChallengeDoc = {
+    userId: opts.userId,
+    method: opts.method,
+    purpose: opts.purpose,
+    redirectTo: opts.redirectTo ?? null,
+    createdAt: now,
+    expiresAt,
+    attempts: 0,
+    status: "pending",
+  };
+
+  if (opts.method === "email") {
+    const code = crypto.randomInt(100000, 999999).toString();
+    challenge.codeHash = sha256(code);
+    if (opts.emailForCode) {
+      const mail = buildTwoFactorCodeMail({ code });
+      await sendMail({
+        to: opts.emailForCode,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
+    }
+  }
+
+  const col = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
+  const { insertedId } = await col.insertOne(challenge);
+  await setPendingTwoFactorCookie(String(insertedId));
+  return { expiresAt, challengeId: insertedId };
 }
 
 function normalizeUserRoles(

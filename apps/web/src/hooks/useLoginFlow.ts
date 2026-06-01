@@ -5,6 +5,31 @@ import { useCallback, useState } from "react";
 export type LoginStep = "credentials" | "twofactor";
 export type TwoFactorMethod = "email" | "otp" | "totp";
 
+function normalizeMethod(method?: TwoFactorMethod | null): TwoFactorMethod | null {
+  if (!method) return null;
+  return method === "totp" ? "otp" : method;
+}
+
+function normalizeAvailableMethods(
+  methods?: unknown,
+  fallbackMethod?: TwoFactorMethod | null,
+  allowEmailFallback?: boolean,
+) {
+  const normalized = new Set<TwoFactorMethod>();
+  if (Array.isArray(methods)) {
+    for (const entry of methods) {
+      const method = normalizeMethod(typeof entry === "string" ? (entry as TwoFactorMethod) : null);
+      if (method === "email" || method === "otp") {
+        normalized.add(method);
+      }
+    }
+  }
+  const fallback = normalizeMethod(fallbackMethod);
+  if (fallback) normalized.add(fallback);
+  if (allowEmailFallback) normalized.add("email");
+  return Array.from(normalized);
+}
+
 export function useLoginFlow(opts?: {
   redirectTo?: string;
   initialStep?: LoginStep;
@@ -14,10 +39,14 @@ export function useLoginFlow(opts?: {
   const initialMethod =
     opts?.initialMethod ?? (opts?.initialStep === "twofactor" ? "email" : null);
   const [method, setMethod] = useState<TwoFactorMethod | null>(initialMethod);
+  const [availableMethods, setAvailableMethods] = useState<TwoFactorMethod[]>(
+    normalizeAvailableMethods(undefined, initialMethod),
+  );
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState(opts?.redirectTo || "");
   const [loading, setLoading] = useState(false);
   const [requestingEmail, setRequestingEmail] = useState(false);
+  const [switchingMethod, setSwitchingMethod] = useState(false);
   const [allowEmailFallback, setAllowEmailFallback] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +66,11 @@ export function useLoginFlow(opts?: {
         }
 
         if (body.require2fa) {
-          setMethod(body.method ?? null);
+          const nextMethod = normalizeMethod(body.method ?? null);
+          setMethod(nextMethod);
+          setAvailableMethods(
+            normalizeAvailableMethods(body.availableMethods, nextMethod, Boolean(body.allowEmailFallback)),
+          );
           setExpiresAt(body.expiresAt ?? null);
           setRedirectUrl(body.redirectUrl || redirectUrl || "/account");
           setAllowEmailFallback(Boolean(body.allowEmailFallback));
@@ -67,7 +100,7 @@ export function useLoginFlow(opts?: {
         const res = await fetch("/api/auth/verify-2fa", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, method, next: redirectUrl }),
+          body: JSON.stringify({ code, method, next: redirectUrl }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body?.ok) {
@@ -80,6 +113,7 @@ export function useLoginFlow(opts?: {
         if (codeVal === "challenge_missing" || codeVal === "method_mismatch") {
           setStep("credentials");
           setMethod(null);
+          setAvailableMethods([]);
           setExpiresAt(null);
         }
       } finally {
@@ -89,7 +123,53 @@ export function useLoginFlow(opts?: {
     [method, redirectUrl],
   );
 
-  const requestEmailCode = useCallback(async () => {
+  const selectTwoFactorMethod = useCallback(
+    async (nextMethod: TwoFactorMethod) => {
+      const normalizedMethod = normalizeMethod(nextMethod);
+      if (!normalizedMethod) {
+        setError(mapVerifyError("method_required"));
+        return false;
+      }
+      if (!availableMethods.includes(normalizedMethod)) {
+        setError(
+          mapVerifyError(normalizedMethod === "email" ? "email_fallback_disabled" : "totp_not_setup"),
+        );
+        return false;
+      }
+      if (normalizedMethod === method) {
+        return true;
+      }
+      if (normalizedMethod === "email") {
+        setRequestingEmail(true);
+      } else {
+        setSwitchingMethod(true);
+      }
+      setError(null);
+      try {
+        const res = await fetch("/api/auth/2fa/select-method", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method: normalizedMethod, next: redirectUrl }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body?.ok) {
+          throw new Error(body?.error || "request_failed");
+        }
+        setMethod(normalizeMethod(body.method ?? normalizedMethod));
+        setExpiresAt(body.expiresAt ?? null);
+        return true;
+      } catch (e: any) {
+        setError(mapVerifyError(e?.message));
+        return false;
+      } finally {
+        setRequestingEmail(false);
+        setSwitchingMethod(false);
+      }
+    },
+    [availableMethods, method, redirectUrl],
+  );
+
+  const resendEmailCode = useCallback(async () => {
     if (!allowEmailFallback) {
       setError(mapVerifyError("email_fallback_disabled"));
       return false;
@@ -115,12 +195,15 @@ export function useLoginFlow(opts?: {
     } finally {
       setRequestingEmail(false);
     }
-  }, [redirectUrl]);
+  }, [allowEmailFallback, redirectUrl]);
 
   const reset = useCallback(() => {
     setStep("credentials");
     setMethod(null);
+    setAvailableMethods([]);
     setExpiresAt(null);
+    setRequestingEmail(false);
+    setSwitchingMethod(false);
     setError(null);
     setAllowEmailFallback(false);
   }, []);
@@ -128,15 +211,18 @@ export function useLoginFlow(opts?: {
   return {
     step,
     method,
+    availableMethods,
     expiresAt,
     redirectUrl,
     loading,
     requestingEmail,
+    switchingMethod,
     allowEmailFallback,
     error,
     submitCredentials,
     submitTwoFactor,
-    requestEmailCode,
+    requestEmailCode: resendEmailCode,
+    selectTwoFactorMethod,
     reset,
   };
 }
@@ -160,10 +246,14 @@ function mapVerifyError(code?: string) {
       return "E-Mail-Code ist nur für Demo-Accounts verfügbar.";
     case "email_fallback_disabled":
       return "E-Mail-Code ist für dieses Konto nicht verfügbar.";
+    case "totp_not_setup":
+      return "Für dieses Konto ist keine Authenticator-App eingerichtet.";
     case "email_missing":
       return "Für dieses Konto ist keine E-Mail hinterlegt.";
     case "request_failed":
       return "Code konnte nicht gesendet werden. Bitte erneut versuchen.";
+    case "method_required":
+      return "Bitte eine 2FA-Methode auswählen.";
     case "code_required":
       return "Bitte den Sicherheitscode eingeben.";
     case "invalid_code":

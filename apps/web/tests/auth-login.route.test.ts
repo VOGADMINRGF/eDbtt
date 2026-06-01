@@ -153,6 +153,19 @@ const mocks = vi.hoisted(() => {
     rateLimitOrThrow: vi.fn(async () => ({ ok: true })),
     applySessionCookies: vi.fn(async () => {}),
     setPendingTwoFactorCookie: vi.fn(async () => {}),
+    issueTwoFactorChallenge: vi.fn(async ({ userId, method, emailForCode, purpose, redirectTo }: AnyDoc) => {
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      twoFactorChallenges.push({
+        _id: `challenge-${twoFactorChallenges.length + 1}`,
+        userId,
+        method,
+        emailForCode,
+        purpose,
+        redirectTo,
+        expiresAt,
+      });
+      return { expiresAt, challengeId: `challenge-${twoFactorChallenges.length}` };
+    }),
     ensureBasicPiiProfile: vi.fn(async () => {}),
     ensureEnvSuperadminSeed: vi.fn(async () => {}),
     sendMail: vi.fn(async () => {}),
@@ -219,7 +232,17 @@ vi.mock("@/app/api/auth/sharedAuth", () => ({
     if (!method) return null;
     return method === "totp" ? "otp" : method;
   },
+  resolveAvailableTwoFactorMethods: (creds?: Record<string, any> | null, user?: Record<string, any> | null) => {
+    const methods = new Set<string>();
+    if (creds?.otpSecret || creds?.otpTempSecret || user?.verification?.twoFA?.secret) methods.add("otp");
+    if (creds?.email || user?.email) methods.add("email");
+    const method = creds?.twoFactorMethod || user?.verification?.twoFA?.method;
+    if (method === "totp" || method === "otp") methods.add("otp");
+    if (method === "email") methods.add("email");
+    return Array.from(methods);
+  },
   setPendingTwoFactorCookie: (...args: unknown[]) => mocks.setPendingTwoFactorCookie(...args),
+  issueTwoFactorChallenge: (...args: unknown[]) => mocks.issueTwoFactorChallenge(...args),
   applySessionCookies: (...args: unknown[]) => mocks.applySessionCookies(...args),
 }));
 
@@ -364,10 +387,10 @@ describe("auth login route regressions", () => {
       message: "twofactor_required",
     });
     expect(mocks.applySessionCookies).not.toHaveBeenCalled();
-    expect(mocks.setPendingTwoFactorCookie).toHaveBeenCalledTimes(1);
+    expect(mocks.issueTwoFactorChallenge).toHaveBeenCalledTimes(1);
   });
 
-  it("does not advertise an email fallback for active authenticator-based 2FA", async () => {
+  it("advertises an explicit email alternative for authenticator-based 2FA when an address exists", async () => {
     mocks.seedUser({
       _id: "user-otp",
       email: "otp@example.org",
@@ -397,7 +420,8 @@ describe("auth login route regressions", () => {
       ok: true,
       require2fa: true,
       method: "otp",
-      allowEmailFallback: false,
+      availableMethods: ["otp", "email"],
+      allowEmailFallback: true,
     });
   });
 

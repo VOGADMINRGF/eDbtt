@@ -1,10 +1,7 @@
-import crypto from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol } from "@core/db/db/triMongo";
 import { ObjectId } from "@core/db/triMongo";
 import { verifyPassword } from "@/utils/password";
-import { sendMail } from "@/utils/mailer";
-import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
@@ -13,17 +10,14 @@ import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
   CoreUserAuthSnapshot,
+  issueTwoFactorChallenge,
   LOGIN_WINDOW_MS,
   normalizeIdentifier,
   PiiUserCredentials,
+  resolveAvailableTwoFactorMethods,
   resolveTwoFactorMethod,
   sanitizeRedirect,
-  setPendingTwoFactorCookie,
   sha256,
-  TWO_FA_COLLECTION,
-  TWO_FA_WINDOW_MS,
-  TwoFactorChallengeDoc,
-  TwoFactorMethod,
 } from "../sharedAuth";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
@@ -39,37 +33,6 @@ type LoginBody = {
 
 function errorResponse(error: string, status: number) {
   return NextResponse.json({ error, message: error }, { status });
-}
-
-async function issueTwoFactorChallenge(
-  userId: ObjectId,
-  method: TwoFactorMethod,
-  emailForCode?: string | null,
-): Promise<{ expiresAt: Date }> {
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + TWO_FA_WINDOW_MS);
-  const challenge: TwoFactorChallengeDoc = {
-    userId,
-    method,
-    createdAt: now,
-    expiresAt,
-    attempts: 0,
-  };
-
-  if (method === "email") {
-    const code = crypto.randomInt(100000, 999999).toString();
-    challenge.codeHash = sha256(code);
-    const mail = buildTwoFactorCodeMail({ code });
-    if (emailForCode) {
-      await sendMail({ to: emailForCode, subject: mail.subject, html: mail.html, text: mail.text });
-    }
-  }
-
-  const col = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
-  const { insertedId } = await col.insertOne(challenge);
-  await setPendingTwoFactorCookie(String(insertedId));
-
-  return { expiresAt };
 }
 
 function maybeBackfillCredentials(
@@ -228,7 +191,8 @@ export async function POST(req: NextRequest) {
 
   const twoFactorMethod = resolveTwoFactorMethod(credentials, user);
   const twoFactorEnabled = credentials?.twoFactorEnabled || user.verification?.twoFA?.enabled;
-  const allowEmailFallback = twoFactorMethod === "email";
+  const availableMethods = resolveAvailableTwoFactorMethods(credentials, user);
+  const allowEmailFallback = availableMethods.includes("email");
   const redirectUrl = resolvePostLoginRedirect({
     requestedRedirect,
     roles: user.roles,
@@ -243,16 +207,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });
   }
 
-  const { expiresAt } = await issueTwoFactorChallenge(
-    user._id,
-    twoFactorMethod,
-    credentials?.email || user.email,
-  );
+  const { expiresAt } = await issueTwoFactorChallenge({
+    userId: user._id,
+    method: twoFactorMethod,
+    emailForCode: credentials?.email || user.email,
+    purpose: "login_verify",
+    redirectTo: redirectUrl,
+  });
 
   return NextResponse.json({
     ok: true,
     require2fa: true,
     method: twoFactorMethod,
+    availableMethods,
     expiresAt: expiresAt.toISOString(),
     redirectUrl,
     allowEmailFallback,
