@@ -176,6 +176,121 @@ describe("create planner routing contract", () => {
     expect(result.degraded).toBe(true);
   });
 
+  it("keeps concrete local planner structure usable when the automatic planner timed out", async () => {
+    mocks.buildCreatePlanner.mockResolvedValue({
+      source: "heuristic_fallback",
+      plannerSource: "heuristic_fallback",
+      plannerProvider: "local_fallback",
+      plannerRole: "planner_only",
+      plannerTopic: "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
+      plannerCore:
+        "Zielkonflikt zwischen Menschenwürde, Grundrechten, gesellschaftlicher Verantwortung, Migration, europäischer Politik, regionaler Beteiligung und Budgetprioritäten.",
+      plannerScope: ["federal", "eu", "local"],
+      plannerStance: "reform_oriented",
+      plannerClusters: [
+        "Menschenwürde, Grundrechte und Verantwortung",
+        "Migration, offene Grenzen und gesellschaftliche Regeln",
+        "Europäische Energie- und Industriepolitik",
+        "Regionale Abstimmungen und Bürgerbeteiligung",
+        "Budgetverteilung und öffentliche Prioritäten",
+      ],
+      plannerOpenQuestions: [
+        "Welcher Teil soll zuerst bearbeitet werden: Grundrechte, Migration, Energiepolitik, regionale Abstimmung oder Budgetverteilung?",
+      ],
+      shortSummary:
+        "Der Beitrag verbindet Grundrechte, Migration, europäische Politik, Beteiligung und Budgetfragen zu einem Mehrthemenkonflikt.",
+      topicCandidates: [
+        "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
+        "Menschenwürde",
+        "Migration",
+        "Energiepolitik Europa",
+        "regionale Abstimmungen",
+        "Budgetpriorisierung",
+      ],
+      clusterCandidates: [
+        "Menschenwürde, Grundrechte und Verantwortung",
+        "Migration, offene Grenzen und gesellschaftliche Regeln",
+        "Europäische Energie- und Industriepolitik",
+        "Regionale Abstimmungen und Bürgerbeteiligung",
+        "Budgetverteilung und öffentliche Prioritäten",
+      ],
+      scopeCandidates: ["federal", "eu", "local"],
+      stance: "reform_oriented",
+      openQuestions: [
+        "Welcher Teil soll zuerst bearbeitet werden: Grundrechte, Migration, Energiepolitik, regionale Abstimmung oder Budgetverteilung?",
+      ],
+      graphSearchTerms: [
+        "Menschenwürde",
+        "Grundrechte",
+        "Migration",
+        "EU Energiepolitik",
+        "regionale Abstimmungen",
+        "Budgetpriorisierung",
+      ],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+      providerPlan: {
+        lane: "create_fast_followup",
+        plannerProvider: "local_fallback",
+        plannerRole: "planner_only",
+        structureProvider: "mistral",
+        summaryProvider: "claude",
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+        graphMatch: "after_structure",
+      },
+      permissions: {
+        nonMutative: true,
+        canPublish: false,
+        canSave: false,
+        canMerge: false,
+        canDeepSearch: false,
+      },
+      plannerDegraded: true,
+      degradedReason: "timeout",
+      plannerDegradedReason: "timeout",
+      qualityStatus: "needs_confirmation",
+      qualityIssues: ["provider_timeout"],
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+      plannerDebug: {
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: true,
+        providerErrorCode: null,
+        providerErrorMessage: "create_planner_timeout_after_2200ms",
+        errorMessage: "create_planner_timeout_after_2200ms",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      },
+    });
+
+    const result = await buildCreateIntelligentFollowup({
+      text: "Ein längerer Mehrthemenbeitrag zu Grundrechten, Migration, Energiepolitik, Abstimmungen und Budget.",
+      locale: "de",
+      intent: "contribute",
+    });
+
+    expect(result.degraded).toBe(true);
+    expect(result.meta?.planner.degradedReason).toBe("timeout");
+    expect(result.understanding.summary).toContain("Grundrechte");
+    expect(result.understanding.topics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung" }),
+        expect.objectContaining({ label: "Menschenwürde" }),
+        expect.objectContaining({ label: "Migration" }),
+        expect.objectContaining({ label: "Energiepolitik Europa" }),
+        expect.objectContaining({ label: "regionale Abstimmungen" }),
+        expect.objectContaining({ label: "Budgetpriorisierung" }),
+      ]),
+    );
+    expect(result.understanding.statements[0]?.text).toContain("Menschenwürde");
+    expect(result.meta?.graphMatch.prepared).toBe(false);
+  });
+
   it("builds a concrete local planner for mixed quota and equality text when AI is unavailable", async () => {
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;

@@ -267,6 +267,30 @@ function mapPlannerStanceToUnderstanding(stance: CreatePlannerStance): CreateUnd
   return "unclear";
 }
 
+function isGenericPlannerLabel(label: string): boolean {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized === "aussage" ||
+    normalized === "beitrag" ||
+    normalized === "hinweis" ||
+    normalized === "öffentliches anliegen" ||
+    normalized === "öffentliches anliegen mit klärungsbedarf" ||
+    normalized === "oeffentliches anliegen mit klaerungsbedarf" ||
+    normalized === "neues öffentliches thema strukturieren" ||
+    normalized === "neues oeffentliches thema strukturieren"
+  );
+}
+
+function hasUsableLocalPlannerStructure(planner: CreatePlannerResult): boolean {
+  if (planner.qualityIssues.includes("technical_fallback_only")) return false;
+  const uniqueTopics = Array.from(new Set([planner.plannerTopic, ...planner.topicCandidates].map((label) => label.trim()).filter(Boolean)));
+  const uniqueClusters = Array.from(new Set(planner.plannerClusters.map((label) => label.trim()).filter(Boolean)));
+  const nonGenericTopics = uniqueTopics.filter((label) => !isGenericPlannerLabel(label));
+  const nonGenericClusters = uniqueClusters.filter((label) => !isGenericPlannerLabel(label));
+  return nonGenericTopics.length > 0 && (nonGenericClusters.length >= 3 || planner.graphSearchTerms.length >= 4);
+}
+
 function mergeUnderstandingTopics(params: {
   understanding: CreateUnderstandingResult;
   planner: CreatePlannerResult;
@@ -369,7 +393,7 @@ function applyPlannerToUnderstanding(params: {
   understanding: CreateUnderstandingResult;
   planner: CreatePlannerResult;
 }): CreateUnderstandingResult {
-  if (params.planner.qualityStatus !== "specific") {
+  if (params.planner.qualityStatus !== "specific" && !hasUsableLocalPlannerStructure(params.planner)) {
     return {
       ...params.understanding,
       openQuestion: params.planner.plannerOpenQuestions[0] ?? params.planner.openQuestions[0] ?? params.understanding.openQuestion,

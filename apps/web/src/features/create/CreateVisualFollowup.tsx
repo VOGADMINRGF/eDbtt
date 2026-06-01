@@ -39,8 +39,8 @@ type CreateVisualFollowupProps = {
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
   headline: "Haben wir dich richtig verstanden?",
-  headlineProvisional: "Haben wir dich vorläufig richtig verstanden?",
-  headlineNeedsClarification: "Wir konnten dein Anliegen noch nicht sicher einordnen.",
+  headlineProvisional: "Wir haben erste Themen erkannt.",
+  headlineNeedsClarification: "Du kannst ein Thema auswählen oder den Beitrag weiter sortieren.",
   structureTitle: "Vorläufig verstanden",
   structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
@@ -274,6 +274,7 @@ function resolveReviewRequestLabel(
 function needsPlannerClarification(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
+  if (hasUsablePlannerStructure(result)) return false;
   return (
     planner.qualityIssues.includes("technical_fallback_only") ||
     planner.qualityStatus === "generic" ||
@@ -285,17 +286,23 @@ function needsPlannerClarification(result: CreateIntelligentFollowupResult): boo
 function hasProvisionalPlannerStructure(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
-  return (
-    planner.plannerDegraded &&
-    planner.qualityStatus === "specific" &&
-    !planner.qualityIssues.includes("technical_fallback_only")
-  );
+  return planner.plannerDegraded && hasUsablePlannerStructure(result);
 }
 
 function isTechnicalPlannerFallback(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
   return planner.qualityIssues.includes("technical_fallback_only");
+}
+
+function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boolean {
+  const planner = result.meta?.planner;
+  if (!planner || planner.qualityIssues.includes("technical_fallback_only")) return false;
+  const uniqueTopics = Array.from(new Set([planner.plannerTopic, ...planner.topicCandidates].map((value) => value.trim()).filter(Boolean)));
+  const uniqueClusters = Array.from(new Set(planner.plannerClusters.map((value) => value.trim()).filter(Boolean)));
+  const nonGenericTopics = uniqueTopics.filter((value) => !isGenericPlannerLabel(value));
+  const nonGenericClusters = uniqueClusters.filter((value) => !isGenericPlannerLabel(value));
+  return nonGenericTopics.length > 0 && (nonGenericClusters.length >= 3 || planner.graphSearchTerms.length >= 4);
 }
 
 function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
@@ -343,26 +350,7 @@ function resolvePlannerClarificationDetails(result: CreateIntelligentFollowupRes
 function resolvePlannerProvisionalNotice(result: CreateIntelligentFollowupResult): string | null {
   const planner = result.meta?.planner;
   if (!planner || !hasProvisionalPlannerStructure(result)) return null;
-  if (planner.degradedReason === "missing_provider_key") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung ist gerade nicht verfügbar.";
-  }
-  if (planner.degradedReason === "timeout") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung hat zu lange gebraucht.";
-  }
-  if (planner.degradedReason === "rate_limited") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung ist gerade ausgelastet.";
-  }
-  if (planner.degradedReason === "provider_error") {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die automatische Einordnung konnte gerade nicht geladen werden.";
-  }
-  if (
-    planner.degradedReason === "invalid_json" ||
-    planner.degradedReason === "invalid_provider_payload" ||
-    planner.degradedReason === "normalization_failed"
-  ) {
-    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Antwort konnte nicht sauber verarbeitet werden.";
-  }
-  return "Vorläufige Einordnung aus lokalen Textsignalen.";
+  return "Du kannst ein Thema auswählen oder den Beitrag weiter sortieren.";
 }
 
 function isGenericPlannerLabel(label: string): boolean {
