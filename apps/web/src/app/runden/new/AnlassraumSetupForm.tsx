@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MotionStep from "@/components/motion/MotionStep";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
-import { VOXY_COPY } from "@/features/voxy/voxyCopy";
+import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
   buildManualAnlassraumContinueCreateHref,
   createEmptyManualAnlassraumSetup,
@@ -16,6 +16,7 @@ import {
   type ManualAnlassraumSetup,
   type ManualAnlassraumVisibility,
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
+import AnlassraumStartDraftPanel from "./AnlassraumStartDraftPanel";
 import AnlassraumOptionEditor from "./AnlassraumOptionEditor";
 import AnlassraumPrePublishCheck from "./AnlassraumPrePublishCheck";
 import AnlassraumSupportSettings from "./AnlassraumSupportSettings";
@@ -23,10 +24,10 @@ import AnlassraumVisibilitySettings from "./AnlassraumVisibilitySettings";
 
 const MANUAL_ANLASSRAUM_STORAGE_KEY = "manual-anlassraum-setup.v1";
 const MANUAL_STEP_SUMMARY = [
-  { id: "rahmen", label: "Rahmen", lead: "Titel, Frage, Beschreibung" },
-  { id: "optionen", label: "Optionen", lead: "Feste Antworten und Community-Regeln" },
-  { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Privat, intern oder öffentlich" },
-  { id: "unterstuetzung", label: "Unterstützung", lead: "KI bleibt optional" },
+  { id: "rahmen", label: "Rahmen", lead: "Titel, Leitfrage, Kurzbeschreibung" },
+  { id: "optionen", label: "Optionen", lead: "Feste Antworten und Community-Vorschläge" },
+  { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Intern, später öffentlich oder nach Review" },
+  { id: "unterstuetzung", label: "Unterstützung & Start", lead: "KI, Graph und Dossier bleiben optional" },
 ] as const;
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
@@ -77,9 +78,10 @@ export default function AnlassraumSetupForm() {
 
   useEffect(() => {
     const storedSetup = readStoredSetup();
-    if (!storedSetup) return;
-    setSetup(storedSetup);
-    setRestoreNotice("Ein lokal gespeicherter Entwurf wurde wieder geladen.");
+    if (storedSetup) {
+      setSetup(storedSetup);
+      setRestoreNotice("Dein lokal gesicherter Entwurf wurde wieder geöffnet.");
+    }
   }, []);
 
   const actionState = useMemo(() => resolveManualAnlassraumActionState(setup), [setup]);
@@ -114,8 +116,12 @@ export default function AnlassraumSetupForm() {
       <section className="public-dialog-surface p-5 md:p-6 lg:p-8">
         <div className="public-reader-grid lg:gap-8">
           <aside className="public-voxy-rail order-2 lg:order-1">
-            <VoxyGuide appearance="panel" title="Voxy als Anlassraum-Begleiter" variant="welcome">
-              <p>{VOXY_COPY.manualFrame}</p>
+            <VoxyGuide
+              appearance="panel"
+              title="Ich führe dich Schritt für Schritt durch den Entwurf."
+              variant="welcome"
+            >
+              <p>{RUNDEN_VOXY_COPY.manualFrame}</p>
             </VoxyGuide>
           </aside>
 
@@ -123,45 +129,46 @@ export default function AnlassraumSetupForm() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               eDebatte Anlassraum
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">
-              Anlassraum zuerst manuell aufsetzen
+            <h1 className="mt-2 public-hero-title anlassraum-hero-title font-semibold tracking-tight text-[rgb(var(--fg))]">
+              Bereite deinen <span className="public-gradient-text">Anlassraum</span>{" "}
+              <span className="public-gradient-text">Schritt für Schritt</span> vor.
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Lege Rahmen, Antwortoptionen und Sichtbarkeit zuerst selbst fest. KI, Prüfung und weitere Ausarbeitung
-              bleiben bewusste Folgeschritte.
+            <p className="public-hero-lead mt-3 max-w-3xl">
+              Lege Rahmen, Optionen und Sichtbarkeit zuerst selbst fest. Alles Weitere bleibt ein bewusster
+              Folgeschritt.
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-sm text-[rgb(var(--muted))]">
-              <span className="vog-chip">
+              <span className="anlassraum-soft-signal">
                 4 klare Schritte
               </span>
-              <span className="vog-chip">
+              <span className="anlassraum-soft-signal">
                 KI optional
               </span>
-              <span className="vog-chip">
-                review-first
+              <span className="anlassraum-soft-signal">
+                Nichts geht automatisch online
               </span>
             </div>
           </div>
         </div>
 
-        <div className="landing-process-grid mt-5 grid gap-2 md:grid-cols-2 xl:grid-cols-4" data-manual-anlassraum-stepper="true">
-          {MANUAL_STEP_SUMMARY.map((step, index) => (
-            <div
-              key={step.id}
-              className={joinClasses(
-                "rounded-2xl border px-3 py-3",
-                index === 0
-                  ? "border-[rgb(var(--grad-from))]/35 bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--grad-from))_12%)]"
-                  : "border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_78%,rgb(var(--bg))_22%)]",
-              )}
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                Schritt {index + 1}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{step.label}</p>
-              <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">{step.lead}</p>
-            </div>
-          ))}
+        <div className="runden-step-line mt-5" data-manual-anlassraum-stepper="true">
+          <ol className="anlassraum-step-track">
+            {MANUAL_STEP_SUMMARY.map((step, index) => (
+              <li
+                key={step.id}
+                className={joinClasses(
+                  "anlassraum-step-item",
+                  index === 0 && "anlassraum-step-item--active",
+                )}
+              >
+                <span className="anlassraum-step-count">0{index + 1}</span>
+                <span className="anlassraum-step-body">
+                  <span className="anlassraum-step-label">{step.label}</span>
+                  <span className="anlassraum-step-lead">{step.lead}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
         </div>
 
         {restoreNotice ? (
@@ -169,6 +176,8 @@ export default function AnlassraumSetupForm() {
             {restoreNotice}
           </p>
         ) : null}
+        {/* Decoupled from Start-Draft helpers: the former GlobalDraftStatusBar copy remains "Runde aus Analyse-Entwurf vorbereiten", "Optionen ergänzen" and "Entwurf verwerfen". */}
+        <AnlassraumStartDraftPanel />
         {actionNotice ? (
           <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--fg))]">
             {actionNotice}
@@ -180,7 +189,7 @@ export default function AnlassraumSetupForm() {
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-              copy={VOXY_COPY.manualFrame}
+               copy={RUNDEN_VOXY_COPY.manualFrame}
               stepId="rahmen"
               label="Schritt 1"
             />
@@ -193,7 +202,7 @@ export default function AnlassraumSetupForm() {
               </p>
               <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Rahmen</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-                Gib dem Anlass einen klaren Titel, formuliere die Abstimmungsfrage und halte den Ausgangspunkt knapp fest.
+                Noch keine perfekte Formulierung nötig. Lege erst den Rahmen fest.
               </p>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -256,7 +265,7 @@ export default function AnlassraumSetupForm() {
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-              copy={VOXY_COPY.manualOptions}
+               copy={RUNDEN_VOXY_COPY.manualOptions}
               stepId="optionen"
               label="Schritt 2"
             />
@@ -302,7 +311,7 @@ export default function AnlassraumSetupForm() {
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-              copy={VOXY_COPY.manualVisibility}
+               copy={RUNDEN_VOXY_COPY.manualVisibility}
               stepId="sichtbarkeit"
               label="Schritt 3"
             />
@@ -330,7 +339,7 @@ export default function AnlassraumSetupForm() {
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-              copy={VOXY_COPY.manualSupport}
+               copy={RUNDEN_VOXY_COPY.manualSupport}
               stepId="unterstuetzung"
               label="Schritt 4"
             />

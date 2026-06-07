@@ -27,8 +27,32 @@ export default function AnlassraumSupportSettings(
         Unterstützung &amp; Start
       </h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-        Der Anlass startet zuerst manuell. KI kann später nur dort dazukommen, wo du sie bewusst einschaltest.
+        KI, Graph und Dossier bleiben optionale Hilfe. Nichts davon startet automatisch.
       </p>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">KI</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Optional für Formulierungen</p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            Nur wenn du es auswählst, kommen Hinweise oder weitere Vorschläge dazu.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Graph</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Später einordnen</p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            Zusammenhänge und Anschlussfragen bleiben ein bewusster Folgeschritt.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Dossier</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Erst nach Prüfung weiterführen</p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            Ein Dossier entsteht nicht automatisch, sondern erst nach einem bewussten nächsten Schritt.
+          </p>
+        </div>
+      </div>
 
       <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
         {MANUAL_ANLASSRAUM_AI_SUPPORT_MODE_CHOICES.map((choice) => {

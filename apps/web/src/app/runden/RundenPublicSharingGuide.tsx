@@ -31,7 +31,7 @@ const VISIBILITY_GUIDE: ReadonlyArray<{
   {
     state: "public_reviewed",
     label: "veröffentlicht",
-    hint: "sichtbar nach Review, aber nicht automatisch amtlich",
+    hint: "sichtbar nach Prüfung, aber nicht automatisch amtlich",
   },
   {
     state: "public_official",
@@ -72,7 +72,7 @@ const INPUT_KINDS: ReadonlyArray<{
   },
   {
     title: "Hinweis",
-    body: "Ein kurzer Sachhinweis, der sichtbar werden kann oder zuerst in Review geht.",
+    body: "Ein kurzer Sachhinweis, der sichtbar werden kann oder zuerst in Prüfung geht.",
   },
 ] as const;
 
@@ -109,7 +109,7 @@ export default function RundenPublicSharingGuide(props: {
             </p>
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
               Sichtbar heißt nicht automatisch geprüft oder amtlich. Dossier/Faktenstatus
-              bleibt reviewpflichtig. Amtliche Antworten nur durch verifizierte Rollen.
+              bleibt in Prüfung. Amtliche Antworten nur durch verifizierte Rollen.
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export default function RundenPublicSharingGuide(props: {
                 Gegenpositionen und Beteiligung.
               </p>
               <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                Beiträge werden nach Sichtbarkeits- und Review-Regeln verarbeitet.
+                Beiträge werden nach Sichtbarkeits- und Prüfregeln verarbeitet.
               </p>
             </article>
           </div>
@@ -160,7 +160,7 @@ export default function RundenPublicSharingGuide(props: {
               href={PUBLIC_CREATE_HREF}
               className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              Aussage oder Beitrag einreichen
+              Beitrag vorbereiten
             </Link>
             <Link
               href="/runden/demo"
@@ -200,7 +200,7 @@ export default function RundenPublicSharingGuide(props: {
 
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
             <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
-              Sichtbarkeits- und Review-Regeln
+              Sichtbarkeits- und Prüfregeln
             </h3>
             <div className="mt-3 space-y-3">
               {VISIBILITY_GUIDE.map((entry) => (
@@ -222,7 +222,7 @@ export default function RundenPublicSharingGuide(props: {
             </div>
             <div className="mt-4 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-sm leading-6 text-[rgb(var(--muted))]">
               <p>
-                Review-only bleibt intern. Pausiert, archiviert und geschlossen zeigen ehrliche öffentliche Zustände,
+                Nur intern sichtbare Beiträge bleiben intern. Pausiert, archiviert und geschlossen zeigen ehrliche öffentliche Zustände,
                 aber keinen aktiven Teilnahmelink.
               </p>
             </div>

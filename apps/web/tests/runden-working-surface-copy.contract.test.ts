@@ -72,12 +72,13 @@ describe("runden working surface copy contract", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("Anlässe führen");
-    expect(html).toContain("Arbeitsbereiche");
+    expect(html).toContain("Anlassräume");
     expect(html).toContain("Laufende Anlässe");
     expect(html).toContain("Empfohlener Anlass");
-    expect(html).toContain("Arbeitsstand pflegen");
-    expect(html).toContain("Beitrag verfassen");
-    expect(html).toContain("Teilnahme öffnen");
+    expect(html).toContain("Stand weiterführen");
+    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Per QR/Link teilnehmen");
+    expect(html).toContain("QR und Verteilung stehen für berechtigte Rollen");
 
     expect(html).not.toContain("Verwalten");
     expect(html).not.toContain(">Ansicht<");

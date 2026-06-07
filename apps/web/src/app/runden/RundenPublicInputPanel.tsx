@@ -92,7 +92,7 @@ export default function RundenPublicInputPanel({
     setSubmission({
       kind: "success",
       visibilityState: String(body.signal.visibilityState ?? "internal_review"),
-      visibilityLabel: String(body.signal.visibilityLabel ?? "reviewpflichtig"),
+      visibilityLabel: String(body.signal.visibilityLabel ?? "in Prüfung"),
     });
   }
 
@@ -116,7 +116,7 @@ export default function RundenPublicInputPanel({
         </div>
         <p className="text-sm leading-6 text-[rgb(var(--muted))]">
           Frage, Quelle, Perspektive, Option oder Hinweis gehen direkt als
-          Beteiligungssignal in denselben Review- und Risk-Pfad wie die übrigen
+          Beteiligungssignal in dieselbe Prüfung und Schutzprüfung wie die übrigen
           Anlassraum-Beiträge.
         </p>
         <p className="text-sm leading-6 text-[rgb(var(--muted))]">

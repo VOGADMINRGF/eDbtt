@@ -29,7 +29,8 @@ export default function AnlassraumVisibilitySettings(
       </p>
       <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Sichtbarkeit</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-        Entscheide bewusst, ob der Anlass erst intern bleibt oder später für Beteiligung sichtbar werden soll.
+        Öffentlich heißt nicht automatisch geprüft. Du entscheidest bewusst, ob der Anlass erst intern bleibt oder
+        später für Beteiligung sichtbar werden soll.
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
