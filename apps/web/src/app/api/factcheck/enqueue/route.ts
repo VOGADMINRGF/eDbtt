@@ -8,26 +8,26 @@ import {
   getFactcheckWorkflowRepo,
   type FactcheckAccessContext,
   type FactcheckJobDoc,
+  type FactcheckJobSourceType,
+  type FactcheckRequestedAction,
   type FactcheckSourceRef,
   type FactcheckStatus,
 } from "@features/factcheck/db";
 import {
   createFactcheckAuditEvent,
   deriveFactcheckResearchMode,
-  deriveFactcheckSealEligibility,
-  deriveFactcheckVerificationMode,
   extractSourceRefsFromText,
   factcheckLimitationsForRequest,
-  factcheckResearchModeToCompatibilityResearchUsed,
   factcheckStatusLabel,
-  factcheckVerificationModeToCompatibilityMode,
 } from "@features/factcheck/workflow";
+import { refreshFactcheckJobState } from "@features/factcheck/jobRunner";
 import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import {
   buildOrganizationDashboardReadModel,
   organizationEntitlementAllowsScope,
 } from "@features/region";
+import { buildLandingContributionDraft } from "@/features/start/landingCreateLight";
 import {
   logPermissionDenied,
   resolveRoleFromRequest,
@@ -42,6 +42,12 @@ import {
   resolveInternalSystemIdentity,
   resolveTrustedInternalSystemIdentity,
 } from "@/lib/server/auth/systemIdentity";
+import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
+import {
+  getFactcheckEntitlementGateMessage,
+  resolveFactcheckEntitlementGate,
+  type FactcheckEntitlementAction,
+} from "@features/factcheck/entitlementGate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,17 +55,35 @@ export const dynamic = "force-dynamic";
 const MAX_CLAIMS = 8;
 
 const EnqueueSchema = z.object({
+  sourceType: z
+    .enum([
+      "editorial_review_request",
+      "create_analysis",
+      "factcheck_request",
+      "graph_merge_candidate",
+      "dossier_candidate",
+    ])
+    .optional()
+    .nullable(),
+  sourceId: z.string().optional().nullable(),
+  reviewRequestId: z.string().optional().nullable(),
+  graphCandidateId: z.string().optional().nullable(),
   draftId: z.string().optional().nullable(),
   contributionId: z.string().optional().nullable(),
   dossierId: z.string().optional().nullable(),
   handoffId: z.string().optional().nullable(),
   text: z.string().optional().nullable(),
   language: z.string().optional().nullable(),
+  requestedAction: z
+    .enum(["source_check", "factcheck", "deep_research", "sealed_factcheck"])
+    .optional()
+    .nullable(),
   claims: z.array(z.any()).optional().nullable(),
   sourceRefs: z.array(z.string().trim().min(1)).optional().default([]),
   materialRefs: z.array(z.string().trim().min(1)).optional().default([]),
   withSerp: z.boolean().optional().default(false),
   deepSearch: z.boolean().optional().default(false),
+  researchConfirmed: z.boolean().optional().default(false),
 });
 
 function toShortLang(v?: string | null): string {
@@ -112,6 +136,55 @@ function coerceClaims(claims: unknown, fallbackText: string): StatementRecord[] 
 
 function uniqueNonEmpty(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
+function normalizeGateFailureCode(reason: string) {
+  switch (reason) {
+    case "login_required":
+      return "login_required";
+    case "entitlement_missing":
+      return "entitlement_required";
+    case "pricing_required":
+      return "pricing_required";
+    case "confirmation_required":
+      return "confirmation_required";
+    case "blocked_by_truth_guard":
+    case "review_required_first":
+      return "blocked_by_truth_guard";
+    case "blocked_by_spam":
+      return "blocked_by_spam";
+    default:
+      return "factcheck_not_allowed";
+  }
+}
+
+function resolveRequestedAction(payload: z.infer<typeof EnqueueSchema>): FactcheckRequestedAction {
+  if (payload.requestedAction) return payload.requestedAction;
+  if (payload.deepSearch === true) return "deep_research";
+  if (payload.withSerp === true) return "source_check";
+  return "factcheck";
+}
+
+function resolveJobSourceType(payload: z.infer<typeof EnqueueSchema>): FactcheckJobSourceType {
+  if (payload.sourceType) return payload.sourceType;
+  if (payload.reviewRequestId) return "editorial_review_request";
+  if (payload.graphCandidateId) return "graph_merge_candidate";
+  if (payload.draftId || payload.contributionId || payload.handoffId) return "create_analysis";
+  if (payload.dossierId) return "dossier_candidate";
+  return "factcheck_request";
+}
+
+function resolveJobSourceId(payload: z.infer<typeof EnqueueSchema>) {
+  return (
+    payload.sourceId ??
+    payload.reviewRequestId ??
+    payload.graphCandidateId ??
+    payload.contributionId ??
+    payload.handoffId ??
+    payload.draftId ??
+    payload.dossierId ??
+    null
+  );
 }
 
 function contractIsBlocked(contractStatus: string | null, billingStatus: string | null) {
@@ -252,22 +325,31 @@ function nextSafeStep(status: FactcheckStatus, accessContext: FactcheckAccessCon
       body: "Die Anfrage ist gespeichert, aber noch nicht als produktiver Organisations-Check freigeschaltet. Sichere nächste Schritte bleiben Quellen nachreichen oder Betreiberentscheidung abwarten.",
     };
   }
-  if (status === "needs_source") {
+  if (status === "queued") {
     return {
-      title: "Quellen nachreichen",
-      body: "Für eine belastbare Prüfung fehlen noch prüfbare Quellenhinweise oder Materialreferenzen.",
+      title: "Quellenprüfung eingeplant",
+      body: "Der Job ist vorgemerkt und noch nicht veröffentlicht oder zusammengeführt.",
     };
   }
-  if (status === "provider_review_required") {
+  if (status === "running") {
     return {
-      title: "Provider-Freigabe abwarten",
-      body: "Ein kosten- oder providerrelevanter Lauf wurde nur angefragt. Er startet erst nach expliziter Freigabe.",
+      title: "Quellenprüfung läuft",
+      body: "Der Job läuft als kontrollierter Arbeitsstand ohne Auto-Publish oder Auto-Merge.",
     };
   }
   return {
     title: "Review einplanen",
     body: "Die Anfrage ist gespeichert und bleibt review-first. Ein öffentliches Ergebnis oder Siegel entsteht erst nach bewusster Entscheidung.",
   };
+}
+
+function toFactcheckGateStatus(reason: string) {
+  if (reason === "login_required") return 401;
+  if (reason === "confirmation_required") return 409;
+  if (reason === "entitlement_missing" || reason === "pricing_required") return 402;
+  if (reason === "blocked_by_spam") return 400;
+  if (reason === "blocked_by_truth_guard" || reason === "review_required_first") return 409;
+  return 400;
 }
 
 export async function POST(req: NextRequest) {
@@ -283,6 +365,17 @@ export async function POST(req: NextRequest) {
       trustedSystemIdentity?.source === "factcheck_worker";
 
     if (!hasSessionAccess && !hasTrustedSystemAccess) {
+      if (roleContext.source !== "header" && !systemIdentity) {
+        return json(
+          {
+            ok: false,
+            code: "login_required",
+            message:
+              "Bitte melde dich an, bevor du eine verbindliche Quellenprüfung startest.",
+          },
+          401,
+        );
+      }
       logPermissionDenied({
         req,
         scope: "factcheck.enqueue",
@@ -323,6 +416,28 @@ export async function POST(req: NextRequest) {
         400,
       );
     }
+    const draft = buildLandingContributionDraft(inputText);
+    if (
+      draft.relevanceClassification === "spam_suspected" ||
+      draft.relevanceClassification === "abusive_or_empty" ||
+      draft.guardrails.isTooShort
+    ) {
+      const gateReason = resolveFactcheckEntitlementGate("source_check", {
+        isAuthenticated: hasTrustedSystemAccess || hasSessionAccess,
+        blockedBySpam: true,
+      });
+      return json(
+        {
+          ok: false,
+          code: normalizeGateFailureCode(gateReason.reason),
+          message:
+            draft.guardrails.blockingMessage ??
+            getFactcheckEntitlementGateMessage(gateReason),
+          entitlementGate: gateReason,
+        },
+        toFactcheckGateStatus(gateReason.reason),
+      );
+    }
 
     const scopeSummary = summarizeRequestScopeContext(scopeContext);
     const dashboardReadModel =
@@ -349,8 +464,13 @@ export async function POST(req: NextRequest) {
       contractStatus: dashboardReadModel?.contractSummary.currentContractStatus ?? null,
       billingStatus: dashboardReadModel?.contractSummary.billingStatus ?? null,
     });
+    const entitlements =
+      hasTrustedSystemAccess || !hasSessionAccess
+        ? null
+        : await getCreateEntitlementsForRequest(req).catch(() => null);
 
     const lang = toShortLang(payload.language);
+    const requestedAction = resolveRequestedAction(payload);
     const claims = coerceClaims(payload.claims, inputText);
     const sourceRefs: FactcheckSourceRef[] = [
       ...extractSourceRefsFromText(inputText),
@@ -372,32 +492,12 @@ export async function POST(req: NextRequest) {
       new Map(sourceRefs.map((entry) => [`${entry.url ?? entry.label}`, entry])).values(),
     );
     const researchMode = deriveFactcheckResearchMode({
-      requestedDeepResearch: payload.deepSearch === true,
-      requestedProviderRun: payload.withSerp === true,
+      requestedDeepResearch: requestedAction === "deep_research",
+      requestedProviderRun:
+        payload.withSerp === true ||
+        requestedAction === "source_check" ||
+        requestedAction === "sealed_factcheck",
     });
-    const status: FactcheckStatus =
-      uniqueSourceRefs.length === 0
-        ? "needs_source"
-        : researchMode === "provider_assisted" ||
-            researchMode === "deep_research_requested"
-          ? "provider_review_required"
-          : "requested";
-    const sealDecision = "none";
-    const sealEligibility = deriveFactcheckSealEligibility({
-      status,
-      hasSourceRefs: uniqueSourceRefs.length > 0,
-      hasClaims: claims.length > 0,
-    });
-    const factcheckVerificationMode = deriveFactcheckVerificationMode({
-      status,
-      researchMode,
-      hasSourceRefs: uniqueSourceRefs.length > 0,
-      sealDecision,
-    });
-    const compatibilityVerificationMode =
-      factcheckVerificationModeToCompatibilityMode(factcheckVerificationMode);
-    const compatibilityResearchUsed =
-      factcheckResearchModeToCompatibilityResearchUsed(researchMode);
 
     const actorId =
       hasTrustedSystemAccess
@@ -417,13 +517,48 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const routeClassification = resolveAiRouteClassification("/api/factcheck/enqueue");
     const jobId = safeRandomId();
+    const gateAction: FactcheckEntitlementAction =
+      requestedAction === "deep_research" ? "deep_research" : "source_check";
+    const entitlementGate = resolveFactcheckEntitlementGate(gateAction, {
+      isAuthenticated: hasTrustedSystemAccess || hasSessionAccess,
+      hasEntitlement: hasTrustedSystemAccess ? true : entitlements?.canDeepResearch ?? false,
+      hasPricingAccess: hasTrustedSystemAccess ? true : entitlements?.canDeepResearch ?? false,
+      confirmationProvided: hasTrustedSystemAccess || payload.researchConfirmed === true,
+    });
 
-    const record: FactcheckJobDoc = {
+    if (!entitlementGate.allowed) {
+      return json(
+        {
+          ok: false,
+          code: normalizeGateFailureCode(entitlementGate.reason),
+          message: getFactcheckEntitlementGateMessage(entitlementGate),
+          entitlementGate,
+          meta: {
+            lane: "sealed_factcheck",
+            journeyProfile: "sealed_factcheck",
+            routeClassification,
+            noAutoDeepSearch: true,
+            noAutoSeal: true,
+            noAutoPublish: true,
+            noAutoGraphPromotion: true,
+          },
+        },
+        toFactcheckGateStatus(entitlementGate.reason),
+      );
+    }
+
+    const record = refreshFactcheckJobState({
       jobId,
+      sourceType: resolveJobSourceType(payload),
+      sourceId: resolveJobSourceId(payload),
+      reviewRequestId: payload.reviewRequestId ?? null,
+      graphCandidateId: payload.graphCandidateId ?? null,
       draftId: payload.draftId ?? null,
       contributionId: payload.contributionId ?? null,
       dossierId: payload.dossierId ?? null,
       handoffId: payload.handoffId ?? null,
+      userId: hasTrustedSystemAccess ? null : scopeContext?.actorId ?? null,
+      tenantId: accessResolution.persistedOrganizationId,
       organizationId: accessResolution.persistedOrganizationId,
       regionId: accessResolution.persistedRegionId,
       requestedByUserId: hasTrustedSystemAccess ? null : scopeContext?.actorId ?? null,
@@ -434,25 +569,39 @@ export async function POST(req: NextRequest) {
       accessContext: accessResolution.accessContext,
       language: lang,
       inputText,
-      status,
+      normalizedText: inputText.toLowerCase().replace(/\s+/g, " ").trim(),
+      requestedAction,
+      status: "queued",
+      gate: {
+        loginConfirmed: hasTrustedSystemAccess || hasSessionAccess,
+        entitlementConfirmed: hasTrustedSystemAccess ? true : entitlements?.canDeepResearch === true,
+        pricingConfirmed: hasTrustedSystemAccess ? true : entitlements?.canDeepResearch === true,
+        userConfirmed: hasTrustedSystemAccess || payload.researchConfirmed === true,
+        noSilentCost: true,
+      },
       verdict: "UNDETERMINED",
       confidenceScore: 0,
       claims,
       sourceRefs: uniqueSourceRefs,
       materialRefs: uniqueNonEmpty(payload.materialRefs),
       serpResults: [],
-      factcheckVerificationMode,
+      factcheckVerificationMode: "intake_only",
       factcheckResearchMode: researchMode,
-      factcheckSealEligibility: sealEligibility,
-      factcheckSealDecision: sealDecision,
+      factcheckSealEligibility: "needs_review",
+      factcheckSealDecision: "none",
       publicSealVisible: false,
       limitations: factcheckLimitationsForRequest({
         sourceRefs: uniqueSourceRefs,
         researchMode,
       }),
-      verificationMode: compatibilityVerificationMode,
-      researchUsed: compatibilityResearchUsed,
-      sealEligible: sealEligibility === "eligible" || sealEligibility === "needs_review",
+      verificationMode: "none",
+      researchUsed:
+        requestedAction === "deep_research"
+          ? "deep_search"
+          : requestedAction === "source_check" || requestedAction === "sealed_factcheck"
+            ? "search"
+            : "none",
+      sealEligible: true,
       sealGranted: false,
       sealedAt: null,
       fallbackUsed: false,
@@ -464,18 +613,20 @@ export async function POST(req: NextRequest) {
           actorId,
           actorLabel,
           actorMode,
-          note:
-            researchMode === "provider_assisted" ||
-            researchMode === "deep_research_requested"
-              ? "Provider- oder Deep-Research-Lauf wurde nur angefragt und nicht automatisch gestartet."
-              : "Prüfauftrag persistiert; kein Auto-Seal und kein Auto-Publish.",
+          note: "Prüfauftrag ist bestätigt, eingeplant und bleibt review-first.",
         }),
       ],
       error: null,
       createdAt: now,
       updatedAt: now,
+      completedAt: null,
       finishedAt: null,
-    };
+      noAutoPublish: true,
+      noAutoGraphPromotion: true,
+      noAutoDossier: true,
+      noAutoAnlassraum: true,
+      noAutoVote: true,
+    } satisfies FactcheckJobDoc);
 
     await getFactcheckWorkflowRepo().save(record);
 
@@ -505,11 +656,15 @@ export async function POST(req: NextRequest) {
       sourceRefCount: uniqueSourceRefs.length,
       materialRefCount: record.materialRefs.length,
       durationMs: Date.now() - t0,
+      requestedAction: record.requestedAction,
+      truthStatus: record.truthStatus,
+      sourceSupport: record.sourceSupport,
+      sourceStatus: record.sourceStatus,
+      verificationLabel: record.verificationLabel,
       verificationMode: statusView.verificationMode,
       researchUsed: statusView.researchUsed,
       sealEligible: statusView.sealEligible,
       sealGranted: statusView.sealGranted,
-      verificationLabel: statusView.verificationLabel,
       workflowStage: statusView.workflowStage,
       workflowLabel: statusView.workflowLabel,
       sealStatus: statusView.sealLabel,
@@ -523,15 +678,18 @@ export async function POST(req: NextRequest) {
       materialRefs: record.materialRefs,
       limitations: record.limitations,
       accessContext: record.accessContext,
+      gate: record.gate,
       requestScope: scopeSummary,
       nextStep,
       meta: {
         lane: "sealed_factcheck",
         journeyProfile: "sealed_factcheck",
         routeClassification,
+        entitlementGate,
         noAutoDeepSearch: true,
         noAutoSeal: true,
         noAutoPublish: true,
+        noAutoGraphPromotion: true,
       },
     });
   } catch (error: any) {

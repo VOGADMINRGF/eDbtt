@@ -11,6 +11,10 @@ export function FactcheckHandoffShell(props: {
   context: SurfaceContext;
   persona: DemoPersona;
   handoffId?: string | null;
+  access: {
+    isAuthenticated: boolean;
+    canDeepResearch: boolean;
+  };
 }) {
   const draft = useCreateHandoffDraft(props.handoffId ?? null);
 
@@ -24,7 +28,11 @@ export function FactcheckHandoffShell(props: {
           </p>
         </div>
       ) : null}
-      <FactcheckSurface context={props.context} persona={props.persona} />
+      <FactcheckSurface
+        context={props.context}
+        persona={props.persona}
+        access={props.access}
+      />
     </div>
   );
 }

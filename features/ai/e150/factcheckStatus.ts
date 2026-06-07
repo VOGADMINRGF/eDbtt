@@ -27,6 +27,9 @@ export type SealedFactcheckWorkflowStage =
   | "in_progress"
   | "needs_source"
   | "completed"
+  | "failed"
+  | "cancelled"
+  | "needs_manual_review"
   | "rejected"
   | "seal_review_required"
   | "sealed"
@@ -64,6 +67,9 @@ const WORKFLOW_LABELS: Record<SealedFactcheckWorkflowStage, string> = {
   in_progress: "Prüfung läuft",
   needs_source: "Quellen fehlen",
   completed: "Ergebnis liegt vor",
+  failed: "fehlgeschlagen",
+  cancelled: "abgebrochen",
+  needs_manual_review: "manuelle Prüfung erforderlich",
   rejected: "abgelehnt",
   seal_review_required: "Siegelprüfung erforderlich",
   sealed: "versiegelt",
@@ -106,6 +112,9 @@ function asFactcheckStatus(value: unknown): FactcheckStatus | null {
     case "running":
     case "needs_source":
     case "completed":
+    case "failed":
+    case "cancelled":
+    case "needs_manual_review":
     case "rejected":
     case "seal_review_required":
     case "sealed":
@@ -187,6 +196,12 @@ function resolveWorkflowStage(status: FactcheckStatus | null): SealedFactcheckWo
       return "needs_source";
     case "completed":
       return "completed";
+    case "failed":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
+    case "needs_manual_review":
+      return "needs_manual_review";
     case "rejected":
       return "rejected";
     case "seal_review_required":
@@ -239,11 +254,13 @@ export function resolveSealedFactcheckStatusView(params: {
     asFactcheckVerificationMode(params.factcheckVerificationMode) ??
     (factcheckStatus === "sealed"
       ? "sealed"
-      : factcheckStatus === "completed" || factcheckStatus === "seal_review_required"
+      : factcheckStatus === "completed" ||
+          factcheckStatus === "needs_manual_review" ||
+          factcheckStatus === "seal_review_required"
         ? "operator_verified"
-        : factcheckStatus === "provider_review_required"
-          ? "provider_assisted"
-          : "intake_only");
+      : factcheckStatus === "provider_review_required"
+        ? "provider_assisted"
+        : "intake_only");
   const factcheckResearchMode =
     asFactcheckResearchMode(params.factcheckResearchMode) ??
     (asResearchUsed(params.researchUsed) === "deep_search"

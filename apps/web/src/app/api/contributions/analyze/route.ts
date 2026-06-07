@@ -55,6 +55,7 @@ import {
   type MaterialRoutingResult,
 } from "@/features/create/materialRouting";
 import { buildMaterialIntakeAnalyzeManifest } from "@/features/material/materialIntakeContract";
+import { resolveAnalyzeResearchGateBlock } from "./researchEntitlementGate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -435,6 +436,14 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   if (body.test === "ping") {
     return ok({ result: { ping: "pong" } });
+  }
+
+  const researchGateBlock = await resolveAnalyzeResearchGateBlock(req, body);
+  if (researchGateBlock) {
+    return err("RESEARCH_GATE_BLOCKED", researchGateBlock.message, researchGateBlock.status, {
+      entitlementGate: researchGateBlock.entitlementGate,
+      meta: researchGateBlock.meta,
+    });
   }
 
   const requestLocale = sanitizeLocale(body.locale);

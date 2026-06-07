@@ -23,7 +23,11 @@ export default async function DemoFactcheckPage({
   return (
     <>
       <h1 className="sr-only">Demo Factcheck</h1>
-      <FactcheckSurface context={context} persona={persona} />
+      <FactcheckSurface
+        context={context}
+        persona={persona}
+        access={{ isAuthenticated: false, canDeepResearch: false }}
+      />
     </>
   );
 }

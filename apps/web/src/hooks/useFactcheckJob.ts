@@ -11,6 +11,7 @@ type FactcheckEnqueueRequest = {
   priority?: number;
   withSerp?: boolean;
   deepSearch?: boolean;
+  researchConfirmed?: boolean;
   sourceRefs?: string[];
   materialRefs?: string[];
 };
@@ -34,6 +35,9 @@ type FactcheckEnvelope = {
 
 const TERMINAL_STATUSES = new Set([
   "completed",
+  "failed",
+  "cancelled",
+  "needs_manual_review",
   "rejected",
   "sealed",
   "not_seal_eligible",
@@ -184,6 +188,7 @@ export function useFactcheckJob() {
             topic: request?.topic,
             withSerp: request?.withSerp,
             deepSearch: request?.deepSearch,
+            researchConfirmed: request?.researchConfirmed,
             sourceRefs: request?.sourceRefs,
             materialRefs: request?.materialRefs,
           }),
