@@ -17,6 +17,12 @@ import {
   resolveRequestScopeContext,
   summarizeRequestScopeContext,
 } from "@/lib/server/auth/requestScope";
+import { createEditorialReviewRequest } from "@features/editorialReviewQueue";
+import type {
+  SourceSupport,
+  TruthStatus,
+  UserFacingVerificationLabel,
+} from "@features/ai/e150/verificationContract";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 
 const DraftSaveSchema = z.object({
@@ -50,6 +56,7 @@ const DraftSaveSchema = z.object({
   sourceUrls: z.array(z.string().min(1)).optional(),
   uploadIds: z.array(z.string().min(1)).optional(),
   materialItems: z.array(z.record(z.string(), z.any())).optional(),
+  manualReviewRequested: z.boolean().optional(),
   analysis: z.unknown().optional(),
 });
 
@@ -174,6 +181,104 @@ function buildClaimSafety(analysis: unknown, locale: string): CreateClaimSafetyR
     .filter((entry): entry is CreateClaimSafetyResult => Boolean(entry));
 }
 
+function readManualReviewTruthMeta(analysis: unknown) {
+  type ManualReviewTruthMeta = {
+    truthStatus: TruthStatus;
+    sourceSupport: SourceSupport;
+    sourceStatus: string;
+    reviewRecommended: boolean;
+    verificationLabel: UserFacingVerificationLabel;
+    analysisRunId: string | null;
+  };
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) {
+    return {
+      truthStatus: "draft_analysis" as const,
+      sourceSupport: "none" as const,
+      sourceStatus: "Analyse-Entwurf",
+      reviewRecommended: true,
+      verificationLabel: "analysiert" as const,
+      analysisRunId: null as string | null,
+    } satisfies ManualReviewTruthMeta;
+  }
+  const record = analysis as Record<string, unknown>;
+  const truthStatus: TruthStatus =
+    record.truthStatus === "draft_analysis" ||
+    record.truthStatus === "source_open" ||
+    record.truthStatus === "source_grounded" ||
+    record.truthStatus === "review_required" ||
+    record.truthStatus === "factcheck_requested" ||
+    record.truthStatus === "factcheck_passed" ||
+    record.truthStatus === "sealed_verified"
+      ? record.truthStatus
+      : "draft_analysis";
+  const sourceSupport: SourceSupport =
+    record.sourceSupport === "none" ||
+    record.sourceSupport === "open" ||
+    record.sourceSupport === "inferred" ||
+    record.sourceSupport === "partial" ||
+    record.sourceSupport === "sourced" ||
+    record.sourceSupport === "sealed"
+      ? record.sourceSupport
+      : "none";
+  const verificationLabel: UserFacingVerificationLabel =
+    record.verificationLabel === "analysiert" ||
+    record.verificationLabel === "geprueft" ||
+    record.verificationLabel === "verifiziert"
+      ? record.verificationLabel
+      : "analysiert";
+  return {
+    truthStatus,
+    sourceSupport,
+    sourceStatus:
+      typeof record.sourceStatus === "string" && record.sourceStatus.trim().length > 0
+        ? record.sourceStatus.trim()
+        : "Analyse-Entwurf",
+    reviewRecommended: typeof record.reviewRecommended === "boolean" ? record.reviewRecommended : true,
+    verificationLabel,
+    analysisRunId: typeof record.runId === "string" ? record.runId : null,
+  } satisfies ManualReviewTruthMeta;
+}
+
+function resolveManualReviewReason(input: {
+  safetyDecision: CreateInputSafetyResult["decision"];
+  sourceSupport: SourceSupport;
+}) {
+  if (input.safetyDecision === "moderation_required") {
+    return "moderation_required" as const;
+  }
+  if (input.sourceSupport === "none" || input.sourceSupport === "open") {
+    return "source_open" as const;
+  }
+  return "user_requested_review" as const;
+}
+
+async function createEditorialReviewRequestFromContributionSave(input: {
+  draftId: string;
+  userId: string;
+  originalText: string;
+  safety: CreateInputSafetyResult;
+  truthMeta: ReturnType<typeof readManualReviewTruthMeta>;
+}) {
+  const result = await createEditorialReviewRequest({
+    sourceType: "create_analysis",
+    sourceId: input.draftId,
+    userId: input.userId,
+    originalText: input.originalText,
+    analysisRunId: input.truthMeta.analysisRunId,
+    truthStatus: input.truthMeta.truthStatus,
+    sourceSupport: input.truthMeta.sourceSupport,
+    sourceStatus: input.truthMeta.sourceStatus,
+    reviewRecommended: input.truthMeta.reviewRecommended,
+    verificationLabel: input.truthMeta.verificationLabel,
+    moderationRequired: input.safety.decision === "moderation_required",
+    reason: resolveManualReviewReason({
+      safetyDecision: input.safety.decision,
+      sourceSupport: input.truthMeta.sourceSupport,
+    }),
+  });
+  return result.reviewRequest;
+}
+
 export async function POST(req: NextRequest) {
   const sessionUser = await getSessionUser(req);
   const userId = sessionUser?._id?.toHexString?.() ?? null;
@@ -234,6 +339,7 @@ export async function POST(req: NextRequest) {
   });
   const claimSafety = buildClaimSafety(analysisWithMaterial, body.locale ?? "de");
   const analysisWithSafety = withSafetyAnalysis(analysisWithMaterial, safety, claimSafety);
+  const manualReviewTruthMeta = readManualReviewTruthMeta(analysisWithSafety);
 
   if (body.draftId) {
     let draftOid: ObjectId;
@@ -267,7 +373,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
     }
 
-    return NextResponse.json({
+    const responseBody: Record<string, unknown> = {
       ok: true,
       draftId: String(updated._id),
       createMode: updated.createMode ?? normalizedCreateMode,
@@ -275,7 +381,17 @@ export async function POST(req: NextRequest) {
       updatedAt: updated.updatedAt?.toISOString() ?? now.toISOString(),
       safety,
       requestScope,
-    });
+    };
+    if (body.manualReviewRequested) {
+      responseBody.reviewRequest = await createEditorialReviewRequestFromContributionSave({
+        draftId: String(updated._id),
+        userId,
+        originalText: textToPersist,
+        safety,
+        truthMeta: manualReviewTruthMeta,
+      });
+    }
+    return NextResponse.json(responseBody);
   }
 
   const doc: ContributionDraftDoc = {
@@ -294,7 +410,7 @@ export async function POST(req: NextRequest) {
   };
 
   const insert = await Drafts.insertOne(doc as ContributionDraftDoc);
-  return NextResponse.json({
+  const responseBody: Record<string, unknown> = {
     ok: true,
     draftId: String(insert.insertedId),
     createMode: normalizedCreateMode,
@@ -302,5 +418,15 @@ export async function POST(req: NextRequest) {
     updatedAt: now.toISOString(),
     safety,
     requestScope,
-  });
+  };
+  if (body.manualReviewRequested) {
+    responseBody.reviewRequest = await createEditorialReviewRequestFromContributionSave({
+      draftId: String(insert.insertedId),
+      userId,
+      originalText: textToPersist,
+      safety,
+      truthMeta: manualReviewTruthMeta,
+    });
+  }
+  return NextResponse.json(responseBody);
 }

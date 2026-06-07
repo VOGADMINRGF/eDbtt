@@ -42,7 +42,12 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
+import AccountEditorialReviewSupplement from "./AccountEditorialReviewSupplement";
 import AccountGraphMergeCandidateSection from "./AccountGraphMergeCandidateSection";
+import {
+  readAccountEditorialReviewSlice,
+  type AccountEditorialReviewSlice,
+} from "@features/account/editorialReviewTypes";
 import {
   readAccountGraphMergeCandidateSlice,
   type AccountGraphMergeCandidateSlice,
@@ -242,7 +247,7 @@ export type AccountOverview = {
   signature: SignatureInfo;
   features: FeatureFlags;
   featureInterests: AccountFeatureInterestKey[];
-} & AccountGraphMergeCandidateSlice;
+} & AccountEditorialReviewSlice & AccountGraphMergeCandidateSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -295,6 +300,11 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         security={data.security}
         edebatte={data.edebatte}
         chatEnabled={data.features.chatEnabled}
+        onRefresh={refreshOverview}
+      />
+
+      <AccountEditorialReviewSupplement
+        requests={data.editorialReviewRequests ?? []}
         onRefresh={refreshOverview}
       />
 
@@ -3390,6 +3400,7 @@ function normalizeOverview(src: any): AccountOverview {
     signature,
     features,
     featureInterests,
+    ...readAccountEditorialReviewSlice(src),
     ...readAccountGraphMergeCandidateSlice(src),
   };
 }

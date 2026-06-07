@@ -24,6 +24,7 @@ import { TOPIC_CHOICES, TOPIC_LABEL_BY_KEY, type TopicKey } from "@features/inte
 import { getEngagementLevel, swipesUntilNextCredit } from "@features/user/engagement";
 import { getProfilePackageForAccessTier } from "./profilePackages";
 import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
+import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReviewRequests";
 
 const RESEARCH_XP_AWARD = 25;
 
@@ -171,10 +172,12 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     ({ loadAccountGraphMergeCandidates }) =>
       loadAccountGraphMergeCandidates(String(doc._id), 8),
   );
+  const editorialReviewRequestsPromise = loadAccountEditorialReviewRequests(String(doc._id), 8);
 
-  const [paymentProfileDoc, signatureDoc] = await Promise.all([
+  const [paymentProfileDoc, signatureDoc, editorialReviewRequests] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
+    editorialReviewRequestsPromise,
   ]);
   const graphMergeCandidates = await graphMergeCandidatesPromise;
 
@@ -291,6 +294,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
       : null,
     createdAt: doc.createdAt ?? null,
     lastLoginAt: doc.lastLoginAt ?? doc.updatedAt ?? doc.createdAt ?? null,
+    editorialReviewRequests,
   };
 }
 
