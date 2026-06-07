@@ -3,6 +3,7 @@ import type { IdentityMethod, VerificationLevel, UserVerification } from "@core/
 import type { EngagementLevel } from "@features/user/engagement";
 import type { AccessTier } from "@features/pricing/types";
 import type { TopicKey } from "@features/interests/topics";
+import type { AccountGraphMergeCandidateSlice } from "./graphCandidateTypes";
 
 export const ACCOUNT_FEATURE_INTEREST_KEYS = ["streams", "hostRights", "chat"] as const;
 export type AccountFeatureInterestKey = (typeof ACCOUNT_FEATURE_INTEREST_KEYS)[number];
@@ -187,7 +188,7 @@ export type AccountOverview = {
   featureInterests?: AccountFeatureInterestKey[];
   createdAt?: Date | string | null;
   lastLoginAt?: Date | string | null;
-};
+} & AccountGraphMergeCandidateSlice;
 
 export type AccountSettingsUpdate = {
   displayName?: string | null;
