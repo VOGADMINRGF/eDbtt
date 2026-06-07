@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => {
 
   let userId: string | null = "user-1";
   const docs: AnyDoc[] = [];
+  const reviewDocs: AnyDoc[] = [];
 
   function toKey(value: unknown) {
     if (value && typeof value === "object" && "toHexString" in (value as Record<string, unknown>)) {
@@ -22,10 +23,14 @@ const mocks = vi.hoisted(() => {
     },
     reset() {
       docs.length = 0;
+      reviewDocs.length = 0;
       userId = "user-1";
     },
     readAll() {
       return docs.map((doc) => ({ ...doc }));
+    },
+    readReviewAll() {
+      return reviewDocs.map((doc) => ({ ...doc }));
     },
     getSessionUser: vi.fn(async () =>
       userId
@@ -55,6 +60,58 @@ const mocks = vi.hoisted(() => {
         },
       };
     }),
+    coreCol: vi.fn(async (name: string) => {
+      if (name !== "landing_editorial_review_requests") {
+        throw new Error(`unexpected_core_collection_${name}`);
+      }
+      return {
+        async countDocuments(filter: Record<string, any>) {
+          return reviewDocs.filter((doc) => {
+            if (filter.userId && doc.userId !== filter.userId) return false;
+            if (filter.createdAt?.$gte && !(doc.createdAt >= filter.createdAt.$gte)) return false;
+            return true;
+          }).length;
+        },
+        async findOne(filter: Record<string, any>) {
+          return (
+            reviewDocs.find((doc) => {
+              if (filter.userId && doc.userId !== filter.userId) return false;
+              if (filter.normalizedText && doc.normalizedText !== filter.normalizedText) return false;
+              if (filter.sourceType && doc.sourceType !== filter.sourceType) return false;
+              if (filter.status?.$in && !filter.status.$in.includes(doc.status)) return false;
+              if (filter.createdAt?.$gte && !(doc.createdAt >= filter.createdAt.$gte)) return false;
+              return true;
+            }) ?? null
+          );
+        },
+        async insertOne(doc: AnyDoc) {
+          const next = { ...doc, _id: new ObjectId() };
+          reviewDocs.push(next);
+          return { acknowledged: true, insertedId: next._id };
+        },
+        async updateOne() {
+          return { acknowledged: true };
+        },
+        find() {
+          return {
+            sort() {
+              return {
+                limit() {
+                  return {
+                    async toArray() {
+                      return [];
+                    },
+                  };
+                },
+                async toArray() {
+                  return [];
+                },
+              };
+            },
+          };
+        },
+      };
+    }),
     resolveRequestScopeContext: vi.fn(async () => ({
       organizationId: "org-1",
       membershipStatus: "organization_verified",
@@ -74,6 +131,7 @@ vi.mock("@core/db/triMongo", async () => {
   return {
     ObjectId: mongodb.ObjectId,
     getCol: (...args: unknown[]) => mocks.getCol(...args),
+    coreCol: (...args: unknown[]) => mocks.coreCol(...args),
   };
 });
 
@@ -285,5 +343,38 @@ describe("create mode split - save route", () => {
       ok: false,
       error: "not_authenticated",
     });
+  });
+
+  it("creates a pending editorial review request without publish or graph side effects", async () => {
+    const res = await savePOST(
+      req({
+        textPrepared: "Bitte prüft diesen Analyse-Entwurf zur Schulwegsicherheit noch redaktionell.",
+        source: "create_followup",
+        createMode: "source",
+        manualReviewRequested: true,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      ok: true,
+      reviewRequest: {
+        sourceType: "create_analysis",
+        status: "pending_review",
+        noAutoPublish: true,
+        noAutoGraphPromotion: true,
+      },
+    });
+
+    const reviewSaved = mocks.readReviewAll();
+    expect(reviewSaved).toHaveLength(1);
+    expect(reviewSaved[0].status).toBe("pending_review");
+    expect(reviewSaved[0].noAutoPublish).toBe(true);
+    expect(reviewSaved[0].noAutoGraphPromotion).toBe(true);
+    expect(reviewSaved[0].noAutoDossier).toBe(true);
+    expect(reviewSaved[0].noAutoAnlassraum).toBe(true);
+    expect(reviewSaved[0].noAutoVote).toBe(true);
+    expect(reviewSaved[0].publishedAt).toBeUndefined();
   });
 });

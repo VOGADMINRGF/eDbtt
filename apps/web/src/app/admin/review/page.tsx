@@ -4,8 +4,11 @@ import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
+import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
 import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
+import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
+import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
 import { loadAdminFactcheckJobs } from "./loadAdminFactcheckJobs";
 import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
@@ -39,6 +42,7 @@ async function resolveSearchParams(searchParams: SearchParamsInput) {
     assignedToUserId: readSearchParam(resolved, "assignedTo") || "all",
     visibilityState: readSearchParam(resolved, "visibility") || "all",
     sort: readSearchParam(resolved, "sort") || "priority",
+    editorial: readSearchParam(resolved, "editorial") || "all",
   } as const;
 }
 
@@ -131,6 +135,7 @@ export default async function AdminReviewPage({
     filters as Partial<ReviewQueueFilters>,
   );
   const graphMergeSectionProps = await loadAdminGraphMergeSectionProps();
+  const editorialRequests = await loadAdminEditorialReviewRequests(filters.editorial);
   const factcheckJobs = await loadAdminFactcheckJobs();
 
   const activeFilterCount = [
@@ -141,6 +146,7 @@ export default async function AdminReviewPage({
     readModel.filters.applied.priority !== "all",
     readModel.filters.applied.assignedToUserId !== "all",
     readModel.filters.applied.visibilityState !== "all",
+    filters.editorial !== "all",
   ].filter(Boolean).length;
   const operationsPersistence = readModel.operationsPersistence ?? {
     mode: "in_memory_fallback",
@@ -326,6 +332,20 @@ export default async function AdminReviewPage({
               ))}
             </select>
           </label>
+          <label className="space-y-2 text-xs text-[rgb(var(--muted))]">
+            Redaktion
+            <select
+              name="editorial"
+              defaultValue={filters.editorial}
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+            >
+              {ADMIN_EDITORIAL_FILTER_OPTIONS.map((option) => (
+                <option key={`editorial:${option}`} value={option}>
+                  {getEditorialReviewFilterLabel(option)}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="flex flex-wrap items-end gap-2 lg:col-span-4">
             <button
               type="submit"
@@ -351,7 +371,12 @@ export default async function AdminReviewPage({
               {entry.label}: {entry.count}
             </span>
           ))}
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+            Redaktion: {editorialRequests.length}
+          </span>
         </div>
+
+        <AdminEditorialReviewSection currentUserId={userId} editorialRequests={editorialRequests} />
 
         <AdminFactcheckJobsSection factcheckJobs={factcheckJobs} />
 
