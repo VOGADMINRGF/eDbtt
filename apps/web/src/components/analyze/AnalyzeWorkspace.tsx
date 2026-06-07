@@ -123,16 +123,57 @@ function AnalyzeVerificationPanel({
 }: {
   verification: ParsedCreateAnalyzeVerification;
 }) {
+  const ctas = resolveAnalyzeVerificationCtas(verification);
+
   return (
-    <VerificationStatusPanel
-      lane={verification.lane}
-      verificationMode={verification.verificationMode}
-      researchUsed={verification.researchUsed}
-      sealEligible={verification.sealEligible}
-      sealGranted={verification.sealGranted}
-      showHint
-    />
+    <div className="space-y-2">
+      <VerificationStatusPanel
+        lane={verification.lane}
+        verificationMode={verification.verificationMode}
+        researchUsed={verification.researchUsed}
+        sealEligible={verification.sealEligible}
+        sealGranted={verification.sealGranted}
+        verificationLabel={verification.verificationLabel}
+        truthStatus={verification.truthStatus}
+        sourceSupport={verification.sourceSupport}
+        sourceStatus={verification.sourceStatus}
+        reviewRecommended={verification.reviewRecommended}
+        showHint
+      />
+      {verification.reviewRecommended ? (
+        <div className="rounded-xl border border-amber-300/55 bg-amber-50/80 px-3 py-3 text-xs text-amber-900 dark:border-amber-500/35 dark:bg-amber-500/14 dark:text-amber-100">
+          <p className="font-semibold">Prüfung oder Quellenklärung bleibt ein bewusster nächster Schritt.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ctas.map((cta) => (
+              <a
+                key={cta.href}
+                href={cta.href}
+                className="btn-secondary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+              >
+                {cta.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
+}
+
+export function resolveAnalyzeVerificationCtas(
+  verification: Pick<ParsedCreateAnalyzeVerification, "reviewRecommended" | "sourceSupport">,
+) {
+  if (!verification.reviewRecommended) return [];
+  const ctas = [{ label: "Redaktionelle Prüfung anfragen", href: "/start?review=editorial" }];
+  if (
+    verification.sourceSupport === "none" ||
+    verification.sourceSupport === "open" ||
+    verification.sourceSupport === "inferred" ||
+    verification.sourceSupport === "partial"
+  ) {
+    ctas.push({ label: "Quellenprüfung vorbereiten", href: "/factcheck" });
+  }
+  return ctas;
 }
 
 const FLOW_OPTIONS = [

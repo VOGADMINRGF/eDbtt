@@ -55,12 +55,25 @@ export default function SocialOutputPreviewPanel({
           Status: {asset.verification.verificationLabelDisplay}
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
-          Recherche: {asset.verification.researchUsed}
+          Quellenlage: {asset.verification.sourceSupportLabel}
+        </span>
+        {asset.verification.reviewRecommended ? (
+          <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 font-semibold text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+            Prüfung empfohlen
+          </span>
+        ) : null}
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
+          Noch nicht veröffentlicht
+        </span>
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
+          Keine automatische Graph-Promotion
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
           Kommunikationsentwurf in Prüfung
         </span>
       </div>
+
+      <p className="text-xs text-[rgb(var(--muted))]">{asset.verification.verificationHint}</p>
 
       <ShareDeepLinkActions
         path={path}

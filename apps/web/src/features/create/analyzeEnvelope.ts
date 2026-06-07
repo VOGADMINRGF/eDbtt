@@ -4,7 +4,10 @@ import {
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import type { SourceGroundingAudit } from "@features/analyze/sourceGroundingContract";
 import {
+  deriveTruthGuardContract,
   deriveVerificationLabel,
+  type SourceSupport,
+  type TruthStatus,
   type ResearchUsed,
   type UserFacingVerificationLabel,
   type VerificationMode,
@@ -38,6 +41,12 @@ export type ParsedCreateAnalyzeVerification = {
   sealEligible: boolean;
   sealGranted: boolean;
   verificationLabel: UserFacingVerificationLabel;
+  truthStatus: TruthStatus;
+  sourceSupport: SourceSupport;
+  sourceStatus: string;
+  reviewRecommended: boolean;
+  noTruthPromotion: true;
+  noAutoGraphPromotion: true;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -216,6 +225,35 @@ function asLane(value: unknown): E150Lane | null {
   return null;
 }
 
+function asTruthStatus(value: unknown): TruthStatus | null {
+  if (
+    value === "draft_analysis" ||
+    value === "source_open" ||
+    value === "source_grounded" ||
+    value === "review_required" ||
+    value === "factcheck_requested" ||
+    value === "factcheck_passed" ||
+    value === "sealed_verified"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function asSourceSupport(value: unknown): SourceSupport | null {
+  if (
+    value === "none" ||
+    value === "open" ||
+    value === "inferred" ||
+    value === "partial" ||
+    value === "sourced" ||
+    value === "sealed"
+  ) {
+    return value;
+  }
+  return null;
+}
+
 function resolveCreateAnalyzeVerification(value: {
   root: Record<string, unknown>;
   meta: Record<string, unknown>;
@@ -232,13 +270,24 @@ function resolveCreateAnalyzeVerification(value: {
     value.root.verificationLabel ?? value.meta.verificationLabel,
   );
   const lane = asLane(value.root.lane ?? value.meta.lane);
+  const truthStatus = asTruthStatus(value.root.truthStatus ?? value.meta.truthStatus);
+  const sourceSupport = asSourceSupport(value.root.sourceSupport ?? value.meta.sourceSupport);
+  const sourceStatusRaw = value.root.sourceStatus ?? value.meta.sourceStatus;
+  const sourceStatus = typeof sourceStatusRaw === "string" ? sourceStatusRaw : null;
+  const reviewRecommendedRaw = value.root.reviewRecommended ?? value.meta.reviewRecommended;
+  const reviewRecommended =
+    typeof reviewRecommendedRaw === "boolean" ? reviewRecommendedRaw : null;
 
   if (
     !verificationMode &&
     !verificationLabel &&
     !researchUsed &&
     sealEligible === null &&
-    sealGranted === null
+    sealGranted === null &&
+    !truthStatus &&
+    !sourceSupport &&
+    !sourceStatus &&
+    reviewRecommended === null
   ) {
     return null;
   }
@@ -261,6 +310,25 @@ function resolveCreateAnalyzeVerification(value: {
   const resolvedResearchUsed =
     researchUsed ?? (resolvedVerificationMode === "sealed" ? "search" : "none");
   const resolvedLane = lane ?? "standard";
+  const derivedTruthGuard = deriveTruthGuardContract({
+    lane: resolvedLane,
+    verificationMode: resolvedVerificationMode,
+    sealGranted: resolvedSealGranted,
+    sourceGrounding: normalizeSourceGroundingAudit(value.meta.sourceGrounding),
+    reviewRecommended: reviewRecommended ?? undefined,
+  });
+  const truthGuard =
+    truthStatus && sourceSupport && sourceStatus && reviewRecommended !== null
+      ? {
+          verificationLabel: verificationLabel ?? derivedTruthGuard.verificationLabel,
+          truthStatus,
+          sourceSupport,
+          sourceStatus,
+          reviewRecommended,
+          noTruthPromotion: true as const,
+          noAutoGraphPromotion: true as const,
+        }
+      : derivedTruthGuard;
 
   return {
     lane: resolvedLane,
@@ -268,12 +336,13 @@ function resolveCreateAnalyzeVerification(value: {
     researchUsed: resolvedResearchUsed,
     sealEligible: resolvedSealEligible,
     sealGranted: resolvedSealGranted,
-    verificationLabel:
-      verificationLabel ??
-      deriveVerificationLabel({
-        verificationMode: resolvedVerificationMode,
-        sealGranted: resolvedSealGranted,
-      }),
+    verificationLabel: truthGuard.verificationLabel,
+    truthStatus: truthGuard.truthStatus,
+    sourceSupport: truthGuard.sourceSupport,
+    sourceStatus: truthGuard.sourceStatus,
+    reviewRecommended: truthGuard.reviewRecommended,
+    noTruthPromotion: true,
+    noAutoGraphPromotion: true,
   };
 }
 

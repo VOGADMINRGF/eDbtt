@@ -5,7 +5,13 @@ import VerificationStatusPanel from "./VerificationStatusPanel";
 import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import type { E150JourneyKey, E150Lane } from "@features/ai/e150/journeyProfiles";
-import type { ResearchUsed, VerificationMode } from "@features/ai/e150/verificationContract";
+import type {
+  ResearchUsed,
+  SourceSupport,
+  TruthStatus,
+  UserFacingVerificationLabel,
+  VerificationMode,
+} from "@features/ai/e150/verificationContract";
 
 type CompanionContextKind =
   | "dossier"
@@ -20,6 +26,11 @@ type ParentStatus = {
   researchUsed?: ResearchUsed;
   sealEligible?: boolean;
   sealGranted?: boolean;
+  verificationLabel?: UserFacingVerificationLabel;
+  truthStatus?: TruthStatus;
+  sourceSupport?: SourceSupport;
+  sourceStatus?: string | null;
+  reviewRecommended?: boolean;
 };
 
 type CompanionResponse = {
@@ -33,7 +44,16 @@ type CompanionResponse = {
     sealEligible: boolean;
     sealGranted: boolean;
     verificationLabel: "analysiert" | "geprueft" | "verifiziert";
+    verificationLabelDisplay: string;
     verificationHint: string;
+    truthStatus: TruthStatus;
+    truthStatusLabel: string;
+    sourceSupport: SourceSupport;
+    sourceSupportLabel: string;
+    sourceStatus: string;
+    reviewRecommended: boolean;
+    noTruthPromotion: true;
+    noAutoGraphPromotion: true;
     workflowLabel: string | null;
     text: string;
     followUps: string[];
@@ -112,6 +132,11 @@ export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanel
         researchUsed={props.parentStatus?.researchUsed}
         sealEligible={props.parentStatus?.sealEligible}
         sealGranted={props.parentStatus?.sealGranted}
+        verificationLabel={props.parentStatus?.verificationLabel}
+        truthStatus={props.parentStatus?.truthStatus}
+        sourceSupport={props.parentStatus?.sourceSupport}
+        sourceStatus={props.parentStatus?.sourceStatus}
+        reviewRecommended={props.parentStatus?.reviewRecommended}
         showHint
       />
 
@@ -156,6 +181,11 @@ export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanel
             researchUsed={answer.researchUsed}
             sealEligible={answer.sealEligible}
             sealGranted={answer.sealGranted}
+            verificationLabel={answer.verificationLabel}
+            truthStatus={answer.truthStatus}
+            sourceSupport={answer.sourceSupport}
+            sourceStatus={answer.sourceStatus}
+            reviewRecommended={answer.reviewRecommended}
             showHint
           />
           <p className="text-sm text-[rgb(var(--fg))]">{answer.text}</p>

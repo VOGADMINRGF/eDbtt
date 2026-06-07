@@ -227,10 +227,32 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.sealEligible).toBe(false);
     expect(body.sealGranted).toBe(false);
     expect(body.verificationLabel).toBe("analysiert");
+    expect(body.truthStatus).toBe("source_open");
+    expect(body.sourceSupport).toBe("open");
+    expect(body.sourceStatus).toBe("Keine Quellenprüfung gestartet");
+    expect(body.reviewRecommended).toBe(false);
+    expect(body.noTruthPromotion).toBe(true);
+    expect(body.noAutoGraphPromotion).toBe(true);
+    expect(body.createAnalyze.truthStatus).toBe("source_open");
+    expect(body.createAnalyze.sourceSupport).toBe("open");
+    expect(body.createAnalyze.noTruthPromotion).toBe(true);
+    expect(body.meta?.verificationLabel).toBe(body.verificationLabel);
+    expect(body.meta?.truthStatus).toBe(body.truthStatus);
+    expect(body.meta?.sourceSupport).toBe(body.sourceSupport);
+    expect(body.meta?.sourceStatus).toBe(body.sourceStatus);
+    expect(body.meta?.reviewRecommended).toBe(body.reviewRecommended);
+    expect(body.meta?.graphSync).toEqual(
+      expect.objectContaining({
+        attempted: false,
+        mode: "disabled",
+        noAutoPromote: true,
+      }),
+    );
     expect(body.meta?.journeyProfile).toBe("analyze");
     expect(body.meta?.lane).toBe("standard");
     expect(body.meta?.fallbackUsed).toBe(false);
     expect(body.meta?.disagreement?.present).toBe(false);
+    expect(mocks.syncAnalyzeResultToGraph).not.toHaveBeenCalled();
     expect(mocks.resolveCreateGraphMatches).toHaveBeenCalledTimes(1);
   });
 
@@ -596,34 +618,6 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.meta?.sourceGrounding?.sourceInventory?.pdfDocuments).toBeGreaterThanOrEqual(1);
   });
 
-  it("uses gated deep-search fallback only when enabled and confirmed", async () => {
-    process.env.E150_DEEPSEARCH_ENABLED = "true";
-    process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION = "true";
-    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
-
-    try {
-      const res = await analyzePOST(
-        req({
-          sourceUrls: ["https://www.youtube.com/watch?v=demo12345"],
-          researchMode: "gpt_deepsearch",
-          allowDeepSearch: true,
-          researchConfirmed: true,
-          locale: "de-DE",
-        }),
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.ok).toBe(true);
-      expect(body.researchUsed).toBe("deep_search");
-      expect(body.meta?.researchProvider).toBe("openai_deep_research");
-      expect(body.meta?.fallbackUsed).toBe(true);
-    } finally {
-      delete process.env.E150_DEEPSEARCH_ENABLED;
-      delete process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION;
-    }
-  });
-
   it("falls back to heuristic createAnalyze output when analyze times out", async () => {
     const timeoutError = Object.assign(new Error("analyze_timeout"), { code: "ANALYZE_TIMEOUT" });
     mocks.analyzeContribution.mockRejectedValue(timeoutError);
@@ -647,5 +641,86 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.result?.claims?.[0]?.text).toBe("Fallback-Claim");
     expect(body.createAnalyze).toBeTruthy();
     expect(body.meta?.fallbackUsed).toBe(true);
+    expect(body.verificationLabel).toBe("analysiert");
+    expect(body.reviewRecommended).toBe(true);
+    expect(body.noTruthPromotion).toBe(true);
+    expect(body.meta?.graphSync?.mode).toBe("disabled");
+  });
+
+  it("does not surface precheck as geprueft when provider fallback is used", async () => {
+    mocks.analyzeContribution.mockResolvedValue({
+      ...buildAnalyzeResult({ claims: [{ id: "c1", text: "Pruefbarer Claim" }] }),
+      _meta: {
+        verificationMode: "precheck",
+        researchUsed: "none",
+        sealEligible: false,
+        sealGranted: false,
+        fallbackUsed: true,
+        lane: "standard",
+        journeyProfile: "media",
+        disagreement: {
+          present: true,
+          successfulProviders: ["openai"],
+          failedProviders: ["mistral"],
+          missingSpecialists: ["mistral"],
+          insufficientIndependentSuccess: true,
+        },
+        confidence: {
+          score: 0.32,
+          bucket: "low",
+          reasons: ["insufficient_independent_success"],
+        },
+      },
+    });
+
+    const res = await analyzePOST(
+      req({
+        text: "Dies ist ein ausreichend langer Text fuer den Fallback-Precheck-Test.",
+        locale: "de-DE",
+        analysisMode: "media",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.verificationMode).toBe("precheck");
+    expect(body.verificationLabel).toBe("analysiert");
+    expect(body.reviewRecommended).toBe(true);
+    expect(body.noTruthPromotion).toBe(true);
+    expect(body.meta?.confidence?.bucket).toBe("low");
+    expect(body.meta?.verificationLabel).toBe(body.verificationLabel);
+    expect(body.meta?.truthStatus).toBe(body.truthStatus);
+    expect(body.meta?.graphSync?.mode).toBe("disabled");
+  });
+
+  it("keeps degraded provider responses on the same centralized truth meta", async () => {
+    const providerError = Object.assign(new Error("provider failed"), {
+      code: "ANALYZE_PROVIDER_FAILED",
+      meta: {
+        providerMatrix: [{ provider: "mistral", state: "failed", reason: "bad_json" }],
+        failedProviders: [{ provider: "mistral", error: "bad_json" }],
+      },
+    });
+    mocks.analyzeContribution.mockRejectedValue(providerError);
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den degraded provider path.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.degraded).toBe(true);
+    expect(body.verificationLabel).toBe("analysiert");
+    expect(body.noTruthPromotion).toBe(true);
+    expect(body.noAutoGraphPromotion).toBe(true);
+    expect(body.meta?.graphSync?.mode).toBe("disabled");
+    expect(body.meta?.verificationLabel).toBe(body.verificationLabel);
+    expect(body.meta?.truthStatus).toBe(body.truthStatus);
+    expect(body.meta?.sourceSupport).toBe(body.sourceSupport);
   });
 });

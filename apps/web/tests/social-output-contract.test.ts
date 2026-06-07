@@ -26,6 +26,9 @@ describe("social output contract", () => {
     expect(asset.verification.researchUsed).toBe("none");
     expect(asset.verification.sealGranted).toBe(false);
     expect(asset.verification.verificationLabel).toBe("analysiert");
+    expect(asset.verification.verificationLabelDisplay).toBe("Analyse-Entwurf");
+    expect(asset.verification.noTruthPromotion).toBe(true);
+    expect(asset.verification.noAutoGraphPromotion).toBe(true);
   });
 
   it("maps sealed factcheck with pending seal to geprueft", () => {
@@ -34,6 +37,7 @@ describe("social output contract", () => {
       canonicalPathOrUrl: "/factcheck/job_1",
       objectType: "factcheck",
       title: "Factcheck Job",
+      status: "queued",
       lane: "sealed_factcheck",
       verificationMode: "sealed",
       researchUsed: "search",
@@ -41,7 +45,8 @@ describe("social output contract", () => {
       sealGranted: false,
     });
 
-    expect(asset.verification.verificationLabel).toBe("geprueft");
+    expect(asset.verification.verificationLabel).toBe("analysiert");
+    expect(asset.verification.verificationLabelDisplay).toBe("Quellenprüfung angefragt");
     expect(asset.verification.sealGranted).toBe(false);
   });
 
@@ -59,6 +64,7 @@ describe("social output contract", () => {
     });
 
     expect(asset.verification.verificationLabel).toBe("verifiziert");
+    expect(asset.verification.verificationLabelDisplay).toBe("Verifiziert");
     expect(asset.verification.sealGranted).toBe(true);
   });
 

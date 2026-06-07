@@ -2,6 +2,8 @@ import { resolveJourneyProfile, type E150RoleRoutingInput } from "./roleRouting"
 import { resolveVerificationPresentationView } from "./verificationPresentation";
 import type {
   ResearchUsed,
+  SourceSupport,
+  TruthStatus,
   UserFacingVerificationLabel,
   VerificationMode,
 } from "./verificationContract";
@@ -26,6 +28,11 @@ export type RouteBoundCompanionParentStatus = {
   researchUsed?: ResearchUsed;
   sealEligible?: boolean;
   sealGranted?: boolean;
+  verificationLabel?: UserFacingVerificationLabel;
+  truthStatus?: TruthStatus;
+  sourceSupport?: SourceSupport;
+  sourceStatus?: string | null;
+  reviewRecommended?: boolean;
 };
 
 export type RouteBoundCompanionContext = {
@@ -45,7 +52,16 @@ export type RouteBoundCompanionResolved = {
   sealEligible: boolean;
   sealGranted: boolean;
   verificationLabel: UserFacingVerificationLabel;
+  verificationLabelDisplay: string;
   verificationHint: string;
+  truthStatus: TruthStatus;
+  truthStatusLabel: string;
+  sourceSupport: SourceSupport;
+  sourceSupportLabel: string;
+  sourceStatus: string;
+  reviewRecommended: boolean;
+  noTruthPromotion: true;
+  noAutoGraphPromotion: true;
   workflowLabel: string | null;
   parentStatus: {
     lane: E150Lane;
@@ -54,7 +70,16 @@ export type RouteBoundCompanionResolved = {
     sealEligible: boolean;
     sealGranted: boolean;
     verificationLabel: UserFacingVerificationLabel;
+    verificationLabelDisplay: string;
     verificationHint: string;
+    truthStatus: TruthStatus;
+    truthStatusLabel: string;
+    sourceSupport: SourceSupport;
+    sourceSupportLabel: string;
+    sourceStatus: string;
+    reviewRecommended: boolean;
+    noTruthPromotion: true;
+    noAutoGraphPromotion: true;
     workflowLabel: string | null;
   };
 };
@@ -141,6 +166,11 @@ export function resolveRouteBoundCompanionContext(
     researchUsed: normalizedResearchUsed,
     sealEligible: normalizedSealEligible,
     sealGranted: normalizedSealGranted,
+    verificationLabel: parent?.verificationLabel,
+    truthStatus: parent?.truthStatus,
+    sourceSupport: parent?.sourceSupport,
+    sourceStatus: parent?.sourceStatus,
+    reviewRecommended: parent?.reviewRecommended,
   });
 
   return {
@@ -152,7 +182,16 @@ export function resolveRouteBoundCompanionContext(
     sealEligible: presentation.sealEligible,
     sealGranted: presentation.sealGranted,
     verificationLabel: presentation.verificationLabel,
+    verificationLabelDisplay: presentation.verificationLabelDisplay,
     verificationHint: presentation.verificationHint,
+    truthStatus: presentation.truthStatus,
+    truthStatusLabel: presentation.truthStatusLabel,
+    sourceSupport: presentation.sourceSupport,
+    sourceSupportLabel: presentation.sourceSupportLabel,
+    sourceStatus: presentation.sourceStatus,
+    reviewRecommended: presentation.reviewRecommended,
+    noTruthPromotion: presentation.noTruthPromotion,
+    noAutoGraphPromotion: presentation.noAutoGraphPromotion,
     workflowLabel: presentation.workflowLabel,
     parentStatus: {
       lane: presentation.lane,
@@ -161,7 +200,16 @@ export function resolveRouteBoundCompanionContext(
       sealEligible: presentation.sealEligible,
       sealGranted: presentation.sealGranted,
       verificationLabel: presentation.verificationLabel,
+      verificationLabelDisplay: presentation.verificationLabelDisplay,
       verificationHint: presentation.verificationHint,
+      truthStatus: presentation.truthStatus,
+      truthStatusLabel: presentation.truthStatusLabel,
+      sourceSupport: presentation.sourceSupport,
+      sourceSupportLabel: presentation.sourceSupportLabel,
+      sourceStatus: presentation.sourceStatus,
+      reviewRecommended: presentation.reviewRecommended,
+      noTruthPromotion: presentation.noTruthPromotion,
+      noAutoGraphPromotion: presentation.noAutoGraphPromotion,
       workflowLabel: presentation.workflowLabel,
     },
   };
@@ -218,8 +266,8 @@ export function buildRouteBoundCompanionAnswer(params: {
           : "Dossier-Companion";
 
   const statusLine = resolved.workflowLabel
-    ? `Status: ${resolved.workflowLabel} · ${resolved.verificationLabel}.`
-    : `Status: ${resolved.verificationLabel}.`;
+    ? `Status: ${resolved.workflowLabel} · ${resolved.verificationLabelDisplay}.`
+    : `Status: ${resolved.verificationLabelDisplay}.`;
   const researchLine =
     resolved.lane === "sealed_factcheck"
       ? `Recherchemodus: ${resolved.researchUsed}.`

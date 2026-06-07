@@ -14,7 +14,9 @@ describe("e150 verification presentation contract", () => {
 
     expect(view.lane).toBe("standard");
     expect(view.verificationLabel).toBe("analysiert");
-    expect(view.verificationLabelDisplay).toBe("analysiert");
+    expect(view.verificationLabelDisplay).toBe("Analyse-Entwurf");
+    expect(view.truthStatusLabel).toBe("Analyse-Entwurf");
+    expect(view.sourceSupportLabel).toBe("Keine Quellenprüfung gestartet");
     expect(view.researchUsed).toBe("none");
     expect(view.sealGranted).toBe(false);
     expect(view.sealLabel).toBe("kein Siegel");
@@ -33,6 +35,7 @@ describe("e150 verification presentation contract", () => {
     expect(view.lane).toBe("standard");
     expect(view.verificationMode).toBe("none");
     expect(view.verificationLabel).toBe("analysiert");
+    expect(view.verificationLabelDisplay).toBe("Analyse-Entwurf");
     expect(view.researchUsed).toBe("deep_search");
     expect(view.sealGranted).toBe(false);
     expect(view.isVerified).toBe(false);
@@ -49,7 +52,8 @@ describe("e150 verification presentation contract", () => {
     });
 
     expect(view.lane).toBe("sealed_factcheck");
-    expect(view.verificationLabel).toBe("geprueft");
+    expect(view.verificationLabel).toBe("analysiert");
+    expect(view.verificationLabelDisplay).toBe("Quellenprüfung angefragt");
     expect(view.workflowStage).toBe("queued");
     expect(view.workflowLabel).toBe("in Warteschlange");
     expect(view.sealLabel).toBe("Siegelprüfung ausstehend");
@@ -67,7 +71,8 @@ describe("e150 verification presentation contract", () => {
 
     expect(view.lane).toBe("material_grounding");
     expect(view.laneLabel).toBe("Material-Grounding-Lane");
-    expect(view.verificationLabel).toBe("geprueft");
+    expect(view.verificationLabel).toBe("analysiert");
+    expect(view.verificationLabelDisplay).toBe("Analyse-Entwurf");
     expect(view.researchUsed).toBe("none");
     expect(view.researchLabel).toBe("keine Recherche");
   });
@@ -83,10 +88,26 @@ describe("e150 verification presentation contract", () => {
     });
 
     expect(view.verificationLabel).toBe("verifiziert");
-    expect(view.verificationLabelDisplay).toBe("verifiziert");
+    expect(view.verificationLabelDisplay).toBe("Verifiziert");
     expect(view.workflowStage).toBe("completed");
     expect(view.sealLabel).toBe("Siegel erteilt");
     expect(view.isVerified).toBe(true);
+  });
+
+  it("maps explicit review-required truth meta to conservative display labels", () => {
+    const view = resolveVerificationPresentationView({
+      lane: "standard",
+      verificationMode: "precheck",
+      truthStatus: "review_required",
+      sourceSupport: "partial",
+      sourceStatus: "Quellenprüfung teilweise vorhanden",
+      reviewRecommended: true,
+    });
+
+    expect(view.verificationLabelDisplay).toBe("Prüfung empfohlen");
+    expect(view.truthStatusLabel).toBe("Prüfung empfohlen");
+    expect(view.sourceSupportLabel).toBe("Teilweise belegt");
+    expect(view.reviewRecommended).toBe(true);
   });
 
   it("falls back defensively for partial payloads", () => {
@@ -94,6 +115,7 @@ describe("e150 verification presentation contract", () => {
     expect(view.lane).toBe("standard");
     expect(view.verificationMode).toBe("none");
     expect(view.verificationLabel).toBe("analysiert");
+    expect(view.verificationLabelDisplay).toBe("Analyse-Entwurf");
     expect(view.researchUsed).toBe("none");
   });
 });

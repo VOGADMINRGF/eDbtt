@@ -126,6 +126,11 @@ describe("create analyze safety gate", () => {
     expect(Array.isArray(body.meta.claimSafety)).toBe(true);
     expect(body.createAnalyze.noAutoPublish).toBe(true);
     expect(body.createAnalyze.noSilentMerge).toBe(true);
+    expect(body.noTruthPromotion).toBe(true);
+    expect(body.noAutoGraphPromotion).toBe(true);
+    expect(body.meta?.verificationLabel).toBe(body.verificationLabel);
+    expect(body.meta?.truthStatus).toBe(body.truthStatus);
+    expect(body.meta?.graphSync?.mode).toBe("disabled");
     expect(mocks.analyzeContribution).not.toHaveBeenCalled();
   });
 

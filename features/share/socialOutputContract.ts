@@ -5,6 +5,8 @@ import {
 import type { E150Lane } from "@features/ai/e150/journeyProfiles";
 import type {
   ResearchUsed,
+  SourceSupport,
+  TruthStatus,
   VerificationMode,
 } from "@features/ai/e150/verificationContract";
 
@@ -26,6 +28,14 @@ export type ShareVerificationInfo = {
   verificationLabel: "analysiert" | "geprueft" | "verifiziert";
   verificationLabelDisplay: string;
   verificationHint: string;
+  truthStatus: TruthStatus;
+  truthStatusLabel: string;
+  sourceSupport: SourceSupport;
+  sourceSupportLabel: string;
+  sourceStatus: string;
+  reviewRecommended: boolean;
+  noTruthPromotion: true;
+  noAutoGraphPromotion: true;
 };
 
 export type ShareOutputAsset = {
@@ -81,10 +91,16 @@ type BuildShareOutputAssetInput = {
   neutralCtaLabel?: string | null;
   deepLinkPath?: string | null;
   lane?: E150Lane | null;
+  status?: string | null;
   verificationMode?: VerificationMode | null;
   researchUsed?: ResearchUsed | null;
   sealEligible?: boolean | null;
   sealGranted?: boolean | null;
+  verificationLabel?: "analysiert" | "geprueft" | "verifiziert" | null;
+  truthStatus?: TruthStatus | null;
+  sourceSupport?: SourceSupport | null;
+  sourceStatus?: string | null;
+  reviewRecommended?: boolean | null;
 };
 
 type BuildCarouselInput = {
@@ -182,19 +198,31 @@ function resolveVerificationForObject(
     const mode = input.verificationMode === "precheck" ? "precheck" : "none";
     return resolveVerificationPresentationView({
       lane: "standard",
+      status: input.status ?? null,
       verificationMode: mode,
       researchUsed: "none",
       sealEligible: false,
       sealGranted: false,
+      verificationLabel: input.verificationLabel ?? null,
+      truthStatus: input.truthStatus ?? null,
+      sourceSupport: input.sourceSupport ?? null,
+      sourceStatus: input.sourceStatus ?? null,
+      reviewRecommended: input.reviewRecommended ?? null,
     });
   }
 
   return resolveVerificationPresentationView({
     lane: input.lane ?? "sealed_factcheck",
+    status: input.status ?? null,
     verificationMode: input.verificationMode ?? "sealed",
     researchUsed: input.researchUsed ?? "search",
     sealEligible: input.sealEligible ?? true,
     sealGranted: input.sealGranted ?? false,
+    verificationLabel: input.verificationLabel ?? null,
+    truthStatus: input.truthStatus ?? null,
+    sourceSupport: input.sourceSupport ?? null,
+    sourceStatus: input.sourceStatus ?? null,
+    reviewRecommended: input.reviewRecommended ?? null,
   });
 }
 
@@ -246,6 +274,14 @@ export function buildShareOutputAsset(
       verificationLabel: verificationView.verificationLabel,
       verificationLabelDisplay: verificationView.verificationLabelDisplay,
       verificationHint: verificationView.verificationHint,
+      truthStatus: verificationView.truthStatus,
+      truthStatusLabel: verificationView.truthStatusLabel,
+      sourceSupport: verificationView.sourceSupport,
+      sourceSupportLabel: verificationView.sourceSupportLabel,
+      sourceStatus: verificationView.sourceStatus,
+      reviewRecommended: verificationView.reviewRecommended,
+      noTruthPromotion: verificationView.noTruthPromotion,
+      noAutoGraphPromotion: verificationView.noAutoGraphPromotion,
     },
     imageUrl: asNonEmptyOrNull(input.imageUrl),
     topic: asNonEmptyOrNull(input.topic),

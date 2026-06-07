@@ -41,6 +41,21 @@ const ChatContextSchema = z.object({
       researchUsed: z.enum(["none", "lite", "search", "deep_search"]).optional(),
       sealEligible: z.boolean().optional(),
       sealGranted: z.boolean().optional(),
+      verificationLabel: z.enum(["analysiert", "geprueft", "verifiziert"]).optional(),
+      truthStatus: z
+        .enum([
+          "draft_analysis",
+          "source_open",
+          "source_grounded",
+          "review_required",
+          "factcheck_requested",
+          "factcheck_passed",
+          "sealed_verified",
+        ])
+        .optional(),
+      sourceSupport: z.enum(["none", "open", "inferred", "partial", "sourced", "sealed"]).optional(),
+      sourceStatus: z.string().trim().min(1).max(120).optional(),
+      reviewRecommended: z.boolean().optional(),
     })
     .optional(),
 });
@@ -121,7 +136,16 @@ export async function POST(req: NextRequest) {
       sealEligible: resolved.sealEligible,
       sealGranted: resolved.sealGranted,
       verificationLabel: resolved.verificationLabel,
+      verificationLabelDisplay: resolved.verificationLabelDisplay,
       verificationHint: resolved.verificationHint,
+      truthStatus: resolved.truthStatus,
+      truthStatusLabel: resolved.truthStatusLabel,
+      sourceSupport: resolved.sourceSupport,
+      sourceSupportLabel: resolved.sourceSupportLabel,
+      sourceStatus: resolved.sourceStatus,
+      reviewRecommended: resolved.reviewRecommended,
+      noTruthPromotion: resolved.noTruthPromotion,
+      noAutoGraphPromotion: resolved.noAutoGraphPromotion,
       workflowLabel: resolved.workflowLabel,
       parentStatus: resolved.parentStatus,
       tonePassUsed: presentationPassResult.meta.applied,

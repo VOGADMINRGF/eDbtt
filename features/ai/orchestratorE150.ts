@@ -1929,6 +1929,8 @@ export async function callE150Orchestrator(
   const nonFallbackBest = sortedCandidates.find(
     (candidate) => !fallbackSet.has(candidate.provider),
   );
+  // "Best" only selects the least-bad draft-analysis candidate for downstream structuring.
+  // It is explicitly not a truth, factcheck, or graph-promotion decision.
   const best = nonFallbackBest ?? sortedCandidates[0];
   const fallbackUsed = fallbackSet.has(best.provider);
   const successfulProviders = providerOutcomes
@@ -1939,6 +1941,12 @@ export async function callE150Orchestrator(
     .map((outcome) => outcome.provider);
   const disagreementConfidence = computeDisagreementConfidence({
     primaryProviders: primaryProviderNames,
+    independentProviderPool: [
+      ...new Set([
+        ...primaryProviderNames,
+        ...secondaryProviderNames.filter((provider) => !fallbackProviderNames.includes(provider)),
+      ]),
+    ],
     successfulProviders,
     failedProviders: failedProviderNames,
     candidateScores: sortedCandidates.map((candidate) => ({

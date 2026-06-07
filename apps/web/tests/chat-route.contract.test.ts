@@ -54,6 +54,7 @@ describe("/api/chat route-bound companion", () => {
     expect(body.companion.sealEligible).toBe(false);
     expect(body.companion.sealGranted).toBe(false);
     expect(body.companion.verificationLabel).not.toBe("verifiziert");
+    expect(body.companion.verificationLabelDisplay).toBe("Analyse-Entwurf");
   });
 
   it("returns sealed factcheck companion with correct sealed defaults", async () => {
@@ -78,7 +79,10 @@ describe("/api/chat route-bound companion", () => {
     expect(body.companion.researchUsed).toBe("search");
     expect(body.companion.sealEligible).toBe(true);
     expect(body.companion.sealGranted).toBe(false);
-    expect(body.companion.verificationLabel).toBe("geprueft");
+    expect(body.companion.verificationLabel).toBe("analysiert");
+    expect(body.companion.verificationLabelDisplay).toBe("Quellenprüfung angefragt");
+    expect(body.companion.noTruthPromotion).toBe(true);
+    expect(body.companion.noAutoGraphPromotion).toBe(true);
   });
 
   it("runs optional presentation pass without changing verification contract", async () => {
