@@ -4,6 +4,7 @@ import { readSession } from "@/utils/session";
 import { readStringParam, resolveSurfaceContext } from "@/features/surface";
 import { FactcheckHandoffShell } from "@/features/surfaces/factcheck/FactcheckHandoffShell";
 import { buildShareMetadata } from "@/features/share/metadata";
+import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 
 export const metadata: Metadata = buildShareMetadata({
   objectType: "factcheck",
@@ -31,6 +32,10 @@ export default async function FactcheckPage({
   const resolved = searchParams ? await searchParams : {};
   const requested = readStringParam(resolved?.persona);
   const session = await readSession().catch(() => null);
+  const entitlements = await getCreateEntitlementsForRequest().catch(() => ({
+    isAuthenticated: false,
+    canDeepResearch: false,
+  }));
   const persona = parseDemoPersona(requested ?? personaFromRole(session?.role));
   const context = resolveSurfaceContext({
     mode: "live",
@@ -48,6 +53,10 @@ export default async function FactcheckPage({
         context={context}
         persona={persona}
         handoffId={readStringParam(resolved?.handoffId)}
+        access={{
+          isAuthenticated: entitlements.isAuthenticated,
+          canDeepResearch: entitlements.canDeepResearch,
+        }}
       />
     </>
   );

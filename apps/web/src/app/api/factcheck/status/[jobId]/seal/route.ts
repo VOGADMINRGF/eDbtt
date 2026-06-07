@@ -3,12 +3,9 @@ import { z } from "zod";
 import { getFactcheckWorkflowRepo } from "@features/factcheck/db";
 import {
   createFactcheckAuditEvent,
-  deriveFactcheckSealEligibility,
-  deriveFactcheckVerificationMode,
-  factcheckResearchModeToCompatibilityResearchUsed,
   factcheckStatusLabel,
-  factcheckVerificationModeToCompatibilityMode,
 } from "@features/factcheck/workflow";
+import { refreshFactcheckJobState } from "@features/factcheck/jobRunner";
 import {
   canAdministerFactcheckRecord,
 } from "@features/factcheck/access";
@@ -77,6 +74,28 @@ export async function POST(
   const now = new Date();
 
   if (payload.action === "grant") {
+    if (job.status !== "completed" && job.status !== "seal_review_required") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "SEAL_NOT_READY",
+          message: "Seal can only be granted after a completed sealed factcheck.",
+          status: job.status,
+        },
+        { status: 409 },
+      );
+    }
+    if (job.requestedAction !== "sealed_factcheck") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "SEAL_NOT_READY",
+          message: "Ein verifizierbares Siegel setzt einen sealed_factcheck voraus.",
+          status: job.status,
+        },
+        { status: 409 },
+      );
+    }
     if (job.factcheckSealEligibility === "not_eligible") {
       return NextResponse.json(
         {
@@ -103,31 +122,14 @@ export async function POST(
     job.sealedAt = null;
   }
 
-  job.factcheckSealEligibility = deriveFactcheckSealEligibility({
-    status: job.status,
-    hasSourceRefs: (job.sourceRefs ?? []).length > 0,
-    hasClaims: (job.claims ?? []).length > 0,
+  const nextJob = refreshFactcheckJobState({
+    ...job,
+    updatedAt: now,
+    completedAt: now,
+    finishedAt: now,
   });
-  job.factcheckVerificationMode = deriveFactcheckVerificationMode({
-    status: job.status,
-    researchMode: job.factcheckResearchMode,
-    hasSourceRefs: (job.sourceRefs ?? []).length > 0,
-    sealDecision: job.factcheckSealDecision,
-  });
-  job.verificationMode = factcheckVerificationModeToCompatibilityMode(
-    job.factcheckVerificationMode,
-  );
-  job.researchUsed = factcheckResearchModeToCompatibilityResearchUsed(
-    job.factcheckResearchMode,
-  );
-  job.sealEligible =
-    job.factcheckSealEligibility === "eligible" ||
-    job.factcheckSealEligibility === "needs_review";
-  job.sealGranted = job.factcheckSealDecision === "granted";
-  job.updatedAt = now;
-  job.finishedAt = now;
-  job.auditEvents = [
-    ...(job.auditEvents ?? []),
+  nextJob.auditEvents = [
+    ...(nextJob.auditEvents ?? []),
     createFactcheckAuditEvent({
       eventType:
         payload.action === "grant"
@@ -142,25 +144,25 @@ export async function POST(
     }),
   ];
 
-  await repo.save(job);
+  await repo.save(nextJob);
 
   const statusView = resolveSealedFactcheckStatusView({
-    status: job.status,
-    verificationMode: job.verificationMode,
-    researchUsed: job.researchUsed,
-    sealEligible: job.sealEligible,
-    sealGranted: job.sealGranted,
-    factcheckVerificationMode: job.factcheckVerificationMode,
-    factcheckResearchMode: job.factcheckResearchMode,
-    factcheckSealEligibility: job.factcheckSealEligibility,
-    factcheckSealDecision: job.factcheckSealDecision,
+    status: nextJob.status,
+    verificationMode: nextJob.verificationMode,
+    researchUsed: nextJob.researchUsed,
+    sealEligible: nextJob.sealEligible,
+    sealGranted: nextJob.sealGranted,
+    factcheckVerificationMode: nextJob.factcheckVerificationMode,
+    factcheckResearchMode: nextJob.factcheckResearchMode,
+    factcheckSealEligibility: nextJob.factcheckSealEligibility,
+    factcheckSealDecision: nextJob.factcheckSealDecision,
   });
 
   return NextResponse.json({
     ok: true,
     jobId,
-    status: job.status,
-    statusLabel: factcheckStatusLabel(job.status),
+    status: nextJob.status,
+    statusLabel: factcheckStatusLabel(nextJob.status),
     verificationMode: statusView.verificationMode,
     researchUsed: statusView.researchUsed,
     sealEligible: statusView.sealEligible,
@@ -175,8 +177,8 @@ export async function POST(
     factcheckResearchMode: statusView.factcheckResearchMode,
     factcheckSealEligibility: statusView.factcheckSealEligibility,
     factcheckSealDecision: statusView.factcheckSealDecision,
-    sealedAt: job.sealedAt?.toISOString?.() ?? null,
-    publicSealVisible: job.publicSealVisible === true,
+    sealedAt: nextJob.sealedAt?.toISOString?.() ?? null,
+    publicSealVisible: nextJob.publicSealVisible === true,
     meta: {
       lane: "sealed_factcheck",
       journeyProfile: "sealed_factcheck",

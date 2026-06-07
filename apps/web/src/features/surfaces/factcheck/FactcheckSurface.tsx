@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFactcheckJob } from "@/hooks/useFactcheckJob";
 import { buildCreateHref } from "@/features/create/intents";
 import { getDemoPersonaConfig, type DemoPersona } from "@/features/demo/personas";
@@ -9,11 +10,17 @@ import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
 import SocialOutputPreviewPanel from "@/components/share/SocialOutputPreviewPanel";
 import type { SurfaceContext } from "@/features/surface";
+import { resolveVerificationPresentationView } from "@features/ai/e150/verificationPresentation";
 import {
   buildNeutralCarouselDraft,
   buildShareOutputAsset,
 } from "@features/share/socialOutputContract";
 import { BRAND } from "@/lib/brand";
+import {
+  getFactcheckEntitlementGateMessage,
+  getFactcheckEntitlementReasonLabel,
+  resolveFactcheckEntitlementGate,
+} from "@features/factcheck/entitlementGate";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
 type IntakeChannel = "text" | "link" | "file" | "video";
@@ -68,7 +75,13 @@ const CHANNEL_LABELS: Record<IntakeChannel, string> = {
 type FactcheckSurfaceProps = {
   context: SurfaceContext;
   persona: DemoPersona;
+  access: {
+    isAuthenticated: boolean;
+    canDeepResearch: boolean;
+  };
 };
+
+const FACTCHECK_GATE_DRAFT_STORAGE_KEY = "edb_factcheck_gate_draft_v1";
 
 function withMode(href: string, mode: SurfaceContext["mode"], persona: DemoPersona) {
   const sep = href.includes("?") ? "&" : "?";
@@ -76,7 +89,8 @@ function withMode(href: string, mode: SurfaceContext["mode"], persona: DemoPerso
   return href;
 }
 
-export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
+export function FactcheckSurface({ context, persona, access }: FactcheckSurfaceProps) {
+  const router = useRouter();
   const personaCfg = getDemoPersonaConfig(persona);
 
   const [input, setInput] = useState("");
@@ -89,6 +103,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   const [manualStatus, setManualStatus] = useState<string | null>(null);
   const [editorialSent, setEditorialSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [researchGateVisible, setResearchGateVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [manualClaim, setManualClaim] = useState("");
   const [manualVerdict, setManualVerdict] = useState<Verdict>("LIKELY_TRUE");
@@ -107,8 +122,22 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
     researchUsed,
     sealEligible,
     sealGranted,
+    verificationLabel,
   } =
     useFactcheckJob();
+  const verificationView = useMemo(
+    () =>
+      resolveVerificationPresentationView({
+        lane: "sealed_factcheck",
+        status,
+        verificationMode,
+        researchUsed,
+        sealEligible,
+        sealGranted,
+        verificationLabel,
+      }),
+    [researchUsed, sealEligible, sealGranted, status, verificationLabel, verificationMode],
+  );
 
   const aiClaims = useMemo(() => {
     if (claims && claims.length > 0) {
@@ -147,12 +176,12 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
             { label: "Quelle melden", href: buildCreateHref({ intent: "source" }) },
           ];
   const statusLabels = [
-    "Prüfung angefragt",
-    "Quellen fehlen",
-    "Provider-Freigabe erforderlich",
-    "Ergebnis liegt vor",
-    "Siegelprüfung erforderlich",
-    "versiegelt",
+    "Quellenprüfung angefragt",
+    "Quellenprüfung vorbereitet",
+    "Bestätigung erforderlich",
+    "Kontingent erforderlich",
+    "Faktencheck gestartet",
+    "Faktencheck abgeschlossen",
   ];
   const hasResult = mode === "ai" ? Boolean(done && aiClaims.length > 0) : manualEntries.length > 0;
   const flowStep: FlowStep = editorialSent
@@ -181,6 +210,7 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
         ? `Prüfgegenstand: ${leadingClaimText}`
         : "Prüfung mit transparentem Workflow und Evidenzbezug.",
     lane: "sealed_factcheck",
+    status,
     verificationMode,
     researchUsed,
     sealEligible,
@@ -193,6 +223,51 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   const shareCarousel = buildNeutralCarouselDraft(shareAsset, {
     highlights: aiClaims.slice(0, 2).map((claim: any) => claim?.text).filter(Boolean),
   });
+
+  useEffect(() => {
+    if (context.mode === "demo" || typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(FACTCHECK_GATE_DRAFT_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as {
+        input?: string;
+        channel?: IntakeChannel;
+        linkInput?: string;
+        videoInput?: string;
+        fileName?: string;
+      };
+      if (!input.trim() && typeof parsed.input === "string") setInput(parsed.input);
+      if (!linkInput.trim() && typeof parsed.linkInput === "string") setLinkInput(parsed.linkInput);
+      if (!videoInput.trim() && typeof parsed.videoInput === "string") setVideoInput(parsed.videoInput);
+      if (!fileName.trim() && typeof parsed.fileName === "string") setFileName(parsed.fileName);
+      if (parsed.channel === "text" || parsed.channel === "link" || parsed.channel === "file" || parsed.channel === "video") {
+        setChannel(parsed.channel);
+      }
+      window.localStorage.removeItem(FACTCHECK_GATE_DRAFT_STORAGE_KEY);
+    } catch {
+      window.localStorage.removeItem(FACTCHECK_GATE_DRAFT_STORAGE_KEY);
+    }
+  }, [context.mode, fileName, input, linkInput, videoInput]);
+
+  function persistDraftForLogin() {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      FACTCHECK_GATE_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        input,
+        channel,
+        linkInput,
+        videoInput,
+        fileName,
+      }),
+    );
+  }
+
+  function redirectToLoginWithDraft() {
+    persistDraftForLogin();
+    const next = "/factcheck?resumeGate=1";
+    router.push(`/login?next=${encodeURIComponent(next)}`);
+  }
 
   function resetManualForm() {
     setEditingId(null);
@@ -303,6 +378,113 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handlePrepareEditorialReview() {
+    const originalText = leadingClaimText.trim();
+    if (!originalText) {
+      setManualStatus("Bitte zuerst einen Prüfgegenstand eingeben.");
+      return;
+    }
+    if (context.mode !== "demo" && !access.isAuthenticated) {
+      setManualStatus("Anmeldung erforderlich. Dein Prüfentwurf bleibt erhalten.");
+      redirectToLoginWithDraft();
+      return;
+    }
+    setSending(true);
+    setManualStatus(null);
+    try {
+      const res = await fetch("/api/editorial/review-requests", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sourceType: "factcheck_request",
+          sourceId: jobId ?? undefined,
+          originalText,
+          truthStatus: verificationView.truthStatus,
+          sourceSupport: verificationView.sourceSupport,
+          sourceStatus: verificationView.sourceStatus,
+          reviewRecommended: verificationView.reviewRecommended,
+          verificationLabel: verificationView.verificationLabel,
+          reason:
+            verificationView.sourceSupport === "none" || verificationView.sourceSupport === "open"
+              ? "source_open"
+              : "user_requested_review",
+        }),
+      });
+      const body = await res.json().catch(() => null);
+      if (res.status === 401) {
+        setManualStatus("Bitte melde dich an, um die Prüfung an die Redaktion zu geben.");
+        return;
+      }
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error ?? "editorial_review_request_failed");
+      }
+      setEditorialSent(true);
+      setManualStatus("Nicht veröffentlicht · zur manuellen Prüfung vorgemerkt.");
+    } catch (err: any) {
+      setManualStatus(`Fehler: ${String(err?.message ?? err)}`);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleRequestFactcheck() {
+    if (effectiveInput.length < 20) {
+      setManualStatus("Bitte zuerst einen belastbaren Prüfgegenstand eingeben.");
+      return;
+    }
+    const gate = resolveFactcheckEntitlementGate("factcheck_request", {
+      isAuthenticated: context.mode === "demo" ? true : access.isAuthenticated,
+    });
+    if (!gate.allowed) {
+      setManualStatus(getFactcheckEntitlementGateMessage(gate));
+      if (gate.reason === "login_required") {
+        redirectToLoginWithDraft();
+      }
+      return;
+    }
+    setEditorialSent(false);
+    setResearchGateVisible(false);
+    setManualStatus("Quellenprüfung angefragt. Noch nicht veröffentlicht.");
+    enqueue({ text: effectiveInput, language: "de", priority: 5 });
+  }
+
+  function handleOpenResearchGate() {
+    const gate = resolveFactcheckEntitlementGate("deep_research", {
+      isAuthenticated: context.mode === "demo" ? true : access.isAuthenticated,
+      hasEntitlement: context.mode === "demo" ? false : access.canDeepResearch,
+      hasPricingAccess: context.mode === "demo" ? false : access.canDeepResearch,
+      confirmationProvided: false,
+    });
+    setResearchGateVisible(true);
+    setManualStatus(getFactcheckEntitlementGateMessage(gate));
+    if (gate.reason === "login_required") {
+      redirectToLoginWithDraft();
+    }
+  }
+
+  function handleConfirmResearchStart() {
+    const gate = resolveFactcheckEntitlementGate("deep_research", {
+      isAuthenticated: context.mode === "demo" ? true : access.isAuthenticated,
+      hasEntitlement: context.mode === "demo" ? true : access.canDeepResearch,
+      hasPricingAccess: context.mode === "demo" ? true : access.canDeepResearch,
+      confirmationProvided: true,
+    });
+    if (!gate.allowed) {
+      setManualStatus(getFactcheckEntitlementGateMessage(gate));
+      return;
+    }
+    setEditorialSent(false);
+    setManualStatus("Faktencheck gestartet. Deep Research bleibt trotzdem explizit review-first.");
+    enqueue({
+      text: effectiveInput,
+      language: "de",
+      priority: 5,
+      withSerp: true,
+      deepSearch: true,
+      researchConfirmed: true,
+    });
   }
 
   function handleEdit(entry: ManualEntry) {
@@ -451,12 +633,16 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
               <button
                 className="btn btn-primary text-sm disabled:opacity-50"
                 disabled={loading || effectiveInput.length < 20}
-                onClick={() => {
-                  setEditorialSent(false);
-                  enqueue({ text: effectiveInput, language: "de", priority: 5 });
-                }}
+                onClick={handleRequestFactcheck}
               >
-                {loading ? "Wird gespeichert..." : "Prüfung anfragen"}
+                {loading ? "Wird gespeichert..." : "Quellenprüfung anfragen"}
+              </button>
+              <button
+                className="btn-secondary text-sm disabled:opacity-50"
+                disabled={sending}
+                onClick={handleOpenResearchGate}
+              >
+                Vertiefte Quellenprüfung
               </button>
               <button
                 className="btn-secondary text-sm disabled:opacity-50"
@@ -467,11 +653,74 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
               >
                 Ergebnis an Redaktion senden
               </button>
+              <button
+                className="btn-secondary text-sm disabled:opacity-50"
+                disabled={sending}
+                onClick={() => {
+                  void handlePrepareEditorialReview();
+                }}
+              >
+                Prüfung vorbereiten
+              </button>
             </>
           )}
           {jobId && <div className="text-xs text-[rgb(var(--muted))]">Lauf-ID: {jobId}</div>}
           {status && <div className="text-xs text-[rgb(var(--muted))]">Status: {status}</div>}
         </div>
+
+        {researchGateVisible ? (
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Geschütztes Gate
+            </p>
+            <h3 className="mt-2 font-semibold text-[rgb(var(--fg))]">
+              {access.canDeepResearch || context.mode === "demo"
+                ? "Bestätigung erforderlich"
+                : "Kontingent erforderlich"}
+            </h3>
+            <p className="mt-2 text-[rgb(var(--muted))]">
+              {access.canDeepResearch || context.mode === "demo"
+                ? "Diese Quellenprüfung kann Kontingent verbrauchen. Erst nach Bestätigung vorbereiten."
+                : "Für vertiefte Quellenprüfung oder Deep Research brauchst du ein passendes Paket oder eine Organisationsfreigabe."}
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Noch nicht veröffentlicht · Kein Graph-Merge ohne Freigabe
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {access.canDeepResearch || context.mode === "demo" ? (
+                <button
+                  type="button"
+                  className="btn btn-primary text-sm"
+                  onClick={handleConfirmResearchStart}
+                  disabled={loading}
+                >
+                  Vertiefte Prüfung bestätigen
+                </button>
+              ) : (
+                <Link href="/pricing" className="btn-secondary text-sm">
+                  Pakete ansehen
+                </Link>
+              )}
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => setResearchGateVisible(false)}
+              >
+                Beim Entwurf bleiben
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+              Status: {getFactcheckEntitlementReasonLabel(
+                resolveFactcheckEntitlementGate("deep_research", {
+                  isAuthenticated: context.mode === "demo" ? true : access.isAuthenticated,
+                  hasEntitlement: context.mode === "demo" ? true : access.canDeepResearch,
+                  hasPricingAccess: context.mode === "demo" ? true : access.canDeepResearch,
+                  confirmationProvided: false,
+                }).reason,
+              )}
+            </p>
+          </div>
+        ) : null}
 
         {status !== "idle" ? (
           <VerificationStatusPanel

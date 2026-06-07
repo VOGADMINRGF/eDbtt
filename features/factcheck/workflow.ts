@@ -58,7 +58,7 @@ export function deriveFactcheckVerificationMode(input: {
   sealDecision: FactcheckSealDecision;
 }): FactcheckVerificationMode {
   if (input.sealDecision === "granted" || input.status === "sealed") return "sealed";
-  if (input.status === "completed") {
+  if (input.status === "completed" || input.status === "needs_manual_review") {
     if (
       input.researchMode === "provider_assisted" ||
       input.researchMode === "deep_research_approved"
@@ -68,7 +68,11 @@ export function deriveFactcheckVerificationMode(input: {
     if (input.hasSourceRefs) return "operator_verified";
     return "manual_review";
   }
-  if (input.status === "requested" || input.status === "queued" || input.status === "running") {
+  if (
+    input.status === "requested" ||
+    input.status === "queued" ||
+    input.status === "running"
+  ) {
     return input.hasSourceRefs ? "manual_review" : "intake_only";
   }
   if (input.status === "seal_review_required") return "operator_verified";
@@ -83,6 +87,7 @@ export function deriveFactcheckSealEligibility(input: {
   if (!input.hasClaims || !input.hasSourceRefs) return "not_eligible";
   if (
     input.status === "completed" ||
+    input.status === "needs_manual_review" ||
     input.status === "seal_review_required" ||
     input.status === "sealed"
   ) {
@@ -135,15 +140,21 @@ export function factcheckStatusLabel(status: FactcheckStatus): string {
     case "requested":
       return "Prüfung angefragt";
     case "queued":
-      return "In Warteschlange";
+      return "Quellenprüfung angefragt";
     case "provider_review_required":
       return "Provider-Freigabe erforderlich";
     case "running":
-      return "Prüfung läuft";
+      return "Quellenprüfung läuft";
     case "needs_source":
       return "Quellen fehlen";
     case "completed":
       return "Ergebnis liegt vor";
+    case "failed":
+      return "Prüfung fehlgeschlagen / erneut prüfen";
+    case "cancelled":
+      return "Abgebrochen";
+    case "needs_manual_review":
+      return "Manuelle Prüfung erforderlich";
     case "rejected":
       return "Abgelehnt";
     case "seal_review_required":

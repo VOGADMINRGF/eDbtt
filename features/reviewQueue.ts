@@ -173,6 +173,7 @@ export type ReviewQueueItem = {
   factcheckContext?: {
     researchMode: string;
     sealDecision: string;
+    requestedAction: string;
     sourceRefCount: number;
     limitationHint: string;
     scopeSummary: string;
@@ -1174,8 +1175,14 @@ async function mapPersistedCreateHandoffItem(params: {
 function includeFactcheckQueueItem(job: FactcheckJobDoc) {
   return (
     job.status === "requested" ||
+    job.status === "queued" ||
+    job.status === "running" ||
     job.status === "provider_review_required" ||
     job.status === "needs_source" ||
+    job.status === "completed" ||
+    job.status === "failed" ||
+    job.status === "cancelled" ||
+    job.status === "needs_manual_review" ||
     job.status === "seal_review_required"
   );
 }
@@ -1200,6 +1207,9 @@ function mapFactcheckQueueItem(params: {
     `${(params.job.sourceRefs ?? []).length} Quellenhinweise`,
     factcheckStatusLabel(params.job.status),
   ];
+  if (params.job.requestedAction) {
+    summaryParts.push(`Aktion: ${params.job.requestedAction}`);
+  }
   if (params.job.factcheckResearchMode !== "none") {
     summaryParts.push(`Research: ${params.job.factcheckResearchMode}`);
   }
@@ -1215,7 +1225,17 @@ function mapFactcheckQueueItem(params: {
     workflowLabel:
       params.job.status === "seal_review_required"
         ? "Siegelentscheidung prüfen"
-        : workflowLabelFor("review_required"),
+        : params.job.status === "queued"
+          ? "Quellenprüfung angefragt"
+          : params.job.status === "running"
+            ? "Quellenprüfung läuft"
+            : params.job.status === "completed"
+              ? "Ergebnis liegt vor"
+              : params.job.status === "needs_manual_review"
+                ? "Manuelle Prüfung erforderlich"
+                : params.job.status === "failed"
+                  ? "Prüfung fehlgeschlagen / erneut prüfen"
+                  : workflowLabelFor("review_required"),
     title:
       params.job.claims?.[0]?.text?.trim() ||
       params.job.inputText.slice(0, 80) ||
@@ -1228,7 +1248,7 @@ function mapFactcheckQueueItem(params: {
     organizationId: params.job.organizationId ?? null,
     dossierId: params.job.dossierId ?? null,
     draftId: params.job.handoffId ?? params.job.draftId ?? null,
-    sourceType: params.job.factcheckResearchMode,
+    sourceType: params.job.requestedAction ?? params.job.factcheckResearchMode,
     visibilityState: "internal_review",
     visibilityLabel: publicationVisibilityLabel("internal_review"),
     createdAt:
@@ -1262,6 +1282,7 @@ function mapFactcheckQueueItem(params: {
       limitationHint:
         params.job.limitations?.[0] ??
         "Kein Auto-Seal, kein Auto-Publish und kein automatischer DeepSearch-Lauf.",
+      requestedAction: params.job.requestedAction ?? "factcheck",
       scopeSummary: [
         params.job.organizationId ? `Organisation ${params.job.organizationId}` : "requester_only",
         params.job.regionId ? `Region ${params.job.regionId}` : "ohne Region",

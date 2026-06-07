@@ -8,6 +8,9 @@ import type { FactVerdict } from "./types";
 import type { SerpResultLite } from "@features/ai/providers/ari_search";
 import type {
   ResearchUsed,
+  SourceSupport,
+  TruthStatus,
+  UserFacingVerificationLabel,
   VerificationMode,
 } from "@features/ai/e150/verificationContract";
 import type {
@@ -23,6 +26,9 @@ export const FACTCHECK_STATUSES = [
   "running",
   "needs_source",
   "completed",
+  "failed",
+  "cancelled",
+  "needs_manual_review",
   "rejected",
   "seal_review_required",
   "sealed",
@@ -90,6 +96,26 @@ export const FACTCHECK_AUDIT_EVENT_TYPES = [
 export type FactcheckAuditEventType =
   (typeof FACTCHECK_AUDIT_EVENT_TYPES)[number];
 
+export const FACTCHECK_SOURCE_TYPES = [
+  "editorial_review_request",
+  "create_analysis",
+  "factcheck_request",
+  "graph_merge_candidate",
+  "dossier_candidate",
+] as const;
+
+export type FactcheckJobSourceType = (typeof FACTCHECK_SOURCE_TYPES)[number];
+
+export const FACTCHECK_REQUESTED_ACTIONS = [
+  "source_check",
+  "factcheck",
+  "deep_research",
+  "sealed_factcheck",
+] as const;
+
+export type FactcheckRequestedAction =
+  (typeof FACTCHECK_REQUESTED_ACTIONS)[number];
+
 export type FactcheckSourceRef = {
   id: string;
   label: string;
@@ -119,13 +145,57 @@ export type FactcheckAccessContext = {
     | "entitlement_missing";
 };
 
+export type FactcheckGateSnapshot = {
+  loginConfirmed: boolean;
+  entitlementConfirmed: boolean;
+  pricingConfirmed: boolean;
+  userConfirmed: boolean;
+  noSilentCost: true;
+};
+
+export type FactcheckProviderMatrix = {
+  requestedAction: FactcheckRequestedAction;
+  searchRequested: boolean;
+  deepResearchRequested: boolean;
+  providerRunAllowed: boolean;
+  deepResearchAllowed: boolean;
+  usedProviders: string[];
+  notes: string[];
+};
+
+export type FactcheckResult = {
+  jobId: string;
+  claims: StatementRecord[];
+  sources: FactcheckSourceRef[];
+  sourceSupport: SourceSupport;
+  sourceStatus: string;
+  truthStatus: TruthStatus;
+  verificationLabel: UserFacingVerificationLabel;
+  researchUsed: ResearchUsed;
+  providerMatrix: FactcheckProviderMatrix | null;
+  disagreement: E150DisagreementMeta | null;
+  confidence: E150ConfidenceMeta | null;
+  reviewRecommended: boolean;
+  summary: string;
+  openQuestions: string[];
+  limitations: string[];
+  noTruthPromotion: true;
+  noAutoGraphPromotion: true;
+};
+
 export type FactcheckJobDoc = {
   _id?: ObjectId;
   jobId: string;
+  sourceType?: FactcheckJobSourceType;
+  sourceId?: string | null;
+  reviewRequestId?: string | null;
+  graphCandidateId?: string | null;
   draftId?: string | null;
   contributionId?: string | null;
   dossierId?: string | null;
   handoffId?: string | null;
+  userId?: string | null;
+  tenantId?: string | null;
   organizationId?: string | null;
   regionId?: string | null;
   requestedByUserId?: string | null;
@@ -136,7 +206,16 @@ export type FactcheckJobDoc = {
   accessContext?: FactcheckAccessContext | null;
   language: string;
   inputText: string;
+  normalizedText?: string | null;
+  requestedAction?: FactcheckRequestedAction;
   status: FactcheckStatus;
+  gate?: FactcheckGateSnapshot | null;
+  truthStatus?: TruthStatus;
+  sourceSupport?: SourceSupport;
+  sourceStatus?: string;
+  verificationLabel?: UserFacingVerificationLabel;
+  providerMatrix?: FactcheckProviderMatrix | null;
+  result?: FactcheckResult | null;
   verdict: FactVerdict;
   confidenceScore: number;
   claims: StatementRecord[];
@@ -161,7 +240,13 @@ export type FactcheckJobDoc = {
   error?: string | null;
   createdAt: Date;
   updatedAt?: Date;
+  completedAt?: Date | null;
   finishedAt?: Date | null;
+  noAutoPublish: true;
+  noAutoGraphPromotion: true;
+  noAutoDossier: true;
+  noAutoAnlassraum: true;
+  noAutoVote: true;
 };
 
 export type FactcheckWorkflowRepo = {
@@ -169,6 +254,7 @@ export type FactcheckWorkflowRepo = {
   get(jobId: string): Promise<FactcheckJobDoc | null>;
   list(): Promise<FactcheckJobDoc[]>;
   listByContributionId(contributionId: string): Promise<FactcheckJobDoc[]>;
+  listByUserId(userId: string, limit?: number): Promise<FactcheckJobDoc[]>;
 };
 
 const JOBS_COLLECTION = "factcheck_jobs";
@@ -226,6 +312,17 @@ function createMongoRepo(): FactcheckWorkflowRepo {
         .toArray();
       return docs.map((doc) => clone(doc));
     },
+    async listByUserId(userId, limit = 20) {
+      const col = await factcheckJobsCol();
+      const docs = await col
+        .find({
+          $or: [{ requestedByUserId: userId }, { userId }],
+        })
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .limit(limit)
+        .toArray();
+      return docs.map((doc) => clone(doc));
+    },
   };
 }
 
@@ -253,6 +350,19 @@ export function createInMemoryFactcheckWorkflowRepo(seed?: {
         .filter((record) => record.contributionId === contributionId)
         .map((record) => clone(record))
         .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
+    },
+    async listByUserId(userId, limit = 20) {
+      return Array.from(records.values())
+        .filter(
+          (record) => record.requestedByUserId === userId || record.userId === userId,
+        )
+        .map((record) => clone(record))
+        .sort((left, right) =>
+          String(right.updatedAt ?? right.createdAt).localeCompare(
+            String(left.updatedAt ?? left.createdAt),
+          ),
+        )
+        .slice(0, limit);
     },
   };
 }

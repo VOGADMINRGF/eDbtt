@@ -5,12 +5,12 @@ import { logger } from "@core/observability/logger";
 import { getFactcheckWorkflowRepo } from "@features/factcheck/db";
 import {
   createFactcheckAuditEvent,
-  deriveFactcheckSealEligibility,
-  deriveFactcheckVerificationMode,
-  factcheckResearchModeToCompatibilityResearchUsed,
   factcheckStatusLabel,
-  factcheckVerificationModeToCompatibilityMode,
 } from "@features/factcheck/workflow";
+import {
+  refreshFactcheckJobState,
+  runFactcheckJob,
+} from "@features/factcheck/jobRunner";
 import {
   canAdministerFactcheckRecord,
   canViewFactcheckRecord,
@@ -39,6 +39,10 @@ const PatchSchema = z
     action: z.enum([
       "queue",
       "approve_provider",
+      "run",
+      "retry",
+      "take_review",
+      "cancel",
       "complete",
       "reject",
       "request_seal",
@@ -71,10 +75,18 @@ function serializeJob(job: Awaited<ReturnType<ReturnType<typeof getFactcheckWork
     jobId: job.jobId,
     status: job.status,
     statusLabel: factcheckStatusLabel(job.status),
+    sourceType: job.sourceType ?? "factcheck_request",
+    sourceId: job.sourceId ?? null,
+    requestedAction: job.requestedAction ?? "factcheck",
+    reviewRequestId: job.reviewRequestId ?? null,
+    userId: job.userId ?? job.requestedByUserId ?? null,
+    tenantId: job.tenantId ?? job.organizationId ?? null,
     verdict: job.verdict,
     confidence: job.confidenceScore,
     language: job.language,
     createdAt: job.createdAt,
+    updatedAt: job.updatedAt ?? job.createdAt,
+    completedAt: job.completedAt ?? job.finishedAt ?? null,
     finishedAt: job.finishedAt ?? null,
     draftId: job.draftId ?? null,
     contributionId: job.contributionId ?? null,
@@ -83,12 +95,17 @@ function serializeJob(job: Awaited<ReturnType<ReturnType<typeof getFactcheckWork
     organizationId: job.organizationId ?? null,
     regionId: job.regionId ?? null,
     requestedByUserId: job.requestedByUserId ?? null,
+    normalizedText: job.normalizedText ?? null,
+    gate: job.gate ?? null,
+    truthStatus: job.truthStatus ?? null,
+    sourceSupport: job.sourceSupport ?? null,
+    sourceStatus: job.sourceStatus ?? null,
     verificationMode: statusView.verificationMode,
     researchUsed: statusView.researchUsed,
     sealEligible: statusView.sealEligible,
     sealGranted: statusView.sealGranted,
     sealedAt: job.sealedAt ?? null,
-    verificationLabel: statusView.verificationLabel,
+    verificationLabel: job.verificationLabel ?? statusView.verificationLabel,
     workflowStage: statusView.workflowStage,
     workflowLabel: statusView.workflowLabel,
     sealStatus: statusView.sealLabel,
@@ -101,9 +118,16 @@ function serializeJob(job: Awaited<ReturnType<ReturnType<typeof getFactcheckWork
     sourceRefs: job.sourceRefs ?? [],
     materialRefs: job.materialRefs ?? [],
     limitations: job.limitations ?? [],
+    providerMatrix: job.providerMatrix ?? null,
+    result: job.result ?? null,
     publicSealVisible: job.publicSealVisible === true,
     accessContext: job.accessContext ?? null,
     auditEvents: job.auditEvents ?? [],
+    noAutoPublish: job.noAutoPublish === true,
+    noAutoGraphPromotion: job.noAutoGraphPromotion === true,
+    noAutoDossier: job.noAutoDossier === true,
+    noAutoAnlassraum: job.noAutoAnlassraum === true,
+    noAutoVote: job.noAutoVote === true,
     lane: "sealed_factcheck" as const,
     journeyProfile: "sealed_factcheck" as const,
   };
@@ -162,7 +186,12 @@ export async function GET(
       job: serializedJob,
       claims: job.claims ?? [],
       serpResults: job.serpResults ?? [],
+      result: serializedJob?.result ?? null,
       error: job.error ?? null,
+      requestedAction: serializedJob?.requestedAction ?? "factcheck",
+      truthStatus: serializedJob?.truthStatus ?? null,
+      sourceSupport: serializedJob?.sourceSupport ?? null,
+      sourceStatus: serializedJob?.sourceStatus ?? null,
       verificationMode: serializedJob?.verificationMode ?? "none",
       researchUsed: serializedJob?.researchUsed ?? "none",
       sealEligible: serializedJob?.sealEligible ?? false,
@@ -178,6 +207,7 @@ export async function GET(
       factcheckSealEligibility: serializedJob?.factcheckSealEligibility ?? "unknown",
       factcheckSealDecision: serializedJob?.factcheckSealDecision ?? "none",
       accessContext: serializedJob?.accessContext ?? null,
+      gate: serializedJob?.gate ?? null,
       meta: {
         lane: "sealed_factcheck",
         journeyProfile: "sealed_factcheck",
@@ -215,7 +245,8 @@ export async function PATCH(
 
     const { jobId } = await resolveParams(ctx.params);
     const payload = PatchSchema.parse(await req.json());
-    const job = await getFactcheckWorkflowRepo().get(jobId);
+    const repo = getFactcheckWorkflowRepo();
+    const job = await repo.get(jobId);
     if (!job) {
       return NextResponse.json(
         { ok: false, code: "NOT_FOUND", message: "Job not found", jobId },
@@ -232,68 +263,120 @@ export async function PATCH(
       : requestScope?.email ?? requestScope?.actorId ?? "Betreiber";
     const actorMode = hasTrustedSystemAccess ? "system" : "operator";
 
+    let nextJob = { ...job };
     switch (payload.action) {
       case "queue":
-        job.status = "queued";
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "queued",
+          updatedAt: now,
+          completedAt: null,
+          finishedAt: null,
+          error: null,
+        });
         break;
       case "approve_provider":
-        job.status = "queued";
-        job.factcheckResearchMode =
-          job.factcheckResearchMode === "deep_research_requested"
-            ? "deep_research_approved"
-            : "provider_assisted";
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "queued",
+          factcheckResearchMode:
+            nextJob.factcheckResearchMode === "deep_research_requested"
+              ? "deep_research_approved"
+              : "provider_assisted",
+          updatedAt: now,
+          completedAt: null,
+          finishedAt: null,
+          error: null,
+        });
+        break;
+      case "run":
+        nextJob = await runFactcheckJob(jobId);
+        break;
+      case "retry":
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "queued",
+          updatedAt: now,
+          completedAt: null,
+          finishedAt: null,
+          error: null,
+        });
+        break;
+      case "take_review":
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "needs_manual_review",
+          updatedAt: now,
+          completedAt: now,
+          finishedAt: now,
+        });
+        break;
+      case "cancel":
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "cancelled",
+          updatedAt: now,
+          completedAt: now,
+          finishedAt: now,
+        });
         break;
       case "complete":
-        job.status = job.factcheckSealDecision === "requested" ? "seal_review_required" : "completed";
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status:
+            nextJob.factcheckSealDecision === "requested"
+              ? "seal_review_required"
+              : "completed",
+          updatedAt: now,
+          completedAt: now,
+          finishedAt: now,
+        });
         break;
       case "reject":
-        job.status = "rejected";
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "rejected",
+          updatedAt: now,
+          completedAt: now,
+          finishedAt: now,
+        });
         break;
       case "request_seal":
-        job.status = "seal_review_required";
-        job.factcheckSealDecision = "requested";
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "seal_review_required",
+          factcheckSealDecision: "requested",
+          updatedAt: now,
+        });
         break;
       case "archive":
-        job.status = "archived";
-        job.publicSealVisible = false;
+        nextJob = refreshFactcheckJobState({
+          ...nextJob,
+          status: "archived",
+          publicSealVisible: false,
+          updatedAt: now,
+          completedAt: nextJob.completedAt ?? now,
+          finishedAt: now,
+        });
         break;
     }
 
-    job.factcheckSealEligibility = deriveFactcheckSealEligibility({
-      status: job.status,
-      hasSourceRefs: (job.sourceRefs ?? []).length > 0,
-      hasClaims: (job.claims ?? []).length > 0,
-    });
-    job.factcheckVerificationMode = deriveFactcheckVerificationMode({
-      status: job.status,
-      researchMode: job.factcheckResearchMode,
-      hasSourceRefs: (job.sourceRefs ?? []).length > 0,
-      sealDecision: job.factcheckSealDecision,
-    });
-    job.verificationMode = factcheckVerificationModeToCompatibilityMode(
-      job.factcheckVerificationMode,
-    );
-    job.researchUsed = factcheckResearchModeToCompatibilityResearchUsed(
-      job.factcheckResearchMode,
-    );
-    job.sealEligible =
-      job.factcheckSealEligibility === "eligible" ||
-      job.factcheckSealEligibility === "needs_review";
-    job.sealGranted = job.factcheckSealDecision === "granted";
-    job.updatedAt = now;
-    job.finishedAt = (
-      ["completed", "rejected", "not_seal_eligible", "sealed", "archived"] as readonly string[]
-    ).includes(job.status)
-      ? now
-      : null;
-    job.auditEvents = [
-      ...(job.auditEvents ?? []),
+    nextJob.auditEvents = [
+      ...(nextJob.auditEvents ?? []),
       createFactcheckAuditEvent({
         eventType:
           payload.action === "queue"
             ? "queue"
             : payload.action === "approve_provider"
               ? "approve-provider"
+              : payload.action === "run"
+                ? "complete"
+                : payload.action === "retry"
+                  ? "queue"
+                  : payload.action === "take_review"
+                    ? "complete"
+                    : payload.action === "cancel"
+                      ? "archive"
               : payload.action === "complete"
                 ? "complete"
                 : payload.action === "reject"
@@ -308,8 +391,8 @@ export async function PATCH(
       }),
     ];
 
-    await getFactcheckWorkflowRepo().save(job);
-    const serializedJob = serializeJob(job);
+    await repo.save(nextJob);
+    const serializedJob = serializeJob(nextJob);
     return NextResponse.json({ ok: true, job: serializedJob });
   } catch (error: any) {
     if (error instanceof ZodError) {
