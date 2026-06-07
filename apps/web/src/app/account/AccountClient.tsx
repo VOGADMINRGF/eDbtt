@@ -42,6 +42,11 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
+import AccountGraphMergeCandidateSection from "./AccountGraphMergeCandidateSection";
+import {
+  readAccountGraphMergeCandidateSlice,
+  type AccountGraphMergeCandidateSlice,
+} from "@features/account/graphCandidateTypes";
 
 // Shared button primitives for consistent contrast across light/dark.
 const primaryButtonClass =
@@ -237,7 +242,7 @@ export type AccountOverview = {
   signature: SignatureInfo;
   features: FeatureFlags;
   featureInterests: AccountFeatureInterestKey[];
-};
+} & AccountGraphMergeCandidateSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -292,6 +297,8 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         chatEnabled={data.features.chatEnabled}
         onRefresh={refreshOverview}
       />
+
+      <AccountGraphMergeCandidateSection candidates={data.graphMergeCandidates ?? []} />
     </div>
   );
 }
@@ -3383,6 +3390,7 @@ function normalizeOverview(src: any): AccountOverview {
     signature,
     features,
     featureInterests,
+    ...readAccountGraphMergeCandidateSlice(src),
   };
 }
 

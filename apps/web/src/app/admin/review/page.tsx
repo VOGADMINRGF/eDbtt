@@ -4,8 +4,10 @@ import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
+import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { loadAdminFactcheckJobs } from "./loadAdminFactcheckJobs";
+import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -128,6 +130,7 @@ export default async function AdminReviewPage({
     },
     filters as Partial<ReviewQueueFilters>,
   );
+  const graphMergeSectionProps = await loadAdminGraphMergeSectionProps();
   const factcheckJobs = await loadAdminFactcheckJobs();
 
   const activeFilterCount = [
@@ -351,6 +354,8 @@ export default async function AdminReviewPage({
         </div>
 
         <AdminFactcheckJobsSection factcheckJobs={factcheckJobs} />
+
+        <AdminGraphMergeCandidatesSection {...graphMergeSectionProps} />
 
         <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">

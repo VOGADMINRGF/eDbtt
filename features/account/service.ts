@@ -167,10 +167,16 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
 
   if (!doc) return null;
 
+  const graphMergeCandidatesPromise = import("./loadAccountGraphMergeCandidates").then(
+    ({ loadAccountGraphMergeCandidates }) =>
+      loadAccountGraphMergeCandidates(String(doc._id), 8),
+  );
+
   const [paymentProfileDoc, signatureDoc] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
   ]);
+  const graphMergeCandidates = await graphMergeCandidatesPromise;
 
   const roles = deriveRoles(doc);
   const accessTier = deriveTier(doc);
@@ -265,6 +271,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     newsletterOptIn: doc.settings?.newsletterOptIn ?? false,
     featureInterests: sanitizeFeatureInterests(doc.settings?.featureInterests ?? []),
     emailVerified: doc.verifiedEmail ?? doc.emailVerified ?? false,
+    graphMergeCandidates,
     verificationLevel: verification.level,
     verificationMethods: verification.methods,
     paymentProfile: paymentProfileDoc
