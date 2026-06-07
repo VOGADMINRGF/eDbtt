@@ -7,6 +7,9 @@ import type {
 } from "@features/ai/e150/journeyProfiles";
 import type {
   ResearchUsed,
+  SourceSupport,
+  TruthStatus,
+  UserFacingVerificationLabel,
   VerificationMode,
 } from "@features/ai/e150/verificationContract";
 
@@ -17,6 +20,11 @@ type VerificationStatusPanelProps = {
   researchUsed?: ResearchUsed | null;
   sealEligible?: boolean | null;
   sealGranted?: boolean | null;
+  verificationLabel?: UserFacingVerificationLabel | null;
+  truthStatus?: TruthStatus | null;
+  sourceSupport?: SourceSupport | null;
+  sourceStatus?: string | null;
+  reviewRecommended?: boolean | null;
   showHint?: boolean;
   className?: string;
 };
@@ -54,6 +62,11 @@ export default function VerificationStatusPanel(props: VerificationStatusPanelPr
     researchUsed: props.researchUsed,
     sealEligible: props.sealEligible,
     sealGranted: props.sealGranted,
+    verificationLabel: props.verificationLabel,
+    truthStatus: props.truthStatus,
+    sourceSupport: props.sourceSupport,
+    sourceStatus: props.sourceStatus,
+    reviewRecommended: props.reviewRecommended,
   });
   const showHint = props.showHint !== false;
 
@@ -64,6 +77,10 @@ export default function VerificationStatusPanel(props: VerificationStatusPanelPr
       <p className="text-[10px] font-semibold uppercase tracking-wide">Status</p>
       <div className="mt-1 flex flex-wrap gap-1.5">
         <Badge text={view.verificationLabelDisplay} tone={view.badgeTone} />
+        <Badge text={`Quellenlage: ${view.sourceSupportLabel}`} />
+        {view.reviewRecommended ? <Badge text="Prüfung empfohlen" tone="caution" /> : null}
+        <Badge text="Noch nicht veröffentlicht" />
+        <Badge text="Keine automatische Graph-Promotion" />
         <Badge text={view.laneLabel} />
         <Badge text={`Recherche: ${view.researchLabel}`} />
         {view.workflowLabel ? <Badge text={`Workflow: ${view.workflowLabel}`} /> : null}

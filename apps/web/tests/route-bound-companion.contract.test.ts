@@ -19,7 +19,8 @@ describe("route-bound companion contract", () => {
     expect(resolved.researchUsed).toBe("none");
     expect(resolved.sealEligible).toBe(false);
     expect(resolved.sealGranted).toBe(false);
-    expect(resolved.verificationLabel).toBe("geprueft");
+    expect(resolved.verificationLabel).toBe("analysiert");
+    expect(resolved.verificationLabelDisplay).toBe("Analyse-Entwurf");
   });
 
   it("keeps standard-lane guardrails even when parent status is inconsistent", () => {
@@ -40,7 +41,8 @@ describe("route-bound companion contract", () => {
     expect(resolved.researchUsed).toBe("none");
     expect(resolved.sealEligible).toBe(false);
     expect(resolved.sealGranted).toBe(false);
-    expect(resolved.verificationLabel).toBe("geprueft");
+    expect(resolved.verificationLabel).toBe("analysiert");
+    expect(resolved.verificationLabelDisplay).toBe("Analyse-Entwurf");
   });
 
   it("keeps sealed_factcheck lane with search defaults", () => {
@@ -54,7 +56,8 @@ describe("route-bound companion contract", () => {
     expect(resolved.researchUsed).toBe("search");
     expect(resolved.sealEligible).toBe(true);
     expect(resolved.sealGranted).toBe(false);
-    expect(resolved.verificationLabel).toBe("geprueft");
+    expect(resolved.verificationLabel).toBe("analysiert");
+    expect(resolved.verificationLabelDisplay).toBe("Quellenprüfung angefragt");
   });
 
   it("marks factcheck companion as verifiziert only when sealGranted is true", () => {
@@ -71,6 +74,7 @@ describe("route-bound companion contract", () => {
 
     expect(resolved.lane).toBe("sealed_factcheck");
     expect(resolved.verificationLabel).toBe("verifiziert");
+    expect(resolved.verificationLabelDisplay).toBe("Verifiziert");
     expect(resolved.sealGranted).toBe(true);
 
     const answer = buildRouteBoundCompanionAnswer({

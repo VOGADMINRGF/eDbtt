@@ -11,7 +11,6 @@ import {
   deriveKnots,
 } from "@features/analyze/questionizers";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
-import { syncAnalyzeResultToGraph } from "@core/graph";
 import { persistEventualitiesSnapshot } from "@core/eventualities";
 import { upsertRunReceipt } from "@/lib/db/runReceiptsRepo";
 import { maskUserId } from "@core/pii/redact";
@@ -20,7 +19,8 @@ import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { buildHeuristicAnalyzeResult } from "@features/analyze/heuristics";
 import {
   buildStandardLaneContract,
-  deriveVerificationLabel,
+  deriveTruthGuardContract,
+  type TruthGuardContract,
   type VerificationContract,
 } from "@features/ai/e150/verificationContract";
 import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
@@ -254,6 +254,156 @@ function resolveMetaRequiresHumanReview(params: {
   );
 }
 
+function buildGraphSyncGuardMeta() {
+  return {
+    attempted: false,
+    mode: "disabled" as const,
+    noAutoPromote: true as const,
+    reason: "draft_analysis_no_productive_truth_promotion",
+  };
+}
+
+type AnalyzeTruthRootFields = {
+  verificationMode: VerificationContract["verificationMode"];
+  researchUsed: VerificationContract["researchUsed"];
+  sealEligible: boolean;
+  sealGranted: boolean;
+  verificationLabel: TruthGuardContract["verificationLabel"];
+  truthStatus: TruthGuardContract["truthStatus"];
+  sourceSupport: TruthGuardContract["sourceSupport"];
+  sourceStatus: TruthGuardContract["sourceStatus"];
+  reviewRecommended: boolean;
+  noTruthPromotion: true;
+  noAutoGraphPromotion: true;
+};
+
+type AnalyzeTruthMetaFields = AnalyzeTruthRootFields & {
+  graphSync: ReturnType<typeof buildGraphSyncGuardMeta>;
+};
+
+type AnalyzeTruthEnvelope<
+  TResult extends Record<string, unknown>,
+  TCreateAnalyze extends { requiresHumanReview: boolean },
+> = {
+  result: TResult;
+  createAnalyze: TCreateAnalyze & {
+    truthStatus: TruthGuardContract["truthStatus"];
+    sourceSupport: TruthGuardContract["sourceSupport"];
+    sourceStatus: TruthGuardContract["sourceStatus"];
+    reviewRecommended: boolean;
+    noTruthPromotion: true;
+    noAutoGraphPromotion: true;
+  };
+  truthGuard: TruthGuardContract;
+  rootFields: AnalyzeTruthRootFields;
+  metaFields: AnalyzeTruthMetaFields;
+};
+
+function resolveTruthGuardForAnalyze(params: {
+  result?: { _meta?: AnalyzeResultWithMeta["_meta"] } | null;
+  verification: VerificationContract;
+  sourceGroundingAudit: ReturnType<typeof finalizeSourceGroundingAudit>;
+  fallbackUsed: boolean;
+  reviewRecommended?: boolean;
+}): TruthGuardContract {
+  return deriveTruthGuardContract({
+    lane: (params.result as any)?._meta?.lane ?? "standard",
+    verificationMode: params.verification.verificationMode,
+    sealGranted: params.verification.sealGranted,
+    fallbackUsed: params.fallbackUsed,
+    disagreement: (params.result as any)?._meta?.disagreement ?? null,
+    confidence: (params.result as any)?._meta?.confidence ?? null,
+    sourceGrounding: params.sourceGroundingAudit,
+    reviewRecommended: params.reviewRecommended,
+  });
+}
+
+function attachTruthGuardToResult<T extends Record<string, unknown>>(
+  result: T,
+  truthGuard: TruthGuardContract,
+) {
+  const currentMeta =
+    typeof (result as { _meta?: unknown })._meta === "object" &&
+    (result as { _meta?: unknown })._meta !== null
+      ? ((result as { _meta?: AnalyzeResultWithMeta["_meta"] })._meta ?? {})
+      : {};
+  (result as T & { _meta: AnalyzeResultWithMeta["_meta"] })._meta = {
+    ...currentMeta,
+    verificationLabel: truthGuard.verificationLabel,
+    truthStatus: truthGuard.truthStatus,
+    sourceSupport: truthGuard.sourceSupport,
+    sourceStatus: truthGuard.sourceStatus,
+    reviewRecommended: truthGuard.reviewRecommended,
+    noTruthPromotion: true,
+    noAutoGraphPromotion: true,
+    graphSync: buildGraphSyncGuardMeta(),
+  };
+  return result;
+}
+
+function attachTruthGuardToCreateAnalyze<T extends { requiresHumanReview: boolean }>(
+  createAnalyze: T,
+  truthGuard: TruthGuardContract,
+) {
+  return {
+    ...createAnalyze,
+    truthStatus: truthGuard.truthStatus,
+    sourceSupport: truthGuard.sourceSupport,
+    sourceStatus: truthGuard.sourceStatus,
+    reviewRecommended: truthGuard.reviewRecommended,
+    requiresHumanReview: createAnalyze.requiresHumanReview || truthGuard.reviewRecommended,
+    noTruthPromotion: true as const,
+    noAutoGraphPromotion: true as const,
+  };
+}
+
+function buildAnalyzeTruthEnvelope<
+  TResult extends Record<string, unknown> & { _meta?: AnalyzeResultWithMeta["_meta"] },
+  TCreateAnalyze extends { requiresHumanReview: boolean },
+>(params: {
+  result: TResult;
+  createAnalyze: TCreateAnalyze;
+  verification: VerificationContract;
+  researchUsed: VerificationContract["researchUsed"];
+  sourceGroundingAudit: ReturnType<typeof finalizeSourceGroundingAudit>;
+  fallbackUsed: boolean;
+  reviewRecommended?: boolean;
+}): AnalyzeTruthEnvelope<TResult, TCreateAnalyze> {
+  const truthGuard = resolveTruthGuardForAnalyze({
+    result: params.result,
+    verification: params.verification,
+    sourceGroundingAudit: params.sourceGroundingAudit,
+    fallbackUsed: params.fallbackUsed,
+    reviewRecommended: params.reviewRecommended,
+  });
+  const result = attachTruthGuardToResult(params.result, truthGuard);
+  const createAnalyze = attachTruthGuardToCreateAnalyze(params.createAnalyze, truthGuard);
+  const rootFields: AnalyzeTruthRootFields = {
+    verificationMode: params.verification.verificationMode,
+    researchUsed: params.researchUsed,
+    sealEligible: params.verification.sealEligible,
+    sealGranted: params.verification.sealGranted,
+    verificationLabel: truthGuard.verificationLabel,
+    truthStatus: truthGuard.truthStatus,
+    sourceSupport: truthGuard.sourceSupport,
+    sourceStatus: truthGuard.sourceStatus,
+    reviewRecommended: truthGuard.reviewRecommended,
+    noTruthPromotion: true,
+    noAutoGraphPromotion: true,
+  };
+
+  return {
+    result,
+    createAnalyze,
+    truthGuard,
+    rootFields,
+    metaFields: {
+      ...rootFields,
+      graphSync: buildGraphSyncGuardMeta(),
+    },
+  };
+}
+
 /**
  * E150 – Contribution-AI
  * - JSON: { ok: true, result: AnalyzeResult }
@@ -437,32 +587,34 @@ export async function POST(req: NextRequest): Promise<Response> {
       sourceGroundingAudit,
       materialRouting,
     });
+    const researchUsed = resolveMetaResearchUsed({ verification, materialRouting });
+    const truthEnvelope = buildAnalyzeTruthEnvelope({
+      result: moderatedResult,
+      createAnalyze,
+      verification,
+      researchUsed,
+      sourceGroundingAudit,
+      fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
+      reviewRecommended: requiresHumanReview,
+    });
 
     return NextResponse.json(
       {
         ok: true,
         degraded: true,
         warning: "Beitrag benötigt Moderation vor der Weiterverwendung.",
-        result: moderatedResult,
+        result: truthEnvelope.result,
         safety,
-        createAnalyze,
-        verificationMode: verification.verificationMode,
-        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
-        sealEligible: verification.sealEligible,
-        sealGranted: verification.sealGranted,
-        verificationLabel: deriveVerificationLabel(verification),
+        createAnalyze: truthEnvelope.createAnalyze,
+        ...truthEnvelope.rootFields,
         meta: {
           runId,
           safety,
           claimSafety,
-          verificationMode: verification.verificationMode,
-          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
           materialIntake: materialManifest?.intake ?? null,
-          sealEligible: verification.sealEligible,
-          sealGranted: verification.sealGranted,
-          verificationLabel: deriveVerificationLabel(verification),
+          ...truthEnvelope.metaFields,
           journeyProfile: routeJourneyProfile.journey,
           lane: routeJourneyProfile.lane,
           roleProviderMapping: {
@@ -472,7 +624,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             openAiRoles: routeJourneyProfile.openAiRoles,
           },
           fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
-          requiresHumanReview,
+          requiresHumanReview: truthEnvelope.createAnalyze.requiresHumanReview,
           materialRouting,
           disagreement: {
             present: false,
@@ -549,30 +701,35 @@ export async function POST(req: NextRequest): Promise<Response> {
       sourceGroundingAudit,
       materialRouting,
     });
+    const researchUsed = resolveMetaResearchUsed({ verification, materialRouting });
+    const truthEnvelope = buildAnalyzeTruthEnvelope({
+      result,
+      createAnalyze,
+      verification,
+      researchUsed,
+      sourceGroundingAudit,
+      fallbackUsed: resolveMaterialFallbackUsed({
+        providerFallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
+        materialRouting,
+      }),
+      reviewRecommended: requiresHumanReview,
+    });
     return NextResponse.json(
       {
         ok: true,
-        result,
+        result: truthEnvelope.result,
         safety,
-        createAnalyze,
-        verificationMode: verification.verificationMode,
-        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
-        sealEligible: verification.sealEligible,
-        sealGranted: verification.sealGranted,
-        verificationLabel: deriveVerificationLabel(verification),
+        createAnalyze: truthEnvelope.createAnalyze,
+        ...truthEnvelope.rootFields,
         meta: {
           runId,
           safety,
           claimSafety,
           providerMatrix,
-          verificationMode: verification.verificationMode,
-          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
           materialIntake: materialManifest?.intake ?? null,
-          sealEligible: verification.sealEligible,
-          sealGranted: verification.sealGranted,
-          verificationLabel: deriveVerificationLabel(verification),
+          ...truthEnvelope.metaFields,
           journeyProfile: (result as any)?._meta?.journeyProfile ?? routeJourneyProfile.journey,
           lane: (result as any)?._meta?.lane ?? routeJourneyProfile.lane,
           roleProviderMapping: (result as any)?._meta?.roleProviderMapping ?? {
@@ -585,7 +742,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             providerFallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
             materialRouting,
           }),
-          requiresHumanReview,
+          requiresHumanReview: truthEnvelope.createAnalyze.requiresHumanReview,
           materialRouting,
           disagreement: (result as any)?._meta?.disagreement ?? {
             present: false,
@@ -659,31 +816,33 @@ export async function POST(req: NextRequest): Promise<Response> {
         sourceGroundingAudit,
         materialRouting,
       });
+      const researchUsed = resolveMetaResearchUsed({ verification, materialRouting });
+      const truthEnvelope = buildAnalyzeTruthEnvelope({
+        result: fallback,
+        createAnalyze,
+        verification,
+        researchUsed,
+        sourceGroundingAudit,
+        fallbackUsed: true,
+        reviewRecommended: requiresHumanReview,
+      });
       return NextResponse.json({
         ok: true,
         fallback: true,
         errorCode: normalized.code,
         message: normalized.message,
-        result: fallback,
+        result: truthEnvelope.result,
         safety,
-        createAnalyze,
-        verificationMode: verification.verificationMode,
-        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
-        sealEligible: verification.sealEligible,
-        sealGranted: verification.sealGranted,
-        verificationLabel: deriveVerificationLabel(verification),
+        createAnalyze: truthEnvelope.createAnalyze,
+        ...truthEnvelope.rootFields,
         meta: {
           runId,
           safety,
           claimSafety,
-          verificationMode: verification.verificationMode,
-          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           materialProvider: materialRouting.materialProvider,
           researchProvider: materialRouting.researchProvider,
           materialIntake: materialManifest?.intake ?? null,
-          sealEligible: verification.sealEligible,
-          sealGranted: verification.sealGranted,
-          verificationLabel: deriveVerificationLabel(verification),
+          ...truthEnvelope.metaFields,
           journeyProfile: routeJourneyProfile.journey,
           lane: routeJourneyProfile.lane,
           roleProviderMapping: {
@@ -693,7 +852,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             openAiRoles: routeJourneyProfile.openAiRoles,
           },
           fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
-          requiresHumanReview,
+          requiresHumanReview: truthEnvelope.createAnalyze.requiresHumanReview,
           materialRouting,
           disagreement: {
             present: false,
@@ -800,20 +959,26 @@ export async function POST(req: NextRequest): Promise<Response> {
         sourceGroundingAudit,
         materialRouting,
       });
+      const researchUsed = resolveMetaResearchUsed({ verification, materialRouting });
+      const truthEnvelope = buildAnalyzeTruthEnvelope({
+        result: degradedResult,
+        createAnalyze,
+        verification,
+        researchUsed,
+        sourceGroundingAudit,
+        fallbackUsed: true,
+        reviewRecommended: requiresHumanReview,
+      });
 
       return NextResponse.json(
         {
           ok: true,
           degraded: true,
           warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
-          result: degradedResult,
+          result: truthEnvelope.result,
           safety,
-          createAnalyze,
-          verificationMode: verification.verificationMode,
-          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
-          sealEligible: verification.sealEligible,
-          sealGranted: verification.sealGranted,
-          verificationLabel: deriveVerificationLabel(verification),
+          createAnalyze: truthEnvelope.createAnalyze,
+          ...truthEnvelope.rootFields,
           meta: {
             runId,
             safety,
@@ -823,14 +988,10 @@ export async function POST(req: NextRequest): Promise<Response> {
             disabledProviders: meta?.disabledProviders ?? meta?.disabled ?? [],
             skippedProviders: meta?.skippedProviders ?? meta?.skipped ?? [],
             probes: meta?.probes ?? [],
-            verificationMode: verification.verificationMode,
-            researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
             materialProvider: materialRouting.materialProvider,
             researchProvider: materialRouting.researchProvider,
             materialIntake: materialManifest?.intake ?? null,
-            sealEligible: verification.sealEligible,
-            sealGranted: verification.sealGranted,
-            verificationLabel: deriveVerificationLabel(verification),
+            ...truthEnvelope.metaFields,
             journeyProfile: routeJourneyProfile.journey,
             lane: routeJourneyProfile.lane,
             roleProviderMapping: {
@@ -840,7 +1001,7 @@ export async function POST(req: NextRequest): Promise<Response> {
               openAiRoles: routeJourneyProfile.openAiRoles,
             },
             fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
-            requiresHumanReview,
+            requiresHumanReview: truthEnvelope.createAnalyze.requiresHumanReview,
             materialRouting,
             disagreement: {
               present: false,
@@ -899,9 +1060,36 @@ function startAnalyzeSseStream(input: AnalyzeJobInput): Response {
           context: input.sourceGrounding,
           result: toSourceGroundingResultInput(result),
         });
+        const verification = buildStandardLaneContract({
+          verificationMode:
+            (result as any)?._meta?.verificationMode === "precheck" ? "precheck" : "none",
+          researchUsed:
+            (result as any)?._meta?.researchUsed === "lite" ||
+            (result as any)?._meta?.researchUsed === "gemini" ||
+            (result as any)?._meta?.researchUsed === "deep_search"
+              ? (result as any)?._meta?.researchUsed
+              : "none",
+        });
+        const truthEnvelope = buildAnalyzeTruthEnvelope({
+          result,
+          createAnalyze: {
+            requiresHumanReview: Boolean((result as any)?._meta?.reviewRecommended),
+          },
+          verification,
+          researchUsed: verification.researchUsed,
+          sourceGroundingAudit,
+          fallbackUsed: Boolean((result as any)?._meta?.fallbackUsed),
+          reviewRecommended: Boolean((result as any)?._meta?.reviewRecommended),
+        });
 
         sendProgress("finalizing", 85);
-        sendEvent("result", { result, meta: { sourceGrounding: sourceGroundingAudit } });
+        sendEvent("result", {
+          result: truthEnvelope.result,
+          meta: {
+            sourceGrounding: sourceGroundingAudit,
+            ...truthEnvelope.metaFields,
+          },
+        });
         sendProgress("complete", 100);
         controller.close();
       } catch (error) {
@@ -995,6 +1183,8 @@ async function finalizeResultPayload(
     eventualitiesReviewedAt: snapshot?.reviewedAt
       ? snapshot.reviewedAt.toISOString()
       : null,
+    noAutoGraphPromotion: true,
+    graphSync: buildGraphSyncGuardMeta(),
   };
 
   const runReceipt = (result as any)?.runReceipt;
@@ -1007,18 +1197,6 @@ async function finalizeResultPayload(
       });
     });
   }
-
-  syncAnalyzeResultToGraph({
-    result,
-    sourceId: input.contributionId,
-    locale: input.locale,
-  }).catch((err) => {
-    logErrorSafe({
-      msg: "analyze.route.graph_sync_failed",
-      contributionId: input.contributionId,
-      err: err instanceof Error ? err.message : String(err),
-    });
-  });
 
   return result;
 }
@@ -1168,8 +1346,6 @@ const FALLBACK_ELIGIBLE_CODES = new Set([
   "MISSING_ENV",
   "INVALID_AI_RESPONSE",
   "ANALYZE_FAILED",
-  "BAD_JSON",
-  "ANALYZE_PROVIDER_FAILED",
 ]);
 
 function shouldUseFallback(err: unknown) {

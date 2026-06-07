@@ -14,7 +14,12 @@ import {
 } from "@features/ai/orchestratorE150";
 import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
-import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+import {
+  deriveTruthGuardContract,
+  deriveVerificationLabel,
+  type SourceSupport,
+  type TruthStatus,
+} from "@features/ai/e150/verificationContract";
 import {
   normalizePresentationText,
   normalizePresentationTextList,
@@ -667,6 +672,7 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
     fallbackUsed?: boolean;
     disagreement?: {
       present: boolean;
+      insufficientIndependentSuccess?: boolean;
       specialistAgreementScore?: number;
       specialistAgreement?: "high" | "mixed" | "low";
       missingSpecialists?: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
@@ -690,6 +696,18 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
     sealEligible?: boolean;
     sealGranted?: boolean;
     verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
+    truthStatus?: TruthStatus;
+    sourceSupport?: SourceSupport;
+    sourceStatus?: string;
+    reviewRecommended?: boolean;
+    noTruthPromotion?: true;
+    noAutoGraphPromotion?: true;
+    graphSync?: {
+      attempted: boolean;
+      mode: "disabled";
+      noAutoPromote: true;
+      reason: string;
+    };
     tonePassUsed?: boolean;
     presentationPass?: {
       attempted: boolean;
@@ -1078,6 +1096,17 @@ throw e;
         journeyProfile.verificationDefaults.verificationMode,
       sealGranted:
         orchestration.meta.sealGranted ?? journeyProfile.verificationDefaults.sealGranted,
+    }),
+    ...deriveTruthGuardContract({
+      lane: orchestration.meta.lane ?? journeyProfile.lane,
+      verificationMode:
+        orchestration.meta.verificationMode ??
+        journeyProfile.verificationDefaults.verificationMode,
+      sealGranted:
+        orchestration.meta.sealGranted ?? journeyProfile.verificationDefaults.sealGranted,
+      fallbackUsed: orchestration.meta.fallbackUsed ?? false,
+      disagreement: orchestration.meta.disagreement,
+      confidence: orchestration.meta.confidence,
     }),
     routeClassification,
     trace: { providerUsed: orchestration.best?.provider ?? null, jsonCoercion },

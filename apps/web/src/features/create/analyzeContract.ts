@@ -108,6 +108,19 @@ export type CreateAnalyzeResponse = {
   confidence: number;
   uncertaintyFlags: string[];
   requiresHumanReview: boolean;
+  truthStatus?:
+    | "draft_analysis"
+    | "source_open"
+    | "source_grounded"
+    | "review_required"
+    | "factcheck_requested"
+    | "factcheck_passed"
+    | "sealed_verified";
+  sourceSupport?: "none" | "open" | "inferred" | "partial" | "sourced" | "sealed";
+  sourceStatus?: string;
+  reviewRecommended?: boolean;
+  noTruthPromotion?: true;
+  noAutoGraphPromotion?: true;
   noAutoPublish: true;
   noSilentMerge: true;
   safety?: CreateInputSafetyResult;

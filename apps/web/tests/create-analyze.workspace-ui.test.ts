@@ -6,6 +6,7 @@ import {
   collectCreateAnalyzeReasons,
   deriveSourceGroundingUiHint,
   deriveCreateAnalyzeRoutingHint,
+  resolveAnalyzeVerificationCtas,
   resolveFinalizeRedirectTarget,
   shouldRenderCompactEmbeddedWorkspaceHeader,
   shouldHydrateDraftIdentityFromStorage,
@@ -207,6 +208,25 @@ describe("create analyze workspace UI helpers", () => {
     expect(review?.uiLocale).toBe("de");
     expect(typeof review?.userConfirmedAt).toBe("string");
     expect(review?.reasons.length).toBeGreaterThan(0);
+  });
+
+  it("exposes review and source-check CTas only for review-recommended analysis drafts", () => {
+    expect(
+      resolveAnalyzeVerificationCtas({
+        reviewRecommended: true,
+        sourceSupport: "none",
+      }),
+    ).toEqual([
+      { label: "Redaktionelle Prüfung anfragen", href: "/start?review=editorial" },
+      { label: "Quellenprüfung vorbereiten", href: "/factcheck" },
+    ]);
+
+    expect(
+      resolveAnalyzeVerificationCtas({
+        reviewRecommended: false,
+        sourceSupport: "none",
+      }),
+    ).toEqual([]);
   });
 
   it("prefers handoff sourceRunId to keep analyze -> CTA transfer stable", () => {
