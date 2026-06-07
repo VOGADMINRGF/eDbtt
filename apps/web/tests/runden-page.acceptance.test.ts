@@ -86,13 +86,14 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Schritt 1");
     expect(html).toContain("Schritt 2");
     expect(html).toContain("Schritt 3");
-    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.");
+    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Entscheidung. KI nur, wenn du willst.");
+    expect(html).toContain("Starte einen Anlassraum, wenn aus einem Anliegen eine nachvollziehbare Frage mit Optionen werden soll.");
     expect(html).toContain("Neuen Anlassraum anlegen");
     expect(html).toContain("Bestehenden Anlass weiterführen");
-    expect(html).toContain("Ergebnisse ansehen");
-    expect(html).toContain("Was Menschen einreichen können");
+    expect(html).toContain("Gesprächsraum");
+    expect(html).toContain("Beiträge");
     expect(html).toContain("Sichtbarkeit &amp; Review");
-    expect(html).toContain("Weiterarbeiten mit /create oder Dossier");
+    expect(html).toContain("Schnellstart");
     expect(html).toContain("Ersten Beitrag vorbereiten");
     expect(html).toContain("Mehr erfahren");
     expect(html).toContain('href="/runden/demo"');
@@ -101,7 +102,7 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Stand sichtbar weiterführen");
     expect(html).toContain("Voxy begleitet den Einstieg");
     expect(html).toContain('data-voxy-appearance="hero"');
-    expect(html).toContain("Du startest mit dem Rahmen. Thema, Optionen und Sichtbarkeit zuerst. Alles Weitere bleibt optional.");
+    expect(html).toContain("Du startest mit dem Rahmen. Alles Weitere bleibt optional.");
     expect(html).not.toContain("Neu starten in /create");
     expect(html).not.toContain("Laufendes in /runden");
     expect(html).not.toContain("Ansicht");
@@ -117,7 +118,7 @@ describe("/runden acceptance states", () => {
     expect(heroStart).toBeGreaterThan(-1);
     expect(modulesStart).toBeGreaterThan(heroStart);
     const heroSlice = heroStart >= 0 && modulesStart > heroStart ? html.slice(heroStart, modulesStart) : "";
-    expect(heroSlice).not.toContain("Was Menschen einreichen können");
+    expect(heroSlice).not.toContain("Gesprächsraum");
     expect(heroSlice).not.toContain("Sichtbarkeit &amp; Review");
   });
 
@@ -193,7 +194,7 @@ describe("/runden acceptance states", () => {
 
     expect(html).toContain("Laufende Anlässe");
     expect(html).toContain("Anlass öffnen");
-    expect(html).toContain("Arbeitsbereiche");
+    expect(html).toContain("Anlassräume");
     expect(html).not.toContain("In /create weiter vorbereiten");
   });
 
@@ -233,16 +234,14 @@ describe("/runden acceptance states", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("eDebatte Anlassraum");
-    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.");
-    expect(html).toContain("Starte einen Anlassraum, wenn aus einem Anliegen eine nachvollziehbare Frage mit Optionen werden soll.");
+    expect(html).toContain("Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Entscheidung. KI nur, wenn du willst.");
     expect(html).toContain("Neuen Anlassraum anlegen");
     expect(html).toContain('href="/runden/new"');
     expect(html).toContain("Bestehenden Anlass weiterführen");
-    expect(html).toContain("Ergebnisse ansehen");
-    expect(html).toContain("Was Menschen einreichen können");
-    expect(html).toContain("So funktioniert ein Anlassraum");
+    expect(html).toContain("Gesprächsraum");
+    expect(html).toContain("Beiträge");
     expect(html).toContain("Voxy begleitet den Einstieg");
-    expect(html).toContain("Du startest mit dem Rahmen. Thema, Optionen und Sichtbarkeit zuerst. Alles Weitere bleibt optional.");
+    expect(html).toContain("Du startest mit dem Rahmen. Alles Weitere bleibt optional.");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Meine Anlässe");
     expect(html).not.toContain("Verwalten");
@@ -291,7 +290,7 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Arbeitsbereiche");
+    expect(html).toContain("Anlassräume");
     expect(html).toContain("Meine Anlässe");
     expect(html).not.toContain(">Verwalten<");
   });
@@ -386,7 +385,7 @@ describe("/runden acceptance states", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("data-round-quick-actions=\"participant\"");
-    expect(html).toContain("Beitrag verfassen");
+    expect(html).toContain("Beitrag vorbereiten");
     expect(html).toContain("id=\"compose-seed-active\"");
     expect(html).toContain("QR und Verteilung stehen für berechtigte Rollen");
     expect(html).not.toContain("Teilnahme öffnen");
@@ -472,7 +471,7 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("data-round-quick-actions=\"manager\"");
     expect(html).toContain("lg:grid-cols-4");
     expect(html).toContain("Teilnahme öffnen");
-    expect(html).toContain("Arbeitsstand pflegen");
+    expect(html).toContain("Stand weiterführen");
     expect(html).toContain("Teilnahmekontext: Runde");
     expect(html).toContain("Teilnahmelink kopieren");
     expect(html).toContain("Teilnahme per QR öffnen");

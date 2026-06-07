@@ -26,12 +26,12 @@ import {
 } from "@/features/b2cJourney/statusContract";
 import MotionReveal from "@/components/motion/MotionReveal";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
-import { VOXY_COPY } from "@/features/voxy/voxyCopy";
+import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 
 export const metadata: Metadata = {
   title: "Anlassraum - eDebatte",
   description:
-    "Öffentlicher Themenraum für Beteiligung, Teilen per Link oder QR und reviewpflichtige Weiterführung.",
+    "Ein Anlassraum sammelt Hinweise, Fragen, Quellen und Optionen an einem Ort.",
 };
 
 type RoundEntryView = "active" | "mine" | "results";
@@ -117,14 +117,14 @@ function buildStartCards(params: {
     {
       href: buildCreateIntentHref(),
       title: "Neuen Anlassraum anlegen",
-      body: "Rahmen, Optionen und Sichtbarkeit zuerst selbst festlegen. KI bleibt optional.",
+      body: "Starte mit Thema, Fragen und Optionen. Details und Sichtbarkeit folgen Schritt für Schritt.",
       cta: "Anlegen",
       priority: "primary" as const,
     },
     {
       href: params.existingHref ?? viewHref("active"),
       title: "Bestehenden Anlass weiterführen",
-      body: "Aktive Anlässe pflegen, Rückmeldungen bündeln und den aktuellen Stand sichtbar halten.",
+      body: "Öffne einen laufenden Anlass und bündele Hinweise, Rückfragen und den aktuellen Stand.",
       cta: "Weiterführen",
       priority: params.hasActiveEntries ? ("secondary" as const) : ("tertiary" as const),
     },
@@ -132,7 +132,7 @@ function buildStartCards(params: {
       href: resultsHref,
       title: "Ergebnisse ansehen",
       body:
-        "Sobald ein Anlass gewachsen ist, werden Arbeitsstand, Dossier und spätere Ergebnisse nachvollziehbar sichtbar.",
+        "Wenn ein Anlass weiter gewachsen ist, bleiben Zusammenfassung, Dossier und spätere Ergebnisse sichtbar.",
       cta: "Ansehen",
       priority: params.hasClosedEntries ? ("secondary" as const) : ("tertiary" as const),
     },
@@ -170,7 +170,7 @@ function publicShareStateLabel(entry: RundenEntryItem): string {
     case "share_active":
       return "Link und QR aktiv";
     case "ready_for_visibility_decision":
-      return "Freigabe für Link/QR offen";
+      return "Link oder QR kann freigegeben werden";
     case "paused":
       return "öffentlich pausiert";
     case "archived":
@@ -179,7 +179,7 @@ function publicShareStateLabel(entry: RundenEntryItem): string {
       return "öffentlich geschlossen";
     case "review_only":
     default:
-      return entry.shareActions ? "Link und QR aktiv" : "intern / review-only";
+      return entry.shareActions ? "Link und QR aktiv" : "erst intern sichtbar";
   }
 }
 
@@ -187,17 +187,17 @@ function publicShareHintForEntry(entry: RundenEntryItem): string {
   return (
     entry.publicShareHint ||
     (entry.shareActions
-      ? "Link, Share und QR sind bewusst freigegeben und bleiben review-first statt automatisch amtlich."
-      : "Review-only bleibt intern. Öffentliche Links und QR erscheinen erst nach bewusster Freigabe.")
+      ? "Link und QR sind bewusst freigegeben. Nichts wird automatisch amtlich oder verbindlich dargestellt."
+      : "Der Anlass bleibt zuerst intern. Öffentliche Links und QR erscheinen erst nach bewusster Freigabe.")
   );
 }
 
 function feedSourceHint(entry: RundenEntryItem): string | null {
   if (entry.sourceMode === "feed") {
-    return "Quellenhinweis aus dem Feed-Radar: Der Anlass wurde aus abgerufenen Signalen vorbereitet und bleibt review-first.";
+    return "Quellenhinweis aus dem Feed-Radar: Der Anlass wurde aus mehreren Signalen vorbereitet und bleibt zuerst in Prüfung.";
   }
   if (entry.sourceMode === "cluster") {
-    return "Themenbündel aus dem Feed-Radar: Mehrere Hinweise wurden zu einem gemeinsamen Anlass verdichtet.";
+    return "Themenbündel aus dem Feed-Radar: Mehrere Hinweise wurden zu einem gemeinsamen Anlass zusammengeführt.";
   }
   return null;
 }
@@ -228,13 +228,13 @@ function RoundJourneyMeta(props: { entry: RundenEntryItem }) {
           </span>
         ))}
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1">
-          Beteiligung:{" "}
+          Mitmachen:{" "}
           {props.entry.publicShareState === "share_active"
             ? "möglich"
             : props.entry.publicShareState === "ready_for_visibility_decision"
               ? "wartet auf Freigabe"
               : props.entry.publicShareState === "review_only"
-                ? "erst nach Review"
+                ? "erst nach Prüfung"
                 : "aktuell nicht offen"}
         </span>
       </div>
@@ -245,7 +245,7 @@ function RoundJourneyMeta(props: { entry: RundenEntryItem }) {
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
             {props.entry.reviewState === "pending"
               ? "Neue oder ungeprüfte Eingaben bleiben in Prüfung, bevor daraus mehr Sichtbarkeit entsteht."
-              : "Dieser Anlass hat bereits einen bewussten Review- oder Sichtbarkeitsschritt durchlaufen."}
+              : "Dieser Anlass hat bereits einen bewussten Prüf- oder Sichtbarkeitsschritt durchlaufen."}
           </p>
         </div>
         <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
@@ -290,7 +290,7 @@ function RoundJourneyMeta(props: { entry: RundenEntryItem }) {
           )}
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
             {props.entry.relatedStreamStatusLabel
-              ? `${props.entry.relatedStreamStatusLabel}: Fragen und Hinweise laufen im Stream reviewpflichtig ein.`
+              ? `${props.entry.relatedStreamStatusLabel}: Fragen und Hinweise laufen im Stream mit Prüfung ein.`
               : "Wenn ein öffentlicher Event- oder Streamkontext offen ist, führt er in denselben Anlassraum- und Dossierpfad."}
           </p>
         </div>
@@ -327,7 +327,7 @@ function RoundQuickActions(props: {
           href={`/login?next=${encodeURIComponent(createHref)}`}
           className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
         >
-          Beitrag verfassen
+          Beitrag vorbereiten
         </Link>
         <Link
           href={openHref}
@@ -358,13 +358,13 @@ function RoundQuickActions(props: {
             href={composeAnchorHref}
             className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
           >
-            Beitrag verfassen
+            Beitrag vorbereiten
           </a>
           <Link
             href={props.entry.intakeHref ?? viewHref("active")}
             className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
           >
-            Arbeitsstand pflegen
+            Stand weiterführen
           </Link>
           <Link
             href={resultsHref}
@@ -392,7 +392,7 @@ function RoundQuickActions(props: {
           href={composeAnchorHref}
           className="vog-btn-brand"
         >
-          Beitrag verfassen
+          Beitrag vorbereiten
         </a>
         <Link
           href={openHref}
@@ -428,10 +428,10 @@ function RoundInlineContributionModule(props: {
   return (
     <section id={composeId} className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-        Beitrag verfassen
+        Beitrag vorbereiten
       </p>
       <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-        Schnellstart im Kontext dieses laufenden Anlasses. Hinweis, Frage, Beitrag oder Widerspruch werden direkt in den passenden Arbeitsstand geführt.
+        Schnellstart im Kontext dieses laufenden Anlasses. Hinweis, Frage oder Widerspruch werden direkt in den passenden Anlass geführt.
       </p>
       <form action="/create" method="get" className="mt-3 space-y-2">
         <input type="hidden" name="mode" value="source" />
@@ -455,7 +455,7 @@ function RoundInlineContributionModule(props: {
             type="submit"
             className="vog-btn-brand"
           >
-            Beitrag verfassen
+            Beitrag vorbereiten
           </button>
           <Link
             href={createHref}
@@ -486,7 +486,7 @@ function RoundParticipationModule(props: {
       <h4 className="text-sm font-semibold text-[rgb(var(--fg))]">Teilnahme öffnen</h4>
       <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
         Mit QR oder Link führst du Menschen direkt in diesen Anlass. So fließen Rückmeldungen mobil, vor Ort oder digital
-        in genau den richtigen Arbeitsstand.
+        an genau die richtige Stelle.
       </p>
       <RundenShareActions share={props.entry.shareActions} />
     </section>
@@ -676,16 +676,20 @@ export default async function RundenPage({
     featured && canQrFeatured ? `share-${featured.id}` : null;
   const firstScreenGuideCards = [
     {
-      title: "Was Menschen einreichen können",
-      body: "Hinweise, Widerspruch, Quellen und Ergänzungen lassen sich gezielt in denselben Anlass einbringen.",
+      title: "Gesprächsraum",
+      body: "Ein Anlassraum hält das gemeinsame Thema als klaren Gesprächsraum zusammen, statt Hinweise zu verstreuen.",
+    },
+    {
+      title: "Beiträge",
+      body: "Fragen, Quellen, Perspektiven und Optionen bleiben an derselben Stelle sichtbar und prüfbar.",
     },
     {
       title: "Sichtbarkeit & Review",
-      body: "Öffentlichkeit, Prüfung und spätere Freigaben bleiben getrennte Entscheidungen.",
+      body: "Öffentlich sichtbar wird nur, was bewusst freigegeben oder nach Review weitergeführt wird.",
     },
     {
-      title: "Weiterarbeiten mit /create oder Dossier",
-      body: "Wenn der Rahmen steht, kannst du Quellen, Frage oder Optionen später weiter ausarbeiten.",
+      title: "Schnellstart",
+      body: "Du kannst mit einem neuen Anlassraum beginnen oder einen bestehenden Anlass gezielt weiterführen.",
     },
   ] as const;
 
@@ -702,37 +706,31 @@ export default async function RundenPage({
         <div className="public-reader-grid relative lg:min-h-[26.5rem]">
           <MotionReveal delay={0.04}>
             <div className="public-voxy-rail order-2 lg:order-1">
-              <VoxyGuide appearance="hero" title="Voxy begleitet den Einstieg" variant="open">
-                <p>{VOXY_COPY.rundenHero}</p>
+              <VoxyGuide
+                appearance="hero"
+                title="Voxy begleitet den Einstieg"
+                variant="open"
+              >
+                <p>{RUNDEN_VOXY_COPY.rundenHero}</p>
               </VoxyGuide>
             </div>
           </MotionReveal>
 
           <div className="public-dialog-area order-1 space-y-5 lg:order-2">
-            <div className="space-y-2">
+            <div className="public-color-rail space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                 eDebatte Anlassraum
               </p>
-              <h1
-                className="text-3xl font-semibold leading-tight md:text-4xl"
-                style={{
-                  backgroundImage: `linear-gradient(120deg,
-                    rgba(var(--fg),0.98) 0%,
-                    rgba(var(--grad-to),0.82) 92%)`,
-                  WebkitBackgroundClip: "text",
-                  color: "transparent",
-                }}
-              >
-                Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Wahl.
+              <h1 className="no-grad public-hero-title runden-hero-title font-semibold leading-tight">
+                Ein Thema. Klare Optionen. Sichtbarkeit nach deiner Entscheidung. KI nur, wenn du willst.
               </h1>
 
-              <p className="max-w-3xl text-base leading-7 text-[rgb(var(--fg))] md:text-[1.05rem]">
+              <p className="public-hero-lead max-w-3xl text-[rgb(var(--fg))]">
                 Starte einen Anlassraum, wenn aus einem Anliegen eine nachvollziehbare Frage mit Optionen werden soll.
-                KI, Prüfung und Dossier kommen nur dazu, wenn du sie auswählst.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-1">
+            <div className="public-action-row pt-1">
               <Link href={startCards[0].href} className="vog-btn-brand">
                 Neuen Anlassraum anlegen
               </Link>
@@ -752,11 +750,11 @@ export default async function RundenPage({
             {createIntent ? (
               <div className="public-flow-line p-4">
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  Schlanker Start für Anlassraum oder Event
+                  Schlanker Start für deinen Anlassraum
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                   Für den ersten Schritt reichen Titel, Wirkraum und Ziel. Ein Zeitraum ist optional.
-                  Alles startet review-first und ohne automatische Veröffentlichung.
+                  Alles bleibt zunächst als Entwurf und wird nicht automatisch veröffentlicht.
                 </p>
               </div>
             ) : null}
@@ -770,10 +768,10 @@ export default async function RundenPage({
         </div>
       </header>
 
-      <section className="grid gap-3 lg:grid-cols-3" data-runden-primary-modules="true">
+      <section className="grid gap-3 lg:grid-cols-4" data-runden-primary-modules="true">
         {firstScreenGuideCards.map((card) => (
-          <section key={card.title} className="public-flow-line p-4 md:p-5">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</p>
+          <section key={card.title} className="runden-step-line p-4 md:p-5">
+            <p className="public-section-title text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{card.body}</p>
           </section>
         ))}
@@ -840,7 +838,10 @@ export default async function RundenPage({
 
       {isSignedIn && (
         <section className="space-y-3">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Arbeitsbereiche</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Anlässe führen
+          </p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Anlassräume</p>
 
           <nav aria-label="Rundenbereiche" className="overflow-x-auto pb-1">
             <div className="inline-flex min-w-full gap-1 rounded-lg border bg-[rgb(var(--card))] p-1">
@@ -888,13 +889,12 @@ export default async function RundenPage({
             Noch kein Anlass aktiv
           </h2>
           <p className="mt-2">
-            Nutze den Arbeitsstart in drei Schritten. Sobald ein Anlass läuft, wird dieser Bereich zur operativen
-            Fläche für Beiträge, Verteilung und Status.
+            Nutze den Einstieg in drei Schritten. Sobald ein Anlass läuft, findest du hier Beiträge, Teilnahme und den aktuellen Stand.
           </p>
           <ol className="mt-4 grid gap-3 md:grid-cols-3">
             <li className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 1</p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Anlass öffnen</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Anlassraum starten</p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                 Ein Thema, eine Frage oder ein Konflikt bekommt einen eigenen Raum.
               </p>
@@ -911,7 +911,7 @@ export default async function RundenPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 3</p>
               <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Stand sichtbar weiterführen</p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                Beiträge werden gebündelt statt verstreut, damit daraus ein nachvollziehbarer Arbeitsstand entstehen
+                Beiträge werden gebündelt statt verstreut, damit daraus ein nachvollziehbarer Stand entstehen
                 kann.
               </p>
             </li>
@@ -921,7 +921,7 @@ export default async function RundenPage({
               href="/runden/new"
               className="vog-btn-brand"
             >
-              Neuen Anlassraum anlegen
+              Anlassraum starten
             </Link>
             <Link
               href={`/create?${new URLSearchParams({
@@ -955,7 +955,7 @@ export default async function RundenPage({
                 Laufende Anlässe
               </h2>
               <p className="text-sm text-[rgb(var(--muted))]">
-                Hier führst du laufende Anlässe weiter, bündelst Rückmeldungen und hältst den Arbeitsstand nachvollziehbar.
+                Hier führst du laufende Anlässe weiter, bündelst Rückmeldungen und hältst den Stand nachvollziehbar.
               </p>
             </div>
 
@@ -963,7 +963,7 @@ export default async function RundenPage({
               href="/runden/new"
               className="inline-flex w-full items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))] sm:w-auto"
             >
-              Neuen Anlassraum anlegen
+              Anlassraum starten
             </Link>
           </div>
 
@@ -1042,7 +1042,7 @@ export default async function RundenPage({
                       href={featured.intakeHref}
                       className="mt-2 block w-full text-center text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                     >
-                      Anlass weiter vorbereiten
+                      Stand weiterführen
                     </Link>
                   ) : null}
 
@@ -1126,7 +1126,7 @@ export default async function RundenPage({
                             href={entry.intakeHref}
                             className="mt-3 inline-block text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                           >
-                            Anlass weiter vorbereiten
+                            Stand weiterführen
                           </Link>
                         ) : null}
 

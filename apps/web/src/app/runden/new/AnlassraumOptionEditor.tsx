@@ -30,7 +30,7 @@ export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProp
           </p>
           <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Optionen</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-            Lege feste Antwortoptionen zuerst selbst an. So bleibt der Anlass verständlich und kontrollierbar.
+            Lege feste Antwortoptionen zuerst selbst an. Community-Vorschläge können den Raum später ergänzen.
           </p>
         </div>
         <span className="vog-chip">

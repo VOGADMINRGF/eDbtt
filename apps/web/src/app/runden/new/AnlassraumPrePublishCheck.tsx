@@ -19,7 +19,15 @@ export default function AnlassraumPrePublishCheck(
 ) {
   return (
     <section className="public-proof-zone">
-      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Nächste Schritte</h2>
+        <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+          Prüfe den Entwurf zum Schluss noch einmal. Danach kannst du ihn ohne KI speichern, in `/create`
+          weiter ausarbeiten oder bewusst nach Review einreichen.
+        </p>
+      </div>
+
+      <div className="runden-step-line rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
           Vor dem Start
         </p>
@@ -62,7 +70,7 @@ export default function AnlassraumPrePublishCheck(
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="public-action-row mt-4">
         <button
           type="button"
           onClick={props.onSaveDraft}
@@ -70,22 +78,6 @@ export default function AnlassraumPrePublishCheck(
           className="vog-btn-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
           Ohne KI speichern
-        </button>
-        <button
-          type="button"
-          onClick={props.onStartInternal}
-          disabled={!props.actionState.canStartInternal}
-          className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Intern starten
-        </button>
-        <button
-          type="button"
-          onClick={props.onSubmitPublicReview}
-          disabled={!props.actionState.canSubmitPublicReview}
-          className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Öffentlich nach Review einreichen
         </button>
         <Link
           href={props.continueCreateHref}
@@ -100,6 +92,22 @@ export default function AnlassraumPrePublishCheck(
         >
           Mit KI in /create weiter
         </Link>
+        <button
+          type="button"
+          onClick={props.onSubmitPublicReview}
+          disabled={!props.actionState.canSubmitPublicReview}
+          className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Öffentlich nach Review einreichen
+        </button>
+        <button
+          type="button"
+          onClick={props.onStartInternal}
+          disabled={!props.actionState.canStartInternal}
+          className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Intern starten
+        </button>
       </div>
     </section>
   );

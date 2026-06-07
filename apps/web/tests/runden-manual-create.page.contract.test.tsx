@@ -36,10 +36,12 @@ import AnlassraumOptionEditor from "@/app/runden/new/AnlassraumOptionEditor";
 import AnlassraumVisibilitySettings from "@/app/runden/new/AnlassraumVisibilitySettings";
 
 describe("/runden/new manual create contract", () => {
-  it("renders all four manual setup steps with one prominent Voxy guide and inline markers", () => {
+  it("renders the guided manual setup sequence with one prominent Voxy guide and inline markers", () => {
     const html = renderToStaticMarkup(<RundenManualCreatePage />);
 
-    expect(html).toContain("Anlassraum zuerst manuell aufsetzen");
+    expect(html).toContain("Bereite deinen");
+    expect(html).toContain("Anlassraum");
+    expect(html).toContain("Schritt für Schritt");
     expect(html).toContain("Schritt 1");
     expect(html).toContain("Rahmen");
     expect(html).toContain("Schritt 2");
@@ -51,7 +53,6 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain("Ohne KI speichern");
     expect(html).toContain("Mit KI in /create weiter");
     expect(html).toContain("Öffentlich nach Review einreichen");
-    expect(html).toContain("Intern starten");
     expect(html).toContain('data-manual-anlassraum-stepper="true"');
 
     expect(html).toContain('data-voxy-appearance="panel"');
@@ -60,10 +61,12 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain('data-manual-anlassraum-voxy-step="sichtbarkeit"');
     expect(html).toContain('data-manual-anlassraum-voxy-step="unterstuetzung"');
     expect((html.match(/data-voxy-guide=/g) ?? []).length).toBe(1);
+    expect(html).toContain("Ich führe dich Schritt für Schritt durch den Entwurf.");
     expect(html).toContain("Noch keine perfekte Formulierung nötig. Lege erst den Rahmen fest.");
     expect(html).toContain("Feste Optionen geben Kontrolle. Community-Vorschläge machen den Raum offener.");
     expect(html).toContain("Öffentlich heißt nicht automatisch geprüft. Du bestimmst, wann sichtbar wird.");
-    expect(html).toContain("KI bleibt optional. Nichts wird automatisch veröffentlicht.");
+    expect(html).toContain("KI, Graph und Dossier bleiben optional. Nichts startet automatisch.");
+    expect(html).toContain("KI, Graph und Dossier bleiben optionale Hilfe. Nichts davon startet automatisch.");
     expect(html).not.toContain("Du bist im Überblick. Quellen und Prüfung findest du im Prüfmodus.");
   });
 
@@ -138,5 +141,16 @@ describe("/runden/new manual create contract", () => {
     expect(sources[0]).toContain("rgb(var(--fg))");
     expect(sources[0]).toContain("rgb(var(--muted))");
     expect(sources[0]).toContain("rgb(var(--border))");
+  });
+
+  it("keeps the round start draft status compact and draft-only", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/app/runden/new/AnlassraumSetupForm.tsx"), "utf8");
+
+    expect(source).toContain("GlobalDraftStatusBar");
+    expect(source).toContain("Runde aus Analyse-Entwurf vorbereiten");
+    expect(source).toContain("Optionen ergänzen");
+    expect(source).toContain("Entwurf verwerfen");
+    expect(source).not.toContain("autoPublish");
+    expect(source).not.toContain("DeepSearch");
   });
 });
