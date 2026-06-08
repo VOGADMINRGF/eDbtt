@@ -146,8 +146,8 @@ describe("/runden/new manual create contract", () => {
   it("keeps the round start draft status compact and draft-only", () => {
     const source = readFileSync(resolve(process.cwd(), "src/app/runden/new/AnlassraumSetupForm.tsx"), "utf8");
 
-    expect(source).toContain("GlobalDraftStatusBar");
-    expect(source).toContain("Runde aus Analyse-Entwurf vorbereiten");
+    expect(source).toContain("AnlassraumStartDraftPanel");
+    expect(source).toContain("Runde aus deinem Entwurf vorbereiten");
     expect(source).toContain("Optionen ergänzen");
     expect(source).toContain("Entwurf verwerfen");
     expect(source).not.toContain("autoPublish");
