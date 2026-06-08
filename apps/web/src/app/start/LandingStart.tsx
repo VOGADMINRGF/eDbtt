@@ -5,8 +5,9 @@ import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 import { buildPublicTaskFirstQuickActionCenter } from "@/features/quickActions/taskFirstQuickActions";
+import LandingCreateLightEntry from "@/features/start/LandingCreateLightEntry";
 import type { StartExperienceModel } from "@/features/start/startExperience";
-import { getVoxyCopy } from "@/features/voxy/voxyCopy";
+import { getStartCreateVoxyCopy } from "@/features/start/startCreateVoxyCopy";
 
 type LandingStartProps = {
   blocks?: BucketBlock[];
@@ -20,10 +21,10 @@ type PressureSignal = {
 };
 
 const TRUST_PILLS_DE = [
-  "kostenlos mitmachen",
+  "kostenlos starten",
   "keine Datenverkäufe",
-  "keine versteckten KI-Kosten",
-  "review-first",
+  "erst einordnen, dann bestätigen",
+  "du behältst die Kontrolle",
 ] as const;
 
 const PRESSURE_SIGNALS_DE: readonly PressureSignal[] = [
@@ -35,7 +36,7 @@ const PRESSURE_SIGNALS_DE: readonly PressureSignal[] = [
   {
     label: "Wohnen",
     topic: "Wie bleibt Wohnen bezahlbar?",
-    status: "Beteiligung möglich",
+    status: "Thema wächst",
   },
   {
     label: "Pflege",
@@ -50,7 +51,7 @@ const PRESSURE_SIGNALS_DE: readonly PressureSignal[] = [
   {
     label: "Verwaltung",
     topic: "Wie wird Verwaltung erreichbarer?",
-    status: "Beteiligung möglich",
+    status: "Thema wächst",
   },
   {
     label: "Kosten",
@@ -61,15 +62,44 @@ const PRESSURE_SIGNALS_DE: readonly PressureSignal[] = [
 
 const PARTICIPATION_STEPS_DE = [
   "Anliegen verstehen",
+  "Fragen sortieren",
   "Optionen sichtbar machen",
-  "Fakten prüfen",
-  "Beteiligung starten",
+  "Nächsten Schritt wählen",
 ] as const;
 
 const VOXY_MARKERS_DE = [
-  "Ich sortiere Anliegen.",
-  "Ich trenne Meinung, Behauptung und Quelle.",
-  "Review vor Veröffentlichung.",
+  "Thema, Fragen und nächster Schritt bleiben sichtbar.",
+  "Nichts wird automatisch veröffentlicht.",
+  "Du bestätigst den nächsten Schritt selbst.",
+] as const;
+
+const START_GUIDE_CARDS_DE = [
+  {
+    eyebrow: "Schritt 1",
+    title: "Themen erkennen",
+    text: "Ein kurzer Text wird zuerst als Entwurf geordnet, damit dein Anliegen nicht wie ein Ticket oder Demo-Lead wirkt.",
+  },
+  {
+    eyebrow: "Schritt 2",
+    title: "Dossier aufbauen",
+    text: "Du siehst früh, welche offenen Fragen, Belege und Anschlussstellen zu deinem Beitrag passen könnten.",
+  },
+  {
+    eyebrow: "Schritt 3",
+    title: "Sichtweisen sammeln",
+    text: "Erst danach entscheidest du, ob du vertiefst, zu einem bestehenden Thema beiträgst oder später den Schritt „Abstimmen & auswerten“ vorbereitest.",
+  },
+] as const;
+
+const START_SUPPORT_LINKS_DE = [
+  {
+    href: "/pricing/institutionen",
+    label: "Für Verwaltung / Organisation ansehen",
+  },
+  {
+    href: "/kontakt",
+    label: "Demo anfragen",
+  },
 ] as const;
 
 const FACTCHECK_FLOW_DE = [
@@ -87,7 +117,7 @@ const FACTCHECK_FLOW_DE = [
   },
   {
     label: "Offene Frage",
-    text: "Was ist noch nicht geklärt, bevor daraus ein öffentlicher Arbeitsstand wird?",
+    text: "Was ist noch nicht geklärt, bevor daraus ein nächster öffentlicher Schritt wird?",
   },
 ] as const;
 
@@ -95,7 +125,7 @@ const ANLASSRAUM_THREAD_TAGS_DE = [
   "Hinweise sammeln",
   "Quellen prüfen",
   "Fragen klären",
-  "Beteiligung vorbereiten",
+  "Nächsten Schritt finden",
 ] as const;
 
 const DOSSIER_PROOF_DE = [
@@ -127,7 +157,7 @@ const DOSSIER_PROOF_DE = [
 ] as const;
 
 const MEMBERSHIP_PILLS_DE = [
-  "Beteiligung kostenlos",
+  "Mitmachen kostenlos",
   "Anliegen einreichen möglich",
   "Hauptthemen durch aktive Mitglieder",
   "transparentes Modell",
@@ -135,21 +165,21 @@ const MEMBERSHIP_PILLS_DE = [
 ] as const;
 
 const ORGANIZATION_USE_CASES_DE = [
-  "Bürgerhinweise und Themenräume",
-  "Faktenchecks und Dossiers",
-  "Swipes und Beteiligungsrunden",
-  "Auswertung, Mandat und Umsetzungsstatus",
+  "Themen erkennen",
+  "Dossier aufbauen",
+  "Sichtweisen sammeln",
+  "Abstimmen & auswerten",
 ] as const;
 
 const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
   familiarity: "unknown_visitor",
   eyebrow: "Einfach anfangen",
-  title: "Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.",
+  title: "Aus deinem Beitrag wird Orientierung.",
   description:
-    "eDebatte macht aus Themen, Fragen und Vorschlägen einen nachvollziehbaren Arbeitsraum: mit Optionen, Quellen, offenen Fragen und Beteiligung.",
-  helperText: "Wähle den Einstieg, der zu deinem Anliegen passt.",
+    "eDebatte hilft dir, deinen Beitrag einzuordnen: Was ist passiert? Was ist belegt? Welche Fragen sind offen? Und welcher nächste Schritt ist sinnvoll?",
+  helperText: "Du kannst einen Beitrag einordnen, Beispiele ansehen oder einen nächsten Arbeitsraum öffnen.",
   trustText:
-    "Du entscheidest, was als Nächstes passiert. KI bleibt optional und es gibt keine versteckten Kosten.",
+    "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
   showExtendedOrientation: true,
   workspaceHref: null,
   workspaceLabel: null,
@@ -168,83 +198,112 @@ export default function LandingStart({
   const isUnknownVisitor = experience.familiarity === "unknown_visitor";
   const showExtendedOrientation = experience.showExtendedOrientation;
   const showReturningCenter = !isUnknownVisitor;
-  const heroEyebrow = isUnknownVisitor
-    ? "Was Menschen bewegt, wird sichtbar."
-    : experience.eyebrow;
+  const heroEyebrow = isUnknownVisitor ? "Beitrag eingeben, Einordnung sehen, dann entscheiden." : experience.eyebrow;
 
   return (
-    <section className="landing-canvas public-canvas">
-      <div className="landing-shell public-shell">
+    <section className="landing-canvas public-canvas public-start-canvas">
+      <div className="landing-shell public-shell public-start-shell">
         <header className="landing-header public-header">
-          <div className="landing-hero-grid public-hero-grid public-reader-grid">
-            <aside className="public-voxy-rail order-2 lg:order-1" aria-label="VOXY Bühne">
-              <VoxyGuide appearance="hero" title="Voxy als Orientierung" variant="confident">
-                <>
-                  <p>{getVoxyCopy("start")}</p>
-                  <div className="public-thread-tags mt-4">
-                    {VOXY_MARKERS_DE.map((marker) => (
-                      <span key={marker} className="public-voxy-marker">
-                        {marker}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              </VoxyGuide>
-            </aside>
-
-            <article className="landing-section landing-section--hero public-section public-dialog-area order-1 lg:order-2">
-              <div className="space-y-5">
+          <div className="landing-hero-grid public-hero-grid public-reader-grid public-start-hero-grid">
+            <article className="landing-section landing-section--hero public-section public-dialog-area public-start-main">
+              <div className="public-color-rail landing-hero-copy">
                 <p className="landing-eyebrow text-xs font-semibold uppercase tracking-[0.2em]">
                   {heroEyebrow}
                 </p>
 
                 {isUnknownVisitor ? (
-                  <>
-                    <h1 className="no-grad text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[4.4rem]">
-                      Was Menschen <span className="landing-gradient-title">bewegt</span>, wird{" "}
-                      <span className="landing-gradient-title">sichtbar</span>.
-                    </h1>
-                    <p className="max-w-3xl text-base font-semibold text-[rgb(var(--fg))] sm:text-xl">
-                      {experience.title}
-                    </p>
-                  </>
+                  <LandingCreateLightEntry trustText={experience.trustText} />
                 ) : (
-                  <h1 className="no-grad text-4xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-5xl lg:text-[4.2rem]">
+                  <h1 className="no-grad public-hero-title public-hero-title--start font-semibold tracking-tight">
                     {experience.title}
                   </h1>
                 )}
 
-                <p className="max-w-3xl text-base leading-8 sm:text-lg">{experience.description}</p>
-                <p className="max-w-3xl text-sm font-semibold text-[rgb(var(--fg))] sm:text-base">
-                  {experience.helperText}
-                </p>
+                {!isUnknownVisitor ? (
+                  <>
+                    <p className="public-hero-lead max-w-3xl">{experience.description}</p>
+                  <p className="max-w-3xl text-sm font-semibold text-[rgb(var(--fg))] sm:text-base">
+                    {experience.helperText}
+                  </p>
+                  </>
+                ) : null}
               </div>
 
-              <div className="space-y-5">
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href="/create?intent=contribute"
-                    data-requires-privacy-gate="true"
-                    className="landing-cta-primary vog-btn-brand"
-                  >
-                    Anliegen einbringen
-                  </a>
-                  <a href="/themen" className="vog-btn-secondary landing-cta-secondary">
-                    Thema ansehen
-                  </a>
-                </div>
+              {!isUnknownVisitor ? (
+                <div className="landing-hero-actions">
+                  <div className="public-action-row landing-hero-action-row">
+                    <a
+                      href="/create?intent=contribute"
+                      data-requires-privacy-gate="true"
+                      className="landing-cta-primary public-cta-primary vog-btn-brand"
+                    >
+                      Beitrag einordnen
+                    </a>
+                    <a href="/themen" className="vog-btn-secondary landing-cta-secondary">
+                      Beispiele ansehen
+                    </a>
+                    <a href="/pricing/institutionen" className="vog-btn-secondary landing-cta-secondary">
+                      Für Verwaltung / Organisation ansehen
+                    </a>
+                  </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {TRUST_PILLS_DE.map((pill) => (
-                    <span key={pill} className="landing-soft-pill">
-                      {pill}
-                    </span>
-                  ))}
-                </div>
+                  <div className="flex flex-wrap gap-2">
+                    {TRUST_PILLS_DE.map((pill) => (
+                      <span key={pill} className="landing-soft-pill public-soft-pill">
+                        {pill}
+                      </span>
+                    ))}
+                  </div>
 
-                <p className="max-w-3xl text-sm">{experience.trustText}</p>
-              </div>
+                  <p className="public-hero-trust max-w-3xl text-sm">{experience.trustText}</p>
+                </div>
+              ) : null}
             </article>
+
+            <aside className="public-voxy-rail public-start-guide-rail" aria-label="VOXY Guide und Vorschau">
+              <div className="public-start-guide-surface">
+                <VoxyGuide
+                  appearance="hero"
+                  title="Schreib kurz, worum es geht — ich helfe beim Einordnen."
+                  variant="confident"
+                >
+                  <>
+                    <p>{getStartCreateVoxyCopy("start")}</p>
+                    <div className="public-thread-tags mt-4">
+                      {VOXY_MARKERS_DE.map((marker) => (
+                        <span key={marker} className="public-voxy-marker">
+                          {marker}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                </VoxyGuide>
+
+                {isUnknownVisitor ? (
+                  <>
+                    <div className="public-start-guide-card-grid">
+                      {START_GUIDE_CARDS_DE.map((card) => (
+                        <article key={card.title} className="public-start-guide-card">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+                            {card.eyebrow}
+                          </p>
+                          <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{card.title}</h2>
+                          <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/82">{card.text}</p>
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="public-start-support-links">
+                      {START_SUPPORT_LINKS_DE.map((link) => (
+                        <a key={link.href} href={link.href} className="landing-inline-link">
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </aside>
           </div>
         </header>
 
@@ -254,15 +313,14 @@ export default function LandingStart({
               <div className="space-y-8">
                 <div className="space-y-4">
                   <p className="landing-eyebrow text-xs font-semibold uppercase tracking-[0.16em]">
-                    Signalfluss
+                    Beispielthemen
                   </p>
-                  <h2 className="no-grad text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-3xl">
-                    Hier zeigt sich, wo es gerade drückt.
+                  <h2 className="no-grad public-section-title text-2xl font-semibold tracking-tight sm:text-3xl">
+                    Themen, an die dein Beitrag <span className="public-gradient-text">anknüpfen</span> kann.
                   </h2>
                   <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                    Themen erscheinen nicht als Kartenstapel, sondern als wiederkehrende Signale:
-                    Fragen, Spannungen, Hinweise und offene Prüfpfade, die zusammen sichtbar
-                    bleiben.
+                    Viele Anliegen bleiben sonst einzelne Kommentare. eDebatte macht daraus erkennbare
+                    Themen, offene Fragen und nachvollziehbare nächste Schritte.
                   </p>
                 </div>
 
@@ -284,11 +342,11 @@ export default function LandingStart({
                 <div className="landing-process-line">
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Nicht noch ein Feed. Nicht nur Ja oder Nein.
+                      Dein Beitrag kann mehr bewirken.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      eDebatte führt vom ersten Anliegen bis zur sichtbaren Beteiligung in einem
-                      nachvollziehbaren Pfad.
+                      Erst wird dein Beitrag eingeordnet. Dann werden Fragen, Optionen und mögliche
+                      nächste Schritte sichtbar.
                     </p>
                   </div>
                   <ol className="landing-process-grid">
@@ -304,11 +362,10 @@ export default function LandingStart({
                 <div className="landing-check-trace">
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Faktencheck statt Behauptung gegen Behauptung.
+                      Behauptung, Quelle und offene Frage klar trennen.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      Prüfspuren bleiben offen lesbar: Was wird behauptet, worauf stützt es sich,
-                      welche Gegenposition gibt es und was ist noch ungeklärt?
+                      Du siehst, was behauptet wird, worauf es sich stützt, welche Einwände wichtig sind und was noch geklärt werden muss.
                     </p>
                   </div>
                   <div className="landing-check-grid">
@@ -338,15 +395,23 @@ export default function LandingStart({
               <div className="space-y-6">
                 <div className="space-y-3">
                   <p className="landing-eyebrow text-xs font-semibold uppercase tracking-[0.16em]">
-                    Arbeitsfluss
+                    Direkt weiterarbeiten
                   </p>
-                  <h2 className="no-grad text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-3xl">
-                    Schon dabei? Arbeite direkt weiter.
+                  <h2 className="no-grad public-section-title text-2xl font-semibold tracking-tight sm:text-3xl">
+                    {experience.familiarity === "organization_verified" ||
+                    experience.familiarity === "organization_pending" ||
+                    experience.familiarity === "organization_blocked" ||
+                    experience.familiarity === "operator"
+                      ? "Bereite Beteiligung nachvollziehbar vor."
+                      : "Mach mit deinem Anliegen weiter."}
                   </h2>
                   <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                    Beitrag, Anlassraum, Themen und Organisationsbereich bleiben dieselben Wege.
-                    Der Unterschied liegt nur in der Gewichtung: Arbeitsaktionen stehen vorne,
-                    Orientierung bleibt kurz.
+                    {experience.familiarity === "organization_verified" ||
+                    experience.familiarity === "organization_pending" ||
+                    experience.familiarity === "organization_blocked" ||
+                    experience.familiarity === "operator"
+                      ? "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist."
+                      : "Du kannst deinen Entwurf prüfen, ein Thema ansehen oder einen Anlassraum vorbereiten. Nichts wird automatisch veröffentlicht."}
                   </p>
                 </div>
 
@@ -369,12 +434,12 @@ export default function LandingStart({
               <p className="landing-eyebrow text-xs font-semibold uppercase tracking-[0.16em]">
                 Einstieg
               </p>
-              <h2 className="no-grad text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-3xl">
-                Öffne einen Dialog, statt ein Formular auszufüllen.
+              <h2 className="no-grad public-section-title text-2xl font-semibold tracking-tight sm:text-3xl">
+                Beginne mit deinem <span className="public-gradient-text">Anliegen</span> – nicht mit einem Formular.
               </h2>
               <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                Quick Actions bleiben offen und lesbar: klare Wege nach vorn, ohne Box-in-Box,
-                ohne Dashboard-Look und ohne zweiten Produktpfad.
+                Du wählst den Weg, der gerade passt: Beitrag einordnen, Beispiel ansehen oder einen
+                nächsten Arbeitsraum öffnen.
               </p>
             </div>
 
@@ -384,11 +449,10 @@ export default function LandingStart({
               <div className="space-y-8">
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                    Der Anlassraum: ein Ort, an dem ein Thema nicht verloren geht.
+                    Ein Anlassraum hält ein gemeinsames Thema zusammen.
                   </h3>
                   <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                    Anlassräume bündeln Hinweise, Optionen, Prüfpfade und Beteiligung in einem
-                    sichtbaren Thread. Nicht als Modulwand, sondern als fortlaufender Arbeitsraum.
+                    Hinweise, Optionen, offene Fragen und nächste Schritte bleiben an einem Ort. So geht ein Thema nicht im Feed verloren.
                   </p>
                   <div className="landing-thread-tags">
                     {ANLASSRAUM_THREAD_TAGS_DE.map((item, index) => (
@@ -409,7 +473,7 @@ export default function LandingStart({
                       data-requires-privacy-gate="true"
                       className="vog-btn-secondary landing-cta-secondary"
                     >
-                      Anlassraum/Event starten
+                      Anlassraum starten
                     </a>
                   </div>
                 </div>
@@ -420,11 +484,11 @@ export default function LandingStart({
                       Swipe
                     </p>
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Schnell einsteigen mit Swipe.
+                      Sichtweisen sammeln, später tiefer einsteigen.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      In 30 Sekunden ein erstes Signal setzen. Danach kann daraus ein
-                      Faktencheck, ein Anlassraum oder ein Dossier werden.
+                      Eine kurze Reaktion reicht als Start. Daraus können Fragen, Prüfpfade, Arbeitsräume
+                      oder Dossiers entstehen.
                     </p>
                     <a
                       href="/swipes"
@@ -439,11 +503,10 @@ export default function LandingStart({
                 <div className="landing-proof-zone">
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Aus Hinweisen wird ein Dossier.
+                      Ein Dossier bündelt Belege, Fragen und Optionen.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      Dossiers verdichten den Stand der Klärung: belastbare Punkte, offene Fragen
-                      und reale Optionen ohne Sammelmappe aus Einzelkarten.
+                      Dossiers zeigen, was schon belastbar ist, welche Fragen offen sind und welche Optionen im Raum stehen.
                     </p>
                   </div>
                   <div className="landing-proof-grid">
@@ -468,11 +531,10 @@ export default function LandingStart({
                 <div className="landing-flow-line">
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Kostenlos mitmachen. Verbindlich weiterentwickeln.
+                      Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      Jede Person kann Themen ansehen, swipen, Anliegen einreichen und sich
-                      beteiligen. Neue Hauptthemen starten aktive Mitglieder.
+                      Jede Person kann Themen ansehen, reagieren und Anliegen einbringen. Neue Hauptthemen werden bewusst vorbereitet, damit sie nachvollziehbar bleiben.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {MEMBERSHIP_PILLS_DE.map((pill) => (
@@ -487,11 +549,11 @@ export default function LandingStart({
                 <div className="landing-flow-line">
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                      Beteiligung organisieren, ohne bei null anzufangen.
+                      Gemeinsam klären, ohne bei null anzufangen.
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 sm:text-base">
-                      Kommunen, Bezirke, Medien, Vereine und Organisationen nutzen dieselben
-                      sichtbaren Pfade für Themenräume, Dossiers und Beteiligungsrunden.
+                      Kommunen, Vereine, Initiativen und Redaktionen nutzen dieselben sichtbaren
+                      Wege für Themenräume, Dossiers und gemeinsame Klärung.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {ORGANIZATION_USE_CASES_DE.map((useCase) => (
@@ -528,13 +590,13 @@ export default function LandingStart({
 
         <section className="landing-section landing-section--footer">
           <div className="space-y-4">
-            <h2 className="no-grad text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-3xl">
-              Öffentliche Beteiligung braucht einen besseren Ort.
+            <h2 className="no-grad public-section-title text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-3xl">
+              Ein guter <span className="public-gradient-text">nächster Schritt</span> braucht einen verlässlichen Ort.
             </h2>
             <p className="max-w-4xl text-sm leading-7 sm:text-base">
-              eDebatte ist nicht dafür gebaut, Aufmerksamkeit zu verkaufen. Quellen, Material,
-              Faktenchecks und Distribution bleiben geprüft. Partner- und Funding-Hinweise sind
-              transparent, beeinflussen aber weder Quellengewichtung noch Ergebnisse.
+              eDebatte ist nicht dafür gebaut, Aufmerksamkeit zu verkaufen. Quellen, Hinweise,
+              Prüfungen und Weitergabe bleiben nachvollziehbar. Unterstützung und Finanzierung
+              werden offengelegt, ohne Themen oder Ergebnisse zu verzerren.
             </p>
           </div>
 
@@ -556,8 +618,9 @@ export default function LandingStart({
 
           <div className="landing-flow-line space-y-3">
             <p className="text-sm leading-7 text-[rgb(var(--fg))]">
-              eDebatte ist das Beteiligungs- und Dossier-Produkt. VoiceOpenGov ist die Initiative
-              für offene, nachvollziehbare öffentliche Meinungsbildung.
+              eDebatte ist der Ort, an dem aus Hinweisen, Fragen und offenen Themen ein
+              nachvollziehbarer nächster Schritt werden kann. VoiceOpenGov ist die Initiative
+              dahinter.
             </p>
             <div>
               <a href="/howtoworks/initiative" className="vog-btn-secondary landing-cta-secondary">

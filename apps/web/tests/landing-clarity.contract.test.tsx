@@ -16,47 +16,57 @@ vi.mock("@/context/LocaleContext", () => ({
 }));
 
 describe("landing clarity contract", () => {
-  it("renders the human civic landing with clear public actions", () => {
+  it("renders the human civic landing with direct contribution intake and clear public actions", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
-    expect(html).toContain("Was Menschen");
-    expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
-    expect(html).toContain("eDebatte macht aus Themen, Fragen und Vorschlägen einen nachvollziehbaren Arbeitsraum");
-    expect(html).toContain("Anliegen einbringen");
-    expect(html).toContain("Thema ansehen");
-    expect(html).toContain("Ich reiche ein Anliegen ein");
-    expect(html).toContain("Anlassraum/Event starten");
-    expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Öffne einen Dialog, statt ein Formular auszufüllen.");
-    expect(html).toContain("Ich sortiere Anliegen.");
-    expect(html).toContain("kostenlos mitmachen");
-    expect(html).toContain("keine Datenverkäufe");
-    expect(html).toContain("keine versteckten KI-Kosten");
-    expect(html).toContain("Voxy als Orientierung");
+    expect(html).toContain("Dein Beitrag kann mehr bewirken.");
+    expect(html).toContain("Was soll öffentlich besser");
+    expect(html).toContain("verstanden</span>, geprüft oder entschieden werden?");
+    expect(html).toContain(
+      "Schreib einen Gedanken, eine Frage, ein Problem oder einen Vorschlag. eDebatte hilft dabei, deinen Beitrag einzuordnen und mit bestehenden Themen, Argumenten und offenen Fragen zu verbinden.",
+    );
+    expect(html).toContain("Beitrag eingeben");
+    expect(html).toContain("Beitrag einordnen");
+    expect(html).toContain("Beispiele ansehen");
+    expect(html).toContain("Für Verwaltung / Organisation ansehen");
+    expect(html).toContain("Demo anfragen");
+    expect(html).toContain(
+      "Noch keine Veröffentlichung · keine automatische Prüfung · du bestätigst jeden nächsten Schritt",
+    );
+    expect(html).toContain("Themen erkennen");
+    expect(html).toContain("Dossier aufbauen");
+    expect(html).toContain("Sichtweisen sammeln");
+    expect(html).toContain("Abstimmen &amp; auswerten");
+    expect(html).toContain("Mitmachen kostenlos");
+    expect(html).toContain("Keine Datenverkäufe");
+    expect(html).toContain("Noch keine Veröffentlichung");
+    expect(html).toContain("Schreib kurz, worum es geht — ich helfe beim Einordnen.");
     expect(html).toContain('data-voxy-appearance="hero"');
-    expect(html).toContain("Review vor Veröffentlichung.");
-    expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
-    expect(html).toContain("Schnell einsteigen mit Swipe.");
-    expect(html).toContain("Der Anlassraum: ein Ort, an dem ein Thema nicht verloren geht.");
-    expect(html).toContain("Faktencheck statt Behauptung gegen Behauptung.");
-    expect(html).toContain("Aus Hinweisen wird ein Dossier.");
-    expect(html).toContain("Kostenlos mitmachen. Verbindlich weiterentwickeln.");
+    expect(html).toContain("Schreib kurz, worum es geht. Ich helfe beim Einordnen, bevor du den nächsten Schritt bestätigst.");
+    expect(html).toContain("Themen, an die dein Beitrag");
+    expect(html).toContain("anknüpfen</span> kann.");
+    expect(html).toContain("Beispiele zum Ausprobieren");
+    expect(html).toContain("Ein Anlassraum hält ein gemeinsames Thema zusammen.");
+    expect(html).toContain("Was ist belegt?");
+    expect(html).toContain("Was ist offen?");
+    expect(html).toContain("Ein Dossier bündelt Belege, Fragen und Optionen.");
+    expect(html).toContain("Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.");
+    expect(html).toContain("Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.");
     expect(html).toContain("VoiceOpenGov ist die Initiative");
     expect(html).toContain("Mehr zur Initiative");
-    expect(html).toContain("href=\"/themen\"");
-    expect(html).toContain("href=\"/create?intent=contribute\"");
-    expect(html).toContain("href=\"/runden/new\"");
-    expect(html).toContain("href=\"/swipes\"");
+    expect(html).toContain("href=\"#start-beispiele\"");
+    expect(html).toContain("href=\"/pricing/institutionen\"");
+    expect(html).toContain("href=\"/kontakt\"");
     expect(html).toContain("href=\"/create?intent=check\"");
     expect(html).toContain("href=\"/dossier\"");
     expect(html).toContain("href=\"/account/organization\"");
 
-    expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Beteiligungs- und Dossier-Tool");
     expect(html).not.toContain("Kanonischer Einstieg");
     expect(html).not.toContain("für Parteien");
     expect(html).not.toContain("Entitlement");
+    expect(html).not.toContain("review-first");
+    expect(html).not.toContain("Arbeitsraum:");
     expect(html).not.toContain("/demo/");
   });
 

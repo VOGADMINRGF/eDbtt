@@ -9,7 +9,7 @@ export default async function StartPage() {
   const experience = await buildStartExperienceModel({ user, isAdmin });
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-[100svh]">
       <h1 className="sr-only">Start</h1>
       <LandingStart experience={experience} />
     </main>

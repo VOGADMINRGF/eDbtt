@@ -28,6 +28,15 @@ import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReview
 
 const RESEARCH_XP_AWARD = 25;
 
+async function loadAccountCreateContributionLedgerForOverview(
+  userId: string,
+  preferredLocale: string,
+  limit = 8,
+) {
+  const { loadAccountCreateContributionLedger } = await import("./loadAccountCreateContributionLedger");
+  return loadAccountCreateContributionLedger(userId, preferredLocale, limit);
+}
+
 export async function awardResearchXp(userId: string, _taskId?: string): Promise<void> {
   const oid = parseObjectId(userId);
   if (!oid) return;
@@ -168,23 +177,33 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
 
   if (!doc) return null;
 
+  const preferredLocale = normalizeLocale(doc.settings?.preferredLocale ?? doc.profile?.locale);
   const graphMergeCandidatesPromise = import("./loadAccountGraphMergeCandidates").then(
     ({ loadAccountGraphMergeCandidates }) =>
       loadAccountGraphMergeCandidates(String(doc._id), 8),
   );
+  const createContributionLedgerPromise = loadAccountCreateContributionLedgerForOverview(
+    String(doc._id),
+    preferredLocale,
+    8,
+  );
   const editorialReviewRequestsPromise = loadAccountEditorialReviewRequests(String(doc._id), 8);
 
-  const [paymentProfileDoc, signatureDoc, editorialReviewRequests] = await Promise.all([
+  const [
+    paymentProfileDoc,
+    signatureDoc,
+    editorialReviewRequests,
+  ] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
     editorialReviewRequestsPromise,
   ]);
+  const createContributionLedger = await createContributionLedgerPromise;
   const graphMergeCandidates = await graphMergeCandidatesPromise;
 
   const roles = deriveRoles(doc);
   const accessTier = deriveTier(doc);
   const groups = deriveGroups(doc, accessTier, roles);
-  const preferredLocale = normalizeLocale(doc.settings?.preferredLocale ?? doc.profile?.locale);
   const stats = deriveStats(doc);
   const verification = ensureVerificationDefaults(doc.verification as any);
   const hasVogMembership = doc.membership?.status === "active";
@@ -249,7 +268,6 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
           commitmentEndsAt: toIsoDate(doc.edebatte?.commitmentEndsAt),
         }
       : { package: "none", status: "none" };
-
   return {
     userId: String(doc._id),
     email: doc.email ?? "",
@@ -294,6 +312,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
       : null,
     createdAt: doc.createdAt ?? null,
     lastLoginAt: doc.lastLoginAt ?? doc.updatedAt ?? doc.createdAt ?? null,
+    createContributionLedger,
     editorialReviewRequests,
   };
 }

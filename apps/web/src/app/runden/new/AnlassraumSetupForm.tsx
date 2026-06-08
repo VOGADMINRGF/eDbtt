@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import MotionStep from "@/components/motion/MotionStep";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
+import StartDraftWorkspaceChooser from "@/features/start/StartDraftWorkspaceChooser";
+import {
+  clearStartDraftContext,
+  getStartDraftForTarget,
+  updateStartDraftContext,
+  type StartDraftContext,
+} from "@/features/start/startDraftContext";
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
   buildManualAnlassraumContinueCreateHref,
@@ -75,6 +82,7 @@ export default function AnlassraumSetupForm() {
   const [setup, setSetup] = useState<ManualAnlassraumSetup>(createEmptyManualAnlassraumSetup);
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [startDraft, setStartDraft] = useState<StartDraftContext | null>(null);
 
   useEffect(() => {
     const storedSetup = readStoredSetup();
@@ -82,6 +90,12 @@ export default function AnlassraumSetupForm() {
       setSetup(storedSetup);
       setRestoreNotice("Dein lokal gesicherter Entwurf wurde wieder geöffnet.");
     }
+  }, []);
+
+  useEffect(() => {
+    const draft = getStartDraftForTarget("rounds");
+    if (!draft) return;
+    setStartDraft(draft);
   }, []);
 
   const actionState = useMemo(() => resolveManualAnlassraumActionState(setup), [setup]);
@@ -176,8 +190,68 @@ export default function AnlassraumSetupForm() {
             {restoreNotice}
           </p>
         ) : null}
-        {/* Decoupled from Start-Draft helpers: the former GlobalDraftStatusBar copy remains "Runde aus Analyse-Entwurf vorbereiten", "Optionen ergänzen" and "Entwurf verwerfen". */}
-        <AnlassraumStartDraftPanel />
+        <AnlassraumStartDraftPanel
+          visible={Boolean(startDraft)}
+          title="Runde aus deinem Entwurf vorbereiten"
+          statusLine="Noch nicht veröffentlicht"
+          helperText="Optionen ergänzen. Du kannst Titel, Frage und Optionen weiterbearbeiten."
+        />
+        {startDraft ? (
+          <div className="mt-4">
+            <StartDraftWorkspaceChooser
+              activeKey="rounds"
+              options={[
+                {
+                  key: "create",
+                  title: "Beitrag ausarbeiten",
+                  description: "Zum Beitragsmodus wechseln, ohne den Entwurf zu verlieren.",
+                  href: "/create?startDraft=1",
+                  onClick: () => updateStartDraftContext({ targetHint: "create" }),
+                },
+                {
+                  key: "themes",
+                  title: "Passende Themen finden",
+                  description: "Mit demselben Anliegen im Themenmodus weiterarbeiten.",
+                  href: "/themen?startDraft=1",
+                  onClick: () => updateStartDraftContext({ targetHint: "themes" }),
+                },
+                {
+                  key: "rounds",
+                  title: "Runde vorbereiten",
+                  description: "Optionen weiterbearbeiten und als Runden-Entwurf offen halten.",
+                  href: "/runden/new?startDraft=1&from=rounds",
+                  onClick: () => updateStartDraftContext({ targetHint: "rounds" }),
+                },
+                {
+                  key: "editorial",
+                  title: "Redaktionelle Prüfung anfragen",
+                  description: "Denselben Entwurf manuell prüfen lassen, ohne etwas zu veröffentlichen.",
+                  href: "/start?review=editorial",
+                  onClick: () => updateStartDraftContext({ origin: "start_relevance_review" }),
+                },
+                {
+                  key: "later",
+                  title: "Später weiterarbeiten",
+                  description: "Als Arbeitsstand behalten und später im Konto fortsetzen.",
+                  href: "/account",
+                  onClick: () => updateStartDraftContext({ targetHint: "rounds" }),
+                },
+              ]}
+            />
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="vog-btn-secondary"
+                onClick={() => {
+                  clearStartDraftContext();
+                  setStartDraft(null);
+                }}
+              >
+                Entwurf verwerfen
+              </button>
+            </div>
+          </div>
+        ) : null}
         {actionNotice ? (
           <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--fg))]">
             {actionNotice}

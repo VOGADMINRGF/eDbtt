@@ -86,8 +86,15 @@ import {
 } from "@/features/create/materialRouting";
 import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
-import { getVoxyCopy } from "@/features/voxy/voxyCopy";
+import { getStartCreateVoxyCopy } from "@/features/start/startCreateVoxyCopy";
 import { resolveVoxyPublicRouteVariant } from "@/features/voxy/voxyAssets";
+import {
+  getFactcheckEntitlementGateMessage,
+  resolveFactcheckEntitlementGate,
+} from "@features/factcheck/entitlementGate";
+import CreateDraftNextActionGate from "./CreateDraftNextActionGate";
+import CreateStartDraftHandoff from "./CreateStartDraftHandoff";
+import { useCreateStartDraftRestore } from "./createStartDraftRestore";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -102,6 +109,7 @@ export type CreateClientProps = {
   initialText?: string | null;
   initialIntakeContext?: CreateIntakeContext | null;
   initialReturnTo?: string | null;
+  initialNextActionParam?: string | null;
   initialRequestScope?: RequestScopeSummary | null;
 };
 
@@ -240,6 +248,17 @@ type CreatePrimaryIntakeSnapshot = {
 
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
+
+export function resolveCreateClientVoxyThemeVariant(args: {
+  resolvedTheme?: string | null;
+  hasHydratedTheme: boolean;
+}) {
+  const effectiveTheme =
+    args.hasHydratedTheme && args.resolvedTheme === "dark" ? "dark" : "light";
+  return resolveVoxyPublicRouteVariant(
+    effectiveTheme === "dark" ? "createDark" : "createLight",
+  );
+}
 
 type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
 
@@ -715,11 +734,16 @@ export default function CreateClient({
   initialText,
   initialIntakeContext,
   initialReturnTo,
+  initialNextActionParam,
   initialRequestScope,
 }: CreateClientProps) {
   const privacyGate = usePrivacyGate();
   const router = useRouter();
   const themeState = useTheme();
+  const [hasHydratedTheme, setHasHydratedTheme] = React.useState(false);
+  React.useEffect(() => {
+    setHasHydratedTheme(true);
+  }, []);
   const resolvedTheme = themeState?.resolvedTheme ?? "light";
   const { locale } = useLocale();
   const surfaceLocale = resolveCreateSurfaceLocale(locale);
@@ -816,6 +840,19 @@ export default function CreateClient({
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
   const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
   const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
+  const readStoredPrimaryIntake = React.useCallback(
+    () => parseCreatePrimaryIntakeSnapshot(window.localStorage.getItem(intakeStorageKey)),
+    [intakeStorageKey],
+  );
+
+  const startDraftRestore = useCreateStartDraftRestore({
+    initialText,
+    intakeText,
+    readStoredIntake: readStoredPrimaryIntake,
+    setIntakeText,
+    setIntakeRestoreInfo,
+    setActionNotice,
+  });
 
   React.useEffect(() => {
     if (intakeHydratedRef.current) return;
@@ -1721,12 +1758,23 @@ export default function CreateClient({
     void navigateWithCreateHandoff("prepare_vote", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
-  const handleStartFactcheckService = React.useCallback(() => {
+  const confirmFactcheckServiceStart = React.useCallback(() => {
     setFactcheckMessage(
       "Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.",
     );
     void navigateWithCreateHandoff("request_factcheck", "/factcheck");
   }, [navigateWithCreateHandoff]);
+
+  const handleStartFactcheckService = React.useCallback(() => {
+    const gateForFactcheck = resolveFactcheckEntitlementGate("deep_research", {
+      isAuthenticated: entitlements.isAuthenticated,
+      hasEntitlement: entitlements.canDeepResearch,
+      hasPricingAccess: entitlements.canDeepResearch,
+      confirmationProvided: false,
+    });
+    setFactcheckMessage(getFactcheckEntitlementGateMessage(gateForFactcheck));
+    setActionNotice(getFactcheckEntitlementGateMessage(gateForFactcheck));
+  }, [entitlements.canDeepResearch, entitlements.isAuthenticated]);
 
   const handleSaveOnly = React.useCallback(async () => {
     if (!privacyGate.ensureActiveProcessingAllowed("create-save")) return;
@@ -1755,14 +1803,17 @@ export default function CreateClient({
     );
   }
 
-  const createVoxyVariant = resolveVoxyPublicRouteVariant(
-    resolvedTheme === "dark" ? "createDark" : "createLight",
-  );
-  const createVoxyCopy = fromManualAnlassraumContinueCreate ? getVoxyCopy("createContinue") : getVoxyCopy("create");
+  const createVoxyVariant = resolveCreateClientVoxyThemeVariant({
+    resolvedTheme,
+    hasHydratedTheme,
+  });
+  const createVoxyCopy = fromManualAnlassraumContinueCreate
+    ? getStartCreateVoxyCopy("createContinue")
+    : getStartCreateVoxyCopy("create");
   const createEntryPills = [
     {
       id: "submit",
-      label: surfaceLocale === "en" ? "Submit contribution" : "Beitrag einreichen",
+      label: surfaceLocale === "en" ? "Prepare contribution" : "Beitrag vorbereiten",
       active: productMode === "analyze",
       onClick: () => {
         setProductMode("analyze");
@@ -1777,12 +1828,12 @@ export default function CreateClient({
       onClick: () => {
         setProductMode("guided");
         setActiveContextAnchorId(null);
-        setActionNotice(surfaceLocale === "en" ? "AI stays optional." : getVoxyCopy("ai"));
+        setActionNotice(surfaceLocale === "en" ? "AI stays optional." : getStartCreateVoxyCopy("ai"));
       },
     },
     {
       id: "review",
-      label: surfaceLocale === "en" ? "Review source/file" : "Quelle/Datei prüfen",
+      label: surfaceLocale === "en" ? "Check source/file" : "Quelle/Datei prüfen",
       active: productMode === "media",
       onClick: () => {
         setProductMode("media");
@@ -1809,18 +1860,17 @@ export default function CreateClient({
         <aside className="public-voxy-rail">
           <VoxyGuide
             appearance="panel"
+            title={
+              fromManualAnlassraumContinueCreate
+                ? "Ich helfe dir, den nächsten Schritt auszuarbeiten."
+                : "Ich helfe dir, deinen Text zu sortieren."
+            }
             variant={fromManualAnlassraumContinueCreate ? "neutral" : createVoxyVariant}
           >
             {fromManualAnlassraumContinueCreate ? (
-              <div className="space-y-1.5">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Voxy begleitet den Übergang</p>
-                <p>{createVoxyCopy}</p>
-              </div>
+              <p>{createVoxyCopy}</p>
             ) : (
-              <div className="space-y-1.5">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Voxy hilft beim Sortieren</p>
-                <p>Nichts wird automatisch veröffentlicht.</p>
-              </div>
+              <p>{createVoxyCopy}</p>
             )}
           </VoxyGuide>
         </aside>
@@ -1833,6 +1883,26 @@ export default function CreateClient({
         topMeta={
           !hasStarted || intakeRestoreInfo || scopeNotice ? (
             <div className="space-y-2">
+              {startDraftRestore.draft ? (
+                <>
+                  <CreateStartDraftHandoff
+                    draft={startDraftRestore.draft}
+                    pendingImport={startDraftRestore.pendingImport}
+                    onApplyPendingImport={startDraftRestore.applyPendingImport}
+                    onDismissPendingImport={startDraftRestore.dismissPendingImport}
+                    onClearDraftState={startDraftRestore.clearDraftState}
+                  />
+                  <CreateDraftNextActionGate
+                    draft={startDraftRestore.draft}
+                    initialNextActionParam={initialNextActionParam}
+                    hasStarted={hasStarted}
+                    isAuthenticated={entitlements.isAuthenticated}
+                    canDeepResearch={entitlements.canDeepResearch}
+                    onStartLightAnalysis={() => void handleStart()}
+                    onConfirmFactcheck={confirmFactcheckServiceStart}
+                  />
+                </>
+              ) : null}
               {!hasStarted ? (
                 <div className="flex flex-wrap gap-2">
                   {createEntryPills.map((pill) => (
@@ -1953,12 +2023,18 @@ export default function CreateClient({
         experienceVariant="create_minimal"
         hideAlternateModeDisclosure
         minimalHeading={
-          surfaceLocale === "en" ? "What would you like to contribute?" : "Was möchtest du einbringen?"
+          surfaceLocale === "en" ? (
+            "What is on your mind?"
+          ) : (
+            <>
+              Schreib auf, was dich <span className="public-gradient-text">beschäftigt</span>.
+            </>
+          )
         }
         minimalLead={
           surfaceLocale === "en"
-            ? "Start with your topic, question, or proposal in your own words."
-            : "Schreib dein Anliegen, deine Frage oder deinen Vorschlag zuerst in deinen eigenen Worten."
+            ? "You do not need perfect wording yet. eDebatte helps you turn it into a topic, question, contribution, or round."
+            : "Du musst es noch nicht perfekt formulieren. eDebatte hilft dir, daraus ein Thema, eine Frage, einen Beitrag oder einen Anlassraum zu machen."
         }
       />
 

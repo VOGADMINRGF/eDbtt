@@ -20,26 +20,26 @@ describe("/start shared create composer contract", () => {
     );
 
     expect(html).not.toContain("Kanonischer Einstieg");
-    expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Anhang");
     expect(html).not.toContain("Jetzt swipen");
-    expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
-    expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
-    expect(html).toContain("Anliegen einbringen");
-    expect(html).toContain("Ich reiche ein Anliegen ein");
-    expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Anlassraum/Event starten");
-    expect(html).toContain("Öffne einen Dialog, statt ein Formular auszufüllen.");
-    expect(html).toContain("Du entscheidest, was als Nächstes passiert.");
-    expect(html).toContain("/create?intent=contribute");
-    expect(html).toContain("/themen");
-    expect(html).toContain("/runden/new");
+    expect(html).toContain("Was soll öffentlich besser");
+    expect(html).toContain("verstanden</span>, geprüft oder entschieden werden?");
+    expect(html).toContain("Beitrag einordnen");
+    expect(html).toContain("Beispiele ansehen");
+    expect(html).toContain("Für Verwaltung / Organisation ansehen");
+    expect(html).toContain("Beitrag eingeben");
+    expect(html).toContain("Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.");
+    expect(html).toContain("/pricing/institutionen");
+    expect(html).toContain("/kontakt");
     expect(html).toContain("/account/organization");
-    expect(html).toContain("Hier zeigt sich, wo es gerade drückt.");
-    expect(html).toContain("review-first");
+    expect(html).toContain("Themen, an die dein Beitrag");
+    expect(html).toContain("anknüpfen</span> kann.");
+    expect(html).not.toContain("review-first");
     expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
-    expect(html).toContain("kostenlos mitmachen");
-    expect(html).toContain("keine versteckten KI-Kosten");
+    expect(html).toContain("Mitmachen kostenlos");
+    expect(html).toContain(
+      "Noch keine Veröffentlichung · keine automatische Prüfung · du bestätigst jeden nächsten Schritt",
+    );
   });
 
   it("prioritizes direct work for signed-in or returning context without replaying the full landing flow", () => {
@@ -49,15 +49,15 @@ describe("/start shared create composer contract", () => {
           experience={{
             familiarity: "organization_verified",
             eyebrow: "Schon dabei?",
-            title: "Öffne deinen Arbeitsbereich oder erstelle einen Anlassraum.",
+            title: "Bereite Beteiligung nachvollziehbar vor.",
             description:
-              "Deine Organisation ist im produktiven V1-Pfad. Arbeitsbereich, nächste Aufgaben und sichere Folgeaktionen stehen direkt vorne.",
+              "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
             helperText: "Du siehst immer, was als nächstes passiert.",
             trustText:
-              "Wir veröffentlichen nichts ungeprüft. Review und Sichtbarkeit bleiben getrennte Schritte.",
+              "Wir veröffentlichen nichts automatisch. Sichtbarkeit und Prüfung bleiben getrennte Schritte.",
             showExtendedOrientation: false,
             workspaceHref: "/account/organization/dashboard",
-            workspaceLabel: "Zum Organisationsbereich",
+            workspaceLabel: "Organisation prüfen",
             quickActionCenter: buildPublicTaskFirstQuickActionCenter({
               context: "organization_verified",
               workspaceHref: "/account/organization/dashboard",
@@ -68,11 +68,11 @@ describe("/start shared create composer contract", () => {
     );
 
     expect(html).toContain("Schon dabei?");
-    expect(html).toContain("Öffne deinen Arbeitsbereich oder erstelle einen Anlassraum.");
-    expect(html).toContain("Ich öffne meinen Arbeitsbereich");
-    expect(html).toContain("Arbeitsbereich");
-    expect(html).toContain("Ich lege einen Anlassraum an");
-    expect(html).toContain("Schon dabei? Arbeite direkt weiter.");
+    expect(html).toContain("Bereite Beteiligung nachvollziehbar vor.");
+    expect(html).toContain("Organisation prüfen");
+    expect(html).toContain("Anlassraum starten");
+    expect(html).toContain("Beitrag prüfen");
+    expect(html).toContain("Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.");
     expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
     expect(html).not.toContain("Faktencheck statt Behauptung gegen Behauptung.");

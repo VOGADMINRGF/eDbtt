@@ -174,7 +174,7 @@ export type SharedCreateComposerProps = {
   collapseModeSelector?: boolean;
   embeddedWorkspace?: boolean;
   experienceVariant?: "standard" | "create_minimal";
-  minimalHeading?: string;
+  minimalHeading?: React.ReactNode;
   minimalLead?: string;
   hideAlternateModeDisclosure?: boolean;
 };
@@ -226,7 +226,10 @@ export default function SharedCreateComposer({
   const speechRef = React.useRef<SpeechRecognitionLike | null>(null);
   const compactMetaMode = embeddedWorkspace && collapseModeSelector;
   const isMinimalCreate = experienceVariant === "create_minimal";
-  const isEnglishMinimal = isMinimalCreate && (minimalHeading?.toLowerCase().includes("what would you like") ?? false);
+  const isEnglishMinimal =
+    isMinimalCreate &&
+    typeof minimalHeading === "string" &&
+    (minimalHeading.toLowerCase().includes("what would you like") ?? false);
   const resolvedPlaceholder = isMinimalCreate
     ? isEnglishMinimal
       ? "Describe your topic, idea, or proposed solution..."
@@ -423,7 +426,7 @@ export default function SharedCreateComposer({
               {badge}
             </p>
             <h2 className="text-lg font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-xl">
-              {minimalHeading ?? "Was möchtest du einbringen?"}
+              {minimalHeading ?? "Schreib auf, was dich beschäftigt."}
             </h2>
             {minimalLead ? (
               <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{minimalLead}</p>
@@ -472,7 +475,7 @@ export default function SharedCreateComposer({
                     </span>
                     <div className="min-w-0">
                       <p className="text-lg font-semibold text-[rgb(var(--focus-panel-fg))] sm:text-[1.4rem]">
-                        {isEnglishMinimal ? "Submit your contribution" : "Beitrag einreichen"}
+                        {isEnglishMinimal ? "Prepare your contribution" : "Beitrag vorbereiten"}
                       </p>
                       <p className="vog-focus-stage-muted mt-1 text-sm leading-relaxed">
                         {isEnglishMinimal ? "Start with your own words." : "Schreib zuerst in deinen eigenen Worten."}
