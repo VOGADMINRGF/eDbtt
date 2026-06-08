@@ -17,41 +17,46 @@ describe("landing information architecture contract", () => {
   it("keeps the human landing journey and trust boundaries visible", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Stell dein Anliegen ein. Lass das stärkste Argument gewinnen.");
-    expect(html).toContain("Anliegen einbringen");
-    expect(html).toContain("Ich reiche ein Anliegen ein");
-    expect(html).toContain("Anlassraum/Event starten");
-    expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Thema ansehen");
-    expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
-    expect(html).toContain("Schnell einsteigen mit Swipe.");
-    expect(html).toContain("Der Anlassraum");
-    expect(html).toContain("Faktencheck statt Behauptung gegen Behauptung.");
-    expect(html).toContain("Aus Hinweisen wird ein Dossier.");
-    expect(html).toContain("Kostenlos mitmachen. Verbindlich weiterentwickeln.");
-    expect(html).toContain("keine Datenverkäufe");
+    expect(html).toContain("Dein Beitrag kann mehr bewirken.");
+    expect(html).toContain("Was soll öffentlich besser");
+    expect(html).toContain("verstanden</span>, geprüft oder entschieden werden?");
+    expect(html).toContain("Beitrag einordnen");
+    expect(html).toContain("Beispiele ansehen");
+    expect(html).toContain("Für Verwaltung / Organisation ansehen");
+    expect(html).toContain("Demo anfragen");
+    expect(html).toContain("Beitrag eingeben");
+    expect(html).toContain("Beispiele zum Ausprobieren");
+    expect(html).toContain("Ein Anlassraum hält ein gemeinsames Thema");
+    expect(html).toContain("Was ist belegt?");
+    expect(html).toContain("Was ist offen?");
+    expect(html).toContain("Ein Dossier bündelt Belege, Fragen und Optionen.");
+    expect(html).toContain("Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.");
+    expect(html).toContain("Keine Datenverkäufe");
     expect(html).toContain("VoiceOpenGov ist die Initiative");
+    expect(html).toContain(
+      "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
+    );
 
-    const primaryIndex = html.indexOf("Anliegen einbringen");
-    const secondaryIndex = html.indexOf("Thema ansehen");
+    const primaryIndex = html.indexOf("Beitrag einordnen");
+    const secondaryIndex = html.indexOf("Beispiele ansehen");
     expect(primaryIndex).toBeGreaterThan(-1);
     expect(secondaryIndex).toBeGreaterThan(primaryIndex);
-    expect(html).toContain("href=\"/create?intent=contribute\"");
-    expect(html).toContain("href=\"/runden/new\"");
-    expect(html).toContain("href=\"/themen\"");
-    expect(html).toContain("href=\"/swipes\"");
+    expect(html).toContain("href=\"#start-beispiele\"");
+    expect(html).toContain("href=\"/pricing/institutionen\"");
+    expect(html).toContain("href=\"/kontakt\"");
     expect(html).toContain("href=\"/create?intent=check\"");
     expect(html).toContain("href=\"/dossier\"");
     expect(html).toContain("href=\"/account/organization\"");
 
-    expect(html).toContain("Öffentliche Beteiligung braucht einen besseren Ort.");
+    expect(html).toContain("Ein guter");
+    expect(html).toContain("nächster Schritt</span> braucht einen verlässlichen Ort.");
     expect(html).toContain("Mehr als Bürgerbüro");
     expect(html).toContain("Nicht Social Media");
 
     expect(html).not.toContain("Kanonischer Einstieg");
-    expect(html).not.toContain("start-primary-intake");
     expect(html).not.toContain("Whistleblower");
     expect(html).not.toContain("für Parteien");
     expect(html).not.toContain("Entitlement");
+    expect(html).not.toContain("review-first");
   });
 });

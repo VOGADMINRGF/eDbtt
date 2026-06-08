@@ -302,7 +302,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
     expect(source).toContain("data-structure-overview-grid");
-    expect(source).toContain("sm:grid-cols-2 md:grid-cols-4");
+    expect(source).toContain("mt-4 grid gap-2 md:grid-cols-3");
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
@@ -314,7 +314,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Keine automatische Stimme.");
     expect(source).toContain("Keine automatische Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
-    expect(source).toContain("Änderungsvorschläge werden reviewbar vorbereitet.");
+    expect(source).toContain("Änderungsvorschläge werden zur Prüfung vorbereitet.");
     expect(source).toContain("Abstimmungsfrage bearbeiten");
     expect(source).toContain("Thema ändern");
     expect(source).toContain("Haltung ändern");
@@ -332,8 +332,17 @@ describe("analyze workbench progressive disclosure", () => {
     expect(workspaceSource).toContain("Im selben Arbeitsraum");
     expect(workspaceSource).toContain("lg:sticky lg:bottom-3");
     expect(clientSource).not.toContain("details className=\"rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4\">\n          <summary className=\"cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]\">{text.quotasTitle}</summary>");
-    expect(clientSource).toContain("href=\"/account\"");
-    expect(clientSource).toContain("hidden md:flex flex-wrap items-center gap-2");
+    const handoffSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateStartDraftHandoff.tsx"),
+      "utf8",
+    );
+    const nextActionGateSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateDraftNextActionGate.tsx"),
+      "utf8",
+    );
+    expect(clientSource).toContain("CreateStartDraftHandoff");
+    expect(handoffSource).toContain('href: "/account"');
+    expect(nextActionGateSource).toContain("data-testid=\"create-draft-next-action-gate\"");
     expect(source).not.toContain("Für später speichern");
     expect(source).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(source).not.toContain("Zusatzservices (optional)");
@@ -377,7 +386,7 @@ describe("analyze workbench progressive disclosure", () => {
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
     expect(clientSource).toContain("/api/create/save");
     expect(clientSource).toContain("manualReviewRequested");
-    expect(clientSource).toContain("Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung.");
+    expect(clientSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
     expect(clientSource).toContain("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
     expect(clientSource).toContain("setReviewRequestState(\"saving\")");
     expect(clientSource).toContain("setFactcheckMessage(");

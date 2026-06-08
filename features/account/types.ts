@@ -6,6 +6,10 @@ import type { TopicKey } from "@features/interests/topics";
 import type { AccountEditorialReviewSlice } from "./editorialReviewTypes";
 import type { AccountGraphMergeCandidateSlice } from "./graphCandidateTypes";
 
+type AccountCreateDraftSlice = import("./createContributionLedgerTypes").AccountCreateContributionLedgerSlice;
+type AccountReviewSupplementSlices =
+  AccountEditorialReviewSlice & AccountGraphMergeCandidateSlice;
+
 export const ACCOUNT_FEATURE_INTEREST_KEYS = ["streams", "hostRights", "chat"] as const;
 export type AccountFeatureInterestKey = (typeof ACCOUNT_FEATURE_INTEREST_KEYS)[number];
 
@@ -189,7 +193,8 @@ export type AccountOverview = {
   featureInterests?: AccountFeatureInterestKey[];
   createdAt?: Date | string | null;
   lastLoginAt?: Date | string | null;
-} & AccountEditorialReviewSlice & AccountGraphMergeCandidateSlice;
+} & AccountCreateDraftSlice &
+  AccountReviewSupplementSlices;
 
 export type AccountSettingsUpdate = {
   displayName?: string | null;

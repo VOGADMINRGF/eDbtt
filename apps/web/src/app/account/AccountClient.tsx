@@ -42,8 +42,13 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
+import { dedupeCreateContributionLedgerEntries } from "@features/create/createContributionLedger";
+import AccountCreateDraftSections from "./AccountCreateDraftSections";
 import AccountEditorialReviewSupplement from "./AccountEditorialReviewSupplement";
 import AccountGraphMergeCandidateSection from "./AccountGraphMergeCandidateSection";
+import {
+  readAccountCreateContributionLedgerSlice,
+} from "@features/account/createContributionLedgerTypes";
 import {
   readAccountEditorialReviewSlice,
   type AccountEditorialReviewSlice,
@@ -247,7 +252,9 @@ export type AccountOverview = {
   signature: SignatureInfo;
   features: FeatureFlags;
   featureInterests: AccountFeatureInterestKey[];
-} & AccountEditorialReviewSlice & AccountGraphMergeCandidateSlice;
+} & import("@features/account/createContributionLedgerTypes").AccountCreateContributionLedgerSlice &
+  AccountEditorialReviewSlice &
+  AccountGraphMergeCandidateSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -301,6 +308,11 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         edebatte={data.edebatte}
         chatEnabled={data.features.chatEnabled}
         onRefresh={refreshOverview}
+      />
+
+      <AccountCreateDraftSections
+        entries={data.createContributionLedger ?? []}
+        roles={data.roles}
       />
 
       <AccountEditorialReviewSupplement
@@ -3400,6 +3412,11 @@ function normalizeOverview(src: any): AccountOverview {
     signature,
     features,
     featureInterests,
+    ...readAccountCreateContributionLedgerSlice({
+      createContributionLedger: Array.isArray(src?.createContributionLedger)
+        ? dedupeCreateContributionLedgerEntries(src.createContributionLedger)
+        : [],
+    }),
     ...readAccountEditorialReviewSlice(src),
     ...readAccountGraphMergeCandidateSlice(src),
   };

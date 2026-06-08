@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRound";
+import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
 
 export const metadata: Metadata = {
   title: "Themen · eDebatte",
@@ -146,6 +147,14 @@ export default function ThemenPage() {
           </Link>
         </div>
       </header>
+
+      <ThemenStartDraftAssistant
+        topics={sortedTopics.map((topic) => ({
+          slug: topic.slug,
+          title: topic.title,
+          framingQuestion: topic.framingQuestion,
+        }))}
+      />
 
       <div className="mt-8 space-y-4">
         <StageSection

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getDraft } from "@/server/draftStore";
+import { getCreateContributionDraftForResume } from "@/server/createContributionDrafts";
 import CreateClient from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
@@ -130,6 +131,7 @@ export default async function CreatePage({
   const dossierId = readParam(resolved.dossierId) ?? null;
   const anlassraumId = readParam(resolved.anlassraumId) ?? null;
   const returnTo = readParam(resolved.returnTo) ?? null;
+  const nextAction = readParam(resolved.nextAction) ?? null;
   const intakeContext = parseCreateIntakeContextFromQuery(resolved);
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
@@ -141,7 +143,11 @@ export default async function CreatePage({
 
   let initialText = prefillText ?? null;
   if (!initialText && draftId) {
-    const draft = await getDraft(draftId).catch(() => null);
+    const draft =
+      (await getDraft(draftId).catch(() => null)) ??
+      (entitlements.userId
+        ? await getCreateContributionDraftForResume(draftId, entitlements.userId).catch(() => null)
+        : null);
     initialText = draft?.text ?? null;
   }
 
@@ -163,6 +169,7 @@ export default async function CreatePage({
             initialText={initialText}
             initialIntakeContext={intakeContext}
             initialReturnTo={returnTo}
+            initialNextActionParam={nextAction}
             initialRequestScope={requestScope}
           />
         </LocaleProvider>

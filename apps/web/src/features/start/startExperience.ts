@@ -28,12 +28,13 @@ function buildAnonymousExperience(): StartExperienceModel {
   return {
     familiarity: "unknown_visitor",
     eyebrow: "Öffentliche Debatten verständlich machen",
-    title: "Was Menschen bewegt, wird sichtbar.",
+    title: "Aus deinem Beitrag wird Orientierung.",
     description:
-      "Bei eDebatte geht es nicht um laute Kommentare, sondern um echte Anliegen. Wir sammeln Hinweise, Fragen, Erfahrungen und Vorschläge, ordnen sie review-first mit Kontext und halten Arbeitsstände auditierbar fest.",
-    helperText: "Neu hier? Starte mit einem Beitrag oder schau dir Themen an.",
+      "eDebatte hilft dir, deinen Beitrag einzuordnen: Was ist passiert? Was ist belegt? Welche Fragen sind offen? Und welcher nächste Schritt ist sinnvoll?",
+    helperText:
+      "Du musst kein fertiges Konzept haben. Schreib einfach, was öffentlich besser verstanden, geprüft oder entschieden werden soll.",
     trustText:
-      "Wir veröffentlichen nichts ungeprüft. Keine Datenverkäufe. Keine versteckten AI-Kosten.",
+      "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
     showExtendedOrientation: true,
     workspaceHref: null,
     workspaceLabel: null,
@@ -60,15 +61,15 @@ export async function buildStartExperienceModel(input: {
     return {
       familiarity: "operator",
       eyebrow: "Schon dabei?",
-      title: "Öffne deinen Arbeitsbereich und geh direkt in die nächste Aufgabe.",
+      title: "Bereite Beteiligung nachvollziehbar vor.",
       description:
-        "Du bist bereits im Betreiberkontext. Review, Organisationsblick und Anlassraum bleiben auf denselben produktiven V1-Pfaden erreichbar.",
-      helperText: "Du siehst immer, was als nächstes passiert.",
+        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
+      helperText: "Du kannst Beiträge prüfen, Entwürfe weiterführen oder eine Organisation ansehen.",
       trustText:
-        "Wir veröffentlichen nichts ungeprüft. Betreiberrechte bleiben sichtbar und auditierbar.",
+        "Nichts wird automatisch veröffentlicht. Prüf- und Verwaltungsrechte bleiben nachvollziehbar.",
       showExtendedOrientation: false,
       workspaceHref: "/account/organization/dashboard",
-      workspaceLabel: "Zum Arbeitsbereich",
+      workspaceLabel: "Organisation prüfen",
       quickActionCenter,
     };
   }
@@ -128,15 +129,15 @@ export async function buildStartExperienceModel(input: {
     return {
       familiarity,
       eyebrow: "Schon dabei?",
-      title: "Öffne deinen Arbeitsbereich oder erstelle einen Anlassraum.",
+      title: "Bereite Beteiligung nachvollziehbar vor.",
       description:
-        "Deine Organisation ist im produktiven V1-Pfad. Arbeitsbereich, nächste Aufgaben und sichere Folgeaktionen stehen direkt vorne.",
-      helperText: "Du siehst immer, was als nächstes passiert.",
+        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
+      helperText: "Du kannst Entwürfe weiterführen, Themen ansehen oder einen Anlassraum vorbereiten.",
       trustText:
-        "Wir veröffentlichen nichts ungeprüft. Review und Sichtbarkeit bleiben getrennte Schritte.",
+        "Nichts wird automatisch veröffentlicht. Prüfung und Sichtbarkeit bleiben getrennte Schritte.",
       showExtendedOrientation: false,
       workspaceHref,
-      workspaceLabel: "Zum Organisationsbereich",
+      workspaceLabel: "Organisation prüfen",
       quickActionCenter,
     };
   }
@@ -145,12 +146,12 @@ export async function buildStartExperienceModel(input: {
     return {
       familiarity,
       eyebrow: "Schon dabei?",
-      title: "Prüfe Status, Sperre und den nächsten sicheren Schritt.",
+      title: "Bereite Beteiligung nachvollziehbar vor.",
       description:
-        "Produktive Organisationsschritte bleiben bis zur Klärung gesperrt. Du siehst hier nur sichere Wege weiter.",
-      helperText: "Du siehst immer, was als nächstes passiert.",
+        "Sammle Hinweise, kläre offene Fragen und prüfe zuerst den sicheren nächsten Schritt für deine Organisation.",
+      helperText: "Du kannst deinen Status prüfen und Entwürfe sicher weiterführen.",
       trustText:
-        "Wir veröffentlichen nichts ungeprüft. Gesperrte Zugänge werden nicht als aktiv dargestellt.",
+        "Nichts wird automatisch veröffentlicht. Gesperrte Zugänge werden nicht als aktiv dargestellt.",
       showExtendedOrientation: false,
       workspaceHref,
       workspaceLabel: "Status prüfen",
@@ -162,12 +163,12 @@ export async function buildStartExperienceModel(input: {
     return {
       familiarity,
       eyebrow: "Schon dabei?",
-      title: "Öffne deinen Arbeitsbereich oder kläre die Freischaltung.",
+      title: "Bereite Beteiligung nachvollziehbar vor.",
       description:
-        "Antrag, Nachweise und sichere nächste Schritte stehen vorne. Produktive Organisationsrechte erscheinen erst nach bewusster Freischaltung.",
-      helperText: "Du siehst immer, was als nächstes passiert.",
+        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
+      helperText: "Du kannst deine Organisation prüfen, Entwürfe weiterführen oder Themen ansehen.",
       trustText:
-        "Wir veröffentlichen nichts ungeprüft. Freischaltungen und Sichtbarkeit bleiben bewusst und review-first.",
+        "Nichts wird automatisch veröffentlicht. Organisationsrechte und Sichtbarkeit bleiben getrennte Schritte.",
       showExtendedOrientation: false,
       workspaceHref,
       workspaceLabel: "Antrag und Status",
@@ -178,15 +179,15 @@ export async function buildStartExperienceModel(input: {
   return {
     familiarity,
     eyebrow: "Schon dabei?",
-    title: "Öffne deinen Arbeitsbereich oder arbeite direkt weiter.",
+    title: "Mach mit deinem Anliegen weiter.",
     description:
-      "Du bist angemeldet. Die wichtigsten Wege zu Beitrag, Themen und Organisationsbereich stehen direkt vorne.",
-    helperText: "Du siehst immer, was als nächstes passiert.",
+      "Du kannst deinen Entwurf prüfen, ein Thema ansehen oder einen Anlassraum vorbereiten. Nichts wird automatisch veröffentlicht.",
+    helperText: "Mach dort weiter, wo dein Anliegen gerade steht.",
     trustText:
-      "Wir veröffentlichen nichts ungeprüft. Keine Datenverkäufe. Keine versteckten AI-Kosten.",
+      "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
     showExtendedOrientation: false,
     workspaceHref,
-    workspaceLabel: "Zum Arbeitsbereich",
+    workspaceLabel: "Organisation prüfen",
     quickActionCenter,
   };
 }
