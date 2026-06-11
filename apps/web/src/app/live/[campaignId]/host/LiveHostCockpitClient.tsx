@@ -295,6 +295,14 @@ export default function LiveHostCockpitClient({
                   Das Cockpit bleibt review-first: keine automatische Veröffentlichung und keine
                   produktiven Schreibpfade aus dieser Oberfläche.
                 </p>
+                <div className="mt-3">
+                  <a
+                    href={`/live/${encodeURIComponent(cockpit.campaignId)}/report`}
+                    className="vog-btn-secondary landing-cta-secondary"
+                  >
+                    Report-Entwurf ansehen
+                  </a>
+                </div>
               </div>
             </div>
           </div>

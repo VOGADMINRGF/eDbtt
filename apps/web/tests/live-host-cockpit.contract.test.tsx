@@ -21,6 +21,7 @@ describe("live host cockpit contract", () => {
     expect(html).toContain("Bündeln");
     expect(html).toContain("Rückfrage vorbereiten");
     expect(html).toContain("Für Bericht vormerken");
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/report"');
     expect(html).toContain("Quellenlage offen");
     expect(html).toContain("Prüfung empfohlen");
     expect(html).toContain("Quellen geprüft");
