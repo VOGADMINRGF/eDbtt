@@ -218,6 +218,30 @@ export default function LiveReportHandoffClient({
             </ul>
           </div>
 
+          <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Weitere Oberflächen</h2>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a
+                href={`/live/${encodeURIComponent(report.campaignId)}`}
+                className="landing-cta-primary public-cta-primary vog-btn-brand"
+              >
+                Live-Einstieg öffnen
+              </a>
+              <a
+                href={`/live/${encodeURIComponent(report.campaignId)}/host`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Host-Cockpit öffnen
+              </a>
+              <a
+                href={`/live/${encodeURIComponent(report.campaignId)}/media-kit`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Media-Kit ansehen
+              </a>
+            </div>
+          </div>
+
           <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-sm text-[rgb(var(--fg))]/82">
             <p className="font-semibold text-[rgb(var(--fg))]">Guardrails</p>
             <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">

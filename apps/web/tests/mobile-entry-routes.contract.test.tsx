@@ -91,6 +91,11 @@ describe("mobile entry routes contract", () => {
       bottomNavEnabled: true,
       reason: "core",
     });
+    expect(classifyMobileAppShellPath("/live/demo-pflege-vor-ort/media-kit")).toMatchObject({
+      shellEnabled: true,
+      bottomNavEnabled: true,
+      reason: "core",
+    });
   });
 
   it("keeps /start as a mobile-first citizen entry without demo dossier fallback", () => {

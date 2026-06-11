@@ -296,12 +296,20 @@ export default function LiveHostCockpitClient({
                   produktiven Schreibpfade aus dieser Oberfläche.
                 </p>
                 <div className="mt-3">
-                  <a
-                    href={`/live/${encodeURIComponent(cockpit.campaignId)}/report`}
-                    className="vog-btn-secondary landing-cta-secondary"
-                  >
-                    Report-Entwurf ansehen
-                  </a>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href={`/live/${encodeURIComponent(cockpit.campaignId)}/report`}
+                      className="vog-btn-secondary landing-cta-secondary"
+                    >
+                      Report-Entwurf ansehen
+                    </a>
+                    <a
+                      href={`/live/${encodeURIComponent(cockpit.campaignId)}/media-kit`}
+                      className="vog-btn-secondary landing-cta-secondary"
+                    >
+                      Media-Kit ansehen
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
