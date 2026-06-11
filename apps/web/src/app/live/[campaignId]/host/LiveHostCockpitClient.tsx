@@ -108,8 +108,11 @@ export default function LiveHostCockpitClient({
               den Kampagnenlink oder gehe über die bestehenden review-first Einstiege weiter.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href={`/live/${encodeURIComponent(campaignId)}`} className="landing-cta-primary public-cta-primary vog-btn-brand">
-                Campaign Entry öffnen
+              <a
+                href={`/live/${encodeURIComponent(campaignId)}`}
+                className="landing-cta-primary public-cta-primary vog-btn-brand"
+              >
+                Live-Einstieg öffnen
               </a>
               <a href="/start" className="vog-btn-secondary landing-cta-secondary">
                 Über Start weiterarbeiten
@@ -293,10 +296,17 @@ export default function LiveHostCockpitClient({
                 </div>
                 <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">
                   Das Cockpit bleibt review-first: keine automatische Veröffentlichung und keine
-                  produktiven Schreibpfade aus dieser Oberfläche.
+                  produktiven Schreibpfade aus dieser Oberfläche. Report-Entwurf und
+                  Media-Kit-Vorschau bleiben ebenfalls guarded.
                 </p>
                 <div className="mt-3">
                   <div className="flex flex-wrap gap-3">
+                    <a
+                      href={`/live/${encodeURIComponent(cockpit.campaignId)}`}
+                      className="landing-cta-primary public-cta-primary vog-btn-brand"
+                    >
+                      Live-Einstieg öffnen
+                    </a>
                     <a
                       href={`/live/${encodeURIComponent(cockpit.campaignId)}/report`}
                       className="vog-btn-secondary landing-cta-secondary"

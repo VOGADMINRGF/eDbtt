@@ -51,7 +51,7 @@ export default function LiveMediaKitClient({
               Live Media-Kit
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))]">
-              Media-Kit nicht gefunden
+              Media-Kit-Vorschau nicht gefunden
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[rgb(var(--fg))]/80 sm:text-base">
               Für diese `campaignId` liegt aktuell kein sicheres Media-Kit vor. Prüfe zuerst den
@@ -154,23 +154,41 @@ export default function LiveMediaKitClient({
               className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
               data-live-media-section="links"
             >
-              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Link- und QR-Bereich</h2>
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
+                Link- und QR-Vorschau
+              </h2>
               <dl className="mt-3 space-y-3 text-sm text-[rgb(var(--fg))]/82">
                 <div>
                   <dt className="font-semibold text-[rgb(var(--fg))]">Kampagnenlink</dt>
-                  <dd className="mt-1 break-all">{mediaKit.campaignUrl}</dd>
+                  <dd className="mt-1 break-all">
+                    <a href={mediaKit.campaignUrl} className="underline underline-offset-4">
+                      {mediaKit.campaignUrl}
+                    </a>
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-[rgb(var(--fg))]">QR-/Kurzlink-Ziel</dt>
-                  <dd className="mt-1 break-all">{mediaKit.qrUrl}</dd>
+                  <dd className="mt-1 break-all">
+                    <a href={mediaKit.qrUrl} className="underline underline-offset-4">
+                      {mediaKit.qrUrl}
+                    </a>
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-[rgb(var(--fg))]">Host-Link</dt>
-                  <dd className="mt-1 break-all">{mediaKit.hostUrl}</dd>
+                  <dd className="mt-1 break-all">
+                    <a href={mediaKit.hostUrl} className="underline underline-offset-4">
+                      {mediaKit.hostUrl}
+                    </a>
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-[rgb(var(--fg))]">Report-Link</dt>
-                  <dd className="mt-1 break-all">{mediaKit.reportUrl}</dd>
+                  <dd className="mt-1 break-all">
+                    <a href={mediaKit.reportUrl} className="underline underline-offset-4">
+                      {mediaKit.reportUrl}
+                    </a>
+                  </dd>
                 </div>
               </dl>
               <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">
@@ -253,6 +271,9 @@ export default function LiveMediaKitClient({
               <a href={mediaKit.campaignUrl} className="landing-cta-primary public-cta-primary vog-btn-brand">
                 Live-Einstieg öffnen
               </a>
+              <a href={mediaKit.qrUrl} className="vog-btn-secondary landing-cta-secondary">
+                QR-Vorschau öffnen
+              </a>
               <a href={mediaKit.hostUrl} className="vog-btn-secondary landing-cta-secondary">
                 Host-Cockpit öffnen
               </a>
@@ -260,6 +281,10 @@ export default function LiveMediaKitClient({
                 Report-Entwurf öffnen
               </a>
             </div>
+            <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">
+              Newsletter-, Social- und Print-Texte bleiben Entwurfsbausteine. Dieser Slice löst
+              keinen Versand, kein Posting und keinen Embed-Rollout aus.
+            </p>
           </div>
 
           <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-sm text-[rgb(var(--fg))]/82">
