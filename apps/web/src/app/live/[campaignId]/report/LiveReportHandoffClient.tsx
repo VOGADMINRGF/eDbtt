@@ -56,8 +56,11 @@ export default function LiveReportHandoffClient({
               >
                 Host-Cockpit öffnen
               </a>
-              <a href={`/live/${encodeURIComponent(campaignId)}`} className="vog-btn-secondary landing-cta-secondary">
-                Campaign Entry öffnen
+              <a
+                href={`/live/${encodeURIComponent(campaignId)}`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Live-Einstieg öffnen
               </a>
             </div>
           </div>
@@ -86,7 +89,7 @@ export default function LiveReportHandoffClient({
             </div>
             <div>
               <p className="landing-eyebrow text-xs font-semibold uppercase tracking-[0.2em]">
-                Live Report Handoff
+                Report-Vorschau
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">
                 {report.title}
@@ -212,7 +215,7 @@ export default function LiveReportHandoffClient({
             <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--fg))]/82">
               {report.recommendedNextActions.map((action) => (
                 <li key={`desc-${action.id}`}>
-                  {action.label}: {action.description} guarded: {String(action.guarded)}.
+                  {action.label}: {action.description} Guardrail: guarded={String(action.guarded)}.
                 </li>
               ))}
             </ul>

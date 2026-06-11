@@ -49,6 +49,9 @@ describe("live campaign entry contract", () => {
     expect(html).toContain("Community-Beitrag");
     expect(html).toContain("Keine Stimme aus dem Entwurf.");
     expect(html).toContain("Keine Quellenprüfung ohne bestehenden Gate-Pfad.");
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/host"');
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/report"');
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/media-kit"');
     expect(html).not.toContain("Verifiziert");
     expect(html).not.toContain("Quellen geprüft");
     expect(html).toContain('href="/create?startDraft=1&amp;campaign=demo-pflege-vor-ort"');
@@ -85,7 +88,7 @@ describe("live campaign entry contract", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain('data-testid="live-campaign-entry-missing"');
-    expect(html).toContain("Campaign nicht gefunden");
+    expect(html).toContain("Live-Kampagne nicht gefunden");
     expect(html).toContain('href="/start"');
     expect(html).toContain('href="/themen"');
     expect(html).not.toContain("Verifiziert");
@@ -96,7 +99,7 @@ describe("live campaign entry contract", () => {
 
     expect(qrPageSource).toContain('source: "qr"');
     expect(qrPageSource).toContain('href={liveHref}');
-    expect(qrPageSource).toContain("Draft-Einstieg öffnen");
+    expect(qrPageSource).toContain("Live-Einstieg öffnen");
     expect(qrPageSource).not.toContain("Teilnahme starten");
   });
 });

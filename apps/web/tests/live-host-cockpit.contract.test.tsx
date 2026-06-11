@@ -21,6 +21,7 @@ describe("live host cockpit contract", () => {
     expect(html).toContain("Bündeln");
     expect(html).toContain("Rückfrage vorbereiten");
     expect(html).toContain("Für Bericht vormerken");
+    expect(html).toContain('href="/live/demo-pflege-vor-ort"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/report"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/media-kit"');
     expect(html).toContain("Quellenlage offen");
@@ -43,5 +44,6 @@ describe("live host cockpit contract", () => {
     expect(html).toContain("Host-Cockpit nicht gefunden");
     expect(html).toContain('href="/live/unbekannte-host-campaign"');
     expect(html).toContain('href="/start"');
+    expect(html).toContain("Live-Einstieg öffnen");
   });
 });

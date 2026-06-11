@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { QuestionSetClient } from "./QuestionSetClient";
@@ -30,27 +30,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QRScanPage({ params }: PageProps) {
   const { qrId } = await params;
 
-  // Call to API (server or client) to resolve QR-Entry
   const base = process.env.NEXT_PUBLIC_API_URL || publicOrigin();
-  const res = await fetch(`${base}/api/qr/resolve?qrId=${encodeURIComponent(qrId)}`, { cache: "no-store" });
-  const body = (await res.json().catch(() => ({}))) as QrResolveResponse;
-  if (!body?.success || !body?.data) return notFound();
+  let body: QrResolveResponse | null = null;
+  try {
+    const res = await fetch(`${base}/api/qr/resolve?qrId=${encodeURIComponent(qrId)}`, {
+      cache: "no-store",
+    });
+    body = (await res.json().catch(() => null)) as QrResolveResponse | null;
+  } catch {
+    body = null;
+  }
+  if (!body?.success || !body?.data) {
+    return <QrFallback qrId={qrId} reason="not_found" />;
+  }
   const data = body.data;
 
-  // Route je nach Typ
   if (data.targetType === "statement") {
     const id = data.targetIds?.[0];
-    if (!id) return notFound();
+    if (!id) return <QrFallback qrId={qrId} reason="invalid_target" />;
     return redirect(`/statements/${encodeURIComponent(id)}`);
   }
   if (data.targetType === "contribution") {
     const id = data.targetIds?.[0];
-    if (!id) return notFound();
+    if (!id) return <QrFallback qrId={qrId} reason="invalid_target" />;
     return redirect(`/contribute?source=qr&target=${encodeURIComponent(id)}`);
   }
   if (data.targetType === "stream") {
     const id = data.targetIds?.[0];
-    if (!id) return notFound();
+    if (!id) return <QrFallback qrId={qrId} reason="invalid_target" />;
     return redirect(`/stream/${encodeURIComponent(id)}`);
   }
   if (data.targetType === "campaign") {
@@ -61,15 +68,71 @@ export default async function QRScanPage({ params }: PageProps) {
   }
   if (data.targetType === "set") {
     const code = data.targetIds?.[0];
-    if (!code) return notFound();
+    if (!code) return <QrFallback qrId={qrId} reason="invalid_target" />;
     return <QuestionSetClient code={code} />;
   }
   if (data.targetType === "custom") {
     return <CustomFlow data={data} />;
   }
 
-  return notFound();
+  return <QrFallback qrId={qrId} reason="unsupported" />;
 }
+
+function QrFallback({
+  qrId,
+  reason,
+}: {
+  qrId: string;
+  reason: "not_found" | "invalid_target" | "unsupported";
+}) {
+  const description =
+    reason === "invalid_target"
+      ? "Der QR-Code enthält kein belastbares Ziel. Du kannst trotzdem über die bestehenden review-first Einstiege weiterarbeiten."
+      : reason === "unsupported"
+        ? "Dieser QR-Code verweist auf einen nicht freigeschalteten Zieltyp. Es wird keine automatische Teilnahme oder Veröffentlichung ausgelöst."
+        : "Dieser QR-Code ist nicht mehr verfügbar oder wurde noch nicht sicher vorbereitet. Du kannst trotzdem über die bestehenden review-first Einstiege weiterarbeiten.";
+
+  return (
+    <main
+      className="mx-auto flex min-h-[100svh] max-w-2xl flex-col gap-6 px-4 py-12"
+      data-testid="qr-entry-fallback"
+      data-qr-fallback-reason={reason}
+    >
+      <header className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          QR-Einstieg
+        </p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">QR-Code nicht verfügbar</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{description}</p>
+      </header>
+
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm">
+        <p className="font-semibold text-[rgb(var(--fg))]">QR-ID</p>
+        <p className="mt-1 break-all text-[rgb(var(--muted))]">{qrId}</p>
+        <p className="mt-3 text-[rgb(var(--muted))]">
+          Dieser Einstieg bleibt guardrailed: kein Auto-Publish, kein Vote und keine stille
+          Weiterleitung in produktive Schreibpfade.
+        </p>
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <a
+          href="/start"
+          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+        >
+          Über Start weiter
+        </a>
+        <a
+          href="/stream"
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+        >
+          Live- und Event-Kontexte ansehen
+        </a>
+      </div>
+    </main>
+  );
+}
+
 function CampaignQrLanding({
   id,
   sessionId,
@@ -83,12 +146,18 @@ function CampaignQrLanding({
   if (sessionId) params.set("session", sessionId);
   const liveHref = `/live/${encodeURIComponent(id)}?${params.toString()}`;
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
+    <main
+      className="mx-auto flex min-h-[100svh] max-w-2xl flex-col gap-6 px-4 py-12"
+      data-testid="qr-campaign-landing"
+    >
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Campaign QR</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Kampagnen-QR
+        </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{title ?? "Kampagne"}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Du bist über einen QR-Code hierher gekommen. Starte die Teilnahme oder öffne die Kampagnenseite.
+          Du bist über einen QR-Code hierher gekommen. Öffne denselben review-first Live-Einstieg
+          wie auf dem Kampagnenlink.
         </p>
       </header>
 
@@ -98,10 +167,14 @@ function CampaignQrLanding({
             <p>
               Session: <span className="font-semibold text-[rgb(var(--fg))]">{sessionId}</span>
             </p>
-            <p className="text-xs text-[rgb(var(--muted))]">Hinweis: QR-Session kann lokal aushaengen oder im Stream eingebunden sein.</p>
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Hinweis: Die QR-Session kann lokal aushängen oder im Stream eingebunden sein.
+            </p>
           </div>
         ) : (
-          <p className="text-[rgb(var(--muted))]">Keine Session-ID übergeben.</p>
+          <p className="text-[rgb(var(--muted))]">
+            Kein separater Session-Kontext übergeben. Der Live-Einstieg bleibt trotzdem nutzbar.
+          </p>
         )}
       </section>
 
@@ -110,13 +183,13 @@ function CampaignQrLanding({
           href={liveHref}
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
         >
-          Draft-Einstieg öffnen
+          Live-Einstieg öffnen
         </a>
         <a
           href={`/campaign/${id}`}
           className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
         >
-          Kampagne öffnen
+          Kampagnenkontext ansehen
         </a>
       </div>
 

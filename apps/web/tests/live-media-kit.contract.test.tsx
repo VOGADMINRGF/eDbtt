@@ -20,6 +20,7 @@ describe("live media kit contract", () => {
     expect(html).toContain("/live/demo-pflege-vor-ort?source=qr");
     expect(html).toContain("/live/demo-pflege-vor-ort/host");
     expect(html).toContain("/live/demo-pflege-vor-ort/report");
+    expect(html).toContain("QR-Vorschau öffnen");
     expect(html).toContain("Quellenlage offen");
     expect(html).toContain("Prüfung empfohlen");
     expect(html).toContain("Keine Drittanbieter-Tracker oder externen Embed-Skripte.");
@@ -37,7 +38,7 @@ describe("live media kit contract", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain('data-testid="live-media-kit-missing"');
-    expect(html).toContain("Media-Kit nicht gefunden");
+    expect(html).toContain("Media-Kit-Vorschau nicht gefunden");
     expect(html).toContain('href="/live/unbekannte-media-kit-campaign"');
     expect(html).toContain('href="/live/unbekannte-media-kit-campaign/host"');
   });

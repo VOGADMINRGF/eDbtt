@@ -46,7 +46,7 @@ export default function LiveCampaignEntryClient({
               Live-Kampagne
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))]">
-              Campaign nicht gefunden
+              Live-Kampagne nicht gefunden
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[rgb(var(--fg))]/80 sm:text-base">
               Dieser Kampagnenlink ist nicht mehr verfügbar oder wurde noch nicht vorbereitet. Du
@@ -72,6 +72,7 @@ export default function LiveCampaignEntryClient({
     origin,
   });
   const ctaBlocked = campaign.status === "closed";
+  const livePathBase = `/live/${encodeURIComponent(campaign.campaignId)}`;
 
   function trustLabelClassName(tone: LiveTrustLabelTone) {
     switch (tone) {
@@ -204,9 +205,39 @@ export default function LiveCampaignEntryClient({
             </a>
           </div>
 
+          <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
+              Weitere Live-Oberflächen
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a
+                href={`${livePathBase}/host`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Host-Cockpit öffnen
+              </a>
+              <a
+                href={`${livePathBase}/report`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Report-Entwurf ansehen
+              </a>
+              <a
+                href={`${livePathBase}/media-kit`}
+                className="vog-btn-secondary landing-cta-secondary"
+              >
+                Media-Kit-Vorschau ansehen
+              </a>
+            </div>
+            <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">
+              Host-Cockpit, Report-Entwurf und Media-Kit bleiben in diesem Slice read-only oder
+              Vorschaupfade. Es gibt kein Auto-Publish und keine versteckten Folgeaktionen.
+            </p>
+          </div>
+
           <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-sm text-[rgb(var(--fg))]/82">
             <p className="font-semibold text-[rgb(var(--fg))]">
-              Campaign Entry ist nur Einstieg und Draft-Handoff.
+              Live-Einstieg ist nur Vorschau und Draft-Handoff.
             </p>
             <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
               <li>Keine automatische Veröffentlichung.</li>
