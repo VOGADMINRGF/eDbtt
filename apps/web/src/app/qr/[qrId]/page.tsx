@@ -79,7 +79,9 @@ function CampaignQrLanding({
   sessionId?: string;
   title?: string | null;
 }) {
-  const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : "";
+  const params = new URLSearchParams({ source: "qr" });
+  if (sessionId) params.set("session", sessionId);
+  const liveHref = `/live/${encodeURIComponent(id)}?${params.toString()}`;
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
@@ -105,10 +107,10 @@ function CampaignQrLanding({
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <a
-          href={`/campaign/${id}/join${query}`}
+          href={liveHref}
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
         >
-          Teilnahme starten
+          Draft-Einstieg öffnen
         </a>
         <a
           href={`/campaign/${id}`}
@@ -119,7 +121,8 @@ function CampaignQrLanding({
       </div>
 
       <p className="text-xs text-[rgb(var(--muted))]">
-        Hinweis: Falls Unterstützen aktiv ist, findest du den Link direkt auf der Kampagnenseite.
+        Hinweis: Der QR-Code öffnet nur einen Entwurfs- und Review-Einstieg. Es wird nichts
+        automatisch veröffentlicht oder gezählt.
       </p>
     </main>
   );

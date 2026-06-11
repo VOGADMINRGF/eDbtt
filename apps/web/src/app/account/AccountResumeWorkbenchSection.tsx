@@ -131,6 +131,7 @@ function buildLocalDraftResumeItem(
   return {
     id: `local-${draft.id}`,
     title:
+      draft.campaign?.title ??
       draft.preview?.possibleTopics?.[0] ??
       getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
     excerpt: draft.text,

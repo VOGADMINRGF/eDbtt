@@ -56,6 +56,7 @@ const CORE_PREFIX_PATHS: readonly InternalRedirectPath[] = [
   "/dossier/",
   "/factcheck/",
   "/companion/",
+  "/live/",
   "/stream/",
   "/topic/",
   "/round/",
