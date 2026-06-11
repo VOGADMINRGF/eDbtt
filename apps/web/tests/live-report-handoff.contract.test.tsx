@@ -23,6 +23,9 @@ describe("live report handoff contract", () => {
     expect(html).toContain("Factcheck anfragen");
     expect(html).toContain("Dossier-Entwurf vorbereiten");
     expect(html).toContain("Anlassraum-Entwurf vorbereiten");
+    expect(html).toContain('href="/live/demo-pflege-vor-ort"');
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/host"');
+    expect(html).toContain('href="/live/demo-pflege-vor-ort/media-kit"');
     expect(html).toContain("guarded");
     expect(html).toContain("Keine automatische Verifikation.");
     expect(html).toContain("Kein Graph-Merge ohne Review.");
