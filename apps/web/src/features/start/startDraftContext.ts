@@ -4,7 +4,9 @@ export type StartDraftOrigin =
   | "start_relevance_review"
   | "create_handoff"
   | "theme_handoff"
-  | "round_handoff";
+  | "round_handoff"
+  | "live_campaign"
+  | "campaign_qr";
 
 export type StartDraftIntent =
   | "contribution"
@@ -34,6 +36,15 @@ export type StartDraftPreview = {
   relevance?: string;
 };
 
+export type StartDraftCampaignContext = {
+  campaignId: string;
+  title: string;
+  contextLabel?: string;
+  regionLabel?: string;
+  organizerLabel?: string;
+  sourceLabel?: string;
+};
+
 export type StartDraftContext = {
   id: string;
   text: string;
@@ -43,6 +54,7 @@ export type StartDraftContext = {
   createdAt: string;
   updatedAt: string;
   preview?: StartDraftPreview;
+  campaign?: StartDraftCampaignContext;
   targetHint?: StartDraftTarget;
   handoffCount?: number;
   noAutoPublish: true;
@@ -76,6 +88,27 @@ function normalizeText(value: string | null | undefined) {
   return String(value ?? "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeCampaignContext(
+  value: StartDraftCampaignContext | null | undefined,
+): StartDraftCampaignContext | undefined {
+  if (!value) return undefined;
+  const campaignId = normalizeText(value.campaignId);
+  const title = normalizeText(value.title);
+  if (!campaignId || !title) return undefined;
+  const contextLabel = normalizeText(value.contextLabel);
+  const regionLabel = normalizeText(value.regionLabel);
+  const organizerLabel = normalizeText(value.organizerLabel);
+  const sourceLabel = normalizeText(value.sourceLabel);
+  return {
+    campaignId,
+    title,
+    contextLabel: contextLabel || undefined,
+    regionLabel: regionLabel || undefined,
+    organizerLabel: organizerLabel || undefined,
+    sourceLabel: sourceLabel || undefined,
+  };
 }
 
 function buildDraftId() {
@@ -125,6 +158,7 @@ function parsePersistedDraft(raw: string | null): PersistedStartDraftContext | n
             relevance: parsed.preview.relevance,
           }
         : undefined,
+      campaign: normalizeCampaignContext(parsed.campaign),
       targetHint: isStartDraftTarget(parsed.targetHint) ? parsed.targetHint : undefined,
     };
   } catch {
@@ -145,6 +179,7 @@ export function createStartDraftContext(input: {
   origin: StartDraftOrigin;
   intent: StartDraftIntent;
   preview?: StartDraftPreview;
+  campaign?: StartDraftCampaignContext;
   targetHint?: StartDraftTarget;
   id?: string;
   createdAt?: string;
@@ -171,6 +206,7 @@ export function createStartDraftContext(input: {
           relevance: input.preview.relevance,
         }
       : undefined,
+    campaign: normalizeCampaignContext(input.campaign),
     targetHint: input.targetHint,
     handoffCount: 0,
     noAutoPublish: true,
@@ -224,6 +260,7 @@ export function updateStartDraftContext(
     origin: partial.origin ?? current.origin,
     intent: partial.intent ?? current.intent,
     preview: partial.preview ?? current.preview,
+    campaign: partial.campaign ?? current.campaign,
     targetHint: partial.targetHint ?? current.targetHint,
     id: partial.id ?? current.id,
     createdAt: partial.createdAt ?? current.createdAt,

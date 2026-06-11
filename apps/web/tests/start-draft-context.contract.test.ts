@@ -152,4 +152,27 @@ describe("start draft context contract", () => {
     expect(getStartDraftGuardrailSummary(draft, "themes")).toContain("Noch nicht zusammengeführt");
     expect(getStartDraftGuardrailSummary(draft, "create")).toContain("Keine automatische Prüfung");
   });
+
+  it("persists optional campaign metadata and qr origins without breaking downstream handoffs", () => {
+    installSessionStorage();
+    saveStartDraftContext(
+      createStartDraftContext({
+        text: "Ich möchte aus dem QR-Einstieg eine offene Frage zur Versorgung im Stadtteil klären.",
+        origin: "campaign_qr",
+        intent: "question",
+        targetHint: "themes",
+        campaign: {
+          campaignId: "demo-pflege-vor-ort",
+          title: "Pflege vor Ort 2026",
+          contextLabel: "Pflege und Versorgung im Stadtteil",
+          regionLabel: "Berlin · Pankow",
+          sourceLabel: "QR / Kampagnenlink",
+        },
+      }),
+    );
+
+    expect(readStartDraftContext()?.campaign?.campaignId).toBe("demo-pflege-vor-ort");
+    expect(readStartDraftContext()?.campaign?.title).toBe("Pflege vor Ort 2026");
+    expect(getStartDraftForTarget("themes")?.origin).toBe("campaign_qr");
+  });
 });
