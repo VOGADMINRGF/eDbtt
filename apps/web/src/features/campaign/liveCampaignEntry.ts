@@ -6,6 +6,7 @@ import {
   type StartDraftContext,
   type StartDraftOrigin,
 } from "@/features/start/startDraftContext";
+import type { LiveTrustSignal } from "@/features/campaign/liveTrustLabels";
 
 export type LiveCampaignEntryStatus = "draft" | "live" | "closed";
 
@@ -22,6 +23,7 @@ export type LiveCampaignEntryModel = {
   statusLabel: string;
   statusNote: string;
   fixture: boolean;
+  trustSignal: LiveTrustSignal;
 };
 
 const LIVE_CAMPAIGN_FIXTURES: Record<string, LiveCampaignEntryModel> = {
@@ -40,6 +42,12 @@ const LIVE_CAMPAIGN_FIXTURES: Record<string, LiveCampaignEntryModel> = {
     statusLabel: "Live-Einstieg",
     statusNote: "Beiträge starten als Entwurf und werden nicht automatisch veröffentlicht.",
     fixture: true,
+    trustSignal: {
+      publicationStatus: "draft",
+      sourceSupport: "none",
+      reviewRecommended: true,
+      origin: "live_campaign",
+    },
   },
   "demo-schulweg-sicherheit": {
     campaignId: "demo-schulweg-sicherheit",
@@ -56,6 +64,12 @@ const LIVE_CAMPAIGN_FIXTURES: Record<string, LiveCampaignEntryModel> = {
     statusLabel: "Live-Einstieg",
     statusNote: "Fragen und Hinweise bleiben Entwürfe, bis ein nächster Schritt bewusst bestätigt wird.",
     fixture: true,
+    trustSignal: {
+      publicationStatus: "draft",
+      sourceSupport: "none",
+      reviewRecommended: true,
+      origin: "live_campaign",
+    },
   },
 };
 
@@ -110,6 +124,12 @@ function mapCampaignDoc(doc: CampaignDoc): LiveCampaignEntryModel {
     statusLabel: resolveStatusLabel(status),
     statusNote: resolveStatusNote(status),
     fixture: false,
+    trustSignal: {
+      publicationStatus: status === "closed" ? "closed" : "draft",
+      sourceSupport: "none",
+      reviewRecommended: status !== "closed",
+      origin: "live_campaign",
+    },
   };
 }
 

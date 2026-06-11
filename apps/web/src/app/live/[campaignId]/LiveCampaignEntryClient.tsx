@@ -4,6 +4,7 @@ import {
   createLiveCampaignStartDraft,
   type LiveCampaignEntryModel,
 } from "@/features/campaign/liveCampaignEntry";
+import { getLiveTrustLabels, type LiveTrustLabelTone } from "@/features/campaign/liveTrustLabels";
 import { saveStartDraftContext, type StartDraftOrigin } from "@/features/start/startDraftContext";
 
 type LiveCampaignEntryClientProps = {
@@ -65,8 +66,25 @@ export default function LiveCampaignEntryClient({
     );
   }
 
-  const guardrailPills = ["Entwurf", "Noch nicht veröffentlicht", "Wird eingeordnet"];
+  const trustLabels = getLiveTrustLabels({
+    ...campaign.trustSignal,
+    contributionKind: "contribution",
+    origin,
+  });
   const ctaBlocked = campaign.status === "closed";
+
+  function trustLabelClassName(tone: LiveTrustLabelTone) {
+    switch (tone) {
+      case "pending":
+        return "border-sky-300/60 bg-sky-50/90 text-sky-900 dark:border-sky-400/35 dark:bg-sky-500/10 dark:text-sky-100";
+      case "caution":
+        return "border-amber-300/60 bg-amber-50/90 text-amber-900 dark:border-amber-400/35 dark:bg-amber-500/10 dark:text-amber-100";
+      case "verified":
+        return "border-emerald-300/60 bg-emerald-50/90 text-emerald-900 dark:border-emerald-400/35 dark:bg-emerald-500/10 dark:text-emerald-100";
+      default:
+        return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]/82";
+    }
+  }
 
   return (
     <section
@@ -100,10 +118,18 @@ export default function LiveCampaignEntryClient({
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {guardrailPills.map((pill) => (
-                <span key={pill} className="landing-soft-pill public-soft-pill">
-                  {pill}
+            <div
+              className="flex flex-wrap gap-2"
+              data-testid="live-campaign-trust-labels"
+            >
+              {trustLabels.map((trustLabel) => (
+                <span
+                  key={trustLabel.id}
+                  className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${trustLabelClassName(trustLabel.tone)}`}
+                  title={trustLabel.description}
+                  data-live-trust-label={trustLabel.id}
+                >
+                  {trustLabel.label}
                 </span>
               ))}
             </div>

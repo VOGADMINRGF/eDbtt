@@ -40,9 +40,17 @@ describe("live campaign entry contract", () => {
     expect(html).toContain("Pflege vor Ort 2026");
     expect(html).toContain("Beitrag einbringen");
     expect(html).toContain("Frage stellen");
+    expect(html).toContain('data-testid="live-campaign-trust-labels"');
+    expect(html).toContain("Entwurf");
     expect(html).toContain("Noch nicht veröffentlicht");
+    expect(html).toContain("Wird eingeordnet");
+    expect(html).toContain("Quellenlage offen");
+    expect(html).toContain("Prüfung empfohlen");
+    expect(html).toContain("Community-Beitrag");
     expect(html).toContain("Keine Stimme aus dem Entwurf.");
     expect(html).toContain("Keine Quellenprüfung ohne bestehenden Gate-Pfad.");
+    expect(html).not.toContain("Verifiziert");
+    expect(html).not.toContain("Quellen geprüft");
     expect(html).toContain('href="/create?startDraft=1&amp;campaign=demo-pflege-vor-ort"');
     expect(html).toContain('href="/themen?startDraft=1&amp;campaign=demo-pflege-vor-ort"');
   });
@@ -80,6 +88,7 @@ describe("live campaign entry contract", () => {
     expect(html).toContain("Campaign nicht gefunden");
     expect(html).toContain('href="/start"');
     expect(html).toContain('href="/themen"');
+    expect(html).not.toContain("Verifiziert");
   });
 
   it("keeps the QR landing wired to the draft-first live route instead of the old join shortcut", () => {
