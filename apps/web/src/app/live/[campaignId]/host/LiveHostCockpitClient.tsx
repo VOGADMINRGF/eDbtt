@@ -89,6 +89,9 @@ export default function LiveHostCockpitClient({
   campaignId,
   cockpit,
 }: LiveHostCockpitClientProps) {
+  const ctaStackClassName =
+    "inline-flex w-full items-center justify-center sm:w-auto";
+
   if (!cockpit) {
     return (
       <section
@@ -107,14 +110,17 @@ export default function LiveHostCockpitClient({
               Für diese `campaignId` liegt aktuell kein sicherer Host-Kontext vor. Prüfe zuerst
               den Kampagnenlink oder gehe über die bestehenden review-first Einstiege weiter.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 href={`/live/${encodeURIComponent(campaignId)}`}
-                className="landing-cta-primary public-cta-primary vog-btn-brand"
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
               >
                 Live-Einstieg öffnen
               </a>
-              <a href="/start" className="vog-btn-secondary landing-cta-secondary">
+              <a
+                href="/start"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+              >
                 Über Start weiterarbeiten
               </a>
             </div>
@@ -296,26 +302,26 @@ export default function LiveHostCockpitClient({
                 </div>
                 <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">
                   Das Cockpit bleibt review-first: keine automatische Veröffentlichung und keine
-                  produktiven Schreibpfade aus dieser Oberfläche. Report-Entwurf und
-                  Media-Kit-Vorschau bleiben ebenfalls guarded.
+                  produktiven Schreibpfade aus dieser Oberfläche. Report-Entwurf und Media-Kit
+                  bleiben ebenfalls guarded.
                 </p>
                 <div className="mt-3">
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <a
                       href={`/live/${encodeURIComponent(cockpit.campaignId)}`}
-                      className="landing-cta-primary public-cta-primary vog-btn-brand"
+                      className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
                     >
                       Live-Einstieg öffnen
                     </a>
                     <a
                       href={`/live/${encodeURIComponent(cockpit.campaignId)}/report`}
-                      className="vog-btn-secondary landing-cta-secondary"
+                      className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
                     >
-                      Report-Entwurf ansehen
+                      Report-Entwurf öffnen
                     </a>
                     <a
                       href={`/live/${encodeURIComponent(cockpit.campaignId)}/media-kit`}
-                      className="vog-btn-secondary landing-cta-secondary"
+                      className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
                     >
                       Media-Kit ansehen
                     </a>

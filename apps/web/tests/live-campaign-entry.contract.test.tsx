@@ -49,6 +49,8 @@ describe("live campaign entry contract", () => {
     expect(html).toContain("Community-Beitrag");
     expect(html).toContain("Keine Stimme aus dem Entwurf.");
     expect(html).toContain("Keine Quellenprüfung ohne bestehenden Gate-Pfad.");
+    expect(html).toContain("Report-Entwurf öffnen");
+    expect(html).toContain("Media-Kit ansehen");
     expect(html).toContain('href="/live/demo-pflege-vor-ort/host"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/report"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/media-kit"');

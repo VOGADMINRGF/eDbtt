@@ -27,6 +27,8 @@ export default function LiveCampaignEntryClient({
   sessionId,
 }: LiveCampaignEntryClientProps) {
   const campaignQuery = buildCampaignQuery(campaignId, sessionId);
+  const ctaStackClassName =
+    "inline-flex w-full items-center justify-center sm:w-auto";
 
   function persistDraft(mode: "contribution" | "question") {
     if (!campaign || campaign.status === "closed") return;
@@ -52,11 +54,17 @@ export default function LiveCampaignEntryClient({
               Dieser Kampagnenlink ist nicht mehr verfügbar oder wurde noch nicht vorbereitet. Du
               kannst trotzdem über die bestehenden review-first Einstiege weiterarbeiten.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/start" className="landing-cta-primary public-cta-primary vog-btn-brand">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href="/start"
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
+              >
                 Über Start einsteigen
               </a>
-              <a href="/themen" className="vog-btn-secondary landing-cta-secondary">
+              <a
+                href="/themen"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+              >
                 Themen ansehen
               </a>
             </div>
@@ -175,16 +183,18 @@ export default function LiveCampaignEntryClient({
             ) : null}
           </dl>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             {ctaBlocked ? (
-              <span className="landing-cta-primary public-cta-primary vog-btn-brand opacity-70">
+              <span
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName} opacity-70`}
+              >
                 Neue Beiträge sind hier gerade geschlossen
               </span>
             ) : (
               <>
                 <a
                   href={`/create?startDraft=1&${campaignQuery}`}
-                  className="landing-cta-primary public-cta-primary vog-btn-brand"
+                  className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
                   data-requires-privacy-gate="true"
                   onClick={() => persistDraft("contribution")}
                 >
@@ -192,7 +202,7 @@ export default function LiveCampaignEntryClient({
                 </a>
                 <a
                   href={`/themen?startDraft=1&${campaignQuery}`}
-                  className="vog-btn-secondary landing-cta-secondary"
+                  className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
                   data-requires-privacy-gate="true"
                   onClick={() => persistDraft("question")}
                 >
@@ -200,7 +210,10 @@ export default function LiveCampaignEntryClient({
                 </a>
               </>
             )}
-            <a href="/themen" className="vog-btn-secondary landing-cta-secondary">
+            <a
+              href="/themen"
+              className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+            >
               Bestehende Themen ansehen
             </a>
           </div>
@@ -209,24 +222,24 @@ export default function LiveCampaignEntryClient({
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
               Weitere Live-Oberflächen
             </h2>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 href={`${livePathBase}/host`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
                 Host-Cockpit öffnen
               </a>
               <a
                 href={`${livePathBase}/report`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
-                Report-Entwurf ansehen
+                Report-Entwurf öffnen
               </a>
               <a
                 href={`${livePathBase}/media-kit`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
-                Media-Kit-Vorschau ansehen
+                Media-Kit ansehen
               </a>
             </div>
             <p className="mt-3 text-sm text-[rgb(var(--fg))]/82">

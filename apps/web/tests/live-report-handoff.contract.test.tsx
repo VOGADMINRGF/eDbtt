@@ -24,10 +24,11 @@ describe("live report handoff contract", () => {
     expect(html).toContain("Dossier-Entwurf vorbereiten");
     expect(html).toContain("Anlassraum-Entwurf vorbereiten");
     expect(html).toContain("Report-Vorschau");
+    expect(html).toContain("Report-Entwurf bleibt ein Arbeitsstand");
     expect(html).toContain('href="/live/demo-pflege-vor-ort"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/host"');
     expect(html).toContain('href="/live/demo-pflege-vor-ort/media-kit"');
-    expect(html).toContain("guarded=true");
+    expect(html).toContain("Guardrail bleibt aktiv.");
     expect(html).toContain("Keine automatische Verifikation.");
     expect(html).toContain("Kein Graph-Merge ohne Review.");
     expect(html).not.toContain(">Veröffentlichen<");

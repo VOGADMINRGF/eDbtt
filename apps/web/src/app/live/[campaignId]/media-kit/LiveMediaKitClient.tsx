@@ -39,6 +39,9 @@ export default function LiveMediaKitClient({
   campaignId,
   mediaKit,
 }: LiveMediaKitClientProps) {
+  const ctaStackClassName =
+    "inline-flex w-full items-center justify-center sm:w-auto";
+
   if (!mediaKit) {
     return (
       <section
@@ -57,16 +60,16 @@ export default function LiveMediaKitClient({
               Für diese `campaignId` liegt aktuell kein sicheres Media-Kit vor. Prüfe zuerst den
               Live-Einstieg oder das Host-Cockpit.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 href={`/live/${encodeURIComponent(campaignId)}`}
-                className="landing-cta-primary public-cta-primary vog-btn-brand"
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
               >
                 Live-Einstieg öffnen
               </a>
               <a
                 href={`/live/${encodeURIComponent(campaignId)}/host`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
                 Host-Cockpit öffnen
               </a>
@@ -267,17 +270,29 @@ export default function LiveMediaKitClient({
 
           <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Oberflächen öffnen</h2>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <a href={mediaKit.campaignUrl} className="landing-cta-primary public-cta-primary vog-btn-brand">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href={mediaKit.campaignUrl}
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
+              >
                 Live-Einstieg öffnen
               </a>
-              <a href={mediaKit.qrUrl} className="vog-btn-secondary landing-cta-secondary">
+              <a
+                href={mediaKit.qrUrl}
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+              >
                 QR-Vorschau öffnen
               </a>
-              <a href={mediaKit.hostUrl} className="vog-btn-secondary landing-cta-secondary">
+              <a
+                href={mediaKit.hostUrl}
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+              >
                 Host-Cockpit öffnen
               </a>
-              <a href={mediaKit.reportUrl} className="vog-btn-secondary landing-cta-secondary">
+              <a
+                href={mediaKit.reportUrl}
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
+              >
                 Report-Entwurf öffnen
               </a>
             </div>
