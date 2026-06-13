@@ -29,6 +29,7 @@ type CreateVisualFollowupProps = {
   onRequestEditorialReview?: () => void;
   onStartOptionalService?: () => void;
   onRetryPlanner?: () => void;
+  isRetryPlannerPending?: boolean;
   onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
   continuationValue: string;
@@ -102,6 +103,7 @@ type CreateStructureOverviewProps = {
   clustersCount: number;
   questionsCount: number;
   nextStepsCount: number;
+  showOpenLabels?: boolean;
   onOpenSection?: (section: "priorities" | "clusters" | "questions" | "next_steps") => void;
 };
 
@@ -292,12 +294,19 @@ function hasProvisionalPlannerStructure(result: CreateIntelligentFollowupResult)
 function isTechnicalPlannerFallback(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
-  return planner.qualityIssues.includes("technical_fallback_only");
+  return planner.source === "planner_unavailable" || planner.qualityStatus === "failed";
+}
+
+function hasTechnicalPlannerFallbackMeta(result?: CreateIntelligentFollowupResult | null): boolean {
+  if (!result) return false;
+  const planner = result.meta?.planner;
+  if (!planner) return false;
+  return planner.source === "planner_unavailable" || planner.qualityStatus === "failed";
 }
 
 function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
-  if (!planner || planner.qualityIssues.includes("technical_fallback_only")) return false;
+  if (!planner || planner.source !== "openai") return false;
   const uniqueTopics = Array.from(new Set([planner.plannerTopic, ...planner.topicCandidates].map((value) => value.trim()).filter(Boolean)));
   const uniqueClusters = Array.from(new Set(planner.plannerClusters.map((value) => value.trim()).filter(Boolean)));
   const nonGenericTopics = uniqueTopics.filter((value) => !isGenericPlannerLabel(value));
@@ -309,6 +318,9 @@ function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResu
   const planner = result.meta?.planner;
   if (!planner) {
     return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
+  }
+  if (isTechnicalPlannerFallback(result)) {
+    return "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.";
   }
   if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
     return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
@@ -323,7 +335,7 @@ function resolvePlannerClarificationDetails(result: CreateIntelligentFollowupRes
     return "Die automatische Einordnung ist gerade nicht verfügbar.";
   }
   if (planner.degradedReason === "timeout") {
-    return "Die automatische Einordnung hat zu lange gebraucht.";
+    return "Die automatische Einordnung hat nicht rechtzeitig geantwortet.";
   }
   if (
     planner.degradedReason === "invalid_json" ||
@@ -378,24 +390,9 @@ function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): st
   ]
     .map((value) => String(value ?? "").trim())
     .filter((value) => value.length > 0 && !isGenericPlannerLabel(value));
-
-  const sourceText = `${result.sourceText} ${result.understanding.summary}`.toLowerCase();
-  const fallback: string[] = [];
-  const pushFallback = (label: string, pattern: RegExp) => {
-    if (!pattern.test(sourceText)) return;
-    if (fallback.includes(label)) return;
-    fallback.push(label);
-  };
-
-  pushFallback("Gleichberechtigung und Frauenquote", /frauenquote|gleichberechtigung/);
-  pushFallback("Minderheitenförderung", /minderheiten|minderheit/);
-  pushFallback("Quotenregelungen in Unternehmen", /quote|quoten|unternehmen/);
-  pushFallback("wirtschaftliche Auswirkungen", /wirtschaft|wirtschaftlich|unternehmen/);
-
-  const ordered = [...fromPlanner, ...fallback];
   const seen = new Set<string>();
   const startPoints: string[] = [];
-  for (const entry of ordered) {
+  for (const entry of fromPlanner) {
     const key = entry.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -427,6 +424,14 @@ export function deriveCreateStructureOverviewMetrics(params: {
   nextStepsCount: number;
 } {
   const result = params.result ?? null;
+  if (hasTechnicalPlannerFallbackMeta(result)) {
+    return {
+      prioritiesCount: 0,
+      clustersCount: 0,
+      questionsCount: 0,
+      nextStepsCount: 0,
+    };
+  }
   const structureBranches = result ? buildCreateStructureBranches(result, 3) : [];
   const voteQuestions = result
     ? buildVoteQuestions({
@@ -1277,6 +1282,7 @@ function CreateStructureOverviewCard(props: {
 
 export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   const isEnglish = props.locale === "en";
+  const openLabel = isEnglish ? "open" : "offen";
   return (
     <section data-mobile-structure-overview className="space-y-3 border-t border-[rgb(var(--border))] px-0 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1295,7 +1301,9 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           title={isEnglish ? "Priorities" : "Prioritäten"}
           description={isEnglish ? "What matters most?" : "Was zählt zuerst?"}
           pillLabel={String(props.prioritiesCount)}
-          unreadLabel={props.prioritiesCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          unreadLabel={
+            props.prioritiesCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined
+          }
           onClick={props.onOpenSection ? () => props.onOpenSection?.("priorities") : undefined}
         />
         <CreateStructureOverviewCard
@@ -1303,7 +1311,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           title={isEnglish ? "Topics" : "Themen"}
           description={isEnglish ? "Recognized clusters" : "Erkannte Schwerpunkte"}
           pillLabel={String(props.clustersCount)}
-          unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("clusters") : undefined}
         />
         <CreateStructureOverviewCard
@@ -1311,7 +1319,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           title={isEnglish ? "Questions" : "Fragen"}
           description={isEnglish ? "Open questions" : "Offene Fragen"}
           pillLabel={String(props.questionsCount)}
-          unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("questions") : undefined}
         />
         <CreateStructureOverviewCard
@@ -1319,7 +1327,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           title={isEnglish ? "Next step" : "Nächster Schritt"}
           description={isEnglish ? "What happens next" : "Was als Nächstes folgt"}
           pillLabel={String(props.nextStepsCount)}
-          unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("next_steps") : undefined}
         />
       </div>
@@ -2135,6 +2143,7 @@ function PlannerClarificationPanel(props: {
   startPoints: string[];
   technicalFallback?: boolean;
   onRetryPlanner?: () => void;
+  isRetryPlannerPending?: boolean;
   onEdit: () => void;
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
@@ -2148,11 +2157,10 @@ function PlannerClarificationPanel(props: {
           So kannst du weitermachen
         </p>
         <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
-          Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.
+          {props.technicalFallback
+            ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
+            : "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor."}
         </p>
-        {props.technicalFallback ? (
-          <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
-        ) : null}
       </div>
       {props.startPoints.length > 0 ? (
         <div className="space-y-2">
@@ -2170,20 +2178,22 @@ function PlannerClarificationPanel(props: {
         </div>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={props.onRetryPlanner}
+          disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
+          aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
+        >
+          {props.isRetryPlannerPending
+            ? "GPT-Einordnung wird erneut versucht …"
+            : "GPT-Einordnung erneut versuchen"}
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
           Thema selbst wählen
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareSubmission}>
-          Beitrag vorbereiten
-        </button>
-        <button
-          type="button"
-          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-          onClick={props.onRetryPlanner}
-          disabled={!props.onRetryPlanner}
-          aria-disabled={!props.onRetryPlanner}
-        >
-          Text sortieren lassen
+          Beitrag als Entwurf weiter vorbereiten
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
@@ -2333,6 +2343,7 @@ export default function CreateVisualFollowup({
   onRequestEditorialReview = () => {},
   onStartOptionalService = () => {},
   onRetryPlanner,
+  isRetryPlannerPending = false,
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   continuationValue,
@@ -2393,7 +2404,9 @@ export default function CreateVisualFollowup({
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
-  const plannerClarificationLeadText = "Du kannst trotzdem weitermachen.";
+  const plannerClarificationLeadText = plannerTechnicalFallback
+    ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
+    : "Du kannst trotzdem weitermachen.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
@@ -2483,7 +2496,7 @@ export default function CreateVisualFollowup({
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                 {plannerClarificationRequired
                   ? plannerTechnicalFallback
-                    ? "Vorläufige Einordnung"
+                    ? "Automatische Einordnung"
                     : "Einordnung offen"
                   : plannerUsesProvisionalStructure
                     ? "Vorläufige Einordnung"
@@ -2491,7 +2504,9 @@ export default function CreateVisualFollowup({
               </p>
               <p className="text-lg font-semibold text-[rgb(var(--fg))]">
                 {plannerClarificationRequired
-                  ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                  ? plannerTechnicalFallback
+                    ? "Automatische Einordnung nicht abgeschlossen"
+                    : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
                   : plannerUsesProvisionalStructure
                     ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
                     : CREATE_VISUAL_FOLLOWUP_COPY.headline}
@@ -2580,6 +2595,7 @@ export default function CreateVisualFollowup({
                   startPoints={degradedStartPoints}
                   technicalFallback={plannerTechnicalFallback}
                   onRetryPlanner={onRetryPlanner}
+                  isRetryPlannerPending={isRetryPlannerPending}
                   onEdit={() => openCorrection("Thema")}
                   onPrepareSubmission={onPrepareSubmission}
                   onPrepareAnlassraum={onPrepareAnlassraum}

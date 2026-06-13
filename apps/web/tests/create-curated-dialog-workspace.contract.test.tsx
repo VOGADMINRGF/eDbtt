@@ -70,8 +70,8 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("deriveCreateStructureOverviewMetrics");
     expect(clientSource).toContain("embeddedWorkspace");
     expect(clientSource).toContain("experienceVariant=\"create_minimal\"");
-    expect(clientSource).toContain("What would you like to contribute?");
-    expect(clientSource).toContain("max-w-[430px] space-y-4 px-3 md:max-w-4xl md:px-4 md:space-y-8 xl:max-w-7xl");
+    expect(clientSource).toContain("What is on your mind?");
+    expect(clientSource).toContain("create-public-shell create-dialog-workspace public-dialog-surface");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("CreateStructureOverviewCard");
     expect(followupSource).toContain("CreateStructureOverview");
@@ -85,7 +85,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("data-mobile-compact-details");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("sm:grid-cols-2 md:grid-cols-4");
+    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");

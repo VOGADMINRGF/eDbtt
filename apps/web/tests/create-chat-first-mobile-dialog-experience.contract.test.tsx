@@ -116,31 +116,21 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
 const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
   understanding: {
     summary:
-      "Der Beitrag kritisiert verbindliche Quotenregelungen, befürwortet aber Gleichberechtigung und will Fairness, Vergleichbarkeit mit anderen Minderheiten und wirtschaftliche Folgen für Unternehmen prüfen.",
-    categories: [{ id: "objection", label: "Einwand", confidence: "high" as const }],
-    topics: [
-      { id: "quota-topic", label: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen", confidence: "high" as const },
-      { id: "quota-equality", label: "Gleichberechtigung", confidence: "high" as const },
-      { id: "quota-women", label: "Frauenquote", confidence: "high" as const },
-      { id: "quota-minorities", label: "Minderheitenförderung", confidence: "medium" as const },
-      {
-        id: "quota-business",
-        label: "wirtschaftliche Auswirkungen für Unternehmen",
-        confidence: "medium" as const,
-      },
-    ],
+      "Dein Text bleibt als Entwurf erhalten, bis die GPT-Einordnung bestätigt oder manuell ergänzt wurde.",
+    categories: [{ id: "hint", label: "Entwurf", confidence: "low" as const }],
+    topics: [],
     statements: [
       {
         id: "s1",
-        text: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
-        kind: "objection" as const,
-        stance: "mixed" as const,
-        confidence: "high" as const,
+        text: "Der Text bleibt als Entwurf erhalten.",
+        kind: "hint" as const,
+        stance: "unclear" as const,
+        confidence: "low" as const,
       },
     ],
-    scopes: ["federal" as const],
-    openQuestion: "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
-    confidence: "high" as const,
+    scopes: ["unclear" as const],
+    openQuestion: "Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen.",
+    confidence: "low" as const,
   },
   suggestions: [],
   sourceText:
@@ -148,59 +138,29 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
   generatedAt: "2026-05-15T12:00:00.000Z",
   meta: {
     planner: {
-      source: "heuristic_fallback" as const,
-      plannerSource: "heuristic_fallback" as const,
-      plannerProvider: "local_fallback" as const,
+      source: "planner_unavailable" as const,
+      plannerSource: "planner_unavailable" as const,
+      plannerProvider: "openai" as const,
       plannerRole: "planner_only" as const,
-      plannerTopic: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
-      plannerCore: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
-      plannerScope: ["federal" as const, "unclear" as const],
-      plannerStance: "mixed" as const,
-      plannerClusters: [
-        "Gleichberechtigung",
-        "Frauenquote",
-        "Minderheitenförderung",
-        "wirtschaftliche Auswirkungen für Unternehmen",
-      ],
-      plannerOpenQuestions: [
-        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
-        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
-        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
-      ],
+      plannerTopic: "GPT-Einordnung nicht abgeschlossen",
+      plannerCore: "Die schnelle GPT-Einordnung konnte nicht abgeschlossen werden.",
+      plannerScope: ["unclear" as const],
+      plannerStance: "open" as const,
+      plannerClusters: [],
+      plannerOpenQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
       shortSummary:
-        "Der Beitrag kritisiert verbindliche Quotenregelungen, befürwortet aber Gleichberechtigung und will Fairness, Vergleichbarkeit mit anderen Minderheiten und wirtschaftliche Folgen für Unternehmen prüfen.",
-      topicCandidates: [
-        "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
-        "Gleichberechtigung",
-        "Frauenquote",
-        "Minderheitenförderung",
-        "wirtschaftliche Auswirkungen für Unternehmen",
-      ],
-      clusterCandidates: [
-        "Gleichberechtigung",
-        "Frauenquote",
-        "Minderheitenförderung",
-        "wirtschaftliche Auswirkungen für Unternehmen",
-      ],
-      scopeCandidates: ["federal" as const, "unclear" as const],
-      stance: "mixed" as const,
-      openQuestions: [
-        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
-        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
-        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
-      ],
-      graphSearchTerms: [
-        "Gleichberechtigung",
-        "Frauenquote",
-        "Minderheitenförderung",
-        "Quotenregelungen Unternehmen",
-        "Fairness Quotenregelungen",
-      ],
+        "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.",
+      topicCandidates: [],
+      clusterCandidates: [],
+      scopeCandidates: ["unclear" as const],
+      stance: "open" as const,
+      openQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
+      graphSearchTerms: [],
       materialSignals: [],
-      recommendedLane: "create_fast_followup" as const,
+      recommendedLane: "standard" as const,
       providerPlan: {
-        lane: "create_fast_followup" as const,
-        plannerProvider: "local_fallback" as const,
+        lane: "standard" as const,
+        plannerProvider: "openai" as const,
         plannerRole: "planner_only" as const,
         structureProvider: "mistral" as const,
         summaryProvider: "claude" as const,
@@ -217,19 +177,19 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
         canDeepSearch: false as const,
       },
       plannerDegraded: true,
-      degradedReason: "timeout" as const,
-      plannerDegradedReason: "timeout" as const,
-      qualityStatus: "needs_confirmation" as const,
-      qualityIssues: ["technical_fallback_only"],
-      providerCallAttempted: true,
+      degradedReason: "missing_provider_key" as const,
+      plannerDegradedReason: "missing_provider_key" as const,
+      qualityStatus: "failed" as const,
+      qualityIssues: ["planner_unavailable"],
+      providerCallAttempted: false,
       providerCallSucceeded: false,
       plannerDebug: {
         attemptedProvider: "openai" as const,
-        usedProvider: "local_fallback" as const,
-        providerAvailable: true,
+        usedProvider: "none" as const,
+        providerAvailable: false,
         providerErrorCode: null,
-        providerErrorMessage: "create_planner_timeout_after_2200ms",
-        errorMessage: "create_planner_timeout_after_2200ms",
+        providerErrorMessage: "missing_openai_api_key",
+        errorMessage: "missing_openai_api_key",
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
@@ -414,21 +374,21 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("Kompakte Details");
   });
 
-  it("keeps the local quota fallback in a clearly provisional clarification state", () => {
+  it("keeps the technical planner fallback in a clearly degraded clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
     expect(html).toContain("So kannst du weitermachen");
-    expect(html).toContain("Wir konnten dein Anliegen noch nicht sicher einordnen.");
-    expect(html).toContain("Du kannst trotzdem weitermachen.");
-    expect(html).toContain("Gleichberechtigung");
-    expect(html).toContain("Frauenquote");
-    expect(html).toContain("Minderheitenförderung");
-    expect(html).toContain("wirtschaftliche Auswirkungen für Unternehmen");
-    expect(html).toContain("Text sortieren lassen");
-    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
+    expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
+    expect(html).toContain("GPT-Einordnung erneut versuchen");
+    expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
+    expect(html).not.toContain("Gleichberechtigung");
+    expect(html).not.toContain("Frauenquote");
+    expect(html).not.toContain("Minderheitenförderung");
+    expect(html).not.toContain("wirtschaftliche Auswirkungen für Unternehmen");
     expect(html).not.toContain("Kern");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");

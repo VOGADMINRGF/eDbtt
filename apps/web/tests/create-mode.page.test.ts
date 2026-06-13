@@ -22,6 +22,10 @@ vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
 }));
 
+vi.mock("@/server/createContributionDrafts", () => ({
+  getCreateContributionDraftForResume: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/server/auth/requestScope", () => ({
   resolveCurrentRequestScopeContext: (...args: unknown[]) =>
     mocks.resolveCurrentRequestScopeContext(...args),
@@ -112,9 +116,12 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Was möchtest du einbringen?");
-    expect(html).toContain("Schreib dein Anliegen, deine Frage oder deinen Vorschlag zuerst in deinen eigenen Worten.");
-    expect(html).toContain("Beitrag einreichen");
+    expect(html).toContain("Schreib auf, was dich");
+    expect(html).toContain("beschäftigt");
+    expect(html).toContain(
+      "Du musst es noch nicht perfekt formulieren. eDebatte hilft dir, daraus ein Thema, eine Frage, einen Beitrag oder einen Anlassraum zu machen.",
+    );
+    expect(html).toContain("Beitrag vorbereiten");
     expect(html).toContain("Text sortieren lassen");
     expect(html).toContain("Quelle/Datei prüfen");
     expect(html).toContain("Zu Anlassraum hinzufügen");
@@ -178,8 +185,8 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Der Rahmen steht. Ich kann jetzt Frage, Optionen oder Quellenstruktur verbessern.");
-    expect(html).toContain("Voxy begleitet den Übergang");
+    expect(html).toContain("Der Rahmen steht. Als Nächstes kannst du Frage, Optionen oder Quellen weiter schärfen.");
+    expect(html).toContain("Ich helfe dir, den nächsten Schritt auszuarbeiten.");
     expect(html).toContain('data-voxy-appearance="panel"');
     expect(html).toContain('data-create-focus-stage="true"');
     expect(html).toContain('data-create-stage-shell="true"');

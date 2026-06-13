@@ -15,14 +15,19 @@ describe("create planner no domain heuristic expansion contract", () => {
         locale: "de",
       });
 
-      expect(planner.source).toBe("heuristic_fallback");
-      expect(planner.plannerSource).toBe("heuristic_fallback");
-      expect(planner.plannerProvider).toBe("local_fallback");
-      expect(planner.providerPlan.plannerProvider).toBe("local_fallback");
+      expect(planner.source).toBe("planner_unavailable");
+      expect(planner.plannerSource).toBe("planner_unavailable");
+      expect(planner.plannerProvider).toBe("openai");
+      expect(planner.providerPlan.plannerProvider).toBe("openai");
       expect(planner.plannerDegraded).toBe(true);
       expect(planner.degradedReason).toBe("missing_provider_key");
-      expect(planner.qualityStatus).toBe("needs_confirmation");
-      expect(planner.qualityIssues).toContain("technical_fallback_only");
+      expect(planner.providerCallAttempted).toBe(false);
+      expect(planner.providerCallSucceeded).toBe(false);
+      expect(planner.qualityStatus).toBe("failed");
+      expect(planner.qualityIssues).toContain("planner_unavailable");
+      expect(planner.plannerTopic).toBe("GPT-Einordnung nicht abgeschlossen");
+      expect(planner.plannerClusters).toEqual([]);
+      expect(planner.topicCandidates).toEqual([]);
       expect(planner.permissions.canPublish).toBe(false);
       expect(planner.permissions.canSave).toBe(false);
       expect(planner.permissions.canMerge).toBe(false);
