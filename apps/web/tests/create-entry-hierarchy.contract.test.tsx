@@ -92,9 +92,10 @@ describe("create entry hierarchy contract", () => {
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
-    expect(html).toContain("Was möchtest du einbringen?");
-    expect(html).toContain("Beitrag einreichen");
-    expect(html).toContain("Schreib zuerst in deinen eigenen Worten.");
+    expect(html).toContain("Schreib auf, was dich");
+    expect(html).toContain("beschäftigt");
+    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Du musst es noch nicht perfekt formulieren.");
     expect(html).toContain("Text sortieren lassen");
     expect(html).toContain("Quelle/Datei prüfen");
     expect(html).toContain("Zu Anlassraum hinzufügen");
