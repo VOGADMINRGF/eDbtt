@@ -45,6 +45,7 @@ import type { IconType } from "react-icons";
 import { dedupeCreateContributionLedgerEntries } from "@features/create/createContributionLedger";
 import AccountCreateDraftSections from "./AccountCreateDraftSections";
 import AccountEditorialReviewSupplement from "./AccountEditorialReviewSupplement";
+import AccountFactcheckJobSection from "./AccountFactcheckJobSection";
 import AccountGraphMergeCandidateSection from "./AccountGraphMergeCandidateSection";
 import {
   readAccountCreateContributionLedgerSlice,
@@ -53,6 +54,10 @@ import {
   readAccountEditorialReviewSlice,
   type AccountEditorialReviewSlice,
 } from "@features/account/editorialReviewTypes";
+import {
+  readAccountFactcheckJobSlice,
+  type AccountFactcheckJobSlice,
+} from "@features/account/factcheckJobTypes";
 import {
   readAccountGraphMergeCandidateSlice,
   type AccountGraphMergeCandidateSlice,
@@ -254,6 +259,7 @@ export type AccountOverview = {
   featureInterests: AccountFeatureInterestKey[];
 } & import("@features/account/createContributionLedgerTypes").AccountCreateContributionLedgerSlice &
   AccountEditorialReviewSlice &
+  AccountFactcheckJobSlice &
   AccountGraphMergeCandidateSlice;
 
 type NormalizedOverview = AccountOverview;
@@ -319,6 +325,8 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         requests={data.editorialReviewRequests ?? []}
         onRefresh={refreshOverview}
       />
+
+      <AccountFactcheckJobSection jobs={data.factcheckJobs ?? []} />
 
       <AccountGraphMergeCandidateSection candidates={data.graphMergeCandidates ?? []} />
     </div>
@@ -3418,6 +3426,7 @@ function normalizeOverview(src: any): AccountOverview {
         : [],
     }),
     ...readAccountEditorialReviewSlice(src),
+    ...readAccountFactcheckJobSlice(src),
     ...readAccountGraphMergeCandidateSlice(src),
   };
 }

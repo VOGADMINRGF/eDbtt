@@ -135,8 +135,10 @@ export default async function AdminReviewPage({
     filters as Partial<ReviewQueueFilters>,
   );
   const graphMergeSectionProps = await loadAdminGraphMergeSectionProps();
-  const editorialRequests = await loadAdminEditorialReviewRequests(filters.editorial);
-  const factcheckJobs = await loadAdminFactcheckJobs();
+  const [editorialRequests, factcheckJobs] = await Promise.all([
+    loadAdminEditorialReviewRequests(filters.editorial),
+    loadAdminFactcheckJobs(),
+  ]);
 
   const activeFilterCount = [
     readModel.filters.applied.domain !== "all",
@@ -166,7 +168,6 @@ export default async function AdminReviewPage({
     restartReconstructable: false,
     deploymentReconstructable: false,
   };
-
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
@@ -373,6 +374,9 @@ export default async function AdminReviewPage({
           ))}
           <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
             Redaktion: {editorialRequests.length}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+            Factchecks: {factcheckJobs.length}
           </span>
         </div>
 

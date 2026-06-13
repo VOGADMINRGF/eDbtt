@@ -4,11 +4,12 @@ import type { EngagementLevel } from "@features/user/engagement";
 import type { AccessTier } from "@features/pricing/types";
 import type { TopicKey } from "@features/interests/topics";
 import type { AccountEditorialReviewSlice } from "./editorialReviewTypes";
+import type { AccountFactcheckJobSlice } from "./factcheckJobTypes";
 import type { AccountGraphMergeCandidateSlice } from "./graphCandidateTypes";
 
 type AccountCreateDraftSlice = import("./createContributionLedgerTypes").AccountCreateContributionLedgerSlice;
 type AccountReviewSupplementSlices =
-  AccountEditorialReviewSlice & AccountGraphMergeCandidateSlice;
+  AccountEditorialReviewSlice & AccountFactcheckJobSlice & AccountGraphMergeCandidateSlice;
 
 export const ACCOUNT_FEATURE_INTEREST_KEYS = ["streams", "hostRights", "chat"] as const;
 export type AccountFeatureInterestKey = (typeof ACCOUNT_FEATURE_INTEREST_KEYS)[number];

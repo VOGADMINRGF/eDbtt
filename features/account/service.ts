@@ -25,6 +25,7 @@ import { getEngagementLevel, swipesUntilNextCredit } from "@features/user/engage
 import { getProfilePackageForAccessTier } from "./profilePackages";
 import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
 import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReviewRequests";
+import { loadAccountFactcheckJobs } from "./loadAccountFactcheckJobs";
 
 const RESEARCH_XP_AWARD = 25;
 
@@ -188,15 +189,18 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     8,
   );
   const editorialReviewRequestsPromise = loadAccountEditorialReviewRequests(String(doc._id), 8);
+  const factcheckJobsPromise = loadAccountFactcheckJobs(String(doc._id), 8);
 
   const [
     paymentProfileDoc,
     signatureDoc,
     editorialReviewRequests,
+    factcheckJobs,
   ] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
     editorialReviewRequestsPromise,
+    factcheckJobsPromise,
   ]);
   const createContributionLedger = await createContributionLedgerPromise;
   const graphMergeCandidates = await graphMergeCandidatesPromise;
@@ -314,6 +318,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     lastLoginAt: doc.lastLoginAt ?? doc.updatedAt ?? doc.createdAt ?? null,
     createContributionLedger,
     editorialReviewRequests,
+    factcheckJobs,
   };
 }
 
