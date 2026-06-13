@@ -408,6 +408,9 @@ export function mapErrorToKind(error: unknown): AiErrorKind {
   if ((error as any)?.name === "AbortError" || /timed out|timeout/i.test(message)) {
     return "TIMEOUT";
   }
+  if (status === 402 || /payment required|free trial.*ended|credit/i.test(message)) {
+    return "UNKNOWN";
+  }
   if (status === 404 || (/model/i.test(message) && /404/.test(message))) return "MODEL_NOT_FOUND";
   if (status === 429) return "RATE_LIMIT";
   if (status === 401 || status === 403 || /unauthorized|forbidden|invalid token/i.test(message)) {
@@ -478,13 +481,19 @@ export function deriveRootCause(row: Pick<
   if (row.finalContractStatus === "strict_ok") return "STRICT_OK";
   if (row.finalContractStatus === "built_valid") return "BUILT_VALID";
   if (row.finalContractStatus === "repaired_degraded") return "REPAIRED_DEGRADED";
+  if (row.providerErrorCode === "PAYMENT_REQUIRED" || row.providerErrorCode === "CONFIG_MISSING_COST_APPROVAL") {
+    return "PAYMENT_REQUIRED";
+  }
+  if (row.providerErrorCode === "TIMEOUT" || row.errorKind === "TIMEOUT") return "TIMEOUT";
+  if (row.journeyDecision === "fallback_not_needed") return "FALLBACK_NOT_NEEDED";
+  if (row.status === "skipped") return "SKIPPED";
+  if (row.journeyDecision === "disabled") return "DISABLED";
   if (row.finalContractStatus === "blocked") return "BLOCKED";
   if (row.status === "ok") return "OK";
   if (row.status === "config_missing" || row.journeyDecision === "config_missing") return "CONFIG_MISSING";
   if (row.journeyDecision === "not_in_plan") return "NOT_IN_JOURNEY_PLAN";
   if (row.errorKind === "MODEL_NOT_FOUND") return "MODEL_NOT_FOUND";
   if (row.providerErrorCode === "OPENAI_EMPTY_OUTPUT") return "OPENAI_EMPTY_OUTPUT";
-  if (row.errorKind === "TIMEOUT") return "TIMEOUT";
   if (row.errorKind === "BAD_JSON" && row.parseStatus === "failed") return "BAD_JSON";
   if (row.schemaStatus === "failed") return "SCHEMA_FAILED";
   if (row.errorKind === "UNAUTHORIZED" || row.errorKind === "INVALID_API_KEY") return "AUTH_FAILED";
@@ -508,6 +517,12 @@ export function deriveNextAction(row: Pick<
   if (row.provider === "openai" && row.openAiSmokeModelMismatch) {
     return "OPENAI_SMOKE_MODEL prüfen; Direct Contract sollte Smoke-Profil nutzen.";
   }
+  if (row.providerErrorCode === "PAYMENT_REQUIRED" || row.providerErrorCode === "CONFIG_MISSING_COST_APPROVAL") {
+    return "Billing-/Credit-Gate prüfen; Provider ist kostenbedingt blockiert.";
+  }
+  if (row.providerErrorCode === "TIMEOUT" || row.errorKind === "TIMEOUT") {
+    return "Contract verkleinern, Timeout erhöhen oder Provider-Latenz prüfen.";
+  }
   if (row.finalContractStatus === "strict_ok") return "Keine Aktion";
   if (row.finalContractStatus === "built_valid") {
     return "Direkter Strict-Contract fehlt; deterministischer Envelope ist nutzbar, Provider-Strict-Pfad nachhaerten.";
@@ -519,6 +534,12 @@ export function deriveNextAction(row: Pick<
     return "Account-/Quota-/Billing-/Auth-Blocker pruefen.";
   }
   if (row.status === "ok") return "Keine Aktion";
+  if (row.journeyDecision === "fallback_not_needed") {
+    return "Kein Providerfehler; der Journey-Fallback wurde in diesem Lauf bewusst nicht gebraucht.";
+  }
+  if (row.status === "skipped") {
+    return "Kein Providerfehler; dieser Pfad wurde in diesem Lauf nicht ausgefuehrt.";
+  }
   if (row.status === "config_missing" || row.journeyDecision === "config_missing") {
     return "ENV pruefen.";
   }
@@ -530,9 +551,6 @@ export function deriveNextAction(row: Pick<
   }
   if (row.providerErrorCode === "OPENAI_EMPTY_OUTPUT") {
     return "Reasoning/output format pruefen.";
-  }
-  if (row.errorKind === "TIMEOUT") {
-    return "Timeout/latency/provider degradation pruefen.";
   }
   if (row.errorKind === "BAD_JSON" && row.providerStatus === "reachable") {
     return "Provider erreichbar; Analyze-/JSON-Contract pruefen.";

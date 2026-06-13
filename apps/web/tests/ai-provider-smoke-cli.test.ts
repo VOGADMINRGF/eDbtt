@@ -574,6 +574,9 @@ describe("ai provider smoke cli helpers", () => {
 
   it("uses tiny token budgets for probe/runtime smoke profiles", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_MODEL", "gpt-5");
+    vi.stubEnv("OPENAI_SMOKE_MODEL", "gpt-4.1-mini");
+    vi.stubEnv("OPENAI_SMOKE_TIMEOUT_MS", "31000");
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 
     providerMocks.callOpenAI.mockResolvedValue({
@@ -594,7 +597,7 @@ describe("ai provider smoke cli helpers", () => {
     });
 
     const probeOutDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-probe-budget-"));
-    await runProviderSmokeCli({
+    const probeResult = await runProviderSmokeCli({
       mode: "probe",
       providers: ["openai"],
       allowBuiltValid: false,
@@ -606,8 +609,17 @@ describe("ai provider smoke cli helpers", () => {
       help: false,
       outputDir: probeOutDir,
     });
-    const openAiProbeCall = providerMocks.callOpenAI.mock.calls[0]?.[0] as { maxOutputTokens?: number };
+    const openAiProbeCall = providerMocks.callOpenAI.mock.calls[0]?.[0] as {
+      model?: string;
+      timeoutMs?: number;
+      maxOutputTokens?: number;
+    };
     expect(openAiProbeCall?.maxOutputTokens).toBe(96);
+    expect(openAiProbeCall?.model).toBe("gpt-4.1-mini");
+    expect(openAiProbeCall?.timeoutMs).toBe(31_000);
+    expect(probeResult.rows[0]?.selectedSmokeModel).toBe("gpt-4.1-mini");
+    expect(probeResult.rows[0]?.effectiveModel).toBe("gpt-4.1-mini");
+    expect(probeResult.rows[0]?.openAiSmokeModelMismatch).toBe(false);
 
     const runtimeOutDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-runtime-budget-"));
     await runProviderSmokeCli({
@@ -626,6 +638,47 @@ describe("ai provider smoke cli helpers", () => {
       maxOutputTokens?: number;
     };
     expect(anthropicRuntimeCall?.maxOutputTokens).toBe(192);
+  });
+
+  it("retries Gemini probe with relaxed parsing after BAD_JSON", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+    providerMocks.callGemini
+      .mockResolvedValueOnce({
+        text: "{\"ok\":true,\"ping\":\"pong\"",
+        model: "gemini-2.5-flash",
+      })
+      .mockResolvedValueOnce({
+        text: "Result: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"gemini\"}",
+        model: "gemini-2.5-flash",
+      });
+
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-gemini-probe-"));
+    const result = await runProviderSmokeCli({
+      mode: "probe",
+      providers: ["gemini"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+
+    const firstCallArgs = providerMocks.callGemini.mock.calls[0]?.[0] as
+      | { expectJson?: boolean; maxOutputTokens?: number }
+      | undefined;
+    const secondCallArgs = providerMocks.callGemini.mock.calls[1]?.[0] as
+      | { expectJson?: boolean; maxOutputTokens?: number }
+      | undefined;
+    expect(providerMocks.callGemini).toHaveBeenCalledTimes(2);
+    expect(firstCallArgs?.expectJson).toBe(true);
+    expect(firstCallArgs?.maxOutputTokens).toBe(96);
+    expect(secondCallArgs?.expectJson).toBe(false);
+    expect(secondCallArgs?.maxOutputTokens).toBe(192);
+    expect(result.rows[0]?.status).toBe("ok");
+    expect(result.rows[0]?.providerErrorCode).toBeNull();
   });
 
   it("prints n/a for unknown costs instead of 0", () => {
