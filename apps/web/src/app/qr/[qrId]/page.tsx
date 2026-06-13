@@ -85,6 +85,7 @@ function QrFallback({
   qrId: string;
   reason: "not_found" | "invalid_target" | "unsupported";
 }) {
+  const ctaClassName = "inline-flex w-full items-center justify-center sm:w-auto";
   const description =
     reason === "invalid_target"
       ? "Der QR-Code enthält kein belastbares Ziel. Du kannst trotzdem über die bestehenden review-first Einstiege weiterarbeiten."
@@ -115,16 +116,16 @@ function QrFallback({
         </p>
       </section>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm">
+      <div className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
         <a
           href="/start"
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaClassName}`}
         >
           Über Start weiter
         </a>
         <a
           href="/stream"
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+          className={`vog-btn-secondary landing-cta-secondary ${ctaClassName}`}
         >
           Live- und Event-Kontexte ansehen
         </a>
@@ -142,6 +143,7 @@ function CampaignQrLanding({
   sessionId?: string;
   title?: string | null;
 }) {
+  const ctaClassName = "inline-flex w-full items-center justify-center sm:w-auto";
   const params = new URLSearchParams({ source: "qr" });
   if (sessionId) params.set("session", sessionId);
   const liveHref = `/live/${encodeURIComponent(id)}?${params.toString()}`;
@@ -178,16 +180,16 @@ function CampaignQrLanding({
         )}
       </section>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm">
+      <div className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
         <a
           href={liveHref}
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaClassName}`}
         >
           Live-Einstieg öffnen
         </a>
         <a
           href={`/campaign/${id}`}
-          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+          className={`vog-btn-secondary landing-cta-secondary ${ctaClassName}`}
         >
           Kampagnenkontext ansehen
         </a>

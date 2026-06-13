@@ -31,6 +31,9 @@ export default function LiveReportHandoffClient({
   campaignId,
   report,
 }: LiveReportHandoffClientProps) {
+  const ctaStackClassName =
+    "inline-flex w-full items-center justify-center sm:w-auto";
+
   if (!report) {
     return (
       <section
@@ -49,16 +52,16 @@ export default function LiveReportHandoffClient({
               Für diese `campaignId` liegt aktuell kein sicherer Report-Handoff vor. Prüfe zuerst
               das Host-Cockpit oder den Kampagnenkontext.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 href={`/live/${encodeURIComponent(campaignId)}/host`}
-                className="landing-cta-primary public-cta-primary vog-btn-brand"
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
               >
                 Host-Cockpit öffnen
               </a>
               <a
                 href={`/live/${encodeURIComponent(campaignId)}`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
                 Live-Einstieg öffnen
               </a>
@@ -215,7 +218,7 @@ export default function LiveReportHandoffClient({
             <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--fg))]/82">
               {report.recommendedNextActions.map((action) => (
                 <li key={`desc-${action.id}`}>
-                  {action.label}: {action.description} Guardrail: guarded={String(action.guarded)}.
+                  {action.label}: {action.description} Guardrail bleibt aktiv.
                 </li>
               ))}
             </ul>
@@ -223,22 +226,22 @@ export default function LiveReportHandoffClient({
 
           <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Weitere Oberflächen</h2>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 href={`/live/${encodeURIComponent(report.campaignId)}`}
-                className="landing-cta-primary public-cta-primary vog-btn-brand"
+                className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaStackClassName}`}
               >
                 Live-Einstieg öffnen
               </a>
               <a
                 href={`/live/${encodeURIComponent(report.campaignId)}/host`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
                 Host-Cockpit öffnen
               </a>
               <a
                 href={`/live/${encodeURIComponent(report.campaignId)}/media-kit`}
-                className="vog-btn-secondary landing-cta-secondary"
+                className={`vog-btn-secondary landing-cta-secondary ${ctaStackClassName}`}
               >
                 Media-Kit ansehen
               </a>

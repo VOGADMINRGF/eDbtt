@@ -49,7 +49,7 @@ export type LiveMediaKit = {
 };
 
 const DEFAULT_MEDIA_KIT_GUARDRAILS = [
-  "Entwurf / Live Entry / Review-first",
+  "Entwurf / Live-Einstieg / Review-first",
   "Keine automatische Veröffentlichung",
   "Keine Stimme aus Drafts",
   "Keine Drittanbieter-Tracker oder externen Embed-Skripte",

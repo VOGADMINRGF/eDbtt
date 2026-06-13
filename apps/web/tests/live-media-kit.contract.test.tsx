@@ -21,6 +21,7 @@ describe("live media kit contract", () => {
     expect(html).toContain("/live/demo-pflege-vor-ort/host");
     expect(html).toContain("/live/demo-pflege-vor-ort/report");
     expect(html).toContain("QR-Vorschau öffnen");
+    expect(html).toContain("Entwurf / Live-Einstieg / Review-first");
     expect(html).toContain("Quellenlage offen");
     expect(html).toContain("Prüfung empfohlen");
     expect(html).toContain("Keine Drittanbieter-Tracker oder externen Embed-Skripte.");

@@ -149,7 +149,7 @@ function buildSections(cockpit: LiveHostCockpit): LiveReportHandoff["sections"] 
       title: "Empfohlene nächste Schritte",
       kind: "next_steps",
       body:
-        "Der Report-Handoff bleibt ein Arbeitsstand. Vor Dossier-, Anlassraum- oder Graph-Schritten ist weiterhin explizite Review-first Prüfung nötig.",
+        "Der Report-Entwurf bleibt ein Arbeitsstand. Vor Dossier-, Anlassraum- oder Graph-Schritten ist weiterhin explizite Review-first Prüfung nötig.",
       trustLabels: getLiveTrustLabels({
         publicationStatus: "draft",
         reviewRecommended: true,
