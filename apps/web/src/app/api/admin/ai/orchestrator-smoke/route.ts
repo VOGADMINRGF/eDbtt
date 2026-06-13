@@ -828,7 +828,7 @@ function validateProbePayload(rawText: string): {
   parseStatus: ProviderDiagnostic["parseStatus"];
   parseError: string | null;
 } {
-  const cleaned = cleanJson(rawText ?? "");
+  const cleaned = (extractJsonCandidate(rawText ?? "") ?? cleanJson(rawText ?? "")).trim();
   if (!cleaned) {
     return { ok: false, parseStatus: "failed", parseError: "empty_output" };
   }
@@ -885,6 +885,10 @@ function configMissingReason(provider: E150ProviderName): string | null {
 }
 
 async function runDirectProviderProbe(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+  const isOpenAi = provider === "openai";
+  const selectedSmokeModel = isOpenAi ? openAiSmokeModel() : null;
+  const smokeModelEnvPresent = isOpenAi ? Boolean(process.env.OPENAI_SMOKE_MODEL) : null;
+  const probeTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
   const missingReason = configMissingReason(provider);
   if (missingReason) {
     return baseDiagnostic({
@@ -892,7 +896,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       mode: "provider_probe",
       stage: "provider_probe",
       pipeline: "provider_probe",
-      model: defaultModelForProvider(provider),
+      model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
       status: "config_missing",
       errorKind: "INVALID_API_KEY",
       providerErrorCode: "CONFIG_MISSING",
@@ -907,6 +911,12 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       rawExcerpt: missingReason,
       durationMs: 0,
       journeyDecision: "config_missing",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+      openAiSmokeModelMismatch: false,
     });
   }
 
@@ -922,6 +932,8 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "openai"),
         asJson: true,
         forceJsonFormat: true,
+        model: selectedSmokeModel ?? openAiSmokeModel(),
+        timeoutMs: probeTimeoutMs ?? openAiSmokeTimeoutMs(),
         maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
@@ -947,15 +959,74 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       tokensIn = res.tokensIn;
       tokensOut = res.tokensOut;
     } else if (provider === "gemini") {
-      const res = await callGemini({
+      let res = await callGemini({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
         maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
         expectJson: true,
       });
+      let payload = validateProbePayload(res.text ?? "");
+      if (!payload.ok) {
+        res = await callGemini({
+          prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
+          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          expectJson: false,
+        });
+        payload = validateProbePayload(res.text ?? "");
+      }
       text = res.text;
       model = res.model;
       tokensIn = res.tokensIn;
       tokensOut = res.tokensOut;
+      if (!payload.ok) {
+        const parseError = payload.parseError ?? "json_parse_failed";
+        return baseDiagnostic({
+          provider,
+          mode: "provider_probe",
+          stage: "provider_probe",
+          pipeline: "provider_probe",
+          model: model ?? defaultModelForProvider(provider),
+          status: "failed",
+          errorKind: "BAD_JSON",
+          providerErrorCode: "BAD_JSON",
+          httpStatus: 200,
+          errorMessage: parseError,
+          reason: parseError,
+          validationMode: "none",
+          providerStatus: "reachable",
+          adapterStatus: "failed",
+          parseStatus: payload.parseStatus,
+          schemaStatus: "not_started",
+          parseError,
+          rawExcerpt: text,
+          durationMs: Date.now() - started,
+          tokensIn,
+          tokensOut,
+          journeyDecision: "selected",
+        });
+      }
+      return baseDiagnostic({
+        provider,
+        mode: "provider_probe",
+        stage: "provider_probe",
+        pipeline: "provider_probe",
+        model: model ?? defaultModelForProvider(provider),
+        status: "ok",
+        errorKind: null,
+        providerErrorCode: null,
+        httpStatus: 200,
+        errorMessage: null,
+        reason: null,
+        validationMode: "none",
+        providerStatus: "reachable",
+        adapterStatus: "ok",
+        parseStatus: payload.parseStatus,
+        schemaStatus: "not_started",
+        rawExcerpt: text,
+        durationMs: Date.now() - started,
+        tokensIn,
+        tokensOut,
+        journeyDecision: "selected",
+      });
     } else {
       const res = await callAriLLM({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "ari"),
@@ -969,6 +1040,14 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     }
 
     const payload = validateProbePayload(text ?? "");
+    const effectiveModel = model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel,
+        effectiveModel,
+        smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+      });
     if (!payload.ok) {
       const parseError = payload.parseError ?? "json_parse_failed";
       return baseDiagnostic({
@@ -976,7 +1055,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         mode: "provider_probe",
         stage: "provider_probe",
         pipeline: "provider_probe",
-        model: model ?? defaultModelForProvider(provider),
+        model: effectiveModel,
         status: "failed",
         errorKind: "BAD_JSON",
         providerErrorCode: "BAD_JSON",
@@ -994,6 +1073,12 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         tokensIn,
         tokensOut,
         journeyDecision: "selected",
+        timeoutMs: probeTimeoutMs,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        selectedSmokeModel,
+        smokeModelEnvPresent,
+        effectiveModel,
+        openAiSmokeModelMismatch,
       });
     }
 
@@ -1002,7 +1087,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       mode: "provider_probe",
       stage: "provider_probe",
       pipeline: "provider_probe",
-      model: model ?? defaultModelForProvider(provider),
+      model: effectiveModel,
       status: "ok",
       errorKind: null,
       providerErrorCode: null,
@@ -1019,17 +1104,38 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       tokensIn,
       tokensOut,
       journeyDecision: "selected",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel,
+      openAiSmokeModelMismatch,
     });
   } catch (error: any) {
     const errorKind = mapErrorToKind(error);
-    const providerCode = extractProviderErrorCode(error);
+    const providerCode = normalizeErrorCode({
+      providerErrorCode: extractProviderErrorCode(error),
+      errorKind,
+      httpStatus: typeof error?.status === "number" ? error.status : null,
+      message: error?.message ?? null,
+    });
     const status = typeof error?.status === "number" ? error.status : null;
+    const effectiveModel =
+      (error as any)?.meta?.model ??
+      (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel,
+        effectiveModel,
+        smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+      });
     return baseDiagnostic({
       provider,
       mode: "provider_probe",
       stage: "provider_probe",
       pipeline: "provider_probe",
-      model: (error as any)?.meta?.model ?? defaultModelForProvider(provider),
+      model: effectiveModel,
       status: looksConfigMissing(error?.message) ? "config_missing" : "failed",
       errorKind,
       providerErrorCode: providerCode,
@@ -1044,6 +1150,12 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       rawExcerpt: error?.payload ?? error?.message,
       durationMs: Date.now() - started,
       journeyDecision: looksConfigMissing(error?.message) ? "config_missing" : "selected",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel,
+      openAiSmokeModelMismatch,
     });
   }
 }
@@ -2366,6 +2478,34 @@ function buildProviderFullContractPrompt(provider: E150ProviderName): string {
   return `${FULL_CONTRACT_SYSTEM_PROMPT}\n\n${providerHint}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
 }
 
+function buildOpenAiCompactFallbackPrompt(): string {
+  const compactDraftExample = JSON.stringify({
+    claims: [{ text: "..." }],
+    notes: [],
+    questions: [],
+    knots: [],
+    consequences: { consequences: [], responsibilities: [] },
+    report: {
+      summary: "...",
+      keyConflicts: [],
+      facts: { local: [], international: [] },
+      openQuestions: [],
+      takeaways: [],
+    },
+  });
+
+  return [
+    "You are the OpenAI compact fallback for the AnalyzeResult smoke contract.",
+    "Return exactly one compact JSON object. No markdown. No prose. No code fences.",
+    "Keep the payload intentionally small. Prefer at most one short claim, one note and one question.",
+    "If unsure, keep arrays empty instead of expanding the response.",
+    "A compact draft object is acceptable if it can be deterministically wrapped into AnalyzeResult.",
+    "Preferred compact draft shape:",
+    compactDraftExample,
+    `Input:\n${FULL_SAMPLE_TEXT}`,
+  ].join("\n\n");
+}
+
 function buildFullContractRepairPrompt(
   provider: E150ProviderName,
   rawText: string,
@@ -2530,6 +2670,42 @@ async function executeDirectFullContractCall(params: {
     openaiErrorMessage: null,
     timeoutMs: null,
     maxOutputTokens: null,
+  };
+}
+
+async function executeOpenAiCompactFallbackCall(params: {
+  maxOutputTokens: number;
+  timeoutMs: number;
+}): Promise<{
+  text: string;
+  model: string | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  formatUsed: "json_schema" | "json_object" | null;
+  didFallback: boolean | null;
+  openaiErrorCode: string | null;
+  openaiErrorMessage: string | null;
+  timeoutMs: number | null;
+  maxOutputTokens: number | null;
+}> {
+  const res = await callOpenAI({
+    prompt: buildOpenAiCompactFallbackPrompt(),
+    asJson: true,
+    model: openAiSmokeModel(),
+    timeoutMs: params.timeoutMs,
+    maxOutputTokens: params.maxOutputTokens,
+  });
+  return {
+    text: res.text,
+    model: res.model ?? openAiSmokeModel(),
+    tokensIn: res.tokensIn ?? null,
+    tokensOut: res.tokensOut ?? null,
+    formatUsed: res.formatUsed ?? null,
+    didFallback: typeof res.didFallback === "boolean" ? res.didFallback : null,
+    openaiErrorCode: res.openaiErrorCode ?? null,
+    openaiErrorMessage: res.openaiErrorMessage ?? null,
+    timeoutMs: params.timeoutMs,
+    maxOutputTokens: params.maxOutputTokens,
   };
 }
 
@@ -3053,6 +3229,168 @@ async function runDirectFullContractProvider(
         smokeModelEnvPresent: Boolean(openAiSmokeEnvPresent),
       });
 
+    if (isOpenAi && providerCode === "TIMEOUT") {
+      try {
+        const fallbackCall = await executeOpenAiCompactFallbackCall({
+          timeoutMs: Math.min(openAiTimeoutMs ?? openAiSmokeTimeoutMs(), 12_000),
+          maxOutputTokens: Math.min(
+            openAiMaxOutputTokens ?? resolvedOptions.maxOutputTokens,
+            FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
+          ),
+        });
+        const fallbackValidation = validateFullContractPayload(fallbackCall.text ?? "");
+        const fallbackEffectiveModel = fallbackCall.model ?? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL;
+        const fallbackMismatch = isOpenAiSmokeModelMismatch({
+          selectedSmokeModel: openAiSelectedSmokeModel,
+          effectiveModel: fallbackEffectiveModel,
+          smokeModelEnvPresent: Boolean(openAiSmokeEnvPresent),
+        });
+        if (fallbackValidation.ok) {
+          return baseDiagnostic({
+            provider,
+            mode: "full_contract",
+            stage: "analyze_contract",
+            pipeline: "provider_probe",
+            model: fallbackEffectiveModel,
+            status: "degraded",
+            errorKind,
+            providerErrorCode: providerCode,
+            httpStatus: status,
+            errorMessage: error?.message ?? "direct_full_contract_timeout",
+            reason: error?.message ?? "direct_full_contract_timeout",
+            validationMode: "analyze_schema",
+            providerStatus: "reachable",
+            adapterStatus: "ok",
+            parseStatus: "ok",
+            schemaStatus: "ok",
+            rawExcerpt: fallbackValidation.rawExcerpt ?? fallbackCall.text,
+            durationMs: Date.now() - started,
+            tokensIn: fallbackCall.tokensIn,
+            tokensOut: fallbackCall.tokensOut,
+            journeyDecision: "selected",
+            strictStatus: "blocked",
+            strictProviderErrorCode: providerCode,
+            strictSchemaPath: null,
+            repairAttempted: false,
+            repairStatus: "not_attempted",
+            repairProviderErrorCode: null,
+            repairSchemaPath: null,
+            repairReason: "compact_json_object_fallback_after_timeout",
+            repairUsed: false,
+            directStrictStatus: "blocked",
+            draftStatus: "not_attempted",
+            envelopeBuildStatus: "not_attempted",
+            finalSchemaStatus: "ok",
+            finalContractStatus: "built_valid",
+            formatUsed: fallbackCall.formatUsed,
+            didFallback: fallbackCall.didFallback,
+            timeoutMs: fallbackCall.timeoutMs,
+            maxOutputTokens: fallbackCall.maxOutputTokens,
+            openaiErrorCode: fallbackCall.openaiErrorCode ?? providerCode,
+            openaiErrorMessage: fallbackCall.openaiErrorMessage ?? error?.message ?? "direct_full_contract_timeout",
+            selectedSmokeModel: openAiSelectedSmokeModel,
+            smokeModelEnvPresent: openAiSmokeEnvPresent,
+            effectiveModel: fallbackEffectiveModel,
+            openAiSmokeModelMismatch: fallbackMismatch,
+            runCostGroup,
+            smokeMode: resolvedOptions.mode,
+            budgetProfile,
+            diagnosticNotes: mergeDiagnosticNotes(provider, [
+              openAiProfileNote,
+              `effectiveModel=${fallbackEffectiveModel}`,
+              fallbackMismatch
+                ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+                : null,
+              "Strict json_schema call timed out; compact json_object fallback returned schema-valid output.",
+              `formatUsed=${fallbackCall.formatUsed ?? "json_object"}`,
+              `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+              `budgetProfile=${budgetProfile}`,
+            ]),
+          });
+        }
+
+        const built = runDeterministicDraftEnvelopeBuild({
+          provider,
+          sourceText: FULL_SAMPLE_TEXT,
+          strictValidation: fallbackValidation,
+          rawText: fallbackCall.text ?? "",
+        });
+        if (built.finalContractStatus === "built_valid") {
+          return baseDiagnostic({
+            provider,
+            mode: "full_contract",
+            stage: "analyze_contract",
+            pipeline: "provider_probe",
+            model: fallbackEffectiveModel,
+            status: "degraded",
+            errorKind,
+            providerErrorCode: providerCode,
+            httpStatus: status,
+            errorMessage: error?.message ?? "direct_full_contract_timeout",
+            reason: error?.message ?? "direct_full_contract_timeout",
+            validationMode: "analyze_schema",
+            providerStatus: "reachable",
+            adapterStatus: fallbackValidation.adapterStatus,
+            parseStatus: fallbackValidation.parseStatus,
+            schemaStatus: fallbackValidation.schemaStatus,
+            parseError: fallbackValidation.parseError,
+            schemaError: fallbackValidation.schemaError,
+            schemaPath: fallbackValidation.schemaPath,
+            rawExcerpt: fallbackValidation.rawExcerpt ?? fallbackCall.text,
+            durationMs: Date.now() - started,
+            tokensIn: fallbackCall.tokensIn,
+            tokensOut: fallbackCall.tokensOut,
+            journeyDecision: "selected",
+            strictStatus: "blocked",
+            strictProviderErrorCode: providerCode,
+            strictSchemaPath: null,
+            repairAttempted: false,
+            repairStatus: "not_attempted",
+            repairProviderErrorCode: null,
+            repairSchemaPath: null,
+            repairReason: "compact_json_object_fallback_after_timeout",
+            repairUsed: false,
+            directStrictStatus: "blocked",
+            draftStatus: built.draftStatus,
+            envelopeBuildStatus: built.envelopeBuildStatus,
+            finalSchemaStatus: built.finalSchemaStatus,
+            finalContractStatus: "built_valid",
+            buildWarnings: built.diagnostics.buildWarnings,
+            filledDefaults: built.diagnostics.filledDefaults,
+            missingContainers: built.diagnostics.missingContainers,
+            normalizedEnumWarnings: built.diagnostics.normalizedEnumWarnings,
+            generatedIds: built.diagnostics.generatedIds,
+            formatUsed: fallbackCall.formatUsed,
+            didFallback: fallbackCall.didFallback,
+            timeoutMs: fallbackCall.timeoutMs,
+            maxOutputTokens: fallbackCall.maxOutputTokens,
+            openaiErrorCode: fallbackCall.openaiErrorCode ?? providerCode,
+            openaiErrorMessage: fallbackCall.openaiErrorMessage ?? error?.message ?? "direct_full_contract_timeout",
+            selectedSmokeModel: openAiSelectedSmokeModel,
+            smokeModelEnvPresent: openAiSmokeEnvPresent,
+            effectiveModel: fallbackEffectiveModel,
+            openAiSmokeModelMismatch: fallbackMismatch,
+            runCostGroup,
+            smokeMode: resolvedOptions.mode,
+            budgetProfile,
+            diagnosticNotes: mergeDiagnosticNotes(provider, [
+              openAiProfileNote,
+              `effectiveModel=${fallbackEffectiveModel}`,
+              fallbackMismatch
+                ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+                : null,
+              "Strict json_schema call timed out; compact json_object fallback produced deterministic built_valid output.",
+              `formatUsed=${fallbackCall.formatUsed ?? "json_object"}`,
+              `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+              `budgetProfile=${budgetProfile}`,
+            ]),
+          });
+        }
+      } catch {
+        // Keep the original timeout classification if the compact fallback also fails.
+      }
+    }
+
     return baseDiagnostic({
       provider,
       mode: "full_contract",
@@ -3206,6 +3544,48 @@ function applyFullContractValidation(
         message: strictValidation.errorMessage,
       });
       const blocked = isBlockedContractError(strictCode);
+      const built = runDeterministicDraftEnvelopeBuild({
+        provider: row.provider,
+        sourceText: FULL_SAMPLE_TEXT,
+        strictValidation,
+        rawText: candidate.rawText ?? "",
+      });
+      if (built.finalContractStatus === "built_valid") {
+        return baseDiagnostic({
+          ...row,
+          status: "degraded",
+          errorKind: strictValidation.errorKind,
+          providerErrorCode: strictCode,
+          errorMessage: strictValidation.errorMessage,
+          reason: strictValidation.reason,
+          validationMode: "analyze_schema",
+          providerStatus: "reachable",
+          adapterStatus: strictValidation.adapterStatus,
+          parseStatus: strictValidation.parseStatus,
+          schemaStatus: strictValidation.schemaStatus,
+          parseError: strictValidation.parseError,
+          schemaError: strictValidation.schemaError,
+          schemaPath: strictValidation.schemaPath,
+          rawExcerpt: strictValidation.rawExcerpt,
+          strictStatus: blocked ? "blocked" : "failed",
+          strictProviderErrorCode: strictCode,
+          strictSchemaPath: strictValidation.schemaPath,
+          repairAttempted: false,
+          repairStatus: "not_attempted",
+          repairProviderErrorCode: null,
+          repairSchemaPath: null,
+          repairReason: "builder_preferred_over_repair",
+          finalContractStatus: "built_valid",
+          draftStatus: built.draftStatus,
+          envelopeBuildStatus: built.envelopeBuildStatus,
+          finalSchemaStatus: built.finalSchemaStatus,
+          buildWarnings: built.diagnostics.buildWarnings,
+          filledDefaults: built.diagnostics.filledDefaults,
+          missingContainers: built.diagnostics.missingContainers,
+          normalizedEnumWarnings: built.diagnostics.normalizedEnumWarnings,
+          generatedIds: built.diagnostics.generatedIds,
+        });
+      }
       return baseDiagnostic({
         ...row,
         status: "failed",

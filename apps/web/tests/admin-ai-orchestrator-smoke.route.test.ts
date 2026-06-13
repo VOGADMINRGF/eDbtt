@@ -234,6 +234,53 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(body.rows.map((entry: any) => entry.provider)).toEqual(["openai", "gemini"]);
   });
 
+  it("keeps journey fallback_not_needed visible without classifying it as a provider failure", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue({
+      best: {
+        provider: "openai",
+        rawText: JSON.stringify(STRICT_ANALYZE_JSON),
+      },
+      candidates: [
+        {
+          provider: "openai",
+          rawText: JSON.stringify(STRICT_ANALYZE_JSON),
+        },
+      ],
+      meta: {
+        providerMatrix: [
+          {
+            provider: "openai",
+            state: "ok",
+            durationMs: 180,
+          },
+          {
+            provider: "anthropic",
+            state: "skipped",
+            durationMs: 0,
+            reason: "fallback_not_needed",
+          },
+        ],
+        probes: [],
+      },
+    });
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const anthropicJourney = body.rows.find((row: any) => row.provider === "anthropic");
+    expect(anthropicJourney.status).toBe("skipped");
+    expect(anthropicJourney.journeyDecision).toBe("fallback_not_needed");
+    expect(anthropicJourney.rootCause).toBe("FALLBACK_NOT_NEEDED");
+    expect(anthropicJourney.nextAction).toContain("Kein Providerfehler");
+  });
+
   it("includes ARI in provider_probe mode with config_missing when env is not complete", async () => {
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("ANTHROPIC_API_KEY", "");
@@ -257,6 +304,137 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(ari.reason).toContain("missing ARI_BASE_URL / ARI_API_KEY");
 
     vi.unstubAllEnvs();
+  });
+
+  it("uses OPENAI_SMOKE_MODEL for direct probe instead of OPENAI_MODEL", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("OPENAI_SMOKE_MODEL", "gpt-4.1-mini");
+    vi.stubEnv("OPENAI_MODEL", "gpt-5");
+    vi.stubEnv("OPENAI_SMOKE_TIMEOUT_MS", "17000");
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify({ ok: true, ping: "pong", provider: "openai" }),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=probe"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const openai = body.rows.find((row: any) => row.provider === "openai");
+    const firstCallArgs = mocks.callOpenAI.mock.calls[0]?.[0] as
+      | { model?: string; timeoutMs?: number; maxOutputTokens?: number }
+      | undefined;
+
+    expect(firstCallArgs?.model).toBe("gpt-4.1-mini");
+    expect(firstCallArgs?.timeoutMs).toBe(17_000);
+    expect(firstCallArgs?.maxOutputTokens).toBe(96);
+    expect(openai.selectedSmokeModel).toBe("gpt-4.1-mini");
+    expect(openai.effectiveModel).toBe("gpt-4.1-mini");
+    expect(openai.smokeModelEnvPresent).toBe(true);
+    expect(openai.openAiSmokeModelMismatch).toBe(false);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("retries Gemini direct probe in relaxed mode after BAD_JSON", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini-key");
+    mocks.callGemini
+      .mockResolvedValueOnce({
+        text: "{\"ok\":true,\"ping\":\"pong\"",
+        model: "gemini-2.5-flash",
+      })
+      .mockResolvedValueOnce({
+        text: "Result: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"gemini\"}",
+        model: "gemini-2.5-flash",
+      });
+
+    const response = await POST(req("?mode=probe"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const gemini = body.rows.find((row: any) => row.provider === "gemini");
+    const firstCallArgs = mocks.callGemini.mock.calls[0]?.[0] as
+      | { expectJson?: boolean; maxOutputTokens?: number }
+      | undefined;
+    const secondCallArgs = mocks.callGemini.mock.calls[1]?.[0] as
+      | { expectJson?: boolean; maxOutputTokens?: number }
+      | undefined;
+
+    expect(mocks.callGemini).toHaveBeenCalledTimes(2);
+    expect(firstCallArgs?.expectJson).toBe(true);
+    expect(firstCallArgs?.maxOutputTokens).toBe(96);
+    expect(secondCallArgs?.expectJson).toBe(false);
+    expect(secondCallArgs?.maxOutputTokens).toBe(192);
+    expect(gemini.status).toBe("ok");
+    expect(gemini.providerErrorCode).toBeNull();
+    expect(gemini.rootCause).toBe("STRICT_OK");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("maps ARI 402 in direct probe to PAYMENT_REQUIRED instead of INTERNAL", async () => {
+    vi.stubEnv("ARI_BASE_URL", "https://ari.example");
+    vi.stubEnv("ARI_API_KEY", "test-ari-key");
+    mocks.callAriLLM.mockRejectedValue(
+      Object.assign(new Error("ARI request failed: 402 Payment Required"), {
+        status: 402,
+      }),
+    );
+
+    const response = await POST(req("?mode=probe"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const ari = body.rows.find((row: any) => row.provider === "ari");
+    expect(ari.providerErrorCode).toBe("PAYMENT_REQUIRED");
+    expect(ari.rootCause).toBe("PAYMENT_REQUIRED");
+    expect(ari.nextAction).toContain("Billing-/Credit-Gate");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("accepts top-level array journey candidates as built_valid via deterministic envelope build", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue({
+      best: {
+        provider: "anthropic",
+        rawText: JSON.stringify([{ text: "Autofreier Sonntag entlastet die Innenstadt." }]),
+      },
+      candidates: [
+        {
+          provider: "anthropic",
+          rawText: JSON.stringify([{ text: "Autofreier Sonntag entlastet die Innenstadt." }]),
+        },
+      ],
+      meta: {
+        providerMatrix: [
+          {
+            provider: "anthropic",
+            state: "ok",
+            durationMs: 180,
+          },
+        ],
+        probes: [],
+      },
+    });
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const anthropicJourney = body.rows.find((row: any) => row.provider === "anthropic");
+    expect(anthropicJourney.strictProviderErrorCode).toBe("TOP_LEVEL_ARRAY");
+    expect(anthropicJourney.status).toBe("degraded");
+    expect(anthropicJourney.finalContractStatus).toBe("built_valid");
+    expect(anthropicJourney.draftStatus).toBe("ok");
+    expect(anthropicJourney.envelopeBuildStatus).toBe("ok");
   });
 
   it("classifies full-contract BAD_JSON as parse failure while provider remains reachable", async () => {
@@ -374,11 +552,14 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     const body = await response.json();
     const openai = body.rows.find((row: any) => row.provider === "openai");
 
-    expect(openai.status).toBe("failed");
+    expect(openai.status).toBe("degraded");
     expect(openai.providerErrorCode).toBe("SCHEMA_INVALID");
     expect(openai.schemaStatus).toBe("failed");
     expect(openai.schemaPath).toContain("notes");
     expect(openai.errorKind).toBe("INTERNAL");
+    expect(openai.finalContractStatus).toBe("built_valid");
+    expect(openai.draftStatus).toBe("ok");
+    expect(openai.envelopeBuildStatus).toBe("ok");
   });
 
   it("exposes stable provider capability mapping", () => {
@@ -993,11 +1174,13 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(ariDirect.repairAttempted).toBe(false);
     expect(ariDirect.finalContractStatus).toBe("blocked");
     expect(ariDirect.strictStatus).toBe("blocked");
+    expect(ariDirect.rootCause).toBe("PAYMENT_REQUIRED");
+    expect(ariDirect.nextAction).toContain("Billing-/Credit-Gate");
 
     vi.unstubAllEnvs();
   });
 
-  it("keeps OpenAI TIMEOUT non-repairable and blocked", async () => {
+  it("uses a compact OpenAI fallback after strict TIMEOUT and marks the result built_valid", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
     mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
     mocks.analyzeContribution.mockResolvedValue({
@@ -1006,11 +1189,78 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
       questions: [],
       knots: [],
     });
-    mocks.callOpenAI.mockRejectedValue(
-      Object.assign(new Error("request timeout after 30s"), {
-        status: 504,
-      }),
-    );
+    mocks.callOpenAI
+      .mockRejectedValueOnce(
+        Object.assign(new Error("request timeout after 30s"), {
+          status: 504,
+        }),
+      )
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          claims: [{ text: "Autofreier Sonntag stärkt den Nahverkehr." }],
+          notes: [],
+          questions: [],
+          knots: [],
+          consequences: { consequences: [], responsibilities: [] },
+          report: {
+            summary: "Kompakter Fallback",
+            keyConflicts: [],
+            facts: { local: [], international: [] },
+            openQuestions: [],
+            takeaways: [],
+          },
+        }),
+        model: "gpt-4.1-mini",
+        formatUsed: "json_object",
+        didFallback: false,
+      });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    const firstCallArgs = mocks.callOpenAI.mock.calls[0]?.[0] as
+      | { forceJsonFormat?: boolean; maxOutputTokens?: number }
+      | undefined;
+    const secondCallArgs = mocks.callOpenAI.mock.calls[1]?.[0] as
+      | { forceJsonFormat?: boolean; maxOutputTokens?: number }
+      | undefined;
+
+    expect(openaiDirect.strictProviderErrorCode).toBe("TIMEOUT");
+    expect(openaiDirect.repairAttempted).toBe(false);
+    expect(openaiDirect.finalContractStatus).toBe("built_valid");
+    expect(openaiDirect.strictStatus).toBe("blocked");
+    expect(openaiDirect.status).toBe("degraded");
+    expect(openaiDirect.formatUsed).toBe("json_object");
+    expect(firstCallArgs?.forceJsonFormat).toBe(true);
+    expect(secondCallArgs?.forceJsonFormat).not.toBe(true);
+    expect(secondCallArgs?.maxOutputTokens).toBeLessThanOrEqual(1200);
+    expect(mocks.callOpenAI).toHaveBeenCalledTimes(2);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("classifies OpenAI TIMEOUT as TIMEOUT when the compact fallback also fails", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI
+      .mockRejectedValueOnce(
+        Object.assign(new Error("request timeout after 30s"), {
+          status: 504,
+        }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error("request timeout after 12s"), {
+          status: 504,
+        }),
+      );
 
     const response = await POST(req("?mode=full"));
     expect(response.status).toBe(200);
@@ -1021,7 +1271,12 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(openaiDirect.repairAttempted).toBe(false);
     expect(openaiDirect.finalContractStatus).toBe("blocked");
     expect(openaiDirect.strictStatus).toBe("blocked");
-    expect(mocks.callOpenAI).toHaveBeenCalledTimes(1);
+    expect(openaiDirect.rootCause).toBe("TIMEOUT");
+    expect(openaiDirect.nextAction).toBe(
+      "Contract verkleinern, Timeout erhöhen oder Provider-Latenz prüfen.",
+    );
+    expect(openaiDirect.nextAction).not.toContain("Billing");
+    expect(mocks.callOpenAI).toHaveBeenCalledTimes(2);
 
     vi.unstubAllEnvs();
   });

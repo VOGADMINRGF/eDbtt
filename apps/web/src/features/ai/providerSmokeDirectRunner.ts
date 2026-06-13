@@ -213,7 +213,7 @@ function cleanJson(raw: string): string {
 }
 
 function validateProbePayload(rawText: string): { ok: boolean; parseStatus: ProviderDiagnostic["parseStatus"]; parseError: string | null } {
-  const cleaned = cleanJson(rawText || "");
+  const cleaned = (extractJsonCandidate(rawText || "") ?? cleanJson(rawText || "")).trim();
   if (!cleaned) {
     return { ok: false, parseStatus: "failed", parseError: "empty_output" };
   }
@@ -250,6 +250,16 @@ function normalizeErrorCode(input: {
   if (message.includes("unavailable")) return "UNAVAILABLE";
   if (message.includes("openai_empty_output")) return "OPENAI_EMPTY_OUTPUT";
   return null;
+}
+
+function isOpenAiSmokeModelMismatch(params: {
+  selectedSmokeModel: string | null;
+  effectiveModel: string | null;
+  smokeModelEnvPresent: boolean;
+}): boolean {
+  if (!params.smokeModelEnvPresent) return false;
+  if (!params.selectedSmokeModel || !params.effectiveModel) return false;
+  return params.selectedSmokeModel.trim().toLowerCase() !== params.effectiveModel.trim().toLowerCase();
 }
 
 type FullValidation = {
@@ -343,6 +353,7 @@ async function callProvider(params: {
   prompt: string;
   maxOutputTokens: number;
   timeoutMs?: number;
+  expectJson?: boolean;
 }): Promise<{
   text: string;
   model: string | null;
@@ -393,7 +404,7 @@ async function callProvider(params: {
     const result = await callGemini({
       prompt: params.prompt,
       maxOutputTokens: params.maxOutputTokens,
-      expectJson: true,
+      expectJson: params.expectJson ?? true,
     });
     return {
       text: result.text,
@@ -423,9 +434,14 @@ async function callProvider(params: {
 }
 
 export async function runDirectProbeDiagnostic(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+  const isOpenAi = provider === "openai";
+  const selectedSmokeModel = isOpenAi ? openAiSmokeModel() : null;
+  const smokeModelEnvPresent = isOpenAi ? Boolean(process.env.OPENAI_SMOKE_MODEL) : null;
+  const probeTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
   const missing = configMissingReason(provider);
   if (missing) {
     return buildRow(provider, "provider_probe", "provider_probe", {
+      model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
       status: "config_missing",
       errorKind: "INVALID_API_KEY",
       providerErrorCode: "CONFIG_MISSING",
@@ -438,20 +454,45 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       strictStatus: "blocked",
       directStrictStatus: "blocked",
       finalContractStatus: "blocked",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+      openAiSmokeModelMismatch: false,
     });
   }
 
   const started = Date.now();
   try {
-    const result = await callProvider({
+    let result = await callProvider({
       provider,
       prompt: DIRECT_PROBE_PROMPT.replace("<name>", provider),
       maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      timeoutMs: probeTimeoutMs ?? undefined,
+      expectJson: provider === "gemini" ? true : undefined,
     });
-    const validated = validateProbePayload(result.text);
+    let validated = validateProbePayload(result.text);
+    if (provider === "gemini" && !validated.ok) {
+      result = await callProvider({
+        provider,
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", provider),
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        expectJson: false,
+      });
+      validated = validateProbePayload(result.text);
+    }
+    const effectiveModel = result.model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel,
+        effectiveModel,
+        smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+      });
     if (!validated.ok) {
       return buildRow(provider, "provider_probe", "provider_probe", {
-        model: result.model,
+        model: effectiveModel,
         status: "failed",
         errorKind: "BAD_JSON",
         providerErrorCode: "BAD_JSON",
@@ -466,10 +507,16 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
         durationMs: Date.now() - started,
         tokensIn: result.tokensIn,
         tokensOut: result.tokensOut,
+        timeoutMs: probeTimeoutMs,
+        maxOutputTokens: provider === "gemini" ? RUNTIME_TINY_MAX_OUTPUT_TOKENS : PROBE_TINY_MAX_OUTPUT_TOKENS,
+        selectedSmokeModel,
+        smokeModelEnvPresent,
+        effectiveModel,
+        openAiSmokeModelMismatch,
       });
     }
     return buildRow(provider, "provider_probe", "provider_probe", {
-      model: result.model,
+      model: effectiveModel,
       status: "ok",
       validationMode: "none",
       providerStatus: "reachable",
@@ -483,6 +530,12 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       directStrictStatus: "ok",
       finalSchemaStatus: "ok",
       finalContractStatus: "strict_ok",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: provider === "gemini" ? RUNTIME_TINY_MAX_OUTPUT_TOKENS : PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel,
+      openAiSmokeModelMismatch,
     });
   } catch (error: any) {
     const errorKind = mapErrorToKind(error);
@@ -491,7 +544,18 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       status: typeof error?.status === "number" ? error.status : null,
       message: error?.message ?? null,
     });
+    const effectiveModel =
+      error?.meta?.model ??
+      (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel,
+        effectiveModel,
+        smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+      });
     return buildRow(provider, "provider_probe", "provider_probe", {
+      model: effectiveModel,
       status: "failed",
       errorKind,
       providerErrorCode,
@@ -506,6 +570,12 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       strictProviderErrorCode: providerErrorCode,
       directStrictStatus: "failed",
       finalContractStatus: isAccountBlockedErrorCode(providerErrorCode) ? "blocked" : "failed",
+      timeoutMs: probeTimeoutMs,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      selectedSmokeModel,
+      smokeModelEnvPresent,
+      effectiveModel,
+      openAiSmokeModelMismatch,
     });
   }
 }
@@ -522,9 +592,14 @@ function runDirectProbeDiagnosticWithPrompt(
   stage: ProviderDiagnostic["stage"],
 ): Promise<ProviderDiagnostic> {
   return (async () => {
+    const isOpenAi = provider === "openai";
+    const selectedSmokeModel = isOpenAi ? openAiSmokeModel() : null;
+    const smokeModelEnvPresent = isOpenAi ? Boolean(process.env.OPENAI_SMOKE_MODEL) : null;
+    const probeTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
     const missing = configMissingReason(provider);
     if (missing) {
       return buildRow(provider, mode, stage, {
+        model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
         status: "config_missing",
         errorKind: "INVALID_API_KEY",
         providerErrorCode: "CONFIG_MISSING",
@@ -537,20 +612,45 @@ function runDirectProbeDiagnosticWithPrompt(
         strictStatus: "blocked",
         directStrictStatus: "blocked",
         finalContractStatus: "blocked",
+        timeoutMs: probeTimeoutMs,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        selectedSmokeModel,
+        smokeModelEnvPresent,
+        effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+        openAiSmokeModelMismatch: false,
       });
     }
 
     const started = Date.now();
     try {
-      const result = await callProvider({
+      let result = await callProvider({
         provider,
         prompt,
         maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        timeoutMs: probeTimeoutMs ?? undefined,
+        expectJson: provider === "gemini" ? true : undefined,
       });
-      const validated = validateProbePayload(result.text);
+      let validated = validateProbePayload(result.text);
+      if (provider === "gemini" && !validated.ok) {
+        result = await callProvider({
+          provider,
+          prompt,
+          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          expectJson: false,
+        });
+        validated = validateProbePayload(result.text);
+      }
+      const effectiveModel = result.model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+      const openAiSmokeModelMismatch =
+        isOpenAi &&
+        isOpenAiSmokeModelMismatch({
+          selectedSmokeModel,
+          effectiveModel,
+          smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+        });
       if (!validated.ok) {
         return buildRow(provider, mode, stage, {
-          model: result.model,
+          model: effectiveModel,
           status: "failed",
           errorKind: "BAD_JSON",
           providerErrorCode: "BAD_JSON",
@@ -569,11 +669,17 @@ function runDirectProbeDiagnosticWithPrompt(
           strictProviderErrorCode: "BAD_JSON",
           directStrictStatus: "failed",
           finalContractStatus: "failed",
+          timeoutMs: probeTimeoutMs,
+          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          selectedSmokeModel,
+          smokeModelEnvPresent,
+          effectiveModel,
+          openAiSmokeModelMismatch,
         });
       }
 
       return buildRow(provider, mode, stage, {
-        model: result.model,
+        model: effectiveModel,
         status: "ok",
         validationMode: "json_only",
         providerStatus: "reachable",
@@ -587,6 +693,12 @@ function runDirectProbeDiagnosticWithPrompt(
         directStrictStatus: "ok",
         finalSchemaStatus: "ok",
         finalContractStatus: "strict_ok",
+        timeoutMs: probeTimeoutMs,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        selectedSmokeModel,
+        smokeModelEnvPresent,
+        effectiveModel,
+        openAiSmokeModelMismatch,
       });
     } catch (error: any) {
       const errorKind = mapErrorToKind(error);
@@ -595,7 +707,18 @@ function runDirectProbeDiagnosticWithPrompt(
         status: typeof error?.status === "number" ? error.status : null,
         message: error?.message ?? null,
       });
+      const effectiveModel =
+        error?.meta?.model ??
+        (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+      const openAiSmokeModelMismatch =
+        isOpenAi &&
+        isOpenAiSmokeModelMismatch({
+          selectedSmokeModel,
+          effectiveModel,
+          smokeModelEnvPresent: Boolean(smokeModelEnvPresent),
+        });
       return buildRow(provider, mode, stage, {
+        model: effectiveModel,
         status: "failed",
         errorKind,
         providerErrorCode,
@@ -610,6 +733,12 @@ function runDirectProbeDiagnosticWithPrompt(
         strictProviderErrorCode: providerErrorCode,
         directStrictStatus: "failed",
         finalContractStatus: isAccountBlockedErrorCode(providerErrorCode) ? "blocked" : "failed",
+        timeoutMs: probeTimeoutMs,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        selectedSmokeModel,
+        smokeModelEnvPresent,
+        effectiveModel,
+        openAiSmokeModelMismatch,
       });
     }
   })();

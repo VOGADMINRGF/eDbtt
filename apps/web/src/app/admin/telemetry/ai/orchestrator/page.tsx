@@ -430,10 +430,10 @@ function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResp
               : provider;
 
     const detailParts = [
-      probe ? `Probe=${probe.status}` : "Probe=n/a",
-      runtime ? `Runtime=${runtime.status}` : "Runtime=n/a",
-      strict ? `Strict=${strict.status}${strict.schemaPath ? ` @ ${strict.schemaPath}` : ""}` : "Strict=n/a",
-      journey ? `Journey=${journey.status}` : "Journey=n/a",
+      probe ? `DirectProbe=${probe.status}` : "DirectProbe=n/a",
+      runtime ? `JourneyRuntime=${runtime.status}` : "JourneyRuntime=n/a",
+      strict ? `DirectContract=${strict.status}${strict.schemaPath ? ` @ ${strict.schemaPath}` : ""}` : "DirectContract=n/a",
+      journey ? `JourneyContract=${journey.status}` : "JourneyContract=n/a",
     ];
 
     return {
@@ -618,16 +618,21 @@ export default function OrchestratorTelemetryPage() {
           </div>
         </div>
 
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          Direct Probe und Direct Contract pruefen Anbieter direkt. Journey Runtime und Journey Contract zeigen nur den
+          aktuellen Orchestrator-Pfad und koennen bewusst `skipped` oder `fallback_not_needed` sein.
+        </p>
+
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
             <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               <tr>
                 <th className="px-3 py-2">Provider</th>
                 <th className="px-3 py-2">Gesamt</th>
-                <th className="px-3 py-2">Verbindung</th>
-                <th className="px-3 py-2">Runtime</th>
-                <th className="px-3 py-2">Strict Contract</th>
-                <th className="px-3 py-2">Journey</th>
+                <th className="px-3 py-2">Direct Probe</th>
+                <th className="px-3 py-2">Journey Runtime</th>
+                <th className="px-3 py-2">Direct Contract</th>
+                <th className="px-3 py-2">Journey Contract</th>
                 <th className="px-3 py-2">Account</th>
                 <th className="px-3 py-2">Hauptursache</th>
                 <th className="px-3 py-2">Next Action</th>
