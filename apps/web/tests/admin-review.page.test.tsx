@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
   userIsAdminDashboard: vi.fn(),
   buildReviewQueueReadModel: vi.fn(),
+  listEditorialReviewRequests: vi.fn(),
+  factcheckList: vi.fn(),
+  loadAdminGraphMergeSectionProps: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/sessionUser", () => ({
@@ -17,6 +20,32 @@ vi.mock("@/lib/server/auth/admin", () => ({
 
 vi.mock("@features/reviewQueue", () => ({
   buildReviewQueueReadModel: (...args: unknown[]) => mocks.buildReviewQueueReadModel(...args),
+}));
+
+vi.mock("@features/editorialReviewQueue", () => ({
+  listEditorialReviewRequests: (...args: unknown[]) => mocks.listEditorialReviewRequests(...args),
+  matchesEditorialReviewFilter: (request: any, filter: string) => {
+    if (filter === "all") return true;
+    if (filter === "source_open") return request.reason === "source_open";
+    return true;
+  },
+  getEditorialReviewFilterLabel: (value: string) => value,
+  getEditorialReviewNextStepLabel: (input: { sourceType: string; status: string }) =>
+    `${input.sourceType}:${input.status}`,
+  getEditorialReviewReasonLabel: (value: string) => value,
+  getEditorialReviewSourceTypeLabel: (value: string) => value,
+  getEditorialReviewStatusLabel: (value: string) => value,
+}));
+
+vi.mock("@/app/admin/review/loadAdminGraphMergeSectionProps", () => ({
+  loadAdminGraphMergeSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminGraphMergeSectionProps(...args),
+}));
+
+vi.mock("@features/factcheck/db", () => ({
+  getFactcheckWorkflowRepo: () => ({
+    list: (...args: unknown[]) => mocks.factcheckList(...args),
+  }),
 }));
 
 vi.mock("next/navigation", async () => {
@@ -39,6 +68,23 @@ describe("/admin/review page", () => {
       sessionValid: true,
     });
     mocks.userIsAdminDashboard.mockReturnValue(true);
+    mocks.factcheckList.mockResolvedValue([]);
+    mocks.loadAdminGraphMergeSectionProps.mockResolvedValue({
+      graphAuditMap: new Map(),
+      graphCandidatePersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Graph-Candidate-Store",
+        summary:
+          "Graph-Kandidaten, Merge-Gates und auditierte Bestätigungen liegen dauerhaft vor.",
+        repositoryInterface: "GraphMergeCandidatesRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
+      graphMergeCandidates: [],
+    });
+    mocks.listEditorialReviewRequests.mockResolvedValue([]);
     mocks.buildReviewQueueReadModel.mockResolvedValue({
       items: [
         {
@@ -482,7 +528,6 @@ describe("/admin/review page", () => {
         noAutoAnlassraumFinalization: true,
       },
     });
-
     const html = renderToStaticMarkup(await AdminReviewPage());
 
     expect(html).toContain("Zentrale Review-Queue");
@@ -519,5 +564,6 @@ describe("/admin/review page", () => {
     expect(html).toContain("Arbeitsstand");
     expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
     expect(html).toContain("Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.");
+    expect(html).not.toContain("direkt veröffentlichen");
   });
 });
