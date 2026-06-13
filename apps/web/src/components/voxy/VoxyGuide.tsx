@@ -51,12 +51,12 @@ export function VoxyAvatar({
         "public-voxy-image relative shrink-0",
         resolvedAppearance === "hero"
           ? isStage
-            ? "w-[14rem] sm:w-[16rem] lg:w-[18rem]"
-            : "w-[13rem] sm:w-[15rem] lg:w-[17rem]"
+            ? "w-[12rem] sm:w-[14rem] lg:w-[16rem]"
+            : "w-[11rem] sm:w-[12.5rem] lg:w-[14.5rem]"
           : resolvedAppearance === "panel"
             ? isStage
-              ? "w-[10rem] sm:w-[11rem] lg:w-[12rem]"
-              : "w-[9rem] sm:w-[10rem] lg:w-[11rem]"
+              ? "w-[9rem] sm:w-[10rem] lg:w-[11rem]"
+              : "w-[7.75rem] sm:w-[8.75rem] lg:w-[9.75rem]"
             : resolvedAppearance === "inline"
               ? "w-12"
               : "w-14",
@@ -114,7 +114,7 @@ export default function VoxyGuide({
       className={joinClasses(
         "public-voxy-stage text-[rgb(var(--fg))]",
         isHero
-          ? "min-h-[22rem] md:min-h-[24rem]"
+          ? "min-h-[19rem] md:min-h-[21rem]"
           : isInline || isCompact
             ? "gap-2"
             : "gap-3",
@@ -148,7 +148,7 @@ export default function VoxyGuide({
               />
               <p
                 className={joinClasses(
-                  "font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]",
+                  "font-semibold tracking-[0.01em] text-[rgb(var(--muted))]",
                   isHero ? "text-[11px]" : "text-[10px] sm:text-xs",
                 )}
               >
