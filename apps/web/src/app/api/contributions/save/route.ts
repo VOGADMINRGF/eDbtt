@@ -17,16 +17,18 @@ import {
   resolveRequestScopeContext,
   summarizeRequestScopeContext,
 } from "@/lib/server/auth/requestScope";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { buildCreateContributionLedgerEntry } from "@features/create/createContributionLedger";
 import { createEditorialReviewRequest } from "@features/editorialReviewQueue";
 import type {
   SourceSupport,
   TruthStatus,
   UserFacingVerificationLabel,
 } from "@features/ai/e150/verificationContract";
-import { getSessionUser } from "@/lib/server/auth/sessionUser";
 
 const DraftSaveSchema = z.object({
   draftId: z.string().optional(),
+  packageId: z.string().min(1).optional(),
   text: z.string().optional(),
   textOriginal: z.string().optional(),
   textPrepared: z.string().optional(),
@@ -56,8 +58,8 @@ const DraftSaveSchema = z.object({
   sourceUrls: z.array(z.string().min(1)).optional(),
   uploadIds: z.array(z.string().min(1)).optional(),
   materialItems: z.array(z.record(z.string(), z.any())).optional(),
-  manualReviewRequested: z.boolean().optional(),
   analysis: z.unknown().optional(),
+  manualReviewRequested: z.boolean().optional(),
 });
 
 type ContributionDraftDoc = {
@@ -155,6 +157,59 @@ function withMaterialContext(
 
   return {
     inputContext: normalizedContext,
+  };
+}
+
+function withCreateContributionLedger(
+  existing: unknown,
+  input: {
+    draftId: string;
+    packageId?: string;
+    userId: string;
+    sourceText: string;
+    locale: string;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+): unknown {
+  if (!existing || typeof existing !== "object" || Array.isArray(existing)) return existing;
+  const existingRecord = existing as Record<string, unknown>;
+  const intelligentFollowup =
+    existingRecord.intelligentFollowup &&
+    typeof existingRecord.intelligentFollowup === "object" &&
+    !Array.isArray(existingRecord.intelligentFollowup)
+      ? (existingRecord.intelligentFollowup as Record<string, unknown>)
+      : null;
+  const contributionPackage = intelligentFollowup?.contributionPackage;
+  if (!contributionPackage || typeof contributionPackage !== "object" || Array.isArray(contributionPackage)) {
+    return existing;
+  }
+  const previousLedger =
+    existingRecord.createContributionLedger &&
+    typeof existingRecord.createContributionLedger === "object" &&
+    !Array.isArray(existingRecord.createContributionLedger)
+      ? (existingRecord.createContributionLedger as Record<string, unknown>)
+      : null;
+  const packageId = String(
+    (contributionPackage as Record<string, unknown>).id ??
+      input.packageId ??
+      previousLedger?.packageId ??
+      input.draftId,
+  );
+
+  return {
+    ...existingRecord,
+    createContributionLedger: buildCreateContributionLedgerEntry({
+      ledgerId: String(previousLedger?.ledgerId ?? input.draftId),
+      packageId,
+      userId: input.userId,
+      sourceText: input.sourceText,
+      createdAt: String(previousLedger?.createdAt ?? input.createdAt.toISOString()),
+      updatedAt: input.updatedAt.toISOString(),
+      locale: input.locale,
+      contributionPackage: contributionPackage as any,
+      draftSaveStatus: "server_saved",
+    }),
   };
 }
 
@@ -338,8 +393,8 @@ export async function POST(req: NextRequest) {
     materialItems: body.materialItems as Record<string, unknown>[] | undefined,
   });
   const claimSafety = buildClaimSafety(analysisWithMaterial, body.locale ?? "de");
-  const analysisWithSafety = withSafetyAnalysis(analysisWithMaterial, safety, claimSafety);
-  const manualReviewTruthMeta = readManualReviewTruthMeta(analysisWithSafety);
+  const baseAnalysisWithSafety = withSafetyAnalysis(analysisWithMaterial, safety, claimSafety);
+  const manualReviewTruthMeta = readManualReviewTruthMeta(baseAnalysisWithSafety);
 
   if (body.draftId) {
     let draftOid: ObjectId;
@@ -348,6 +403,16 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
     }
+
+    const analysisWithSafety = withCreateContributionLedger(baseAnalysisWithSafety, {
+      draftId: body.draftId,
+      packageId: body.packageId,
+      userId,
+      sourceText: textToPersist,
+      locale: body.locale ?? "de",
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const result = await Drafts.findOneAndUpdate(
       { _id: draftOid, authorId: userId },
@@ -382,6 +447,7 @@ export async function POST(req: NextRequest) {
       safety,
       requestScope,
     };
+
     if (body.manualReviewRequested) {
       responseBody.reviewRequest = await createEditorialReviewRequestFromContributionSave({
         draftId: String(updated._id),
@@ -391,7 +457,90 @@ export async function POST(req: NextRequest) {
         truthMeta: manualReviewTruthMeta,
       });
     }
+
     return NextResponse.json(responseBody);
+  }
+
+  const packageId = body.packageId?.trim() || undefined;
+  const analysisWithLedgerCandidate = withCreateContributionLedger(baseAnalysisWithSafety, {
+    draftId: packageId ?? "pending-ledger-id",
+    packageId,
+    userId,
+    sourceText: textToPersist,
+    locale: body.locale ?? "de",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  if (packageId) {
+    const currentByPackage = await Drafts.findOne?.({
+      authorId: userId,
+      status: "draft",
+      "analysis.createContributionLedger.packageId": packageId,
+    });
+    const analysisWithExistingLedger =
+      currentByPackage?.analysis &&
+      typeof currentByPackage.analysis === "object" &&
+      !Array.isArray(currentByPackage.analysis)
+        ? {
+            ...baseAnalysisWithSafety,
+            createContributionLedger: (currentByPackage.analysis as Record<string, unknown>)
+              .createContributionLedger,
+          }
+        : baseAnalysisWithSafety;
+    const analysisWithPackageLedger = withCreateContributionLedger(analysisWithExistingLedger, {
+      draftId: String(currentByPackage?._id ?? packageId),
+      packageId,
+      userId,
+      sourceText: textToPersist,
+      locale: body.locale ?? "de",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const existingByPackage = await Drafts.findOneAndUpdate(
+      {
+        authorId: userId,
+        status: "draft",
+        "analysis.createContributionLedger.packageId": packageId,
+      },
+      {
+        $set: {
+          text: textToPersist,
+          locale: body.locale ?? null,
+          source: body.source ?? null,
+          createMode: normalizedCreateMode,
+          anlassraumId: normalizedAnlassraumId,
+          authorName: body.authorName ?? null,
+          useCase: body.useCase ?? null,
+          analysis: analysisWithPackageLedger,
+          updatedAt: now,
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    const updatedExisting = (existingByPackage as any)?.value ?? existingByPackage;
+    if (updatedExisting) {
+      const responseBody: Record<string, unknown> = {
+        ok: true,
+        draftId: String(updatedExisting._id),
+        createMode: updatedExisting.createMode ?? normalizedCreateMode,
+        anlassraumId: updatedExisting.anlassraumId ?? normalizedAnlassraumId,
+        updatedAt: updatedExisting.updatedAt?.toISOString() ?? now.toISOString(),
+        safety,
+        requestScope,
+      };
+      if (body.manualReviewRequested) {
+        responseBody.reviewRequest = await createEditorialReviewRequestFromContributionSave({
+          draftId: String(updatedExisting._id),
+          userId,
+          originalText: textToPersist,
+          safety,
+          truthMeta: manualReviewTruthMeta,
+        });
+      }
+      return NextResponse.json(responseBody);
+    }
   }
 
   const doc: ContributionDraftDoc = {
@@ -403,16 +552,32 @@ export async function POST(req: NextRequest) {
     anlassraumId: normalizedAnlassraumId,
     authorName: body.authorName ?? null,
     useCase: body.useCase ?? null,
-    analysis: analysisWithSafety,
+    analysis: baseAnalysisWithSafety,
     status: "draft",
     createdAt: now,
     updatedAt: now,
   };
 
   const insert = await Drafts.insertOne(doc as ContributionDraftDoc);
+  const insertedDraftId = String(insert.insertedId);
+  const insertedAnalysisWithLedger = withCreateContributionLedger(baseAnalysisWithSafety, {
+    draftId: insertedDraftId,
+    packageId,
+    userId,
+    sourceText: textToPersist,
+    locale: body.locale ?? "de",
+    createdAt: now,
+    updatedAt: now,
+  });
+  if (insertedAnalysisWithLedger !== baseAnalysisWithSafety) {
+    await Drafts.updateOne(
+      { _id: insert.insertedId, authorId: userId },
+      { $set: { analysis: insertedAnalysisWithLedger, updatedAt: now } },
+    );
+  }
   const responseBody: Record<string, unknown> = {
     ok: true,
-    draftId: String(insert.insertedId),
+    draftId: insertedDraftId,
     createMode: normalizedCreateMode,
     anlassraumId: normalizedAnlassraumId,
     updatedAt: now.toISOString(),
@@ -421,7 +586,7 @@ export async function POST(req: NextRequest) {
   };
   if (body.manualReviewRequested) {
     responseBody.reviewRequest = await createEditorialReviewRequestFromContributionSave({
-      draftId: String(insert.insertedId),
+      draftId: insertedDraftId,
       userId,
       originalText: textToPersist,
       safety,
