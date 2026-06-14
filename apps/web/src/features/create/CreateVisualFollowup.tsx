@@ -294,14 +294,14 @@ function hasProvisionalPlannerStructure(result: CreateIntelligentFollowupResult)
 function isTechnicalPlannerFallback(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
-  return planner.source === "planner_unavailable" || planner.qualityStatus === "failed";
+  return planner.qualityIssues.includes("technical_fallback_only") || planner.qualityStatus === "failed";
 }
 
 function hasTechnicalPlannerFallbackMeta(result?: CreateIntelligentFollowupResult | null): boolean {
   if (!result) return false;
   const planner = result.meta?.planner;
   if (!planner) return false;
-  return planner.source === "planner_unavailable" || planner.qualityStatus === "failed";
+  return planner.qualityIssues.includes("technical_fallback_only") || planner.qualityStatus === "failed";
 }
 
 function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boolean {

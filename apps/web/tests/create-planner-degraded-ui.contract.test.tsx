@@ -34,8 +34,8 @@ describe("create planner degraded ui contract", () => {
       degradedReason: null,
       meta: {
         planner: {
-          source: "planner_unavailable" as const,
-          plannerSource: "planner_unavailable" as const,
+          source: "heuristic_fallback" as const,
+          plannerSource: "heuristic_fallback" as const,
           plannerProvider: "openai" as const,
           plannerRole: "planner_only" as const,
           plannerTopic: "GPT-Einordnung nicht abgeschlossen",
@@ -75,7 +75,7 @@ describe("create planner degraded ui contract", () => {
           degradedReason: "timeout" as const,
           plannerDegradedReason: "timeout" as const,
           qualityStatus: "failed" as const,
-          qualityIssues: ["planner_unavailable"],
+          qualityIssues: ["technical_fallback_only"],
           providerCallAttempted: true,
           providerCallSucceeded: false,
           plannerDebug: {

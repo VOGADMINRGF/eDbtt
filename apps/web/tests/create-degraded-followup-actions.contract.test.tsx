@@ -36,8 +36,8 @@ describe("create degraded followup actions contract", () => {
           degradedReason: null,
           meta: {
             planner: {
-              source: "planner_unavailable",
-              plannerSource: "planner_unavailable",
+              source: "heuristic_fallback",
+              plannerSource: "heuristic_fallback",
               plannerProvider: "openai",
               plannerRole: "planner_only",
               plannerTopic: "GPT-Einordnung nicht abgeschlossen",
@@ -77,7 +77,7 @@ describe("create degraded followup actions contract", () => {
               degradedReason: "timeout",
               plannerDegradedReason: "timeout",
               qualityStatus: "failed",
-              qualityIssues: ["planner_unavailable"],
+              qualityIssues: ["technical_fallback_only"],
               providerCallAttempted: true,
               providerCallSucceeded: false,
               plannerDebug: {
@@ -170,8 +170,8 @@ describe("create degraded followup actions contract", () => {
           generatedAt: "2026-06-03T12:00:00.000Z",
           meta: {
             planner: {
-              source: "planner_unavailable",
-              plannerSource: "planner_unavailable",
+              source: "heuristic_fallback",
+              plannerSource: "heuristic_fallback",
               plannerProvider: "openai",
               plannerRole: "planner_only",
               plannerTopic: "GPT-Einordnung nicht abgeschlossen",
@@ -211,7 +211,7 @@ describe("create degraded followup actions contract", () => {
               degradedReason: "timeout",
               plannerDegradedReason: "timeout",
               qualityStatus: "failed",
-              qualityIssues: ["planner_unavailable"],
+              qualityIssues: ["technical_fallback_only"],
               providerCallAttempted: true,
               providerCallSucceeded: false,
               plannerDebug: {

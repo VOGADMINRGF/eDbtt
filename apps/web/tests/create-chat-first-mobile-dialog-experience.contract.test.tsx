@@ -138,8 +138,8 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
   generatedAt: "2026-05-15T12:00:00.000Z",
   meta: {
     planner: {
-      source: "planner_unavailable" as const,
-      plannerSource: "planner_unavailable" as const,
+      source: "heuristic_fallback" as const,
+      plannerSource: "heuristic_fallback" as const,
       plannerProvider: "openai" as const,
       plannerRole: "planner_only" as const,
       plannerTopic: "GPT-Einordnung nicht abgeschlossen",
@@ -180,7 +180,7 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
       degradedReason: "missing_provider_key" as const,
       plannerDegradedReason: "missing_provider_key" as const,
       qualityStatus: "failed" as const,
-      qualityIssues: ["planner_unavailable"],
+      qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: false,
       providerCallSucceeded: false,
       plannerDebug: {
