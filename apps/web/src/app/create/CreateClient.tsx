@@ -835,6 +835,7 @@ export default function CreateClient({
   const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const [isRetryPlannerPending, setIsRetryPlannerPending] = React.useState(false);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
@@ -1648,8 +1649,10 @@ export default function CreateClient({
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
+    if (isRetryPlannerPending) return;
     if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
 
+    setIsRetryPlannerPending(true);
     setActionNotice("Automatische Einordnung wird erneut versucht …");
     try {
       const response = await fetch("/api/create/intelligent-followup", {
@@ -1680,6 +1683,8 @@ export default function CreateClient({
       );
     } catch {
       setActionNotice("Die automatische Einordnung konnte gerade nicht abgeschlossen werden. Du kannst trotzdem weitermachen.");
+    } finally {
+      setIsRetryPlannerPending(false);
     }
   }, [
     activeIntent,
@@ -1688,6 +1693,7 @@ export default function CreateClient({
     dossierId,
     followupSnapshot?.originalText,
     intelligentFollowup?.sourceText,
+    isRetryPlannerPending,
     normalizedIntakeText,
     privacyGate,
     selectedAnlassraumId,
@@ -2136,6 +2142,7 @@ export default function CreateClient({
             onRequestEditorialReview={handleRequestEditorialReview}
             onStartOptionalService={handleStartFactcheckService}
             onRetryPlanner={handleRetryPlanner}
+            isRetryPlannerPending={isRetryPlannerPending}
             onSaveOnly={handleSaveOnly}
             onSkipPlaceClarification={handleSkipPlaceClarification}
             continuationValue={chatContinuationText}
