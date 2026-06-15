@@ -3,7 +3,7 @@
 import {
   createLiveCampaignStartDraft,
   type LiveCampaignEntryModel,
-} from "@/features/campaign/liveCampaignEntry";
+} from "@/features/campaign/liveCampaignEntryClient";
 import { getLiveTrustLabels, type LiveTrustLabelTone } from "@/features/campaign/liveTrustLabels";
 import { saveStartDraftContext, type StartDraftOrigin } from "@/features/start/startDraftContext";
 

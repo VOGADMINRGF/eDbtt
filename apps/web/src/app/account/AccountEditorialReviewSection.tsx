@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { FiCheckCircle, FiShield } from "react-icons/fi";
 import AccountEditorialReviewReplyForm from "./AccountEditorialReviewReplyForm";
-import type { EditorialReviewRequest } from "@features/editorialReviewQueue";
+import type { EditorialReviewRequest } from "@features/editorialReviewQueueClient";
 import {
   getEditorialReviewNextStepLabel,
   getEditorialReviewReasonLabel,
   getEditorialReviewSourceTypeLabel,
   getEditorialReviewStatusLabel,
-} from "@features/editorialReviewQueue";
+} from "@features/editorialReviewQueueClient";
 
 type Props = {
   requests: EditorialReviewRequest[];

@@ -1,30 +1,12 @@
 import { ObjectId } from "@core/db/triMongo";
 import { campaignsCol } from "@features/campaign/db";
 import type { CampaignDoc, CampaignStatus } from "@features/campaign/types";
-import {
-  createStartDraftContext,
-  type StartDraftContext,
-  type StartDraftOrigin,
-} from "@/features/start/startDraftContext";
+import type {
+  LiveCampaignEntryModel,
+  LiveCampaignEntryStatus,
+} from "@/features/campaign/liveCampaignEntryClient";
 import type { LiveTrustSignal } from "@/features/campaign/liveTrustLabels";
-
-export type LiveCampaignEntryStatus = "draft" | "live" | "closed";
-
-export type LiveCampaignEntryModel = {
-  campaignId: string;
-  title: string;
-  description: string;
-  contextLabel?: string;
-  regionLabel?: string;
-  organizerLabel?: string;
-  sourceLabel?: string;
-  defaultPrompt?: string;
-  status: LiveCampaignEntryStatus;
-  statusLabel: string;
-  statusNote: string;
-  fixture: boolean;
-  trustSignal: LiveTrustSignal;
-};
+export type { LiveCampaignEntryModel, LiveCampaignEntryStatus } from "@/features/campaign/liveCampaignEntryClient";
 
 const LIVE_CAMPAIGN_FIXTURES: Record<string, LiveCampaignEntryModel> = {
   "demo-pflege-vor-ort": {
@@ -145,44 +127,4 @@ export async function readLiveCampaignEntry(
   const campaign = await col.findOne({ _id: new ObjectId(campaignId) });
   if (!campaign) return null;
   return mapCampaignDoc(campaign);
-}
-
-export function createLiveCampaignStartDraft(
-  campaign: LiveCampaignEntryModel,
-  mode: "contribution" | "question",
-  origin: StartDraftOrigin = "live_campaign",
-): StartDraftContext | null {
-  const text =
-    campaign.defaultPrompt ??
-    (mode === "question"
-      ? `Zu ${campaign.title} möchte ich folgende Frage klären: …`
-      : `Zu ${campaign.title} möchte ich folgenden Beitrag einbringen: …`);
-
-  return createStartDraftContext({
-    text,
-    origin,
-    intent: mode === "question" ? "question" : "contribution",
-    targetHint: mode === "question" ? "themes" : "create",
-    preview: {
-      contributionType: mode === "question" ? "Frage" : "Beitrag",
-      possibleTopics: [campaign.contextLabel ?? campaign.title].filter(Boolean),
-      openQuestions:
-        mode === "question"
-          ? ["Was ist noch offen, bevor daraus ein nächster Schritt wird?"]
-          : ["Was sollte zuerst geklärt oder ergänzt werden?"],
-      suggestedNextSteps:
-        mode === "question"
-          ? ["Passende Themen finden", "Später im Konto weiterarbeiten"]
-          : ["Beitrag ausarbeiten", "Später im Konto weiterarbeiten"],
-      relevance: "public_relevant",
-    },
-    campaign: {
-      campaignId: campaign.campaignId,
-      title: campaign.title,
-      contextLabel: campaign.contextLabel,
-      regionLabel: campaign.regionLabel,
-      organizerLabel: campaign.organizerLabel,
-      sourceLabel: campaign.sourceLabel,
-    },
-  });
 }

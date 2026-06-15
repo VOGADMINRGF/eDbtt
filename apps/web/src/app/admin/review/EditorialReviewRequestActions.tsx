@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { EditorialReviewRequest } from "@features/editorialReviewQueue";
+import type { EditorialReviewRequest } from "@features/editorialReviewQueueClient";
 
 type Props = {
   request: EditorialReviewRequest;

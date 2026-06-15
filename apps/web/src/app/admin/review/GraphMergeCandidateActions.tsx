@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type {
   GraphMergeCandidate,
   ProductiveGraphMergeGate,
-} from "@features/graphMergeCandidates";
+} from "@features/graphMergeCandidatesClient";
 
 type GraphAction =
   | "accept_for_staging"
