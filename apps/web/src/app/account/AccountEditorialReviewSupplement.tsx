@@ -1,4 +1,4 @@
-import type { EditorialReviewRequest } from "@features/editorialReviewQueue";
+import type { EditorialReviewRequest } from "@features/editorialReviewQueueClient";
 import AccountEditorialReviewSection from "./AccountEditorialReviewSection";
 
 type Props = {

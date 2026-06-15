@@ -1,4 +1,4 @@
-import type { EditorialReviewRequest } from "@features/editorialReviewQueue";
+import type { EditorialReviewRequest } from "@features/editorialReviewQueueClient";
 
 export type AccountEditorialReviewSlice = {
   editorialReviewRequests?: EditorialReviewRequest[];

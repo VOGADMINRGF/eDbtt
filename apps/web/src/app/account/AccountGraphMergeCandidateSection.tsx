@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { FiLayers } from "react-icons/fi";
-import type { GraphMergeCandidate } from "@features/graphMergeCandidates";
+import type { GraphMergeCandidate } from "@features/graphMergeCandidatesClient";
 import {
   getGraphMergeCandidateKindLabel,
   getGraphMergeCandidateMergeStatusLabel,
   getGraphMergeCandidateReviewStatusLabel,
-} from "@features/graphMergeCandidates";
+} from "@features/graphMergeCandidatesClient";
 
 type Props = {
   candidates: GraphMergeCandidate[];

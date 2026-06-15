@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import LiveCampaignPage from "@/app/live/[campaignId]/page";
+import { createLiveCampaignStartDraft } from "@/features/campaign/liveCampaignEntryClient";
 import {
-  createLiveCampaignStartDraft,
   readLiveCampaignEntry,
 } from "@/features/campaign/liveCampaignEntry";
 import { readStartDraftContext, saveStartDraftContext } from "@/features/start/startDraftContext";

@@ -1,4 +1,4 @@
-import type { GraphMergeCandidate } from "@features/graphMergeCandidates";
+import type { GraphMergeCandidate } from "@features/graphMergeCandidatesClient";
 
 export type AccountGraphMergeCandidateSlice = {
   graphMergeCandidates?: GraphMergeCandidate[];
