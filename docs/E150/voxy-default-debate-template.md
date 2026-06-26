@@ -94,6 +94,118 @@ Default tone:
 
 The ideal Voxy voice is: sharp enough to create attention, fair enough to invite debate, structured enough to become a civic product.
 
+## Co-Creation Workflow with Potential Authors
+
+A Voxy/eDebatte output must not be produced as a one-shot prompt from a vague complaint. The default workflow is a guided co-creation process with the potential author, initiator or topic owner.
+
+Goal: turn lived observation, frustration or expertise into a public-interest debate output without losing the author's intent, over-personalizing the topic or creating unsupported claims.
+
+### Required Co-Creation Stages
+
+1. **Author intent capture**
+   - capture the author's raw observation in their own words
+   - identify what they are really trying to say
+   - separate emotion, anecdote, evidence, suspicion and reform wish
+   - preserve the author's core thesis before polishing language
+
+2. **Issue reframing**
+   - translate the personal observation into a structural public question
+   - avoid making the author the protagonist unless explicitly intended
+   - ask: `What is the public-interest issue behind this experience?`
+   - define the target frame: workplace, education, administration, housing, health, mobility, democracy, etc.
+
+3. **Evidence and boundary check**
+   - mark what is verified, experienced, assumed or open
+   - remove or soften unsupported accusations
+   - keep sensitive allegations generic unless a reviewed dossier contains verified evidence
+   - decide whether legal, HR, medical, political or reputational review is required
+
+4. **Both-sides fairness pass**
+   - identify what side A must change
+   - identify what side B must also uphold
+   - prevent one-sided outrage framing
+   - make responsibilities, incentives and consequences visible
+
+5. **Reform logic extraction**
+   - convert the issue into one concrete rule, reform, governance mechanism or process improvement
+   - include safeguards against misuse
+   - define what should be allowed, required, prohibited or reviewed
+   - make the proposal specific enough to be debated
+
+6. **Voxy translation**
+   - convert the topic into the default Voxy structure:
+     - `VOXY fragt: [public question]`
+     - core thesis
+     - observed patterns
+     - both-sides obligations
+     - reform / governance block
+     - civic CTA
+   - keep the author's sharpness, but make it publication-safe
+
+7. **Author confirmation gate**
+   - before final rendering, confirm:
+     - `Does this still say what you wanted to say?`
+     - `Is anything too personal, too soft or too risky?`
+     - `Are the obligations for both sides fair?`
+     - `Is the reform proposal concrete enough?`
+   - no final output should be treated as author-approved before this gate
+
+8. **Editorial review gate**
+   - check tone, source status, legal/reputational risk and visual consistency
+   - ensure the result is review-gated and dossier-bound before publication or export
+
+### Co-Creation Intake Questions
+
+When a topic starts from a potential author, Voxy should guide the author with a small set of questions before drafting:
+
+- `Was ist der konkrete Auslöser?`
+- `Welche strukturelle Frage steckt dahinter?`
+- `Welche Aussage muss unbedingt erhalten bleiben?`
+- `Was darf auf keinen Fall wie ein persönlicher Angriff wirken?`
+- `Welche Seite wird oft vergessen?`
+- `Was wäre eine faire Regel oder Reform?`
+- `Welche Beispiele sind erlebt, welche belegt, welche nur Vermutung?`
+- `Soll der Ton eher humorvoll, scharf, sachlich oder reformorientiert sein?`
+
+### Author Collaboration Contract
+
+For product and UX, the co-creation state should be treated as its own pre-output object, not as final copy.
+
+Minimum fields:
+
+- `authorIntent`
+- `rawObservation`
+- `nonNegotiableThesis`
+- `structuralIssue`
+- `publicQuestion`
+- `verifiedFacts`
+- `assumptions`
+- `openQuestions`
+- `sensitiveClaims`
+- `bothSidesObligations`
+- `reformProposal`
+- `safeguards`
+- `tonePreference`
+- `authorApprovalStatus`
+- `editorialReviewStatus`
+
+Default statuses:
+
+- `authorApprovalStatus=draft_needs_author_confirmation`
+- `editorialReviewStatus=needs_review`
+
+### Acceptance Criteria for Co-Creation
+
+A topic is ready for Voxy visual/output generation only when:
+
+- the author's core thesis is preserved
+- the issue has been reframed as a public-interest question
+- unsupported claims are marked, softened or removed
+- both sides are represented fairly
+- the reform/governance proposal is concrete enough to debate
+- the author has confirmed the direction or the output is clearly marked as unapproved draft
+- editorial review is still required before publication
+
 ## Mandatory Guardrails
 
 Every Voxy debate output must respect the existing Output Engine / Studio guardrails:
@@ -188,3 +300,11 @@ A future Voxy/eDebatte output follows this default template when:
 - The style uses the dark VOG/eDebatte neon-blue studio visual language.
 - The copy is pointed but not personally accusatory.
 - The output remains review-gated, dossier-bound and publication-safe.
+
+A future Voxy/eDebatte co-creation flow follows this default when:
+
+- the author's raw intent is captured before drafting
+- the topic is reframed from personal experience into a structural debate question
+- facts, assumptions and open points are separated
+- the author confirms the direction before final output rendering
+- editorial review remains mandatory before publication
