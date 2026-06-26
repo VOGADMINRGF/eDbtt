@@ -73,6 +73,23 @@ Supported formats:
 - `administrative_note`
 - `mandate_summary`
 
+## Voxy Default Debate Template
+
+The default visual and editorial pattern for future eDebatte / VoiceOpenGov / Voxy debate outputs is defined in:
+
+- `docs/E150/voxy-default-debate-template.md`
+
+This template is the canonical default for debate-style social posters, carousels, studio previews and prompt/design briefs unless a dossier explicitly requires a different format.
+
+Default intent:
+
+- Voxy acts as host / debate moderator, not as a decorative mascot.
+- Each output starts with one strong public question and one clear thesis.
+- The structure combines observed patterns, both-sides obligations and a concrete reform / governance block.
+- The visual system defaults to a dark VOG/eDebatte debate-studio look with neon-blue accents, microphone / On-Air cues and strong civic branding.
+- Tone is pointed, humorous and systemic, but not personally bitter or accusatory.
+- The existing dossier-bound, review-required and no-auto-publish guardrails remain mandatory.
+
 ## Social Carousel Mapper (local slice)
 
 The first concrete format mapper is `Social Carousel` as a deterministic local output.
@@ -237,65 +254,3 @@ Unresolved follow-up ideas from the Studio/Dossier chat are tracked in the SSOT 
 - `PR-OUT-EXPORT-01`
 - `PR-OUT-TELEMETRY-01`
 - `PR-BETEILIGUNGSRADAR-00` (scope/docs only, no implementation)
-
-## Abgrenzung zum Beteiligungsradar-Slice
-
-Dieser Studio-/Output-Engine-Slice umfasst **nicht**:
-
-- Beteiligungsradar
-- Ausschreibungs-/Signal-Ingestion
-- Anlassraum-Automation
-- Runde-/Mandat-Erzeugung
-- Feed-/Crawler-Logik
-- externe Social OAuth/API-Liveintegration
-
-Der spätere Beteiligungsradar-Flow (`Signale/Ausschreibungen -> Anlassraum -> Dossier -> Runde -> Mandat`) bleibt ein separater Slice.
-
-## Review Model
-
-Allowed review states:
-
-- `draft`
-- `needs_review`
-- `approved`
-- `rejected`
-- `published`
-- `archived`
-
-Foundation behavior:
-
-- default = `draft` when dossier has required source/options
-- fallback = `needs_review` when required input is missing
-- never auto-transition to `published`
-
-## Scope Boundary for Foundation PR
-
-Included:
-
-- SSOT docs
-- contracts/types/schemas
-- deterministic `generateOutputPackage(...)`
-- demo dossier fixture -> valid output package
-- tests
-
-Excluded:
-
-- full Studio UI
-- Social Carousel renderer implementation
-- external social integrations
-- auto-publication
-- mandatory external AI-provider execution path
-
-## Output Engine Program Slices (#27-#36)
-
-1. `PR-OUT-ENGINE-01` Foundation SSOT + contracts baseline (Issue #27)
-2. `PR-OUT-ENGINE-02` Deterministic generator + review markers (Issue #29)
-3. `PR-OUT-ENGINE-03` Demo dossier + validation tests (Issue #30)
-4. `PR-OUT-ENGINE-04` Studio review workspace shell
-5. `PR-OUT-ENGINE-05` Format mapper layer (article/briefing/letter/note)
-6. `PR-OUT-ENGINE-06` Social carousel mapper + visual templates
-7. `PR-OUT-ENGINE-07` Voiceover/podcast/reel scripting mapper
-8. `PR-OUT-ENGINE-08` QR/print package composition and print contracts
-9. `PR-OUT-ENGINE-09` Distribution handoff pipeline (manual release only)
-
-The foundation implemented in this slice covers only slices 01-03.
