@@ -55,10 +55,13 @@ describe("live click hardening contract", () => {
     expect(createClientSource).not.toContain('href="#"');
 
     [
+      "Alle Themen vertiefen",
       "Anlassraum vorbereiten",
       "Als Ergänzung anhängen",
       "Neues Dossier vorbereiten",
-      "Faktencheck anfragen",
+      "QR-/Live-Kontext vorbereiten",
+      "Factcheck / Quellenprüfung vorbereiten",
+      "Später im Account weiterarbeiten",
       "Redaktionell prüfen lassen",
       "Nur speichern",
     ].forEach((label) => {

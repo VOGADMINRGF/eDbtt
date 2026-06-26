@@ -54,6 +54,7 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
+  buildCreateStructureBranches,
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import {
@@ -87,11 +88,12 @@ import {
 import type { RequestScopeSummary } from "@/lib/server/auth/requestScope";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 import { getStartCreateVoxyCopy } from "@/features/start/startCreateVoxyCopy";
-import { resolveVoxyPublicRouteVariant } from "@/features/voxy/voxyAssets";
 import {
-  getFactcheckEntitlementGateMessage,
-  resolveFactcheckEntitlementGate,
-} from "@features/factcheck/entitlementGate";
+  createStartDraftContext,
+  saveStartDraftContext,
+  type StartDraftPreview,
+} from "@/features/start/startDraftContext";
+import { resolveVoxyPublicRouteVariant } from "@/features/voxy/voxyAssets";
 import CreateDraftNextActionGate from "./CreateDraftNextActionGate";
 import CreateStartDraftHandoff from "./CreateStartDraftHandoff";
 import { useCreateStartDraftRestore } from "./createStartDraftRestore";
@@ -131,6 +133,77 @@ type CreateWorkingState = {
   recognizedType: string;
   suggestedAssignment: string;
 };
+
+function dedupeCreatePlannerTopicLabels(labels: string[]): string[] {
+  const seen = new Set<string>();
+  const topics: string[] = [];
+  for (const entry of labels) {
+    const normalized = entry.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    topics.push(normalized);
+  }
+  return topics;
+}
+
+function buildCreatePlannerFollowupTopicLabels(
+  followup: CreateIntelligentFollowupResult,
+): string[] {
+  return dedupeCreatePlannerTopicLabels(
+    followup.understanding.topics.map((topic) => topic.label),
+  ).slice(0, 5);
+}
+
+function buildCreatePlannerFollowupPreview(params: {
+  followup: CreateIntelligentFollowupResult;
+  topicLabel?: string | null;
+}): StartDraftPreview {
+  const topicLabels = params.topicLabel
+    ? [params.topicLabel]
+    : buildCreatePlannerFollowupTopicLabels(params.followup);
+  const structureBranches = buildCreateStructureBranches(params.followup, 3);
+  const focusedBranch = params.topicLabel
+    ? structureBranches.find(
+        (branch) =>
+          branch.title === params.topicLabel ||
+          branch.topics.includes(params.topicLabel) ||
+          branch.topicTags.includes(params.topicLabel),
+      ) ?? null
+    : null;
+  const plannerQuestions = params.followup.meta?.planner
+    ? [
+        ...params.followup.meta.planner.plannerOpenQuestions,
+        ...params.followup.meta.planner.openQuestions,
+      ]
+    : [];
+  const openQuestions = dedupeCreatePlannerTopicLabels(
+    [
+      ...(focusedBranch?.voteQuestions ?? []),
+      ...(focusedBranch?.openReviewPoints ?? []),
+      params.followup.understanding.openQuestion ?? "",
+      ...plannerQuestions,
+    ].filter(Boolean),
+  ).slice(0, 4);
+
+  return {
+    contributionType: params.topicLabel ? "Themenvertiefung" : "Mehrthemen-Entwurf",
+    possibleTopics: topicLabels,
+    openQuestions,
+    suggestedNextSteps: params.topicLabel
+      ? [
+          `${params.topicLabel} im Entwurf vertiefen`,
+          "Dossier vorbereiten",
+          "Factcheck / Quellenprüfung vorbereiten",
+        ]
+      : [
+          "Alle Themen im Entwurf vertiefen",
+          "Einzelnes Thema gezielt vertiefen",
+          "Später im Account weiterarbeiten",
+        ],
+  };
+}
 
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
   understanding: "eDebatte hat deinen Beitrag strukturiert",
@@ -1764,23 +1837,86 @@ export default function CreateClient({
     void navigateWithCreateHandoff("prepare_vote", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
+  const handleDeepenAllTopics = React.useCallback(() => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    saveStartDraftContext(
+      createStartDraftContext({
+        text: intelligentFollowup.sourceText,
+        normalizedText: intelligentFollowup.sourceText,
+        origin: "create_handoff",
+        intent: "contribution",
+        targetHint: "create",
+        preview: buildCreatePlannerFollowupPreview({
+          followup: intelligentFollowup,
+        }),
+      }),
+    );
+    setUnderstandingConfirmed(true);
+    setShowFollowupCorrectionComposer(true);
+    setActionNotice(
+      "Mehrthemen-Arbeitsstand vorbereitet. Du kannst jetzt alle erkannten Themen im Draft vertiefen oder später im Account unter „Meine Arbeitsstände“ fortsetzen. Kein Auto-Publish, kein Auto-Dossier, kein Auto-Anlassraum und kein Auto-Graph.",
+    );
+  }, [intelligentFollowup]);
+
+  const handleDeepenSingleTopic = React.useCallback((topicLabel: string) => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    const normalizedTopicLabel = topicLabel.trim();
+    if (!normalizedTopicLabel) {
+      setActionNotice("Bitte wähle ein Thema für die Vertiefung.");
+      return;
+    }
+    saveStartDraftContext(
+      createStartDraftContext({
+        text: intelligentFollowup.sourceText,
+        normalizedText: intelligentFollowup.sourceText,
+        origin: "create_handoff",
+        intent: "theme_suggestion",
+        targetHint: "create",
+        preview: buildCreatePlannerFollowupPreview({
+          followup: intelligentFollowup,
+          topicLabel: normalizedTopicLabel,
+        }),
+      }),
+    );
+    setUnderstandingConfirmed(true);
+    setShowFollowupCorrectionComposer(true);
+    setActionNotice(
+      `Thema „${normalizedTopicLabel}“ als Vertiefung vorgemerkt. Du kannst diesen Themenstrang jetzt im Draft weiter ausarbeiten. Nichts wird automatisch veröffentlicht, ins Dossier überführt oder als Faktenbehauptung bestätigt.`,
+    );
+  }, [intelligentFollowup]);
+
+  const handleContinueInAccount = React.useCallback(() => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    saveStartDraftContext(
+      createStartDraftContext({
+        text: intelligentFollowup.sourceText,
+        normalizedText: intelligentFollowup.sourceText,
+        origin: "create_handoff",
+        intent: "contribution",
+        targetHint: "create",
+        preview: buildCreatePlannerFollowupPreview({
+          followup: intelligentFollowup,
+        }),
+      }),
+    );
+    router.push("/account");
+  }, [intelligentFollowup, router]);
+
   const confirmFactcheckServiceStart = React.useCallback(() => {
     setFactcheckMessage(
-      "Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.",
+      "Prüfpfad vorbereitet. Factcheck / Quellenprüfung startet erst nach deiner weiteren Bestätigung.",
     );
     void navigateWithCreateHandoff("request_factcheck", "/factcheck");
   }, [navigateWithCreateHandoff]);
-
-  const handleStartFactcheckService = React.useCallback(() => {
-    const gateForFactcheck = resolveFactcheckEntitlementGate("deep_research", {
-      isAuthenticated: entitlements.isAuthenticated,
-      hasEntitlement: entitlements.canDeepResearch,
-      hasPricingAccess: entitlements.canDeepResearch,
-      confirmationProvided: false,
-    });
-    setFactcheckMessage(getFactcheckEntitlementGateMessage(gateForFactcheck));
-    setActionNotice(getFactcheckEntitlementGateMessage(gateForFactcheck));
-  }, [entitlements.canDeepResearch, entitlements.isAuthenticated]);
 
   const handleSaveOnly = React.useCallback(async () => {
     if (!privacyGate.ensureActiveProcessingAllowed("create-save")) return;
@@ -2140,7 +2276,10 @@ export default function CreateClient({
             onOpenDossierCreate={handleOpenDossierCreate}
             onPrepareVote={handlePrepareVote}
             onRequestEditorialReview={handleRequestEditorialReview}
-            onStartOptionalService={handleStartFactcheckService}
+            onStartOptionalService={confirmFactcheckServiceStart}
+            onDeepenAllTopics={handleDeepenAllTopics}
+            onDeepenTopic={handleDeepenSingleTopic}
+            onContinueInAccount={handleContinueInAccount}
             onRetryPlanner={handleRetryPlanner}
             isRetryPlannerPending={isRetryPlannerPending}
             onSaveOnly={handleSaveOnly}

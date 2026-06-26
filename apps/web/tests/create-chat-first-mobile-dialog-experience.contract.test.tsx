@@ -408,13 +408,26 @@ describe("create chat-first mobile dialog experience contract", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
     expect(html).toContain("Wie möchtest du tiefer ins Thema gehen?");
+    expect(html).toContain("Mehrere Themen erkannt");
+    expect(html).toContain("Alle Themen vertiefen");
+    expect(html).toContain("Wohnen vertiefen");
+    expect(html).toContain("Verkehr vertiefen");
+    expect(html).toContain("Bildung vertiefen");
+    expect(html).toContain("Migration/Integration vertiefen");
+    expect(html).toContain("Sicherheit/Rechtsstaat vertiefen");
+    expect(html).toContain("Dossier vorbereiten");
+    expect(html).toContain("Später im Account weiterarbeiten");
     expect(html).toContain("Ja, so einreichen");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Als Ergänzung anhängen");
     expect(html).toContain("Neues Dossier vorbereiten");
-    expect(html).toContain("Beteiligungsfrage vorbereiten");
+    expect(html).toContain("QR-/Live-Kontext vorbereiten");
     expect(html).toContain("Redaktionell prüfen lassen");
-    expect(html).toContain("Faktencheck anfragen");
+    expect(html).toContain("Factcheck / Quellenprüfung vorbereiten");
+    expect(html).toContain("Kein Auto-Publish");
+    expect(html).toContain("kein Auto-Dossier");
+    expect(html).toContain("kein Auto-Anlassraum");
+    expect(html).toContain("kein Auto-Graph");
   });
 
   it("surfaces the place clarification prominently for vague local references", () => {
