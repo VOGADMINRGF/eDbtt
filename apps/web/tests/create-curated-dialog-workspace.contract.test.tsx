@@ -112,8 +112,11 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Details ansehen");
     expect(followupSource).toContain("Ja, so einreichen");
     expect(followupSource).toContain("Ich möchte tiefer ins Thema");
+    expect(followupSource).toContain("Alle Themen vertiefen");
+    expect(followupSource).toContain("Später im Account weiterarbeiten");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
-    expect(followupSource).toContain("Faktencheck anfragen");
+    expect(followupSource).toContain("Factcheck / Quellenprüfung vorbereiten");
+    expect(followupSource).toContain("QR-/Live-Kontext vorbereiten");
     expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");

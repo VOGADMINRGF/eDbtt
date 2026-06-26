@@ -28,6 +28,9 @@ type CreateVisualFollowupProps = {
   onPrepareVote: () => void;
   onRequestEditorialReview?: () => void;
   onStartOptionalService?: () => void;
+  onDeepenAllTopics?: () => void;
+  onDeepenTopic?: (topicLabel: string) => void;
+  onContinueInAccount?: () => void;
   onRetryPlanner?: () => void;
   isRetryPlannerPending?: boolean;
   onSaveOnly?: () => void;
@@ -400,6 +403,20 @@ function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): st
     if (startPoints.length === 4) break;
   }
   return startPoints;
+}
+
+function buildMultiTopicActionTopics(result: CreateIntelligentFollowupResult): string[] {
+  return Array.from(
+    new Set(
+      result.understanding.topics
+        .map((topic) => topic.label.trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, 5);
+}
+
+function shouldShowMultiTopicActionPanel(actionTopics: string[]): boolean {
+  return actionTopics.length >= 3;
 }
 
 function resolveUnderstandingKindLabel(result: CreateIntelligentFollowupResult): string {
@@ -2213,6 +2230,11 @@ function PlannerClarificationPanel(props: {
 }
 
 function NextStepPanel(props: {
+  multiTopicActionTopics: string[];
+  showMultiTopicActionPanel: boolean;
+  onDeepenAllTopics: () => void;
+  onDeepenTopic: (topicLabel: string) => void;
+  onContinueInAccount: () => void;
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
   onOpenDossierAppend: () => void;
@@ -2231,9 +2253,89 @@ function NextStepPanel(props: {
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Nächster Schritt</p>
         <p className="text-base font-semibold text-white">Wie möchtest du tiefer ins Thema gehen?</p>
         <p className="text-sm leading-relaxed text-slate-300">
-          Nichts wird automatisch veröffentlicht. Keine automatische Kostenbuchung.
+          Alles bleibt Entwurf und review-first. Kein Auto-Publish, kein Auto-Dossier, kein Auto-Anlassraum, kein Auto-Graph und keine automatische Kostenbuchung.
         </p>
       </div>
+      {props.showMultiTopicActionPanel ? (
+        <div
+          data-create-multitheme-actions
+          className="space-y-4 rounded-[24px] border border-cyan-300/18 bg-white/[0.03] px-4 py-4"
+        >
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+              Mehrthemen-Follow-up
+            </p>
+            <p className="text-sm font-semibold text-white">Mehrere Themen erkannt</p>
+            <p className="text-sm leading-relaxed text-slate-300">
+              Du kannst alle Themen gemeinsam weiterführen oder einzelne Themen gezielt vertiefen. Quellenprüfung wird nur vorbereitet oder angefragt, nie automatisch gestartet.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+              onClick={props.onDeepenAllTopics}
+            >
+              Alle Themen vertiefen
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onOpenDossierCreate}
+            >
+              Dossier vorbereiten
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onPrepareAnlassraum}
+            >
+              Anlassraum vorbereiten
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onPrepareVote}
+            >
+              QR-/Live-Kontext vorbereiten
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onStartOptionalService}
+            >
+              Factcheck / Quellenprüfung vorbereiten
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onContinueInAccount}
+            >
+              Später im Account weiterarbeiten
+            </button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {props.multiTopicActionTopics.map((topicLabel) => (
+              <article
+                key={`deepen-topic-${topicLabel}`}
+                className="rounded-2xl border border-cyan-300/18 bg-slate-950/25 px-3 py-3"
+              >
+                <p className="text-sm font-semibold text-white">{topicLabel}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                  Dieser Themenstrang bleibt im Draft und kann gezielt weitergeführt werden.
+                </p>
+                <button
+                  type="button"
+                  className="btn-secondary mt-3 min-h-[40px] px-3 py-2 text-sm"
+                  onClick={() => props.onDeepenTopic(topicLabel)}
+                >
+                  {topicLabel} vertiefen
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
         Ja, so einreichen
       </button>
@@ -2248,7 +2350,7 @@ function NextStepPanel(props: {
           Neues Dossier vorbereiten
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareVote}>
-          Beteiligungsfrage vorbereiten
+          QR-/Live-Kontext vorbereiten
         </button>
         <button
           type="button"
@@ -2265,10 +2367,10 @@ function NextStepPanel(props: {
           type="button"
           className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
           onClick={props.onStartOptionalService}
-          aria-label="Faktencheck / Deep Search"
-          title="Faktencheck / Deep Search"
+          aria-label="Factcheck / Quellenprüfung vorbereiten"
+          title="Factcheck / Quellenprüfung vorbereiten"
         >
-          Faktencheck anfragen
+          Factcheck / Quellenprüfung vorbereiten
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
           Nur speichern
@@ -2342,6 +2444,9 @@ export default function CreateVisualFollowup({
   onPrepareVote,
   onRequestEditorialReview = () => {},
   onStartOptionalService = () => {},
+  onDeepenAllTopics = () => {},
+  onDeepenTopic = () => {},
+  onContinueInAccount = () => {},
   onRetryPlanner,
   isRetryPlannerPending = false,
   onSaveOnly = () => {},
@@ -2377,6 +2482,8 @@ export default function CreateVisualFollowup({
     .filter((suggestion) => suggestion.kind !== "topic")
     .slice(0, 4);
   const structureBranches = React.useMemo(() => buildCreateStructureBranches(result, 3), [result]);
+  const multiTopicActionTopics = React.useMemo(() => buildMultiTopicActionTopics(result), [result]);
+  const showMultiTopicActionPanel = shouldShowMultiTopicActionPanel(multiTopicActionTopics);
   const contentModules = React.useMemo(
     () =>
       buildContentModules({
@@ -2621,6 +2728,11 @@ export default function CreateVisualFollowup({
           {isConfirmed && !plannerClarificationRequired ? (
             <div className="lg:hidden">
                 <NextStepPanel
+                  multiTopicActionTopics={multiTopicActionTopics}
+                  showMultiTopicActionPanel={showMultiTopicActionPanel}
+                  onDeepenAllTopics={onDeepenAllTopics}
+                  onDeepenTopic={onDeepenTopic}
+                  onContinueInAccount={onContinueInAccount}
                   onPrepareSubmission={onPrepareSubmission}
                   onPrepareAnlassraum={onPrepareAnlassraum}
                   onOpenDossierAppend={onOpenDossierAppend}
@@ -2748,6 +2860,11 @@ export default function CreateVisualFollowup({
           <aside className="hidden lg:block lg:space-y-4">
             <div className="lg:sticky lg:top-4">
                 <NextStepPanel
+                  multiTopicActionTopics={multiTopicActionTopics}
+                  showMultiTopicActionPanel={showMultiTopicActionPanel}
+                  onDeepenAllTopics={onDeepenAllTopics}
+                  onDeepenTopic={onDeepenTopic}
+                  onContinueInAccount={onContinueInAccount}
                   onPrepareSubmission={onPrepareSubmission}
                   onPrepareAnlassraum={onPrepareAnlassraum}
                   onOpenDossierAppend={onOpenDossierAppend}
