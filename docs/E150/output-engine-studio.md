@@ -90,6 +90,25 @@ Default intent:
 - Tone is pointed, humorous and systemic, but not personally bitter or accusatory.
 - The existing dossier-bound, review-required and no-auto-publish guardrails remain mandatory.
 
+### Voxy Access / Entitlement Readiness
+
+Voxy co-creation is prepared as a staged studio capability, not as a hard paywall on public reading.
+
+- public debate intake may stay open or low-friction
+- member scope may stop at light intake / topic submission
+- premium author, partner and operator scopes may unlock full co-creation, visual briefing, export preparation or campaign management
+- operator review and publish preparation still do not authorize auto-publish
+- published public debates remain publicly readable in this slice
+
+Guardrails stay unchanged:
+
+- no auto-publish
+- no auto-dossier
+- no auto-Anlassraum
+- no payment or checkout provider in the required path
+- no fake social integration
+- author confirmation gate and editorial review gate remain mandatory before productive output release
+
 ## Social Carousel Mapper (local slice)
 
 The first concrete format mapper is `Social Carousel` as a deterministic local output.
