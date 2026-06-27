@@ -30,8 +30,8 @@ describe("voxy access contract", () => {
 
   it("allows partner campaign workflows but not editorial approval", () => {
     expect(canUseVoxyCapability("partner", "voxy_campaign_manage")).toBe(true);
+    expect(canUseVoxyCapability("partner", "voxy_publish_prepare")).toBe(true);
     expect(canUseVoxyCapability("partner", "voxy_editorial_review")).toBe(false);
-    expect(canUseVoxyCapability("partner", "voxy_publish_prepare")).toBe(false);
   });
 
   it("allows operator review and publish preparation without widening to admin-only power", () => {

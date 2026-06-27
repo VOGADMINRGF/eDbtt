@@ -41,6 +41,7 @@ const VOXY_CAPABILITY_MATRIX: Record<VoxyPlan, readonly VoxyCapability[]> = {
     "voxy_cocreation_full",
     "voxy_visual_brief_generate",
     "voxy_draft_export",
+    "voxy_publish_prepare",
     "voxy_campaign_manage",
   ],
   operator: [

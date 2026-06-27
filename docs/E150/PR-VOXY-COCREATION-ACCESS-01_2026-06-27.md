@@ -36,7 +36,11 @@ Eingefuehrt wurden:
 - `canUseVoxyCapability(plan, capability)`
 - `assertVoxyAccess(plan, capability)`
 
-`operator` darf Review und Publish-Vorbereitung, aber weiterhin kein Auto-Publish.
+Contract-Alignment auf die finale Issue-#224-Semantik:
+
+- `partner` darf jetzt `voxy_publish_prepare`, aber weiterhin kein `voxy_editorial_review`
+- `operator` darf Review und Publish-Vorbereitung, aber weiterhin kein Auto-Publish
+- `voxy_publish_prepare` bleibt reine Export-/Veroeffentlichungsvorbereitung, keine Veroeffentlichung
 
 ## Co-Creation state contract
 
@@ -45,6 +49,9 @@ Der Co-Creation-State ist als eigener Pre-Output-Contract modelliert.
 - Author Confirmation und Editorial Review sind getrennte Statusachsen
 - `approved_for_export` ist bewusst nicht `published`
 - die dokumentierten Minimalfelder aus dem Voxy-Template sind typisiert und testbar
+- finale `authorApprovalStatus`-Werte: `draft`, `needs_author_confirmation`, `confirmed`, `rejected`
+- finale `editorialReviewStatus`-Werte: `not_submitted`, `needs_review`, `in_review`, `changes_requested`, `approved_for_export`, `rejected`
+- kleine Helper fuer offene Rueckfragen und naechste Pflichtschritte halten Author-Confirmation und Sensitive-Claims-Review sichtbar
 
 ## Route / surface impact
 

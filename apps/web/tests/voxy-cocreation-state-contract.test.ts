@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   createEmptyVoxyCoCreationState,
+  getVoxyCocreationNextRequiredSteps,
+  getVoxyCocreationOpenQuestions,
   isVoxyCoCreationReadyForExport,
+  VOXY_AUTHOR_APPROVAL_STATUSES,
   VOXY_EDITORIAL_REVIEW_STATUSES,
   VoxyCoCreationStateSchema,
 } from "@/features/voxy/coCreationState";
@@ -11,13 +14,13 @@ describe("voxy co-creation state contract", () => {
   it("keeps author approval and editorial review as separate gates", () => {
     const authorOnlyApproved = {
       ...createEmptyVoxyCoCreationState(),
-      authorApprovalStatus: "author_confirmed" as const,
-      editorialReviewStatus: "submitted" as const,
+      authorApprovalStatus: "confirmed" as const,
+      editorialReviewStatus: "in_review" as const,
     };
 
     const editorialOnlyApproved = {
       ...createEmptyVoxyCoCreationState(),
-      authorApprovalStatus: "needs_author_input" as const,
+      authorApprovalStatus: "needs_author_confirmation" as const,
       editorialReviewStatus: "approved_for_export" as const,
     };
 
@@ -28,7 +31,7 @@ describe("voxy co-creation state contract", () => {
   it("requires both gates before export readiness", () => {
     const ready = {
       ...createEmptyVoxyCoCreationState(),
-      authorApprovalStatus: "author_confirmed" as const,
+      authorApprovalStatus: "confirmed" as const,
       editorialReviewStatus: "approved_for_export" as const,
     };
 
@@ -38,6 +41,7 @@ describe("voxy co-creation state contract", () => {
   it("treats approved_for_export as distinct from publication", () => {
     expect(VOXY_EDITORIAL_REVIEW_STATUSES).toContain("approved_for_export");
     expect(VOXY_EDITORIAL_REVIEW_STATUSES).not.toContain("published");
+    expect(VOXY_EDITORIAL_REVIEW_STATUSES).not.toContain("official");
   });
 
   it("models the required co-creation fields as a typed contract", () => {
@@ -59,11 +63,61 @@ describe("voxy co-creation state contract", () => {
       reformProposal: "Ein transparenter Mindeststandard fuer Rueckmeldungen.",
       safeguards: ["Keine Namensnennung ohne dossiergebundene Belege."],
       tonePreference: "scharf, aber fair",
-      authorApprovalStatus: "author_confirmed",
-      editorialReviewStatus: "submitted",
+      authorApprovalStatus: "confirmed",
+      editorialReviewStatus: "needs_review",
     });
 
-    expect(parsed.authorApprovalStatus).toBe("author_confirmed");
-    expect(parsed.editorialReviewStatus).toBe("submitted");
+    expect(parsed.authorApprovalStatus).toBe("confirmed");
+    expect(parsed.editorialReviewStatus).toBe("needs_review");
+  });
+
+  it("uses the final issue-aligned status enums", () => {
+    expect(VOXY_AUTHOR_APPROVAL_STATUSES).toEqual([
+      "draft",
+      "needs_author_confirmation",
+      "confirmed",
+      "rejected",
+    ]);
+    expect(VOXY_EDITORIAL_REVIEW_STATUSES).toEqual([
+      "not_submitted",
+      "needs_review",
+      "in_review",
+      "changes_requested",
+      "approved_for_export",
+      "rejected",
+    ]);
+  });
+
+  it("shows author confirmation as a required next step before export preparation", () => {
+    const steps = getVoxyCocreationNextRequiredSteps({
+      ...createEmptyVoxyCoCreationState(),
+      authorApprovalStatus: "needs_author_confirmation",
+      editorialReviewStatus: "approved_for_export",
+    });
+
+    expect(steps).toContain("request_author_confirmation");
+    expect(isVoxyCoCreationReadyForExport({
+      ...createEmptyVoxyCoCreationState(),
+      authorApprovalStatus: "needs_author_confirmation",
+      editorialReviewStatus: "approved_for_export",
+    })).toBe(false);
+  });
+
+  it("treats sensitive claims as a review boundary and keeps review-first questions visible", () => {
+    const state = {
+      ...createEmptyVoxyCoCreationState(),
+      sensitiveClaims: ["Ein schwerer Vorwurf ohne oeffentlichen Beleg."],
+      editorialReviewStatus: "needs_review" as const,
+    };
+
+    expect(getVoxyCocreationNextRequiredSteps(state)).toEqual(
+      expect.arrayContaining(["review_sensitive_claims", "complete_editorial_review"]),
+    );
+    expect(getVoxyCocreationOpenQuestions(state)).toEqual(
+      expect.arrayContaining([
+        "Was ist die eigentliche Beobachtung?",
+        "Welche Fakten sind belegt?",
+      ]),
+    );
   });
 });

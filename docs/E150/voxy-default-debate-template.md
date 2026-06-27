@@ -210,8 +210,8 @@ Minimum fields:
 
 Required status enums:
 
-- `authorApprovalStatus`: `draft`, `needs_author_input`, `author_confirmed`, `author_rejected`
-- `editorialReviewStatus`: `not_submitted`, `submitted`, `needs_changes`, `approved_for_export`, `rejected`
+- `authorApprovalStatus`: `draft`, `needs_author_confirmation`, `confirmed`, `rejected`
+- `editorialReviewStatus`: `not_submitted`, `needs_review`, `in_review`, `changes_requested`, `approved_for_export`, `rejected`
 
 Review semantics:
 
