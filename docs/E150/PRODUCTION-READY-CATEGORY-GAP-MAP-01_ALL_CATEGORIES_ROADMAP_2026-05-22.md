@@ -1,6 +1,6 @@
 # PRODUCTION-READY-CATEGORY-GAP-MAP-01
 
-Stand: 2026-05-22
+Stand: 2026-06-27
 Status: done
 Typ: Docs-/Readiness-Slice
 
@@ -79,6 +79,18 @@ sondern in den noch offenen Produktionsluecken zwischen Pilot und belastbarem Ro
 - breitere produktive Quellenabdeckung
 - belastbare Material-/Upload-Runtime
 - category-uebergreifende Langlauf-QA, Audit- und Betriebsdisziplin
+
+### 2026-06-27 SSOT-Refresh
+
+Der Docs-Abgleich nach PR #223, #225, #227 und #231-#236 veraendert diese Gap-Map nicht
+nach oben, sondern macht die Trennlinie klarer:
+
+- `POST-MERGE-PRODUCTION-SMOKE-22` bestaetigt historischen lokalen Build-/Smoke-Stand, aber liefert keinen neuen CI-/Vercel-Claim.
+- `CREATE-PLANNER-CORE-FOLLOWUP-23` schliesst eine UX-/Flow-Luecke im Mehrthemen-Fall, nicht die qualitative Gesamtfrage fuer Planner/Analyze.
+- `PR-VOXY-COCREATION-ACCESS-01` ist contract-ready fuer spaetere Studio-/Entitlement-Logik, nicht runtime-, paywall- oder checkout-ready.
+- Die Participation-Slices `#231-#236` sind Shell-/Index-/Container-/Fixture-Readiness, keine Self-Service-, Persistenz-, Map-/Geo- oder Vollworkflow-Hochstufung.
+
+Offen bleiben damit weiterhin vor allem Self-Service ohne Betreiberkante, breitere Source-Adapter-/Automation, Material-Extraction-Runtime, Checkout/Billing-Folgepfade und spaetere Live-Excellence-Ausbaustufen.
 
 ## Kategorische Gap-Map
 
