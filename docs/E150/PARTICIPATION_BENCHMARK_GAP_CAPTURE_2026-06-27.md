@@ -1,0 +1,61 @@
+# Participation Benchmark Gap Capture (2026-06-27)
+
+## Kurzkontext
+
+Diese Notiz fasst eine neutrale Referenzanalyse zu einer externen kommunalen Beteiligungsplattform zusammen.
+Ziel ist nicht, fremde Produktlogik zu übernehmen, sondern die für eDebatte relevante Lücke zwischen
+Beitragserfassung, Review, Auswertung und sichtbarer Ergebnisrückmeldung als docs-only Folgeblock sauber
+im kanonischen OpenTasks-Katalog zu verankern.
+
+## Was eDebatte bereits hat
+
+eDebatte ist bereits stark in den bestehenden review-first und draft-first Pfaden:
+
+- `/start` als Create-Light-Einstieg
+- `/create` als Voxy-/Planner-/Review-first Intake
+- Draft-/Resume-Kosmos über Start, Create, Themen, Runden und Account
+- Editorial Review Queue
+- Truth-/Source-/Review-Guardrails
+- Factcheck-/Entitlement-Gates
+- Graph-Candidate-Staging statt Auto-Merge
+- Live-/Kampagnen-/QR-/Media-Kit-Flächen
+
+Diese Bausteine decken die Erfassung, Einordnung, Prüfung und geschützte Weiterarbeit bereits gut ab.
+
+## Sichtbare Lücke im Vergleich
+
+Die Referenzanalyse zeigt als fehlenden Produktblock vor allem die disziplinierte Wirkungskette von
+eingehenden Beiträgen zu sichtbarer Ergebnisrückmeldung:
+
+- nachvollziehbarer Status zwischen Einreichung, Prüfung, Bündelung und Rückmeldung
+- sichtbarer Ergebnisentwurf für Themen-, Live- und Beteiligungskontexte
+- klarer Container für projekt- oder kampagnenbezogene Beteiligung ohne neue Kernmigration
+- operative Transparenz für Moderation, Redaktion oder Organisationen
+- später optional ortsbezogene Beteiligungslogik, aber nur nach sauberem Place-/Street-Followup
+
+## Warum dies docs-only bleibt
+
+Die neu angelegten Tasks öffnen bewusst keinen technischen oder produktiven Umsetzungspfad.
+Sie dokumentieren nur einen sauber abgegrenzten Folgeblock, damit die identifizierte Lücke im SSOT
+sichtbar ist, ohne bestehende Guardrails zu schwächen oder eine Verwaltungsplattform zu behaupten.
+
+Die neuen Tasks ändern daher keine Routen, keine Persistenz, keine Statusmaschine im Code und keine
+bestehende Publish-, Merge-, Vote- oder Dossierlogik.
+
+## Guardrails
+
+- kein Auto-Publish
+- kein Auto-Dossier
+- kein Auto-Anlassraum
+- kein Auto-Graph
+- kein Auto-Vote
+- keine Wettbewerberbegriffe
+- keine Übernahme fremder Produktclaims
+
+## Zugehörige OpenTasks
+
+- `PARTICIPATION-IMPACT-STATUS-01`
+- `PARTICIPATION-RESULT-FEEDBACK-02`
+- `PARTICIPATION-SPACE-CONTAINER-03`
+- `PARTICIPATION-ADMIN-COCKPIT-04`
+- `PARTICIPATION-MAP-PLACE-FUTURE-05`
