@@ -46,6 +46,7 @@ Stand 2026-06-27:
 - `PARTICIPATION-SPACE-CONTAINER-03` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-ADMIN-COCKPIT-04` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-MAP-PLACE-FUTURE-05` ist jetzt als kleiner contract-first Slice umgesetzt
+- `PUBLIC-PARTICIPATION-SPACE-SHELL-01` ist jetzt als kleiner fixture-first Slice umgesetzt
 - der Slice ergänzt nur einen typed Statusvertrag und Tests
 - weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
 
@@ -103,5 +104,12 @@ Stand 2026-06-27:
 - fachliche Präzisions- und Review-Statuslogik ohne Geocoding- oder Koordinatenbehauptung
 - Display-Intent-Modell für spätere Text-, Bereichs- oder Future-Marker-Anzeigen ohne Rendering
 - Guardrails gegen Map Rendering, Geocoding, Coordinate Storage, Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
+
+`PUBLIC-PARTICIPATION-SPACE-SHELL-01` ergänzt darauf aufbauend den kleinsten sichtbaren Public-Readout:
+
+- read-only Route mit lokalen Fixture-Daten statt Runtime, API oder Persistenz
+- öffentliche Shell nur auf Basis bestehender Participation-Space-, Feedback- und Place-Contracts
+- Safety-Hinweise gegen amtliche Überdehnung, ungeprüfte Ortsanzeige und Automationsmissverständnisse
+- keine öffentlichen Operator-, Review-, Publish- oder Workflow-Inhalte
 
 Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.

@@ -1,2 +1,3 @@
 # Pages currently without explicit <h1>.
 # Regression rule: no new pages may be added without <h1>.
+apps/web/src/app/beteiligung/[slug]/page.tsx
