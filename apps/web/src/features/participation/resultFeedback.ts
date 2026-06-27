@@ -136,6 +136,17 @@ function hasContent(value: string): boolean {
   return value.trim().length > 0;
 }
 
+function hasReviewReadyBase(
+  feedback: ParticipationResultFeedback,
+): boolean {
+  return (
+    hasContent(feedback.title) &&
+    hasContent(feedback.summary) &&
+    feedback.sourceStatus !== "unverified_input" &&
+    (feedback.topicSummaries.length > 0 || feedback.nextSteps.length > 0)
+  );
+}
+
 export function createEmptyParticipationResultFeedback(
   params: Pick<ParticipationResultFeedback, "id" | "updatedAt"> & {
     impactStatus?: ParticipationImpactStatus;
@@ -227,6 +238,7 @@ export function summarizeParticipationResultFeedbackReadiness(
 
   const publicVisible = isParticipationResultFeedbackPublic(feedback);
   const publishable = isParticipationResultFeedbackPublishable(feedback);
+  const reviewReadyBase = hasReviewReadyBase(feedback);
 
   let readinessLabel: ParticipationResultFeedbackReadiness["readinessLabel"] =
     "not_ready";
@@ -236,7 +248,11 @@ export function summarizeParticipationResultFeedbackReadiness(
     readinessLabel = "public_feedback_live";
   } else if (publishable) {
     readinessLabel = "approved_not_public";
-  } else if (requiresParticipationResultFeedbackReview(feedback)) {
+  } else if (
+    (feedback.feedbackStatus === "draft" ||
+      feedback.feedbackStatus === "in_review") &&
+    reviewReadyBase
+  ) {
     readinessLabel = "ready_for_review";
   }
 

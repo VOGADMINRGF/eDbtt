@@ -44,6 +44,9 @@ describe("participation result feedback contract", () => {
     };
 
     expect(isParticipationResultFeedbackPublic(feedback)).toBe(true);
+    expect(
+      summarizeParticipationResultFeedbackReadiness(feedback).readinessLabel,
+    ).toBe("public_feedback_live");
   });
 
   it("treats approved feedback as publishable but not yet public", () => {
@@ -69,6 +72,9 @@ describe("participation result feedback contract", () => {
 
     expect(isParticipationResultFeedbackPublishable(feedback)).toBe(true);
     expect(isParticipationResultFeedbackPublic(feedback)).toBe(false);
+    expect(
+      summarizeParticipationResultFeedbackReadiness(feedback).readinessLabel,
+    ).toBe("approved_not_public");
   });
 
   it("blocks publishability for unverified input", () => {
@@ -200,5 +206,70 @@ describe("participation result feedback contract", () => {
       noAutomaticOfficialAssessment: true,
     });
     expect(requiresParticipationResultFeedbackReview(feedback)).toBe(true);
+  });
+
+  it("keeps an empty draft with missing title and summary at not_ready", () => {
+    const feedback = createEmptyParticipationResultFeedback({
+      id: "feedback-8",
+      updatedAt: "2026-06-27T12:00:00.000Z",
+    });
+
+    expect(
+      summarizeParticipationResultFeedbackReadiness(feedback).readinessLabel,
+    ).toBe("not_ready");
+  });
+
+  it("keeps unverified input at not_ready", () => {
+    const feedback = {
+      ...createEmptyParticipationResultFeedback({
+        id: "feedback-9",
+        updatedAt: "2026-06-27T12:00:00.000Z",
+      }),
+      title: "Rohentwurf",
+      summary: "Inhalt liegt vor, aber die Quellenlage ist noch ungeprüft.",
+      feedbackStatus: "draft" as const,
+      sourceStatus: "unverified_input" as const,
+      topicSummaries: [{ id: "topic-1", title: "Thema", summary: "Kurzfassung" }],
+    };
+
+    expect(
+      summarizeParticipationResultFeedbackReadiness(feedback).readinessLabel,
+    ).toBe("not_ready");
+  });
+
+  it("marks a complete draft or in_review item with reviewed input as ready_for_review", () => {
+    const draftReady = {
+      ...createEmptyParticipationResultFeedback({
+        id: "feedback-10",
+        updatedAt: "2026-06-27T12:00:00.000Z",
+      }),
+      title: "Reviewfähiger Entwurf",
+      summary: "Die Rückmeldung ist inhaltlich vorbereitet.",
+      feedbackStatus: "draft" as const,
+      sourceStatus: "reviewed_summary" as const,
+      topicSummaries: [{ id: "topic-1", title: "Thema", summary: "Kurzfassung" }],
+    };
+
+    const inReviewReady = {
+      ...draftReady,
+      id: "feedback-11",
+      feedbackStatus: "in_review" as const,
+      topicSummaries: [],
+      nextSteps: [
+        {
+          id: "step-1",
+          label: "Nächste Rückmeldung abstimmen",
+          description: "Review-first Weiterarbeit bleibt offen.",
+          reviewFirst: true as const,
+        },
+      ],
+    };
+
+    expect(
+      summarizeParticipationResultFeedbackReadiness(draftReady).readinessLabel,
+    ).toBe("ready_for_review");
+    expect(
+      summarizeParticipationResultFeedbackReadiness(inReviewReady).readinessLabel,
+    ).toBe("ready_for_review");
   });
 });
