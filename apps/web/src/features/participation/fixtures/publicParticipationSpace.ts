@@ -238,6 +238,42 @@ const PUBLIC_PARTICIPATION_SPACE_FIXTURES: PublicParticipationSpaceFixture[] = [
       }),
     },
   },
+  {
+    space: {
+      ...createEmptyParticipationSpace({
+        id: "space-nachbarschaftsforum-west",
+        title: "Beteiligungsraum Nachbarschaftsforum West",
+        slug: "nachbarschaftsforum-west",
+        summary:
+          "Ein öffentlicher Zwischenstand zu Nachbarschaftsthemen im Westen, bevor eine öffentliche Rückmeldung vorliegt.",
+        updatedAt: "2026-06-27T12:00:00.000Z",
+        status: "review_active",
+        visibility: "public_read_only",
+        modules: ["topic_overview", "status_timeline", "result_feedback"],
+      }),
+      publicSummary: {
+        headline: "Öffentlicher Zwischenstand",
+        shortSummary:
+          "Der Raum ist öffentlich sichtbar, aber es liegt noch keine freigegebene öffentliche Rückmeldung vor.",
+        statusLabel: "Öffentlich lesbarer Zwischenstand",
+        feedbackAvailable: false,
+        openQuestionCount: 0,
+        minorityPositionCount: 0,
+        nextStepCount: 0,
+        lastUpdatedAt: "2026-06-27T12:00:00.000Z",
+      },
+    },
+    feedback: {
+      ...createEmptyParticipationResultFeedback({
+        id: "feedback-nachbarschaftsforum-west",
+        updatedAt: "2026-06-27T12:00:00.000Z",
+        impactStatus: "in_evaluation",
+      }),
+      feedbackStatus: "in_review",
+      sourceStatus: "reviewed_summary",
+    },
+    place: null,
+  },
 ];
 
 export function listPublicParticipationSpaceFixtures(): PublicParticipationSpaceFixture[] {
