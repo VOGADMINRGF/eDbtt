@@ -43,6 +43,7 @@ Stand 2026-06-27:
 
 - `PARTICIPATION-IMPACT-STATUS-01` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-RESULT-FEEDBACK-02` ist jetzt als kleiner contract-first Slice umgesetzt
+- `PARTICIPATION-SPACE-CONTAINER-03` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-ADMIN-COCKPIT-04` ist jetzt als kleiner contract-first Slice umgesetzt
 - der Slice ergänzt nur einen typed Statusvertrag und Tests
 - weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
@@ -87,5 +88,12 @@ Stand 2026-06-27:
 - typed manuelle Operator-Actions ohne Workflow-Runner oder automatische Folgeschritte
 - typed Risk Flags für ungeprüfte Quellen, Minderheitenpositionen, offene Fragen, sensible Claims und manuellen Review-Bedarf
 - Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
+
+`PARTICIPATION-SPACE-CONTAINER-03` ergänzt darauf aufbauend den kleinsten belastbaren Kern für einen Beteiligungs- bzw. Vorhabenraum:
+
+- typed Space-Statuswerte und Visibility-Regeln für interne, review-only und öffentliche Lesezustände
+- typed Module-Liste für reine Container-Bausteine ohne UI- oder Workflow-Automation
+- linkedItems als Anschluss an bestehende Impact-, Feedback-, Queue- und Risk-Contracts
+- Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph, Map-Ableitung und automatische amtliche Bewertung
 
 Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.
