@@ -45,6 +45,7 @@ Stand 2026-06-27:
 - `PARTICIPATION-RESULT-FEEDBACK-02` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-SPACE-CONTAINER-03` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-ADMIN-COCKPIT-04` ist jetzt als kleiner contract-first Slice umgesetzt
+- `PARTICIPATION-MAP-PLACE-FUTURE-05` ist jetzt als kleiner contract-first Slice umgesetzt
 - der Slice ergänzt nur einen typed Statusvertrag und Tests
 - weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
 
@@ -95,5 +96,12 @@ Stand 2026-06-27:
 - typed Module-Liste für reine Container-Bausteine ohne UI- oder Workflow-Automation
 - linkedItems als Anschluss an bestehende Impact-, Feedback-, Queue- und Risk-Contracts
 - Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph, Map-Ableitung und automatische amtliche Bewertung
+
+`PARTICIPATION-MAP-PLACE-FUTURE-05` ergänzt darauf aufbauend den kleinsten belastbaren Kern für spätere Orts- und Map-Bezüge:
+
+- typed Place-Typen für Freitext-, Bezirks-, Straßen-, Institutions-, Event- und Online-Kontexte
+- fachliche Präzisions- und Review-Statuslogik ohne Geocoding- oder Koordinatenbehauptung
+- Display-Intent-Modell für spätere Text-, Bereichs- oder Future-Marker-Anzeigen ohne Rendering
+- Guardrails gegen Map Rendering, Geocoding, Coordinate Storage, Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
 
 Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.
