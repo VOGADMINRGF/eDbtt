@@ -33,14 +33,17 @@ eingehenden Beiträgen zu sichtbarer Ergebnisrückmeldung:
 - operative Transparenz für Moderation, Redaktion oder Organisationen
 - später optional ortsbezogene Beteiligungslogik, aber nur nach sauberem Place-/Street-Followup
 
-## Warum dies docs-only bleibt
+## Warum dies weitgehend docs-only bleibt
 
-Die neu angelegten Tasks öffnen bewusst keinen technischen oder produktiven Umsetzungspfad.
-Sie dokumentieren nur einen sauber abgegrenzten Folgeblock, damit die identifizierte Lücke im SSOT
+Die neu angelegten Tasks öffnen bewusst keinen großen technischen oder produktiven Umsetzungspfad.
+Sie dokumentieren einen sauber abgegrenzten Folgeblock, damit die identifizierte Lücke im SSOT
 sichtbar ist, ohne bestehende Guardrails zu schwächen oder eine Verwaltungsplattform zu behaupten.
 
-Die neuen Tasks ändern daher keine Routen, keine Persistenz, keine Statusmaschine im Code und keine
-bestehende Publish-, Merge-, Vote- oder Dossierlogik.
+Stand 2026-06-27:
+
+- `PARTICIPATION-IMPACT-STATUS-01` ist jetzt als kleiner contract-first Slice umgesetzt
+- der Slice ergänzt nur einen typed Statusvertrag und Tests
+- weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
 
 ## Guardrails
 
@@ -59,3 +62,13 @@ bestehende Publish-, Merge-, Vote- oder Dossierlogik.
 - `PARTICIPATION-SPACE-CONTAINER-03`
 - `PARTICIPATION-ADMIN-COCKPIT-04`
 - `PARTICIPATION-MAP-PLACE-FUTURE-05`
+
+## Update 2026-06-27
+
+`PARTICIPATION-IMPACT-STATUS-01` liefert jetzt den kleinsten belastbaren Kern für die sichtbare Wirkungskette:
+
+- typed Statuswerte
+- klare Transition-Regeln
+- Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
+
+Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.
