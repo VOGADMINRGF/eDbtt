@@ -43,6 +43,7 @@ Stand 2026-06-27:
 
 - `PARTICIPATION-IMPACT-STATUS-01` ist jetzt als kleiner contract-first Slice umgesetzt
 - `PARTICIPATION-RESULT-FEEDBACK-02` ist jetzt als kleiner contract-first Slice umgesetzt
+- `PARTICIPATION-ADMIN-COCKPIT-04` ist jetzt als kleiner contract-first Slice umgesetzt
 - der Slice ergänzt nur einen typed Statusvertrag und Tests
 - weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
 
@@ -79,5 +80,12 @@ Stand 2026-06-27:
 - klare Publishability- und Public-Readiness-Regeln
 - separate Modellierung von TopicSummary, MinorityPosition, OpenQuestion und NextStep
 - Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und amtliche Überdehnung
+
+`PARTICIPATION-ADMIN-COCKPIT-04` ergänzt darauf aufbauend den kleinsten belastbaren Kern für eine operative Arbeitsliste:
+
+- typed Queue Keys für Rückfrage-, Review-, Auswertungs-, Rückmeldungs- und Archivlisten
+- typed manuelle Operator-Actions ohne Workflow-Runner oder automatische Folgeschritte
+- typed Risk Flags für ungeprüfte Quellen, Minderheitenpositionen, offene Fragen, sensible Claims und manuellen Review-Bedarf
+- Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
 
 Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.
