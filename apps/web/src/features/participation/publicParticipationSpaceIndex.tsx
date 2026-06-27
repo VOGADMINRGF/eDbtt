@@ -190,7 +190,7 @@ export function PublicParticipationSpaceIndex({ fixtures }: Props) {
 
 function HeroBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-white/15 bg-white/8 px-3 py-1 text-slate-100 backdrop-blur">
+    <span className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-slate-100 backdrop-blur">
       {children}
     </span>
   );
@@ -206,7 +206,7 @@ function HeroStatusCard({
   detail: string;
 }) {
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/6 p-4 backdrop-blur">
+    <article className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-100/80">
         {label}
       </p>
