@@ -24,7 +24,8 @@ describe("/beteiligung/[slug] public participation space shell", () => {
   it("keeps public feedback details visible for the live public fixture", async () => {
     const html = await renderParticipationSpace("schulwegsicherheit-nord");
 
-    expect(html).toContain("Öffentlicher Beteiligungsstand");
+    expect(html).toContain("Öffentlicher Beteiligungsraum");
+    expect(html).toContain("Read-only Beteiligungsstand");
     expect(html).toContain("Öffentliche Rückmeldung");
     expect(html).toContain("Welche Zeitfenster sind tatsächlich am stärksten belastet?");
     expect(html).toContain("Minderheitenpositionen bleiben sichtbar");
@@ -98,9 +99,9 @@ describe("/beteiligung/[slug] public participation space shell", () => {
   it("shows safety and trust notices in citizen-friendly language", async () => {
     const html = await renderParticipationSpace("schulwegsicherheit-nord");
 
-    expect(html).toContain("Rückmeldungen sind Einordnungen, keine amtlichen Entscheidungen.");
-    expect(html).toContain("Sichtbarkeit bedeutet keine automatische Veröffentlichung.");
-    expect(html).toContain("Ortsangaben werden nur sicherheitsbewusst angezeigt.");
-    expect(html).toContain("Nicht öffentliche Review-Inhalte bleiben verborgen.");
+    expect(html).toContain("Einordnung, keine amtliche Entscheidung");
+    expect(html).toContain("Review-Inhalte bleiben verborgen");
+    expect(html).toContain("Ortsangaben sicherheitsbewusst");
+    expect(html).toContain("Keine automatische Veröffentlichung");
   });
 });
