@@ -42,6 +42,7 @@ sichtbar ist, ohne bestehende Guardrails zu schwächen oder eine Verwaltungsplat
 Stand 2026-06-27:
 
 - `PARTICIPATION-IMPACT-STATUS-01` ist jetzt als kleiner contract-first Slice umgesetzt
+- `PARTICIPATION-RESULT-FEEDBACK-02` ist jetzt als kleiner contract-first Slice umgesetzt
 - der Slice ergänzt nur einen typed Statusvertrag und Tests
 - weiterhin unverändert bleiben Routen, Persistenz, Runtime-Automation und bestehende Publish-, Merge-, Vote- oder Dossierlogik
 
@@ -70,5 +71,13 @@ Stand 2026-06-27:
 - typed Statuswerte
 - klare Transition-Regeln
 - Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und automatische amtliche Bewertung
+
+`PARTICIPATION-RESULT-FEEDBACK-02` ergänzt darauf aufbauend den kleinsten belastbaren Kern für Ergebnis- und Rückmeldelogik:
+
+- typed Feedback-Statuswerte
+- typed Source-/Review-Statuswerte
+- klare Publishability- und Public-Readiness-Regeln
+- separate Modellierung von TopicSummary, MinorityPosition, OpenQuestion und NextStep
+- Guardrails gegen Auto-Publish, Auto-Dossier, Auto-Anlassraum, Auto-Graph und amtliche Überdehnung
 
 Die sichtbare Produktfläche für diese Wirkungsspur bleibt weiterhin ein separater Folgeblock.
