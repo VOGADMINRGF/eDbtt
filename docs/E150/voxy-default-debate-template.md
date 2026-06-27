@@ -167,6 +167,25 @@ When a topic starts from a potential author, Voxy should guide the author with a
 - `Welche Beispiele sind erlebt, welche belegt, welche nur Vermutung?`
 - `Soll der Ton eher humorvoll, scharf, sachlich oder reformorientiert sein?`
 
+### Access / Entitlement Framing
+
+The Voxy default debate template must be compatible with staged access gates, but those gates apply only to studio work, premium workup and partner/operator workflows, not to the public readability of already published public debates.
+
+Contract framing:
+
+- public topic intake may stay low-friction
+- authenticated members may use light Voxy intake
+- full co-creation, visual brief generation and export prep are product-gated studio capabilities
+- partner and operator scopes may prepare campaigns or editorial review workflows
+- published public debates must not be hidden behind a hard paywall in this slice
+
+Guardrails:
+
+- no payment or checkout provider is implied by these gates
+- no auto-publish follows from access to review or export preparation
+- no auto-dossier or auto-Anlassraum creation follows from co-creation access
+- author confirmation and editorial review remain separate required gates
+
 ### Author Collaboration Contract
 
 For product and UX, the co-creation state should be treated as its own pre-output object, not as final copy.
@@ -189,10 +208,15 @@ Minimum fields:
 - `authorApprovalStatus`
 - `editorialReviewStatus`
 
-Default statuses:
+Required status enums:
 
-- `authorApprovalStatus=draft_needs_author_confirmation`
-- `editorialReviewStatus=needs_review`
+- `authorApprovalStatus`: `draft`, `needs_author_input`, `author_confirmed`, `author_rejected`
+- `editorialReviewStatus`: `not_submitted`, `submitted`, `needs_changes`, `approved_for_export`, `rejected`
+
+Review semantics:
+
+- `approved_for_export` is an export-preparation state, not a publication state
+- publication remains separately review-bound and must not be inferred from co-creation status alone
 
 ### Acceptance Criteria for Co-Creation
 
@@ -213,6 +237,8 @@ Every Voxy debate output must respect the existing Output Engine / Studio guardr
 - Dossier remains source of truth.
 - Outputs are review-required before publication.
 - No auto-publish behavior.
+- No auto-dossier behavior.
+- No auto-Anlassraum behavior.
 - No fake external channel integration.
 - Open questions, source gaps and uncertainty remain visible.
 - No legal advisory claim.
