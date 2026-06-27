@@ -34,6 +34,7 @@ function resolveRoot() {
 const ROOT = resolveRoot();
 const APP_DIR = path.join(ROOT, "apps/web/src/app");
 const H1_ALLOWLIST_PATH = path.join(ROOT, "config/page-contracts/missing-h1.allowlist.txt");
+const DELEGATED_H1_MARKER = /page-contract:\s*delegated-h1\b/;
 
 const BUTTON_PATTERNS = [
   { id: "legacy-black-button", regex: /bg-black text-white rounded px-4 py-2/ },
@@ -69,6 +70,10 @@ function toRel(absPath) {
   return path.relative(ROOT, absPath).replace(/\\/g, "/");
 }
 
+function hasPageH1Contract(content) {
+  return /<h1[\s>]/.test(content) || DELEGATED_H1_MARKER.test(content);
+}
+
 const pages = walkPageFiles(APP_DIR).sort();
 const allowMissingH1 = readAllowlist(H1_ALLOWLIST_PATH);
 
@@ -79,7 +84,7 @@ for (const filePath of pages) {
   const rel = toRel(filePath);
   const content = fs.readFileSync(filePath, "utf8");
 
-  if (!/<h1[\s>]/.test(content)) {
+  if (!hasPageH1Contract(content)) {
     missingH1.push(rel);
   }
 

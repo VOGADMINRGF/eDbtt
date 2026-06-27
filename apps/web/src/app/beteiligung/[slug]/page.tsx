@@ -4,6 +4,8 @@ import { BRAND } from "@/lib/brand";
 import { getPublicParticipationSpaceFixtureBySlug } from "@/features/participation/fixtures/publicParticipationSpace";
 import { PublicParticipationSpaceShell } from "@/features/participation/publicParticipationSpaceShell";
 
+/* page-contract: delegated-h1 */
+
 type Params = {
   params: Promise<{ slug: string }>;
 };

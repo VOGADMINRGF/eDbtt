@@ -3,39 +3,39 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import PublicParticipationSpacePage from "@/app/beteiligung/[slug]/page";
 
+async function renderParticipationSpace(slug: string) {
+  return renderToStaticMarkup(
+    await PublicParticipationSpacePage({
+      params: Promise.resolve({ slug }),
+    }),
+  );
+}
+
 describe("/beteiligung/[slug] public participation space shell", () => {
-  it("renders the public shell with public feedback, place hint and safety guidance", async () => {
-    const html = renderToStaticMarkup(
-      await PublicParticipationSpacePage({
-        params: Promise.resolve({ slug: "schulwegsicherheit-nord" }),
-      }),
-    );
+  it("renders exactly one visible h1 in the delegated shell markup", async () => {
+    const html = await renderParticipationSpace("schulwegsicherheit-nord");
+    const headings = [...html.matchAll(/<h1([^>]*)>/g)];
+
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
+    expect(html).toContain("Beteiligungsraum Schulwegsicherheit Nord");
+  });
+
+  it("keeps public feedback details visible for the live public fixture", async () => {
+    const html = await renderParticipationSpace("schulwegsicherheit-nord");
 
     expect(html).toContain("Öffentlicher Beteiligungsstand");
-    expect(html).toContain("Beteiligungsraum Schulwegsicherheit Nord");
     expect(html).toContain("Öffentliche Rückmeldung");
-    expect(html).toContain("Rückmeldungen sind redaktionelle Einordnungen, keine amtliche Entscheidung.");
-    expect(html).toContain("Ortsangaben werden nur geprüft und sicherheitsbewusst angezeigt.");
-    expect(html).toContain(
-      "Dieser Raum ist ein transparenter Beteiligungsstand, kein automatischer Veröffentlichungsworkflow.",
-    );
-    expect(html).toContain("Kiezbereich rund um die Grundschule Nord");
-    expect(html).toContain("Anzeigeform: Bereichslabel");
     expect(html).toContain("Welche Zeitfenster sind tatsächlich am stärksten belastet?");
     expect(html).toContain("Minderheitenpositionen bleiben sichtbar");
     expect(html).toContain("Mehr Aufsicht statt baulicher Änderung");
     expect(html).toContain("Sichtachsen konkret prüfen");
-    expect(html).not.toContain("Operator-Cockpit");
-    expect(html).not.toContain("publish_feedback_manually");
-    expect(html).not.toContain("approve_feedback_for_public");
+    expect(html).toContain("Kiezbereich rund um die Grundschule Nord");
+    expect(html).toContain("Anzeigeform: Bereichslabel");
   });
 
   it("keeps feedback_prepared out of public feedback and hides non-public place data", async () => {
-    const html = renderToStaticMarkup(
-      await PublicParticipationSpacePage({
-        params: Promise.resolve({ slug: "jugendforum-sued" }),
-      }),
-    );
+    const html = await renderParticipationSpace("jugendforum-sued");
 
     expect(html).toContain("Rückmeldung in Vorbereitung");
     expect(html).toContain(
@@ -52,31 +52,55 @@ describe("/beteiligung/[slug] public participation space shell", () => {
     expect(html).not.toContain("Genauer Treffpunkt bleibt geschützt");
   });
 
-  it("does not render map, coordinates or external map api hints", async () => {
-    const html = renderToStaticMarkup(
-      await PublicParticipationSpacePage({
-        params: Promise.resolve({ slug: "schulwegsicherheit-nord" }),
-      }),
+  it("shows robust empty states for a public room without public feedback details", async () => {
+    const html = await renderParticipationSpace("nachbarschaftsforum-west");
+
+    expect(html).toContain("Noch keine öffentliche Rückmeldung");
+    expect(html).toContain(
+      "Für diesen Beteiligungsraum ist aktuell noch keine öffentliche Rückmeldung sichtbar.",
     );
+    expect(html).toContain(
+      "Öffentliche Ortsangaben werden nur angezeigt, wenn sie geprüft und sicherheitsbewusst freigegeben sind.",
+    );
+    expect(html).not.toContain("Öffentliche Rückmeldung");
+    expect(html).not.toContain("Minderheitenpositionen bleiben sichtbar");
+    expect(html).not.toContain("Sichtbare Rückmeldung nach Review freigeben");
+  });
+
+  it("does not render internal workflow terms in the public markup", async () => {
+    const html = await renderParticipationSpace("jugendforum-sued");
+    const forbiddenTerms = [
+      "operator_cockpit",
+      "queueKey",
+      "riskFlags",
+      "publish_feedback_manually",
+      "approve_feedback_for_public",
+    ];
+
+    for (const term of forbiddenTerms) {
+      expect(html).not.toContain(term);
+    }
+  });
+
+  it("does not render map, coordinates, external api or automation claims", async () => {
+    const html = await renderParticipationSpace("schulwegsicherheit-nord");
 
     expect(html).not.toContain("Koordinaten");
     expect(html).not.toContain("Mapbox");
     expect(html).not.toContain("OpenStreetMap");
     expect(html).not.toContain("Leaflet");
     expect(html).not.toContain("Geocoding");
-  });
-
-  it("stays free of automation claims for publish, dossier, anlassraum and graph", async () => {
-    const html = renderToStaticMarkup(
-      await PublicParticipationSpacePage({
-        params: Promise.resolve({ slug: "schulwegsicherheit-nord" }),
-      }),
-    );
-
-    expect(html).not.toContain("automatische Veröffentlichung");
     expect(html).not.toContain("Auto-Dossier");
     expect(html).not.toContain("Auto-Anlassraum");
     expect(html).not.toContain("Auto-Graph");
-    expect(html).toContain("kein automatischer Veröffentlichungsworkflow");
+  });
+
+  it("shows safety and trust notices in citizen-friendly language", async () => {
+    const html = await renderParticipationSpace("schulwegsicherheit-nord");
+
+    expect(html).toContain("Rückmeldungen sind Einordnungen, keine amtlichen Entscheidungen.");
+    expect(html).toContain("Sichtbarkeit bedeutet keine automatische Veröffentlichung.");
+    expect(html).toContain("Ortsangaben werden nur sicherheitsbewusst angezeigt.");
+    expect(html).toContain("Nicht öffentliche Review-Inhalte bleiben verborgen.");
   });
 });
