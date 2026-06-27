@@ -21,7 +21,10 @@ describe("/beteiligung/[slug] public participation space shell", () => {
     );
     expect(html).toContain("Kiezbereich rund um die Grundschule Nord");
     expect(html).toContain("Anzeigeform: Bereichslabel");
+    expect(html).toContain("Welche Zeitfenster sind tatsächlich am stärksten belastet?");
     expect(html).toContain("Minderheitenpositionen bleiben sichtbar");
+    expect(html).toContain("Mehr Aufsicht statt baulicher Änderung");
+    expect(html).toContain("Sichtachsen konkret prüfen");
     expect(html).not.toContain("Operator-Cockpit");
     expect(html).not.toContain("publish_feedback_manually");
     expect(html).not.toContain("approve_feedback_for_public");
@@ -39,6 +42,13 @@ describe("/beteiligung/[slug] public participation space shell", () => {
       "Eine öffentliche Rückmeldung ist vorbereitet, aber noch nicht als öffentliche Einordnung sichtbar.",
     );
     expect(html).not.toContain("Öffentliche Rückmeldung");
+    expect(html).not.toContain("Vorbereitete Rückmeldung Jugendforum Süd");
+    expect(html).not.toContain(
+      "Die nächste öffentliche Einordnung ist vorbereitet, aber noch nicht als öffentlicher Rückmeldestand sichtbar.",
+    );
+    expect(html).not.toContain("Abendwege und Aufenthaltsorte");
+    expect(html).not.toContain("Welche Orte sollen zuerst gemeinsam nachgeschärft werden?");
+    expect(html).not.toContain("Sichtbare Rückmeldung nach Review freigeben");
     expect(html).not.toContain("Genauer Treffpunkt bleibt geschützt");
   });
 

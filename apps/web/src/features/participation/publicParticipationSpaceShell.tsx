@@ -150,28 +150,29 @@ export function PublicParticipationSpaceShell(props: {
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm lg:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Offene Fragen
-          </p>
-          {feedback.openQuestions.length > 0 ? (
-            <ul className="mt-4 space-y-3">
-              {feedback.openQuestions.map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm leading-6 text-[rgb(var(--fg))]"
-                >
-                  {item.question}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
-              Aktuell sind keine offenen Fragen im öffentlichen Beteiligungsstand markiert.
+        {feedbackPublic ? (
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm lg:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Offene Fragen
             </p>
-          )}
-        </article>
-
+            {feedback.openQuestions.length > 0 ? (
+              <ul className="mt-4 space-y-3">
+                {feedback.openQuestions.map((item) => (
+                  <li
+                    key={item.id}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm leading-6 text-[rgb(var(--fg))]"
+                  >
+                    {item.question}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
+                Aktuell sind keine offenen Fragen im öffentlichen Beteiligungsstand markiert.
+              </p>
+            )}
+          </article>
+        ) : null}
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             Ortsbezug
@@ -195,7 +196,7 @@ export function PublicParticipationSpaceShell(props: {
         </article>
       </section>
 
-      {feedback.minorityPositions.length > 0 ? (
+      {feedbackPublic && feedback.minorityPositions.length > 0 ? (
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             Minderheitenpositionen bleiben sichtbar
@@ -216,28 +217,30 @@ export function PublicParticipationSpaceShell(props: {
         </section>
       ) : null}
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-          Nächste Schritte
-        </p>
-        <ul className="mt-4 space-y-3">
-          {feedback.nextSteps.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
-            >
-              <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.label}</h2>
-              <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                {item.description}
-              </p>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-4 text-xs text-[rgb(var(--muted))]">
-          Rückmeldungen bleiben Einordnungen und nächste Arbeitsschritte, keine Zustimmung oder
-          politische Lösung.
-        </p>
-      </section>
+      {feedbackPublic ? (
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Nächste Schritte
+          </p>
+          <ul className="mt-4 space-y-3">
+            {feedback.nextSteps.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+              >
+                <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.label}</h2>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  {item.description}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-[rgb(var(--muted))]">
+            Rückmeldungen bleiben Einordnungen und nächste Arbeitsschritte, keine Zustimmung oder
+            politische Lösung.
+          </p>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -46,10 +46,5 @@ export default async function PublicParticipationSpacePage({ params }: Params) {
     notFound();
   }
 
-  return (
-    <>
-      <h1 className="sr-only">{fixture.space.title}</h1>
-      <PublicParticipationSpaceShell fixture={fixture} />
-    </>
-  );
+  return <PublicParticipationSpaceShell fixture={fixture} />;
 }
