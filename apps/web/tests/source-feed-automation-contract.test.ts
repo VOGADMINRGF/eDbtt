@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadSourceFeedAutomationModule,
   resetSourceFeedAutomationFixtures,
@@ -8,6 +8,12 @@ import {
 describe("source feed automation contract", () => {
   beforeEach(() => {
     resetSourceFeedAutomationFixtures();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-28T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("tracks guarded feed automation fields for cron-ready sources", async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadAutonomousModule,
   resetAutonomousFixtures,
@@ -8,6 +8,12 @@ import {
 describe("themenradar feed cluster contract", () => {
   beforeEach(() => {
     resetAutonomousFixtures();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-27T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("keeps duplicate consolidation as a review suggestion instead of auto-merging or auto-publishing", async () => {

@@ -92,7 +92,7 @@
         {
           "file": "apps/web/src/app/api/contributions/analyze/route.ts",
           "contains": [
-            "syncAnalyzeResultToGraph",
+            "noAutoGraphPromotion: true",
             "persistEventualitiesSnapshot",
             "upsertRunReceipt"
           ]
@@ -189,22 +189,22 @@
         {
           "file": "apps/web/src/app/api/factcheck/enqueue/route.ts",
           "contains": [
-            "factcheckJobsCol",
-            "callAriSearchSerp",
+            "getFactcheckWorkflowRepo",
+            "resolveTrustedInternalSystemIdentity(req)",
             "internalSystemIdentityAuditFields"
           ]
         },
         {
           "file": "apps/web/src/app/api/factcheck/status/route.ts",
           "contains": [
-            "factcheckJobsCol",
+            "getFactcheckWorkflowRepo",
             "resolveTrustedInternalSystemIdentity"
           ]
         },
         {
           "file": "apps/web/src/app/api/factcheck/status/[jobId]/route.ts",
           "contains": [
-            "factcheckJobsCol",
+            "getFactcheckWorkflowRepo",
             "resolveTrustedInternalSystemIdentity"
           ]
         },
@@ -347,7 +347,7 @@
           "file": "apps/web/src/app/api/admin/ai/orchestrator-smoke/route.ts",
           "contains": [
             "callE150Orchestrator",
-            "callOpenAIJson"
+            "callOpenAI("
           ]
         },
         {

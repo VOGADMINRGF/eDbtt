@@ -7,6 +7,11 @@ const mocks = vi.hoisted(() => ({
   feedStatementsCol: vi.fn(),
   anlassraumCol: vi.fn(),
   listRecentRuns: vi.fn(),
+  coreCol: vi.fn(),
+  loadFeeds: vi.fn(),
+  collectFeedRefs: vi.fn(),
+  listRegionSourceConnections: vi.fn(),
+  listRegionSourceTestResults: vi.fn(),
   buildPublicTopicSupplyReadModel: vi.fn(),
   buildFeedSourceAutomationReadModel: vi.fn(),
   buildMaterialExtractionJobReadModel: vi.fn(),
@@ -33,11 +38,33 @@ vi.mock("@features/anlassraum/db", () => ({
   anlassraumCol: (...args: unknown[]) => mocks.anlassraumCol(...args),
 }));
 
+vi.mock("@core/db/triMongo", () => ({
+  coreCol: (...args: unknown[]) => mocks.coreCol(...args),
+}));
+
+vi.mock("@features/feeds/feedConfig", async () => {
+  const actual = await vi.importActual<typeof import("@features/feeds/feedConfig")>(
+    "@features/feeds/feedConfig",
+  );
+  return {
+    ...actual,
+    loadFeeds: (...args: unknown[]) => mocks.loadFeeds(...args),
+    collectFeedRefs: (...args: unknown[]) => mocks.collectFeedRefs(...args),
+  };
+});
+
+vi.mock("@features/region/server/sourceConnectionRuntime", () => ({
+  listRegionSourceConnections: (...args: unknown[]) =>
+    mocks.listRegionSourceConnections(...args),
+  listRegionSourceTestResults: (...args: unknown[]) =>
+    mocks.listRegionSourceTestResults(...args),
+}));
+
 vi.mock("@features/feeds/runtimeLog", () => ({
   listRecentFeedRuntimeRuns: (...args: unknown[]) => mocks.listRecentRuns(...args),
 }));
 
-vi.mock("@features/swipes/publicTopicSupply", () => ({
+vi.mock("@/features/swipes/publicTopicSupply", () => ({
   buildPublicTopicSupplyReadModel: (...args: unknown[]) =>
     mocks.buildPublicTopicSupplyReadModel(...args),
 }));
@@ -61,6 +88,22 @@ import { buildFeedRadarRuntimeReadModel } from "@features/feeds/runtimeReadModel
 describe("v1 feed radar runtime contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.coreCol.mockResolvedValue({
+      createIndex: vi.fn(async () => undefined),
+      find: vi.fn(() => ({
+        toArray: async () => [],
+      })),
+      findOne: vi.fn(async () => null),
+      updateOne: vi.fn(async () => undefined),
+    });
+    mocks.loadFeeds.mockImplementation(async (scope: "de" | "global") => ({
+      config: null,
+      searched: [],
+      source: `mock:${scope}`,
+    }));
+    mocks.collectFeedRefs.mockReturnValue([]);
+    mocks.listRegionSourceConnections.mockResolvedValue([]);
+    mocks.listRegionSourceTestResults.mockResolvedValue([]);
     mocks.statementCandidatesCol.mockResolvedValue(
       countCollection({
         "{}": 8,

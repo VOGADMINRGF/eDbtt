@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadSourceFeedAutomationModule,
   resetSourceFeedAutomationFixtures,
@@ -8,6 +8,12 @@ import {
 describe("source feed health readmodel", () => {
   beforeEach(() => {
     resetSourceFeedAutomationFixtures();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-28T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("surfaces healthy, noisy, failing and quiet sources with next action", async () => {

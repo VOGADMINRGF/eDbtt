@@ -354,7 +354,7 @@ const ENTRIES: RouteSecurityEntry[] = [
         file: "apps/web/tests/org-review-item-ops.route.test.ts",
         contains: [
           "keeps foreign items out of the organization-scoped route",
-          "keeps pending or unverified contexts out of moderation actions",
+          "keeps pending or evidence-required contexts out of moderation actions",
         ],
       },
     ],
@@ -740,7 +740,7 @@ const ENTRIES: RouteSecurityEntry[] = [
         file: "apps/web/src/app/runden/RundenShareActions.tsx",
         contains: [
           "Link, Share und QR erscheinen erst nach einer bewussten sichtbaren Freigabe.",
-          "Wird Sichtbarkeit zurückgenommen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.",
+          "Wird Sichtbarkeit zurückgenommen, pausiert, geschlossen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.",
         ],
       },
     ],

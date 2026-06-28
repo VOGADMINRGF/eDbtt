@@ -506,7 +506,7 @@ const ENTRIES: ContentZoneEntry[] = [
       {
         file: "apps/web/src/app/runden/RundenPublicSharingGuide.tsx",
         contains: [
-          'label: "amtlich freigegeben",',
+          'hint: "nur nach expliziter Freigabe durch verifizierte Rollen",',
         ],
       },
       {
