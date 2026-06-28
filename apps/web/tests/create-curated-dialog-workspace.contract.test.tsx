@@ -121,6 +121,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Factcheck / Quellenprüfung vorbereiten");
     expect(followupSource).toContain("QR-/Live-Kontext vorbereiten");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
+    expect(followupSource).toContain("reviewQueueRuntimeState");
+    expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
     expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");

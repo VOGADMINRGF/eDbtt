@@ -259,6 +259,17 @@ export function markReviewQueueItemApprovedForSetup(
   );
 }
 
+export function markReviewQueueItemSubmittedToRuntime(
+  item: CreateHandoffReviewQueueItem,
+): CreateHandoffReviewQueueItem {
+  return withStatusTransition(
+    item,
+    "queued_for_review",
+    "submitted_to_runtime",
+    "An die bestehende redaktionelle Review Queue übergeben. Noch wurde nichts veröffentlicht, erstellt oder zusammengeführt.",
+  );
+}
+
 export function markReviewQueueItemRejected(
   item: CreateHandoffReviewQueueItem,
   note: string,

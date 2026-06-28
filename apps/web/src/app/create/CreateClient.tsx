@@ -2288,6 +2288,10 @@ export default function CreateClient({
             onContinuationChange={setChatContinuationText}
             onContinueConversation={handleContinueConversation}
             continueConversationDisabled={isStarting || !chatContinuationText.trim()}
+            handoffRuntimeDossierId={dossierId ?? null}
+            handoffRuntimeAnlassraumId={effectiveSelectedAnlassraumId ?? null}
+            handoffRuntimeSourceUrls={currentMaterialRouting.sourceUrls}
+            handoffRuntimeMaterialItems={currentMaterialRouting.materialItems}
           />
         </div>
       ) : null}

@@ -29,13 +29,17 @@ describe("create handoff draft summary panel", () => {
     expect(html).toContain("Review-first: keine automatische Veröffentlichung oder Erstellung.");
   });
 
-  it("keeps CreateVisualFollowup wired to local draft state instead of runtime actions", () => {
+  it("keeps CreateVisualFollowup wired to the review queue bridge without a direct route call in the component", () => {
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
     const summarySource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateHandoffDraftSummary.tsx"),
+      "utf8",
+    );
+    const bridgeSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/createHandoffReviewQueueRuntimeBridge.ts"),
       "utf8",
     );
 
@@ -46,10 +50,11 @@ describe("create handoff draft summary panel", () => {
     expect(followupSource).toContain("onStartNewBranch={prepareNewBranchDraft}");
     expect(followupSource).toContain("setPreparedReviewQueueItem");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
+    expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
     expect(summarySource).toContain("Vorbereitung gespeichert");
     expect(summarySource).toContain("Zur Prüfung vormerken");
-    expect(summarySource).toContain("Der Entwurf wurde als Review-Item vorbereitet.");
+    expect(summarySource).toContain("Zur redaktionellen Prüfung übergeben");
+    expect(bridgeSource).toContain("/api/create/handoffs");
     expect(followupSource).not.toContain("router.push(");
-    expect(followupSource).not.toContain("/api/create/handoffs");
   });
 });

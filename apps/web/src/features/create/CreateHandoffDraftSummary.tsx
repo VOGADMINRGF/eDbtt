@@ -21,6 +21,8 @@ export type CreateHandoffDraftSummaryProps = {
   draft: CreateHandoffDraft;
   reviewQueueItem?: CreateHandoffReviewQueueItem | null;
   onQueueForReview?: () => void;
+  runtimeSubmissionState?: "idle" | "submitting" | "submitted" | "blocked" | "error";
+  runtimeSubmissionMessage?: string | null;
 };
 
 function getStatusLabel(status: CreateHandoffDraft["status"]): string {
@@ -67,6 +69,8 @@ function getReviewQueueHint(item: CreateHandoffReviewQueueItem): string {
 export default function CreateHandoffDraftSummary(
   props: CreateHandoffDraftSummaryProps,
 ) {
+  const runtimeSubmissionState = props.runtimeSubmissionState ?? "idle";
+  const submittedToRuntime = runtimeSubmissionState === "submitted";
   const questions = getHandoffDraftOpenQuestions(props.draft);
   const queueQuestions = props.reviewQueueItem
     ? getReviewQueueItemOpenQuestions(props.reviewQueueItem)
@@ -75,6 +79,10 @@ export default function CreateHandoffDraftSummary(
     !props.reviewQueueItem &&
     props.onQueueForReview &&
     canQueueHandoffDraftForReview(props.draft);
+  const queueButtonLabel =
+    runtimeSubmissionState === "submitting"
+      ? "Wird übergeben …"
+      : "Zur Prüfung vormerken";
 
   return (
     <section
@@ -87,12 +95,16 @@ export default function CreateHandoffDraftSummary(
           Vorbereitung gespeichert
         </p>
         <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
-          {props.reviewQueueItem
+          {submittedToRuntime
+            ? "Zur redaktionellen Prüfung übergeben"
+            : props.reviewQueueItem
             ? "Zur Prüfung vorgemerkt"
             : getHandoffDraftCtaLabel(props.draft)}
         </h3>
         <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
-          {props.reviewQueueItem
+          {submittedToRuntime
+            ? "Der Entwurf wurde an die Review Queue übergeben. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
+            : props.reviewQueueItem
             ? "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
             : "eDebatte hat daraus einen prüfbaren Entwurf vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum erstellt."}
         </p>
@@ -103,14 +115,23 @@ export default function CreateHandoffDraftSummary(
           <button
             type="button"
             onClick={props.onQueueForReview}
+            disabled={runtimeSubmissionState === "submitting"}
             className="rounded-full border border-emerald-500/40 bg-emerald-500/[0.12] px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-500/[0.18] dark:border-emerald-300/30 dark:bg-emerald-500/[0.18] dark:text-emerald-50"
           >
-            Zur Prüfung vormerken
+            {queueButtonLabel}
           </button>
           <p className="text-xs text-[rgb(var(--muted))]">
             Review-first: keine automatische Veröffentlichung, Erstellung oder Zusammenführung.
           </p>
         </div>
+      ) : null}
+
+      {props.runtimeSubmissionMessage &&
+      runtimeSubmissionState !== "idle" &&
+      runtimeSubmissionState !== "submitted" ? (
+        <p className="mt-3 rounded-2xl border border-amber-400/25 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.12] dark:text-amber-50">
+          {props.runtimeSubmissionMessage}
+        </p>
       ) : null}
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">

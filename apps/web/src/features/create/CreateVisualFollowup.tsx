@@ -24,12 +24,17 @@ import {
   canQueueHandoffDraftForReview,
   createReviewQueueItemFromHandoffDraft,
   markReviewQueueItemQueued,
+  markReviewQueueItemSubmittedToRuntime,
   type CreateHandoffReviewQueueItem,
 } from "@/features/create/createHandoffReviewQueue";
+import {
+  submitCreateHandoffReviewQueueItemToRuntime,
+} from "@/features/create/createHandoffReviewQueueRuntimeBridge";
 import { createExistingTopicMatchPanelPreviewFromDialogOutcome } from "@/features/create/existingTopicMatches";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
 import type { ExistingTopicMatch } from "@/features/create/existingTopicMatches";
+import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
@@ -59,6 +64,10 @@ type CreateVisualFollowupProps = {
   onContinuationChange: (value: string) => void;
   onContinueConversation: () => void;
   continueConversationDisabled?: boolean;
+  handoffRuntimeDossierId?: string | null;
+  handoffRuntimeAnlassraumId?: string | null;
+  handoffRuntimeSourceUrls?: string[];
+  handoffRuntimeMaterialItems?: NormalizedMaterialItem[];
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
@@ -2487,6 +2496,10 @@ export default function CreateVisualFollowup({
   onContinuationChange,
   onContinueConversation,
   continueConversationDisabled = false,
+  handoffRuntimeDossierId = null,
+  handoffRuntimeAnlassraumId = null,
+  handoffRuntimeSourceUrls,
+  handoffRuntimeMaterialItems,
 }: CreateVisualFollowupProps) {
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
   const resultChangeKey = React.useMemo(
@@ -2629,6 +2642,11 @@ export default function CreateVisualFollowup({
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
   const [preparedReviewQueueItem, setPreparedReviewQueueItem] =
     React.useState<CreateHandoffReviewQueueItem | null>(null);
+  const [reviewQueueRuntimeState, setReviewQueueRuntimeState] = React.useState<
+    "idle" | "submitting" | "submitted" | "blocked" | "error"
+  >("idle");
+  const [reviewQueueRuntimeMessage, setReviewQueueRuntimeMessage] =
+    React.useState<string | null>(null);
 
   const openCorrection = React.useCallback(
     (_focus: string) => {
@@ -2644,11 +2662,15 @@ export default function CreateVisualFollowup({
   React.useEffect(() => {
     setPreparedHandoffDraft(null);
     setPreparedReviewQueueItem(null);
+    setReviewQueueRuntimeState("idle");
+    setReviewQueueRuntimeMessage(null);
   }, [resultChangeKey]);
 
   const prepareDialogHandoffDraft = React.useCallback(
     (target: DialogHandoffTarget) => {
       setPreparedReviewQueueItem(null);
+      setReviewQueueRuntimeState("idle");
+      setReviewQueueRuntimeMessage(null);
       setPreparedHandoffDraft(
         createHandoffDraftFromDialogOutcome(
           dialogOutcomePreview,
@@ -2668,6 +2690,8 @@ export default function CreateVisualFollowup({
       );
 
       setPreparedReviewQueueItem(null);
+      setReviewQueueRuntimeState("idle");
+      setReviewQueueRuntimeMessage(null);
       setPreparedHandoffDraft({
         ...baseDraft,
         title: branch
@@ -2686,6 +2710,8 @@ export default function CreateVisualFollowup({
       if (!match) return;
 
       setPreparedReviewQueueItem(null);
+      setReviewQueueRuntimeState("idle");
+      setReviewQueueRuntimeMessage(null);
       setPreparedHandoffDraft(
         createHandoffDraftFromExistingTopicMatch(
           match,
@@ -2698,20 +2724,53 @@ export default function CreateVisualFollowup({
 
   const prepareNewBranchDraft = React.useCallback(() => {
     setPreparedReviewQueueItem(null);
+    setReviewQueueRuntimeState("idle");
+    setReviewQueueRuntimeMessage(null);
     setPreparedHandoffDraft(
       createHandoffDraftFromDialogOutcome(dialogOutcomePreview, "new_branch"),
     );
   }, [dialogOutcomePreview]);
 
-  const queuePreparedHandoffDraftForReview = React.useCallback(() => {
+  const queuePreparedHandoffDraftForReview = React.useCallback(async () => {
     if (!preparedHandoffDraft) return;
     if (!canQueueHandoffDraftForReview(preparedHandoffDraft)) return;
-    setPreparedReviewQueueItem(
-      markReviewQueueItemQueued(
-        createReviewQueueItemFromHandoffDraft(preparedHandoffDraft),
-      ),
+    const localReviewQueueItem = createReviewQueueItemFromHandoffDraft(preparedHandoffDraft);
+    setReviewQueueRuntimeState("submitting");
+    setReviewQueueRuntimeMessage(null);
+
+    const submission = await submitCreateHandoffReviewQueueItemToRuntime(
+      localReviewQueueItem,
+      {
+        result,
+        dossierId: handoffRuntimeDossierId ?? null,
+        anlassraumId: handoffRuntimeAnlassraumId ?? null,
+        sourceUrls: handoffRuntimeSourceUrls,
+        materialItems: handoffRuntimeMaterialItems,
+      },
     );
-  }, [preparedHandoffDraft]);
+
+    if (submission.ok === true) {
+      setPreparedReviewQueueItem(
+        markReviewQueueItemSubmittedToRuntime(
+          markReviewQueueItemQueued(localReviewQueueItem),
+        ),
+      );
+      setReviewQueueRuntimeState("submitted");
+      setReviewQueueRuntimeMessage(null);
+      return;
+    }
+
+    setPreparedReviewQueueItem(null);
+    setReviewQueueRuntimeState(submission.blocked ? "blocked" : "error");
+    setReviewQueueRuntimeMessage(submission.message);
+  }, [
+    preparedHandoffDraft,
+    result,
+    handoffRuntimeDossierId,
+    handoffRuntimeAnlassraumId,
+    handoffRuntimeSourceUrls,
+    handoffRuntimeMaterialItems,
+  ]);
 
   return (
     <section className="create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10">
@@ -2998,6 +3057,8 @@ export default function CreateVisualFollowup({
                   draft={preparedHandoffDraft}
                   reviewQueueItem={preparedReviewQueueItem}
                   onQueueForReview={queuePreparedHandoffDraftForReview}
+                  runtimeSubmissionState={reviewQueueRuntimeState}
+                  runtimeSubmissionMessage={reviewQueueRuntimeMessage}
                 />
               </div>
             ) : null}
