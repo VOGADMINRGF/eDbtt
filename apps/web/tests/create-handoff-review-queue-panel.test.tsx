@@ -42,12 +42,13 @@ describe("create handoff review queue panel", () => {
         draft={draft}
         reviewQueueItem={reviewQueueItem}
         onQueueForReview={() => {}}
+        runtimeSubmissionState="submitted"
       />,
     );
 
-    expect(html).toContain("Zur Prüfung vorgemerkt");
+    expect(html).toContain("Zur redaktionellen Prüfung übergeben");
     expect(html).toContain(
-      "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt.",
+      "Der Entwurf wurde an die Review Queue übergeben. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt.",
     );
     expect(html).toContain("Dossier-Kandidat prüfen");
     expect(html).toContain("zur Prüfung vorgemerkt");
@@ -57,7 +58,7 @@ describe("create handoff review queue panel", () => {
     );
   });
 
-  it("keeps CreateVisualFollowup wired to local review queue preview state only", () => {
+  it("keeps CreateVisualFollowup wired to the existing review queue runtime bridge", () => {
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
@@ -66,18 +67,21 @@ describe("create handoff review queue panel", () => {
       resolve(process.cwd(), "src/features/create/CreateHandoffDraftSummary.tsx"),
       "utf8",
     );
+    const bridgeSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/createHandoffReviewQueueRuntimeBridge.ts"),
+      "utf8",
+    );
 
     expect(followupSource).toContain("setPreparedReviewQueueItem");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueItem={preparedReviewQueueItem}");
     expect(followupSource).toContain("onQueueForReview={queuePreparedHandoffDraftForReview}");
+    expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
+    expect(followupSource).toContain("runtimeSubmissionState={reviewQueueRuntimeState}");
     expect(summarySource).toContain("Zur Prüfung vormerken");
-    expect(summarySource).toContain("Zur Prüfung vorgemerkt");
-    expect(summarySource).toContain(
-      "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt.",
-    );
+    expect(summarySource).toContain("Zur redaktionellen Prüfung übergeben");
+    expect(bridgeSource).toContain("/api/create/handoffs");
     expect(followupSource).not.toContain("router.push(");
-    expect(followupSource).not.toContain("/api/create/handoffs");
     expect(followupSource).not.toContain("/api/admin/review");
   });
 });
