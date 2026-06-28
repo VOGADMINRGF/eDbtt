@@ -1,0 +1,83 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import CreateHandoffDraftSummary from "@/features/create/CreateHandoffDraftSummary";
+import { createHandoffDraftFromDialogOutcome } from "@/features/create/createHandoffDrafts";
+import {
+  createReviewQueueItemFromHandoffDraft,
+  markReviewQueueItemQueued,
+} from "@/features/create/createHandoffReviewQueue";
+import { DIALOG_INTELLIGENCE_PREVIEW_FIXTURES } from "@/features/dialog/dialogIntelligenceFixtures";
+
+describe("create handoff review queue panel", () => {
+  it("renders the local queue CTA before a draft is queued", () => {
+    const draft = createHandoffDraftFromDialogOutcome(
+      DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked,
+      "factcheck_request",
+    );
+
+    const html = renderToStaticMarkup(
+      <CreateHandoffDraftSummary draft={draft} onQueueForReview={() => {}} />,
+    );
+
+    expect(html).toContain("Zur Prüfung vormerken");
+    expect(html).toContain(
+      "Review-first: keine automatische Veröffentlichung, Erstellung oder Zusammenführung.",
+    );
+  });
+
+  it("renders the queued review item state without any runtime side effects", () => {
+    const draft = createHandoffDraftFromDialogOutcome(
+      DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked,
+      "dossier_candidate",
+    );
+    const reviewQueueItem = markReviewQueueItemQueued(
+      createReviewQueueItemFromHandoffDraft(draft),
+    );
+
+    const html = renderToStaticMarkup(
+      <CreateHandoffDraftSummary
+        draft={draft}
+        reviewQueueItem={reviewQueueItem}
+        onQueueForReview={() => {}}
+      />,
+    );
+
+    expect(html).toContain("Zur Prüfung vorgemerkt");
+    expect(html).toContain(
+      "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt.",
+    );
+    expect(html).toContain("Dossier-Kandidat prüfen");
+    expect(html).toContain("zur Prüfung vorgemerkt");
+    expect(html).toContain("Audit-Trail");
+    expect(html).toContain(
+      "approved_for_setup bleibt ein Review-Status und erstellt noch keine finale Runtime-Entität.",
+    );
+  });
+
+  it("keeps CreateVisualFollowup wired to local review queue preview state only", () => {
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const summarySource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateHandoffDraftSummary.tsx"),
+      "utf8",
+    );
+
+    expect(followupSource).toContain("setPreparedReviewQueueItem");
+    expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
+    expect(followupSource).toContain("reviewQueueItem={preparedReviewQueueItem}");
+    expect(followupSource).toContain("onQueueForReview={queuePreparedHandoffDraftForReview}");
+    expect(summarySource).toContain("Zur Prüfung vormerken");
+    expect(summarySource).toContain("Zur Prüfung vorgemerkt");
+    expect(summarySource).toContain(
+      "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt.",
+    );
+    expect(followupSource).not.toContain("router.push(");
+    expect(followupSource).not.toContain("/api/create/handoffs");
+    expect(followupSource).not.toContain("/api/admin/review");
+  });
+});

@@ -20,6 +20,12 @@ import {
   type CreateHandoffDraft,
   type CreateHandoffDraftTarget,
 } from "@/features/create/createHandoffDrafts";
+import {
+  canQueueHandoffDraftForReview,
+  createReviewQueueItemFromHandoffDraft,
+  markReviewQueueItemQueued,
+  type CreateHandoffReviewQueueItem,
+} from "@/features/create/createHandoffReviewQueue";
 import { createExistingTopicMatchPanelPreviewFromDialogOutcome } from "@/features/create/existingTopicMatches";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
@@ -2621,6 +2627,8 @@ export default function CreateVisualFollowup({
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
+  const [preparedReviewQueueItem, setPreparedReviewQueueItem] =
+    React.useState<CreateHandoffReviewQueueItem | null>(null);
 
   const openCorrection = React.useCallback(
     (_focus: string) => {
@@ -2635,10 +2643,12 @@ export default function CreateVisualFollowup({
 
   React.useEffect(() => {
     setPreparedHandoffDraft(null);
+    setPreparedReviewQueueItem(null);
   }, [resultChangeKey]);
 
   const prepareDialogHandoffDraft = React.useCallback(
     (target: DialogHandoffTarget) => {
+      setPreparedReviewQueueItem(null);
       setPreparedHandoffDraft(
         createHandoffDraftFromDialogOutcome(
           dialogOutcomePreview,
@@ -2657,6 +2667,7 @@ export default function CreateVisualFollowup({
         "existing_branch_connection",
       );
 
+      setPreparedReviewQueueItem(null);
       setPreparedHandoffDraft({
         ...baseDraft,
         title: branch
@@ -2674,6 +2685,7 @@ export default function CreateVisualFollowup({
       const match = existingTopicMatchesPreview.matches.find((entry) => entry.id === matchId);
       if (!match) return;
 
+      setPreparedReviewQueueItem(null);
       setPreparedHandoffDraft(
         createHandoffDraftFromExistingTopicMatch(
           match,
@@ -2685,10 +2697,21 @@ export default function CreateVisualFollowup({
   );
 
   const prepareNewBranchDraft = React.useCallback(() => {
+    setPreparedReviewQueueItem(null);
     setPreparedHandoffDraft(
       createHandoffDraftFromDialogOutcome(dialogOutcomePreview, "new_branch"),
     );
   }, [dialogOutcomePreview]);
+
+  const queuePreparedHandoffDraftForReview = React.useCallback(() => {
+    if (!preparedHandoffDraft) return;
+    if (!canQueueHandoffDraftForReview(preparedHandoffDraft)) return;
+    setPreparedReviewQueueItem(
+      markReviewQueueItemQueued(
+        createReviewQueueItemFromHandoffDraft(preparedHandoffDraft),
+      ),
+    );
+  }, [preparedHandoffDraft]);
 
   return (
     <section className="create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10">
@@ -2971,7 +2994,11 @@ export default function CreateVisualFollowup({
 
             {preparedHandoffDraft ? (
               <div className="mt-4">
-                <CreateHandoffDraftSummary draft={preparedHandoffDraft} />
+                <CreateHandoffDraftSummary
+                  draft={preparedHandoffDraft}
+                  reviewQueueItem={preparedReviewQueueItem}
+                  onQueueForReview={queuePreparedHandoffDraftForReview}
+                />
               </div>
             ) : null}
           </div>

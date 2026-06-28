@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   blocksFinalRuntimeCreation,
   canPrepareHandoffDraft,
+  canSubmitHandoffDraftForReview,
   createHandoffDraftFromDialogOutcome,
   createHandoffDraftFromExistingTopicMatch,
   getHandoffDraftGuardrailNote,
 } from "@/features/create/createHandoffDrafts";
+import { canQueueHandoffDraftForReview } from "@/features/create/createHandoffReviewQueue";
 import { EXISTING_TOPIC_MATCH_PREVIEW_FIXTURES } from "@/features/create/existingTopicMatchesFixtures";
 import { DIALOG_INTELLIGENCE_PREVIEW_FIXTURES } from "@/features/dialog/dialogIntelligenceFixtures";
 
@@ -94,6 +96,9 @@ describe("create handoff drafts contract", () => {
     ];
 
     expect(drafts.every((draft) => blocksFinalRuntimeCreation(draft))).toBe(true);
+    expect(drafts.every((draft) => canQueueHandoffDraftForReview(draft))).toBe(
+      true,
+    );
   });
 
   it("does not prepare rejected or blocked sources", () => {
@@ -119,5 +124,24 @@ describe("create handoff drafts contract", () => {
     expect(canPrepareHandoffDraft(rejectedDialogDraft)).toBe(false);
     expect(canPrepareHandoffDraft(blockedDialogDraft)).toBe(false);
     expect(canPrepareHandoffDraft(rejectedMatchDraft)).toBe(false);
+  });
+
+  it("keeps review submission and local queueing separate", () => {
+    const draft = {
+      ...createHandoffDraftFromDialogOutcome(
+        DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked,
+        "dossier_candidate",
+      ),
+      status: "prepared" as const,
+    };
+    const submittedDraft = {
+      ...draft,
+      status: "submitted_for_review" as const,
+    };
+
+    expect(canSubmitHandoffDraftForReview(draft)).toBe(true);
+    expect(canQueueHandoffDraftForReview(draft)).toBe(true);
+    expect(canSubmitHandoffDraftForReview(submittedDraft)).toBe(false);
+    expect(canQueueHandoffDraftForReview(submittedDraft)).toBe(true);
   });
 });
