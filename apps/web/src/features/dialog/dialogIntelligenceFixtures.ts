@@ -7,9 +7,11 @@ import type {
   DialogPerspective,
 } from "@/features/dialog/dialogIntelligenceContract";
 
-export const DIALOG_INTELLIGENCE_FIXTURES = {
+// Preview- und Test-Fixtures. Sie duerfen nicht als produktive
+// Dialoganalyse oder persistierter Nutzerstand gelesen werden.
+export const DIALOG_INTELLIGENCE_PREVIEW_FIXTURES = {
   countOnlyOpinion: {
-    id: "dialog-fixture-count-only",
+    id: "dialog-preview-fixture-count-only",
     topicTitle: "Verkehr vor Schulen",
     engagementMode: "count_only",
     userOpenness: "low",
@@ -27,7 +29,7 @@ export const DIALOG_INTELLIGENCE_FIXTURES = {
     handoffTargets: ["count_opinion", "editorial_review"],
   } satisfies DialogOutcome,
   clarifyStandpoint: {
-    id: "dialog-fixture-clarify",
+    id: "dialog-preview-fixture-clarify",
     topicTitle: "Kommunale Beteiligung",
     engagementMode: "clarify_standpoint",
     userOpenness: "medium",
@@ -79,7 +81,7 @@ export const DIALOG_INTELLIGENCE_FIXTURES = {
     ],
   } satisfies DialogOutcome,
   reviewReadySourceBlocked: {
-    id: "dialog-fixture-review-ready-source-blocked",
+    id: "dialog-preview-fixture-review-ready-source-blocked",
     topicTitle: "Beteiligungsraum mit Quellenprüfung",
     engagementMode: "prepare_dossier_or_space",
     userOpenness: "high",
@@ -333,7 +335,7 @@ export function buildDialogOutcomePreviewFromCreateFollowup(input: {
 }
 
 export function getDialogOutcomePreviewFixture(
-  key: keyof typeof DIALOG_INTELLIGENCE_FIXTURES,
+  key: keyof typeof DIALOG_INTELLIGENCE_PREVIEW_FIXTURES,
 ): DialogOutcome {
-  return DIALOG_INTELLIGENCE_FIXTURES[key];
+  return DIALOG_INTELLIGENCE_PREVIEW_FIXTURES[key];
 }

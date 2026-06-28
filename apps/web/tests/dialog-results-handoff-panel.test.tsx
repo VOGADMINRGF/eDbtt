@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import {
-  DIALOG_INTELLIGENCE_FIXTURES,
+  DIALOG_INTELLIGENCE_PREVIEW_FIXTURES,
   buildDialogOutcomePreviewFromCreateFollowup,
 } from "@/features/dialog/dialogIntelligenceFixtures";
 import type { DialogOutcome } from "@/features/dialog/dialogIntelligenceContract";
@@ -56,9 +56,15 @@ function renderPanel(outcome: DialogOutcome): string {
 
 describe("dialog results handoff panel", () => {
   it("renders the result heading and recognized standpoint", () => {
-    const html = renderPanel(DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint);
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint);
 
     expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
+    expect(html).toContain(
+      "Wir versuchen deinen Standpunkt so zu verstehen, wie du ihn meinst.",
+    );
+    expect(html).toContain(
+      "Du kannst ihn einfach zählen lassen - oder gemeinsam mit eDebatte weiter ausbauen.",
+    );
     expect(html).toContain("Erkannter Standpunkt");
     expect(html).toContain(
       "Der Beitrag fordert mehr Mitsprache, aber mit klaren Schutzregeln und nachvollziehbaren Zuständigkeiten.",
@@ -66,7 +72,7 @@ describe("dialog results handoff panel", () => {
   });
 
   it("shows the confirmation hint for needs_user_confirmation", () => {
-    const html = renderPanel(DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint);
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint);
 
     expect(html).toContain(
       "Bitte bestätige, ob wir deinen Standpunkt richtig verstanden haben.",
@@ -75,21 +81,27 @@ describe("dialog results handoff panel", () => {
   });
 
   it("shows count-only / low openness without forcing perspectives", () => {
-    const html = renderPanel(DIALOG_INTELLIGENCE_FIXTURES.countOnlyOpinion);
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.countOnlyOpinion);
 
-    expect(html).toContain("Meinung zählen");
+    expect(html).toContain("Meine Meinung so erfassen");
     expect(html).toContain(
-      "Kein Perspektivenzwang. Dieser Stand kann auch ohne Gegenperspektiven nur als Meinung weitergeführt werden.",
+      "Bitte bestätige, ob wir deinen Standpunkt richtig verstanden haben.",
+    );
+    expect(html).toContain(
+      "Weitere Blickwinkel sind ein Angebot, keine Pflicht. Du kannst deine Meinung auch einfach so erfassen lassen oder später eigene Beispiele, Quellen und Erfahrungen ergänzen.",
     );
     expect(html).not.toContain("Dossier vorbereiten");
   });
 
   it("shows perspective offers for medium and high openness", () => {
-    const html = renderPanel(DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint);
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint);
 
-    expect(html).toContain("Perspektiven");
+    expect(html).toContain("Weitere Blickwinkel prüfen");
     expect(html).toContain("Institutionelle Sicht");
     expect(html).toContain("Soll die institutionelle Sicht Institutionelle Sicht als Kontext ergänzt werden?");
+    expect(html).toContain(
+      "Dabei geht es nicht darum, dich von einer anderen Meinung zu überzeugen.",
+    );
   });
 
   it("renders handoff candidates as preparatory and not as created or published", () => {
@@ -137,25 +149,31 @@ describe("dialog results handoff panel", () => {
     expect(html).toContain("Dossier vorbereiten");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Beteiligungsraum vorbereiten");
-    expect(html).toContain("Nur vorbereitend. Kein Auto-Create, kein Auto-Publish.");
+    expect(html).toContain(
+      "Nur vorbereitend. Kein Auto-Create, kein Auto-Publish, kein stiller Handoff.",
+    );
     expect(html).not.toContain("wurde erstellt");
     expect(html).not.toContain("wurde veröffentlicht");
   });
 
   it("shows factcheck / source review hints for needs_source claims", () => {
-    const html = renderPanel(DIALOG_INTELLIGENCE_FIXTURES.reviewReadySourceBlocked);
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked);
 
     expect(html).toContain("Quellenprüfung vorbereiten");
-    expect(html).toContain("Faktische Claims bleiben bis zur Quellenprüfung reviewpflichtig.");
-    expect(html).toContain("Vorher ist Quellenprüfung nötig.");
+    expect(html).toContain(
+      "Faktische Claims bleiben reviewpflichtig, bis du passende Quellen, Beispiele oder weitere Nachweise ergänzt hast.",
+    );
+    expect(html).toContain(
+      "Bevor daraus mehr wird, sollten erst Quellen oder Beispiele ergänzt werden.",
+    );
   });
 
   it("blocks preparatory handoffs for rejected outcomes", () => {
     const rejectedOutcome: DialogOutcome = {
-      ...DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint,
+      ...DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint,
       resultStatus: "rejected",
       recognizedStandpoint: {
-        ...DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint.recognizedStandpoint,
+        ...DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint.recognizedStandpoint,
         confirmedByUser: false,
       },
     };
@@ -173,7 +191,7 @@ describe("dialog results handoff panel", () => {
     const onSelectHandoff = vi.fn();
 
     const element = DialogResultsHandoffPanel({
-      outcome: DIALOG_INTELLIGENCE_FIXTURES.clarifyStandpoint,
+      outcome: DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint,
       onConfirmStandpoint,
       onSelectPerspective,
       onSelectBranch,
@@ -183,7 +201,7 @@ describe("dialog results handoff panel", () => {
     findButtonByLabel(element, "Standpunkt bestätigen")?.props.onClick?.();
     findButtonByLabel(element, "Institutionelle Sicht")?.props.onClick?.();
     findButtonByLabel(element, "Pilotphase zuerst testen")?.props.onClick?.();
-    findButtonByLabel(element, "Meinung zählen")?.props.onClick?.();
+    findButtonByLabel(element, "Meine Meinung so erfassen")?.props.onClick?.();
 
     expect(onConfirmStandpoint).toHaveBeenCalledTimes(1);
     expect(onSelectPerspective).toHaveBeenCalledWith(
@@ -193,5 +211,15 @@ describe("dialog results handoff panel", () => {
       "dialog-fixture-clarify-branch",
     );
     expect(onSelectHandoff).toHaveBeenCalledWith("count_opinion");
+  });
+
+  it("includes the dialog slogan without claiming the community already decided", () => {
+    const html = renderPanel(DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.clarifyStandpoint);
+
+    expect(html).toContain("eDebatte - lass das stärkste Argument gewinnen.");
+    expect(html).toContain(
+      "Die Community entscheidet - und das stärkste Argument setzt sich durch.",
+    );
+    expect(html).not.toContain("Die Community hat bereits entschieden");
   });
 });

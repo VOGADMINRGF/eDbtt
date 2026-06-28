@@ -32,19 +32,19 @@ Die Komponente zeigt:
 - neue Zweige aus `getNewBranchSuggestions(...)`
 - review-first Handoff-Kandidaten aus `getDialogHandoffCandidates(...)`
 
-Zusätzlich gibt es `apps/web/src/features/dialog/dialogIntelligenceFixtures.ts` mit:
+Zusätzlich gibt es `apps/web/src/features/dialog/dialogIntelligenceFixtures.ts` mit klar als Preview-/Test-Fixtures markierten Beispielen:
 
 - `countOnlyOpinion`
 - `clarifyStandpoint`
 - `reviewReadySourceBlocked`
 
-und einen kleinen Preview-Adapter `buildDialogOutcomePreviewFromCreateFollowup(...)`, damit das Panel ohne neue Backend-/AI-Laufzeit im bestehenden Create-Follow-up gerendert werden kann.
+und einen kleinen Preview-Adapter `buildDialogOutcomePreviewFromCreateFollowup(...)`, damit das Panel ohne neue Backend-/AI-Laufzeit im bestehenden Create-Follow-up gerendert werden kann. Weder die Preview-Fixtures noch der Adapter dürfen als persistierte oder produktive Dialoganalyse gelesen werden; sie rahmen nur einen sichtbaren Vorschaustand im bestehenden Follow-up.
 
 ## Wie Meinung-zählen-ohne-Ausarbeitung sichtbar wird
 
 `count_only` bzw. `low openness` bleibt explizit als kleinerer Pfad sichtbar:
 
-- `Meinung zählen` ist als vorbereitender Schritt da
+- `Meine Meinung so erfassen` ist als vorbereitender Schritt da
 - Perspektiven werden nicht erzwungen
 - Dossier-/Anlassraum-/Participation-Space-Handoffs erscheinen nicht als schon erstellt
 
@@ -53,6 +53,7 @@ und einen kleinen Preview-Adapter `buildDialogOutcomePreviewFromCreateFollowup(.
 Das Panel bietet Perspektiven und Zweige nur optional an:
 
 - Perspektiven erscheinen als Angebot, nicht als Pflicht
+- sie sind als weitere Blickwinkel oder Gegenfragen gerahmt, nicht als Korrektur- oder Überzeugungsversuch
 - Zweige bleiben Vorschläge oder Parkzustände
 - offene Rückfragen bleiben sichtbar, ohne schon eine neue Runtime zu behaupten
 
@@ -66,6 +67,13 @@ Alle Handoff-Karten bleiben review-first:
 - `needs_source`-Claims verweisen sichtbar auf Quellenprüfung statt auf direkte Übernahme
 
 Die kleine Create-Integration sitzt in `apps/web/src/features/create/CreateVisualFollowup.tsx`. Sie nutzt nur den vorhandenen Follow-up-Stand und blendet das Panel als Preview unterhalb des bestehenden Arbeitsstands ein. `CreateClient.tsx` musste dafür nicht breit umgebaut werden.
+
+Das Wording wurde bewusst auf den Leitgedanken geschärft:
+
+- eDebatte versucht den Standpunkt ernsthaft so zu verstehen, wie er gemeint ist
+- Meinung zählen ohne Ausarbeitung bleibt sichtbar
+- weitere Blickwinkel, Quellen, Beispiele, Erfahrungen und neue Aspekte werden als ergänzbare Bausteine angeboten
+- `eDebatte - lass das stärkste Argument gewinnen` erscheint einmal als Leitgedanke, ohne schon eine fertige Community-Entscheidung zu behaupten
 
 ## Guardrails
 

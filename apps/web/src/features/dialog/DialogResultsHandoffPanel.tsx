@@ -22,7 +22,7 @@ export type DialogResultsHandoffPanelProps = {
 };
 
 const HANDOFF_LABELS: Record<DialogHandoffTarget, string> = {
-  count_opinion: "Meinung zählen",
+  count_opinion: "Meine Meinung so erfassen",
   dossier_candidate: "Dossier vorbereiten",
   anlassraum_candidate: "Anlassraum vorbereiten",
   participation_space_candidate: "Beteiligungsraum vorbereiten",
@@ -57,28 +57,53 @@ function getIntentActions(outcome: DialogOutcome): Array<{
   const actions = [
     {
       id: "count_opinion_intent",
-      label: "Meinung zählen",
+      label: "Meine Meinung so erfassen",
       disabled: !canCountOpinion(outcome),
     },
     {
       id: "clarify_standpoint_intent",
-      label: "Standpunkt klären",
+      label: "Standpunkt präzisieren",
       disabled:
         outcome.resultStatus !== "needs_user_confirmation" &&
         outcome.resultStatus !== "draft",
     },
     {
       id: "perspective_review_intent",
-      label: "Perspektiven prüfen",
+      label: "Weitere Blickwinkel prüfen",
       disabled: getPerspectivePrompts(outcome).length === 0,
     },
     {
       id: "argumentation_intent",
-      label: "Argumentation ausarbeiten",
+      label: "Argumentation gemeinsam ausbauen",
       disabled:
         outcome.engagementMode === "count_only" &&
         outcome.arguments.length === 0 &&
         outcome.branches.length === 0,
+    },
+    {
+      id: "enrich_sources_intent",
+      label: "Quellen, Beispiele oder neue Aspekte ergänzen",
+      disabled: outcome.resultStatus === "rejected",
+    },
+    {
+      id: "branch_intent",
+      label: "Neuen Themenzweig vormerken",
+      disabled:
+        outcome.resultStatus === "rejected" ||
+        (getNewBranchSuggestions(outcome).length === 0 &&
+          outcome.engagementMode === "count_only"),
+    },
+    {
+      id: "handoff_intent",
+      label: "Dossier oder Anlassraum vorbereiten",
+      disabled:
+        outcome.resultStatus === "rejected" ||
+        !getDialogHandoffCandidates(outcome).some(
+          (candidate) =>
+            candidate.eligible &&
+            (candidate.target === "dossier_candidate" ||
+              candidate.target === "anlassraum_candidate"),
+        ),
     },
   ];
 
@@ -93,19 +118,19 @@ function renderBlockedReasons(reasons: string[]): string {
     return "Zuerst muss der Standpunkt bestätigt werden.";
   }
   if (reasons.includes("fact_claim_needs_source")) {
-    return "Vorher ist Quellenprüfung nötig.";
+    return "Bevor daraus mehr wird, sollten erst Quellen oder Beispiele ergänzt werden.";
   }
   if (reasons.includes("count_only_mode_limits_handoff")) {
-    return "Dieser Dialog bleibt vorerst beim Meinungsstand.";
+    return "Dieser Stand bleibt vorerst beim Meinungsbild und lässt sich später weiter ausbauen.";
   }
   if (reasons.includes("low_openness_limits_anlassraum")) {
-    return "Für Anlassraum-Vorbereitung braucht es mehr Klärung oder Offenheit.";
+    return "Für einen Anlassraum braucht es vorher noch mehr Klärung oder zusätzliche Bausteine.";
   }
   if (reasons.includes("count_only_mode_limits_participation_space")) {
-    return "Für einen Beteiligungsraum fehlt noch ein vertiefter Arbeitsstand.";
+    return "Für einen Beteiligungsraum fehlt noch ein weiter ausgearbeiteter Arbeitsstand.";
   }
   if (reasons.includes("reviewable_substance_required")) {
-    return "Es fehlt noch genug reviewbare Substanz.";
+    return "Hier fehlen noch nachvollziehbare Bausteine für einen belastbaren Review-Stand.";
   }
   if (reasons.includes("recognized_standpoint_missing")) {
     return "Es fehlt noch ein erkennbarer Standpunkt.";
@@ -158,6 +183,28 @@ export default function DialogResultsHandoffPanel({
 
       <div className="mt-4 space-y-3">
         <div className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]">
+          <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
+            Wir versuchen deinen Standpunkt so zu verstehen, wie du ihn meinst.
+            Du kannst ihn einfach zählen lassen - oder gemeinsam mit eDebatte
+            weiter ausbauen.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Dabei geht es nicht darum, dich von einer anderen Meinung zu
+            überzeugen. Es geht darum, deinen Beitrag stärker zu machen: durch
+            klare Argumente, nachvollziehbare Beispiele, mögliche Gegenfragen,
+            weitere Blickwinkel und Hinweise auf Quellen oder Erfahrungen, die
+            du selbst einbringen möchtest.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Die Community entscheidet - und das stärkste Argument setzt sich
+            durch.
+          </p>
+          <p className="mt-2 text-xs font-medium text-[rgb(var(--muted))]">
+            eDebatte - lass das stärkste Argument gewinnen.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
             Erkannter Standpunkt
           </p>
@@ -191,7 +238,8 @@ export default function DialogResultsHandoffPanel({
               </ul>
             ) : (
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Keine zusätzliche Rückfrage erzwungen.
+                Aktuell braucht es keine zusätzliche Rückfrage. Du kannst deine
+                Meinung auch einfach so erfassen lassen.
               </p>
             )}
           </div>
@@ -221,7 +269,7 @@ export default function DialogResultsHandoffPanel({
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200/80 px-4 py-3 dark:border-[rgb(var(--border))]">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-              Perspektiven
+              Weitere Blickwinkel
             </p>
             {perspectivePrompts.length > 0 ? (
               <div className="mt-2 space-y-2">
@@ -241,7 +289,9 @@ export default function DialogResultsHandoffPanel({
               </div>
             ) : (
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Kein Perspektivenzwang. Dieser Stand kann auch ohne Gegenperspektiven nur als Meinung weitergeführt werden.
+                Weitere Blickwinkel sind ein Angebot, keine Pflicht. Du kannst
+                deine Meinung auch einfach so erfassen lassen oder später eigene
+                Beispiele, Quellen und Erfahrungen ergänzen.
               </p>
             )}
           </div>
@@ -268,7 +318,8 @@ export default function DialogResultsHandoffPanel({
               </div>
             ) : (
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Keine neuen Zweige werden automatisch erstellt. Zusätzliche Themenäste bleiben nur Vorschlag oder Parkzustand.
+                Neue Themenzweige werden nicht automatisch erstellt. Zusätzliche
+                Aspekte bleiben nur als Vorschlag oder Vormerkung sichtbar.
               </p>
             )}
           </div>
@@ -294,7 +345,7 @@ export default function DialogResultsHandoffPanel({
                   </span>
                   <span className="mt-1 block text-[13px] leading-relaxed text-[rgb(var(--muted))]">
                     {candidate.eligible
-                      ? "Nur vorbereitend. Kein Auto-Create, kein Auto-Publish."
+                      ? "Nur vorbereitend. Kein Auto-Create, kein Auto-Publish, kein stiller Handoff."
                       : renderBlockedReasons(candidate.blockedReasons)}
                   </span>
                 </button>
@@ -303,7 +354,8 @@ export default function DialogResultsHandoffPanel({
           </div>
           {hasNeedsSourceClaim ? (
             <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-              Faktische Claims bleiben bis zur Quellenprüfung reviewpflichtig.
+              Faktische Claims bleiben reviewpflichtig, bis du passende Quellen,
+              Beispiele oder weitere Nachweise ergänzt hast.
             </p>
           ) : null}
         </div>
