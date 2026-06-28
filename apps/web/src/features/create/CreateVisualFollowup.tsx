@@ -11,10 +11,20 @@ import {
   type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
+import CreateHandoffDraftSummary from "@/features/create/CreateHandoffDraftSummary";
 import ExistingTopicMatchesPanel from "@/features/create/ExistingTopicMatchesPanel";
+import {
+  createHandoffDraftFromDialogOutcome,
+  createHandoffDraftFromExistingTopicMatch,
+  mapDialogHandoffTargetToCreateHandoffDraftTarget,
+  type CreateHandoffDraft,
+  type CreateHandoffDraftTarget,
+} from "@/features/create/createHandoffDrafts";
 import { createExistingTopicMatchPanelPreviewFromDialogOutcome } from "@/features/create/existingTopicMatches";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
+import type { ExistingTopicMatch } from "@/features/create/existingTopicMatches";
+import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
   actionNotice?: string | null;
@@ -259,6 +269,18 @@ function toSentenceList(labels: string[]): string {
 
 function resolveLoopedIndex(currentIndex: number, offset: number, total: number): number {
   return (currentIndex + offset + total) % total;
+}
+
+function resolveExistingTopicMatchDraftTarget(
+  match: ExistingTopicMatch,
+): CreateHandoffDraftTarget {
+  if (match.kind === "opinion_cluster") return "opinion_count";
+  if (match.kind === "source_question") return "factcheck_request";
+  if (match.kind === "dossier") return "dossier_candidate";
+  if (match.kind === "participation_space") {
+    return "participation_space_candidate";
+  }
+  return "existing_branch_connection";
 }
 
 function resolveNextIndexFromKey(currentIndex: number, key: string, total: number): number | null {
@@ -2598,6 +2620,7 @@ export default function CreateVisualFollowup({
   );
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
 
   const openCorrection = React.useCallback(
     (_focus: string) => {
@@ -2609,6 +2632,63 @@ export default function CreateVisualFollowup({
   React.useEffect(() => {
     setDetailsOpen(false);
   }, [resultChangeKey]);
+
+  React.useEffect(() => {
+    setPreparedHandoffDraft(null);
+  }, [resultChangeKey]);
+
+  const prepareDialogHandoffDraft = React.useCallback(
+    (target: DialogHandoffTarget) => {
+      setPreparedHandoffDraft(
+        createHandoffDraftFromDialogOutcome(
+          dialogOutcomePreview,
+          mapDialogHandoffTargetToCreateHandoffDraftTarget(target),
+        ),
+      );
+    },
+    [dialogOutcomePreview],
+  );
+
+  const prepareDialogBranchDraft = React.useCallback(
+    (branchId: string) => {
+      const branch = dialogOutcomePreview.branches.find((entry) => entry.id === branchId);
+      const baseDraft = createHandoffDraftFromDialogOutcome(
+        dialogOutcomePreview,
+        "existing_branch_connection",
+      );
+
+      setPreparedHandoffDraft({
+        ...baseDraft,
+        title: branch
+          ? `An bestehenden Zweig anknüpfen: ${branch.title}`
+          : baseDraft.title,
+        summary: branch?.reason ?? baseDraft.summary,
+        selectedBranchIds: branch ? [branch.id] : [],
+      });
+    },
+    [dialogOutcomePreview],
+  );
+
+  const prepareExistingMatchDraft = React.useCallback(
+    (matchId: string, explicitTarget?: CreateHandoffDraftTarget) => {
+      const match = existingTopicMatchesPreview.matches.find((entry) => entry.id === matchId);
+      if (!match) return;
+
+      setPreparedHandoffDraft(
+        createHandoffDraftFromExistingTopicMatch(
+          match,
+          explicitTarget ?? resolveExistingTopicMatchDraftTarget(match),
+        ),
+      );
+    },
+    [existingTopicMatchesPreview.matches],
+  );
+
+  const prepareNewBranchDraft = React.useCallback(() => {
+    setPreparedHandoffDraft(
+      createHandoffDraftFromDialogOutcome(dialogOutcomePreview, "new_branch"),
+    );
+  }, [dialogOutcomePreview]);
 
   return (
     <section className="create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10">
@@ -2873,11 +2953,27 @@ export default function CreateVisualFollowup({
             <DialogResultsHandoffPanel
               outcome={dialogOutcomePreview}
               onConfirmStandpoint={onConfirm}
+              onSelectHandoff={prepareDialogHandoffDraft}
+              onSelectBranch={prepareDialogBranchDraft}
             />
 
             <div className="mt-4">
-              <ExistingTopicMatchesPanel model={existingTopicMatchesPreview} />
+              <ExistingTopicMatchesPanel
+                model={existingTopicMatchesPreview}
+                onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
+                onCountSimilarOpinion={(matchId) =>
+                  prepareExistingMatchDraft(matchId, "opinion_count")
+                }
+                onPrepareReview={(matchId) => prepareExistingMatchDraft(matchId)}
+                onStartNewBranch={prepareNewBranchDraft}
+              />
             </div>
+
+            {preparedHandoffDraft ? (
+              <div className="mt-4">
+                <CreateHandoffDraftSummary draft={preparedHandoffDraft} />
+              </div>
+            ) : null}
           </div>
         </div>
 
