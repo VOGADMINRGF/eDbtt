@@ -11,6 +11,8 @@ import {
   type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
+import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
+import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
   actionNotice?: string | null;
@@ -2511,6 +2513,14 @@ export default function CreateVisualFollowup({
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
+  const dialogOutcomePreview = React.useMemo(
+    () =>
+      buildDialogOutcomePreviewFromCreateFollowup({
+        result,
+        isConfirmed,
+      }),
+    [isConfirmed, result],
+  );
   const plannerClarificationLeadText = plannerTechnicalFallback
     ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
     : "Du kannst trotzdem weitermachen.";
@@ -2853,6 +2863,11 @@ export default function CreateVisualFollowup({
                 )}
               </div>
             ) : null}
+
+            <DialogResultsHandoffPanel
+              outcome={dialogOutcomePreview}
+              onConfirmStandpoint={onConfirm}
+            />
           </div>
         </div>
 
