@@ -15,7 +15,7 @@ describe("create handoff draft summary panel", () => {
     );
 
     const html = renderToStaticMarkup(
-      <CreateHandoffDraftSummary draft={draft} />,
+      <CreateHandoffDraftSummary draft={draft} onQueueForReview={() => {}} />,
     );
 
     expect(html).toContain("Vorbereitung gespeichert");
@@ -25,6 +25,7 @@ describe("create handoff draft summary panel", () => {
     expect(html).toContain("Zieltyp");
     expect(html).toContain("Status:");
     expect(html).toContain("Offene Fragen");
+    expect(html).toContain("Zur Prüfung vormerken");
     expect(html).toContain("Review-first: keine automatische Veröffentlichung oder Erstellung.");
   });
 
@@ -43,9 +44,11 @@ describe("create handoff draft summary panel", () => {
     expect(followupSource).toContain("onSelectHandoff={prepareDialogHandoffDraft}");
     expect(followupSource).toContain("onSelectBranch={prepareDialogBranchDraft}");
     expect(followupSource).toContain("onStartNewBranch={prepareNewBranchDraft}");
+    expect(followupSource).toContain("setPreparedReviewQueueItem");
+    expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(summarySource).toContain("Vorbereitung gespeichert");
-    expect(summarySource).toContain("eDebatte hat daraus einen prüfbaren Entwurf vorbereitet. Noch wurde");
-    expect(summarySource).toContain("nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum");
+    expect(summarySource).toContain("Zur Prüfung vormerken");
+    expect(summarySource).toContain("Der Entwurf wurde als Review-Item vorbereitet.");
     expect(followupSource).not.toContain("router.push(");
     expect(followupSource).not.toContain("/api/create/handoffs");
   });

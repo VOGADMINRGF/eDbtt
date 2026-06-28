@@ -8,9 +8,19 @@ import {
   getHandoffDraftOpenQuestions,
   type CreateHandoffDraft,
 } from "@/features/create/createHandoffDrafts";
+import {
+  canQueueHandoffDraftForReview,
+  getReviewQueueItemGuardrailNote,
+  getReviewQueueItemKindLabel,
+  getReviewQueueItemOpenQuestions,
+  getReviewQueueItemStatusLabel,
+  type CreateHandoffReviewQueueItem,
+} from "@/features/create/createHandoffReviewQueue";
 
 export type CreateHandoffDraftSummaryProps = {
   draft: CreateHandoffDraft;
+  reviewQueueItem?: CreateHandoffReviewQueueItem | null;
+  onQueueForReview?: () => void;
 };
 
 function getStatusLabel(status: CreateHandoffDraft["status"]): string {
@@ -38,10 +48,33 @@ function getReviewHint(draft: CreateHandoffDraft): string {
   return "Der nächste Schritt bleibt ein lokaler, prüfbarer Entwurf.";
 }
 
+function getReviewQueueHint(item: CreateHandoffReviewQueueItem): string {
+  if (item.requiresFactcheck) {
+    return "Factcheck bleibt auch in der Queue nur eine Anfrage oder Vormerkung, keine bestätigte Wahrheit.";
+  }
+  if (item.requiresEditorialReview) {
+    return "Dieses Review-Item bleibt redaktionell prüfpflichtig und erzeugt noch keine finale Einrichtung.";
+  }
+  if (item.target === "opinion_count") {
+    return "Meinung zählen bleibt in der Queue eine Erfassungsabsicht und keine repräsentative Statistik.";
+  }
+  if (item.target === "existing_branch_connection") {
+    return "Der Anschluss bleibt auch in der Queue nur ein Vorschlag und kein Merge.";
+  }
+  return "Dieses Review-Item bleibt vorbereitend und löst noch keine Runtime-Entität aus.";
+}
+
 export default function CreateHandoffDraftSummary(
   props: CreateHandoffDraftSummaryProps,
 ) {
   const questions = getHandoffDraftOpenQuestions(props.draft);
+  const queueQuestions = props.reviewQueueItem
+    ? getReviewQueueItemOpenQuestions(props.reviewQueueItem)
+    : [];
+  const showQueueButton =
+    !props.reviewQueueItem &&
+    props.onQueueForReview &&
+    canQueueHandoffDraftForReview(props.draft);
 
   return (
     <section
@@ -54,14 +87,31 @@ export default function CreateHandoffDraftSummary(
           Vorbereitung gespeichert
         </p>
         <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
-          {getHandoffDraftCtaLabel(props.draft)}
+          {props.reviewQueueItem
+            ? "Zur Prüfung vorgemerkt"
+            : getHandoffDraftCtaLabel(props.draft)}
         </h3>
         <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
-          eDebatte hat daraus einen prüfbaren Entwurf vorbereitet. Noch wurde
-          nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum
-          erstellt.
+          {props.reviewQueueItem
+            ? "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
+            : "eDebatte hat daraus einen prüfbaren Entwurf vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum erstellt."}
         </p>
       </div>
+
+      {showQueueButton ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={props.onQueueForReview}
+            className="rounded-full border border-emerald-500/40 bg-emerald-500/[0.12] px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-500/[0.18] dark:border-emerald-300/30 dark:bg-emerald-500/[0.18] dark:text-emerald-50"
+          >
+            Zur Prüfung vormerken
+          </button>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Review-first: keine automatische Veröffentlichung, Erstellung oder Zusammenführung.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-emerald-400/20 bg-[rgb(var(--bg))] px-4 py-3 dark:border-emerald-300/15">
@@ -69,10 +119,15 @@ export default function CreateHandoffDraftSummary(
             Zieltyp
           </p>
           <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
-            {getHandoffDraftCtaLabel(props.draft)}
+            {props.reviewQueueItem
+              ? getReviewQueueItemKindLabel(props.reviewQueueItem)
+              : getHandoffDraftCtaLabel(props.draft)}
           </p>
           <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-            Status: {getStatusLabel(props.draft.status)}
+            Status:{" "}
+            {props.reviewQueueItem
+              ? getReviewQueueItemStatusLabel(props.reviewQueueItem)
+              : getStatusLabel(props.draft.status)}
           </p>
         </div>
 
@@ -95,13 +150,13 @@ export default function CreateHandoffDraftSummary(
         </p>
       </div>
 
-      {questions.length > 0 ? (
+      {(props.reviewQueueItem ? queueQuestions.length : questions.length) > 0 ? (
         <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-[rgb(var(--bg))] px-4 py-3 dark:border-emerald-300/15">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
             Offene Fragen
           </p>
           <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--fg))]">
-            {questions.map((question) => (
+            {(props.reviewQueueItem ? queueQuestions : questions).map((question) => (
               <li key={question}>{question}</li>
             ))}
           </ul>
@@ -109,11 +164,37 @@ export default function CreateHandoffDraftSummary(
       ) : null}
 
       <p className="mt-3 text-xs leading-relaxed text-[rgb(var(--muted))]">
-        {getReviewHint(props.draft)}
+        {props.reviewQueueItem
+          ? getReviewQueueHint(props.reviewQueueItem)
+          : getReviewHint(props.draft)}
       </p>
       <p className="mt-2 text-xs font-medium leading-relaxed text-[rgb(var(--muted))]">
-        {getHandoffDraftGuardrailNote(props.draft)}
+        {props.reviewQueueItem
+          ? getReviewQueueItemGuardrailNote(props.reviewQueueItem)
+          : getHandoffDraftGuardrailNote(props.draft)}
       </p>
+
+      {props.reviewQueueItem ? (
+        <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-[rgb(var(--bg))] px-4 py-3 dark:border-emerald-300/15">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+            Audit-Trail
+          </p>
+          <ul className="mt-2 space-y-2 text-xs text-[rgb(var(--muted))]">
+            {props.reviewQueueItem.auditTrail.map((entry) => (
+              <li key={`${entry.at}-${entry.action}`}>
+                {entry.action}: {entry.note}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {props.reviewQueueItem ? (
+        <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+          approved_for_setup bleibt ein Review-Status und erstellt noch keine
+          finale Runtime-Entität.
+        </p>
+      ) : null}
     </section>
   );
 }
