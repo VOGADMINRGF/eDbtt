@@ -11,6 +11,8 @@ import {
   type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
+import ExistingTopicMatchesPanel from "@/features/create/ExistingTopicMatchesPanel";
+import { createExistingTopicMatchPanelPreviewFromDialogOutcome } from "@/features/create/existingTopicMatches";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
 type CreateVisualFollowupProps = {
@@ -2521,6 +2523,10 @@ export default function CreateVisualFollowup({
       }),
     [isConfirmed, result],
   );
+  const existingTopicMatchesPreview = React.useMemo(
+    () => createExistingTopicMatchPanelPreviewFromDialogOutcome(dialogOutcomePreview),
+    [dialogOutcomePreview],
+  );
   const plannerClarificationLeadText = plannerTechnicalFallback
     ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
     : "Du kannst trotzdem weitermachen.";
@@ -2868,6 +2874,10 @@ export default function CreateVisualFollowup({
               outcome={dialogOutcomePreview}
               onConfirmStandpoint={onConfirm}
             />
+
+            <div className="mt-4">
+              <ExistingTopicMatchesPanel model={existingTopicMatchesPreview} />
+            </div>
           </div>
         </div>
 
