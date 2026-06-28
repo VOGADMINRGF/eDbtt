@@ -271,4 +271,49 @@ describe("create handoff review queue runtime bridge", () => {
       }),
     });
   });
+
+  it("routes factcheck requests into the existing factcheck/source review runtime instead of the create handoff persistence path", async () => {
+    const result = buildFollowup();
+    const item = createReviewQueueItemFromHandoffDraft(
+      createHandoffDraftFromDialogOutcome(
+        DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked,
+        "factcheck_request",
+      ),
+    );
+    const persist = vi.fn();
+    const submitFactcheck = vi.fn(async (input) => ({
+      ok: true as const,
+      jobId: "factcheck-job-1",
+      status: "queued",
+      requestScope: null,
+      requestedAction: input.requestedAction,
+      sourceRefCount: input.sourceRefs.length,
+    }));
+
+    const submission = await submitCreateHandoffReviewQueueItemToRuntime(item, {
+      result,
+      persist,
+      submitFactcheck,
+    });
+
+    expect(persist).not.toHaveBeenCalled();
+    expect(submitFactcheck).toHaveBeenCalledTimes(1);
+    expect(submitFactcheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceType: "factcheck_request",
+        requestedAction: "factcheck",
+        withSerp: false,
+        deepSearch: false,
+      }),
+    );
+    expect(submission).toMatchObject({
+      ok: true,
+      selectedAction: "request_factcheck",
+      record: expect.objectContaining({
+        id: "factcheck-job-1",
+        intakeClassification: "factcheck_request",
+        reviewState: "queued",
+      }),
+    });
+  });
 });

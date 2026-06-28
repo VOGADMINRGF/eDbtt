@@ -71,6 +71,7 @@ export default function CreateHandoffDraftSummary(
 ) {
   const runtimeSubmissionState = props.runtimeSubmissionState ?? "idle";
   const submittedToRuntime = runtimeSubmissionState === "submitted";
+  const factcheckSubmission = props.draft.requiresFactcheck;
   const questions = getHandoffDraftOpenQuestions(props.draft);
   const queueQuestions = props.reviewQueueItem
     ? getReviewQueueItemOpenQuestions(props.reviewQueueItem)
@@ -96,14 +97,18 @@ export default function CreateHandoffDraftSummary(
         </p>
         <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
           {submittedToRuntime
-            ? "Zur redaktionellen Prüfung übergeben"
+            ? factcheckSubmission
+              ? "Zur Quellenprüfung übergeben"
+              : "Zur redaktionellen Prüfung übergeben"
             : props.reviewQueueItem
             ? "Zur Prüfung vorgemerkt"
             : getHandoffDraftCtaLabel(props.draft)}
         </h3>
         <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
           {submittedToRuntime
-            ? "Der Entwurf wurde an die Review Queue übergeben. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
+            ? factcheckSubmission
+              ? "Die Aussage wurde zur Prüfung vorgemerkt. Es wurde noch keine Wahrheit bestätigt und keine Quelle automatisch bewertet."
+              : "Der Entwurf wurde an die Review Queue übergeben. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
             : props.reviewQueueItem
             ? "Der Entwurf wurde als Review-Item vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum/Beteiligungsraum erstellt."
             : "eDebatte hat daraus einen prüfbaren Entwurf vorbereitet. Noch wurde nichts veröffentlicht, zusammengeführt oder als Dossier/Anlassraum erstellt."}

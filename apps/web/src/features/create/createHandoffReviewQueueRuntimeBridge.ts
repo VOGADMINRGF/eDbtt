@@ -4,6 +4,10 @@ import {
   type CreateHandoffAction,
   type CreateHandoffDraft,
 } from "@/features/create/createHandoff";
+import {
+  submitFactcheckSourceReviewRequest,
+  type FactcheckSourceReviewSubmit,
+} from "@/features/create/factcheckSourceAdapterBridge";
 import type { CreateHandoffReviewQueueItem } from "@/features/create/createHandoffReviewQueue";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
@@ -200,6 +204,7 @@ export async function submitCreateHandoffReviewQueueItemToRuntime(
   item: CreateHandoffReviewQueueItem,
   options: CreateHandoffReviewQueueRuntimeContext & {
     persist?: CreateHandoffReviewQueueRuntimePersist;
+    submitFactcheck?: FactcheckSourceReviewSubmit;
   },
 ): Promise<SubmitCreateHandoffReviewQueueItemToRuntimeResult> {
   const blockers = getCreateHandoffReviewQueueRuntimeBlockers(item, options);
@@ -210,6 +215,63 @@ export async function submitCreateHandoffReviewQueueItemToRuntime(
       blockers,
       error: "blocked_unwired",
       message: defaultBlockedMessage(blockers),
+    };
+  }
+
+  if (item.target === "factcheck_request") {
+    const submission = await submitFactcheckSourceReviewRequest(
+      {
+        item,
+        result: options.result,
+        sourceUrls: options.sourceUrls,
+        materialItems: options.materialItems,
+      },
+      {
+        submit: options.submitFactcheck,
+      },
+    );
+
+    if (submission.ok === false) {
+      if (submission.blocked) {
+        return {
+          ok: false,
+          blocked: true,
+          blockers: [],
+          error: submission.error,
+          message: submission.message,
+        };
+      }
+
+      return {
+        ok: false,
+        blocked: false,
+        blockers: [],
+        error: "runtime_submit_failed",
+        message: submission.message,
+      };
+    }
+
+    return {
+      ok: true,
+      selectedAction: "request_factcheck",
+      draft: buildCreateHandoffDraft({
+        result: options.result,
+        selectedAction: "request_factcheck",
+        id: item.sourceDraftId,
+        createdAt: item.createdAt,
+        sourceUrls: options.sourceUrls,
+        materialItems: options.materialItems,
+      }),
+      dossierId: options.dossierId ?? null,
+      anlassraumId: options.anlassraumId ?? null,
+      requestScope: submission.requestScope,
+      record: {
+        id: submission.jobId,
+        dossierId: options.dossierId ?? null,
+        anlassraumId: options.anlassraumId ?? null,
+        reviewState: submission.status,
+        intakeClassification: "factcheck_request",
+      },
     };
   }
 
