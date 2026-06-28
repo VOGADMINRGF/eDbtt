@@ -66,6 +66,14 @@ function getReviewQueueHint(item: CreateHandoffReviewQueueItem): string {
   return "Dieses Review-Item bleibt vorbereitend und löst noch keine Runtime-Entität aus.";
 }
 
+function showsCommunitySourceReviewCopy(
+  draft: CreateHandoffDraft,
+  reviewQueueItem?: CreateHandoffReviewQueueItem | null,
+): boolean {
+  if (reviewQueueItem?.target === "factcheck_request") return true;
+  return draft.target === "factcheck_request" || draft.requiresFactcheck;
+}
+
 export default function CreateHandoffDraftSummary(
   props: CreateHandoffDraftSummaryProps,
 ) {
@@ -84,6 +92,10 @@ export default function CreateHandoffDraftSummary(
     runtimeSubmissionState === "submitting"
       ? "Wird übergeben …"
       : "Zur Prüfung vormerken";
+  const showCommunitySourceReview = showsCommunitySourceReviewCopy(
+    props.draft,
+    props.reviewQueueItem,
+  );
 
   return (
     <section
@@ -175,6 +187,33 @@ export default function CreateHandoffDraftSummary(
           {props.draft.summary}
         </p>
       </div>
+
+      {showCommunitySourceReview ? (
+        <div className="mt-3 rounded-2xl border border-sky-400/20 bg-[rgb(var(--bg))] px-4 py-3 dark:border-sky-300/15">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+            Community Source Review
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+            Diese Aussage ist zur Quellenprüfung vorgemerkt. Andere können Hinweise,
+            Quellen oder Gegenbeispiele beitragen. Diese Hinweise werden geprüft und
+            bestätigen noch keine Wahrheit.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+            <span className="rounded-full border border-sky-500/20 px-3 py-1">
+              Community kann Quellenhinweise beitragen
+            </span>
+            <span className="rounded-full border border-sky-500/20 px-3 py-1">
+              Quelle vorschlagen
+            </span>
+            <span className="rounded-full border border-sky-500/20 px-3 py-1">
+              Gegenbeleg vorschlagen
+            </span>
+            <span className="rounded-full border border-sky-500/20 px-3 py-1">
+              Kontext ergänzen
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {(props.reviewQueueItem ? queueQuestions.length : questions.length) > 0 ? (
         <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-[rgb(var(--bg))] px-4 py-3 dark:border-emerald-300/15">

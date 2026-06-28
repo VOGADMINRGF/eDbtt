@@ -26,6 +26,7 @@ describe("create handoff review queue panel", () => {
     expect(html).toContain(
       "Review-first: keine automatische Veröffentlichung, Erstellung oder Zusammenführung.",
     );
+    expect(html).toContain("Community kann Quellenhinweise beitragen");
   });
 
   it("renders the queued review item state without any runtime side effects", () => {
@@ -80,6 +81,9 @@ describe("create handoff review queue panel", () => {
     expect(html).toContain(
       "Die Aussage wurde zur Prüfung vorgemerkt. Es wurde noch keine Wahrheit bestätigt und keine Quelle automatisch bewertet.",
     );
+    expect(html).toContain(
+      "Diese Aussage ist zur Quellenprüfung vorgemerkt. Andere können Hinweise, Quellen oder Gegenbeispiele beitragen. Diese Hinweise werden geprüft und bestätigen noch keine Wahrheit.",
+    );
     expect(html).not.toContain("Wahrheit wurde bestätigt");
   });
 
@@ -110,6 +114,7 @@ describe("create handoff review queue panel", () => {
     expect(summarySource).toContain("Zur Prüfung vormerken");
     expect(summarySource).toContain("Zur redaktionellen Prüfung übergeben");
     expect(summarySource).toContain("Zur Quellenprüfung übergeben");
+    expect(summarySource).toContain("Kontext ergänzen");
     expect(bridgeSource).toContain("/api/create/handoffs");
     expect(factcheckBridgeSource).toContain("/api/factcheck/enqueue");
     expect(followupSource).not.toContain("router.push(");
