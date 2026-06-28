@@ -5,13 +5,14 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.
 Wenn andere Parts, alte Drift-Prompts oder Zwischen-Notizen abweichen, gewinnt diese Datei.
 
-Stand: 2026-05-29
+Stand: 2026-06-28
 
 ## Quick Read (2026-04-04)
 
 - Kompakter aktueller Arbeitsstand: `docs/E150/CURRENT_STATE_2026-04-04.md`
 - Operative Steuerung bleibt hier in `OpenTasks.md` (SSOT).
 - Evidence-Dateien bleiben Detailbelege; Legacy-/Batch-Texte sind Hintergrund, nicht Tagesqueue.
+- Nach PRs `#240` bis `#246` ist die kleine kanonische Create-Kette lokal sichtbar und SSOT-konform dokumentiert: Beitrag erfassen -> Standpunkt erkennen -> Meinung zählen oder ausarbeiten -> ähnliche Themen/Zweige zeigen -> Handoff-Draft vorbereiten -> zur Prüfung vormerken.
 - Surface-Consolidation Round 2B (`/stream`, `/account`, `/themen`, `/pricing`, `/order`) ist lokal umgesetzt und in Review-Vorbereitung; Fokus auf Entdoppelung, Status-Staffelung und gemeinsame Paketlogik mit `/order`.
 
 ## Task Status Legend
