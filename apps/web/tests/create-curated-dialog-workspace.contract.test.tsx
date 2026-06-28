@@ -79,6 +79,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("AssistantUnderstandingBubble");
     expect(followupSource).toContain("DialogResultsHandoffPanel");
     expect(followupSource).toContain("ExistingTopicMatchesPanel");
+    expect(followupSource).toContain("CreateHandoffDraftSummary");
     expect(followupSource).toContain("CompactPreviewCard");
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
@@ -123,6 +124,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
     expect(followupSource).toContain("Keine automatische Kostenbuchung");
+    expect(followupSource).toContain("setPreparedHandoffDraft");
     expect(followupSource).not.toContain("Dossier-Kontext");
     expect(followupSource).not.toContain("Mögliche Claims");
     expect(followupSource).not.toContain("Arbeitsstand speichern");
