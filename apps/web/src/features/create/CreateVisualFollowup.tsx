@@ -30,10 +30,16 @@ import {
 import {
   submitCreateHandoffReviewQueueItemToRuntime,
 } from "@/features/create/createHandoffReviewQueueRuntimeBridge";
-import { createExistingTopicMatchPanelPreviewFromDialogOutcome } from "@/features/create/existingTopicMatches";
+import {
+  createExistingTopicMatchPanelPreviewFromDialogOutcome,
+  type ExistingTopicMatch,
+  type ExistingTopicMatchPanelModel,
+} from "@/features/create/existingTopicMatches";
+import {
+  resolveExistingTopicMatchesFromRuntime,
+} from "@/features/create/existingTopicMatchesRuntimeBridge";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
-import type { ExistingTopicMatch } from "@/features/create/existingTopicMatches";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
 type CreateVisualFollowupProps = {
@@ -2568,6 +2574,8 @@ export default function CreateVisualFollowup({
     () => createExistingTopicMatchPanelPreviewFromDialogOutcome(dialogOutcomePreview),
     [dialogOutcomePreview],
   );
+  const [existingTopicMatchesModel, setExistingTopicMatchesModel] =
+    React.useState<ExistingTopicMatchPanelModel>(existingTopicMatchesPreview);
   const plannerClarificationLeadText = plannerTechnicalFallback
     ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
     : "Du kannst trotzdem weitermachen.";
@@ -2666,6 +2674,23 @@ export default function CreateVisualFollowup({
     setReviewQueueRuntimeMessage(null);
   }, [resultChangeKey]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    setExistingTopicMatchesModel(existingTopicMatchesPreview);
+
+    void resolveExistingTopicMatchesFromRuntime({ result }).then((resolved) => {
+      if (cancelled) return;
+      setExistingTopicMatchesModel(resolved.model);
+    }).catch(() => {
+      if (cancelled) return;
+      setExistingTopicMatchesModel(existingTopicMatchesPreview);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [existingTopicMatchesPreview, result]);
+
   const prepareDialogHandoffDraft = React.useCallback(
     (target: DialogHandoffTarget) => {
       setPreparedReviewQueueItem(null);
@@ -2706,7 +2731,7 @@ export default function CreateVisualFollowup({
 
   const prepareExistingMatchDraft = React.useCallback(
     (matchId: string, explicitTarget?: CreateHandoffDraftTarget) => {
-      const match = existingTopicMatchesPreview.matches.find((entry) => entry.id === matchId);
+      const match = existingTopicMatchesModel.matches.find((entry) => entry.id === matchId);
       if (!match) return;
 
       setPreparedReviewQueueItem(null);
@@ -2719,7 +2744,7 @@ export default function CreateVisualFollowup({
         ),
       );
     },
-    [existingTopicMatchesPreview.matches],
+    [existingTopicMatchesModel.matches],
   );
 
   const prepareNewBranchDraft = React.useCallback(() => {
@@ -3041,7 +3066,7 @@ export default function CreateVisualFollowup({
 
             <div className="mt-4">
               <ExistingTopicMatchesPanel
-                model={existingTopicMatchesPreview}
+                model={existingTopicMatchesModel}
                 onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
                 onCountSimilarOpinion={(matchId) =>
                   prepareExistingMatchDraft(matchId, "opinion_count")

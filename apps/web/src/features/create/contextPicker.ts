@@ -11,6 +11,11 @@ export type CreateContextPickerItem = {
   sourceMode: string | null;
   outputStatus: string;
   updatedAt: string | null;
+  relatedDossierHref?: string | null;
+  relatedDossierUpdateLabel?: string | null;
+  relatedTopicPageHref?: string | null;
+  relatedTopicPageTitle?: string | null;
+  relatedTopicPageVisibilityLabel?: string | null;
 };
 
 export type ListCreateContextPickerItemsInput = {
@@ -39,6 +44,11 @@ export async function listCreateContextPickerItems(
         sourceMode: entry.sourceMode,
         outputStatus: entry.outputStatus,
         updatedAt: entry.updatedAt,
+        relatedDossierHref: entry.relatedDossierHref,
+        relatedDossierUpdateLabel: entry.relatedDossierUpdateLabel,
+        relatedTopicPageHref: entry.relatedTopicPageHref,
+        relatedTopicPageTitle: entry.relatedTopicPageTitle,
+        relatedTopicPageVisibilityLabel: entry.relatedTopicPageVisibilityLabel,
       });
     }
     return Array.from(deduped.values());

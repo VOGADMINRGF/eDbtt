@@ -75,6 +75,9 @@ export type ExistingTopicMatchPanelModel = {
   suggestedDecision: ExistingTopicMatchDecision;
   openQuestions: string[];
   guardrailNote: string;
+  sourceKind?: "preview" | "runtime" | "hybrid";
+  sourceLabel?: string | null;
+  emptyStateText?: string | null;
   outcomeResultStatus?: DialogResultStatus;
 };
 
@@ -386,6 +389,9 @@ export function createExistingTopicMatchPanelPreviewFromDialogOutcome(
     suggestedDecision,
     openQuestions: outcome.openQuestions,
     guardrailNote: EXISTING_TOPIC_MATCH_GUARDRAIL_NOTE,
+    sourceKind: "preview",
+    sourceLabel: "Preview auf Basis lokaler Beispieldaten",
+    emptyStateText: null,
     outcomeResultStatus: outcome.resultStatus,
   };
 }

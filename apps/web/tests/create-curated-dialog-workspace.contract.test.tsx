@@ -79,6 +79,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("AssistantUnderstandingBubble");
     expect(followupSource).toContain("DialogResultsHandoffPanel");
     expect(followupSource).toContain("ExistingTopicMatchesPanel");
+    expect(followupSource).toContain("resolveExistingTopicMatchesFromRuntime");
+    expect(followupSource).toContain("setExistingTopicMatchesModel");
     expect(followupSource).toContain("CreateHandoffDraftSummary");
     expect(followupSource).toContain("CompactPreviewCard");
     expect(followupSource).toContain("PlaceClarificationPanel");
