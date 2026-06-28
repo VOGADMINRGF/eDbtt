@@ -25,7 +25,7 @@ describe("/pricing/institutionen guided flow contract", () => {
 
     expect(html).toContain("Empfohlene Konfiguration");
     expect(html).toContain("Empfehlung übernehmen");
-    expect(html).toContain("Direkt bestellen");
+    expect(html).toContain("Freischaltung anfragen");
     expect(html).toContain("Kostenvoranschlag anfordern");
     expect(html).toContain("Gespräch anfragen");
     expect(html).toContain('href="/order?segment=organisationen&amp;paket=b2b_basis');
@@ -41,7 +41,7 @@ describe("/pricing/institutionen guided flow contract", () => {
     expect(html).toContain("Optional");
     expect(html).toContain("Nur bei Bedarf");
     expect(html).toContain("Status");
-    expect(html).toContain("Direkt bestellbar");
+    expect(html).toContain("Direkt anfragbar");
     expect(html).not.toContain("Wirkung / ROI");
   });
 

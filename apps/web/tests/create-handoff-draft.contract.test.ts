@@ -37,15 +37,15 @@ describe("create handoff draft contract", () => {
     expect(draft.id).toBe("handoff-1");
     expect(draft.source).toBe("create");
     expect(draft.sourceText).toContain("Tierschutz");
-    expect(draft.plannerResult.plannerTopic).toBe("GPT-Einordnung nicht abgeschlossen");
+    expect(draft.plannerResult.plannerTopic).toBe("Tierschutz, Tierhaltung und Agrarstandards");
     expect(draft.graphMatches.stage).toBe("after_structure");
     expect(draft.claims.length).toBeGreaterThan(0);
     expect(draft.arguments.length).toBeGreaterThan(0);
     expect(draft.openQuestions.length).toBeGreaterThan(0);
     expect(draft.topicSeed).toEqual({
-      topicKey: "gpt-einordnung-nicht-abgeschlossen",
-      topicLabel: "GPT-Einordnung nicht abgeschlossen",
-      jurisdiction: "mixed",
+      topicKey: "tierschutz-tierhaltung-und-agrarstandards",
+      topicLabel: "Tierschutz, Tierhaltung und Agrarstandards",
+      jurisdiction: "bund",
       themenradarSourceType: "create_intake",
     });
     expect(draft.resumeHref).toBe("/create?resume=create_handoff&handoffId=handoff-1");

@@ -15,10 +15,10 @@ describe("navigation initiative label contract", () => {
     expect(enLabels).not.toContain("About the movement");
   });
 
-  it("uses initiative wording on global header navigation", () => {
-    const siteHeaderSource = readFileSync(resolve(process.cwd(), "src/app/(components)/SiteHeader.tsx"), "utf8");
+  it("uses initiative wording on shared footer navigation", () => {
+    const siteFooterSource = readFileSync(resolve(process.cwd(), "src/components/SiteFooter.tsx"), "utf8");
 
-    expect(siteHeaderSource).toContain('label: "Zur Initiative"');
-    expect(siteHeaderSource).not.toContain('label: "Zur Bewegung"');
+    expect(siteFooterSource).toContain('label: "Zur Initiative"');
+    expect(siteFooterSource).not.toContain('label: "Zur Bewegung"');
   });
 });

@@ -283,7 +283,7 @@ function EditorialReviewModeCard(props: {
             Du willst denselben Entwurf nicht direkt ausarbeiten, sondern zuerst manuell prüfen lassen. Das startet keinen produktiven Beitrag, keine Runde und keine Veröffentlichung.
           </p>
           <p className="text-sm leading-7 text-[rgb(var(--fg))]/78">
-            Öffentliche Relevanz, Formulierung und möglicher nächster Schritt bleiben dabei review-first.
+            Öffentliche Relevanz, Formulierung und möglicher nächster Schritt werden dabei zuerst gemeinsam geprüft.
           </p>
         </div>
       </div>

@@ -14,7 +14,7 @@ describe("v1 production ready critical journeys contract", () => {
     expect(createSource).toContain('triggerActionNotice("Beteiligungsrunde vorbereiten: als nächstes in /runden weiterführen.");');
     expect(createSource).toContain('ctaHref: "/dossier"');
     expect(createSource).toContain('ctaHref: "/swipes"');
-    expect(createSource).toContain("ohne automatische Veröffentlichung");
+    expect(createSource).toContain("Keine automatische Veröffentlichung.");
   });
 
   it("keeps feed, review and social follow-up on the existing operator paths", () => {

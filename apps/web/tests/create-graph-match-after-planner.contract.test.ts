@@ -26,17 +26,17 @@ describe("create graph match after planner contract", () => {
     });
 
     expect(result.meta?.graphMatch.stage).toBe("after_structure");
-    expect(result.meta?.graphMatch.prepared).toBe(true);
+    expect(result.meta?.planner.plannerTopic).toBe("Tierschutz, Tierhaltung und Agrarstandards");
+    expect(result.meta?.planner.plannerDegraded).toBe(true);
+    expect(result.meta?.graphMatch.prepared).toBe(false);
     expect(result.meta?.graphMatch.requiresConfirmation).toBe(true);
-    expect(result.meta?.graphMatch.searchTerms).toEqual(
-      expect.arrayContaining(["Tierwohl", "EU Mindeststandards"]),
-    );
+    expect(result.meta?.graphMatch.searchTerms).toEqual([]);
     expect(result.meta?.graphMatch.matchedTopics).toEqual([]);
     expect(result.meta?.graphMatch.matchedDossiers).toEqual([]);
     expect(result.meta?.graphMatch.matchedClaims).toEqual([]);
     expect(result.meta?.graphMatch.matchedAnlassraeume).toEqual([]);
     expect(result.meta?.graphMatch.matchedVotes).toEqual([]);
-    expect(result.meta?.graphMatch.shouldCreateNewTopic).toBe(true);
+    expect(result.meta?.graphMatch.shouldCreateNewTopic).toBe(false);
     expect(result.meta?.deepSearchUsed).toBe(false);
   });
 

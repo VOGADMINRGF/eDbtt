@@ -69,9 +69,9 @@ describe("/start shared create composer contract", () => {
 
     expect(html).toContain("Schon dabei?");
     expect(html).toContain("Bereite Beteiligung nachvollziehbar vor.");
-    expect(html).toContain("Organisation prüfen");
-    expect(html).toContain("Anlassraum starten");
-    expect(html).toContain("Beitrag prüfen");
+    expect(html).toContain("Ich öffne meinen Arbeitsbereich");
+    expect(html).toContain("Ich lege einen Anlassraum an");
+    expect(html).toContain("Ich will etwas beitragen");
     expect(html).toContain("Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.");
     expect((html.match(/data-testid="task-first-primary-action"/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");

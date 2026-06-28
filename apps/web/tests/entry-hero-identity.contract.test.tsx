@@ -34,7 +34,7 @@ describe("entry hero identity contract", () => {
 
     expect(livelyHtml).toContain("text-3xl");
     expect(calmHtml).toContain("text-2xl");
-    expect(livelyHtml).toContain("Meinung");
-    expect(calmHtml).toContain("Stimme");
+    expect(livelyHtml).toContain("was geklärt werden soll");
+    expect(calmHtml).toContain("was geklärt werden soll");
   });
 });

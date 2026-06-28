@@ -3,11 +3,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("initiative-nav-label.contract", () => {
-  it("uses initiative wording instead of movement wording in primary navigation", () => {
-    const siteHeaderSource = readFileSync(resolve(process.cwd(), "src/app/(components)/SiteHeader.tsx"), "utf8");
+  it("uses initiative wording instead of movement wording in footer navigation", () => {
+    const siteFooterSource = readFileSync(resolve(process.cwd(), "src/components/SiteFooter.tsx"), "utf8");
 
-    expect(siteHeaderSource).toContain('label: "Zur Initiative"');
-    expect(siteHeaderSource).not.toContain('label: "Zur Bewegung"');
+    expect(siteFooterSource).toContain('label: "Zur Initiative"');
+    expect(siteFooterSource).not.toContain('label: "Zur Bewegung"');
   });
 });
-

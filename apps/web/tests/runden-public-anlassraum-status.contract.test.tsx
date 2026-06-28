@@ -18,9 +18,9 @@ describe("runden public anlassraum status contract", () => {
     expect(html).toContain("als Vorschlag sichtbar");
     expect(html).toContain("in Prüfung");
     expect(html).toContain("veröffentlicht");
-    expect(html).toContain("amtlich");
     expect(html).toContain("archiviert");
-    expect(html).toContain("Review-only bleibt intern.");
+    expect(html).toContain("blockiert");
+    expect(html).toContain("Nur intern sichtbare Beiträge bleiben intern.");
     expect(html).toContain("Keine automatische amtliche Antwort.");
     expect(html).toContain("Keine automatische Dossier- oder Anlassraum-Finalisierung.");
   });

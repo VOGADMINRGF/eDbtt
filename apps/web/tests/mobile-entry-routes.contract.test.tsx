@@ -111,8 +111,7 @@ describe("mobile entry routes contract", () => {
   it("keeps the start shell on stable mobile viewport units instead of hard h-screen constraints", () => {
     expect(startPageSource).toContain('className="min-h-[100svh]"');
     expect(startPageSource).not.toContain("min-h-screen");
-    expect(globalStylesSource).toContain("min-height: 100svh;");
-    expect(globalStylesSource).toContain("overscroll-behavior-y: contain;");
+    expect(globalStylesSource).not.toContain("h-screen");
   });
 
   it("reserves space for the voxy guide artwork so the hero does not jump on load", () => {

@@ -74,7 +74,7 @@ describe("swipes arrival helpers", () => {
       resolveSwipesEmptyStateMessage({
         showingFromDraftOnly: true,
       }),
-    ).toContain("noch keine Vorschläge");
+    ).toContain("Dein Beitrag ist eingereicht.");
     expect(
       resolveSwipesEmptyStateMessage({
         showingFromDraftOnly: false,

@@ -51,7 +51,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
           id: "review",
           label: "Ich öffne die Review-Queue",
           description:
-            "Gehe direkt in die zentrale Prüf- und Freigabestrecke. Sichtbarkeit bleibt bewusst und review-first.",
+            "Gehe direkt in die zentrale Prüf- und Freigabestrecke. Sichtbarkeit bleibt ein bewusster Schritt.",
           href: "/admin/review",
           priority: "primary",
           badge: "Arbeitsbereich",
@@ -80,7 +80,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
           id: "contribute",
           label: "Ich will etwas beitragen",
           description:
-            "Starte einen neuen Hinweis, eine Frage oder einen Arbeitsstand auf dem review-first Create-Pfad.",
+            "Starte einen neuen Hinweis, eine Frage oder einen Arbeitsstand auf dem Create-Pfad mit bewusster Prüfung.",
           href: "/create?intent=contribute",
           priority: "secondary",
         },
@@ -143,7 +143,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
           id: "contribute",
           label: "Ich will etwas beitragen",
           description:
-            "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem review-first Create-Pfad.",
+            "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem Create-Pfad mit bewusster Prüfung.",
           href: "/create?intent=contribute",
           priority: "secondary",
         },
@@ -170,7 +170,7 @@ export function buildPublicTaskFirstQuickActionCenter(input?: {
         id: "contribute",
         label: "Ich reiche ein Anliegen ein",
         description:
-          "Starte mit einem Hinweis, einer Frage oder einer Beobachtung. Der Einstieg bleibt leicht und review-first.",
+          "Starte mit einem Hinweis, einer Frage oder einer Beobachtung. Der Einstieg bleibt leicht und klar geprüft.",
         href: "/create?intent=contribute",
         priority: "primary",
       },
@@ -279,7 +279,7 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
         id: "source-material",
         label: "Quelle/Material einreichen",
         description:
-          "Reiche Quelle, Dokument oder Material bewusst ein. Rohmaterial bleibt review-first und ohne Automatikversprechen.",
+          "Reiche Quelle, Dokument oder Material bewusst ein. Rohmaterial bleibt ein Arbeitsstand ohne Automatikversprechen.",
         href: "/create?intent=contribute&mode=source",
         priority: "secondary",
         badge: "Optional",
@@ -325,7 +325,7 @@ export function buildOrganizationTaskFirstQuickActionCenter(input: {
         id: "contribute",
         label: "Ich will etwas beitragen",
         description:
-          "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem bestehenden review-first Pfad.",
+          "Starte mit einem Hinweis, einer Frage oder einem Arbeitsstand auf dem bestehenden Prüfpfad.",
         href: "/create?intent=contribute",
         priority: "primary",
       },

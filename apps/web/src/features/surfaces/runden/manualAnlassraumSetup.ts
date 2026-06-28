@@ -51,6 +51,14 @@ export type ManualAnlassraumSetup = {
   nextStep: ManualAnlassraumNextStep;
 };
 
+type StartDraftAnlassraumInput = {
+  text: string;
+  preview?: {
+    possibleTopics?: string[];
+    openQuestions?: string[];
+  } | null;
+};
+
 export type ManualAnlassraumChoiceDefinition<T extends string> = {
   value: T;
   label: string;
@@ -302,4 +310,72 @@ export function buildManualAnlassraumContinueCreateHref(params: {
   searchParams.set("prefill", buildManualAnlassraumPrefill(normalized));
   searchParams.set("returnTo", params.returnTo || "/runden/new");
   return `/create?${searchParams.toString()}`;
+}
+
+function dedupeDraftOptions(options: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const next: string[] = [];
+  for (const option of options) {
+    const normalized = normalizeManualAnlassraumOption(option);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    next.push(normalized);
+  }
+  return next;
+}
+
+function looksLikeSchoolwayDraft(text: string): boolean {
+  return /schulweg|schule|grundschule|zebrastreifen|querung|tempo 30|hauptstra[ßs]e/i.test(text);
+}
+
+export function deriveManualAnlassraumSetupFromStartDraft(
+  input: StartDraftAnlassraumInput,
+): Pick<ManualAnlassraumSetup, "title" | "votingQuestion" | "description" | "options"> {
+  const text = normalizeManualAnlassraumText(input.text);
+  const possibleTopic = input.preview?.possibleTopics?.find((entry) => normalizeManualAnlassraumText(entry).length > 0) ?? "";
+  const openQuestion = input.preview?.openQuestions?.find((entry) => normalizeManualAnlassraumText(entry).length > 0) ?? "";
+  const schoolwayDraft = looksLikeSchoolwayDraft(text);
+
+  const title = schoolwayDraft
+    ? "Schulweg rund um die Grundschule sicherer machen"
+    : possibleTopic
+      ? `${possibleTopic} gemeinsam klären`
+      : "Anlassraum aus deinem Entwurf vorbereiten";
+  const votingQuestion = openQuestion
+    ? normalizeManualAnlassraumText(openQuestion)
+    : schoolwayDraft
+      ? "Welche Maßnahme hilft zuerst, damit der Schulweg sicherer wird?"
+      : "Welcher nächste Schritt soll zuerst vorbereitet werden?";
+  const description = schoolwayDraft
+    ? `Aus dem Start-Entwurf übernommen: ${text}`
+    : possibleTopic
+      ? `Aus dem Start-Entwurf übernommen. Themenfeld: ${possibleTopic}. ${text}`
+      : `Aus dem Start-Entwurf übernommen: ${text}`;
+
+  const options = schoolwayDraft
+    ? [
+        "Tempo 30 konsequent sichern",
+        "Zebrastreifen oder Querungshilfe ergänzen",
+        "Elternhaltestelle neu ordnen",
+        "Beleuchtung und Sichtachsen verbessern",
+        "Schulstraße zeitweise einführen",
+        "Anderer Vorschlag",
+      ]
+    : [
+        "Sofortmaßnahme starten",
+        "Informationen und Quellen sammeln",
+        "Beteiligung im Anlassraum vorbereiten",
+        "Zuständigkeit zuerst klären",
+        "Später weiterbearbeiten",
+        "Anderer Vorschlag",
+      ];
+
+  return {
+    title,
+    votingQuestion,
+    description,
+    options: dedupeDraftOptions(options),
+  };
 }

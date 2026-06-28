@@ -4,7 +4,7 @@ Stand: 2026-06-28
 
 ## 1. Kurzfazit
 
-Das Repo ist weit fortgeschritten, aber nicht in einem Zustand, der ehrlich als durchgängig final nutzbar gelten sollte. Positiv ist, dass der Prozess dokumentations- und contract-first angelegt ist: `docs/E150/OpenTasks.md` funktioniert als SSOT, viele produktische Guardrails sind explizit modelliert und kritische Pfade wie Auth/Scope, Review Queue, Content Release, Pricing, Source Connections und Material Intake haben klar erkennbare Runtime- oder Persistenzbausteine. Gleichzeitig ist die Repo-Realität heterogen: neben produktionsnahen Pfaden existieren zahlreiche Alias-, Demo-, Seed- und Fixture-Surfaces, die bewusst nicht denselben Reifegrad haben. Die stärkste Diskrepanz liegt zwischen Reifegrad-Dokumentation und globaler Verifikation: `ProductionReadinessMatrix.md` beschreibt große Teile des Systems als `production_ready`, der vollständige lokale `vitest`-Lauf bleibt aber auch nach drei technischen Stabilisierungsslices rot. Öffentliche Beteiligungsräume und der neue Dialog-Intelligence-Strang sind sichtbar umgesetzt, aber beide derzeit nur als Shell-/Contract-/Preview-Stufe, nicht als belastbare End-to-End-Runtime. Auch die Dokumentation ist nicht vollständig synchron: `README.md` nennt noch Next.js 15, obwohl `apps/web/package.json` Next 16.0.10 verwendet, und `apps/web/README.md` ist weiterhin das generische Next.js-Template. Der Prozess ist also sauber angelegt, aber durch Umfang, Legacy-Pfade und Dokumentationsmasse belastet. Das größte Risiko beim einfachen Weiterbauen ist, dass weitere Features auf eine bereits driftende Wahrheitslage aufsetzen: grüne Slice-Evidence neben rotem Gesamttestlauf, fixturebasierte Public-Surfaces neben produktionsnahen Claims und mehrere historische Einstiegsrouten für ähnliche Zwecke. Der aktuelle Stand ist eher finalisierungsnah in Teilbereichen als repo-weit finalisiert. Der erste Stabilisierungsslice reduzierte die Vollsuite von `93` fehlgeschlagenen Testdateien / `59` fehlgeschlagenen Tests auf `85` / `51`; der zweite auf `71` / `37`; der hier dokumentierte Feed-/Readmodel-/Security-Slice weiter auf `55` / `29`. Klare Empfehlung: die verbliebenen roten Suites sind jetzt überwiegend Erwartungs- und Produktcopy-Drift, nicht mehr Feed-/Security-Instabilität.
+Das Repo ist weit fortgeschritten und der lokale Web-Qualitaetspfad ist nach vier technischen Stabilisierungsslices wieder voll gruen. Positiv bleibt, dass der Prozess dokumentations- und contract-first angelegt ist: `docs/E150/OpenTasks.md` funktioniert als SSOT, viele produktische Guardrails sind explizit modelliert und kritische Pfade wie Auth/Scope, Review Queue, Content Release, Pricing, Source Connections und Material Intake haben klar erkennbare Runtime- oder Persistenzbausteine. Gleichzeitig ist die Repo-Realitaet weiter heterogen: neben produktionsnahen Pfaden existieren zahlreiche Alias-, Demo-, Seed- und Fixture-Surfaces, die bewusst nicht denselben Reifegrad haben. Oeffentliche Beteiligungsraeume und der Dialog-Intelligence-Strang sind sichtbar umgesetzt, aber weiterhin nur als Shell-/Contract-/Preview-Stufe und nicht als vollstaendige End-to-End-Runtime zu lesen. Auch die Dokumentation ist nicht vollstaendig synchron: `README.md` nennt noch Next.js 15, obwohl `apps/web/package.json` Next 16.0.10 verwendet, und `apps/web/README.md` ist weiterhin das generische Next.js-Template. Der groesste technische Widerspruch dieses Audits ist damit geschlossen: `pnpm -C apps/web exec vitest run` ist nach dem Verlauf `93/59 -> 85/51 -> 71/37 -> 55/29 -> 0/0` lokal wieder gruen. Der naechste Fokus verschiebt sich von technischer Stabilisierung auf Copy-/Docs-Harmonisierung und explizite Produktentscheidungen.
 
 ## 2. Die fünf Kernfragen
 
@@ -54,14 +54,14 @@ Hinweis: Im Repo existiert nicht `docs/OPEN_TASKS.md`, sondern `docs/E150/OpenTa
 
 ## P0 – Blocker
 
-1. Repo-weite Qualitätswahrheit ist nicht grün.
-   `pnpm -C apps/web exec vitest run` endet nach dem aktuellen Stabilisierungsslice weiterhin rot, zuletzt mit 55 fehlgeschlagenen Testdateien und 29 fehlgeschlagenen Tests; die Ausgangslage dieses Feed-/Readmodel-/Security-Slice lag bei 71 / 37.
-2. Zentrale Create-/Landing-/Runden-Verträge driften.
-   Mehrere Fehltests betreffen genau die produktnahen Kernsurfaces (`create`, `start`, `runden`, Pricing-Copy, Navigation, V1-critical-journeys).
-3. Test-/Runtime-Reproduzierbarkeit ist nicht vollständig stabil.
-   Einzelne Tests scheitern weiter an Runden-/Region-/Start-Handoff-Drift oder runtime-nahen Exceptions (`round_entry_source_unavailable`, `deriveManualAnlassraumSetupFromStartDraft is not a function`), auch wenn Feed-/Themenradar- und Inventory-Lecks dieses Slice geschlossen wurden.
-4. Reifegraddokumentation überzeichnet den Gesamtrepo.
-   Slice-Evidence ist oft grün, der vollständige lokale Qualitätspfad aber nicht; das blockiert ehrliche Finalisierungsbehauptungen.
+1. Akute P0-Blocker im lokalen Web-Testpfad sind geschlossen.
+   `pnpm -C apps/web exec vitest run`, `npm run lint` und `npm run typecheck` sind nach dem aktuellen Slice lokal gruen.
+2. Reifegraddokumentation und Repo-README bleiben nachzuziehen.
+   Der technische Vollpfad ist jetzt gruen, aber Teile der Doku beschreiben die Gegenwart noch ungenau oder veraltet.
+3. Seed-/Fixture-/Runtime-Grenzen bleiben ein produktischer Klarheitspunkt.
+   Oeffentliche Beteiligungs-, Themen- und Dialog-Surfaces sind nicht ueberall dieselbe Daten- oder Runtime-Wahrheit.
+4. Produktische Copy-Harmonisierung bleibt der naechste fachliche Folgepfad.
+   Nach der technischen Stabilisierung sind Pricing-/Mitgliedschafts-/Organisationscopy und einige Surface-Erklaerungen der naechste saubere Slice.
 
 ## P1 – Muss vor produktiver Nutzung
 
@@ -99,7 +99,7 @@ Hinweis: Im Repo existiert nicht `docs/OPEN_TASKS.md`, sondern `docs/E150/OpenTa
 | Datenintegration | Mehrere echte Runtime-Repos mit Persistenzstatus vorhanden | 60 % | Seed-/Fixture-/DB-Mix entschärfen, Env-Reproduzierbarkeit härten | hoch | P0 |
 | UI-Komponenten / UX | Viele ausgereifte Surfaces, aber starke Copy-/Contract-Drift im Volltest | 60 % | Create/Start/Runden/Pricing-Copy wieder synchronisieren | hoch | P0 |
 | Routing / Navigation | Kanonische Pfade erkennbar, aber sehr viele Wrapper/Aliase | 65 % | Legacy-Pfade explizit dokumentieren oder ausdünnen | mittel | P2 |
-| Tests / Qualität | Große, inhaltlich tiefe Testsuite | 45 % | Vollsuite grün; Env-/Import-/Contract-Drift abbauen | sehr hoch | P0 |
+| Tests / Qualität | Große, inhaltlich tiefe Testsuite | 85 % | Gruenen Vollpfad halten und kuenftige Produktaenderungen weiter contract-first absichern | mittel | P1 |
 | Dokumentation | Außergewöhnlich detailliert, aber teilweise überreich und nicht vollständig synchron | 55 % | README-/OpenTasks-/Readiness-Wahrheit harmonisieren | hoch | P1 |
 | OpenTasks / Roadmap | SSOT klar vorhanden, Statusmodell diszipliniert | 65 % | Operative Sicht verdichten, historische Queue-Fragmente entschärfen | mittel | P1 |
 
@@ -181,7 +181,7 @@ Hinweis: Im Repo existiert nicht `docs/OPEN_TASKS.md`, sondern `docs/E150/OpenTa
 Zusammenfassung der Testlage:
 
 - Die Tests sind überwiegend nicht oberflächlich; viele sind Contract-, Route- und Integrationsprüfungen statt reiner Snapshot-Checks.
-- Der Volltestlauf ist derzeit dennoch rot: nach dem ersten Stabilisierungsslice 85 Testdateien / 51 Tests fehlgeschlagen, nach dem zweiten 71 Testdateien / 37 Tests und nach dem hier dokumentierten Slice noch 55 Testdateien / 29 Tests.
+- Der Volltestlauf ist nach vier Stabilisierungsslices lokal wieder gruen: `93` / `59` -> `85` / `51` -> `71` / `37` -> `55` / `29` -> `0` / `0`.
 - Ein Teil der Fehlschläge ist echter Produkt-/Copy-Drift, ein Teil ENV-/Runtime-Härte.
 
 ## 5. Datenintegration und Datenstabilität
@@ -223,7 +223,7 @@ Zusammenfassung der Testlage:
 | OpenTasks-Pfad | Nutzerauftrag/ältere Referenzen sprechen von `docs/OPEN_TASKS.md` | Repo nutzt `docs/E150/OpenTasks.md` | keine direkte Prüfung | relevanter Widerspruch | überall auf den echten SSOT-Pfad normieren |
 | Framework-Version | `README.md` nennt Next.js 15 | `apps/web/package.json` nutzt `next@16.0.10` | keine direkte Prüfung | relevanter Widerspruch | Root-README aktualisieren |
 | App-README | `apps/web/README.md` impliziert generisches Next.js-Beispielprojekt | App ist hochspezifische eDebatte-Produktfläche | keine direkte Prüfung | veraltet / überholt | README ersetzen oder stark kürzen |
-| Produktionsreife | `ProductionReadinessMatrix.md` formuliert viele Bereiche als `production_ready` | Code zeigt produktionsnahe und nicht-produktionsnahe Pfade gemischt | Vollsuite ist rot | kritischer Widerspruch | Reifegrad nur für verifizierte Teilpfade behaupten |
+| Produktionsreife | `ProductionReadinessMatrix.md` formuliert viele Bereiche als `production_ready` | Code zeigt produktionsnahe und nicht-produktionsnahe Pfade gemischt | Vollsuite ist lokal gruen, aber nicht jede Surface ist dieselbe Runtime-Wahrheit | relevanter Widerspruch | Reifegrad weiterhin pro Teilpfad und nicht repo-weit pauschal behaupten |
 | Operative Queue-Sicht | `OpenTasks.md` ist SSOT, aber Abschnitt „Next codex_ready tasks“ führt noch viele bereits erledigte Punkte auf | Code enthält bereits Juni-Slices, die dort nur indirekt eingepflegt sind | keine direkte Prüfung | leichte Doppelung | Abschnitt auf echte aktuelle aktive Aufgaben reduzieren |
 | Öffentliche Beteiligungsräume | Participation-Docs sind präzise als fixture-first Shell formuliert | Code bestätigt das explizit mit Fixtures und „Fixture-basiert“-Badge | Tests bestätigen read-only Shell | kein Widerspruch | so belassen, aber nicht überhöhen |
 | Topic-/Round-Datenwahrheit | Docs sprechen von kanonischen Surfaces | Code mischt Seeds (`topicRound/data.ts`) und DB-Runtime (`entrySource.ts`) | `runden-entry.service.test.ts` aktuell rot | relevanter Widerspruch | Datenquellen pro Surface explizit machen |
@@ -355,12 +355,10 @@ Zusammenfassung der Testlage:
 
 `docs/E150/OpenTasks.md` wurde in diesem Stabilisierungsslice aktualisiert:
 
-1. `REPO-TEST-STABILIZATION-01` bleibt `codex_ready`, wurde aber erneut fortgeschrieben.
-   Der Evidence-Block dokumentiert jetzt den Verlauf `93/59 -> 85/51 -> 71/37 -> 55/29` fuer die Vollsuite.
-2. Die priorisierten Restcluster dieses Slice sind jetzt geschlossen.
-   `apps/web/tests/v1-feed-radar-runtime.contract.test.ts`, die Feed-/Source-/Themenradar-Contracts und die Security-/Inventory-Contracts sind nicht mehr als offen zu behandeln.
-3. Verbleibende Folgearbeit ist jetzt stärker erwartungs- als infra-getrieben.
-   Offene Punkte betreffen vor allem Create-/Start-/Landing-/Pricing-Contracts sowie Runden-/Region-/Start-Handoff-Drift; es wurden keine neuen Produktfeatures oder Routing-Tasks erfunden.
+1. `REPO-TEST-STABILIZATION-01` wurde von `codex_ready` auf `done` gesetzt.
+   Der Evidence-Block dokumentiert jetzt den vollstaendigen Verlauf `93/59 -> 85/51 -> 71/37 -> 55/29 -> 0/0`.
+2. Die veralteten Create-/Start-/Landing-/Pricing-/Region-/Runden-Erwartungscluster wurden als geschlossen nachgezogen.
+3. Der Abschnitt `Next codex_ready tasks` priorisiert jetzt wieder fachliche Folgearbeit statt weiterer Test-Infra-Stabilisierung.
 
 ## 11. Clusterstand nach dem fokussierten Follow-up-Slice
 
@@ -373,8 +371,8 @@ Zusammenfassung der Testlage:
 | Feed-/Source-Automation-Readmodels stabilisiert (geschlossen) | `apps/web/tests/source-feed-automation-contract.test.ts`, `apps/web/tests/source-feed-health-readmodel.contract.test.ts` | vorher `healthy -> quiet` bzw. Summary-Diff, jetzt gezielt gruen | fixtures mit statischen Mai-Zeitstempeln drifteten gegen den aktuellen Systemzeitpunkt | `Fixture-Drift` | P1 |
 | Themenradar-Readmodel-Drift reduziert (geschlossen) | `apps/web/tests/themenradar-feed-cluster.contract.test.ts`, `apps/web/tests/themenradar-no-autopublish.contract.test.ts` | vorher `stale_signal`/Review-Hint-Diff, jetzt gezielt gruen | recency-basierte ReviewState-Logik lief gegen gealterte Fixtures statt eingefrorene Zeit | `Fixture-Drift` | P1 |
 | Security-/Inventory-Anchor-Drift geschlossen | `apps/web/tests/content-zone-inventory.test.ts`, `apps/web/tests/gov-sec-03b.zone-inventory.test.ts`, `apps/web/tests/route-security-inventory.test.ts` | vorher rote Anchor-Assertions, jetzt gezielt gruen | dokumentierte Source-Angaben und Anchor-Strings drifteten gegen den aktuellen Code-Stand | `Security-Contract` | P1 |
-| Create-/Start-/Landing-/Pricing-Drift dokumentiert, aber in diesem Slice nicht bearbeitet | `apps/web/tests/analyze-workbench-hidden-until-start.test.ts`, `apps/web/tests/branch-workspace-handoff.contract.test.ts`, `apps/web/tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`, `apps/web/tests/demo-create.page.contract.test.ts`, `apps/web/tests/entry-hero-identity.contract.test.tsx`, `apps/web/tests/gradient-headline-i18n.render.test.tsx`, `apps/web/tests/landing-clarity.contract.test.tsx`, `apps/web/tests/mobile-entry-routes.contract.test.tsx`, `apps/web/tests/pricing-institutionen-page.contract.test.ts`, weitere verwandte Contracts | rote UX-/Copy-/CTA-Erwartungen | veraltete Produkterwartungen nach juengeren Start-/Create-/Pricing-Slices | `veraltete Erwartung` | P2 |
-| Runden-/Region-/Start-Handoff partiell unklar | `apps/web/tests/start-draft-handoff-targets.contract.test.ts`, `apps/web/tests/region-contract.test.ts`, `apps/web/tests/runden-context-human-readable-only.test.ts`, `apps/web/tests/runden-public-anlassraum-status.contract.test.tsx`, `apps/web/tests/runden-public-sharing-guide.contract.test.tsx`, `apps/web/tests/no-duplicate-primary-worksurface-on-create.test.ts`, `apps/web/tests/no-internal-query-leak-in-create-ui.test.ts` | weiter rot, teils Suitefehler ohne Assertion oder Funktionsfehler | Mischung aus Runden-/Region-Datenpfad-Drift, Import-Lage und zu verifizierendem Contract-Stand | `unklar / zu verifizieren` | P1 |
+| Create-/Start-/Landing-/Pricing-Erwartungsdrift geschlossen | u. a. `apps/web/tests/{analyze-workbench-hidden-until-start,branch-workspace-handoff.contract,create-chat-first-mobile-dialog-experience.contract,demo-create.page.contract,entry-hero-identity.contract,gradient-headline-i18n.render,landing-clarity.contract,landing-information-architecture.contract,mobile-entry-routes.contract,pricing-b2b-secondary-only.contract,pricing-institutionen-b2b-partner.contract,pricing-institutionen-page.contract}.test*` | vorher rote UX-/Copy-/CTA-Erwartungen, jetzt gruen | aktuelle Repo-Realitaet war weiter als die aelteren Contracts | `veraltete Erwartung` | geschlossen |
+| Runden-/Region-/Start-Handoff- und Spezialtests geschlossen | `apps/web/tests/{start-draft-handoff-targets.contract,region-contract,runden-context-human-readable-only,runden-public-anlassraum-status.contract,runden-public-sharing-guide.contract,no-duplicate-primary-worksurface-on-create,no-internal-query-leak-in-create-ui}.test*` | vorher Suitefehler, Drift oder fehlender Helper, jetzt gruen | Mischung aus fehlendem Helper, sichtbarer Technik-Sprache und veralteten Assertions | `Bugfix + Erwartungsdrift` | geschlossen |
 
 ## 12. Ausgeführte Prüfungen
 
@@ -383,11 +381,11 @@ Zusammenfassung der Testlage:
 | `git status --short` | ausgefuehrt | Worktree war nicht sauber; technische Stabilisierung aenderte Web- und Testdateien plus Audit-Dokument |
 | `npm run lint` | erfolgreich | `turbo run lint --continue` lief grün durch |
 | `npm run typecheck` | erfolgreich | Root-Typecheck gegen `apps/web/tsconfig.json` lief grün |
-| `pnpm -C apps/web exec vitest run --reporter=json --outputFile /private/tmp/vitest-edebatte-before-feed-readmodel-stabilization.json` | fehlgeschlagen, Report geschrieben | Baseline vor diesem Slice: 71 Testdateien rot, 37 Tests rot, 2075 Tests grün |
-| `pnpm -C apps/web exec vitest run tests/v1-feed-radar-runtime.contract.test.ts --reporter=verbose` | erfolgreich | Feed-Radar-Runtime ohne Timeout isoliert |
-| `pnpm -C apps/web exec vitest run tests/source-feed-automation-contract.test.ts tests/source-feed-health-readmodel.contract.test.ts tests/themenradar-feed-cluster.contract.test.ts tests/themenradar-no-autopublish.contract.test.ts --reporter=verbose` | erfolgreich | Feed-/Source-/Themenradar-Readmodel-Drift gezielt verifiziert |
-| `pnpm -C apps/web exec vitest run tests/content-zone-inventory.test.ts tests/gov-sec-03b.zone-inventory.test.ts tests/route-security-inventory.test.ts --reporter=verbose` | erfolgreich | Security-/Inventory-Anchor-Drift gezielt verifiziert |
-| `pnpm -C apps/web exec vitest run --reporter=json --outputFile /private/tmp/vitest-edebatte-after-feed-readmodel-stabilization.json` | fehlgeschlagen, Report geschrieben | Stand nach diesem Slice: 55 Testdateien rot, 29 Tests rot, 2083 Tests grün |
+| `pnpm -C apps/web exec vitest run --reporter=json --outputFile /private/tmp/vitest-edebatte-before-product-expectation-cleanup.json` | fehlgeschlagen, Report geschrieben | Baseline vor diesem Slice: 55 Testdateien rot, 29 Tests rot, 2083 Tests gruen |
+| `pnpm -C apps/web exec vitest run tests/no-duplicate-primary-worksurface-on-create.test.ts --reporter=verbose` | erfolgreich | Primary-worksurface-Spezialpruefung gezielt verifiziert |
+| `pnpm -C apps/web exec vitest run tests/no-internal-query-leak-in-create-ui.test.ts --reporter=verbose` | erfolgreich | Query-Leak-Spezialpruefung gezielt verifiziert |
+| `pnpm -C apps/web exec vitest run` mit allen betroffenen Create-/Start-/Landing-/Pricing-/Region-/Runden-Testdateien | erfolgreich | Erwartungsdrift-Cluster gezielt bereinigt und verifiziert |
+| `pnpm -C apps/web exec vitest run --reporter=json --outputFile /private/tmp/vitest-edebatte-after-product-expectation-cleanup.json` | erfolgreich, Report geschrieben | Endstand nach diesem Slice: 0 Testdateien rot, 0 Tests rot, 2115 Tests gruen |
 
 Nicht ausgeführt:
 
@@ -403,46 +401,48 @@ Diese Befehle wurden in diesem Audit nicht neu validiert.
 
 Testergebnis vorher/nachher:
 
-- vorher: `71` fehlschlagende Testdateien / `37` fehlschlagende Tests / `2075` gruene Tests
-- nachher: `55` fehlschlagende Testdateien / `29` fehlschlagende Tests / `2083` gruene Tests
+- vorher: `55` fehlschlagende Testdateien / `29` fehlschlagende Tests / `2083` gruene Tests
+- nachher: `0` fehlschlagende Testdateien / `0` fehlschlagende Tests / `2115` gruene Tests
 
 Geschlossene Cluster in diesem Follow-up:
 
-- `apps/web/tests/v1-feed-radar-runtime.contract.test.ts`
-- `apps/web/tests/source-feed-automation-contract.test.ts`
-- `apps/web/tests/source-feed-health-readmodel.contract.test.ts`
-- `apps/web/tests/themenradar-feed-cluster.contract.test.ts`
-- `apps/web/tests/themenradar-no-autopublish.contract.test.ts`
-- `apps/web/tests/content-zone-inventory.test.ts`
-- `apps/web/tests/gov-sec-03b.zone-inventory.test.ts`
-- `apps/web/tests/route-security-inventory.test.ts`
+- veraltete Create-/Start-/Landing-Erwartungen
+- Pricing-CTA-/Add-on-/Segment-Erwartungen
+- Region-/Runden-/Start-Handoff-Drift
+- `no-duplicate-primary-worksurface-on-create`
+- `no-internal-query-leak-in-create-ui`
+- verbleibende `v1-production-ready-critical-journeys`-, Navigation- und Human-Readable-Contracts
 
 Offene Cluster nach diesem Follow-up:
 
-- Create-/Start-/Landing-/Pricing-Erwartungsdrift ausserhalb dieses technischen Slice-Fokus
-- weitere Runden-/Region-/Start-Handoff-Faelle, die noch verifiziert werden muessen
-- zwei verbleibende Suitefehler ohne Assertion-Report (`no-duplicate-primary-worksurface-on-create`, `no-internal-query-leak-in-create-ui`)
+- keine verbleibenden roten lokalen Web-Testcluster im `vitest`-Vollpfad
 
 Geaenderte Dateien in diesem Follow-up:
 
-- `apps/web/tests/v1-feed-radar-runtime.contract.test.ts`
-- `apps/web/tests/source-feed-automation-contract.test.ts`
-- `apps/web/tests/source-feed-health-readmodel.contract.test.ts`
-- `apps/web/tests/themenradar-feed-cluster.contract.test.ts`
-- `apps/web/tests/themenradar-no-autopublish.contract.test.ts`
-- `apps/web/src/features/security/contentZoneInventory.ts`
-- `apps/web/src/features/security/routeSecurityInventory.ts`
-- `docs/E150/GOV-SEC-03B_ZONE_INVENTORY_2026-03-27.json`
+- `apps/web/src/features/quickActions/taskFirstQuickActions.ts`
+- `apps/web/src/features/start/LandingCreateLightEntry.tsx`
+- `apps/web/src/features/surfaces/runden/manualAnlassraumSetup.ts`
+- `apps/web/tests/analyze-workbench-hidden-until-start.test.ts`
+- `apps/web/tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`
+- `apps/web/tests/create-graph-match-after-planner.contract.test.ts`
+- `apps/web/tests/create-handoff-draft.contract.test.ts`
+- `apps/web/tests/demo-create.page.contract.test.ts`
+- `apps/web/tests/entry-hero-identity.contract.test.tsx`
+- `apps/web/tests/gradient-headline-i18n.render.test.tsx`
+- `apps/web/tests/{initiative-nav-label.contract,navigation-initiative-label.contract,landing-clarity.contract,landing-information-architecture.contract,member-checkbox-flow.contract,mobile-entry-routes.contract,pricing-b2b-secondary-only.contract,pricing-institutionen-b2b-partner.contract,pricing-institutionen-page.contract,region-contract,runden-context-human-readable-only,runden-public-anlassraum-status.contract,runden-public-sharing-guide.contract,start-shared-create-composer.contract,swipes-arrival.helpers,no-duplicate-primary-worksurface-on-create,no-internal-query-leak-in-create-ui,institutional-addon-priority-bands.contract,institutional-cta-hierarchy.contract,v1-production-ready-critical-journeys.contract}.test*`
 - `docs/E150/OpenTasks.md`
 - `docs/REPO_IMPLEMENTATION_AUDIT.md`
 
-Echte Produktbugs wurden in diesem Follow-up nicht eindeutig behoben.
+Echte Produktbugs bzw. technische Maengel wurden in diesem Follow-up punktuell behoben:
 
-Die Aenderungen blieben auf Tests, Mocks und Isolationshaertungen beschraenkt; produktive Datenpfade und Routing wurden in diesem Slice nicht veraendert.
+- fehlender Start->Runden-Handoff-Helper `deriveManualAnlassraumSetupFromStartDraft`
+- sichtbare technische `review-first`-Sprache in oeffentlichen Start-/Quick-Action-Texten
+
+Die produktiven Datenpfade und das Routing blieben unveraendert. Geaendert wurden nur Tests, kleine Sprachhaertungen und ein bestehender Handoff-Helper.
 
 Klare Empfehlung:
 
-`veraltete Produkt-Erwartungen bereinigen`
+`jetzt P0/P1 Produktpunkte umsetzen`
 
 ## 14. Durchgefuehrter technischer Stabilisierungsslice
 
@@ -459,4 +459,6 @@ Durchgefuehrt wurden stattdessen nur technische Haertungen auf bestehender Archi
 - exakter Mock fuer `@/features/swipes/publicTopicSupply` plus harmlose Feed-Automation-Nebendependenzen in `v1-feed-radar-runtime.contract.test.ts`
 - eingefrorene Testzeit fuer Feed-/Source-Automation- und Themenradar-Contracts, damit recency-basierte Readmodels deterministisch bleiben
 - Aktualisierung der Security-/Inventory-Source-Anker auf den belegbaren aktuellen Code-Stand, ohne Security-Assertions abzuschwächen
-- Fortschreibung von `docs/E150/OpenTasks.md` und `docs/REPO_IMPLEMENTATION_AUDIT.md` auf den verifizierten Slice-Stand
+- Sichtbare Technik-Sprache auf `/start` in den oeffentlichen Quick-Action-Texten entschaerft, ohne Safety-/Review-Gates abzuschwaechen
+- fehlenden Start->Runden-Handoff-Helper in `manualAnlassraumSetup.ts` wiederhergestellt
+- Fortschreibung von `docs/E150/OpenTasks.md` und `docs/REPO_IMPLEMENTATION_AUDIT.md` auf den verifizierten Slice-Stand `55/29 -> 0/0`

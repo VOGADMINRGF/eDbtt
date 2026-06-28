@@ -21,7 +21,7 @@ describe("member checkbox flow contract", () => {
 
     expect(html).toContain("Ich möchte zusätzlich die VoiceOpenGov-Mitgliedschaft beantragen.");
     expect(html).toContain("Mitgliedschaft und Paketfreischaltung werden getrennt geführt.");
-    expect(html).toContain("Für Mitglieder gilt beim Paket „Interessiert“ der kostenfreie Einstieg.");
+    expect(html).toContain("Die finale Bestätigung erfolgt separat per E-Mail-Link.");
     expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €");
   });
 

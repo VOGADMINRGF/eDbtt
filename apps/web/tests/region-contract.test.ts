@@ -11,7 +11,7 @@ import {
 
 describe("region contract", () => {
   it("covers required region types and keeps region scope explicit", () => {
-    expect(REGION_TYPES).toEqual(["bezirk", "kommune", "landkreis", "quartier", "region"]);
+    expect(REGION_TYPES).toEqual(["bezirk", "kommune", "land", "landkreis", "quartier", "region"]);
 
     const fixtures = listRegions();
     expect(fixtures.length).toBeGreaterThanOrEqual(3);

@@ -39,9 +39,8 @@ function renderHeadline(locale: "de" | "en") {
 describe("gradient headline i18n render", () => {
   it("renders DE gradient-target words", () => {
     const html = renderHeadline("de");
-    expect(html).toContain("Meinung");
-    expect(html).toContain("Stimme");
-    expect(html).toContain("Gewicht");
+    expect(html).toContain("Beschreibe,");
+    expect(html).toContain("was geklärt werden soll");
   });
 
   it("renders EN gradient-target words", () => {

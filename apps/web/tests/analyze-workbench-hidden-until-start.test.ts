@@ -283,6 +283,10 @@ describe("analyze workbench progressive disclosure", () => {
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
+    const surfaceConfigSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/createSurfaceConfig.ts"),
+      "utf8",
+    );
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("buildCreateLinkSourceNotice");
     expect(linkIntakeSource).toContain("Der Link bleibt vorerst ein Quellenhinweis. Der Inhalt wurde noch nicht automatisch ausgewertet.");
@@ -306,7 +310,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
-    expect(source).toContain("Faktencheck / Deep Search");
+    expect(linkIntakeSource).toContain("Faktencheck / Deep Search startet erst nach bewusster Bestätigung.");
     expect(source).not.toContain("Details zum Originaltext");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Original oben anzeigen");
@@ -327,6 +331,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("handleContinueConversation");
     expect(clientSource).toContain("CreateInlineAnalysisScene");
     expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(surfaceConfigSource).toContain('followupReviewFrameTitle: "Prüfmodus geöffnet"');
     expect(workspaceSource).toContain("shouldRenderCompactEmbeddedWorkspaceHeader");
     expect(workspaceSource).toContain("shouldUseInlineCreateActionBar");
     expect(workspaceSource).toContain("Im selben Arbeitsraum");
@@ -384,10 +389,21 @@ describe("analyze workbench progressive disclosure", () => {
 
   it("makes review request and factcheck paths explicit in the create client", () => {
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
+    const surfaceConfigSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/createSurfaceConfig.ts"),
+      "utf8",
+    );
+    const linkClarificationSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateLinkIntakeClarification.tsx"),
+      "utf8",
+    );
     expect(clientSource).toContain("/api/create/save");
     expect(clientSource).toContain("manualReviewRequested");
     expect(clientSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
-    expect(clientSource).toContain("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
+    expect(surfaceConfigSource).toContain('followupReviewFrameTitle: "Prüfmodus geöffnet"');
+    expect(linkClarificationSource).toContain(
+      "Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.",
+    );
     expect(clientSource).toContain("setReviewRequestState(\"saving\")");
     expect(clientSource).toContain("setFactcheckMessage(");
   });

@@ -35,7 +35,7 @@ describe("pricing-institutionen-b2b-partner.contract", () => {
   it("routes B2B CTAs to /order with organisation segment and completion context", async () => {
     const html = await renderB2BPage();
 
-    expect(html).toContain("Pilot vormerken");
+    expect(html).toContain("Freischaltung anfragen");
     expect(html).toContain("Demo anfragen");
     expect(html).toContain("Projektpaket anfragen");
     expect(html).toContain("Partnergespräch vereinbaren");

@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+vi.mock("server-only", () => ({}));
+
 const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
   getDraft: vi.fn(),
+  resolveCurrentRequestScopeContext: vi.fn(),
+  summarizeRequestScopeContext: vi.fn(),
 }));
 
 vi.mock("@/lib/server/entitlements/createEntitlements", () => ({
@@ -17,6 +21,21 @@ vi.mock("@features/account/service", () => ({
 
 vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
+}));
+
+vi.mock("@/server/createContributionDrafts", () => ({
+  getCreateContributionDraftForResume: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: (...args: unknown[]) => mocks.resolveCurrentRequestScopeContext(...args),
+  summarizeRequestScopeContext: (...args: unknown[]) => mocks.summarizeRequestScopeContext(...args),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 import CreatePage from "@/app/create/page";
@@ -73,6 +92,8 @@ describe("create primary surface dedupe", () => {
       verificationMethods: [],
     });
     mocks.getDraft.mockResolvedValue(null);
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
+    mocks.summarizeRequestScopeContext.mockReturnValue(null);
   });
 
   it("renders one primary intake workspace before start", async () => {
@@ -82,8 +103,8 @@ describe("create primary surface dedupe", () => {
     const html = renderToStaticMarkup(tree);
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
-    expect(html).toContain("Deine");
-    expect(html).toContain("Meinung");
+    expect(html).toContain("Schreib auf, was dich");
+    expect(html).toContain("beschäftigt");
     expect(html).not.toContain("Beitrag erfassen");
   });
 });

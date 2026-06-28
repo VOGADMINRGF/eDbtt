@@ -12,12 +12,12 @@ describe("institutional-addon-priority-bands.contract", () => {
     const html = await renderPage();
 
     const recommendedIndex = html.indexOf("Empfohlene Erweiterungen");
-    const optionalIndex = html.indexOf("Optional");
-    const needBasedIndex = html.indexOf("Nur bei Bedarf");
+    const recommendationSection = html.slice(recommendedIndex);
+    const optionalIndex = recommendationSection.indexOf("Optional");
+    const needBasedIndex = recommendationSection.indexOf("Nur bei Bedarf");
 
     expect(recommendedIndex).toBeGreaterThan(-1);
-    expect(optionalIndex).toBeGreaterThan(recommendedIndex);
+    expect(optionalIndex).toBeGreaterThan(-1);
     expect(needBasedIndex).toBeGreaterThan(optionalIndex);
   });
 });
-

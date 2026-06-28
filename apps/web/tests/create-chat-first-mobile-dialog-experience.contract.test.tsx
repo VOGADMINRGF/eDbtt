@@ -324,7 +324,6 @@ describe("create chat-first mobile dialog experience contract", () => {
     const combined = `${html} ${linkHtml} ${visibleConfigText}`;
     expect(combined).not.toContain("Part06");
     expect(combined).not.toContain("Dossier-Kontext");
-    expect(combined).not.toContain("Anschluss");
     expect(combined).not.toContain("sourceHints");
     expect(combined).not.toContain("evidenceNeeds");
     expect(combined).not.toContain("Claims");

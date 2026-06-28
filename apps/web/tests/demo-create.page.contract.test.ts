@@ -18,16 +18,15 @@ describe("/demo/create shared intake surface", () => {
     });
     const html = renderToStaticMarkup(createElement(LocaleProvider, { initialLocale: "de" }, tree));
 
-    expect(html).toContain("Deine");
-    expect(html).toContain("Meinung");
+    expect(html).toContain("Beschreibe,");
+    expect(html).toContain("was geklärt werden soll");
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
     expect(html).toContain("demo-create-primary-intake");
-    expect(html).toContain("Quelle einreichen");
-    expect(html).toContain("Offene Frage");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
+    expect(html).toContain("Statussprache bleibt konsistent");
     expect(html).not.toContain("Was möchtest du einreichen?");
   });
 });
