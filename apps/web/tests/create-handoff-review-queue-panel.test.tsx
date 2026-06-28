@@ -58,6 +58,31 @@ describe("create handoff review queue panel", () => {
     );
   });
 
+  it("renders factcheck runtime submission as source review instead of confirmed truth", () => {
+    const draft = createHandoffDraftFromDialogOutcome(
+      DIALOG_INTELLIGENCE_PREVIEW_FIXTURES.reviewReadySourceBlocked,
+      "factcheck_request",
+    );
+    const reviewQueueItem = markReviewQueueItemQueued(
+      createReviewQueueItemFromHandoffDraft(draft),
+    );
+
+    const html = renderToStaticMarkup(
+      <CreateHandoffDraftSummary
+        draft={draft}
+        reviewQueueItem={reviewQueueItem}
+        onQueueForReview={() => {}}
+        runtimeSubmissionState="submitted"
+      />,
+    );
+
+    expect(html).toContain("Zur Quellenprüfung übergeben");
+    expect(html).toContain(
+      "Die Aussage wurde zur Prüfung vorgemerkt. Es wurde noch keine Wahrheit bestätigt und keine Quelle automatisch bewertet.",
+    );
+    expect(html).not.toContain("Wahrheit wurde bestätigt");
+  });
+
   it("keeps CreateVisualFollowup wired to the existing review queue runtime bridge", () => {
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
@@ -71,6 +96,10 @@ describe("create handoff review queue panel", () => {
       resolve(process.cwd(), "src/features/create/createHandoffReviewQueueRuntimeBridge.ts"),
       "utf8",
     );
+    const factcheckBridgeSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/factcheckSourceAdapterBridge.ts"),
+      "utf8",
+    );
 
     expect(followupSource).toContain("setPreparedReviewQueueItem");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
@@ -80,7 +109,9 @@ describe("create handoff review queue panel", () => {
     expect(followupSource).toContain("runtimeSubmissionState={reviewQueueRuntimeState}");
     expect(summarySource).toContain("Zur Prüfung vormerken");
     expect(summarySource).toContain("Zur redaktionellen Prüfung übergeben");
+    expect(summarySource).toContain("Zur Quellenprüfung übergeben");
     expect(bridgeSource).toContain("/api/create/handoffs");
+    expect(factcheckBridgeSource).toContain("/api/factcheck/enqueue");
     expect(followupSource).not.toContain("router.push(");
     expect(followupSource).not.toContain("/api/admin/review");
   });
