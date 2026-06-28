@@ -74,10 +74,30 @@ describe("existing topic matches panel", () => {
       <ExistingTopicMatchesPanel model={EXISTING_TOPIC_MATCH_PANEL_PREVIEW_MODEL} />,
     );
 
+    expect(html).toContain("Preview auf Basis lokaler Beispieldaten");
     expect(html).toContain("Das sind Anschlussvorschläge, keine automatische Zusammenführung.");
     expect(html).not.toContain("zusammengeführt");
     expect(html).not.toContain("Graph erstellt");
     expect(html).not.toContain("Auto-Merge");
+  });
+
+  it("shows an explicit empty state when no runtime match is strong enough", () => {
+    const html = renderToStaticMarkup(
+      <ExistingTopicMatchesPanel
+        model={{
+          ...EXISTING_TOPIC_MATCH_PANEL_PREVIEW_MODEL,
+          matches: [],
+          sourceKind: "runtime",
+          sourceLabel: "Gefundene Anschlüsse aus vorhandenen eDebatte-Strukturen",
+          emptyStateText:
+            "Aus vorhandenen eDebatte-Strukturen wurde kein belastbarer Anschluss gefunden. Du kannst bewusst einen neuen Zweig starten.",
+        }}
+      />,
+    );
+
+    expect(html).toContain("Gefundene Anschlüsse aus vorhandenen eDebatte-Strukturen");
+    expect(html).toContain("kein belastbarer Anschluss gefunden");
+    expect(html).not.toContain("fixture-topic-weak");
   });
 
   it("keeps opinion clusters carefully worded and shows source review need", () => {

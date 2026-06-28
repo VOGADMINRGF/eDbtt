@@ -101,4 +101,7 @@ export const EXISTING_TOPIC_MATCH_PANEL_PREVIEW_MODEL = {
   ],
   guardrailNote:
     "Das sind Anschlussvorschläge, keine automatische Zusammenführung.",
+  sourceKind: "preview",
+  sourceLabel: "Preview auf Basis lokaler Beispieldaten",
+  emptyStateText: null,
 } as const satisfies ExistingTopicMatchPanelModel;
