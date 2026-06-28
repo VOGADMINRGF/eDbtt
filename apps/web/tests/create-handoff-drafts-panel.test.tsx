@@ -26,6 +26,9 @@ describe("create handoff draft summary panel", () => {
     expect(html).toContain("Status:");
     expect(html).toContain("Offene Fragen");
     expect(html).toContain("Zur Prüfung vormerken");
+    expect(html).toContain("Community Source Review");
+    expect(html).toContain("Community kann Quellenhinweise beitragen");
+    expect(html).toContain("Quelle vorschlagen");
     expect(html).toContain("Review-first: keine automatische Veröffentlichung oder Erstellung.");
   });
 
@@ -54,6 +57,8 @@ describe("create handoff draft summary panel", () => {
     expect(summarySource).toContain("Vorbereitung gespeichert");
     expect(summarySource).toContain("Zur Prüfung vormerken");
     expect(summarySource).toContain("Zur redaktionellen Prüfung übergeben");
+    expect(summarySource).toContain("Community Source Review");
+    expect(summarySource).toContain("Gegenbeleg vorschlagen");
     expect(bridgeSource).toContain("/api/create/handoffs");
     expect(followupSource).not.toContain("router.push(");
   });
