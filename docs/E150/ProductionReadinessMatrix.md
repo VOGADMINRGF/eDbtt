@@ -69,6 +69,7 @@ Die folgenden Juni-Slices sind im SSOT jetzt als erledigt verankert, heben aber 
 | `CREATE-PLANNER-CORE-FOLLOWUP-23` nach PR #225 | `/create` ist fuer den dokumentierten Mehrthemen-Fall UX-/Flow-seitig weitergefuehrt statt Sackgasse | kein neues Claim-Level fuer Planner-/Analyze-Gesamtqualitaet oder automatische Handoffs |
 | `PR-VOXY-COCREATION-ACCESS-01` nach PR #227 | Voxy Access ist contract-ready fuer spaetere Studio-/Entitlement-Vorbereitung | keine Runtime-/Paywall-/Checkout-Readiness und keine neue Route-/Auth-Produktlogik |
 | Participation-Slices `#231-#236` | typed Container-, Place-Future-, Shell-, Hardening-, Visual-Polish- und Index-Scope sind erledigt | keine Self-Service-Plattform, keine echte Datenquelle, keine Persistenz, keine Map-/Geo-Runtime |
+| `SELF-SERVICE-ORG-ONBOARDING-01` | Self-Service-Org-Onboarding ist jetzt intake-contract-ready fuer review-first Organisationsanträge | kein produktiver Self-Service-Rollout, kein automatisches Provisioning, keine Registerprüfung, keine Runtime-Rollenvergabe und kein Checkout |
 
 Breitere Folgepfade bleiben bewusst offen: Self-Service ohne Betreiberkante, breitere Source-Adapter-/Automation, Material-Extraction-Runtime, Checkout/Billing jenseits des vorhandenen Provider-Unterbaus sowie Live-Excellence-Phase 2.
 
