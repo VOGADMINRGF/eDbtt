@@ -77,6 +77,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("CreateStructureOverview");
     expect(followupSource).toContain("UserContributionBubble");
     expect(followupSource).toContain("AssistantUnderstandingBubble");
+    expect(followupSource).toContain("DialogResultsHandoffPanel");
     expect(followupSource).toContain("CompactPreviewCard");
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
@@ -169,6 +170,7 @@ describe("create curated dialog workspace contract", () => {
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
     expect(html).toContain("Details ansehen");
+    expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
     expect(html).not.toContain("Vorgeschlagener Arbeitsstand");

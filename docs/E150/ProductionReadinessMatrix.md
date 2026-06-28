@@ -70,7 +70,7 @@ Die folgenden Juni-Slices sind im SSOT jetzt als erledigt verankert, heben aber 
 | `PR-VOXY-COCREATION-ACCESS-01` nach PR #227 | Voxy Access ist contract-ready fuer spaetere Studio-/Entitlement-Vorbereitung | keine Runtime-/Paywall-/Checkout-Readiness und keine neue Route-/Auth-Produktlogik |
 | Participation-Slices `#231-#236` | typed Container-, Place-Future-, Shell-, Hardening-, Visual-Polish- und Index-Scope sind erledigt | keine Self-Service-Plattform, keine echte Datenquelle, keine Persistenz, keine Map-/Geo-Runtime |
 | `SELF-SERVICE-ORG-ONBOARDING-01` | Self-Service-Org-Onboarding ist jetzt intake-contract-ready fuer review-first Organisationsanträge | kein produktiver Self-Service-Rollout, kein automatisches Provisioning, keine Registerprüfung, keine Runtime-Rollenvergabe und kein Checkout |
-| `DIALOG-INTELLIGENCE-RESULTS-01` | Dialog Intelligence ist jetzt contract-ready und result-model-ready fuer erkannte Standpunkte, Rueckfragen, Perspektiven und review-first Handoffs | keine full AI runtime, keine Personalisierungs-/Profiling-Runtime, keine Source-/Factcheck-Integration und keine automatische Veröffentlichung |
+| `DIALOG-INTELLIGENCE-RESULTS-01` + `DIALOG-RESULTS-HANDOFF-UI-02` | Dialog Intelligence ist jetzt contract-ready, result-model-ready und basic UI-visible als Ergebnispanel im bestehenden Create-/Voxy-Follow-up | keine AI-runtime-ready Einstufung, keine vollständige Handoff-Runtime, keine Personalisierungs-/Profiling-Runtime und keine Source-/Factcheck-Integration |
 
 Breitere Folgepfade bleiben bewusst offen: Self-Service ohne Betreiberkante, breitere Source-Adapter-/Automation, Material-Extraction-Runtime, Checkout/Billing jenseits des vorhandenen Provider-Unterbaus sowie Live-Excellence-Phase 2.
 
