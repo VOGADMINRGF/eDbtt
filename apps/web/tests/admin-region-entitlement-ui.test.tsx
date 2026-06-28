@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: () => undefined,
+    push: () => undefined,
+    replace: () => undefined,
+    prefetch: async () => undefined,
+    back: () => undefined,
+    forward: () => undefined,
+  }),
+}));
+
 vi.mock("@features/region", async () => {
   const actual = await vi.importActual<object>("@features/region");
   return {

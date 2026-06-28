@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   createInMemoryParticipationSignalReviewRuntimeRepo,
@@ -7,6 +7,17 @@ import {
   setRegionDataRepoForTests,
 } from "@features/region";
 import AdminRegionPage from "@/app/admin/region/page";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: () => undefined,
+    push: () => undefined,
+    replace: () => undefined,
+    prefetch: async () => undefined,
+    back: () => undefined,
+    forward: () => undefined,
+  }),
+}));
 
 describe("admin-region participation signals", () => {
   it("renders public participation signals as anonymized, aggregated and non-official", async () => {

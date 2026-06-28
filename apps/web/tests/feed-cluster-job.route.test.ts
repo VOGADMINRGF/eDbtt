@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   requireGate: vi.fn(),
   runClusterJob: vi.fn(),
+  recordFeedRuntimeRun: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/governance", () => ({
@@ -12,6 +13,10 @@ vi.mock("@/lib/server/auth/governance", () => ({
 
 vi.mock("@features/feeds/clusterJob", () => ({
   runFeedAnlassraumClusterJob: (...args: unknown[]) => mocks.runClusterJob(...args),
+}));
+
+vi.mock("@features/feeds/runtimeLog", () => ({
+  recordFeedRuntimeRun: (...args: unknown[]) => mocks.recordFeedRuntimeRun(...args),
 }));
 
 import { POST as runPOST } from "@/app/api/admin/feeds/cluster/run/route";
@@ -35,6 +40,7 @@ describe("feed cluster-job run route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireGate.mockResolvedValue(gateAccess);
+    mocks.recordFeedRuntimeRun.mockResolvedValue(undefined);
   });
 
   it("returns successful cluster run response", async () => {

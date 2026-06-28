@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
     queued: 0,
     failed: 0,
   })),
+  recordFeedRuntimeRun: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/app/api/feeds/_auth", () => ({
@@ -69,6 +70,10 @@ vi.mock("@features/feeds/analyzePending", () => ({
     mocks.analyzePendingStatementCandidates(...args),
 }));
 
+vi.mock("@features/feeds/runtimeLog", () => ({
+  recordFeedRuntimeRun: (...args: unknown[]) => mocks.recordFeedRuntimeRun(...args),
+}));
+
 import { POST as pullPOST } from "@/app/api/feeds/pull/route";
 import { POST as batchPOST } from "@/app/api/feeds/batch/route";
 import { GET as candidatesGET } from "@/app/api/feeds/candidates/route";
@@ -81,6 +86,7 @@ function req(url: string, init?: RequestInit) {
 describe("feeds editor-token scope route contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.recordFeedRuntimeRun.mockResolvedValue(undefined);
   });
 
   it("blocks /api/feeds/pull when gate denies access", async () => {

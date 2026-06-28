@@ -93,6 +93,13 @@ vi.mock("@core/db/triMongo", async () => {
   };
 });
 
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: vi.fn(async () => ({
+    _id: { toHexString: () => "user-1" },
+    sessionValid: true,
+  })),
+}));
+
 import { POST } from "@/app/api/contributions/finalize/route";
 
 function req(body: Record<string, unknown>) {

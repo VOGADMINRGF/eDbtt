@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
   feedStatementsCol: vi.fn(),
   anlassraumCol: vi.fn(),
   listRecentRuns: vi.fn(),
+  buildPublicTopicSupplyReadModel: vi.fn(),
+  buildFeedSourceAutomationReadModel: vi.fn(),
+  buildMaterialExtractionJobReadModel: vi.fn(),
+  resolveAiFlowIntegration: vi.fn(),
 }));
 
 function countCollection(counts: Record<string, number>) {
@@ -31,6 +35,25 @@ vi.mock("@features/anlassraum/db", () => ({
 
 vi.mock("@features/feeds/runtimeLog", () => ({
   listRecentFeedRuntimeRuns: (...args: unknown[]) => mocks.listRecentRuns(...args),
+}));
+
+vi.mock("@features/swipes/publicTopicSupply", () => ({
+  buildPublicTopicSupplyReadModel: (...args: unknown[]) =>
+    mocks.buildPublicTopicSupplyReadModel(...args),
+}));
+
+vi.mock("@features/feeds/sourceAutomation", () => ({
+  buildFeedSourceAutomationReadModel: (...args: unknown[]) =>
+    mocks.buildFeedSourceAutomationReadModel(...args),
+}));
+
+vi.mock("@/features/material/materialExtractionJobs", () => ({
+  buildMaterialExtractionJobReadModel: (...args: unknown[]) =>
+    mocks.buildMaterialExtractionJobReadModel(...args),
+}));
+
+vi.mock("@/features/ai/v2OrchestrationPolicy", () => ({
+  resolveAiFlowIntegration: (...args: unknown[]) => mocks.resolveAiFlowIntegration(...args),
 }));
 
 import { buildFeedRadarRuntimeReadModel } from "@features/feeds/runtimeReadModel";
@@ -86,6 +109,18 @@ describe("v1 feed radar runtime contract", () => {
         error: "analyze_pending_partial_error",
       },
     ]);
+    mocks.buildPublicTopicSupplyReadModel.mockResolvedValue(null);
+    mocks.buildFeedSourceAutomationReadModel.mockResolvedValue(null);
+    mocks.buildMaterialExtractionJobReadModel.mockResolvedValue(null);
+    mocks.resolveAiFlowIntegration.mockImplementation((flow: string) => ({
+      lane: flow,
+      laneLabel: `Lane ${flow}`,
+      outputLabel: `Output ${flow}`,
+      reviewRequired: true,
+      draftOnly: true,
+      publicOutputAllowed: false,
+      costApprovalRequired: flow === "material_extraction",
+    }));
   });
 
   it("summarizes the runtime as review-first and routes follow-up to existing surfaces", async () => {

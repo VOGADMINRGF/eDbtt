@@ -2,15 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
-  aggregateToArray: vi.fn(),
+  workflowList: vi.fn(async () => []),
   loggerWarn: vi.fn(),
+  requestScope: vi.fn(async () => null),
 }));
 
 vi.mock("@features/factcheck/db", () => ({
-  factcheckJobsCol: vi.fn(async () => ({
-    aggregate: vi.fn(() => ({
-      toArray: (...args: unknown[]) => mocks.aggregateToArray(...args),
-    })),
+  getFactcheckWorkflowRepo: vi.fn(() => ({
+    list: (...args: unknown[]) => mocks.workflowList(...args),
   })),
 }));
 
@@ -22,13 +21,18 @@ vi.mock("@core/observability/logger", () => ({
   },
 }));
 
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveRequestScopeContext: (...args: unknown[]) => mocks.requestScope(...args),
+}));
+
 import { GET as factcheckStatusGET } from "@/app/api/factcheck/status/route";
 
 describe("factcheck status auth contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.INTERNAL_WORKER_TOKEN;
-    mocks.aggregateToArray.mockResolvedValue([]);
+    mocks.workflowList.mockResolvedValue([]);
+    mocks.requestScope.mockResolvedValue(null);
   });
 
   it("blocks query role bypass and emits structured denied audit fields", async () => {
@@ -37,7 +41,7 @@ describe("factcheck status auth contract", () => {
     expect(res.status).toBe(403);
 
     const denyPayload = mocks.loggerWarn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(denyPayload?.denyReason).toBe("missing_permission");
+    expect(denyPayload?.denyReason).toBe("operator_scope_required");
     expect(denyPayload?.systemIdentitySource).toBeNull();
     expect(denyPayload?.systemIdentityActorKind).toBeNull();
   });
@@ -80,7 +84,8 @@ describe("factcheck status auth contract", () => {
     expect(res.status).toBe(200);
   });
 
-  it("keeps cookie session role path working", async () => {
+  it("allows trusted operator request scope", async () => {
+    mocks.requestScope.mockResolvedValue({ isOperatorMode: true });
     const req = new NextRequest("http://localhost/api/factcheck/status", {
       headers: { cookie: "u_role=editor" },
     });

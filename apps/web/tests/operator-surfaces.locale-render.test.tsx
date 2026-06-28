@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { LocaleProvider } from "@/context/LocaleContext";
+import { resolveCreateSurfaceLocale } from "@/features/create/createSurfaceConfig";
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "65f000000000000000000111" }),
+  useRouter: () => ({
+    refresh: () => undefined,
+    push: () => undefined,
+    replace: () => undefined,
+    prefetch: async () => undefined,
+    back: () => undefined,
+    forward: () => undefined,
+  }),
 }));
 
 vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
@@ -80,13 +89,15 @@ describe("operator surface locale render", () => {
     "renders key operator surfaces in %s",
     (locale) => {
       const expected = getOperatorSystemTexts(locale);
+      const createLocale = resolveCreateSurfaceLocale(locale);
+      const expectedCreateModeLabel = createLocale === "en" ? "Prepare contribution" : "Beitrag vorbereiten";
       const createHtml = renderWithLocale(
         locale,
         <CreateClient initialEntitlements={ENTITLEMENTS as any} overview={OVERVIEW as any} />,
       );
-      // Create is currently DE-first in the primary intake block; keep this
-      // assertion stable against locale while still checking render viability.
-      expect(createHtml).toContain("Beitrag erfassen");
+      expect(createHtml).toContain(expectedCreateModeLabel);
+      expect(createHtml).toContain(createLocale === "en" ? "What is on your mind?" : "Schreib auf, was dich");
+      expect(createHtml).toContain("create-dialog-workspace");
 
       const feedHtml = renderWithLocale(locale, <AdminFeedsPage />);
       expect(feedHtml).toContain(expected.feeds.headerTitle);

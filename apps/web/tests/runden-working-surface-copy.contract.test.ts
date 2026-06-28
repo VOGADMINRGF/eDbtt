@@ -4,6 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({
   listRundenEntryItems: vi.fn(),
   readSession: vi.fn(),
+  resolveCurrentRequestScopeContext: vi.fn(),
+  requestScopeCanManageOrganizationVisibility: vi.fn(),
+  requestScopeCanWriteOrganizationRoutes: vi.fn(),
+  buildOrganizationDashboardReadModel: vi.fn(),
+  organizationEntitlementAllowsScope: vi.fn(),
+  organizationContractAllowsProvisionedScope: vi.fn(),
 }));
 
 vi.mock("@features/topicRound/entrySource", () => ({
@@ -14,6 +20,28 @@ vi.mock("@/utils/session", () => ({
   readSession: (...args: unknown[]) => mocks.readSession(...args),
 }));
 
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: (...args: unknown[]) =>
+    mocks.resolveCurrentRequestScopeContext(...args),
+  requestScopeCanManageOrganizationVisibility: (...args: unknown[]) =>
+    mocks.requestScopeCanManageOrganizationVisibility(...args),
+  requestScopeCanWriteOrganizationRoutes: (...args: unknown[]) =>
+    mocks.requestScopeCanWriteOrganizationRoutes(...args),
+}));
+
+vi.mock("@features/region", async () => {
+  const actual = await vi.importActual<typeof import("@features/region")>("@features/region");
+  return {
+    ...actual,
+    buildOrganizationDashboardReadModel: (...args: unknown[]) =>
+      mocks.buildOrganizationDashboardReadModel(...args),
+    organizationEntitlementAllowsScope: (...args: unknown[]) =>
+      mocks.organizationEntitlementAllowsScope(...args),
+    organizationContractAllowsProvisionedScope: (...args: unknown[]) =>
+      mocks.organizationContractAllowsProvisionedScope(...args),
+  };
+});
+
 import RundenPage from "@/app/runden/page";
 
 describe("runden working surface copy contract", () => {
@@ -23,6 +51,12 @@ describe("runden working surface copy contract", () => {
       uid: "65f000000000000000000301",
       roles: ["creator"],
     });
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
+    mocks.requestScopeCanManageOrganizationVisibility.mockReturnValue(false);
+    mocks.requestScopeCanWriteOrganizationRoutes.mockReturnValue(false);
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(null);
+    mocks.organizationEntitlementAllowsScope.mockReturnValue(false);
+    mocks.organizationContractAllowsProvisionedScope.mockReturnValue(false);
   });
 
   it("keeps /runden framed as an Anlassraum working surface instead of admin language", async () => {

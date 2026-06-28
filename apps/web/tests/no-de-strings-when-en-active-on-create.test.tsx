@@ -6,6 +6,17 @@ vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   default: () => null,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: () => undefined,
+    push: () => undefined,
+    replace: () => undefined,
+    prefetch: async () => undefined,
+    back: () => undefined,
+    forward: () => undefined,
+  }),
+}));
+
 import CreateClient, { type CreateClientProps } from "@/app/create/CreateClient";
 import { LocaleProvider } from "@/context/LocaleContext";
 
@@ -68,16 +79,17 @@ describe("no DE strings when EN active on create", () => {
       </LocaleProvider>,
     );
 
+    expect(html).toContain("What is on your mind?");
+    expect(html).toContain("Prepare contribution");
+    expect(html).toContain("Sort my text");
+    expect(html).toContain("Check source/file");
     expect(html).toContain("Contribute");
-    expect(html).toContain("Review");
-    expect(html).toContain("Draft together");
     expect(html).toContain("Attach");
     expect(html).toContain("Voice");
 
-    expect(html).not.toContain("Beitragen");
-    expect(html).not.toContain("Prüfen");
-    expect(html).not.toContain("Entwerfen");
-    expect(html).not.toContain("Zu den Anlässen");
-    expect(html).not.toContain("Kontext (optional)");
+    expect(html).not.toContain("Schreib auf, was dich beschäftigt.");
+    expect(html).not.toContain("Beitrag vorbereiten");
+    expect(html).not.toContain("Text sortieren lassen");
+    expect(html).not.toContain("Quelle/Datei prüfen");
   });
 });

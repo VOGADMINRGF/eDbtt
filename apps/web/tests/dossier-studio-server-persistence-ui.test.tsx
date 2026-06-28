@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
 import {
   createInMemoryDossierStudioWorkspaceRepo,
   setDossierStudioWorkspaceRepoForTests,
-} from "@features/dossier";
+} from "@features/dossier/server/studioPersistence";
+import {
+  createInMemoryContentReleaseWorkbenchRepo,
+  setContentReleaseWorkbenchRepoForTests,
+} from "@features/contentReleaseWorkbench";
 import {
   buildDraftRecord,
   buildSocialDistributionPlan,
@@ -14,6 +17,75 @@ import {
   generateSocialCarouselOutput,
   getSocialPublishingPolicy,
 } from "@features/outputEngine";
+import {
+  createInMemorySocialDistributionRepo,
+  setSocialDistributionRepoForTests,
+} from "@features/outputEngine/socialDistributionRuntime";
+
+const mocks = vi.hoisted(() => ({
+  loadSocialDistributionQueueReadModel: vi.fn(async () => ({
+    generatedAt: "2026-06-28T00:00:00.000Z",
+    summary: {
+      total: 0,
+      reviewOpen: 0,
+      queued: 0,
+      scheduledReady: 0,
+      exported: 0,
+      blocked: 0,
+    },
+    guardrails: {
+      noAutoPublish: true,
+      noOauthConnectors: true,
+      noOfficialClaim: true,
+      derivedQueue: true,
+    },
+    items: [],
+  })),
+  dossierStudioWorkspaceRepo: null as ReturnType<
+    typeof createInMemoryDossierStudioWorkspaceRepo
+  > | null,
+}));
+
+vi.mock("@core/db/triMongo", async () => {
+  const actual = await vi.importActual<typeof import("@core/db/triMongo")>(
+    "@core/db/triMongo",
+  );
+  return {
+    ...actual,
+    shouldUseInMemoryMongoFallback: () => false,
+  };
+});
+
+vi.mock("@features/dossier/server/studioPersistence", async () => {
+  const actual = await vi.importActual<
+    typeof import("@features/dossier/server/studioPersistence")
+  >("@features/dossier/server/studioPersistence");
+  return {
+    ...actual,
+    getDossierStudioWorkspaceRepo: () =>
+      mocks.dossierStudioWorkspaceRepo ??
+      actual.createInMemoryDossierStudioWorkspaceRepo(),
+    setDossierStudioWorkspaceRepoForTests: (
+      repo: ReturnType<typeof actual.createInMemoryDossierStudioWorkspaceRepo> | null,
+    ) => {
+      mocks.dossierStudioWorkspaceRepo =
+        repo ?? actual.createInMemoryDossierStudioWorkspaceRepo();
+    },
+  };
+});
+
+vi.mock("@features/outputEngine", async () => {
+  const actual = await vi.importActual<typeof import("@features/outputEngine")>(
+    "@features/outputEngine",
+  );
+  return {
+    ...actual,
+    loadSocialDistributionQueueReadModel: (...args: unknown[]) =>
+      mocks.loadSocialDistributionQueueReadModel(...args),
+  };
+});
+
+import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
 
 function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
   const pkg = generateOutputPackage(
@@ -68,7 +140,28 @@ function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
 
 describe("dossier studio server persistence UI", () => {
   beforeEach(() => {
+    mocks.dossierStudioWorkspaceRepo = createInMemoryDossierStudioWorkspaceRepo();
     setDossierStudioWorkspaceRepoForTests(createInMemoryDossierStudioWorkspaceRepo());
+    setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
+    setSocialDistributionRepoForTests(createInMemorySocialDistributionRepo());
+    mocks.loadSocialDistributionQueueReadModel.mockResolvedValue({
+      generatedAt: "2026-06-28T00:00:00.000Z",
+      summary: {
+        total: 0,
+        reviewOpen: 0,
+        queued: 0,
+        scheduledReady: 0,
+        exported: 0,
+        blocked: 0,
+      },
+      guardrails: {
+        noAutoPublish: true,
+        noOauthConnectors: true,
+        noOfficialClaim: true,
+        derivedQueue: true,
+      },
+      items: [],
+    });
   });
 
   it("shows honest empty-state persistence copy when no server workspace exists", async () => {
