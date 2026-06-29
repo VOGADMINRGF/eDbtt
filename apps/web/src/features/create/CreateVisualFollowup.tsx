@@ -37,9 +37,14 @@ import {
 } from "@/features/create/existingTopicMatches";
 import {
   resolveExistingTopicMatchesFromRuntime,
+  type ResolveExistingTopicMatchesFromRuntimeResult,
 } from "@/features/create/existingTopicMatchesRuntimeBridge";
+import {
+  runDialogIntelligenceRuntime,
+  type DialogIntelligenceRuntimeResult,
+  type DialogIntelligenceRuntimeSourceKind,
+} from "@/features/create/dialogIntelligenceRuntimeBridge";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
-import { buildDialogOutcomePreviewFromCreateFollowup } from "@/features/dialog/dialogIntelligenceFixtures";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
 type CreateVisualFollowupProps = {
@@ -135,6 +140,12 @@ type CreateFollowupContentModule = {
 
 type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
 
+type DialogIntelligenceUiSourceState = {
+  kind: DialogIntelligenceRuntimeSourceKind;
+  title: string;
+  detail: string;
+};
+
 type CreateStructureOverviewProps = {
   locale?: "de" | "en";
   prioritiesCount: number;
@@ -162,6 +173,49 @@ const BROAD_TOPIC_FIELD_ORDER = [
   "kommunale Finanzen",
   "Bürgerbeteiligung",
 ] as const;
+
+function resolveDialogIntelligenceUiSourceState(input: {
+  runtimeResult: DialogIntelligenceRuntimeResult;
+  existingTopicMatchesRuntimeStatus: ResolveExistingTopicMatchesFromRuntimeResult["status"];
+}): DialogIntelligenceUiSourceState {
+  if (input.runtimeResult.status === "runtime_ai") {
+    return {
+      kind: "runtime_ai",
+      title: input.runtimeResult.sourceLabel,
+      detail: input.runtimeResult.detail,
+    };
+  }
+  if (
+    input.existingTopicMatchesRuntimeStatus === "runtime" ||
+    input.existingTopicMatchesRuntimeStatus === "hybrid"
+  ) {
+    return {
+      kind: "runtime_readmodel",
+      title: "KI-Auswertung vorbereitet",
+      detail:
+        "Anschlussvorschläge kommen bereits aus vorhandenen Runtime-Readmodels. Die Dialoganalyse selbst bleibt bis zu einer sicheren AI-Verdrahtung vorbereitend.",
+    };
+  }
+  if (input.runtimeResult.status === "preview") {
+    return {
+      kind: "preview",
+      title: input.runtimeResult.sourceLabel,
+      detail: input.runtimeResult.detail,
+    };
+  }
+  if (input.runtimeResult.status === "blocked_unwired") {
+    return {
+      kind: "blocked_unwired",
+      title: input.runtimeResult.sourceLabel,
+      detail: input.runtimeResult.detail,
+    };
+  }
+  return {
+    kind: "error",
+    title: input.runtimeResult.sourceLabel,
+    detail: input.runtimeResult.detail,
+  };
+}
 
 const BROAD_TOPIC_QUESTION_BY_FIELD: Record<(typeof BROAD_TOPIC_FIELD_ORDER)[number], string> = {
   Wohnen: "Soll bezahlbarer Wohnraum Vorrang vor neuen Einzelprojekten bekommen?",
@@ -2562,20 +2616,32 @@ export default function CreateVisualFollowup({
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
-  const dialogOutcomePreview = React.useMemo(
-    () =>
-      buildDialogOutcomePreviewFromCreateFollowup({
-        result,
-        isConfirmed,
-      }),
+  const dialogIntelligenceRuntimeResult = React.useMemo(
+    () => runDialogIntelligenceRuntime({ result, isConfirmed }),
     [isConfirmed, result],
   );
+  const dialogOutcomePreview = dialogIntelligenceRuntimeResult.outcome;
   const existingTopicMatchesPreview = React.useMemo(
     () => createExistingTopicMatchPanelPreviewFromDialogOutcome(dialogOutcomePreview),
     [dialogOutcomePreview],
   );
-  const [existingTopicMatchesModel, setExistingTopicMatchesModel] =
-    React.useState<ExistingTopicMatchPanelModel>(existingTopicMatchesPreview);
+  const [existingTopicMatchesRuntimeResult, setExistingTopicMatchesRuntimeResult] =
+    React.useState<ResolveExistingTopicMatchesFromRuntimeResult>({
+      status: "preview",
+      blockers: [],
+      usedSources: ["preview"],
+      model: existingTopicMatchesPreview,
+    });
+  const existingTopicMatchesModel: ExistingTopicMatchPanelModel =
+    existingTopicMatchesRuntimeResult.model;
+  const dialogIntelligenceUiSource = React.useMemo(
+    () =>
+      resolveDialogIntelligenceUiSourceState({
+        runtimeResult: dialogIntelligenceRuntimeResult,
+        existingTopicMatchesRuntimeStatus: existingTopicMatchesRuntimeResult.status,
+      }),
+    [dialogIntelligenceRuntimeResult, existingTopicMatchesRuntimeResult.status],
+  );
   const plannerClarificationLeadText = plannerTechnicalFallback
     ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
     : "Du kannst trotzdem weitermachen.";
@@ -2676,14 +2742,24 @@ export default function CreateVisualFollowup({
 
   React.useEffect(() => {
     let cancelled = false;
-    setExistingTopicMatchesModel(existingTopicMatchesPreview);
+    setExistingTopicMatchesRuntimeResult({
+      status: "preview",
+      blockers: [],
+      usedSources: ["preview"],
+      model: existingTopicMatchesPreview,
+    });
 
     void resolveExistingTopicMatchesFromRuntime({ result }).then((resolved) => {
       if (cancelled) return;
-      setExistingTopicMatchesModel(resolved.model);
+      setExistingTopicMatchesRuntimeResult(resolved);
     }).catch(() => {
       if (cancelled) return;
-      setExistingTopicMatchesModel(existingTopicMatchesPreview);
+      setExistingTopicMatchesRuntimeResult({
+        status: "blocked",
+        blockers: [],
+        usedSources: [],
+        model: existingTopicMatchesPreview,
+      });
     });
 
     return () => {
@@ -3057,12 +3133,29 @@ export default function CreateVisualFollowup({
               </div>
             ) : null}
 
-            <DialogResultsHandoffPanel
-              outcome={dialogOutcomePreview}
-              onConfirmStandpoint={onConfirm}
-              onSelectHandoff={prepareDialogHandoffDraft}
-              onSelectBranch={prepareDialogBranchDraft}
-            />
+            <div className="space-y-3">
+              <div
+                className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]"
+                data-dialog-runtime-status={dialogIntelligenceUiSource.kind}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+                  Dialog-Status
+                </p>
+                <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
+                  {dialogIntelligenceUiSource.title}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {dialogIntelligenceUiSource.detail}
+                </p>
+              </div>
+
+              <DialogResultsHandoffPanel
+                outcome={dialogOutcomePreview}
+                onConfirmStandpoint={onConfirm}
+                onSelectHandoff={prepareDialogHandoffDraft}
+                onSelectBranch={prepareDialogBranchDraft}
+              />
+            </div>
 
             <div className="mt-4">
               <ExistingTopicMatchesPanel
