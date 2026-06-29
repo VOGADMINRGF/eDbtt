@@ -198,6 +198,10 @@ export default function CreateHandoffDraftSummary(
             Quellen oder Gegenbeispiele beitragen. Diese Hinweise werden geprüft und
             bestätigen noch keine Wahrheit.
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+            Hinweise werden moderiert, bevor sie als prüfbare Beiträge sichtbar werden.
+            Viele Hinweise bedeuten keine bestätigte Wahrheit.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
             <span className="rounded-full border border-sky-500/20 px-3 py-1">
               Community kann Quellenhinweise beitragen
