@@ -162,6 +162,81 @@ export type CommunitySourceReviewQueueMapping = {
       };
 };
 
+export function getCommunitySourceReviewContributionKindLabel(
+  kind: CommunitySourceReviewContributionKind,
+): string {
+  if (kind === "source_suggestion") return "Quellenvorschlag";
+  if (kind === "counter_source") return "Gegenquelle";
+  if (kind === "context_note") return "Kontextnotiz";
+  if (kind === "lived_experience") return "Erfahrungsbericht";
+  if (kind === "unclear_claim") return "Unklarer Claim";
+  if (kind === "wording_clarification") return "Formulierungs- oder Begriffsklärung";
+  return "Eskalationshinweis";
+}
+
+export function getCommunitySourceReviewTargetLabel(
+  target: CommunitySourceReviewTarget,
+): string {
+  if (target === "claim") return "Claim";
+  if (target === "factcheck_request") return "Quellenprüfung";
+  if (target === "source_question") return "Quellenfrage";
+  return "Review-Item";
+}
+
+export function getCommunitySourceReviewStatusLabel(
+  status: CommunitySourceReviewStatus,
+): string {
+  if (status === "draft") return "Entwurf";
+  if (status === "submitted") return "eingereicht";
+  if (status === "pending_review") return "wartet auf Prüfung";
+  if (status === "accepted_as_hint") return "als Hinweis erlaubt";
+  if (status === "needs_moderation") return "Moderation nötig";
+  return "abgelehnt";
+}
+
+export function getCommunitySourceReviewContributionBlockerLabel(
+  blocker: CommunitySourceReviewContributionBlocker,
+): string {
+  if (blocker === "missing_title") return "Titel fehlt.";
+  if (blocker === "missing_text") return "Hinweistext fehlt.";
+  if (blocker === "missing_target_id") return "Bezug zu Claim, Quellenfrage oder Review-Item fehlt.";
+  if (blocker === "missing_claim_context") return "Claim-Kontext fehlt.";
+  if (blocker === "missing_source_reference") return "Quellenreferenz fehlt.";
+  if (blocker === "contribution_spam") return "Hinweis ist als Spam markiert.";
+  if (blocker === "contribution_harassment") return "Hinweis enthält Belästigung oder Angriffe.";
+  if (blocker === "contribution_duplicate") return "Hinweis ist ein Duplikat.";
+  if (blocker === "contribution_coordinated_manipulation") {
+    return "Hinweis wirkt koordiniert manipulativ.";
+  }
+  if (blocker === "contribution_misleading_source") {
+    return "Quellenreferenz wirkt irreführend.";
+  }
+  if (blocker === "contribution_personal_data") {
+    return "Hinweis enthält personenbezogene Daten.";
+  }
+  if (blocker === "contribution_off_topic") return "Hinweis ist themenfremd.";
+  if (blocker === "contribution_unsafe_content") return "Hinweis enthält unsicheren Inhalt.";
+  if (blocker === "contribution_verifies_claim") {
+    return "Hinweis versucht, einen Claim direkt als wahr zu markieren.";
+  }
+  if (blocker === "contribution_marks_source_confirmed") {
+    return "Hinweis versucht, eine Quelle direkt als bestätigt zu markieren.";
+  }
+  if (blocker === "contribution_requests_publish") {
+    return "Hinweis fordert automatische Veröffentlichung an.";
+  }
+  if (blocker === "contribution_requests_auto_merge") {
+    return "Hinweis fordert automatisches Merge an.";
+  }
+  if (blocker === "contribution_requests_runtime_entity") {
+    return "Hinweis fordert automatische Entitätserstellung an.";
+  }
+  if (blocker === "contribution_uses_majority_as_truth") {
+    return "Hinweis versucht, Menge oder Mehrheit als Wahrheit zu deuten.";
+  }
+  return "Runtime-Vertrag für sichere Submission fehlt noch.";
+}
+
 function nowIso() {
   return new Date().toISOString();
 }

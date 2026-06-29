@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   listEditorialReviewRequests: vi.fn(),
   factcheckList: vi.fn(),
   loadAdminGraphMergeSectionProps: vi.fn(),
+  loadAdminCommunitySourceReviewSectionProps: vi.fn(),
   loadAdminTopicGraphApprovalSectionProps: vi.fn(),
 }));
 
@@ -41,6 +42,11 @@ vi.mock("@features/editorialReviewQueue", () => ({
 vi.mock("@/app/admin/review/loadAdminGraphMergeSectionProps", () => ({
   loadAdminGraphMergeSectionProps: (...args: unknown[]) =>
     mocks.loadAdminGraphMergeSectionProps(...args),
+}));
+
+vi.mock("@/app/admin/review/loadAdminCommunitySourceReviewSectionProps", () => ({
+  loadAdminCommunitySourceReviewSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminCommunitySourceReviewSectionProps(...args),
 }));
 
 vi.mock("@/app/admin/review/loadAdminTopicGraphApprovalSectionProps", () => ({
@@ -89,6 +95,22 @@ describe("/admin/review page", () => {
         deploymentReconstructable: true,
       },
       graphMergeCandidates: [],
+    });
+    mocks.loadAdminCommunitySourceReviewSectionProps.mockResolvedValue({
+      communitySourceReviewRecords: [],
+      communitySourceReviewAuditMap: new Map(),
+      communitySourceReviewPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Community-Source-Review-Store",
+        summary:
+          "Community-Hinweise, Moderationsentscheidungen und Audit-Spuren liegen dauerhaft für die bestehende Admin-Review-Workbench vor.",
+        repositoryInterface: "CommunitySourceReviewRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
+      submissionRuntimeStatus: "blocked_unwired",
     });
     mocks.loadAdminTopicGraphApprovalSectionProps.mockResolvedValue({
       graphRuntimeAvailable: true,
@@ -574,6 +596,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Prüfen");
     expect(html).toContain("Kompakter Verlauf");
     expect(html).toContain("Official Release erteilt");
+    expect(html).toContain("Community Source Review");
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");

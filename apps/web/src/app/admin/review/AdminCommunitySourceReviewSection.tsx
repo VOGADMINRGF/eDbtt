@@ -1,0 +1,271 @@
+import {
+  getCommunitySourceReviewContributionBlockerLabel,
+  getCommunitySourceReviewContributionKindLabel,
+  getCommunitySourceReviewStatusLabel,
+  getCommunitySourceReviewTargetLabel,
+  type CommunitySourceReviewContributionBlocker,
+} from "@/features/create/communitySourceReviewContribution";
+import {
+  getCommunitySourceReviewAbuseReasonLabel,
+  getCommunitySourceReviewModerationBlockerLabel,
+  getCommunitySourceReviewModerationStatusLabel,
+  getCommunitySourceReviewRiskLevelLabel,
+  getCommunitySourceReviewTrustLevelLabel,
+  type CommunitySourceReviewModerationBlocker,
+} from "@/features/create/communitySourceReviewModeration";
+import {
+  getCommunitySourceReviewDecisionStatusLabel,
+  getCommunitySourceReviewHintBlockerLabel,
+  getCommunitySourceReviewRouteTargetLabel,
+  type CommunitySourceReviewAuditEntry,
+  type CommunitySourceReviewPersistenceState,
+} from "@/features/create/communitySourceReviewServer";
+import CommunitySourceReviewModerationActions from "./CommunitySourceReviewModerationActions";
+
+type CommunitySourceReviewRecordItem = Awaited<
+  ReturnType<
+    typeof import("@/features/create/communitySourceReviewServer").listCommunitySourceReviewRecords
+  >
+>[number];
+
+type Props = {
+  communitySourceReviewRecords: CommunitySourceReviewRecordItem[];
+  communitySourceReviewAuditMap: Map<string, CommunitySourceReviewAuditEntry[]>;
+  communitySourceReviewPersistence: CommunitySourceReviewPersistenceState;
+  submissionRuntimeStatus: "blocked_unwired";
+};
+
+function renderBlockerLabel(blocker: CommunitySourceReviewRecordItem["blockers"][number]) {
+  if (blocker === "hidden_hint" || blocker === "rejected_hint") {
+    return getCommunitySourceReviewHintBlockerLabel(blocker);
+  }
+  if (
+    blocker.startsWith("abuse_") ||
+    blocker === "hidden_pending_review" ||
+    blocker === "rejected_abuse" ||
+    blocker === "public_exposure_requires_moderation_safe_status"
+  ) {
+    return getCommunitySourceReviewModerationBlockerLabel(
+      blocker as CommunitySourceReviewModerationBlocker,
+    );
+  }
+  return getCommunitySourceReviewContributionBlockerLabel(
+    blocker as Exclude<CommunitySourceReviewContributionBlocker, "missing_runtime_contract">,
+  );
+}
+
+export default function AdminCommunitySourceReviewSection({
+  communitySourceReviewRecords,
+  communitySourceReviewAuditMap,
+  communitySourceReviewPersistence,
+  submissionRuntimeStatus,
+}: Props) {
+  return (
+    <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            Community Source Review
+          </p>
+          <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            Bestehende Review-Workbench für Community-Hinweise, Gegenquellen, Kontext und Eskalationen.
+            Keine neue Admin-Welt, keine automatische Wahrheit und keine Community-Mehrheit als Beleg.
+          </p>
+        </div>
+        <div className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
+          Öffentlicher Intake: {submissionRuntimeStatus}
+        </div>
+      </div>
+
+      <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
+        {communitySourceReviewPersistence.label}
+      </p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        {communitySourceReviewPersistence.summary}
+      </p>
+
+      <div className="mt-4 space-y-3">
+        {communitySourceReviewRecords.length === 0 ? (
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Keine Community-Hinweise im aktuellen Zustand.
+          </p>
+        ) : (
+          communitySourceReviewRecords.map((record) => {
+            const audits = communitySourceReviewAuditMap.get(record.id) ?? [];
+            const latestAudit = audits[0] ?? null;
+
+            return (
+              <article
+                key={record.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"
+              >
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    Community-Hinweise moderieren
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    {record.contribution.kind}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    {getCommunitySourceReviewDecisionStatusLabel(record.decisionStatus)}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
+                  {getCommunitySourceReviewContributionKindLabel(record.contribution.kind)}
+                </p>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                  {record.contribution.title}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                  {record.contribution.text}
+                </p>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Bezug
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {getCommunitySourceReviewTargetLabel(record.contribution.target)} ·{" "}
+                      {record.contribution.targetId ?? "ohne Ziel-ID"}
+                    </p>
+                    {record.contribution.claimText ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Claim: {record.contribution.claimText}
+                      </p>
+                    ) : null}
+                    {record.contribution.sourceRefs.length > 0 ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Quellen: {record.contribution.sourceRefs.join(" · ")}
+                      </p>
+                    ) : null}
+                    {record.contribution.materialRefs.length > 0 ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Material: {record.contribution.materialRefs.join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Moderationsstatus
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Review-Status: {getCommunitySourceReviewStatusLabel(record.contribution.status)}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Moderation:{" "}
+                      {getCommunitySourceReviewModerationStatusLabel(
+                        record.contribution.moderation.moderationStatus,
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Nächster Pfad: {getCommunitySourceReviewRouteTargetLabel(record.routeTarget)}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Audit:{" "}
+                      {record.latestActorUserId && record.latestDecisionAt
+                        ? `${record.latestActorUserId} · ${new Date(record.latestDecisionAt).toLocaleString("de-DE")}`
+                        : "noch keine Admin-Entscheidung"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Risk / Abuse
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Risiko: {getCommunitySourceReviewRiskLevelLabel(record.contribution.moderation.riskLevel)}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Abuse:{" "}
+                      {record.contribution.moderation.abuseReasons.length > 0
+                        ? record.contribution.moderation.abuseReasons
+                            .map(getCommunitySourceReviewAbuseReasonLabel)
+                            .join(" · ")
+                        : "keine Abuse-Flags"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Trust
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {getCommunitySourceReviewTrustLevelLabel(record.contribution.moderation.trustLevel)}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.guardrails.trustDoesNotVerifyTruth
+                        ? "Trust priorisiert höchstens Review."
+                        : "Trust ersetzt keine Prüfung."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Audit-Hinweis
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.summary}
+                    </p>
+                    {record.latestDecisionNote ? (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Letzte Begründung: {record.latestDecisionNote}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Guardrails
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Community-Hinweise sind Review-Signale, keine bestätigten Fakten.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Viele Hinweise bedeuten keine Wahrheit.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Trust priorisiert Prüfung, ersetzt sie aber nicht.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Es wird nichts automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
+                  </p>
+                </div>
+
+                {record.blockers.length > 0 ? (
+                  <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Blocker
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      {record.blockers.map((blocker) => (
+                        <p key={`${record.id}:${blocker}`} className="text-xs text-[rgb(var(--muted))]">
+                          {blocker} · {renderBlockerLabel(blocker)}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {latestAudit ? (
+                  <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                    Letzter Audit-Eintrag: {latestAudit.action} ·{" "}
+                    {new Date(latestAudit.at).toLocaleString("de-DE")}
+                    {latestAudit.reason ? ` · ${latestAudit.reason}` : ""}
+                  </p>
+                ) : null}
+
+                <CommunitySourceReviewModerationActions record={record} />
+              </article>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
