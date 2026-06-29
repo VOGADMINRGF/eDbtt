@@ -21,6 +21,8 @@ describe("community source review contribution", () => {
 
     expect(contribution.guardrails.hintOnly).toBe(true);
     expect(contribution.guardrails.canConfirmSource).toBe(false);
+    expect(contribution.status).toBe("pending_review");
+    expect(contribution.moderation.moderationStatus).toBe("pending_review");
     expect(
       getCommunitySourceReviewContributionBlockers(contribution),
     ).toContain("missing_runtime_contract");
@@ -59,6 +61,7 @@ describe("community source review contribution", () => {
 
     expect(contribution.guardrails.countsMajorityAsTruth).toBe(false);
     expect(contribution.relatedContributionCount).toBe(18);
+    expect(contribution.guardrails.hiddenOrRejectedCountsAsEvidence).toBe(false);
 
     const flagged = createCommunitySourceReviewContributionDraft({
       kind: "lived_experience",
@@ -116,14 +119,54 @@ describe("community source review contribution", () => {
 
     const mapped = mapCommunityContributionToReviewQueueInput(contribution);
     expect(mapped.previewStatus).toBe("pending_review");
-    expect(mapped.previewMessage).toBe(
-      "Hinweis eingereicht – redaktionelle Prüfung offen.",
-    );
+    expect(mapped.previewMessage).toContain("review-first");
     expect(mapped.runtime).toMatchObject({
       ok: false,
       blocked: true,
       error: "blocked_unwired",
     });
+  });
+
+  it("blocks spam, personal data and off-topic contributions before any public exposure claim", () => {
+    const spam = createCommunitySourceReviewContributionDraft({
+      kind: "context_note",
+      target: "factcheck_request",
+      targetId: "factcheck-3",
+      text: "Massenhaft derselbe Link.",
+      moderation: {
+        abuseReasons: ["spam"],
+      },
+    });
+    const personalData = createCommunitySourceReviewContributionDraft({
+      kind: "lived_experience",
+      target: "claim",
+      targetId: "claim-3",
+      claimText: "Das Problem betrifft die Nachbarschaft.",
+      text: "Hier stehen Namen und private Details.",
+      moderation: {
+        abuseReasons: ["personal_data"],
+      },
+    });
+    const offTopic = createCommunitySourceReviewContributionDraft({
+      kind: "wording_clarification",
+      target: "claim",
+      targetId: "claim-4",
+      claimText: "Die Formulierung sei missverständlich.",
+      text: "Das gehört eigentlich in einen anderen Thread.",
+      moderation: {
+        abuseReasons: ["off_topic"],
+      },
+    });
+
+    expect(getCommunitySourceReviewContributionBlockers(spam)).toContain(
+      "contribution_spam",
+    );
+    expect(getCommunitySourceReviewContributionBlockers(personalData)).toContain(
+      "contribution_personal_data",
+    );
+    expect(getCommunitySourceReviewContributionBlockers(offTopic)).toContain(
+      "contribution_off_topic",
+    );
   });
 
   it("blocks publish, merge, verified-claim and runtime-entity shortcuts", () => {

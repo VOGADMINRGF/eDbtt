@@ -5,6 +5,13 @@ import type {
 } from "@/features/create/createHandoffDrafts";
 import { createReviewQueueItemFromHandoffDraft } from "@/features/create/createHandoffReviewQueue";
 import type { CreateHandoffReviewQueueItem } from "@/features/create/createHandoffReviewQueue";
+import {
+  assessCommunitySourceReviewContributionRisk,
+  type CommunitySourceReviewAbuseReason,
+  type CommunitySourceReviewGuardrailFlags,
+  type CommunitySourceReviewModerationInput,
+  type CommunitySourceReviewModerationSignal,
+} from "@/features/create/communitySourceReviewModeration";
 
 export const COMMUNITY_SOURCE_REVIEW_CONTRIBUTION_KINDS = [
   "source_suggestion",
@@ -47,6 +54,14 @@ export const COMMUNITY_SOURCE_REVIEW_CONTRIBUTION_BLOCKERS = [
   "missing_target_id",
   "missing_claim_context",
   "missing_source_reference",
+  "contribution_spam",
+  "contribution_harassment",
+  "contribution_duplicate",
+  "contribution_coordinated_manipulation",
+  "contribution_misleading_source",
+  "contribution_personal_data",
+  "contribution_off_topic",
+  "contribution_unsafe_content",
   "contribution_verifies_claim",
   "contribution_marks_source_confirmed",
   "contribution_requests_publish",
@@ -58,15 +73,6 @@ export const COMMUNITY_SOURCE_REVIEW_CONTRIBUTION_BLOCKERS = [
 
 export type CommunitySourceReviewContributionBlocker =
   (typeof COMMUNITY_SOURCE_REVIEW_CONTRIBUTION_BLOCKERS)[number];
-
-type CommunitySourceReviewModerationFlags = {
-  verifiesClaim: boolean;
-  marksSourceConfirmed: boolean;
-  requestsPublish: boolean;
-  requestsAutoMerge: boolean;
-  requestsRuntimeEntity: boolean;
-  usesMajorityAsTruth: boolean;
-};
 
 export type CommunitySourceReviewContribution = {
   id: string;
@@ -82,7 +88,8 @@ export type CommunitySourceReviewContribution = {
   materialRefs: string[];
   notes: string[];
   relatedContributionCount: number;
-  moderationFlags: CommunitySourceReviewModerationFlags;
+  moderationFlags: CommunitySourceReviewGuardrailFlags;
+  moderation: CommunitySourceReviewModerationSignal;
   guardrails: {
     hintOnly: true;
     canVerifyClaim: false;
@@ -91,6 +98,9 @@ export type CommunitySourceReviewContribution = {
     canCreateRuntimeEntity: false;
     canConfirmSource: false;
     countsMajorityAsTruth: false;
+    trustCanOnlyPrioritizeReview: true;
+    acceptedHintIsFact: false;
+    hiddenOrRejectedCountsAsEvidence: false;
   };
   runtime: {
     reviewQueueKind: "create_handoff_review_queue";
@@ -116,7 +126,8 @@ type CreateCommunitySourceReviewContributionDraftInput = {
   materialRefs?: readonly string[];
   notes?: readonly string[];
   relatedContributionCount?: number;
-  moderationFlags?: Partial<CommunitySourceReviewModerationFlags>;
+  moderationFlags?: Partial<CommunitySourceReviewGuardrailFlags>;
+  moderation?: CommunitySourceReviewModerationInput | null;
   createdAt?: string;
   updatedAt?: string;
   submittedAt?: string | null;
@@ -202,6 +213,36 @@ function toPreviewDraftStatus(
   return "prepared";
 }
 
+function mapModerationStatusToContributionStatus(
+  moderationStatus: CommunitySourceReviewModerationSignal["moderationStatus"],
+): CommunitySourceReviewStatus {
+  if (moderationStatus === "allowed_as_hint") return "accepted_as_hint";
+  if (moderationStatus === "rejected_abuse") return "rejected";
+  if (
+    moderationStatus === "needs_moderation" ||
+    moderationStatus === "hidden_pending_review"
+  ) {
+    return "needs_moderation";
+  }
+  return "pending_review";
+}
+
+function mapAbuseReasonToContributionBlocker(
+  reason: CommunitySourceReviewAbuseReason,
+): CommunitySourceReviewContributionBlocker | null {
+  if (reason === "spam") return "contribution_spam";
+  if (reason === "harassment") return "contribution_harassment";
+  if (reason === "duplicate") return "contribution_duplicate";
+  if (reason === "coordinated_manipulation") {
+    return "contribution_coordinated_manipulation";
+  }
+  if (reason === "misleading_source") return "contribution_misleading_source";
+  if (reason === "personal_data") return "contribution_personal_data";
+  if (reason === "off_topic") return "contribution_off_topic";
+  if (reason === "unsafe_content") return "contribution_unsafe_content";
+  return null;
+}
+
 function buildOpenQuestions(
   contribution: CommunitySourceReviewContribution,
 ) {
@@ -218,6 +259,20 @@ function buildOpenQuestions(
   }
   if (contribution.kind === "source_suggestion" && contribution.sourceRefs.length === 0) {
     questions.push("Welche Quelle sollte konkret nachgereicht werden?");
+  }
+  if (
+    contribution.moderation.moderationStatus === "needs_moderation" ||
+    contribution.moderation.moderationStatus === "hidden_pending_review"
+  ) {
+    questions.push(
+      "Hinweis wird moderiert, bevor er als prüfbarer Beitrag sichtbar werden kann.",
+    );
+  }
+  if (contribution.relatedContributionCount > 1) {
+    questions.push("Viele Hinweise bedeuten keine bestätigte Wahrheit.");
+  }
+  if (contribution.moderation.trustLevel !== "unknown") {
+    questions.push("Trust priorisiert höchstens Review und bestätigt keine Wahrheit.");
   }
 
   return unique(questions);
@@ -237,13 +292,14 @@ function buildPreviewSummary(
   };
 
   const base = `${kindLead[contribution.kind]}: ${contribution.text}`;
+  const moderationTail = contribution.moderation.summary;
   if (contribution.kind === "lived_experience") {
-    return `${base} Die Erfahrung bleibt ein Hinweis und kein repräsentativer Beleg.`;
+    return `${base} Die Erfahrung bleibt ein Hinweis und kein repräsentativer Beleg. ${moderationTail}`;
   }
   if (contribution.kind === "counter_source") {
-    return `${base} Gegenbelege bleiben prüfpflichtig und widerrufen keinen Claim automatisch.`;
+    return `${base} Gegenbelege bleiben prüfpflichtig und widerrufen keinen Claim automatisch. ${moderationTail}`;
   }
-  return `${base} Der Hinweis bestätigt noch keine Wahrheit und bleibt redaktionell prüfpflichtig.`;
+  return `${base} Der Hinweis bestätigt noch keine Wahrheit und bleibt redaktionell prüfpflichtig. ${moderationTail}`;
 }
 
 function buildPreviewDraft(
@@ -297,10 +353,26 @@ export function createCommunitySourceReviewContributionDraft(
 ): CommunitySourceReviewContribution {
   const createdAt = input.createdAt ?? nowIso();
   const updatedAt = input.updatedAt ?? createdAt;
+  const moderationFlags: CommunitySourceReviewGuardrailFlags = {
+    verifiesClaim: Boolean(input.moderationFlags?.verifiesClaim),
+    marksSourceConfirmed: Boolean(input.moderationFlags?.marksSourceConfirmed),
+    requestsPublish: Boolean(input.moderationFlags?.requestsPublish),
+    requestsAutoMerge: Boolean(input.moderationFlags?.requestsAutoMerge),
+    requestsRuntimeEntity: Boolean(input.moderationFlags?.requestsRuntimeEntity),
+    usesMajorityAsTruth: Boolean(input.moderationFlags?.usesMajorityAsTruth),
+  };
+  const moderation = assessCommunitySourceReviewContributionRisk({
+    kind: input.kind,
+    target: input.target,
+    relatedContributionCount: Math.max(0, input.relatedContributionCount ?? 0),
+    sourceRefCount: unique(input.sourceRefs ?? []).length,
+    moderationFlags,
+    moderation: input.moderation ?? null,
+  });
   const contribution: CommunitySourceReviewContribution = {
     id: buildContributionId(input),
     kind: input.kind,
-    status: input.status ?? "draft",
+    status: input.status ?? mapModerationStatusToContributionStatus(moderation.moderationStatus),
     target: input.target,
     targetId: hasText(input.targetId) ? String(input.targetId).trim() : null,
     title: buildTitle(input),
@@ -311,14 +383,8 @@ export function createCommunitySourceReviewContributionDraft(
     materialRefs: unique(input.materialRefs ?? []),
     notes: unique(input.notes ?? []),
     relatedContributionCount: Math.max(0, input.relatedContributionCount ?? 0),
-    moderationFlags: {
-      verifiesClaim: Boolean(input.moderationFlags?.verifiesClaim),
-      marksSourceConfirmed: Boolean(input.moderationFlags?.marksSourceConfirmed),
-      requestsPublish: Boolean(input.moderationFlags?.requestsPublish),
-      requestsAutoMerge: Boolean(input.moderationFlags?.requestsAutoMerge),
-      requestsRuntimeEntity: Boolean(input.moderationFlags?.requestsRuntimeEntity),
-      usesMajorityAsTruth: Boolean(input.moderationFlags?.usesMajorityAsTruth),
-    },
+    moderationFlags,
+    moderation,
     guardrails: {
       hintOnly: true,
       canVerifyClaim: false,
@@ -327,11 +393,14 @@ export function createCommunitySourceReviewContributionDraft(
       canCreateRuntimeEntity: false,
       canConfirmSource: false,
       countsMajorityAsTruth: false,
+      trustCanOnlyPrioritizeReview: true,
+      acceptedHintIsFact: false,
+      hiddenOrRejectedCountsAsEvidence: false,
     },
     runtime: {
       reviewQueueKind: "create_handoff_review_queue",
       factcheckRuntimeKind: "factcheck_enqueue",
-      pendingReviewMessage: "Hinweis eingereicht – redaktionelle Prüfung offen.",
+      pendingReviewMessage: moderation.summary,
     },
     createdAt,
     updatedAt,
@@ -380,11 +449,15 @@ export function getCommunitySourceReviewContributionBlockers(
   if (contribution.moderationFlags.usesMajorityAsTruth) {
     blockers.push("contribution_uses_majority_as_truth");
   }
+  for (const reason of contribution.moderation.abuseReasons) {
+    const blocker = mapAbuseReasonToContributionBlocker(reason);
+    if (blocker) blockers.push(blocker);
+  }
   if (options?.runtimeAvailable !== true) {
     blockers.push("missing_runtime_contract");
   }
 
-  return blockers;
+  return unique(blockers) as CommunitySourceReviewContributionBlocker[];
 }
 
 export function validateCommunitySourceReviewContribution(
