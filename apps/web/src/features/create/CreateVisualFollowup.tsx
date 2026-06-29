@@ -21,8 +21,8 @@ import {
   type CreateHandoffDraftTarget,
 } from "@/features/create/createHandoffDrafts";
 import {
-  canQueueHandoffDraftForReview,
   createReviewQueueItemFromHandoffDraft,
+  canQueueHandoffDraftForReview,
   markReviewQueueItemQueued,
   markReviewQueueItemSubmittedToRuntime,
   type CreateHandoffReviewQueueItem,
@@ -44,6 +44,12 @@ import {
   type DialogIntelligenceRuntimeResult,
   type DialogIntelligenceRuntimeSourceKind,
 } from "@/features/create/dialogIntelligenceRuntimeBridge";
+import {
+  buildTopicDeduplicationCandidates,
+  canQueueTopicDeduplicationReview,
+  createTopicDeduplicationReviewDraft,
+  summarizeTopicDeduplicationReviewState,
+} from "@/features/create/topicDeduplicationReview";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
@@ -2634,6 +2640,22 @@ export default function CreateVisualFollowup({
     });
   const existingTopicMatchesModel: ExistingTopicMatchPanelModel =
     existingTopicMatchesRuntimeResult.model;
+  const topicDeduplicationCandidates = React.useMemo(
+    () =>
+      buildTopicDeduplicationCandidates({
+        existingMatches: existingTopicMatchesModel.matches,
+        dialogOutcome: dialogOutcomePreview,
+      }),
+    [dialogOutcomePreview, existingTopicMatchesModel.matches],
+  );
+  const primaryTopicDeduplicationCandidate = topicDeduplicationCandidates[0] ?? null;
+  const primaryTopicDeduplicationState = React.useMemo(
+    () =>
+      primaryTopicDeduplicationCandidate
+        ? summarizeTopicDeduplicationReviewState(primaryTopicDeduplicationCandidate)
+        : null,
+    [primaryTopicDeduplicationCandidate],
+  );
   const dialogIntelligenceUiSource = React.useMemo(
     () =>
       resolveDialogIntelligenceUiSourceState({
@@ -2831,6 +2853,16 @@ export default function CreateVisualFollowup({
       createHandoffDraftFromDialogOutcome(dialogOutcomePreview, "new_branch"),
     );
   }, [dialogOutcomePreview]);
+
+  const prepareTopicDeduplicationDraft = React.useCallback(() => {
+    if (!primaryTopicDeduplicationCandidate) return;
+    setPreparedReviewQueueItem(null);
+    setReviewQueueRuntimeState("idle");
+    setReviewQueueRuntimeMessage(null);
+    setPreparedHandoffDraft(
+      createTopicDeduplicationReviewDraft(primaryTopicDeduplicationCandidate),
+    );
+  }, [primaryTopicDeduplicationCandidate]);
 
   const queuePreparedHandoffDraftForReview = React.useCallback(async () => {
     if (!preparedHandoffDraft) return;
@@ -3168,6 +3200,40 @@ export default function CreateVisualFollowup({
                 onStartNewBranch={prepareNewBranchDraft}
               />
             </div>
+
+            {primaryTopicDeduplicationCandidate ? (
+              <div className="mt-4 rounded-[24px] border border-amber-300/35 bg-amber-500/[0.08] px-4 py-4 text-sm dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950 dark:text-amber-100">
+                  Mögliche Dopplung erkannt
+                </p>
+                <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
+                  {primaryTopicDeduplicationCandidate.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                  Ähnliche Beiträge können redaktionell zusammengeführt oder getrennt gehalten werden.
+                  Es wurde noch nichts automatisch zusammengeführt.
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {primaryTopicDeduplicationCandidate.summary}
+                </p>
+                {primaryTopicDeduplicationState ? (
+                  <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                    {primaryTopicDeduplicationState}
+                  </p>
+                ) : null}
+                {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={prepareTopicDeduplicationDraft}
+                      className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/[0.14] px-3 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-500/[0.2] dark:border-amber-300/30 dark:bg-amber-500/[0.18] dark:text-amber-50"
+                    >
+                      Mögliche Zusammenführung prüfen
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {preparedHandoffDraft ? (
               <div className="mt-4">

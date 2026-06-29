@@ -12,6 +12,7 @@ import {
   submitCreateHandoffReviewQueueItemToRuntime,
 } from "@/features/create/createHandoffReviewQueueRuntimeBridge";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import { createTopicDeduplicationReviewQueueItem } from "@/features/create/topicDeduplicationReview";
 import { DIALOG_INTELLIGENCE_PREVIEW_FIXTURES } from "@/features/dialog/dialogIntelligenceFixtures";
 
 function buildFollowup(): CreateIntelligentFollowupResult {
@@ -315,5 +316,53 @@ describe("create handoff review queue runtime bridge", () => {
         reviewState: "queued",
       }),
     });
+  });
+
+  it("maps topic deduplication review candidates onto the existing editorial review runtime without merge side effects", () => {
+    const candidate = {
+      id: "topic-dedup-1",
+      kind: "possible_same_topic" as const,
+      confidence: "high" as const,
+      reviewStatus: "needs_editorial_review" as const,
+      title: "Mögliche Zusammenführung prüfen: Sichere Schulwege",
+      summary:
+        "Ein vorhandenes Thema wirkt dem neuen Beitrag sehr ähnlich. Die Entscheidung bleibt redaktionell und erzeugt keinen automatischen Merge.",
+      reason: "Ähnlicher Fokus und ähnliche Stoßrichtung.",
+      topicTitle: "Sichere Schulwege",
+      authorStandpoint: "Sichere Schulwege zuerst verbessern.",
+      relatedMatchId: "topic-strong",
+      relatedTopicId: "sichere-schulwege",
+      relatedBranchId: null,
+      relatedDialogOutcomeId: "dialog-1",
+      supportingMatchIds: ["topic-strong"],
+      supportingSignals: ["Sichere Schulwege"],
+      sourceKinds: ["existing_topic_match"] as const,
+      sourceReviewPending: false,
+      moderationPending: false,
+      communityHintUnreviewed: false,
+      requiresEditorialReview: true as const,
+      autoMerge: false as const,
+      autoGraphMerge: false as const,
+      autoPublish: false as const,
+      autoCreate: false as const,
+      reviewQueueMapping: {
+        available: true,
+        kind: "editorial_review" as const,
+        note:
+          "Der Kandidat wird nur als redaktioneller Prüfgegenstand vorgemerkt. Es wurde noch nichts automatisch zusammengeführt.",
+      },
+    };
+
+    const queueItem = createTopicDeduplicationReviewQueueItem(candidate);
+    const mapped = mapCreateHandoffReviewQueueItemToExistingReviewQueueInput(queueItem, {
+      result: buildFollowup(),
+    });
+
+    expect(queueItem.kind).toBe("editorial_review");
+    expect(queueItem.autoCreate).toBe(false);
+    expect(queueItem.autoPublish).toBe(false);
+    expect(mapped.selectedAction).toBe("request_review");
+    expect(mapped.draft.selectedAction).toBe("request_review");
+    expect(queueItem.summary).toContain("redaktionell");
   });
 });
