@@ -50,6 +50,10 @@ import {
   createTopicDeduplicationReviewDraft,
   summarizeTopicDeduplicationReviewState,
 } from "@/features/create/topicDeduplicationReview";
+import {
+  mapDeduplicationCandidateToGraphEdgeDraft,
+  summarizeTopicGraphMutationState,
+} from "@/features/create/topicGraphRuntime";
 import DialogResultsHandoffPanel from "@/features/dialog/DialogResultsHandoffPanel";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { DialogHandoffTarget } from "@/features/dialog/dialogIntelligenceContract";
@@ -2656,6 +2660,20 @@ export default function CreateVisualFollowup({
         : null,
     [primaryTopicDeduplicationCandidate],
   );
+  const primaryTopicGraphEdgeDraft = React.useMemo(
+    () =>
+      primaryTopicDeduplicationCandidate
+        ? mapDeduplicationCandidateToGraphEdgeDraft(primaryTopicDeduplicationCandidate)
+        : null,
+    [primaryTopicDeduplicationCandidate],
+  );
+  const primaryTopicGraphMutationState = React.useMemo(
+    () =>
+      primaryTopicGraphEdgeDraft
+        ? summarizeTopicGraphMutationState(primaryTopicGraphEdgeDraft)
+        : null,
+    [primaryTopicGraphEdgeDraft],
+  );
   const dialogIntelligenceUiSource = React.useMemo(
     () =>
       resolveDialogIntelligenceUiSourceState({
@@ -3219,6 +3237,11 @@ export default function CreateVisualFollowup({
                 {primaryTopicDeduplicationState ? (
                   <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
                     {primaryTopicDeduplicationState}
+                  </p>
+                ) : null}
+                {primaryTopicGraphMutationState ? (
+                  <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                    {primaryTopicGraphMutationState}
                   </p>
                 ) : null}
                 {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
