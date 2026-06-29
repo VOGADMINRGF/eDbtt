@@ -73,6 +73,7 @@ export type TopicDeduplicationCandidate = {
   topicTitle: string;
   authorStandpoint?: string | null;
   relatedMatchId?: string | null;
+  relatedMatchTitle?: string | null;
   relatedTopicId?: string | null;
   relatedBranchId?: string | null;
   relatedDialogOutcomeId?: string | null;
@@ -214,6 +215,7 @@ function createCandidate(input: {
   topicTitle: string;
   authorStandpoint?: string | null;
   relatedMatchId?: string | null;
+  relatedMatchTitle?: string | null;
   relatedTopicId?: string | null;
   relatedBranchId?: string | null;
   relatedDialogOutcomeId?: string | null;
@@ -236,6 +238,7 @@ function createCandidate(input: {
     topicTitle: input.topicTitle,
     authorStandpoint: input.authorStandpoint ?? null,
     relatedMatchId: input.relatedMatchId ?? null,
+    relatedMatchTitle: input.relatedMatchTitle ?? null,
     relatedTopicId: input.relatedTopicId ?? null,
     relatedBranchId: input.relatedBranchId ?? null,
     relatedDialogOutcomeId: input.relatedDialogOutcomeId ?? null,
@@ -355,6 +358,7 @@ function buildExistingTopicMatchCandidate(
       reason: match.reason,
       topicTitle: match.title,
       relatedMatchId: match.id,
+      relatedMatchTitle: match.title,
       relatedTopicId: match.relatedTopicId ?? null,
       supportingSignals: [match.title, match.summary],
     });
@@ -376,6 +380,7 @@ function buildExistingTopicMatchCandidate(
       reason: match.reason,
       topicTitle: match.title,
       relatedMatchId: match.id,
+      relatedMatchTitle: match.title,
       relatedTopicId: match.relatedTopicId ?? null,
       relatedBranchId: match.relatedBranchId ?? null,
       supportingSignals: [match.title, match.summary],
@@ -393,6 +398,7 @@ function buildExistingTopicMatchCandidate(
       reason: match.reason,
       topicTitle: match.title,
       relatedMatchId: match.id,
+      relatedMatchTitle: match.title,
       supportingSignals: [match.title, match.summary],
     });
   }
@@ -479,6 +485,7 @@ export function mapDialogResultToDeduplicationCandidates(input: {
           topicTitle: input.outcome.topicTitle,
           authorStandpoint: standpoint || null,
           relatedMatchId: match.id,
+          relatedMatchTitle: match.title,
           relatedTopicId: match.relatedTopicId ?? null,
           relatedDialogOutcomeId: input.outcome.id,
           supportingSignals: [bestSignal.signal, match.title],
@@ -509,6 +516,7 @@ export function mapDialogResultToDeduplicationCandidates(input: {
           topicTitle: input.outcome.topicTitle,
           authorStandpoint: standpoint || null,
           relatedMatchId: match.id,
+          relatedMatchTitle: match.title,
           relatedTopicId: match.relatedTopicId ?? null,
           relatedBranchId: match.relatedBranchId ?? null,
           relatedDialogOutcomeId: input.outcome.id,
@@ -533,6 +541,7 @@ export function mapDialogResultToDeduplicationCandidates(input: {
         topicTitle: input.outcome.topicTitle,
         authorStandpoint: standpoint || null,
         relatedMatchId: match.id,
+        relatedMatchTitle: match.title,
         relatedDialogOutcomeId: input.outcome.id,
         supportingSignals: [bestSignal.signal, match.title],
         sourceKinds: ["dialog_intelligence"],
