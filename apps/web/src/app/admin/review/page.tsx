@@ -6,11 +6,13 @@ import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/re
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
 import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
 import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
+import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
 import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
 import { loadAdminFactcheckJobs } from "./loadAdminFactcheckJobs";
 import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionProps";
+import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphApprovalSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -134,11 +136,13 @@ export default async function AdminReviewPage({
     },
     filters as Partial<ReviewQueueFilters>,
   );
-  const graphMergeSectionProps = await loadAdminGraphMergeSectionProps();
-  const [editorialRequests, factcheckJobs] = await Promise.all([
-    loadAdminEditorialReviewRequests(filters.editorial),
-    loadAdminFactcheckJobs(),
-  ]);
+  const [graphMergeSectionProps, topicGraphApprovalSectionProps, editorialRequests, factcheckJobs] =
+    await Promise.all([
+      loadAdminGraphMergeSectionProps(),
+      loadAdminTopicGraphApprovalSectionProps(),
+      loadAdminEditorialReviewRequests(filters.editorial),
+      loadAdminFactcheckJobs(),
+    ]);
 
   const activeFilterCount = [
     readModel.filters.applied.domain !== "all",
@@ -385,6 +389,8 @@ export default async function AdminReviewPage({
         <AdminFactcheckJobsSection factcheckJobs={factcheckJobs} />
 
         <AdminGraphMergeCandidatesSection {...graphMergeSectionProps} />
+
+        <AdminTopicGraphApprovalSection {...topicGraphApprovalSectionProps} />
 
         <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">

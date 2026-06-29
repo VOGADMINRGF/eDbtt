@@ -204,6 +204,98 @@ export type WriteTopicGraphEdgeAfterReviewOptions = {
   graphWriter?: TopicGraphWriter;
 };
 
+export function getTopicGraphEdgeKindLabel(kind: TopicGraphEdgeKind): string {
+  switch (kind) {
+    case "duplicate_of":
+      return "Mögliche Dopplung";
+    case "same_topic_as":
+      return "Gleiches Thema";
+    case "branch_of":
+      return "Gehört zu demselben Zweig";
+    case "follows_from":
+      return "Folgt aus";
+    case "contradicts":
+      return "Widerspricht";
+    case "supports":
+      return "Stützt";
+    case "source_question_for":
+      return "Quellenfrage für";
+    case "dossier_candidate_for":
+      return "Dossier-Kandidat für";
+    case "anlassraum_candidate_for":
+      return "Anlassraum-Kandidat für";
+    case "participation_space_candidate_for":
+      return "Beteiligungsraum-Kandidat für";
+    default:
+      return kind;
+  }
+}
+
+export function getTopicGraphMutationStatusLabel(
+  status: TopicGraphMutationStatus,
+): string {
+  switch (status) {
+    case "draft":
+      return "Entwurf";
+    case "queued_for_review":
+      return "Zur Prüfung vorgemerkt";
+    case "approved_for_graph_write":
+      return "Für Graph-Write freigegeben";
+    case "written":
+      return "Geschrieben";
+    case "rejected":
+      return "Abgelehnt";
+    case "blocked":
+      return "Blockiert";
+    default:
+      return status;
+  }
+}
+
+export function getTopicGraphMutationBlockerLabel(
+  blocker: TopicGraphMutationBlocker,
+): string {
+  switch (blocker) {
+    case "review_not_approved":
+      return "Explizite Graph-Freigabe fehlt";
+    case "source_review_pending":
+      return "Quellenprüfung offen";
+    case "moderation_pending":
+      return "Moderation offen";
+    case "graph_runtime_unavailable":
+      return "Graph-Runtime nicht verfügbar";
+    case "unsafe_auto_merge":
+      return "Auto-Graph/Auto-Merge bleibt gesperrt";
+    case "missing_target":
+      return "Zielknoten fehlt";
+    case "missing_source":
+      return "Quellknoten fehlt";
+    case "insufficient_audit_context":
+      return "Audit-Kontext unvollständig";
+    default:
+      return blocker;
+  }
+}
+
+export function getTopicGraphSignalSourceLabel(
+  source: TopicGraphSignalSource,
+): string {
+  switch (source) {
+    case "existing_topic_match":
+      return "Existing Topic Match";
+    case "dialog_intelligence":
+      return "Runtime-KI";
+    case "community_hint":
+      return "Community-Hinweis";
+    case "trust_signal":
+      return "Trust-Signal";
+    case "volume_signal":
+      return "Volumen-Signal";
+    default:
+      return source;
+  }
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   listEditorialReviewRequests: vi.fn(),
   factcheckList: vi.fn(),
   loadAdminGraphMergeSectionProps: vi.fn(),
+  loadAdminTopicGraphApprovalSectionProps: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/sessionUser", () => ({
@@ -40,6 +41,11 @@ vi.mock("@features/editorialReviewQueue", () => ({
 vi.mock("@/app/admin/review/loadAdminGraphMergeSectionProps", () => ({
   loadAdminGraphMergeSectionProps: (...args: unknown[]) =>
     mocks.loadAdminGraphMergeSectionProps(...args),
+}));
+
+vi.mock("@/app/admin/review/loadAdminTopicGraphApprovalSectionProps", () => ({
+  loadAdminTopicGraphApprovalSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminTopicGraphApprovalSectionProps(...args),
 }));
 
 vi.mock("@features/factcheck/db", () => ({
@@ -83,6 +89,22 @@ describe("/admin/review page", () => {
         deploymentReconstructable: true,
       },
       graphMergeCandidates: [],
+    });
+    mocks.loadAdminTopicGraphApprovalSectionProps.mockResolvedValue({
+      graphRuntimeAvailable: true,
+      topicGraphAuditMap: new Map(),
+      topicGraphEdges: [],
+      topicGraphPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Topic-Graph-Mutation-Store",
+        summary:
+          "Review-bestätigte Topic-Graph-Entwürfe und Audit-Spuren liegen dauerhaft vor.",
+        repositoryInterface: "TopicGraphRuntimeRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
     });
     mocks.listEditorialReviewRequests.mockResolvedValue([]);
     mocks.buildReviewQueueReadModel.mockResolvedValue({
