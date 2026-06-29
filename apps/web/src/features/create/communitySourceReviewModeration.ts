@@ -121,6 +121,79 @@ export type CommunitySourceReviewModerationSignal = {
   summary: string;
 };
 
+export function getCommunitySourceReviewModerationStatusLabel(
+  status: CommunitySourceReviewModerationStatus,
+): string {
+  if (status === "pending_review") return "wartet auf Moderation";
+  if (status === "needs_moderation") return "Moderation nötig";
+  if (status === "allowed_as_hint") return "als Hinweis erlaubt";
+  if (status === "hidden_pending_review") return "vorerst verborgen";
+  if (status === "rejected_abuse") return "wegen Missbrauch abgelehnt";
+  return "redaktionell eskaliert";
+}
+
+export function getCommunitySourceReviewTrustLevelLabel(
+  trustLevel: CommunitySourceReviewTrustLevel,
+): string {
+  if (trustLevel === "unknown") return "unbekannt";
+  if (trustLevel === "new_contributor") return "neuer Beitragender";
+  if (trustLevel === "known_contributor") return "bekannter Beitragender";
+  if (trustLevel === "trusted_contributor") return "vertrauenswürdiger Beitragender";
+  return "redaktioneller Beitragender";
+}
+
+export function getCommunitySourceReviewRiskLevelLabel(
+  riskLevel: CommunitySourceReviewRiskLevel,
+): string {
+  if (riskLevel === "low") return "niedrig";
+  if (riskLevel === "medium") return "mittel";
+  if (riskLevel === "high") return "hoch";
+  return "kritisch";
+}
+
+export function getCommunitySourceReviewAbuseReasonLabel(
+  reason: CommunitySourceReviewAbuseReason,
+): string {
+  if (reason === "spam") return "Spam";
+  if (reason === "harassment") return "Belästigung";
+  if (reason === "duplicate") return "Duplikat";
+  if (reason === "coordinated_manipulation") return "koordinierte Manipulation";
+  if (reason === "unverifiable_claim") return "nicht belastbar prüfbarer Claim";
+  if (reason === "misleading_source") return "irreführende Quelle";
+  if (reason === "personal_data") return "personenbezogene Daten";
+  if (reason === "off_topic") return "off topic";
+  return "unsicherer Inhalt";
+}
+
+export function getCommunitySourceReviewModerationBlockerLabel(
+  blocker: CommunitySourceReviewModerationBlocker,
+): string {
+  if (blocker === "abuse_spam") return "Spam blockiert weitere Nutzung.";
+  if (blocker === "abuse_harassment") return "Belästigung blockiert weitere Nutzung.";
+  if (blocker === "abuse_duplicate") return "Duplikate bleiben moderationspflichtig.";
+  if (blocker === "abuse_coordinated_manipulation") {
+    return "Koordinierte Manipulation blockiert weitere Nutzung.";
+  }
+  if (blocker === "abuse_unverifiable_claim") {
+    return "Nicht belastbar prüfbare Claims bleiben eskalationspflichtig.";
+  }
+  if (blocker === "abuse_misleading_source") {
+    return "Irreführende Quellenhinweise bleiben moderationspflichtig.";
+  }
+  if (blocker === "abuse_personal_data") {
+    return "Personenbezogene Daten blockieren weitere Nutzung.";
+  }
+  if (blocker === "abuse_off_topic") return "Thematisch fremde Hinweise bleiben blockiert.";
+  if (blocker === "abuse_unsafe_content") return "Unsicherer Inhalt blockiert weitere Nutzung.";
+  if (blocker === "hidden_pending_review") {
+    return "Hinweis bleibt bis zur Moderationsprüfung verborgen.";
+  }
+  if (blocker === "rejected_abuse") {
+    return "Hinweis ist als missbräuchlich abgelehnt.";
+  }
+  return "Öffentliche Sichtbarkeit bleibt bis zu einem moderation-safe Status gesperrt.";
+}
+
 function uniqueReasons(
   reasons: readonly CommunitySourceReviewAbuseReason[],
 ): CommunitySourceReviewAbuseReason[] {

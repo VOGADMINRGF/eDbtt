@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   assessCommunitySourceReviewContributionRisk,
@@ -8,6 +8,23 @@ import {
   shouldRequireHumanModeration,
   summarizeCommunityContributionModerationState,
 } from "@/features/create/communitySourceReviewModeration";
+import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
+import {
+  allowCommunitySourceReviewHint,
+  createInMemoryCommunitySourceReviewRepository,
+  escalateCommunitySourceReviewHint,
+  getCommunitySourceReviewRecord,
+  hideCommunitySourceReviewHint,
+  markCommunitySourceReviewHintNeedsEditorialReview,
+  markCommunitySourceReviewHintNeedsSourceReview,
+  persistCommunitySourceReviewContributionDraft,
+  rejectCommunitySourceReviewHint,
+  setCommunitySourceReviewRepositoryForTests,
+} from "@/features/create/communitySourceReviewServer";
+
+afterEach(() => {
+  setCommunitySourceReviewRepositoryForTests(null);
+});
 
 describe("community source review moderation", () => {
   it("starts new safe hints review-first instead of treating them as public truth", () => {
@@ -175,5 +192,80 @@ describe("community source review moderation", () => {
     expect(canEscalateCommunityContributionToEditorial(signal)).toBe(true);
     expect(signal.guardrails.counterSourceIsNotAutomaticDisproof).toBe(true);
     expect(signal.moderationStatus).toBe("needs_moderation");
+  });
+
+  it("supports explicit admin moderation decisions without turning hints into facts", async () => {
+    setCommunitySourceReviewRepositoryForTests(
+      createInMemoryCommunitySourceReviewRepository(),
+    );
+
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-hint-1",
+        kind: "source_suggestion",
+        target: "factcheck_request",
+        targetId: "factcheck-1",
+        text: "Hier ist ein zusätzlicher Quellenhinweis.",
+        sourceRefs: ["https://beispiel.de/quelle"],
+        moderation: {
+          trustLevel: "trusted_contributor",
+        },
+      }),
+    );
+
+    const allowed = await allowCommunitySourceReviewHint({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Als prüfbaren Hinweis markieren.",
+    });
+    expect(allowed.decisionStatus).toBe("allowed_as_hint");
+    expect(allowed.contribution.status).toBe("accepted_as_hint");
+    expect(allowed.contribution.guardrails.acceptedHintIsFact).toBe(false);
+
+    const routedToSourceReview = await markCommunitySourceReviewHintNeedsSourceReview({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Zur Quellenprüfung vormerken.",
+    });
+    expect(routedToSourceReview.routeTarget).toBe("source_review");
+    expect(routedToSourceReview.contribution.guardrails.canConfirmSource).toBe(false);
+
+    const escalated = await escalateCommunitySourceReviewHint({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Erfordert redaktionelle Priorisierung.",
+    });
+    expect(escalated.decisionStatus).toBe("escalated");
+    expect(escalated.contribution.moderation.reviewPriority).toBe("prioritized");
+
+    const routedToEditorial = await markCommunitySourceReviewHintNeedsEditorialReview({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Zur Redaktion legen.",
+    });
+    expect(routedToEditorial.routeTarget).toBe("editorial_review");
+    expect(routedToEditorial.contribution.guardrails.canPublish).toBe(false);
+
+    const hidden = await hideCommunitySourceReviewHint({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Bis zur weiteren Prüfung ausblenden.",
+    });
+    expect(hidden.decisionStatus).toBe("hidden");
+    expect(hidden.blockers).toContain("hidden_hint");
+    expect(hidden.contribution.guardrails.hiddenOrRejectedCountsAsEvidence).toBe(false);
+
+    const rejected = await rejectCommunitySourceReviewHint({
+      contributionId: "community-hint-1",
+      actorUserId: "admin-1",
+      reason: "Nicht als belastbarer Review-Hinweis nutzbar.",
+    });
+    expect(rejected.decisionStatus).toBe("rejected");
+    expect(rejected.blockers).toContain("rejected_hint");
+
+    const persisted = await getCommunitySourceReviewRecord("community-hint-1");
+    expect(persisted?.decisionStatus).toBe("rejected");
+    expect(persisted?.contribution.guardrails.canAutoMerge).toBe(false);
+    expect(persisted?.contribution.guardrails.canCreateRuntimeEntity).toBe(false);
   });
 });
