@@ -11,11 +11,14 @@ import {
   writeTopicGraphEdgeAfterReview,
 } from "@/features/create/topicGraphRuntime";
 import {
+  approveTopicGraphEdgeDraft,
   createInMemoryTopicGraphRuntimeRepository,
+  getTopicGraphEdgeDraft,
   getTopicGraphRuntimePersistenceState,
   listTopicGraphEdgeDrafts,
   listTopicGraphMutationAudits,
   persistTopicGraphEdgeDraft,
+  rejectTopicGraphEdgeDraft,
   setTopicGraphRuntimeRepositoryForTests,
 } from "@/features/create/topicGraphRuntimeServer";
 
@@ -342,6 +345,55 @@ describe("topic graph runtime", () => {
     expect(drafts[0]?.id).toBe(edge.id);
     expect(audits).toHaveLength(1);
     expect(audits[0]?.action).toBe("draft_saved");
+  });
+
+  it("records explicit approval and rejection decisions with audit trail entries", async () => {
+    setTopicGraphRuntimeRepositoryForTests(
+      createInMemoryTopicGraphRuntimeRepository(),
+    );
+    const edge = buildTopicGraphEdgeDraft({
+      source: {
+        nodeType: "topic",
+        id: "topic-new-8",
+        title: "Sichere Schulwege",
+      },
+      target: {
+        nodeType: "topic",
+        id: "topic-existing-8",
+        title: "Schulwegsicherheit",
+      },
+      kind: "same_topic_as",
+      sourceCandidateId: "candidate-8",
+      sourceReviewStatus: "approved_for_merge",
+      sourceKinds: ["existing_topic_match"],
+      approvedForMerge: true,
+    });
+
+    await persistTopicGraphEdgeDraft(edge);
+    const approved = await approveTopicGraphEdgeDraft({
+      edgeId: edge.id,
+      actorUserId: "admin-1",
+      reason: "Explizite Graph-Freigabe",
+    });
+    const rejected = await rejectTopicGraphEdgeDraft({
+      edgeId: edge.id,
+      actorUserId: "admin-1",
+      reason: "Freigabe zurückgezogen",
+    });
+    const persisted = await getTopicGraphEdgeDraft(edge.id);
+    const audits = await listTopicGraphMutationAudits({ edgeId: edge.id });
+
+    expect(approved.mutationStatus).toBe("approved_for_graph_write");
+    expect(approved.approvedForGraphWrite).toBe(true);
+    expect(rejected.mutationStatus).toBe("rejected");
+    expect(persisted?.mutationStatus).toBe("rejected");
+    expect(audits.map((entry) => entry.action)).toEqual(
+      expect.arrayContaining([
+        "draft_saved",
+        "graph_write_approved",
+        "graph_write_rejected",
+      ]),
+    );
   });
 
   it("summarizes review-first graph preparation honestly", () => {

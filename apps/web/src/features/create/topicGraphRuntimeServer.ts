@@ -2,6 +2,7 @@ import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { getGraphDriver } from "@core/graph/driver";
 import { stableHash } from "@core/utils/hash";
 import {
+  getTopicGraphMutationBlockers,
   type TopicGraphEdge,
   type TopicGraphMutationBlocker,
   writeTopicGraphEdgeAfterReview,
@@ -10,7 +11,12 @@ import {
 export type TopicGraphMutationAuditEntry = {
   id: string;
   edgeId: string;
-  action: "draft_saved" | "graph_write_blocked" | "graph_write_written";
+  action:
+    | "draft_saved"
+    | "graph_write_approved"
+    | "graph_write_rejected"
+    | "graph_write_blocked"
+    | "graph_write_written";
   actorUserId: string | null;
   reason: string | null;
   blockers: TopicGraphMutationBlocker[];
@@ -48,6 +54,10 @@ let repoSingleton: TopicGraphRuntimeRepository | null = null;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function buildPersistenceState(
@@ -272,6 +282,10 @@ export function getTopicGraphRuntimePersistenceState() {
   return getRepo().getPersistenceState();
 }
 
+export function topicGraphRuntimeAvailable() {
+  return Boolean(getGraphDriver());
+}
+
 export async function persistTopicGraphEdgeDraft(
   edge: TopicGraphEdge,
 ): Promise<TopicGraphEdge> {
@@ -292,11 +306,109 @@ export async function listTopicGraphEdgeDrafts(limit?: number) {
   return getRepo().listEdges(limit);
 }
 
+export async function getTopicGraphEdgeDraft(edgeId: string) {
+  const normalized = String(edgeId ?? "").trim();
+  if (!normalized) return null;
+  return getRepo().getEdgeById(normalized);
+}
+
 export async function listTopicGraphMutationAudits(params?: {
   edgeId?: string | null;
   limit?: number;
 }) {
   return getRepo().listAudits(params);
+}
+
+export async function approveTopicGraphEdgeDraft(input: {
+  edgeId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  const existing = await getTopicGraphEdgeDraft(input.edgeId);
+  if (!existing) {
+    throw new Error("topic_graph_edge_not_found");
+  }
+
+  const approvedAt = nowIso();
+  const nextAuditContext = {
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    origin: "admin_review" as const,
+    approvedAt,
+  };
+  const nextEdge: TopicGraphEdge = {
+    ...existing,
+    approvedForGraphWrite: true,
+    mutationStatus: "approved_for_graph_write",
+    auditContext: nextAuditContext,
+    blockers: getTopicGraphMutationBlockers(
+      {
+        ...existing,
+        approvedForGraphWrite: true,
+        mutationStatus: "approved_for_graph_write",
+        auditContext: nextAuditContext,
+      },
+      {
+        phase: "graph_write",
+        graphRuntimeAvailable: topicGraphRuntimeAvailable(),
+        auditContext: nextAuditContext,
+      },
+    ),
+    updatedAt: approvedAt,
+  };
+
+  await getRepo().upsertEdge(nextEdge);
+  await recordAudit({
+    edgeId: nextEdge.id,
+    action: "graph_write_approved",
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    blockers: nextEdge.blockers,
+    mutationStatus: nextEdge.mutationStatus,
+    at: approvedAt,
+  });
+
+  return nextEdge;
+}
+
+export async function rejectTopicGraphEdgeDraft(input: {
+  edgeId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  const existing = await getTopicGraphEdgeDraft(input.edgeId);
+  if (!existing) {
+    throw new Error("topic_graph_edge_not_found");
+  }
+
+  const updatedAt = nowIso();
+  const nextEdge: TopicGraphEdge = {
+    ...existing,
+    approvedForGraphWrite: false,
+    mutationStatus: "rejected",
+    blockers: [],
+    note: input.reason,
+    auditContext: {
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      origin: "admin_review",
+      approvedAt: existing.auditContext.approvedAt ?? updatedAt,
+    },
+    updatedAt,
+  };
+
+  await getRepo().upsertEdge(nextEdge);
+  await recordAudit({
+    edgeId: nextEdge.id,
+    action: "graph_write_rejected",
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    blockers: [],
+    mutationStatus: nextEdge.mutationStatus,
+    at: updatedAt,
+  });
+
+  return nextEdge;
 }
 
 export async function writeApprovedTopicGraphEdgeToRuntime(
