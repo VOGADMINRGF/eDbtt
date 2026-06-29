@@ -8,6 +8,11 @@ import {
 } from "@/features/create/communitySourceReviewContribution";
 import {
   getCommunitySourceReviewModerationBlockers,
+  type CommunitySourceReviewAbuseDisposition,
+  type CommunitySourceReviewAbuseSeverity,
+  type CommunitySourceReviewAbuseSignal,
+  type CommunitySourceReviewAbuseSignalInput,
+  type CommunitySourceReviewAbuseSignalKind,
   type CommunitySourceReviewModerationBlocker,
   type CommunitySourceReviewModerationInput,
 } from "@/features/create/communitySourceReviewModeration";
@@ -53,6 +58,10 @@ export type CommunitySourceReviewAuditEntry = {
   contributionId: string;
   action:
     | "draft_saved"
+    | "signal_detected"
+    | "signal_reviewed"
+    | "moderation_action_taken"
+    | "escalation_recommended"
     | "hint_allowed"
     | "hint_hidden"
     | "hint_rejected"
@@ -64,6 +73,9 @@ export type CommunitySourceReviewAuditEntry = {
   decisionStatus: CommunitySourceReviewDecisionStatus;
   routeTarget: CommunitySourceReviewRouteTarget;
   blockers: CommunitySourceReviewHintBlocker[];
+  signalKinds?: CommunitySourceReviewAbuseSignalKind[];
+  signalSeverity?: CommunitySourceReviewAbuseSeverity | null;
+  signalDisposition?: CommunitySourceReviewAbuseDisposition | null;
   at: string;
 };
 
@@ -154,6 +166,61 @@ function buildAuditId(input: {
   return `community-source-review-audit-${stableHash(
     `${input.contributionId}:${input.action}:${input.at}`,
   ).slice(0, 24)}`;
+}
+
+function getManualAbuseSignals(
+  signals: readonly CommunitySourceReviewAbuseSignal[],
+): CommunitySourceReviewAbuseSignalInput[] {
+  return signals
+    .filter((signal) => signal.detectedFrom === "manual")
+    .map((signal) => ({
+      kind: signal.kind,
+      severity: signal.severity,
+      disposition: signal.disposition,
+      note: signal.note,
+      reviewedAt: signal.reviewedAt,
+      reviewedBy: signal.reviewedBy,
+      detectedBy: signal.detectedBy,
+      detectedFrom: signal.detectedFrom,
+    }));
+}
+
+function getSignalKinds(
+  signals: readonly CommunitySourceReviewAbuseSignal[],
+): CommunitySourceReviewAbuseSignalKind[] {
+  return unique(signals.map((signal) => signal.kind));
+}
+
+function getLatestSignalSeverity(
+  signals: readonly CommunitySourceReviewAbuseSignal[],
+): CommunitySourceReviewAbuseSeverity | null {
+  return signals[0]?.severity ?? null;
+}
+
+function getLatestSignalDisposition(
+  signals: readonly CommunitySourceReviewAbuseSignal[],
+): CommunitySourceReviewAbuseDisposition | null {
+  return signals[0]?.disposition ?? null;
+}
+
+function buildModeratorSignal(input: {
+  kind: CommunitySourceReviewAbuseSignalKind;
+  severity: CommunitySourceReviewAbuseSeverity;
+  disposition: CommunitySourceReviewAbuseDisposition;
+  note: string;
+  actorUserId: string;
+  at: string;
+}): CommunitySourceReviewAbuseSignalInput {
+  return {
+    kind: input.kind,
+    severity: input.severity,
+    disposition: input.disposition,
+    note: input.note,
+    reviewedAt: input.at,
+    reviewedBy: input.actorUserId,
+    detectedBy: "moderator",
+    detectedFrom: "manual",
+  };
 }
 
 function getRepo() {
@@ -303,7 +370,7 @@ function rebuildContribution(
   contribution: CommunitySourceReviewContribution,
   input: {
     status?: CommunitySourceReviewContribution["status"];
-    moderationStatus?: CommunitySourceReviewModerationInput["moderationStatus"];
+    moderation?: Partial<CommunitySourceReviewModerationInput>;
     updatedAt: string;
   },
 ) {
@@ -324,10 +391,14 @@ function rebuildContribution(
     moderationFlags: contribution.moderationFlags,
     moderation: {
       moderationStatus:
-        input.moderationStatus ?? contribution.moderation.moderationStatus,
+        input.moderation?.moderationStatus ??
+        contribution.moderation.moderationStatus,
       trustLevel: contribution.moderation.trustLevel,
       riskLevel: contribution.moderation.riskLevel,
       abuseReasons: contribution.moderation.abuseReasons,
+      abuseSignals:
+        input.moderation?.abuseSignals ??
+        getManualAbuseSignals(contribution.moderation.abuseSignals),
     },
     createdAt: contribution.createdAt,
     updatedAt: input.updatedAt,
@@ -434,8 +505,26 @@ export async function persistCommunitySourceReviewContributionDraft(
     decisionStatus: record.decisionStatus,
     routeTarget: record.routeTarget,
     blockers: record.blockers,
+    signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
+    signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
+    signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
     at: record.updatedAt,
   });
+  if (record.contribution.moderation.abuseSignals.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "signal_detected",
+      actorUserId: null,
+      reason: record.contribution.moderation.abuseState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
+      signalSeverity: record.contribution.moderation.abuseSeverity,
+      signalDisposition: record.contribution.moderation.abuseDisposition,
+      at: record.updatedAt,
+    });
+  }
   return record;
 }
 
@@ -464,8 +553,9 @@ async function updateRecordWithDecision(input: {
   decisionStatus?: CommunitySourceReviewDecisionStatus;
   routeTarget?: CommunitySourceReviewRouteTarget;
   status?: CommunitySourceReviewContribution["status"];
-  moderationStatus?: CommunitySourceReviewModerationInput["moderationStatus"];
+  moderation?: Partial<CommunitySourceReviewModerationInput>;
   blockedDecisionStatuses?: CommunitySourceReviewDecisionStatus[];
+  extraAuditActions?: CommunitySourceReviewAuditEntry["action"][];
 }) {
   const existing = await getCommunitySourceReviewRecord(input.contributionId);
   if (!existing) {
@@ -478,7 +568,7 @@ async function updateRecordWithDecision(input: {
   const updatedAt = nowIso();
   const contribution = rebuildContribution(existing.contribution, {
     status: input.status,
-    moderationStatus: input.moderationStatus,
+    moderation: input.moderation,
     updatedAt,
   });
   const record = buildRecord(contribution, {
@@ -499,8 +589,51 @@ async function updateRecordWithDecision(input: {
     decisionStatus: record.decisionStatus,
     routeTarget: record.routeTarget,
     blockers: record.blockers,
+    signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
+    signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
+    signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
     at: updatedAt,
   });
+
+  const previousSignalKinds = new Set(
+    getSignalKinds(existing.contribution.moderation.abuseSignals),
+  );
+  const nextSignalKinds = getSignalKinds(record.contribution.moderation.abuseSignals);
+  const newlyDetectedSignalKinds = nextSignalKinds.filter(
+    (kind) => !previousSignalKinds.has(kind),
+  );
+
+  if (newlyDetectedSignalKinds.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "signal_detected",
+      actorUserId: input.actorUserId,
+      reason: record.contribution.moderation.abuseState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      signalKinds: newlyDetectedSignalKinds,
+      signalSeverity: record.contribution.moderation.abuseSeverity,
+      signalDisposition: record.contribution.moderation.abuseDisposition,
+      at: updatedAt,
+    });
+  }
+
+  for (const extraAction of input.extraAuditActions ?? []) {
+    await recordAudit({
+      contributionId: record.id,
+      action: extraAction,
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      signalKinds: nextSignalKinds,
+      signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
+      signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
+      at: updatedAt,
+    });
+  }
 
   return record;
 }
@@ -517,7 +650,10 @@ export async function allowCommunitySourceReviewHint(input: {
     action: "hint_allowed",
     decisionStatus: "allowed_as_hint",
     status: "accepted_as_hint",
-    moderationStatus: "allowed_as_hint",
+    moderation: {
+      moderationStatus: "allowed_as_hint",
+    },
+    extraAuditActions: ["moderation_action_taken"],
   });
 }
 
@@ -533,8 +669,11 @@ export async function hideCommunitySourceReviewHint(input: {
     action: "hint_hidden",
     decisionStatus: "hidden",
     status: "needs_moderation",
-    moderationStatus: "hidden_pending_review",
+    moderation: {
+      moderationStatus: "hidden_pending_review",
+    },
     routeTarget: "none",
+    extraAuditActions: ["moderation_action_taken"],
   });
 }
 
@@ -551,6 +690,7 @@ export async function rejectCommunitySourceReviewHint(input: {
     decisionStatus: "rejected",
     status: "rejected",
     routeTarget: "none",
+    extraAuditActions: ["moderation_action_taken"],
   });
 }
 
@@ -566,7 +706,10 @@ export async function escalateCommunitySourceReviewHint(input: {
     action: "hint_escalated",
     decisionStatus: "escalated",
     status: "needs_moderation",
-    moderationStatus: "escalated_to_editorial",
+    moderation: {
+      moderationStatus: "escalated_to_editorial",
+    },
+    extraAuditActions: ["moderation_action_taken", "escalation_recommended"],
   });
 }
 
@@ -582,6 +725,7 @@ export async function markCommunitySourceReviewHintNeedsSourceReview(input: {
     action: "source_review_requested",
     routeTarget: "source_review",
     blockedDecisionStatuses: ["hidden", "rejected"],
+    extraAuditActions: ["moderation_action_taken"],
   });
 }
 
@@ -597,5 +741,136 @@ export async function markCommunitySourceReviewHintNeedsEditorialReview(input: {
     action: "editorial_review_requested",
     routeTarget: "editorial_review",
     blockedDecisionStatuses: ["hidden", "rejected"],
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function markCommunitySourceReviewHintAsSpamRisk(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  const existing = await getCommunitySourceReviewRecord(input.contributionId);
+  if (!existing) {
+    throw new Error("community_source_review_not_found");
+  }
+  const updatedAt = nowIso();
+  const manualSignals = [
+    ...getManualAbuseSignals(existing.contribution.moderation.abuseSignals),
+    buildModeratorSignal({
+      kind: "possible_spam",
+      severity: "high",
+      disposition: "hide_until_reviewed",
+      note: input.reason,
+      actorUserId: input.actorUserId,
+      at: updatedAt,
+    }),
+  ];
+
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "signal_reviewed",
+    status: "needs_moderation",
+    moderation: {
+      moderationStatus: "hidden_pending_review",
+      abuseSignals: manualSignals,
+    },
+    routeTarget: "none",
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function markCommunitySourceReviewHintAsAbuseRisk(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  const existing = await getCommunitySourceReviewRecord(input.contributionId);
+  if (!existing) {
+    throw new Error("community_source_review_not_found");
+  }
+  const updatedAt = nowIso();
+  const manualSignals = [
+    ...getManualAbuseSignals(existing.contribution.moderation.abuseSignals),
+    buildModeratorSignal({
+      kind: "possible_abuse",
+      severity: "high",
+      disposition: "needs_moderator_attention",
+      note: input.reason,
+      actorUserId: input.actorUserId,
+      at: updatedAt,
+    }),
+  ];
+
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "signal_reviewed",
+    status: "needs_moderation",
+    moderation: {
+      moderationStatus: "needs_moderation",
+      abuseSignals: manualSignals,
+    },
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function clearCommunitySourceReviewHintAbuseSignals(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "signal_reviewed",
+    status: "pending_review",
+    moderation: {
+      moderationStatus: "pending_review",
+      abuseSignals: [],
+    },
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function escalateCommunitySourceReviewAbuseReview(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  const existing = await getCommunitySourceReviewRecord(input.contributionId);
+  if (!existing) {
+    throw new Error("community_source_review_not_found");
+  }
+  const updatedAt = nowIso();
+  const manualSignals = [
+    ...getManualAbuseSignals(existing.contribution.moderation.abuseSignals),
+    buildModeratorSignal({
+      kind: "escalation_risk",
+      severity: "high",
+      disposition: "escalate_recommended",
+      note: input.reason,
+      actorUserId: input.actorUserId,
+      at: updatedAt,
+    }),
+  ];
+
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "signal_reviewed",
+    decisionStatus: "escalated",
+    routeTarget: "editorial_review",
+    status: "needs_moderation",
+    moderation: {
+      moderationStatus: "escalated_to_editorial",
+      abuseSignals: manualSignals,
+    },
+    extraAuditActions: ["moderation_action_taken", "escalation_recommended"],
   });
 }

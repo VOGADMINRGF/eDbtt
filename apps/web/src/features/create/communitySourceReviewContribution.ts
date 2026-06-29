@@ -441,6 +441,8 @@ export function createCommunitySourceReviewContributionDraft(
     target: input.target,
     relatedContributionCount: Math.max(0, input.relatedContributionCount ?? 0),
     sourceRefCount: unique(input.sourceRefs ?? []).length,
+    sourceRefs: unique(input.sourceRefs ?? []),
+    textLength: String(input.text ?? "").trim().length,
     moderationFlags,
     moderation: input.moderation ?? null,
   });

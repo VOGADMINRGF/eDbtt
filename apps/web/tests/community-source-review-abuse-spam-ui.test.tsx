@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+
 import AdminCommunitySourceReviewSection from "@/app/admin/review/AdminCommunitySourceReviewSection";
 import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
 import {
-  allowCommunitySourceReviewHint,
   createInMemoryCommunitySourceReviewRepository,
   listCommunitySourceReviewAudits,
   listCommunitySourceReviewRecords,
-  markCommunitySourceReviewHintNeedsSourceReview,
+  markCommunitySourceReviewHintAsSpamRisk,
   persistCommunitySourceReviewContributionDraft,
   setCommunitySourceReviewRepositoryForTests,
 } from "@/features/create/communitySourceReviewServer";
@@ -26,37 +26,29 @@ afterEach(() => {
   setCommunitySourceReviewRepositoryForTests(null);
 });
 
-describe("community source review moderation ui", () => {
-  it("renders community hints with moderation, risk, abuse, trust and guardrails in admin review", async () => {
+describe("community source review abuse spam ui", () => {
+  it("renders abuse severity disposition blockers and audit history in the existing admin workbench", async () => {
     setCommunitySourceReviewRepositoryForTests(
       createInMemoryCommunitySourceReviewRepository(),
     );
 
     await persistCommunitySourceReviewContributionDraft(
       createCommunitySourceReviewContributionDraft({
-        id: "community-ui-1",
+        id: "community-ui-abuse-1",
         kind: "source_suggestion",
         target: "claim",
-        targetId: "claim-1",
-        claimText: "Vor der Schule fehlen sichere Querungen.",
-        text: "Hier ist ein zusätzlicher Bericht aus dem Kiez.",
-        sourceRefs: ["https://beispiel.de/bericht"],
-        relatedContributionCount: 12,
-        moderation: {
-          trustLevel: "trusted_contributor",
-        },
+        targetId: "claim-abuse-1",
+        claimText: "Mehr Quellen sollen den Claim bestätigen.",
+        text: "Noch ein Link, bitte direkt übernehmen.",
+        sourceRefs: ["http://bit.ly/verdacht"],
+        relatedContributionCount: 13,
       }),
     );
 
-    await allowCommunitySourceReviewHint({
-      contributionId: "community-ui-1",
+    await markCommunitySourceReviewHintAsSpamRisk({
+      contributionId: "community-ui-abuse-1",
       actorUserId: "admin-1",
-      reason: "Als Hinweis behalten.",
-    });
-    await markCommunitySourceReviewHintNeedsSourceReview({
-      contributionId: "community-ui-1",
-      actorUserId: "admin-1",
-      reason: "Zur Quellenprüfung legen.",
+      reason: "Spam-Risiko wegen Ballung und Kurzlink.",
     });
 
     const records = await listCommunitySourceReviewRecords();
@@ -88,24 +80,16 @@ describe("community source review moderation ui", () => {
       />,
     );
 
-    expect(html).toContain("Community-Hinweise moderieren");
-    expect(html).toContain("source_suggestion");
-    expect(html).toContain("Quellenvorschlag");
-    expect(html).toContain("als Hinweis erlaubt");
-    expect(html).toContain("Claim");
-    expect(html).toContain("Trust");
-    expect(html).toContain("vertrauenswürdiger Beitragender");
-    expect(html).toContain("Risiko");
-    expect(html).toContain("keine Abuse-Flags");
+    expect(html).toContain("möglicher Spam");
+    expect(html).toContain("Severity:");
+    expect(html).toContain("Disposition:");
     expect(html).toContain("Mehrfacheinreichung");
     expect(html).toContain("Volumensignal");
-    expect(html).toContain("Abuse-/Spam-Signale sind Moderationshinweise, keine automatische Ablehnung.");
-    expect(html).toContain("Mehrfach- oder Volumensignale begründen keine Wahrheit.");
-    expect(html).toContain(
-      "Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.",
-    );
-    expect(html).toContain("Zur Quellenprüfung routen");
-    expect(html).toContain("Quellenprüfung");
-    expect(html).not.toContain("accepted_as_fact");
+    expect(html).toContain("Als Evidenz blockiert.");
+    expect(html).toContain("Audit-Historie");
+    expect(html).toContain("Signal erkannt");
+    expect(html).toContain("Signal geprüft");
+    expect(html).toContain("Als Spam-Risiko markieren");
+    expect(html).toContain("Abuse-Signale zurücksetzen");
   });
 });
