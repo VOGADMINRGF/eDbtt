@@ -4,6 +4,7 @@ import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import {
   allowCommunitySourceReviewHint,
   clearCommunitySourceReviewHintAbuseSignals,
+  clearCommunitySourceReviewTrustQualitySignals,
   escalateCommunitySourceReviewAbuseReview,
   escalateCommunitySourceReviewHint,
   getCommunitySourceReviewRecord,
@@ -12,7 +13,10 @@ import {
   markCommunitySourceReviewHintAsSpamRisk,
   markCommunitySourceReviewHintNeedsEditorialReview,
   markCommunitySourceReviewHintNeedsSourceReview,
+  markCommunitySourceReviewSourceQualityReviewed,
+  markCommunitySourceReviewTrustQualityReviewed,
   rejectCommunitySourceReviewHint,
+  setCommunitySourceReviewPriorityFromTrustQuality,
 } from "@/features/create/communitySourceReviewServer";
 
 export const runtime = "nodejs";
@@ -30,6 +34,10 @@ const BodySchema = z.object({
     "markAsAbuseRisk",
     "clearAbuseSignal",
     "escalateAbuseReview",
+    "markSourceQualityReviewed",
+    "markTrustQualityReviewed",
+    "setReviewPriorityFromTrustQuality",
+    "clearTrustQualitySignals",
   ]),
   note: z.string().trim().min(1).max(1000),
 });
@@ -120,11 +128,35 @@ export async function POST(
                             actorUserId,
                             reason,
                           })
-                        : await escalateCommunitySourceReviewAbuseReview({
-                            contributionId,
-                            actorUserId,
-                            reason,
-                          });
+                        : parsed.data.action === "escalateAbuseReview"
+                          ? await escalateCommunitySourceReviewAbuseReview({
+                              contributionId,
+                              actorUserId,
+                              reason,
+                            })
+                          : parsed.data.action === "markSourceQualityReviewed"
+                            ? await markCommunitySourceReviewSourceQualityReviewed({
+                                contributionId,
+                                actorUserId,
+                                reason,
+                              })
+                            : parsed.data.action === "markTrustQualityReviewed"
+                              ? await markCommunitySourceReviewTrustQualityReviewed({
+                                  contributionId,
+                                  actorUserId,
+                                  reason,
+                                })
+                              : parsed.data.action === "setReviewPriorityFromTrustQuality"
+                                ? await setCommunitySourceReviewPriorityFromTrustQuality({
+                                    contributionId,
+                                    actorUserId,
+                                    reason,
+                                  })
+                                : await clearCommunitySourceReviewTrustQualitySignals({
+                                    contributionId,
+                                    actorUserId,
+                                    reason,
+                                  });
 
     return NextResponse.json({ ok: true, item });
   } catch (error) {

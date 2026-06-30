@@ -128,6 +128,13 @@ type CreateCommunitySourceReviewContributionDraftInput = {
   relatedContributionCount?: number;
   moderationFlags?: Partial<CommunitySourceReviewGuardrailFlags>;
   moderation?: CommunitySourceReviewModerationInput | null;
+  history?: {
+    priorAllowedHint?: boolean;
+    priorRejectedHint?: boolean;
+    priorSourceReviewRouted?: boolean;
+    priorEditorialReviewRouted?: boolean;
+    contributorContextAvailable?: boolean;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
   submittedAt?: string | null;
@@ -349,6 +356,12 @@ function buildOpenQuestions(
   if (contribution.moderation.trustLevel !== "unknown") {
     questions.push("Trust priorisiert höchstens Review und bestätigt keine Wahrheit.");
   }
+  if (contribution.moderation.sourceQualityLevel !== "unknown") {
+    questions.push("Quellenqualität hilft bei der Einordnung, verifiziert aber keine Quelle.");
+  }
+  if (contribution.moderation.sourceQualityState.reviewCandidateHint === "strong_review_candidate") {
+    questions.push("Auch starke Review-Kandidaten müssen fachlich oder redaktionell geprüft werden.");
+  }
 
   return unique(questions);
 }
@@ -443,7 +456,11 @@ export function createCommunitySourceReviewContributionDraft(
     sourceRefCount: unique(input.sourceRefs ?? []).length,
     sourceRefs: unique(input.sourceRefs ?? []),
     textLength: String(input.text ?? "").trim().length,
+    claimText: input.claimText ?? null,
+    notes: input.notes ?? [],
+    materialRefs: input.materialRefs ?? [],
     moderationFlags,
+    history: input.history ?? null,
     moderation: input.moderation ?? null,
   });
   const contribution: CommunitySourceReviewContribution = {

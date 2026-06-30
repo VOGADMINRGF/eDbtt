@@ -13,7 +13,10 @@ import {
   getCommunitySourceReviewModerationBlockerLabel,
   getCommunitySourceReviewModerationStatusLabel,
   getCommunitySourceReviewRiskLevelLabel,
+  getCommunitySourceReviewSourceQualityLevelLabel,
+  getCommunitySourceReviewSourceQualitySignalKindLabel,
   getCommunitySourceReviewTrustLevelLabel,
+  getCommunitySourceReviewTrustSignalKindLabel,
   type CommunitySourceReviewModerationBlocker,
 } from "@/features/create/communitySourceReviewModeration";
 import {
@@ -44,6 +47,9 @@ function renderBlockerLabel(blocker: CommunitySourceReviewRecordItem["blockers"]
   }
   if (
     blocker.startsWith("abuse_") ||
+    blocker.startsWith("trust_") ||
+    blocker.startsWith("source_quality_") ||
+    blocker === "review_priority_trust_quality_only" ||
     blocker === "hidden_pending_review" ||
     blocker === "rejected_abuse" ||
     blocker === "public_exposure_requires_moderation_safe_status"
@@ -63,6 +69,11 @@ function renderAuditActionLabel(action: CommunitySourceReviewAuditEntry["action"
   if (action === "signal_reviewed") return "Signal geprüft";
   if (action === "moderation_action_taken") return "Moderationsaktion ausgeführt";
   if (action === "escalation_recommended") return "Eskalation empfohlen";
+  if (action === "trust_signal_derived") return "Trust-Signal abgeleitet";
+  if (action === "source_quality_signal_derived") return "Quellenqualität abgeleitet";
+  if (action === "review_priority_changed") return "Review-Priorität geändert";
+  if (action === "source_quality_reviewed") return "Quellenqualität geprüft";
+  if (action === "trust_quality_reviewed") return "Trust/Quality geprüft";
   if (action === "hint_allowed") return "Als Hinweis erlaubt";
   if (action === "hint_hidden") return "Hinweis verborgen";
   if (action === "hint_rejected") return "Hinweis zurückgewiesen";
@@ -189,7 +200,7 @@ export default function AdminCommunitySourceReviewSection({
                   </div>
                 </div>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-3 grid gap-3 md:grid-cols-4">
                   <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                       Risk / Abuse
@@ -248,6 +259,23 @@ export default function AdminCommunitySourceReviewSection({
 
                   <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Quellenqualität
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {getCommunitySourceReviewSourceQualityLevelLabel(
+                        record.contribution.moderation.sourceQualityLevel,
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Review-Priorität: {record.contribution.moderation.reviewPriority}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.sourceQualityState.summary}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                       Audit-Hinweis
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
@@ -264,7 +292,7 @@ export default function AdminCommunitySourceReviewSection({
                   </div>
                 </div>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
                   <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                       Signal-Lesart
@@ -315,6 +343,33 @@ export default function AdminCommunitySourceReviewSection({
                       </p>
                     )}
                   </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Trust / Quality
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Trust-Signale:{" "}
+                      {record.contribution.moderation.trustSignals.length > 0
+                        ? record.contribution.moderation.trustSignals
+                            .map((signal) => getCommunitySourceReviewTrustSignalKindLabel(signal.kind))
+                            .join(" · ")
+                        : "keine zusätzlichen Trust-Signale"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Source-Quality-Signale:{" "}
+                      {record.contribution.moderation.sourceQualitySignals.length > 0
+                        ? record.contribution.moderation.sourceQualitySignals
+                            .map((signal) =>
+                              getCommunitySourceReviewSourceQualitySignalKindLabel(signal.kind),
+                            )
+                            .join(" · ")
+                        : "keine zusätzlichen Quality-Signale"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.trustState.summary}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
@@ -326,6 +381,15 @@ export default function AdminCommunitySourceReviewSection({
                   </p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                     Mehrfach- oder Volumensignale begründen keine Wahrheit.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Trust priorisiert Prüfung, bestätigt aber keine Wahrheit.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Quellenqualität hilft bei der Einordnung, verifiziert aber keine Quelle.
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Auch starke Review-Kandidaten müssen redaktionell oder fachlich geprüft werden.
                   </p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                     Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
@@ -366,6 +430,18 @@ export default function AdminCommunitySourceReviewSection({
                         {audit.signalKinds?.length
                           ? ` · ${audit.signalKinds
                               .map((kind) => getCommunitySourceReviewAbuseSignalKindLabel(kind))
+                              .join(" · ")}`
+                          : ""}
+                        {audit.trustSignalKinds?.length
+                          ? ` · ${audit.trustSignalKinds
+                              .map((kind) => getCommunitySourceReviewTrustSignalKindLabel(kind))
+                              .join(" · ")}`
+                          : ""}
+                        {audit.sourceQualitySignalKinds?.length
+                          ? ` · ${audit.sourceQualitySignalKinds
+                              .map((kind) =>
+                                getCommunitySourceReviewSourceQualitySignalKindLabel(kind),
+                              )
                               .join(" · ")}`
                           : ""}
                         {audit.reason ? ` · ${audit.reason}` : ""}
