@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   loadAdminCommunitySourceReviewSectionProps: vi.fn(),
   loadAdminTopicGraphApprovalSectionProps: vi.fn(),
   loadAdminDossierRuntimeCreationSectionProps: vi.fn(),
+  loadAdminAnlassraumRuntimeCreationSectionProps: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/sessionUser", () => ({
@@ -58,6 +59,11 @@ vi.mock("@/app/admin/review/loadAdminTopicGraphApprovalSectionProps", () => ({
 vi.mock("@/app/admin/review/loadAdminDossierRuntimeCreationSectionProps", () => ({
   loadAdminDossierRuntimeCreationSectionProps: (...args: unknown[]) =>
     mocks.loadAdminDossierRuntimeCreationSectionProps(...args),
+}));
+
+vi.mock("@/app/admin/review/loadAdminAnlassraumRuntimeCreationSectionProps", () => ({
+  loadAdminAnlassraumRuntimeCreationSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminAnlassraumRuntimeCreationSectionProps(...args),
 }));
 
 vi.mock("@features/factcheck/db", () => ({
@@ -143,6 +149,21 @@ describe("/admin/review page", () => {
         summary:
           "Review-bestätigte Dossier-Creation-Drafts und Audit-Spuren liegen dauerhaft vor.",
         repositoryInterface: "DossierRuntimeRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
+    });
+    mocks.loadAdminAnlassraumRuntimeCreationSectionProps.mockResolvedValue({
+      anlassraumRuntimeRecords: [],
+      anlassraumRuntimeAuditMap: new Map(),
+      anlassraumRuntimePersistence: {
+        mode: "persistent_primary",
+        label: "Persistente Anlassraum-Runtime-Creation",
+        summary:
+          "Review-bestätigte Anlassraum-Creation-Drafts und Audit-Spuren liegen dauerhaft vor.",
+        repositoryInterface: "AnlassraumRuntimeRepository",
         storeKind: "mongo_collection",
         productionTruth: true,
         restartReconstructable: true,
@@ -619,6 +640,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Official Release erteilt");
     expect(html).toContain("Community Source Review");
     expect(html).toContain("Dossier erstellen prüfen");
+    expect(html).toContain("Anlassraum erstellen prüfen");
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");
