@@ -146,7 +146,7 @@ describe("participation space publish admin ui", () => {
           summary:
             "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor.",
           productionTruth: true,
-          publicRouteRuntime: "fixture_only",
+          publicRouteRuntime: "runtime_wired",
         }}
       />,
     );
@@ -166,7 +166,7 @@ describe("participation space publish admin ui", () => {
     expect(markup).toContain(
       "Veröffentlichung braucht eine eigene explizite Freigabe.",
     );
-    expect(markup).toContain("fixture-basiert");
+    expect(markup).toContain("runtime-wired");
   });
 
   it("disables activation and publication actions until explicit approvals exist", () => {

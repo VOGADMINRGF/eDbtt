@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BRAND } from "@/lib/brand";
-import { getPublicParticipationSpaceFixtureBySlug } from "@/features/participation/fixtures/publicParticipationSpace";
 import { PublicParticipationSpaceShell } from "@/features/participation/publicParticipationSpaceShell";
+import { getPublishedParticipationSpaceBySlugOrId } from "@/features/participation/publicParticipationSpaceRuntime";
 
 /* page-contract: delegated-h1 */
 
@@ -12,41 +12,41 @@ type Params = {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const fixture = getPublicParticipationSpaceFixtureBySlug(slug);
+  const { detail } = await getPublishedParticipationSpaceBySlugOrId(slug);
 
-  if (!fixture) {
+  if (!detail) {
     return {
       title: "Beteiligungsraum nicht gefunden",
     };
   }
 
   return {
-    title: fixture.space.title,
-    description: fixture.space.summary,
+    title: detail.title,
+    description: detail.summary,
     alternates: {
-      canonical: `/beteiligung/${fixture.space.slug}`,
+      canonical: `/beteiligung/${detail.slug}`,
     },
     openGraph: {
-      title: fixture.space.title,
-      description: fixture.space.summary,
-      url: `${BRAND.baseUrl}/beteiligung/${fixture.space.slug}`,
+      title: detail.title,
+      description: detail.summary,
+      url: `${BRAND.baseUrl}/beteiligung/${detail.slug}`,
       siteName: BRAND.name,
       type: "article",
     },
     twitter: {
-      title: fixture.space.title,
-      description: fixture.space.summary,
+      title: detail.title,
+      description: detail.summary,
     },
   };
 }
 
 export default async function PublicParticipationSpacePage({ params }: Params) {
   const { slug } = await params;
-  const fixture = getPublicParticipationSpaceFixtureBySlug(slug);
+  const { detail } = await getPublishedParticipationSpaceBySlugOrId(slug);
 
-  if (!fixture) {
+  if (!detail) {
     notFound();
   }
 
-  return <PublicParticipationSpaceShell fixture={fixture} />;
+  return <PublicParticipationSpaceShell detail={detail} />;
 }

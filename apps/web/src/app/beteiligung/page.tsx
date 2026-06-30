@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { listPublicParticipationSpaceFixtures } from "@/features/participation/fixtures/publicParticipationSpace";
 import { PublicParticipationSpaceIndex } from "@/features/participation/publicParticipationSpaceIndex";
+import { listPublishedParticipationSpaces } from "@/features/participation/publicParticipationSpaceRuntime";
 import { buildShareMetadata } from "@/features/share/metadata";
 
 /* page-contract: delegated-h1 */
@@ -14,8 +14,8 @@ export const metadata: Metadata = buildShareMetadata({
   ogType: "website",
 });
 
-export default function PublicParticipationSpaceIndexPage() {
-  const fixtures = listPublicParticipationSpaceFixtures();
+export default async function PublicParticipationSpaceIndexPage() {
+  const { items, status } = await listPublishedParticipationSpaces();
 
-  return <PublicParticipationSpaceIndex fixtures={fixtures} />;
+  return <PublicParticipationSpaceIndex items={items} status={status} />;
 }

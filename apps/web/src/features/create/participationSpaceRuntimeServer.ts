@@ -52,7 +52,7 @@ export type ParticipationSpacePublishWorkflowPersistenceState = {
   productionTruth: boolean;
   restartReconstructable: boolean;
   deploymentReconstructable: boolean;
-  publicRouteRuntime: "fixture_only";
+  publicRouteRuntime: "fixture_only" | "runtime_wired";
 };
 
 type ParticipationSpaceRuntimeCreatedSpaceRecord = {
@@ -174,14 +174,14 @@ function buildPublishPersistenceState(
       ? "Persistenter Beteiligungsraum-Publish-/Activation-Workflow"
       : "In-Memory-Fallback für Beteiligungsraum-Publish-/Activation-Workflow",
     summary: persistent
-      ? "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route bleibt vorerst fixture-basiert."
+      ? "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route liest veröffentlichte Runtime-Räume read-only und nutzt Fixtures nur noch als klar gekennzeichneten Fallback ohne Runtime-Mutation."
       : "Nur Dev-/Test-Fallback: Aktivierungs- und Veröffentlichungszustände leben pro Runtime und sind keine belastbare Produktionswahrheit.",
     repositoryInterface: "ParticipationSpacePublishWorkflowRepository",
     storeKind: persistent ? "mongo_collection" : "in_memory",
     productionTruth: persistent,
     restartReconstructable: persistent,
     deploymentReconstructable: persistent,
-    publicRouteRuntime: "fixture_only",
+    publicRouteRuntime: "runtime_wired",
   };
 }
 

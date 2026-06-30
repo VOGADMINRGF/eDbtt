@@ -18,7 +18,7 @@ type Props = {
     label: string;
     summary: string;
     productionTruth: boolean;
-    publicRouteRuntime: "fixture_only";
+    publicRouteRuntime: "fixture_only" | "runtime_wired";
   };
 };
 
@@ -81,7 +81,7 @@ export default function AdminParticipationSpacePublishSection({
             {participationSpacePublishPersistence.publicRouteRuntime ===
             "fixture_only"
               ? "weiterhin fixture-basiert"
-              : participationSpacePublishPersistence.publicRouteRuntime}
+              : "runtime-wired"}
           </p>
         </div>
       </div>
