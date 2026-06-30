@@ -9,6 +9,7 @@ import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection
 import AdminCommunitySourceReviewSection from "./AdminCommunitySourceReviewSection";
 import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
+import AdminAnlassraumRuntimeCreationSection from "./AdminAnlassraumRuntimeCreationSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
 import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
@@ -17,6 +18,7 @@ import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionPro
 import { loadAdminCommunitySourceReviewSectionProps } from "./loadAdminCommunitySourceReviewSectionProps";
 import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphApprovalSectionProps";
 import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
+import { loadAdminAnlassraumRuntimeCreationSectionProps } from "./loadAdminAnlassraumRuntimeCreationSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -145,6 +147,7 @@ export default async function AdminReviewPage({
     topicGraphApprovalSectionProps,
     communitySourceReviewSectionProps,
     dossierRuntimeCreationSectionProps,
+    anlassraumRuntimeCreationSectionProps,
     editorialRequests,
     factcheckJobs,
   ] =
@@ -153,6 +156,7 @@ export default async function AdminReviewPage({
       loadAdminTopicGraphApprovalSectionProps(),
       loadAdminCommunitySourceReviewSectionProps(),
       loadAdminDossierRuntimeCreationSectionProps(),
+      loadAdminAnlassraumRuntimeCreationSectionProps(),
       loadAdminEditorialReviewRequests(filters.editorial),
       loadAdminFactcheckJobs(),
     ]);
@@ -406,6 +410,8 @@ export default async function AdminReviewPage({
         <AdminTopicGraphApprovalSection {...topicGraphApprovalSectionProps} />
 
         <AdminDossierRuntimeCreationSection {...dossierRuntimeCreationSectionProps} />
+
+        <AdminAnlassraumRuntimeCreationSection {...anlassraumRuntimeCreationSectionProps} />
 
         <AdminCommunitySourceReviewSection {...communitySourceReviewSectionProps} />
 
