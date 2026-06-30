@@ -1,9 +1,7 @@
 name: Production Validation
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Manual-only until a concrete production deployment contract exists.
   workflow_dispatch:
 
 permissions:
