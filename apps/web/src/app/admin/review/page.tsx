@@ -8,6 +8,7 @@ import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
 import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
 import AdminCommunitySourceReviewSection from "./AdminCommunitySourceReviewSection";
 import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
+import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
 import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
@@ -15,6 +16,7 @@ import { loadAdminFactcheckJobs } from "./loadAdminFactcheckJobs";
 import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionProps";
 import { loadAdminCommunitySourceReviewSectionProps } from "./loadAdminCommunitySourceReviewSectionProps";
 import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphApprovalSectionProps";
+import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -142,6 +144,7 @@ export default async function AdminReviewPage({
     graphMergeSectionProps,
     topicGraphApprovalSectionProps,
     communitySourceReviewSectionProps,
+    dossierRuntimeCreationSectionProps,
     editorialRequests,
     factcheckJobs,
   ] =
@@ -149,6 +152,7 @@ export default async function AdminReviewPage({
       loadAdminGraphMergeSectionProps(),
       loadAdminTopicGraphApprovalSectionProps(),
       loadAdminCommunitySourceReviewSectionProps(),
+      loadAdminDossierRuntimeCreationSectionProps(),
       loadAdminEditorialReviewRequests(filters.editorial),
       loadAdminFactcheckJobs(),
     ]);
@@ -400,6 +404,8 @@ export default async function AdminReviewPage({
         <AdminGraphMergeCandidatesSection {...graphMergeSectionProps} />
 
         <AdminTopicGraphApprovalSection {...topicGraphApprovalSectionProps} />
+
+        <AdminDossierRuntimeCreationSection {...dossierRuntimeCreationSectionProps} />
 
         <AdminCommunitySourceReviewSection {...communitySourceReviewSectionProps} />
 
