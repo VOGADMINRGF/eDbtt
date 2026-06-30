@@ -1107,6 +1107,8 @@ async function mapPersistedCreateHandoffItem(params: {
         return "Dossier-Vorschlag";
       case "prepare_anlassraum":
         return "Anlassraum-Vorschlag";
+      case "prepare_participation_space":
+        return "Beteiligungsraum-Vorschlag";
       case "request_factcheck":
         return "Faktencheck-Vorschlag";
       case "create_dossier":

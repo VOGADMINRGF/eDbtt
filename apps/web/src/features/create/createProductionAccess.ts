@@ -59,6 +59,11 @@ function requirementsForAction(action: CreateHandoffAction): {
         scopes: ["review_queue", "content_release"],
         actions: ["create_anlassraum_draft", "submit_for_review"],
       };
+    case "prepare_participation_space":
+      return {
+        scopes: ["review_queue"],
+        actions: ["submit_for_review"],
+      };
     case "request_factcheck":
     case "request_review":
     case "submit_draft":

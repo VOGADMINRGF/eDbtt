@@ -94,6 +94,9 @@ function mapCreateHandoffReviewQueueItemToSelectedAction(
 ): CreateHandoffAction {
   if (item.target === "dossier_candidate") return "create_dossier";
   if (item.target === "anlassraum_candidate") return "prepare_anlassraum";
+  if (item.target === "participation_space_candidate") {
+    return "prepare_participation_space";
+  }
   if (item.target === "factcheck_request") return "request_factcheck";
   return "request_review";
 }

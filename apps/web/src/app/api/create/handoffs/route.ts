@@ -60,6 +60,7 @@ function normalizeCreateHandoffAction(value: unknown): CreateHandoffAction {
     case "submit_draft":
     case "append_to_dossier":
     case "prepare_anlassraum":
+    case "prepare_participation_space":
     case "create_dossier":
     case "request_factcheck":
     case "prepare_vote":
