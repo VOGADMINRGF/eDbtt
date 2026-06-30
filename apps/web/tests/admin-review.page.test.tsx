@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   loadAdminTopicGraphApprovalSectionProps: vi.fn(),
   loadAdminDossierRuntimeCreationSectionProps: vi.fn(),
   loadAdminAnlassraumRuntimeCreationSectionProps: vi.fn(),
+  loadAdminParticipationSpaceRuntimeCreationSectionProps: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/sessionUser", () => ({
@@ -65,6 +66,15 @@ vi.mock("@/app/admin/review/loadAdminAnlassraumRuntimeCreationSectionProps", () 
   loadAdminAnlassraumRuntimeCreationSectionProps: (...args: unknown[]) =>
     mocks.loadAdminAnlassraumRuntimeCreationSectionProps(...args),
 }));
+
+vi.mock(
+  "@/app/admin/review/loadAdminParticipationSpaceRuntimeCreationSectionProps",
+  () => ({
+    loadAdminParticipationSpaceRuntimeCreationSectionProps: (
+      ...args: unknown[]
+    ) => mocks.loadAdminParticipationSpaceRuntimeCreationSectionProps(...args),
+  }),
+);
 
 vi.mock("@features/factcheck/db", () => ({
   getFactcheckWorkflowRepo: () => ({
@@ -164,6 +174,21 @@ describe("/admin/review page", () => {
         summary:
           "Review-bestätigte Anlassraum-Creation-Drafts und Audit-Spuren liegen dauerhaft vor.",
         repositoryInterface: "AnlassraumRuntimeRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+      },
+    });
+    mocks.loadAdminParticipationSpaceRuntimeCreationSectionProps.mockResolvedValue({
+      participationSpaceRuntimeRecords: [],
+      participationSpaceRuntimeAuditMap: new Map(),
+      participationSpaceRuntimePersistence: {
+        mode: "persistent_primary",
+        label: "Persistente Beteiligungsraum-Runtime-Creation",
+        summary:
+          "Review-bestätigte Beteiligungsraum-Creation-Drafts und Audit-Spuren liegen dauerhaft vor.",
+        repositoryInterface: "ParticipationSpaceRuntimeRepository",
         storeKind: "mongo_collection",
         productionTruth: true,
         restartReconstructable: true,

@@ -22,6 +22,7 @@ export type CreateHandoffAction =
   | "submit_draft"
   | "append_to_dossier"
   | "prepare_anlassraum"
+  | "prepare_participation_space"
   | "create_dossier"
   | "request_factcheck"
   | "prepare_vote"

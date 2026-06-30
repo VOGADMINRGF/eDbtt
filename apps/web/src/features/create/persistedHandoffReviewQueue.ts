@@ -404,13 +404,18 @@ export function toCreateHandoffDraft(record: PersistedCreateHandoffRecord): Crea
 
 export function buildPersistedCreateHandoffSuggestedTitle(
   record: PersistedCreateHandoffRecord,
-  targetType: "dossier" | "anlassraum",
+  targetType: "dossier" | "anlassraum" | "participation_space",
 ) {
   const topicLabel = String(record.topicSeed.topicLabel || "").trim();
   if (targetType === "dossier") {
     const matchedDossierLabel =
       record.graphMatches.matches.find((match) => match.kind === "dossier")?.label ?? "";
     return matchedDossierLabel.trim() || topicLabel || "Create-Dossier-Entwurf";
+  }
+  if (targetType === "participation_space") {
+    return (
+      topicLabel || "Create-Beteiligungsraum"
+    );
   }
   const matchedAnlassraumLabel =
     record.graphMatches.matches.find((match) => match.kind === "anlassraum")?.label ?? "";

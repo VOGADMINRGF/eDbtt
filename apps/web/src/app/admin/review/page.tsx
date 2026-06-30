@@ -10,6 +10,7 @@ import AdminCommunitySourceReviewSection from "./AdminCommunitySourceReviewSecti
 import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
 import AdminAnlassraumRuntimeCreationSection from "./AdminAnlassraumRuntimeCreationSection";
+import AdminParticipationSpaceRuntimeCreationSection from "./AdminParticipationSpaceRuntimeCreationSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
 import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
@@ -19,6 +20,7 @@ import { loadAdminCommunitySourceReviewSectionProps } from "./loadAdminCommunity
 import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphApprovalSectionProps";
 import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
 import { loadAdminAnlassraumRuntimeCreationSectionProps } from "./loadAdminAnlassraumRuntimeCreationSectionProps";
+import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAdminParticipationSpaceRuntimeCreationSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -148,6 +150,7 @@ export default async function AdminReviewPage({
     communitySourceReviewSectionProps,
     dossierRuntimeCreationSectionProps,
     anlassraumRuntimeCreationSectionProps,
+    participationSpaceRuntimeCreationSectionProps,
     editorialRequests,
     factcheckJobs,
   ] =
@@ -157,6 +160,7 @@ export default async function AdminReviewPage({
       loadAdminCommunitySourceReviewSectionProps(),
       loadAdminDossierRuntimeCreationSectionProps(),
       loadAdminAnlassraumRuntimeCreationSectionProps(),
+      loadAdminParticipationSpaceRuntimeCreationSectionProps(),
       loadAdminEditorialReviewRequests(filters.editorial),
       loadAdminFactcheckJobs(),
     ]);
@@ -412,6 +416,10 @@ export default async function AdminReviewPage({
         <AdminDossierRuntimeCreationSection {...dossierRuntimeCreationSectionProps} />
 
         <AdminAnlassraumRuntimeCreationSection {...anlassraumRuntimeCreationSectionProps} />
+
+        <AdminParticipationSpaceRuntimeCreationSection
+          {...participationSpaceRuntimeCreationSectionProps}
+        />
 
         <AdminCommunitySourceReviewSection {...communitySourceReviewSectionProps} />
 

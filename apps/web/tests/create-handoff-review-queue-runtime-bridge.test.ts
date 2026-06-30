@@ -172,14 +172,14 @@ describe("create handoff review queue runtime bridge", () => {
 
     expect(dossierInput.selectedAction).toBe("create_dossier");
     expect(anlassraumInput.selectedAction).toBe("prepare_anlassraum");
-    expect(participationInput.selectedAction).toBe("request_review");
+    expect(participationInput.selectedAction).toBe("prepare_participation_space");
     expect(factcheckInput.selectedAction).toBe("request_factcheck");
     expect(existingBranchInput.selectedAction).toBe("request_review");
     expect(dossierItem.autoCreate).toBe(false);
     expect(dossierItem.autoPublish).toBe(false);
     expect(participationItem.status).toBe("approved_for_setup");
     expect(participationInput.draft.requiresConfirmation).toBe(true);
-    expect(participationInput.draft.selectedAction).toBe("request_review");
+    expect(participationInput.draft.selectedAction).toBe("prepare_participation_space");
   });
 
   it("reports blocked or unwired states instead of fake runtime success", async () => {
