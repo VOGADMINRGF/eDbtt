@@ -3,8 +3,19 @@ import { stableHash } from "@core/utils/hash";
 import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import {
   createEmptyParticipationSpace,
+  getParticipationSpaceStatusLabel,
   type ParticipationSpace,
 } from "@/features/participation/spaceContainer";
+import {
+  activateParticipationSpaceAfterReview,
+  approveParticipationSpaceActivation as approveParticipationSpaceActivationRecord,
+  approveParticipationSpacePublication as approveParticipationSpacePublicationRecord,
+  buildParticipationSpacePublishDraft,
+  publishParticipationSpaceAfterReview,
+  type ParticipationSpacePublishAuditContext,
+  type ParticipationSpacePublishAuditEntry,
+  type ParticipationSpacePublishRecord,
+} from "@/features/create/participationSpacePublishWorkflow";
 import {
   buildParticipationSpaceRuntimeDraftFromHandoff,
   createParticipationSpaceRuntimeAfterReview,
@@ -30,6 +41,18 @@ export type ParticipationSpaceRuntimePersistenceState = {
   productionTruth: boolean;
   restartReconstructable: boolean;
   deploymentReconstructable: boolean;
+};
+
+export type ParticipationSpacePublishWorkflowPersistenceState = {
+  mode: "persistent_primary" | "in_memory_fallback";
+  label: string;
+  summary: string;
+  repositoryInterface: "ParticipationSpacePublishWorkflowRepository";
+  storeKind: "mongo_collection" | "in_memory";
+  productionTruth: boolean;
+  restartReconstructable: boolean;
+  deploymentReconstructable: boolean;
+  publicRouteRuntime: "fixture_only";
 };
 
 type ParticipationSpaceRuntimeCreatedSpaceRecord = {
@@ -73,12 +96,38 @@ type ParticipationSpaceRuntimeRepository = {
   saveCreatedSpace(
     record: ParticipationSpaceRuntimeCreatedSpaceRecord,
   ): Promise<ParticipationSpaceRuntimeCreatedSpaceRecord>;
+  getCreatedSpaceById(
+    participationSpaceId: string,
+  ): Promise<ParticipationSpaceRuntimeCreatedSpaceRecord | null>;
+  getCreatedSpaceBySourceHandoffId(
+    sourceHandoffId: string,
+  ): Promise<ParticipationSpaceRuntimeCreatedSpaceRecord | null>;
+  updateCreatedSpace(
+    record: ParticipationSpaceRuntimeCreatedSpaceRecord,
+  ): Promise<ParticipationSpaceRuntimeCreatedSpaceRecord>;
+  getPublishRecord(
+    sourceHandoffId: string,
+  ): Promise<ParticipationSpacePublishRecord | null>;
+  savePublishRecord(
+    record: ParticipationSpacePublishRecord,
+  ): Promise<ParticipationSpacePublishRecord>;
+  listPublishRecords(limit?: number): Promise<ParticipationSpacePublishRecord[]>;
+  insertPublishAudit(
+    entry: ParticipationSpacePublishAuditEntry,
+  ): Promise<ParticipationSpacePublishAuditEntry>;
+  listPublishAudits(params?: {
+    sourceHandoffId?: string | null;
+    limit?: number;
+  }): Promise<ParticipationSpacePublishAuditEntry[]>;
   getPersistenceState(): ParticipationSpaceRuntimePersistenceState;
+  getPublishPersistenceState(): ParticipationSpacePublishWorkflowPersistenceState;
 };
 
 const RUNTIME_COLLECTION = "participation_space_runtime_records";
 const AUDIT_COLLECTION = "participation_space_runtime_audits";
 const SPACE_COLLECTION = "participation_space_runtime_spaces";
+const PUBLISH_COLLECTION = "participation_space_publish_records";
+const PUBLISH_AUDIT_COLLECTION = "participation_space_publish_audits";
 
 let repoSingleton: ParticipationSpaceRuntimeRepository | null = null;
 
@@ -115,12 +164,43 @@ function buildPersistenceState(
   };
 }
 
+function buildPublishPersistenceState(
+  mode: ParticipationSpacePublishWorkflowPersistenceState["mode"],
+): ParticipationSpacePublishWorkflowPersistenceState {
+  const persistent = mode === "persistent_primary";
+  return {
+    mode,
+    label: persistent
+      ? "Persistenter Beteiligungsraum-Publish-/Activation-Workflow"
+      : "In-Memory-Fallback für Beteiligungsraum-Publish-/Activation-Workflow",
+    summary: persistent
+      ? "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route bleibt vorerst fixture-basiert."
+      : "Nur Dev-/Test-Fallback: Aktivierungs- und Veröffentlichungszustände leben pro Runtime und sind keine belastbare Produktionswahrheit.",
+    repositoryInterface: "ParticipationSpacePublishWorkflowRepository",
+    storeKind: persistent ? "mongo_collection" : "in_memory",
+    productionTruth: persistent,
+    restartReconstructable: persistent,
+    deploymentReconstructable: persistent,
+    publicRouteRuntime: "fixture_only",
+  };
+}
+
 function auditIdFor(input: {
   sourceHandoffId: string;
   action: ParticipationSpaceRuntimeAuditEntry["action"];
   at: string;
 }) {
   return `participation-space-runtime-audit-${stableHash(
+    `${input.sourceHandoffId}:${input.action}:${input.at}`,
+  ).slice(0, 22)}`;
+}
+
+function publishAuditIdFor(input: {
+  sourceHandoffId: string;
+  action: ParticipationSpacePublishAuditEntry["action"];
+  at: string;
+}) {
+  return `participation-space-publish-audit-${stableHash(
     `${input.sourceHandoffId}:${input.action}:${input.at}`,
   ).slice(0, 22)}`;
 }
@@ -149,6 +229,8 @@ export function createInMemoryParticipationSpaceRuntimeRepository(): Participati
   const records = new Map<string, ParticipationSpaceRuntimeRecord>();
   const audits = new Map<string, ParticipationSpaceRuntimeAuditEntry>();
   const spaces = new Map<string, ParticipationSpaceRuntimeCreatedSpaceRecord>();
+  const publishRecords = new Map<string, ParticipationSpacePublishRecord>();
+  const publishAudits = new Map<string, ParticipationSpacePublishAuditEntry>();
 
   return {
     async get(sourceHandoffId) {
@@ -189,8 +271,59 @@ export function createInMemoryParticipationSpaceRuntimeRepository(): Participati
       spaces.set(record.id, clone(record));
       return clone(record);
     },
+    async getCreatedSpaceById(participationSpaceId) {
+      const record = spaces.get(participationSpaceId);
+      return record ? clone(record) : null;
+    },
+    async getCreatedSpaceBySourceHandoffId(sourceHandoffId) {
+      const record = Array.from(spaces.values()).find(
+        (entry) => entry.sourceHandoffId === sourceHandoffId,
+      );
+      return record ? clone(record) : null;
+    },
+    async updateCreatedSpace(record) {
+      spaces.set(record.id, clone(record));
+      return clone(record);
+    },
+    async getPublishRecord(sourceHandoffId) {
+      const record = publishRecords.get(sourceHandoffId);
+      return record ? clone(record) : null;
+    },
+    async savePublishRecord(record) {
+      publishRecords.set(record.sourceHandoffId, clone(record));
+      return clone(record);
+    },
+    async listPublishRecords(limit) {
+      const list = Array.from(publishRecords.values()).sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      );
+      return (typeof limit === "number" ? list.slice(0, limit) : list).map(clone);
+    },
+    async insertPublishAudit(entry) {
+      publishAudits.set(entry.id, clone(entry));
+      return clone(entry);
+    },
+    async listPublishAudits(params) {
+      const list = Array.from(publishAudits.values())
+        .filter((entry) => {
+          if (
+            params?.sourceHandoffId &&
+            entry.sourceHandoffId !== params.sourceHandoffId
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .sort((left, right) => right.at.localeCompare(left.at));
+      return (typeof params?.limit === "number" ? list.slice(0, params.limit) : list).map(
+        clone,
+      );
+    },
     getPersistenceState() {
       return buildPersistenceState("in_memory_fallback");
+    },
+    getPublishPersistenceState() {
+      return buildPublishPersistenceState("in_memory_fallback");
     },
   };
 }
@@ -274,8 +407,102 @@ function createMongoParticipationSpaceRuntimeRepository(): ParticipationSpaceRun
       );
       return clone(record);
     },
+    async getCreatedSpaceById(participationSpaceId) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpaceRuntimeCreatedSpaceRecord }>(
+        SPACE_COLLECTION,
+      );
+      const doc = await col.findOne({ _id: participationSpaceId } as any);
+      return doc?.record ? clone(doc.record) : null;
+    },
+    async getCreatedSpaceBySourceHandoffId(sourceHandoffId) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpaceRuntimeCreatedSpaceRecord }>(
+        SPACE_COLLECTION,
+      );
+      const doc = await col.findOne({ sourceHandoffId } as any);
+      return doc?.record ? clone(doc.record) : null;
+    },
+    async updateCreatedSpace(record) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpaceRuntimeCreatedSpaceRecord }>(
+        SPACE_COLLECTION,
+      );
+      await col.updateOne(
+        { _id: record.id } as any,
+        {
+          $set: {
+            record: clone(record),
+            sourceHandoffId: record.sourceHandoffId,
+            slug: record.slug,
+            regionId: record.regionId,
+            organizationId: record.organizationId,
+            updatedAt: record.updatedAt,
+          } as any,
+        },
+        { upsert: true },
+      );
+      return clone(record);
+    },
+    async getPublishRecord(sourceHandoffId) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpacePublishRecord }>(
+        PUBLISH_COLLECTION,
+      );
+      const doc = await col.findOne({ _id: runtimeRecordId(sourceHandoffId) } as any);
+      return doc?.record ? clone(doc.record) : null;
+    },
+    async savePublishRecord(record) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpacePublishRecord }>(
+        PUBLISH_COLLECTION,
+      );
+      await col.updateOne(
+        { _id: runtimeRecordId(record.sourceHandoffId) } as any,
+        {
+          $set: {
+            record: clone(record),
+            sourceHandoffId: record.sourceHandoffId,
+            status: record.status,
+            updatedAt: record.updatedAt,
+            participationSpaceId: record.participationSpaceId,
+          } as any,
+        },
+        { upsert: true },
+      );
+      return clone(record);
+    },
+    async listPublishRecords(limit) {
+      const col = await coreCol<{ _id: string; record: ParticipationSpacePublishRecord }>(
+        PUBLISH_COLLECTION,
+      );
+      const cursor = col.find({} as any).sort({ updatedAt: -1 });
+      if (typeof limit === "number") cursor.limit(limit);
+      const docs = await cursor.toArray();
+      return docs
+        .map((doc) => clone(doc.record))
+        .filter((record): record is ParticipationSpacePublishRecord => Boolean(record));
+    },
+    async insertPublishAudit(entry) {
+      const col = await coreCol<ParticipationSpacePublishAuditEntry>(
+        PUBLISH_AUDIT_COLLECTION,
+      );
+      await col.updateOne({ id: entry.id } as any, { $set: clone(entry) as any }, { upsert: true });
+      return clone(entry);
+    },
+    async listPublishAudits(params) {
+      const col = await coreCol<ParticipationSpacePublishAuditEntry>(
+        PUBLISH_AUDIT_COLLECTION,
+      );
+      const filter: Record<string, unknown> = {};
+      if (params?.sourceHandoffId) {
+        filter.sourceHandoffId = params.sourceHandoffId;
+      }
+      const cursor = col.find(filter as any).sort({ at: -1 });
+      if (typeof params?.limit === "number") cursor.limit(params.limit);
+      const docs = await cursor.toArray();
+      return docs.map(clone);
+    },
     getPersistenceState() {
       return buildPersistenceState("persistent_primary");
+    },
+    getPublishPersistenceState() {
+      return buildPublishPersistenceState("persistent_primary");
     },
   };
 }
@@ -294,6 +521,22 @@ async function recordAudit(
     }),
   };
   return getRepo().insertAudit(auditEntry);
+}
+
+async function recordPublishAudit(
+  sourceHandoffId: string,
+  entry: Omit<ParticipationSpacePublishAuditEntry, "id" | "sourceHandoffId">,
+) {
+  const auditEntry: ParticipationSpacePublishAuditEntry = {
+    ...entry,
+    sourceHandoffId,
+    id: publishAuditIdFor({
+      sourceHandoffId,
+      action: entry.action,
+      at: entry.at,
+    }),
+  };
+  return getRepo().insertPublishAudit(auditEntry);
 }
 
 function buildSpaceSlug(record: ParticipationSpaceRuntimeRecord) {
@@ -457,8 +700,182 @@ async function saveRecord(record: ParticipationSpaceRuntimeRecord) {
   return getRepo().save(record);
 }
 
+async function savePublishRecord(record: ParticipationSpacePublishRecord) {
+  return getRepo().savePublishRecord(record);
+}
+
+function hasRuntimeCreatedAudit(record: ParticipationSpaceRuntimeRecord) {
+  return record.auditTrail.some((entry) => entry.action === "runtime_created");
+}
+
+function buildPublishWorkflowDraftAudit(
+  sourceHandoffId: string,
+  record: ParticipationSpacePublishRecord,
+): ParticipationSpacePublishAuditEntry {
+  return {
+    id: `participation-space-publish-derived-${sourceHandoffId}`,
+    sourceHandoffId,
+    participationSpaceId: record.participationSpaceId,
+    at: record.updatedAt,
+    action: "activation_requested",
+    actorUserId: record.auditContext.actorUserId,
+    note:
+      "Separater Aktivierungs-/Veröffentlichungsworkflow aus intern erzeugtem Beteiligungsraum abgeleitet. Noch nicht aktiviert und noch nicht veröffentlicht.",
+    blockers: record.blockers,
+    status: record.status,
+  };
+}
+
+function buildSpaceStatusForPublication(record: ParticipationSpacePublishRecord) {
+  return record.publicFeedbackAvailable ? "public_feedback_live" : "feedback_prepared";
+}
+
+function applyPublishRecordToCreatedSpace(
+  spaceRecord: ParticipationSpaceRuntimeCreatedSpaceRecord,
+  publishRecord: ParticipationSpacePublishRecord,
+) {
+  const nextStatus = publishRecord.spaceStatus ?? spaceRecord.space.status;
+  const nextVisibility = publishRecord.spaceVisibility ?? spaceRecord.space.visibility;
+  const updatedAt = publishRecord.updatedAt;
+
+  return {
+    ...spaceRecord,
+    title: publishRecord.title,
+    description: publishRecord.description,
+    participationQuestion: publishRecord.participationQuestion,
+    relatedAnlassraumId: publishRecord.relatedAnlassraumId,
+    relatedDossierId: publishRecord.relatedDossierId,
+    sourceStatus: publishRecord.sourceStatus,
+    recognizedStandpoints: publishRecord.recognizedStandpoints,
+    argumentLines: publishRecord.argumentLines,
+    openQuestions: publishRecord.openQuestions,
+    communitySignals: publishRecord.communitySignals,
+    graphReferences: publishRecord.graphReferences,
+    topicReferences: publishRecord.topicReferences,
+    auditContext: {
+      actorUserId: publishRecord.auditContext.actorUserId,
+      reason: publishRecord.auditContext.reason,
+      origin:
+        publishRecord.auditContext.origin === "participation_space_publish_workflow"
+          ? "participation_space_runtime"
+          : publishRecord.auditContext.origin,
+      approvedAt: publishRecord.auditContext.approvedAt,
+    },
+    space: {
+      ...spaceRecord.space,
+      title: publishRecord.title,
+      summary: publishRecord.description,
+      status: nextStatus,
+      visibility: nextVisibility,
+      updatedAt,
+      publicSummary: {
+        ...spaceRecord.space.publicSummary,
+        headline: publishRecord.publicHeadline,
+        shortSummary: publishRecord.publicSummary,
+        feedbackAvailable: publishRecord.publicFeedbackAvailable,
+        statusLabel: getParticipationSpaceStatusLabel(nextStatus),
+        lastUpdatedAt: updatedAt,
+      },
+    },
+    updatedAt,
+  } satisfies ParticipationSpaceRuntimeCreatedSpaceRecord;
+}
+
+async function updateRuntimeRecordVisibility(input: {
+  sourceHandoffId: string;
+  visibility: ParticipationSpaceRuntimeRecord["visibility"];
+}) {
+  const runtimeRecord = await getParticipationSpaceRuntimeRecord(input.sourceHandoffId);
+  if (!runtimeRecord) return null;
+  const updatedRecord: ParticipationSpaceRuntimeRecord = {
+    ...runtimeRecord,
+    visibility: input.visibility,
+    updatedAt: nowIso(),
+  };
+  await saveRecord(updatedRecord);
+  return updatedRecord;
+}
+
+async function buildParticipationSpacePublishRecord(
+  runtimeRecord: ParticipationSpaceRuntimeRecord,
+): Promise<ParticipationSpacePublishRecord | null> {
+  if (!runtimeRecord.createdParticipationSpaceId) return null;
+
+  const [existing, createdSpace, audits] = await Promise.all([
+    getRepo().getPublishRecord(runtimeRecord.sourceHandoffId),
+    getRepo().getCreatedSpaceById(runtimeRecord.createdParticipationSpaceId),
+    getRepo().listPublishAudits({
+      sourceHandoffId: runtimeRecord.sourceHandoffId,
+      limit: 40,
+    }),
+  ]);
+
+  const draft = buildParticipationSpacePublishDraft({
+    runtimeRecord,
+    createdSpace: createdSpace
+      ? {
+          id: createdSpace.id,
+          slug: createdSpace.slug,
+          status: createdSpace.space.status,
+          visibility: createdSpace.space.visibility,
+          publicHeadline: createdSpace.space.publicSummary.headline,
+          publicSummary: createdSpace.space.publicSummary.shortSummary,
+          publicFeedbackAvailable:
+            createdSpace.space.publicSummary.feedbackAvailable,
+          updatedAt: createdSpace.updatedAt,
+        }
+      : {
+          id: runtimeRecord.createdParticipationSpaceId,
+          slug: runtimeRecord.createdParticipationSpaceSlug,
+          status: null,
+          visibility: null,
+          updatedAt: runtimeRecord.updatedAt,
+        },
+    creationAudited: hasRuntimeCreatedAudit(runtimeRecord),
+    status: existing?.status ?? "draft",
+    visibility: existing?.visibility ?? "editorial_workspace",
+    publicHeadline: existing?.publicHeadline ?? null,
+    publicSummary: existing?.publicSummary ?? null,
+    moderationPolicy: existing?.moderationPolicy ?? null,
+    auditContext: existing?.auditContext ?? {
+      actorUserId: runtimeRecord.auditContext.actorUserId,
+      reason: runtimeRecord.auditContext.reason,
+      origin: "admin_review",
+      approvedAt: runtimeRecord.auditContext.approvedAt,
+    },
+    approvedForActivationAt: existing?.approvedForActivationAt ?? null,
+    approvedForActivationBy: existing?.approvedForActivationBy ?? null,
+    approvedForPublicationAt: existing?.approvedForPublicationAt ?? null,
+    approvedForPublicationBy: existing?.approvedForPublicationBy ?? null,
+    rejectedAt: existing?.rejectedAt ?? null,
+    rejectedBy: existing?.rejectedBy ?? null,
+    createdAt: existing?.createdAt ?? runtimeRecord.createdAt,
+    updatedAt: existing?.updatedAt ?? createdSpace?.updatedAt ?? runtimeRecord.updatedAt,
+  });
+
+  const publishRecord: ParticipationSpacePublishRecord = {
+    ...draft,
+    auditTrail:
+      audits.length > 0
+        ? audits
+        : [buildPublishWorkflowDraftAudit(runtimeRecord.sourceHandoffId, draft as ParticipationSpacePublishRecord)],
+    approvedForActivationAt: existing?.approvedForActivationAt ?? null,
+    approvedForActivationBy: existing?.approvedForActivationBy ?? null,
+    approvedForPublicationAt: existing?.approvedForPublicationAt ?? null,
+    approvedForPublicationBy: existing?.approvedForPublicationBy ?? null,
+    rejectedAt: existing?.rejectedAt ?? null,
+    rejectedBy: existing?.rejectedBy ?? null,
+  };
+
+  return publishRecord;
+}
+
 export function getParticipationSpaceRuntimePersistenceState() {
   return getRepo().getPersistenceState();
+}
+
+export function getParticipationSpacePublishWorkflowPersistenceState() {
+  return getRepo().getPublishPersistenceState();
 }
 
 export async function listParticipationSpaceRuntimeRecords(limit = 40) {
@@ -487,6 +904,34 @@ export async function listParticipationSpaceRuntimeAudits(params?: {
   limit?: number;
 }) {
   return getRepo().listAudits(params);
+}
+
+export async function listParticipationSpacePublishRecords(limit = 40) {
+  const runtimeRecords = await listParticipationSpaceRuntimeRecords(limit * 2);
+  const createdRuntimeRecords = runtimeRecords
+    .filter((record) => record.status === "created" && record.createdParticipationSpaceId)
+    .slice(0, limit);
+  const publishRecords = await Promise.all(
+    createdRuntimeRecords.map(buildParticipationSpacePublishRecord),
+  );
+  return publishRecords
+    .filter((record): record is ParticipationSpacePublishRecord => Boolean(record))
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+}
+
+export async function getParticipationSpacePublishRecord(sourceHandoffId: string) {
+  const runtimeRecord = await getParticipationSpaceRuntimeRecord(sourceHandoffId);
+  if (!runtimeRecord || runtimeRecord.status !== "created") {
+    return null;
+  }
+  return buildParticipationSpacePublishRecord(runtimeRecord);
+}
+
+export async function listParticipationSpacePublishAudits(params?: {
+  sourceHandoffId?: string | null;
+  limit?: number;
+}) {
+  return getRepo().listPublishAudits(params);
 }
 
 export async function approveParticipationSpaceCreation(input: {
@@ -664,4 +1109,340 @@ export async function createApprovedParticipationSpace(input: {
     participationSpaceSlug: createdRecord.createdParticipationSpaceSlug,
   });
   return createdRecord;
+}
+
+export async function approveParticipationSpaceActivation(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+
+  const at = nowIso();
+  await recordPublishAudit(input.sourceHandoffId, {
+    at,
+    action: "activation_requested",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Aktivierungsprüfung für Beteiligungsraum angefordert.",
+    blockers: record.blockers,
+    status: record.status,
+    participationSpaceId: record.participationSpaceId,
+  });
+
+  const approvedRecord = approveParticipationSpaceActivationRecord(record, {
+    actorUserId: input.actorUserId,
+    reason:
+      trimOrNull(input.note) ??
+      "Aktivierung ist ein separater Freigabeschritt und wurde explizit bestätigt.",
+    origin: "admin_review",
+    approvedAt: at,
+  });
+
+  await savePublishRecord(approvedRecord);
+  await recordPublishAudit(input.sourceHandoffId, {
+    at,
+    action:
+      approvedRecord.status === "blocked"
+        ? "activation_rejected"
+        : "activation_approved",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      (approvedRecord.status === "blocked"
+        ? "Aktivierungsfreigabe blockiert, bis alle Review- und Audit-Blocker geschlossen sind."
+        : "Aktivierungsfreigabe erteilt. Öffentliche Sichtbarkeit bleibt weiterhin aus."),
+    blockers: approvedRecord.blockers,
+    status: approvedRecord.status,
+    participationSpaceId: approvedRecord.participationSpaceId,
+  });
+  return approvedRecord;
+}
+
+export async function rejectParticipationSpaceActivation(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+
+  const rejectedAt = nowIso();
+  const rejectedRecord: ParticipationSpacePublishRecord = {
+    ...record,
+    status: "rejected",
+    visibility: "editorial_workspace",
+    blockers: [],
+    rejectedAt,
+    rejectedBy: input.actorUserId,
+    auditContext: {
+      actorUserId: input.actorUserId,
+      reason:
+        trimOrNull(input.note) ??
+        "Aktivierung für Beteiligungsraum im Review abgelehnt.",
+      origin: "admin_review",
+      approvedAt: record.auditContext.approvedAt,
+    },
+    updatedAt: rejectedAt,
+  };
+
+  await savePublishRecord(rejectedRecord);
+  await recordPublishAudit(input.sourceHandoffId, {
+    at: rejectedAt,
+    action: "activation_rejected",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Aktivierung abgelehnt. Beteiligungsraum bleibt intern und nicht öffentlich.",
+    blockers: [],
+    status: "rejected",
+    participationSpaceId: rejectedRecord.participationSpaceId,
+  });
+  return rejectedRecord;
+}
+
+export async function activateApprovedParticipationSpace(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+  const createdSpace = record.participationSpaceId
+    ? await getRepo().getCreatedSpaceById(record.participationSpaceId)
+    : null;
+  if (!createdSpace) {
+    throw new Error("participation_space_missing");
+  }
+
+  const result = activateParticipationSpaceAfterReview(record, {
+    actorUserId: input.actorUserId,
+    reason:
+      trimOrNull(input.note) ??
+      "Interne Aktivierung wird nach expliziter Freigabe ausgeführt.",
+    origin: "participation_space_publish_workflow",
+    approvedAt: nowIso(),
+  });
+
+  if (!result.ok) {
+    const blockedRecord: ParticipationSpacePublishRecord = {
+      ...record,
+      status: "blocked",
+      blockers: result.blockers,
+      updatedAt: nowIso(),
+    };
+    await savePublishRecord(blockedRecord);
+    await recordPublishAudit(input.sourceHandoffId, {
+      at: blockedRecord.updatedAt,
+      action: "activation_rejected",
+      actorUserId: input.actorUserId,
+      note: trimOrNull(input.note) ?? result.message,
+      blockers: result.blockers,
+      status: blockedRecord.status,
+      participationSpaceId: blockedRecord.participationSpaceId,
+    });
+    return blockedRecord;
+  }
+
+  const updatedSpace = applyPublishRecordToCreatedSpace(createdSpace, result.record);
+  await getRepo().updateCreatedSpace(updatedSpace);
+  await savePublishRecord(result.record);
+  await recordPublishAudit(input.sourceHandoffId, {
+    at: result.record.updatedAt,
+    action: "activated_internal",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Beteiligungsraum intern aktiviert. Öffentliche Sichtbarkeit bleibt weiterhin aus.",
+    blockers: [],
+    status: result.record.status,
+    participationSpaceId: result.record.participationSpaceId,
+  });
+  return result.record;
+}
+
+export async function approveParticipationSpacePublication(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+
+  const at = nowIso();
+  await recordPublishAudit(input.sourceHandoffId, {
+    at,
+    action: "publication_requested",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Veröffentlichungsprüfung für Beteiligungsraum angefordert.",
+    blockers: record.blockers,
+    status: record.status,
+    participationSpaceId: record.participationSpaceId,
+  });
+
+  const approvedRecord = approveParticipationSpacePublicationRecord(record, {
+    actorUserId: input.actorUserId,
+    reason:
+      trimOrNull(input.note) ??
+      "Veröffentlichung ist nicht Teil der Erstellung und wurde separat freigegeben.",
+    origin: "admin_review",
+    approvedAt: at,
+  });
+
+  await savePublishRecord(approvedRecord);
+  await updateRuntimeRecordVisibility({
+    sourceHandoffId: input.sourceHandoffId,
+    visibility:
+      approvedRecord.status === "blocked"
+        ? record.runtimeVisibility
+        : "ready_for_publication_review",
+  });
+  await recordPublishAudit(input.sourceHandoffId, {
+    at,
+    action:
+      approvedRecord.status === "blocked"
+        ? "publication_rejected"
+        : "publication_approved",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      (approvedRecord.status === "blocked"
+        ? "Veröffentlichungsfreigabe blockiert, bis alle Public- und Review-Blocker geschlossen sind."
+        : "Veröffentlichungsfreigabe erteilt. Öffentlich wird der Raum erst durch den expliziten Publish-Schritt."),
+    blockers: approvedRecord.blockers,
+    status: approvedRecord.status,
+    participationSpaceId: approvedRecord.participationSpaceId,
+  });
+  return approvedRecord;
+}
+
+export async function rejectParticipationSpacePublication(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+
+  const rejectedAt = nowIso();
+  const rejectedRecord: ParticipationSpacePublishRecord = {
+    ...record,
+    status: "rejected",
+    visibility: "active_internal",
+    blockers: [],
+    rejectedAt,
+    rejectedBy: input.actorUserId,
+    auditContext: {
+      actorUserId: input.actorUserId,
+      reason:
+        trimOrNull(input.note) ??
+        "Veröffentlichung für Beteiligungsraum im Review abgelehnt.",
+      origin: "admin_review",
+      approvedAt: record.auditContext.approvedAt,
+    },
+    updatedAt: rejectedAt,
+  };
+
+  await savePublishRecord(rejectedRecord);
+  await updateRuntimeRecordVisibility({
+    sourceHandoffId: input.sourceHandoffId,
+    visibility: "active_internal",
+  });
+  await recordPublishAudit(input.sourceHandoffId, {
+    at: rejectedAt,
+    action: "publication_rejected",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Veröffentlichung abgelehnt. Beteiligungsraum bleibt intern sichtbar.",
+    blockers: [],
+    status: rejectedRecord.status,
+    participationSpaceId: rejectedRecord.participationSpaceId,
+  });
+  return rejectedRecord;
+}
+
+export async function publishApprovedParticipationSpace(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+  const createdSpace = record.participationSpaceId
+    ? await getRepo().getCreatedSpaceById(record.participationSpaceId)
+    : null;
+  if (!createdSpace) {
+    throw new Error("participation_space_missing");
+  }
+
+  const result = publishParticipationSpaceAfterReview(record, {
+    actorUserId: input.actorUserId,
+    reason:
+      trimOrNull(input.note) ??
+      "Öffentliche Sichtbarkeit wird explizit nach separater Freigabe gesetzt.",
+    origin: "participation_space_publish_workflow",
+    approvedAt: nowIso(),
+  });
+
+  if (!result.ok) {
+    const blockedRecord: ParticipationSpacePublishRecord = {
+      ...record,
+      status: "blocked",
+      blockers: result.blockers,
+      updatedAt: nowIso(),
+    };
+    await savePublishRecord(blockedRecord);
+    await recordPublishAudit(input.sourceHandoffId, {
+      at: blockedRecord.updatedAt,
+      action: "publication_rejected",
+      actorUserId: input.actorUserId,
+      note: trimOrNull(input.note) ?? result.message,
+      blockers: result.blockers,
+      status: blockedRecord.status,
+      participationSpaceId: blockedRecord.participationSpaceId,
+    });
+    return blockedRecord;
+  }
+
+  const publishedRecord: ParticipationSpacePublishRecord = {
+    ...result.record,
+    spaceStatus: buildSpaceStatusForPublication(result.record),
+    updatedAt: result.record.updatedAt,
+  };
+  const updatedSpace = applyPublishRecordToCreatedSpace(createdSpace, publishedRecord);
+  await getRepo().updateCreatedSpace(updatedSpace);
+  await savePublishRecord(publishedRecord);
+  await updateRuntimeRecordVisibility({
+    sourceHandoffId: input.sourceHandoffId,
+    visibility: "public",
+  });
+  await recordPublishAudit(input.sourceHandoffId, {
+    at: publishedRecord.updatedAt,
+    action: "published_public",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      "Öffentliche Sichtbarkeit explizit gesetzt. Die öffentliche /beteiligung-Route bleibt bis zum separaten Runtime-Anschluss fixture-basiert.",
+    blockers: [],
+    status: publishedRecord.status,
+    participationSpaceId: publishedRecord.participationSpaceId,
+  });
+  return publishedRecord;
 }
