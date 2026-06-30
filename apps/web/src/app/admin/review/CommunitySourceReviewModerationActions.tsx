@@ -10,7 +10,11 @@ type CommunitySourceReviewAction =
   | "rejectHint"
   | "escalateHint"
   | "markNeedsSourceReview"
-  | "markNeedsEditorialReview";
+  | "markNeedsEditorialReview"
+  | "markAsSpamRisk"
+  | "markAsAbuseRisk"
+  | "clearAbuseSignal"
+  | "escalateAbuseReview";
 
 async function postAction(input: {
   contributionId: string;
@@ -85,16 +89,13 @@ export default function CommunitySourceReviewModerationActions({
       </label>
 
       <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-        Community-Hinweise sind Review-Signale, keine bestätigten Fakten.
+        Abuse-/Spam-Signale sind Moderationshinweise, keine automatische Ablehnung.
       </p>
       <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-        Viele Hinweise bedeuten keine Wahrheit.
+        Mehrfach- oder Volumensignale begründen keine Wahrheit.
       </p>
       <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-        Trust priorisiert Prüfung, ersetzt sie aber nicht.
-      </p>
-      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-        Es wird nichts automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
+        Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -132,11 +133,43 @@ export default function CommunitySourceReviewModerationActions({
         </button>
         <button
           type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("markAsSpamRisk")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Als Spam-Risiko markieren
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("markAsAbuseRisk")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Als Abuse-Risiko markieren
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("clearAbuseSignal")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Abuse-Signale zurücksetzen
+        </button>
+        <button
+          type="button"
           disabled={buttonDisabled || routeDecisionBlocked}
           onClick={() => runAction("markNeedsSourceReview")}
           className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
         >
           Zur Quellenprüfung routen
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled || routeDecisionBlocked}
+          onClick={() => runAction("escalateAbuseReview")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Abuse-Review eskalieren
         </button>
         <button
           type="button"

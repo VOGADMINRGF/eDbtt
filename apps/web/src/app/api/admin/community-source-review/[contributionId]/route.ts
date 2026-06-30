@@ -3,9 +3,13 @@ import { z } from "zod";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import {
   allowCommunitySourceReviewHint,
+  clearCommunitySourceReviewHintAbuseSignals,
+  escalateCommunitySourceReviewAbuseReview,
   escalateCommunitySourceReviewHint,
   getCommunitySourceReviewRecord,
   hideCommunitySourceReviewHint,
+  markCommunitySourceReviewHintAsAbuseRisk,
+  markCommunitySourceReviewHintAsSpamRisk,
   markCommunitySourceReviewHintNeedsEditorialReview,
   markCommunitySourceReviewHintNeedsSourceReview,
   rejectCommunitySourceReviewHint,
@@ -22,6 +26,10 @@ const BodySchema = z.object({
     "escalateHint",
     "markNeedsSourceReview",
     "markNeedsEditorialReview",
+    "markAsSpamRisk",
+    "markAsAbuseRisk",
+    "clearAbuseSignal",
+    "escalateAbuseReview",
   ]),
   note: z.string().trim().min(1).max(1000),
 });
@@ -88,11 +96,35 @@ export async function POST(
                     actorUserId,
                     reason,
                   })
-                : await markCommunitySourceReviewHintNeedsEditorialReview({
-                    contributionId,
-                    actorUserId,
-                    reason,
-                  });
+                : parsed.data.action === "markNeedsEditorialReview"
+                  ? await markCommunitySourceReviewHintNeedsEditorialReview({
+                      contributionId,
+                      actorUserId,
+                      reason,
+                    })
+                  : parsed.data.action === "markAsSpamRisk"
+                    ? await markCommunitySourceReviewHintAsSpamRisk({
+                        contributionId,
+                        actorUserId,
+                        reason,
+                      })
+                    : parsed.data.action === "markAsAbuseRisk"
+                      ? await markCommunitySourceReviewHintAsAbuseRisk({
+                          contributionId,
+                          actorUserId,
+                          reason,
+                        })
+                      : parsed.data.action === "clearAbuseSignal"
+                        ? await clearCommunitySourceReviewHintAbuseSignals({
+                            contributionId,
+                            actorUserId,
+                            reason,
+                          })
+                        : await escalateCommunitySourceReviewAbuseReview({
+                            contributionId,
+                            actorUserId,
+                            reason,
+                          });
 
     return NextResponse.json({ ok: true, item });
   } catch (error) {

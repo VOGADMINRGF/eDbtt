@@ -6,7 +6,10 @@ import {
   type CommunitySourceReviewContributionBlocker,
 } from "@/features/create/communitySourceReviewContribution";
 import {
+  getCommunitySourceReviewAbuseDispositionLabel,
   getCommunitySourceReviewAbuseReasonLabel,
+  getCommunitySourceReviewAbuseSeverityLabel,
+  getCommunitySourceReviewAbuseSignalKindLabel,
   getCommunitySourceReviewModerationBlockerLabel,
   getCommunitySourceReviewModerationStatusLabel,
   getCommunitySourceReviewRiskLevelLabel,
@@ -52,6 +55,20 @@ function renderBlockerLabel(blocker: CommunitySourceReviewRecordItem["blockers"]
   return getCommunitySourceReviewContributionBlockerLabel(
     blocker as Exclude<CommunitySourceReviewContributionBlocker, "missing_runtime_contract">,
   );
+}
+
+function renderAuditActionLabel(action: CommunitySourceReviewAuditEntry["action"]) {
+  if (action === "draft_saved") return "Entwurf gespeichert";
+  if (action === "signal_detected") return "Signal erkannt";
+  if (action === "signal_reviewed") return "Signal geprüft";
+  if (action === "moderation_action_taken") return "Moderationsaktion ausgeführt";
+  if (action === "escalation_recommended") return "Eskalation empfohlen";
+  if (action === "hint_allowed") return "Als Hinweis erlaubt";
+  if (action === "hint_hidden") return "Hinweis verborgen";
+  if (action === "hint_rejected") return "Hinweis zurückgewiesen";
+  if (action === "hint_escalated") return "Hinweis priorisiert";
+  if (action === "source_review_requested") return "Zur Quellenprüfung geroutet";
+  return "Zur Redaktion geroutet";
 }
 
 export default function AdminCommunitySourceReviewSection({
@@ -181,12 +198,32 @@ export default function AdminCommunitySourceReviewSection({
                       Risiko: {getCommunitySourceReviewRiskLevelLabel(record.contribution.moderation.riskLevel)}
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Severity:{" "}
+                      {getCommunitySourceReviewAbuseSeverityLabel(
+                        record.contribution.moderation.abuseSeverity,
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Disposition:{" "}
+                      {getCommunitySourceReviewAbuseDispositionLabel(
+                        record.contribution.moderation.abuseDisposition,
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       Abuse:{" "}
                       {record.contribution.moderation.abuseReasons.length > 0
                         ? record.contribution.moderation.abuseReasons
                             .map(getCommunitySourceReviewAbuseReasonLabel)
                             .join(" · ")
                         : "keine Abuse-Flags"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Signals:{" "}
+                      {record.contribution.moderation.abuseSignals.length > 0
+                        ? record.contribution.moderation.abuseSignals
+                            .map((signal) => getCommunitySourceReviewAbuseSignalKindLabel(signal.kind))
+                            .join(" · ")
+                        : "keine Abuse-/Spam-Signale"}
                     </p>
                   </div>
 
@@ -202,6 +239,11 @@ export default function AdminCommunitySourceReviewSection({
                         ? "Trust priorisiert höchstens Review."
                         : "Trust ersetzt keine Prüfung."}
                     </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.abuseState.reviewOnlyHint
+                        ? "Signal bleibt nur Review-Hinweis."
+                        : "Trust und Signals bleiben klar getrennt."}
+                    </p>
                   </div>
 
                   <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
@@ -216,6 +258,62 @@ export default function AdminCommunitySourceReviewSection({
                         Letzte Begründung: {record.latestDecisionNote}
                       </p>
                     ) : null}
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.abuseState.summary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Signal-Lesart
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.abuseState.duplicateOrRepeatedHint
+                        ? "Mehrfach- oder Duplikatsignale erkannt."
+                        : "Kein Mehrfach- oder Duplikatcluster erkannt."}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.abuseState.excessiveVolumeHint
+                        ? "Volumensignal aktiv."
+                        : "Kein Volumensignal aktiv."}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.canUseHintDespiteAbuseSignals
+                        ? "Hinweis kann trotz Signalen als Review-Hinweis betrachtet werden."
+                        : "Hinweis bleibt bis zur Moderationsentscheidung als Hint-Nutzung blockiert."}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {record.contribution.moderation.abuseState.evidenceBlocked
+                        ? "Als Evidenz blockiert."
+                        : "Nicht automatisch als Evidenz freigegeben."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Signal-Details
+                    </p>
+                    {record.contribution.moderation.abuseSignals.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {record.contribution.moderation.abuseSignals.map((signal) => (
+                          <p
+                            key={`${record.id}:${signal.kind}:${signal.detectedFrom}`}
+                            className="text-xs text-[rgb(var(--muted))]"
+                          >
+                            {getCommunitySourceReviewAbuseSignalKindLabel(signal.kind)} ·{" "}
+                            {getCommunitySourceReviewAbuseSeverityLabel(signal.severity)} ·{" "}
+                            {getCommunitySourceReviewAbuseDispositionLabel(signal.disposition)}
+                            {signal.note ? ` · ${signal.note}` : ""}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                        Keine zusätzlichen Abuse-/Spam-Signale.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -224,16 +322,13 @@ export default function AdminCommunitySourceReviewSection({
                     Guardrails
                   </p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Community-Hinweise sind Review-Signale, keine bestätigten Fakten.
+                    Abuse-/Spam-Signale sind Moderationshinweise, keine automatische Ablehnung.
                   </p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Viele Hinweise bedeuten keine Wahrheit.
+                    Mehrfach- oder Volumensignale begründen keine Wahrheit.
                   </p>
                   <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Trust priorisiert Prüfung, ersetzt sie aber nicht.
-                  </p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Es wird nichts automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
+                    Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
                   </p>
                 </div>
 
@@ -252,13 +347,32 @@ export default function AdminCommunitySourceReviewSection({
                   </div>
                 ) : null}
 
-                {latestAudit ? (
-                  <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-                    Letzter Audit-Eintrag: {latestAudit.action} ·{" "}
-                    {new Date(latestAudit.at).toLocaleString("de-DE")}
-                    {latestAudit.reason ? ` · ${latestAudit.reason}` : ""}
+                <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Audit-Historie
                   </p>
-                ) : null}
+                  {latestAudit ? (
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Letzter Audit-Eintrag: {renderAuditActionLabel(latestAudit.action)} ·{" "}
+                      {new Date(latestAudit.at).toLocaleString("de-DE")}
+                      {latestAudit.reason ? ` · ${latestAudit.reason}` : ""}
+                    </p>
+                  ) : null}
+                  <div className="mt-2 space-y-1">
+                    {audits.slice(0, 6).map((audit) => (
+                      <p key={audit.id} className="text-xs text-[rgb(var(--muted))]">
+                        {renderAuditActionLabel(audit.action)} ·{" "}
+                        {new Date(audit.at).toLocaleString("de-DE")}
+                        {audit.signalKinds?.length
+                          ? ` · ${audit.signalKinds
+                              .map((kind) => getCommunitySourceReviewAbuseSignalKindLabel(kind))
+                              .join(" · ")}`
+                          : ""}
+                        {audit.reason ? ` · ${audit.reason}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                </div>
 
                 <CommunitySourceReviewModerationActions record={record} />
               </article>

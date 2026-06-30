@@ -4,6 +4,7 @@ import {
   assessCommunitySourceReviewContributionRisk,
   canEscalateCommunityContributionToEditorial,
   canExposeCommunityContributionPublicly,
+  canUseCommunityHintDespiteAbuseSignals,
   getCommunitySourceReviewModerationBlockers,
   shouldRequireHumanModeration,
   summarizeCommunityContributionModerationState,
@@ -164,9 +165,11 @@ describe("community source review moderation", () => {
     expect(manyHints.guardrails.volumeDoesNotVerifyTruth).toBe(true);
     expect(manyHints.guardrails.acceptedHintIsNotFact).toBe(true);
     expect(manyHints.guardrails.livedExperienceIsNotRepresentativeEvidence).toBe(true);
-    expect(canExposeCommunityContributionPublicly(manyHints)).toBe(true);
+    expect(manyHints.abuseState.excessiveVolumeHint).toBe(true);
+    expect(canUseCommunityHintDespiteAbuseSignals(manyHints)).toBe(false);
+    expect(canExposeCommunityContributionPublicly(manyHints)).toBe(false);
     expect(summarizeCommunityContributionModerationState(manyHints)).toContain(
-      "nicht als bestätigte Wahrheit",
+      "Signale markieren Moderationsbedarf",
     );
   });
 
