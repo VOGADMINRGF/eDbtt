@@ -12,14 +12,24 @@ export type CommunitySourceReviewModerationStatus =
 
 export const COMMUNITY_SOURCE_REVIEW_TRUST_LEVELS = [
   "unknown",
+  "low",
+  "medium",
+  "high",
+  "restricted",
+] as const;
+
+export type CommunitySourceReviewTrustLevel =
+  (typeof COMMUNITY_SOURCE_REVIEW_TRUST_LEVELS)[number];
+
+export const COMMUNITY_SOURCE_REVIEW_LEGACY_TRUST_LEVELS = [
   "new_contributor",
   "known_contributor",
   "trusted_contributor",
   "editorial_contributor",
 ] as const;
 
-export type CommunitySourceReviewTrustLevel =
-  (typeof COMMUNITY_SOURCE_REVIEW_TRUST_LEVELS)[number];
+export type CommunitySourceReviewLegacyTrustLevel =
+  (typeof COMMUNITY_SOURCE_REVIEW_LEGACY_TRUST_LEVELS)[number];
 
 export const COMMUNITY_SOURCE_REVIEW_RISK_LEVELS = [
   "low",
@@ -45,6 +55,57 @@ export const COMMUNITY_SOURCE_REVIEW_ABUSE_REASONS = [
 
 export type CommunitySourceReviewAbuseReason =
   (typeof COMMUNITY_SOURCE_REVIEW_ABUSE_REASONS)[number];
+
+export const COMMUNITY_SOURCE_REVIEW_TRUST_SIGNAL_KINDS = [
+  "prior_allowed_hint",
+  "prior_rejected_hint",
+  "prior_abuse_signal",
+  "prior_source_review_routed",
+  "prior_editorial_review_routed",
+  "contributor_context_available",
+  "contributor_context_missing",
+  "repeated_quality_contribution",
+  "repeated_low_quality_contribution",
+] as const;
+
+export type CommunitySourceReviewTrustSignalKind =
+  (typeof COMMUNITY_SOURCE_REVIEW_TRUST_SIGNAL_KINDS)[number];
+
+export const COMMUNITY_SOURCE_REVIEW_SOURCE_QUALITY_SIGNAL_KINDS = [
+  "source_url_present",
+  "source_url_missing",
+  "source_domain_review_needed",
+  "primary_source_claimed",
+  "secondary_source_claimed",
+  "document_type_provided",
+  "document_type_missing",
+  "date_provided",
+  "date_missing",
+  "author_or_publisher_provided",
+  "author_or_publisher_missing",
+  "quote_or_excerpt_provided",
+  "quote_or_excerpt_missing",
+  "context_provided",
+  "context_missing",
+  "unverifiable_reference",
+  "suspicious_source_quality",
+  "strong_review_candidate",
+  "weak_review_candidate",
+] as const;
+
+export type CommunitySourceReviewSourceQualitySignalKind =
+  (typeof COMMUNITY_SOURCE_REVIEW_SOURCE_QUALITY_SIGNAL_KINDS)[number];
+
+export const COMMUNITY_SOURCE_REVIEW_SOURCE_QUALITY_LEVELS = [
+  "unknown",
+  "weak",
+  "usable_for_review",
+  "strong_review_candidate",
+  "restricted",
+] as const;
+
+export type CommunitySourceReviewSourceQualityLevel =
+  (typeof COMMUNITY_SOURCE_REVIEW_SOURCE_QUALITY_LEVELS)[number];
 
 export const COMMUNITY_SOURCE_REVIEW_ABUSE_SIGNAL_KINDS = [
   "possible_spam",
@@ -103,6 +164,13 @@ export const COMMUNITY_SOURCE_REVIEW_MODERATION_BLOCKERS = [
   "abuse_signal_excessive_volume",
   "abuse_signal_evidence_blocked",
   "abuse_signal_auto_action_blocked",
+  "trust_review_only",
+  "trust_restricted_until_reviewed",
+  "trust_history_not_truth",
+  "source_quality_review_only",
+  "source_quality_restricted_until_reviewed",
+  "source_quality_not_verification",
+  "review_priority_trust_quality_only",
   "hidden_pending_review",
   "rejected_abuse",
   "public_exposure_requires_moderation_safe_status",
@@ -131,12 +199,38 @@ export type CommunitySourceReviewAbuseSignalInput = {
   detectedFrom?: "heuristic" | "reason" | "manual";
 };
 
+export type CommunitySourceReviewTrustSignalInput = {
+  kind: CommunitySourceReviewTrustSignalKind;
+  note?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  detectedBy?: "runtime" | "moderator";
+  detectedFrom?: "heuristic" | "history" | "manual";
+};
+
+export type CommunitySourceReviewSourceQualitySignalInput = {
+  kind: CommunitySourceReviewSourceQualitySignalKind;
+  note?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  detectedBy?: "runtime" | "moderator";
+  detectedFrom?: "heuristic" | "history" | "manual";
+};
+
 export type CommunitySourceReviewModerationInput = {
   moderationStatus?: CommunitySourceReviewModerationStatus;
-  trustLevel?: CommunitySourceReviewTrustLevel;
+  trustLevel?: CommunitySourceReviewTrustLevel | CommunitySourceReviewLegacyTrustLevel;
   riskLevel?: CommunitySourceReviewRiskLevel;
+  sourceQualityLevel?: CommunitySourceReviewSourceQualityLevel;
   abuseReasons?: readonly CommunitySourceReviewAbuseReason[];
   abuseSignals?: readonly CommunitySourceReviewAbuseSignalInput[];
+  trustSignals?: readonly CommunitySourceReviewTrustSignalInput[];
+  sourceQualitySignals?: readonly CommunitySourceReviewSourceQualitySignalInput[];
+  trustSignalsReviewedAt?: string | null;
+  trustSignalsReviewedBy?: string | null;
+  sourceQualityReviewedAt?: string | null;
+  sourceQualityReviewedBy?: string | null;
+  reviewPriorityOverride?: "standard" | "prioritized" | null;
 };
 
 export type CommunitySourceReviewModerationAssessmentInput = {
@@ -157,7 +251,17 @@ export type CommunitySourceReviewModerationAssessmentInput = {
   sourceRefCount: number;
   sourceRefs?: readonly string[];
   textLength?: number;
+  claimText?: string | null;
+  notes?: readonly string[];
+  materialRefs?: readonly string[];
   moderationFlags: CommunitySourceReviewGuardrailFlags;
+  history?: {
+    priorAllowedHint?: boolean;
+    priorRejectedHint?: boolean;
+    priorSourceReviewRouted?: boolean;
+    priorEditorialReviewRouted?: boolean;
+    contributorContextAvailable?: boolean;
+  } | null;
   moderation?: CommunitySourceReviewModerationInput | null;
 };
 
@@ -170,6 +274,24 @@ export type CommunitySourceReviewAbuseSignal = {
   reviewedBy: string | null;
   detectedBy: "runtime" | "moderator";
   detectedFrom: "heuristic" | "reason" | "manual";
+};
+
+export type CommunitySourceReviewTrustSignal = {
+  kind: CommunitySourceReviewTrustSignalKind;
+  note: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  detectedBy: "runtime" | "moderator";
+  detectedFrom: "heuristic" | "history" | "manual";
+};
+
+export type CommunitySourceReviewSourceQualitySignal = {
+  kind: CommunitySourceReviewSourceQualitySignalKind;
+  note: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  detectedBy: "runtime" | "moderator";
+  detectedFrom: "heuristic" | "history" | "manual";
 };
 
 export type CommunitySourceReviewAbuseState = {
@@ -187,15 +309,40 @@ export type CommunitySourceReviewAbuseState = {
   summary: string;
 };
 
+export type CommunitySourceReviewTrustState = {
+  signals: CommunitySourceReviewTrustSignal[];
+  trustLevel: CommunitySourceReviewTrustLevel;
+  reviewBlocked: boolean;
+  reviewOnlyHint: boolean;
+  summary: string;
+};
+
+export type CommunitySourceReviewSourceQualityState = {
+  signals: CommunitySourceReviewSourceQualitySignal[];
+  sourceQualityLevel: CommunitySourceReviewSourceQualityLevel;
+  reviewBlocked: boolean;
+  reviewCandidateHint: "none" | "usable_for_review" | "strong_review_candidate";
+  summary: string;
+};
+
 export type CommunitySourceReviewModerationSignal = {
   moderationStatus: CommunitySourceReviewModerationStatus;
   trustLevel: CommunitySourceReviewTrustLevel;
+  trustSignals: CommunitySourceReviewTrustSignal[];
+  trustState: CommunitySourceReviewTrustState;
+  sourceQualityLevel: CommunitySourceReviewSourceQualityLevel;
+  sourceQualitySignals: CommunitySourceReviewSourceQualitySignal[];
+  sourceQualityState: CommunitySourceReviewSourceQualityState;
   riskLevel: CommunitySourceReviewRiskLevel;
   abuseReasons: CommunitySourceReviewAbuseReason[];
   abuseSignals: CommunitySourceReviewAbuseSignal[];
   abuseState: CommunitySourceReviewAbuseState;
   abuseSeverity: CommunitySourceReviewAbuseSeverity;
   abuseDisposition: CommunitySourceReviewAbuseDisposition;
+  trustSignalsReviewedAt: string | null;
+  trustSignalsReviewedBy: string | null;
+  sourceQualityReviewedAt: string | null;
+  sourceQualityReviewedBy: string | null;
   requiresHumanModeration: boolean;
   canExposePublicly: boolean;
   canEscalateToEditorial: boolean;
@@ -243,10 +390,10 @@ export function getCommunitySourceReviewTrustLevelLabel(
   trustLevel: CommunitySourceReviewTrustLevel,
 ): string {
   if (trustLevel === "unknown") return "unbekannt";
-  if (trustLevel === "new_contributor") return "neuer Beitragender";
-  if (trustLevel === "known_contributor") return "bekannter Beitragender";
-  if (trustLevel === "trusted_contributor") return "vertrauenswürdiger Beitragender";
-  return "redaktioneller Beitragender";
+  if (trustLevel === "low") return "niedrig";
+  if (trustLevel === "medium") return "mittel";
+  if (trustLevel === "high") return "hoch";
+  return "eingeschränkt";
 }
 
 export function getCommunitySourceReviewRiskLevelLabel(
@@ -285,6 +432,56 @@ export function getCommunitySourceReviewAbuseSignalKindLabel(
   if (kind === "excessive_volume_signal") return "Volumensignal";
   if (kind === "escalation_risk") return "Eskalationsrisiko";
   return "Moderationshistorie";
+}
+
+export function getCommunitySourceReviewTrustSignalKindLabel(
+  kind: CommunitySourceReviewTrustSignalKind,
+): string {
+  if (kind === "prior_allowed_hint") return "früher als Hinweis erlaubt";
+  if (kind === "prior_rejected_hint") return "früher zurückgewiesen";
+  if (kind === "prior_abuse_signal") return "früheres Abuse-Signal";
+  if (kind === "prior_source_review_routed") return "früher zur Quellenprüfung geroutet";
+  if (kind === "prior_editorial_review_routed") {
+    return "früher redaktionell geroutet";
+  }
+  if (kind === "contributor_context_available") return "Contributor-Kontext vorhanden";
+  if (kind === "contributor_context_missing") return "Contributor-Kontext fehlt";
+  if (kind === "repeated_quality_contribution") return "wiederholt qualitätssensibler Hinweis";
+  return "wiederholt schwacher Hinweis";
+}
+
+export function getCommunitySourceReviewSourceQualitySignalKindLabel(
+  kind: CommunitySourceReviewSourceQualitySignalKind,
+): string {
+  if (kind === "source_url_present") return "Quellen-URL vorhanden";
+  if (kind === "source_url_missing") return "Quellen-URL fehlt";
+  if (kind === "source_domain_review_needed") return "Domain muss geprüft werden";
+  if (kind === "primary_source_claimed") return "Primärquelle behauptet";
+  if (kind === "secondary_source_claimed") return "Sekundärquelle behauptet";
+  if (kind === "document_type_provided") return "Dokumenttyp angegeben";
+  if (kind === "document_type_missing") return "Dokumenttyp fehlt";
+  if (kind === "date_provided") return "Datum angegeben";
+  if (kind === "date_missing") return "Datum fehlt";
+  if (kind === "author_or_publisher_provided") return "Autor oder Publisher angegeben";
+  if (kind === "author_or_publisher_missing") return "Autor oder Publisher fehlt";
+  if (kind === "quote_or_excerpt_provided") return "Zitat oder Auszug vorhanden";
+  if (kind === "quote_or_excerpt_missing") return "Zitat oder Auszug fehlt";
+  if (kind === "context_provided") return "Kontext vorhanden";
+  if (kind === "context_missing") return "Kontext fehlt";
+  if (kind === "unverifiable_reference") return "nicht belastbar prüfbare Referenz";
+  if (kind === "suspicious_source_quality") return "verdächtige Quellenqualität";
+  if (kind === "strong_review_candidate") return "starker Review-Kandidat";
+  return "schwacher Review-Kandidat";
+}
+
+export function getCommunitySourceReviewSourceQualityLevelLabel(
+  level: CommunitySourceReviewSourceQualityLevel,
+): string {
+  if (level === "unknown") return "unbekannt";
+  if (level === "weak") return "schwach";
+  if (level === "usable_for_review") return "für Review nutzbar";
+  if (level === "strong_review_candidate") return "starker Review-Kandidat";
+  return "eingeschränkt";
 }
 
 export function getCommunitySourceReviewAbuseSeverityLabel(
@@ -355,6 +552,27 @@ export function getCommunitySourceReviewModerationBlockerLabel(
   }
   if (blocker === "abuse_signal_auto_action_blocked") {
     return "Signal blockiert automatische Folgeaktionen.";
+  }
+  if (blocker === "trust_review_only") {
+    return "Trust bleibt Review-Priorisierung und keine Wahrheitsaussage.";
+  }
+  if (blocker === "trust_restricted_until_reviewed") {
+    return "Eingeschränkter Trust blockiert die Nutzung als Hinweis bis zum Review.";
+  }
+  if (blocker === "trust_history_not_truth") {
+    return "Contributor-Historie ist kein Glaubwürdigkeits- oder Wahrheitsbeweis.";
+  }
+  if (blocker === "source_quality_review_only") {
+    return "Quellenqualität dient nur der Einordnung für Review.";
+  }
+  if (blocker === "source_quality_restricted_until_reviewed") {
+    return "Eingeschränkte Quellenqualität blockiert die Nutzung bis zur Prüfung.";
+  }
+  if (blocker === "source_quality_not_verification") {
+    return "Quellenqualität verifiziert keine Quelle.";
+  }
+  if (blocker === "review_priority_trust_quality_only") {
+    return "Review-Priorität aus Trust/Quality erzeugt keine Wahrheit, Verifikation oder Freigabe.";
   }
   if (blocker === "hidden_pending_review") {
     return "Hinweis bleibt bis zur Moderationsprüfung verborgen.";
@@ -432,6 +650,102 @@ function mergeAbuseSignals(
     detectedBy: next.detectedBy === "moderator" ? "moderator" : base.detectedBy,
     detectedFrom: next.detectedFrom === "manual" ? "manual" : base.detectedFrom,
   };
+}
+
+function createTrustSignal(
+  input: CommunitySourceReviewTrustSignalInput,
+): CommunitySourceReviewTrustSignal {
+  return {
+    kind: input.kind,
+    note: typeof input.note === "string" ? input.note.trim() || null : null,
+    reviewedAt: typeof input.reviewedAt === "string" ? input.reviewedAt.trim() || null : null,
+    reviewedBy: typeof input.reviewedBy === "string" ? input.reviewedBy.trim() || null : null,
+    detectedBy: input.detectedBy ?? "runtime",
+    detectedFrom: input.detectedFrom ?? "heuristic",
+  };
+}
+
+function createSourceQualitySignal(
+  input: CommunitySourceReviewSourceQualitySignalInput,
+): CommunitySourceReviewSourceQualitySignal {
+  return {
+    kind: input.kind,
+    note: typeof input.note === "string" ? input.note.trim() || null : null,
+    reviewedAt: typeof input.reviewedAt === "string" ? input.reviewedAt.trim() || null : null,
+    reviewedBy: typeof input.reviewedBy === "string" ? input.reviewedBy.trim() || null : null,
+    detectedBy: input.detectedBy ?? "runtime",
+    detectedFrom: input.detectedFrom ?? "heuristic",
+  };
+}
+
+function sourceTextBundle(input: CommunitySourceReviewModerationAssessmentInput): string {
+  return [
+    input.claimText ?? "",
+    ...(input.notes ?? []),
+    ...(input.sourceRefs ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function hasDateLike(value: string): boolean {
+  return (
+    /\b\d{1,2}\.\d{1,2}\.\d{2,4}\b/.test(value) ||
+    /\b\d{4}-\d{2}-\d{2}\b/.test(value) ||
+    /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(value) ||
+    /\b(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\b/.test(
+      value,
+    )
+  );
+}
+
+function hasDocumentTypeLike(value: string): boolean {
+  return /\b(pdf|protokoll|beschluss|drucksache|bericht|studie|memo|gutachten|vermerk|bekanntmachung|artikel|interview|transkript)\b/.test(
+    value,
+  );
+}
+
+function hasPrimarySourceLike(value: string): boolean {
+  return /\b(primärquelle|primary source|originalquelle|original source|originaldokument|amtlich|bekanntmachung|beschluss|drucksache|protokoll)\b/.test(
+    value,
+  );
+}
+
+function hasSecondarySourceLike(value: string): boolean {
+  return /\b(sekundärquelle|secondary source|bericht|analyse|kommentar|zusammenfassung|reviewartikel)\b/.test(
+    value,
+  );
+}
+
+function hasQuoteOrExcerptLike(value: string): boolean {
+  return /["'„“‚‘][^"'„“‚‘]{8,}["'„“‚‘]/.test(value);
+}
+
+function hasPublisherLike(value: string, sourceRefs: readonly string[]): boolean {
+  if (/\b(von|herausgegeben von|publisher|autor|redaktion|amt)\b/.test(value)) {
+    return true;
+  }
+  return sourceRefs.some((ref) => {
+    try {
+      const url = new URL(ref);
+      return Boolean(url.hostname && url.hostname.includes("."));
+    } catch {
+      return false;
+    }
+  });
+}
+
+function normalizeTrustLevel(
+  trustLevel: CommunitySourceReviewModerationInput["trustLevel"],
+): CommunitySourceReviewTrustLevel {
+  if (!trustLevel || trustLevel === "unknown") return "unknown";
+  if (trustLevel === "low" || trustLevel === "medium" || trustLevel === "high") {
+    return trustLevel;
+  }
+  if (trustLevel === "restricted") return "restricted";
+  if (trustLevel === "new_contributor") return "low";
+  if (trustLevel === "known_contributor") return "medium";
+  return "high";
 }
 
 function suspiciousUrl(value: string): boolean {
@@ -788,10 +1102,421 @@ export function summarizeCommunitySourceReviewAbuseState(
   };
 }
 
+export function deriveCommunitySourceReviewSourceQualitySignals(
+  input: CommunitySourceReviewModerationAssessmentInput,
+): CommunitySourceReviewSourceQualitySignal[] {
+  const detected = new Map<
+    CommunitySourceReviewSourceQualitySignalKind,
+    CommunitySourceReviewSourceQualitySignal
+  >();
+  const bundle = sourceTextBundle(input);
+  const hasUrl = input.sourceRefCount > 0;
+  const hasDocumentType = hasDocumentTypeLike(bundle) || (input.materialRefs?.length ?? 0) > 0;
+  const hasDate = hasDateLike(bundle);
+  const hasPublisher = hasPublisherLike(bundle, input.sourceRefs ?? []);
+  const hasQuote = hasQuoteOrExcerptLike(bundle);
+  const hasContext = Boolean((input.claimText ?? "").trim()) || (input.notes?.length ?? 0) > 0;
+  const suspiciousSource = (input.sourceRefs ?? []).some(suspiciousUrl);
+
+  function addSignal(signal: CommunitySourceReviewSourceQualitySignalInput) {
+    detected.set(signal.kind, createSourceQualitySignal(signal));
+  }
+
+  addSignal({
+    kind: hasUrl ? "source_url_present" : "source_url_missing",
+    note: hasUrl
+      ? "Mindestens eine Quellen-URL ist vorhanden."
+      : "Es fehlt eine konkrete Quellen-URL.",
+  });
+
+  addSignal({
+    kind: suspiciousSource ? "source_domain_review_needed" : "context_provided",
+    note: suspiciousSource
+      ? "Die Domain oder URL-Struktur sollte vor Nutzung geprüft werden."
+      : "Mindestens ein Kontextsignal ist vorhanden.",
+  });
+
+  addSignal({
+    kind: hasPrimarySourceLike(bundle)
+      ? "primary_source_claimed"
+      : hasSecondarySourceLike(bundle)
+        ? "secondary_source_claimed"
+        : "weak_review_candidate",
+    note: hasPrimarySourceLike(bundle)
+      ? "Der Hinweis behauptet eine Primärquelle, verifiziert sie aber nicht."
+      : hasSecondarySourceLike(bundle)
+        ? "Der Hinweis verweist eher auf eine Sekundärquelle."
+        : "Keine starke Quellenklassifikation erkennbar.",
+  });
+
+  addSignal({
+    kind: hasDocumentType ? "document_type_provided" : "document_type_missing",
+    note: hasDocumentType
+      ? "Dokumenttyp oder Materialhinweis ist erkennbar."
+      : "Dokumenttyp fehlt oder bleibt unklar.",
+  });
+  addSignal({
+    kind: hasDate ? "date_provided" : "date_missing",
+    note: hasDate ? "Ein Datum oder Zeitraum ist vorhanden." : "Es fehlt ein belastbarer Zeitbezug.",
+  });
+  addSignal({
+    kind: hasPublisher ? "author_or_publisher_provided" : "author_or_publisher_missing",
+    note: hasPublisher
+      ? "Autor, Publisher oder Host-Kontext ist erkennbar."
+      : "Autor oder Publisher fehlen.",
+  });
+  addSignal({
+    kind: hasQuote ? "quote_or_excerpt_provided" : "quote_or_excerpt_missing",
+    note: hasQuote ? "Zitat oder Auszug hilft bei der Prüfung." : "Kein Zitat oder Auszug vorhanden.",
+  });
+  addSignal({
+    kind: hasContext ? "context_provided" : "context_missing",
+    note: hasContext ? "Claim oder Zusatzkontext ist vorhanden." : "Kontext fehlt.",
+  });
+
+  if (!hasUrl && !hasDate && !hasPublisher && !hasQuote) {
+    addSignal({
+      kind: "unverifiable_reference",
+      note: "Referenz bleibt ohne URL, Datum, Publisher oder Zitat schwer prüfbar.",
+    });
+  }
+  if (suspiciousSource || input.moderation?.abuseReasons?.includes("misleading_source")) {
+    addSignal({
+      kind: "suspicious_source_quality",
+      note: "Quellenqualität wirkt verdächtig und bleibt reviewpflichtig.",
+    });
+  }
+
+  const qualityEvidenceCount = [
+    hasUrl,
+    hasDocumentType,
+    hasDate,
+    hasPublisher,
+    hasQuote,
+    hasContext,
+  ].filter(Boolean).length;
+  addSignal({
+    kind:
+      qualityEvidenceCount >= 4 && !suspiciousSource
+        ? "strong_review_candidate"
+        : "weak_review_candidate",
+    note:
+      qualityEvidenceCount >= 4 && !suspiciousSource
+        ? "Starker Review-Kandidat, aber keine Verifikation."
+        : "Schwache Beleglage bleibt review-first.",
+  });
+
+  for (const signal of input.moderation?.sourceQualitySignals ?? []) {
+    detected.set(signal.kind, createSourceQualitySignal(signal));
+  }
+
+  return Array.from(detected.values());
+}
+
+export function summarizeCommunitySourceReviewSourceQualityState(
+  input:
+    | CommunitySourceReviewSourceQualityState
+    | readonly CommunitySourceReviewSourceQualitySignal[],
+  explicitLevel?: CommunitySourceReviewSourceQualityLevel | null,
+): CommunitySourceReviewSourceQualityState {
+  if ("sourceQualityLevel" in input && "reviewCandidateHint" in input) {
+    return input;
+  }
+
+  const signals = [...input];
+  const hasRestricted =
+    signals.some((signal) =>
+      signal.kind === "suspicious_source_quality" ||
+      signal.kind === "unverifiable_reference" ||
+      signal.kind === "source_domain_review_needed",
+    ) && explicitLevel !== "strong_review_candidate";
+  const hasStrong = signals.some((signal) => signal.kind === "strong_review_candidate");
+  const hasUsable =
+    signals.some((signal) => signal.kind === "source_url_present") &&
+    signals.some((signal) =>
+      signal.kind === "context_provided" ||
+      signal.kind === "quote_or_excerpt_provided" ||
+      signal.kind === "document_type_provided" ||
+      signal.kind === "author_or_publisher_provided" ||
+      signal.kind === "date_provided",
+    );
+
+  const sourceQualityLevel =
+    explicitLevel ??
+    (hasRestricted
+      ? "restricted"
+      : hasStrong
+        ? "strong_review_candidate"
+        : hasUsable
+          ? "usable_for_review"
+          : signals.length > 0
+            ? "weak"
+            : "unknown");
+
+  const reviewCandidateHint =
+    sourceQualityLevel === "strong_review_candidate"
+      ? "strong_review_candidate"
+      : sourceQualityLevel === "usable_for_review"
+        ? "usable_for_review"
+        : "none";
+
+  let summary = "Quellenqualität ist noch unklar.";
+  if (sourceQualityLevel === "strong_review_candidate") {
+    summary =
+      "Quellenqualität wirkt für Review stark, verifiziert die Quelle aber nicht.";
+  } else if (sourceQualityLevel === "usable_for_review") {
+    summary =
+      "Quellenqualität hilft bei der Einordnung, bleibt aber review-first.";
+  } else if (sourceQualityLevel === "restricted") {
+    summary =
+      "Quellenqualität bleibt eingeschränkt und blockiert Nutzung bis zur Prüfung.";
+  } else if (sourceQualityLevel === "weak") {
+    summary =
+      "Quellenqualität bleibt schwach. Niedrige Qualität bedeutet keine automatische Löschung.";
+  }
+
+  return {
+    signals,
+    sourceQualityLevel,
+    reviewBlocked: sourceQualityLevel === "restricted",
+    reviewCandidateHint,
+    summary,
+  };
+}
+
+export function deriveCommunitySourceReviewTrustSignals(
+  input: CommunitySourceReviewModerationAssessmentInput,
+  params: {
+    abuseState: CommunitySourceReviewAbuseState;
+    sourceQualityState: CommunitySourceReviewSourceQualityState;
+  },
+): CommunitySourceReviewTrustSignal[] {
+  const detected = new Map<
+    CommunitySourceReviewTrustSignalKind,
+    CommunitySourceReviewTrustSignal
+  >();
+  const normalizedTrustLevel = normalizeTrustLevel(input.moderation?.trustLevel);
+
+  function addSignal(signal: CommunitySourceReviewTrustSignalInput) {
+    detected.set(signal.kind, createTrustSignal(signal));
+  }
+
+  if (input.history?.priorAllowedHint || input.moderation?.moderationStatus === "allowed_as_hint") {
+    addSignal({
+      kind: "prior_allowed_hint",
+      note: "Der Hinweis war bereits einmal als Hint im Review-Pfad erlaubt.",
+      detectedFrom: "history",
+    });
+  }
+  if (input.history?.priorRejectedHint || input.moderation?.moderationStatus === "rejected_abuse") {
+    addSignal({
+      kind: "prior_rejected_hint",
+      note: "Es existiert eine frühere Zurückweisung im Review-Pfad.",
+      detectedFrom: "history",
+    });
+  }
+  if (
+    input.history?.priorSourceReviewRouted ||
+    input.moderation?.trustSignals?.some((signal) => signal.kind === "prior_source_review_routed")
+  ) {
+    addSignal({
+      kind: "prior_source_review_routed",
+      note: "Der Hinweis war bereits in der Quellenprüfung.",
+      detectedFrom: "history",
+    });
+  }
+  if (
+    input.history?.priorEditorialReviewRouted ||
+    input.moderation?.trustSignals?.some(
+      (signal) => signal.kind === "prior_editorial_review_routed",
+    )
+  ) {
+    addSignal({
+      kind: "prior_editorial_review_routed",
+      note: "Der Hinweis war bereits in der redaktionellen Prüfung.",
+      detectedFrom: "history",
+    });
+  }
+  if (params.abuseState.signals.length > 0 || (input.moderation?.abuseReasons?.length ?? 0) > 0) {
+    addSignal({
+      kind: "prior_abuse_signal",
+      note: "Abuse-/Spam-Signale begrenzen Trust bis zur Prüfung.",
+    });
+  }
+  if (
+    input.history?.contributorContextAvailable ||
+    normalizedTrustLevel !== "unknown" ||
+    (input.moderation?.trustSignalsReviewedAt ?? null) !== null
+  ) {
+    addSignal({
+      kind: "contributor_context_available",
+      note: "Es gibt internen Contributor-Kontext zur Einordnung.",
+    });
+  } else {
+    addSignal({
+      kind: "contributor_context_missing",
+      note: "Es fehlt belastbarer Contributor-Kontext.",
+    });
+  }
+
+  if (
+    input.relatedContributionCount >= 3 &&
+    params.sourceQualityState.sourceQualityLevel !== "weak" &&
+    params.sourceQualityState.sourceQualityLevel !== "restricted" &&
+    !params.abuseState.usageBlocked
+  ) {
+    addSignal({
+      kind: "repeated_quality_contribution",
+      note: "Wiederholte Beiträge priorisieren höchstens Review.",
+    });
+  }
+  if (
+    input.relatedContributionCount >= 3 &&
+    (params.sourceQualityState.sourceQualityLevel === "weak" ||
+      params.sourceQualityState.sourceQualityLevel === "restricted" ||
+      params.abuseState.usageBlocked)
+  ) {
+    addSignal({
+      kind: "repeated_low_quality_contribution",
+      note: "Wiederholte schwache Beiträge erzeugen keine Glaubwürdigkeitsautomatik.",
+    });
+  }
+
+  for (const signal of input.moderation?.trustSignals ?? []) {
+    detected.set(signal.kind, createTrustSignal(signal));
+  }
+
+  return Array.from(detected.values());
+}
+
+export function summarizeCommunitySourceReviewTrustState(
+  input:
+    | CommunitySourceReviewTrustState
+    | readonly CommunitySourceReviewTrustSignal[],
+  explicitTrustLevel?: CommunitySourceReviewTrustLevel | CommunitySourceReviewLegacyTrustLevel | null,
+): CommunitySourceReviewTrustState {
+  if ("trustLevel" in input && "reviewOnlyHint" in input) {
+    return input;
+  }
+
+  const signals = [...input];
+  const normalizedExplicit = normalizeTrustLevel(explicitTrustLevel ?? undefined);
+  const hasRestrictedSignal = signals.some((signal) =>
+    signal.kind === "prior_abuse_signal" ||
+    signal.kind === "prior_rejected_hint" ||
+    signal.kind === "repeated_low_quality_contribution",
+  );
+  const hasHighSignal = signals.some((signal) =>
+    signal.kind === "repeated_quality_contribution" ||
+    signal.kind === "prior_allowed_hint",
+  );
+  const hasMediumSignal = signals.some((signal) =>
+    signal.kind === "prior_source_review_routed" ||
+    signal.kind === "prior_editorial_review_routed",
+  );
+  const trustLevel =
+    normalizedExplicit !== "unknown"
+      ? normalizedExplicit
+      : hasRestrictedSignal
+        ? "restricted"
+        : hasHighSignal
+          ? "high"
+          : hasMediumSignal
+            ? "medium"
+            : signals.some((signal) => signal.kind === "contributor_context_available")
+              ? "low"
+              : "unknown";
+
+  let summary = "Trust bleibt unbekannt und erzeugt keine Wahrheit.";
+  if (trustLevel === "high") {
+    summary =
+      "Trust priorisiert Prüfung, bestätigt aber keine Wahrheit.";
+  } else if (trustLevel === "medium" || trustLevel === "low") {
+    summary =
+      "Contributor-Historie hilft nur bei der Einordnung und ist kein Glaubwürdigkeitsbeweis.";
+  } else if (trustLevel === "restricted") {
+    summary =
+      "Trust bleibt eingeschränkt und blockiert die Nutzung bis zum Review.";
+  }
+
+  return {
+    signals,
+    trustLevel,
+    reviewBlocked: trustLevel === "restricted",
+    reviewOnlyHint: trustLevel !== "unknown",
+    summary,
+  };
+}
+
+export function canPrioritizeCommunityHintForReview(
+  input:
+    | CommunitySourceReviewModerationSignal
+    | {
+        trustState: CommunitySourceReviewTrustState;
+        sourceQualityState: CommunitySourceReviewSourceQualityState;
+      },
+): boolean {
+  const trustState = input.trustState;
+  const sourceQualityState = input.sourceQualityState;
+  return (
+    !trustState.reviewBlocked &&
+    !sourceQualityState.reviewBlocked &&
+    (trustState.trustLevel === "high" ||
+      sourceQualityState.sourceQualityLevel === "strong_review_candidate" ||
+      sourceQualityState.sourceQualityLevel === "usable_for_review")
+  );
+}
+
+export function blocksTrustAsTruth(
+  _input:
+    | CommunitySourceReviewTrustState
+    | CommunitySourceReviewModerationSignal,
+): boolean {
+  return true;
+}
+
+export function blocksSourceQualityAsVerification(
+  _input:
+    | CommunitySourceReviewSourceQualityState
+    | CommunitySourceReviewModerationSignal,
+): boolean {
+  return true;
+}
+
+export function getCommunityHintTrustQualityBlockers(
+  input:
+    | CommunitySourceReviewModerationSignal
+    | {
+        trustState: CommunitySourceReviewTrustState;
+        sourceQualityState: CommunitySourceReviewSourceQualityState;
+        trustSignalsReviewedAt?: string | null;
+        sourceQualityReviewedAt?: string | null;
+      },
+): CommunitySourceReviewModerationBlocker[] {
+  const blockers: CommunitySourceReviewModerationBlocker[] = [];
+  if (input.trustState.signals.length > 0) blockers.push("trust_review_only");
+  if (input.trustState.reviewBlocked && !input.trustSignalsReviewedAt) {
+    blockers.push("trust_restricted_until_reviewed");
+  }
+  if (input.trustState.signals.length > 0) blockers.push("trust_history_not_truth");
+  if (input.sourceQualityState.signals.length > 0) blockers.push("source_quality_review_only");
+  if (input.sourceQualityState.reviewBlocked && !input.sourceQualityReviewedAt) {
+    blockers.push("source_quality_restricted_until_reviewed");
+  }
+  if (input.sourceQualityState.signals.length > 0) {
+    blockers.push("source_quality_not_verification");
+  }
+  if (canPrioritizeCommunityHintForReview(input)) {
+    blockers.push("review_priority_trust_quality_only");
+  }
+  return unique(blockers);
+}
+
 function deriveRiskLevel(
   input: CommunitySourceReviewModerationAssessmentInput,
   reasons: readonly CommunitySourceReviewAbuseReason[],
   abuseState: CommunitySourceReviewAbuseState,
+  sourceQualityState: CommunitySourceReviewSourceQualityState,
 ): CommunitySourceReviewRiskLevel {
   if (input.moderation?.riskLevel) return input.moderation.riskLevel;
 
@@ -810,6 +1535,7 @@ function deriveRiskLevel(
     hasReason(reasons, "misleading_source") ||
     hasReason(reasons, "off_topic") ||
     abuseState.highestSeverity === "high" ||
+    sourceQualityState.sourceQualityLevel === "restricted" ||
     input.moderationFlags.verifiesClaim ||
     input.moderationFlags.marksSourceConfirmed ||
     input.moderationFlags.requestsPublish ||
@@ -824,6 +1550,7 @@ function deriveRiskLevel(
     hasReason(reasons, "duplicate") ||
     hasReason(reasons, "unverifiable_claim") ||
     abuseState.highestSeverity === "medium" ||
+    sourceQualityState.sourceQualityLevel === "weak" ||
     input.kind === "lived_experience" ||
     input.kind === "counter_source" ||
     input.kind === "escalation_request" ||
@@ -839,6 +1566,8 @@ function deriveModerationStatus(
   input: CommunitySourceReviewModerationAssessmentInput,
   reasons: readonly CommunitySourceReviewAbuseReason[],
   abuseState: CommunitySourceReviewAbuseState,
+  trustState: CommunitySourceReviewTrustState,
+  sourceQualityState: CommunitySourceReviewSourceQualityState,
   riskLevel: CommunitySourceReviewRiskLevel,
 ): CommunitySourceReviewModerationStatus {
   if (input.moderation?.moderationStatus) {
@@ -870,6 +1599,8 @@ function deriveModerationStatus(
     hasReason(reasons, "misleading_source") ||
     hasReason(reasons, "unverifiable_claim") ||
     abuseState.usageBlocked ||
+    trustState.reviewBlocked ||
+    sourceQualityState.reviewBlocked ||
     riskLevel === "high" ||
     riskLevel === "critical"
   ) {
@@ -881,8 +1612,19 @@ function deriveModerationStatus(
 
 function deriveTrustLevel(
   input: CommunitySourceReviewModerationAssessmentInput,
+  trustState: CommunitySourceReviewTrustState,
 ): CommunitySourceReviewTrustLevel {
-  return input.moderation?.trustLevel ?? "unknown";
+  return trustState.trustLevel;
+}
+
+function deriveSourceQualityLevel(
+  input: CommunitySourceReviewModerationAssessmentInput,
+  sourceQualityState: CommunitySourceReviewSourceQualityState,
+): CommunitySourceReviewSourceQualityLevel {
+  if (input.moderation?.sourceQualityLevel) {
+    return input.moderation.sourceQualityLevel;
+  }
+  return sourceQualityState.sourceQualityLevel;
 }
 
 function hasBlockingAbuseReason(
@@ -908,6 +1650,7 @@ export function canEscalateCommunityContributionToEditorial(
   if (signal.moderationStatus === "rejected_abuse") return false;
   if (signal.moderationStatus === "escalated_to_editorial") return true;
   if (signal.abuseState.escalationRecommended) return true;
+  if (signal.sourceQualityState.sourceQualityLevel === "restricted") return true;
   if (signal.abuseReasons.includes("misleading_source")) return true;
   if (signal.abuseReasons.includes("unverifiable_claim")) return true;
   if (signal.abuseReasons.includes("coordinated_manipulation")) return true;
@@ -917,7 +1660,12 @@ export function canEscalateCommunityContributionToEditorial(
 export function shouldRequireHumanModeration(
   signal: CommunitySourceReviewModerationSignal,
 ): boolean {
-  return signal.moderationStatus !== "allowed_as_hint" || signal.abuseSignals.length > 0;
+  return (
+    signal.moderationStatus !== "allowed_as_hint" ||
+    signal.abuseSignals.length > 0 ||
+    signal.trustSignals.length > 0 ||
+    signal.sourceQualitySignals.length > 0
+  );
 }
 
 export function summarizeCommunityContributionModerationState(
@@ -931,6 +1679,12 @@ export function summarizeCommunityContributionModerationState(
   }
   if (signal.abuseSignals.length > 0) {
     return signal.abuseState.summary;
+  }
+  if (signal.trustState.reviewBlocked) {
+    return signal.trustState.summary;
+  }
+  if (signal.sourceQualityState.reviewBlocked) {
+    return signal.sourceQualityState.summary;
   }
   if (signal.moderationStatus === "allowed_as_hint") {
     return "Hinweis darf nach Moderation als Hinweis sichtbar werden, aber nicht als bestätigte Wahrheit oder verifizierte Quelle.";
@@ -968,6 +1722,7 @@ export function getCommunitySourceReviewModerationBlockers(
   }
 
   blockers.push(...getCommunityHintAbuseBlockers(signal));
+  blockers.push(...getCommunityHintTrustQualityBlockers(signal));
 
   if (signal.moderationStatus === "hidden_pending_review") {
     blockers.push("hidden_pending_review");
@@ -988,32 +1743,66 @@ export function assessCommunitySourceReviewContributionRisk(
   const abuseReasons = uniqueReasons(input.moderation?.abuseReasons ?? []);
   const abuseSignals = detectCommunitySourceReviewAbuseSignals(input);
   const abuseState = summarizeCommunitySourceReviewAbuseState(abuseSignals);
-  const trustLevel = deriveTrustLevel(input);
-  const riskLevel = deriveRiskLevel(input, abuseReasons, abuseState);
+  const sourceQualitySignals = deriveCommunitySourceReviewSourceQualitySignals(input);
+  const sourceQualityState = summarizeCommunitySourceReviewSourceQualityState(
+    sourceQualitySignals,
+    input.moderation?.sourceQualityLevel ?? null,
+  );
+  const trustSignals = deriveCommunitySourceReviewTrustSignals(input, {
+    abuseState,
+    sourceQualityState,
+  });
+  const trustState = summarizeCommunitySourceReviewTrustState(
+    trustSignals,
+    input.moderation?.trustLevel ?? null,
+  );
+  const trustLevel = deriveTrustLevel(input, trustState);
+  const sourceQualityLevel = deriveSourceQualityLevel(input, sourceQualityState);
+  const riskLevel = deriveRiskLevel(
+    input,
+    abuseReasons,
+    abuseState,
+    sourceQualityState,
+  );
   const moderationStatus = deriveModerationStatus(
     input,
     abuseReasons,
     abuseState,
+    trustState,
+    sourceQualityState,
     riskLevel,
   );
 
   const provisionalSignal: CommunitySourceReviewModerationSignal = {
     moderationStatus,
     trustLevel,
+    trustSignals,
+    trustState,
+    sourceQualityLevel,
+    sourceQualitySignals,
+    sourceQualityState,
     riskLevel,
     abuseReasons,
     abuseSignals,
     abuseState,
     abuseSeverity: abuseState.highestSeverity,
     abuseDisposition: abuseState.effectiveDisposition,
+    trustSignalsReviewedAt: input.moderation?.trustSignalsReviewedAt ?? null,
+    trustSignalsReviewedBy: input.moderation?.trustSignalsReviewedBy ?? null,
+    sourceQualityReviewedAt: input.moderation?.sourceQualityReviewedAt ?? null,
+    sourceQualityReviewedBy: input.moderation?.sourceQualityReviewedBy ?? null,
     requiresHumanModeration: moderationStatus !== "allowed_as_hint",
     canExposePublicly: false,
     canEscalateToEditorial: false,
     canUseHintDespiteAbuseSignals: canUseCommunityHintDespiteAbuseSignals(abuseState),
     reviewPriority:
-      trustLevel === "trusted_contributor" || trustLevel === "editorial_contributor"
+      input.moderation?.reviewPriorityOverride ??
+      (canPrioritizeCommunityHintForReview({
+        trustState,
+        sourceQualityState,
+      })
         ? "prioritized"
-        : "standard",
+        : "standard"),
     guardrails: {
       trustDoesNotVerifyTruth: true,
       volumeDoesNotVerifyTruth: true,
@@ -1035,7 +1824,10 @@ export function assessCommunitySourceReviewContributionRisk(
   return {
     ...signal,
     requiresHumanModeration:
-      shouldRequireHumanModeration(signal) || hasBlockingAbuseReason(abuseReasons),
+      shouldRequireHumanModeration(signal) ||
+      hasBlockingAbuseReason(abuseReasons) ||
+      trustState.reviewBlocked ||
+      sourceQualityState.reviewBlocked,
     summary: summarizeCommunityContributionModerationState(signal),
   };
 }

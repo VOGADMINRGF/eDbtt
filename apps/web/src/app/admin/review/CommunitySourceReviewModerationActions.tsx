@@ -14,7 +14,11 @@ type CommunitySourceReviewAction =
   | "markAsSpamRisk"
   | "markAsAbuseRisk"
   | "clearAbuseSignal"
-  | "escalateAbuseReview";
+  | "escalateAbuseReview"
+  | "markSourceQualityReviewed"
+  | "markTrustQualityReviewed"
+  | "setReviewPriorityFromTrustQuality"
+  | "clearTrustQualitySignals";
 
 async function postAction(input: {
   contributionId: string;
@@ -51,6 +55,9 @@ export default function CommunitySourceReviewModerationActions({
   const noteValue = note.trim();
   const routeDecisionBlocked =
     record.decisionStatus === "hidden" || record.decisionStatus === "rejected";
+  const allowAsHintBlocked =
+    record.contribution.moderation.trustState.reviewBlocked &&
+    !record.contribution.moderation.trustSignalsReviewedAt;
 
   async function runAction(action: CommunitySourceReviewAction) {
     setPendingAction(action);
@@ -95,13 +102,19 @@ export default function CommunitySourceReviewModerationActions({
         Mehrfach- oder Volumensignale begründen keine Wahrheit.
       </p>
       <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+        Trust priorisiert Prüfung, bestätigt aber keine Wahrheit.
+      </p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+        Quellenqualität hilft bei der Einordnung, verifiziert aber keine Quelle.
+      </p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
         Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={buttonDisabled}
+          disabled={buttonDisabled || allowAsHintBlocked}
           onClick={() => runAction("allowAsHint")}
           className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
         >
@@ -154,6 +167,38 @@ export default function CommunitySourceReviewModerationActions({
           className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
         >
           Abuse-Signale zurücksetzen
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("markSourceQualityReviewed")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Quellenqualität geprüft
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("markTrustQualityReviewed")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Trust/Quality geprüft
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("setReviewPriorityFromTrustQuality")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Review priorisieren aus Trust/Quality
+        </button>
+        <button
+          type="button"
+          disabled={buttonDisabled}
+          onClick={() => runAction("clearTrustQualitySignals")}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
+        >
+          Trust/Quality-Signale zurücksetzen
         </button>
         <button
           type="button"

@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+
 import AdminCommunitySourceReviewSection from "@/app/admin/review/AdminCommunitySourceReviewSection";
 import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
 import {
-  allowCommunitySourceReviewHint,
   createInMemoryCommunitySourceReviewRepository,
   listCommunitySourceReviewAudits,
   listCommunitySourceReviewRecords,
-  markCommunitySourceReviewHintNeedsSourceReview,
   persistCommunitySourceReviewContributionDraft,
   setCommunitySourceReviewRepositoryForTests,
 } from "@/features/create/communitySourceReviewServer";
@@ -26,38 +25,44 @@ afterEach(() => {
   setCommunitySourceReviewRepositoryForTests(null);
 });
 
-describe("community source review moderation ui", () => {
-  it("renders community hints with moderation, risk, abuse, trust and guardrails in admin review", async () => {
+describe("community source review trust source quality ui", () => {
+  it("shows trust level, source quality level, signals and guardrails in the existing admin workbench", async () => {
     setCommunitySourceReviewRepositoryForTests(
       createInMemoryCommunitySourceReviewRepository(),
     );
 
     await persistCommunitySourceReviewContributionDraft(
       createCommunitySourceReviewContributionDraft({
-        id: "community-ui-1",
+        id: "community-ui-trust-quality-1",
         kind: "source_suggestion",
         target: "claim",
-        targetId: "claim-1",
-        claimText: "Vor der Schule fehlen sichere Querungen.",
-        text: "Hier ist ein zusätzlicher Bericht aus dem Kiez.",
-        sourceRefs: ["https://beispiel.de/bericht"],
-        relatedContributionCount: 12,
+        targetId: "claim-ui-trust-quality-1",
+        claimText: "Primärquelle vom Bezirksamt.",
+        text: 'Originaldokument 2026-06-20. "Die Maßnahme startet im Juli."',
+        sourceRefs: ["https://www.berlin.de/beschluss.pdf"],
+        notes: ["Bezirksamt Reinickendorf · Beschlussprotokoll"],
+        relatedContributionCount: 4,
+        moderation: {
+          trustLevel: "restricted",
+        },
+      }),
+    );
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ui-trust-quality-2",
+        kind: "source_suggestion",
+        target: "claim",
+        targetId: "claim-ui-trust-quality-2",
+        claimText: "Primärquelle mit belastbarem Kontext.",
+        text: 'Originaldokument 2026-06-21. "Die Finanzierung ist gesichert."',
+        sourceRefs: ["https://www.berlin.de/finanzierung.pdf"],
+        notes: ["Bezirksamt Reinickendorf · Beschlussprotokoll"],
+        relatedContributionCount: 4,
         moderation: {
           trustLevel: "high",
         },
       }),
     );
-
-    await allowCommunitySourceReviewHint({
-      contributionId: "community-ui-1",
-      actorUserId: "admin-1",
-      reason: "Als Hinweis behalten.",
-    });
-    await markCommunitySourceReviewHintNeedsSourceReview({
-      contributionId: "community-ui-1",
-      actorUserId: "admin-1",
-      reason: "Zur Quellenprüfung legen.",
-    });
 
     const records = await listCommunitySourceReviewRecords();
     const audits = await listCommunitySourceReviewAudits({ limit: 50 });
@@ -69,9 +74,14 @@ describe("community source review moderation ui", () => {
       );
     }
 
+    const recordsWithNote = records.map((record) => ({
+      ...record,
+      latestDecisionNote: "Trust/Quality vor einer Freigabe prüfen.",
+    }));
+
     const html = renderToStaticMarkup(
       <AdminCommunitySourceReviewSection
-        communitySourceReviewRecords={records}
+        communitySourceReviewRecords={recordsWithNote}
         communitySourceReviewAuditMap={auditMap}
         communitySourceReviewPersistence={{
           mode: "persistent_primary",
@@ -88,27 +98,21 @@ describe("community source review moderation ui", () => {
       />,
     );
 
-    expect(html).toContain("Community-Hinweise moderieren");
-    expect(html).toContain("source_suggestion");
-    expect(html).toContain("Quellenvorschlag");
-    expect(html).toContain("als Hinweis erlaubt");
-    expect(html).toContain("Claim");
     expect(html).toContain("Trust");
+    expect(html).toContain("eingeschränkt");
     expect(html).toContain("hoch");
-    expect(html).toContain("Risiko");
-    expect(html).toContain("keine Abuse-Flags");
-    expect(html).toContain("Mehrfacheinreichung");
-    expect(html).toContain("Volumensignal");
     expect(html).toContain("Quellenqualität");
-    expect(html).toContain("Abuse-/Spam-Signale sind Moderationshinweise, keine automatische Ablehnung.");
-    expect(html).toContain("Mehrfach- oder Volumensignale begründen keine Wahrheit.");
+    expect(html).toContain("starker Review-Kandidat");
+    expect(html).toContain("Contributor-Kontext vorhanden");
+    expect(html).toContain("Quellen-URL vorhanden");
+    expect(html).toContain("Primärquelle behauptet");
+    expect(html).toContain("Review-Priorität: prioritized");
     expect(html).toContain("Trust priorisiert Prüfung, bestätigt aber keine Wahrheit.");
     expect(html).toContain("Quellenqualität hilft bei der Einordnung, verifiziert aber keine Quelle.");
-    expect(html).toContain(
-      "Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.",
-    );
-    expect(html).toContain("Zur Quellenprüfung routen");
-    expect(html).toContain("Quellenprüfung");
+    expect(html).toContain("Auch starke Review-Kandidaten müssen redaktionell oder fachlich geprüft werden.");
     expect(html).not.toContain("accepted_as_fact");
+    expect(html).not.toContain("verified source");
+    expect(html).toContain('Als Hinweis erlauben</button>');
+    expect(html).toContain('disabled=""');
   });
 });

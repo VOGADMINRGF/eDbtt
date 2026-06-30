@@ -133,7 +133,7 @@ describe("community source review moderation", () => {
         usesMajorityAsTruth: false,
       },
       moderation: {
-        trustLevel: "trusted_contributor",
+        trustLevel: "high",
       },
     });
 
@@ -211,7 +211,7 @@ describe("community source review moderation", () => {
         text: "Hier ist ein zusätzlicher Quellenhinweis.",
         sourceRefs: ["https://beispiel.de/quelle"],
         moderation: {
-          trustLevel: "trusted_contributor",
+          trustLevel: "high",
         },
       }),
     );

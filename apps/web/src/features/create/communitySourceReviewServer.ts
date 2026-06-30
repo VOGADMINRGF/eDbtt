@@ -13,8 +13,16 @@ import {
   type CommunitySourceReviewAbuseSignal,
   type CommunitySourceReviewAbuseSignalInput,
   type CommunitySourceReviewAbuseSignalKind,
+  type CommunitySourceReviewSourceQualityLevel,
+  type CommunitySourceReviewSourceQualitySignal,
+  type CommunitySourceReviewSourceQualitySignalInput,
+  type CommunitySourceReviewSourceQualitySignalKind,
+  type CommunitySourceReviewTrustLevel,
   type CommunitySourceReviewModerationBlocker,
   type CommunitySourceReviewModerationInput,
+  type CommunitySourceReviewTrustSignal,
+  type CommunitySourceReviewTrustSignalInput,
+  type CommunitySourceReviewTrustSignalKind,
 } from "@/features/create/communitySourceReviewModeration";
 
 export const COMMUNITY_SOURCE_REVIEW_DECISION_STATUSES = [
@@ -62,6 +70,11 @@ export type CommunitySourceReviewAuditEntry = {
     | "signal_reviewed"
     | "moderation_action_taken"
     | "escalation_recommended"
+    | "trust_signal_derived"
+    | "source_quality_signal_derived"
+    | "review_priority_changed"
+    | "source_quality_reviewed"
+    | "trust_quality_reviewed"
     | "hint_allowed"
     | "hint_hidden"
     | "hint_rejected"
@@ -76,6 +89,11 @@ export type CommunitySourceReviewAuditEntry = {
   signalKinds?: CommunitySourceReviewAbuseSignalKind[];
   signalSeverity?: CommunitySourceReviewAbuseSeverity | null;
   signalDisposition?: CommunitySourceReviewAbuseDisposition | null;
+  trustSignalKinds?: CommunitySourceReviewTrustSignalKind[];
+  trustLevel?: CommunitySourceReviewTrustLevel | null;
+  sourceQualitySignalKinds?: CommunitySourceReviewSourceQualitySignalKind[];
+  sourceQualityLevel?: CommunitySourceReviewSourceQualityLevel | null;
+  reviewPriority?: "standard" | "prioritized" | null;
   at: string;
 };
 
@@ -185,9 +203,51 @@ function getManualAbuseSignals(
     }));
 }
 
+function getManualTrustSignals(
+  signals: readonly CommunitySourceReviewTrustSignal[],
+): CommunitySourceReviewTrustSignalInput[] {
+  return signals
+    .filter((signal) => signal.detectedFrom === "manual")
+    .map((signal) => ({
+      kind: signal.kind,
+      note: signal.note,
+      reviewedAt: signal.reviewedAt,
+      reviewedBy: signal.reviewedBy,
+      detectedBy: signal.detectedBy,
+      detectedFrom: signal.detectedFrom,
+    }));
+}
+
+function getManualSourceQualitySignals(
+  signals: readonly CommunitySourceReviewSourceQualitySignal[],
+): CommunitySourceReviewSourceQualitySignalInput[] {
+  return signals
+    .filter((signal) => signal.detectedFrom === "manual")
+    .map((signal) => ({
+      kind: signal.kind,
+      note: signal.note,
+      reviewedAt: signal.reviewedAt,
+      reviewedBy: signal.reviewedBy,
+      detectedBy: signal.detectedBy,
+      detectedFrom: signal.detectedFrom,
+    }));
+}
+
 function getSignalKinds(
   signals: readonly CommunitySourceReviewAbuseSignal[],
 ): CommunitySourceReviewAbuseSignalKind[] {
+  return unique(signals.map((signal) => signal.kind));
+}
+
+function getTrustSignalKinds(
+  signals: readonly CommunitySourceReviewTrustSignal[],
+): CommunitySourceReviewTrustSignalKind[] {
+  return unique(signals.map((signal) => signal.kind));
+}
+
+function getSourceQualitySignalKinds(
+  signals: readonly CommunitySourceReviewSourceQualitySignal[],
+): CommunitySourceReviewSourceQualitySignalKind[] {
   return unique(signals.map((signal) => signal.kind));
 }
 
@@ -215,6 +275,38 @@ function buildModeratorSignal(input: {
     kind: input.kind,
     severity: input.severity,
     disposition: input.disposition,
+    note: input.note,
+    reviewedAt: input.at,
+    reviewedBy: input.actorUserId,
+    detectedBy: "moderator",
+    detectedFrom: "manual",
+  };
+}
+
+function buildModeratorTrustSignal(input: {
+  kind: CommunitySourceReviewTrustSignalKind;
+  note: string;
+  actorUserId: string;
+  at: string;
+}): CommunitySourceReviewTrustSignalInput {
+  return {
+    kind: input.kind,
+    note: input.note,
+    reviewedAt: input.at,
+    reviewedBy: input.actorUserId,
+    detectedBy: "moderator",
+    detectedFrom: "manual",
+  };
+}
+
+function buildModeratorSourceQualitySignal(input: {
+  kind: CommunitySourceReviewSourceQualitySignalKind;
+  note: string;
+  actorUserId: string;
+  at: string;
+}): CommunitySourceReviewSourceQualitySignalInput {
+  return {
+    kind: input.kind,
     note: input.note,
     reviewedAt: input.at,
     reviewedBy: input.actorUserId,
@@ -371,6 +463,8 @@ function rebuildContribution(
   input: {
     status?: CommunitySourceReviewContribution["status"];
     moderation?: Partial<CommunitySourceReviewModerationInput>;
+    routeTarget?: CommunitySourceReviewRouteTarget;
+    decisionStatus?: CommunitySourceReviewDecisionStatus;
     updatedAt: string;
   },
 ) {
@@ -395,10 +489,52 @@ function rebuildContribution(
         contribution.moderation.moderationStatus,
       trustLevel: contribution.moderation.trustLevel,
       riskLevel: contribution.moderation.riskLevel,
+      sourceQualityLevel: contribution.moderation.sourceQualityLevel,
       abuseReasons: contribution.moderation.abuseReasons,
       abuseSignals:
         input.moderation?.abuseSignals ??
         getManualAbuseSignals(contribution.moderation.abuseSignals),
+      trustSignals:
+        input.moderation?.trustSignals ??
+        getManualTrustSignals(contribution.moderation.trustSignals),
+      sourceQualitySignals:
+        input.moderation?.sourceQualitySignals ??
+        getManualSourceQualitySignals(contribution.moderation.sourceQualitySignals),
+      trustSignalsReviewedAt:
+        input.moderation?.trustSignalsReviewedAt ??
+        contribution.moderation.trustSignalsReviewedAt,
+      trustSignalsReviewedBy:
+        input.moderation?.trustSignalsReviewedBy ??
+        contribution.moderation.trustSignalsReviewedBy,
+      sourceQualityReviewedAt:
+        input.moderation?.sourceQualityReviewedAt ??
+        contribution.moderation.sourceQualityReviewedAt,
+      sourceQualityReviewedBy:
+        input.moderation?.sourceQualityReviewedBy ??
+        contribution.moderation.sourceQualityReviewedBy,
+      reviewPriorityOverride:
+        input.moderation?.reviewPriorityOverride ??
+        (contribution.moderation.reviewPriority === "prioritized"
+          ? "prioritized"
+          : null),
+    },
+    history: {
+      priorAllowedHint:
+        input.decisionStatus === "allowed_as_hint" ||
+        contribution.status === "accepted_as_hint",
+      priorRejectedHint:
+        input.decisionStatus === "rejected" || contribution.status === "rejected",
+      priorSourceReviewRouted:
+        input.routeTarget === "source_review" ||
+        contribution.moderation.trustSignals.some(
+          (signal) => signal.kind === "prior_source_review_routed",
+        ),
+      priorEditorialReviewRouted:
+        input.routeTarget === "editorial_review" ||
+        contribution.moderation.trustSignals.some(
+          (signal) => signal.kind === "prior_editorial_review_routed",
+        ),
+      contributorContextAvailable: contribution.moderation.trustLevel !== "unknown",
     },
     createdAt: contribution.createdAt,
     updatedAt: input.updatedAt,
@@ -508,6 +644,13 @@ export async function persistCommunitySourceReviewContributionDraft(
     signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
     signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
     signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
+    trustSignalKinds: getTrustSignalKinds(record.contribution.moderation.trustSignals),
+    trustLevel: record.contribution.moderation.trustLevel,
+    sourceQualitySignalKinds: getSourceQualitySignalKinds(
+      record.contribution.moderation.sourceQualitySignals,
+    ),
+    sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+    reviewPriority: record.contribution.moderation.reviewPriority,
     at: record.updatedAt,
   });
   if (record.contribution.moderation.abuseSignals.length > 0) {
@@ -522,6 +665,45 @@ export async function persistCommunitySourceReviewContributionDraft(
       signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
       signalSeverity: record.contribution.moderation.abuseSeverity,
       signalDisposition: record.contribution.moderation.abuseDisposition,
+      trustSignalKinds: getTrustSignalKinds(record.contribution.moderation.trustSignals),
+      trustLevel: record.contribution.moderation.trustLevel,
+      sourceQualitySignalKinds: getSourceQualitySignalKinds(
+        record.contribution.moderation.sourceQualitySignals,
+      ),
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
+      at: record.updatedAt,
+    });
+  }
+  if (record.contribution.moderation.trustSignals.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "trust_signal_derived",
+      actorUserId: null,
+      reason: record.contribution.moderation.trustState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      trustSignalKinds: getTrustSignalKinds(record.contribution.moderation.trustSignals),
+      trustLevel: record.contribution.moderation.trustLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
+      at: record.updatedAt,
+    });
+  }
+  if (record.contribution.moderation.sourceQualitySignals.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "source_quality_signal_derived",
+      actorUserId: null,
+      reason: record.contribution.moderation.sourceQualityState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      sourceQualitySignalKinds: getSourceQualitySignalKinds(
+        record.contribution.moderation.sourceQualitySignals,
+      ),
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
       at: record.updatedAt,
     });
   }
@@ -566,14 +748,18 @@ async function updateRecordWithDecision(input: {
   }
 
   const updatedAt = nowIso();
+  const nextDecisionStatus = input.decisionStatus ?? existing.decisionStatus;
+  const nextRouteTarget = input.routeTarget ?? existing.routeTarget;
   const contribution = rebuildContribution(existing.contribution, {
     status: input.status,
     moderation: input.moderation,
+    routeTarget: nextRouteTarget,
+    decisionStatus: nextDecisionStatus,
     updatedAt,
   });
   const record = buildRecord(contribution, {
-    decisionStatus: input.decisionStatus ?? existing.decisionStatus,
-    routeTarget: input.routeTarget ?? existing.routeTarget,
+    decisionStatus: nextDecisionStatus,
+    routeTarget: nextRouteTarget,
     latestDecisionNote: input.reason,
     latestActorUserId: input.actorUserId,
     latestDecisionAt: updatedAt,
@@ -592,6 +778,13 @@ async function updateRecordWithDecision(input: {
     signalKinds: getSignalKinds(record.contribution.moderation.abuseSignals),
     signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
     signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
+    trustSignalKinds: getTrustSignalKinds(record.contribution.moderation.trustSignals),
+    trustLevel: record.contribution.moderation.trustLevel,
+    sourceQualitySignalKinds: getSourceQualitySignalKinds(
+      record.contribution.moderation.sourceQualitySignals,
+    ),
+    sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+    reviewPriority: record.contribution.moderation.reviewPriority,
     at: updatedAt,
   });
 
@@ -599,8 +792,24 @@ async function updateRecordWithDecision(input: {
     getSignalKinds(existing.contribution.moderation.abuseSignals),
   );
   const nextSignalKinds = getSignalKinds(record.contribution.moderation.abuseSignals);
+  const previousTrustSignalKinds = new Set(
+    getTrustSignalKinds(existing.contribution.moderation.trustSignals),
+  );
+  const nextTrustSignalKinds = getTrustSignalKinds(record.contribution.moderation.trustSignals);
+  const previousSourceQualitySignalKinds = new Set(
+    getSourceQualitySignalKinds(existing.contribution.moderation.sourceQualitySignals),
+  );
+  const nextSourceQualitySignalKinds = getSourceQualitySignalKinds(
+    record.contribution.moderation.sourceQualitySignals,
+  );
   const newlyDetectedSignalKinds = nextSignalKinds.filter(
     (kind) => !previousSignalKinds.has(kind),
+  );
+  const newlyDetectedTrustSignalKinds = nextTrustSignalKinds.filter(
+    (kind) => !previousTrustSignalKinds.has(kind),
+  );
+  const newlyDetectedSourceQualitySignalKinds = nextSourceQualitySignalKinds.filter(
+    (kind) => !previousSourceQualitySignalKinds.has(kind),
   );
 
   if (newlyDetectedSignalKinds.length > 0) {
@@ -615,6 +824,61 @@ async function updateRecordWithDecision(input: {
       signalKinds: newlyDetectedSignalKinds,
       signalSeverity: record.contribution.moderation.abuseSeverity,
       signalDisposition: record.contribution.moderation.abuseDisposition,
+      trustSignalKinds: nextTrustSignalKinds,
+      trustLevel: record.contribution.moderation.trustLevel,
+      sourceQualitySignalKinds: nextSourceQualitySignalKinds,
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
+      at: updatedAt,
+    });
+  }
+
+  if (newlyDetectedTrustSignalKinds.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "trust_signal_derived",
+      actorUserId: input.actorUserId,
+      reason: record.contribution.moderation.trustState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      trustSignalKinds: newlyDetectedTrustSignalKinds,
+      trustLevel: record.contribution.moderation.trustLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
+      at: updatedAt,
+    });
+  }
+
+  if (newlyDetectedSourceQualitySignalKinds.length > 0) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "source_quality_signal_derived",
+      actorUserId: input.actorUserId,
+      reason: record.contribution.moderation.sourceQualityState.summary,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      sourceQualitySignalKinds: newlyDetectedSourceQualitySignalKinds,
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
+      at: updatedAt,
+    });
+  }
+
+  if (existing.contribution.moderation.reviewPriority !== record.contribution.moderation.reviewPriority) {
+    await recordAudit({
+      contributionId: record.id,
+      action: "review_priority_changed",
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      decisionStatus: record.decisionStatus,
+      routeTarget: record.routeTarget,
+      blockers: record.blockers,
+      trustSignalKinds: nextTrustSignalKinds,
+      trustLevel: record.contribution.moderation.trustLevel,
+      sourceQualitySignalKinds: nextSourceQualitySignalKinds,
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
       at: updatedAt,
     });
   }
@@ -631,6 +895,11 @@ async function updateRecordWithDecision(input: {
       signalKinds: nextSignalKinds,
       signalSeverity: getLatestSignalSeverity(record.contribution.moderation.abuseSignals),
       signalDisposition: getLatestSignalDisposition(record.contribution.moderation.abuseSignals),
+      trustSignalKinds: nextTrustSignalKinds,
+      trustLevel: record.contribution.moderation.trustLevel,
+      sourceQualitySignalKinds: nextSourceQualitySignalKinds,
+      sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
+      reviewPriority: record.contribution.moderation.reviewPriority,
       at: updatedAt,
     });
   }
@@ -872,5 +1141,83 @@ export async function escalateCommunitySourceReviewAbuseReview(input: {
       abuseSignals: manualSignals,
     },
     extraAuditActions: ["moderation_action_taken", "escalation_recommended"],
+  });
+}
+
+export async function markCommunitySourceReviewSourceQualityReviewed(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "source_quality_reviewed",
+    moderation: {
+      sourceQualityReviewedAt: nowIso(),
+      sourceQualityReviewedBy: input.actorUserId,
+    },
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function markCommunitySourceReviewTrustQualityReviewed(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "trust_quality_reviewed",
+    moderation: {
+      trustSignalsReviewedAt: nowIso(),
+      trustSignalsReviewedBy: input.actorUserId,
+      sourceQualityReviewedAt: nowIso(),
+      sourceQualityReviewedBy: input.actorUserId,
+    },
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function setCommunitySourceReviewPriorityFromTrustQuality(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "review_priority_changed",
+    moderation: {
+      reviewPriorityOverride: "prioritized",
+    },
+    extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function clearCommunitySourceReviewTrustQualitySignals(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "trust_quality_reviewed",
+    moderation: {
+      trustSignals: [],
+      sourceQualitySignals: [],
+      trustSignalsReviewedAt: null,
+      trustSignalsReviewedBy: null,
+      sourceQualityReviewedAt: null,
+      sourceQualityReviewedBy: null,
+      reviewPriorityOverride: null,
+    },
+    extraAuditActions: ["moderation_action_taken"],
   });
 }
