@@ -11,6 +11,7 @@ import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
 import AdminAnlassraumRuntimeCreationSection from "./AdminAnlassraumRuntimeCreationSection";
 import AdminParticipationSpaceRuntimeCreationSection from "./AdminParticipationSpaceRuntimeCreationSection";
+import AdminParticipationSpacePublishSection from "./AdminParticipationSpacePublishSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
 import { getEditorialReviewFilterLabel } from "@features/editorialReviewQueue";
 import { loadAdminEditorialReviewRequests, ADMIN_EDITORIAL_FILTER_OPTIONS } from "./loadAdminEditorialReviewRequests";
@@ -21,6 +22,7 @@ import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphAp
 import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
 import { loadAdminAnlassraumRuntimeCreationSectionProps } from "./loadAdminAnlassraumRuntimeCreationSectionProps";
 import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAdminParticipationSpaceRuntimeCreationSectionProps";
+import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 
 export const metadata = {
@@ -151,6 +153,7 @@ export default async function AdminReviewPage({
     dossierRuntimeCreationSectionProps,
     anlassraumRuntimeCreationSectionProps,
     participationSpaceRuntimeCreationSectionProps,
+    participationSpacePublishSectionProps,
     editorialRequests,
     factcheckJobs,
   ] =
@@ -161,6 +164,7 @@ export default async function AdminReviewPage({
       loadAdminDossierRuntimeCreationSectionProps(),
       loadAdminAnlassraumRuntimeCreationSectionProps(),
       loadAdminParticipationSpaceRuntimeCreationSectionProps(),
+      loadAdminParticipationSpacePublishSectionProps(),
       loadAdminEditorialReviewRequests(filters.editorial),
       loadAdminFactcheckJobs(),
     ]);
@@ -419,6 +423,10 @@ export default async function AdminReviewPage({
 
         <AdminParticipationSpaceRuntimeCreationSection
           {...participationSpaceRuntimeCreationSectionProps}
+        />
+
+        <AdminParticipationSpacePublishSection
+          {...participationSpacePublishSectionProps}
         />
 
         <AdminCommunitySourceReviewSection {...communitySourceReviewSectionProps} />

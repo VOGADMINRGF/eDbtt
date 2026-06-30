@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   loadAdminDossierRuntimeCreationSectionProps: vi.fn(),
   loadAdminAnlassraumRuntimeCreationSectionProps: vi.fn(),
   loadAdminParticipationSpaceRuntimeCreationSectionProps: vi.fn(),
+  loadAdminParticipationSpacePublishSectionProps: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/sessionUser", () => ({
@@ -73,6 +74,14 @@ vi.mock(
     loadAdminParticipationSpaceRuntimeCreationSectionProps: (
       ...args: unknown[]
     ) => mocks.loadAdminParticipationSpaceRuntimeCreationSectionProps(...args),
+  }),
+);
+
+vi.mock(
+  "@/app/admin/review/loadAdminParticipationSpacePublishSectionProps",
+  () => ({
+    loadAdminParticipationSpacePublishSectionProps: (...args: unknown[]) =>
+      mocks.loadAdminParticipationSpacePublishSectionProps(...args),
   }),
 );
 
@@ -193,6 +202,22 @@ describe("/admin/review page", () => {
         productionTruth: true,
         restartReconstructable: true,
         deploymentReconstructable: true,
+      },
+    });
+    mocks.loadAdminParticipationSpacePublishSectionProps.mockResolvedValue({
+      participationSpacePublishRecords: [],
+      participationSpacePublishAuditMap: new Map(),
+      participationSpacePublishPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Beteiligungsraum-Publish-/Activation-Workflow",
+        summary:
+          "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route bleibt vorerst fixture-basiert.",
+        repositoryInterface: "ParticipationSpacePublishWorkflowRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+        publicRouteRuntime: "fixture_only",
       },
     });
     mocks.listEditorialReviewRequests.mockResolvedValue([]);
@@ -666,6 +691,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Community Source Review");
     expect(html).toContain("Dossier erstellen prüfen");
     expect(html).toContain("Anlassraum erstellen prüfen");
+    expect(html).toContain("Beteiligungsraum erstellen prüfen");
+    expect(html).toContain("Beteiligungsraum aktivieren/veröffentlichen prüfen");
     expect(html).toContain("Review-to-Publish Workspace");
     expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");
