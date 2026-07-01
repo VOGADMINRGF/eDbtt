@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   loadAdminCommunitySourceReviewSectionProps: vi.fn(),
   loadAdminTopicGraphApprovalSectionProps: vi.fn(),
   loadAdminDossierRuntimeCreationSectionProps: vi.fn(),
+  loadAdminDossierPublishSectionProps: vi.fn(),
   loadAdminAnlassraumRuntimeCreationSectionProps: vi.fn(),
   loadAdminParticipationSpaceRuntimeCreationSectionProps: vi.fn(),
   loadAdminParticipationSpacePublishSectionProps: vi.fn(),
@@ -61,6 +62,11 @@ vi.mock("@/app/admin/review/loadAdminTopicGraphApprovalSectionProps", () => ({
 vi.mock("@/app/admin/review/loadAdminDossierRuntimeCreationSectionProps", () => ({
   loadAdminDossierRuntimeCreationSectionProps: (...args: unknown[]) =>
     mocks.loadAdminDossierRuntimeCreationSectionProps(...args),
+}));
+
+vi.mock("@/app/admin/review/loadAdminDossierPublishSectionProps", () => ({
+  loadAdminDossierPublishSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminDossierPublishSectionProps(...args),
 }));
 
 vi.mock("@/app/admin/review/loadAdminAnlassraumRuntimeCreationSectionProps", () => ({
@@ -172,6 +178,22 @@ describe("/admin/review page", () => {
         productionTruth: true,
         restartReconstructable: true,
         deploymentReconstructable: true,
+      },
+    });
+    mocks.loadAdminDossierPublishSectionProps.mockResolvedValue({
+      dossierPublicationRecords: [],
+      dossierPublicationAuditMap: new Map(),
+      dossierPublicationPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Dossier-Publish-Workflow",
+        summary:
+          "Separater Veröffentlichungsworkflow, Audit-Spuren und Public-Readmodel-Status liegen dauerhaft vor.",
+        repositoryInterface: "DossierPublicationWorkflowRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+        publicRouteRuntime: "runtime_wired",
       },
     });
     mocks.loadAdminAnlassraumRuntimeCreationSectionProps.mockResolvedValue({
@@ -690,6 +712,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Official Release erteilt");
     expect(html).toContain("Community Source Review");
     expect(html).toContain("Dossier erstellen prüfen");
+    expect(html).toContain("Dossier-Veröffentlichung prüfen");
     expect(html).toContain("Anlassraum erstellen prüfen");
     expect(html).toContain("Beteiligungsraum erstellen prüfen");
     expect(html).toContain("Beteiligungsraum aktivieren/veröffentlichen prüfen");
