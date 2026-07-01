@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import {
+  COMMUNITY_SOURCE_REVIEW_WORKBENCH_PRIORITY_OVERRIDES,
+  addCommunitySourceReviewInternalNote,
   allowCommunitySourceReviewHint,
+  archiveCommunitySourceReviewItem,
   clearCommunitySourceReviewHintAbuseSignals,
   clearCommunitySourceReviewTrustQualitySignals,
   escalateCommunitySourceReviewAbuseReview,
@@ -16,6 +19,7 @@ import {
   markCommunitySourceReviewSourceQualityReviewed,
   markCommunitySourceReviewTrustQualityReviewed,
   rejectCommunitySourceReviewHint,
+  setCommunitySourceReviewPriority,
   setCommunitySourceReviewPriorityFromTrustQuality,
 } from "@/features/create/communitySourceReviewServer";
 
@@ -38,8 +42,14 @@ const BodySchema = z.object({
     "markTrustQualityReviewed",
     "setReviewPriorityFromTrustQuality",
     "clearTrustQualitySignals",
+    "setPriority",
+    "archive",
+    "addInternalNote",
   ]),
   note: z.string().trim().min(1).max(1000),
+  priority: z
+    .enum(COMMUNITY_SOURCE_REVIEW_WORKBENCH_PRIORITY_OVERRIDES)
+    .optional(),
 });
 
 export async function POST(
@@ -73,6 +83,13 @@ export async function POST(
   const reason = parsed.data.note;
 
   try {
+    if (parsed.data.action === "setPriority" && !parsed.data.priority) {
+      return NextResponse.json(
+        { ok: false, error: "missing_priority" },
+        { status: 400 },
+      );
+    }
+
     const item =
       parsed.data.action === "allowAsHint"
         ? await allowCommunitySourceReviewHint({
@@ -152,11 +169,30 @@ export async function POST(
                                     actorUserId,
                                     reason,
                                   })
-                                : await clearCommunitySourceReviewTrustQualitySignals({
-                                    contributionId,
-                                    actorUserId,
-                                    reason,
-                                  });
+                                : parsed.data.action === "clearTrustQualitySignals"
+                                  ? await clearCommunitySourceReviewTrustQualitySignals({
+                                      contributionId,
+                                      actorUserId,
+                                      reason,
+                                    })
+                                  : parsed.data.action === "setPriority"
+                                    ? await setCommunitySourceReviewPriority({
+                                        contributionId,
+                                        actorUserId,
+                                        reason,
+                                        priority: parsed.data.priority!,
+                                      })
+                                    : parsed.data.action === "archive"
+                                      ? await archiveCommunitySourceReviewItem({
+                                          contributionId,
+                                          actorUserId,
+                                          reason,
+                                        })
+                                      : await addCommunitySourceReviewInternalNote({
+                                          contributionId,
+                                          actorUserId,
+                                          reason,
+                                        });
 
     return NextResponse.json({ ok: true, item });
   } catch (error) {

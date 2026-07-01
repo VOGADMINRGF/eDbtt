@@ -80,12 +80,12 @@ describe("community source review abuse spam ui", () => {
       />,
     );
 
-    expect(html).toContain("möglicher Spam");
+    expect(html).toContain("Spam vermutet");
     expect(html).toContain("Severity:");
     expect(html).toContain("Disposition:");
-    expect(html).toContain("Mehrfacheinreichung");
+    expect(html).toContain("Duplikat-/Mehrfachsignal");
     expect(html).toContain("Volumensignal");
-    expect(html).toContain("Als Evidenz blockiert.");
+    expect(html).toContain("Viele ähnliche Hinweise erhöhen höchstens Moderationsbedarf, nicht Wahrheit.");
     expect(html).toContain("Audit-Historie");
     expect(html).toContain("Signal erkannt");
     expect(html).toContain("Signal geprüft");

@@ -88,7 +88,7 @@ describe("community source review moderation ui", () => {
       />,
     );
 
-    expect(html).toContain("Community-Hinweise moderieren");
+    expect(html).toContain("Community Source Review Workbench");
     expect(html).toContain("öffentliche API verdrahtet (review-first)");
     expect(html).toContain("source_suggestion");
     expect(html).toContain("Quellenvorschlag");
@@ -97,18 +97,18 @@ describe("community source review moderation ui", () => {
     expect(html).toContain("Trust");
     expect(html).toContain("hoch");
     expect(html).toContain("Risiko");
-    expect(html).toContain("keine Abuse-Flags");
     expect(html).toContain("Mehrfacheinreichung");
     expect(html).toContain("Volumensignal");
+    expect(html).toContain("Trust-Signal");
+    expect(html).toContain("Quellenqualitäts-Signal");
     expect(html).toContain("Quellenqualität");
-    expect(html).toContain("Abuse-/Spam-Signale sind Moderationshinweise, keine automatische Ablehnung.");
-    expect(html).toContain("Mehrfach- oder Volumensignale begründen keine Wahrheit.");
-    expect(html).toContain("Trust priorisiert Prüfung, bestätigt aber keine Wahrheit.");
-    expect(html).toContain("Quellenqualität hilft bei der Einordnung, verifiziert aber keine Quelle.");
+    expect(html).toContain("Hinweis ist kein verifizierter Fakt.");
+    expect(html).toContain("Freigabe als Hinweis bedeutet nicht Veröffentlichung als Wahrheit.");
+    expect(html).toContain("Trust- und Qualitätswerte dienen nur der Priorisierung.");
     expect(html).toContain(
-      "Verdächtige Hinweise werden geprüft, aber nicht automatisch veröffentlicht, verifiziert oder in den Graph geschrieben.",
+      "Keine Aktion veröffentlicht direkt, schreibt in den Graph oder erzeugt Merge, Dossier, Anlassraum oder Beteiligungsraum.",
     );
-    expect(html).toContain("Zur Quellenprüfung routen");
+    expect(html).toContain("Quellenprüfung anfordern");
     expect(html).toContain("Quellenprüfung");
     expect(html).not.toContain("accepted_as_fact");
   });
