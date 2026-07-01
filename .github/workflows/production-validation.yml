@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-gate:
-    name: Static validation
+  production-contract:
+    name: Production contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -33,14 +33,38 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -w -r typecheck
-      - run: pnpm -w -r lint
+      - run: git diff --check
       - run: pnpm -C apps/web run typecheck
       - run: pnpm -C apps/web run lint
+      - run: pnpm -C apps/web run build
 
-  production-gate:
-    name: Production gate
-    needs: static-gate
+  guardrail-smoke:
+    name: Guardrail smoke
+    needs: production-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BROWSERSLIST_IGNORE_OLD_DATA: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C apps/web run test:production-guardrails
+
+  release-runtime-gate:
+    name: Release runtime gate
+    needs: [production-contract, guardrail-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     if: >-
@@ -104,5 +128,4 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @vog/web build
       - run: pnpm run release:validate:production
