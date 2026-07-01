@@ -4,6 +4,8 @@
 
 - V3 startet nach abgeschlossener V2-Plattformreife.
 - V3 bedeutet kontrollierte Automatisierung vor Entscheidungen.
+- `#277` bleibt damit die Governance-Basis, aber nicht die vollstaendige
+  V3-Gesamtkarte.
 - V3 bedeutet nicht automatische Veroeffentlichung, Wahrheit oder
   Verifikation.
 - Admin bleibt Kontrollinstanz.
@@ -11,6 +13,10 @@
 
 Dieses Dokument ist ein docs-only Startslice fuer V3. Es baut keine neue
 Runtime-Logik, keine neue Admin-UI und keine Automatisierung.
+
+Die breitere V3-Lesart als gefuehrte Betriebs- und Automatisierungsreife wird
+ergaenzend in `docs/E150/V3_TOTAL_SCOPE_READINESS_MAP_2026-07-01.md`
+kanonisiert.
 
 ## 2. V3 Grundsatz
 
@@ -259,3 +265,5 @@ Der kanonische Startstand fuer V3 lautet:
 - V3 ist review-first Vorbereitung, nicht automatische Entscheidung.
 - Admin bleibt Kontrollinstanz.
 - Jede spaetere V3-Logik- oder UI-Aenderung braucht Tests.
+- Dieses Dokument bleibt die Automations- und Guardrail-Basis; die breitere
+  V3-Gesamtkarte wird getrennt dokumentiert.

@@ -15,7 +15,7 @@ Hinweis:
 
 - V1 Produktivitaet
 - V2 Plattformreife
-- V3 Automatisierung als review-first Vorbereitung
+- V3 gefuehrte Betriebs- und Automatisierungsreife
 
 ### 2. Admin Review starten
 
@@ -61,8 +61,66 @@ Hinweis:
 - `pnpm -C apps/web run lint`
 - `pnpm -C apps/web run build`
 
-### 10. Fehlerfaelle / Rollback
+### 10. Voxy Guidance
+
+- Voxy als Guide, Moderator und Copilot
+- Guidance auf Start, Create, Review und Public Routes
+
+### 11. Pricing / Credits / Limits
+
+- Plaene, Pakete, Credits und Limits lesen
+- keine hidden costs
+- Cost Gates fuer spaetere V3-Pfade
+
+### 12. Roles / Access / Entitlements
+
+- Rollen, Rechte und Scope lesen
+- Entitlements und Billing-Status verstehen
+
+### 13. Notifications / Alerts
+
+- Dashboard, In-App, Email
+- wann Admin benachrichtigt werden muss
+
+### 14. Incident / Recovery / Maintenance
+
+- Fehlerstatus lesen
+- Retry, Block, Reject, Wartungsmodus, Rollback
+
+### 15. Manual Admin Ops
+
+- manuelle Erstellung und Korrektur
+- Auditpflicht und Override-Grenzen
+
+### 16. Image / Assets / Outputs
+
+- Voxy-Assets, Dossier-Cover, Share-/Social-Assets
+- Review-first Asset-Freigabe
+
+### 17. Templates / Output Standards
+
+- Default-Templates
+- Export-/PDF-/Visual-Zielbilder
+
+### 18. QR / Sharing
+
+- QR-, Share- und Public-Entry-Pfade
+- Slug- und Public-Safety-Pruefung
+
+### 19. Tests / Regression
+
+- vorhandene Tests
+- fehlende Tests
+- E2E-, Smoke- und Guardrail-Sichten
+
+### 20. Prompt-basierte Wartung
+
+- gefuehrte Prompt-Eingaben im Review- und Rechtekontext
+- keine stillen oeffentlichen Entscheidungen
+
+### 21. Fehlerbehebung
 
 - Fehlerbilder
 - manueller Rollback-Pfad
 - offene Observability-/Alerting-Abhaengigkeiten
+- Diagnose und Support-Lesart

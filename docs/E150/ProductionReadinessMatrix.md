@@ -29,7 +29,7 @@ Deutsche Lesefassung fuer Copy und FAQ:
 | --- | --- | --- |
 | V1 | abgeschlossen | Produktivitaet ist abgeschlossen: produktive Eingabe-, Review-, Ergebnis- und Public-Participation-Pfade sind auf derselben review-first Runtime geschlossen. |
 | V2 | abgeschlossen / operational-basic abgeschlossen | Plattformreife ist nach `#275` erreicht: runtime-backed, review-first, publish-safe, guardrail-abgesichert, mit manuellem Production-Gate und operations-basic Public Moderation Operations. |
-| V3 | vorbereitet, aber nicht gestartet | Automatisierung bleibt bewusst Folgeplanung: kontrollierte Automation vor Entscheidungen, keine automatische Veroeffentlichung, keine automatische Wahrheit und keine ungepruefte KI-Entscheidung. |
+| V3 | vorbereitet, aber nicht gestartet | Gefuehrte Betriebs- und Automatisierungsreife bleibt bewusst Folgeplanung: Voxy-gefuehrte, admin-steuerbare, getestete und weitgehend wartungsarme Plattform statt automatischer Veroeffentlichung, automatischer Wahrheit oder ungepruefter KI-Entscheidung. |
 
 ## V2-Abschlussbilanz
 
@@ -52,11 +52,23 @@ Deutsche Lesefassung fuer Copy und FAQ:
 | V3-Capability | Status | Einordnung |
 | --- | --- | --- |
 | Automation Governance | planned / documented | `docs/E150/V3_AUTOMATION_ROADMAP_AND_GOVERNANCE_2026-07-01.md` verankert review-first Automatisierung als Vorbereitung, nicht als automatische Veroeffentlichung, Wahrheit oder Verifikation. |
+| Total Scope Readiness Map | planned / documented | `docs/E150/V3_TOTAL_SCOPE_READINESS_MAP_2026-07-01.md` erweitert V3 von reiner Automationsplanung auf gefuehrte Betriebs-, Experience-, Pricing-, Access-, Asset-, QR-, Test- und Low-Ops-Reife. |
 | Admin Dashboard Control Center | open | Admin-, Review-, Feed-, Telemetry- und Dashboard-Sichten sind vorhanden, aber noch nicht als zentrale V3-Kontrollflaeche gebuendelt. |
+| Voxy Guided Experience | open | VoxyGuide, Voxy-Copy und Voxy-Assets sind in mehreren Surfaces vorhanden, aber noch nicht als plattformweite V3-Fuehrungsschicht fuer Admin, Review und Public Routes geschlossen. |
 | Handoff Integrity Map | open | Submission-, Review-, Dossier-, Anlassraum-, Beteiligungsraum- und Public-Readmodel-Verknuepfungen sind teilweise runtime-wired, aber noch nicht als vollstaendige Integrity-Map sichtbar und testbar. |
 | Automation Suggestion Engine | open | Review-first Suggestions fuer Priorisierung, naechste Schritte und Guardrail-Warnungen sind Folgeplanung und duerfen keine Entscheidungen ausfuehren. |
 | DeepSearch Cost Governance | open | DeepSearch bleibt bis zu explizitem Cost Gate, Admin Approval, Audit und Testabdeckung bewusst ausserhalb der aktiven Runtime. |
+| Pricing / Credits / Limits | open | Pricing-, Checkout-, Billing- und Entitlement-Bausteine existieren, aber eine sichtbare V3-Credit- und Limit-Lesart fuer DeepSearch, Assets, Exporte und spaetere Suggestions fehlt noch. |
+| Roles / Permissions / Entitlements | open | Access-, Membership- und Entitlement-Wahrheit ist verteilt ueber Admin-, Dashboard- und Region-Pfade und noch nicht als V3-weite Rechtekarte zusammengezogen. |
+| Notifications / Realtime / Mail | open | Alerts-, Status-Report- und Mail-Bausteine existieren, aber nicht als einheitliche V3-Benachrichtigungsschicht fuer Review, Publish, Costs und Incidents. |
+| Incident / Recovery / Maintenance | open | Error-, System-, Telemetry- und Health-Pfade existieren, aber kein zusammenhaengendes Incident-, Retry-, Wartungs- und Recovery-Zielbild. |
+| Database / Admin Ops | open | Manuelle Runtime-Creation-, Override- und Maintenance-Pfade sind vorhanden, aber noch nicht als kanonischer auditpflichtiger V3-Admin-Ops-Pfad geschlossen. |
+| Image / Assets / Dossier Outputs | open | Statische Voxy-Assets und Share-/Output-Bausteine existieren, aber keine review-first V3-Governance fuer generierte Bilder, Cover, Costs und Public Safety. |
+| Templates / Output Standards | open | Einzelne Template-, Share-ready- und Output-Contracts existieren, aber noch keine V3-weite Standardisierung fuer Dossier, Anlassraum, Beteiligungsraum, Handout, Visuals und Exporte. |
+| QR / Sharing / Public Entry | open | QR-, Share-, Slug- und Public-Entry-Bausteine sind vorhanden, aber noch nicht als einheitlicher V3-Distributionspfad mit Admin-Pruefung und Public Safety geschlossen. |
+| Test Results / Regression Matrix | open | Es existiert breite Testabdeckung und Production Validation, aber noch keine zentrale V3-Testlandkarte fuer Coverage, Gaps und Slice-Zuordnung. |
 | Admin Handout | planned / open | Ein Handout-Stub ist angelegt, aber die finale Nutzungsdoku darf erst mit realer UI- und Flow-Paritaet abgeschlossen werden. |
+| Prompt-based Maintenance / Low-Ops Operation | open | Guided-workspace-, companion- und AI-Diagnostic-Bausteine existieren, aber noch kein kanonischer prompt-basierter Low-Ops-Wartungspfad im Review- und Rechtekontext. |
 | External Browser E2E | open | Echte Browser-/Deploy-Smokes fuer Public-, Review- und Publish-Guardrails fehlen noch bewusst. |
 | Monitoring / Alerting / Rollback | open | Observability, Alerts und begrenzte Rollback-Pfade sind noch nicht als belastbare V3-Betriebsschicht gebaut. |
 | Moderation RBAC / Notifications | open | Team-Rollen, Zuweisung, Notifications und echte SLA-Automation bleiben Folgeplanung nach operations-basic Moderation. |
@@ -65,7 +77,7 @@ Deutsche Lesefassung fuer Copy und FAQ:
 
 - V1 Produktivitaet ist abgeschlossen.
 - V2 Plattformreife ist nach `#275` abgeschlossen beziehungsweise operational-basic abgeschlossen.
-- V3 Automatisierung ist vorbereitet, aber bewusst noch nicht gestartet.
+- V3 als gefuehrte Betriebs- und Automatisierungsreife ist vorbereitet, aber bewusst noch nicht gestartet.
 - V1 ist jetzt als `production_ready` fuer den oeffentlichen B2C-Pfad und den dazugehoerigen review-first Betreiber-/Organisationspfad lesbar: `/create`, `/swipes`, `/runden` beziehungsweise `/anlassraum`, `/dossier`, Feed-Radar Runtime, Dossier-Update-Engine, Social Distribution Queue und `/stream` sind auf derselben bestehenden Runtime geschlossen, testbar und ohne falsche Live-/Auto-Publish-/Amtlichkeitsversprechen dokumentiert.
 - Das V1-Produktversprechen ist dabei bewusst begrenzt und produktionsreif, nicht weich: kostenlose oeffentliche Teilnahme, reviewpflichtige Sichtbarkeit, Dossier-/Anlassraum-/Stream-/Social-Queue-Nachbereitung sowie manuell oder operatorisch freigeschaltete Organisations- und Verwaltungsrechte sind enthalten; echter Self-Checkout, externe Social-Connectoren, Streaming-Encoding/WebRTC und breite Vollautomatisierung gehoeren nicht zum V1-Versprechen.
 - Nicht als fertig behauptet werden: echtes Social-Live-Posting, OAuth-/Connector-Anbindung, echtes Streaming-Encoding/WebRTC, Billing-/Checkout-Finalisierung fuer Self-Service, breite externe Quellenautomatisierung ohne Operator-Gates, automatische amtliche Veroeffentlichung und automatische Siegel-/Faktencheck-Freigabe.
