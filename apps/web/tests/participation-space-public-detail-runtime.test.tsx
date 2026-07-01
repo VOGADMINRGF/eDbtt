@@ -126,6 +126,9 @@ describe("participation space public detail runtime", () => {
     expect(html).toContain(
       "Quellen- und Kontextangaben dienen der Einordnung, nicht als automatische Wahrheitsbestätigung.",
     );
+    expect(html).toContain("Hinweise zu diesem Raum einreichen");
+    expect(html).toContain("Hinweis einreichen");
+    expect(html).toContain("Review-first Hinweis");
     expect(html).not.toContain("communitySignals");
     expect(html).not.toContain("graphReferences");
     expect(html).not.toContain("auditTrail");
