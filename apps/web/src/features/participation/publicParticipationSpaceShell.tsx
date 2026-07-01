@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PublicCommunitySourceSubmissionForm } from "@/features/participation/PublicCommunitySourceSubmissionForm";
 import type { PublicParticipationSpaceRuntimeDetail } from "@/features/participation/publicParticipationSpaceRuntime";
 
 function formatPublicTimestamp(value: string) {
@@ -14,6 +15,7 @@ export function PublicParticipationSpaceShell(props: {
   detail: PublicParticipationSpaceRuntimeDetail;
 }) {
   const { detail } = props;
+  const canAcceptPublicSubmission = detail.source === "runtime";
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
@@ -163,6 +165,31 @@ export function PublicParticipationSpaceShell(props: {
           </p>
         </section>
       ) : null}
+
+      {canAcceptPublicSubmission ? (
+        <PublicCommunitySourceSubmissionForm
+          participationSpaceId={detail.id}
+          participationSpaceSlug={detail.slug}
+          participationSpaceTitle={detail.title}
+        />
+      ) : (
+        <section
+          className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm"
+          data-testid="public-community-source-submission-fallback"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Öffentliche Hinweise noch nicht aktiv
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">
+            Hinweise zu diesem Raum
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
+            Hinweise können erst eingereicht werden, wenn dieser Beteiligungsraum
+            als veröffentlichte Runtime vorliegt. Die klar gekennzeichnete
+            Preview-Lesart bleibt deshalb ohne aktiven öffentlichen Submit.
+          </p>
+        </section>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">

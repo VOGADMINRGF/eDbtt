@@ -33,6 +33,11 @@ describe("/beteiligung/[slug] public participation space shell", () => {
     expect(html).toContain("Sichtachsen konkret prüfen");
     expect(html).toContain("Kiezbereich rund um die Grundschule Nord");
     expect(html).toContain("Anzeigeform: Bereichslabel");
+    expect(html).toContain("Öffentliche Hinweise noch nicht aktiv");
+    expect(html).toContain(
+      "Hinweise können erst eingereicht werden, wenn dieser Beteiligungsraum als veröffentlichte Runtime vorliegt.",
+    );
+    expect(html).not.toContain("Hinweis einreichen");
   });
 
   it("keeps feedback_prepared out of public feedback and hides non-public place data", async () => {
