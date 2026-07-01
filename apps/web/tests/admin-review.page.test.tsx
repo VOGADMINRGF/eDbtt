@@ -733,6 +733,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Kompakter Verlauf");
     expect(html).toContain("Official Release erteilt");
     expect(html).toContain("Community Source Review");
+    expect(html).toContain("Aktive Hinweise");
+    expect(html).toContain("Ohne Bearbeiter");
     expect(html).toContain("Dossier erstellen prüfen");
     expect(html).toContain("Dossier-Veröffentlichung prüfen");
     expect(html).toContain("Anlassraum erstellen prüfen");

@@ -4,6 +4,7 @@ import {
   getCommunitySourceReviewWorkbenchActionLabel,
   mapContributionToWorkbenchItem,
   mapPublicSubmissionToWorkbenchItem,
+  sortPublicModerationQueue,
   summarizeCommunitySourceReviewWorkbench,
   type CommunitySourceReviewWorkbenchSummary,
   type CommunitySourceReviewWorkbenchUiItem,
@@ -49,14 +50,13 @@ function buildWorkbenchItemsFromRecords(input: {
   records: CommunitySourceReviewRecordItem[];
   auditMap: Map<string, CommunitySourceReviewAuditEntry[]>;
 }): CommunitySourceReviewWorkbenchUiItem[] {
-  return input.records.map((record) => {
+  const items = input.records.map((record) => {
     const audits = input.auditMap.get(record.id) ?? [];
-    const item =
-      record.contribution.notes.includes("Öffentlicher Intake: review-first API")
-        ? mapPublicSubmissionToWorkbenchItem(record, audits)
-        : mapContributionToWorkbenchItem(record, audits);
-    return item;
+    return record.contribution.notes.includes("Öffentlicher Intake: review-first API")
+      ? mapPublicSubmissionToWorkbenchItem(record, audits)
+      : mapContributionToWorkbenchItem(record, audits);
   });
+  return sortPublicModerationQueue(items);
 }
 
 function SummaryCard({
@@ -123,6 +123,10 @@ export default function AdminCommunitySourceReviewSection({
             Publish-Workflow, kein Graph- oder Merge-Pfad und keine
             Entitätserstellung.
           </p>
+          <p className="mt-2 max-w-3xl text-xs text-[rgb(var(--muted))]">
+            Betriebsstatus, keine Bewertung der Wahrheit. SLA dient nur der
+            Bearbeitungspriorität. Eskalation ist kein Beweis.
+          </p>
         </div>
         <div className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
           Öffentlicher Intake:{" "}
@@ -139,16 +143,26 @@ export default function AdminCommunitySourceReviewSection({
         {communitySourceReviewPersistence.summary}
       </p>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <SummaryCard
-          label="Neu"
-          value={summary.newCount}
-          detail="Frische Hinweise ohne Folge-Routing."
+          label="Aktive Hinweise"
+          value={summary.totalActive}
+          detail="Review-first offene Arbeit ohne Publish- oder Wahrheitslogik."
         />
         <SummaryCard
-          label="Zur Moderation"
-          value={summary.queuedForModerationCount}
-          detail="Signals, Abuse oder Review-Bedarf aktiv."
+          label="Ohne Bearbeiter"
+          value={summary.needsOwnerCount}
+          detail="Aktive Items ohne expliziten Owner im aktuellen Modell."
+        />
+        <SummaryCard
+          label="Eskaliert"
+          value={summary.escalatedCount}
+          detail="Eskalation ist Bearbeitungssignal, kein Beweis."
+        />
+        <SummaryCard
+          label="Überfällig / Stale"
+          value={summary.staleOrOverdueCount}
+          detail="Aging zählt nur Operationsdruck, nicht Wahrheitsnähe."
         />
         <SummaryCard
           label="Quellenprüfung"
@@ -156,14 +170,9 @@ export default function AdminCommunitySourceReviewSection({
           detail="Explizit zur Quellenprüfung weitergereicht."
         />
         <SummaryCard
-          label="Redaktion / Eskalation"
-          value={summary.needsEditorialReviewCount + summary.escalatedCount}
-          detail="Redaktionell offen oder bewusst eskaliert."
-        />
-        <SummaryCard
-          label="Ops-Hinweis"
-          value={summary.pendingTooLongCount}
-          detail="Älter als 72h und damit basic-covered stale/pendingTooLong."
+          label="Redaktionelle Prüfung"
+          value={summary.needsEditorialReviewCount}
+          detail="Explizit zur Redaktion weitergereicht."
         />
       </div>
 
@@ -194,6 +203,15 @@ export default function AdminCommunitySourceReviewSection({
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
                     {item.kind}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    Queue: {item.queueBucketLabel}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    SLA: {item.slaStateLabel}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                    Owner: {item.ownerStateLabel}
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
                     Status: {item.statusLabel}
@@ -256,6 +274,12 @@ export default function AdminCommunitySourceReviewSection({
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       Nächster Pfad: {item.routeTargetLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Owner State: {item.ownerStateLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {item.ownerLabel}
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       Risiko: {item.riskLevelLabel}
@@ -360,16 +384,44 @@ export default function AdminCommunitySourceReviewSection({
                       Operations
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                      Letzte Aktualisierung: {new Date(item.lastUpdatedAt).toLocaleString("de-DE")}
+                      Queue Bucket: {item.queueBucketLabel}
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                      Offen seit: {item.staleHours}h
+                      SLA/Aging: {item.slaStateLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Letzte Aktivität: {new Date(item.lastActivityAt).toLocaleString("de-DE")}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Alter: {item.staleHours}h
                     </p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {item.pendingTooLong
                         ? "Stale/pendingTooLong: basic-covered."
                         : "Aktiv innerhalb des aktuellen Operationsfensters."}
                     </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Public Moderation Operations
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Betriebsstatus, keine Bewertung der Wahrheit. SLA dient der
+                    Bearbeitungspriorität. Eskalation ist kein Beweis.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {item.operationalFlagLabels.length > 0 ? (
+                      item.operationalFlagLabels.map((flag) => (
+                        <ActionPill
+                          key={`${item.id}:ops:${flag}`}
+                          label={flag}
+                        />
+                      ))
+                    ) : (
+                      <ActionPill label="Keine zusätzlichen Ops-Flags" />
+                    )}
                   </div>
                 </div>
 
