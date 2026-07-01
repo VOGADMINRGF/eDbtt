@@ -851,7 +851,7 @@ export async function createAnlassraumRuntimeAfterReview(
     record: {
       ...merged,
       status: "created",
-      visibility: "active_internal",
+      visibility: "ready_for_activation_review",
       blockers: [],
       createdAnlassraumId: created.anlassraumId,
       createdEntityId: trimOrNull(created.entityId),
