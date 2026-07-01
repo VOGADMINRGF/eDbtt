@@ -9,6 +9,7 @@ import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection
 import AdminCommunitySourceReviewSection from "./AdminCommunitySourceReviewSection";
 import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
+import AdminDossierPublishSection from "./AdminDossierPublishSection";
 import AdminAnlassraumRuntimeCreationSection from "./AdminAnlassraumRuntimeCreationSection";
 import AdminParticipationSpaceRuntimeCreationSection from "./AdminParticipationSpaceRuntimeCreationSection";
 import AdminParticipationSpacePublishSection from "./AdminParticipationSpacePublishSection";
@@ -20,6 +21,7 @@ import { loadAdminGraphMergeSectionProps } from "./loadAdminGraphMergeSectionPro
 import { loadAdminCommunitySourceReviewSectionProps } from "./loadAdminCommunitySourceReviewSectionProps";
 import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphApprovalSectionProps";
 import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
+import { loadAdminDossierPublishSectionProps } from "./loadAdminDossierPublishSectionProps";
 import { loadAdminAnlassraumRuntimeCreationSectionProps } from "./loadAdminAnlassraumRuntimeCreationSectionProps";
 import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAdminParticipationSpaceRuntimeCreationSectionProps";
 import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
@@ -151,6 +153,7 @@ export default async function AdminReviewPage({
     topicGraphApprovalSectionProps,
     communitySourceReviewSectionProps,
     dossierRuntimeCreationSectionProps,
+    dossierPublishSectionProps,
     anlassraumRuntimeCreationSectionProps,
     participationSpaceRuntimeCreationSectionProps,
     participationSpacePublishSectionProps,
@@ -162,6 +165,7 @@ export default async function AdminReviewPage({
       loadAdminTopicGraphApprovalSectionProps(),
       loadAdminCommunitySourceReviewSectionProps(),
       loadAdminDossierRuntimeCreationSectionProps(),
+      loadAdminDossierPublishSectionProps(),
       loadAdminAnlassraumRuntimeCreationSectionProps(),
       loadAdminParticipationSpaceRuntimeCreationSectionProps(),
       loadAdminParticipationSpacePublishSectionProps(),
@@ -418,6 +422,8 @@ export default async function AdminReviewPage({
         <AdminTopicGraphApprovalSection {...topicGraphApprovalSectionProps} />
 
         <AdminDossierRuntimeCreationSection {...dossierRuntimeCreationSectionProps} />
+
+        <AdminDossierPublishSection {...dossierPublishSectionProps} />
 
         <AdminAnlassraumRuntimeCreationSection {...anlassraumRuntimeCreationSectionProps} />
 

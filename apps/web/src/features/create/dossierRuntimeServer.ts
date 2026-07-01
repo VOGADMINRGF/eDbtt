@@ -611,3 +611,20 @@ export async function createApprovedDossier(input: {
   });
   return createdRecord;
 }
+
+export async function syncDossierRuntimePublicationVisibility(input: {
+  sourceHandoffId: string;
+  visibility: DossierRuntimeRecord["visibility"];
+}) {
+  const record = await getDossierRuntimeRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("dossier_runtime_record_not_found");
+  }
+  const updatedRecord: DossierRuntimeRecord = {
+    ...record,
+    visibility: input.visibility,
+    updatedAt: nowIso(),
+  };
+  await saveRecord(updatedRecord);
+  return updatedRecord;
+}

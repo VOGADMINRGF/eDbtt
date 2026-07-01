@@ -4,6 +4,10 @@ import demoDossier from "@features/dossier/data/demoDossier";
 import type { MaterialLink, StoredDossier } from "@features/dossier/infra/types";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { buildDossierUpdateReadModel } from "@features/dossier/updateReadModel";
+import {
+  getDossierPublicationRuntimeHint,
+  getPublishedDossierBySlugOrId,
+} from "@/features/dossier/publicRuntime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +24,37 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
   }
 
   try {
+    const publishedRuntime = await getPublishedDossierBySlugOrId(id).catch(() => null);
+    if (publishedRuntime?.detail) {
+      return NextResponse.json(
+        {
+          ok: true,
+          dossier: publishedRuntime.detail.dossier,
+          materialLinks: publishedRuntime.detail.materialLinks,
+          updateContext: publishedRuntime.detail.updateContext,
+          updateSummary: null,
+        },
+        { status: 200 },
+      );
+    }
+
     const col = await coreCol<StoredDossier>(DOSSIER_STORE);
     const doc = await col.findOne({ dossierId: id });
     if (!doc?.dossier) {
+      const runtimePublication = await getDossierPublicationRuntimeHint(id).catch(
+        () => null,
+      );
+      if (runtimePublication && runtimePublication.status !== "published") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "dossier_review_only",
+            dossierId: runtimePublication.dossierId,
+            status: runtimePublication.status,
+          },
+          { status: 409 },
+        );
+      }
       const draftOnly = await findDossierByAnyId(id).catch(() => null);
       if (draftOnly) {
         return NextResponse.json(

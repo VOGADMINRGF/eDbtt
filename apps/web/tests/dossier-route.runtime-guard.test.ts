@@ -4,6 +4,8 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   coreCol: vi.fn(),
   findDossierByAnyId: vi.fn(),
+  getPublishedDossierBySlugOrId: vi.fn(),
+  getDossierPublicationRuntimeHint: vi.fn(),
 }));
 
 vi.mock("@core/db/triMongo", () => ({
@@ -14,11 +16,20 @@ vi.mock("@features/dossier/lookup", () => ({
   findDossierByAnyId: (...args: unknown[]) => mocks.findDossierByAnyId(...args),
 }));
 
+vi.mock("@/features/dossier/publicRuntime", () => ({
+  getPublishedDossierBySlugOrId: (...args: unknown[]) =>
+    mocks.getPublishedDossierBySlugOrId(...args),
+  getDossierPublicationRuntimeHint: (...args: unknown[]) =>
+    mocks.getDossierPublicationRuntimeHint(...args),
+}));
+
 import { GET } from "@/app/api/dossier/[id]/route";
 
 describe("/api/dossier/[id] runtime guard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getPublishedDossierBySlugOrId.mockResolvedValue(null);
+    mocks.getDossierPublicationRuntimeHint.mockResolvedValue(null);
   });
 
   it("returns review-only instead of demo fallback when only a region draft exists", async () => {
