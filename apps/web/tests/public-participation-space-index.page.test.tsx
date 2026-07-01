@@ -4,22 +4,22 @@ import { renderToStaticMarkup } from "react-dom/server";
 import PublicParticipationSpaceIndexPage from "@/app/beteiligung/page";
 import { listPublicParticipationSpaceFixtures } from "@/features/participation/fixtures/publicParticipationSpace";
 
-function renderParticipationSpaceIndex() {
-  return renderToStaticMarkup(<PublicParticipationSpaceIndexPage />);
+async function renderParticipationSpaceIndex() {
+  return renderToStaticMarkup(await PublicParticipationSpaceIndexPage());
 }
 
 describe("/beteiligung public participation space index", () => {
-  it("renders exactly one visible h1", () => {
-    const html = renderParticipationSpaceIndex();
+  it("renders exactly one visible h1", async () => {
+    const html = await renderParticipationSpaceIndex();
     const headings = [...html.matchAll(/<h1([^>]*)>/g)];
 
     expect(headings).toHaveLength(1);
     expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
-    expect(html).toContain("Öffentliche Beteiligungsräume");
+    expect(html).toContain("Öffentlich freigegebene Beteiligungsräume");
   });
 
-  it("renders every fixture as a link to its detail page", () => {
-    const html = renderParticipationSpaceIndex();
+  it("renders every fixture as a link to its detail page while no runtime publish exists", async () => {
+    const html = await renderParticipationSpaceIndex();
     const fixtures = listPublicParticipationSpaceFixtures();
 
     for (const fixture of fixtures) {
@@ -28,8 +28,8 @@ describe("/beteiligung public participation space index", () => {
     }
   });
 
-  it("shows public overview data without leaking public-detail-only content", () => {
-    const html = renderParticipationSpaceIndex();
+  it("shows public overview data without leaking public-detail-only content", async () => {
+    const html = await renderParticipationSpaceIndex();
 
     expect(html).toContain("Öffentliche Beteiligungsstände auf einen Blick");
     expect(html).toContain("Öffentliche Rückmeldung zum Beteiligungsstand");
@@ -42,8 +42,8 @@ describe("/beteiligung public participation space index", () => {
     expect(html).not.toContain("Sichtbare Rückmeldung nach Review freigeben");
   });
 
-  it("does not render internal workflow terms in the public markup", () => {
-    const html = renderParticipationSpaceIndex();
+  it("does not render internal workflow terms in the public markup", async () => {
+    const html = await renderParticipationSpaceIndex();
     const forbiddenTerms = [
       "operator_cockpit",
       "queueKey",
@@ -57,8 +57,8 @@ describe("/beteiligung public participation space index", () => {
     }
   });
 
-  it("does not render map or geo-specific terms", () => {
-    const html = renderParticipationSpaceIndex();
+  it("does not render map or geo-specific terms", async () => {
+    const html = await renderParticipationSpaceIndex();
     const forbiddenTerms = ["Mapbox", "OpenStreetMap", "Leaflet", "Geocoding", "Koordinaten"];
 
     for (const term of forbiddenTerms) {
@@ -66,8 +66,8 @@ describe("/beteiligung public participation space index", () => {
     }
   });
 
-  it("keeps the page free of form or intake language", () => {
-    const html = renderParticipationSpaceIndex();
+  it("keeps the page free of form or intake language", async () => {
+    const html = await renderParticipationSpaceIndex();
 
     expect(html).not.toContain("Absenden");
     expect(html).not.toContain("Einreichen");

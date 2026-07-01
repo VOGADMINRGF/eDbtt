@@ -211,13 +211,13 @@ describe("/admin/review page", () => {
         mode: "persistent_primary",
         label: "Persistenter Beteiligungsraum-Publish-/Activation-Workflow",
         summary:
-          "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route bleibt vorerst fixture-basiert.",
+          "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Blocker-Prüfung; die öffentliche /beteiligung-Route liest veröffentlichte Runtime-Räume read-only und nutzt Fixtures nur noch als klar gekennzeichneten Fallback ohne Runtime-Mutation.",
         repositoryInterface: "ParticipationSpacePublishWorkflowRepository",
         storeKind: "mongo_collection",
         productionTruth: true,
         restartReconstructable: true,
         deploymentReconstructable: true,
-        publicRouteRuntime: "fixture_only",
+        publicRouteRuntime: "runtime_wired",
       },
     });
     mocks.listEditorialReviewRequests.mockResolvedValue([]);

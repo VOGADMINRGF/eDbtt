@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { PublicParticipationSpaceFixture } from "@/features/participation/fixtures/publicParticipationSpace";
-import { summarizeParticipationSpaceReadiness } from "@/features/participation/spaceContainer";
+import type {
+  PublicParticipationSpaceRuntimeItem,
+  PublicParticipationSpaceRuntimeStatus,
+} from "@/features/participation/publicParticipationSpaceRuntime";
 
 type Props = {
-  fixtures: PublicParticipationSpaceFixture[];
+  items: PublicParticipationSpaceRuntimeItem[];
+  status: PublicParticipationSpaceRuntimeStatus;
 };
 
 function formatPublicTimestamp(value: string) {
@@ -16,18 +19,37 @@ function formatPublicTimestamp(value: string) {
   }).format(parsed);
 }
 
-function resolvePublicTeaserStatus(fixture: PublicParticipationSpaceFixture) {
-  const { space } = fixture;
-  if (space.status === "public_feedback_live" && space.publicSummary.feedbackAvailable) {
-    return "Öffentliche Rückmeldung sichtbar";
+function resolveHeroCopy(status: PublicParticipationSpaceRuntimeStatus) {
+  if (status.source === "runtime") {
+    return "Read-only Übersicht über explizit veröffentlichte Beteiligungsräume. Die Seite zeigt nur redaktionell freigegebene Runtime-Räume und blendet interne Review-, Audit- und Moderationsdaten aus.";
   }
-  if (space.status === "feedback_prepared") {
-    return "Rückmeldung in Vorbereitung";
+  if (status.source === "fixture_fallback") {
+    return "Aktuell liegt noch keine veröffentlichte Runtime vor. Deshalb bleibt die bisherige Preview-Lesart sichtbar gekennzeichnet, ohne sie als echte Produktionsruntime auszugeben.";
   }
-  return "Öffentlicher Zwischenstand";
+  return "Weitere Räume erscheinen erst nach Prüfung und Freigabe. Die öffentliche Route bleibt read-only und erzeugt keine Veröffentlichung als Seiteneffekt.";
 }
 
-export function PublicParticipationSpaceIndex({ fixtures }: Props) {
+function resolveSourceLabel(status: PublicParticipationSpaceRuntimeStatus) {
+  switch (status.source) {
+    case "runtime":
+      return "Runtime-basiert";
+    case "fixture_fallback":
+      return "Fixture-basiert";
+    case "error":
+      return "Runtime-Fehler";
+    case "blocked_unwired":
+      return "Noch nicht verdrahtet";
+    default:
+      return "Leerzustand";
+  }
+}
+
+export function PublicParticipationSpaceIndex({ items, status }: Props) {
+  const feedbackVisible = items.filter((item) => item.feedbackAvailable).length;
+  const feedbackPrepared = items.filter(
+    (item) => !item.feedbackAvailable,
+  ).length;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
       <section className="relative overflow-hidden rounded-[2rem] border border-sky-500/20 bg-[linear-gradient(140deg,rgba(2,6,23,0.96),rgba(15,23,42,0.92),rgba(8,47,73,0.92))] p-6 text-white shadow-[0_28px_80px_rgba(2,6,23,0.38)] sm:p-8">
@@ -39,38 +61,37 @@ export function PublicParticipationSpaceIndex({ fixtures }: Props) {
                 Öffentlicher Beteiligungsbereich
               </p>
               <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.85rem]">
-                Öffentliche Beteiligungsräume
+                Öffentlich freigegebene Beteiligungsräume
               </h1>
               <p className="max-w-3xl text-sm leading-7 text-slate-200 sm:text-base">
-                Read-only Übersicht über sichtbar vorbereitete Beteiligungsstände. Die Seite zeigt nur
-                lokale Fixture-Räume, öffentliche Zusammenfassungen und sichere Statushinweise.
+                {resolveHeroCopy(status)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
               <HeroBadge>Öffentlich lesbar</HeroBadge>
               <HeroBadge>Read-only Übersicht</HeroBadge>
-              <HeroBadge>Fixture-basiert</HeroBadge>
+              <HeroBadge>{resolveSourceLabel(status)}</HeroBadge>
             </div>
             <p className="max-w-3xl text-sm leading-6 text-slate-200/90">
-              Transparente Zwischenstände, keine amtlichen Entscheidungen und keine automatische Veröffentlichung.
+              Quellen- und Kontextangaben dienen der Einordnung, nicht als automatische Wahrheitsbestätigung.
             </p>
           </div>
 
           <aside className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             <HeroStatusCard
-              label="Beteiligungsräume"
-              value={String(fixtures.length)}
-              detail="Lokal vorbereitete öffentliche Räume"
+              label="Sichtbare Räume"
+              value={String(items.length)}
+              detail="Nur öffentliche und read-only sichtbare Einträge"
             />
             <HeroStatusCard
-              label="Transparenzrahmen"
-              value="Öffentlich lesbar"
-              detail="Nur sichere Summary-Felder, keine internen Review-Inhalte"
+              label="Runtime-Published"
+              value={String(status.totalRuntimePublished)}
+              detail="Explizit veröffentlichte Runtime-Räume"
             />
             <HeroStatusCard
               label="Detailroute"
               value="/beteiligung/[slug]"
-              detail="Öffentliche Rückmeldungen bleiben auf den Detailseiten"
+              detail="Weitere Räume erscheinen erst nach Prüfung und Freigabe"
             />
           </aside>
         </div>
@@ -86,21 +107,15 @@ export function PublicParticipationSpaceIndex({ fixtures }: Props) {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
             Jede Karte zeigt nur den sichtbaren Beteiligungsstand, die öffentliche Kurzbeschreibung,
-            Status- und Sichtbarkeitsrahmen sowie den Weg zur Detailseite.
+            den Veröffentlichungsrahmen und den Weg zur Detailseite.
           </p>
           <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-            <SummaryMetricCard label="Räume gesamt" value={fixtures.length} />
+            <SummaryMetricCard label="Räume gesamt" value={items.length} />
+            <SummaryMetricCard label="Mit öffentlicher Rückmeldung" value={feedbackVisible} />
+            <SummaryMetricCard label="Ohne Detailrückmeldung" value={feedbackPrepared} />
             <SummaryMetricCard
-              label="Mit öffentlicher Rückmeldung"
-              value={fixtures.filter((fixture) => fixture.space.publicSummary.feedbackAvailable).length}
-            />
-            <SummaryMetricCard
-              label="Rückmeldung vorbereitet"
-              value={fixtures.filter((fixture) => fixture.space.status === "feedback_prepared").length}
-            />
-            <SummaryMetricCard
-              label="Ohne öffentliche Rückmeldung"
-              value={fixtures.filter((fixture) => !fixture.space.publicSummary.feedbackAvailable).length}
+              label="Datenquelle"
+              value={resolveSourceLabel(status)}
             />
           </dl>
         </article>
@@ -111,39 +126,46 @@ export function PublicParticipationSpaceIndex({ fixtures }: Props) {
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <GuardrailCard
-              title="Nur sichere Summary-Felder"
-              detail="Keine nicht öffentlichen Rückmeldedetails, offenen Fragen oder nächsten Schritte auf der Übersicht."
+              title="Nur veröffentlichte Räume"
+              detail="Erstellung, interne Aktivierung und Veröffentlichungsfreigabe allein machen einen Raum noch nicht öffentlich."
             />
             <GuardrailCard
-              title="Keine versteckten Review-Inhalte"
-              detail="Interne Workflow-, Queue- oder Operator-Begriffe erscheinen hier bewusst nicht."
+              title="Keine internen Prüfdetails"
+              detail="Review-, Audit-, Abuse- und Trust-Interna erscheinen hier bewusst nicht."
             />
             <GuardrailCard
-              title="Keine Karten- oder Geodaten"
-              detail="Die Übersicht zeigt keine Marker, keine Ortskoordinaten und keine Kartenintegration."
+              title="Keine versteckte Mutation"
+              detail="Die öffentliche Route liest nur und führt keine Aktivierung, Veröffentlichung oder Graph-Aktion aus."
             />
           </div>
         </aside>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {fixtures.map((fixture) => {
-          const { space } = fixture;
-          const readiness = summarizeParticipationSpaceReadiness(space);
-          return (
+      {items.length === 0 ? (
+        <section className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+            Noch keine veröffentlichten Räume
+          </p>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
+            {status.message}
+          </p>
+        </section>
+      ) : (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
             <article
-              key={space.id}
+              key={item.id}
               className="flex h-full flex-col rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm"
             >
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-                  <IndexBadge>{resolvePublicTeaserStatus(fixture)}</IndexBadge>
-                  <IndexBadge>{readiness.visibilityLabel}</IndexBadge>
+                  <IndexBadge>{item.publicStatusLabel}</IndexBadge>
+                  <IndexBadge>{item.visibilityLabel}</IndexBadge>
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">{space.title}</h2>
+                  <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">{item.title}</h2>
                   <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                    {space.summary}
+                    {item.summary}
                   </p>
                 </div>
               </div>
@@ -154,36 +176,36 @@ export function PublicParticipationSpaceIndex({ fixtures }: Props) {
                     Öffentliche Übersicht
                   </p>
                   <p className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
-                    {space.publicSummary.headline}
+                    {item.publicHeadline}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                    {space.publicSummary.shortSummary}
+                    {item.publicSummary}
                   </p>
                 </div>
 
                 <dl className="grid gap-3 sm:grid-cols-2">
-                  <SummaryRow label="Status" value={readiness.statusLabel} />
-                  <SummaryRow label="Sichtbarkeit" value={readiness.visibilityLabel} />
-                  <SummaryRow label="Kurzstatus" value={space.publicSummary.statusLabel} />
+                  <SummaryRow label="Veröffentlichung" value={item.statusLabel} />
+                  <SummaryRow label="Sichtbarkeit" value={item.visibilityLabel} />
+                  <SummaryRow label="Kurzstatus" value={item.publicStatusLabel} />
                   <SummaryRow
                     label="Letzte Aktualisierung"
-                    value={formatPublicTimestamp(space.publicSummary.lastUpdatedAt)}
+                    value={formatPublicTimestamp(item.updatedAt)}
                   />
                 </dl>
               </div>
 
               <div className="mt-5">
                 <Link
-                  href={`/beteiligung/${space.slug}`}
+                  href={`/beteiligung/${item.slug}`}
                   className="inline-flex items-center rounded-full border border-sky-500/25 bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-400 hover:text-sky-700"
                 >
                   Beteiligungsraum ansehen
                 </Link>
               </div>
             </article>
-          );
-        })}
-      </section>
+          ))}
+        </section>
+      )}
     </main>
   );
 }
@@ -263,7 +285,7 @@ function SummaryRow({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
         {label}
       </dt>
       <dd className="mt-1 text-sm text-[rgb(var(--fg))]">{value}</dd>

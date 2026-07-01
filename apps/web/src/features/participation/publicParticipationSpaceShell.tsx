@@ -1,34 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  canShowParticipationPlacePublicly,
-  getParticipationPlaceDisplayModeLabel,
-} from "@/features/participation/placeFuture";
-import type { PublicParticipationSpaceFixture } from "@/features/participation/fixtures/publicParticipationSpace";
-import {
-  isParticipationSpaceFeedbackPublic,
-  summarizeParticipationSpaceReadiness,
-} from "@/features/participation/spaceContainer";
-
-type PublicParticipationSpaceShellViewModel = {
-  readiness: ReturnType<typeof summarizeParticipationSpaceReadiness>;
-  publicPlace: PublicParticipationSpaceFixture["place"];
-  canShowFeedbackDetails: boolean;
-  canShowPlace: boolean;
-  canShowOpenQuestions: boolean;
-  canShowMinorityPositions: boolean;
-  canShowNextSteps: boolean;
-  feedbackPreparationNotice: string | null;
-  feedbackUnavailableNotice: string | null;
-  heroTrustLine: string;
-  safetyBadges: Array<{
-    title: string;
-    detail: string;
-  }>;
-  noPublicPlaceNotice: string;
-  noPublicOpenQuestionsNotice: string;
-  noPublicMinorityPositionsNotice: string;
-  noPublicNextStepsNotice: string;
-};
+import type { PublicParticipationSpaceRuntimeDetail } from "@/features/participation/publicParticipationSpaceRuntime";
 
 function formatPublicTimestamp(value: string) {
   const parsed = new Date(value);
@@ -39,66 +10,10 @@ function formatPublicTimestamp(value: string) {
   }).format(parsed);
 }
 
-function getPublicParticipationSpaceShellViewModel(
-  fixture: PublicParticipationSpaceFixture,
-): PublicParticipationSpaceShellViewModel {
-  const { place, space } = fixture;
-  const readiness = summarizeParticipationSpaceReadiness(space);
-  const canShowFeedbackDetails = isParticipationSpaceFeedbackPublic(space);
-  const publicPlace = place && canShowParticipationPlacePublicly(place) ? place : null;
-
-  return {
-    readiness,
-    publicPlace,
-    canShowFeedbackDetails,
-    canShowPlace: publicPlace !== null,
-    canShowOpenQuestions: canShowFeedbackDetails,
-    canShowMinorityPositions: canShowFeedbackDetails,
-    canShowNextSteps: canShowFeedbackDetails,
-    feedbackPreparationNotice:
-      !canShowFeedbackDetails && space.status === "feedback_prepared"
-        ? "Eine öffentliche Rückmeldung ist vorbereitet, aber noch nicht als öffentliche Einordnung sichtbar."
-        : null,
-    feedbackUnavailableNotice:
-      !canShowFeedbackDetails && space.status !== "feedback_prepared"
-        ? "Für diesen Beteiligungsraum ist aktuell noch keine öffentliche Rückmeldung sichtbar."
-        : null,
-    heroTrustLine:
-      "Transparenter Beteiligungsstand, keine amtliche Entscheidung und keine automatische Veröffentlichung.",
-    safetyBadges: [
-      {
-        title: "Einordnung, keine amtliche Entscheidung",
-        detail: "Sichtbare Rückmeldungen bleiben nachvollziehbare Einordnungen und ersetzen keine amtliche Bewertung.",
-      },
-      {
-        title: "Review-Inhalte bleiben verborgen",
-        detail: "Nicht öffentliche Prüfnotizen und interne Arbeitsschritte erscheinen hier bewusst nicht.",
-      },
-      {
-        title: "Ortsangaben sicherheitsbewusst",
-        detail: "Öffentliche Ortsbezüge werden nur angezeigt, wenn sie geprüft und für die Anzeige geeignet sind.",
-      },
-      {
-        title: "Keine automatische Veröffentlichung",
-        detail: "Sichtbarkeit zeigt einen öffentlichen Stand, nicht einen automatischen Veröffentlichungs- oder Freigabepfad.",
-      },
-    ],
-    noPublicPlaceNotice:
-      "Öffentliche Ortsangaben werden nur angezeigt, wenn sie geprüft und sicherheitsbewusst freigegeben sind.",
-    noPublicOpenQuestionsNotice:
-      "Aktuell sind keine öffentlichen offenen Fragen markiert.",
-    noPublicMinorityPositionsNotice:
-      "Aktuell sind keine öffentlichen Minderheitenpositionen hervorgehoben.",
-    noPublicNextStepsNotice:
-      "Aktuell sind keine öffentlichen nächsten Schritte veröffentlicht.",
-  };
-}
-
 export function PublicParticipationSpaceShell(props: {
-  fixture: PublicParticipationSpaceFixture;
+  detail: PublicParticipationSpaceRuntimeDetail;
 }) {
-  const { feedback, space } = props.fixture;
-  const viewModel = getPublicParticipationSpaceShellViewModel(props.fixture);
+  const { detail } = props;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
@@ -111,32 +26,32 @@ export function PublicParticipationSpaceShell(props: {
                 Öffentlicher Beteiligungsraum
               </p>
               <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.85rem]">
-                {space.title}
+                {detail.title}
               </h1>
               <p className="max-w-3xl text-sm leading-7 text-slate-200 sm:text-base">
-                {space.summary}
+                {detail.summary}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
-              <HeroBadge>{viewModel.readiness.statusLabel}</HeroBadge>
-              <HeroBadge>{viewModel.readiness.visibilityLabel}</HeroBadge>
+              <HeroBadge>{detail.statusLabel}</HeroBadge>
+              <HeroBadge>{detail.visibilityLabel}</HeroBadge>
               <HeroBadge>Read-only Beteiligungsstand</HeroBadge>
-              <HeroBadge>Fixture-basiert</HeroBadge>
+              <HeroBadge>{detail.sourceBadgeLabel}</HeroBadge>
             </div>
             <p className="max-w-3xl text-sm leading-6 text-slate-200/90">
-              {viewModel.heroTrustLine}
+              {detail.publicLabel} {detail.contextNotice}
             </p>
           </div>
 
           <aside className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             <HeroStatusCard
               label="Beteiligungsstand"
-              value={space.publicSummary.headline}
-              detail="Öffentlich sichtbarer Zwischenstand"
+              value={detail.publicHeadline}
+              detail={detail.publicStatusLabel}
             />
             <HeroStatusCard
               label="Letzte Aktualisierung"
-              value={formatPublicTimestamp(space.publicSummary.lastUpdatedAt)}
+              value={formatPublicTimestamp(detail.updatedAt)}
               detail="Zuletzt für die öffentliche Anzeige vorbereitet"
             />
             <HeroStatusCard
@@ -154,21 +69,26 @@ export function PublicParticipationSpaceShell(props: {
             Überblick
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">
-            {space.publicSummary.headline}
+            {detail.publicHeadline}
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
-            {space.publicSummary.shortSummary}
+            {detail.publicSummary}
           </p>
+          {detail.participationQuestion ? (
+            <p className="mt-4 text-sm leading-6 text-[rgb(var(--fg))]">
+              <span className="font-semibold">Leitfrage:</span> {detail.participationQuestion}
+            </p>
+          ) : null}
           <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-            <SummaryMetricCard label="Offene Fragen" value={space.publicSummary.openQuestionCount} />
-            <SummaryMetricCard label="Nächste Schritte" value={space.publicSummary.nextStepCount} />
+            <SummaryMetricCard label="Offene Fragen" value={detail.openQuestionCount} />
+            <SummaryMetricCard label="Nächste Schritte" value={detail.nextStepCount} />
             <SummaryMetricCard
               label="Minderheitenpositionen"
-              value={space.publicSummary.minorityPositionCount}
+              value={detail.minorityPositionCount}
             />
             <SummaryMetricCard
               label="Letzte Aktualisierung"
-              value={formatPublicTimestamp(space.publicSummary.lastUpdatedAt)}
+              value={formatPublicTimestamp(detail.updatedAt)}
               valueClassName="text-base sm:text-lg"
             />
           </dl>
@@ -179,35 +99,40 @@ export function PublicParticipationSpaceShell(props: {
             Trust & Guardrails
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {viewModel.safetyBadges.map((badge) => (
-              <article
-                key={badge.title}
-                className="rounded-2xl border border-sky-500/15 bg-[color-mix(in_oklab,rgb(var(--card))_84%,rgb(var(--bg))_16%)] p-4"
-              >
-                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{badge.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                  {badge.detail}
-                </p>
-              </article>
-            ))}
+            <GuardrailCard
+              title="Einordnung, keine amtliche Entscheidung"
+              detail={detail.contextNotice}
+            />
+            <GuardrailCard
+              title="Review-Inhalte bleiben verborgen"
+              detail={detail.sourceNotice}
+            />
+            <GuardrailCard
+              title="Ortsangaben sicherheitsbewusst"
+              detail="Öffentliche Ortsbezüge werden nur angezeigt, wenn sie geprüft und für die Anzeige geeignet sind."
+            />
+            <GuardrailCard
+              title="Keine automatische Veröffentlichung"
+              detail={detail.releaseNotice}
+            />
           </div>
         </aside>
       </section>
 
-      {viewModel.canShowFeedbackDetails ? (
+      {detail.feedbackTitle && detail.feedbackSummary ? (
         <section className="rounded-[1.75rem] border border-sky-500/15 bg-[linear-gradient(180deg,rgba(14,165,233,0.08),rgba(15,23,42,0.01)),rgb(var(--card))] p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
             Öffentliche Rückmeldung
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">
-            {feedback.title}
+            {detail.feedbackTitle}
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
-            {feedback.summary}
+            {detail.feedbackSummary}
           </p>
-          {feedback.topicSummaries.length > 0 ? (
+          {detail.topicSummaries.length > 0 ? (
             <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {feedback.topicSummaries.map((item) => (
+              {detail.topicSummaries.map((item) => (
                 <article
                   key={item.id}
                   className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
@@ -224,133 +149,114 @@ export function PublicParticipationSpaceShell(props: {
             </div>
           ) : (
             <p className="mt-5 text-sm leading-6 text-[rgb(var(--muted))]">
-              Aktuell sind keine thematischen Zusammenfassungen veröffentlicht.
+              Weitere öffentliche Detailbausteine erscheinen erst nach Prüfung und Freigabe.
             </p>
           )}
         </section>
-      ) : viewModel.feedbackPreparationNotice ? (
-        <section className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
-            Rückmeldung in Vorbereitung
-          </p>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
-            {viewModel.feedbackPreparationNotice}
-          </p>
-        </section>
-      ) : viewModel.feedbackUnavailableNotice ? (
+      ) : detail.feedbackNotice ? (
         <section className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
             Noch keine öffentliche Rückmeldung
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
-            {viewModel.feedbackUnavailableNotice}
+            {detail.feedbackNotice}
           </p>
         </section>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
-        {viewModel.canShowOpenQuestions ? (
-          <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
-              Offene Fragen
+        <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+            Offene Fragen
+          </p>
+          {detail.openQuestions.length > 0 ? (
+            <ul className="mt-4 space-y-3">
+              {detail.openQuestions.map((item) => (
+                <li
+                  key={item}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm leading-6 text-[rgb(var(--fg))]"
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
+              Weitere Räume erscheinen erst nach Prüfung und Freigabe. Öffentliche offene Fragen werden nur sichtbar, wenn sie explizit öffentlich aufbereitet wurden.
             </p>
-            {feedback.openQuestions.length > 0 ? (
-              <ul className="mt-4 space-y-3">
-                {feedback.openQuestions.map((item) => (
-                  <li
-                    key={item.id}
-                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm leading-6 text-[rgb(var(--fg))]"
-                  >
-                    {item.question}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
-                {viewModel.noPublicOpenQuestionsNotice}
-              </p>
-            )}
-          </article>
-        ) : null}
+          )}
+        </article>
+
         <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
             Ortsbezug
           </p>
-          {viewModel.canShowPlace && viewModel.publicPlace ? (
+          {detail.place ? (
             <div className="mt-3 space-y-3">
               <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
-                {viewModel.publicPlace.label}
+                {detail.place.label}
               </h2>
               <p className="text-sm leading-6 text-[rgb(var(--muted))]">
-                {viewModel.publicPlace.description}
+                {detail.place.description}
               </p>
               <p className="inline-flex w-fit rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                Anzeigeform: {getParticipationPlaceDisplayModeLabel(viewModel.publicPlace.displayMode)}
+                Anzeigeform: {detail.place.displayModeLabel}
               </p>
             </div>
           ) : (
             <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
-              {viewModel.noPublicPlaceNotice}
+              Öffentliche Ortsangaben werden nur angezeigt, wenn sie geprüft und sicherheitsbewusst freigegeben sind.
             </p>
           )}
         </article>
       </section>
 
-      {viewModel.canShowMinorityPositions ? (
-        <section className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
-            Minderheitenpositionen bleiben sichtbar
-          </p>
-          {feedback.minorityPositions.length > 0 ? (
-            <ul className="mt-4 grid gap-3 md:grid-cols-2">
-              {feedback.minorityPositions.map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
-                >
-                  <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                    {item.summary}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
-              {viewModel.noPublicMinorityPositionsNotice}
-            </p>
-          )}
-        </section>
-      ) : null}
+      {detail.minorityPositions.length > 0 || detail.nextSteps.length > 0 ? (
+        <section className="grid gap-4 xl:grid-cols-2">
+          {detail.minorityPositions.length > 0 ? (
+            <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+                Minderheitenpositionen bleiben sichtbar
+              </p>
+              <ul className="mt-4 grid gap-3">
+                {detail.minorityPositions.map((item) => (
+                  <li
+                    key={item.id}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                  >
+                    <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.title}</h2>
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                      {item.summary}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ) : null}
 
-      {viewModel.canShowNextSteps ? (
-        <section className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
-            Nächste Schritte
-          </p>
-          {feedback.nextSteps.length > 0 ? (
-            <ul className="mt-4 grid gap-3 md:grid-cols-2">
-              {feedback.nextSteps.map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
-                >
-                  <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.label}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                    {item.description}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
-              {viewModel.noPublicNextStepsNotice}
-            </p>
-          )}
-          <p className="mt-4 text-xs text-[rgb(var(--muted))]">
-            Rückmeldungen bleiben Einordnungen und nächste Arbeitsschritte, keine Zustimmung oder
-            politische Lösung.
-          </p>
+          {detail.nextSteps.length > 0 ? (
+            <article className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+                Nächste Schritte
+              </p>
+              <ul className="mt-4 grid gap-3">
+                {detail.nextSteps.map((item) => (
+                  <li
+                    key={item.id}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                  >
+                    <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{item.label}</h2>
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                      {item.description}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-xs text-[rgb(var(--muted))]">
+                Rückmeldungen bleiben Einordnungen und nächste Arbeitsschritte, keine Zustimmung oder politische Lösung.
+              </p>
+            </article>
+          ) : null}
         </section>
       ) : null}
     </main>
@@ -403,5 +309,20 @@ function SummaryMetricCard({
         {String(value)}
       </dd>
     </div>
+  );
+}
+
+function GuardrailCard({
+  title,
+  detail,
+}: {
+  title: string;
+  detail: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-sky-500/15 bg-[color-mix(in_oklab,rgb(var(--card))_84%,rgb(var(--bg))_16%)] p-4">
+      <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{detail}</p>
+    </article>
   );
 }
