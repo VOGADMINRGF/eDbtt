@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-
 import AdminCommunitySourceReviewSection from "@/app/admin/review/AdminCommunitySourceReviewSection";
 import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
 import {
@@ -12,7 +11,9 @@ import {
 } from "@/features/create/communitySourceReviewServer";
 
 vi.mock("next/navigation", async () => {
-  const actual = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  const actual = await vi.importActual<typeof import("next/navigation")>(
+    "next/navigation",
+  );
   return {
     ...actual,
     useRouter: () => ({
@@ -25,47 +26,47 @@ afterEach(() => {
   setCommunitySourceReviewRepositoryForTests(null);
 });
 
-describe("community source review trust source quality ui", () => {
-  it("shows trust level, source quality level, signals and guardrails in the existing admin workbench", async () => {
+describe("community source review workbench ui", () => {
+  it("renders the operational workbench with status, priority, signals, guardrails and actions", async () => {
     setCommunitySourceReviewRepositoryForTests(
       createInMemoryCommunitySourceReviewRepository(),
     );
 
     await persistCommunitySourceReviewContributionDraft(
       createCommunitySourceReviewContributionDraft({
-        id: "community-ui-trust-quality-1",
+        id: "community-workbench-ui-public-1",
         kind: "source_suggestion",
         target: "claim",
-        targetId: "claim-ui-trust-quality-1",
-        claimText: "Primärquelle vom Bezirksamt.",
-        text: 'Originaldokument 2026-06-20. "Die Maßnahme startet im Juli."',
-        sourceRefs: ["https://www.berlin.de/beschluss.pdf"],
-        notes: ["Bezirksamt Reinickendorf · Beschlussprotokoll"],
-        relatedContributionCount: 4,
-        moderation: {
-          trustLevel: "restricted",
-        },
-      }),
-    );
-    await persistCommunitySourceReviewContributionDraft(
-      createCommunitySourceReviewContributionDraft({
-        id: "community-ui-trust-quality-2",
-        kind: "source_suggestion",
-        target: "claim",
-        targetId: "claim-ui-trust-quality-2",
-        claimText: "Primärquelle mit belastbarem Kontext.",
-        text: 'Originaldokument 2026-06-21. "Die Finanzierung ist gesichert."',
-        sourceRefs: ["https://www.berlin.de/finanzierung.pdf"],
-        notes: ["Bezirksamt Reinickendorf · Beschlussprotokoll"],
-        relatedContributionCount: 4,
+        targetId: "claim-ui-1",
+        claimText: "Neue Quelle zum Claim.",
+        text: "Öffentliche Submission mit möglichem Hintergrundbericht.",
+        sourceRefs: ["https://beispiel.de/bericht"],
+        notes: [
+          "Öffentlicher Intake: review-first API",
+          "Öffentlicher Beteiligungsraum: sichere-schulwege",
+        ],
+        relatedContributionCount: 12,
         moderation: {
           trustLevel: "high",
         },
       }),
     );
 
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-workbench-ui-restricted-1",
+        kind: "counter_source",
+        target: "factcheck_request",
+        targetId: "factcheck-ui-1",
+        text: "Gegenquelle mit eingeschränktem Trust-Level.",
+        moderation: {
+          trustLevel: "restricted",
+        },
+      }),
+    );
+
     const records = await listCommunitySourceReviewRecords();
-    const audits = await listCommunitySourceReviewAudits({ limit: 50 });
+    const audits = await listCommunitySourceReviewAudits({ limit: 80 });
     const auditMap = new Map<string, typeof audits>();
     for (const record of records) {
       auditMap.set(
@@ -74,14 +75,9 @@ describe("community source review trust source quality ui", () => {
       );
     }
 
-    const recordsWithNote = records.map((record) => ({
-      ...record,
-      latestDecisionNote: "Trust/Quality vor einer Freigabe prüfen.",
-    }));
-
     const html = renderToStaticMarkup(
       <AdminCommunitySourceReviewSection
-        communitySourceReviewRecords={recordsWithNote}
+        communitySourceReviewRecords={records}
         communitySourceReviewAuditMap={auditMap}
         communitySourceReviewPersistence={{
           mode: "persistent_primary",
@@ -98,23 +94,34 @@ describe("community source review trust source quality ui", () => {
       />,
     );
 
-    expect(html).toContain("Trust");
-    expect(html).toContain("eingeschränkt");
-    expect(html).toContain("hoch");
-    expect(html).toContain("Quellenqualität");
-    expect(html).toContain("starker Review-Kandidat");
-    expect(html).toContain("Contributor-Kontext vorhanden");
-    expect(html).toContain("Quellen-URL vorhanden");
-    expect(html).toContain("Primärquelle behauptet");
-    expect(html).toContain("Review-Priorität: priorisiert");
+    expect(html).toContain("Community Source Review Workbench");
+    expect(html).toContain("Öffentliche Submission");
+    expect(html).toContain("Community-Review-Beitrag");
+    expect(html).toContain("Status:");
+    expect(html).toContain("Priority:");
+    expect(html).toContain("Duplikat-/Mehrfachsignal");
+    expect(html).toContain("Volumensignal");
+    expect(html).toContain("Trust-Signal");
+    expect(html).toContain("Quellenqualitäts-Signal");
     expect(html).toContain("Hinweis ist kein verifizierter Fakt.");
-    expect(html).toContain("Trust- und Qualitätswerte dienen nur der Priorisierung.");
     expect(html).toContain(
       "Freigabe als Hinweis bedeutet nicht Veröffentlichung als Wahrheit.",
     );
+    expect(html).toContain(
+      "Trust- und Qualitätswerte dienen nur der Priorisierung.",
+    );
+    expect(html).toContain("Als Hinweis zulassen");
+    expect(html).toContain("Verstecken");
+    expect(html).toContain("Ablehnen");
+    expect(html).toContain("Eskalieren");
+    expect(html).toContain("Quellenprüfung anfordern");
+    expect(html).toContain("Redaktionelle Prüfung anfordern");
+    expect(html).toContain("Priorität setzen");
+    expect(html).toContain("Archivieren");
+    expect(html).toContain("Interne Notiz speichern");
+    expect(html).toContain('disabled=""');
     expect(html).not.toContain("accepted_as_fact");
     expect(html).not.toContain("verified source");
-    expect(html).toContain('Als Hinweis zulassen</button>');
-    expect(html).toContain('disabled=""');
+    expect(html).not.toContain("automatische Widerlegung");
   });
 });

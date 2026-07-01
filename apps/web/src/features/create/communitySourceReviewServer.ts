@@ -36,6 +36,16 @@ export const COMMUNITY_SOURCE_REVIEW_DECISION_STATUSES = [
 export type CommunitySourceReviewDecisionStatus =
   (typeof COMMUNITY_SOURCE_REVIEW_DECISION_STATUSES)[number];
 
+export const COMMUNITY_SOURCE_REVIEW_WORKBENCH_PRIORITY_OVERRIDES = [
+  "low",
+  "normal",
+  "high",
+  "urgent",
+] as const;
+
+export type CommunitySourceReviewWorkbenchPriorityOverride =
+  (typeof COMMUNITY_SOURCE_REVIEW_WORKBENCH_PRIORITY_OVERRIDES)[number];
+
 export const COMMUNITY_SOURCE_REVIEW_ROUTE_TARGETS = [
   "none",
   "source_review",
@@ -80,7 +90,10 @@ export type CommunitySourceReviewAuditEntry = {
     | "hint_rejected"
     | "hint_escalated"
     | "source_review_requested"
-    | "editorial_review_requested";
+    | "editorial_review_requested"
+    | "workbench_priority_set"
+    | "item_archived"
+    | "internal_note_added";
   actorUserId: string | null;
   reason: string | null;
   decisionStatus: CommunitySourceReviewDecisionStatus;
@@ -94,6 +107,7 @@ export type CommunitySourceReviewAuditEntry = {
   sourceQualitySignalKinds?: CommunitySourceReviewSourceQualitySignalKind[];
   sourceQualityLevel?: CommunitySourceReviewSourceQualityLevel | null;
   reviewPriority?: "standard" | "prioritized" | null;
+  workbenchPriority?: CommunitySourceReviewWorkbenchPriorityOverride | null;
   at: string;
 };
 
@@ -125,6 +139,9 @@ export type CommunitySourceReviewRecord = {
   latestActorUserId: string | null;
   latestDecisionAt: string | null;
   blockers: CommunitySourceReviewHintBlocker[];
+  workbenchPriorityOverride: CommunitySourceReviewWorkbenchPriorityOverride | null;
+  archivedAt: string | null;
+  archivedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -560,6 +577,9 @@ function buildRecord(
       | "latestDecisionNote"
       | "latestActorUserId"
       | "latestDecisionAt"
+      | "workbenchPriorityOverride"
+      | "archivedAt"
+      | "archivedByUserId"
       | "updatedAt"
     >
   >,
@@ -575,6 +595,9 @@ function buildRecord(
     latestActorUserId: overrides?.latestActorUserId ?? null,
     latestDecisionAt: overrides?.latestDecisionAt ?? null,
     blockers: [],
+    workbenchPriorityOverride: overrides?.workbenchPriorityOverride ?? null,
+    archivedAt: overrides?.archivedAt ?? null,
+    archivedByUserId: overrides?.archivedByUserId ?? null,
     createdAt: contribution.createdAt,
     updatedAt,
   };
@@ -648,7 +671,18 @@ export function getCommunitySourceReviewHintBlockerLabel(
 export async function persistCommunitySourceReviewContributionDraft(
   contribution: CommunitySourceReviewContribution,
 ) {
-  const record = buildRecord(contribution);
+  const existing = await getRepo().getRecordById(contribution.id);
+  const record = buildRecord(contribution, {
+    decisionStatus: existing?.decisionStatus,
+    routeTarget: existing?.routeTarget,
+    latestDecisionNote: existing?.latestDecisionNote,
+    latestActorUserId: existing?.latestActorUserId,
+    latestDecisionAt: existing?.latestDecisionAt,
+    workbenchPriorityOverride: existing?.workbenchPriorityOverride,
+    archivedAt: existing?.archivedAt,
+    archivedByUserId: existing?.archivedByUserId,
+    updatedAt: contribution.updatedAt,
+  });
   await getRepo().upsertRecord(record);
   await recordAudit({
     contributionId: record.id,
@@ -668,6 +702,7 @@ export async function persistCommunitySourceReviewContributionDraft(
     ),
     sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
     reviewPriority: record.contribution.moderation.reviewPriority,
+    workbenchPriority: record.workbenchPriorityOverride,
     at: record.updatedAt,
   });
   if (record.contribution.moderation.abuseSignals.length > 0) {
@@ -689,6 +724,7 @@ export async function persistCommunitySourceReviewContributionDraft(
       ),
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: record.updatedAt,
     });
   }
@@ -704,6 +740,7 @@ export async function persistCommunitySourceReviewContributionDraft(
       trustSignalKinds: getTrustSignalKinds(record.contribution.moderation.trustSignals),
       trustLevel: record.contribution.moderation.trustLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: record.updatedAt,
     });
   }
@@ -721,6 +758,7 @@ export async function persistCommunitySourceReviewContributionDraft(
       ),
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: record.updatedAt,
     });
   }
@@ -755,6 +793,11 @@ async function updateRecordWithDecision(input: {
   moderation?: Partial<CommunitySourceReviewModerationInput>;
   blockedDecisionStatuses?: CommunitySourceReviewDecisionStatus[];
   extraAuditActions?: CommunitySourceReviewAuditEntry["action"][];
+  workbenchPriorityOverride?:
+    | CommunitySourceReviewWorkbenchPriorityOverride
+    | null;
+  archivedAt?: string | null;
+  archivedByUserId?: string | null;
 }) {
   const existing = await getCommunitySourceReviewRecord(input.contributionId);
   if (!existing) {
@@ -780,6 +823,16 @@ async function updateRecordWithDecision(input: {
     latestDecisionNote: input.reason,
     latestActorUserId: input.actorUserId,
     latestDecisionAt: updatedAt,
+    workbenchPriorityOverride:
+      input.workbenchPriorityOverride === undefined
+        ? existing.workbenchPriorityOverride
+        : input.workbenchPriorityOverride,
+    archivedAt:
+      input.archivedAt === undefined ? existing.archivedAt : input.archivedAt,
+    archivedByUserId:
+      input.archivedByUserId === undefined
+        ? existing.archivedByUserId
+        : input.archivedByUserId,
     updatedAt,
   });
 
@@ -802,6 +855,7 @@ async function updateRecordWithDecision(input: {
     ),
     sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
     reviewPriority: record.contribution.moderation.reviewPriority,
+    workbenchPriority: record.workbenchPriorityOverride,
     at: updatedAt,
   });
 
@@ -846,6 +900,7 @@ async function updateRecordWithDecision(input: {
       sourceQualitySignalKinds: nextSourceQualitySignalKinds,
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: updatedAt,
     });
   }
@@ -862,6 +917,7 @@ async function updateRecordWithDecision(input: {
       trustSignalKinds: newlyDetectedTrustSignalKinds,
       trustLevel: record.contribution.moderation.trustLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: updatedAt,
     });
   }
@@ -878,6 +934,7 @@ async function updateRecordWithDecision(input: {
       sourceQualitySignalKinds: newlyDetectedSourceQualitySignalKinds,
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: updatedAt,
     });
   }
@@ -896,6 +953,7 @@ async function updateRecordWithDecision(input: {
       sourceQualitySignalKinds: nextSourceQualitySignalKinds,
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: updatedAt,
     });
   }
@@ -917,6 +975,7 @@ async function updateRecordWithDecision(input: {
       sourceQualitySignalKinds: nextSourceQualitySignalKinds,
       sourceQualityLevel: record.contribution.moderation.sourceQualityLevel,
       reviewPriority: record.contribution.moderation.reviewPriority,
+      workbenchPriority: record.workbenchPriorityOverride,
       at: updatedAt,
     });
   }
@@ -1212,6 +1271,7 @@ export async function setCommunitySourceReviewPriorityFromTrustQuality(input: {
     moderation: {
       reviewPriorityOverride: "prioritized",
     },
+    workbenchPriorityOverride: "high",
     extraAuditActions: ["moderation_action_taken"],
   });
 }
@@ -1235,6 +1295,50 @@ export async function clearCommunitySourceReviewTrustQualitySignals(input: {
       sourceQualityReviewedBy: null,
       reviewPriorityOverride: null,
     },
+    workbenchPriorityOverride: null,
     extraAuditActions: ["moderation_action_taken"],
+  });
+}
+
+export async function setCommunitySourceReviewPriority(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+  priority: CommunitySourceReviewWorkbenchPriorityOverride;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "workbench_priority_set",
+    workbenchPriorityOverride: input.priority,
+  });
+}
+
+export async function archiveCommunitySourceReviewItem(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "item_archived",
+    archivedAt: nowIso(),
+    archivedByUserId: input.actorUserId,
+  });
+}
+
+export async function addCommunitySourceReviewInternalNote(input: {
+  contributionId: string;
+  actorUserId: string;
+  reason: string;
+}) {
+  return updateRecordWithDecision({
+    contributionId: input.contributionId,
+    actorUserId: input.actorUserId,
+    reason: input.reason,
+    action: "internal_note_added",
   });
 }
