@@ -180,7 +180,7 @@ describe("anlassraum runtime creation", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.record.status).toBe("created");
-      expect(result.record.visibility).toBe("active_internal");
+      expect(result.record.visibility).toBe("ready_for_activation_review");
       expect(result.record.createdAnlassraumId).toBe("65a111111111111111111110");
       expect(result.record.createdEntityId).toBe("65a111111111111111111120");
       expect(result.record.visibility).not.toBe("published");
@@ -329,7 +329,7 @@ describe("anlassraum runtime creation", () => {
 
   it("keeps creation separate from publish and participation side effects", () => {
     const record = toRecord({
-      visibility: "active_internal",
+      visibility: "ready_for_activation_review",
     });
 
     expect(blocksUnsafeAnlassraumCreation(record)).toBe(false);

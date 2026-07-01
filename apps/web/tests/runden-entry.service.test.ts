@@ -116,23 +116,35 @@ const memory = vi.hoisted(() => {
   };
 });
 
+const publicRuntimeMocks = vi.hoisted(() => ({
+  listPublishedAnlassraeume: vi.fn(),
+}));
+
 vi.mock("@core/db/triMongo", async () => {
   const mongodb = await import("mongodb");
   return {
     ObjectId: mongodb.ObjectId,
     coreCol: async (name: string) => memory.getCollection(name),
+    shouldUseInMemoryMongoFallback: () => true,
     default: {
       ObjectId: mongodb.ObjectId,
       coreCol: async (name: string) => memory.getCollection(name),
+      shouldUseInMemoryMongoFallback: () => true,
     },
   };
 });
+
+vi.mock("@features/anlassraum/publicRuntime", () => ({
+  listPublishedAnlassraeume: (...args: unknown[]) =>
+    publicRuntimeMocks.listPublishedAnlassraeume(...args),
+}));
 
 import { listRundenEntryItems } from "@features/topicRound/entrySource";
 
 describe("runden entry source service", () => {
   beforeEach(() => {
     memory.reset();
+    publicRuntimeMocks.listPublishedAnlassraeume.mockResolvedValue([]);
   });
 
   it("Scenario A: productive source returns rounds without seed fallback", async () => {
@@ -189,15 +201,8 @@ describe("runden entry source service", () => {
       operatingHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
       resultsHref: null,
       entryHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
-      shareActions: {
-        contextKind: "runde",
-        primaryTargetKind: "round_operating_target",
-        socialCandidate: false,
-        needsReviewBeforeOfficialSocial: true,
-      },
+      shareActions: null,
     });
-    expect(items[0]?.shareActions?.canonicalTarget).toContain("/round/mobilitaet-innenstadt");
-    expect(items[0]?.shareActions?.qrTarget).toContain("/round/mobilitaet-innenstadt");
   });
 
   it("Scenario B: empty productive source returns explicit empty list", async () => {
@@ -283,6 +288,48 @@ describe("runden entry source service", () => {
     });
   });
 
+  it("Scenario E: published runtime room appears on /runden even without existing round_seed", async () => {
+    const roomId = new ObjectId("65f000000000000000000051");
+
+    memory.seed("anlassraum", [
+      {
+        _id: roomId,
+        title: "Sichere Schulwege",
+        summary: "Veröffentlichter Runtime-Anlassraum.",
+        topicKey: "sichere-schulwege",
+        type: "issue",
+        sourceMode: "manual",
+        status: "active",
+        isPublic: true,
+      },
+    ]);
+    memory.seed("output_seed", []);
+    publicRuntimeMocks.listPublishedAnlassraeume.mockResolvedValue([
+      {
+        id: roomId.toHexString(),
+        slug: "sichere-schulwege",
+        title: "Sichere Schulwege",
+        summary: "Veröffentlichter Runtime-Anlassraum.",
+        trigger: "Welche Kreuzungen sind zuerst kritisch?",
+        updatedAt: "2026-07-01T09:50:00.000Z",
+        source: "runtime",
+      },
+    ]);
+
+    const items = await listRundenEntryItems();
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      anlassraumId: roomId.toHexString(),
+      title: "Sichere Schulwege",
+      outputStatus: "ready",
+      reviewState: "approved",
+      productionState: "active",
+      publicShareState: "share_active",
+      operatingHref: `/round/sichere-schulwege?anlassraumId=${roomId.toHexString()}`,
+    });
+  });
+
   it("Scenario E: closed public round exposes stable results href and finished metadata", async () => {
     const roomId = new ObjectId("65f000000000000000000051");
     const seedId = new ObjectId("65f000000000000000000061");
@@ -318,12 +365,7 @@ describe("runden entry source service", () => {
       lifecycle: "closed",
       finished: true,
       resultsHref: `/round/fernwaerme-ausbau?anlassraumId=${roomId.toHexString()}`,
-      shareActions: {
-        contextKind: "ergebnis",
-        primaryTargetKind: "round_results_target",
-        socialCandidate: true,
-        needsReviewBeforeOfficialSocial: true,
-      },
+      shareActions: null,
     });
     expect(items[0].finishedAt).toBe("2026-03-21T13:00:00.000Z");
   });

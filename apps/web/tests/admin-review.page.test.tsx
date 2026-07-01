@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   loadAdminDossierRuntimeCreationSectionProps: vi.fn(),
   loadAdminDossierPublishSectionProps: vi.fn(),
   loadAdminAnlassraumRuntimeCreationSectionProps: vi.fn(),
+  loadAdminAnlassraumActivationSectionProps: vi.fn(),
   loadAdminParticipationSpaceRuntimeCreationSectionProps: vi.fn(),
   loadAdminParticipationSpacePublishSectionProps: vi.fn(),
 }));
@@ -72,6 +73,11 @@ vi.mock("@/app/admin/review/loadAdminDossierPublishSectionProps", () => ({
 vi.mock("@/app/admin/review/loadAdminAnlassraumRuntimeCreationSectionProps", () => ({
   loadAdminAnlassraumRuntimeCreationSectionProps: (...args: unknown[]) =>
     mocks.loadAdminAnlassraumRuntimeCreationSectionProps(...args),
+}));
+
+vi.mock("@/app/admin/review/loadAdminAnlassraumActivationSectionProps", () => ({
+  loadAdminAnlassraumActivationSectionProps: (...args: unknown[]) =>
+    mocks.loadAdminAnlassraumActivationSectionProps(...args),
 }));
 
 vi.mock(
@@ -209,6 +215,22 @@ describe("/admin/review page", () => {
         productionTruth: true,
         restartReconstructable: true,
         deploymentReconstructable: true,
+      },
+    });
+    mocks.loadAdminAnlassraumActivationSectionProps.mockResolvedValue({
+      anlassraumActivationRecords: [],
+      anlassraumActivationAuditMap: new Map(),
+      anlassraumActivationPersistence: {
+        mode: "persistent_primary",
+        label: "Persistenter Anlassraum-Aktivierungs-/Publish-Workflow",
+        summary:
+          "Aktivierungs- und Veröffentlichungsfreigaben liegen dauerhaft vor. Öffentliche Sichtbarkeit entsteht nur nach expliziter Freigabe, Audit und Guardrail-Prüfung; die öffentliche /runden-Lesart liest veröffentlichte Runtime-Anlassräume read-only.",
+        repositoryInterface: "AnlassraumActivationWorkflowRepository",
+        storeKind: "mongo_collection",
+        productionTruth: true,
+        restartReconstructable: true,
+        deploymentReconstructable: true,
+        publicRouteRuntime: "runtime_wired",
       },
     });
     mocks.loadAdminParticipationSpaceRuntimeCreationSectionProps.mockResolvedValue({
@@ -714,6 +736,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Dossier erstellen prüfen");
     expect(html).toContain("Dossier-Veröffentlichung prüfen");
     expect(html).toContain("Anlassraum erstellen prüfen");
+    expect(html).toContain("Anlassraum aktivieren/veröffentlichen prüfen");
     expect(html).toContain("Beteiligungsraum erstellen prüfen");
     expect(html).toContain("Beteiligungsraum aktivieren/veröffentlichen prüfen");
     expect(html).toContain("Review-to-Publish Workspace");

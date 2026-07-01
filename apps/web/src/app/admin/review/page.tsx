@@ -11,6 +11,7 @@ import AdminTopicGraphApprovalSection from "./AdminTopicGraphApprovalSection";
 import AdminDossierRuntimeCreationSection from "./AdminDossierRuntimeCreationSection";
 import AdminDossierPublishSection from "./AdminDossierPublishSection";
 import AdminAnlassraumRuntimeCreationSection from "./AdminAnlassraumRuntimeCreationSection";
+import AdminAnlassraumActivationSection from "./AdminAnlassraumActivationSection";
 import AdminParticipationSpaceRuntimeCreationSection from "./AdminParticipationSpaceRuntimeCreationSection";
 import AdminParticipationSpacePublishSection from "./AdminParticipationSpacePublishSection";
 import ContentReleaseWorkbenchActions from "./ContentReleaseWorkbenchActions";
@@ -23,6 +24,7 @@ import { loadAdminTopicGraphApprovalSectionProps } from "./loadAdminTopicGraphAp
 import { loadAdminDossierRuntimeCreationSectionProps } from "./loadAdminDossierRuntimeCreationSectionProps";
 import { loadAdminDossierPublishSectionProps } from "./loadAdminDossierPublishSectionProps";
 import { loadAdminAnlassraumRuntimeCreationSectionProps } from "./loadAdminAnlassraumRuntimeCreationSectionProps";
+import { loadAdminAnlassraumActivationSectionProps } from "./loadAdminAnlassraumActivationSectionProps";
 import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAdminParticipationSpaceRuntimeCreationSectionProps";
 import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
@@ -155,6 +157,7 @@ export default async function AdminReviewPage({
     dossierRuntimeCreationSectionProps,
     dossierPublishSectionProps,
     anlassraumRuntimeCreationSectionProps,
+    anlassraumActivationSectionProps,
     participationSpaceRuntimeCreationSectionProps,
     participationSpacePublishSectionProps,
     editorialRequests,
@@ -167,6 +170,7 @@ export default async function AdminReviewPage({
       loadAdminDossierRuntimeCreationSectionProps(),
       loadAdminDossierPublishSectionProps(),
       loadAdminAnlassraumRuntimeCreationSectionProps(),
+      loadAdminAnlassraumActivationSectionProps(),
       loadAdminParticipationSpaceRuntimeCreationSectionProps(),
       loadAdminParticipationSpacePublishSectionProps(),
       loadAdminEditorialReviewRequests(filters.editorial),
@@ -426,6 +430,8 @@ export default async function AdminReviewPage({
         <AdminDossierPublishSection {...dossierPublishSectionProps} />
 
         <AdminAnlassraumRuntimeCreationSection {...anlassraumRuntimeCreationSectionProps} />
+
+        <AdminAnlassraumActivationSection {...anlassraumActivationSectionProps} />
 
         <AdminParticipationSpaceRuntimeCreationSection
           {...participationSpaceRuntimeCreationSectionProps}

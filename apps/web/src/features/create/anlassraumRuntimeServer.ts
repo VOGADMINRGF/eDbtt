@@ -497,6 +497,21 @@ async function saveRecord(record: AnlassraumRuntimeRecord) {
   return getRepo().save(record);
 }
 
+export async function syncAnlassraumRuntimeVisibility(input: {
+  sourceHandoffId: string;
+  visibility: AnlassraumRuntimeRecord["visibility"];
+}) {
+  const runtimeRecord = await getAnlassraumRuntimeRecord(input.sourceHandoffId);
+  if (!runtimeRecord) return null;
+  const updatedRecord: AnlassraumRuntimeRecord = {
+    ...runtimeRecord,
+    visibility: input.visibility,
+    updatedAt: nowIso(),
+  };
+  await saveRecord(updatedRecord);
+  return updatedRecord;
+}
+
 export function getAnlassraumRuntimePersistenceState() {
   return getRepo().getPersistenceState();
 }

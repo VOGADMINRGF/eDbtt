@@ -1,0 +1,284 @@
+import { describe, expect, it } from "vitest";
+import {
+  activateAnlassraumAfterReview,
+  approveAnlassraumActivation,
+  approveAnlassraumPublication,
+  blocksAnlassraumAutoActivation,
+  blocksAnlassraumAutoPublish,
+  blocksUnsafeAnlassraumPublicVisibility,
+  buildAnlassraumActivationDraft,
+  canApproveAnlassraumPublication,
+  canPublishAnlassraum,
+  publishAnlassraumAfterReview,
+  type AnlassraumActivationRecord,
+} from "@/features/create/anlassraumActivationWorkflow";
+import {
+  buildAnlassraumRuntimeDraftFromHandoff,
+  type AnlassraumRuntimeRecord,
+} from "@/features/create/anlassraumRuntime";
+import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+
+function buildHandoffRecord(): PersistedCreateHandoffRecord {
+  return {
+    schemaVersion: "create_handoff_review_item.v1",
+    id: "handoff-anlassraum-activation-1",
+    source: "create",
+    sourceText:
+      "Vor Schulen fehlen sichere Querungen und der Kiez braucht einen sichtbaren Themenraum.",
+    plannerResult: {
+      shortSummary:
+        "Sichere Schulwege sollen als Anlassraum weitergeführt werden.",
+      openQuestion: "Welche Kreuzungen sind zuerst kritisch?",
+      openQuestions: ["Welche Kreuzungen sind zuerst kritisch?"],
+      topicCandidates: ["Sichere Schulwege"],
+    } as any,
+    graphMatches: {
+      matches: [{ kind: "topic", label: "Sichere Schulwege" }],
+      matchedTopics: ["Sichere Schulwege"],
+      matchedDossiers: ["dossier-sichere-schulwege"],
+      matchedAnlassraeume: [],
+      shouldCreateNewTopic: true,
+    } as any,
+    selectedAction: "prepare_anlassraum",
+    claims: [],
+    arguments: [
+      {
+        id: "argument-1",
+        text: "Kinder brauchen sichere Wege zum Unterricht.",
+        stance: "pro",
+        supportsClaimIds: [],
+      },
+    ],
+    openQuestions: [
+      {
+        id: "question-1",
+        question: "Welche Schulen sind besonders betroffen?",
+        requiredBeforePublish: true,
+      },
+    ],
+    sourceGrounding: [],
+    topicSeed: {
+      topicKey: "sichere-schulwege",
+      topicLabel: "Sichere Schulwege",
+      jurisdiction: "kommune",
+      themenradarSourceType: "create_intake",
+    },
+    resumeHref: "/create?resume=handoff-anlassraum-activation-1",
+    reviewState: "manual_review_required",
+    visibilityState: "internal_review",
+    requiresConfirmation: true,
+    reviewRequired: true,
+    noAutoPublish: true,
+    noPublicOfficial: true,
+    noAutomaticOfficialResponse: true,
+    noAutoFinalization: true,
+    intakeClassification: "public_policy",
+    createdByUserId: "admin-1",
+    regionId: "berlin-reinickendorf",
+    organizationId: "org-1",
+    dossierId: "dossier-sichere-schulwege",
+    anlassraumId: null,
+    requestScope: null,
+    accessDecision: null,
+    createdAt: "2026-07-01T08:00:00.000Z",
+    updatedAt: "2026-07-01T08:00:00.000Z",
+  };
+}
+
+function buildRuntimeRecord(
+  overrides: Partial<AnlassraumRuntimeRecord> = {},
+): AnlassraumRuntimeRecord {
+  const draft = buildAnlassraumRuntimeDraftFromHandoff(buildHandoffRecord(), {
+    status: "created",
+    visibility: "ready_for_activation_review",
+    createdAnlassraumId: "65a111111111111111111110",
+    auditContext: {
+      actorUserId: "admin-1",
+      reason: "Review-approved creation.",
+      origin: "anlassraum_runtime",
+      approvedAt: "2026-07-01T09:00:00.000Z",
+    },
+  });
+
+  return {
+    ...draft,
+    auditTrail: [
+      {
+        id: "runtime-created-1",
+        sourceHandoffId: draft.sourceHandoffId,
+        at: "2026-07-01T09:00:00.000Z",
+        action: "runtime_created",
+        actorUserId: "admin-1",
+        note: "Runtime erstellt.",
+        blockers: [],
+        status: "created",
+        anlassraumId: "65a111111111111111111110",
+        entityId: "65a111111111111111111120",
+      },
+    ],
+    approvedForCreationAt: "2026-07-01T08:30:00.000Z",
+    approvedForCreationBy: "admin-1",
+    rejectedAt: null,
+    rejectedBy: null,
+    ...overrides,
+  };
+}
+
+function buildActivationRecord(
+  overrides: Partial<AnlassraumActivationRecord> = {},
+): AnlassraumActivationRecord {
+  const draft = buildAnlassraumActivationDraft({
+    runtimeRecord: buildRuntimeRecord(),
+    createdRoom: {
+      id: "65a111111111111111111110",
+      slug: "sichere-schulwege",
+      status: "approved",
+      isPublic: false,
+      updatedAt: "2026-07-01T09:00:00.000Z",
+    },
+    creationAudited: true,
+    auditContext: {
+      actorUserId: "admin-1",
+      reason: "Audit vorhanden.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T09:10:00.000Z",
+    },
+  });
+
+  return {
+    ...draft,
+    auditTrail: [],
+    approvedForActivationAt: null,
+    approvedForActivationBy: null,
+    approvedForPublicationAt: null,
+    approvedForPublicationBy: null,
+    rejectedAt: null,
+    rejectedBy: null,
+    ...overrides,
+  };
+}
+
+describe("anlassraum activation workflow", () => {
+  it("keeps created anlassraeume non-public until explicit publication", () => {
+    const record = buildActivationRecord();
+
+    expect(record.status).toBe("draft");
+    expect(record.visibility).toBe("editorial_workspace");
+    expect(record.roomIsPublic).toBe(false);
+    expect(blocksAnlassraumAutoPublish(record)).toBe(true);
+    expect(blocksUnsafeAnlassraumPublicVisibility(record)).toBe(false);
+    expect(record.blockers).toContain("activation_not_approved");
+    expect(record.blockers).toContain("publication_not_approved");
+  });
+
+  it("keeps approved activation and active_internal separate from public visibility", () => {
+    const approved = approveAnlassraumActivation(buildActivationRecord(), {
+      actorUserId: "admin-1",
+      reason: "Aktivierung freigegeben.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T09:20:00.000Z",
+    });
+
+    expect(approved.status).toBe("approved_for_activation");
+    expect(approved.visibility).toBe("editorial_workspace");
+    expect(approved.roomIsPublic).toBe(false);
+
+    const activated = activateAnlassraumAfterReview(approved, {
+      actorUserId: "admin-1",
+      reason: "Intern aktivieren.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:30:00.000Z",
+    });
+
+    expect(activated.ok).toBe(true);
+    if (activated.ok) {
+      expect(activated.record.status).toBe("activated");
+      expect(activated.record.visibility).toBe("active_internal");
+      expect(activated.record.roomStatus).toBe("active");
+      expect(activated.record.roomIsPublic).toBe(false);
+      expect(blocksAnlassraumAutoActivation(activated.record)).toBe(false);
+      expect(blocksUnsafeAnlassraumPublicVisibility(activated.record)).toBe(
+        false,
+      );
+    }
+  });
+
+  it("requires activation before publication approval and publication before public visibility", () => {
+    const draft = buildActivationRecord();
+    expect(canApproveAnlassraumPublication(draft)).toBe(false);
+    expect(canPublishAnlassraum(draft)).toBe(false);
+
+    const approvedActivation = approveAnlassraumActivation(draft, {
+      actorUserId: "admin-1",
+      reason: "Aktivierung freigegeben.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T09:20:00.000Z",
+    });
+    const activated = activateAnlassraumAfterReview(approvedActivation, {
+      actorUserId: "admin-1",
+      reason: "Intern aktivieren.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:30:00.000Z",
+    });
+
+    expect(activated.ok).toBe(true);
+    if (!activated.ok) return;
+
+    const approvedPublication = approveAnlassraumPublication(
+      activated.record,
+      {
+        actorUserId: "admin-1",
+        reason: "Veröffentlichung freigegeben.",
+        origin: "admin_review",
+        approvedAt: "2026-07-01T09:40:00.000Z",
+      },
+    );
+
+    expect(approvedPublication.status).toBe("approved_for_publication");
+    expect(approvedPublication.visibility).toBe(
+      "ready_for_publication_review",
+    );
+    expect(approvedPublication.roomIsPublic).toBe(false);
+    expect(canPublishAnlassraum(approvedPublication)).toBe(true);
+
+    const published = publishAnlassraumAfterReview(approvedPublication, {
+      actorUserId: "admin-1",
+      reason: "Öffentlich sichtbar machen.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:50:00.000Z",
+    });
+
+    expect(published.ok).toBe(true);
+    if (published.ok) {
+      expect(published.record.status).toBe("published");
+      expect(published.record.visibility).toBe("public");
+      expect(published.record.publicAccessMode).toBe("public_read_only");
+      expect(published.record.roomStatus).toBe("active");
+      expect(published.record.roomIsPublic).toBe(true);
+    }
+  });
+
+  it("blocks publication while review signals are unresolved and keeps guardrails explicit", () => {
+    const blocked = buildActivationRecord({
+      moderationPending: true,
+      unresolvedTrustQualityBlocker: true,
+    });
+
+    const approvedActivation = approveAnlassraumActivation(blocked, {
+      actorUserId: "admin-1",
+      reason: "Trotzdem prüfen.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T09:20:00.000Z",
+    });
+
+    expect(approvedActivation.status).toBe("blocked");
+    expect(approvedActivation.blockers).toContain("moderation_pending");
+    expect(approvedActivation.blockers).toContain(
+      "unresolved_trust_quality_blocker",
+    );
+    expect(approvedActivation.guardrails.noAutoGraphWrite).toBe(true);
+    expect(approvedActivation.guardrails.noAutoMerge).toBe(true);
+    expect(approvedActivation.guardrails.noAutoFactcheck).toBe(true);
+    expect(approvedActivation.guardrails.noDeepSearch).toBe(true);
+  });
+});

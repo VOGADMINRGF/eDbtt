@@ -1,5 +1,9 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
+import {
+  listPublishedAnlassraeume,
+  type PublicAnlassraumRuntimeItem,
+} from "@features/anlassraum/publicRuntime";
 import { dossiersCol } from "@features/dossier/db";
 import { listVisibleTopicPagesForAnlassraumIds } from "@features/publicTopicPage";
 import {
@@ -130,19 +134,28 @@ export async function listRundenEntryItems(
 ): Promise<RundenEntryItem[]> {
   try {
     const seeds = await outputSeedCol();
-    const items = await seeds
-      .find({ outputType: "round_seed" })
-      .sort({ updatedAt: -1 })
-      .limit(normalizeLimit(input.limit))
-      .toArray();
+    const limit = normalizeLimit(input.limit);
+    const [items, publishedRuntimeRooms] = await Promise.all([
+      seeds
+        .find({ outputType: "round_seed" })
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .toArray(),
+      listPublishedAnlassraeume({ limit }).catch(() => []),
+    ]);
 
-    if (items.length === 0) return [];
+    if (items.length === 0 && publishedRuntimeRooms.length === 0) return [];
 
     const anlassraumIds = Array.from(
       new Set(
-        items
-          .map((item) => toHex(item?.anlassraumId))
-          .filter((value): value is string => Boolean(value)),
+        [
+          ...items
+            .map((item) => toHex(item?.anlassraumId))
+            .filter((value): value is string => Boolean(value)),
+          ...publishedRuntimeRooms
+            .map((item) => trimText(item.id))
+            .filter((value): value is string => Boolean(value)),
+        ],
       ),
     );
 
@@ -152,14 +165,42 @@ export async function listRundenEntryItems(
             .find({ _id: { $in: anlassraumIds.map((id) => new ObjectId(id)) } })
             .toArray()
         : [];
-    const roomById = new Map(
+    const roomById = new Map<string, Record<string, unknown>>(
       rooms.map((room) => [room._id?.toHexString?.() ?? "", room] as const),
     );
 
+    for (const item of publishedRuntimeRooms) {
+      const roomId = trimText(item.id);
+      if (!roomId || roomById.has(roomId)) continue;
+      roomById.set(roomId, {
+        _id: new ObjectId(roomId),
+        title: item.title,
+        summary: item.summary,
+        slug: item.slug,
+        status: "active",
+        isPublic: true,
+        updatedAt: new Date(item.updatedAt),
+      });
+    }
+
     const entries = items.map((item) => mapToEntry(item as Record<string, unknown>, roomById));
+    const existingRoomIds = new Set(
+      entries
+        .map((entry) => entry.anlassraumId)
+        .filter((value): value is string => Boolean(value)),
+    );
+    const runtimeOnlyEntries = publishedRuntimeRooms
+      .filter((item) => {
+        const roomId = trimText(item.id);
+        return Boolean(roomId) && !existingRoomIds.has(roomId);
+      })
+      .map((item) => mapToEntry(buildRuntimePublicSeed(item), roomById));
+    const mergedEntries = [...entries, ...runtimeOnlyEntries].sort((left, right) =>
+      (right.updatedAt ?? "").localeCompare(left.updatedAt ?? ""),
+    );
     const dossierObjectIds = Array.from(
       new Set(
-        entries
+        mergedEntries
           .map((entry) => entry.relatedDossierHref?.split("/").pop() ?? null)
           .filter((value): value is string => Boolean(value)),
       ),
@@ -180,12 +221,12 @@ export async function listRundenEntryItems(
       }
     }
     const relatedTopicPages = await listVisibleTopicPagesForAnlassraumIds(
-      entries.map((entry) => entry.anlassraumId ?? ""),
+      mergedEntries.map((entry) => entry.anlassraumId ?? ""),
     );
     const relatedStreams = await listPublicStreamLinksByTopicKeys(
-      entries.map((entry) => entry.topicKey ?? ""),
+      mergedEntries.map((entry) => entry.topicKey ?? ""),
     ).catch(() => new Map());
-    return entries.map((entry) => {
+    return mergedEntries.map((entry) => {
       const related = entry.anlassraumId
         ? relatedTopicPages.get(entry.anlassraumId) ?? null
         : null;
@@ -492,6 +533,22 @@ function normalizeLimit(value: number | undefined) {
   return Math.max(1, Math.min(200, Math.floor(numeric)));
 }
 
+function buildRuntimePublicSeed(item: PublicAnlassraumRuntimeItem) {
+  return {
+    _id: item.id,
+    anlassraumId: item.id,
+    outputType: "round_seed",
+    status: "ready",
+    reviewState: "approved",
+    publishTarget: `/round/${encodeURIComponent(item.slug)}`,
+    lastAction: "published_public",
+    lastActionBy: "runtime",
+    lastActionAt: item.updatedAt,
+    createdAt: item.updatedAt,
+    updatedAt: item.updatedAt,
+  } satisfies Record<string, unknown>;
+}
+
 function toHex(value: unknown): string | null {
   if (!value) return null;
   if (value instanceof ObjectId) return value.toHexString();
@@ -516,6 +573,11 @@ function normalizeOutputStatus(value: unknown): OutputSeedStatus {
   if (normalized === "published") return "published";
   if (normalized === "discarded") return "discarded";
   return "draft";
+}
+
+function trimText(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
 }
 
 function normalizeReviewState(value: unknown): OutputSeedReviewState {
