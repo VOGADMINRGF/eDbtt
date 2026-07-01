@@ -141,7 +141,7 @@ describe("/admin/review page", () => {
         restartReconstructable: true,
         deploymentReconstructable: true,
       },
-      submissionRuntimeStatus: "blocked_unwired",
+      submissionRuntimeStatus: "public_api_hardened",
     });
     mocks.loadAdminTopicGraphApprovalSectionProps.mockResolvedValue({
       graphRuntimeAvailable: true,

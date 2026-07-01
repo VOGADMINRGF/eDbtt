@@ -23,8 +23,10 @@ import {
   getCommunitySourceReviewDecisionStatusLabel,
   getCommunitySourceReviewHintBlockerLabel,
   getCommunitySourceReviewRouteTargetLabel,
+  getCommunitySourceReviewSubmissionRuntimeStatusLabel,
   type CommunitySourceReviewAuditEntry,
   type CommunitySourceReviewPersistenceState,
+  type CommunitySourceReviewSubmissionRuntimeStatus,
 } from "@/features/create/communitySourceReviewServer";
 import CommunitySourceReviewModerationActions from "./CommunitySourceReviewModerationActions";
 
@@ -38,7 +40,7 @@ type Props = {
   communitySourceReviewRecords: CommunitySourceReviewRecordItem[];
   communitySourceReviewAuditMap: Map<string, CommunitySourceReviewAuditEntry[]>;
   communitySourceReviewPersistence: CommunitySourceReviewPersistenceState;
-  submissionRuntimeStatus: "blocked_unwired";
+  submissionRuntimeStatus: CommunitySourceReviewSubmissionRuntimeStatus;
 };
 
 function renderBlockerLabel(blocker: CommunitySourceReviewRecordItem["blockers"][number]) {
@@ -101,7 +103,8 @@ export default function AdminCommunitySourceReviewSection({
           </p>
         </div>
         <div className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-          Öffentlicher Intake: {submissionRuntimeStatus}
+          Öffentlicher Intake:{" "}
+          {getCommunitySourceReviewSubmissionRuntimeStatusLabel(submissionRuntimeStatus)}
         </div>
       </div>
 

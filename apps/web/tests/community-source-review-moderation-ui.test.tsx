@@ -84,11 +84,12 @@ describe("community source review moderation ui", () => {
           restartReconstructable: true,
           deploymentReconstructable: true,
         }}
-        submissionRuntimeStatus="blocked_unwired"
+        submissionRuntimeStatus="public_api_hardened"
       />,
     );
 
     expect(html).toContain("Community-Hinweise moderieren");
+    expect(html).toContain("öffentliche API verdrahtet (review-first)");
     expect(html).toContain("source_suggestion");
     expect(html).toContain("Quellenvorschlag");
     expect(html).toContain("als Hinweis erlaubt");

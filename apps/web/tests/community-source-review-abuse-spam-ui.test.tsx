@@ -76,7 +76,7 @@ describe("community source review abuse spam ui", () => {
           restartReconstructable: true,
           deploymentReconstructable: true,
         }}
-        submissionRuntimeStatus="blocked_unwired"
+        submissionRuntimeStatus="public_api_hardened"
       />,
     );
 

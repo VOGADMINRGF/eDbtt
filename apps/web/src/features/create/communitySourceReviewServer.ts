@@ -108,6 +108,14 @@ export type CommunitySourceReviewPersistenceState = {
   deploymentReconstructable: boolean;
 };
 
+export const COMMUNITY_SOURCE_REVIEW_SUBMISSION_RUNTIME_STATUSES = [
+  "blocked_unwired",
+  "public_api_hardened",
+] as const;
+
+export type CommunitySourceReviewSubmissionRuntimeStatus =
+  (typeof COMMUNITY_SOURCE_REVIEW_SUBMISSION_RUNTIME_STATUSES)[number];
+
 export type CommunitySourceReviewRecord = {
   id: string;
   contribution: CommunitySourceReviewContribution;
@@ -595,7 +603,16 @@ export function getCommunitySourceReviewPersistenceState() {
 }
 
 export function communitySourceReviewSubmissionRuntimeStatus() {
-  return "blocked_unwired" as const;
+  return "public_api_hardened" as const;
+}
+
+export function getCommunitySourceReviewSubmissionRuntimeStatusLabel(
+  status: CommunitySourceReviewSubmissionRuntimeStatus,
+) {
+  if (status === "blocked_unwired") {
+    return "noch nicht verdrahtet";
+  }
+  return "öffentliche API verdrahtet (review-first)";
 }
 
 export function getCommunitySourceReviewDecisionStatusLabel(
