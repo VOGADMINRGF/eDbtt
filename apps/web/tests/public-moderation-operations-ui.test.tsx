@@ -4,8 +4,10 @@ import AdminCommunitySourceReviewSection from "@/app/admin/review/AdminCommunity
 import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
 import {
   createInMemoryCommunitySourceReviewRepository,
+  escalateCommunitySourceReviewHint,
   listCommunitySourceReviewAudits,
   listCommunitySourceReviewRecords,
+  markCommunitySourceReviewHintNeedsSourceReview,
   persistCommunitySourceReviewContributionDraft,
   setCommunitySourceReviewRepositoryForTests,
 } from "@/features/create/communitySourceReviewServer";
@@ -24,20 +26,25 @@ vi.mock("next/navigation", async () => {
 
 afterEach(() => {
   setCommunitySourceReviewRepositoryForTests(null);
+  vi.useRealTimers();
 });
 
-describe("community source review workbench ui", () => {
-  it("renders the operational workbench with status, priority, signals, guardrails and actions", async () => {
+describe("public moderation operations ui", () => {
+  it("renders operations summary, queue, SLA, owner and flags without truth or publish claims", async () => {
     setCommunitySourceReviewRepositoryForTests(
       createInMemoryCommunitySourceReviewRepository(),
     );
 
+    const end = new Date("2026-07-01T12:00:00.000Z");
+    vi.useFakeTimers();
+
+    vi.setSystemTime(new Date(end.getTime() - 2 * 36e5));
     await persistCommunitySourceReviewContributionDraft(
       createCommunitySourceReviewContributionDraft({
-        id: "community-workbench-ui-public-1",
+        id: "public-moderation-ui-public",
         kind: "source_suggestion",
         target: "claim",
-        targetId: "claim-ui-1",
+        targetId: "claim-ui-public",
         claimText: "Neue Quelle zum Claim.",
         text: "Öffentliche Submission mit möglichem Hintergrundbericht.",
         sourceRefs: ["https://beispiel.de/bericht"],
@@ -45,25 +52,31 @@ describe("community source review workbench ui", () => {
           "Öffentlicher Intake: review-first API",
           "Öffentlicher Beteiligungsraum: sichere-schulwege",
         ],
-        relatedContributionCount: 12,
-        moderation: {
-          trustLevel: "high",
-        },
       }),
     );
 
+    vi.setSystemTime(new Date(end.getTime() - 90 * 36e5));
     await persistCommunitySourceReviewContributionDraft(
       createCommunitySourceReviewContributionDraft({
-        id: "community-workbench-ui-restricted-1",
-        kind: "counter_source",
-        target: "factcheck_request",
-        targetId: "factcheck-ui-1",
-        text: "Gegenquelle mit eingeschränktem Trust-Level.",
-        moderation: {
-          trustLevel: "restricted",
-        },
+        id: "public-moderation-ui-escalated",
+        kind: "context_note",
+        target: "handoff_review_item",
+        targetId: "handoff-ui-1",
+        text: "Bitte priorisiert prüfen.",
       }),
     );
+    await markCommunitySourceReviewHintNeedsSourceReview({
+      contributionId: "public-moderation-ui-escalated",
+      actorUserId: "admin-1",
+      reason: "Quellenprüfung zuerst.",
+    });
+    await escalateCommunitySourceReviewHint({
+      contributionId: "public-moderation-ui-escalated",
+      actorUserId: "admin-1",
+      reason: "Operativ eskalieren.",
+    });
+
+    vi.setSystemTime(end);
 
     const records = await listCommunitySourceReviewRecords();
     const audits = await listCommunitySourceReviewAudits({ limit: 80 });
@@ -94,43 +107,26 @@ describe("community source review workbench ui", () => {
       />,
     );
 
-    expect(html).toContain("Community Source Review Workbench");
     expect(html).toContain("Aktive Hinweise");
     expect(html).toContain("Ohne Bearbeiter");
+    expect(html).toContain("Eskaliert");
     expect(html).toContain("Überfällig / Stale");
-    expect(html).toContain("Öffentliche Submission");
-    expect(html).toContain("Community-Review-Beitrag");
+    expect(html).toContain("Quellenprüfung");
+    expect(html).toContain("Redaktionelle Prüfung");
     expect(html).toContain("Queue:");
     expect(html).toContain("SLA:");
     expect(html).toContain("Owner:");
+    expect(html).toContain("Owner State:");
     expect(html).toContain("Public Moderation Operations");
     expect(html).toContain("Betriebsstatus, keine Bewertung der Wahrheit.");
+    expect(html).toContain("SLA dient nur der");
     expect(html).toContain("Eskalation ist kein Beweis.");
-    expect(html).toContain("Status:");
-    expect(html).toContain("Priority:");
-    expect(html).toContain("Duplikat-/Mehrfachsignal");
-    expect(html).toContain("Volumensignal");
-    expect(html).toContain("Trust-Signal");
-    expect(html).toContain("Quellenqualitäts-Signal");
-    expect(html).toContain("Hinweis ist kein verifizierter Fakt.");
-    expect(html).toContain(
-      "Freigabe als Hinweis bedeutet nicht Veröffentlichung als Wahrheit.",
-    );
-    expect(html).toContain(
-      "Trust- und Qualitätswerte dienen nur der Priorisierung.",
-    );
-    expect(html).toContain("Als Hinweis zulassen");
-    expect(html).toContain("Verstecken");
-    expect(html).toContain("Ablehnen");
-    expect(html).toContain("Eskalieren");
-    expect(html).toContain("Quellenprüfung anfordern");
-    expect(html).toContain("Redaktionelle Prüfung anfordern");
-    expect(html).toContain("Priorität setzen");
-    expect(html).toContain("Archivieren");
-    expect(html).toContain("Interne Notiz speichern");
-    expect(html).toContain('disabled=""');
+    expect(html).toContain("Owner nötig");
+    expect(html).toContain("Eskaliert");
+    expect(html).toContain("Letzte Aktivität:");
+    expect(html).toContain("Alter:");
     expect(html).not.toContain("accepted_as_fact");
     expect(html).not.toContain("verified source");
-    expect(html).not.toContain("automatische Widerlegung");
+    expect(html).not.toContain("direkt veröffentlichen");
   });
 });

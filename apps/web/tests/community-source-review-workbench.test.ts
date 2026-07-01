@@ -1,24 +1,28 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCommunitySourceReviewContributionDraft } from "@/features/create/communitySourceReviewContribution";
 import {
   addCommunitySourceReviewInternalNote,
   archiveCommunitySourceReviewItem,
   createInMemoryCommunitySourceReviewRepository,
+  hideCommunitySourceReviewHint,
   listCommunitySourceReviewAudits,
   markCommunitySourceReviewHintNeedsEditorialReview,
   markCommunitySourceReviewHintNeedsSourceReview,
   persistCommunitySourceReviewContributionDraft,
+  rejectCommunitySourceReviewHint,
   setCommunitySourceReviewPriority,
   setCommunitySourceReviewRepositoryForTests,
 } from "@/features/create/communitySourceReviewServer";
 import {
   getCommunitySourceReviewWorkbenchItem,
   listCommunitySourceReviewWorkbenchItems,
+  summarizePublicModerationOperations,
   summarizeCommunitySourceReviewWorkbench,
 } from "@/features/create/communitySourceReviewWorkbench";
 
 afterEach(() => {
   setCommunitySourceReviewRepositoryForTests(null);
+  vi.useRealTimers();
 });
 
 describe("community source review workbench", () => {
@@ -70,6 +74,7 @@ describe("community source review workbench", () => {
     const summary = summarizeCommunitySourceReviewWorkbench({ items });
     expect(summary.total).toBe(2);
     expect(summary.newCount).toBeGreaterThanOrEqual(1);
+    expect(summary.needsOwnerCount).toBe(2);
   });
 
   it("derives signals, priority, source review and editorial routing without turning hints into facts", async () => {
@@ -121,6 +126,12 @@ describe("community source review workbench", () => {
 
     expect(item).not.toBeNull();
     expect(item?.priority).toBe("urgent");
+    expect(item?.queueBucket).toBe("escalated");
+    expect(item?.slaState).toBe("escalated");
+    expect(item?.ownerState).toBe("needs_owner");
+    expect(item?.operationalFlagLabels).toEqual(
+      expect.arrayContaining(["Owner nötig", "Eskaliert", "Urgent Priority"]),
+    );
     expect(item?.signals.map((signal) => signal.kind)).toEqual(
       expect.arrayContaining([
         "duplicate_suspected",
@@ -149,6 +160,211 @@ describe("community source review workbench", () => {
         "source_review_requested",
         "editorial_review_requested",
         "internal_note_added",
+      ]),
+    );
+  });
+
+  it("summarizes active, stale, overdue and owner-needed moderation work without treating it as truth or publication", async () => {
+    setCommunitySourceReviewRepositoryForTests(
+      createInMemoryCommunitySourceReviewRepository(),
+    );
+
+    const end = new Date("2026-07-01T12:00:00.000Z");
+    vi.useFakeTimers();
+
+    vi.setSystemTime(new Date(end.getTime() - 2 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-fresh",
+        kind: "source_suggestion",
+        target: "claim",
+        targetId: "claim-fresh",
+        text: "Frischer Hinweis.",
+      }),
+    );
+
+    vi.setSystemTime(new Date(end.getTime() - 80 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-source-review",
+        kind: "source_suggestion",
+        target: "claim",
+        targetId: "claim-source-review",
+        text: "Bitte Quelle nachziehen.",
+      }),
+    );
+    await markCommunitySourceReviewHintNeedsSourceReview({
+      contributionId: "community-ops-source-review",
+      actorUserId: "admin-1",
+      reason: "Quellenprüfung offen.",
+    });
+
+    vi.setSystemTime(new Date(end.getTime() - 30 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-editorial",
+        kind: "context_note",
+        target: "source_question",
+        targetId: "source-question-editorial",
+        text: "Redaktionell prüfen.",
+      }),
+    );
+    await markCommunitySourceReviewHintNeedsEditorialReview({
+      contributionId: "community-ops-editorial",
+      actorUserId: "admin-1",
+      reason: "Redaktion offen.",
+    });
+
+    vi.setSystemTime(new Date(end.getTime() - 4 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-escalated",
+        kind: "escalation_request",
+        target: "claim",
+        targetId: "claim-escalated",
+        text: "Bitte eskalieren.",
+      }),
+    );
+
+    vi.setSystemTime(new Date(end.getTime() - 90 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-stale",
+        kind: "context_note",
+        target: "handoff_review_item",
+        targetId: "handoff-stale",
+        text: "Alter Hinweis ohne Owner.",
+      }),
+    );
+
+    vi.setSystemTime(new Date(end.getTime() - 140 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-overdue",
+        kind: "counter_source",
+        target: "factcheck_request",
+        targetId: "factcheck-overdue",
+        text: "Sehr alter Hinweis.",
+      }),
+    );
+
+    vi.setSystemTime(new Date(end.getTime() - 12 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-hidden",
+        kind: "source_suggestion",
+        target: "claim",
+        targetId: "claim-hidden",
+        text: "Wird verborgen.",
+      }),
+    );
+    await hideCommunitySourceReviewHint({
+      contributionId: "community-ops-hidden",
+      actorUserId: "admin-1",
+      reason: "Nicht aktiv weiterführen.",
+    });
+
+    vi.setSystemTime(new Date(end.getTime() - 10 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-rejected",
+        kind: "source_suggestion",
+        target: "claim",
+        targetId: "claim-rejected",
+        text: "Wird abgelehnt.",
+      }),
+    );
+    await rejectCommunitySourceReviewHint({
+      contributionId: "community-ops-rejected",
+      actorUserId: "admin-1",
+      reason: "Review-first abgelehnt.",
+    });
+
+    vi.setSystemTime(new Date(end.getTime() - 8 * 36e5));
+    await persistCommunitySourceReviewContributionDraft(
+      createCommunitySourceReviewContributionDraft({
+        id: "community-ops-archived",
+        kind: "lived_experience",
+        target: "factcheck_request",
+        targetId: "factcheck-archived",
+        text: "Archiviert statt gelöscht.",
+      }),
+    );
+    await archiveCommunitySourceReviewItem({
+      contributionId: "community-ops-archived",
+      actorUserId: "admin-1",
+      reason: "Abgeschlossen.",
+    });
+
+    vi.setSystemTime(end);
+
+    const items = await listCommunitySourceReviewWorkbenchItems({
+      includeArchived: true,
+      limit: 20,
+    });
+    const summary = summarizePublicModerationOperations({ items });
+
+    const fresh = items.find((item) => item.id === "community-ops-fresh");
+    const sourceReview = items.find(
+      (item) => item.id === "community-ops-source-review",
+    );
+    const editorial = items.find(
+      (item) => item.id === "community-ops-editorial",
+    );
+    const escalated = items.find(
+      (item) => item.id === "community-ops-escalated",
+    );
+    const stale = items.find((item) => item.id === "community-ops-stale");
+    const overdue = items.find((item) => item.id === "community-ops-overdue");
+    const hidden = items.find((item) => item.id === "community-ops-hidden");
+    const rejected = items.find(
+      (item) => item.id === "community-ops-rejected",
+    );
+    const archived = items.find(
+      (item) => item.id === "community-ops-archived",
+    );
+
+    expect(summary.totalActive).toBe(6);
+    expect(summary.needsOwnerCount).toBe(6);
+    expect(summary.escalatedCount).toBe(1);
+    expect(summary.staleOrOverdueCount).toBe(3);
+    expect(summary.needsSourceReviewCount).toBe(1);
+    expect(summary.needsEditorialReviewCount).toBe(1);
+
+    expect(fresh?.ownerState).toBe("needs_owner");
+    expect(fresh?.slaState).toBe("on_track");
+    expect(fresh?.activeInOperations).toBe(true);
+
+    expect(sourceReview?.queueBucket).toBe("needs_source_review");
+    expect(sourceReview?.slaState).toBe("stale");
+
+    expect(editorial?.queueBucket).toBe("needs_editorial_review");
+    expect(editorial?.slaState).toBe("aging");
+
+    expect(escalated?.queueBucket).toBe("escalated");
+    expect(escalated?.priority).toBe("urgent");
+    expect(escalated?.operationalFlagLabels).toEqual(
+      expect.arrayContaining(["Eskaliert", "Owner nötig"]),
+    );
+
+    expect(stale?.queueBucket).toBe("stale");
+    expect(stale?.slaState).toBe("stale");
+
+    expect(overdue?.queueBucket).toBe("overdue");
+    expect(overdue?.slaState).toBe("overdue");
+
+    expect(hidden?.activeInOperations).toBe(false);
+    expect(hidden?.queueBucket).toBe("blocked_or_rejected");
+    expect(rejected?.activeInOperations).toBe(false);
+    expect(rejected?.queueBucket).toBe("blocked_or_rejected");
+    expect(archived?.activeInOperations).toBe(false);
+    expect(archived?.queueBucket).toBe("archived");
+
+    expect(escalated?.guardrails).toEqual(
+      expect.arrayContaining([
+        "Hinweis ist kein verifizierter Fakt.",
+        "Freigabe als Hinweis bedeutet nicht Veröffentlichung als Wahrheit.",
+        "Keine Aktion schreibt in Graph, Merge oder Entitätserstellung.",
       ]),
     );
   });

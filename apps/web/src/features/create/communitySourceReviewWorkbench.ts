@@ -80,6 +80,63 @@ export const COMMUNITY_SOURCE_REVIEW_WORKBENCH_ACTIONS = [
 export type CommunitySourceReviewWorkbenchAction =
   (typeof COMMUNITY_SOURCE_REVIEW_WORKBENCH_ACTIONS)[number];
 
+export const PUBLIC_MODERATION_QUEUE_BUCKETS = [
+  "new",
+  "queued_for_moderation",
+  "needs_source_review",
+  "needs_editorial_review",
+  "escalated",
+  "overdue",
+  "stale",
+  "blocked_or_rejected",
+  "archived",
+] as const;
+
+export type PublicModerationQueueBucket =
+  (typeof PUBLIC_MODERATION_QUEUE_BUCKETS)[number];
+
+export const PUBLIC_MODERATION_SLA_STATES = [
+  "on_track",
+  "aging",
+  "stale",
+  "overdue",
+  "escalated",
+] as const;
+
+export type PublicModerationSlaState =
+  (typeof PUBLIC_MODERATION_SLA_STATES)[number];
+
+export const PUBLIC_MODERATION_OWNER_STATES = [
+  "unassigned",
+  "assigned",
+  "needs_owner",
+  "system_owned",
+] as const;
+
+export type PublicModerationOwnerState =
+  (typeof PUBLIC_MODERATION_OWNER_STATES)[number];
+
+export const PUBLIC_MODERATION_OPERATIONAL_FLAGS = [
+  "needs_owner",
+  "escalated",
+  "needs_source_review",
+  "needs_editorial_review",
+  "aging",
+  "stale",
+  "overdue",
+  "high_priority",
+  "urgent_priority",
+  "blocked_or_rejected",
+  "archived",
+] as const;
+
+export type PublicModerationOperationalFlag =
+  (typeof PUBLIC_MODERATION_OPERATIONAL_FLAGS)[number];
+
+const PUBLIC_MODERATION_AGING_HOURS = 24;
+const PUBLIC_MODERATION_STALE_HOURS = 72;
+const PUBLIC_MODERATION_OVERDUE_HOURS = 120;
+
 export type CommunitySourceReviewWorkbenchAuditEvent = {
   id: string;
   action: CommunitySourceReviewAuditEntry["action"];
@@ -132,9 +189,32 @@ export type CommunitySourceReviewWorkbenchItem = {
   pendingTooLong: boolean;
   lastUpdatedAt: string;
   priorityOverride: CommunitySourceReviewWorkbenchPriorityOverride | null;
+  queueBucket: PublicModerationQueueBucket;
+  queueBucketLabel: string;
+  slaState: PublicModerationSlaState;
+  slaStateLabel: string;
+  ownerState: PublicModerationOwnerState;
+  ownerStateLabel: string;
+  ownerLabel: string;
+  operationalFlags: PublicModerationOperationalFlag[];
+  operationalFlagLabels: string[];
+  activeInOperations: boolean;
+  lastActivityAt: string;
 };
 
-export type CommunitySourceReviewWorkbenchSummary = {
+export type PublicModerationOperationsSummary = {
+  totalActive: number;
+  newCount: number;
+  needsOwnerCount: number;
+  escalatedCount: number;
+  staleOrOverdueCount: number;
+  needsSourceReviewCount: number;
+  needsEditorialReviewCount: number;
+  blockedOrRejectedCount: number;
+  archivedCount: number;
+};
+
+export type CommunitySourceReviewWorkbenchSummary = PublicModerationOperationsSummary & {
   total: number;
   active: number;
   archived: number;
@@ -293,10 +373,65 @@ function getWorkbenchStatusLabel(
   return "Archiviert";
 }
 
+function getPublicModerationQueueBucketLabel(
+  bucket: PublicModerationQueueBucket,
+): string {
+  if (bucket === "new") return "Neu";
+  if (bucket === "queued_for_moderation") return "Zur Moderation";
+  if (bucket === "needs_source_review") return "Quellenprüfung";
+  if (bucket === "needs_editorial_review") return "Redaktionelle Prüfung";
+  if (bucket === "escalated") return "Eskaliert";
+  if (bucket === "overdue") return "Überfällig";
+  if (bucket === "stale") return "Stale";
+  if (bucket === "blocked_or_rejected") return "Blockiert / Abgelehnt";
+  return "Archiviert";
+}
+
+function getPublicModerationSlaStateLabel(
+  state: PublicModerationSlaState,
+): string {
+  if (state === "on_track") return "Im Bearbeitungsfenster";
+  if (state === "aging") return "Aging";
+  if (state === "stale") return "Stale";
+  if (state === "overdue") return "Überfällig";
+  return "Eskaliert";
+}
+
+function getPublicModerationOwnerStateLabel(
+  state: PublicModerationOwnerState,
+): string {
+  if (state === "assigned") return "Zugewiesen";
+  if (state === "needs_owner") return "Owner nötig";
+  if (state === "system_owned") return "System-owned";
+  return "Nicht zugewiesen";
+}
+
+function getPublicModerationOperationalFlagLabel(
+  flag: PublicModerationOperationalFlag,
+): string {
+  if (flag === "needs_owner") return "Owner nötig";
+  if (flag === "escalated") return "Eskaliert";
+  if (flag === "needs_source_review") return "Quellenprüfung";
+  if (flag === "needs_editorial_review") return "Redaktionelle Prüfung";
+  if (flag === "aging") return "Aging";
+  if (flag === "stale") return "Stale";
+  if (flag === "overdue") return "Überfällig";
+  if (flag === "high_priority") return "High Priority";
+  if (flag === "urgent_priority") return "Urgent Priority";
+  if (flag === "blocked_or_rejected") return "Blockiert / Abgelehnt";
+  return "Archiviert";
+}
+
 function pendingHours(updatedAt: string) {
   const parsed = Date.parse(updatedAt);
   if (!Number.isFinite(parsed)) return 0;
   return Math.max(0, Math.round((Date.now() - parsed) / 36e5));
+}
+
+function isActivePublicModerationStatus(
+  status: CommunitySourceReviewWorkbenchStatus,
+) {
+  return !["hidden", "rejected", "archived"].includes(status);
 }
 
 function derivePriority(
@@ -476,6 +611,261 @@ export function getWorkbenchItemGuardrails(
   return guardrails;
 }
 
+type PublicModerationOperationsInput = {
+  kind: CommunitySourceReviewContribution["kind"];
+  status: CommunitySourceReviewWorkbenchStatus;
+  priority: CommunitySourceReviewWorkbenchPriority;
+  staleHours: number;
+  lastUpdatedAt: string;
+  latestAudit: CommunitySourceReviewWorkbenchAuditEvent | null;
+  ownerUserId?: string | null;
+  ownerAssignedAt?: string | null;
+  ownerAssignmentMode?: "manual" | "system" | null;
+};
+
+type PublicModerationOperationsFields = {
+  queueBucket: PublicModerationQueueBucket;
+  queueBucketLabel: string;
+  slaState: PublicModerationSlaState;
+  slaStateLabel: string;
+  ownerState: PublicModerationOwnerState;
+  ownerStateLabel: string;
+  ownerLabel: string;
+  operationalFlags: PublicModerationOperationalFlag[];
+  operationalFlagLabels: string[];
+  activeInOperations: boolean;
+  lastActivityAt: string;
+};
+
+export function getPublicModerationSlaState(
+  input: Pick<
+    PublicModerationOperationsInput,
+    "kind" | "status" | "staleHours"
+  >,
+): PublicModerationSlaState {
+  if (
+    input.status === "escalated" ||
+    input.kind === "escalation_request"
+  ) {
+    return "escalated";
+  }
+  if (!isActivePublicModerationStatus(input.status)) {
+    return "on_track";
+  }
+  if (input.staleHours >= PUBLIC_MODERATION_OVERDUE_HOURS) {
+    return "overdue";
+  }
+  if (input.staleHours >= PUBLIC_MODERATION_STALE_HOURS) {
+    return "stale";
+  }
+  if (input.staleHours >= PUBLIC_MODERATION_AGING_HOURS) {
+    return "aging";
+  }
+  return "on_track";
+}
+
+export function getPublicModerationQueueBucket(input: Pick<
+  PublicModerationOperationsInput,
+  "kind" | "status"
+> & {
+  slaState: PublicModerationSlaState;
+}): PublicModerationQueueBucket {
+  if (input.status === "archived") return "archived";
+  if (input.status === "hidden" || input.status === "rejected") {
+    return "blocked_or_rejected";
+  }
+  if (
+    input.status === "escalated" ||
+    input.kind === "escalation_request"
+  ) {
+    return "escalated";
+  }
+  if (input.status === "needs_source_review") return "needs_source_review";
+  if (input.status === "needs_editorial_review") {
+    return "needs_editorial_review";
+  }
+  if (input.slaState === "overdue") return "overdue";
+  if (input.slaState === "stale") return "stale";
+  if (input.status === "queued_for_moderation") {
+    return "queued_for_moderation";
+  }
+  return "new";
+}
+
+export function getPublicModerationOwnerState(input: {
+  activeInOperations: boolean;
+  ownerUserId?: string | null;
+  ownerAssignmentMode?: "manual" | "system" | null;
+}): PublicModerationOwnerState {
+  if (input.ownerAssignmentMode === "system") return "system_owned";
+  if (input.ownerUserId) return "assigned";
+  if (input.activeInOperations) return "needs_owner";
+  return "unassigned";
+}
+
+export function getPublicModerationOperationalFlags(input: {
+  activeInOperations: boolean;
+  queueBucket: PublicModerationQueueBucket;
+  slaState: PublicModerationSlaState;
+  ownerState: PublicModerationOwnerState;
+  priority: CommunitySourceReviewWorkbenchPriority;
+}): PublicModerationOperationalFlag[] {
+  const flags: PublicModerationOperationalFlag[] = [];
+
+  if (input.ownerState === "needs_owner") {
+    flags.push("needs_owner");
+  }
+  if (input.queueBucket === "escalated") {
+    flags.push("escalated");
+  }
+  if (input.queueBucket === "needs_source_review") {
+    flags.push("needs_source_review");
+  }
+  if (input.queueBucket === "needs_editorial_review") {
+    flags.push("needs_editorial_review");
+  }
+  if (input.slaState === "aging") {
+    flags.push("aging");
+  }
+  if (input.slaState === "stale") {
+    flags.push("stale");
+  }
+  if (input.slaState === "overdue") {
+    flags.push("overdue");
+  }
+  if (input.priority === "urgent") {
+    flags.push("urgent_priority");
+  } else if (input.priority === "high") {
+    flags.push("high_priority");
+  }
+  if (input.queueBucket === "blocked_or_rejected") {
+    flags.push("blocked_or_rejected");
+  }
+  if (input.queueBucket === "archived") {
+    flags.push("archived");
+  }
+
+  return flags;
+}
+
+export function mapWorkbenchItemToOperationsItem<
+  T extends PublicModerationOperationsInput,
+>(item: T): T & PublicModerationOperationsFields {
+  const activeInOperations = isActivePublicModerationStatus(item.status);
+  const slaState = getPublicModerationSlaState(item);
+  const queueBucket = getPublicModerationQueueBucket({
+    kind: item.kind,
+    status: item.status,
+    slaState,
+  });
+  const ownerState = getPublicModerationOwnerState({
+    activeInOperations,
+    ownerUserId: item.ownerUserId,
+    ownerAssignmentMode: item.ownerAssignmentMode,
+  });
+  const operationalFlags = getPublicModerationOperationalFlags({
+    activeInOperations,
+    queueBucket,
+    slaState,
+    ownerState,
+    priority: item.priority,
+  });
+  const ownerLabel =
+    ownerState === "assigned"
+      ? `Explizit zugewiesen${item.ownerAssignedAt ? ` · ${new Date(item.ownerAssignedAt).toLocaleString("de-DE")}` : ""}`
+      : ownerState === "system_owned"
+        ? "System-/Fallback-Owner im aktuellen Modell."
+        : ownerState === "needs_owner"
+          ? "Keine explizite Zuweisung im aktuellen Workbench-Modell."
+          : "Kein aktiver Owner gesetzt.";
+
+  return {
+    ...item,
+    queueBucket,
+    queueBucketLabel: getPublicModerationQueueBucketLabel(queueBucket),
+    slaState,
+    slaStateLabel: getPublicModerationSlaStateLabel(slaState),
+    ownerState,
+    ownerStateLabel: getPublicModerationOwnerStateLabel(ownerState),
+    ownerLabel,
+    operationalFlags,
+    operationalFlagLabels: operationalFlags.map(
+      getPublicModerationOperationalFlagLabel,
+    ),
+    activeInOperations,
+    lastActivityAt: item.latestAudit?.at ?? item.lastUpdatedAt,
+  };
+}
+
+function queueBucketRank(bucket: PublicModerationQueueBucket) {
+  if (bucket === "escalated") return 0;
+  if (bucket === "overdue") return 1;
+  if (bucket === "stale") return 2;
+  if (bucket === "needs_editorial_review") return 3;
+  if (bucket === "needs_source_review") return 4;
+  if (bucket === "queued_for_moderation") return 5;
+  if (bucket === "new") return 6;
+  if (bucket === "blocked_or_rejected") return 7;
+  return 8;
+}
+
+function priorityRank(priority: CommunitySourceReviewWorkbenchPriority) {
+  if (priority === "urgent") return 0;
+  if (priority === "high") return 1;
+  if (priority === "normal") return 2;
+  return 3;
+}
+
+export function sortPublicModerationQueue<T extends Pick<
+  CommunitySourceReviewWorkbenchItem,
+  "queueBucket" | "priority" | "staleHours" | "activeInOperations" | "lastActivityAt"
+>>(items: readonly T[]) {
+  return [...items].sort((left, right) => {
+    if (left.activeInOperations !== right.activeInOperations) {
+      return left.activeInOperations ? -1 : 1;
+    }
+    const bucketDiff = queueBucketRank(left.queueBucket) - queueBucketRank(right.queueBucket);
+    if (bucketDiff !== 0) return bucketDiff;
+    const priorityDiff = priorityRank(left.priority) - priorityRank(right.priority);
+    if (priorityDiff !== 0) return priorityDiff;
+    if (left.staleHours !== right.staleHours) {
+      return right.staleHours - left.staleHours;
+    }
+    return Date.parse(right.lastActivityAt) - Date.parse(left.lastActivityAt);
+  });
+}
+
+export function summarizePublicModerationOperations(input: {
+  items: readonly Pick<
+    CommunitySourceReviewWorkbenchItem,
+    "activeInOperations" | "queueBucket" | "ownerState" | "slaState"
+  >[];
+}): PublicModerationOperationsSummary {
+  const items = [...input.items];
+  return {
+    totalActive: items.filter((item) => item.activeInOperations).length,
+    newCount: items.filter((item) => item.queueBucket === "new").length,
+    needsOwnerCount: items.filter(
+      (item) => item.activeInOperations && item.ownerState === "needs_owner",
+    ).length,
+    escalatedCount: items.filter((item) => item.queueBucket === "escalated").length,
+    staleOrOverdueCount: items.filter((item) =>
+      item.activeInOperations &&
+      (item.slaState === "stale" || item.slaState === "overdue")
+    ).length,
+    needsSourceReviewCount: items.filter(
+      (item) => item.queueBucket === "needs_source_review",
+    ).length,
+    needsEditorialReviewCount: items.filter(
+      (item) => item.queueBucket === "needs_editorial_review",
+    ).length,
+    blockedOrRejectedCount: items.filter(
+      (item) => item.queueBucket === "blocked_or_rejected",
+    ).length,
+    archivedCount: items.filter((item) => item.queueBucket === "archived").length,
+  };
+}
+
 export function getWorkbenchItemAvailableActions(
   item: Pick<
     CommunitySourceReviewWorkbenchItem,
@@ -542,7 +932,7 @@ function mapRecordToWorkbenchItem(
   const auditTrail = audits.map(createWorkbenchAuditEvent);
   const latestAudit = auditTrail[0] ?? null;
   const staleHours = pendingHours(record.updatedAt);
-  const item: CommunitySourceReviewWorkbenchItem = {
+  const baseItem = {
     id: record.id,
     ...mapPublicOrigin(record),
     kind: record.contribution.kind,
@@ -597,6 +987,13 @@ function mapRecordToWorkbenchItem(
     priorityOverride: record.workbenchPriorityOverride ?? null,
   };
 
+  const item = mapWorkbenchItemToOperationsItem({
+    ...baseItem,
+    ownerUserId: null,
+    ownerAssignedAt: null,
+    ownerAssignmentMode: null,
+  });
+
   item.availableActions = getWorkbenchItemAvailableActions({
     ...item,
     record,
@@ -629,7 +1026,9 @@ export function summarizeCommunitySourceReviewWorkbench(input: {
   items: readonly CommunitySourceReviewWorkbenchItem[];
 }): CommunitySourceReviewWorkbenchSummary {
   const items = [...input.items];
+  const operationsSummary = summarizePublicModerationOperations({ items });
   return {
+    ...operationsSummary,
     total: items.length,
     active: items.filter((item) => item.status !== "archived").length,
     archived: items.filter((item) => item.status === "archived").length,
@@ -676,7 +1075,7 @@ export async function listCommunitySourceReviewWorkbenchItems(input?: {
     })
     .filter((item) => includeArchived || item.status !== "archived");
 
-  return items;
+  return sortPublicModerationQueue(items);
 }
 
 export async function getCommunitySourceReviewWorkbenchItem(
