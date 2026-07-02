@@ -23,8 +23,8 @@ vi.mock("@/features/admin/operatorConsoleReadModel", () => {
 
 import AdminDashboardPage from "@/app/admin/page";
 
-describe("v3 test regression matrix admin page", () => {
-  it("renders the test matrix on /admin without fake test actions", async () => {
+describe("v3 deepsearch cost governance admin page", () => {
+  it("renders the governance section on /admin without adding a new runtime path", async () => {
     mocks.getSessionUser.mockResolvedValue({
       _id: { toHexString: () => "admin-1" },
       sessionValid: true,
@@ -77,20 +77,17 @@ describe("v3 test regression matrix admin page", () => {
 
     const html = renderToStaticMarkup(await AdminDashboardPage());
 
-    expect(html).toContain("V3 Test &amp; Regression Matrix");
-    expect(html).toContain("Testabdeckung ist Voraussetzung für endstate_ready");
-    expect(html).toContain("Kritische Testlücken");
-    expect(html).toContain("External Browser E2E");
-    expect(html).toContain("Programm Candidate Pipeline");
-    expect(html).toContain("Social Output Drafts");
-    expect(html).toContain("Live / Claims Follow-up");
-    expect(html).toContain("Notifications / Incident / Recovery");
-    expect(html).toContain("Pricing / Credit Consumption Truth");
-    expect(html).toContain("DeepSearch / Cost Governance");
-    expect(html).toContain("covered");
-    expect(html).toContain("partially_covered");
+    expect(html).toContain("V3 DeepSearch / Research Cost Governance");
+    expect(html).toContain("Bestehende Cost Gates ehrlich zusammenziehen");
+    expect(html).toContain("Research / DeepSearch Request Gate");
+    expect(html).toContain("Hidden DeepSearch Fallback Block");
+    expect(html).toContain("Material Extraction Cost Gate");
+    expect(html).toContain("AI Usage Threshold Visibility");
+    expect(html).toContain("Export / Social Output Review Gate");
+    expect(html).toContain("Per-run Consumption Truth");
+    expect(html).toContain("missing_runtime_truth");
+    expect(html).toContain("/admin/telemetry/ai/usage");
     expect(html).not.toContain('href="#"');
-    expect(html).not.toContain("Tests jetzt ausführen");
     expect(html).not.toContain("Auto veröffentlichen");
   });
 });
