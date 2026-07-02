@@ -14,6 +14,9 @@ Dieses Dokument ist docs-only, audit-only und roadmap-only. Es baut keine
 Produktlogik, keine Runtime, keine Admin-UI, keine Automatisierung, kein
 Pricing, keine Bildgenerierung und keine DB-Ops.
 
+Der Abgleich gegen den tatsaechlichen Repo-Stand wird ergaenzend in
+`docs/E150/V3_IMPLEMENTATION_REALITY_AUDIT_2026-07-01.md` gefuehrt.
+
 ## 2. Korrigierte V3-Definition
 
 - V1 = Produktivitaet
