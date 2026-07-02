@@ -20,12 +20,23 @@ Das maximale Endziel fuer Live, Claims, Dossier-/Social-Outputs und
 VoiceOpenGov-/programm wird ergaenzend in
 `docs/E150/V3_LIVE_CLAIMS_SOCIAL_PROGRAMM_ENDSTATE_2026-07-02.md`
 kanonisiert.
+Die kanonische Semantik fuer `partially_built`, `operational_basic`,
+`endstate_ready`, `production_ready` und `live` wird ergaenzend in
+`docs/E150/V3_MATURITY_STATUS_DEFINITION_2026-07-02.md` gefuehrt.
 
 ## 2. Korrigierte V3-Definition
 
 - V1 = Produktivitaet
 - V2 = Plattformreife
 - V3 = gefuehrte Betriebs- und Automatisierungsreife
+
+Fuer V3 gilt zusaetzlich:
+
+- `partially_built` ist kein Endstand.
+- Zielstatus fuer eine fachlich geschlossene V3-Capability ist mindestens
+  `endstate_ready`.
+- Nur bewusst markierte Post-V3-Themen duerfen unterhalb von
+  `endstate_ready` verbleiben.
 
 V3 umfasst:
 
@@ -82,6 +93,8 @@ Ergaenzender Endstate:
   als maximales Zielbild gefuehrt.
 - Alle `partially_built`-Capabilities bleiben umzusetzen, bis mindestens
   `endstate_ready` oder bewusst post-V3 entschieden.
+- `partially_built` ist dabei keine Abnahme, sondern reale Basis mit
+  Umsetzungspflicht.
 - Optionale Meeting-Link-Integration fuer Zoom, Teams und Google Meet bleibt
   low-effort und als separater Folgepfad ohne Connector-, Bot-, Recording- oder
   Transkriptionspflicht.
