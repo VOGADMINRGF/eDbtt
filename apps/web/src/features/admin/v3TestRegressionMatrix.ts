@@ -189,14 +189,16 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
         "apps/web/tests/payment-entitlement-after-checkout.contract.test.ts",
         "apps/web/tests/pricing-no-hidden-ai-costs.contract.test.ts",
         "apps/web/tests/admin-pricing-orders.route.test.ts",
+        "apps/web/tests/v3-pricing-credits-readmodel.contract.test.ts",
+        "apps/web/tests/v3-pricing-credits-admin.page.test.tsx",
       ],
       missingTests: [
-        "V3-Credit-Verbrauchswahrheit fuer Research, Assets und Exporte",
-        "Ende-zu-Ende-Regression fuer Pricing -> Entitlement -> Kosten-Gate",
+        "Per-run Verbrauchswahrheit fuer Research, Assets und Exporte",
+        "Ende-zu-Ende-Regression fuer Pricing -> Entitlement -> Kosten-Gate -> Nachaudit",
       ],
       relatedCapabilityIds: ["pricing_credits_limits"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-PRICING-CREDITS-LIMITS-01",
+      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
       guardrailNotes: [
         "Keine versteckten Gebührenläufe",
         "Preis-Tests sind noch keine V3-Credit-Abnahme",
@@ -996,9 +998,9 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       },
       {
         label: "Pricing / Credit Consumption Truth",
-        nextSliceId: "V3-PRICING-CREDITS-LIMITS-01",
+        nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
         reason:
-          "Pricing- und Entitlement-Tests sind breit, aber eine V3-weite Credit- und Verbrauchswahrheit fehlt noch.",
+          "Pricing-, Entitlement- und Cost-Gate-Basis ist jetzt sichtbar, aber eine V3-weite Credit- und Verbrauchswahrheit fehlt noch.",
       },
     ],
   };

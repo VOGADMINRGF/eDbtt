@@ -228,16 +228,16 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
     capability({
       id: "pricing_credits_limits",
       label: "Pricing / Credits / Limits",
-      status: "partially_built",
+      status: "operational_basic",
       currentReality:
-        "Pricing-, Billing- und Entitlement-Bausteine sind real vorhanden und über Orders sowie Freischaltungen sichtbar.",
+        "Pricing-, Billing-, Entitlement- und Cost-Gate-Bausteine sind jetzt als eigener V3-Admin-Slice sichtbar und über Orders, AI Usage sowie Freischaltungen anschlussfähig.",
       openGap:
-        "Es fehlt ein geschlossenes V3-Credit- und Limitmodell für Research, Assets, Exporte und Suggestions.",
+        "Es fehlt weiterhin eine geschlossene V3-Verbrauchswahrheit für Research, Assets, Exporte und Suggestions mit per-run Approval, Abzug und Nachaudit.",
       primaryAdminHref: "/admin/pricing/orders",
       primaryAdminLabel: "Pricing Orders",
-      secondaryHref: "/admin/entitlements",
-      secondaryLabel: "Freischaltungen",
-      nextSliceId: "V3-PRICING-CREDITS-LIMITS-01",
+      secondaryHref: "/admin/telemetry/ai/usage",
+      secondaryLabel: "AI Usage",
+      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
       guardrailNotes: [
         "Keine neue Checkout-Integration",
         "Keine versteckten Gebührenläufe",

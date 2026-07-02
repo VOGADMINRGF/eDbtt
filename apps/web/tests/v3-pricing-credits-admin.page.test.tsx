@@ -23,8 +23,8 @@ vi.mock("@/features/admin/operatorConsoleReadModel", () => {
 
 import AdminDashboardPage from "@/app/admin/page";
 
-describe("v3 control center admin page", () => {
-  it("renders the V3 control center on /admin with honest statuses and real links only", async () => {
+describe("v3 pricing credits admin page", () => {
+  it("renders the pricing, credits and limits slice on /admin without inventing a new runtime", async () => {
     mocks.getSessionUser.mockResolvedValue({
       _id: { toHexString: () => "admin-1" },
       sessionValid: true,
@@ -77,18 +77,14 @@ describe("v3 control center admin page", () => {
 
     const html = renderToStaticMarkup(await AdminDashboardPage());
 
-    expect(html).toContain("V3 Control Center");
-    expect(html).toContain("partially_built ist kein Endstand");
-    expect(html).toContain("Admin Control Center");
-    expect(html).toContain("Live / Claims / Social / Programm");
-    expect(html).toContain("endstate_ready");
-    expect(html).toContain("Nächste empfohlene Schritte");
-    expect(html).toContain("Live / Claims / Social / Programm nicht vergessen");
-    expect(html).toContain("V3 Test &amp; Regression Matrix");
     expect(html).toContain("V3 Pricing / Credits / Limits");
-    expect(html).toContain("/admin/review");
+    expect(html).toContain("Kosten- und Freischaltungswahrheit sichtbar halten");
+    expect(html).toContain("Billing Truth");
+    expect(html).toContain("Research / DeepSearch Cost Gate");
+    expect(html).toContain("Export / Social Draft / Output Gate");
+    expect(html).toContain("Keine versteckten Gebührenläufe");
     expect(html).toContain("/admin/pricing/orders");
-    expect(html).toContain("Noch nicht als Admin-Fläche vorhanden");
+    expect(html).toContain("/admin/telemetry/ai/usage");
     expect(html).not.toContain('href="#"');
     expect(html).not.toContain("Auto veröffentlichen");
     expect(html).not.toContain("Jetzt live posten");

@@ -141,6 +141,8 @@ Wichtige Pricing-/Guardrail-/Ops-Tests:
 - `apps/web/tests/paid-entitlements.contract.test.ts`
 - `apps/web/tests/admin-entitlements.route.test.ts`
 - `apps/web/tests/create-analyze-entitlement-gate.route.test.ts`
+- `apps/web/tests/v3-pricing-credits-readmodel.contract.test.ts`
+- `apps/web/tests/v3-pricing-credits-admin.page.test.tsx`
 - `apps/web/tests/journalism-truth-guardrails.test.ts`
 - `apps/web/tests/topic-graph-runtime.test.ts`
 - `apps/web/tests/topic-graph-admin-approval-ui.test.tsx`
@@ -167,7 +169,7 @@ Wichtige Production-/Workflow-Belege:
 - `V3-LIVE-FORMAT-HOST-COCKPIT-01`
 - `V3-NOTIFICATIONS-REALTIME-MAIL-01`
 - `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
-- `V3-PRICING-CREDITS-LIMITS-01`
+- `V3-DEEPSEARCH-COST-GOVERNANCE-01`
 - `V3-MONITORING-ALERTING-ROLLBACK-01`
 
 Besonders sichtbar offen bleiben:
@@ -177,7 +179,7 @@ Besonders sichtbar offen bleiben:
 - gemeinsame Draft-Kette fuer Social / Output
 - Live-/Claims-/Follow-up-Regressionskette
 - Notification-/Incident-/Recovery-End-to-End-Tests
-- V3-Credit- und Verbrauchswahrheit
+- V3-Credit- und Verbrauchswahrheit trotz jetzt sichtbarer Pricing-/Cost-Gate-Basis
 
 ## Was ausdruecklich nicht gebaut wurde
 
