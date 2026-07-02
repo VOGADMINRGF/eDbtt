@@ -23,8 +23,8 @@ vi.mock("@/features/admin/operatorConsoleReadModel", () => {
 
 import AdminDashboardPage from "@/app/admin/page";
 
-describe("v3 control center admin page", () => {
-  it("renders the V3 control center on /admin with honest statuses and real links only", async () => {
+describe("v3 test regression matrix admin page", () => {
+  it("renders the test matrix on /admin without fake test actions", async () => {
     mocks.getSessionUser.mockResolvedValue({
       _id: { toHexString: () => "admin-1" },
       sessionValid: true,
@@ -77,19 +77,19 @@ describe("v3 control center admin page", () => {
 
     const html = renderToStaticMarkup(await AdminDashboardPage());
 
-    expect(html).toContain("V3 Control Center");
-    expect(html).toContain("partially_built ist kein Endstand");
-    expect(html).toContain("Admin Control Center");
-    expect(html).toContain("Live / Claims / Social / Programm");
-    expect(html).toContain("endstate_ready");
-    expect(html).toContain("Nächste empfohlene Schritte");
-    expect(html).toContain("Live / Claims / Social / Programm nicht vergessen");
     expect(html).toContain("V3 Test &amp; Regression Matrix");
-    expect(html).toContain("/admin/review");
-    expect(html).toContain("/admin/pricing/orders");
-    expect(html).toContain("Noch nicht als Admin-Fläche vorhanden");
+    expect(html).toContain("Testabdeckung ist Voraussetzung für endstate_ready");
+    expect(html).toContain("Kritische Testlücken");
+    expect(html).toContain("External Browser E2E");
+    expect(html).toContain("Programm Candidate Pipeline");
+    expect(html).toContain("Social Output Drafts");
+    expect(html).toContain("Live / Claims Follow-up");
+    expect(html).toContain("Notifications / Incident / Recovery");
+    expect(html).toContain("Pricing / Credit Consumption Truth");
+    expect(html).toContain("covered");
+    expect(html).toContain("partially_covered");
     expect(html).not.toContain('href="#"');
+    expect(html).not.toContain("Tests jetzt ausführen");
     expect(html).not.toContain("Auto veröffentlichen");
-    expect(html).not.toContain("Jetzt live posten");
   });
 });
