@@ -14,7 +14,8 @@
   VoiceOpenGov-/programm wird ergaenzend in
   `docs/E150/V3_LIVE_CLAIMS_SOCIAL_PROGRAMM_ENDSTATE_2026-07-02.md` gefuehrt.
   Sie aendert die Reality-Klassifikation nicht: `partially_built` bleibt keine
-  Abnahme.
+  Abnahme. Die Klassifikation `partially_built` bedeutet: Basis vorhanden,
+  V3-Endziel offen.
 
 ## 2. Methodik
 
@@ -27,6 +28,9 @@
 - `built` bedeutet in diesem Audit nur: end-to-end geschlossen ueber Admin,
   Runtime, Tests und sichtbare Guardrails. Dieser Zustand liegt fuer keinen
   V3-Block vor.
+- `partially_built` bedeutet in diesem Audit nie `done`, sondern reale Basis
+  plus offenen Folgepfad bis mindestens `endstate_ready` oder bewusste
+  Post-V3-Entscheidung.
 
 ## 3. Capability Audit
 

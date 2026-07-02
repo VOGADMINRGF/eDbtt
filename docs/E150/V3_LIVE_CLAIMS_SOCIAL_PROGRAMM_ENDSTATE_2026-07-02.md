@@ -21,6 +21,10 @@ geschlossen:
 - VoiceOpenGov nur mit vorhandenen Mandat-/Register-/Membership-Grundlagen,
   aber ohne fertige `/programm`-Runtime
 
+Diese vorhandene Basis reicht als V3-Endstand nicht aus: ein
+`partially_built`-Unterbau ersetzt weder `endstate_ready` noch spaetere
+Admin-, Test-, Handout- und Betriebsparitaet.
+
 Nicht Ziel dieses Slices:
 
 - kein Auto-Publish
