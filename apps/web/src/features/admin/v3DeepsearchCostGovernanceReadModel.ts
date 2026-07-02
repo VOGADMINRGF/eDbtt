@@ -84,7 +84,7 @@ export type V3DeepsearchCostGovernanceReadModel = {
   }>;
 };
 
-const FOLLOW_UP_SLICE_ID = "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02";
+const FOLLOW_UP_SLICE_ID = "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03";
 
 const GLOBAL_GUARDRAILS = [
   "Kein Auto-Publish",
@@ -310,20 +310,23 @@ export function buildV3DeepsearchCostGovernanceReadModel(): V3DeepsearchCostGove
       label: "Per-run Consumption Truth",
       status: "missing_runtime_truth",
       currentReality:
-        "Es gibt noch keine gemeinsame per-run Verbrauchswahrheit über Research, Material Extraction, AI Usage und Export.",
+        "Die bestehende Operator-Konsole zeigt jetzt eine kanonische per-run/per-job/per-operation Sicht über estimated_cost, recorded_usage, credit_debit, review_required, blocked_by_limit und missing_runtime_truth.",
       whyThisStatus:
-        "Der aktuell kleinste ehrliche Gap ist kein fehlender Gate-Button, sondern die fehlende debitierbare Laufwahrheit mit Approval, Limit-Stand und Nachaudit.",
+        "Die Sichtbarkeit ist hergestellt, aber die eigentliche Runtime-Verknüpfung zwischen Job/Run, recorded_usage und echtem Debit fehlt weiter.",
       existingGates: [
-        "Bestehende Gates entscheiden Zugang, nicht Debit-Wahrheit",
-        "AI Usage zeigt operative Warnsignale, aber keinen per-run Credit-Abzug",
+        "Eigene V3-Consumption-Truth-Sicht auf /admin",
+        "AI Usage zeigt recorded_usage, aber ohne fachliche Run-/Job-Kopplung",
         "Packages zeigen Credits, aber keine laufzeitgebundene Verbrauchsledger-Wahrheit",
       ],
       repoEvidence: [
+        "apps/web/src/features/admin/v3DeepsearchConsumptionTruthReadModel.ts",
         "apps/web/src/features/admin/v3PricingCreditsReadModel.ts",
         "apps/web/src/lib/server/entitlements/createEntitlements.ts",
         "apps/web/src/app/api/admin/telemetry/ai/usage/route.ts",
       ],
       tests: [
+        "apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts",
+        "apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx",
         "apps/web/tests/v3-pricing-credits-readmodel.contract.test.ts",
         "apps/web/tests/pricing-no-hidden-ai-costs.contract.test.ts",
         "apps/web/tests/admin-ai-usage.route.test.ts",
@@ -333,7 +336,7 @@ export function buildV3DeepsearchCostGovernanceReadModel(): V3DeepsearchCostGove
       nextSliceId: FOLLOW_UP_SLICE_ID,
       guardrails: [
         "Keine erfundene Verbrauchsabrechnung",
-        "Keine falsche Limit- oder Billing-Behauptung",
+        "Keine Verwechslung von Gate-Status mit echtem Debit",
       ],
     },
   ];
@@ -362,7 +365,7 @@ export function buildV3DeepsearchCostGovernanceReadModel(): V3DeepsearchCostGove
         label: "Per-run Consumption Truth",
         nextSliceId: FOLLOW_UP_SLICE_ID,
         reason:
-          "Approval-, Debit-, Limit- und Nachaudit-Wahrheit fehlt weiterhin über Research, Material, AI Usage und Export.",
+          "Approval-, Debit-, Limit- und Nachaudit-Wahrheit ist jetzt sichtbar kartiert, fehlt aber weiterhin als durchgehende Runtime-Verknüpfung.",
       },
       {
         label: "Operator Approval and Audit Trail",

@@ -93,6 +93,8 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/v3-control-center-admin.page.test.tsx`
 - `apps/web/tests/v3-deepsearch-cost-governance-readmodel.contract.test.ts`
 - `apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx`
+- `apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts`
+- `apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx`
 - `apps/web/tests/v3-handoff-linkage-map.contract.test.ts`
 - `apps/web/tests/v3-handoff-linkage-admin.page.test.tsx`
 - `apps/web/tests/v3-test-regression-matrix.contract.test.ts`
@@ -172,7 +174,7 @@ Wichtige Production-/Workflow-Belege:
 - `V3-LIVE-FORMAT-HOST-COCKPIT-01`
 - `V3-NOTIFICATIONS-REALTIME-MAIL-01`
 - `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
-- `V3-DEEPSEARCH-CONSUMPTION-TRUTH-02`
+- `V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03`
 - `V3-MONITORING-ALERTING-ROLLBACK-01`
 
 Besonders sichtbar offen bleiben:
@@ -182,7 +184,7 @@ Besonders sichtbar offen bleiben:
 - gemeinsame Draft-Kette fuer Social / Output
 - Live-/Claims-/Follow-up-Regressionskette
 - Notification-/Incident-/Recovery-End-to-End-Tests
-- per-run Verbrauchswahrheit trotz jetzt sichtbarer DeepSearch-/Pricing-/Cost-Gate-Basis
+- echte Runtime-Verknuepfung zwischen Run/Job, recorded usage und Debit trotz jetzt sichtbarer Consumption-Truth-Basis
 
 ## Was ausdruecklich nicht gebaut wurde
 

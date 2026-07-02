@@ -39,6 +39,12 @@ import {
   type V3DeepsearchCostGovernanceReadModel,
   type V3DeepsearchCostGovernanceStatus,
 } from "@/features/admin/v3DeepsearchCostGovernanceReadModel";
+import {
+  buildV3DeepsearchConsumptionTruthReadModel,
+  type V3DeepsearchConsumptionFieldStatus,
+  type V3DeepsearchConsumptionTruthOperation,
+  type V3DeepsearchConsumptionTruthReadModel,
+} from "@/features/admin/v3DeepsearchConsumptionTruthReadModel";
 
 export const metadata = {
   title: "Admin Dashboard · eDebatte",
@@ -346,6 +352,53 @@ function v3DeepsearchCostStatusLabel(status: V3DeepsearchCostGovernanceStatus) {
     case "missing_runtime_truth":
     default:
       return "missing_runtime_truth";
+  }
+}
+
+function v3ConsumptionTruthStatusTone(status: V3DeepsearchConsumptionFieldStatus) {
+  switch (status) {
+    case "recorded_usage":
+    case "credit_debit":
+    case "resolved_for_scope":
+      return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    case "estimated_only":
+      return "border-sky-300 bg-sky-50 text-sky-900";
+    case "review_required":
+    case "blocked_by_limit":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    case "missing_runtime_truth":
+      return "border-rose-300 bg-rose-50 text-rose-900";
+    case "not_required":
+    case "not_blocked":
+    case "not_applicable":
+    default:
+      return "border-[rgb(var(--border))] bg-white text-[rgb(var(--muted))]";
+  }
+}
+
+function v3ConsumptionTruthStatusLabel(status: V3DeepsearchConsumptionFieldStatus) {
+  switch (status) {
+    case "estimated_only":
+      return "estimated_only";
+    case "recorded_usage":
+      return "recorded_usage";
+    case "credit_debit":
+      return "credit_debit";
+    case "review_required":
+      return "review_required";
+    case "not_required":
+      return "not_required";
+    case "blocked_by_limit":
+      return "blocked_by_limit";
+    case "not_blocked":
+      return "not_blocked";
+    case "missing_runtime_truth":
+      return "missing_runtime_truth";
+    case "resolved_for_scope":
+      return "resolved_for_scope";
+    case "not_applicable":
+    default:
+      return "not_applicable";
   }
 }
 
@@ -1322,6 +1375,260 @@ function V3DeepsearchCostGovernanceSection({
   );
 }
 
+function V3ConsumptionTruthFieldCard({
+  label,
+  status,
+  detail,
+}: {
+  label: string;
+  status: V3DeepsearchConsumptionFieldStatus;
+  detail: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{label}</p>
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${v3ConsumptionTruthStatusTone(status)}`}
+        >
+          {v3ConsumptionTruthStatusLabel(status)}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{detail}</p>
+    </article>
+  );
+}
+
+function V3DeepsearchConsumptionTruthCard({
+  operation,
+}: {
+  operation: V3DeepsearchConsumptionTruthOperation;
+}) {
+  return (
+    <article className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {operation.label}
+          </p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {operation.runtimeRecord}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{operation.currentReality}</p>
+        </div>
+        <span className="inline-flex rounded-full border border-violet-300 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900">
+          {operation.operationalTruth}
+        </span>
+      </div>
+
+      <section className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Korrelation
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {operation.correlationKeys.map((entry) => (
+            <span
+              key={`${operation.id}:correlation:${entry}`}
+              className="rounded-full border border-[rgb(var(--border))] bg-white px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
+            >
+              {entry}
+            </span>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">{operation.correlationTruth}</p>
+      </section>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <V3ConsumptionTruthFieldCard
+          label="Estimated Cost"
+          status={operation.estimatedCost.status}
+          detail={operation.estimatedCost.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="Recorded Usage"
+          status={operation.recordedUsage.status}
+          detail={operation.recordedUsage.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="Credit / Debit"
+          status={operation.creditDebit.status}
+          detail={operation.creditDebit.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="Review Required"
+          status={operation.reviewRequired.status}
+          detail={operation.reviewRequired.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="Blocked By Limit"
+          status={operation.blockedByLimit.status}
+          detail={operation.blockedByLimit.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="Runtime Truth"
+          status={operation.missingRuntimeTruth.status}
+          detail={operation.missingRuntimeTruth.detail}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Bestehende Gates
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {operation.existingGates.map((entry) => (
+              <li
+                key={`${operation.id}:gate:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Nächster Slice
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{operation.nextSliceId}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Diese Sicht markiert den Wahrheitsgrad ehrlich, ohne neue Debit- oder Billing-Logik zu erfinden.
+          </p>
+        </section>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Repo-Belege
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {operation.repoEvidence.map((entry) => (
+              <li
+                key={`${operation.id}:evidence:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2 break-all"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Tests</p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {operation.tests.map((entry) => (
+              <li
+                key={`${operation.id}:test:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2 break-all"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {operation.adminHref ? <CapabilityLink href={operation.adminHref} label="Admin-Fläche" /> : null}
+        {operation.publicHref ? <CapabilityLink href={operation.publicHref} label="Öffentliche Fläche" /> : null}
+      </div>
+    </article>
+  );
+}
+
+function V3DeepsearchConsumptionTruthSection({
+  readModel,
+}: {
+  readModel: V3DeepsearchConsumptionTruthReadModel;
+}) {
+  const summaryCards = [
+    { label: "Operationen", value: readModel.summary.totalOperations },
+    { label: "estimated_only", value: readModel.summary.estimatedOnlyOperations },
+    { label: "recorded_usage", value: readModel.summary.recordedUsageOperations },
+    { label: "credit_debit", value: readModel.summary.creditDebitOperations },
+    { label: "review_required", value: readModel.summary.reviewRequiredOperations },
+    { label: "blocked_by_limit", value: readModel.summary.blockedByLimitOperations },
+    { label: "missing_runtime_truth", value: readModel.summary.missingRuntimeTruthOperations },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            V3 DeepSearch / Consumption Truth
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+            Verbrauchswahrheit pro Run, Job und Operation ehrlich markieren
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            Diese Sicht verbindet keine neuen Runtime-Systeme. Sie zeigt nur, welche bestehenden Operationspfade heute
+            bereits estimated_cost, recorded_usage, review_required oder blocked_by_limit liefern und wo weiterhin
+            missing_runtime_truth bleibt.
+          </p>
+        </div>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          operational_basic: ehrliche Lesart, keine erfundene Abbuchung
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-4">
+        {summaryCards.map((card) => (
+          <V3SummaryCard key={card.label} label={card.label} value={card.value} />
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {readModel.guardrails.map((note) => (
+          <span
+            key={note}
+            className="rounded-full border border-[rgb(var(--border))] bg-white px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))]"
+          >
+            {note}
+          </span>
+        ))}
+        {readModel.semantics.map((status) => (
+          <span
+            key={status}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${v3ConsumptionTruthStatusTone(status)}`}
+          >
+            Status: {v3ConsumptionTruthStatusLabel(status)}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        {readModel.operations.map((operation) => (
+          <V3DeepsearchConsumptionTruthCard key={operation.id} operation={operation} />
+        ))}
+      </div>
+
+      <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Offene Wahrheiten
+        </p>
+        <div className="mt-3 grid gap-3 xl:grid-cols-3">
+          {readModel.openTruths.map((entry) => (
+            <article
+              key={`${entry.nextSliceId}:${entry.label}`}
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+            >
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{entry.label}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                {entry.nextSliceId}
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{entry.reason}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage() {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
@@ -1338,6 +1645,7 @@ export default async function AdminDashboardPage() {
     v3ControlCenter,
     v3PricingCredits,
     v3DeepsearchCostGovernance,
+    v3DeepsearchConsumptionTruth,
     v3HandoffLinkageMap,
     v3TestRegressionMatrix,
   ] = await Promise.all([
@@ -1345,6 +1653,7 @@ export default async function AdminDashboardPage() {
     Promise.resolve(buildV3ControlCenterReadModel()),
     Promise.resolve(buildV3PricingCreditsReadModel()),
     Promise.resolve(buildV3DeepsearchCostGovernanceReadModel()),
+    Promise.resolve(buildV3DeepsearchConsumptionTruthReadModel()),
     Promise.resolve(buildV3HandoffLinkageMap()),
     Promise.resolve(buildV3TestRegressionMatrix()),
   ]);
@@ -1378,6 +1687,8 @@ export default async function AdminDashboardPage() {
       <V3PricingCreditsSection readModel={v3PricingCredits} />
 
       <V3DeepsearchCostGovernanceSection readModel={v3DeepsearchCostGovernance} />
+
+      <V3DeepsearchConsumptionTruthSection readModel={v3DeepsearchConsumptionTruth} />
 
       <V3HandoffLinkageSection readModel={v3HandoffLinkageMap} />
 

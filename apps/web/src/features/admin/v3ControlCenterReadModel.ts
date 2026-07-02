@@ -212,12 +212,12 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       currentReality:
         "Die bestehende Operator-Konsole zeigt jetzt eine kanonische V3-Sicht über Research-, Material-, AI-Usage- und Export-Cost-Gates samt ehrlichen Statusgrenzen.",
       openGap:
-        "Es fehlt weiterhin eine per-run Verbrauchs-, Approval- und Nachaudit-Wahrheit statt nur sichtbarer Gate- und Warnlogik.",
+        "Die per-run/per-job Consumption-Truth-Sicht ist jetzt vorhanden, aber die echte Runtime-Verknüpfung zu recorded_usage, Credit-/Debit und Nachaudit fehlt weiterhin.",
       primaryAdminHref: "/admin",
       primaryAdminLabel: "Control Center",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Keine hidden DeepSearch",
         "Keine hidden Cost Paths",
@@ -233,12 +233,12 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       currentReality:
         "Pricing-, Billing-, Entitlement- und Cost-Gate-Bausteine sind jetzt als eigener V3-Admin-Slice sichtbar und über Orders, AI Usage sowie Freischaltungen anschlussfähig.",
       openGap:
-        "Es fehlt weiterhin eine geschlossene V3-Verbrauchswahrheit für Research, Assets, Exporte und Suggestions mit per-run Approval, Abzug und Nachaudit.",
+        "Pricing-, Credits- und Consumption-Truth sind sichtbar; offen bleibt die echte Runtime-Verknüpfung für per-run Approval, Abzug und Nachaudit.",
       primaryAdminHref: "/admin/pricing/orders",
       primaryAdminLabel: "Pricing Orders",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Keine neue Checkout-Integration",
         "Keine versteckten Gebührenläufe",

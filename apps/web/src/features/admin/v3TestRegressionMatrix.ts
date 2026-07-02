@@ -192,14 +192,15 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
         "apps/web/tests/admin-pricing-orders.route.test.ts",
         "apps/web/tests/v3-pricing-credits-readmodel.contract.test.ts",
         "apps/web/tests/v3-pricing-credits-admin.page.test.tsx",
+        "apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts",
       ],
       missingTests: [
-        "Per-run Verbrauchswahrheit fuer Research, Assets und Exporte",
-        "Ende-zu-Ende-Regression fuer Pricing -> Entitlement -> Kosten-Gate -> Nachaudit",
+        "Runtime-Verknuepfung zwischen Pricing-/Entitlement-Gates und echtem per-run Debit",
+        "Ende-zu-Ende-Regression fuer Pricing -> Entitlement -> Usage -> Debit -> Nachaudit",
       ],
       relatedCapabilityIds: ["pricing_credits_limits"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Keine versteckten Gebührenläufe",
         "Preis-Tests sind noch keine V3-Credit-Abnahme",
@@ -214,6 +215,8 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       knownTests: [
         "apps/web/tests/v3-deepsearch-cost-governance-readmodel.contract.test.ts",
         "apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx",
+        "apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts",
+        "apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx",
         "apps/web/tests/create-analyze-entitlement-gate.route.test.ts",
         "apps/web/tests/factcheck-enqueue.auth.route.test.ts",
         "apps/web/tests/material-extraction-cost-guardrail.contract.test.ts",
@@ -221,12 +224,12 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
         "apps/web/tests/ai-usage-operational-signals.contract.test.ts",
       ],
       missingTests: [
-        "Per-run Verbrauchswahrheit fuer Research, Material, AI Usage und Export",
-        "Ende-zu-Ende-Regression fuer Approval -> Lauf -> Nachaudit ohne neue Billing-Fiktion",
+        "Echte Runtime-Verknuepfung zwischen Run/Job und recorded_usage ueber Research, Material, AI Usage und Export",
+        "Ende-zu-Ende-Regression fuer Approval -> Lauf -> Debit/Nachaudit ohne neue Billing-Fiktion",
       ],
       relatedCapabilityIds: ["deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Sichtbare Gates sind noch keine Debit-Wahrheit",
         "Keine unkontrollierte Deep-Research-Automation",
@@ -864,7 +867,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["deepsearch_cost_governance", "prompt_based_low_ops"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -884,7 +887,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["pricing_credits_limits", "deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -1026,9 +1029,9 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       },
       {
         label: "Pricing / Credit Consumption Truth",
-        nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
         reason:
-          "Pricing-, Entitlement- und Cost-Gate-Basis ist jetzt sichtbar, aber eine V3-weite Credit- und Verbrauchswahrheit fehlt noch.",
+          "Pricing-, Entitlement- und Consumption-Truth-Basis ist jetzt sichtbar, aber die echte Runtime-Verknuepfung zu Usage und Debit fehlt noch.",
       },
     ],
   };
