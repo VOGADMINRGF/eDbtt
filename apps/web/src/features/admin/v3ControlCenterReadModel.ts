@@ -139,7 +139,7 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       primaryAdminLabel: "Diese Übersicht",
       secondaryHref: "/admin/review",
       secondaryLabel: "Review Queue",
-      nextSliceId: "V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01",
+      nextSliceId: "V3-TEST-RESULTS-REGRESSION-MATRIX-01",
       guardrailNotes: [
         "Keine zweite Admin-Welt",
         "Keine Fake-Actions",
@@ -167,17 +167,18 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
     capability({
       id: "handoff_integrity",
       label: "Handoff Integrity / Linkage Map",
-      status: "partially_built",
+      status: "operational_basic",
       currentReality:
-        "Review-, Runtime-, Publish- und Activation-Pfade existieren über /admin/review und Runtime-Creation-Routen bereits real.",
+        "Das V3 Control Center zeigt jetzt eine ehrliche Handoff Integrity & Linkage Map über Create, Review, Runtime, Publish, Public, QR, Social, Programm und Live-Folgepfade.",
       openGap:
-        "Es fehlt eine gemeinsame Integritätskarte mit Fehlermodi, Handoff-Drift und klarer Admin-Sicht über die gesamte Kette.",
-      primaryAdminHref: "/admin/review",
-      primaryAdminLabel: "Review Queue",
-      secondaryHref: "/admin/create/attach-drafts/history-maintenance",
-      secondaryLabel: "History Maintenance",
-      nextSliceId: "V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01",
+        "Die Sichtbasis steht, aber die einzelnen Zielpfade bleiben offen, bis Claim-, Publish-, QR-, Social-, Live- und Programm-Folgen jeweils mindestens endstate_ready erreichen.",
+      primaryAdminHref: "/admin",
+      primaryAdminLabel: "Control Center",
+      secondaryHref: "/admin/review",
+      secondaryLabel: "Review Queue",
+      nextSliceId: "V3-CLAIM-TO-DOSSIER-PIPELINE-01",
       guardrailNotes: [
+        "Linkage ist Sichtbarkeit, keine Wahrheit",
         "Keine automatische Runtime-Erstellung",
         "Keine automatische Veröffentlichung",
       ],
@@ -494,28 +495,34 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
     guardrails: [...GLOBAL_GUARDRAILS],
     nextRecommendedSteps: [
       {
-        sliceId: "V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01",
-        label: "Handoff Integrity / Linkage Map",
-        reason: "Die Kette zwischen Review, Runtime, Publish und Public muss zuerst transparent und belastbar werden.",
+        sliceId: "V3-CLAIM-TO-DOSSIER-PIPELINE-01",
+        label: "Claim-to-Dossier Pipeline",
+        reason: "Die sichtbare Handoff-Kette muss als nächstes Claims, Quellen, Dossier-Follow-up und Programmkandidaten sauber zusammenziehen.",
         priority: 100,
       },
       {
         sliceId: "V3-TEST-RESULTS-REGRESSION-MATRIX-01",
         label: "Test Results / Regression Matrix",
         reason: "Die V3-Reife braucht eine sichtbare Coverage- und Gap-Landkarte statt impliziter Testannahmen.",
-        priority: 92,
+        priority: 94,
+      },
+      {
+        sliceId: "V3-QR-SHARING-PUBLIC-ENTRY-01",
+        label: "QR / Sharing / Public Entry",
+        reason: "QR-, Sharing- und Public-Entry-Integrität muss auf die sichtbare Linkage Map folgen.",
+        priority: 90,
+      },
+      {
+        sliceId: "V3-DOSSIER-SOCIAL-OUTPUT-DRAFTS-01",
+        label: "Dossier / Social / Output Drafts",
+        reason: "Dossier-, Round- und Themen-Folgen brauchen eine sichtbare Draft- und Freigabekette ohne Auto-Publish.",
+        priority: 86,
       },
       {
         sliceId: "V3-VOXY-GUIDED-EXPERIENCE-01",
         label: "Voxy Guided Experience",
         reason: "Voxy ist real vorhanden, muss aber über Admin, Review, Publish und Public konsistent geführt werden.",
-        priority: 84,
-      },
-      {
-        sliceId: "V3-PRICING-CREDITS-LIMITS-01",
-        label: "Pricing / Credits / Limits",
-        reason: "Cost-Gates und Credits müssen sichtbar werden, bevor spätere V3-Automation als reif gelten kann.",
-        priority: 80,
+        priority: 82,
       },
     ],
     liveClaimsReminder: {
