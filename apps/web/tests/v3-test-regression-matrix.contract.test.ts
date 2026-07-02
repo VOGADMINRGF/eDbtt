@@ -25,6 +25,7 @@ describe("v3 test regression matrix contract", () => {
   it("keeps missing and docs-only items blocking endstate_ready and surfaces core gaps", () => {
     const readModel = buildV3TestRegressionMatrix();
     const noAutoPublish = readModel.items.find((entry) => entry.id === "no_auto_publish");
+    const deepsearch = readModel.items.find((entry) => entry.id === "deepsearch_cost_governance");
     const noHiddenCosts = readModel.items.find((entry) => entry.id === "no_hidden_cost_paths");
     const noFakeActions = readModel.items.find((entry) => entry.id === "no_fake_actions");
     const externalBrowser = readModel.items.find((entry) => entry.id === "external_browser_e2e");
@@ -38,6 +39,10 @@ describe("v3 test regression matrix contract", () => {
     }
 
     expect(noAutoPublish).toMatchObject({ coverageStatus: "covered" });
+    expect(deepsearch).toMatchObject({
+      coverageStatus: "partially_covered",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+    });
     expect(noHiddenCosts).toMatchObject({ coverageStatus: "covered" });
     expect(noFakeActions).toMatchObject({ coverageStatus: "covered" });
     expect(externalBrowser?.coverageStatus).not.toBe("covered");

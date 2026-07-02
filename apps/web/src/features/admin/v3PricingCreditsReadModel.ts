@@ -207,7 +207,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Es fehlt weiterhin eine durchgehende V3-Verbrauchswahrheit pro Research-, Asset- und Export-Lauf jenseits des Vertrags- und Checkout-Scopes.",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrails: [
         "Kein Auto-Billing fuer Review-, Publish- oder Truth-Status",
         "Fixture- und pending-Checkout bleiben keine Produktionswahrheit",
@@ -262,7 +262,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Es fehlt ein expliziter V3-Approval- und Verbrauchspfad pro Research-Lauf mit sichtbarer Budgetabbuchung und Nachaudit.",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrails: [
         "Keine hidden DeepSearch",
         "Kein Premium-Research als Standard-Analyze-Fallback",
@@ -286,7 +286,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Es fehlt eine gemeinsame V3-Kostenkarte, die Material-, Research- und Asset-Freigaben unter einer Verbrauchswahrheit zusammenzieht.",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrails: [
         "Keine Extraktion ohne Kostenfreigabe",
         "Kein Auto-Publish aus Material-Jobs",
@@ -356,8 +356,9 @@ export function buildV3PricingCreditsReadModel(input?: {
     nextGaps: [
       {
         label: "DeepSearch / per-run cost governance",
-        nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
-        reason: "Research- und Material-Freigaben sind gated, aber noch nicht als durchgehende Verbrauchswahrheit mit Approval und Nachaudit geschlossen.",
+        nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        reason:
+          "Research- und Material-Freigaben sind jetzt sichtbar gebuendelt, aber noch nicht als durchgehende Verbrauchswahrheit mit Approval und Nachaudit geschlossen.",
       },
       {
         label: "Dossier / Social / Output drafts",

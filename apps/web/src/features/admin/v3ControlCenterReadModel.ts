@@ -208,19 +208,20 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
     capability({
       id: "deepsearch_cost_governance",
       label: "DeepSearch / Cost Governance",
-      status: "partially_built",
+      status: "operational_basic",
       currentReality:
-        "Provider-, Entitlement- und Usage-Gates sind real vorhanden und über AI-Telemetry sichtbar.",
+        "Die bestehende Operator-Konsole zeigt jetzt eine kanonische V3-Sicht über Research-, Material-, AI-Usage- und Export-Cost-Gates samt ehrlichen Statusgrenzen.",
       openGap:
-        "Es fehlt ein end-to-end Budget-, Approval- und Auditpfad pro Research-Lauf.",
-      primaryAdminHref: "/admin/telemetry/ai/usage",
-      primaryAdminLabel: "AI Usage",
-      secondaryHref: "/admin/telemetry/ai/orchestrator",
-      secondaryLabel: "AI Orchestrator",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+        "Es fehlt weiterhin eine per-run Verbrauchs-, Approval- und Nachaudit-Wahrheit statt nur sichtbarer Gate- und Warnlogik.",
+      primaryAdminHref: "/admin",
+      primaryAdminLabel: "Control Center",
+      secondaryHref: "/admin/telemetry/ai/usage",
+      secondaryLabel: "AI Usage",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrailNotes: [
         "Keine hidden DeepSearch",
         "Keine hidden Cost Paths",
+        "Keine erfundene Debit-Wahrheit",
       ],
       isBlocked: false,
       sortPriority: 70,
@@ -237,7 +238,7 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       primaryAdminLabel: "Pricing Orders",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrailNotes: [
         "Keine neue Checkout-Integration",
         "Keine versteckten Gebührenläufe",

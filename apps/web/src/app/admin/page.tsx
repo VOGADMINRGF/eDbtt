@@ -33,6 +33,12 @@ import {
   type V3PricingGateStatus,
   type V3PricingPackageFamily,
 } from "@/features/admin/v3PricingCreditsReadModel";
+import {
+  buildV3DeepsearchCostGovernanceReadModel,
+  type V3DeepsearchCostGovernanceCheck,
+  type V3DeepsearchCostGovernanceReadModel,
+  type V3DeepsearchCostGovernanceStatus,
+} from "@/features/admin/v3DeepsearchCostGovernanceReadModel";
 
 export const metadata = {
   title: "Admin Dashboard · eDebatte",
@@ -308,6 +314,38 @@ function v3PricingGateLabel(status: V3PricingGateStatus) {
       return "partially_wired";
     default:
       return status;
+  }
+}
+
+function v3DeepsearchCostStatusTone(status: V3DeepsearchCostGovernanceStatus) {
+  switch (status) {
+    case "allowed":
+      return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    case "blocked":
+      return "border-rose-300 bg-rose-50 text-rose-900";
+    case "review_required":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    case "limit_reached":
+      return "border-orange-300 bg-orange-50 text-orange-900";
+    case "missing_runtime_truth":
+    default:
+      return "border-slate-300 bg-slate-100 text-slate-800";
+  }
+}
+
+function v3DeepsearchCostStatusLabel(status: V3DeepsearchCostGovernanceStatus) {
+  switch (status) {
+    case "allowed":
+      return "allowed";
+    case "blocked":
+      return "blocked";
+    case "review_required":
+      return "review_required";
+    case "limit_reached":
+      return "limit_reached";
+    case "missing_runtime_truth":
+    default:
+      return "missing_runtime_truth";
   }
 }
 
@@ -1079,6 +1117,211 @@ function V3PricingCreditsSection({
   );
 }
 
+function V3DeepsearchCostGovernanceCard({
+  check,
+}: {
+  check: V3DeepsearchCostGovernanceCheck;
+}) {
+  return (
+    <article className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {check.label}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{check.currentReality}</p>
+        </div>
+        <span
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${v3DeepsearchCostStatusTone(check.status)}`}
+        >
+          {v3DeepsearchCostStatusLabel(check.status)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Warum dieser Status
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{check.whyThisStatus}</p>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Bestehende Gates
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {check.existingGates.map((entry) => (
+              <li
+                key={`${check.id}:gate:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Repo-Belege
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {check.repoEvidence.map((entry) => (
+              <li
+                key={`${check.id}:evidence:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2 break-all"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Tests</p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {check.tests.map((entry) => (
+              <li
+                key={`${check.id}:test:${entry}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2 break-all"
+              >
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Nächster Slice
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{check.nextSliceId}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Sichtbare Governance ist jetzt vorhanden; Verbrauchs- und Audit-Wahrheit bleibt ein eigener Folgepfad.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Guardrails
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {check.guardrails.map((note) => (
+              <span
+                key={`${check.id}:guardrail:${note}`}
+                className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+              >
+                {note}
+              </span>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {check.adminHref ? <CapabilityLink href={check.adminHref} label="Admin-Fläche" /> : null}
+        {check.publicHref ? <CapabilityLink href={check.publicHref} label="Öffentliche Fläche" /> : null}
+      </div>
+    </article>
+  );
+}
+
+function V3DeepsearchCostGovernanceSection({
+  readModel,
+}: {
+  readModel: V3DeepsearchCostGovernanceReadModel;
+}) {
+  const summaryCards = [
+    { label: "Checks gesamt", value: readModel.summary.totalChecks },
+    { label: "allowed", value: readModel.summary.byStatus.allowed },
+    { label: "blocked", value: readModel.summary.byStatus.blocked },
+    { label: "review_required", value: readModel.summary.byStatus.review_required },
+    { label: "missing_runtime_truth", value: readModel.summary.byStatus.missing_runtime_truth },
+    { label: "Research", value: readModel.summary.byArea.research },
+    { label: "Material", value: readModel.summary.byArea.material_extraction },
+    { label: "AI Usage", value: readModel.summary.byArea.ai_usage },
+    { label: "Export", value: readModel.summary.byArea.export },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            V3 DeepSearch / Research Cost Governance
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">
+            Bestehende Cost Gates ehrlich zusammenziehen
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            Dieser Slice baut keine neue Billing-, Verbrauchs- oder DeepSearch-Runtime. Er macht die vorhandenen
+            Research-, Material-, AI-Usage- und Export-Gates erstmals als gemeinsame V3-Governance-Sicht sichtbar.
+          </p>
+        </div>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          operational_basic: sichtbare Governance, keine Debit-Wahrheit
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <V3SummaryCard key={card.label} label={card.label} value={card.value} />
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {readModel.guardrails.map((note) => (
+          <span
+            key={note}
+            className="rounded-full border border-[rgb(var(--border))] bg-white px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))]"
+          >
+            {note}
+          </span>
+        ))}
+        {readModel.semantics.map((status) => (
+          <span
+            key={status}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${v3DeepsearchCostStatusTone(status)}`}
+          >
+            Status: {v3DeepsearchCostStatusLabel(status)}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        {readModel.checks.map((check) => (
+          <V3DeepsearchCostGovernanceCard key={check.id} check={check} />
+        ))}
+      </div>
+
+      <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Offene Wahrheiten
+        </p>
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          {readModel.openTruths.map((entry) => (
+            <article
+              key={`${entry.nextSliceId}:${entry.label}`}
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+            >
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{entry.label}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                {entry.nextSliceId}
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{entry.reason}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage() {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
@@ -1090,14 +1333,21 @@ export default async function AdminDashboardPage() {
     redirect("/account/organization/dashboard");
   }
 
-  const [readModel, v3ControlCenter, v3PricingCredits, v3HandoffLinkageMap, v3TestRegressionMatrix] =
-    await Promise.all([
+  const [
+    readModel,
+    v3ControlCenter,
+    v3PricingCredits,
+    v3DeepsearchCostGovernance,
+    v3HandoffLinkageMap,
+    v3TestRegressionMatrix,
+  ] = await Promise.all([
     buildOperatorConsoleReadModel({ userId }),
     Promise.resolve(buildV3ControlCenterReadModel()),
     Promise.resolve(buildV3PricingCreditsReadModel()),
+    Promise.resolve(buildV3DeepsearchCostGovernanceReadModel()),
     Promise.resolve(buildV3HandoffLinkageMap()),
     Promise.resolve(buildV3TestRegressionMatrix()),
-    ]);
+  ]);
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -1126,6 +1376,8 @@ export default async function AdminDashboardPage() {
       <V3ControlCenterSection readModel={v3ControlCenter} />
 
       <V3PricingCreditsSection readModel={v3PricingCredits} />
+
+      <V3DeepsearchCostGovernanceSection readModel={v3DeepsearchCostGovernance} />
 
       <V3HandoffLinkageSection readModel={v3HandoffLinkageMap} />
 

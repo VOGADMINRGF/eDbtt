@@ -27,6 +27,7 @@ describe("v3 control center readmodel contract", () => {
     const readModel = buildV3ControlCenterReadModel();
     const joinedGuardrails = readModel.guardrails.join(" ");
     const adminHandout = readModel.capabilities.find((entry) => entry.id === "admin_handout_usage_guide");
+    const deepsearch = readModel.capabilities.find((entry) => entry.id === "deepsearch_cost_governance");
     const liveClaims = readModel.capabilities.find((entry) => entry.id === "live_claims_social_programm");
     const pricing = readModel.capabilities.find((entry) => entry.id === "pricing_credits_limits");
 
@@ -36,10 +37,14 @@ describe("v3 control center readmodel contract", () => {
       status: "docs_only",
       isEndstateReady: false,
     });
+    expect(deepsearch).toMatchObject({
+      status: "operational_basic",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+    });
     expect(liveClaims).toBeTruthy();
     expect(pricing).toMatchObject({
       status: "operational_basic",
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
     });
   });
 

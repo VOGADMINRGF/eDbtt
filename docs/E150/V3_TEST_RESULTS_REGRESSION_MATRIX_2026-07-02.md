@@ -22,6 +22,7 @@ Capabilities:
 - `handoff_integrity`
 - `voxy_guided_experience`
 - `pricing_credits_limits`
+- `deepsearch_cost_governance`
 - `roles_permissions_entitlements`
 - `notifications_realtime_mail`
 - `incident_recovery_maintenance`
@@ -70,14 +71,14 @@ Production:
 ## Statusverteilung
 
 - `covered`: 21
-- `partially_covered`: 13
+- `partially_covered`: 14
 - `smoke_only`: 2
 - `missing`: 1
 - `docs_only`: 2
 
 Zusatzwerte:
 
-- `blocksEndstateReadyCount`: 18
+- `blocksEndstateReadyCount`: 19
 - `guardrailCoverageCount`: 9
 - `e2eMissingCount`: 1
 
@@ -90,6 +91,8 @@ Wichtige V3-UI-/Readmodel-Tests:
 
 - `apps/web/tests/v3-control-center-readmodel.contract.test.ts`
 - `apps/web/tests/v3-control-center-admin.page.test.tsx`
+- `apps/web/tests/v3-deepsearch-cost-governance-readmodel.contract.test.ts`
+- `apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx`
 - `apps/web/tests/v3-handoff-linkage-map.contract.test.ts`
 - `apps/web/tests/v3-handoff-linkage-admin.page.test.tsx`
 - `apps/web/tests/v3-test-regression-matrix.contract.test.ts`
@@ -169,7 +172,7 @@ Wichtige Production-/Workflow-Belege:
 - `V3-LIVE-FORMAT-HOST-COCKPIT-01`
 - `V3-NOTIFICATIONS-REALTIME-MAIL-01`
 - `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
-- `V3-DEEPSEARCH-COST-GOVERNANCE-01`
+- `V3-DEEPSEARCH-CONSUMPTION-TRUTH-02`
 - `V3-MONITORING-ALERTING-ROLLBACK-01`
 
 Besonders sichtbar offen bleiben:
@@ -179,7 +182,7 @@ Besonders sichtbar offen bleiben:
 - gemeinsame Draft-Kette fuer Social / Output
 - Live-/Claims-/Follow-up-Regressionskette
 - Notification-/Incident-/Recovery-End-to-End-Tests
-- V3-Credit- und Verbrauchswahrheit trotz jetzt sichtbarer Pricing-/Cost-Gate-Basis
+- per-run Verbrauchswahrheit trotz jetzt sichtbarer DeepSearch-/Pricing-/Cost-Gate-Basis
 
 ## Was ausdruecklich nicht gebaut wurde
 

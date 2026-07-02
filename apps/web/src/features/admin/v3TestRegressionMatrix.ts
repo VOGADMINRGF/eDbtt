@@ -3,6 +3,7 @@ export const V3_TEST_MATRIX_ITEM_IDS = [
   "handoff_integrity",
   "voxy_guided_experience",
   "pricing_credits_limits",
+  "deepsearch_cost_governance",
   "roles_permissions_entitlements",
   "notifications_realtime_mail",
   "incident_recovery_maintenance",
@@ -202,6 +203,33 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       guardrailNotes: [
         "Keine versteckten Gebührenläufe",
         "Preis-Tests sind noch keine V3-Credit-Abnahme",
+      ],
+    }),
+    item({
+      id: "deepsearch_cost_governance",
+      label: "Capability: DeepSearch / Cost Governance",
+      targetType: "capability",
+      coverageStatus: "partially_covered",
+      categories: ["contract", "render", "route", "guardrail"],
+      knownTests: [
+        "apps/web/tests/v3-deepsearch-cost-governance-readmodel.contract.test.ts",
+        "apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx",
+        "apps/web/tests/create-analyze-entitlement-gate.route.test.ts",
+        "apps/web/tests/factcheck-enqueue.auth.route.test.ts",
+        "apps/web/tests/material-extraction-cost-guardrail.contract.test.ts",
+        "apps/web/tests/admin-ai-usage.route.test.ts",
+        "apps/web/tests/ai-usage-operational-signals.contract.test.ts",
+      ],
+      missingTests: [
+        "Per-run Verbrauchswahrheit fuer Research, Material, AI Usage und Export",
+        "Ende-zu-Ende-Regression fuer Approval -> Lauf -> Nachaudit ohne neue Billing-Fiktion",
+      ],
+      relatedCapabilityIds: ["deepsearch_cost_governance"],
+      relatedHandoffLinkIds: [],
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+      guardrailNotes: [
+        "Sichtbare Gates sind noch keine Debit-Wahrheit",
+        "Keine unkontrollierte Deep-Research-Automation",
       ],
     }),
     item({
@@ -836,7 +864,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["deepsearch_cost_governance", "prompt_based_low_ops"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -856,7 +884,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["pricing_credits_limits", "deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-PRICING-CREDITS-LIMITS-01",
+      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -998,7 +1026,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       },
       {
         label: "Pricing / Credit Consumption Truth",
-        nextSliceId: "V3-DEEPSEARCH-COST-GOVERNANCE-01",
+        nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
         reason:
           "Pricing-, Entitlement- und Cost-Gate-Basis ist jetzt sichtbar, aber eine V3-weite Credit- und Verbrauchswahrheit fehlt noch.",
       },
