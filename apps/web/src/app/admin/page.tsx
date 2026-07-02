@@ -19,6 +19,13 @@ import {
   type V3HandoffLinkStatus,
   type V3HandoffLinkageMap,
 } from "@/features/admin/v3HandoffLinkageMap";
+import {
+  buildV3TestRegressionMatrix,
+  type V3TestCategory,
+  type V3TestCoverageStatus,
+  type V3TestMatrixItem,
+  type V3TestRegressionMatrix,
+} from "@/features/admin/v3TestRegressionMatrix";
 
 export const metadata = {
   title: "Admin Dashboard · eDebatte",
@@ -213,6 +220,66 @@ function v3HandoffStatusLabel(status: V3HandoffLinkStatus) {
       return "blocked";
     default:
       return status;
+  }
+}
+
+function v3TestCoverageBadgeTone(status: V3TestCoverageStatus) {
+  switch (status) {
+    case "covered":
+      return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    case "partially_covered":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    case "smoke_only":
+      return "border-sky-300 bg-sky-50 text-sky-900";
+    case "docs_only":
+      return "border-slate-300 bg-slate-100 text-slate-800";
+    case "missing":
+    default:
+      return "border-rose-300 bg-rose-50 text-rose-900";
+  }
+}
+
+function v3TestCoverageLabel(status: V3TestCoverageStatus) {
+  switch (status) {
+    case "covered":
+      return "covered";
+    case "partially_covered":
+      return "partially_covered";
+    case "smoke_only":
+      return "smoke_only";
+    case "docs_only":
+      return "docs_only";
+    case "missing":
+      return "missing";
+    default:
+      return status;
+  }
+}
+
+function v3TestCategoryLabel(category: V3TestCategory) {
+  switch (category) {
+    case "unit":
+      return "unit";
+    case "contract":
+      return "contract";
+    case "render":
+      return "render";
+    case "route":
+      return "route";
+    case "guardrail":
+      return "guardrail";
+    case "public_route":
+      return "public_route";
+    case "workflow":
+      return "workflow";
+    case "smoke":
+      return "smoke";
+    case "e2e":
+      return "e2e";
+    case "production_validation":
+      return "production_validation";
+    default:
+      return category;
   }
 }
 
@@ -537,6 +604,185 @@ function V3HandoffLinkageSection({
   );
 }
 
+function V3TestMatrixItemCard({
+  item,
+}: {
+  item: V3TestMatrixItem;
+}) {
+  return (
+    <article className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {item.targetType}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{item.label}</p>
+        </div>
+        <span
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${v3TestCoverageBadgeTone(item.coverageStatus)}`}
+        >
+          {v3TestCoverageLabel(item.coverageStatus)}
+        </span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {item.categories.map((category) => (
+          <span
+            key={`${item.id}:category:${category}`}
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
+          >
+            {v3TestCategoryLabel(category)}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Bekannte Tests
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {item.knownTests.length > 0 ? (
+              item.knownTests.map((entry) => (
+                <li
+                  key={`${item.id}:known:${entry}`}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2 break-all"
+                >
+                  {entry}
+                </li>
+              ))
+            ) : (
+              <li className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-white px-3 py-2">
+                Keine direkten Tests gefunden
+              </li>
+            )}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Fehlende Tests
+          </p>
+          <ul className="mt-2 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            {item.missingTests.length > 0 ? (
+              item.missingTests.map((entry) => (
+                <li
+                  key={`${item.id}:missing:${entry}`}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-white px-3 py-2"
+                >
+                  {entry}
+                </li>
+              ))
+            ) : (
+              <li className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-white px-3 py-2">
+                Keine offenen Testlücken im kartierten Scope
+              </li>
+            )}
+          </ul>
+        </section>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Endstate-Blocker
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+            {item.blocksEndstateReady ? "blockiert endstate_ready" : "blockiert endstate_ready nicht"}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Nächster Slice: {item.nextSliceId}</p>
+        </section>
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Guardrail Notes
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.guardrailNotes.map((note) => (
+              <span
+                key={`${item.id}:guardrail:${note}`}
+                className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+              >
+                {note}
+              </span>
+            ))}
+          </div>
+        </section>
+      </div>
+    </article>
+  );
+}
+
+function V3TestRegressionMatrixSection({
+  readModel,
+}: {
+  readModel: V3TestRegressionMatrix;
+}) {
+  const summaryCards = [
+    { label: "Items gesamt", value: readModel.summary.total },
+    { label: "covered", value: readModel.summary.covered },
+    { label: "partially_covered", value: readModel.summary.partiallyCovered },
+    { label: "smoke_only", value: readModel.summary.smokeOnly },
+    { label: "missing", value: readModel.summary.missing },
+    { label: "docs_only", value: readModel.summary.docsOnly },
+    { label: "Endstate-Blocker", value: readModel.summary.blocksEndstateReadyCount },
+    { label: "Guardrails abgesichert", value: readModel.summary.guardrailCoverageCount },
+    { label: "E2E-Lücken", value: readModel.summary.e2eMissingCount },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            V3 Test &amp; Regression Matrix
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Testlage sichtbar und ehrlich halten</h2>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            Die Matrix kartiert reale Tests für Capabilities, Handoffs, Workflows, Guardrails und Production
+            Validation. Sie zeigt Coverage, Lücken und offene Pflichtpfade, behauptet aber keine fachliche Freigabe.
+          </p>
+        </div>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          Testabdeckung ist Voraussetzung für endstate_ready, aber ersetzt keine fachliche Freigabe.
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <V3SummaryCard key={card.label} label={card.label} value={card.value} />
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        {readModel.items.map((item) => (
+          <V3TestMatrixItemCard key={item.id} item={item} />
+        ))}
+      </div>
+
+      <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Kritische Testlücken
+        </p>
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          {readModel.criticalTestGaps.map((gap) => (
+            <article
+              key={gap.nextSliceId}
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+            >
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{gap.label}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                {gap.nextSliceId}
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{gap.reason}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage() {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
@@ -548,10 +794,11 @@ export default async function AdminDashboardPage() {
     redirect("/account/organization/dashboard");
   }
 
-  const [readModel, v3ControlCenter, v3HandoffLinkageMap] = await Promise.all([
+  const [readModel, v3ControlCenter, v3HandoffLinkageMap, v3TestRegressionMatrix] = await Promise.all([
     buildOperatorConsoleReadModel({ userId }),
     Promise.resolve(buildV3ControlCenterReadModel()),
     Promise.resolve(buildV3HandoffLinkageMap()),
+    Promise.resolve(buildV3TestRegressionMatrix()),
   ]);
 
   return (
@@ -581,6 +828,8 @@ export default async function AdminDashboardPage() {
       <V3ControlCenterSection readModel={v3ControlCenter} />
 
       <V3HandoffLinkageSection readModel={v3HandoffLinkageMap} />
+
+      <V3TestRegressionMatrixSection readModel={v3TestRegressionMatrix} />
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

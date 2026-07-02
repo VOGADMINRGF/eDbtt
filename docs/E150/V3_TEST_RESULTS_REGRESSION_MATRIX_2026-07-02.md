@@ -1,0 +1,205 @@
+# V3 Test Results Regression Matrix
+
+## Was gebaut wurde
+
+- `/admin` zeigt jetzt einen sichtbaren Abschnitt
+  `V3 Test & Regression Matrix`.
+- Das neue Readmodel
+  `apps/web/src/features/admin/v3TestRegressionMatrix.ts`
+  kartiert reale Testabdeckung fuer V3-Capabilities, Handoffs, Workflows,
+  Public Routes, Guardrails und Production Validation.
+- Jeder Matrix-Eintrag zeigt Coverage-Status, Kategorien, bekannte Tests,
+  fehlende Tests, Endstate-Blocker, den naechsten Slice und Guardrail-Hinweise.
+- `apps/web/src/features/admin/v3ControlCenterReadModel.ts` stuft
+  `Test Results / Regression / E2E` nach diesem Slice auf
+  `operational_basic`, ohne andere Capabilities aufzuwerten.
+
+## Welche Matrix-Gruppen sichtbar sind
+
+Capabilities:
+
+- `admin_control_center`
+- `handoff_integrity`
+- `voxy_guided_experience`
+- `pricing_credits_limits`
+- `roles_permissions_entitlements`
+- `notifications_realtime_mail`
+- `incident_recovery_maintenance`
+- `image_assets_outputs`
+- `templates_output_standards`
+- `qr_sharing_public_entry`
+- `live_claims_social_programm`
+- `claim_to_dossier_pipeline`
+- `programm_growth_approval_pipeline`
+- `prompt_based_low_ops`
+
+Handoffs / Workflows / Public:
+
+- `create_to_review_queue`
+- `review_to_dossier_runtime`
+- `review_to_anlassraum_runtime`
+- `review_to_participation_runtime`
+- `dossier_publish_workflow`
+- `anlassraum_activation_publish_workflow`
+- `participation_publish_public_route`
+- `public_submission_to_community_source_review`
+- `community_source_review_to_admin_workbench`
+- `qr_share_public_entry`
+- `social_output_drafts`
+- `programme_candidate_pipeline`
+- `live_stream_to_followup`
+
+Guardrails:
+
+- `no_auto_publish`
+- `no_auto_activation`
+- `no_auto_factcheck`
+- `no_auto_verification`
+- `no_auto_graph_write`
+- `no_auto_merge`
+- `no_hidden_deepsearch`
+- `no_hidden_cost_paths`
+- `no_fake_actions`
+
+Production:
+
+- `production_validation_workflow`
+- `external_browser_e2e`
+- `monitoring_alerting_rollback`
+
+## Statusverteilung
+
+- `covered`: 21
+- `partially_covered`: 13
+- `smoke_only`: 2
+- `missing`: 1
+- `docs_only`: 2
+
+Zusatzwerte:
+
+- `blocksEndstateReadyCount`: 18
+- `guardrailCoverageCount`: 9
+- `e2eMissingCount`: 1
+
+Die Matrix zeigt bewusst nur Testlage. Sie behauptet nicht, dass dadurch eine
+Capability fachlich freigegeben oder `endstate_ready` ist.
+
+## Welche bekannten Tests gemappt wurden
+
+Wichtige V3-UI-/Readmodel-Tests:
+
+- `apps/web/tests/v3-control-center-readmodel.contract.test.ts`
+- `apps/web/tests/v3-control-center-admin.page.test.tsx`
+- `apps/web/tests/v3-handoff-linkage-map.contract.test.ts`
+- `apps/web/tests/v3-handoff-linkage-admin.page.test.tsx`
+- `apps/web/tests/v3-test-regression-matrix.contract.test.ts`
+- `apps/web/tests/v3-test-regression-matrix-admin.page.test.tsx`
+
+Wichtige Handoff-/Workflow-/Public-Route-Tests:
+
+- `apps/web/tests/create-handoff.persistence.route.test.ts`
+- `apps/web/tests/create-handoff-review-queue-runtime-bridge.test.ts`
+- `apps/web/tests/dossier-runtime-creation.test.ts`
+- `apps/web/tests/dossier-runtime-admin-creation.test.tsx`
+- `apps/web/tests/anlassraum-runtime-creation.test.ts`
+- `apps/web/tests/anlassraum-runtime-admin-creation.test.tsx`
+- `apps/web/tests/participation-space-runtime-creation.test.ts`
+- `apps/web/tests/participation-space-runtime-admin-creation.test.tsx`
+- `apps/web/tests/dossier-publish-workflow.test.ts`
+- `apps/web/tests/dossier-publish-admin.test.tsx`
+- `apps/web/tests/anlassraum-activation-workflow.test.ts`
+- `apps/web/tests/anlassraum-activation-admin.test.tsx`
+- `apps/web/tests/participation-space-publish-workflow.test.ts`
+- `apps/web/tests/participation-space-publish-admin.test.tsx`
+- `apps/web/tests/dossier-public-route-runtime.test.tsx`
+- `apps/web/tests/participation-space-public-detail-runtime.test.tsx`
+- `apps/web/tests/community-source-review-public-submission-hardening.test.ts`
+- `apps/web/tests/community-source-review-public-submission-api.test.ts`
+- `apps/web/tests/community-source-review-moderation-ui.test.tsx`
+- `apps/web/tests/admin-review.page.test.tsx`
+
+Wichtige QR-/Output-/Live-/Programm-nahe Tests:
+
+- `apps/web/tests/event-qr-entry.contract.test.tsx`
+- `apps/web/tests/live-qr-entry.contract.test.tsx`
+- `apps/web/tests/create-qr-swipes-drafts.contract.test.tsx`
+- `apps/web/tests/share-metadata.contract.test.ts`
+- `apps/web/tests/output-engine-social-distribution.test.ts`
+- `apps/web/tests/social-distribution-queue-readmodel.contract.test.ts`
+- `apps/web/tests/social-scheduler-review-first.contract.test.ts`
+- `apps/web/tests/dossier-studio-social-queue.contract.test.tsx`
+- `apps/web/tests/event-dossier-recap.contract.test.ts`
+- `apps/web/tests/stream-dossier-recap-handoff.contract.test.ts`
+- `apps/web/tests/live-report-handoff.contract.test.tsx`
+
+Wichtige Pricing-/Guardrail-/Ops-Tests:
+
+- `apps/web/tests/pricing-page.contract.test.ts`
+- `apps/web/tests/admin-pricing-control-readmodel.test.ts`
+- `apps/web/tests/payment-entitlement-after-checkout.contract.test.ts`
+- `apps/web/tests/pricing-no-hidden-ai-costs.contract.test.ts`
+- `apps/web/tests/paid-entitlements.contract.test.ts`
+- `apps/web/tests/admin-entitlements.route.test.ts`
+- `apps/web/tests/create-analyze-entitlement-gate.route.test.ts`
+- `apps/web/tests/journalism-truth-guardrails.test.ts`
+- `apps/web/tests/topic-graph-runtime.test.ts`
+- `apps/web/tests/topic-graph-admin-approval-ui.test.tsx`
+- `apps/web/tests/ai-cost-research-guardrail.contract.test.ts`
+- `apps/web/tests/material-extraction-cost-guardrail.contract.test.ts`
+- `apps/web/tests/admin-system-ping.route.test.ts`
+- `apps/web/tests/admin-graph-health.route.test.ts`
+- `apps/web/tests/admin-ai-orchestrator-smoke.route.test.ts`
+- `apps/web/tests/status-report-health-only.contract.test.ts`
+
+Wichtige Production-/Workflow-Belege:
+
+- `.github/workflows/production-validation.yml`
+- `apps/web/package.json#test:production-guardrails`
+- `package.json#release:validate:production`
+- `apps/web/tests/e2e-critical-journeys.test.ts`
+- `apps/web/tests/e2e/admin.spec.ts`
+
+## Welche kritischen Testluecken offen bleiben
+
+- `V3-EXTERNAL-BROWSER-E2E-01`
+- `V3-PROGRAMM-GROWTH-APPROVAL-PIPELINE-01`
+- `V3-DOSSIER-SOCIAL-OUTPUT-DRAFTS-01`
+- `V3-LIVE-FORMAT-HOST-COCKPIT-01`
+- `V3-NOTIFICATIONS-REALTIME-MAIL-01`
+- `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
+- `V3-PRICING-CREDITS-LIMITS-01`
+- `V3-MONITORING-ALERTING-ROLLBACK-01`
+
+Besonders sichtbar offen bleiben:
+
+- echte External-Browser-E2E-Einbindung
+- review-first Programm-Kandidatenpfad
+- gemeinsame Draft-Kette fuer Social / Output
+- Live-/Claims-/Follow-up-Regressionskette
+- Notification-/Incident-/Recovery-End-to-End-Tests
+- V3-Credit- und Verbrauchswahrheit
+
+## Was ausdruecklich nicht gebaut wurde
+
+- keine neue Runtime-Migration
+- keine neue Testinfrastruktur
+- keine behaupteten Testlaeufe, die nicht ausgefuehrt wurden
+- keine Fake-Testresultate
+- keine Fake-Actions
+- keine Auto-Publish-Funktion
+- keine Auto-Activation
+- keine Auto-Factcheck- oder Auto-Verification-Logik
+- keine Auto-Graph-Writes
+- keine Auto-Merge-Logik
+- keine hidden DeepSearch
+- keine hidden Cost Paths
+- keine echten Social-Posts
+- keine Programm-Auto-Freigabe
+
+## Validierung
+
+- `git diff --check`
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `pnpm -C apps/web exec vitest run tests/v3-test-regression-matrix.contract.test.ts tests/v3-test-regression-matrix-admin.page.test.tsx tests/v3-control-center-admin.page.test.tsx tests/v3-handoff-linkage-admin.page.test.tsx`
+- `pnpm -C apps/web run build`

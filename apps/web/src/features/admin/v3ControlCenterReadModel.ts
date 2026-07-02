@@ -384,16 +384,16 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
     capability({
       id: "test_results_regression",
       label: "Test Results / Regression / E2E",
-      status: "partially_built",
+      status: "operational_basic",
       currentReality:
-        "Breite Testbasis und Production-Validation sind real vorhanden, aber nicht als capability-basierte V3-Testmatrix gebündelt.",
+        "Die bestehende Operator-Konsole zeigt jetzt eine sichtbare V3 Test & Regression Matrix über Capabilities, Handoffs, Guardrails, Production Validation und offene E2E-Lücken.",
       openGap:
-        "Es fehlt eine zentrale Gap-, Coverage- und E2E-Landkarte mit sichtbarer Operator-Einordnung.",
+        "Die Matrix ist jetzt sichtbar, aber kritische Folgepfade wie External Browser E2E, Programm-Kandidaten, Social Drafts, Notifications und Rollback bleiben testseitig offen.",
       primaryAdminHref: "/admin/system",
       primaryAdminLabel: "System Hub",
       secondaryHref: "/admin/graph/health",
       secondaryLabel: "Graph Health",
-      nextSliceId: "V3-TEST-RESULTS-REGRESSION-MATRIX-01",
+      nextSliceId: "V3-EXTERNAL-BROWSER-E2E-01",
       guardrailNotes: [
         "Keine Testsimulation",
         "Keine ausgedachten Coverage-Zahlen",
@@ -501,9 +501,9 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
         priority: 100,
       },
       {
-        sliceId: "V3-TEST-RESULTS-REGRESSION-MATRIX-01",
-        label: "Test Results / Regression Matrix",
-        reason: "Die V3-Reife braucht eine sichtbare Coverage- und Gap-Landkarte statt impliziter Testannahmen.",
+        sliceId: "V3-EXTERNAL-BROWSER-E2E-01",
+        label: "External Browser E2E",
+        reason: "Die Matrix macht sichtbar, dass belastbare Browser-E2E für die kritischen V3-Journeys weiterhin offen sind.",
         priority: 94,
       },
       {
