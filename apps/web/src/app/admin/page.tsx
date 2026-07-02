@@ -7,6 +7,12 @@ import {
   type OperatorConsoleArea,
   type OperatorConsoleMetric,
 } from "@/features/admin/operatorConsoleReadModel";
+import {
+  buildV3ControlCenterReadModel,
+  type V3CapabilityEntry,
+  type V3CapabilityStatus,
+  type V3ControlCenterReadModel,
+} from "@/features/admin/v3ControlCenterReadModel";
 
 export const metadata = {
   title: "Admin Dashboard · eDebatte",
@@ -80,6 +86,248 @@ function HeroMetric({
   );
 }
 
+function v3StatusBadgeTone(status: V3CapabilityStatus) {
+  switch (status) {
+    case "live":
+      return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    case "production_ready":
+      return "border-sky-300 bg-sky-50 text-sky-900";
+    case "endstate_ready":
+      return "border-cyan-300 bg-cyan-50 text-cyan-900";
+    case "operational_basic":
+      return "border-violet-300 bg-violet-50 text-violet-900";
+    case "partially_built":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    case "docs_only":
+      return "border-slate-300 bg-slate-100 text-slate-800";
+    case "missing":
+    default:
+      return "border-rose-300 bg-rose-50 text-rose-900";
+  }
+}
+
+function v3StatusLabel(status: V3CapabilityStatus) {
+  switch (status) {
+    case "missing":
+      return "missing";
+    case "docs_only":
+      return "docs_only";
+    case "partially_built":
+      return "partially_built";
+    case "operational_basic":
+      return "operational_basic";
+    case "endstate_ready":
+      return "endstate_ready";
+    case "production_ready":
+      return "production_ready";
+    case "live":
+      return "live";
+    default:
+      return status;
+  }
+}
+
+function V3SummaryCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <article className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{String(value)}</p>
+    </article>
+  );
+}
+
+function CapabilityLink({
+  href,
+  label,
+}: {
+  href?: string;
+  label?: string;
+}) {
+  if (!href || !label) {
+    return (
+      <span className="rounded-full border border-dashed border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))]">
+        Noch nicht als Admin-Fläche vorhanden
+      </span>
+    );
+  }
+
+  if (href === "/admin") {
+    return (
+      <span className="rounded-full border border-[rgb(var(--border))] bg-white px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))]">
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="rounded-full border border-sky-300 bg-white px-3 py-1.5 text-xs font-semibold text-sky-900 transition hover:border-sky-400"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function V3CapabilityCard({
+  capability,
+}: {
+  capability: V3CapabilityEntry;
+}) {
+  return (
+    <article className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {capability.label}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{capability.currentReality}</p>
+        </div>
+        <span
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${v3StatusBadgeTone(capability.status)}`}
+        >
+          {v3StatusLabel(capability.status)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Ziel</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{capability.maturityTarget}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{capability.openGap}</p>
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Nächster Slice
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{capability.nextSliceId}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            {capability.isEndstateReady
+              ? "Diese Capability gilt fachlich bereits als zielreif."
+              : "Folgepfad offen, bis mindestens endstate_ready erreicht ist."}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <CapabilityLink href={capability.primaryAdminHref} label={capability.primaryAdminLabel} />
+        {capability.secondaryHref && capability.secondaryLabel ? (
+          <CapabilityLink href={capability.secondaryHref} label={capability.secondaryLabel} />
+        ) : null}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {capability.guardrailNotes.map((note) => (
+          <span
+            key={`${capability.id}:${note}`}
+            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+          >
+            {note}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function V3ControlCenterSection({
+  readModel,
+}: {
+  readModel: V3ControlCenterReadModel;
+}) {
+  const visibleStatuses = (Object.entries(readModel.summary.byStatus) as Array<[V3CapabilityStatus, number]>).filter(
+    ([, count]) => count > 0,
+  );
+
+  return (
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            V3 Control Center
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">V3-Reife sichtbar machen</h2>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            Dieses Control Center bündelt bestehende Admin-, Review-, Ops-, Pricing-, Entitlement-, Telemetry-,
+            Asset- und Validierungsflächen. Es zeigt reale V3-Basen, aber simuliert keine fehlende Runtime.
+          </p>
+        </div>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          partially_built ist kein Endstand
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <V3SummaryCard label="Capabilities gesamt" value={readModel.summary.total} />
+        {visibleStatuses.map(([status, count]) => (
+          <V3SummaryCard key={status} label={v3StatusLabel(status)} value={count} />
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {readModel.guardrails.map((note) => (
+          <span
+            key={note}
+            className="rounded-full border border-[rgb(var(--border))] bg-white px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))]"
+          >
+            {note}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        {readModel.capabilities.map((capability) => (
+          <V3CapabilityCard key={capability.id} capability={capability} />
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Nächste empfohlene Schritte
+          </p>
+          <div className="mt-3 grid gap-3">
+            {readModel.nextRecommendedSteps.map((step, index) => (
+              <article
+                key={step.sliceId}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3"
+              >
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  {index + 1}. {step.label}
+                </p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                  {step.sliceId}
+                </p>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">{step.reason}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {readModel.liveClaimsReminder.title}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{readModel.liveClaimsReminder.body}</p>
+          <ul className="mt-3 grid gap-2 text-sm text-[rgb(var(--fg))]">
+            {readModel.liveClaimsReminder.bullets.map((entry) => (
+              <li key={entry} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                {entry}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage() {
   const user = await getSessionUser();
   const userId = user?._id?.toHexString?.() ?? null;
@@ -91,7 +339,10 @@ export default async function AdminDashboardPage() {
     redirect("/account/organization/dashboard");
   }
 
-  const readModel = await buildOperatorConsoleReadModel({ userId });
+  const [readModel, v3ControlCenter] = await Promise.all([
+    buildOperatorConsoleReadModel({ userId }),
+    Promise.resolve(buildV3ControlCenterReadModel()),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -116,6 +367,8 @@ export default async function AdminDashboardPage() {
         <HeroMetric label="Dossier-Hinweise in Prüfung" value={readModel.hero.pendingDossierUpdates} />
         <HeroMetric label="Social-Review offen" value={readModel.hero.socialQueueReviewOpen} />
       </section>
+
+      <V3ControlCenterSection readModel={v3ControlCenter} />
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
