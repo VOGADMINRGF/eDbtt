@@ -10,6 +10,11 @@
   `docs_only = 1`, `missing = 0`, `unclear = 0`.
 - V3 ist damit vollstaendig kartiert und reality-audited, aber nicht als
   End-to-End-Admin-, Runtime-, Test- und Handout-Stand umgesetzt.
+- Die Endzielklaerung fuer Live, Claims, Dossier-/Social-Outputs und
+  VoiceOpenGov-/programm wird ergaenzend in
+  `docs/E150/V3_LIVE_CLAIMS_SOCIAL_PROGRAMM_ENDSTATE_2026-07-02.md` gefuehrt.
+  Sie aendert die Reality-Klassifikation nicht: `partially_built` bleibt keine
+  Abnahme.
 
 ## 2. Methodik
 
