@@ -16,6 +16,10 @@ Pricing, keine Bildgenerierung und keine DB-Ops.
 
 Der Abgleich gegen den tatsaechlichen Repo-Stand wird ergaenzend in
 `docs/E150/V3_IMPLEMENTATION_REALITY_AUDIT_2026-07-01.md` gefuehrt.
+Das maximale Endziel fuer Live, Claims, Dossier-/Social-Outputs und
+VoiceOpenGov-/programm wird ergaenzend in
+`docs/E150/V3_LIVE_CLAIMS_SOCIAL_PROGRAMM_ENDSTATE_2026-07-02.md`
+kanonisiert.
 
 ## 2. Korrigierte V3-Definition
 
@@ -29,6 +33,10 @@ V3 umfasst:
 - Admin Control Center
 - Automation Suggestions
 - Handoff Integrity
+- Live-Formate / Host-Cockpit / QR-/Shortlink-Pfade
+- Claim Pipeline von Analyse bis Dossier-/Factcheck-/Programm-Kandidat
+- Dossier-/Social-/Newsletter-Outputs als review-first Drafts
+- VoiceOpenGov-/programm Growth / Approval
 - Pricing / Credits / Limits
 - Rollen / Rechte / Zugriff
 - Notifications / Realtime / Mail
@@ -42,29 +50,41 @@ V3 umfasst:
 - Monitoring / Alerting / Rollback
 - Handout / Usage Guide
 - prompt-basierte Wartung
+- optionale Meeting-Link-Integration
 
 ## 3. V3 Capability Map
 
 | Capability | Current repo evidence | Status | V3 gap | Suggested slice |
 | --- | --- | --- | --- | --- |
-| A. Admin Control Center | `/admin`, `/admin/review`, `/admin/feeds`, `/admin/telemetry/*`, `/account/organization/dashboard`, `apps/web/src/features/admin/operatorConsoleReadModel.ts` | operational-basic | Sicht ist verteilt; kein einheitliches Kontrollzentrum fuer Review, Publish, Costs, Alerts, Assets und Tests | `V3-ADMIN-DASHBOARD-CONTROL-CENTER-01` |
-| B. Voxy Guided Experience | `apps/web/src/components/voxy/VoxyGuide.tsx`, `apps/web/src/features/voxy/{voxyCopy.ts,voxyAssets.ts,coCreationState.ts}`, Voxy-Nutzung in `/start`, `/create`, `/runden`, `/dossier`, `/swipes` | operational-basic | Voxy ist sichtbar, aber nicht als plattformweite Fuehrungs- und Moderationsschicht kanonisiert; Shared-Copy-/Guide-Drift bleibt offen | `V3-VOXY-GUIDED-EXPERIENCE-01` |
-| C. Handoff Integrity / Linkage Map | `createHandoffReviewQueue*`, `features/reviewQueue.ts`, `dossierRuntime.ts`, `anlassraumRuntime.ts`, `participationSpaceRuntime.ts`, Publish-/Public-Route-Tests | operational-basic | Viele Pfade sind runtime-wired, aber es gibt keine zentrale Integritaetskarte mit Fehlermodi und Admin-Sicht | `V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01` |
-| D. Automation Suggestion Engine | `docs/E150/V3_AUTOMATION_ROADMAP_AND_GOVERNANCE_2026-07-01.md`, AI-/guided workspace surfaces, `apps/web/src/app/api/chat/route.ts` | planned | Review-first Vorschlaege sind beschrieben, aber nicht als eigene Slice-Familie mit Audit- und Guardrail-Tests gebaut | `V3-AUTOMATION-SUGGESTION-ENGINE-01` |
-| E. DeepSearch Cost Governance | `apps/web/src/app/api/contributions/analyze/researchEntitlementGate.ts`, `features/security/routeSecurityInventory.ts`, `tests/factcheck-enqueue.auth.route.test.ts`, `tests/pricing-no-hidden-ai-costs.contract.test.ts` | planned | Einzelne Cost- und Entitlement-Gates existieren, aber kein sichtbarer V3-Cost-Gate-, Approval- und Auditpfad | `V3-DEEPSEARCH-COST-GOVERNANCE-01` |
-| F. Pricing / Credits / Limits | `features/pricing/*`, `/pricing`, `/pricing/institutionen`, `/order`, `/admin/pricing/orders`, `/api/billing/{provider,checkout/session}`, Pricing-/Checkout-/Hidden-Cost-Tests | operational-basic | Pricing ist fuer V1/V2 vorhanden, aber V3 braucht kanonische Credits, Limits und Cost-Gates fuer DeepSearch, Assets, Exporte und spaetere Suggestions | `V3-PRICING-CREDITS-LIMITS-01` |
-| G. Roles / Permissions / Entitlements / Access | `/admin/entitlements`, `apps/web/src/lib/server/entitlements/createEntitlements.ts`, `features/region/{organizationDashboard.ts,organizationContracts.ts,server/paidEntitlements.ts}`, route overrides | operational-basic | Access und Entitlements existieren verteilt, aber noch nicht als V3-weite Rollen-/Rechte-Landkarte fuer Admin, Redaktion, Organisation, Kommune und Medienpartner | `V3-ROLES-PERMISSIONS-ENTITLEMENTS-01` |
-| H. Notifications / Realtime / Mail | `apps/web/src/app/api/admin/alerts/{settings,notify,test}/route.ts`, status report mail, org invite mails, `/admin/newsletter` | operational-basic | Mail- und Alert-Bausteine existieren, aber keine zentrale V3-Notification-Schicht fuer Review, Publish, Cost Gates, Incidents und Validation | `V3-NOTIFICATIONS-REALTIME-MAIL-01` |
-| I. Incident / Recovery / Diagnostics / Maintenance Mode | `/admin/errors`, `/admin/system`, `/api/admin/ops/status-report`, `/admin/telemetry/ai/orchestrator`, Health-Routes, `history-maintenance` | operational-basic | Diagnostics und Ops-Checks existieren, aber kein kanonisches Incident-/Recovery-/Retry-/Maintenance-Zielbild | `V3-INCIDENT-RECOVERY-MAINTENANCE-01` |
-| J. Database Admin Ops / Manual Creation / Override | Admin runtime-creation/publish sections in `/admin/review`, `AdminDossierClient` finding override, `/admin/create/attach-drafts/history-maintenance`, manual Anlassraum setup | operational-basic | Kontrollierte manuelle Eingriffe sind punktuell moeglich, aber nicht als durchgehender auditpflichtiger V3-Admin-Ops-Pfad beschrieben | `V3-DATABASE-ADMIN-OPS-MANUAL-CREATION-01` |
-| K. Image Generation / Voxy Assets / Dossier Covers | `apps/web/public/brand/voxy/*`, `apps/web/src/features/voxy/voxyAssets.ts`, Share-/Output-Assets, keine Image-Generation-Route | missing | Es gibt statische Assets, aber keine kanonische Governance fuer generierte Bilder, Cover, Asset-Review, Cost Gates und Public Safety | `V3-IMAGE-GENERATION-VOXY-ASSETS-DOSSIER-OUTPUTS-01` |
-| L. Templates / Default Muster / Output Standards | `docs/E150/voxy-default-debate-template.md`, `features/anlassraum/shareReadyAssetContract.ts`, `features/outputEngine/{contracts.ts,formatMappers.ts,distributionExport.ts}`, stream template usage | operational-basic | Einzelne Templates und Output-Contracts existieren, aber keine V3-weite Standardisierung fuer Dossier, Anlassraum, Beteiligungsraum, Handout, Visuals und Exporte | `V3-TEMPLATE-OUTPUT-STANDARDIZATION-01` |
-| M. QR Code / Sharing / Public Entry / Slug Stability | `features/qr/*`, `/qrcodegenerator`, `/qrcodewizard`, `/qr/[qrId]`, `/api/qr/*`, Share metadata, `shareReadyAssetContract`, slug handling in public runtimes | operational-basic | QR-, Share- und Slug-Bausteine existieren, aber nicht als einheitlicher V3-Pfad mit Admin-Pruefung, Public Safety und stabiler Entry-Lesart | `V3-QR-SHARING-PUBLIC-ENTRY-01` |
-| N. Test Results / Regression / E2E / Smoke | `production-validation.yml`, `release:validate:production`, `tests/e2e-critical-journeys.test.ts`, viele route/UI/guardrail contracts | operational-basic | Tests sind breit vorhanden, aber es fehlt die zentrale V3-Testlandkarte mit Gap-Sicht, Slice-Zuordnung und E2E-/Smoke-Abdeckung | `V3-TEST-RESULTS-REGRESSION-MATRIX-01` |
-| O. Monitoring / Alerting / Rollback | status report, alerts routes, telemetry pages, health routes, manueller release gate | operational-basic | Monitoring-/Alerting-Bausteine existieren, aber noch kein belastbarer zusammenhaengender Betriebs- und Rollback-Pfad | `V3-MONITORING-ALERTING-ROLLBACK-01` |
-| P. Admin Handout / Usage Guide | `docs/E150/HANDOUT_ADMIN_NUTZUNG_EDEBATTE_V3.md` | planned | Stub ist vorhanden, aber noch nicht mit realer UI-, Rollen-, Cost-, Asset- und Incident-Lesart abgeglichen | `V3-ADMIN-HANDOUT-AND-USAGE-GUIDE-01` |
-| Q. Prompt-based Maintenance / Low-Ops Operation | `guided_workspace` in chat routes, AI orchestrator diagnostics, route-bound companion patterns, Voxy guided flows | planned | Prompt-/guided Eingaben existieren, aber noch kein kanonischer Low-Ops-Wartungspfad im Rechte- und Review-Kontext | `V3-PROMPT-BASED-MAINTENANCE-AND-LOW-OPS-01` |
-| R. Voxy + User/Public Guidance across Start/Create/Review/Public Routes | `VoxyGuide` in `/start`, `/create`, `/runden`, `/dossier`, `SwipesSurface`, companion/guided workspace routes | operational-basic | Voxy fuehrt einzelne Surfaces, aber noch nicht systematisch Admin, Review, Publish, Public Entry und Unsicherheitskommunikation | `V3-VOXY-GUIDED-EXPERIENCE-01` |
+| A. Admin Control Center | `/admin`, `/admin/review`, `/admin/feeds`, `/admin/telemetry/*`, `/account/organization/dashboard`, `apps/web/src/features/admin/operatorConsoleReadModel.ts` | partially_built | Sicht ist verteilt; kein einheitliches Kontrollzentrum fuer Review, Publish, Costs, Alerts, Assets und Tests | `V3-ADMIN-DASHBOARD-CONTROL-CENTER-01` |
+| B. Voxy Guided Experience | `apps/web/src/components/voxy/VoxyGuide.tsx`, `apps/web/src/features/voxy/{voxyCopy.ts,voxyAssets.ts,coCreationState.ts}`, Voxy-Nutzung in `/start`, `/create`, `/runden`, `/dossier`, `/swipes` | partially_built | Voxy ist sichtbar, aber nicht als plattformweite Fuehrungs- und Moderationsschicht kanonisiert; Shared-Copy-/Guide-Drift bleibt offen | `V3-VOXY-GUIDED-EXPERIENCE-01` |
+| C. Handoff Integrity / Linkage Map | `createHandoffReviewQueue*`, `features/reviewQueue.ts`, `dossierRuntime.ts`, `anlassraumRuntime.ts`, `participationSpaceRuntime.ts`, Publish-/Public-Route-Tests | partially_built | Viele Pfade sind runtime-wired, aber es gibt keine zentrale Integritaetskarte mit Fehlermodi und Admin-Sicht | `V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01` |
+| D. Automation Suggestion Engine | `docs/E150/V3_AUTOMATION_ROADMAP_AND_GOVERNANCE_2026-07-01.md`, AI-/guided workspace surfaces, `apps/web/src/app/api/chat/route.ts` | partially_built | Review-first Vorschlaege sind fragmentarisch runtime-wired, aber nicht als eigene Slice-Familie mit Audit- und Guardrail-Tests geschlossen | `V3-AUTOMATION-SUGGESTION-ENGINE-01` |
+| E. DeepSearch Cost Governance | `apps/web/src/app/api/contributions/analyze/researchEntitlementGate.ts`, `features/security/routeSecurityInventory.ts`, `tests/factcheck-enqueue.auth.route.test.ts`, `tests/pricing-no-hidden-ai-costs.contract.test.ts` | partially_built | Einzelne Cost- und Entitlement-Gates existieren, aber kein sichtbarer V3-Cost-Gate-, Approval- und Auditpfad | `V3-DEEPSEARCH-COST-GOVERNANCE-01` |
+| F. Pricing / Credits / Limits | `features/pricing/*`, `/pricing`, `/pricing/institutionen`, `/order`, `/admin/pricing/orders`, `/api/billing/{provider,checkout/session}`, Pricing-/Checkout-/Hidden-Cost-Tests | partially_built | Pricing ist fuer V1/V2 vorhanden, aber V3 braucht kanonische Credits, Limits und Cost-Gates fuer DeepSearch, Assets, Exporte und spaetere Suggestions | `V3-PRICING-CREDITS-LIMITS-01` |
+| G. Roles / Permissions / Entitlements / Access | `/admin/entitlements`, `apps/web/src/lib/server/entitlements/createEntitlements.ts`, `features/region/{organizationDashboard.ts,organizationContracts.ts,server/paidEntitlements.ts}`, route overrides | partially_built | Access und Entitlements existieren verteilt, aber noch nicht als V3-weite Rollen-/Rechte-Landkarte fuer Admin, Redaktion, Organisation, Kommune und Medienpartner | `V3-ROLES-PERMISSIONS-ENTITLEMENTS-01` |
+| H. Notifications / Realtime / Mail | `apps/web/src/app/api/admin/alerts/{settings,notify,test}/route.ts`, status report mail, org invite mails, `/admin/newsletter` | partially_built | Mail- und Alert-Bausteine existieren, aber keine zentrale V3-Notification-Schicht fuer Review, Publish, Cost Gates, Incidents und Validation | `V3-NOTIFICATIONS-REALTIME-MAIL-01` |
+| I. Incident / Recovery / Diagnostics / Maintenance Mode | `/admin/errors`, `/admin/system`, `/api/admin/ops/status-report`, `/admin/telemetry/ai/orchestrator`, Health-Routes, `history-maintenance` | partially_built | Diagnostics und Ops-Checks existieren, aber kein kanonisches Incident-/Recovery-/Retry-/Maintenance-Zielbild | `V3-INCIDENT-RECOVERY-MAINTENANCE-01` |
+| J. Database Admin Ops / Manual Creation / Override | Admin runtime-creation/publish sections in `/admin/review`, `AdminDossierClient` finding override, `/admin/create/attach-drafts/history-maintenance`, manual Anlassraum setup | partially_built | Kontrollierte manuelle Eingriffe sind punktuell moeglich, aber nicht als durchgehender auditpflichtiger V3-Admin-Ops-Pfad beschrieben | `V3-DATABASE-ADMIN-OPS-MANUAL-CREATION-01` |
+| K. Image Generation / Voxy Assets / Dossier Covers | `apps/web/public/brand/voxy/*`, `apps/web/src/features/voxy/voxyAssets.ts`, Share-/Output-Assets, keine Image-Generation-Route | partially_built | Es gibt reale Asset-, Share-ready- und Output-Bausteine, aber keine kanonische Governance fuer generierte Bilder, Cover, Asset-Review, Cost Gates und Public Safety | `V3-IMAGE-GENERATION-VOXY-ASSETS-DOSSIER-OUTPUTS-01` |
+| L. Templates / Default Muster / Output Standards | `docs/E150/voxy-default-debate-template.md`, `features/anlassraum/shareReadyAssetContract.ts`, `features/outputEngine/{contracts.ts,formatMappers.ts,distributionExport.ts}`, stream template usage | partially_built | Einzelne Templates und Output-Contracts existieren, aber keine V3-weite Standardisierung fuer Dossier, Anlassraum, Beteiligungsraum, Handout, Visuals und Exporte | `V3-TEMPLATE-OUTPUT-STANDARDIZATION-01` |
+| M. QR Code / Sharing / Public Entry / Slug Stability | `features/qr/*`, `/qrcodegenerator`, `/qrcodewizard`, `/qr/[qrId]`, `/api/qr/*`, Share metadata, `shareReadyAssetContract`, slug handling in public runtimes | partially_built | QR-, Share- und Slug-Bausteine existieren, aber nicht als einheitlicher V3-Pfad mit Admin-Pruefung, Public Safety und stabiler Entry-Lesart | `V3-QR-SHARING-PUBLIC-ENTRY-01` |
+| N. Test Results / Regression / E2E / Smoke | `production-validation.yml`, `release:validate:production`, `tests/e2e-critical-journeys.test.ts`, viele route/UI/guardrail contracts | partially_built | Tests sind breit vorhanden, aber es fehlt die zentrale V3-Testlandkarte mit Gap-Sicht, Slice-Zuordnung und E2E-/Smoke-Abdeckung | `V3-TEST-RESULTS-REGRESSION-MATRIX-01` |
+| O. Monitoring / Alerting / Rollback | status report, alerts routes, telemetry pages, health routes, manueller release gate | partially_built | Monitoring-/Alerting-Bausteine existieren, aber noch kein belastbarer zusammenhaengender Betriebs- und Rollback-Pfad | `V3-MONITORING-ALERTING-ROLLBACK-01` |
+| P. Admin Handout / Usage Guide | `docs/E150/HANDOUT_ADMIN_NUTZUNG_EDEBATTE_V3.md` | docs_only | Stub ist vorhanden, aber noch nicht mit realer UI-, Rollen-, Cost-, Asset- und Incident-Lesart abgeglichen | `V3-ADMIN-HANDOUT-AND-USAGE-GUIDE-01` |
+| Q. Prompt-based Maintenance / Low-Ops Operation | `guided_workspace` in chat routes, AI orchestrator diagnostics, route-bound companion patterns, Voxy guided flows | partially_built | Prompt-/guided Eingaben existieren, aber noch kein kanonischer Low-Ops-Wartungspfad im Rechte- und Review-Kontext | `V3-PROMPT-BASED-MAINTENANCE-AND-LOW-OPS-01` |
+| R. Voxy + User/Public Guidance across Start/Create/Review/Public Routes | `VoxyGuide` in `/start`, `/create`, `/runden`, `/dossier`, `SwipesSurface`, companion/guided workspace routes | partially_built | Voxy fuehrt einzelne Surfaces, aber noch nicht systematisch Admin, Review, Publish, Public Entry und Unsicherheitskommunikation | `V3-VOXY-GUIDED-EXPERIENCE-01` |
+
+Ergaenzender Endstate:
+
+- Live / Claims / Social / Programm wird in
+  `docs/E150/V3_LIVE_CLAIMS_SOCIAL_PROGRAMM_ENDSTATE_2026-07-02.md`
+  als maximales Zielbild gefuehrt.
+- Alle `partially_built`-Capabilities bleiben umzusetzen, bis mindestens
+  `endstate_ready` oder bewusst post-V3 entschieden.
+- Optionale Meeting-Link-Integration fuer Zoom, Teams und Google Meet bleibt
+  low-effort und als separater Folgepfad ohne Connector-, Bot-, Recording- oder
+  Transkriptionspflicht.
 
 ## 4. Admin / Dashboard Zielbild
 
@@ -310,44 +330,53 @@ Phase V3.0 Scope-Korrektur:
 
 1. `V3-TOTAL-SCOPE-READINESS-MAP-01`
 
-Phase V3.1 Kontrollzentrum und Integritaet:
+Phase V3.1 Live / Claims / Social / Programm:
 
-2. `V3-ADMIN-DASHBOARD-CONTROL-CENTER-01`
-3. `V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01`
-4. `V3-TEST-RESULTS-REGRESSION-MATRIX-01`
+2. `V3-LIVE-FORMAT-HOST-COCKPIT-01`
+3. `V3-LIVE-PARTICIPATION-FORMATS-01`
+4. `V3-CLAIM-TO-DOSSIER-PIPELINE-01`
+5. `V3-DOSSIER-SOCIAL-OUTPUT-DRAFTS-01`
+6. `V3-PROGRAMM-GROWTH-APPROVAL-PIPELINE-01`
+7. `V3-MEETING-LINK-INTEGRATION-LIGHT-01` als optionaler low-effort Folgepfad
 
-Phase V3.2 Experience und Nutzungsfuehrung:
+Phase V3.2 Kontrollzentrum und Integritaet:
 
-5. `V3-VOXY-GUIDED-EXPERIENCE-01`
-6. `V3-TEMPLATE-OUTPUT-STANDARDIZATION-01`
-7. `V3-ADMIN-HANDOUT-AND-USAGE-GUIDE-01`
+8. `V3-ADMIN-DASHBOARD-CONTROL-CENTER-01`
+9. `V3-HANDOFF-INTEGRITY-AND-LINKAGE-MAP-01`
+10. `V3-TEST-RESULTS-REGRESSION-MATRIX-01`
 
-Phase V3.3 Monetarisierung und Zugriff:
+Phase V3.3 Experience und Nutzungsfuehrung:
 
-8. `V3-PRICING-CREDITS-LIMITS-01`
-9. `V3-ROLES-PERMISSIONS-ENTITLEMENTS-01`
+11. `V3-VOXY-GUIDED-EXPERIENCE-01`
+12. `V3-TEMPLATE-OUTPUT-STANDARDIZATION-01`
+13. `V3-ADMIN-HANDOUT-AND-USAGE-GUIDE-01`
 
-Phase V3.4 Betrieb / Meldungen / Recovery:
+Phase V3.4 Monetarisierung und Zugriff:
 
-10. `V3-NOTIFICATIONS-REALTIME-MAIL-01`
-11. `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
-12. `V3-MONITORING-ALERTING-ROLLBACK-01`
+14. `V3-PRICING-CREDITS-LIMITS-01`
+15. `V3-ROLES-PERMISSIONS-ENTITLEMENTS-01`
 
-Phase V3.5 Assets / Public Distribution:
+Phase V3.5 Betrieb / Meldungen / Recovery:
 
-13. `V3-IMAGE-GENERATION-VOXY-ASSETS-DOSSIER-OUTPUTS-01`
-14. `V3-QR-SHARING-PUBLIC-ENTRY-01`
+16. `V3-NOTIFICATIONS-REALTIME-MAIL-01`
+17. `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
+18. `V3-MONITORING-ALERTING-ROLLBACK-01`
 
-Phase V3.6 Automatisierung:
+Phase V3.6 Assets / Public Distribution:
 
-15. `V3-AUTOMATION-SUGGESTION-ENGINE-01`
-16. `V3-DEEPSEARCH-COST-GOVERNANCE-01`
-17. `V3-PROMPT-BASED-MAINTENANCE-AND-LOW-OPS-01`
+19. `V3-IMAGE-GENERATION-VOXY-ASSETS-DOSSIER-OUTPUTS-01`
+20. `V3-QR-SHARING-PUBLIC-ENTRY-01`
 
-Phase V3.7 Haertung:
+Phase V3.7 Automatisierung:
 
-18. `V3-EXTERNAL-BROWSER-E2E-01`
-19. `V3-MODERATION-RBAC-NOTIFICATIONS-01`, falls es nach Rollen- und
+21. `V3-AUTOMATION-SUGGESTION-ENGINE-01`
+22. `V3-DEEPSEARCH-COST-GOVERNANCE-01`
+23. `V3-PROMPT-BASED-MAINTENANCE-AND-LOW-OPS-01`
+
+Phase V3.8 Haertung:
+
+24. `V3-EXTERNAL-BROWSER-E2E-01`
+25. `V3-MODERATION-RBAC-NOTIFICATIONS-01`, falls es nach Rollen- und
     Notification-Slices noch als eigener Moderationspfad bestehen muss
 
 ## 16. Was V3 erst am Ende als "reif" gelten laesst
