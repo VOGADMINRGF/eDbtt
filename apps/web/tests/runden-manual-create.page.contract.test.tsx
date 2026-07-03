@@ -58,6 +58,10 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain("Ohne KI speichern");
     expect(html).toContain("Mit KI in /create weiter");
     expect(html).toContain("Öffentlich nach Review einreichen");
+    expect(html).toContain("Kanonischer Einstieg heute");
+    expect(html).toContain("/runden/new startet mit einem wiederaufnehmbaren Entwurf.");
+    expect(html).toContain("noch kein Anlassraum-, Dossier- oder Beteiligungsraum-Record");
+    expect(html).toContain("bewussten Review- und Runtime-Pfaden");
     expect(html).toContain('data-manual-anlassraum-stepper="true"');
 
     expect(html).toContain('data-voxy-appearance="panel"');
@@ -167,6 +171,7 @@ describe("/runden/new manual create contract", () => {
     expect(source).not.toContain("autoPublish");
     expect(source).not.toContain("DeepSearch");
     expect(pageSource).toContain("readManualAnlassraumServerDraftForCurrentUser");
+    expect(pageSource).toContain("readRundenEntryCanonReadModel");
     expect(pageSource).toContain("searchParams");
   });
 });
