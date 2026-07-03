@@ -488,6 +488,7 @@ export function readManualAnlassraumServerDraftSnapshot(
 export function buildManualAnlassraumContinueCreateHref(params: {
   returnTo?: string;
   setup: ManualAnlassraumSetup;
+  draftId?: string | null;
 }): string {
   const normalized = sanitizeManualAnlassraumSetup(params.setup);
   const searchParams = new URLSearchParams();
@@ -497,5 +498,8 @@ export function buildManualAnlassraumContinueCreateHref(params: {
   searchParams.set("signalTitle", getManualAnlassraumSignalTitle(normalized));
   searchParams.set("prefill", buildManualAnlassraumPrefill(normalized));
   searchParams.set("returnTo", params.returnTo || "/runden/new");
+  if (typeof params.draftId === "string" && params.draftId.trim()) {
+    searchParams.set("draftId", params.draftId.trim());
+  }
   return `/create?${searchParams.toString()}`;
 }

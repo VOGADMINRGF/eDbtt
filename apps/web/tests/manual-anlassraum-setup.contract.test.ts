@@ -66,11 +66,13 @@ describe("manual anlassraum setup contract", () => {
     const href = buildManualAnlassraumContinueCreateHref({
       setup,
       returnTo: "/runden/new",
+      draftId: "65a111111111111111111122",
     });
 
     expect(href).toContain("mode=source");
     expect(href).toContain("source=runden");
     expect(href).toContain("reason=manual_anlassraum_continue_create");
+    expect(href).toContain("draftId=65a111111111111111111122");
     expect(href).toContain("signalTitle=Sichere+Schulwege");
     expect(href).toContain("returnTo=%2Frunden%2Fnew");
     expect(href).toContain("prefill=");

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
   getDraft: vi.fn(),
+  readManualAnlassraumServerDraftForCurrentUser: vi.fn(),
   resolveCurrentRequestScopeContext: vi.fn(),
   summarizeRequestScopeContext: vi.fn(),
   analyzeWorkspaceCalls: [] as Array<Record<string, unknown>>,
@@ -20,6 +21,11 @@ vi.mock("@features/account/service", () => ({
 
 vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
+}));
+
+vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
+  readManualAnlassraumServerDraftForCurrentUser: (...args: unknown[]) =>
+    mocks.readManualAnlassraumServerDraftForCurrentUser(...args),
 }));
 
 vi.mock("@/server/createContributionDrafts", () => ({
@@ -105,6 +111,7 @@ describe("/create start surface", () => {
     mocks.getCreateEntitlementsForRequest.mockResolvedValue(AUTH_ENTITLEMENTS);
     mocks.getAccountOverview.mockResolvedValue(OVERVIEW);
     mocks.getDraft.mockResolvedValue(null);
+    mocks.readManualAnlassraumServerDraftForCurrentUser.mockResolvedValue(null);
     mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
     mocks.summarizeRequestScopeContext.mockReturnValue(null);
     mocks.analyzeWorkspaceCalls.length = 0;
@@ -199,6 +206,76 @@ describe("/create start surface", () => {
     expect(html).toContain("Aus laufendem Anlass gestartet");
     expect(html).not.toContain("autoAnalyze");
     expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
+  });
+
+  it("loads a server-backed /runden/new draft into /create when a valid draftId is present", async () => {
+    mocks.readManualAnlassraumServerDraftForCurrentUser.mockResolvedValue({
+      draftId: "65a111111111111111111122",
+      updatedAt: "2026-07-03T13:00:00.000Z",
+      setup: {
+        title: "Sichere Schulwege",
+        votingQuestion: "Welche Maßnahme soll zuerst kommen?",
+        description: "Eltern und Schule melden offene Querungen.",
+        scope: "public",
+        visibility: "private_draft",
+        options: ["Zebrastreifen", "Tempo 30"],
+        communityOptionsMode: "disabled",
+        aiSupportMode: "disabled",
+        nextStep: "continue_create",
+      },
+    });
+
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        source: "runden",
+        reason: "manual_anlassraum_continue_create",
+        returnTo: "/runden/new",
+        draftId: "65a111111111111111111122",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(mocks.readManualAnlassraumServerDraftForCurrentUser).toHaveBeenCalledWith(
+      "65a111111111111111111122",
+    );
+    expect(html).toContain("Serverseitiger Anlassraum-Entwurf übernommen");
+    expect(html).toContain("Der serverseitig gespeicherte Entwurf aus /runden/new wurde geladen.");
+    expect(html).toContain("Entwurf aus /runden/new übernehmen");
+    expect(html).toContain("Abgeschlossen");
+    expect(html).toContain("Sichere Schulwege");
+  });
+
+  it("shows an honest warning when a manual /runden/new draft is missing", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        source: "runden",
+        reason: "manual_anlassraum_continue_create",
+        returnTo: "/runden/new",
+        draftId: "65a111111111111111111122",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Serverseitiger Anlassraum-Entwurf wurde nicht gefunden");
+    expect(html).toContain("Es gibt keine belastbare serverseitige Draft-Wahrheit");
+    expect(html).toContain("Bleibt im Review");
+  });
+
+  it("shows an honest warning for invalid manual round draft ids", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        source: "runden",
+        reason: "manual_anlassraum_continue_create",
+        returnTo: "/runden/new",
+        draftId: "bad-draft-id",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(mocks.readManualAnlassraumServerDraftForCurrentUser).toHaveBeenCalledWith("bad-draft-id");
+    expect(html).toContain("Draft-ID ist ungültig");
+    expect(html).toContain("Es wurde kein serverseitiger Entwurf übernommen.");
+    expect(html).toContain("Bleibt im Review");
   });
 
   it("shows the resolved organization scope when available", async () => {

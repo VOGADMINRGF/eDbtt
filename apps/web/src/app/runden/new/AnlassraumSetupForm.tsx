@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import MotionStep from "@/components/motion/MotionStep";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 import StartDraftWorkspaceChooser from "@/features/start/StartDraftWorkspaceChooser";
@@ -105,6 +106,7 @@ function syncDraftUrl(draftId: string) {
 export default function AnlassraumSetupForm({
   initialServerDraft = null,
 }: AnlassraumSetupFormProps) {
+  const router = useRouter();
   const [setup, setSetup] = useState<ManualAnlassraumSetup>(createEmptyManualAnlassraumSetup);
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -150,8 +152,9 @@ export default function AnlassraumSetupForm({
       buildManualAnlassraumContinueCreateHref({
         setup,
         returnTo: "/runden/new",
+        draftId: serverDraftId,
       }),
-    [setup],
+    [serverDraftId, setup],
   );
 
   function patchSetup(
@@ -169,6 +172,33 @@ export default function AnlassraumSetupForm({
     setSetup(nextSetup);
     persistSetup(nextSetup);
     return nextSetup;
+  }
+
+  function saveManualStartDraft(
+    nextSetup: ManualAnlassraumSetup,
+    targetHint: "create" | "rounds",
+  ) {
+    const nextDraft =
+      buildManualAnlassraumStartDraft(nextSetup, startDraft) ??
+      createStartDraftContext({
+        text: nextSetup.title || nextSetup.votingQuestion || "Manueller Anlassraum-Entwurf",
+        origin: "round_handoff",
+        intent: "round_suggestion",
+        targetHint,
+        id: startDraft?.id,
+        createdAt: startDraft?.createdAt,
+      });
+    const savedDraft = saveStartDraftContext(
+      nextDraft
+        ? {
+            ...nextDraft,
+            targetHint,
+          }
+        : nextDraft,
+    );
+    if (savedDraft) {
+      setStartDraft(savedDraft);
+    }
   }
 
   async function persistServerDraft(nextSetup: ManualAnlassraumSetup) {
@@ -210,20 +240,7 @@ export default function AnlassraumSetupForm({
     },
   ) {
     const nextSetup = persistWithNextStep(nextStep);
-    const nextDraft =
-      buildManualAnlassraumStartDraft(nextSetup, startDraft) ??
-      createStartDraftContext({
-        text: nextSetup.title || nextSetup.votingQuestion || "Manueller Anlassraum-Entwurf",
-        origin: "round_handoff",
-        intent: "round_suggestion",
-        targetHint: "rounds",
-        id: startDraft?.id,
-        createdAt: startDraft?.createdAt,
-      });
-    const savedDraft = saveStartDraftContext(nextDraft);
-    if (savedDraft) {
-      setStartDraft(savedDraft);
-    }
+    saveManualStartDraft(nextSetup, "rounds");
     setRestoreNotice(null);
     setIsPersisting(true);
     try {
@@ -241,6 +258,47 @@ export default function AnlassraumSetupForm({
       setActionNotice(notices.serverFailed);
     } catch {
       setActionNotice(notices.serverFailed);
+    } finally {
+      setIsPersisting(false);
+    }
+  }
+
+  async function continueManualDraftInCreate() {
+    if (!actionState.canContinueCreate) return;
+
+    const nextSetup = persistWithNextStep("continue_create");
+    saveManualStartDraft(nextSetup, "create");
+
+    setRestoreNotice(null);
+    setIsPersisting(true);
+    try {
+      const result = await persistServerDraft(nextSetup);
+      if (!result.ok) {
+        if (result.error === "not_authenticated") {
+          setActionNotice(
+            "Zum KI-gestützten Weiterarbeiten in /create bitte zuerst anmelden. Dein Entwurf bleibt lokal gespeichert; es wurde kein KI-Lauf gestartet.",
+          );
+          return;
+        }
+        setActionNotice(
+          "Der serverseitige Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne den Entwurf erneut, bevor du in /create weitergehst. Es wurde kein KI-Lauf gestartet.",
+        );
+        return;
+      }
+
+      setServerDraftId(result.draftId);
+      syncDraftUrl(result.draftId);
+      router.push(
+        buildManualAnlassraumContinueCreateHref({
+          setup: nextSetup,
+          returnTo: "/runden/new",
+          draftId: result.draftId,
+        }) as Parameters<typeof router.push>[0],
+      );
+    } catch {
+      setActionNotice(
+        "Der serverseitige Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne den Entwurf erneut, bevor du in /create weitergehst. Es wurde kein KI-Lauf gestartet.",
+      );
     } finally {
       setIsPersisting(false);
     }
@@ -559,9 +617,10 @@ export default function AnlassraumSetupForm({
                 actionState={actionState}
                 continueCreateHref={continueCreateHref}
                 isSaving={isPersisting}
-                onContinueCreate={() => {
+                onContinueCreate={(event) => {
                   if (!actionState.canContinueCreate) return;
-                  persistWithNextStep("continue_create");
+                  event.preventDefault();
+                  void continueManualDraftInCreate();
                 }}
                 onSaveDraft={() => {
                   if (!actionState.canSaveDraft) return;

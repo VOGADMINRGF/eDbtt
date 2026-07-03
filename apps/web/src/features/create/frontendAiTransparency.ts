@@ -2,6 +2,7 @@ import {
   readRundenEntryCanonReadModel,
   type RundenEntryCanonReadModel,
 } from "@/features/surfaces/runden/rundenEntryCanon";
+import type { RundenCreateHandoffIntegrityStatus } from "@/features/create/rundenCreateHandoffIntegrity";
 
 export type FrontendAiTransparencySurface = "/runden/new" | "/create";
 
@@ -38,6 +39,8 @@ export type CreateFrontendAiTransparencyInput = {
   isRetryPlannerPending: boolean;
   fromManualAnlassraumContinueCreate: boolean;
   startBusyStatusLabel: string;
+  rundenCreateHandoffStatus?: RundenCreateHandoffIntegrityStatus | null;
+  rundenCreateHandoffDetail?: string | null;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -130,6 +133,25 @@ export function buildCreateFrontendAiTransparencyReadModel(
       ? "Du bist im KI-gestützten Folgeschritt eines manuellen Anlassraum-Entwurfs. Analyse startet erst nach deinem bewussten Start."
       : "Auf /create kann KI deinen Text einordnen und nächste Schritte vorbereiten. Alles bleibt review-first und ohne automatische Veröffentlichung.",
     steps: [
+      ...(input.fromManualAnlassraumContinueCreate
+        ? [
+            {
+              id: "runden_draft_handoff",
+              label: "Entwurf aus /runden/new übernehmen",
+              status:
+                input.rundenCreateHandoffStatus === "loaded"
+                  ? ("completed" as const)
+                  : input.rundenCreateHandoffStatus === "missing" ||
+                      input.rundenCreateHandoffStatus === "invalid" ||
+                      input.rundenCreateHandoffStatus === "not_requested"
+                    ? ("review_required" as const)
+                    : ("planned_not_active" as const),
+              detail:
+                input.rundenCreateHandoffDetail ??
+                "Für diesen Übergang liegt noch keine belastbare serverseitige Draft-Wahrheit vor.",
+            },
+          ]
+        : []),
       {
         id: "planner_preparation",
         label: "Nächste Schritte vorbereiten",

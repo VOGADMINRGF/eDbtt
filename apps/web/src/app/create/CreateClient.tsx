@@ -34,6 +34,7 @@ import {
   buildFinalizeFallbackPath,
   normalizeInternalRedirectPath,
 } from "@/features/create/finalizeRedirect";
+import type { RundenCreateHandoffIntegrityState } from "@/features/create/rundenCreateHandoffIntegrity";
 import {
   getCreateComposerTexts,
   getCreateContextAnchorDefinitions,
@@ -115,6 +116,7 @@ export type CreateClientProps = {
   initialReturnTo?: string | null;
   initialNextActionParam?: string | null;
   initialRequestScope?: RequestScopeSummary | null;
+  initialRundenCreateHandoff?: RundenCreateHandoffIntegrityState | null;
 };
 
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
@@ -811,6 +813,7 @@ export default function CreateClient({
   initialReturnTo,
   initialNextActionParam,
   initialRequestScope,
+  initialRundenCreateHandoff,
 }: CreateClientProps) {
   const privacyGate = usePrivacyGate();
   const router = useRouter();
@@ -1541,11 +1544,15 @@ export default function CreateClient({
         isRetryPlannerPending,
         fromManualAnlassraumContinueCreate,
         startBusyStatusLabel,
+        rundenCreateHandoffStatus: initialRundenCreateHandoff?.status ?? null,
+        rundenCreateHandoffDetail: initialRundenCreateHandoff?.detail ?? null,
       }),
     [
       fromManualAnlassraumContinueCreate,
       hasStarted,
       intelligentFollowup,
+      initialRundenCreateHandoff?.detail,
+      initialRundenCreateHandoff?.status,
       isRetryPlannerPending,
       isStarting,
       showAnalyzeWorkspace,
@@ -2101,6 +2108,19 @@ export default function CreateClient({
                 >
                   <p className="font-semibold">{scopeNotice.title}</p>
                   <p className="mt-1">{scopeNotice.body}</p>
+                </div>
+              ) : null}
+              {fromManualAnlassraumContinueCreate && initialRundenCreateHandoff ? (
+                <div
+                  className={`rounded-2xl border px-3 py-2 text-xs ${
+                    initialRundenCreateHandoff.status === "loaded"
+                      ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-800"
+                      : "border-amber-300/60 bg-amber-50/80 text-amber-800"
+                  }`}
+                  data-create-runden-handoff-status={initialRundenCreateHandoff.status}
+                >
+                  <p className="font-semibold">{initialRundenCreateHandoff.title}</p>
+                  <p className="mt-1">{initialRundenCreateHandoff.detail}</p>
                 </div>
               ) : null}
             </div>
