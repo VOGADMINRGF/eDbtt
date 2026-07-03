@@ -99,6 +99,95 @@ describe("create planner routing contract", () => {
     expect(result.degraded).toBe(false);
     expect(result.understanding.topics[0]?.label).toBe("Tierschutz, Tierhaltung und Agrarstandards");
     expect(result.understanding.statements[0]?.text).toBe("Forderung nach besseren Tierschutz- und Tierhaltungsstandards");
+    expect(mocks.buildCreatePlanner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: null,
+        operationId: null,
+        dossierId: null,
+        userId: null,
+      }),
+    );
+  });
+
+  it("forwards existing dossier and user context into the real planner surface", async () => {
+    mocks.buildCreatePlanner.mockResolvedValue({
+      source: "openai",
+      plannerSource: "openai",
+      plannerProvider: "openai",
+      plannerRole: "planner_only",
+      plannerTopic: "Sichere Schulwege",
+      plannerCore: "Mehr sichere Schulwege im Quartier.",
+      plannerScope: ["district"],
+      plannerStance: "pro",
+      plannerClusters: ["Mobilität"],
+      plannerOpenQuestions: ["Welche Kreuzungen zuerst?"],
+      shortSummary: "Kurzfassung",
+      topicCandidates: ["Sichere Schulwege"],
+      clusterCandidates: ["Mobilität"],
+      scopeCandidates: ["district"],
+      stance: "pro",
+      openQuestions: ["Welche Kreuzungen zuerst?"],
+      graphSearchTerms: ["Schulwege"],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+      providerPlan: {
+        lane: "create_fast_followup",
+        plannerProvider: "openai",
+        plannerRole: "planner_only",
+        structureProvider: "mistral",
+        summaryProvider: "claude",
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+        graphMatch: "after_structure",
+      },
+      permissions: {
+        nonMutative: true,
+        canPublish: false,
+        canSave: false,
+        canMerge: false,
+        canDeepSearch: false,
+      },
+      plannerDegraded: false,
+      degradedReason: null,
+      plannerDegradedReason: null,
+      qualityStatus: "specific",
+      qualityIssues: [],
+      providerCallAttempted: true,
+      providerCallSucceeded: true,
+      plannerDebug: {
+        attemptedProvider: "openai",
+        usedProvider: "openai",
+        providerAvailable: true,
+        providerErrorCode: null,
+        providerErrorMessage: null,
+        errorMessage: null,
+        rawPayloadValid: true,
+        rawTextValid: true,
+        normalizedPayloadValid: true,
+        qualityGatePassed: true,
+      },
+    });
+
+    await buildCreateIntelligentFollowup({
+      text: "Mehr sichere Schulwege im Quartier.",
+      locale: "de",
+      dossierId: "dossier-ctx",
+      userId: "user-ctx",
+      requestId: "request-ctx",
+      operationId: "operation-ctx",
+      operationType: "create_intelligent_followup_planner",
+    });
+
+    expect(mocks.buildCreatePlanner).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        dossierId: "dossier-ctx",
+        userId: "user-ctx",
+        requestId: "request-ctx",
+        operationId: "operation-ctx",
+        operationType: "create_intelligent_followup_planner",
+      }),
+    );
   });
 
   it("keeps fallback planners visible as degraded when the provider contract is not fulfilled", async () => {

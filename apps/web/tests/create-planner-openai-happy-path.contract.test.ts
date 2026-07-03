@@ -2,10 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   callOpenAIJson: vi.fn(),
+  logAiUsage: vi.fn(),
 }));
 
 vi.mock("@features/ai", () => ({
   callOpenAIJson: (...args: unknown[]) => mocks.callOpenAIJson(...args),
+}));
+
+vi.mock("@core/telemetry/aiUsage", () => ({
+  logAiUsage: (...args: unknown[]) => mocks.logAiUsage(...args),
 }));
 
 import { buildCreatePlanner } from "@/features/create/createPlanner";
@@ -74,6 +79,10 @@ describe("create planner openai happy path contract", () => {
       text:
         "ich bin gegen frauenquote aber für mehr gleichberechtigung. gibt es eine frauenquote müsste es auch quoten von anderen minderheiten geben, das kann nicht richtig und wirtschaftlich für ein unternehmen sein.",
       locale: "de",
+      requestId: "request-1",
+      operationId: "operation-1",
+      dossierId: "dossier-1",
+      userId: "user-1",
     });
 
     expect(planner.source).toBe("openai");
@@ -99,5 +108,17 @@ describe("create planner openai happy path contract", () => {
     expect(planner.plannerDebug.rawPayloadValid).toBe(true);
     expect(planner.plannerDebug.normalizedPayloadValid).toBe(true);
     expect(planner.plannerDebug.qualityGatePassed).toBe(true);
+    expect(mocks.logAiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "openai",
+        pipeline: "other",
+        operationId: "operation-1",
+        operationType: "create_intelligent_followup_planner",
+        requestId: "request-1",
+        dossierId: "dossier-1",
+        userId: "user-1",
+        success: true,
+      }),
+    );
   });
 });

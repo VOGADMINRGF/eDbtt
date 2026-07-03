@@ -12,6 +12,7 @@ export const V3_DEEPSEARCH_CONSUMPTION_TRUTH_REAL_HREFS = [
   "/admin/entitlements",
   "/pricing",
   "/atlas/social-review",
+  "/create",
 ] as const;
 
 export type V3DeepsearchConsumptionTruthHref =
@@ -41,6 +42,7 @@ export type V3DeepsearchConsumptionTruthField = {
 export type V3DeepsearchConsumptionTruthOperation = {
   id:
     | "analyze_run_receipt"
+    | "create_intelligent_followup_planner"
     | "factcheck_deep_research_job"
     | "material_extraction_job"
     | "admin_orchestrator_smoke_run"
@@ -119,6 +121,9 @@ export const V3_DEEPSEARCH_DEBIT_TRUTH_SLICE_ID =
 
 export const V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID =
   "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06";
+
+export const V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID =
+  "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07";
 
 const GLOBAL_GUARDRAILS = [
   "Keine neue Billing-Runtime",
@@ -250,6 +255,114 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       operationalTruth: "operational_basic",
     },
     {
+      id: "create_intelligent_followup_planner",
+      area: "ai_usage",
+      label: "Create Intelligent Follow-up Planner",
+      runtimeRecord: "CreatePlanner / AiUsageEvent",
+      currentReality:
+        "Der nicht-mutative /create-Planner nutzt heute real OpenAI, fuehrt optional Dossier- und User-Kontext und schreibt jetzt eine echte AI-Usage-Zeile, aber keine Run-, Job- oder Debit-Wahrheit.",
+      correlationKeys: [
+        "requestId",
+        "operationId",
+        "operationType",
+        "dossierId",
+        "userId",
+        "plannerProvider",
+        "recommendedLane",
+      ],
+      correlationTruth:
+        "Der /create-Follow-up-Planer hat jetzt eine echte AI-Usage-Korrelation ueber requestId/operationId sowie optional dossierId/userId, bleibt aber bewusst ohne RunReceipt-, Job- oder Debit-Lesart.",
+      hasAiUsageEvent: {
+        status: "resolved_for_scope",
+        detail: "Der reale OpenAI-Planer schreibt jetzt AI Usage fuer erfolgreiche und fehlgeschlagene Provider-Aufrufe.",
+      },
+      hasRunCorrelation: {
+        status: "not_applicable",
+        detail: "Der /create-Planer fuehrt keine eigene runId-basierte Runtime.",
+      },
+      hasJobCorrelation: {
+        status: "not_applicable",
+        detail: "Der Planner ist ein nicht-mutatives Request-Surface ohne Job-Dokument.",
+      },
+      hasDossierCorrelation: {
+        status: "resolved_for_scope",
+        detail: "dossierId wird aus dem /create-Request in AI Usage uebernommen, wenn der Surface-Kontext real vorhanden ist.",
+      },
+      hasOrgOrUserScope: {
+        status: "resolved_for_scope",
+        detail: "userId aus dem bestehenden Create-Cookie-Kontext kann in AI Usage mitgefuehrt werden.",
+      },
+      hasCostEstimate: {
+        status: "missing_runtime_truth",
+        detail: "Der Planner fuehrt keine eigene Kostenschaetzung.",
+      },
+      hasRecordedUsage: {
+        status: "recorded_usage",
+        detail: "AI Usage dokumentiert den echten Planner-Aufruf, auch wenn Tokens/Kosten in diesem Surface noch nicht separat aufgeloest werden.",
+      },
+      hasRunLinkage: {
+        status: "not_applicable",
+        detail: "Der Planner fuehrt keine RunReceipt- oder runId-Wahrheit.",
+      },
+      hasJobLinkage: {
+        status: "not_applicable",
+        detail: "Der Planner fuehrt keinen Job- oder Queue-Record.",
+      },
+      hasUsageLinkage: {
+        status: "resolved_for_scope",
+        detail: "AI Usage kann requestId/operationId sowie optional dossierId/userId aus dem Planner-Surface jetzt kanonisch mitfuehren.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Der Planner erzeugt keinen Credit-/Debit-Beleg.",
+      },
+      estimatedCost: {
+        status: "missing_runtime_truth",
+        detail: "Der Planner speichert keine geschaetzte Kostenwahrheit.",
+      },
+      recordedUsage: {
+        status: "recorded_usage",
+        detail: "Recorded usage liegt als AI-Usage-Event fuer echte Planner-Aufrufe vor.",
+      },
+      creditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Es gibt keinen Credit-/Debit-Abzug fuer den Planner-Surface.",
+      },
+      reviewRequired: {
+        status: "not_required",
+        detail: "planner_only bleibt nicht-mutativ und braucht keine separate Review-Freigabe fuer den Aufruf selbst.",
+      },
+      blockedByLimit: {
+        status: "not_applicable",
+        detail: "Es gibt auf diesem Surface keinen separaten Debit-/Limit-Stopp.",
+      },
+      missingRuntimeTruth: {
+        status: "missing_runtime_truth",
+        detail: "AI Usage ist jetzt sichtbar, aber Run-, Job-, Kosten- und Debit-Wahrheit fehlen weiterhin.",
+      },
+      existingGates: [
+        "planner_only / nonMutative",
+        "noDeepSearch",
+        "noAutoPublish",
+        "quality_gate_failed faellt auf heuristic_fallback zurueck",
+      ],
+      repoEvidence: [
+        "apps/web/src/app/api/create/intelligent-followup/route.ts",
+        "apps/web/src/features/create/intelligentFollowup.ts",
+        "apps/web/src/features/create/createPlanner.ts",
+        "apps/web/src/features/create/dialogIntelligenceRuntimeBridge.ts",
+      ],
+      tests: [
+        "apps/web/tests/create-intelligent-followup.route.test.ts",
+        "apps/web/tests/create-planner-openai-happy-path.contract.test.ts",
+        "apps/web/tests/create-planner-timeout.contract.test.ts",
+        "apps/web/tests/create-planner-routing.contract.test.ts",
+      ],
+      publicHref: "/create",
+      nextSliceId: V3_DEEPSEARCH_DEBIT_TRUTH_SLICE_ID,
+      operationalTruth: "operational_basic",
+    },
+    {
       id: "factcheck_deep_research_job",
       area: "research",
       label: "Factcheck / Deep Research Job",
@@ -346,7 +459,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       ],
       adminHref: "/admin/review",
       publicHref: "/pricing",
-      nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -443,7 +556,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/material-extraction-no-autopublish.contract.test.ts",
       ],
       adminHref: "/admin/feeds",
-      nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -637,7 +750,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/ai-usage-operational-signals.contract.test.ts",
       ],
       adminHref: "/admin/telemetry/ai/usage",
-      nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -733,7 +846,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/social-export-scheduling-ready.contract.test.ts",
       ],
       adminHref: "/atlas/social-review",
-      nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
       operationalTruth: "operational_basic",
     },
   ];
@@ -777,14 +890,14 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
     operations,
     openTruths: [
       {
-        label: "Factcheck-, Material- und Export-Pfade haben weiter keine AI-Usage-Writer",
-        nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+        label: "Factcheck-, Material- und Export-Pfade haben weiter keine realen AI-Usage-Writer",
+        nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
         reason:
           "Die Korrelation ist fuer Analyze und Admin-Smoke real sichtbar, aber weitere DeepSearch-/Material-/Export-Pfade erzeugen noch keine korrelierbaren AI-Usage-Events.",
       },
       {
-        label: "Persistierte Run- und Job-Objekte bleiben ausserhalb der Writer-Pfade getrennt",
-        nextSliceId: V3_DEEPSEARCH_CROSS_SURFACE_USAGE_WRITERS_SLICE_ID,
+        label: "Persistierte Run- und Job-Objekte bleiben ausserhalb realer Runtime-Writer getrennt",
+        nextSliceId: V3_DEEPSEARCH_REAL_RUNTIME_WRITER_COVERAGE_SLICE_ID,
         reason:
           "Run Receipts, Factcheck-Jobs, Material-Jobs und Export-Objekte tragen IDs, aber ohne eigene AI-Usage-Writers noch keine durchgehenden Usage-Referenzen.",
       },

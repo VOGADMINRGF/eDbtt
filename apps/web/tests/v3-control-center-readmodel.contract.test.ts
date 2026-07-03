@@ -39,7 +39,7 @@ describe("v3 control center readmodel contract", () => {
     });
     expect(deepsearch).toMatchObject({
       status: "operational_basic",
-      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
+      nextSliceId: "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07",
     });
     expect(liveClaims).toBeTruthy();
     expect(pricing).toMatchObject({

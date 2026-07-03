@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 import { parseCreateIntent } from "@/features/create/intentFlows";
@@ -30,7 +31,9 @@ const RequestSchema = z.object({
   intent: z.string().trim().optional().nullable(),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const userId = req.cookies.get("u_id")?.value ?? null;
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -67,6 +70,10 @@ export async function POST(req: Request) {
     const result = await buildCreateIntelligentFollowup({
       text: body.text,
       locale: body.locale ?? "de",
+      requestId,
+      operationId: requestId,
+      operationType: "create_intelligent_followup_planner",
+      userId,
       anlassraumId: body.anlassraumId ?? null,
       dossierId: body.dossierId ?? null,
       intent: normalizedIntent,

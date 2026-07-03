@@ -95,6 +95,10 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx`
 - `apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts`
 - `apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx`
+- `apps/web/tests/create-intelligent-followup.route.test.ts`
+- `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`
+- `apps/web/tests/create-planner-timeout.contract.test.ts`
+- `apps/web/tests/create-planner-routing.contract.test.ts`
 - `apps/web/tests/v3-handoff-linkage-map.contract.test.ts`
 - `apps/web/tests/v3-handoff-linkage-admin.page.test.tsx`
 - `apps/web/tests/v3-test-regression-matrix.contract.test.ts`
@@ -177,7 +181,7 @@ Wichtige Production-/Workflow-Belege:
 - `V3-NOTIFICATIONS-REALTIME-MAIL-01`
 - `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
 - `V3-DEEPSEARCH-DEBIT-TRUTH-05`
-- `V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06`
+- `V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07`
 - `V3-MONITORING-ALERTING-ROLLBACK-01`
 
 Besonders sichtbar offen bleiben:
@@ -187,7 +191,7 @@ Besonders sichtbar offen bleiben:
 - gemeinsame Draft-Kette fuer Social / Output
 - Live-/Claims-/Follow-up-Regressionskette
 - Notification-/Incident-/Recovery-End-to-End-Tests
-- echte Runtime-Verknuepfung zwischen Factcheck-/Material-/Export-Pfaden und recorded usage trotz jetzt sichtbarer Analyze-/Admin-Smoke-Korrelation
+- echte Runtime-Verknuepfung zwischen Factcheck-/Material-/Export-/Social-Pfaden und recorded usage trotz jetzt sichtbarer Analyze-/Admin-Smoke-/Create-Planner-Korrelation
 - echte Debit-/Settlement-Wahrheit bleibt ohne Runtime bewusst offen
 
 ## Was ausdruecklich nicht gebaut wurde

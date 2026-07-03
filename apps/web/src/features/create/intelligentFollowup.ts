@@ -14,6 +14,10 @@ type BuildCreateIntelligentFollowupInput = {
   locale: string;
   intent?: CreateIntent;
   userId?: string | null;
+  requestId?: string | null;
+  operationId?: string | null;
+  operationType?: string | null;
+  organizationId?: string | null;
   anlassraumId?: string | null;
   dossierId?: string | null;
   maxSuggestions?: number;
@@ -517,6 +521,12 @@ export async function buildCreateIntelligentFollowup(
   const planner = await buildCreatePlanner({
     text,
     locale: input.locale,
+    requestId: input.requestId ?? null,
+    operationId: input.operationId ?? null,
+    operationType: input.operationType ?? null,
+    dossierId: input.dossierId ?? null,
+    userId: input.userId ?? null,
+    organizationId: input.organizationId ?? null,
   });
   const graphMatch = buildGraphMatchPlan(planner);
   const understanding = applyPlannerToUnderstanding({

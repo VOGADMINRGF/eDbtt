@@ -2,10 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   callOpenAIJson: vi.fn(),
+  logAiUsage: vi.fn(),
 }));
 
 vi.mock("@features/ai", () => ({
   callOpenAIJson: (...args: unknown[]) => mocks.callOpenAIJson(...args),
+}));
+
+vi.mock("@core/telemetry/aiUsage", () => ({
+  logAiUsage: (...args: unknown[]) => mocks.logAiUsage(...args),
 }));
 
 import { buildCreatePlanner } from "@/features/create/createPlanner";
@@ -37,6 +42,9 @@ describe("create planner timeout contract", () => {
     const plannerPromise = buildCreatePlanner({
       text: "Ich bin für besseren Tierschutz und Tierhaltung in Europa und weltweit.",
       locale: "de",
+      requestId: "request-timeout",
+      operationId: "operation-timeout",
+      dossierId: "dossier-timeout",
     });
 
     await vi.advanceTimersByTimeAsync(1_000);
@@ -53,5 +61,16 @@ describe("create planner timeout contract", () => {
     expect(planner.plannerDebug.errorMessage).toContain("create_planner_timeout_after_");
     expect(planner.permissions.nonMutative).toBe(true);
     expect(planner.permissions.canDeepSearch).toBe(false);
+    expect(mocks.logAiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "openai",
+        pipeline: "other",
+        operationId: "operation-timeout",
+        requestId: "request-timeout",
+        dossierId: "dossier-timeout",
+        success: false,
+        errorKind: "TIMEOUT",
+      }),
+    );
   });
 });

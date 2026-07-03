@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   buildCreateIntelligentFollowup: vi.fn(),
@@ -17,7 +18,7 @@ describe("/api/create/intelligent-followup route", () => {
 
   it("returns 400 on empty text", async () => {
     const response = await POST(
-      new Request("http://localhost/api/create/intelligent-followup", {
+      new NextRequest("http://localhost/api/create/intelligent-followup", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ text: "   " }),
@@ -66,10 +67,10 @@ describe("/api/create/intelligent-followup route", () => {
     });
 
     const response = await POST(
-      new Request("http://localhost/api/create/intelligent-followup", {
+      new NextRequest("http://localhost/api/create/intelligent-followup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: "Input", locale: "de", intent: "contribute" }),
+        body: JSON.stringify({ text: "Input", locale: "de", intent: "contribute", dossierId: "dossier-1" }),
       }),
     );
     expect(response.status).toBe(200);
@@ -77,5 +78,14 @@ describe("/api/create/intelligent-followup route", () => {
     expect(body.ok).toBe(true);
     expect(body.result.understanding.summary).toBe("Kurzfassung");
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledTimes(1);
+    expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: expect.any(String),
+        operationId: expect.any(String),
+        operationType: "create_intelligent_followup_planner",
+        userId: null,
+        dossierId: "dossier-1",
+      }),
+    );
   });
 });
