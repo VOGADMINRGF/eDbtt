@@ -6,12 +6,15 @@ import VoxyGuide from "@/components/voxy/VoxyGuide";
 import StartDraftWorkspaceChooser from "@/features/start/StartDraftWorkspaceChooser";
 import {
   clearStartDraftContext,
+  saveStartDraftContext,
   getStartDraftForTarget,
+  createStartDraftContext,
   updateStartDraftContext,
   type StartDraftContext,
 } from "@/features/start/startDraftContext";
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
+  buildManualAnlassraumStartDraft,
   buildManualAnlassraumContinueCreateHref,
   createEmptyManualAnlassraumSetup,
   resolveManualAnlassraumActionState,
@@ -63,6 +66,14 @@ function persistSetup(setup: ManualAnlassraumSetup) {
   }
 }
 
+function clearStoredSetup() {
+  try {
+    window.localStorage.removeItem(MANUAL_ANLASSRAUM_STORAGE_KEY);
+  } catch {
+    // ignore local storage errors
+  }
+}
+
 type StepGuideProps = {
   copy: string;
   stepId: string;
@@ -85,17 +96,24 @@ export default function AnlassraumSetupForm() {
   const [startDraft, setStartDraft] = useState<StartDraftContext | null>(null);
 
   useEffect(() => {
+    const existingDraft = getStartDraftForTarget("rounds");
+    if (existingDraft) {
+      setStartDraft(existingDraft);
+    }
     const storedSetup = readStoredSetup();
     if (storedSetup) {
       setSetup(storedSetup);
       setRestoreNotice("Dein lokal gesicherter Entwurf wurde wieder geöffnet.");
+      if (!existingDraft) {
+        const restoredDraft = buildManualAnlassraumStartDraft(storedSetup);
+        if (restoredDraft) {
+          const savedDraft = saveStartDraftContext(restoredDraft);
+          if (savedDraft) {
+            setStartDraft(savedDraft);
+          }
+        }
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    const draft = getStartDraftForTarget("rounds");
-    if (!draft) return;
-    setStartDraft(draft);
   }, []);
 
   const actionState = useMemo(() => resolveManualAnlassraumActionState(setup), [setup]);
@@ -112,7 +130,7 @@ export default function AnlassraumSetupForm() {
     updater: (current: ManualAnlassraumSetup) => ManualAnlassraumSetup,
   ) {
     setActionNotice(null);
-    setSetup((current) => sanitizeManualAnlassraumSetup(updater(current)));
+    setSetup((current) => updater(current));
   }
 
   function persistWithNextStep(nextStep: ManualAnlassraumNextStep): ManualAnlassraumSetup {
@@ -123,6 +141,26 @@ export default function AnlassraumSetupForm() {
     setSetup(nextSetup);
     persistSetup(nextSetup);
     return nextSetup;
+  }
+
+  function persistManualDraftWithNotice(nextStep: ManualAnlassraumNextStep, notice: string) {
+    const nextSetup = persistWithNextStep(nextStep);
+    const nextDraft =
+      buildManualAnlassraumStartDraft(nextSetup, startDraft) ??
+      createStartDraftContext({
+        text: nextSetup.title || nextSetup.votingQuestion || "Manueller Anlassraum-Entwurf",
+        origin: "round_handoff",
+        intent: "round_suggestion",
+        targetHint: "rounds",
+        id: startDraft?.id,
+        createdAt: startDraft?.createdAt,
+      });
+    const savedDraft = saveStartDraftContext(nextDraft);
+    if (savedDraft) {
+      setStartDraft(savedDraft);
+    }
+    setRestoreNotice(null);
+    setActionNotice(notice);
   }
 
   return (
@@ -243,8 +281,12 @@ export default function AnlassraumSetupForm() {
                 type="button"
                 className="vog-btn-secondary"
                 onClick={() => {
+                  clearStoredSetup();
                   clearStartDraftContext();
+                  setSetup(createEmptyManualAnlassraumSetup());
                   setStartDraft(null);
+                  setRestoreNotice(null);
+                  setActionNotice("Entwurf verworfen. Es wurde kein KI-Lauf gestartet.");
                 }}
               >
                 Entwurf verwerfen
@@ -437,23 +479,23 @@ export default function AnlassraumSetupForm() {
                 }}
                 onSaveDraft={() => {
                   if (!actionState.canSaveDraft) return;
-                  persistWithNextStep("save_draft");
-                  setActionNotice(
-                    "Entwurf lokal gespeichert. Du kannst ohne KI weiterarbeiten oder später in /create vertiefen.",
+                  persistManualDraftWithNotice(
+                    "save_draft",
+                    "Anlassraum-Entwurf lokal gespeichert. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet. Du kannst hier weiterarbeiten oder später bewusst in /create vertiefen.",
                   );
                 }}
                 onStartInternal={() => {
                   if (!actionState.canStartInternal) return;
-                  persistWithNextStep("start_internal");
-                  setActionNotice(
-                    "Interner Start vorbereitet. Sichtbarkeit bleibt ein bewusster nächster Schritt.",
+                  persistManualDraftWithNotice(
+                    "start_internal",
+                    "Interner Anlassraum-Entwurf gespeichert. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
                   );
                 }}
                 onSubmitPublicReview={() => {
                   if (!actionState.canSubmitPublicReview) return;
-                  persistWithNextStep("submit_public_review");
-                  setActionNotice(
-                    "Für öffentliche Prüfung vorbereitet. Es wird hier nichts automatisch veröffentlicht.",
+                  persistManualDraftWithNotice(
+                    "submit_public_review",
+                    "Entwurf für spätere öffentliche Prüfung vorgemerkt. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
                   );
                 }}
                 setup={setup}

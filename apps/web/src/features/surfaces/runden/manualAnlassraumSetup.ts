@@ -1,3 +1,8 @@
+import {
+  createStartDraftContext,
+  type StartDraftContext,
+} from "@/features/start/startDraftContext";
+
 export const MANUAL_ANLASSRAUM_SCOPE_VALUES = [
   "public",
   "organization_internal",
@@ -237,6 +242,65 @@ export function resolveManualAnlassraumActionState(
   };
 }
 
+function capitalizeManualAnlassraumText(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function deriveManualAnlassraumTitleFromText(value: string): string {
+  const normalized = normalizeManualAnlassraumText(value)
+    .replace(/^bei uns fehlt\s+/i, "")
+    .replace(/^ich m[oö]chte\s+/i, "")
+    .replace(/[.!?]$/, "");
+
+  if (!normalized) return "Manueller Anlassraum-Entwurf";
+  return capitalizeManualAnlassraumText(normalized).slice(0, 160);
+}
+
+export function deriveManualAnlassraumSetupFromStartDraft(input: {
+  text: string;
+  preview?: Pick<
+    NonNullable<StartDraftContext["preview"]>,
+    "possibleTopics" | "openQuestions"
+  >;
+}): ManualAnlassraumSetup {
+  const normalizedText = normalizeManualAnlassraumText(input.text);
+  const title = deriveManualAnlassraumTitleFromText(normalizedText);
+  const votingQuestion =
+    normalizeManualAnlassraumText(input.preview?.openQuestions?.[0] ?? "") ||
+    (/schulweg/i.test(normalizedText)
+      ? "Welche Maßnahme verbessert den Schulweg zuerst?"
+      : "Welche Maßnahme hilft zuerst?");
+  const description =
+    normalizedText ||
+    normalizeManualAnlassraumText(input.preview?.possibleTopics?.[0] ?? "") ||
+    "Arbeitsstand aus einem vorhandenen Entwurf.";
+  const options = /schulweg/i.test(normalizedText)
+    ? [
+        "Zebrastreifen oder Querungshilfe",
+        "Tempo 30 oder Verkehrsberuhigung",
+        "Bessere Beleuchtung und Sichtachsen",
+        "Mehr Schulwegbegleitung",
+        "Schneller Pilot vor Ort",
+        "Anderer Vorschlag",
+      ]
+    : [
+        "Sofort starten",
+        "Erst intern besprechen",
+        "Weitere Hinweise sammeln",
+        "Später entscheiden",
+        "Anderer Vorschlag",
+      ];
+
+  return sanitizeManualAnlassraumSetup({
+    ...createEmptyManualAnlassraumSetup(),
+    title,
+    votingQuestion,
+    description,
+    options,
+  });
+}
+
 function mapScopeToPrefillLabel(scope: ManualAnlassraumScope): string {
   return (
     MANUAL_ANLASSRAUM_SCOPE_CHOICES.find((choice) => choice.value === scope)?.label ?? "Öffentlich"
@@ -287,6 +351,44 @@ export function buildManualAnlassraumPrefill(setup: ManualAnlassraumSetup): stri
   ];
 
   return lines.join("\n");
+}
+
+export function buildManualAnlassraumStartDraft(
+  setup: ManualAnlassraumSetup,
+  existing?: Pick<StartDraftContext, "id" | "createdAt" | "handoffCount"> | null,
+): StartDraftContext | null {
+  const normalized = sanitizeManualAnlassraumSetup(setup);
+  const text = buildManualAnlassraumPrefill(normalized);
+  const draft = createStartDraftContext({
+    id: existing?.id,
+    createdAt: existing?.createdAt,
+    text,
+    normalizedText: text,
+    origin: "round_handoff",
+    intent: "round_suggestion",
+    targetHint: "rounds",
+    preview: {
+      contributionType: "Anlassraum-Entwurf",
+      possibleTopics: normalized.title ? [normalized.title] : [],
+      openQuestions: normalized.votingQuestion ? [normalized.votingQuestion] : [],
+      suggestedNextSteps: [
+        "Runde weiterbearbeiten",
+        normalized.aiSupportMode === "disabled"
+          ? "Nur bei Bedarf in /create vertiefen"
+          : "In /create weiter ausarbeiten",
+      ],
+      relevance:
+        normalized.visibility === "public_after_review" ||
+        normalized.visibility === "public_unverified"
+          ? "public_relevant"
+          : "internal_review",
+    },
+  });
+  if (!draft) return null;
+  return {
+    ...draft,
+    handoffCount: existing?.handoffCount ?? draft.handoffCount,
+  };
 }
 
 export function buildManualAnlassraumContinueCreateHref(params: {

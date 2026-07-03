@@ -147,9 +147,14 @@ describe("/runden/new manual create contract", () => {
     const source = readFileSync(resolve(process.cwd(), "src/app/runden/new/AnlassraumSetupForm.tsx"), "utf8");
 
     expect(source).toContain("AnlassraumStartDraftPanel");
+    expect(source).toContain("buildManualAnlassraumStartDraft");
+    expect(source).toContain("saveStartDraftContext");
     expect(source).toContain("Runde aus deinem Entwurf vorbereiten");
     expect(source).toContain("Optionen ergänzen");
     expect(source).toContain("Entwurf verwerfen");
+    expect(source).not.toContain("sanitizeManualAnlassraumSetup(updater(current))");
+    expect(source).not.toContain("callOpenAI");
+    expect(source).not.toContain("logAiUsage");
     expect(source).not.toContain("autoPublish");
     expect(source).not.toContain("DeepSearch");
   });
