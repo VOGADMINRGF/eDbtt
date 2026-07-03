@@ -52,6 +52,10 @@ export type V3DeepsearchConsumptionTruthOperation = {
   currentReality: string;
   correlationKeys: string[];
   correlationTruth: string;
+  hasRunLinkage: V3DeepsearchConsumptionTruthField;
+  hasJobLinkage: V3DeepsearchConsumptionTruthField;
+  hasUsageLinkage: V3DeepsearchConsumptionTruthField;
+  hasCreditDebit: V3DeepsearchConsumptionTruthField;
   estimatedCost: V3DeepsearchConsumptionTruthField;
   recordedUsage: V3DeepsearchConsumptionTruthField;
   creditDebit: V3DeepsearchConsumptionTruthField;
@@ -72,6 +76,10 @@ export type V3DeepsearchConsumptionTruthReadModel = {
   sectionStatus: "operational_basic";
   summary: {
     totalOperations: number;
+    runLinkedOperations: number;
+    jobLinkedOperations: number;
+    usageLinkedOperations: number;
+    creditLinkedOperations: number;
     estimatedOnlyOperations: number;
     recordedUsageOperations: number;
     creditDebitOperations: number;
@@ -89,8 +97,11 @@ export type V3DeepsearchConsumptionTruthReadModel = {
   guardrails: string[];
 };
 
-export const V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID =
-  "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03";
+export const V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID =
+  "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04";
+
+export const V3_DEEPSEARCH_DEBIT_TRUTH_SLICE_ID =
+  "V3-DEEPSEARCH-DEBIT-TRUTH-05";
 
 const GLOBAL_GUARDRAILS = [
   "Keine neue Billing-Runtime",
@@ -102,6 +113,10 @@ const GLOBAL_GUARDRAILS = [
 function countByField(
   operations: V3DeepsearchConsumptionTruthOperation[],
   field:
+    | "hasRunLinkage"
+    | "hasJobLinkage"
+    | "hasUsageLinkage"
+    | "hasCreditDebit"
     | "estimatedCost"
     | "recordedUsage"
     | "creditDebit"
@@ -125,6 +140,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["runId", "receipt.id", "receiptHash", "snapshotId"],
       correlationTruth:
         "runId existiert im Analyze-Contract, der persistierte Receipt speichert jedoch Hash-/Snapshot-Wahrheit statt per-run Verbrauch oder Debit.",
+      hasRunLinkage: {
+        status: "resolved_for_scope",
+        detail: "Analyze fuehrt runId im Contract; der Receipt bleibt davon getrennte Provenance-Wahrheit.",
+      },
+      hasJobLinkage: {
+        status: "not_applicable",
+        detail: "Der Analyze-Receipt ist ein Run-Pfad, kein Job-Pfad.",
+      },
+      hasUsageLinkage: {
+        status: "missing_runtime_truth",
+        detail: "Zwischen runId und recorded_usage besteht heute keine kanonische Runtime-Verknuepfung.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Am Analyze-Run existiert kein echter Credit-/Debit-Beleg.",
+      },
       estimatedCost: {
         status: "missing_runtime_truth",
         detail: "Im Run Receipt wird keine geschaetzte Kostenwahrheit gespeichert.",
@@ -163,7 +194,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/create-analyze-entitlement-gate.route.test.ts",
       ],
       adminHref: "/admin/telemetry/ai",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -176,6 +207,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["jobId", "dossierId", "organizationId", "regionId", "userId"],
       correlationTruth:
         "Der Job ist ueber Job-, Nutzer-, Dossier- und Organisationskontext sichtbar; Kosten- und Debit-Wahrheit werden daran noch nicht gekoppelt.",
+      hasRunLinkage: {
+        status: "not_applicable",
+        detail: "Factcheck nutzt heute eine Job-Wahrheit, keinen separaten runId-Pfad.",
+      },
+      hasJobLinkage: {
+        status: "resolved_for_scope",
+        detail: "jobId, dossierId, organizationId, regionId und userId sind bereits im Job-Dokument sichtbar.",
+      },
+      hasUsageLinkage: {
+        status: "missing_runtime_truth",
+        detail: "Der Job verlinkt noch nicht auf recorded_usage-Events oder Token-/Kostenbelege.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Pricing-Gates entscheiden vor dem Lauf, schreiben aber keinen Debit-Beleg.",
+      },
       estimatedCost: {
         status: "missing_runtime_truth",
         detail: "Vor dem Start wird keine per-job Kostenschaetzung gespeichert.",
@@ -219,7 +266,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       ],
       adminHref: "/admin/review",
       publicHref: "/pricing",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -232,6 +279,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["job.id", "materialId", "dossierId", "organizationId", "regionId", "submittedBy"],
       correlationTruth:
         "Job-Korrelation und Review-Handoffs sind belastbar, Kostenwahrheit bleibt auf Guardrail-Status statt auf Verbrauch.",
+      hasRunLinkage: {
+        status: "not_applicable",
+        detail: "Material Extraction nutzt heute Job- statt Run-Korrelation.",
+      },
+      hasJobLinkage: {
+        status: "resolved_for_scope",
+        detail: "Job-, Material-, Dossier-, Organisations- und Review-Kontext sind im Job-Dokument vorhanden.",
+      },
+      hasUsageLinkage: {
+        status: "missing_runtime_truth",
+        detail: "Material-Jobs verweisen nicht auf recorded_usage oder providerseitige Verbrauchszeilen.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Cost Guards blocken oder verlangen Freigabe, erzeugen aber keinen Debit-Beleg.",
+      },
       estimatedCost: {
         status: "missing_runtime_truth",
         detail: "Der Job speichert Cost Guard und Freigabepflicht, aber keine geschaetzte Kostenzeile.",
@@ -272,7 +335,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/material-extraction-no-autopublish.contract.test.ts",
       ],
       adminHref: "/admin/feeds",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -285,6 +348,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["runId", "correlationId", "mode", "provider", "model"],
       correlationTruth:
         "Die Admin-Diagnostik hat die sauberste Run-Korrelation im Repo, ist aber absichtlich keine Billing- oder Produktionsdebit-Wahrheit.",
+      hasRunLinkage: {
+        status: "resolved_for_scope",
+        detail: "runId und correlationId werden im Admin-Smoke bereits konsistent gefuehrt.",
+      },
+      hasJobLinkage: {
+        status: "not_applicable",
+        detail: "Der Admin-Smoke ist ein Diagnose-Run ohne fachliches Job-Dokument.",
+      },
+      hasUsageLinkage: {
+        status: "missing_runtime_truth",
+        detail: "Die Run-Diagnostik ist noch nicht kanonisch mit recorded_usage verknuepft.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Admin-Smokes sind Diagnose und schreiben bewusst keinen Debit-Beleg.",
+      },
       estimatedCost: {
         status: "estimated_only",
         detail: "estimatedCostEur/USD wird aus Tokens und Pricing-Quelle abgeleitet.",
@@ -325,7 +404,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/admin-ai-usage.route.test.ts",
       ],
       adminHref: "/admin/telemetry/ai/orchestrator",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -338,6 +417,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["provider", "pipeline", "timestamp", "userId", "tenantId"],
       correlationTruth:
         "Recorded usage ist vorhanden, jedoch nicht pro Job oder Exportlauf auf die fachlichen Runtime-Pfade zurueckgebunden.",
+      hasRunLinkage: {
+        status: "missing_runtime_truth",
+        detail: "AiUsageEvent fuehrt heute keine kanonischen runId-Felder fuer Research-, Material- oder Exportpfade.",
+      },
+      hasJobLinkage: {
+        status: "missing_runtime_truth",
+        detail: "AiUsageEvent fuehrt heute keine kanonischen jobId-Felder fuer Factcheck- oder Material-Jobs.",
+      },
+      hasUsageLinkage: {
+        status: "resolved_for_scope",
+        detail: "Die Snapshot-Sicht ist selbst die vorhandene Usage-Wahrheit, aber ohne Fachpfad-Korrelation.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Recorded usage fuehrt nicht zu einem debitierbaren Kreditbeleg.",
+      },
       estimatedCost: {
         status: "not_applicable",
         detail: "Die Snapshot-Sicht zeigt bereits recorded usage statt nur Schaetzung.",
@@ -378,7 +473,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/ai-usage-operational-signals.contract.test.ts",
       ],
       adminHref: "/admin/telemetry/ai/usage",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
     {
@@ -391,6 +486,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
       correlationKeys: ["entry.id", "dossierId", "targetHref", "channels"],
       correlationTruth:
         "Dossier- und Queue-Korrelation ist sichtbar; Verbrauchs-, Usage- oder Debit-Wahrheit existiert auf diesem Pfad noch nicht.",
+      hasRunLinkage: {
+        status: "not_applicable",
+        detail: "Der Export-/Distribution-Pfad fuehrt keine runId-basierte Runtime.",
+      },
+      hasJobLinkage: {
+        status: "not_applicable",
+        detail: "Export und Distribution arbeiten heute mit Queue-/Post-Objekten statt Job-Dokumenten.",
+      },
+      hasUsageLinkage: {
+        status: "missing_runtime_truth",
+        detail: "Zwischen Export-/Distribution-Objekten und recorded_usage existiert keine kanonische Verknuepfung.",
+      },
+      hasCreditDebit: {
+        status: "missing_runtime_truth",
+        detail: "Exports erzeugen keinen echten Credit-/Debit-Beleg.",
+      },
       estimatedCost: {
         status: "not_applicable",
         detail: "Der Export-/Distribution-Pfad fuehrt keine Kostenschaetzung.",
@@ -430,7 +541,7 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
         "apps/web/tests/social-export-scheduling-ready.contract.test.ts",
       ],
       adminHref: "/atlas/social-review",
-      nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+      nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
       operationalTruth: "operational_basic",
     },
   ];
@@ -440,6 +551,10 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
     sectionStatus: "operational_basic",
     summary: {
       totalOperations: operations.length,
+      runLinkedOperations: countByField(operations, "hasRunLinkage", "resolved_for_scope"),
+      jobLinkedOperations: countByField(operations, "hasJobLinkage", "resolved_for_scope"),
+      usageLinkedOperations: countByField(operations, "hasUsageLinkage", "resolved_for_scope"),
+      creditLinkedOperations: countByField(operations, "hasCreditDebit", "credit_debit"),
       estimatedOnlyOperations: countByField(operations, "estimatedCost", "estimated_only"),
       recordedUsageOperations: countByField(operations, "recordedUsage", "recorded_usage"),
       creditDebitOperations: countByField(operations, "creditDebit", "credit_debit"),
@@ -455,22 +570,22 @@ export function buildV3DeepsearchConsumptionTruthReadModel(): V3DeepsearchConsum
     operations,
     openTruths: [
       {
-        label: "AI Usage muss an fachliche Runs und Jobs rueckgebunden werden",
-        nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+        label: "AI Usage muss optionale runId-/jobId-Korrelationen aufnehmen",
+        nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
         reason:
           "Recorded usage existiert bereits, aber ohne kanonische Verknuepfung zu Research-, Material- und Export-Operationen.",
       },
       {
-        label: "Credit-/Debit-Wahrheit bleibt ueberall offen",
-        nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+        label: "Persistierte Run- und Job-Objekte bleiben von Usage-Ereignissen getrennt",
+        nextSliceId: V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
         reason:
-          "Entitlements, Credits und Pricing sind sichtbar, aber kein bestehender Pfad schreibt einen belastbaren per-run Debit.",
+          "Run Receipts, Factcheck-Jobs, Material-Jobs und Export-Objekte tragen IDs, aber keine kanonischen Usage-Referenzen.",
       },
       {
-        label: "Review- und Limit-Gates sollen nicht als Verbrauch missverstanden werden",
-        nextSliceId: V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
+        label: "Echte Credit-/Debit-Wahrheit bleibt separat offen",
+        nextSliceId: V3_DEEPSEARCH_DEBIT_TRUTH_SLICE_ID,
         reason:
-          "blocked_by_limit und review_required sind heute Guardrails, keine nachgelagerte Billing- oder Settlement-Wahrheit.",
+          "blocked_by_limit und review_required sind Guardrails; eine belastbare Debit-Wahrheit existiert weiterhin nicht.",
       },
     ],
     guardrails: [...GLOBAL_GUARDRAILS],

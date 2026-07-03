@@ -84,7 +84,7 @@ export type V3DeepsearchCostGovernanceReadModel = {
   }>;
 };
 
-const FOLLOW_UP_SLICE_ID = "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03";
+const FOLLOW_UP_SLICE_ID = "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04";
 
 const GLOBAL_GUARDRAILS = [
   "Kein Auto-Publish",

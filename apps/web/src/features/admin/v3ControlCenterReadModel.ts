@@ -217,7 +217,7 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       primaryAdminLabel: "Control Center",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
       guardrailNotes: [
         "Keine hidden DeepSearch",
         "Keine hidden Cost Paths",
@@ -238,7 +238,7 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       primaryAdminLabel: "Pricing Orders",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
       guardrailNotes: [
         "Keine neue Checkout-Integration",
         "Keine versteckten Gebührenläufe",

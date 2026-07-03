@@ -126,7 +126,16 @@ kanonische Lesart, die pro Lauf/Job/Operation ausdruecklich unterscheidet:
 - Export-/Social-Pfade bleiben review-first ohne Usage-/Debit-Telemetry
 - Run Receipts bleiben Provenance-Wahrheit, nicht Consumption-Wahrheit
 
-Folgepfad: `V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03`
+Folgepfad damals: `V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03`
+
+Stand nach dem Folgeslice `V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03`:
+
+- die V3-Sicht markiert jetzt zusaetzlich `has_run_linkage`,
+  `has_job_linkage`, `has_usage_linkage` und `has_credit_debit`
+- offener Folgepfad fuer echte Runtime-Korrelation:
+  `V3-DEEPSEARCH-AI-USAGE-CORRELATION-04`
+- Debit-/Settlement-Wahrheit bleibt separat offen:
+  `V3-DEEPSEARCH-DEBIT-TRUTH-05`
 
 ## Tests
 

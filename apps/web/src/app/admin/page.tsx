@@ -1440,6 +1440,26 @@ function V3DeepsearchConsumptionTruthCard({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <V3ConsumptionTruthFieldCard
+          label="has_run_linkage"
+          status={operation.hasRunLinkage.status}
+          detail={operation.hasRunLinkage.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_job_linkage"
+          status={operation.hasJobLinkage.status}
+          detail={operation.hasJobLinkage.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_usage_linkage"
+          status={operation.hasUsageLinkage.status}
+          detail={operation.hasUsageLinkage.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_credit_debit"
+          status={operation.hasCreditDebit.status}
+          detail={operation.hasCreditDebit.detail}
+        />
+        <V3ConsumptionTruthFieldCard
           label="Estimated Cost"
           status={operation.estimatedCost.status}
           detail={operation.estimatedCost.detail}
@@ -1546,6 +1566,10 @@ function V3DeepsearchConsumptionTruthSection({
 }) {
   const summaryCards = [
     { label: "Operationen", value: readModel.summary.totalOperations },
+    { label: "has_run_linkage", value: readModel.summary.runLinkedOperations },
+    { label: "has_job_linkage", value: readModel.summary.jobLinkedOperations },
+    { label: "has_usage_linkage", value: readModel.summary.usageLinkedOperations },
+    { label: "has_credit_debit", value: readModel.summary.creditLinkedOperations },
     { label: "estimated_only", value: readModel.summary.estimatedOnlyOperations },
     { label: "recorded_usage", value: readModel.summary.recordedUsageOperations },
     { label: "credit_debit", value: readModel.summary.creditDebitOperations },
@@ -1566,8 +1590,9 @@ function V3DeepsearchConsumptionTruthSection({
           </h2>
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
             Diese Sicht verbindet keine neuen Runtime-Systeme. Sie zeigt nur, welche bestehenden Operationspfade heute
-            bereits estimated_cost, recorded_usage, review_required oder blocked_by_limit liefern und wo weiterhin
-            missing_runtime_truth bleibt.
+            bereits `has_run_linkage`, `has_job_linkage`, `has_usage_linkage`, `estimated_cost`,
+            `recorded_usage`, `review_required` oder `blocked_by_limit` liefern und wo weiterhin
+            `missing_runtime_truth` bleibt.
           </p>
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">

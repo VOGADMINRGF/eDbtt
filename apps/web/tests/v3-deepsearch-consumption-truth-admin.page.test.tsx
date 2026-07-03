@@ -83,11 +83,15 @@ describe("v3 deepsearch consumption truth admin page", () => {
     expect(html).toContain("Factcheck / Deep Research Job");
     expect(html).toContain("Material Extraction Job");
     expect(html).toContain("AI Usage Event / Snapshot");
+    expect(html).toContain("has_run_linkage");
+    expect(html).toContain("has_job_linkage");
+    expect(html).toContain("has_usage_linkage");
+    expect(html).toContain("has_credit_debit");
     expect(html).toContain("estimated_only");
     expect(html).toContain("recorded_usage");
     expect(html).toContain("credit_debit");
     expect(html).toContain("missing_runtime_truth");
-    expect(html).toContain("V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03");
+    expect(html).toContain("V3-DEEPSEARCH-AI-USAGE-CORRELATION-04");
     expect(html).not.toContain('href="#"');
     expect(html).not.toContain("Auto veröffentlichen");
   });

@@ -174,7 +174,8 @@ Wichtige Production-/Workflow-Belege:
 - `V3-LIVE-FORMAT-HOST-COCKPIT-01`
 - `V3-NOTIFICATIONS-REALTIME-MAIL-01`
 - `V3-INCIDENT-RECOVERY-MAINTENANCE-01`
-- `V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03`
+- `V3-DEEPSEARCH-AI-USAGE-CORRELATION-04`
+- `V3-DEEPSEARCH-DEBIT-TRUTH-05`
 - `V3-MONITORING-ALERTING-ROLLBACK-01`
 
 Besonders sichtbar offen bleiben:
@@ -184,7 +185,8 @@ Besonders sichtbar offen bleiben:
 - gemeinsame Draft-Kette fuer Social / Output
 - Live-/Claims-/Follow-up-Regressionskette
 - Notification-/Incident-/Recovery-End-to-End-Tests
-- echte Runtime-Verknuepfung zwischen Run/Job, recorded usage und Debit trotz jetzt sichtbarer Consumption-Truth-Basis
+- echte Runtime-Verknuepfung zwischen Run/Job und recorded usage trotz jetzt sichtbarer Linkage-Wahrheit
+- echte Debit-/Settlement-Wahrheit bleibt ohne Runtime bewusst offen
 
 ## Was ausdruecklich nicht gebaut wurde
 
