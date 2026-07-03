@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { readManualAnlassraumServerDraftForCurrentUser } from "@/features/surfaces/runden/manualAnlassraumServerDraft";
+import { readRundenEntryCanonReadModel } from "@/features/surfaces/runden/rundenEntryCanon";
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function RundenManualCreatePage(props: {
   const initialServerDraft = await readManualAnlassraumServerDraftForCurrentUser(
     readParam(resolved?.draftId),
   );
+  const entryCanon = readRundenEntryCanonReadModel();
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
@@ -48,6 +50,38 @@ export default async function RundenManualCreatePage(props: {
             Zurück zu /runden
           </Link>
         </div>
+
+        <section
+          className="mx-auto w-full max-w-[78rem] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-4 text-sm text-[rgb(var(--fg))]"
+          data-runden-entry-canon="true"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Kanonischer Einstieg heute
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+            /runden/new startet mit einem wiederaufnehmbaren Entwurf.
+          </h2>
+          <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
+            {entryCanon.firstPersistentRecord.runtimeTruth}
+          </p>
+          <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
+            <li>
+              <strong className="text-[rgb(var(--fg))]">Ohne KI speichern</strong> erzeugt zuerst den
+              bestehenden serverseitigen Draft plus lokalen Resume-Kontext.
+            </li>
+            <li>
+              <strong className="text-[rgb(var(--fg))]">Mit KI in /create weiter</strong> bereitet nur
+              den Wechsel in die vorhandene Analyze-/Planner-Surface vor.
+            </li>
+            <li>
+              Echter Anlassraum, Dossier oder Beteiligungsraum entstehen erst aus bewussten
+              Review- und Runtime-Pfaden.
+            </li>
+          </ul>
+          <p className="mt-3 leading-6 text-[rgb(var(--muted))]">
+            {entryCanon.reusableSummary.interplay}
+          </p>
+        </section>
 
         <AnlassraumSetupForm initialServerDraft={initialServerDraft} />
       </main>
