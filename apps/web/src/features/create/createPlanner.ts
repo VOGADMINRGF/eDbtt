@@ -1,4 +1,6 @@
 import { callOpenAIJson } from "@features/ai";
+import { logAiUsage } from "@core/telemetry/aiUsage";
+import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
 
 export type CreatePlannerScope =
   | "local"
@@ -98,6 +100,12 @@ export type CreatePlannerResult = {
 type BuildCreatePlannerInput = {
   text: string;
   locale: string;
+  requestId?: string | null;
+  operationId?: string | null;
+  operationType?: string | null;
+  dossierId?: string | null;
+  userId?: string | null;
+  organizationId?: string | null;
 };
 
 export type PlannerAttempt =
@@ -147,6 +155,7 @@ type OpenAiPlannerPayload = {
 
 const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
 const DEFAULT_OPENAI_PLANNER_MODEL = process.env.OPENAI_PLANNER_MODEL || "gpt-4.1-mini";
+const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
 const CREATE_PLANNER_JSON_SCHEMA = {
   type: "object",
@@ -1314,12 +1323,75 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
   }
 }
 
+function mapPlannerAttemptToUsageOutcome(
+  attempt: PlannerAttempt,
+): { success: boolean; errorKind: AiErrorKind | null } {
+  if ("reason" in attempt) {
+    switch (attempt.reason) {
+      case "quality_gate_failed":
+        return { success: true, errorKind: null };
+      case "invalid_json":
+      case "invalid_provider_payload":
+        return { success: false, errorKind: "BAD_JSON" };
+      case "timeout":
+        return { success: false, errorKind: "TIMEOUT" };
+      case "rate_limited":
+        return { success: false, errorKind: "RATE_LIMIT" };
+      case "provider_error":
+      case "normalization_failed":
+        return { success: false, errorKind: "INTERNAL" };
+      default:
+        return { success: false, errorKind: null };
+    }
+  }
+
+  return { success: true, errorKind: null };
+}
+
+async function recordCreatePlannerAiUsage(params: {
+  input: BuildCreatePlannerInput;
+  attempt: PlannerAttempt;
+  durationMs: number;
+}) {
+  if (!params.attempt.debug.providerAvailable || params.attempt.debug.attemptedProvider !== "openai") {
+    return;
+  }
+  const outcome = mapPlannerAttemptToUsageOutcome(params.attempt);
+  await logAiUsage({
+    createdAt: new Date(),
+    provider: "openai",
+    model: DEFAULT_OPENAI_PLANNER_MODEL,
+    pipeline: CREATE_PLANNER_USAGE_PIPELINE,
+    operationId: params.input.operationId ?? params.input.requestId ?? null,
+    operationType: params.input.operationType ?? "create_intelligent_followup_planner",
+    requestId: params.input.requestId ?? null,
+    dossierId: params.input.dossierId ?? null,
+    organizationId: params.input.organizationId ?? null,
+    userId: params.input.userId ?? null,
+    locale: params.input.locale ?? null,
+    tokensInput: 0,
+    tokensOutput: 0,
+    costEur: 0,
+    durationMs: params.durationMs,
+    success: outcome.success,
+    errorKind: outcome.errorKind,
+    strictJson: true,
+    rawError: params.attempt.ok ? null : params.attempt.debug.errorMessage ?? null,
+  });
+}
+
 export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promise<CreatePlannerResult> {
   const text = input.text.trim();
+  const startedAt = Date.now();
   const openAiResult = await tryOpenAiPlanner({
     ...input,
     text,
   });
+  await recordCreatePlannerAiUsage({
+    input,
+    attempt: openAiResult,
+    durationMs: Date.now() - startedAt,
+  }).catch(() => {});
   if (openAiResult.ok) return openAiResult.result;
   if (!openAiResult.ok) {
     const plannerFailure = openAiResult as Extract<PlannerAttempt, { ok: false }>;

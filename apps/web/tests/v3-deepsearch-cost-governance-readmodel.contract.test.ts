@@ -31,7 +31,7 @@ describe("v3 deepsearch cost governance readmodel contract", () => {
       expect(check.repoEvidence.length).toBeGreaterThan(0);
       expect(check.tests.length).toBeGreaterThan(0);
       expect(check.guardrails.length).toBeGreaterThan(0);
-      expect(check.nextSliceId).toBe("V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06");
+      expect(check.nextSliceId).toBe("V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07");
     }
   });
 });

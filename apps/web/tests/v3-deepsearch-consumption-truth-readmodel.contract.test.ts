@@ -30,6 +30,9 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
   it("keeps operations on real surfaces and differentiates truth signals explicitly", () => {
     const readModel = buildV3DeepsearchConsumptionTruthReadModel();
     const analyze = readModel.operations.find((entry) => entry.id === "analyze_run_receipt");
+    const createPlanner = readModel.operations.find(
+      (entry) => entry.id === "create_intelligent_followup_planner",
+    );
     const factcheck = readModel.operations.find((entry) => entry.id === "factcheck_deep_research_job");
     const smoke = readModel.operations.find((entry) => entry.id === "admin_orchestrator_smoke_run");
     const usage = readModel.operations.find((entry) => entry.id === "ai_usage_event_snapshot");
@@ -53,6 +56,17 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
       hasRecordedUsage: { status: "recorded_usage" },
       hasUsageLinkage: { status: "resolved_for_scope" },
       recordedUsage: { status: "recorded_usage" },
+    });
+    expect(createPlanner).toMatchObject({
+      hasAiUsageEvent: { status: "resolved_for_scope" },
+      hasRunCorrelation: { status: "not_applicable" },
+      hasJobCorrelation: { status: "not_applicable" },
+      hasDossierCorrelation: { status: "resolved_for_scope" },
+      hasOrgOrUserScope: { status: "resolved_for_scope" },
+      hasRecordedUsage: { status: "recorded_usage" },
+      hasUsageLinkage: { status: "resolved_for_scope" },
+      creditDebit: { status: "missing_runtime_truth" },
+      publicHref: "/create",
     });
     expect(factcheck).toMatchObject({
       hasAiUsageEvent: { status: "missing_runtime_truth" },

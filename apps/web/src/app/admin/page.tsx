@@ -1440,7 +1440,7 @@ function V3DeepsearchConsumptionTruthCard({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <V3ConsumptionTruthFieldCard
-          label="has_ai_usage_event"
+          label="has_ai_usage_writer"
           status={operation.hasAiUsageEvent.status}
           detail={operation.hasAiUsageEvent.detail}
         />
@@ -1470,7 +1470,7 @@ function V3DeepsearchConsumptionTruthCard({
           detail={operation.hasCostEstimate.detail}
         />
         <V3ConsumptionTruthFieldCard
-          label="has_recorded_usage"
+          label="records_usage"
           status={operation.hasRecordedUsage.status}
           detail={operation.hasRecordedUsage.detail}
         />
@@ -1601,13 +1601,13 @@ function V3DeepsearchConsumptionTruthSection({
 }) {
   const summaryCards = [
     { label: "Operationen", value: readModel.summary.totalOperations },
-    { label: "has_ai_usage_event", value: readModel.summary.aiUsageEventOperations },
+    { label: "has_ai_usage_writer", value: readModel.summary.aiUsageEventOperations },
     { label: "has_run_correlation", value: readModel.summary.runCorrelatedOperations },
     { label: "has_job_correlation", value: readModel.summary.jobCorrelatedOperations },
     { label: "has_dossier_correlation", value: readModel.summary.dossierCorrelatedOperations },
     { label: "has_org_or_user_scope", value: readModel.summary.orgOrUserScopedOperations },
     { label: "has_cost_estimate", value: readModel.summary.costEstimateOperations },
-    { label: "has_recorded_usage", value: readModel.summary.recordedUsageTruthOperations },
+    { label: "records_usage", value: readModel.summary.recordedUsageTruthOperations },
     { label: "has_run_linkage", value: readModel.summary.runLinkedOperations },
     { label: "has_job_linkage", value: readModel.summary.jobLinkedOperations },
     { label: "has_usage_linkage", value: readModel.summary.usageLinkedOperations },
@@ -1632,9 +1632,9 @@ function V3DeepsearchConsumptionTruthSection({
           </h2>
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
             Diese Sicht verbindet keine neuen Runtime-Systeme. Sie zeigt nur, welche bestehenden Operationspfade heute
-            bereits `has_ai_usage_event`, `has_run_correlation`, `has_job_correlation`,
+            bereits `has_ai_usage_writer`, `has_run_correlation`, `has_job_correlation`,
             `has_dossier_correlation`, `has_org_or_user_scope`, `has_cost_estimate`,
-            `has_recorded_usage`, `review_required` oder `blocked_by_limit` liefern und wo
+            `records_usage`, `review_required` oder `blocked_by_limit` liefern und wo
             weiterhin `missing_runtime_truth` bleibt.
           </p>
         </div>

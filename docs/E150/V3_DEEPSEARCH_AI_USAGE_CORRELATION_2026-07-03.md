@@ -86,9 +86,9 @@ bereits existierenden AI-Usage-Writern:
 - Das bestehende V3-Readmodel
   `apps/web/src/features/admin/v3DeepsearchConsumptionTruthReadModel.ts`
   unterscheidet jetzt zusaetzlich:
-  `has_ai_usage_event`, `has_run_correlation`, `has_job_correlation`,
+  `has_ai_usage_writer`, `has_run_correlation`, `has_job_correlation`,
   `has_dossier_correlation`, `has_org_or_user_scope`,
-  `has_cost_estimate`, `has_recorded_usage`.
+  `has_cost_estimate`, `records_usage`.
 
 ## Was bewusst nicht gebaut wurde
 

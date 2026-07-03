@@ -217,6 +217,10 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
         "apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx",
         "apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts",
         "apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx",
+        "apps/web/tests/create-intelligent-followup.route.test.ts",
+        "apps/web/tests/create-planner-openai-happy-path.contract.test.ts",
+        "apps/web/tests/create-planner-timeout.contract.test.ts",
+        "apps/web/tests/create-planner-routing.contract.test.ts",
         "apps/web/tests/create-analyze-entitlement-gate.route.test.ts",
         "apps/web/tests/factcheck-enqueue.auth.route.test.ts",
         "apps/web/tests/material-extraction-cost-guardrail.contract.test.ts",
@@ -229,7 +233,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       ],
       relatedCapabilityIds: ["deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
+      nextSliceId: "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07",
       guardrailNotes: [
         "Sichtbare Gates sind noch keine Debit-Wahrheit",
         "Keine unkontrollierte Deep-Research-Automation",
@@ -867,7 +871,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["deepsearch_cost_governance", "prompt_based_low_ops"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
+      nextSliceId: "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -887,7 +891,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["pricing_credits_limits", "deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
+      nextSliceId: "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],

@@ -217,7 +217,7 @@ export function buildV3ControlCenterReadModel(): V3ControlCenterReadModel {
       primaryAdminLabel: "Control Center",
       secondaryHref: "/admin/telemetry/ai/usage",
       secondaryLabel: "AI Usage",
-      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
+      nextSliceId: "V3-DEEPSEARCH-REAL-RUNTIME-WRITER-COVERAGE-07",
       guardrailNotes: [
         "Keine hidden DeepSearch",
         "Keine hidden Cost Paths",
