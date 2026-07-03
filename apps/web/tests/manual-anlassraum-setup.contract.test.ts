@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildManualAnlassraumStartDraft,
   buildManualAnlassraumContinueCreateHref,
   buildManualAnlassraumPrefill,
   createEmptyManualAnlassraumSetup,
@@ -90,5 +91,32 @@ describe("manual anlassraum setup contract", () => {
     expect(buildManualAnlassraumPrefill(setup)).toContain("Optionen:");
     expect(buildManualAnlassraumPrefill(setup)).toContain("- Nordroute");
     expect(buildManualAnlassraumPrefill(setup)).toContain("- Südroute");
+  });
+
+  it("builds a resumable no-ai round draft on the existing start-draft structure", () => {
+    const setup = {
+      ...createEmptyManualAnlassraumSetup(),
+      title: "Sichere Schulwege, jetzt",
+      votingQuestion: "Welche Maßnahme soll zuerst starten?",
+      description: "Eltern, Kinder und Schule melden seit Wochen kritische Situationen.",
+      options: ["Zebrastreifen", "Tempo 30"],
+    };
+
+    const draft = buildManualAnlassraumStartDraft(setup);
+
+    expect(draft).toMatchObject({
+      origin: "round_handoff",
+      intent: "round_suggestion",
+      targetHint: "rounds",
+      noAutoPublish: true,
+      noAutoDossier: true,
+      noAutoAnlassraum: true,
+      noAutoDeepSearch: true,
+      noAutoGraphWrite: true,
+    });
+    expect(draft?.text).toContain("Titel: Sichere Schulwege, jetzt");
+    expect(draft?.text).toContain("Abstimmungsfrage: Welche Maßnahme soll zuerst starten?");
+    expect(draft?.preview?.suggestedNextSteps).toContain("Runde weiterbearbeiten");
+    expect(draft?.preview?.suggestedNextSteps).toContain("Nur bei Bedarf in /create vertiefen");
   });
 });
