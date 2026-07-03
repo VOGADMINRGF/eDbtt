@@ -60,9 +60,16 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain("Öffentlich nach Review einreichen");
     expect(html).toContain("Kanonischer Einstieg heute");
     expect(html).toContain("/runden/new startet mit einem wiederaufnehmbaren Entwurf.");
+    expect(html).toContain("KI-Transparenz");
+    expect(html).toContain("Welche KI hier greift oder bewusst nicht greift");
+    expect(html).toContain("Keine KI aktiv");
+    expect(html).toContain("Kein AI-Usage-Event, kein DeepSearch");
+    expect(html).toContain("Geplant, nicht aktiv");
+    expect(html).toContain("Bleibt im Review");
     expect(html).toContain("noch kein Anlassraum-, Dossier- oder Beteiligungsraum-Record");
     expect(html).toContain("bewussten Review- und Runtime-Pfaden");
     expect(html).toContain('data-manual-anlassraum-stepper="true"');
+    expect(html).toContain('data-frontend-ai-transparency="/runden/new"');
 
     expect(html).toContain('data-voxy-appearance="panel"');
     expect(html).toContain('data-manual-anlassraum-voxy-step="rahmen"');
