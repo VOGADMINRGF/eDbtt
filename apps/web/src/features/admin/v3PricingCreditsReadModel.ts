@@ -206,8 +206,8 @@ export function buildV3PricingCreditsReadModel(input?: {
         "apps/web/tests/admin-pricing-orders.route.test.ts",
       ],
       gap:
-        "Es fehlt weiterhin eine durchgehende V3-Verbrauchswahrheit pro Research-, Asset- und Export-Lauf jenseits des Vertrags- und Checkout-Scopes.",
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        "Die Consumption-Truth-Sicht ist jetzt sichtbar, aber echte Runtime-Verknuepfung zwischen Lauf, recorded_usage und Debit fehlt weiter jenseits des Vertrags- und Checkout-Scopes.",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrails: [
         "Kein Auto-Billing fuer Review-, Publish- oder Truth-Status",
         "Fixture- und pending-Checkout bleiben keine Produktionswahrheit",
@@ -261,8 +261,8 @@ export function buildV3PricingCreditsReadModel(input?: {
         "apps/web/tests/ai-usage-operational-signals.contract.test.ts",
       ],
       gap:
-        "Es fehlt ein expliziter V3-Approval- und Verbrauchspfad pro Research-Lauf mit sichtbarer Budgetabbuchung und Nachaudit.",
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        "Research-Gates und Consumption-Truth sind sichtbar; offen bleibt der explizite Runtime-Pfad pro Research-Lauf mit recorded_usage, Debit und Nachaudit.",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrails: [
         "Keine hidden DeepSearch",
         "Kein Premium-Research als Standard-Analyze-Fallback",
@@ -285,8 +285,8 @@ export function buildV3PricingCreditsReadModel(input?: {
         "apps/web/tests/research-review-guardrails.route.test.ts",
       ],
       gap:
-        "Es fehlt eine gemeinsame V3-Kostenkarte, die Material-, Research- und Asset-Freigaben unter einer Verbrauchswahrheit zusammenzieht.",
-      nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        "Material-, Research- und Asset-Freigaben sind jetzt unter einer Consumption-Truth-Sicht lesbar; echte Runtime-Kopplung zu Usage und Debit fehlt weiter.",
+      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
       guardrails: [
         "Keine Extraktion ohne Kostenfreigabe",
         "Kein Auto-Publish aus Material-Jobs",
@@ -356,9 +356,9 @@ export function buildV3PricingCreditsReadModel(input?: {
     nextGaps: [
       {
         label: "DeepSearch / per-run cost governance",
-        nextSliceId: "V3-DEEPSEARCH-CONSUMPTION-TRUTH-02",
+        nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
         reason:
-          "Research- und Material-Freigaben sind jetzt sichtbar gebuendelt, aber noch nicht als durchgehende Verbrauchswahrheit mit Approval und Nachaudit geschlossen.",
+          "Research- und Material-Freigaben sind jetzt sichtbar gebuendelt; offen bleibt die echte Runtime-Verknuepfung zu recorded_usage, Debit und Nachaudit.",
       },
       {
         label: "Dossier / Social / Output drafts",
