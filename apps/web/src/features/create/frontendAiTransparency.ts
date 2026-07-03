@@ -2,7 +2,21 @@ import {
   readRundenEntryCanonReadModel,
   type RundenEntryCanonReadModel,
 } from "@/features/surfaces/runden/rundenEntryCanon";
-import type { RundenCreateHandoffIntegrityStatus } from "@/features/create/rundenCreateHandoffIntegrity";
+import {
+  buildCreateAiOrchestrationProvenanceTrace,
+  buildRundenAiOrchestrationProvenanceTrace,
+  type AiOrchestrationProvenanceTraceStep,
+  type CreateAnalyzeRuntimeTrace,
+  type CreatePlannerRuntimeTrace,
+} from "@/features/create/aiOrchestrationProvenanceTrace";
+import type { CreateIntakeContext } from "@/features/create/intakeContext";
+import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
+import type {
+  RundenCreateHandoffIntegrityState,
+  RundenCreateHandoffIntegrityStatus,
+} from "@/features/create/rundenCreateHandoffIntegrity";
+import type { ManualAnlassraumServerDraftSnapshot } from "@/features/surfaces/runden/manualAnlassraumSetup";
 
 export type FrontendAiTransparencySurface = "/runden/new" | "/create";
 
@@ -26,6 +40,7 @@ export type FrontendAiTransparencyReadModel = {
   title: string;
   summary: string;
   steps: FrontendAiTransparencyStep[];
+  traceSteps: AiOrchestrationProvenanceTraceStep[];
   visibleNow: string[];
   hiddenByPolicy: string[];
   futurePathNotes: string[];
@@ -41,6 +56,16 @@ export type CreateFrontendAiTransparencyInput = {
   startBusyStatusLabel: string;
   rundenCreateHandoffStatus?: RundenCreateHandoffIntegrityStatus | null;
   rundenCreateHandoffDetail?: string | null;
+  rundenCreateHandoff?: RundenCreateHandoffIntegrityState | null;
+  initialText?: string | null;
+  intakeContext?: CreateIntakeContext | null;
+  draftId?: string | null;
+  dossierId?: string | null;
+  anlassraumId?: string | null;
+  plannerResult?: CreateIntelligentFollowupResult | null;
+  plannerTrace?: CreatePlannerRuntimeTrace | null;
+  analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
+  materialItems?: NormalizedMaterialItem[] | null;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -58,6 +83,7 @@ export function getFrontendAiTransparencyStatusLabel(status: FrontendAiTranspare
 
 export function buildRundenFrontendAiTransparencyReadModel(
   canon: RundenEntryCanonReadModel = readRundenEntryCanonReadModel(),
+  serverDraft?: ManualAnlassraumServerDraftSnapshot | null,
 ): FrontendAiTransparencyReadModel {
   const noAiAction = canon.actions.find((action) => action.id === "without_ai_save");
   const aiAction = canon.actions.find((action) => action.id === "with_ai_continue");
@@ -97,6 +123,9 @@ export function buildRundenFrontendAiTransparencyReadModel(
           "Der Entwurf bleibt offline und nicht amtlich, bis ein späterer Review-Pfad ihn ausdrücklich weiterführt.",
       },
     ],
+    traceSteps: buildRundenAiOrchestrationProvenanceTrace({
+      serverDraft,
+    }),
     visibleNow: [
       "Entwurfsspeicherung mit klarer No-AI-Trennung",
       "Bewusster Wechsel in /create statt stiller KI-Automation",
@@ -194,18 +223,33 @@ export function buildCreateFrontendAiTransparencyReadModel(
           "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
     ],
+    traceSteps: buildCreateAiOrchestrationProvenanceTrace({
+      initialText: input.initialText,
+      intakeContext: input.intakeContext,
+      draftId: input.draftId,
+      dossierId: input.dossierId,
+      anlassraumId: input.anlassraumId,
+      handoff: input.rundenCreateHandoff,
+      plannerResult: input.plannerResult,
+      plannerTrace: input.plannerTrace,
+      analyzeTrace: input.analyzeTrace,
+      materialItems: input.materialItems,
+    }),
     visibleNow: [
       "Startsignal für Planner und Analyse",
       "Review-first und No-Auto-Publish-Guardrails",
       "Ehrliche Trennung zwischen aktiv, vorbereitet und später",
+      "Getypte Provenance-Spur für Draft, Planner, Analyze und spätere Folgepfade",
     ],
     hiddenByPolicy: [
       "Keine internen Modell- oder Zugangsdaten",
       "Keine Debugmeldungen, Fehlerdetails oder versteckten Kostenbehauptungen",
+      "Keine Prompts, Secrets, Rohlogs oder Stacktraces im Frontend",
     ],
     futurePathNotes: [
       "AI-Usage-, Cost- und Debit-Wahrheit bleiben in den bestehenden V3-Admin-Sichten dokumentiert und werden hier nicht simuliert.",
       "Downstream-Transparenz für Dossier-, Anlassraum- und Beteiligungsraum-Folgeflächen bleibt ein eigener Folgepfad.",
+      "Modellnamen und technische Laufdetails werden nur dann sichtbar, wenn sie im Runtime-Kontext wirklich vorliegen und frontendsicher sind.",
     ],
   };
 }

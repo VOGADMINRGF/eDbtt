@@ -18,6 +18,17 @@ describe("frontend AI transparency contract", () => {
     expect(model.steps.find((step) => step.id === "review_guardrail")).toMatchObject({
       status: "review_required",
     });
+    expect(model.traceSteps.map((step) => step.stepId)).toEqual([
+      "runden_no_ai_draft",
+      "runden_create_transition",
+    ]);
+    expect(model.traceSteps[0]).toMatchObject({
+      aiActive: false,
+      usageRecorded: false,
+      graphTarget: "draft_pre_record",
+      reviewState: "draft",
+      publishState: "not_published",
+    });
     expect(model.hiddenByPolicy.join(" ")).toContain("Modell");
   });
 
@@ -39,6 +50,8 @@ describe("frontend AI transparency contract", () => {
     expect(model.steps.find((step) => step.id === "analyze_workspace")).toMatchObject({
       status: "planned_not_active",
     });
+    expect(model.traceSteps.map((step) => step.stepId)).toContain("create_planner_trace");
+    expect(model.traceSteps.map((step) => step.stepId)).toContain("create_analyze_trace");
   });
 
   it("reflects real running and completed create states without inventing later automation", () => {
@@ -72,6 +85,9 @@ describe("frontend AI transparency contract", () => {
     });
     expect(completed.steps.find((step) => step.id === "later_followups")).toMatchObject({
       status: "planned_not_active",
+    });
+    expect(completed.traceSteps.find((step) => step.stepId === "create_planner_trace")).toMatchObject({
+      userVisibleLabel: "KI bereitet nächste Schritte vor",
     });
   });
 });

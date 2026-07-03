@@ -55,6 +55,10 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
 import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
+import type {
+  CreateAnalyzeRuntimeTrace,
+  CreatePlannerRuntimeTrace,
+} from "@/features/create/aiOrchestrationProvenanceTrace";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
   buildCreateStructureBranches,
@@ -891,6 +895,8 @@ export default function CreateClient({
     React.useState<CreateLightweightFollowupSnapshot | null>(null);
   const [intelligentFollowup, setIntelligentFollowup] =
     React.useState<CreateIntelligentFollowupResult | null>(null);
+  const [plannerTrace, setPlannerTrace] = React.useState<CreatePlannerRuntimeTrace | null>(null);
+  const [analyzeTrace, setAnalyzeTrace] = React.useState<CreateAnalyzeRuntimeTrace | null>(null);
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
   const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
@@ -1212,6 +1218,7 @@ export default function CreateClient({
       );
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
+      let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
       if (productMode === "analyze") {
         const response = await fetch("/api/create/intelligent-followup", {
           method: "POST",
@@ -1231,6 +1238,7 @@ export default function CreateClient({
           throw new Error("create_intelligent_followup_failed");
         }
         nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
+        nextPlannerTrace = body.trace ?? null;
       }
 
       const recognizedType = detectRecognizedType(activeIntent, normalizedText);
@@ -1255,6 +1263,8 @@ export default function CreateClient({
             },
       );
       setIntelligentFollowup(nextIntelligentFollowup);
+      setPlannerTrace(nextPlannerTrace);
+      setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
       setActionNotice(
         linkDetection.hasLink
@@ -1546,15 +1556,34 @@ export default function CreateClient({
         startBusyStatusLabel,
         rundenCreateHandoffStatus: initialRundenCreateHandoff?.status ?? null,
         rundenCreateHandoffDetail: initialRundenCreateHandoff?.detail ?? null,
+        rundenCreateHandoff: initialRundenCreateHandoff,
+        initialText: intakeText,
+        intakeContext: initialIntakeContext,
+        draftId: initialIntakeContext?.draftId ?? initialRundenCreateHandoff?.draftId ?? null,
+        dossierId: dossierId ?? null,
+        anlassraumId: effectiveSelectedAnlassraumId ?? initialAnlassraumId ?? null,
+        plannerResult: intelligentFollowup,
+        plannerTrace,
+        analyzeTrace,
+        materialItems: currentMaterialRouting.materialItems,
       }),
     [
+      analyzeTrace,
+      currentMaterialRouting.materialItems,
+      dossierId,
+      effectiveSelectedAnlassraumId,
       fromManualAnlassraumContinueCreate,
       hasStarted,
+      initialAnlassraumId,
+      initialIntakeContext,
+      initialRundenCreateHandoff,
+      intakeText,
       intelligentFollowup,
       initialRundenCreateHandoff?.detail,
       initialRundenCreateHandoff?.status,
       isRetryPlannerPending,
       isStarting,
+      plannerTrace,
       showAnalyzeWorkspace,
       startBusyStatusLabel,
     ],
@@ -1777,6 +1806,7 @@ export default function CreateClient({
       }
       const nextFollowup = body.result as CreateIntelligentFollowupResult;
       setIntelligentFollowup(nextFollowup);
+      setPlannerTrace(body.trace ?? null);
       setUnderstandingConfirmed(false);
       setShowFollowupCorrectionComposer(false);
       setActionNotice(
@@ -2382,6 +2412,7 @@ export default function CreateClient({
               analysisIntentHint={activeIntent}
               sourceUrls={currentMaterialRouting.sourceUrls}
               materialItems={currentMaterialRouting.materialItems}
+              onRuntimeTraceChange={setAnalyzeTrace}
             />
           </CreateInlineAnalysisScene>
         </div>

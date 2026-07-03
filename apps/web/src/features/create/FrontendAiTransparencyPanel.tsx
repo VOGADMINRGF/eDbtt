@@ -3,6 +3,12 @@ import {
   type FrontendAiTransparencyReadModel,
   type FrontendAiTransparencyStatus,
 } from "@/features/create/frontendAiTransparency";
+import {
+  getAiOrchestrationGraphTargetStateLabel,
+  getAiOrchestrationOutputTypeLabel,
+  getAiOrchestrationPublishStateLabel,
+  getAiOrchestrationReviewStateLabel,
+} from "@/features/create/aiOrchestrationProvenanceTrace";
 
 type FrontendAiTransparencyPanelProps = {
   model: FrontendAiTransparencyReadModel;
@@ -57,6 +63,56 @@ export default function FrontendAiTransparencyPanel({
           </div>
         ))}
       </div>
+
+      {model.traceSteps.length ? (
+        <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+            Nachvollziehbarkeit heute
+          </p>
+          <div className="mt-3 space-y-3">
+            {model.traceSteps.map((step) => (
+              <div
+                key={step.stepId}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
+                data-ai-provenance-step={step.stepId}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${
+                      step.aiActive
+                        ? "border-sky-300/60 bg-sky-50/80 text-sky-800"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                    }`}
+                  >
+                    {step.aiActive ? "KI aktiv" : "Keine KI aktiv"}
+                  </span>
+                  <p className="font-semibold text-[rgb(var(--fg))]">{step.userVisibleLabel}</p>
+                </div>
+                <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
+                  Input: {step.inputOrigin}. Ergebnis: {getAiOrchestrationOutputTypeLabel(step.outputType)}.
+                  Ziel: {getAiOrchestrationGraphTargetStateLabel(step.graphTargetState)}.
+                </p>
+                <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
+                  Review: {getAiOrchestrationReviewStateLabel(step.reviewState)}. Veröffentlichung:{" "}
+                  {getAiOrchestrationPublishStateLabel(step.publishState)}.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+                  {step.providerVisibility === "admin_review_only"
+                    ? "Technische Laufdetails bleiben im Admin-/Review-Kontext."
+                    : step.providerKnown
+                      ? "Technische Laufdetails sind für diesen Schritt sicher sichtbar."
+                      : "Kein belastbarer technischer Laufkontext im Frontend vorhanden."}
+                </p>
+                {step.missingRuntimeTruth ? (
+                  <p className="mt-2 text-xs leading-5 text-amber-700">
+                    Missing runtime truth: {step.missingRuntimeTruthReasons[0] ?? "Technische Provenance ist nur teilweise vorhanden."}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
