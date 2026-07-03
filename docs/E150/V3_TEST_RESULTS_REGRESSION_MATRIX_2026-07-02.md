@@ -109,6 +109,7 @@ Wichtige Handoff-/Workflow-/Public-Route-Tests:
 - `apps/web/tests/create-handoff.persistence.route.test.ts`
 - `apps/web/tests/create-handoff-review-queue-runtime-bridge.test.ts`
 - `apps/web/tests/manual-anlassraum-setup.contract.test.ts`
+- `apps/web/tests/manual-anlassraum-server-draft.test.ts`
 - `apps/web/tests/runden-manual-create.page.contract.test.tsx`
 - `apps/web/tests/dossier-runtime-creation.test.ts`
 - `apps/web/tests/dossier-runtime-admin-creation.test.tsx`

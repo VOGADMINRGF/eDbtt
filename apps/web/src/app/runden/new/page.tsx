@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { readManualAnlassraumServerDraftForCurrentUser } from "@/features/surfaces/runden/manualAnlassraumServerDraft";
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
 
 export const metadata: Metadata = {
@@ -8,7 +9,23 @@ export const metadata: Metadata = {
     "Lege einen Anlassraum zuerst manuell an und entscheide später bewusst über KI, Prüfung und Sichtbarkeit.",
 };
 
-export default function RundenManualCreatePage() {
+type SearchParamsShape =
+  | Promise<Record<string, string | string[] | undefined>>
+  | Record<string, string | string[] | undefined>;
+
+function readParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function RundenManualCreatePage(props: {
+  searchParams?: SearchParamsShape;
+}) {
+  const resolved = props.searchParams ? await props.searchParams : undefined;
+  const initialServerDraft = await readManualAnlassraumServerDraftForCurrentUser(
+    readParam(resolved?.draftId),
+  );
+
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
       <main className="public-shell vog-main-shell min-h-screen space-y-8">
@@ -32,7 +49,7 @@ export default function RundenManualCreatePage() {
           </Link>
         </div>
 
-        <AnlassraumSetupForm />
+        <AnlassraumSetupForm initialServerDraft={initialServerDraft} />
       </main>
     </section>
   );

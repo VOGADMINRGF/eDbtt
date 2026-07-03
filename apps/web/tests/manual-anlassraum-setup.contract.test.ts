@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildManualAnlassraumStartDraft,
+  buildManualAnlassraumServerDraftSavePayload,
   buildManualAnlassraumContinueCreateHref,
   buildManualAnlassraumPrefill,
   createEmptyManualAnlassraumSetup,
   getManualAnlassraumSignalTitle,
+  readManualAnlassraumServerDraftSnapshot,
   resolveManualAnlassraumActionState,
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
 
@@ -118,5 +120,40 @@ describe("manual anlassraum setup contract", () => {
     expect(draft?.text).toContain("Abstimmungsfrage: Welche Maßnahme soll zuerst starten?");
     expect(draft?.preview?.suggestedNextSteps).toContain("Runde weiterbearbeiten");
     expect(draft?.preview?.suggestedNextSteps).toContain("Nur bei Bedarf in /create vertiefen");
+  });
+
+  it("serializes and reads the manual round server draft on the existing drafts structure", () => {
+    const setup = {
+      ...createEmptyManualAnlassraumSetup(),
+      title: "Ruhiger Verkehr vor der Schule",
+      votingQuestion: "Welche Maßnahme setzen wir zuerst um?",
+      description: "Sicherer Schulweg mit klaren nächsten Schritten.",
+      options: ["Tempo 30", "Zebrastreifen"],
+    };
+
+    const payload = buildManualAnlassraumServerDraftSavePayload({
+      setup,
+      draftId: "65a111111111111111111122",
+    });
+    const snapshot = readManualAnlassraumServerDraftSnapshot({
+      _id: "65a111111111111111111122",
+      source: payload.source,
+      updatedAt: "2026-07-03T12:00:00.000Z",
+      analysis: payload.analysis,
+    });
+
+    expect(payload).toMatchObject({
+      draftId: "65a111111111111111111122",
+      source: "runden_manual_anlassraum",
+      textPrepared: expect.stringContaining("Manueller Anlassraum-Entwurf"),
+    });
+    expect(snapshot).toMatchObject({
+      draftId: "65a111111111111111111122",
+      updatedAt: "2026-07-03T12:00:00.000Z",
+      setup: {
+        title: "Ruhiger Verkehr vor der Schule",
+        votingQuestion: "Welche Maßnahme setzen wir zuerst um?",
+      },
+    });
   });
 });

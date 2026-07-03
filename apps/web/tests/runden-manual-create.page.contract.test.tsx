@@ -31,13 +31,18 @@ vi.mock("framer-motion", () => ({
   useReducedMotion: () => false,
 }));
 
+vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
+  readManualAnlassraumServerDraftForCurrentUser: vi.fn(async () => null),
+}));
+
 import RundenManualCreatePage from "@/app/runden/new/page";
 import AnlassraumOptionEditor from "@/app/runden/new/AnlassraumOptionEditor";
 import AnlassraumVisibilitySettings from "@/app/runden/new/AnlassraumVisibilitySettings";
 
 describe("/runden/new manual create contract", () => {
-  it("renders the guided manual setup sequence with one prominent Voxy guide and inline markers", () => {
-    const html = renderToStaticMarkup(<RundenManualCreatePage />);
+  it("renders the guided manual setup sequence with one prominent Voxy guide and inline markers", async () => {
+    const page = await RundenManualCreatePage({});
+    const html = renderToStaticMarkup(page);
 
     expect(html).toContain("Bereite deinen");
     expect(html).toContain("Anlassraum");
@@ -70,8 +75,9 @@ describe("/runden/new manual create contract", () => {
     expect(html).not.toContain("Du bist im Überblick. Quellen und Prüfung findest du im Prüfmodus.");
   });
 
-  it("keeps default UI free of dev jargon", () => {
-    const html = renderToStaticMarkup(<RundenManualCreatePage />).toLowerCase();
+  it("keeps default UI free of dev jargon", async () => {
+    const page = await RundenManualCreatePage({});
+    const html = renderToStaticMarkup(page).toLowerCase();
     const banned = [
       "entitlement",
       "operator",
@@ -145,9 +151,12 @@ describe("/runden/new manual create contract", () => {
 
   it("keeps the round start draft status compact and draft-only", () => {
     const source = readFileSync(resolve(process.cwd(), "src/app/runden/new/AnlassraumSetupForm.tsx"), "utf8");
+    const pageSource = readFileSync(resolve(process.cwd(), "src/app/runden/new/page.tsx"), "utf8");
 
     expect(source).toContain("AnlassraumStartDraftPanel");
     expect(source).toContain("buildManualAnlassraumStartDraft");
+    expect(source).toContain("/api/drafts/save");
+    expect(source).toContain("history.replaceState");
     expect(source).toContain("saveStartDraftContext");
     expect(source).toContain("Runde aus deinem Entwurf vorbereiten");
     expect(source).toContain("Optionen ergänzen");
@@ -157,5 +166,7 @@ describe("/runden/new manual create contract", () => {
     expect(source).not.toContain("logAiUsage");
     expect(source).not.toContain("autoPublish");
     expect(source).not.toContain("DeepSearch");
+    expect(pageSource).toContain("readManualAnlassraumServerDraftForCurrentUser");
+    expect(pageSource).toContain("searchParams");
   });
 });
