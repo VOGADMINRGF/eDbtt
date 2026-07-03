@@ -128,6 +128,12 @@ describe("/create start surface", () => {
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
+    expect(html).toContain("KI-Transparenz");
+    expect(html).toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
+    expect(html).toContain("Noch nicht gestartet");
+    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain("Nichts wird automatisch veröffentlicht");
+    expect(html).toContain('data-frontend-ai-transparency="/create"');
     expect(html).toContain('data-create-focus-stage="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).not.toContain("Developer-Hinweis");

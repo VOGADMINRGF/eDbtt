@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildCreateFrontendAiTransparencyReadModel,
+  buildRundenFrontendAiTransparencyReadModel,
+} from "@/features/create/frontendAiTransparency";
+
+describe("frontend AI transparency contract", () => {
+  it("keeps /runden/new explicitly no-ai by default and marks /create as only planned", () => {
+    const model = buildRundenFrontendAiTransparencyReadModel();
+
+    expect(model.surface).toBe("/runden/new");
+    expect(model.steps.find((step) => step.id === "without_ai_save")).toMatchObject({
+      status: "skipped_no_ai",
+    });
+    expect(model.steps.find((step) => step.id === "with_ai_continue")).toMatchObject({
+      status: "planned_not_active",
+    });
+    expect(model.steps.find((step) => step.id === "review_guardrail")).toMatchObject({
+      status: "review_required",
+    });
+    expect(model.hiddenByPolicy.join(" ")).toContain("Modell");
+  });
+
+  it("shows /create as not started before any planner or analysis step runs", () => {
+    const model = buildCreateFrontendAiTransparencyReadModel({
+      hasStarted: false,
+      isStarting: false,
+      hasIntelligentFollowup: false,
+      showAnalyzeWorkspace: false,
+      isRetryPlannerPending: false,
+      fromManualAnlassraumContinueCreate: false,
+      startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+    });
+
+    expect(model.surface).toBe("/create");
+    expect(model.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
+      status: "not_started",
+    });
+    expect(model.steps.find((step) => step.id === "analyze_workspace")).toMatchObject({
+      status: "planned_not_active",
+    });
+  });
+
+  it("reflects real running and completed create states without inventing later automation", () => {
+    const running = buildCreateFrontendAiTransparencyReadModel({
+      hasStarted: true,
+      isStarting: true,
+      hasIntelligentFollowup: false,
+      showAnalyzeWorkspace: false,
+      isRetryPlannerPending: false,
+      fromManualAnlassraumContinueCreate: true,
+      startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+    });
+    const completed = buildCreateFrontendAiTransparencyReadModel({
+      hasStarted: true,
+      isStarting: false,
+      hasIntelligentFollowup: true,
+      showAnalyzeWorkspace: true,
+      isRetryPlannerPending: false,
+      fromManualAnlassraumContinueCreate: true,
+      startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+    });
+
+    expect(running.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
+      status: "running",
+    });
+    expect(completed.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
+      status: "completed",
+    });
+    expect(completed.steps.find((step) => step.id === "analyze_workspace")).toMatchObject({
+      status: "running",
+    });
+    expect(completed.steps.find((step) => step.id === "later_followups")).toMatchObject({
+      status: "planned_not_active",
+    });
+  });
+});

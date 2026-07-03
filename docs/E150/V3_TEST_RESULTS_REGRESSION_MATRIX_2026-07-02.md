@@ -95,10 +95,13 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/v3-deepsearch-cost-governance-admin.page.test.tsx`
 - `apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts`
 - `apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx`
+- `apps/web/tests/frontend-ai-transparency.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`
+- `apps/web/tests/create-mode.page.test.ts`
 - `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`
 - `apps/web/tests/create-planner-timeout.contract.test.ts`
 - `apps/web/tests/create-planner-routing.contract.test.ts`
+- `apps/web/tests/runden-manual-create.page.contract.test.tsx`
 - `apps/web/tests/v3-handoff-linkage-map.contract.test.ts`
 - `apps/web/tests/v3-handoff-linkage-admin.page.test.tsx`
 - `apps/web/tests/v3-test-regression-matrix.contract.test.ts`
@@ -197,6 +200,7 @@ Besonders sichtbar offen bleiben:
 - Notification-/Incident-/Recovery-End-to-End-Tests
 - echte Runtime-Verknuepfung zwischen Factcheck-/Material-/Export-/Social-Pfaden und recorded usage trotz jetzt sichtbarer Analyze-/Admin-Smoke-/Create-Planner-Korrelation
 - echte Debit-/Settlement-Wahrheit bleibt ohne Runtime bewusst offen
+- downstream KI-Transparenz fuer Dossier-, Anlassraum- und Beteiligungsraum-Folgeflaechen bleibt eigener Folgepfad
 
 ## Was ausdruecklich nicht gebaut wurde
 

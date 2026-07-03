@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
+import { buildRundenFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
 import { readManualAnlassraumServerDraftForCurrentUser } from "@/features/surfaces/runden/manualAnlassraumServerDraft";
 import { readRundenEntryCanonReadModel } from "@/features/surfaces/runden/rundenEntryCanon";
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
@@ -27,6 +29,7 @@ export default async function RundenManualCreatePage(props: {
     readParam(resolved?.draftId),
   );
   const entryCanon = readRundenEntryCanonReadModel();
+  const frontendAiTransparency = buildRundenFrontendAiTransparencyReadModel(entryCanon);
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
@@ -82,6 +85,10 @@ export default async function RundenManualCreatePage(props: {
             {entryCanon.reusableSummary.interplay}
           </p>
         </section>
+
+        <div className="mx-auto w-full max-w-[78rem]">
+          <FrontendAiTransparencyPanel model={frontendAiTransparency} />
+        </div>
 
         <AnlassraumSetupForm initialServerDraft={initialServerDraft} />
       </main>

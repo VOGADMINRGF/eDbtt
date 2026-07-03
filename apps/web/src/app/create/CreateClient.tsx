@@ -52,6 +52,8 @@ import {
   type OperatorCreateTexts,
 } from "@/features/i18n/operatorSystemTexts";
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
+import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
+import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
   buildCreateStructureBranches,
@@ -1529,6 +1531,27 @@ export default function CreateClient({
       : productMode === "media"
         ? productModeConfig.postStartLead
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
+  const frontendAiTransparency = React.useMemo(
+    () =>
+      buildCreateFrontendAiTransparencyReadModel({
+        hasStarted,
+        isStarting,
+        hasIntelligentFollowup: Boolean(intelligentFollowup),
+        showAnalyzeWorkspace,
+        isRetryPlannerPending,
+        fromManualAnlassraumContinueCreate,
+        startBusyStatusLabel,
+      }),
+    [
+      fromManualAnlassraumContinueCreate,
+      hasStarted,
+      intelligentFollowup,
+      isRetryPlannerPending,
+      isStarting,
+      showAnalyzeWorkspace,
+      startBusyStatusLabel,
+    ],
+  );
   const structureOverviewMetrics = React.useMemo(
     () =>
       deriveCreateStructureOverviewMetrics({
@@ -2182,6 +2205,8 @@ export default function CreateClient({
 
         </div>
       </div>
+
+      <FrontendAiTransparencyPanel model={frontendAiTransparency} />
 
       {showTooShortHint ? (
         <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
