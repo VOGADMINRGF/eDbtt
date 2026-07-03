@@ -5,14 +5,14 @@ import {
   type CreateHandoffDraft,
 } from "@/features/create/createHandoff";
 import { buildDossierRuntimeDraftFromHandoff } from "@/features/create/dossierRuntime";
+import {
+  PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION,
+  type PersistedCreateHandoffRecord,
+} from "@/features/create/createHandoffPersistenceContract";
 import { classifyCreateHandoffDraft } from "@/features/create/inputClassification";
 import type { CreateIntakeContext } from "@/features/create/intakeContext";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
-import {
-  PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION,
-  type PersistedCreateHandoffRecord,
-} from "@/features/create/persistedHandoffReviewQueue";
 
 export type CreateCandidateKind =
   | "claim"
