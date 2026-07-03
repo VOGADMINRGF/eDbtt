@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getDraft } from "@/server/draftStore";
 import { getCreateContributionDraftForResume } from "@/server/createContributionDrafts";
+import { readManualAnlassraumServerDraftForCurrentUser } from "@/features/surfaces/runden/manualAnlassraumServerDraft";
+import { buildManualAnlassraumPrefill } from "@/features/surfaces/runden/manualAnlassraumSetup";
 import CreateClient from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
@@ -13,6 +15,11 @@ import {
   type CreateEntryIntent,
   type CreateEntryMode,
 } from "@/features/create/orchestratorIntentContract";
+import {
+  buildRundenCreateDraftIntakeContext,
+  resolveRundenCreateHandoffIntegrityState,
+  type RundenCreateHandoffIntegrityState,
+} from "@/features/create/rundenCreateHandoffIntegrity";
 import {
   parseCreateIntakeContextFromQuery,
 } from "@/features/create/intakeContext";
@@ -141,8 +148,28 @@ export default async function CreatePage({
     }),
   );
 
+  const manualRoundServerDraft = draftId
+    ? await readManualAnlassraumServerDraftForCurrentUser(draftId).catch(() => null)
+    : null;
+  const initialRundenCreateHandoff: RundenCreateHandoffIntegrityState | null =
+    draftId || intakeContext.reason === "manual_anlassraum_continue_create" || intakeContext.source === "runden"
+      ? resolveRundenCreateHandoffIntegrityState({
+          draftId,
+          serverDraft: manualRoundServerDraft,
+        })
+      : null;
+  const resolvedIntakeContext = manualRoundServerDraft
+    ? buildRundenCreateDraftIntakeContext({
+        context: intakeContext,
+        draftId,
+        serverDraft: manualRoundServerDraft,
+      })
+    : intakeContext;
+
   let initialText = prefillText ?? null;
-  if (!initialText && draftId) {
+  if (manualRoundServerDraft) {
+    initialText = buildManualAnlassraumPrefill(manualRoundServerDraft.setup);
+  } else if (!initialText && draftId) {
     const draft =
       (await getDraft(draftId).catch(() => null)) ??
       (entitlements.userId
@@ -167,10 +194,11 @@ export default async function CreatePage({
             initialEntryIntent={entryIntent}
             initialEntryMode={entryMode}
             initialText={initialText}
-            initialIntakeContext={intakeContext}
+            initialIntakeContext={resolvedIntakeContext}
             initialReturnTo={returnTo}
             initialNextActionParam={nextAction}
             initialRequestScope={requestScope}
+            initialRundenCreateHandoff={initialRundenCreateHandoff}
           />
         </LocaleProvider>
       </div>

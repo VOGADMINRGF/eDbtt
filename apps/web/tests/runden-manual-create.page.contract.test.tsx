@@ -35,6 +35,12 @@ vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
   readManualAnlassraumServerDraftForCurrentUser: vi.fn(async () => null),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 import RundenManualCreatePage from "@/app/runden/new/page";
 import AnlassraumOptionEditor from "@/app/runden/new/AnlassraumOptionEditor";
 import AnlassraumVisibilitySettings from "@/app/runden/new/AnlassraumVisibilitySettings";

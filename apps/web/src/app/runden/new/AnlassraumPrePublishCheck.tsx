@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type * as React from "react";
 import type {
   ManualAnlassraumActionState,
   ManualAnlassraumSetup,
@@ -8,7 +9,7 @@ type AnlassraumPrePublishCheckProps = {
   actionState: ManualAnlassraumActionState;
   continueCreateHref: string;
   isSaving?: boolean;
-  onContinueCreate: () => void;
+  onContinueCreate: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   onSaveDraft: () => void;
   onStartInternal: () => void;
   onSubmitPublicReview: () => void;
