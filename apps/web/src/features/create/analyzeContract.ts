@@ -87,6 +87,9 @@ export type CreateAnalyzeResponse = {
   languages: string[];
   normalizedInputSummary: string;
   claims: unknown[];
+  questions: unknown[];
+  missingPerspectives: unknown[];
+  participationCandidates: unknown[];
   nonCheckableOpinions: unknown[];
   evidenceNeeds: unknown[];
   uncertainties: unknown[];
@@ -263,6 +266,13 @@ export function buildCreateAnalyzeResponse(params: {
   const languages = inferCreateAnalyzeLanguages(text, locale);
   const normalizedInputSummary = summarizeCreateAnalyzeInput(text);
   const claims = Array.isArray(result.claims) ? result.claims : [];
+  const questions = Array.isArray(result.questions) ? result.questions : [];
+  const missingPerspectives = Array.isArray(result.missingPerspectives)
+    ? result.missingPerspectives
+    : [];
+  const participationCandidates = Array.isArray(result.participationCandidates)
+    ? result.participationCandidates
+    : [];
   const nonCheckableOpinions = claims
     .filter((entry) => {
       const raw = typeof (entry as any)?.text === "string" ? (entry as any).text : "";
@@ -317,6 +327,9 @@ export function buildCreateAnalyzeResponse(params: {
     languages,
     normalizedInputSummary,
     claims,
+    questions,
+    missingPerspectives,
+    participationCandidates,
     nonCheckableOpinions,
     evidenceNeeds,
     uncertainties,

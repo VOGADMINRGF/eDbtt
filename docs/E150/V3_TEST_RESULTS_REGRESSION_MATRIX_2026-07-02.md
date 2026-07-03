@@ -17,6 +17,11 @@
   bestehende `/runden/new`-/`/create`-Frontend-Transparenz jetzt um eine
   getypte Provenance-Spur fuer No-AI-Draft, Create-Planner, Analyze und
   bewusst `planned_not_active` gehaltene Downstream-Pfade erweitert.
+- Fuer `V3-CLAIMS-QUESTIONS-POLLS-CANDIDATE-FLOW-01` ist `/create` jetzt um
+  ein typed Preview-only Readmodel fuer Claim-, Gegenpositions-, Fragen- und
+  Umfrage-Kandidaten erweitert; Frontend-Transparenz und Provenance-Trace
+  unterscheiden dabei sichtbar zwischen `candidate_preview` und weiterhin
+  `planned_not_active`.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -101,6 +106,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx`
 - `apps/web/tests/frontend-ai-transparency.contract.test.ts`
 - `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
+- `apps/web/tests/create-candidate-preview.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`
 - `apps/web/tests/create-mode.page.test.ts`
 - `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`

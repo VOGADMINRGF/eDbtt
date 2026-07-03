@@ -102,6 +102,9 @@ describe("create analyze contract", () => {
     expect(response.phases.cta_suggestions.status).toBe("done");
     expect(response.matchSourceState).toBe("ok");
     expect(response.reasons.length).toBeGreaterThan(0);
+    expect(response.questions).toEqual([{ id: "q1", text: "Welche Evidenz liegt vor?" }]);
+    expect(response.missingPerspectives).toEqual([]);
+    expect(response.participationCandidates).toEqual([]);
     expect(response.noAutoPublish).toBe(true);
     expect(response.noSilentMerge).toBe(true);
     expect(response.matchingLanguageMode).toBe("same_language_only");

@@ -66,6 +66,7 @@ export type CreateFrontendAiTransparencyInput = {
   plannerTrace?: CreatePlannerRuntimeTrace | null;
   analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
   materialItems?: NormalizedMaterialItem[] | null;
+  hasCandidatePreview?: boolean;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -154,6 +155,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
   const analyzeStatus: FrontendAiTransparencyStatus = input.showAnalyzeWorkspace
     ? "running"
     : "planned_not_active";
+  const candidatePreviewStatus: FrontendAiTransparencyStatus = input.hasCandidatePreview
+    ? "review_required"
+    : "planned_not_active";
 
   return {
     surface: "/create",
@@ -217,10 +221,12 @@ export function buildCreateFrontendAiTransparencyReadModel(
       },
       {
         id: "later_followups",
-        label: "Spätere Claims, Fragen oder Output-Briefings",
-        status: "planned_not_active",
+        label: "Claims, Gegenpositionen, Fragen und mögliche Umfragen",
+        status: candidatePreviewStatus,
         detail:
-          "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
+          candidatePreviewStatus === "review_required"
+            ? "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
+            : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
     ],
     traceSteps: buildCreateAiOrchestrationProvenanceTrace({
@@ -234,12 +240,16 @@ export function buildCreateFrontendAiTransparencyReadModel(
       plannerTrace: input.plannerTrace,
       analyzeTrace: input.analyzeTrace,
       materialItems: input.materialItems,
+      candidatePreviewAvailable: input.hasCandidatePreview,
     }),
     visibleNow: [
       "Startsignal für Planner und Analyse",
       "Review-first und No-Auto-Publish-Guardrails",
       "Ehrliche Trennung zwischen aktiv, vorbereitet und später",
       "Getypte Provenance-Spur für Draft, Planner, Analyze und spätere Folgepfade",
+      ...(input.hasCandidatePreview
+        ? ["Review-first Kandidatenvorschau für Claims, Gegenpositionen, Fragen und mögliche Umfragen"]
+        : []),
     ],
     hiddenByPolicy: [
       "Keine internen Modell- oder Zugangsdaten",
