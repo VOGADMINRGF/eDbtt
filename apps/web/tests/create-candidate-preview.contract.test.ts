@@ -204,6 +204,17 @@ describe("create candidate preview contract", () => {
     expect(model.carriesPersistentWrite).toBe(false);
     expect(model.provider).toBe("openai");
     expect(model.model).toBe("gpt-4.1-mini");
+    expect(model.reviewHandoff).toMatchObject({
+      hasPreparedHandoff: true,
+      targetCarrier: "create_handoff_review_queue",
+      targetState: "review_draft",
+      persistenceTruth: "missing_persistence_truth",
+      carriesPersistentWrite: false,
+    });
+    expect(model.reviewHandoff.items[0]).toMatchObject({
+      targetCarrier: "create_handoff_review_queue",
+      targetState: "review_draft",
+    });
     expect(model.sections.find((section) => section.kind === "claim")?.items[0]).toMatchObject({
       inputOrigin: "server_draft",
       sourceProvenance: "runtime_source_reference",
@@ -236,6 +247,9 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Umfrage-Kandidaten");
     expect(html).toContain("Keine externe Quelle behauptet");
     expect(html).toContain("Review erforderlich");
+    expect(html).toContain("Review-Handoff vorbereiten");
+    expect(html).toContain("missing_persistence_truth");
+    expect(html).toContain("create_handoff_review_queue");
     expect(html).not.toContain("automatisch veröffentlicht");
   });
 });

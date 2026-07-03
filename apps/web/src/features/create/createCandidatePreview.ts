@@ -35,6 +35,18 @@ export type CreateCandidateGraphTargetState = "candidate_only";
 export type CreateCandidateReviewState = "review_required";
 export type CreateCandidatePublishState = "not_published";
 
+export type CreateCandidateReviewHandoffTargetCarrier =
+  | "create_handoff_review_queue"
+  | "dossier_runtime_record"
+  | "participation_space_runtime_record";
+
+export type CreateCandidateReviewHandoffTargetState =
+  | "review_draft"
+  | "candidate_only"
+  | "planned_handoff"
+  | "persisted_review_record"
+  | "missing_persistence_truth";
+
 export type CreateCandidatePreviewItem = {
   id: string;
   kind: CreateCandidateKind;
@@ -62,6 +74,41 @@ export type CreateCandidatePreviewSection = {
   items: CreateCandidatePreviewItem[];
 };
 
+export type CreateCandidateReviewHandoffItem = {
+  candidateId: string;
+  candidateType: CreateCandidateKind;
+  title: string;
+  text: string;
+  inputRef: string;
+  inputOrigin: CreateCandidateInputOrigin;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  derivedBy: CreateCandidateDerivedBy;
+  provider: string | null;
+  model: string | null;
+  targetCarrier: CreateCandidateReviewHandoffTargetCarrier;
+  targetState: CreateCandidateReviewHandoffTargetState;
+  targetRuntimeCarrier: Extract<
+    CreateCandidateReviewHandoffTargetCarrier,
+    "dossier_runtime_record" | "participation_space_runtime_record"
+  >;
+  reviewState: CreateCandidateReviewState;
+  publishState: CreateCandidatePublishState;
+  graphTargetState: CreateCandidateGraphTargetState;
+  missingRuntimeTruth: string[];
+};
+
+export type CreateCandidateReviewHandoffReadModel = {
+  title: string;
+  summary: string;
+  hasPreparedHandoff: boolean;
+  targetCarrier: "create_handoff_review_queue";
+  targetState: "review_draft";
+  persistenceTruth: "missing_persistence_truth";
+  carriesPersistentWrite: false;
+  items: CreateCandidateReviewHandoffItem[];
+};
+
 export type CreateCandidatePreviewReadModel = {
   title: string;
   summary: string;
@@ -74,6 +121,7 @@ export type CreateCandidatePreviewReadModel = {
   model: string | null;
   providerRuntimeTruth: "present" | "missing_runtime_truth";
   sections: CreateCandidatePreviewSection[];
+  reviewHandoff: CreateCandidateReviewHandoffReadModel;
   totalCount: number;
   carriesPersistentWrite: false;
   persistentCarrierTruth: {
@@ -127,6 +175,73 @@ function uniqueByTitle(items: CreateCandidatePreviewItem[]): CreateCandidatePrev
     seen.add(key);
     return true;
   });
+}
+
+function targetRuntimeCarrierForItem(
+  item: CreateCandidatePreviewItem,
+): CreateCandidateReviewHandoffItem["targetRuntimeCarrier"] {
+  return item.graphTarget === "participation_space_candidate"
+    ? "participation_space_runtime_record"
+    : "dossier_runtime_record";
+}
+
+function canPrepareCandidateReviewHandoff(item: CreateCandidatePreviewItem): boolean {
+  return (
+    hasText(item.title) &&
+    hasText(item.summary) &&
+    hasText(item.inputRef) &&
+    item.reviewState === "review_required" &&
+    item.publishState === "not_published" &&
+    item.graphTargetState === "candidate_only"
+  );
+}
+
+function buildCandidateReviewHandoff(
+  sections: CreateCandidatePreviewSection[],
+): CreateCandidateReviewHandoffReadModel {
+  const items = sections
+    .flatMap((section) => section.items)
+    .filter(canPrepareCandidateReviewHandoff)
+    .map((item) => ({
+      candidateId: item.id,
+      candidateType: item.kind,
+      title: item.title,
+      text: item.summary,
+      inputRef: item.inputRef,
+      inputOrigin: item.inputOrigin,
+      sourceProvenance: item.sourceProvenance,
+      evidenceRefs: item.evidenceRefs,
+      derivedBy: item.derivedBy,
+      provider: item.provider,
+      model: item.model,
+      targetCarrier: "create_handoff_review_queue" as const,
+      targetState: "review_draft" as const,
+      targetRuntimeCarrier: targetRuntimeCarrierForItem(item),
+      reviewState: item.reviewState,
+      publishState: item.publishState,
+      graphTargetState: item.graphTargetState,
+      missingRuntimeTruth: [
+        ...(item.providerRuntimeTruth === "missing_runtime_truth"
+          ? ["provider_model_missing_runtime_truth"]
+          : []),
+        ...(item.sourceProvenance === "missing_source_provenance"
+          ? ["source_provenance_missing_runtime_truth"]
+          : []),
+      ],
+    }));
+
+  return {
+    title: "Review-Handoff vorbereiten",
+    summary: items.length > 0
+      ? "Die Kandidaten werden nur als typed Handoff-Envelope für den bestehenden review-first Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
+      : "Ohne belastbare Kandidaten bleibt auch der Review-Handoff bewusst leer.",
+    hasPreparedHandoff: items.length > 0,
+    targetCarrier: "create_handoff_review_queue",
+    targetState: "review_draft",
+    persistenceTruth: "missing_persistence_truth",
+    carriesPersistentWrite: false,
+    items,
+  };
 }
 
 function resolveInputOrigin(
@@ -600,6 +715,7 @@ export function buildCreateCandidatePreviewReadModel(
     },
   ];
 
+  const reviewHandoff = buildCandidateReviewHandoff(sections);
   const totalCount = sections.reduce((sum, section) => sum + section.items.length, 0);
   const hasPreview = totalCount > 0;
 
@@ -617,6 +733,7 @@ export function buildCreateCandidatePreviewReadModel(
     model: providerContext.model,
     providerRuntimeTruth: providerContext.runtimeTruth,
     sections,
+    reviewHandoff,
     totalCount,
     carriesPersistentWrite: false,
     persistentCarrierTruth: {

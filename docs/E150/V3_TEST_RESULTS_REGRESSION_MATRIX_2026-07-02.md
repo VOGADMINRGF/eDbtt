@@ -22,6 +22,11 @@
   Umfrage-Kandidaten erweitert; Frontend-Transparenz und Provenance-Trace
   unterscheiden dabei sichtbar zwischen `candidate_preview` und weiterhin
   `planned_not_active`.
+- Fuer `V3-CANDIDATE-REVIEW-HANDOFF-01` ist dieselbe Kandidatenvorschau jetzt
+  um einen typed Review-Handoff-Envelope fuer den bestehenden
+  `create_handoff_review_queue`-Kontext erweitert; fehlende Persistenz bleibt
+  dabei explizit `missing_persistence_truth`, und der Provenance-Trace zeigt
+  den Schritt als `candidate_review_handoff` statt als behaupteten Runtime-Write.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
