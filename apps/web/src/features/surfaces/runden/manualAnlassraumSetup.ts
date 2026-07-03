@@ -72,6 +72,16 @@ export type ManualAnlassraumActionState = {
   publicReviewRequirements: string[];
 };
 
+export const MANUAL_ANLASSRAUM_SERVER_DRAFT_SOURCE = "runden_manual_anlassraum";
+export const MANUAL_ANLASSRAUM_SERVER_DRAFT_SCHEMA_VERSION =
+  "manual_anlassraum_server_draft.v1";
+
+export type ManualAnlassraumServerDraftSnapshot = {
+  draftId: string;
+  updatedAt: string | null;
+  setup: ManualAnlassraumSetup;
+};
+
 export const MANUAL_ANLASSRAUM_SCOPE_CHOICES: readonly ManualAnlassraumChoiceDefinition<ManualAnlassraumScope>[] =
   [
     {
@@ -388,6 +398,90 @@ export function buildManualAnlassraumStartDraft(
   return {
     ...draft,
     handoffCount: existing?.handoffCount ?? draft.handoffCount,
+  };
+}
+
+export function buildManualAnlassraumServerDraftSavePayload(input: {
+  setup: ManualAnlassraumSetup;
+  draftId?: string | null;
+}) {
+  const normalized = sanitizeManualAnlassraumSetup(input.setup);
+  const prefill = buildManualAnlassraumPrefill(normalized);
+  return {
+    draftId: input.draftId ?? undefined,
+    source: MANUAL_ANLASSRAUM_SERVER_DRAFT_SOURCE,
+    text: prefill,
+    textOriginal: prefill,
+    textPrepared: prefill,
+    analysis: {
+      manualAnlassraumDraft: {
+        schemaVersion: MANUAL_ANLASSRAUM_SERVER_DRAFT_SCHEMA_VERSION,
+        sourceSurface: "/runden/new",
+        setup: normalized,
+        noAiRunStarted: true,
+        noAiUsageEvent: true,
+        noDeepSearchStarted: true,
+        reviewFirstOnly: true,
+      },
+    },
+  };
+}
+
+export function readManualAnlassraumServerDraftSnapshot(
+  value: unknown,
+): ManualAnlassraumServerDraftSnapshot | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (record.source !== MANUAL_ANLASSRAUM_SERVER_DRAFT_SOURCE) return null;
+
+  const recordId = (() => {
+    const raw = record._id;
+    if (typeof raw === "string") return raw;
+    if (
+      raw &&
+      typeof raw === "object" &&
+      "toHexString" in raw &&
+      typeof (raw as { toHexString?: unknown }).toHexString === "function"
+    ) {
+      return String((raw as { toHexString: () => string }).toHexString());
+    }
+    return "";
+  })();
+  if (!recordId) return null;
+
+  const analysis =
+    record.analysis && typeof record.analysis === "object" && !Array.isArray(record.analysis)
+      ? (record.analysis as Record<string, unknown>)
+      : null;
+  const manualDraft =
+    analysis?.manualAnlassraumDraft &&
+    typeof analysis.manualAnlassraumDraft === "object" &&
+    !Array.isArray(analysis.manualAnlassraumDraft)
+      ? (analysis.manualAnlassraumDraft as Record<string, unknown>)
+      : null;
+  if (
+    manualDraft?.schemaVersion !== MANUAL_ANLASSRAUM_SERVER_DRAFT_SCHEMA_VERSION
+  ) {
+    return null;
+  }
+
+  const setup =
+    manualDraft.setup && typeof manualDraft.setup === "object" && !Array.isArray(manualDraft.setup)
+      ? sanitizeManualAnlassraumSetup(
+          manualDraft.setup as ManualAnlassraumSetup,
+        )
+      : null;
+  if (!setup) return null;
+
+  return {
+    draftId: recordId,
+    updatedAt:
+      typeof record.updatedAt === "string"
+        ? record.updatedAt
+        : record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : null,
+    setup,
   };
 }
 

@@ -7,6 +7,7 @@ import type {
 type AnlassraumPrePublishCheckProps = {
   actionState: ManualAnlassraumActionState;
   continueCreateHref: string;
+  isSaving?: boolean;
   onContinueCreate: () => void;
   onSaveDraft: () => void;
   onStartInternal: () => void;
@@ -17,6 +18,8 @@ type AnlassraumPrePublishCheckProps = {
 export default function AnlassraumPrePublishCheck(
   props: AnlassraumPrePublishCheckProps,
 ) {
+  const actionDisabled = Boolean(props.isSaving);
+
   return (
     <section className="public-proof-zone">
       <div className="space-y-2">
@@ -74,20 +77,20 @@ export default function AnlassraumPrePublishCheck(
         <button
           type="button"
           onClick={props.onSaveDraft}
-          disabled={!props.actionState.canSaveDraft}
+          disabled={!props.actionState.canSaveDraft || actionDisabled}
           className="vog-btn-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Ohne KI speichern
+          {props.isSaving ? "Speichert..." : "Ohne KI speichern"}
         </button>
         <Link
           href={props.continueCreateHref}
           onClick={props.onContinueCreate}
           className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            props.actionState.canContinueCreate
+            props.actionState.canContinueCreate && !actionDisabled
               ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))]"
               : "pointer-events-none bg-[rgb(var(--bg))] text-[rgb(var(--muted))] opacity-50"
           }`}
-          aria-disabled={!props.actionState.canContinueCreate}
+          aria-disabled={!props.actionState.canContinueCreate || actionDisabled}
           data-continue-create-href={props.continueCreateHref}
         >
           Mit KI in /create weiter
@@ -95,18 +98,18 @@ export default function AnlassraumPrePublishCheck(
         <button
           type="button"
           onClick={props.onSubmitPublicReview}
-          disabled={!props.actionState.canSubmitPublicReview}
+          disabled={!props.actionState.canSubmitPublicReview || actionDisabled}
           className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Öffentlich nach Review einreichen
+          {props.isSaving ? "Speichert..." : "Öffentlich nach Review einreichen"}
         </button>
         <button
           type="button"
           onClick={props.onStartInternal}
-          disabled={!props.actionState.canStartInternal}
+          disabled={!props.actionState.canStartInternal || actionDisabled}
           className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Intern starten
+          {props.isSaving ? "Speichert..." : "Intern starten"}
         </button>
       </div>
     </section>

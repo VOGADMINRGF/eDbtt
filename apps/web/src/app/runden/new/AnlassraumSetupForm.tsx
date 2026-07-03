@@ -15,6 +15,7 @@ import {
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
   buildManualAnlassraumStartDraft,
+  buildManualAnlassraumServerDraftSavePayload,
   buildManualAnlassraumContinueCreateHref,
   createEmptyManualAnlassraumSetup,
   resolveManualAnlassraumActionState,
@@ -23,6 +24,7 @@ import {
   type ManualAnlassraumCommunityOptionsMode,
   type ManualAnlassraumNextStep,
   type ManualAnlassraumScope,
+  type ManualAnlassraumServerDraftSnapshot,
   type ManualAnlassraumSetup,
   type ManualAnlassraumVisibility,
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
@@ -89,32 +91,58 @@ function StepMarker(props: StepGuideProps) {
   );
 }
 
-export default function AnlassraumSetupForm() {
+type AnlassraumSetupFormProps = {
+  initialServerDraft?: ManualAnlassraumServerDraftSnapshot | null;
+};
+
+function syncDraftUrl(draftId: string) {
+  if (typeof window === "undefined") return;
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set("draftId", draftId);
+  window.history.replaceState(null, "", nextUrl.toString());
+}
+
+export default function AnlassraumSetupForm({
+  initialServerDraft = null,
+}: AnlassraumSetupFormProps) {
   const [setup, setSetup] = useState<ManualAnlassraumSetup>(createEmptyManualAnlassraumSetup);
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [startDraft, setStartDraft] = useState<StartDraftContext | null>(null);
+  const [serverDraftId, setServerDraftId] = useState<string | null>(
+    initialServerDraft?.draftId ?? null,
+  );
+  const [isPersisting, setIsPersisting] = useState(false);
 
   useEffect(() => {
     const existingDraft = getStartDraftForTarget("rounds");
     if (existingDraft) {
       setStartDraft(existingDraft);
     }
-    const storedSetup = readStoredSetup();
-    if (storedSetup) {
-      setSetup(storedSetup);
-      setRestoreNotice("Dein lokal gesicherter Entwurf wurde wieder geöffnet.");
-      if (!existingDraft) {
-        const restoredDraft = buildManualAnlassraumStartDraft(storedSetup);
-        if (restoredDraft) {
-          const savedDraft = saveStartDraftContext(restoredDraft);
-          if (savedDraft) {
-            setStartDraft(savedDraft);
-          }
+    const restoredSetup = initialServerDraft?.setup ?? readStoredSetup();
+    const restoreText = initialServerDraft
+      ? "Dein serverseitig gespeicherter Entwurf wurde wieder geöffnet."
+      : restoredSetup
+        ? "Dein lokal gesicherter Entwurf wurde wieder geöffnet."
+        : null;
+    if (initialServerDraft?.draftId) {
+      setServerDraftId(initialServerDraft.draftId);
+      syncDraftUrl(initialServerDraft.draftId);
+    }
+    if (!restoredSetup) return;
+
+    setSetup(restoredSetup);
+    setRestoreNotice(restoreText);
+    if (!existingDraft) {
+      const restoredDraft = buildManualAnlassraumStartDraft(restoredSetup);
+      if (restoredDraft) {
+        const savedDraft = saveStartDraftContext(restoredDraft);
+        if (savedDraft) {
+          setStartDraft(savedDraft);
         }
       }
     }
-  }, []);
+  }, [initialServerDraft]);
 
   const actionState = useMemo(() => resolveManualAnlassraumActionState(setup), [setup]);
   const continueCreateHref = useMemo(
@@ -143,7 +171,44 @@ export default function AnlassraumSetupForm() {
     return nextSetup;
   }
 
-  function persistManualDraftWithNotice(nextStep: ManualAnlassraumNextStep, notice: string) {
+  async function persistServerDraft(nextSetup: ManualAnlassraumSetup) {
+    const response = await fetch("/api/drafts/save", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(
+        buildManualAnlassraumServerDraftSavePayload({
+          setup: nextSetup,
+          draftId: serverDraftId,
+        }),
+      ),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      return { ok: false as const, error: "not_authenticated" };
+    }
+    if (!response.ok || !body?.ok || typeof body?.draftId !== "string") {
+      return {
+        ok: false as const,
+        error: String(body?.error ?? "server_draft_save_failed"),
+      };
+    }
+    return {
+      ok: true as const,
+      draftId: body.draftId,
+      updatedAt: typeof body.updatedAt === "string" ? body.updatedAt : null,
+    };
+  }
+
+  async function persistManualDraftWithNotice(
+    nextStep: ManualAnlassraumNextStep,
+    notices: {
+      serverSaved: string;
+      authRequired: string;
+      serverFailed: string;
+    },
+  ) {
     const nextSetup = persistWithNextStep(nextStep);
     const nextDraft =
       buildManualAnlassraumStartDraft(nextSetup, startDraft) ??
@@ -160,7 +225,25 @@ export default function AnlassraumSetupForm() {
       setStartDraft(savedDraft);
     }
     setRestoreNotice(null);
-    setActionNotice(notice);
+    setIsPersisting(true);
+    try {
+      const result = await persistServerDraft(nextSetup);
+      if (result.ok) {
+        setServerDraftId(result.draftId);
+        syncDraftUrl(result.draftId);
+        setActionNotice(notices.serverSaved);
+        return;
+      }
+      if (result.error === "not_authenticated") {
+        setActionNotice(notices.authRequired);
+        return;
+      }
+      setActionNotice(notices.serverFailed);
+    } catch {
+      setActionNotice(notices.serverFailed);
+    } finally {
+      setIsPersisting(false);
+    }
   }
 
   return (
@@ -257,7 +340,9 @@ export default function AnlassraumSetupForm() {
                   key: "rounds",
                   title: "Runde vorbereiten",
                   description: "Optionen weiterbearbeiten und als Runden-Entwurf offen halten.",
-                  href: "/runden/new?startDraft=1&from=rounds",
+                  href: serverDraftId
+                    ? `/runden/new?draftId=${encodeURIComponent(serverDraftId)}&startDraft=1&from=rounds`
+                    : "/runden/new?startDraft=1&from=rounds",
                   onClick: () => updateStartDraftContext({ targetHint: "rounds" }),
                 },
                 {
@@ -473,29 +558,51 @@ export default function AnlassraumSetupForm() {
               <AnlassraumPrePublishCheck
                 actionState={actionState}
                 continueCreateHref={continueCreateHref}
+                isSaving={isPersisting}
                 onContinueCreate={() => {
                   if (!actionState.canContinueCreate) return;
                   persistWithNextStep("continue_create");
                 }}
                 onSaveDraft={() => {
                   if (!actionState.canSaveDraft) return;
-                  persistManualDraftWithNotice(
+                  void persistManualDraftWithNotice(
                     "save_draft",
-                    "Anlassraum-Entwurf lokal gespeichert. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet. Du kannst hier weiterarbeiten oder später bewusst in /create vertiefen.",
+                    {
+                      serverSaved:
+                        "Anlassraum-Entwurf lokal und serverseitig gespeichert. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet. Du kannst denselben Stand später wieder auf /runden/new öffnen oder bewusst in /create vertiefen.",
+                      authRequired:
+                        "Anlassraum-Entwurf lokal gespeichert. Zum serverseitigen Speichern bitte anmelden. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet.",
+                      serverFailed:
+                        "Anlassraum-Entwurf lokal gespeichert. Serverseitiges Speichern ist fehlgeschlagen. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet.",
+                    },
                   );
                 }}
                 onStartInternal={() => {
                   if (!actionState.canStartInternal) return;
-                  persistManualDraftWithNotice(
+                  void persistManualDraftWithNotice(
                     "start_internal",
-                    "Interner Anlassraum-Entwurf gespeichert. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                    {
+                      serverSaved:
+                        "Interner Anlassraum-Entwurf lokal und serverseitig gespeichert. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                      authRequired:
+                        "Interner Anlassraum-Entwurf lokal gespeichert. Zum serverseitigen Speichern bitte anmelden. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                      serverFailed:
+                        "Interner Anlassraum-Entwurf lokal gespeichert. Serverseitiges Speichern ist fehlgeschlagen. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                    },
                   );
                 }}
                 onSubmitPublicReview={() => {
                   if (!actionState.canSubmitPublicReview) return;
-                  persistManualDraftWithNotice(
+                  void persistManualDraftWithNotice(
                     "submit_public_review",
-                    "Entwurf für spätere öffentliche Prüfung vorgemerkt. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                    {
+                      serverSaved:
+                        "Entwurf lokal und serverseitig für spätere öffentliche Prüfung vorgemerkt. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                      authRequired:
+                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Zum serverseitigen Speichern bitte anmelden. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                      serverFailed:
+                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Serverseitiges Speichern ist fehlgeschlagen. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                    },
                   );
                 }}
                 setup={setup}
