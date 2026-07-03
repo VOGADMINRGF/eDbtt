@@ -96,6 +96,13 @@ export type E150OrchestratorArgs = {
    */
   timeoutMs?: number;
   telemetry?: {
+    runId?: string | null;
+    jobId?: string | null;
+    operationId?: string | null;
+    operationType?: string | null;
+    requestId?: string | null;
+    dossierId?: string | null;
+    organizationId?: string | null;
     userId?: string | null;
     tenantId?: string | null;
     region?: string | null;
@@ -252,6 +259,18 @@ export type E150OrchestratorMeta = {
   sealEligible?: boolean;
   sealGranted?: boolean;
 };
+
+function resolveUsageCorrelationFields(telemetry?: E150OrchestratorArgs["telemetry"]) {
+  return {
+    runId: telemetry?.runId ?? null,
+    jobId: telemetry?.jobId ?? null,
+    operationId: telemetry?.operationId ?? null,
+    operationType: telemetry?.operationType ?? null,
+    requestId: telemetry?.requestId ?? null,
+    dossierId: telemetry?.dossierId ?? null,
+    organizationId: telemetry?.organizationId ?? null,
+  };
+}
 
 /**
  * Rückgabe des Orchestrators.
@@ -999,6 +1018,7 @@ async function runProviderProbeCached(
     provider: profile.name,
     model: "probe",
     pipeline: "provider_probe",
+    ...resolveUsageCorrelationFields(telemetry),
     userId: telemetry?.userId ?? null,
     tenantId: telemetry?.tenantId ?? null,
     region: telemetry?.region ?? null,
@@ -1557,6 +1577,7 @@ async function runProviderProbe(
         provider,
         model: "probe",
         pipeline: "provider_probe",
+        ...resolveUsageCorrelationFields(telemetry),
         userId: telemetry?.userId ?? null,
         tenantId: telemetry?.tenantId ?? null,
         region: telemetry?.region ?? null,
@@ -1582,6 +1603,7 @@ async function runProviderProbe(
       provider,
       model: "probe",
       pipeline: "provider_probe",
+      ...resolveUsageCorrelationFields(telemetry),
       userId: telemetry?.userId ?? null,
       tenantId: telemetry?.tenantId ?? null,
       region: telemetry?.region ?? null,
@@ -1884,6 +1906,7 @@ export async function callE150Orchestrator(
       provider: outcome.provider,
       model: success?.modelName ?? "unknown",
       pipeline: pipelineName,
+      ...resolveUsageCorrelationFields(telemetryMeta),
       userId: telemetryMeta.userId ?? null,
       tenantId: telemetryMeta.tenantId ?? null,
       region: telemetryMeta.region ?? null,

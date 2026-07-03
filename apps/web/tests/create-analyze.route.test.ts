@@ -507,6 +507,29 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     );
   });
 
+  it("forwards real analyze run and dossier correlation into analyzeContribution", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    const res = await analyzePOST(
+      req({
+        text: "Dies ist ein ausreichend langer Text fuer die Korrelation.",
+        locale: "de-DE",
+        dossierId: "dossier-42",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        runId: expect.any(String),
+        dossierId: "dossier-42",
+        operationId: expect.any(String),
+        operationType: "analyze_run",
+        userId: null,
+      }),
+    );
+  });
+
   it("returns source grounding audit metadata with upload priority and contradiction signals", async () => {
     mocks.analyzeContribution.mockResolvedValue(
       buildAnalyzeResult({

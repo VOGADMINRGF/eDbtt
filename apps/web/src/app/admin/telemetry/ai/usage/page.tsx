@@ -108,6 +108,14 @@ type AiUsageBreakdownSnapshot = {
     timestamp: string;
     provider: string;
     pipeline: string;
+    runId?: string | null;
+    jobId?: string | null;
+    operationId?: string | null;
+    operationType?: string | null;
+    requestId?: string | null;
+    dossierId?: string | null;
+    organizationId?: string | null;
+    userId?: string | null;
     tokens: number;
     costEur: number;
     durationMs: number;
@@ -738,6 +746,7 @@ function RecentEventsTable({ rows }: { rows: AiUsageBreakdownSnapshot["recent"] 
             <th className="px-3 py-2">Zeit</th>
             <th className="px-3 py-2">Provider</th>
             <th className="px-3 py-2">Pipeline</th>
+            <th className="px-3 py-2">Korrelation</th>
             <th className="px-3 py-2">Tokens</th>
             <th className="px-3 py-2">Kosten</th>
             <th className="px-3 py-2">Latenz</th>
@@ -747,7 +756,7 @@ function RecentEventsTable({ rows }: { rows: AiUsageBreakdownSnapshot["recent"] 
         <tbody className="divide-y divide-[rgb(var(--border))]">
           {rows.length === 0 ? (
             <tr>
-              <td className="px-3 py-3 text-sm text-[rgb(var(--muted))]" colSpan={7}>
+              <td className="px-3 py-3 text-sm text-[rgb(var(--muted))]" colSpan={8}>
                 Keine Recent Events im Filter.
               </td>
             </tr>
@@ -759,6 +768,11 @@ function RecentEventsTable({ rows }: { rows: AiUsageBreakdownSnapshot["recent"] 
                 </td>
                 <td className="px-3 py-2">{row.provider}</td>
                 <td className="px-3 py-2">{row.pipeline}</td>
+                <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                  <div>{row.operationType ?? "ohne operation_type"}</div>
+                  <div>{row.runId ?? row.jobId ?? row.operationId ?? row.requestId ?? "ohne run/job/op"}</div>
+                  <div>{row.dossierId ?? row.organizationId ?? row.userId ?? "ohne Dossier-/Scope-Kontext"}</div>
+                </td>
                 <td className="px-3 py-2">{formatNumber(row.tokens)}</td>
                 <td className="px-3 py-2">{formatCurrency(row.costEur)}</td>
                 <td className="px-3 py-2">{formatNumber(row.durationMs)} ms</td>

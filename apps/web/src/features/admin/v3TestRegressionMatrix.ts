@@ -200,7 +200,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       ],
       relatedCapabilityIds: ["pricing_credits_limits"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-DEBIT-TRUTH-05",
       guardrailNotes: [
         "Keine versteckten Gebührenläufe",
         "Preis-Tests sind noch keine V3-Credit-Abnahme",
@@ -229,7 +229,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       ],
       relatedCapabilityIds: ["deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
       guardrailNotes: [
         "Sichtbare Gates sind noch keine Debit-Wahrheit",
         "Keine unkontrollierte Deep-Research-Automation",
@@ -867,7 +867,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["deepsearch_cost_governance", "prompt_based_low_ops"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -887,7 +887,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       missingTests: [],
       relatedCapabilityIds: ["pricing_credits_limits", "deepsearch_cost_governance"],
       relatedHandoffLinkIds: [],
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
       guardrailNotes: [
         "Guardrail ist real abgesichert",
       ],
@@ -1029,7 +1029,7 @@ export function buildV3TestRegressionMatrix(): V3TestRegressionMatrix {
       },
       {
         label: "Pricing / Credit Consumption Truth",
-        nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+        nextSliceId: "V3-DEEPSEARCH-DEBIT-TRUTH-05",
         reason:
           "Pricing-, Entitlement- und Consumption-Truth-Basis ist jetzt sichtbar, aber die echte Runtime-Verknuepfung zu Usage und Debit fehlt noch.",
       },

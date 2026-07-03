@@ -1440,6 +1440,41 @@ function V3DeepsearchConsumptionTruthCard({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <V3ConsumptionTruthFieldCard
+          label="has_ai_usage_event"
+          status={operation.hasAiUsageEvent.status}
+          detail={operation.hasAiUsageEvent.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_run_correlation"
+          status={operation.hasRunCorrelation.status}
+          detail={operation.hasRunCorrelation.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_job_correlation"
+          status={operation.hasJobCorrelation.status}
+          detail={operation.hasJobCorrelation.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_dossier_correlation"
+          status={operation.hasDossierCorrelation.status}
+          detail={operation.hasDossierCorrelation.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_org_or_user_scope"
+          status={operation.hasOrgOrUserScope.status}
+          detail={operation.hasOrgOrUserScope.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_cost_estimate"
+          status={operation.hasCostEstimate.status}
+          detail={operation.hasCostEstimate.detail}
+        />
+        <V3ConsumptionTruthFieldCard
+          label="has_recorded_usage"
+          status={operation.hasRecordedUsage.status}
+          detail={operation.hasRecordedUsage.detail}
+        />
+        <V3ConsumptionTruthFieldCard
           label="has_run_linkage"
           status={operation.hasRunLinkage.status}
           detail={operation.hasRunLinkage.detail}
@@ -1566,6 +1601,13 @@ function V3DeepsearchConsumptionTruthSection({
 }) {
   const summaryCards = [
     { label: "Operationen", value: readModel.summary.totalOperations },
+    { label: "has_ai_usage_event", value: readModel.summary.aiUsageEventOperations },
+    { label: "has_run_correlation", value: readModel.summary.runCorrelatedOperations },
+    { label: "has_job_correlation", value: readModel.summary.jobCorrelatedOperations },
+    { label: "has_dossier_correlation", value: readModel.summary.dossierCorrelatedOperations },
+    { label: "has_org_or_user_scope", value: readModel.summary.orgOrUserScopedOperations },
+    { label: "has_cost_estimate", value: readModel.summary.costEstimateOperations },
+    { label: "has_recorded_usage", value: readModel.summary.recordedUsageTruthOperations },
     { label: "has_run_linkage", value: readModel.summary.runLinkedOperations },
     { label: "has_job_linkage", value: readModel.summary.jobLinkedOperations },
     { label: "has_usage_linkage", value: readModel.summary.usageLinkedOperations },
@@ -1590,9 +1632,10 @@ function V3DeepsearchConsumptionTruthSection({
           </h2>
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
             Diese Sicht verbindet keine neuen Runtime-Systeme. Sie zeigt nur, welche bestehenden Operationspfade heute
-            bereits `has_run_linkage`, `has_job_linkage`, `has_usage_linkage`, `estimated_cost`,
-            `recorded_usage`, `review_required` oder `blocked_by_limit` liefern und wo weiterhin
-            `missing_runtime_truth` bleibt.
+            bereits `has_ai_usage_event`, `has_run_correlation`, `has_job_correlation`,
+            `has_dossier_correlation`, `has_org_or_user_scope`, `has_cost_estimate`,
+            `has_recorded_usage`, `review_required` oder `blocked_by_limit` liefern und wo
+            weiterhin `missing_runtime_truth` bleibt.
           </p>
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">

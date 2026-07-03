@@ -158,6 +158,16 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
       state: "skipped",
       reason: "full_mode_only",
     });
+    expect(mocks.callE150Orchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({
+        telemetry: expect.objectContaining({
+          pipeline: "orchestrator_smoke",
+          runId: expect.any(String),
+          userId: "admin-1",
+          operationType: "admin_orchestrator_smoke_runtime",
+        }),
+      }),
+    );
   });
 
   it("reports orchestrator and create-analyze statuses separately in full mode", async () => {

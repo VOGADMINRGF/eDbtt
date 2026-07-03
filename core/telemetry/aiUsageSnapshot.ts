@@ -25,6 +25,14 @@ export interface UsageEventSummary {
   pipeline: AiPipelineName;
   model?: string | null;
   region?: string | null;
+  runId?: string | null;
+  jobId?: string | null;
+  operationId?: string | null;
+  operationType?: string | null;
+  requestId?: string | null;
+  dossierId?: string | null;
+  organizationId?: string | null;
+  userId?: string | null;
   tokens: number;
   tokensInput?: number;
   tokensOutput?: number;
@@ -408,6 +416,14 @@ export async function getUsageSnapshot(
       pipeline: 1,
       region: 1,
       model: 1,
+      runId: 1,
+      jobId: 1,
+      operationId: 1,
+      operationType: 1,
+      requestId: 1,
+      dossierId: 1,
+      organizationId: 1,
+      userId: 1,
       tokensInput: 1,
       tokensOutput: 1,
       costEur: 1,
@@ -427,6 +443,14 @@ export async function getUsageSnapshot(
     pipeline: event.pipeline,
     model: (event as any).model ?? null,
     region: event.region ?? null,
+    runId: (event as any).runId ?? null,
+    jobId: (event as any).jobId ?? null,
+    operationId: (event as any).operationId ?? null,
+    operationType: (event as any).operationType ?? null,
+    requestId: (event as any).requestId ?? null,
+    dossierId: (event as any).dossierId ?? null,
+    organizationId: (event as any).organizationId ?? null,
+    userId: (event as any).userId ?? null,
     tokens: (event.tokensInput ?? 0) + (event.tokensOutput ?? 0),
     tokensInput: (event as any).tokensInput ?? 0,
     tokensOutput: (event as any).tokensOutput ?? 0,
@@ -492,6 +516,14 @@ function toUsageEventSummary(event: any): UsageEventSummary {
     pipeline: event.pipeline,
     model: event.model ?? null,
     region: event.region ?? null,
+    runId: event.runId ?? null,
+    jobId: event.jobId ?? null,
+    operationId: event.operationId ?? null,
+    operationType: event.operationType ?? null,
+    requestId: event.requestId ?? null,
+    dossierId: event.dossierId ?? null,
+    organizationId: event.organizationId ?? null,
+    userId: event.userId ?? null,
     tokens: (event.tokensInput ?? 0) + (event.tokensOutput ?? 0),
     tokensInput: event.tokensInput ?? 0,
     tokensOutput: event.tokensOutput ?? 0,
@@ -1139,6 +1171,14 @@ export async function getAiUsageSnapshot(
       pipeline: 1,
       region: 1,
       model: 1,
+      runId: 1,
+      jobId: 1,
+      operationId: 1,
+      operationType: 1,
+      requestId: 1,
+      dossierId: 1,
+      organizationId: 1,
+      userId: 1,
       tokensInput: 1,
       tokensOutput: 1,
       costEur: 1,

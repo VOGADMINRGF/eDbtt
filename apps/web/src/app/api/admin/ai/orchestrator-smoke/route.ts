@@ -3469,7 +3469,11 @@ async function runDirectFullContractProviders(): Promise<ProviderDiagnostic[]> {
   return sortProviderDiagnostics(rows);
 }
 
-async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
+async function runCreateAnalyzeApiSmokeWithContext(context: {
+  runId?: string;
+  correlationId?: string;
+  userId?: string | null;
+}): Promise<CreateAnalyzeApiSmoke> {
   const started = Date.now();
   try {
     const result = await analyzeContribution({
@@ -3478,6 +3482,10 @@ async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
       maxClaims: 8,
       analysisMode: "analyze",
       pipeline: "orchestrator_smoke",
+      runId: context.runId ?? null,
+      userId: context.userId ?? null,
+      operationId: context.correlationId ?? context.runId ?? null,
+      operationType: "admin_orchestrator_smoke_create_analyze",
     });
     const validation = validateAnalyzeShapePayload(result);
     return {
@@ -3731,6 +3739,7 @@ async function runRuntimeMode(base: {
   runId: string;
   correlationId: string;
   startedAt: number;
+  userId?: string | null;
 }): Promise<OrchestratorSmokeResponse> {
   try {
     const orchestratorResult = await callE150Orchestrator({
@@ -3742,6 +3751,11 @@ async function runRuntimeMode(base: {
       validationMode: "json_only",
       telemetry: {
         pipeline: "orchestrator_smoke",
+        runId: base.runId,
+        userId: base.userId ?? null,
+        operationId: base.correlationId,
+        operationType: "admin_orchestrator_smoke_runtime",
+        requestId: base.correlationId,
       },
     });
 
@@ -3813,6 +3827,7 @@ async function runFullMode(base: {
   runId: string;
   correlationId: string;
   startedAt: number;
+  userId?: string | null;
 }): Promise<OrchestratorSmokeResponse> {
   let orchestratorResult: Awaited<ReturnType<typeof callE150Orchestrator>> | null = null;
   let orchestratorError: unknown = null;
@@ -3827,6 +3842,11 @@ async function runFullMode(base: {
       validationMode: "analyze_schema",
       telemetry: {
         pipeline: "orchestrator_smoke",
+        runId: base.runId,
+        userId: base.userId ?? null,
+        operationId: base.correlationId,
+        operationType: "admin_orchestrator_smoke_full_contract",
+        requestId: base.correlationId,
       },
     });
   } catch (error) {
@@ -3834,7 +3854,11 @@ async function runFullMode(base: {
   }
 
   const [createAnalyzeApi, directContractRows] = await Promise.all([
-    runCreateAnalyzeApiSmoke(),
+    runCreateAnalyzeApiSmokeWithContext({
+      runId: base.runId,
+      correlationId: base.correlationId,
+      userId: base.userId ?? null,
+    }),
     runDirectFullContractProviders(),
   ]);
 
@@ -3903,17 +3927,23 @@ export async function POST(req: NextRequest) {
     const { requireAdminOrResponse } = await import("@/lib/server/auth/admin");
     const gate = await requireAdminOrResponse(req);
     if (gate instanceof Response) return gate;
+    const userId =
+      typeof (gate as any)?.userId === "string"
+        ? (gate as any).userId
+        : typeof gate?._id?.toHexString === "function"
+          ? gate._id.toHexString()
+          : null;
 
     if (mode === "provider_probe") {
       const response = await runProviderProbeMode({ lane, runId, correlationId, startedAt });
       return NextResponse.json(response);
     }
     if (mode === "full_contract") {
-      const response = await runFullMode({ lane, runId, correlationId, startedAt });
+      const response = await runFullMode({ lane, runId, correlationId, startedAt, userId });
       return NextResponse.json(response);
     }
 
-    const response = await runRuntimeMode({ lane, runId, correlationId, startedAt });
+    const response = await runRuntimeMode({ lane, runId, correlationId, startedAt, userId });
     return NextResponse.json(response);
   } catch (error: any) {
     const finishedAt = Date.now();

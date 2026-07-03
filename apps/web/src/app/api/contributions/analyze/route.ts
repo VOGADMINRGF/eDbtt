@@ -122,7 +122,9 @@ type AnalyzeJobInput = {
   text: string;
   locale: string;
   maxClaims: number;
+  runId: string;
   contributionId: string;
+  dossierId?: string | null;
   analysisMode: CreateProductMode;
   intent: CreateIntent;
   journeyHint: "analyze" | "media" | "guided" | "material_grounding";
@@ -509,7 +511,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     text,
     locale,
     maxClaims,
+    runId,
     contributionId,
+    dossierId: body.dossierId ?? null,
     analysisMode,
     intent: body.intent ?? resolveIntentFromAnalysisMode(analysisMode),
     journeyHint: materialRouting.lane === "material_grounding" ? "material_grounding" : resolveJourneyHintFromIntent(body.intent ?? resolveIntentFromAnalysisMode(analysisMode)),
@@ -1126,6 +1130,11 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     text: input.text,
     locale: input.locale,
     maxClaims: input.maxClaims,
+    runId: input.runId,
+    userId: input.userId ?? null,
+    dossierId: input.dossierId ?? null,
+    operationId: input.contributionId,
+    operationType: "analyze_run",
     audienceRole: resolveAnalyzeAudienceRole(input.analysisMode),
     analysisMode: input.analysisMode,
     journeyHint: input.journeyHint,
