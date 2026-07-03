@@ -4,9 +4,15 @@ import {
   buildCreateHandoffDraft,
   type CreateHandoffDraft,
 } from "@/features/create/createHandoff";
+import { buildDossierRuntimeDraftFromHandoff } from "@/features/create/dossierRuntime";
+import { classifyCreateHandoffDraft } from "@/features/create/inputClassification";
 import type { CreateIntakeContext } from "@/features/create/intakeContext";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
+import {
+  PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION,
+  type PersistedCreateHandoffRecord,
+} from "@/features/create/persistedHandoffReviewQueue";
 
 export type CreateCandidateKind =
   | "claim"
@@ -109,6 +115,68 @@ export type CreateCandidateReviewHandoffReadModel = {
   items: CreateCandidateReviewHandoffItem[];
 };
 
+export type CreateClaimToDossierPipelineTargetState =
+  | "review_draft"
+  | "dossier_candidate"
+  | "dossier_handoff_prepared"
+  | "persisted_review_record"
+  | "participation_candidate"
+  | "missing_persistence_truth"
+  | "planned_handoff";
+
+export type CreateClaimToDossierPipelineRecordType =
+  | "dossier_runtime_draft"
+  | "participation_space_runtime_draft";
+
+export type CreateClaimToDossierPipelineItem = {
+  handoffId: string;
+  sourceCandidateId: string;
+  candidateType: CreateCandidateKind;
+  targetCarrier:
+    | "dossier_runtime_record"
+    | "participation_space_runtime_record";
+  targetRecordType: CreateClaimToDossierPipelineRecordType;
+  targetRecordId: string | null;
+  targetState: CreateClaimToDossierPipelineTargetState;
+  dossierTargetState: Exclude<
+    CreateClaimToDossierPipelineTargetState,
+    "participation_candidate"
+  > | null;
+  participationTargetState: Extract<
+    CreateClaimToDossierPipelineTargetState,
+    "participation_candidate" | "planned_handoff" | "persisted_review_record" | "missing_persistence_truth"
+  > | null;
+  inputRef: string;
+  inputOrigin: CreateCandidateInputOrigin;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  derivedBy: CreateCandidateDerivedBy;
+  provider: string | null;
+  model: string | null;
+  reviewState: CreateCandidateReviewState;
+  publishState: CreateCandidatePublishState;
+  graphTargetState: CreateCandidateGraphTargetState;
+  persistenceState: "runtime_path_available" | "missing_persistence_truth";
+  missingRuntimeTruth: string[];
+};
+
+export type CreateClaimToDossierPipelineReadModel = {
+  title: string;
+  summary: string;
+  hasPreparedPipeline: boolean;
+  handoffId: string | null;
+  dossierRuntimeTruth: "persistent_runtime_available";
+  participationRuntimeTruth: "persistent_runtime_available";
+  carriesPersistentWrite: false;
+  dossierDraftPreview: {
+    title: string;
+    summary: string;
+    openQuestions: string[];
+    visibility: string;
+  } | null;
+  items: CreateClaimToDossierPipelineItem[];
+};
+
 export type CreateCandidatePreviewReadModel = {
   title: string;
   summary: string;
@@ -122,6 +190,7 @@ export type CreateCandidatePreviewReadModel = {
   providerRuntimeTruth: "present" | "missing_runtime_truth";
   sections: CreateCandidatePreviewSection[];
   reviewHandoff: CreateCandidateReviewHandoffReadModel;
+  claimToDossierPipeline: CreateClaimToDossierPipelineReadModel;
   totalCount: number;
   carriesPersistentWrite: false;
   persistentCarrierTruth: {
@@ -240,6 +309,201 @@ function buildCandidateReviewHandoff(
     targetState: "review_draft",
     persistenceTruth: "missing_persistence_truth",
     carriesPersistentWrite: false,
+    items,
+  };
+}
+
+function buildClaimToDossierPipelineSyntheticRecord(params: {
+  handoff: CreateHandoffDraft | null;
+  reviewHandoff: CreateCandidateReviewHandoffReadModel;
+}): PersistedCreateHandoffRecord | null {
+  const handoff = params.handoff;
+  if (!handoff) return null;
+
+  const dossierItems = params.reviewHandoff.items.filter((item) => item.candidateType !== "poll");
+  if (dossierItems.length === 0) return null;
+
+  const matchedClaims = new Map(
+    handoff.claims.map((claim) => [normalizeText(claim.text), claim] as const),
+  );
+  const matchedArguments = new Map(
+    handoff.arguments.map((argument) => [normalizeText(argument.text), argument] as const),
+  );
+  const matchedQuestions = new Map(
+    handoff.openQuestions.map((question) => [normalizeText(question.question), question] as const),
+  );
+
+  const claims = dossierItems
+    .filter((item) => item.candidateType === "claim")
+    .map((item, index) => {
+      const matched = matchedClaims.get(normalizeText(item.title));
+      return (
+        matched ?? {
+          id: `claim-preview-${index + 1}`,
+          text: item.title,
+          kind: "factual_claim" as const,
+          factcheckEligible: false,
+          sourceRefs: item.evidenceRefs,
+        }
+      );
+    });
+
+  const claimIds = claims.slice(0, 2).map((claim) => claim.id);
+  const argumentsDrafts = dossierItems
+    .filter((item) => item.candidateType === "counter_position")
+    .map((item, index) => {
+      const matched = matchedArguments.get(normalizeText(item.title));
+      return (
+        matched ?? {
+          id: `counter-preview-${index + 1}`,
+          text: item.title,
+          stance: "contra" as const,
+          supportsClaimIds: claimIds,
+        }
+      );
+    });
+
+  const openQuestions = dossierItems
+    .filter((item) => item.candidateType === "question")
+    .map((item, index) => {
+      const matched = matchedQuestions.get(normalizeText(item.title));
+      return (
+        matched ?? {
+          id: `question-preview-${index + 1}`,
+          question: item.title,
+          requiredBeforePublish: true,
+        }
+      );
+    });
+
+  return {
+    schemaVersion: PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION,
+    id: `claim-to-dossier:${handoff.id}`,
+    source: "create",
+    sourceText: handoff.sourceText,
+    plannerResult: handoff.plannerResult,
+    graphMatches: handoff.graphMatches,
+    selectedAction: "create_dossier",
+    claims,
+    arguments: argumentsDrafts,
+    openQuestions,
+    sourceGrounding: handoff.sourceGrounding,
+    topicSeed: handoff.topicSeed,
+    resumeHref: handoff.resumeHref,
+    reviewState: handoff.reviewState,
+    visibilityState: handoff.visibilityState ?? "internal_review",
+    requiresConfirmation: true,
+    reviewRequired: true,
+    noAutoPublish: true,
+    noPublicOfficial: true,
+    noAutomaticOfficialResponse: true,
+    noAutoFinalization: true,
+    intakeClassification: classifyCreateHandoffDraft(handoff),
+    createdByUserId: "missing_runtime_truth",
+    regionId: null,
+    organizationId: null,
+    dossierId: null,
+    anlassraumId: null,
+    requestScope: null,
+    accessDecision: null,
+    createdAt: handoff.createdAt,
+    updatedAt: handoff.createdAt,
+  };
+}
+
+function buildClaimToDossierPipeline(params: {
+  handoff: CreateHandoffDraft | null;
+  reviewHandoff: CreateCandidateReviewHandoffReadModel;
+}): CreateClaimToDossierPipelineReadModel {
+  const syntheticRecord = buildClaimToDossierPipelineSyntheticRecord(params);
+  const dossierDraftPreview = syntheticRecord
+    ? buildDossierRuntimeDraftFromHandoff(syntheticRecord, {
+        status: "queued_for_review",
+      })
+    : null;
+  const items = params.reviewHandoff.items.map((item) => {
+    const sharedMissingReasons = uniqueStrings([
+      "candidate_handoff_not_persisted",
+      ...item.missingRuntimeTruth,
+      ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
+    ]);
+
+    if (item.candidateType === "poll") {
+      return {
+        handoffId: params.handoff?.id ?? "missing_runtime_truth",
+        sourceCandidateId: item.candidateId,
+        candidateType: item.candidateType,
+        targetCarrier: "participation_space_runtime_record" as const,
+        targetRecordType: "participation_space_runtime_draft" as const,
+        targetRecordId: null,
+        targetState: "planned_handoff" as const,
+        dossierTargetState: null,
+        participationTargetState: "planned_handoff" as const,
+        inputRef: item.inputRef,
+        inputOrigin: item.inputOrigin,
+        sourceProvenance: item.sourceProvenance,
+        evidenceRefs: item.evidenceRefs,
+        derivedBy: item.derivedBy,
+        provider: item.provider,
+        model: item.model,
+        reviewState: item.reviewState,
+        publishState: item.publishState,
+        graphTargetState: item.graphTargetState,
+        persistenceState: "missing_persistence_truth" as const,
+        missingRuntimeTruth: uniqueStrings([
+          ...sharedMissingReasons,
+          "participation_runtime_handoff_not_persisted",
+        ]),
+      };
+    }
+
+    return {
+      handoffId: params.handoff?.id ?? "missing_runtime_truth",
+      sourceCandidateId: item.candidateId,
+      candidateType: item.candidateType,
+      targetCarrier: "dossier_runtime_record" as const,
+      targetRecordType: "dossier_runtime_draft" as const,
+      targetRecordId: null,
+      targetState: "dossier_handoff_prepared" as const,
+      dossierTargetState: "dossier_handoff_prepared" as const,
+      participationTargetState: null,
+      inputRef: item.inputRef,
+      inputOrigin: item.inputOrigin,
+      sourceProvenance: item.sourceProvenance,
+      evidenceRefs: item.evidenceRefs,
+      derivedBy: item.derivedBy,
+      provider: item.provider,
+      model: item.model,
+      reviewState: item.reviewState,
+      publishState: item.publishState,
+      graphTargetState: item.graphTargetState,
+      persistenceState: "missing_persistence_truth" as const,
+      missingRuntimeTruth: sharedMissingReasons,
+    };
+  });
+
+  const hasPreparedPipeline = items.length > 0;
+
+  return {
+    title: "Claim-to-Dossier-Pipeline vorbereiten",
+    summary: hasPreparedPipeline
+      ? dossierDraftPreview
+        ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Die Persistenz dieses Candidate-Handoffs fehlt weiterhin; Umfragen bleiben nur als geplanter Beteiligungsraum-Folgepfad sichtbar."
+        : "Die Zielstruktur fuer Dossier- und Beteiligungsraum-Folgepfade ist sichtbar, aber ohne belastbaren Create-Handoff-Kontext bleibt sie bei fehlender Persistenz- und Runtime-Truth."
+      : "Ohne belastbare Kandidaten bleibt auch die Claim-to-Dossier-Pipeline bewusst leer.",
+    hasPreparedPipeline,
+    handoffId: params.handoff?.id ?? null,
+    dossierRuntimeTruth: "persistent_runtime_available",
+    participationRuntimeTruth: "persistent_runtime_available",
+    carriesPersistentWrite: false,
+    dossierDraftPreview: dossierDraftPreview
+      ? {
+          title: dossierDraftPreview.title,
+          summary: dossierDraftPreview.summary,
+          openQuestions: dossierDraftPreview.openQuestions,
+          visibility: dossierDraftPreview.visibility,
+        }
+      : null,
     items,
   };
 }
@@ -716,6 +980,10 @@ export function buildCreateCandidatePreviewReadModel(
   ];
 
   const reviewHandoff = buildCandidateReviewHandoff(sections);
+  const claimToDossierPipeline = buildClaimToDossierPipeline({
+    handoff,
+    reviewHandoff,
+  });
   const totalCount = sections.reduce((sum, section) => sum + section.items.length, 0);
   const hasPreview = totalCount > 0;
 
@@ -734,6 +1002,7 @@ export function buildCreateCandidatePreviewReadModel(
     providerRuntimeTruth: providerContext.runtimeTruth,
     sections,
     reviewHandoff,
+    claimToDossierPipeline,
     totalCount,
     carriesPersistentWrite: false,
     persistentCarrierTruth: {

@@ -68,6 +68,7 @@ export type CreateFrontendAiTransparencyInput = {
   materialItems?: NormalizedMaterialItem[] | null;
   hasCandidatePreview?: boolean;
   hasCandidateReviewHandoff?: boolean;
+  hasClaimToDossierPipeline?: boolean;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -226,9 +227,11 @@ export function buildCreateFrontendAiTransparencyReadModel(
         status: candidatePreviewStatus,
         detail:
           candidatePreviewStatus === "review_required"
-            ? input.hasCandidateReviewHandoff
-              ? "Die review-first Kandidatenvorschau ist sichtbar und als typed Review-Handoff für den bestehenden Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
-              : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
+            ? input.hasClaimToDossierPipeline
+              ? "Die review-first Kandidatenvorschau ist sichtbar. Claims, Gegenpositionen und Fragen sind als typed Dossier-Handoff für den bestehenden `dossier_runtime_record`-Pfad vorbereitet; Umfragen bleiben ein geplanter Beteiligungsraum-Folgepfad. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
+              : input.hasCandidateReviewHandoff
+                ? "Die review-first Kandidatenvorschau ist sichtbar und als typed Review-Handoff für den bestehenden Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
+                : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
             : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
     ],
@@ -245,6 +248,7 @@ export function buildCreateFrontendAiTransparencyReadModel(
       materialItems: input.materialItems,
       candidatePreviewAvailable: input.hasCandidatePreview,
       candidateReviewHandoffAvailable: input.hasCandidateReviewHandoff,
+      claimToDossierPipelineAvailable: input.hasClaimToDossierPipeline,
     }),
     visibleNow: [
       "Startsignal für Planner und Analyse",
@@ -253,7 +257,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
       "Getypte Provenance-Spur für Draft, Planner, Analyze und spätere Folgepfade",
       ...(input.hasCandidatePreview
         ? [
-            input.hasCandidateReviewHandoff
+            input.hasClaimToDossierPipeline
+              ? "Review-first Kandidatenvorschau plus typed Dossier-Handoff für Claims, Gegenpositionen und Fragen; Umfragen bleiben geplant"
+              : input.hasCandidateReviewHandoff
               ? "Review-first Kandidatenvorschau plus typed Review-Handoff für Claims, Gegenpositionen, Fragen und mögliche Umfragen"
               : "Review-first Kandidatenvorschau für Claims, Gegenpositionen, Fragen und mögliche Umfragen",
           ]

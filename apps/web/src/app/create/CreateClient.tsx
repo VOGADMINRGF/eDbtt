@@ -1581,6 +1581,8 @@ export default function CreateClient({
           materialItems: currentMaterialRouting.materialItems,
           hasCandidatePreview: candidatePreview.hasPreview,
           hasCandidateReviewHandoff: candidatePreview.reviewHandoff.hasPreparedHandoff,
+          hasClaimToDossierPipeline:
+            candidatePreview.claimToDossierPipeline.hasPreparedPipeline,
         }),
       };
     },

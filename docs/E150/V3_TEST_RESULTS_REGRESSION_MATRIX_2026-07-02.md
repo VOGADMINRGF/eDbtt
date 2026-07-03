@@ -27,6 +27,13 @@
   `create_handoff_review_queue`-Kontext erweitert; fehlende Persistenz bleibt
   dabei explizit `missing_persistence_truth`, und der Provenance-Trace zeigt
   den Schritt als `candidate_review_handoff` statt als behaupteten Runtime-Write.
+- Fuer `V3-CLAIM-TO-DOSSIER-PIPELINE-01` zeigt dieselbe Surface jetzt
+  zusaetzlich eine typed Claim-to-Dossier-Pipeline: Claims,
+  Gegenpositionen und Fragen werden auf den bestehenden
+  `dossier_runtime_record`-Pfad ausgerichtet, lokal als
+  Dossier-Draft-Vorschau abgeleitet und weiterhin ehrlich als
+  `missing_persistence_truth` markiert; Umfragen bleiben ein geplanter
+  `participation_space_runtime_record`-Folgepfad.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -112,6 +119,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/frontend-ai-transparency.contract.test.ts`
 - `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
 - `apps/web/tests/create-candidate-preview.contract.test.ts`
+- `apps/web/tests/create-claim-to-dossier-pipeline.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`
 - `apps/web/tests/create-mode.page.test.ts`
 - `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`

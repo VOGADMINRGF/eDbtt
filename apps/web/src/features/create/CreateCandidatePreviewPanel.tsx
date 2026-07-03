@@ -183,6 +183,91 @@ export default function CreateCandidatePreviewPanel({
           </p>
         )}
       </div>
+
+      <div className="mt-5 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
+              {model.claimToDossierPipeline.title}
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.claimToDossierPipeline.summary}
+            </p>
+          </div>
+          <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+            review-first
+          </span>
+        </div>
+
+        {model.claimToDossierPipeline.dossierDraftPreview ? (
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Dossier-Draft-Vorschau
+            </p>
+            <p className="mt-2 font-semibold text-[rgb(var(--fg))]">
+              {model.claimToDossierPipeline.dossierDraftPreview.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.claimToDossierPipeline.dossierDraftPreview.summary}
+            </p>
+            <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+              <p>
+                Sichtbarkeit: {model.claimToDossierPipeline.dossierDraftPreview.visibility}
+              </p>
+              <p>Persistent Write: nein</p>
+            </div>
+            {model.claimToDossierPipeline.dossierDraftPreview.openQuestions.length > 0 ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                Offene Fragen:{" "}
+                {model.claimToDossierPipeline.dossierDraftPreview.openQuestions.join(", ")}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {model.claimToDossierPipeline.hasPreparedPipeline ? (
+          <div className="mt-4 space-y-3">
+            {model.claimToDossierPipeline.items.map((item) => (
+              <article
+                key={`${item.candidateType}-${item.sourceCandidateId}-pipeline`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
+                data-create-claim-pipeline={item.candidateType}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {targetCarrierLabel(item.targetCarrier)}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {item.targetState}
+                  </span>
+                  <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    {item.persistenceState}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+                  <p>Candidate: {item.candidateType} · Ref: {item.inputRef}</p>
+                  <p>Zieltyp: {item.targetRecordType}</p>
+                  <p>
+                    Dossier-Ziel: {item.dossierTargetState ?? "nicht aktiv"}
+                  </p>
+                  <p>
+                    Beteiligungs-Ziel: {item.participationTargetState ?? "nicht aktiv"}
+                  </p>
+                </div>
+                {item.missingRuntimeTruth.length > 0 ? (
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
+            Noch keine belastbare Claim-to-Dossier-Pipeline vorbereitet.
+          </p>
+        )}
+      </div>
     </section>
   );
 }
