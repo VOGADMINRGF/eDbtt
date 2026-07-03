@@ -13,6 +13,10 @@
 - `apps/web/src/features/admin/v3ControlCenterReadModel.ts` stuft
   `Test Results / Regression / E2E` nach diesem Slice auf
   `operational_basic`, ohne andere Capabilities aufzuwerten.
+- Fuer `V3-CORE-AI-ORCHESTRATION-PROVENANCE-GRAPH-TRACE-01` ist die
+  bestehende `/runden/new`-/`/create`-Frontend-Transparenz jetzt um eine
+  getypte Provenance-Spur fuer No-AI-Draft, Create-Planner, Analyze und
+  bewusst `planned_not_active` gehaltene Downstream-Pfade erweitert.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -96,6 +100,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/v3-deepsearch-consumption-truth-readmodel.contract.test.ts`
 - `apps/web/tests/v3-deepsearch-consumption-truth-admin.page.test.tsx`
 - `apps/web/tests/frontend-ai-transparency.contract.test.ts`
+- `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`
 - `apps/web/tests/create-mode.page.test.ts`
 - `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`
@@ -202,6 +207,7 @@ Besonders sichtbar offen bleiben:
 - echte Runtime-Verknuepfung zwischen Factcheck-/Material-/Export-/Social-Pfaden und recorded usage trotz jetzt sichtbarer Analyze-/Admin-Smoke-/Create-Planner-Korrelation
 - echte Debit-/Settlement-Wahrheit bleibt ohne Runtime bewusst offen
 - downstream KI-Transparenz fuer Dossier-, Anlassraum- und Beteiligungsraum-Folgeflaechen bleibt eigener Folgepfad
+- Source-/Evidence-/Graph-Provenance bleibt fuer spaetere Dossier-/Claim-/Feed-/Social-/Voxy-Folgepfade bewusst unvollstaendig, solange dort keine echte Runtime geschrieben wird
 
 ## Was ausdruecklich nicht gebaut wurde
 

@@ -29,7 +29,10 @@ export default async function RundenManualCreatePage(props: {
     readParam(resolved?.draftId),
   );
   const entryCanon = readRundenEntryCanonReadModel();
-  const frontendAiTransparency = buildRundenFrontendAiTransparencyReadModel(entryCanon);
+  const frontendAiTransparency = buildRundenFrontendAiTransparencyReadModel(
+    entryCanon,
+    initialServerDraft,
+  );
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">

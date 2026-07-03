@@ -77,6 +77,12 @@ describe("/api/create/intelligent-followup route", () => {
     const body = await response.json();
     expect(body.ok).toBe(true);
     expect(body.result.understanding.summary).toBe("Kurzfassung");
+    expect(body.trace).toMatchObject({
+      requestId: expect.any(String),
+      operationId: expect.any(String),
+      operationType: "create_intelligent_followup_planner",
+      userScope: "missing_runtime_truth",
+    });
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledTimes(1);
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledWith(
       expect.objectContaining({

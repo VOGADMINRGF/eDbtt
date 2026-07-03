@@ -67,12 +67,14 @@ export async function POST(req: NextRequest) {
 
     const body = parsed.data;
     const normalizedIntent = parseCreateIntent(body.intent ?? undefined);
+    const operationType = "create_intelligent_followup_planner" as const;
+    const operationId = requestId;
     const result = await buildCreateIntelligentFollowup({
       text: body.text,
       locale: body.locale ?? "de",
       requestId,
-      operationId: requestId,
-      operationType: "create_intelligent_followup_planner",
+      operationId,
+      operationType,
       userId,
       anlassraumId: body.anlassraumId ?? null,
       dossierId: body.dossierId ?? null,
@@ -80,7 +82,16 @@ export async function POST(req: NextRequest) {
       maxSuggestions: 6,
     });
 
-    return NextResponse.json({ ok: true, result });
+    return NextResponse.json({
+      ok: true,
+      result,
+      trace: {
+        requestId,
+        operationId,
+        operationType,
+        userScope: userId ? "present" : "missing_runtime_truth",
+      },
+    });
   } catch {
     return NextResponse.json(
       {

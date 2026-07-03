@@ -48,6 +48,7 @@ import {
   type CreateAnalyzeEnvelopeProviderMatrixEntry,
   type ParsedCreateAnalyzeVerification,
 } from "@/features/create/analyzeEnvelope";
+import type { CreateAnalyzeRuntimeTrace } from "@/features/create/aiOrchestrationProvenanceTrace";
 import type { CreateInputSafetyResult } from "@/features/create/safety/createInputSafety";
 import CreateInputSafetyPanel from "@/components/analyze/CreateInputSafetyPanel";
 import {
@@ -638,6 +639,7 @@ type AnalyzeWorkspaceProps = {
   sourceUrls?: string[] | null;
   uploadIds?: string[] | null;
   materialItems?: NormalizedMaterialItem[] | null;
+  onRuntimeTraceChange?: (trace: CreateAnalyzeRuntimeTrace | null) => void;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -1055,6 +1057,7 @@ export default function AnalyzeWorkspace({
   sourceUrls,
   uploadIds,
   materialItems,
+  onRuntimeTraceChange,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -1108,6 +1111,18 @@ export default function AnalyzeWorkspace({
   const [createInputSafety, setCreateInputSafety] = React.useState<CreateInputSafetyResult | null>(null);
   const [analysisVerification, setAnalysisVerification] = React.useState<ParsedCreateAnalyzeVerification | null>(null);
   const [sourceGroundingAudit, setSourceGroundingAudit] = React.useState<SourceGroundingAudit | null>(null);
+  React.useEffect(() => {
+    if (!onRuntimeTraceChange) return;
+    if (!createAnalyze && !runReceipt && providerMatrix.length === 0) {
+      onRuntimeTraceChange(null);
+      return;
+    }
+    onRuntimeTraceChange({
+      createAnalyze,
+      providerMatrix,
+      runReceipt,
+    });
+  }, [createAnalyze, onRuntimeTraceChange, providerMatrix, runReceipt]);
   const showGuidedCompanion =
     analysisModeHint === "guided" || flow === "guided";
   const [ctaHandoffState, setCtaHandoffState] = React.useState<CreateCtaHandoffUiState>(
