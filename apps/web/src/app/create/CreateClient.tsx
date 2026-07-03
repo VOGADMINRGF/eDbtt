@@ -55,6 +55,8 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
 import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
+import CreateCandidatePreviewPanel from "@/features/create/CreateCandidatePreviewPanel";
+import { buildCreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 import type {
   CreateAnalyzeRuntimeTrace,
   CreatePlannerRuntimeTrace,
@@ -1545,31 +1547,46 @@ export default function CreateClient({
         ? productModeConfig.postStartLead
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
   const frontendAiTransparency = React.useMemo(
-    () =>
-      buildCreateFrontendAiTransparencyReadModel({
-        hasStarted,
-        isStarting,
-        hasIntelligentFollowup: Boolean(intelligentFollowup),
-        showAnalyzeWorkspace,
-        isRetryPlannerPending,
-        fromManualAnlassraumContinueCreate,
-        startBusyStatusLabel,
-        rundenCreateHandoffStatus: initialRundenCreateHandoff?.status ?? null,
-        rundenCreateHandoffDetail: initialRundenCreateHandoff?.detail ?? null,
-        rundenCreateHandoff: initialRundenCreateHandoff,
-        initialText: intakeText,
+    () => {
+      const candidatePreview = buildCreateCandidatePreviewReadModel({
+        followup: intelligentFollowup,
+        createAnalyze: analyzeTrace?.createAnalyze ?? null,
+        runReceipt: analyzeTrace?.runReceipt ?? null,
         intakeContext: initialIntakeContext,
         draftId: initialIntakeContext?.draftId ?? initialRundenCreateHandoff?.draftId ?? null,
-        dossierId: dossierId ?? null,
-        anlassraumId: effectiveSelectedAnlassraumId ?? initialAnlassraumId ?? null,
-        plannerResult: intelligentFollowup,
-        plannerTrace,
-        analyzeTrace,
+        sourceUrls: currentMaterialRouting.sourceUrls,
         materialItems: currentMaterialRouting.materialItems,
-      }),
+      });
+      return {
+        candidatePreview,
+        transparency: buildCreateFrontendAiTransparencyReadModel({
+          hasStarted,
+          isStarting,
+          hasIntelligentFollowup: Boolean(intelligentFollowup),
+          showAnalyzeWorkspace,
+          isRetryPlannerPending,
+          fromManualAnlassraumContinueCreate,
+          startBusyStatusLabel,
+          rundenCreateHandoffStatus: initialRundenCreateHandoff?.status ?? null,
+          rundenCreateHandoffDetail: initialRundenCreateHandoff?.detail ?? null,
+          rundenCreateHandoff: initialRundenCreateHandoff,
+          initialText: intakeText,
+          intakeContext: initialIntakeContext,
+          draftId: initialIntakeContext?.draftId ?? initialRundenCreateHandoff?.draftId ?? null,
+          dossierId: dossierId ?? null,
+          anlassraumId: effectiveSelectedAnlassraumId ?? initialAnlassraumId ?? null,
+          plannerResult: intelligentFollowup,
+          plannerTrace,
+          analyzeTrace,
+          materialItems: currentMaterialRouting.materialItems,
+          hasCandidatePreview: candidatePreview.hasPreview,
+        }),
+      };
+    },
     [
       analyzeTrace,
       currentMaterialRouting.materialItems,
+      currentMaterialRouting.sourceUrls,
       dossierId,
       effectiveSelectedAnlassraumId,
       fromManualAnlassraumContinueCreate,
@@ -1588,6 +1605,8 @@ export default function CreateClient({
       startBusyStatusLabel,
     ],
   );
+  const createCandidatePreview = frontendAiTransparency.candidatePreview;
+  const frontendAiTransparencyModel = frontendAiTransparency.transparency;
   const structureOverviewMetrics = React.useMemo(
     () =>
       deriveCreateStructureOverviewMetrics({
@@ -2256,7 +2275,7 @@ export default function CreateClient({
         </div>
       </div>
 
-      <FrontendAiTransparencyPanel model={frontendAiTransparency} />
+      <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
 
       {showTooShortHint ? (
         <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
@@ -2368,6 +2387,10 @@ export default function CreateClient({
             handoffRuntimeSourceUrls={currentMaterialRouting.sourceUrls}
             handoffRuntimeMaterialItems={currentMaterialRouting.materialItems}
           />
+
+          <div className="mt-4">
+            <CreateCandidatePreviewPanel model={createCandidatePreview} />
+          </div>
         </div>
       ) : null}
 

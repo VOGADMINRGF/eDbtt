@@ -171,6 +171,9 @@ describe("AI orchestration provenance trace contract", () => {
           languages: ["de"],
           normalizedInputSummary: "Mehr sichere Schulwege",
           claims: [],
+          questions: [],
+          missingPerspectives: [],
+          participationCandidates: [],
           nonCheckableOpinions: [],
           evidenceNeeds: [],
           uncertainties: [],
@@ -244,9 +247,10 @@ describe("AI orchestration provenance trace contract", () => {
       graphTarget: "graph_candidate",
       publishState: "publish_blocked",
     });
-    expect(steps.find((step) => step.stepId === "claims_questions_planned")).toMatchObject({
-      outputType: "planned_not_active",
-      missingRuntimeTruth: true,
+    expect(steps.find((step) => step.stepId === "claims_questions_candidate_preview")).toMatchObject({
+      outputType: "candidate_preview",
+      graphTarget: "review_queue_handoff",
+      missingRuntimeTruth: false,
     });
     expect(steps.find((step) => step.stepId === "feeds_social_voxy_planned")).toMatchObject({
       outputType: "planned_not_active",

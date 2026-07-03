@@ -72,6 +72,7 @@ describe("frontend AI transparency contract", () => {
       isRetryPlannerPending: false,
       fromManualAnlassraumContinueCreate: true,
       startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+      hasCandidatePreview: true,
     });
 
     expect(running.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
@@ -84,10 +85,13 @@ describe("frontend AI transparency contract", () => {
       status: "running",
     });
     expect(completed.steps.find((step) => step.id === "later_followups")).toMatchObject({
-      status: "planned_not_active",
+      status: "review_required",
     });
     expect(completed.traceSteps.find((step) => step.stepId === "create_planner_trace")).toMatchObject({
       userVisibleLabel: "KI bereitet nächste Schritte vor",
+    });
+    expect(completed.traceSteps.find((step) => step.stepId === "claims_questions_candidate_preview")).toMatchObject({
+      outputType: "candidate_preview",
     });
   });
 });

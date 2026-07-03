@@ -44,6 +44,7 @@ export type AiOrchestrationOutputType =
   | "draft_saved"
   | "draft_handoff_ready"
   | "planner_followup"
+  | "candidate_preview"
   | "analyze_result"
   | "run_receipt"
   | "admin_smoke_diagnostics"
@@ -158,6 +159,7 @@ type CreateTraceInput = {
   plannerTrace?: CreatePlannerRuntimeTrace | null;
   analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
   materialItems?: NormalizedMaterialItem[] | null;
+  candidatePreviewAvailable?: boolean;
 };
 
 function hasText(value: string | null | undefined) {
@@ -375,6 +377,8 @@ export function getAiOrchestrationOutputTypeLabel(value: AiOrchestrationOutputTy
       return "Übergang vorbereitet";
     case "planner_followup":
       return "Folgeschritte vorbereitet";
+    case "candidate_preview":
+      return "Kandidaten-Vorschau erzeugt";
     case "analyze_result":
       return "Analyseergebnis erzeugt";
     case "run_receipt":
@@ -544,6 +548,9 @@ export function buildCreateAiOrchestrationProvenanceTrace(
   });
   const analyzeProvider = resolveAnalyzeProvider(params.analyzeTrace);
   const analyzeMissingReasons = [...analyzeProvider.missingReasons];
+  const hasCandidatePreview =
+    params.candidatePreviewAvailable ??
+    Boolean(params.plannerResult || params.analyzeTrace?.createAnalyze);
   const analyzeEvidenceRefs = buildEvidenceRefs([
     params.analyzeTrace?.createAnalyze?.runId ?? null,
     params.analyzeTrace?.runReceipt?.id ?? null,
@@ -556,6 +563,31 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       "Analyze-Lauf wurde im Frontend noch nicht mit einer belastbaren runId sichtbar.",
     );
   }
+
+  const candidatePreviewProvider =
+    analyzeProvider.known
+      ? {
+          provider: analyzeProvider.provider,
+          model: analyzeProvider.model,
+          known: true,
+          visibility: "admin_review_only" as const,
+        }
+      : planner?.plannerProvider && planner.plannerProvider !== "none"
+        ? {
+            provider: planner.plannerProvider,
+            model:
+              planner.source === "openai" && planner.plannerProvider === "openai"
+                ? "gpt-4.1-mini"
+                : null,
+            known: true,
+            visibility: "admin_review_only" as const,
+          }
+        : {
+            provider: null,
+            model: null,
+            known: false,
+            visibility: "missing_runtime_truth" as const,
+          };
 
   const steps: AiOrchestrationProvenanceTraceStep[] = [];
 
@@ -739,19 +771,115 @@ export function buildCreateAiOrchestrationProvenanceTrace(
   });
 
   steps.push(
-    ...[
-      {
-        stepId: "claims_questions_planned",
-        userVisibleLabel: "Claims, Fragen und Umfragen bleiben geplant",
-        adminVisibleLabel: "Claims / Questions / Polls downstream planned",
-      },
-      {
-        stepId: "feeds_social_voxy_planned",
-        userVisibleLabel: "Feeds, Social und Voxy bleiben geplant",
-        adminVisibleLabel: "Feed / Social / Voxy downstream planned",
-      },
-    ].map((step): AiOrchestrationProvenanceTraceStep => ({
-      stepId: step.stepId,
+    {
+      stepId: hasCandidatePreview
+        ? "claims_questions_candidate_preview"
+        : "claims_questions_planned",
+      surface: "/create",
+      trigger: hasCandidatePreview ? "create_intelligent_followup_planner" : "downstream_planned",
+      inputContext: buildInputContext({
+        initialText: params.initialText,
+        intakeContext: params.intakeContext,
+        draftId: params.draftId,
+        dossierId: params.dossierId,
+        anlassraumId: params.anlassraumId,
+        requestId: params.plannerTrace?.requestId ?? null,
+        operationId:
+          params.analyzeTrace?.createAnalyze?.runId ??
+          params.plannerTrace?.operationId ??
+          null,
+        operationType: hasCandidatePreview
+          ? "create_candidate_preview"
+          : null,
+        userScope: hasCandidatePreview ? "present" : "not_required",
+      }),
+      inputOrigin: hasCandidatePreview
+        ? primaryInputOrigin.inputOrigin
+        : "Geplanter Folgepfad",
+      inputOriginType: hasCandidatePreview
+        ? primaryInputOrigin.inputOriginType
+        : "planned_not_active",
+      inputOriginRef: hasCandidatePreview
+        ? primaryInputOrigin.inputOriginRef
+        : null,
+      provider: candidatePreviewProvider.provider,
+      model: candidatePreviewProvider.model,
+      providerKnown: candidatePreviewProvider.known,
+      providerVisibility: candidatePreviewProvider.visibility,
+      aiActive: Boolean(
+        hasCandidatePreview &&
+          (params.analyzeTrace?.createAnalyze?.runId || planner),
+      ),
+      usageRecorded: Boolean(hasCandidatePreview && (planner || params.analyzeTrace?.createAnalyze?.runId)),
+      outputType: hasCandidatePreview ? "candidate_preview" : "planned_not_active",
+      outputOrigin: hasCandidatePreview ? "ai_assisted" : "planned_not_active",
+      sourceProvenance: hasCandidatePreview
+        ? [
+            ...plannerSourceProvenance,
+            ...(params.analyzeTrace?.runReceipt?.sourceSet ?? []).map((source, index) => {
+              const sourceType: AiOrchestrationInputOriginType =
+                source.sourceType === "other" ? "manual_editorial" : "url";
+              return {
+                label: source.title ?? source.publisher ?? source.canonicalUrl ?? `Quelle ${index + 1}`,
+                type: sourceType,
+                ref: source.canonicalUrl ?? null,
+                state: "present" as const,
+                visibility: "admin_review_only" as const,
+              };
+            }),
+          ]
+        : [
+            {
+              label: "Noch keine aktive Runtime",
+              type: "planned_not_active",
+              ref: null,
+              state: "planned_not_active",
+              visibility: "frontend_safe",
+            },
+          ],
+      evidenceRefs: hasCandidatePreview
+        ? buildEvidenceRefs([
+            params.plannerTrace?.requestId ?? null,
+            params.analyzeTrace?.createAnalyze?.runId ?? null,
+            params.analyzeTrace?.runReceipt?.id ?? null,
+            params.analyzeTrace?.runReceipt?.snapshotId ?? null,
+            ...(params.analyzeTrace?.createAnalyze?.provenanceRefs ?? []),
+            params.draftId,
+          ])
+        : [],
+      graphTarget: hasCandidatePreview
+        ? "review_queue_handoff"
+        : "dossier_candidate",
+      graphTargetState: hasCandidatePreview
+        ? "candidate_only"
+        : "planned_handoff",
+      reviewState: hasCandidatePreview
+        ? "review_required"
+        : "planned_not_active",
+      publishState: hasCandidatePreview
+        ? "publish_blocked"
+        : "planned_not_active",
+      userVisibleLabel: hasCandidatePreview
+        ? "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten"
+        : "Claims, Fragen und Umfragen bleiben geplant",
+      adminVisibleLabel: hasCandidatePreview
+        ? "Claims / Questions / Polls candidate preview"
+        : "Claims / Questions / Polls downstream planned",
+      missingRuntimeTruth: hasCandidatePreview
+        ? !candidatePreviewProvider.known
+        : true,
+      missingRuntimeTruthReasons: hasCandidatePreview
+        ? candidatePreviewProvider.known
+          ? []
+          : [
+              "Die Kandidatenvorschau ist sichtbar, aber ohne belastbare Provider-/Modelltruth für diesen Lauf.",
+            ]
+        : [
+            "Dieser Folgepfad bleibt bewusst planned_not_active, solange keine echte Runtime oder belastbare Quellen-/Lauftruth existiert.",
+          ],
+    },
+    {
+      stepId: "feeds_social_voxy_planned",
       surface: "/create",
       trigger: "downstream_planned",
       inputContext: buildInputContext({
@@ -783,19 +911,17 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         },
       ],
       evidenceRefs: [],
-      graphTarget: step.stepId === "claims_questions_planned"
-        ? "dossier_candidate"
-        : "review_queue_handoff",
+      graphTarget: "review_queue_handoff",
       graphTargetState: "planned_handoff",
       reviewState: "planned_not_active",
       publishState: "planned_not_active",
-      userVisibleLabel: step.userVisibleLabel,
-      adminVisibleLabel: step.adminVisibleLabel,
+      userVisibleLabel: "Feeds, Social und Voxy bleiben geplant",
+      adminVisibleLabel: "Feed / Social / Voxy downstream planned",
       missingRuntimeTruth: true,
       missingRuntimeTruthReasons: [
         "Dieser Folgepfad bleibt bewusst planned_not_active, solange keine echte Runtime oder belastbare Quellen-/Lauftruth existiert.",
       ],
-    })),
+    },
   );
 
   return steps;
