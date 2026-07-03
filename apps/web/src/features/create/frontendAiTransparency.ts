@@ -67,6 +67,7 @@ export type CreateFrontendAiTransparencyInput = {
   analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
   materialItems?: NormalizedMaterialItem[] | null;
   hasCandidatePreview?: boolean;
+  hasCandidateReviewHandoff?: boolean;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -225,7 +226,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
         status: candidatePreviewStatus,
         detail:
           candidatePreviewStatus === "review_required"
-            ? "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
+            ? input.hasCandidateReviewHandoff
+              ? "Die review-first Kandidatenvorschau ist sichtbar und als typed Review-Handoff für den bestehenden Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
+              : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
             : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
     ],
@@ -241,6 +244,7 @@ export function buildCreateFrontendAiTransparencyReadModel(
       analyzeTrace: input.analyzeTrace,
       materialItems: input.materialItems,
       candidatePreviewAvailable: input.hasCandidatePreview,
+      candidateReviewHandoffAvailable: input.hasCandidateReviewHandoff,
     }),
     visibleNow: [
       "Startsignal für Planner und Analyse",
@@ -248,7 +252,11 @@ export function buildCreateFrontendAiTransparencyReadModel(
       "Ehrliche Trennung zwischen aktiv, vorbereitet und später",
       "Getypte Provenance-Spur für Draft, Planner, Analyze und spätere Folgepfade",
       ...(input.hasCandidatePreview
-        ? ["Review-first Kandidatenvorschau für Claims, Gegenpositionen, Fragen und mögliche Umfragen"]
+        ? [
+            input.hasCandidateReviewHandoff
+              ? "Review-first Kandidatenvorschau plus typed Review-Handoff für Claims, Gegenpositionen, Fragen und mögliche Umfragen"
+              : "Review-first Kandidatenvorschau für Claims, Gegenpositionen, Fragen und mögliche Umfragen",
+          ]
         : []),
     ],
     hiddenByPolicy: [

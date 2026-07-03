@@ -21,6 +21,12 @@ function graphTargetLabel(value: string) {
   return "Dossier-Kandidat";
 }
 
+function targetCarrierLabel(value: string) {
+  if (value === "participation_space_runtime_record") return "Participation Runtime";
+  if (value === "dossier_runtime_record") return "Dossier Runtime";
+  return "Create-Handoff-Review-Queue";
+}
+
 export default function CreateCandidatePreviewPanel({
   model,
 }: CreateCandidatePreviewPanelProps) {
@@ -124,6 +130,58 @@ export default function CreateCandidatePreviewPanel({
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-5 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-[rgb(var(--fg))]">{model.reviewHandoff.title}</h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.reviewHandoff.summary}
+            </p>
+          </div>
+          <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+            {model.reviewHandoff.persistenceTruth}
+          </span>
+        </div>
+
+        {model.reviewHandoff.hasPreparedHandoff ? (
+          <div className="mt-4 space-y-3">
+            {model.reviewHandoff.items.map((item) => (
+              <article
+                key={`${item.candidateType}-${item.candidateId}`}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
+                data-create-candidate-handoff={item.candidateType}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {item.targetCarrier}
+                  </span>
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {item.targetState}
+                  </span>
+                </div>
+                <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{item.text}</p>
+                <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+                  <p>Candidate: {item.candidateType} · Ref: {item.inputRef}</p>
+                  <p>Zielruntime: {targetCarrierLabel(item.targetRuntimeCarrier)}</p>
+                  <p>Review: {item.reviewState} · Publish: {item.publishState}</p>
+                  <p>Graph: {item.graphTargetState}</p>
+                </div>
+                {item.missingRuntimeTruth.length > 0 ? (
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
+            Noch kein belastbarer Review-Handoff vorbereitet.
+          </p>
+        )}
       </div>
     </section>
   );

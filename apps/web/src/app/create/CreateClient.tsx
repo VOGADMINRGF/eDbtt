@@ -1580,6 +1580,7 @@ export default function CreateClient({
           analyzeTrace,
           materialItems: currentMaterialRouting.materialItems,
           hasCandidatePreview: candidatePreview.hasPreview,
+          hasCandidateReviewHandoff: candidatePreview.reviewHandoff.hasPreparedHandoff,
         }),
       };
     },

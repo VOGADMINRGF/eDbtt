@@ -247,8 +247,8 @@ describe("AI orchestration provenance trace contract", () => {
       graphTarget: "graph_candidate",
       publishState: "publish_blocked",
     });
-    expect(steps.find((step) => step.stepId === "claims_questions_candidate_preview")).toMatchObject({
-      outputType: "candidate_preview",
+    expect(steps.find((step) => step.stepId === "claims_questions_review_handoff")).toMatchObject({
+      outputType: "candidate_review_handoff",
       graphTarget: "review_queue_handoff",
       missingRuntimeTruth: false,
     });

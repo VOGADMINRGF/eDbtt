@@ -45,6 +45,7 @@ export type AiOrchestrationOutputType =
   | "draft_handoff_ready"
   | "planner_followup"
   | "candidate_preview"
+  | "candidate_review_handoff"
   | "analyze_result"
   | "run_receipt"
   | "admin_smoke_diagnostics"
@@ -160,6 +161,7 @@ type CreateTraceInput = {
   analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
   materialItems?: NormalizedMaterialItem[] | null;
   candidatePreviewAvailable?: boolean;
+  candidateReviewHandoffAvailable?: boolean;
 };
 
 function hasText(value: string | null | undefined) {
@@ -379,6 +381,8 @@ export function getAiOrchestrationOutputTypeLabel(value: AiOrchestrationOutputTy
       return "Folgeschritte vorbereitet";
     case "candidate_preview":
       return "Kandidaten-Vorschau erzeugt";
+    case "candidate_review_handoff":
+      return "Kandidaten-Review-Handoff vorbereitet";
     case "analyze_result":
       return "Analyseergebnis erzeugt";
     case "run_receipt":
@@ -551,6 +555,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
   const hasCandidatePreview =
     params.candidatePreviewAvailable ??
     Boolean(params.plannerResult || params.analyzeTrace?.createAnalyze);
+  const hasCandidateReviewHandoff =
+    params.candidateReviewHandoffAvailable ?? hasCandidatePreview;
   const analyzeEvidenceRefs = buildEvidenceRefs([
     params.analyzeTrace?.createAnalyze?.runId ?? null,
     params.analyzeTrace?.runReceipt?.id ?? null,
@@ -773,7 +779,9 @@ export function buildCreateAiOrchestrationProvenanceTrace(
   steps.push(
     {
       stepId: hasCandidatePreview
-        ? "claims_questions_candidate_preview"
+        ? hasCandidateReviewHandoff
+          ? "claims_questions_review_handoff"
+          : "claims_questions_candidate_preview"
         : "claims_questions_planned",
       surface: "/create",
       trigger: hasCandidatePreview ? "create_intelligent_followup_planner" : "downstream_planned",
@@ -811,7 +819,11 @@ export function buildCreateAiOrchestrationProvenanceTrace(
           (params.analyzeTrace?.createAnalyze?.runId || planner),
       ),
       usageRecorded: Boolean(hasCandidatePreview && (planner || params.analyzeTrace?.createAnalyze?.runId)),
-      outputType: hasCandidatePreview ? "candidate_preview" : "planned_not_active",
+      outputType: hasCandidatePreview
+        ? hasCandidateReviewHandoff
+          ? "candidate_review_handoff"
+          : "candidate_preview"
+        : "planned_not_active",
       outputOrigin: hasCandidatePreview ? "ai_assisted" : "planned_not_active",
       sourceProvenance: hasCandidatePreview
         ? [
@@ -860,10 +872,14 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         ? "publish_blocked"
         : "planned_not_active",
       userVisibleLabel: hasCandidatePreview
-        ? "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten"
+        ? hasCandidateReviewHandoff
+          ? "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten und sind als Handoff vorbereitet"
+          : "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten"
         : "Claims, Fragen und Umfragen bleiben geplant",
       adminVisibleLabel: hasCandidatePreview
-        ? "Claims / Questions / Polls candidate preview"
+        ? hasCandidateReviewHandoff
+          ? "Claims / Questions / Polls candidate review handoff"
+          : "Claims / Questions / Polls candidate preview"
         : "Claims / Questions / Polls downstream planned",
       missingRuntimeTruth: hasCandidatePreview
         ? !candidatePreviewProvider.known
