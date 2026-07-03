@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
   V3_DEEPSEARCH_CONSUMPTION_FIELD_STATUSES,
   V3_DEEPSEARCH_CONSUMPTION_TRUTH_REAL_HREFS,
   buildV3DeepsearchConsumptionTruthReadModel,
@@ -13,6 +12,11 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
 
     expect(readModel.sectionStatus).toBe("operational_basic");
     expect(readModel.summary.totalOperations).toBe(readModel.operations.length);
+    expect(readModel.summary.aiUsageEventOperations).toBeGreaterThan(0);
+    expect(readModel.summary.runCorrelatedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.jobCorrelatedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.dossierCorrelatedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.orgOrUserScopedOperations).toBeGreaterThan(0);
     expect(readModel.summary.runLinkedOperations).toBeGreaterThan(0);
     expect(readModel.summary.jobLinkedOperations).toBeGreaterThan(0);
     expect(readModel.summary.usageLinkedOperations).toBeGreaterThan(0);
@@ -25,6 +29,7 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
 
   it("keeps operations on real surfaces and differentiates truth signals explicitly", () => {
     const readModel = buildV3DeepsearchConsumptionTruthReadModel();
+    const analyze = readModel.operations.find((entry) => entry.id === "analyze_run_receipt");
     const factcheck = readModel.operations.find((entry) => entry.id === "factcheck_deep_research_job");
     const smoke = readModel.operations.find((entry) => entry.id === "admin_orchestrator_smoke_run");
     const usage = readModel.operations.find((entry) => entry.id === "ai_usage_event_snapshot");
@@ -37,10 +42,23 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
       expect(operation.repoEvidence.length).toBeGreaterThan(0);
       expect(operation.tests.length).toBeGreaterThan(0);
       expect(operation.correlationKeys.length).toBeGreaterThan(0);
-      expect(operation.nextSliceId).toBe(V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID);
+      expect(operation.nextSliceId).toMatch(/^V3-DEEPSEARCH-/);
     }
 
+    expect(analyze).toMatchObject({
+      hasAiUsageEvent: { status: "resolved_for_scope" },
+      hasRunCorrelation: { status: "resolved_for_scope" },
+      hasDossierCorrelation: { status: "resolved_for_scope" },
+      hasOrgOrUserScope: { status: "resolved_for_scope" },
+      hasRecordedUsage: { status: "recorded_usage" },
+      hasUsageLinkage: { status: "resolved_for_scope" },
+      recordedUsage: { status: "recorded_usage" },
+    });
     expect(factcheck).toMatchObject({
+      hasAiUsageEvent: { status: "missing_runtime_truth" },
+      hasJobCorrelation: { status: "resolved_for_scope" },
+      hasDossierCorrelation: { status: "resolved_for_scope" },
+      hasOrgOrUserScope: { status: "resolved_for_scope" },
       hasRunLinkage: { status: "not_applicable" },
       hasJobLinkage: { status: "resolved_for_scope" },
       hasUsageLinkage: { status: "missing_runtime_truth" },
@@ -49,13 +67,22 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
       creditDebit: { status: "missing_runtime_truth" },
     });
     expect(smoke).toMatchObject({
+      hasAiUsageEvent: { status: "resolved_for_scope" },
+      hasRunCorrelation: { status: "resolved_for_scope" },
+      hasOrgOrUserScope: { status: "resolved_for_scope" },
+      hasRecordedUsage: { status: "recorded_usage" },
       hasRunLinkage: { status: "resolved_for_scope" },
-      hasUsageLinkage: { status: "missing_runtime_truth" },
+      hasUsageLinkage: { status: "resolved_for_scope" },
       estimatedCost: { status: "estimated_only" },
-      recordedUsage: { status: "missing_runtime_truth" },
+      recordedUsage: { status: "recorded_usage" },
     });
     expect(usage).toMatchObject({
-      hasRunLinkage: { status: "missing_runtime_truth" },
+      hasAiUsageEvent: { status: "resolved_for_scope" },
+      hasRunCorrelation: { status: "resolved_for_scope" },
+      hasJobCorrelation: { status: "missing_runtime_truth" },
+      hasDossierCorrelation: { status: "resolved_for_scope" },
+      hasOrgOrUserScope: { status: "resolved_for_scope" },
+      hasRunLinkage: { status: "resolved_for_scope" },
       hasUsageLinkage: { status: "resolved_for_scope" },
       recordedUsage: { status: "recorded_usage" },
       creditDebit: { status: "missing_runtime_truth" },

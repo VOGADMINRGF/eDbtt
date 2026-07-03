@@ -47,6 +47,13 @@ export type AnalyzeInput = {
   contextPackIds?: string[];
   contextPacks?: string[];
   presentationPassEnabled?: boolean;
+  runId?: string | null;
+  userId?: string | null;
+  dossierId?: string | null;
+  operationId?: string | null;
+  operationType?: string | null;
+  requestId?: string | null;
+  organizationId?: string | null;
 };
 
 // Reduzierte Default-Anzahl, um JSON-Truncation zu vermeiden
@@ -789,6 +796,13 @@ export async function analyzeContribution(
       validateRaw: (rawText: string) => validateAnalyzeRaw(rawText, sourceText),
       telemetry: {
         pipeline: input.pipeline ?? "contribution_analyze",
+        runId: input.runId ?? null,
+        userId: input.userId ?? null,
+        dossierId: input.dossierId ?? null,
+        operationId: input.operationId ?? null,
+        operationType: input.operationType ?? null,
+        requestId: input.requestId ?? null,
+        organizationId: input.organizationId ?? null,
       },
     });
   } catch (err) {

@@ -210,4 +210,36 @@ describe("analyzeContribution null hardening", () => {
     expect(result?._meta?.tonePassUsed).toBe(true);
     expect(result?._meta?.presentationPass?.applied).toBe(true);
   });
+
+  it("forwards real runtime correlation context into orchestrator telemetry only when provided", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue(
+      orchestratorResult({
+        claims: [{ id: "claim-1", text: "Korrelation pruefbar." }],
+      }),
+    );
+
+    await analyzeContribution({
+      text: "Ein längerer Beitrag mit echtem Laufkontext.",
+      locale: "de",
+      runId: "run-1",
+      userId: "user-1",
+      dossierId: "dossier-1",
+      operationId: "operation-1",
+      operationType: "analyze_run",
+      requestId: "request-1",
+      organizationId: "org-1",
+    });
+
+    const args = mocks.callE150Orchestrator.mock.calls[0]?.[0] as any;
+    expect(args?.telemetry).toMatchObject({
+      pipeline: "contribution_analyze",
+      runId: "run-1",
+      userId: "user-1",
+      dossierId: "dossier-1",
+      operationId: "operation-1",
+      operationType: "analyze_run",
+      requestId: "request-1",
+      organizationId: "org-1",
+    });
+  });
 });

@@ -39,12 +39,12 @@ describe("v3 control center readmodel contract", () => {
     });
     expect(deepsearch).toMatchObject({
       status: "operational_basic",
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-CROSS-SURFACE-USAGE-WRITERS-06",
     });
     expect(liveClaims).toBeTruthy();
     expect(pricing).toMatchObject({
       status: "operational_basic",
-      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
+      nextSliceId: "V3-DEEPSEARCH-DEBIT-TRUTH-05",
     });
   });
 

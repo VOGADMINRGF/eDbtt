@@ -40,6 +40,13 @@ export interface AiUsageEvent {
   provider: AiProviderName;
   model: string;
   pipeline: AiPipelineName;
+  runId?: string | null;
+  jobId?: string | null;
+  operationId?: string | null;
+  operationType?: string | null;
+  requestId?: string | null;
+  dossierId?: string | null;
+  organizationId?: string | null;
 
   userId?: string | null;
   tenantId?: string | null;
