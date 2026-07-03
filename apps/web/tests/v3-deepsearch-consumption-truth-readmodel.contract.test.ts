@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID,
   V3_DEEPSEARCH_CONSUMPTION_FIELD_STATUSES,
   V3_DEEPSEARCH_CONSUMPTION_TRUTH_REAL_HREFS,
-  V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID,
   buildV3DeepsearchConsumptionTruthReadModel,
 } from "@/features/admin/v3DeepsearchConsumptionTruthReadModel";
 
@@ -13,6 +13,10 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
 
     expect(readModel.sectionStatus).toBe("operational_basic");
     expect(readModel.summary.totalOperations).toBe(readModel.operations.length);
+    expect(readModel.summary.runLinkedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.jobLinkedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.usageLinkedOperations).toBeGreaterThan(0);
+    expect(readModel.summary.creditLinkedOperations).toBe(0);
     expect(readModel.summary.estimatedOnlyOperations).toBeGreaterThan(0);
     expect(readModel.summary.recordedUsageOperations).toBeGreaterThan(0);
     expect(readModel.summary.creditDebitOperations).toBe(0);
@@ -33,19 +37,26 @@ describe("v3 deepsearch consumption truth readmodel contract", () => {
       expect(operation.repoEvidence.length).toBeGreaterThan(0);
       expect(operation.tests.length).toBeGreaterThan(0);
       expect(operation.correlationKeys.length).toBeGreaterThan(0);
-      expect(operation.nextSliceId).toBe(V3_DEEPSEARCH_RUNTIME_LINKAGE_DEBIT_SLICE_ID);
+      expect(operation.nextSliceId).toBe(V3_DEEPSEARCH_AI_USAGE_CORRELATION_SLICE_ID);
     }
 
     expect(factcheck).toMatchObject({
+      hasRunLinkage: { status: "not_applicable" },
+      hasJobLinkage: { status: "resolved_for_scope" },
+      hasUsageLinkage: { status: "missing_runtime_truth" },
       reviewRequired: { status: "review_required" },
       blockedByLimit: { status: "blocked_by_limit" },
       creditDebit: { status: "missing_runtime_truth" },
     });
     expect(smoke).toMatchObject({
+      hasRunLinkage: { status: "resolved_for_scope" },
+      hasUsageLinkage: { status: "missing_runtime_truth" },
       estimatedCost: { status: "estimated_only" },
       recordedUsage: { status: "missing_runtime_truth" },
     });
     expect(usage).toMatchObject({
+      hasRunLinkage: { status: "missing_runtime_truth" },
+      hasUsageLinkage: { status: "resolved_for_scope" },
       recordedUsage: { status: "recorded_usage" },
       creditDebit: { status: "missing_runtime_truth" },
     });

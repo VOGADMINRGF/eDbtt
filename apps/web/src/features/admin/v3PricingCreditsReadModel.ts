@@ -207,7 +207,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Die Consumption-Truth-Sicht ist jetzt sichtbar, aber echte Runtime-Verknuepfung zwischen Lauf, recorded_usage und Debit fehlt weiter jenseits des Vertrags- und Checkout-Scopes.",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
       guardrails: [
         "Kein Auto-Billing fuer Review-, Publish- oder Truth-Status",
         "Fixture- und pending-Checkout bleiben keine Produktionswahrheit",
@@ -262,7 +262,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Research-Gates und Consumption-Truth sind sichtbar; offen bleibt der explizite Runtime-Pfad pro Research-Lauf mit recorded_usage, Debit und Nachaudit.",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
       guardrails: [
         "Keine hidden DeepSearch",
         "Kein Premium-Research als Standard-Analyze-Fallback",
@@ -286,7 +286,7 @@ export function buildV3PricingCreditsReadModel(input?: {
       ],
       gap:
         "Material-, Research- und Asset-Freigaben sind jetzt unter einer Consumption-Truth-Sicht lesbar; echte Runtime-Kopplung zu Usage und Debit fehlt weiter.",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
       guardrails: [
         "Keine Extraktion ohne Kostenfreigabe",
         "Kein Auto-Publish aus Material-Jobs",
@@ -356,7 +356,7 @@ export function buildV3PricingCreditsReadModel(input?: {
     nextGaps: [
       {
         label: "DeepSearch / per-run cost governance",
-        nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+        nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
         reason:
           "Research- und Material-Freigaben sind jetzt sichtbar gebuendelt; offen bleibt die echte Runtime-Verknuepfung zu recorded_usage, Debit und Nachaudit.",
       },

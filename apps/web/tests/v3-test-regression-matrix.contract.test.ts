@@ -41,7 +41,7 @@ describe("v3 test regression matrix contract", () => {
     expect(noAutoPublish).toMatchObject({ coverageStatus: "covered" });
     expect(deepsearch).toMatchObject({
       coverageStatus: "partially_covered",
-      nextSliceId: "V3-DEEPSEARCH-RUN-LINKAGE-DEBIT-03",
+      nextSliceId: "V3-DEEPSEARCH-AI-USAGE-CORRELATION-04",
     });
     expect(noHiddenCosts).toMatchObject({ coverageStatus: "covered" });
     expect(noFakeActions).toMatchObject({ coverageStatus: "covered" });
