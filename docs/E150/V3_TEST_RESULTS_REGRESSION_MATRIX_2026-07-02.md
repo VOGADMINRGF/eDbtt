@@ -34,6 +34,12 @@
   Dossier-Draft-Vorschau abgeleitet und weiterhin ehrlich als
   `missing_persistence_truth` markiert; Umfragen bleiben ein geplanter
   `participation_space_runtime_record`-Folgepfad.
+- Fuer `V3-PERSISTED-CANDIDATE-DOSSIER-HANDOFF-RUNTIME-01` erkennt dieselbe
+  Pipeline jetzt einen real bereits vorhandenen `create_dossier`-Record im
+  bestehenden `create_handoff_review_items`-Pfad und spiegelt diese
+  Zwischenwahrheit sichtbar als `persisted_review_record`; ein echtes
+  `dossier_runtime_record` oder `target_record_id` bleibt trotzdem offen,
+  bis die bestehende Dossier-Runtime separat erzeugt wird.
 - Fuer `V3-FEED-ENRICHMENT-REVIEW-SUGGESTIONS-01` zeigt dieselbe Surface
   jetzt ausserdem eine typed Feed-Enrichment-Suggestion-Lesart: vorhandene
   Quellen-, Feed-, Material- und Evidenzhinweise werden nur review-first an

@@ -199,4 +199,79 @@ describe("create claim-to-dossier pipeline contract", () => {
     });
     expect(model.claimToDossierPipeline.dossierDraftPreview?.summary).toContain("Aussagen");
   });
+
+  it("uses the existing persisted create handoff record as review-first runtime input when available", () => {
+    const model = buildCreateCandidatePreviewReadModel({
+      followup: buildFollowupFixture(),
+      createAnalyze: {
+        schemaVersion: "create_analyze.v1",
+        orchestrator: "create_orchestration",
+        runId: "run-123",
+        inputRef: "run-123",
+        intent: "contribute",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
+        inputType: "free_text",
+        intakeClassification: "free_text",
+        languages: ["de"],
+        normalizedInputSummary: "Mehr sichere Schulwege",
+        claims: [{ id: "claim-1", text: "Die Stadt sollte sichere Schulwege priorisieren." }],
+        questions: [{ id: "question-1", text: "Welche Kreuzung zuerst?" }],
+        missingPerspectives: [{ id: "counter-1", text: "Auch Lieferverkehr und Gewerbezugang müssen berücksichtigt werden." }],
+        participationCandidates: [{ id: "poll-1", text: "Welche Maßnahme soll zuerst kommen?" }],
+        nonCheckableOpinions: [],
+        evidenceNeeds: [],
+        uncertainties: [],
+        matches: [],
+        matchStrength: "none",
+        reasons: ["Kein Match"],
+        suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Fallback" }],
+        matchSourceState: "ok",
+        matchSourceErrors: [],
+        matchingLanguageMode: "same_language_only",
+        phases: {
+          intake: { status: "done", summary: "ok" },
+          quality: { status: "review_required", summary: "ok" },
+          graph_matching: { status: "done", summary: "ok" },
+          cta_suggestions: { status: "done", summary: "ok" },
+        },
+        confidence: 0.8,
+        uncertaintyFlags: [],
+        requiresHumanReview: true,
+        reviewRecommended: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        provenanceRefs: ["run-123"],
+        createdAt: "2026-07-03T14:00:00.000Z",
+      },
+      draftId: "65a111111111111111111122",
+      sourceUrls: ["https://example.org/schulwege"],
+      materialItems: [],
+      persistedReviewRecord: {
+        reviewRecordId: "persisted-create-handoff-1",
+        selectedAction: "create_dossier",
+        sourceText: "Sichere Schulwege und klare Prioritäten im Kiez.",
+      },
+    });
+
+    const dossierItems = model.claimToDossierPipeline.items.filter(
+      (item) => item.candidateType !== "poll",
+    );
+
+    expect(model.claimToDossierPipeline.reviewRecordTruth).toBe("persisted_review_record");
+    expect(model.claimToDossierPipeline.reviewRecordId).toBe("persisted-create-handoff-1");
+    expect(dossierItems.every((item) => item.targetState === "persisted_review_record")).toBe(
+      true,
+    );
+    expect(dossierItems.every((item) => item.persistenceState === "runtime_path_available")).toBe(
+      true,
+    );
+    expect(dossierItems.every((item) => item.targetRecordId === null)).toBe(true);
+    expect(
+      dossierItems.every((item) =>
+        item.missingRuntimeTruth.includes("dossier_runtime_record_not_created_yet"),
+      ),
+    ).toBe(true);
+  });
 });

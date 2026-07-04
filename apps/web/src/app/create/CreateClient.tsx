@@ -345,6 +345,12 @@ export function resolveCreateClientVoxyThemeVariant(args: {
 
 type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
 
+type PersistedCandidateDossierReviewRecordState = {
+  reviewRecordId: string;
+  selectedAction: CreateHandoffAction;
+  sourceText: string | null;
+};
+
 type CreateLinkClarificationState = {
   detection: CreateLinkIntakeDetection;
   selectedIntentId: CreateLinkIntentOptionId | null;
@@ -917,6 +923,8 @@ export default function CreateClient({
   });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
+  const [persistedCandidateDossierReviewRecord, setPersistedCandidateDossierReviewRecord] =
+    React.useState<PersistedCandidateDossierReviewRecordState | null>(null);
   const [reviewRequestState, setReviewRequestState] = React.useState<CreateReviewRequestState>("idle");
   const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
@@ -971,6 +979,7 @@ export default function CreateClient({
     if (!handoffId) return;
 
     let cancelled = false;
+    setPersistedCandidateDossierReviewRecord(null);
     async function hydratePersistedHandoff() {
       const localDraft = readCreateHandoffDraft(handoffId);
       if (localDraft) {
@@ -978,7 +987,6 @@ export default function CreateClient({
         setIntakeText(localDraft.sourceText);
         setActionNotice("Vorbereiteter Arbeitsstand geladen. Du kannst jetzt überarbeiten und neu einordnen.");
         setIntakeRestoreInfo("Vorbereiteter Arbeitsstand zur Weiterbearbeitung geladen.");
-        return;
       }
 
       try {
@@ -991,6 +999,15 @@ export default function CreateClient({
         saveCreateHandoffDraft(draft);
         if (cancelled) return;
         setIntakeText(String(draft.sourceText ?? ""));
+        if (draft.selectedAction === "create_dossier") {
+          setPersistedCandidateDossierReviewRecord({
+            reviewRecordId: String(draft.id ?? handoffId),
+            selectedAction: "create_dossier",
+            sourceText: String(draft.sourceText ?? ""),
+          });
+        } else {
+          setPersistedCandidateDossierReviewRecord(null);
+        }
         setActionNotice("Vorbereiteter Arbeitsstand geladen. Du kannst jetzt weiterbearbeiten.");
         setIntakeRestoreInfo("Vorbereiteter Arbeitsstand zur Weiterbearbeitung geladen.");
       } catch {
@@ -1556,6 +1573,7 @@ export default function CreateClient({
         draftId: initialIntakeContext?.draftId ?? initialRundenCreateHandoff?.draftId ?? null,
         sourceUrls: currentMaterialRouting.sourceUrls,
         materialItems: currentMaterialRouting.materialItems,
+        persistedReviewRecord: persistedCandidateDossierReviewRecord,
       });
       return {
         candidatePreview,
@@ -1606,6 +1624,7 @@ export default function CreateClient({
       isRetryPlannerPending,
       isStarting,
       plannerTrace,
+      persistedCandidateDossierReviewRecord,
       showAnalyzeWorkspace,
       startBusyStatusLabel,
     ],
@@ -1749,6 +1768,9 @@ export default function CreateClient({
           | {
               ok?: boolean;
               error?: string;
+              record?: {
+                id?: string;
+              } | null;
               requestScope?: RequestScopeSummary | null;
               accessDecision?: {
                 title?: string;
@@ -1774,6 +1796,13 @@ export default function CreateClient({
         } else if (requestScope?.organizationId) {
           successMessage =
             `Beitrag vorbereitet. ${journeySummary.destinationLabel} bleibt im Bereich deiner Organisation und wird geprüft.`;
+        }
+        if (selectedAction === "create_dossier" && body?.record?.id) {
+          setPersistedCandidateDossierReviewRecord({
+            reviewRecordId: String(body.record.id),
+            selectedAction,
+            sourceText: draft.sourceText,
+          });
         }
       } catch {
         setActionNotice("Der vorbereitete Beitrag konnte nicht gespeichert werden. Bitte erneut versuchen.");

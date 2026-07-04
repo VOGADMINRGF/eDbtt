@@ -2,6 +2,7 @@ import type { RunReceipt } from "@features/analyze/schemas";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import {
   buildCreateHandoffDraft,
+  type CreateHandoffAction,
   type CreateHandoffDraft,
 } from "@/features/create/createHandoff";
 import { buildDossierRuntimeDraftFromHandoff } from "@/features/create/dossierRuntime";
@@ -165,6 +166,8 @@ export type CreateClaimToDossierPipelineReadModel = {
   summary: string;
   hasPreparedPipeline: boolean;
   handoffId: string | null;
+  reviewRecordId: string | null;
+  reviewRecordTruth: "missing_persistence_truth" | "persisted_review_record";
   dossierRuntimeTruth: "persistent_runtime_available";
   participationRuntimeTruth: "persistent_runtime_available";
   carriesPersistentWrite: false;
@@ -175,6 +178,12 @@ export type CreateClaimToDossierPipelineReadModel = {
     visibility: string;
   } | null;
   items: CreateClaimToDossierPipelineItem[];
+};
+
+export type CreatePersistedCandidateReviewRecord = {
+  reviewRecordId: string;
+  selectedAction: CreateHandoffAction;
+  sourceText: string | null;
 };
 
 export type CreateFeedEnrichmentCandidateType = Exclude<CreateCandidateKind, "poll">;
@@ -265,6 +274,7 @@ type BuildCreateCandidatePreviewInput = {
   draftId?: string | null;
   sourceUrls?: string[] | null;
   materialItems?: NormalizedMaterialItem[] | null;
+  persistedReviewRecord?: CreatePersistedCandidateReviewRecord | null;
 };
 
 type CandidateProviderContext = {
@@ -485,6 +495,7 @@ function buildClaimToDossierPipelineSyntheticRecord(params: {
 function buildClaimToDossierPipeline(params: {
   handoff: CreateHandoffDraft | null;
   reviewHandoff: CreateCandidateReviewHandoffReadModel;
+  persistedReviewRecord?: CreatePersistedCandidateReviewRecord | null;
 }): CreateClaimToDossierPipelineReadModel {
   const syntheticRecord = buildClaimToDossierPipelineSyntheticRecord(params);
   const dossierDraftPreview = syntheticRecord
@@ -492,12 +503,31 @@ function buildClaimToDossierPipeline(params: {
         status: "queued_for_review",
       })
     : null;
+  const persistedDossierReviewRecord =
+    params.persistedReviewRecord &&
+    params.persistedReviewRecord.selectedAction === "create_dossier" &&
+    hasText(params.persistedReviewRecord.reviewRecordId) &&
+    (!hasText(params.persistedReviewRecord.sourceText) ||
+      normalizeText(params.persistedReviewRecord.sourceText ?? "") ===
+        normalizeText(params.handoff?.sourceText ?? ""))
+      ? params.persistedReviewRecord
+      : null;
   const items = params.reviewHandoff.items.map((item) => {
-    const sharedMissingReasons = uniqueStrings([
-      "candidate_handoff_not_persisted",
-      ...item.missingRuntimeTruth,
-      ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
-    ]);
+    const dossierReviewPersisted =
+      item.candidateType !== "poll" && Boolean(persistedDossierReviewRecord);
+    const sharedMissingReasons = uniqueStrings(
+      dossierReviewPersisted
+        ? [
+            ...item.missingRuntimeTruth,
+            ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
+            "dossier_runtime_record_not_created_yet",
+          ]
+        : [
+            "candidate_handoff_not_persisted",
+            ...item.missingRuntimeTruth,
+            ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
+          ],
+    );
 
     if (item.candidateType === "poll") {
       return {
@@ -535,8 +565,12 @@ function buildClaimToDossierPipeline(params: {
       targetCarrier: "dossier_runtime_record" as const,
       targetRecordType: "dossier_runtime_draft" as const,
       targetRecordId: null,
-      targetState: "dossier_handoff_prepared" as const,
-      dossierTargetState: "dossier_handoff_prepared" as const,
+      targetState: dossierReviewPersisted
+        ? ("persisted_review_record" as const)
+        : ("dossier_handoff_prepared" as const),
+      dossierTargetState: dossierReviewPersisted
+        ? ("persisted_review_record" as const)
+        : ("dossier_handoff_prepared" as const),
       participationTargetState: null,
       inputRef: item.inputRef,
       inputOrigin: item.inputOrigin,
@@ -548,7 +582,9 @@ function buildClaimToDossierPipeline(params: {
       reviewState: item.reviewState,
       publishState: item.publishState,
       graphTargetState: item.graphTargetState,
-      persistenceState: "missing_persistence_truth" as const,
+      persistenceState: dossierReviewPersisted
+        ? ("runtime_path_available" as const)
+        : ("missing_persistence_truth" as const),
       missingRuntimeTruth: sharedMissingReasons,
     };
   });
@@ -558,12 +594,18 @@ function buildClaimToDossierPipeline(params: {
   return {
     title: "Claim-to-Dossier-Pipeline vorbereiten",
     summary: hasPreparedPipeline
-      ? dossierDraftPreview
-        ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Die Persistenz dieses Candidate-Handoffs fehlt weiterhin; Umfragen bleiben nur als geplanter Beteiligungsraum-Folgepfad sichtbar."
-        : "Die Zielstruktur fuer Dossier- und Beteiligungsraum-Folgepfade ist sichtbar, aber ohne belastbaren Create-Handoff-Kontext bleibt sie bei fehlender Persistenz- und Runtime-Truth."
+      ? persistedDossierReviewRecord
+        ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Der Downstream-Zielpfad bleibt `dossier_runtime_record`, aber ein echtes Dossier-Runtime-Record entsteht erst nach expliziter Review-Freigabe."
+        : dossierDraftPreview
+          ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Die Persistenz dieses Candidate-Handoffs fehlt weiterhin; Umfragen bleiben nur als geplanter Beteiligungsraum-Folgepfad sichtbar."
+          : "Die Zielstruktur fuer Dossier- und Beteiligungsraum-Folgepfade ist sichtbar, aber ohne belastbaren Create-Handoff-Kontext bleibt sie bei fehlender Persistenz- und Runtime-Truth."
       : "Ohne belastbare Kandidaten bleibt auch die Claim-to-Dossier-Pipeline bewusst leer.",
     hasPreparedPipeline,
-    handoffId: params.handoff?.id ?? null,
+    handoffId: persistedDossierReviewRecord?.reviewRecordId ?? params.handoff?.id ?? null,
+    reviewRecordId: persistedDossierReviewRecord?.reviewRecordId ?? null,
+    reviewRecordTruth: persistedDossierReviewRecord
+      ? "persisted_review_record"
+      : "missing_persistence_truth",
     dossierRuntimeTruth: "persistent_runtime_available",
     participationRuntimeTruth: "persistent_runtime_available",
     carriesPersistentWrite: false,
@@ -1309,6 +1351,7 @@ export function buildCreateCandidatePreviewReadModel(
   const claimToDossierPipeline = buildClaimToDossierPipeline({
     handoff,
     reviewHandoff,
+    persistedReviewRecord: input.persistedReviewRecord ?? null,
   });
   const feedEnrichmentSuggestions = buildFeedEnrichmentReviewSuggestions({
     input,

@@ -214,6 +214,8 @@ describe("create candidate preview contract", () => {
     expect(model.claimToDossierPipeline).toMatchObject({
       hasPreparedPipeline: true,
       carriesPersistentWrite: false,
+      reviewRecordTruth: "missing_persistence_truth",
+      reviewRecordId: null,
       dossierRuntimeTruth: "persistent_runtime_available",
       participationRuntimeTruth: "persistent_runtime_available",
     });
@@ -257,6 +259,85 @@ describe("create candidate preview contract", () => {
     expect(model.sections.find((section) => section.kind === "poll")?.items.length).toBeGreaterThan(0);
   });
 
+  it("reflects an existing persisted dossier review record without inventing a target runtime record", () => {
+    const model = buildCreateCandidatePreviewReadModel({
+      followup: buildFollowupFixture(),
+      createAnalyze: {
+        schemaVersion: "create_analyze.v1",
+        orchestrator: "create_orchestration",
+        runId: "run-123",
+        inputRef: "run-123",
+        intent: "contribute",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
+        inputType: "free_text",
+        intakeClassification: "free_text",
+        languages: ["de"],
+        normalizedInputSummary: "Mehr sichere Schulwege",
+        claims: [{ id: "claim-1", text: "Die Stadt sollte sichere Schulwege priorisieren." }],
+        questions: [{ id: "question-1", text: "Welche Kreuzung zuerst?" }],
+        missingPerspectives: [{ id: "counter-1", text: "Auch Lieferverkehr und Gewerbezugang müssen berücksichtigt werden." }],
+        participationCandidates: [{ id: "poll-1", text: "Welche Maßnahme soll zuerst kommen?" }],
+        nonCheckableOpinions: [],
+        evidenceNeeds: [],
+        uncertainties: [],
+        matches: [],
+        matchStrength: "none",
+        reasons: ["Kein Match"],
+        suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Fallback" }],
+        matchSourceState: "ok",
+        matchSourceErrors: [],
+        matchingLanguageMode: "same_language_only",
+        phases: {
+          intake: { status: "done", summary: "ok" },
+          quality: { status: "review_required", summary: "ok" },
+          graph_matching: { status: "done", summary: "ok" },
+          cta_suggestions: { status: "done", summary: "ok" },
+        },
+        confidence: 0.8,
+        uncertaintyFlags: [],
+        requiresHumanReview: true,
+        reviewRecommended: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        provenanceRefs: ["run-123"],
+        createdAt: "2026-07-03T14:00:00.000Z",
+      },
+      draftId: "65a111111111111111111122",
+      sourceUrls: ["https://example.org/schulwege"],
+      materialItems: [],
+      persistedReviewRecord: {
+        reviewRecordId: "persisted-create-handoff-1",
+        selectedAction: "create_dossier",
+        sourceText: "Sichere Schulwege und klare Prioritäten im Kiez.",
+      },
+    });
+
+    const dossierItem = model.claimToDossierPipeline.items.find((item) => item.candidateType === "claim");
+    const pollItem = model.claimToDossierPipeline.items.find((item) => item.candidateType === "poll");
+
+    expect(model.claimToDossierPipeline).toMatchObject({
+      handoffId: "persisted-create-handoff-1",
+      reviewRecordId: "persisted-create-handoff-1",
+      reviewRecordTruth: "persisted_review_record",
+      carriesPersistentWrite: false,
+    });
+    expect(dossierItem).toMatchObject({
+      targetCarrier: "dossier_runtime_record",
+      targetState: "persisted_review_record",
+      targetRecordId: null,
+      persistenceState: "runtime_path_available",
+    });
+    expect(dossierItem?.missingRuntimeTruth).toContain("dossier_runtime_record_not_created_yet");
+    expect(dossierItem?.missingRuntimeTruth).not.toContain("candidate_handoff_not_persisted");
+    expect(pollItem).toMatchObject({
+      targetCarrier: "participation_space_runtime_record",
+      targetState: "planned_handoff",
+      persistenceState: "missing_persistence_truth",
+    });
+  });
+
   it("renders the preview panel as a review-first, preview-only surface", () => {
     const html = renderToStaticMarkup(
       React.createElement(CreateCandidatePreviewPanel, {
@@ -281,6 +362,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("missing_persistence_truth");
     expect(html).toContain("create_handoff_review_queue");
     expect(html).toContain("Claim-to-Dossier-Pipeline vorbereiten");
+    expect(html).toContain("Review-Record");
     expect(html).toContain("Feed-, Quellen- und Materialhinweise vorbereiten");
     expect(html).toContain("no_auto_deepsearch");
     expect(html).toContain("Dossier-Draft-Vorschau");
