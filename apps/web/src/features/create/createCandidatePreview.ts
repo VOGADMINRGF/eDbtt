@@ -4,6 +4,7 @@ import {
   buildCreateHandoffDraft,
   type CreateHandoffAction,
   type CreateHandoffDraft,
+  type CreateHandoffTopicSeed,
 } from "@/features/create/createHandoff";
 import {
   buildDossierRuntimeDraftFromHandoff,
@@ -15,7 +16,10 @@ import {
 } from "@/features/create/createHandoffPersistenceContract";
 import { classifyCreateHandoffDraft } from "@/features/create/inputClassification";
 import type { CreateIntakeContext } from "@/features/create/intakeContext";
-import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import type {
+  CreateGraphMatchRecord,
+  CreateIntelligentFollowupResult,
+} from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 
 export type CreateCandidateKind =
@@ -250,6 +254,58 @@ export type CreateDossierRuntimeHandoffReadModel = {
   missingRuntimeTruth: string[];
 };
 
+export type CreateDossierGraphTargetState =
+  | "graph_candidate"
+  | "graph_review_draft"
+  | "planned_handoff"
+  | "missing_graph_runtime_truth";
+
+export type CreateDossierAnlassraumTargetState =
+  | "anlassraum_candidate"
+  | "planned_handoff"
+  | "missing_anlassraum_runtime_truth";
+
+export type CreateDossierParticipationTargetState =
+  | "participation_candidate"
+  | "planned_handoff";
+
+export type CreateDossierBranchWorkspaceTargetState =
+  | "branch_workspace_candidate"
+  | "planned_handoff";
+
+export type CreateDossierGraphMatchSnapshot = Pick<
+  CreateGraphMatchRecord,
+  "id" | "kind" | "label" | "relation"
+>;
+
+export type CreateDossierGraphAnlassraumHandoffReadModel = {
+  graphHandoffId: string;
+  sourceDossierRuntimeId: string | null;
+  sourceReviewItemId: string | null;
+  sourceDraftId: string | null;
+  sourceCandidateIds: string[];
+  targetGraphId: string | null;
+  targetBranchWorkspaceId: string | null;
+  targetAnlassraumId: string | null;
+  targetParticipationSpaceId: string | null;
+  graphTargetState: CreateDossierGraphTargetState;
+  branchWorkspaceTargetState: CreateDossierBranchWorkspaceTargetState;
+  anlassraumTargetState: CreateDossierAnlassraumTargetState;
+  participationTargetState: CreateDossierParticipationTargetState;
+  reviewState: CreateCandidateReviewState;
+  publishState: "not_published" | "no_auto_publish";
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  feedEnrichmentRefs: string[];
+  topicSeed: Pick<
+    CreateHandoffTopicSeed,
+    "topicKey" | "topicLabel" | "jurisdiction" | "themenradarSourceType"
+  > | null;
+  graphMatches: CreateDossierGraphMatchSnapshot[];
+  auditRef: string | null;
+  missingRuntimeTruth: string[];
+};
+
 export type CreateClaimToDossierPipelineReadModel = {
   title: string;
   summary: string;
@@ -267,6 +323,7 @@ export type CreateClaimToDossierPipelineReadModel = {
     visibility: string;
   } | null;
   dossierRuntimeHandoff: CreateDossierRuntimeHandoffReadModel | null;
+  dossierGraphAnlassraumHandoff: CreateDossierGraphAnlassraumHandoffReadModel | null;
   items: CreateClaimToDossierPipelineItem[];
 };
 
@@ -810,16 +867,91 @@ function buildClaimToDossierPipeline(params: {
           ]),
         }
       : null;
+  const graphMatches: CreateDossierGraphMatchSnapshot[] = (
+    params.handoff?.graphMatches.matches ?? []
+  ).map((match) => ({
+    id: match.id,
+    kind: match.kind,
+    label: match.label,
+    relation: match.relation,
+  }));
+  const topicGraphTarget =
+    graphMatches.find((match) => match.kind === "topic" && hasText(match.id)) ?? null;
+  const anlassraumTarget =
+    graphMatches.find((match) => match.kind === "anlassraum" && hasText(match.id)) ?? null;
+  const pollCandidateIds = items
+    .filter((item) => item.candidateType === "poll")
+    .map((item) => item.sourceCandidateId);
+  const dossierGraphAnlassraumHandoff: CreateDossierGraphAnlassraumHandoffReadModel | null =
+    dossierRuntimeHandoff
+      ? {
+          graphHandoffId: `dossier-graph-handoff:${dossierRuntimeHandoff.dossierHandoffId}`,
+          sourceDossierRuntimeId: dossierRuntimeHandoff.dossierRuntimeId,
+          sourceReviewItemId: dossierRuntimeHandoff.sourceReviewItemId,
+          sourceDraftId: dossierRuntimeHandoff.sourceDraftId,
+          sourceCandidateIds: dossierRuntimeHandoff.sourceCandidateIds,
+          targetGraphId: topicGraphTarget?.id ?? null,
+          targetBranchWorkspaceId: null,
+          targetAnlassraumId: anlassraumTarget?.id ?? null,
+          targetParticipationSpaceId: null,
+          graphTargetState: topicGraphTarget?.id
+            ? "graph_candidate"
+            : dossierRuntimeHandoff.dossierRuntimeId
+              ? "planned_handoff"
+              : "missing_graph_runtime_truth",
+          branchWorkspaceTargetState: dossierRuntimeHandoff.sourceDraftId
+            ? "branch_workspace_candidate"
+            : "planned_handoff",
+          anlassraumTargetState:
+            anlassraumTarget?.id
+              ? "anlassraum_candidate"
+              : dossierRuntimeHandoff.dossierRuntimeId
+                ? "planned_handoff"
+                : "missing_anlassraum_runtime_truth",
+          participationTargetState:
+            pollCandidateIds.length > 0 ? "participation_candidate" : "planned_handoff",
+          reviewState: dossierRuntimeHandoff.reviewState,
+          publishState: dossierRuntimeHandoff.publishState,
+          sourceProvenance: dossierRuntimeHandoff.sourceProvenance,
+          evidenceRefs: dossierRuntimeHandoff.evidenceRefs,
+          feedEnrichmentRefs: uniqueStrings(
+            dossierRuntimeHandoff.feedEnrichmentPayloads.map(
+              (payload) => payload.sourceRef ?? payload.suggestionId,
+            ),
+          ),
+          topicSeed: params.handoff
+            ? {
+                topicKey: params.handoff.topicSeed.topicKey,
+                topicLabel: params.handoff.topicSeed.topicLabel,
+                jurisdiction: params.handoff.topicSeed.jurisdiction,
+                themenradarSourceType: params.handoff.topicSeed.themenradarSourceType,
+              }
+            : null,
+          graphMatches,
+          auditRef: dossierRuntimeHandoff.auditRef,
+          missingRuntimeTruth: uniqueStrings([
+            ...dossierRuntimeHandoff.missingRuntimeTruth,
+            topicGraphTarget?.id ? "topic_graph_edge_mutation_not_created_yet" : "missing_graph_runtime_truth",
+            topicGraphTarget?.id ? null : "topic_graph_target_missing",
+            "branch_workspace_runtime_not_persisted",
+            anlassraumTarget?.id ? null : "missing_anlassraum_runtime_truth",
+            anlassraumTarget?.id ? null : "dossier_to_anlassraum_runtime_handoff_not_created_yet",
+            pollCandidateIds.length > 0
+              ? "participation_runtime_handoff_not_persisted"
+              : null,
+          ]),
+        }
+      : null;
 
   return {
     title: "Claim-to-Dossier-Pipeline vorbereiten",
     summary: hasPreparedPipeline
       ? hasPersistedRuntimeRecord
-        ? "Claims, Gegenpositionen und Fragen zeigen jetzt einen echten persistierten Dossier-Runtime-Draft aus dem bestehenden review-first Pfad. Die Oberflaeche bleibt trotzdem nur lesend: kein neuer Write-Pfad, kein Auto-Publish und kein Graph-Write werden ausgeloest."
+        ? "Claims, Gegenpositionen und Fragen zeigen jetzt einen echten persistierten Dossier-Runtime-Draft aus dem bestehenden review-first Pfad. Darauf liegt zusätzlich ein typed Graph-/Anlassraum-/Participation-Handoff, aber weiterhin ohne Auto-Publish, ohne öffentlichen Graph-Write und ohne neue Downstream-Runtime-Erstellung."
         : persistedDossierReviewRecord
-          ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Daraus wird serverseitig nur ein Dossier-Review-Draft abgeleitet; ein eigenes `dossier_runtime_record` entsteht weiterhin erst nach separater Review-Freigabe."
-        : dossierDraftPreview
-          ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Die Persistenz dieses Candidate-Handoffs fehlt weiterhin; Umfragen bleiben nur als geplanter Beteiligungsraum-Folgepfad sichtbar."
+          ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Daraus wird serverseitig nur ein Dossier-Review-Draft abgeleitet; Graph-, Anlassraum- und Participation-Folgepfade bleiben typed Handoffs ohne eigenen Runtime-Write."
+          : dossierDraftPreview
+          ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Graph-, Anlassraum- und Participation-Ziele bleiben dabei candidate/planned, solange keine echte Downstream-Runtime oder Graph-Mutation geschrieben wurde."
           : "Die Zielstruktur fuer Dossier- und Beteiligungsraum-Folgepfade ist sichtbar, aber ohne belastbaren Create-Handoff-Kontext bleibt sie bei fehlender Persistenz- und Runtime-Truth."
       : "Ohne belastbare Kandidaten bleibt auch die Claim-to-Dossier-Pipeline bewusst leer.",
     hasPreparedPipeline,
@@ -840,6 +972,7 @@ function buildClaimToDossierPipeline(params: {
         }
       : null,
     dossierRuntimeHandoff,
+    dossierGraphAnlassraumHandoff,
     items,
   };
 }

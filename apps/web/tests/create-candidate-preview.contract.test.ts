@@ -228,6 +228,16 @@ describe("create candidate preview contract", () => {
       publishState: "no_auto_publish",
       graphTargetState: "planned_not_active",
     });
+    expect(model.claimToDossierPipeline.dossierGraphAnlassraumHandoff).toMatchObject({
+      sourceDossierRuntimeId: null,
+      targetGraphId: null,
+      targetAnlassraumId: null,
+      targetParticipationSpaceId: null,
+      graphTargetState: "missing_graph_runtime_truth",
+      branchWorkspaceTargetState: "branch_workspace_candidate",
+      anlassraumTargetState: "missing_anlassraum_runtime_truth",
+      participationTargetState: "participation_candidate",
+    });
     expect(model.claimToDossierPipeline.items.find((item) => item.candidateType === "claim")).toMatchObject({
       targetCarrier: "dossier_runtime_record",
       targetState: "dossier_handoff_prepared",
@@ -355,6 +365,16 @@ describe("create candidate preview contract", () => {
       dossierRuntimeState: "dossier_review_draft",
       persistenceState: "persisted_dossier_runtime_record",
     });
+    expect(model.claimToDossierPipeline.dossierGraphAnlassraumHandoff).toMatchObject({
+      sourceDossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
+      targetGraphId: null,
+      targetAnlassraumId: null,
+      targetParticipationSpaceId: null,
+      graphTargetState: "planned_handoff",
+      branchWorkspaceTargetState: "branch_workspace_candidate",
+      anlassraumTargetState: "planned_handoff",
+      participationTargetState: "participation_candidate",
+    });
     expect(dossierItem?.missingRuntimeTruth).toEqual([]);
     expect(dossierItem?.missingRuntimeTruth).not.toContain("candidate_handoff_not_persisted");
     expect(pollItem).toMatchObject({
@@ -389,6 +409,8 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("create_handoff_review_queue");
     expect(html).toContain("Claim-to-Dossier-Pipeline vorbereiten");
     expect(html).toContain("Review-Record");
+    expect(html).toContain("Graph- / Anlassraum-Handoff");
+    expect(html).toContain("target_graph_id");
     expect(html).toContain("Feed-, Quellen- und Materialhinweise vorbereiten");
     expect(html).toContain("no_auto_deepsearch");
     expect(html).toContain("Dossier-Draft-Vorschau");

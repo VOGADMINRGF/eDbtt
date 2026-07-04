@@ -5,7 +5,7 @@ import {
   buildPersistedCreateHandoffSummary,
   persistedCreateHandoffStatementId,
   type PersistedCreateHandoffRecord,
-} from "@/features/create/persistedHandoffReviewQueue";
+} from "@/features/create/createHandoffPersistenceContract";
 
 export const PARTICIPATION_SPACE_RUNTIME_STATUSES = [
   "draft",

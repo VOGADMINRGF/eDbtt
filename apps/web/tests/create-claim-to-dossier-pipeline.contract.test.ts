@@ -203,6 +203,15 @@ describe("create claim-to-dossier pipeline contract", () => {
       dossierTargetState: "dossier_handoff_prepared",
       persistenceState: "missing_dossier_runtime_truth",
     });
+    expect(model.claimToDossierPipeline.dossierGraphAnlassraumHandoff).toMatchObject({
+      targetGraphId: null,
+      targetAnlassraumId: null,
+      targetParticipationSpaceId: null,
+      graphTargetState: "missing_graph_runtime_truth",
+      anlassraumTargetState: "missing_anlassraum_runtime_truth",
+      participationTargetState: "participation_candidate",
+      branchWorkspaceTargetState: "branch_workspace_candidate",
+    });
     expect(model.claimToDossierPipeline.dossierDraftPreview?.summary).toContain("Aussagen");
   });
 
@@ -299,6 +308,16 @@ describe("create claim-to-dossier pipeline contract", () => {
       dossierTargetState: "dossier_review_draft",
       persistenceState: "persisted_dossier_runtime_record",
       graphTargetState: "planned_not_active",
+    });
+    expect(model.claimToDossierPipeline.dossierGraphAnlassraumHandoff).toMatchObject({
+      sourceDossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
+      targetGraphId: null,
+      targetAnlassraumId: null,
+      targetParticipationSpaceId: null,
+      graphTargetState: "planned_handoff",
+      anlassraumTargetState: "planned_handoff",
+      participationTargetState: "participation_candidate",
+      branchWorkspaceTargetState: "branch_workspace_candidate",
     });
     expect(dossierItems.every((item) => item.missingRuntimeTruth.length === 0)).toBe(true);
   });

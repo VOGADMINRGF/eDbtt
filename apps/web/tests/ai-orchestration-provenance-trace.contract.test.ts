@@ -255,8 +255,8 @@ describe("AI orchestration provenance trace contract", () => {
       graphTarget: "review_queue_handoff",
       missingRuntimeTruth: false,
       userVisibleLabel:
-        "Claims, Gegenpositionen und Fragen sind als Dossier-Handoff vorbereitet; Umfragen bleiben geplant",
-      adminVisibleLabel: "Claims / Questions / Dossier review handoff",
+        "Claims, Gegenpositionen und Fragen sind als Dossier-/Graph-/Anlassraum-Handoff vorbereitet; Umfragen bleiben geplant",
+      adminVisibleLabel: "Claims / Questions / Dossier / Graph / Anlassraum review handoff",
     });
     expect(steps.find((step) => step.stepId === "feed_enrichment_review_suggestions")).toMatchObject({
       outputType: "candidate_preview",

@@ -232,7 +232,7 @@ export function buildCreateFrontendAiTransparencyReadModel(
         detail:
           candidatePreviewStatus === "review_required"
             ? input.hasClaimToDossierPipeline
-              ? "Die review-first Kandidatenvorschau ist sichtbar. Claims, Gegenpositionen und Fragen sind als typed Dossier-Handoff für den bestehenden `dossier_runtime_record`-Pfad vorbereitet; Umfragen bleiben ein geplanter Beteiligungsraum-Folgepfad. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
+              ? "Die review-first Kandidatenvorschau ist sichtbar. Claims, Gegenpositionen und Fragen sind als typed Dossier-Handoff für den bestehenden `dossier_runtime_record`-Pfad vorbereitet; darauf liegt jetzt zusätzlich ein typed Graph-/Anlassraum-/Participation-Handoff. Es gibt dabei keinen Auto-Publish, keinen öffentlichen Graph-Write und keine automatische Downstream-Runtime-Erstellung."
               : input.hasCandidateReviewHandoff
                 ? "Die review-first Kandidatenvorschau ist sichtbar und als typed Review-Handoff für den bestehenden Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
                 : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
