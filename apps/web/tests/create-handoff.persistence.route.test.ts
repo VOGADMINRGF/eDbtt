@@ -9,6 +9,11 @@ import {
   setPersistedCreateHandoffRepoForTests,
 } from "@/features/create/persistedHandoffReviewQueue";
 import {
+  createInMemoryDossierRuntimeRepository,
+  getDossierRuntimeRecord,
+  setDossierRuntimeRepositoryForTests,
+} from "@/features/create/dossierRuntimeServer";
+import {
   createInMemoryDossierStudioWorkspaceRepo,
   setDossierStudioWorkspaceRepoForTests,
 } from "@features/dossier/server/studioPersistence";
@@ -242,6 +247,7 @@ describe("/api/create/handoffs", () => {
       sessionValid: true,
     });
     setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
+    setDossierRuntimeRepositoryForTests(createInMemoryDossierRuntimeRepository());
     setRegionOrganizationRuntimeRepoForTests(
       createInMemoryRegionOrganizationRuntimeRepo({
         organizations: [
@@ -326,6 +332,17 @@ describe("/api/create/handoffs", () => {
       organizationId: "org-reinickendorf-1",
       dossierId: "dossier-1",
     });
+    expect(body.dossierRuntime).toMatchObject({
+      sourceReviewItemId: "create-handoff-route-1",
+      dossierRuntimeId: "dossier-runtime:create-handoff-route-1",
+      runtimeStatus: "queued_for_review",
+      dossierRuntimeState: "dossier_review_draft",
+      dossierTargetState: "dossier_review_draft",
+      persistenceState: "persisted_dossier_runtime_record",
+      reviewState: "review_required",
+      publishState: "not_published",
+      graphTargetState: "planned_not_active",
+    });
     expect(body.requestScope).toMatchObject({
       organizationId: "org-reinickendorf-1",
       membershipStatus: "verified",
@@ -344,6 +361,14 @@ describe("/api/create/handoffs", () => {
       noPublicOfficial: true,
       selectedAction: "create_dossier",
       intakeClassification: "claim",
+    });
+    await expect(getDossierRuntimeRecord("create-handoff-route-1")).resolves.toMatchObject({
+      id: "dossier-runtime:create-handoff-route-1",
+      sourceHandoffId: "create-handoff-route-1",
+      sourceReviewItemId: "create_handoff:persisted:create-handoff-route-1",
+      status: "queued_for_review",
+      visibility: "internal_review",
+      createdDossierId: null,
     });
   });
 
@@ -370,22 +395,51 @@ describe("/api/create/handoffs", () => {
     });
     expect(body.dossierRuntime).toMatchObject({
       sourceReviewItemId: "create-handoff-route-1",
-      dossierRuntimeId: null,
+      dossierRuntimeId: "dossier-runtime:create-handoff-route-1",
       runtimeStatus: "queued_for_review",
       dossierRuntimeState: "dossier_review_draft",
       dossierTargetState: "dossier_review_draft",
-      persistenceState: "persisted_review_record",
+      persistenceState: "persisted_dossier_runtime_record",
       reviewState: "review_required",
-      publishState: "no_auto_publish",
+      publishState: "not_published",
       graphTargetState: "planned_not_active",
     });
-    expect(body.dossierRuntime.missingRuntimeTruth).toContain(
-      "missing_dossier_runtime_truth",
-    );
+    expect(body.dossierRuntime.missingRuntimeTruth).toEqual([]);
     expect(body.context).toMatchObject({
       regionId: "bezirk-berlin-reinickendorf",
       organizationId: "org-reinickendorf-1",
       dossierId: "dossier-1",
+    });
+  });
+
+  it("backfills a persisted dossier runtime draft for an older create_dossier handoff on resume", async () => {
+    await persistRoute(
+      new NextRequest("http://localhost/api/create/handoffs", {
+        method: "POST",
+        body: JSON.stringify({ draft: draftPayload, dossierId: "dossier-1" }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    setDossierRuntimeRepositoryForTests(createInMemoryDossierRuntimeRepository());
+
+    const response = await GET(
+      new Request("http://localhost/api/create/handoffs/create-handoff-route-1"),
+      {
+        params: Promise.resolve({ handoffId: "create-handoff-route-1" }),
+      },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.dossierRuntime).toMatchObject({
+      dossierRuntimeId: "dossier-runtime:create-handoff-route-1",
+      dossierRuntimeState: "dossier_review_draft",
+      persistenceState: "persisted_dossier_runtime_record",
+    });
+    await expect(getDossierRuntimeRecord("create-handoff-route-1")).resolves.toMatchObject({
+      id: "dossier-runtime:create-handoff-route-1",
+      status: "queued_for_review",
     });
   });
 

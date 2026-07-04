@@ -48,6 +48,13 @@
   `persisted_dossier_runtime_record` oder ehrlichem
   `missing_dossier_runtime_truth`, ohne neue Persistenz oder einen neuen
   Write-Pfad zu behaupten.
+- Fuer `V3-DOSSIER-RUNTIME-DRAFT-PERSISTENCE-01` schreibt dieselbe
+  server-only Handoff-Kette fuer echte `create_dossier`-Review-Records jetzt
+  einen kleinen persistierten Dossier-Runtime-Draft in die bestehende
+  `dossier_runtime_records`-Persistenz. `/create` sieht dadurch eine echte
+  `dossierRuntimeId` und `dossier_review_draft`, waehrend `review_required`,
+  `not_published`, `planned_not_active`, No-AI-Guardrails und die Trennung zu
+  Publish-/Graph-/Public-Folgeschritten unveraendert bleiben.
 - Fuer `V3-FEED-ENRICHMENT-REVIEW-SUGGESTIONS-01` zeigt dieselbe Surface
   jetzt ausserdem eine typed Feed-Enrichment-Suggestion-Lesart: vorhandene
   Quellen-, Feed-, Material- und Evidenzhinweise werden nur review-first an
@@ -156,6 +163,7 @@ Wichtige Handoff-/Workflow-/Public-Route-Tests:
 
 - `apps/web/tests/create-handoff.persistence.route.test.ts`
 - `apps/web/tests/create-handoff-review-queue-runtime-bridge.test.ts`
+- `apps/web/tests/dossier-runtime-draft-persistence.test.ts`
 - `apps/web/tests/manual-anlassraum-setup.contract.test.ts`
 - `apps/web/tests/manual-anlassraum-server-draft.test.ts`
 - `apps/web/tests/runden-create-handoff-integrity.contract.test.ts`

@@ -319,6 +319,19 @@ describe("create candidate preview contract", () => {
         reviewRecordId: "persisted-create-handoff-1",
         selectedAction: "create_dossier",
         sourceText: "Sichere Schulwege und klare Prioritäten im Kiez.",
+        dossierRuntime: {
+          sourceReviewItemId: "persisted-create-handoff-1",
+          dossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
+          runtimeStatus: "queued_for_review",
+          dossierRuntimeState: "dossier_review_draft",
+          dossierTargetState: "dossier_review_draft",
+          persistenceState: "persisted_dossier_runtime_record",
+          reviewState: "review_required",
+          publishState: "not_published",
+          graphTargetState: "planned_not_active",
+          auditRef: "audit-1",
+          missingRuntimeTruth: [],
+        },
       },
     });
 
@@ -334,15 +347,15 @@ describe("create candidate preview contract", () => {
     expect(dossierItem).toMatchObject({
       targetCarrier: "dossier_runtime_record",
       targetState: "dossier_review_draft",
-      targetRecordId: null,
-      persistenceState: "persisted_review_record",
+      targetRecordId: "dossier-runtime:persisted-create-handoff-1",
+      persistenceState: "persisted_dossier_runtime_record",
     });
     expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
-      dossierRuntimeId: null,
+      dossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
       dossierRuntimeState: "dossier_review_draft",
-      persistenceState: "persisted_review_record",
+      persistenceState: "persisted_dossier_runtime_record",
     });
-    expect(dossierItem?.missingRuntimeTruth).toContain("dossier_runtime_record_not_created_yet");
+    expect(dossierItem?.missingRuntimeTruth).toEqual([]);
     expect(dossierItem?.missingRuntimeTruth).not.toContain("candidate_handoff_not_persisted");
     expect(pollItem).toMatchObject({
       targetCarrier: "participation_space_runtime_record",

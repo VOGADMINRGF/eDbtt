@@ -121,6 +121,7 @@ export type CreateCandidateReviewHandoffReadModel = {
 
 export type CreateClaimToDossierPipelineTargetState =
   | "review_draft"
+  | "dossier_runtime_draft"
   | "dossier_review_draft"
   | "dossier_candidate"
   | "dossier_handoff_prepared"
@@ -190,10 +191,7 @@ export type CreatePersistedDossierRuntimeSnapshot = {
   runtimeStatus: DossierRuntimeStatus;
   dossierRuntimeState: CreateDossierRuntimeHandoffState;
   dossierTargetState: CreateDossierRuntimeHandoffState;
-  persistenceState: Exclude<
-    CreateDossierRuntimeHandoffPersistenceState,
-    "missing_dossier_runtime_truth"
-  >;
+  persistenceState: CreateDossierRuntimeHandoffPersistenceState;
   reviewState: CreateCandidateReviewState;
   publishState: "not_published" | "no_auto_publish";
   graphTargetState: CreateDossierRuntimeHandoffGraphTargetState;
@@ -613,8 +611,7 @@ function buildClaimToDossierPipeline(params: {
       ? params.persistedReviewRecord
       : null;
   const dossierRuntimeSnapshot = persistedDossierReviewRecord?.dossierRuntime ?? null;
-  const hasPersistedRuntimeRecord =
-    dossierRuntimeSnapshot?.persistenceState === "persisted_dossier_runtime_record";
+  const hasPersistedRuntimeRecord = Boolean(dossierRuntimeSnapshot?.dossierRuntimeId);
   const items = params.reviewHandoff.items.map((item) => {
     const dossierReviewPersisted =
       item.candidateType !== "poll" && Boolean(persistedDossierReviewRecord);
@@ -676,12 +673,12 @@ function buildClaimToDossierPipeline(params: {
       targetRecordType: "dossier_runtime_draft" as const,
       targetRecordId: dossierRuntimeSnapshot?.dossierRuntimeId ?? null,
       targetState: hasPersistedRuntimeRecord
-        ? ("persisted_dossier_runtime_record" as const)
+        ? (dossierRuntimeSnapshot?.dossierRuntimeState ?? "dossier_runtime_draft")
         : dossierReviewPersisted
           ? ("dossier_review_draft" as const)
           : ("dossier_handoff_prepared" as const),
       dossierTargetState: hasPersistedRuntimeRecord
-        ? ("persisted_dossier_runtime_record" as const)
+        ? (dossierRuntimeSnapshot?.dossierTargetState ?? "dossier_runtime_draft")
         : dossierReviewPersisted
           ? ("dossier_review_draft" as const)
           : ("dossier_handoff_prepared" as const),
@@ -818,7 +815,7 @@ function buildClaimToDossierPipeline(params: {
     title: "Claim-to-Dossier-Pipeline vorbereiten",
     summary: hasPreparedPipeline
       ? hasPersistedRuntimeRecord
-        ? "Claims, Gegenpositionen und Fragen zeigen jetzt einen echten serverseitigen Dossier-Runtime-Record aus dem bestehenden review-first Pfad. Die Oberflaeche bleibt trotzdem nur lesend: kein neuer Write-Pfad, kein Auto-Publish und kein Graph-Write werden ausgeloest."
+        ? "Claims, Gegenpositionen und Fragen zeigen jetzt einen echten persistierten Dossier-Runtime-Draft aus dem bestehenden review-first Pfad. Die Oberflaeche bleibt trotzdem nur lesend: kein neuer Write-Pfad, kein Auto-Publish und kein Graph-Write werden ausgeloest."
         : persistedDossierReviewRecord
           ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Daraus wird serverseitig nur ein Dossier-Review-Draft abgeleitet; ein eigenes `dossier_runtime_record` entsteht weiterhin erst nach separater Review-Freigabe."
         : dossierDraftPreview

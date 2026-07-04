@@ -48,7 +48,10 @@ export type DossierRuntimeHandoffSummary = {
     | "dossier_runtime_draft"
     | "dossier_review_draft"
     | "persisted_dossier_runtime_record";
-  persistenceState: "persisted_review_record" | "persisted_dossier_runtime_record";
+  persistenceState:
+    | "persisted_review_record"
+    | "persisted_dossier_runtime_record"
+    | "missing_dossier_runtime_truth";
   reviewState: "review_required";
   publishState: "not_published" | "no_auto_publish";
   graphTargetState: "planned_not_active";
@@ -429,6 +432,95 @@ async function buildRuntimeRecord(
   return record;
 }
 
+function mapDossierRuntimeDraftState(
+  record: DossierRuntimeRecord,
+): DossierRuntimeHandoffSummary["dossierRuntimeState"] {
+  if (record.status === "created") return "persisted_dossier_runtime_record";
+  if (record.status === "queued_for_review" || record.status === "draft") {
+    return "dossier_review_draft";
+  }
+  return "dossier_runtime_draft";
+}
+
+function buildDraftDerivedAudit(record: DossierRuntimeRecord) {
+  return {
+    at: record.updatedAt,
+    action: "draft_derived" as const,
+    actorUserId: record.auditContext.actorUserId ?? null,
+    note:
+      "Persistierter Dossier-Runtime-Draft aus bestehendem Create-Handoff abgeleitet. Weiterhin review-first, nicht veröffentlicht und ohne Graph-Write.",
+    blockers: record.blockers,
+    status: record.status,
+  };
+}
+
+function buildDossierRuntimeHandoffSummary(params: {
+  handoff: PersistedCreateHandoffRecord;
+  record: DossierRuntimeRecord | null;
+}) {
+  if (!params.record) {
+    return {
+      sourceReviewItemId: params.handoff.id,
+      dossierRuntimeId: null,
+      runtimeStatus: "queued_for_review",
+      dossierRuntimeState: "dossier_review_draft",
+      dossierTargetState: "dossier_review_draft",
+      persistenceState: "missing_dossier_runtime_truth",
+      reviewState: "review_required",
+      publishState: "no_auto_publish",
+      graphTargetState: "planned_not_active",
+      auditRef: null,
+      missingRuntimeTruth: [
+        "missing_dossier_runtime_truth",
+        "dossier_runtime_record_not_created_yet",
+      ],
+    } satisfies DossierRuntimeHandoffSummary;
+  }
+
+  const draftState = mapDossierRuntimeDraftState(params.record);
+  return {
+    sourceReviewItemId: params.handoff.id,
+    dossierRuntimeId: params.record.id,
+    runtimeStatus: params.record.status,
+    dossierRuntimeState: draftState,
+    dossierTargetState: draftState,
+    persistenceState: "persisted_dossier_runtime_record",
+    reviewState: "review_required",
+    publishState: "not_published",
+    graphTargetState: "planned_not_active",
+    auditRef: params.record.auditTrail[0]?.id ?? null,
+    missingRuntimeTruth: [],
+  } satisfies DossierRuntimeHandoffSummary;
+}
+
+async function ensurePersistedDossierRuntimeDraftForRecord(
+  handoff: PersistedCreateHandoffRecord,
+) {
+  if (handoff.selectedAction !== "create_dossier") return null;
+
+  const existingAudits = await getRepo().listAudits({
+    sourceHandoffId: handoff.id,
+    limit: 1,
+  });
+  const record = await buildRuntimeRecord(handoff);
+  await saveRecord(record);
+
+  if (existingAudits.length === 0) {
+    await recordAudit(handoff.id, buildDraftDerivedAudit(record));
+    return buildRuntimeRecord(handoff);
+  }
+
+  return record;
+}
+
+export async function ensurePersistedDossierRuntimeDraft(
+  sourceHandoffId: string,
+) {
+  const handoff = await getPersistedCreateHandoffRecord(sourceHandoffId);
+  if (!handoff || handoff.selectedAction !== "create_dossier") return null;
+  return ensurePersistedDossierRuntimeDraftForRecord(handoff);
+}
+
 export async function getDossierRuntimeHandoffSummary(
   sourceHandoffId: string,
 ): Promise<DossierRuntimeHandoffSummary | null> {
@@ -436,29 +528,10 @@ export async function getDossierRuntimeHandoffSummary(
   if (!handoff || handoff.selectedAction !== "create_dossier") return null;
 
   const existing = await getRepo().get(handoff.id);
-  const record = await buildRuntimeRecord(handoff);
-
-  return {
-    sourceReviewItemId: handoff.id,
-    dossierRuntimeId: existing?.id ?? null,
-    runtimeStatus: record.status,
-    dossierRuntimeState: existing
-      ? "persisted_dossier_runtime_record"
-      : "dossier_review_draft",
-    dossierTargetState: existing
-      ? "persisted_dossier_runtime_record"
-      : "dossier_review_draft",
-    persistenceState: existing
-      ? "persisted_dossier_runtime_record"
-      : "persisted_review_record",
-    reviewState: "review_required",
-    publishState: existing ? "not_published" : "no_auto_publish",
-    graphTargetState: "planned_not_active",
-    auditRef: record.auditTrail[0]?.id ?? null,
-    missingRuntimeTruth: existing
-      ? []
-      : ["missing_dossier_runtime_truth", "dossier_runtime_record_not_created_yet"],
-  };
+  return buildDossierRuntimeHandoffSummary({
+    handoff,
+    record: existing ? await buildRuntimeRecord(handoff) : null,
+  });
 }
 
 async function saveRecord(record: DossierRuntimeRecord) {
