@@ -162,6 +162,7 @@ type CreateTraceInput = {
   materialItems?: NormalizedMaterialItem[] | null;
   candidatePreviewAvailable?: boolean;
   candidateReviewHandoffAvailable?: boolean;
+  claimToDossierPipelineAvailable?: boolean;
 };
 
 function hasText(value: string | null | undefined) {
@@ -557,6 +558,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
     Boolean(params.plannerResult || params.analyzeTrace?.createAnalyze);
   const hasCandidateReviewHandoff =
     params.candidateReviewHandoffAvailable ?? hasCandidatePreview;
+  const hasClaimToDossierPipeline =
+    params.claimToDossierPipelineAvailable ?? false;
   const analyzeEvidenceRefs = buildEvidenceRefs([
     params.analyzeTrace?.createAnalyze?.runId ?? null,
     params.analyzeTrace?.runReceipt?.id ?? null,
@@ -872,12 +875,16 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         ? "publish_blocked"
         : "planned_not_active",
       userVisibleLabel: hasCandidatePreview
-        ? hasCandidateReviewHandoff
+        ? hasClaimToDossierPipeline
+          ? "Claims, Gegenpositionen und Fragen sind als Dossier-Handoff vorbereitet; Umfragen bleiben geplant"
+          : hasCandidateReviewHandoff
           ? "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten und sind als Handoff vorbereitet"
           : "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten"
         : "Claims, Fragen und Umfragen bleiben geplant",
       adminVisibleLabel: hasCandidatePreview
-        ? hasCandidateReviewHandoff
+        ? hasClaimToDossierPipeline
+          ? "Claims / Questions / Dossier review handoff"
+          : hasCandidateReviewHandoff
           ? "Claims / Questions / Polls candidate review handoff"
           : "Claims / Questions / Polls candidate preview"
         : "Claims / Questions / Polls downstream planned",

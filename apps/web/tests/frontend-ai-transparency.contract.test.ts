@@ -74,6 +74,7 @@ describe("frontend AI transparency contract", () => {
       startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
       hasCandidatePreview: true,
       hasCandidateReviewHandoff: true,
+      hasClaimToDossierPipeline: true,
     });
 
     expect(running.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
@@ -89,7 +90,7 @@ describe("frontend AI transparency contract", () => {
       status: "review_required",
     });
     expect(completed.steps.find((step) => step.id === "later_followups")?.detail).toContain(
-      "typed Review-Handoff",
+      "typed Dossier-Handoff",
     );
     expect(completed.traceSteps.find((step) => step.stepId === "create_planner_trace")).toMatchObject({
       userVisibleLabel: "KI bereitet nächste Schritte vor",

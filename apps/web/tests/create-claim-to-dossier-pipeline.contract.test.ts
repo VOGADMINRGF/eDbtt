@@ -1,8 +1,4 @@
-import * as React from "react";
 import { describe, expect, it } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
-
-import CreateCandidatePreviewPanel from "@/features/create/CreateCandidatePreviewPanel";
 import { buildCreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 
 function buildFollowupFixture() {
@@ -124,8 +120,8 @@ function buildFollowupFixture() {
   };
 }
 
-describe("create candidate preview contract", () => {
-  it("builds a preview-only candidate model with honest runtime truth and no persistence claim", () => {
+describe("create claim-to-dossier pipeline contract", () => {
+  it("maps non-poll candidates to the dossier runtime path and leaves polls planned", () => {
     const model = buildCreateCandidatePreviewReadModel({
       followup: buildFollowupFixture(),
       createAnalyze: {
@@ -170,107 +166,37 @@ describe("create candidate preview contract", () => {
         provenanceRefs: ["run-123"],
         createdAt: "2026-07-03T14:00:00.000Z",
       },
-      runReceipt: {
-        id: "receipt-123",
-        createdAt: "2026-07-03T14:00:00.000Z",
-        pipelineVersion: "v1",
-        provider: "openai",
-        model: "gpt-4.1-mini",
-        inputHash: "in",
-        sourcesHash: "sources",
-        outputHash: "out",
-        receiptHash: "receipt",
-        sourceSet: [
-          {
-            canonicalUrl: "https://example.org/schulwege",
-            sourceType: "media",
-            title: "Schulwege im Bezirk",
-          },
-        ],
-        contentPolicy: {
-          maxSnippetChars: 240,
-          storeFullText: false,
-          storeSnippets: false,
-          storeTitles: true,
-        },
-      },
       draftId: "65a111111111111111111122",
       sourceUrls: ["https://example.org/schulwege"],
       materialItems: [],
     });
 
-    expect(model.hasPreview).toBe(true);
-    expect(model.persistence).toBe("preview_only");
-    expect(model.carriesPersistentWrite).toBe(false);
-    expect(model.provider).toBe("openai");
-    expect(model.model).toBe("gpt-4.1-mini");
-    expect(model.reviewHandoff).toMatchObject({
-      hasPreparedHandoff: true,
-      targetCarrier: "create_handoff_review_queue",
-      targetState: "review_draft",
-      persistenceTruth: "missing_persistence_truth",
-      carriesPersistentWrite: false,
-    });
-    expect(model.claimToDossierPipeline).toMatchObject({
-      hasPreparedPipeline: true,
-      carriesPersistentWrite: false,
-      dossierRuntimeTruth: "persistent_runtime_available",
-      participationRuntimeTruth: "persistent_runtime_available",
-    });
-    expect(model.claimToDossierPipeline.dossierDraftPreview).not.toBeNull();
-    expect(model.claimToDossierPipeline.items.find((item) => item.candidateType === "claim")).toMatchObject({
-      targetCarrier: "dossier_runtime_record",
-      targetState: "dossier_handoff_prepared",
-      persistenceState: "missing_persistence_truth",
-    });
-    expect(model.claimToDossierPipeline.items.find((item) => item.candidateType === "poll")).toMatchObject({
-      targetCarrier: "participation_space_runtime_record",
-      targetState: "planned_handoff",
-      persistenceState: "missing_persistence_truth",
-    });
-    expect(model.reviewHandoff.items[0]).toMatchObject({
-      targetCarrier: "create_handoff_review_queue",
-      targetState: "review_draft",
-    });
-    expect(model.sections.find((section) => section.kind === "claim")?.items[0]).toMatchObject({
-      inputOrigin: "server_draft",
-      sourceProvenance: "runtime_source_reference",
-      derivedBy: "planner_plus_analyze",
-      graphTarget: "dossier_candidate",
-      graphTargetState: "candidate_only",
-      publishState: "not_published",
-    });
-    expect(model.sections.find((section) => section.kind === "counter_position")?.items.length).toBeGreaterThan(0);
-    expect(model.sections.find((section) => section.kind === "poll")?.items.length).toBeGreaterThan(0);
-  });
-
-  it("renders the preview panel as a review-first, preview-only surface", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(CreateCandidatePreviewPanel, {
-        model: buildCreateCandidatePreviewReadModel({
-          followup: buildFollowupFixture(),
-          draftId: "65a111111111111111111122",
-          sourceUrls: [],
-          materialItems: [],
-        }),
-      }),
+    const dossierItems = model.claimToDossierPipeline.items.filter(
+      (item) => item.candidateType !== "poll",
+    );
+    const pollItem = model.claimToDossierPipeline.items.find(
+      (item) => item.candidateType === "poll",
     );
 
-    expect(html).toContain("Review-first Kandidaten aus Draft, Planner und Analyze");
-    expect(html).toContain("Nur Vorschau");
-    expect(html).toContain("Claim-Kandidaten");
-    expect(html).toContain("Gegenpositions-Kandidaten");
-    expect(html).toContain("Fragen-Kandidaten");
-    expect(html).toContain("Umfrage-Kandidaten");
-    expect(html).toContain("Keine externe Quelle behauptet");
-    expect(html).toContain("Review erforderlich");
-    expect(html).toContain("Review-Handoff vorbereiten");
-    expect(html).toContain("missing_persistence_truth");
-    expect(html).toContain("create_handoff_review_queue");
-    expect(html).toContain("Claim-to-Dossier-Pipeline vorbereiten");
-    expect(html).toContain("Dossier-Draft-Vorschau");
-    expect(html).toContain("dossier_handoff_prepared");
-    expect(html).toContain("planned_handoff");
-    expect(html).not.toContain("automatisch veröffentlicht");
+    expect(model.claimToDossierPipeline.hasPreparedPipeline).toBe(true);
+    expect(model.claimToDossierPipeline.dossierDraftPreview).not.toBeNull();
+    expect(dossierItems.length).toBeGreaterThan(0);
+    expect(dossierItems.every((item) => item.targetCarrier === "dossier_runtime_record")).toBe(true);
+    expect(dossierItems.every((item) => item.targetState === "dossier_handoff_prepared")).toBe(
+      true,
+    );
+    expect(
+      dossierItems.every((item) => item.persistenceState === "missing_persistence_truth"),
+    ).toBe(true);
+    expect(
+      dossierItems.every((item) => item.missingRuntimeTruth.includes("candidate_handoff_not_persisted")),
+    ).toBe(true);
+    expect(pollItem).toMatchObject({
+      targetCarrier: "participation_space_runtime_record",
+      targetState: "planned_handoff",
+      participationTargetState: "planned_handoff",
+      persistenceState: "missing_persistence_truth",
+    });
+    expect(model.claimToDossierPipeline.dossierDraftPreview?.summary).toContain("Aussagen");
   });
 });
