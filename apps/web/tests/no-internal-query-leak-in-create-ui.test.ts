@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+vi.mock("server-only", () => ({}));
+
 const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
@@ -18,6 +20,34 @@ vi.mock("@features/account/service", () => ({
 vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
 }));
+
+vi.mock("@/server/createContributionDrafts", () => ({
+  getCreateContributionDraftForResume: vi.fn(async () => null),
+}));
+
+vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
+  readManualAnlassraumServerDraftForCurrentUser: vi.fn(async () => null),
+}));
+
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: vi.fn(async () => null),
+  summarizeRequestScopeContext: vi.fn(() => null),
+}));
+
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    }),
+  };
+});
 
 import CreatePage from "@/app/create/page";
 

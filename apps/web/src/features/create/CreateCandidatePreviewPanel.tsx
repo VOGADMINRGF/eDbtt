@@ -290,6 +290,32 @@ export default function CreateCandidatePreviewPanel({
             review-first
           </span>
         </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Review-Record
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.claimToDossierPipeline.reviewRecordTruth}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+              {model.claimToDossierPipeline.reviewRecordId ?? "Kein persistierter Review-Record"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Target Record
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.claimToDossierPipeline.items.some((item) => item.targetRecordId)
+                ? "present"
+                : "missing_persistence_truth"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+              Ein echtes `dossier_runtime_record` entsteht erst nach separater Review-Freigabe.
+            </p>
+          </div>
+        </div>
 
         {model.claimToDossierPipeline.dossierDraftPreview ? (
           <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
