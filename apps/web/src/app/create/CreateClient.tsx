@@ -349,6 +349,34 @@ type PersistedCandidateDossierReviewRecordState = {
   reviewRecordId: string;
   selectedAction: CreateHandoffAction;
   sourceText: string | null;
+  dossierRuntime?: {
+    sourceReviewItemId: string;
+    dossierRuntimeId: string | null;
+    runtimeStatus:
+      | "draft"
+      | "queued_for_review"
+      | "approved_for_creation"
+      | "created"
+      | "rejected"
+      | "blocked"
+      | "archived";
+    dossierRuntimeState:
+      | "dossier_runtime_draft"
+      | "dossier_review_draft"
+      | "persisted_dossier_runtime_record";
+    dossierTargetState:
+      | "dossier_runtime_draft"
+      | "dossier_review_draft"
+      | "persisted_dossier_runtime_record";
+    persistenceState:
+      | "persisted_review_record"
+      | "persisted_dossier_runtime_record";
+    reviewState: "review_required";
+    publishState: "not_published" | "no_auto_publish";
+    graphTargetState: "planned_not_active";
+    auditRef: string | null;
+    missingRuntimeTruth: string[];
+  } | null;
 };
 
 type CreateLinkClarificationState = {
@@ -1004,6 +1032,7 @@ export default function CreateClient({
             reviewRecordId: String(draft.id ?? handoffId),
             selectedAction: "create_dossier",
             sourceText: String(draft.sourceText ?? ""),
+            dossierRuntime: body?.dossierRuntime ?? null,
           });
         } else {
           setPersistedCandidateDossierReviewRecord(null);

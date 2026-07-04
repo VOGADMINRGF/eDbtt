@@ -40,6 +40,14 @@
   Zwischenwahrheit sichtbar als `persisted_review_record`; ein echtes
   `dossier_runtime_record` oder `target_record_id` bleibt trotzdem offen,
   bis die bestehende Dossier-Runtime separat erzeugt wird.
+- Fuer `V3-DOSSIER-RUNTIME-FROM-CANDIDATE-HANDOFF-01` liefert die bestehende
+  serverseitige Handoff-Route jetzt zusaetzlich eine client-safe
+  Dossier-Runtime-Zusammenfassung aus dem vorhandenen
+  `dossierRuntimeServer.ts`-Pfad; `/create` zeigt daraus nur einen lesenden
+  Handoff-Status mit `dossier_review_draft`,
+  `persisted_dossier_runtime_record` oder ehrlichem
+  `missing_dossier_runtime_truth`, ohne neue Persistenz oder einen neuen
+  Write-Pfad zu behaupten.
 - Fuer `V3-FEED-ENRICHMENT-REVIEW-SUGGESTIONS-01` zeigt dieselbe Surface
   jetzt ausserdem eine typed Feed-Enrichment-Suggestion-Lesart: vorhandene
   Quellen-, Feed-, Material- und Evidenzhinweise werden nur review-first an

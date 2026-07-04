@@ -307,15 +307,49 @@ export default function CreateCandidatePreviewPanel({
               Target Record
             </p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-              {model.claimToDossierPipeline.items.some((item) => item.targetRecordId)
-                ? "present"
-                : "missing_persistence_truth"}
+              {model.claimToDossierPipeline.dossierRuntimeHandoff?.persistenceState ??
+                "missing_dossier_runtime_truth"}
             </p>
             <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-              Ein echtes `dossier_runtime_record` entsteht erst nach separater Review-Freigabe.
+              {model.claimToDossierPipeline.dossierRuntimeHandoff?.dossierRuntimeId ??
+                "Ein echtes `dossier_runtime_record` entsteht erst nach separater Review-Freigabe."}
             </p>
           </div>
         </div>
+
+        {model.claimToDossierPipeline.dossierRuntimeHandoff ? (
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Dossier-Runtime-Handoff
+            </p>
+            <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+              <p>
+                Zustand: {model.claimToDossierPipeline.dossierRuntimeHandoff.dossierRuntimeState}
+              </p>
+              <p>
+                Runtime-Status: {model.claimToDossierPipeline.dossierRuntimeHandoff.runtimeStatus ?? "missing_runtime_truth"}
+              </p>
+              <p>
+                Publish: {model.claimToDossierPipeline.dossierRuntimeHandoff.publishState}
+              </p>
+              <p>
+                Graph: {model.claimToDossierPipeline.dossierRuntimeHandoff.graphTargetState}
+              </p>
+              <p>
+                Kandidaten: {model.claimToDossierPipeline.dossierRuntimeHandoff.sourceCandidateIds.length}
+              </p>
+              <p>
+                Feed-Hinweise: {model.claimToDossierPipeline.dossierRuntimeHandoff.feedEnrichmentPayloads.length}
+              </p>
+            </div>
+            {model.claimToDossierPipeline.dossierRuntimeHandoff.missingRuntimeTruth.length > 0 ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                missing_runtime_truth:{" "}
+                {model.claimToDossierPipeline.dossierRuntimeHandoff.missingRuntimeTruth.join(", ")}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {model.claimToDossierPipeline.dossierDraftPreview ? (
           <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">

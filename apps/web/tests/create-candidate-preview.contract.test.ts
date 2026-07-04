@@ -220,6 +220,14 @@ describe("create candidate preview contract", () => {
       participationRuntimeTruth: "persistent_runtime_available",
     });
     expect(model.claimToDossierPipeline.dossierDraftPreview).not.toBeNull();
+    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
+      dossierRuntimeId: null,
+      dossierRuntimeState: "dossier_handoff_prepared",
+      dossierTargetState: "dossier_handoff_prepared",
+      persistenceState: "missing_dossier_runtime_truth",
+      publishState: "no_auto_publish",
+      graphTargetState: "planned_not_active",
+    });
     expect(model.claimToDossierPipeline.items.find((item) => item.candidateType === "claim")).toMatchObject({
       targetCarrier: "dossier_runtime_record",
       targetState: "dossier_handoff_prepared",
@@ -325,9 +333,14 @@ describe("create candidate preview contract", () => {
     });
     expect(dossierItem).toMatchObject({
       targetCarrier: "dossier_runtime_record",
-      targetState: "persisted_review_record",
+      targetState: "dossier_review_draft",
       targetRecordId: null,
-      persistenceState: "runtime_path_available",
+      persistenceState: "persisted_review_record",
+    });
+    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
+      dossierRuntimeId: null,
+      dossierRuntimeState: "dossier_review_draft",
+      persistenceState: "persisted_review_record",
     });
     expect(dossierItem?.missingRuntimeTruth).toContain("dossier_runtime_record_not_created_yet");
     expect(dossierItem?.missingRuntimeTruth).not.toContain("candidate_handoff_not_persisted");
