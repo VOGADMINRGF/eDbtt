@@ -75,6 +75,7 @@ describe("frontend AI transparency contract", () => {
       hasCandidatePreview: true,
       hasCandidateReviewHandoff: true,
       hasClaimToDossierPipeline: true,
+      hasFeedEnrichmentSuggestions: true,
     });
 
     expect(running.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
@@ -89,9 +90,17 @@ describe("frontend AI transparency contract", () => {
     expect(completed.steps.find((step) => step.id === "later_followups")).toMatchObject({
       status: "review_required",
     });
+    expect(
+      completed.steps.find((step) => step.id === "feed_enrichment_suggestions"),
+    ).toMatchObject({
+      status: "review_required",
+    });
     expect(completed.steps.find((step) => step.id === "later_followups")?.detail).toContain(
       "typed Dossier-Handoff",
     );
+    expect(
+      completed.steps.find((step) => step.id === "feed_enrichment_suggestions")?.detail,
+    ).toContain("weder DeepSearch noch Faktencheck noch Veröffentlichung automatisch");
     expect(completed.traceSteps.find((step) => step.stepId === "create_planner_trace")).toMatchObject({
       userVisibleLabel: "KI bereitet nächste Schritte vor",
     });

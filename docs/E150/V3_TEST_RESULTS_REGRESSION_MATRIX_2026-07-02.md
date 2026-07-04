@@ -34,6 +34,12 @@
   Dossier-Draft-Vorschau abgeleitet und weiterhin ehrlich als
   `missing_persistence_truth` markiert; Umfragen bleiben ein geplanter
   `participation_space_runtime_record`-Folgepfad.
+- Fuer `V3-FEED-ENRICHMENT-REVIEW-SUGGESTIONS-01` zeigt dieselbe Surface
+  jetzt ausserdem eine typed Feed-Enrichment-Suggestion-Lesart: vorhandene
+  Quellen-, Feed-, Material- und Evidenzhinweise werden nur review-first an
+  Claim-, Gegenpositions- und Fragen-Kandidaten gehaengt; fehlende
+  Quellwahrheit bleibt explizit `missing_source_truth` oder
+  `missing_runtime_truth`, und `deepsearch_state` bleibt `planned_handoff`.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -120,6 +126,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
 - `apps/web/tests/create-candidate-preview.contract.test.ts`
 - `apps/web/tests/create-claim-to-dossier-pipeline.contract.test.ts`
+- `apps/web/tests/create-feed-enrichment-review-suggestions.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`
 - `apps/web/tests/create-mode.page.test.ts`
 - `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`

@@ -228,6 +228,7 @@ describe("AI orchestration provenance trace contract", () => {
       },
       candidateReviewHandoffAvailable: true,
       claimToDossierPipelineAvailable: true,
+      feedEnrichmentSuggestionsAvailable: true,
     });
 
     expect(steps.find((step) => step.stepId === "create_planner_trace")).toMatchObject({
@@ -256,6 +257,14 @@ describe("AI orchestration provenance trace contract", () => {
       userVisibleLabel:
         "Claims, Gegenpositionen und Fragen sind als Dossier-Handoff vorbereitet; Umfragen bleiben geplant",
       adminVisibleLabel: "Claims / Questions / Dossier review handoff",
+    });
+    expect(steps.find((step) => step.stepId === "feed_enrichment_review_suggestions")).toMatchObject({
+      outputType: "candidate_preview",
+      graphTarget: "review_queue_handoff",
+      graphTargetState: "planned_handoff",
+      userVisibleLabel:
+        "Vorhandene Feed-, Quellen- und Materialhinweise bleiben review-first Vorschläge",
+      adminVisibleLabel: "Feed / source / material enrichment suggestions",
     });
     expect(steps.find((step) => step.stepId === "feeds_social_voxy_planned")).toMatchObject({
       outputType: "planned_not_active",

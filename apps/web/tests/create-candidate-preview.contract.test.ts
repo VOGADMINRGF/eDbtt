@@ -228,6 +228,19 @@ describe("create candidate preview contract", () => {
       targetState: "planned_handoff",
       persistenceState: "missing_persistence_truth",
     });
+    expect(model.feedEnrichmentSuggestions).toMatchObject({
+      hasSuggestions: true,
+      carriesPersistentWrite: false,
+      enrichedCandidateTypes: ["claim", "counter_position", "question"],
+      plannedCandidateTypes: ["poll"],
+    });
+    expect(
+      model.feedEnrichmentSuggestions.items.find((item) => item.sourceType === "evidence_candidate"),
+    ).toMatchObject({
+      reviewState: "review_required",
+      publishState: "not_published",
+      deepsearchState: "planned_handoff",
+    });
     expect(model.reviewHandoff.items[0]).toMatchObject({
       targetCarrier: "create_handoff_review_queue",
       targetState: "review_draft",
@@ -268,6 +281,8 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("missing_persistence_truth");
     expect(html).toContain("create_handoff_review_queue");
     expect(html).toContain("Claim-to-Dossier-Pipeline vorbereiten");
+    expect(html).toContain("Feed-, Quellen- und Materialhinweise vorbereiten");
+    expect(html).toContain("no_auto_deepsearch");
     expect(html).toContain("Dossier-Draft-Vorschau");
     expect(html).toContain("dossier_handoff_prepared");
     expect(html).toContain("planned_handoff");
