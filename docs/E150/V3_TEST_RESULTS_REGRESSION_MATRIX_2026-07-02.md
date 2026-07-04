@@ -55,6 +55,13 @@
   `dossierRuntimeId` und `dossier_review_draft`, waehrend `review_required`,
   `not_published`, `planned_not_active`, No-AI-Guardrails und die Trennung zu
   Publish-/Graph-/Public-Folgeschritten unveraendert bleiben.
+- Fuer `V3-DOSSIER-ANLASSRAUM-GRAPH-HANDOFF-01` zeigt dieselbe Surface jetzt
+  zusaetzlich einen typed review-first Handoff vom bestehenden
+  Dossier-Runtime-Draft zu Graph-, Anlassraum-, Participation- und
+  Branch-Folgepfaden. Echte Topic-/Anlassraum-Ziel-IDs werden nur getragen,
+  wenn vorhandene Graph-Matches sie schon wirklich liefern; sonst bleiben die
+  Folgepfade ehrlich `planned_handoff`, `graph_candidate` oder
+  `missing_*_runtime_truth`, ohne neuen Downstream-Write.
 - Fuer `V3-FEED-ENRICHMENT-REVIEW-SUGGESTIONS-01` zeigt dieselbe Surface
   jetzt ausserdem eine typed Feed-Enrichment-Suggestion-Lesart: vorhandene
   Quellen-, Feed-, Material- und Evidenzhinweise werden nur review-first an
@@ -164,6 +171,8 @@ Wichtige Handoff-/Workflow-/Public-Route-Tests:
 - `apps/web/tests/create-handoff.persistence.route.test.ts`
 - `apps/web/tests/create-handoff-review-queue-runtime-bridge.test.ts`
 - `apps/web/tests/dossier-runtime-draft-persistence.test.ts`
+- `apps/web/tests/create-dossier-anlassraum-graph-handoff.contract.test.ts`
+- `apps/web/tests/create-dossier-anlassraum-graph-handoff.boundary.test.ts`
 - `apps/web/tests/manual-anlassraum-setup.contract.test.ts`
 - `apps/web/tests/manual-anlassraum-server-draft.test.ts`
 - `apps/web/tests/runden-create-handoff-integrity.contract.test.ts`

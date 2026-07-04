@@ -879,14 +879,14 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         : "planned_not_active",
       userVisibleLabel: hasCandidatePreview
         ? hasClaimToDossierPipeline
-          ? "Claims, Gegenpositionen und Fragen sind als Dossier-Handoff vorbereitet; Umfragen bleiben geplant"
+          ? "Claims, Gegenpositionen und Fragen sind als Dossier-/Graph-/Anlassraum-Handoff vorbereitet; Umfragen bleiben geplant"
           : hasCandidateReviewHandoff
           ? "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten und sind als Handoff vorbereitet"
           : "Claims, Gegenpositionen, Fragen und Umfragen bleiben Review-Kandidaten"
         : "Claims, Fragen und Umfragen bleiben geplant",
       adminVisibleLabel: hasCandidatePreview
         ? hasClaimToDossierPipeline
-          ? "Claims / Questions / Dossier review handoff"
+          ? "Claims / Questions / Dossier / Graph / Anlassraum review handoff"
           : hasCandidateReviewHandoff
           ? "Claims / Questions / Polls candidate review handoff"
           : "Claims / Questions / Polls candidate preview"

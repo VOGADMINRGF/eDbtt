@@ -98,6 +98,9 @@ describe("frontend AI transparency contract", () => {
     expect(completed.steps.find((step) => step.id === "later_followups")?.detail).toContain(
       "typed Dossier-Handoff",
     );
+    expect(completed.steps.find((step) => step.id === "later_followups")?.detail).toContain(
+      "typed Graph-/Anlassraum-/Participation-Handoff",
+    );
     expect(
       completed.steps.find((step) => step.id === "feed_enrichment_suggestions")?.detail,
     ).toContain("weder DeepSearch noch Faktencheck noch Veröffentlichung automatisch");

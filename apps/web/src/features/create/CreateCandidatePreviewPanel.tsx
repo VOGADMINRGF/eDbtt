@@ -351,6 +351,66 @@ export default function CreateCandidatePreviewPanel({
           </div>
         ) : null}
 
+        {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff ? (
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Graph- / Anlassraum-Handoff
+            </p>
+            <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+              <p>
+                Graph-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphTargetState}
+              </p>
+              <p>
+                Anlassraum-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.anlassraumTargetState}
+              </p>
+              <p>
+                Beteiligungs-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.participationTargetState}
+              </p>
+              <p>
+                Branch-Workspace: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.branchWorkspaceTargetState}
+              </p>
+              <p>
+                target_graph_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetGraphId ?? "nicht vorhanden"}
+              </p>
+              <p>
+                target_anlassraum_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetAnlassraumId ?? "nicht vorhanden"}
+              </p>
+              <p>
+                target_participation_space_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetParticipationSpaceId ?? "nicht vorhanden"}
+              </p>
+              <p>
+                target_branch_workspace_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetBranchWorkspaceId ?? "nicht vorhanden"}
+              </p>
+            </div>
+            {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                topic_seed: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed.topicLabel} ·{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed.jurisdiction}
+              </p>
+            ) : null}
+            {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphMatches.length > 0 ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                graph_matches:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphMatches
+                  .map((match) => `${match.kind}:${match.label}`)
+                  .join(", ")}
+              </p>
+            ) : null}
+            {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.feedEnrichmentRefs.length > 0 ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                feed_enrichment_refs:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.feedEnrichmentRefs.join(", ")}
+              </p>
+            ) : null}
+            {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.missingRuntimeTruth.length > 0 ? (
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                missing_runtime_truth:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.missingRuntimeTruth.join(", ")}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {model.claimToDossierPipeline.dossierDraftPreview ? (
           <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
