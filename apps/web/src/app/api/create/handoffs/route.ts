@@ -21,6 +21,10 @@ import {
   persistCreateHandoffForReview,
   resolvePersistedCreateHandoffContext,
 } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  ensurePersistedDossierRuntimeDraft,
+  getDossierRuntimeHandoffSummary,
+} from "@/features/create/dossierRuntimeServer";
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
 import type { CreateGraphMatchResult } from "@/features/create/intelligentFollowupContract";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
@@ -331,6 +335,11 @@ export async function POST(req: NextRequest) {
           }
         : null,
     });
+    const dossierRuntime =
+      record.selectedAction === "create_dossier"
+        ? await ensurePersistedDossierRuntimeDraft(record.id)
+            .then(() => getDossierRuntimeHandoffSummary(record.id))
+        : null;
 
     return NextResponse.json({
       ok: true,
@@ -343,6 +352,7 @@ export async function POST(req: NextRequest) {
         reviewState: record.reviewState,
         intakeClassification: record.intakeClassification,
       },
+      dossierRuntime,
       requestScope,
       accessDecision,
     });

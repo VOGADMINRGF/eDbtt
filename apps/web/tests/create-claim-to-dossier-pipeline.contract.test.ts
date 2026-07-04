@@ -258,6 +258,19 @@ describe("create claim-to-dossier pipeline contract", () => {
         reviewRecordId: "persisted-create-handoff-1",
         selectedAction: "create_dossier",
         sourceText: "Sichere Schulwege und klare Prioritäten im Kiez.",
+        dossierRuntime: {
+          sourceReviewItemId: "persisted-create-handoff-1",
+          dossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
+          runtimeStatus: "queued_for_review",
+          dossierRuntimeState: "dossier_review_draft",
+          dossierTargetState: "dossier_review_draft",
+          persistenceState: "persisted_dossier_runtime_record",
+          reviewState: "review_required",
+          publishState: "not_published",
+          graphTargetState: "planned_not_active",
+          auditRef: "audit-1",
+          missingRuntimeTruth: [],
+        },
       },
     });
 
@@ -270,21 +283,23 @@ describe("create claim-to-dossier pipeline contract", () => {
     expect(dossierItems.every((item) => item.targetState === "dossier_review_draft")).toBe(
       true,
     );
-    expect(dossierItems.every((item) => item.persistenceState === "persisted_review_record")).toBe(
-      true,
-    );
-    expect(dossierItems.every((item) => item.targetRecordId === null)).toBe(true);
-    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
-      dossierRuntimeId: null,
-      dossierRuntimeState: "dossier_review_draft",
-      dossierTargetState: "dossier_review_draft",
-      persistenceState: "persisted_review_record",
-      graphTargetState: "planned_not_active",
-    });
     expect(
-      dossierItems.every((item) =>
-        item.missingRuntimeTruth.includes("dossier_runtime_record_not_created_yet"),
+      dossierItems.every(
+        (item) => item.persistenceState === "persisted_dossier_runtime_record",
       ),
     ).toBe(true);
+    expect(
+      dossierItems.every(
+        (item) => item.targetRecordId === "dossier-runtime:persisted-create-handoff-1",
+      ),
+    ).toBe(true);
+    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
+      dossierRuntimeId: "dossier-runtime:persisted-create-handoff-1",
+      dossierRuntimeState: "dossier_review_draft",
+      dossierTargetState: "dossier_review_draft",
+      persistenceState: "persisted_dossier_runtime_record",
+      graphTargetState: "planned_not_active",
+    });
+    expect(dossierItems.every((item) => item.missingRuntimeTruth.length === 0)).toBe(true);
   });
 });

@@ -1800,6 +1800,7 @@ export default function CreateClient({
               record?: {
                 id?: string;
               } | null;
+              dossierRuntime?: PersistedCandidateDossierReviewRecordState["dossierRuntime"] | null;
               requestScope?: RequestScopeSummary | null;
               accessDecision?: {
                 title?: string;
@@ -1831,6 +1832,7 @@ export default function CreateClient({
             reviewRecordId: String(body.record.id),
             selectedAction,
             sourceText: draft.sourceText,
+            dossierRuntime: body?.dossierRuntime ?? null,
           });
         }
       } catch {
