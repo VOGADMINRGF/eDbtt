@@ -27,6 +27,14 @@ function targetCarrierLabel(value: string) {
   return "Create-Handoff-Review-Queue";
 }
 
+function enrichmentSourceTypeLabel(value: string) {
+  if (value === "feed_candidate") return "Feed-Hinweis";
+  if (value === "material_candidate") return "Material-Hinweis";
+  if (value === "evidence_candidate") return "Evidenzhinweis";
+  if (value === "source_candidate") return "Quellenhinweis";
+  return "missing_source_truth";
+}
+
 export default function CreateCandidatePreviewPanel({
   model,
 }: CreateCandidatePreviewPanelProps) {
@@ -180,6 +188,90 @@ export default function CreateCandidatePreviewPanel({
         ) : (
           <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
             Noch kein belastbarer Review-Handoff vorbereitet.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-5 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
+              {model.feedEnrichmentSuggestions.title}
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.feedEnrichmentSuggestions.summary}
+            </p>
+          </div>
+          <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+            no_auto_deepsearch
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Angereicherte Kandidaten
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.feedEnrichmentSuggestions.enrichedCandidateTypes.join(", ")}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Geplant
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+              {model.feedEnrichmentSuggestions.plannedCandidateTypes.join(", ")} bleiben ohne
+              passende Runtime-Struktur nur `planned_handoff`.
+            </p>
+          </div>
+        </div>
+
+        {model.feedEnrichmentSuggestions.hasSuggestions ? (
+          <div className="mt-4 space-y-3">
+            {model.feedEnrichmentSuggestions.items.map((item) => (
+              <article
+                key={item.suggestionId}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
+                data-create-feed-enrichment-suggestion={item.candidateType}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {enrichmentSourceTypeLabel(item.sourceType)}
+                  </span>
+                  <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    {item.confidenceState}
+                  </span>
+                </div>
+                <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{item.candidateText}</p>
+                <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
+                  <p>Candidate: {item.candidateType}</p>
+                  <p>Origin: {item.sourceOrigin}</p>
+                  <p>Quelle: {item.sourceTitle ?? "missing_source_truth"}</p>
+                  <p>Ref: {item.sourceRef ?? "missing_runtime_truth"}</p>
+                  <p>Factcheck: {item.factcheckState}</p>
+                  <p>DeepSearch: {item.deepsearchState}</p>
+                </div>
+                {item.sourceUrl ? (
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                    URL: {item.sourceUrl}
+                  </p>
+                ) : null}
+                {item.missingRuntimeTruth.length > 0 ? (
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                    provenance preserved · review_required · not_published
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">
+            Noch keine belastbaren Feed-, Quellen- oder Materialhinweise vorbereitet.
           </p>
         )}
       </div>

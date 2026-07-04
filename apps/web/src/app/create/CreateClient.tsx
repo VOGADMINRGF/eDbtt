@@ -1583,6 +1583,8 @@ export default function CreateClient({
           hasCandidateReviewHandoff: candidatePreview.reviewHandoff.hasPreparedHandoff,
           hasClaimToDossierPipeline:
             candidatePreview.claimToDossierPipeline.hasPreparedPipeline,
+          hasFeedEnrichmentSuggestions:
+            candidatePreview.feedEnrichmentSuggestions.hasSuggestions,
         }),
       };
     },

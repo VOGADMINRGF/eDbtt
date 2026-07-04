@@ -163,6 +163,7 @@ type CreateTraceInput = {
   candidatePreviewAvailable?: boolean;
   candidateReviewHandoffAvailable?: boolean;
   claimToDossierPipelineAvailable?: boolean;
+  feedEnrichmentSuggestionsAvailable?: boolean;
 };
 
 function hasText(value: string | null | undefined) {
@@ -560,6 +561,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
     params.candidateReviewHandoffAvailable ?? hasCandidatePreview;
   const hasClaimToDossierPipeline =
     params.claimToDossierPipelineAvailable ?? false;
+  const hasFeedEnrichmentSuggestions =
+    params.feedEnrichmentSuggestionsAvailable ?? false;
   const analyzeEvidenceRefs = buildEvidenceRefs([
     params.analyzeTrace?.createAnalyze?.runId ?? null,
     params.analyzeTrace?.runReceipt?.id ?? null,
@@ -946,6 +949,118 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       ],
     },
   );
+
+  steps.push({
+    stepId: hasFeedEnrichmentSuggestions
+      ? "feed_enrichment_review_suggestions"
+      : "feed_enrichment_planned",
+    surface: "/create",
+    trigger: hasFeedEnrichmentSuggestions
+      ? "create_intelligent_followup_planner"
+      : "downstream_planned",
+    inputContext: buildInputContext({
+      initialText: params.initialText,
+      intakeContext: params.intakeContext,
+      draftId: params.draftId,
+      dossierId: params.dossierId,
+      anlassraumId: params.anlassraumId,
+      requestId: params.plannerTrace?.requestId ?? null,
+      operationId:
+        params.analyzeTrace?.createAnalyze?.runId ??
+        params.plannerTrace?.operationId ??
+        null,
+      operationType: hasFeedEnrichmentSuggestions
+        ? "create_feed_enrichment_review_suggestions"
+        : null,
+      userScope: hasFeedEnrichmentSuggestions ? "present" : "not_required",
+    }),
+    inputOrigin: hasFeedEnrichmentSuggestions
+      ? primaryInputOrigin.inputOrigin
+      : "Geplanter Folgepfad",
+    inputOriginType: hasFeedEnrichmentSuggestions
+      ? primaryInputOrigin.inputOriginType
+      : "planned_not_active",
+    inputOriginRef: hasFeedEnrichmentSuggestions
+      ? primaryInputOrigin.inputOriginRef
+      : null,
+    provider: candidatePreviewProvider.provider,
+    model: candidatePreviewProvider.model,
+    providerKnown: candidatePreviewProvider.known,
+    providerVisibility: candidatePreviewProvider.visibility,
+    aiActive: Boolean(
+      hasFeedEnrichmentSuggestions &&
+        (params.analyzeTrace?.createAnalyze?.runId || planner),
+    ),
+    usageRecorded: Boolean(
+      hasFeedEnrichmentSuggestions &&
+        (planner || params.analyzeTrace?.createAnalyze?.runId),
+    ),
+    outputType: hasFeedEnrichmentSuggestions
+      ? "candidate_preview"
+      : "planned_not_active",
+    outputOrigin: hasFeedEnrichmentSuggestions
+      ? "ai_assisted"
+      : "planned_not_active",
+    sourceProvenance: hasFeedEnrichmentSuggestions
+      ? [
+          ...plannerSourceProvenance,
+          ...(params.analyzeTrace?.runReceipt?.sourceSet ?? []).map((source, index) => {
+            const sourceType: AiOrchestrationInputOriginType =
+              source.sourceType === "other" ? "manual_editorial" : "url";
+            return {
+              label: source.title ?? source.publisher ?? source.canonicalUrl ?? `Quelle ${index + 1}`,
+              type: sourceType,
+              ref: source.canonicalUrl ?? null,
+              state: "present" as const,
+              visibility: "admin_review_only" as const,
+            };
+          }),
+        ]
+      : [
+          {
+            label: "Noch keine aktive Runtime",
+            type: "planned_not_active",
+            ref: null,
+            state: "planned_not_active",
+            visibility: "frontend_safe",
+          },
+        ],
+    evidenceRefs: hasFeedEnrichmentSuggestions
+      ? buildEvidenceRefs([
+          params.plannerTrace?.requestId ?? null,
+          params.analyzeTrace?.createAnalyze?.runId ?? null,
+          params.analyzeTrace?.runReceipt?.id ?? null,
+          params.analyzeTrace?.runReceipt?.snapshotId ?? null,
+          params.draftId,
+        ])
+      : [],
+    graphTarget: "review_queue_handoff",
+    graphTargetState: "planned_handoff",
+    reviewState: hasFeedEnrichmentSuggestions
+      ? "review_required"
+      : "planned_not_active",
+    publishState: hasFeedEnrichmentSuggestions
+      ? "publish_blocked"
+      : "planned_not_active",
+    userVisibleLabel: hasFeedEnrichmentSuggestions
+      ? "Vorhandene Feed-, Quellen- und Materialhinweise bleiben review-first Vorschläge"
+      : "Feed-, Quellen- und Materialhinweise bleiben geplant",
+    adminVisibleLabel: hasFeedEnrichmentSuggestions
+      ? "Feed / source / material enrichment suggestions"
+      : "Feed / source / material enrichment planned",
+    missingRuntimeTruth: !hasFeedEnrichmentSuggestions || !candidatePreviewProvider.known,
+    missingRuntimeTruthReasons: hasFeedEnrichmentSuggestions
+      ? candidatePreviewProvider.known
+        ? [
+            "Feed-Enrichment-Vorschläge bleiben review-first und enthalten nur vorhandene Runtime-/Input-Hinweise; pro Hinweis kann weitere Source-Truth fehlen.",
+          ]
+        : [
+            "Feed-Enrichment-Vorschläge sind sichtbar, aber ohne belastbare Provider-/Modelltruth für diesen Lauf.",
+          ]
+      : [
+          "Dieser Feed-Enrichment-Folgepfad bleibt bewusst planned_not_active, solange keine echten Quellen-, Feed- oder Materialhinweise vorliegen.",
+        ],
+  });
 
   return steps;
 }

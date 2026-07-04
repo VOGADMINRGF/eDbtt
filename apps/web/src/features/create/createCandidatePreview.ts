@@ -177,6 +177,63 @@ export type CreateClaimToDossierPipelineReadModel = {
   items: CreateClaimToDossierPipelineItem[];
 };
 
+export type CreateFeedEnrichmentCandidateType = Exclude<CreateCandidateKind, "poll">;
+
+export type CreateFeedEnrichmentSuggestionEnrichmentType =
+  | "review_suggestion"
+  | "planned_handoff";
+
+export type CreateFeedEnrichmentSuggestionSourceType =
+  | "source_candidate"
+  | "material_candidate"
+  | "feed_candidate"
+  | "evidence_candidate"
+  | "missing_source_truth";
+
+export type CreateFeedEnrichmentSuggestionConfidenceState =
+  | "source_candidate"
+  | "material_candidate"
+  | "feed_candidate"
+  | "evidence_candidate"
+  | "missing_source_truth"
+  | "missing_runtime_truth";
+
+export type CreateFeedEnrichmentSuggestionState =
+  | "planned_handoff"
+  | "missing_runtime_truth";
+
+export type CreateFeedEnrichmentReviewSuggestion = {
+  suggestionId: string;
+  sourceCandidateId: string;
+  candidateType: CreateFeedEnrichmentCandidateType;
+  candidateText: string;
+  enrichmentType: CreateFeedEnrichmentSuggestionEnrichmentType;
+  sourceType: CreateFeedEnrichmentSuggestionSourceType;
+  sourceRef: string | null;
+  sourceTitle: string | null;
+  sourceUrl: string | null;
+  sourceOrigin: string;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  confidenceState: CreateFeedEnrichmentSuggestionConfidenceState;
+  reviewState: CreateCandidateReviewState;
+  publishState: CreateCandidatePublishState;
+  factcheckState: CreateFeedEnrichmentSuggestionState;
+  deepsearchState: Extract<CreateFeedEnrichmentSuggestionState, "planned_handoff">;
+  graphTargetState: Extract<CreateFeedEnrichmentSuggestionState, "planned_handoff">;
+  missingRuntimeTruth: string[];
+};
+
+export type CreateFeedEnrichmentReviewSuggestionsReadModel = {
+  title: string;
+  summary: string;
+  hasSuggestions: boolean;
+  enrichedCandidateTypes: CreateFeedEnrichmentCandidateType[];
+  plannedCandidateTypes: Extract<CreateCandidateKind, "poll">[];
+  carriesPersistentWrite: false;
+  items: CreateFeedEnrichmentReviewSuggestion[];
+};
+
 export type CreateCandidatePreviewReadModel = {
   title: string;
   summary: string;
@@ -191,6 +248,7 @@ export type CreateCandidatePreviewReadModel = {
   sections: CreateCandidatePreviewSection[];
   reviewHandoff: CreateCandidateReviewHandoffReadModel;
   claimToDossierPipeline: CreateClaimToDossierPipelineReadModel;
+  feedEnrichmentSuggestions: CreateFeedEnrichmentReviewSuggestionsReadModel;
   totalCount: number;
   carriesPersistentWrite: false;
   persistentCarrierTruth: {
@@ -220,6 +278,19 @@ type AnalyzeTextRecord = {
   id: string | null;
   sourceRefs: string[];
   rationale: string | null;
+};
+
+type FeedEnrichmentSourceSeed = {
+  key: string;
+  sourceType: Exclude<CreateFeedEnrichmentSuggestionSourceType, "missing_source_truth">;
+  sourceRef: string | null;
+  sourceTitle: string | null;
+  sourceUrl: string | null;
+  sourceOrigin: string;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  confidenceState: CreateFeedEnrichmentSuggestionConfidenceState;
+  missingRuntimeTruth: string[];
 };
 
 function normalizeText(value: unknown): string {
@@ -504,6 +575,261 @@ function buildClaimToDossierPipeline(params: {
           visibility: dossierDraftPreview.visibility,
         }
       : null,
+    items,
+  };
+}
+
+function looksLikeFeedSource(value: string | null | undefined): boolean {
+  const normalized = normalizeText(value);
+  return /feed|radar|signal|source_connection|snapshot/.test(normalized);
+}
+
+function buildFeedEnrichmentSourceSeeds(params: {
+  input: BuildCreateCandidatePreviewInput;
+  handoff: CreateHandoffDraft | null;
+  evidenceRefs: string[];
+}): FeedEnrichmentSourceSeed[] {
+  const seeds: FeedEnrichmentSourceSeed[] = [];
+
+  const intakeSourceType = looksLikeFeedSource(
+    [
+      params.input.intakeContext?.source,
+      params.input.intakeContext?.reason,
+      params.input.intakeContext?.sourceLabel,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  )
+    ? "feed_candidate"
+    : "source_candidate";
+
+  const intakeSourceUrl = normalizeText(params.input.intakeContext?.sourceUrl);
+  if (intakeSourceUrl) {
+    seeds.push({
+      key: `intake:${intakeSourceUrl}`,
+      sourceType: intakeSourceType,
+      sourceRef: intakeSourceUrl,
+      sourceTitle:
+        normalizeText(params.input.intakeContext?.sourceLabel) ||
+        normalizeText(params.input.intakeContext?.signalTitle) ||
+        "Create-Intake-Hinweis",
+      sourceUrl: intakeSourceUrl,
+      sourceOrigin: params.input.intakeContext?.source ?? "create_intake_context",
+      sourceProvenance: "input_reference_only",
+      evidenceRefs: uniqueStrings([intakeSourceUrl, ...params.evidenceRefs]),
+      confidenceState: "missing_runtime_truth",
+      missingRuntimeTruth: ["intake_context_source_unverified"],
+    });
+  }
+
+  (params.input.sourceUrls ?? []).forEach((sourceUrl, index) => {
+    const normalizedUrl = normalizeText(sourceUrl);
+    if (!normalizedUrl) return;
+    seeds.push({
+      key: `source-url:${normalizedUrl}`,
+      sourceType: "source_candidate",
+      sourceRef: normalizedUrl,
+      sourceTitle: `Link ${index + 1}`,
+      sourceUrl: normalizedUrl,
+      sourceOrigin: "create_request_source_url",
+      sourceProvenance: "input_reference_only",
+      evidenceRefs: uniqueStrings([normalizedUrl, ...params.evidenceRefs]),
+      confidenceState: "missing_runtime_truth",
+      missingRuntimeTruth: ["request_source_url_unverified"],
+    });
+  });
+
+  (params.input.materialItems ?? []).forEach((item, index) => {
+    const hasRuntimeMaterialTruth = Boolean(item.url || item.uploadId);
+    seeds.push({
+      key: `material:${item.id || index + 1}`,
+      sourceType: "material_candidate",
+      sourceRef: item.uploadId ?? item.url ?? item.id,
+      sourceTitle: item.fileName ?? item.label ?? `Material ${index + 1}`,
+      sourceUrl: item.url,
+      sourceOrigin: "material_intake_request",
+      sourceProvenance: hasRuntimeMaterialTruth
+        ? "runtime_source_reference"
+        : "input_reference_only",
+      evidenceRefs: uniqueStrings([
+        item.uploadId,
+        item.url,
+        item.id,
+        ...params.evidenceRefs,
+      ]),
+      confidenceState:
+        hasRuntimeMaterialTruth && item.extractionStatus !== "none"
+          ? "material_candidate"
+          : "missing_runtime_truth",
+      missingRuntimeTruth: uniqueStrings([
+        ...(hasRuntimeMaterialTruth ? [] : ["material_runtime_reference_missing"]),
+        ...(item.extractionStatus === "none"
+          ? ["material_extraction_missing_runtime_truth"]
+          : []),
+      ]),
+    });
+  });
+
+  (params.input.runReceipt?.sourceSet ?? []).forEach((source, index) => {
+    const sourceRef =
+      normalizeText(source.canonicalUrl) ||
+      normalizeText(source.title) ||
+      `run-receipt-source-${index + 1}`;
+    seeds.push({
+      key: `receipt:${sourceRef}`,
+      sourceType: "evidence_candidate",
+      sourceRef,
+      sourceTitle:
+        normalizeText(source.title) ||
+        normalizeText(source.publisher) ||
+        `Runtime-Quelle ${index + 1}`,
+      sourceUrl: normalizeText(source.canonicalUrl) || null,
+      sourceOrigin: "analyze_run_receipt",
+      sourceProvenance: "runtime_source_reference",
+      evidenceRefs: uniqueStrings([
+        source.canonicalUrl,
+        params.input.runReceipt?.id,
+        params.input.runReceipt?.snapshotId,
+        ...params.evidenceRefs,
+      ]),
+      confidenceState: "evidence_candidate",
+      missingRuntimeTruth: [],
+    });
+  });
+
+  const handoffLinks = (params.handoff?.sourceGrounding ?? []).filter(
+    (entry) => entry.status === "link_reference",
+  );
+  handoffLinks.forEach((entry, index) => {
+    const ref = normalizeText(entry.detail) || normalizeText(entry.label);
+    if (!ref) return;
+    seeds.push({
+      key: `handoff:${ref}`,
+      sourceType: entry.id.startsWith("material-reference-")
+        ? "material_candidate"
+        : "source_candidate",
+      sourceRef: ref,
+      sourceTitle: normalizeText(entry.label) || `Handoff-Referenz ${index + 1}`,
+      sourceUrl: /^https?:\/\//.test(ref) ? ref : null,
+      sourceOrigin: entry.id.startsWith("material-reference-")
+        ? "create_handoff_material_reference"
+        : "create_handoff_link_reference",
+      sourceProvenance: "input_reference_only",
+      evidenceRefs: uniqueStrings([ref, ...params.evidenceRefs]),
+      confidenceState: "missing_runtime_truth",
+      missingRuntimeTruth: ["create_handoff_reference_unverified"],
+    });
+  });
+
+  return seeds.filter((seed, index, items) => {
+    return (
+      items.findIndex(
+        (candidate) =>
+          candidate.sourceType === seed.sourceType &&
+          candidate.sourceRef === seed.sourceRef &&
+          candidate.sourceTitle === seed.sourceTitle,
+      ) === index
+    );
+  });
+}
+
+function buildFeedEnrichmentReviewSuggestions(params: {
+  input: BuildCreateCandidatePreviewInput;
+  handoff: CreateHandoffDraft | null;
+  sections: CreateCandidatePreviewSection[];
+  evidenceRefs: string[];
+}): CreateFeedEnrichmentReviewSuggestionsReadModel {
+  const candidates = params.sections
+    .flatMap((section) => section.items)
+    .filter(
+      (item): item is CreateCandidatePreviewItem & {
+        kind: CreateFeedEnrichmentCandidateType;
+      } => item.kind !== "poll",
+    );
+  const sourceSeeds = buildFeedEnrichmentSourceSeeds({
+    input: params.input,
+    handoff: params.handoff,
+    evidenceRefs: params.evidenceRefs,
+  });
+
+  const items = candidates.flatMap<CreateFeedEnrichmentReviewSuggestion>((candidate) => {
+    if (sourceSeeds.length === 0) {
+      return [
+        {
+          suggestionId: `${candidate.id}:missing-source`,
+          sourceCandidateId: candidate.id,
+          candidateType: candidate.kind,
+          candidateText: candidate.title,
+          enrichmentType: "review_suggestion" as const,
+          sourceType: "missing_source_truth" as const,
+          sourceRef: null,
+          sourceTitle: null,
+          sourceUrl: null,
+          sourceOrigin: "no_runtime_source_available",
+          sourceProvenance: "missing_source_provenance" as const,
+          evidenceRefs: candidate.evidenceRefs,
+          confidenceState: "missing_source_truth" as const,
+          reviewState: candidate.reviewState,
+          publishState: candidate.publishState,
+          factcheckState: "missing_runtime_truth" as const,
+          deepsearchState: "planned_handoff" as const,
+          graphTargetState: "planned_handoff" as const,
+          missingRuntimeTruth: [
+            "no_existing_feed_source_material_truth",
+            "feed_enrichment_review_only",
+          ],
+        },
+      ];
+    }
+
+    return sourceSeeds.map((seed) => ({
+      suggestionId: `${candidate.id}:${seed.key}`,
+      sourceCandidateId: candidate.id,
+      candidateType: candidate.kind,
+      candidateText: candidate.title,
+      enrichmentType: "review_suggestion" as const,
+      sourceType: seed.sourceType,
+      sourceRef: seed.sourceRef,
+      sourceTitle: seed.sourceTitle,
+      sourceUrl: seed.sourceUrl,
+      sourceOrigin: seed.sourceOrigin,
+      sourceProvenance: seed.sourceProvenance,
+      evidenceRefs: uniqueStrings([
+        ...candidate.evidenceRefs,
+        ...seed.evidenceRefs,
+      ]),
+      confidenceState: seed.confidenceState,
+      reviewState: candidate.reviewState,
+      publishState: candidate.publishState,
+      factcheckState: seed.sourceType === "evidence_candidate"
+        ? "planned_handoff"
+        : seed.missingRuntimeTruth.length > 0
+          ? "missing_runtime_truth"
+          : "planned_handoff",
+      deepsearchState: "planned_handoff" as const,
+      graphTargetState: "planned_handoff" as const,
+      missingRuntimeTruth: uniqueStrings([
+        ...seed.missingRuntimeTruth,
+        ...(seed.sourceProvenance === "runtime_source_reference"
+          ? []
+          : ["source_reference_not_runtime_verified"]),
+      ]),
+    }));
+  });
+
+  const hasSuggestions = items.length > 0;
+
+  return {
+    title: "Feed-, Quellen- und Materialhinweise vorbereiten",
+    summary: hasSuggestions
+      ? sourceSeeds.length > 0
+        ? "Vorhandene Feed-, Quellen-, Material- und Evidenzhinweise werden nur als review-first Vorschläge an die Claim-to-Dossier-Kandidaten gehängt. Es startet dabei weder DeepSearch noch Faktencheck noch Veröffentlichung automatisch."
+        : "Für die Kandidaten gibt es noch keine belastbaren Feed-, Quellen- oder Materialhinweise. Deshalb bleibt der Slice ehrlich bei `missing_source_truth` und fordert menschliche Prüfung."
+      : "Ohne Claim-, Gegenpositions- oder Fragenkandidaten bleibt auch Feed-Enrichment bewusst leer.",
+    hasSuggestions,
+    enrichedCandidateTypes: ["claim", "counter_position", "question"],
+    plannedCandidateTypes: ["poll"],
+    carriesPersistentWrite: false,
     items,
   };
 }
@@ -984,6 +1310,12 @@ export function buildCreateCandidatePreviewReadModel(
     handoff,
     reviewHandoff,
   });
+  const feedEnrichmentSuggestions = buildFeedEnrichmentReviewSuggestions({
+    input,
+    handoff,
+    sections,
+    evidenceRefs,
+  });
   const totalCount = sections.reduce((sum, section) => sum + section.items.length, 0);
   const hasPreview = totalCount > 0;
 
@@ -1003,6 +1335,7 @@ export function buildCreateCandidatePreviewReadModel(
     sections,
     reviewHandoff,
     claimToDossierPipeline,
+    feedEnrichmentSuggestions,
     totalCount,
     carriesPersistentWrite: false,
     persistentCarrierTruth: {

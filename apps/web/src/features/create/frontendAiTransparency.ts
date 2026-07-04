@@ -69,6 +69,7 @@ export type CreateFrontendAiTransparencyInput = {
   hasCandidatePreview?: boolean;
   hasCandidateReviewHandoff?: boolean;
   hasClaimToDossierPipeline?: boolean;
+  hasFeedEnrichmentSuggestions?: boolean;
 };
 
 const FRONTEND_AI_STATUS_LABELS: Record<FrontendAiTransparencyStatus, string> = {
@@ -160,6 +161,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
   const candidatePreviewStatus: FrontendAiTransparencyStatus = input.hasCandidatePreview
     ? "review_required"
     : "planned_not_active";
+  const feedEnrichmentStatus: FrontendAiTransparencyStatus = input.hasFeedEnrichmentSuggestions
+    ? "review_required"
+    : "planned_not_active";
 
   return {
     surface: "/create",
@@ -234,6 +238,15 @@ export function buildCreateFrontendAiTransparencyReadModel(
                 : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
             : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
+      {
+        id: "feed_enrichment_suggestions",
+        label: "Feed-, Quellen- und Materialhinweise",
+        status: feedEnrichmentStatus,
+        detail:
+          feedEnrichmentStatus === "review_required"
+            ? "Vorhandene Quellen-, Feed-, Material- und Evidenzhinweise werden nur als review-first Vorschläge sichtbar. Es startet weder DeepSearch noch Faktencheck noch Veröffentlichung automatisch; fehlende Quellwahrheit bleibt explizit `missing_source_truth` oder `missing_runtime_truth`."
+            : "Quellen- und Feed-Anreicherung bleibt geplant, bis echte Runtime-Hinweise sichtbar vorliegen.",
+      },
     ],
     traceSteps: buildCreateAiOrchestrationProvenanceTrace({
       initialText: input.initialText,
@@ -249,6 +262,7 @@ export function buildCreateFrontendAiTransparencyReadModel(
       candidatePreviewAvailable: input.hasCandidatePreview,
       candidateReviewHandoffAvailable: input.hasCandidateReviewHandoff,
       claimToDossierPipelineAvailable: input.hasClaimToDossierPipeline,
+      feedEnrichmentSuggestionsAvailable: input.hasFeedEnrichmentSuggestions,
     }),
     visibleNow: [
       "Startsignal für Planner und Analyse",
@@ -264,6 +278,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
               : "Review-first Kandidatenvorschau für Claims, Gegenpositionen, Fragen und mögliche Umfragen",
           ]
         : []),
+      ...(input.hasFeedEnrichmentSuggestions
+        ? ["Feed-, Quellen- und Materialhinweise nur als review-first Suggestions"]
+        : []),
     ],
     hiddenByPolicy: [
       "Keine internen Modell- oder Zugangsdaten",
@@ -274,6 +291,7 @@ export function buildCreateFrontendAiTransparencyReadModel(
       "AI-Usage-, Cost- und Debit-Wahrheit bleiben in den bestehenden V3-Admin-Sichten dokumentiert und werden hier nicht simuliert.",
       "Downstream-Transparenz für Dossier-, Anlassraum- und Beteiligungsraum-Folgeflächen bleibt ein eigener Folgepfad.",
       "Modellnamen und technische Laufdetails werden nur dann sichtbar, wenn sie im Runtime-Kontext wirklich vorliegen und frontendsicher sind.",
+      "Feed-Enrichment bleibt bewusst ohne Auto-DeepSearch, Auto-Faktencheck und Auto-Publish.",
     ],
   };
 }
