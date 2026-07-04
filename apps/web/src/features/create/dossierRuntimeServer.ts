@@ -36,6 +36,26 @@ export type DossierRuntimePersistenceState = {
   deploymentReconstructable: boolean;
 };
 
+export type DossierRuntimeHandoffSummary = {
+  sourceReviewItemId: string;
+  dossierRuntimeId: string | null;
+  runtimeStatus: DossierRuntimeRecord["status"];
+  dossierRuntimeState:
+    | "dossier_runtime_draft"
+    | "dossier_review_draft"
+    | "persisted_dossier_runtime_record";
+  dossierTargetState:
+    | "dossier_runtime_draft"
+    | "dossier_review_draft"
+    | "persisted_dossier_runtime_record";
+  persistenceState: "persisted_review_record" | "persisted_dossier_runtime_record";
+  reviewState: "review_required";
+  publishState: "not_published" | "no_auto_publish";
+  graphTargetState: "planned_not_active";
+  auditRef: string | null;
+  missingRuntimeTruth: string[];
+};
+
 type DossierRuntimeRepository = {
   get(sourceHandoffId: string): Promise<DossierRuntimeRecord | null>;
   save(record: DossierRuntimeRecord): Promise<DossierRuntimeRecord>;
@@ -407,6 +427,38 @@ async function buildRuntimeRecord(
   };
 
   return record;
+}
+
+export async function getDossierRuntimeHandoffSummary(
+  sourceHandoffId: string,
+): Promise<DossierRuntimeHandoffSummary | null> {
+  const handoff = await getPersistedCreateHandoffRecord(sourceHandoffId);
+  if (!handoff || handoff.selectedAction !== "create_dossier") return null;
+
+  const existing = await getRepo().get(handoff.id);
+  const record = await buildRuntimeRecord(handoff);
+
+  return {
+    sourceReviewItemId: handoff.id,
+    dossierRuntimeId: existing?.id ?? null,
+    runtimeStatus: record.status,
+    dossierRuntimeState: existing
+      ? "persisted_dossier_runtime_record"
+      : "dossier_review_draft",
+    dossierTargetState: existing
+      ? "persisted_dossier_runtime_record"
+      : "dossier_review_draft",
+    persistenceState: existing
+      ? "persisted_dossier_runtime_record"
+      : "persisted_review_record",
+    reviewState: "review_required",
+    publishState: existing ? "not_published" : "no_auto_publish",
+    graphTargetState: "planned_not_active",
+    auditRef: record.auditTrail[0]?.id ?? null,
+    missingRuntimeTruth: existing
+      ? []
+      : ["missing_dossier_runtime_truth", "dossier_runtime_record_not_created_yet"],
+  };
 }
 
 async function saveRecord(record: DossierRuntimeRecord) {

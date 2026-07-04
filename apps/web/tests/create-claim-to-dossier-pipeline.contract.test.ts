@@ -197,6 +197,12 @@ describe("create claim-to-dossier pipeline contract", () => {
       participationTargetState: "planned_handoff",
       persistenceState: "missing_persistence_truth",
     });
+    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
+      dossierRuntimeId: null,
+      dossierRuntimeState: "dossier_handoff_prepared",
+      dossierTargetState: "dossier_handoff_prepared",
+      persistenceState: "missing_dossier_runtime_truth",
+    });
     expect(model.claimToDossierPipeline.dossierDraftPreview?.summary).toContain("Aussagen");
   });
 
@@ -261,13 +267,20 @@ describe("create claim-to-dossier pipeline contract", () => {
 
     expect(model.claimToDossierPipeline.reviewRecordTruth).toBe("persisted_review_record");
     expect(model.claimToDossierPipeline.reviewRecordId).toBe("persisted-create-handoff-1");
-    expect(dossierItems.every((item) => item.targetState === "persisted_review_record")).toBe(
+    expect(dossierItems.every((item) => item.targetState === "dossier_review_draft")).toBe(
       true,
     );
-    expect(dossierItems.every((item) => item.persistenceState === "runtime_path_available")).toBe(
+    expect(dossierItems.every((item) => item.persistenceState === "persisted_review_record")).toBe(
       true,
     );
     expect(dossierItems.every((item) => item.targetRecordId === null)).toBe(true);
+    expect(model.claimToDossierPipeline.dossierRuntimeHandoff).toMatchObject({
+      dossierRuntimeId: null,
+      dossierRuntimeState: "dossier_review_draft",
+      dossierTargetState: "dossier_review_draft",
+      persistenceState: "persisted_review_record",
+      graphTargetState: "planned_not_active",
+    });
     expect(
       dossierItems.every((item) =>
         item.missingRuntimeTruth.includes("dossier_runtime_record_not_created_yet"),

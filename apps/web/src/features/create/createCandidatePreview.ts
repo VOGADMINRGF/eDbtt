@@ -5,7 +5,10 @@ import {
   type CreateHandoffAction,
   type CreateHandoffDraft,
 } from "@/features/create/createHandoff";
-import { buildDossierRuntimeDraftFromHandoff } from "@/features/create/dossierRuntime";
+import {
+  buildDossierRuntimeDraftFromHandoff,
+  type DossierRuntimeStatus,
+} from "@/features/create/dossierRuntime";
 import {
   PERSISTED_CREATE_HANDOFF_SCHEMA_VERSION,
   type PersistedCreateHandoffRecord,
@@ -118,8 +121,10 @@ export type CreateCandidateReviewHandoffReadModel = {
 
 export type CreateClaimToDossierPipelineTargetState =
   | "review_draft"
+  | "dossier_review_draft"
   | "dossier_candidate"
   | "dossier_handoff_prepared"
+  | "persisted_dossier_runtime_record"
   | "persisted_review_record"
   | "participation_candidate"
   | "missing_persistence_truth"
@@ -157,7 +162,93 @@ export type CreateClaimToDossierPipelineItem = {
   reviewState: CreateCandidateReviewState;
   publishState: CreateCandidatePublishState;
   graphTargetState: CreateCandidateGraphTargetState;
-  persistenceState: "runtime_path_available" | "missing_persistence_truth";
+  persistenceState:
+    | "persisted_review_record"
+    | "persisted_dossier_runtime_record"
+    | "missing_persistence_truth";
+  missingRuntimeTruth: string[];
+};
+
+export type CreateDossierRuntimeHandoffPersistenceState =
+  | "persisted_review_record"
+  | "persisted_dossier_runtime_record"
+  | "missing_dossier_runtime_truth";
+
+export type CreateDossierRuntimeHandoffState =
+  | "dossier_runtime_draft"
+  | "dossier_review_draft"
+  | "dossier_handoff_prepared"
+  | "persisted_dossier_runtime_record";
+
+export type CreateDossierRuntimeHandoffGraphTargetState =
+  | "candidate_only"
+  | "planned_not_active";
+
+export type CreatePersistedDossierRuntimeSnapshot = {
+  sourceReviewItemId: string;
+  dossierRuntimeId: string | null;
+  runtimeStatus: DossierRuntimeStatus;
+  dossierRuntimeState: CreateDossierRuntimeHandoffState;
+  dossierTargetState: CreateDossierRuntimeHandoffState;
+  persistenceState: Exclude<
+    CreateDossierRuntimeHandoffPersistenceState,
+    "missing_dossier_runtime_truth"
+  >;
+  reviewState: CreateCandidateReviewState;
+  publishState: "not_published" | "no_auto_publish";
+  graphTargetState: CreateDossierRuntimeHandoffGraphTargetState;
+  auditRef: string | null;
+  missingRuntimeTruth: string[];
+};
+
+export type CreateDossierRuntimeCandidatePayload = {
+  candidateId: string;
+  candidateType: Exclude<CreateCandidateKind, "poll">;
+  title: string;
+  text: string;
+  inputRef: string;
+  inputOrigin: CreateCandidateInputOrigin;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  derivedBy: CreateCandidateDerivedBy;
+  provider: string | null;
+  model: string | null;
+  targetState: CreateClaimToDossierPipelineTargetState;
+  missingRuntimeTruth: string[];
+};
+
+export type CreateDossierRuntimeFeedEnrichmentPayload = {
+  suggestionId: string;
+  sourceCandidateId: string;
+  candidateType: CreateFeedEnrichmentCandidateType;
+  candidateText: string;
+  sourceType: CreateFeedEnrichmentSuggestionSourceType;
+  sourceRef: string | null;
+  sourceTitle: string | null;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  deepsearchState: Extract<CreateFeedEnrichmentSuggestionState, "planned_handoff">;
+  missingRuntimeTruth: string[];
+};
+
+export type CreateDossierRuntimeHandoffReadModel = {
+  dossierHandoffId: string;
+  sourceReviewItemId: string | null;
+  sourceDraftId: string | null;
+  sourceCandidateIds: string[];
+  candidatePayloads: CreateDossierRuntimeCandidatePayload[];
+  feedEnrichmentPayloads: CreateDossierRuntimeFeedEnrichmentPayload[];
+  dossierRuntimeId: string | null;
+  runtimeStatus: DossierRuntimeStatus | null;
+  dossierRuntimeState: CreateDossierRuntimeHandoffState;
+  dossierTargetState: CreateDossierRuntimeHandoffState;
+  persistenceState: CreateDossierRuntimeHandoffPersistenceState;
+  reviewState: CreateCandidateReviewState;
+  publishState: "not_published" | "no_auto_publish";
+  graphTargetState: CreateDossierRuntimeHandoffGraphTargetState;
+  sourceProvenance: CreateCandidateSourceProvenance;
+  evidenceRefs: string[];
+  auditRef: string | null;
   missingRuntimeTruth: string[];
 };
 
@@ -177,6 +268,7 @@ export type CreateClaimToDossierPipelineReadModel = {
     openQuestions: string[];
     visibility: string;
   } | null;
+  dossierRuntimeHandoff: CreateDossierRuntimeHandoffReadModel | null;
   items: CreateClaimToDossierPipelineItem[];
 };
 
@@ -184,6 +276,7 @@ export type CreatePersistedCandidateReviewRecord = {
   reviewRecordId: string;
   selectedAction: CreateHandoffAction;
   sourceText: string | null;
+  dossierRuntime?: CreatePersistedDossierRuntimeSnapshot | null;
 };
 
 export type CreateFeedEnrichmentCandidateType = Exclude<CreateCandidateKind, "poll">;
@@ -309,6 +402,11 @@ function normalizeText(value: unknown): string {
 
 function hasText(value: unknown): boolean {
   return normalizeText(value).length > 0;
+}
+
+function trimOrNull(value: unknown): string | null {
+  const normalized = normalizeText(value);
+  return normalized || null;
 }
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
@@ -495,7 +593,9 @@ function buildClaimToDossierPipelineSyntheticRecord(params: {
 function buildClaimToDossierPipeline(params: {
   handoff: CreateHandoffDraft | null;
   reviewHandoff: CreateCandidateReviewHandoffReadModel;
+  feedEnrichmentSuggestions: CreateFeedEnrichmentReviewSuggestionsReadModel;
   persistedReviewRecord?: CreatePersistedCandidateReviewRecord | null;
+  sourceDraftId?: string | null;
 }): CreateClaimToDossierPipelineReadModel {
   const syntheticRecord = buildClaimToDossierPipelineSyntheticRecord(params);
   const dossierDraftPreview = syntheticRecord
@@ -509,9 +609,12 @@ function buildClaimToDossierPipeline(params: {
     hasText(params.persistedReviewRecord.reviewRecordId) &&
     (!hasText(params.persistedReviewRecord.sourceText) ||
       normalizeText(params.persistedReviewRecord.sourceText ?? "") ===
-        normalizeText(params.handoff?.sourceText ?? ""))
+      normalizeText(params.handoff?.sourceText ?? ""))
       ? params.persistedReviewRecord
       : null;
+  const dossierRuntimeSnapshot = persistedDossierReviewRecord?.dossierRuntime ?? null;
+  const hasPersistedRuntimeRecord =
+    dossierRuntimeSnapshot?.persistenceState === "persisted_dossier_runtime_record";
   const items = params.reviewHandoff.items.map((item) => {
     const dossierReviewPersisted =
       item.candidateType !== "poll" && Boolean(persistedDossierReviewRecord);
@@ -520,10 +623,17 @@ function buildClaimToDossierPipeline(params: {
         ? [
             ...item.missingRuntimeTruth,
             ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
-            "dossier_runtime_record_not_created_yet",
+            ...(hasPersistedRuntimeRecord
+              ? []
+              : [
+                  "missing_dossier_runtime_truth",
+                  "dossier_runtime_record_not_created_yet",
+                ]),
+            ...(dossierRuntimeSnapshot?.missingRuntimeTruth ?? []),
           ]
         : [
             "candidate_handoff_not_persisted",
+            "missing_dossier_runtime_truth",
             ...item.missingRuntimeTruth,
             ...(params.handoff ? [] : ["create_handoff_metadata_missing"]),
           ],
@@ -564,13 +674,17 @@ function buildClaimToDossierPipeline(params: {
       candidateType: item.candidateType,
       targetCarrier: "dossier_runtime_record" as const,
       targetRecordType: "dossier_runtime_draft" as const,
-      targetRecordId: null,
-      targetState: dossierReviewPersisted
-        ? ("persisted_review_record" as const)
-        : ("dossier_handoff_prepared" as const),
-      dossierTargetState: dossierReviewPersisted
-        ? ("persisted_review_record" as const)
-        : ("dossier_handoff_prepared" as const),
+      targetRecordId: dossierRuntimeSnapshot?.dossierRuntimeId ?? null,
+      targetState: hasPersistedRuntimeRecord
+        ? ("persisted_dossier_runtime_record" as const)
+        : dossierReviewPersisted
+          ? ("dossier_review_draft" as const)
+          : ("dossier_handoff_prepared" as const),
+      dossierTargetState: hasPersistedRuntimeRecord
+        ? ("persisted_dossier_runtime_record" as const)
+        : dossierReviewPersisted
+          ? ("dossier_review_draft" as const)
+          : ("dossier_handoff_prepared" as const),
       participationTargetState: null,
       inputRef: item.inputRef,
       inputOrigin: item.inputOrigin,
@@ -582,20 +696,131 @@ function buildClaimToDossierPipeline(params: {
       reviewState: item.reviewState,
       publishState: item.publishState,
       graphTargetState: item.graphTargetState,
-      persistenceState: dossierReviewPersisted
-        ? ("runtime_path_available" as const)
-        : ("missing_persistence_truth" as const),
+      persistenceState: hasPersistedRuntimeRecord
+        ? ("persisted_dossier_runtime_record" as const)
+        : dossierReviewPersisted
+          ? ("persisted_review_record" as const)
+          : ("missing_persistence_truth" as const),
       missingRuntimeTruth: sharedMissingReasons,
     };
   });
 
   const hasPreparedPipeline = items.length > 0;
+  const dossierRuntimeCandidatePayloads = items
+    .filter((item) => item.candidateType !== "poll")
+    .map((item) => {
+      const sourceItem = params.reviewHandoff.items.find(
+        (reviewItem) => reviewItem.candidateId === item.sourceCandidateId,
+      );
+      return {
+        candidateId: item.sourceCandidateId,
+        candidateType: item.candidateType as Exclude<CreateCandidateKind, "poll">,
+        title: sourceItem?.title ?? item.sourceCandidateId,
+        text: sourceItem?.text ?? "",
+        inputRef: item.inputRef,
+        inputOrigin: item.inputOrigin,
+        sourceProvenance: item.sourceProvenance,
+        evidenceRefs: item.evidenceRefs,
+        derivedBy: item.derivedBy,
+        provider: item.provider,
+        model: item.model,
+        targetState: item.targetState,
+        missingRuntimeTruth: item.missingRuntimeTruth,
+      };
+    });
+  const dossierRuntimeFeedEnrichmentPayloads = params.feedEnrichmentSuggestions.items.map(
+    (item) => ({
+      suggestionId: item.suggestionId,
+      sourceCandidateId: item.sourceCandidateId,
+      candidateType: item.candidateType,
+      candidateText: item.candidateText,
+      sourceType: item.sourceType,
+      sourceRef: item.sourceRef,
+      sourceTitle: item.sourceTitle,
+      sourceProvenance: item.sourceProvenance,
+      evidenceRefs: item.evidenceRefs,
+      deepsearchState: item.deepsearchState,
+      missingRuntimeTruth: item.missingRuntimeTruth,
+    }),
+  );
+  const dossierSourceProvenance =
+    dossierRuntimeCandidatePayloads.some(
+      (item) => item.sourceProvenance === "runtime_source_reference",
+    )
+      ? "runtime_source_reference"
+      : dossierRuntimeCandidatePayloads.some(
+            (item) => item.sourceProvenance === "input_reference_only",
+          )
+        ? "input_reference_only"
+        : "missing_source_provenance";
+  const dossierRuntimeHandoff: CreateDossierRuntimeHandoffReadModel | null =
+    dossierRuntimeCandidatePayloads.length > 0
+      ? {
+          dossierHandoffId:
+            persistedDossierReviewRecord?.reviewRecordId ??
+            params.handoff?.id ??
+            "missing_runtime_truth",
+          sourceReviewItemId: persistedDossierReviewRecord?.reviewRecordId ?? null,
+          sourceDraftId: trimOrNull(params.sourceDraftId) ?? trimOrNull(params.handoff?.id),
+          sourceCandidateIds: dossierRuntimeCandidatePayloads.map(
+            (payload) => payload.candidateId,
+          ),
+          candidatePayloads: dossierRuntimeCandidatePayloads,
+          feedEnrichmentPayloads: dossierRuntimeFeedEnrichmentPayloads,
+          dossierRuntimeId: dossierRuntimeSnapshot?.dossierRuntimeId ?? null,
+          runtimeStatus: dossierRuntimeSnapshot?.runtimeStatus ?? null,
+          dossierRuntimeState:
+            dossierRuntimeSnapshot?.dossierRuntimeState ??
+            (persistedDossierReviewRecord
+              ? "dossier_review_draft"
+              : "dossier_handoff_prepared"),
+          dossierTargetState:
+            dossierRuntimeSnapshot?.dossierTargetState ??
+            (persistedDossierReviewRecord
+              ? "dossier_review_draft"
+              : "dossier_handoff_prepared"),
+          persistenceState:
+            dossierRuntimeSnapshot?.persistenceState ??
+            (persistedDossierReviewRecord
+              ? "persisted_review_record"
+              : "missing_dossier_runtime_truth"),
+          reviewState: dossierRuntimeSnapshot?.reviewState ?? "review_required",
+          publishState: dossierRuntimeSnapshot?.publishState ?? "no_auto_publish",
+          graphTargetState:
+            dossierRuntimeSnapshot?.graphTargetState ?? "planned_not_active",
+          sourceProvenance: dossierSourceProvenance,
+          evidenceRefs: uniqueStrings([
+            ...dossierRuntimeCandidatePayloads.flatMap((payload) => payload.evidenceRefs),
+            ...dossierRuntimeFeedEnrichmentPayloads.flatMap(
+              (payload) => payload.evidenceRefs,
+            ),
+          ]),
+          auditRef: dossierRuntimeSnapshot?.auditRef ?? null,
+          missingRuntimeTruth: uniqueStrings([
+            ...(dossierRuntimeSnapshot?.missingRuntimeTruth ?? []),
+            ...(persistedDossierReviewRecord
+              ? []
+              : ["missing_dossier_runtime_truth", "candidate_handoff_not_persisted"]),
+            ...(persistedDossierReviewRecord && !hasPersistedRuntimeRecord
+              ? ["dossier_runtime_record_not_created_yet"]
+              : []),
+            ...dossierRuntimeCandidatePayloads.flatMap(
+              (payload) => payload.missingRuntimeTruth,
+            ),
+            ...dossierRuntimeFeedEnrichmentPayloads.flatMap(
+              (payload) => payload.missingRuntimeTruth,
+            ),
+          ]),
+        }
+      : null;
 
   return {
     title: "Claim-to-Dossier-Pipeline vorbereiten",
     summary: hasPreparedPipeline
-      ? persistedDossierReviewRecord
-        ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Der Downstream-Zielpfad bleibt `dossier_runtime_record`, aber ein echtes Dossier-Runtime-Record entsteht erst nach expliziter Review-Freigabe."
+      ? hasPersistedRuntimeRecord
+        ? "Claims, Gegenpositionen und Fragen zeigen jetzt einen echten serverseitigen Dossier-Runtime-Record aus dem bestehenden review-first Pfad. Die Oberflaeche bleibt trotzdem nur lesend: kein neuer Write-Pfad, kein Auto-Publish und kein Graph-Write werden ausgeloest."
+        : persistedDossierReviewRecord
+          ? "Claims, Gegenpositionen und Fragen laufen jetzt ueber einen echten review-first Record im bestehenden `create_handoff_review_items`-Pfad. Daraus wird serverseitig nur ein Dossier-Review-Draft abgeleitet; ein eigenes `dossier_runtime_record` entsteht weiterhin erst nach separater Review-Freigabe."
         : dossierDraftPreview
           ? "Claims, Gegenpositionen und Fragen werden als review-first Dossier-Handoff auf den bestehenden `dossier_runtime_record`-Pfad ausgerichtet. Die Persistenz dieses Candidate-Handoffs fehlt weiterhin; Umfragen bleiben nur als geplanter Beteiligungsraum-Folgepfad sichtbar."
           : "Die Zielstruktur fuer Dossier- und Beteiligungsraum-Folgepfade ist sichtbar, aber ohne belastbaren Create-Handoff-Kontext bleibt sie bei fehlender Persistenz- und Runtime-Truth."
@@ -617,6 +842,7 @@ function buildClaimToDossierPipeline(params: {
           visibility: dossierDraftPreview.visibility,
         }
       : null,
+    dossierRuntimeHandoff,
     items,
   };
 }
@@ -1348,16 +1574,18 @@ export function buildCreateCandidatePreviewReadModel(
   ];
 
   const reviewHandoff = buildCandidateReviewHandoff(sections);
-  const claimToDossierPipeline = buildClaimToDossierPipeline({
-    handoff,
-    reviewHandoff,
-    persistedReviewRecord: input.persistedReviewRecord ?? null,
-  });
   const feedEnrichmentSuggestions = buildFeedEnrichmentReviewSuggestions({
     input,
     handoff,
     sections,
     evidenceRefs,
+  });
+  const claimToDossierPipeline = buildClaimToDossierPipeline({
+    handoff,
+    reviewHandoff,
+    feedEnrichmentSuggestions,
+    persistedReviewRecord: input.persistedReviewRecord ?? null,
+    sourceDraftId: input.draftId ?? null,
   });
   const totalCount = sections.reduce((sum, section) => sum + section.items.length, 0);
   const hasPreview = totalCount > 0;

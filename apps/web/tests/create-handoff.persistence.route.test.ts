@@ -368,6 +368,20 @@ describe("/api/create/handoffs", () => {
       sourceText: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
       selectedAction: "create_dossier",
     });
+    expect(body.dossierRuntime).toMatchObject({
+      sourceReviewItemId: "create-handoff-route-1",
+      dossierRuntimeId: null,
+      runtimeStatus: "queued_for_review",
+      dossierRuntimeState: "dossier_review_draft",
+      dossierTargetState: "dossier_review_draft",
+      persistenceState: "persisted_review_record",
+      reviewState: "review_required",
+      publishState: "no_auto_publish",
+      graphTargetState: "planned_not_active",
+    });
+    expect(body.dossierRuntime.missingRuntimeTruth).toContain(
+      "missing_dossier_runtime_truth",
+    );
     expect(body.context).toMatchObject({
       regionId: "bezirk-berlin-reinickendorf",
       organizationId: "org-reinickendorf-1",

@@ -11,6 +11,7 @@ import {
   getPersistedCreateHandoffRecord,
   toCreateHandoffDraft,
 } from "@/features/create/persistedHandoffReviewQueue";
+import { getDossierRuntimeHandoffSummary } from "@/features/create/dossierRuntimeServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,9 +63,15 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
+  const dossierRuntime =
+    record.selectedAction === "create_dossier"
+      ? await getDossierRuntimeHandoffSummary(handoffId)
+      : null;
+
   return NextResponse.json({
     ok: true,
     draft: toCreateHandoffDraft(record),
+    dossierRuntime,
     context: {
       regionId: record.regionId,
       organizationId: record.organizationId,
