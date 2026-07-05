@@ -13,6 +13,7 @@ import {
   updateStartDraftContext,
   type StartDraftContext,
 } from "@/features/start/startDraftContext";
+import { PUBLIC_TERMINOLOGY, publicTerminologyText } from "@/features/public/publicTerminology";
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
   buildManualAnlassraumContinueCreateHref,
@@ -41,7 +42,7 @@ const MANUAL_STEP_SUMMARY = [
   { id: "rahmen", label: "Rahmen", lead: "Titel, Leitfrage, Kurzbeschreibung" },
   { id: "optionen", label: "Antworten", lead: "Feste Antworten und Vorschläge aus der Community" },
   { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Intern behalten, später teilen oder prüfen lassen" },
-  { id: "unterstuetzung", label: "Start", lead: "Ohne Voxy speichern oder mit Voxy strukturieren" },
+  { id: "unterstuetzung", label: "Start", lead: `${PUBLIC_TERMINOLOGY.withoutVoxy} speichern oder ${PUBLIC_TERMINOLOGY.withVoxy} strukturieren` },
 ] as const;
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
@@ -84,22 +85,11 @@ type StepGuideProps = {
   label: string;
 };
 
-function publicVoxyCopy(copy: string) {
-  return copy
-    .replace(/Anlassraum/g, "Mitmachraum")
-    .replace(/Runde/g, "Mitmachschritt")
-    .replace(/Runden/g, "Mitmachschritte")
-    .replace(/KI/gi, "Voxy")
-    .replace(/AI/gi, "Voxy")
-    .replace(/Dossier/g, "Themen-Zusammenfassung")
-    .replace(/Graph/g, "Zusammenhänge");
-}
-
 function StepMarker(props: StepGuideProps) {
   return (
     <div className="public-voxy-marker" data-manual-anlassraum-voxy-step={props.stepId}>
       <span aria-hidden="true" className="inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--grad-to))]" />
-      <span>{props.label}: {publicVoxyCopy(props.copy)}</span>
+      <span>{props.label}: {publicTerminologyText(props.copy)}</span>
     </div>
   );
 }
@@ -324,7 +314,7 @@ export default function AnlassraumSetupForm({
               title="Ich helfe dir, daraus einen verständlichen Mitmachraum zu machen."
               variant="welcome"
             >
-              <p>{publicVoxyCopy(RUNDEN_VOXY_COPY.manualFrame)}</p>
+              <p>{publicTerminologyText(RUNDEN_VOXY_COPY.manualFrame)}</p>
             </VoxyGuide>
           </aside>
 
