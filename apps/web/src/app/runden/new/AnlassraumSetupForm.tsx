@@ -383,7 +383,7 @@ export default function AnlassraumSetupForm({
                 {
                   key: "themes",
                   title: "Passende Themen finden",
-                  description: "Mit demselben Anliegen im Themenüberblick weiterarbeiten.",
+                  description: "Mit demselben Anliegen in der Themensuche weiterarbeiten.",
                   href: "/themen?startDraft=1",
                   onClick: () => updateStartDraftContext({ targetHint: "themes" }),
                 },
