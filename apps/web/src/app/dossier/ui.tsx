@@ -38,10 +38,10 @@ export default function DossierIndexClient(props: {
 
         <div className="public-dialog-area">
           <div className="public-section space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Vorbereiteter Beitrag</p>
-            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Dossier vorbereiten</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Dossier-Vorbereitung</p>
+            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Aus einem Beitrag wird ein prüfbarer Arbeitsstand.</h1>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Hier wird nichts automatisch an ein bestehendes Dossier angehängt. Der Arbeitsstand bleibt reviewbar und bestaetigungspflichtig.
+              Ein Dossier bündelt Anliegen, prüfbare Aussagen, Quellenfragen, Gegenpositionen, Zuständigkeit und offene Punkte. Nichts wird automatisch veröffentlicht oder an bestehende Dossiers angehängt.
             </p>
           </div>
 
@@ -53,21 +53,44 @@ export default function DossierIndexClient(props: {
                   Redaktionell prüfen lassen
                 </Link>
                 <Link href="/create" className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
-                  Zurück zu /create
+                  Beitrag weiter bearbeiten
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="public-dialog-surface mt-5 px-4 py-5">
-              <p className="text-sm text-[rgb(var(--muted))]">
-                Noch kein vorbereiteter Beitrag gefunden.
-                {props.seedTopic ? ` Themenhinweis: ${props.seedTopic}.` : ""}
-              </p>
+            <div className="public-dialog-surface mt-5 space-y-4 px-4 py-5">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  Noch kein Dossier-Entwurf geöffnet.
+                </p>
+                <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+                  Starte mit einem kurzen Beitrag. eDebatte kann daraus eine erste Struktur vorbereiten: Was ist die Kernfrage, welche Aussagen sind prüfbar, welche Belege fehlen und welche Gegenpositionen sollten sichtbar werden?
+                  {props.seedTopic ? ` Themenhinweis: ${props.seedTopic}.` : ""}
+                </p>
+              </div>
+              <div className="grid gap-2 text-sm text-[rgb(var(--muted))] sm:grid-cols-2">
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                  <strong className="block text-[rgb(var(--fg))]">Was entsteht?</strong>
+                  Beitrag, Claims, Quellenfragen, offene Punkte und nächster Review-Schritt.
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                  <strong className="block text-[rgb(var(--fg))]">Was passiert nicht?</strong>
+                  Keine automatische Veröffentlichung, keine automatische Anheftung, keine Entscheidung ohne Prüfung.
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/create?intent=create_dossier" className="btn-primary min-h-[42px] px-3 py-2 text-sm">
+                  Beitrag für Dossier starten
+                </Link>
+                <Link href="/themen" className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
+                  Beispielthemen ansehen
+                </Link>
+              </div>
             </div>
           )}
 
           <div className="public-flow-line mt-5 px-0 pt-4 text-sm text-[rgb(var(--muted))]">
-            Nächster Schritt: {readableNextStepLabel(props.createAction)} · Keine automatische Anheftung an bestehende Dossiers ohne Bestätigung.
+            Nächster Schritt: {readableNextStepLabel(props.createAction)} · Veröffentlichung oder Verknüpfung erfolgt erst nach bewusster Bestätigung.
           </div>
         </div>
       </div>
