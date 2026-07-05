@@ -46,7 +46,7 @@ export default async function RundenManualCreatePage(props: {
               Mitmachraum vorbereiten
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Setze zuerst Thema, Frage und mögliche Antworten. Voxy kann danach drüberschauen – aber du entscheidest jeden nächsten Schritt.
+              Setze zuerst Thema, Frage und mögliche Antworten. Danach entscheidest du: ohne Voxy weiter oder mit Voxy strukturieren.
             </p>
           </div>
           <Link
@@ -68,14 +68,14 @@ export default async function RundenManualCreatePage(props: {
             Erst festhalten, dann sortieren, dann gemeinsam klären.
           </h2>
           <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-            Ein Mitmachraum beginnt als Entwurf für eine Frage, kleine Umfrage oder gemeinsame Klärung. Du kannst direkt weiterarbeiten oder Voxy bitten, Struktur, offene Punkte und nächste Schritte zu prüfen.
+            Ein Mitmachraum beginnt als Entwurf für eine Frage, kleine Umfrage oder gemeinsame Klärung. Du kannst direkt weiterarbeiten oder Voxy für Struktur, offene Punkte und nächste Schritte nutzen.
           </p>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
             <li>
-              <strong className="text-[rgb(var(--fg))]">Direkt bearbeiten</strong> speichert deinen Stand ohne zusätzliche Ausarbeitung.
+              <strong className="text-[rgb(var(--fg))]">Ohne Voxy</strong> speicherst du deinen Stand ohne zusätzliche Ausarbeitung.
             </li>
             <li>
-              <strong className="text-[rgb(var(--fg))]">Voxy drüberschauen lassen</strong> hilft beim Ordnen von Thema, Fragen, Zielgruppe und nächsten Schritten.
+              <strong className="text-[rgb(var(--fg))]">Mit Voxy</strong> werden Thema, Fragen, Zielgruppe und nächste Schritte geordnet.
             </li>
             <li>
               Themen-Zusammenfassung, Beteiligung oder Veröffentlichung entstehen erst nach bewusster Prüfung und Bestätigung.
