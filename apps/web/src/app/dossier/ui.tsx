@@ -5,7 +5,9 @@ import Link from "next/link";
 import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
 import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
-import { getVoxyCopy } from "@/features/voxy/voxyCopy";
+
+const DOSSIER_VOXY_COPY =
+  "Ich zeige dir, was aus deinem Beitrag schon verständlich wird, welche Fragen offen bleiben und was vor einer Veröffentlichung geprüft werden muss.";
 
 function readableNextStepLabel(action?: string | null): string {
   switch (action) {
@@ -32,7 +34,7 @@ export default function DossierIndexClient(props: {
       <div className="public-reader-grid">
         <aside className="public-voxy-rail">
           <VoxyGuide appearance="compact" title="Voxy als Prüfhinweis" variant="hint">
-            {getVoxyCopy("dossier")}
+            {DOSSIER_VOXY_COPY}
           </VoxyGuide>
         </aside>
 
