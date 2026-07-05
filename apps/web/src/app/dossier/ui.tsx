@@ -24,9 +24,9 @@ type DossierHandoffPreview = {
 function readableNextStepLabel(action?: string | null): string {
   switch (action) {
     case "append_to_dossier":
-      return "Zusammenfassung ergänzen";
+      return "Debatte & Argumente ergänzen";
     case "create_dossier":
-      return "Neue Themen-Zusammenfassung vorbereiten";
+      return "Neue Debatte & Argumente vorbereiten";
     case "request_factcheck":
       return "Prüfung vorbereiten";
     default:
@@ -123,10 +123,10 @@ export default function DossierIndexClient(props: {
 
         <div className="public-dialog-area">
           <div className="public-section space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Themen-Zusammenfassung</p>
-            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Aus deinem Beitrag wird ein verständlicher Überblick.</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Debatte &amp; Argumente</p>
+            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Aus deinem Beitrag entsteht ein verständlicher Debattenstand.</h1>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Eine Themen-Zusammenfassung bündelt Anliegen, prüfbare Aussagen, Quellenfragen, Gegenpositionen, Zuständigkeit und offene Punkte. Nichts wird automatisch veröffentlicht oder irgendwo angehängt.
+              Debatte &amp; Argumente bündelt Anliegen, prüfbare Aussagen, Quellenfragen, Gegenpositionen, Zuständigkeit und offene Punkte. Nichts wird automatisch veröffentlicht oder irgendwo angehängt.
             </p>
           </div>
 
@@ -138,7 +138,7 @@ export default function DossierIndexClient(props: {
             <div className="public-dialog-surface mt-5 space-y-4 px-4 py-5">
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  Noch keine Themen-Zusammenfassung geöffnet.
+                  Noch keine Debatte &amp; Argumente geöffnet.
                 </p>
                 <p className="text-sm leading-6 text-[rgb(var(--muted))]">
                   Starte mit einem kurzen Beitrag. eDebatte kann daraus eine erste Struktur vorbereiten: Was ist die Kernfrage, welche Aussagen sind prüfbar, welche Belege fehlen und welche Gegenpositionen sollten sichtbar werden?
@@ -157,10 +157,10 @@ export default function DossierIndexClient(props: {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/create?intent=create_dossier" className="btn-primary min-h-[42px] px-3 py-2 text-sm">
-                  Beitrag zusammenfassen lassen
+                  Debatte &amp; Argumente vorbereiten
                 </Link>
                 <Link href="/themen" className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
-                  Beispielthemen ansehen
+                  Themensuche öffnen
                 </Link>
               </div>
             </div>

@@ -50,10 +50,10 @@ export default async function RundenManualCreatePage(props: {
             </p>
           </div>
           <Link
-            href="/runden"
+            href="/themen"
             className="vog-btn-secondary"
           >
-            Zurück zum Themenüberblick
+            Zurück zur Themensuche
           </Link>
         </div>
 
@@ -78,11 +78,11 @@ export default async function RundenManualCreatePage(props: {
               <strong className="text-[rgb(var(--fg))]">Mit Voxy</strong> werden Thema, Fragen, Zielgruppe und nächste Schritte geordnet.
             </li>
             <li>
-              Themen-Zusammenfassung, Beteiligung oder Veröffentlichung entstehen erst nach bewusster Prüfung und Bestätigung.
+              Debatte &amp; Argumente, Beteiligung oder Veröffentlichung entstehen erst nach bewusster Prüfung und Bestätigung.
             </li>
           </ul>
           <p className="mt-3 leading-6 text-[rgb(var(--muted))]">
-            So bleibt verständlich, was vorbereitet wurde, was noch offen ist und wobei Menschen konkret mitmachen können.
+            So bleibt verständlich, was vorbereitet wurde, was noch offen ist und wobei Menschen konkret aktiv dabei sein können.
           </p>
         </section>
 
