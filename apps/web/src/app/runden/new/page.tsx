@@ -7,9 +7,9 @@ import { readRundenEntryCanonReadModel } from "@/features/surfaces/runden/runden
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
 
 export const metadata: Metadata = {
-  title: "Anlassraum manuell starten - eDebatte",
+  title: "Anlassraum vorbereiten - eDebatte",
   description:
-    "Lege einen Anlassraum zuerst manuell an und entscheide später bewusst über KI, Prüfung und Sichtbarkeit.",
+    "Lege einen Anlassraum zuerst als Entwurf an und entscheide später bewusst über KI, Prüfung und Sichtbarkeit.",
 };
 
 type SearchParamsShape =
@@ -43,17 +43,17 @@ export default async function RundenManualCreatePage(props: {
               eDebatte Anlassraum
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">
-              Manuell starten
+              Anlassraum vorbereiten
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Rahmen zuerst selbst setzen. KI, Prüfung und weitere Ausarbeitung bleiben optionale nächste Schritte.
+              Setze zuerst Thema, Rahmen und Ziel. KI, Prüfung und weitere Ausarbeitung bleiben optionale nächste Schritte.
             </p>
           </div>
           <Link
             href="/runden"
             className="vog-btn-secondary"
           >
-            Zurück zu /runden
+            Zurück zu den Anlassräumen
           </Link>
         </div>
 
@@ -62,30 +62,27 @@ export default async function RundenManualCreatePage(props: {
           data-runden-entry-canon="true"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Kanonischer Einstieg heute
+            So funktioniert der Start
           </p>
           <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
-            /runden/new startet mit einem wiederaufnehmbaren Entwurf.
+            Erst Entwurf, dann Prüfung, dann bewusster nächster Schritt.
           </h2>
           <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-            {entryCanon.firstPersistentRecord.runtimeTruth}
+            Ein Anlassraum beginnt als vorbereiteter Arbeitsstand. Du kannst ihn speichern, später fortsetzen oder mit KI-Unterstützung weiter strukturieren lassen.
           </p>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
             <li>
-              <strong className="text-[rgb(var(--fg))]">Ohne KI speichern</strong> erzeugt zuerst den
-              bestehenden serverseitigen Draft plus lokalen Resume-Kontext.
+              <strong className="text-[rgb(var(--fg))]">Ohne KI speichern</strong> hält deinen Rahmen als Entwurf fest.
             </li>
             <li>
-              <strong className="text-[rgb(var(--fg))]">Mit KI in /create weiter</strong> bereitet nur
-              den Wechsel in die vorhandene Analyze-/Planner-Surface vor.
+              <strong className="text-[rgb(var(--fg))]">Mit KI weiterarbeiten</strong> hilft beim Ordnen von Thema, Fragen, Zielgruppe und nächsten Schritten.
             </li>
             <li>
-              Echter Anlassraum, Dossier oder Beteiligungsraum entstehen erst aus bewussten
-              Review- und Runtime-Pfaden.
+              Dossier, Beteiligung oder Veröffentlichung entstehen erst nach bewusster Prüfung und Bestätigung.
             </li>
           </ul>
           <p className="mt-3 leading-6 text-[rgb(var(--muted))]">
-            {entryCanon.reusableSummary.interplay}
+            So bleibt transparent, was vorbereitet wurde, was noch offen ist und welcher Schritt als Nächstes sinnvoll ist.
           </p>
         </section>
 
