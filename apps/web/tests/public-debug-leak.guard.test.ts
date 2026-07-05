@@ -24,6 +24,11 @@ const FORBIDDEN_PUBLIC_DEBUG_TERMS = [
   "kein KI-Lauf",
 ] as const;
 
+const FORBIDDEN_REPLACED_PUBLIC_TERMS = [
+  "Themen-Zusammenfassung",
+  "Themenüberblick",
+] as const;
+
 function readPublicSurfaceFile(path: string) {
   return readFileSync(resolve(process.cwd(), path), "utf8");
 }
@@ -36,6 +41,22 @@ describe("public debug leak guard", () => {
       const source = readPublicSurfaceFile(file);
 
       for (const term of FORBIDDEN_PUBLIC_DEBUG_TERMS) {
+        if (source.includes(term)) {
+          leaks.push(`${file}: ${term}`);
+        }
+      }
+    }
+
+    expect(leaks).toEqual([]);
+  });
+
+  it("keeps replaced public terminology off the aligned entry surfaces", () => {
+    const leaks: string[] = [];
+
+    for (const file of PUBLIC_SURFACE_FILES) {
+      const source = readPublicSurfaceFile(file);
+
+      for (const term of FORBIDDEN_REPLACED_PUBLIC_TERMS) {
         if (source.includes(term)) {
           leaks.push(`${file}: ${term}`);
         }
