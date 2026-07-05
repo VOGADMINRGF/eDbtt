@@ -30,13 +30,13 @@ function mapTopicStage(topic: Topic): ThemenStage {
 function topicReadinessLabel(topic: Topic) {
   switch (topic.readiness) {
     case "ready_for_vote_check":
-      return "Vorbereitung auf Vote-Check";
+      return "Prüfung für Abstimmung";
     case "next_round_needed":
       return "Nächste Runde vorgesehen";
     case "in_implementation":
       return "In Umsetzung";
     case "monitoring_impact":
-      return "Wirkungsbeobachtung";
+      return "Wirkung wird beobachtet";
     default:
       return "In Bearbeitung";
   }
@@ -55,10 +55,12 @@ function StageSection({
   title,
   subtitle,
   topics,
+  emptyText,
 }: {
   title: string;
   subtitle: string;
   topics: Topic[];
+  emptyText: string;
 }) {
   return (
     <section className="space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
@@ -73,8 +75,8 @@ function StageSection({
       </div>
 
       {topics.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[rgb(var(--border))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Aktuell keine Einträge. Neue Themen können jederzeit über den Anlassraum gestartet werden.
+        <div className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm leading-6 text-[rgb(var(--muted))]">
+          {emptyText}
         </div>
       ) : (
         <ul className="grid gap-3">
@@ -130,17 +132,16 @@ export default function ThemenPage() {
     <ProductSurfaceShell>
       <header className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themen</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Themen als Dachfläche</h1>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Themen, an die dein Beitrag anknüpfen kann.</h1>
         <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
-          Aktuelle Arbeitsstände, geplante nächste Schritte und archivierte Themen bleiben in einer Oberfläche sichtbar.
-          Für die operative Arbeit kannst du direkt in Anlassraum, Beitragsvorbereitung oder Prüfung wechseln.
+          eDebatte sammelt Anliegen nicht als lose Kommentare. Themen zeigen, welche Fragen bereits sichtbar sind, welche Beteiligungsräume vorbereitet werden und wo ein Beitrag weiterhelfen kann.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/runden" className="btn-primary inline-flex">
-            Anlass starten
+          <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
+            Beitrag einordnen
           </Link>
-          <Link href="/create?intent=issue_signal" className="btn-secondary inline-flex">
-            Beitrag vorbereiten
+          <Link href="/runden" className="btn-secondary inline-flex">
+            Anlassräume ansehen
           </Link>
           <Link href="/create?intent=round_setup" className="btn-secondary inline-flex">
             Abstimmungsfähigkeit prüfen
@@ -159,18 +160,21 @@ export default function ThemenPage() {
       <div className="mt-8 space-y-4">
         <StageSection
           title="Aktuell"
-          subtitle="Themen mit aktivem Arbeitsstand und offener Beteiligung."
+          subtitle="Themen mit sichtbarem Arbeitsstand und möglicher Beteiligung."
           topics={aktuell}
+          emptyText="Hier erscheinen Themen, sobald ein Anliegen ausreichend eingeordnet wurde. Bis dahin kannst du einen eigenen Beitrag starten oder vorhandene Anlassräume ansehen."
         />
         <StageSection
           title="Geplant"
-          subtitle="Nächste Runden, Vote-Check-Vorbereitung oder strukturierte Umsetzung."
+          subtitle="Nächste Runden, Prüfungen oder strukturierte Umsetzungsschritte."
           topics={geplant}
+          emptyText="Noch ist kein nächster öffentlicher Schritt geplant. Ein Thema wandert hierher, wenn offene Fragen, Zuständigkeit und möglicher Beteiligungsrahmen geklärt sind."
         />
         <StageSection
           title="Archiv"
           subtitle="Abgeschlossene oder beobachtete Themen mit nachvollziehbarem Verlauf."
           topics={archiv}
+          emptyText="Archivierte Themen erscheinen hier erst, wenn eine Runde abgeschlossen oder eine Wirkung nachvollziehbar beobachtet wurde."
         />
       </div>
     </ProductSurfaceShell>
