@@ -8,10 +8,10 @@ describe("public terminology contract", () => {
   });
 
   it("maps internal product terms to public-facing terms", () => {
-    const text = "KI bereitet einen Anlassraum, eine Runde, ein Dossier und den Graph vor.";
+    const text = "KI | Anlassraum | Runden | Dossier | Graph";
 
     expect(publicTerminologyText(text)).toBe(
-      "Voxy bereitet einen Mitmachraum, eine Mitmachschritt, ein Themen-Zusammenfassung und den Zusammenhänge vor.",
+      "Voxy | Mitmachraum | Mitmachschritte | Themen-Zusammenfassung | Zusammenhänge",
     );
   });
 
