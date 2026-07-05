@@ -47,10 +47,10 @@ export default function AnlassraumSupportSettings(
           </p>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{PUBLIC_TERMINOLOGY.themenZusammenfassung}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{PUBLIC_TERMINOLOGY.debatteArgumente}</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Erst nach Prüfung weiterführen</p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Eine Zusammenfassung mit Quellenfragen und offenen Punkten entsteht erst nach einem bewussten nächsten Schritt.
+            Eine Debatte mit Argumenten, Quellenfragen und offenen Punkten entsteht erst nach einem bewussten nächsten Schritt.
           </p>
         </div>
       </div>
