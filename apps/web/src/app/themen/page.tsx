@@ -5,8 +5,8 @@ import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRo
 import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
 
 export const metadata: Metadata = {
-  title: "Themen · eDebatte",
-  description: "Aktuelle, geplante und archivierte Themen mit klaren Anschlusswegen.",
+  title: "Themensuche · eDebatte",
+  description: "Finde Themen, Debatten und Beteiligungsmöglichkeiten mit klaren Anschlusswegen.",
 };
 
 type ThemenStage = "aktuell" | "geplant" | "archiv";
@@ -98,7 +98,7 @@ function StageSection({
 
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
                   <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1">
-                    Offene Mitmachräume: {openRounds}
+                    Aktiv dabei möglich: {openRounds}
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1">
                     Abgeschlossene Schritte: {closedRounds}
@@ -107,10 +107,10 @@ function StageSection({
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link href={`/topic/${topic.slug}`} className="btn-secondary inline-flex">
-                    Thema öffnen
+                    Debatte &amp; Argumente ansehen
                   </Link>
                   <Link href={`/runden?topic=${encodeURIComponent(topic.slug)}`} className="btn-secondary inline-flex">
-                    Mitmachräume ansehen
+                    Aktiv dabei
                   </Link>
                 </div>
               </li>
@@ -131,17 +131,17 @@ export default function ThemenPage() {
   return (
     <ProductSurfaceShell>
       <header className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themenüberblick</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Das große Ganze hinter einzelnen Beiträgen.</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themensuche</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Finde, wo dein Beitrag anknüpft.</h1>
         <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
-          eDebatte sammelt Anliegen nicht als lose Kommentare. Der Themenüberblick zeigt, welche Fragen bereits sichtbar sind, wo kleine Mitmachräume vorbereitet werden und wo dein Beitrag weiterhelfen kann.
+          eDebatte sammelt Anliegen nicht als lose Kommentare. Die Themensuche zeigt, welche Debatten bereits sichtbar sind, wo Argumente und offene Fragen gesammelt werden und wo du aktiv dabei sein kannst.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
             Beitrag einordnen
           </Link>
           <Link href="/runden" className="btn-secondary inline-flex">
-            Mitmachräume ansehen
+            Aktiv dabei
           </Link>
           <Link href="/create?intent=round_setup" className="btn-secondary inline-flex">
             Abstimmungsfähigkeit prüfen
@@ -160,9 +160,9 @@ export default function ThemenPage() {
       <div className="mt-8 space-y-4">
         <StageSection
           title="Aktuell"
-          subtitle="Themen mit sichtbarem Arbeitsstand und möglicher Beteiligung."
+          subtitle="Themen mit sichtbarer Debatte, Argumenten und möglicher Beteiligung."
           topics={aktuell}
-          emptyText="Hier erscheinen Themen, sobald ein Anliegen ausreichend eingeordnet wurde. Bis dahin kannst du einen eigenen Beitrag starten oder vorhandene Mitmachräume ansehen."
+          emptyText="Hier erscheinen Themen, sobald ein Anliegen ausreichend eingeordnet wurde. Bis dahin kannst du einen eigenen Beitrag starten oder schauen, wo du bereits aktiv dabei sein kannst."
         />
         <StageSection
           title="Geplant"
