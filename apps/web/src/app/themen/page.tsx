@@ -32,7 +32,7 @@ function topicReadinessLabel(topic: Topic) {
     case "ready_for_vote_check":
       return "Prüfung für Abstimmung";
     case "next_round_needed":
-      return "Nächste Runde vorgesehen";
+      return "Nächster Mitmachschritt vorgesehen";
     case "in_implementation":
       return "In Umsetzung";
     case "monitoring_impact":
@@ -98,19 +98,19 @@ function StageSection({
 
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
                   <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1">
-                    Offene Runden: {openRounds}
+                    Offene Mitmachräume: {openRounds}
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1">
-                    Abgeschlossene Runden: {closedRounds}
+                    Abgeschlossene Schritte: {closedRounds}
                   </span>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link href={`/topic/${topic.slug}`} className="btn-secondary inline-flex">
-                    Themenraum öffnen
+                    Thema öffnen
                   </Link>
                   <Link href={`/runden?topic=${encodeURIComponent(topic.slug)}`} className="btn-secondary inline-flex">
-                    Anlassraum nutzen
+                    Mitmachräume ansehen
                   </Link>
                 </div>
               </li>
@@ -131,17 +131,17 @@ export default function ThemenPage() {
   return (
     <ProductSurfaceShell>
       <header className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themen</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Themen, an die dein Beitrag anknüpfen kann.</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themenüberblick</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Das große Ganze hinter einzelnen Beiträgen.</h1>
         <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
-          eDebatte sammelt Anliegen nicht als lose Kommentare. Themen zeigen, welche Fragen bereits sichtbar sind, welche Beteiligungsräume vorbereitet werden und wo ein Beitrag weiterhelfen kann.
+          eDebatte sammelt Anliegen nicht als lose Kommentare. Der Themenüberblick zeigt, welche Fragen bereits sichtbar sind, wo kleine Mitmachräume vorbereitet werden und wo dein Beitrag weiterhelfen kann.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
             Beitrag einordnen
           </Link>
           <Link href="/runden" className="btn-secondary inline-flex">
-            Anlassräume ansehen
+            Mitmachräume ansehen
           </Link>
           <Link href="/create?intent=round_setup" className="btn-secondary inline-flex">
             Abstimmungsfähigkeit prüfen
@@ -162,11 +162,11 @@ export default function ThemenPage() {
           title="Aktuell"
           subtitle="Themen mit sichtbarem Arbeitsstand und möglicher Beteiligung."
           topics={aktuell}
-          emptyText="Hier erscheinen Themen, sobald ein Anliegen ausreichend eingeordnet wurde. Bis dahin kannst du einen eigenen Beitrag starten oder vorhandene Anlassräume ansehen."
+          emptyText="Hier erscheinen Themen, sobald ein Anliegen ausreichend eingeordnet wurde. Bis dahin kannst du einen eigenen Beitrag starten oder vorhandene Mitmachräume ansehen."
         />
         <StageSection
           title="Geplant"
-          subtitle="Nächste Runden, Prüfungen oder strukturierte Umsetzungsschritte."
+          subtitle="Nächste Mitmachschritte, Prüfungen oder strukturierte Umsetzungsschritte."
           topics={geplant}
           emptyText="Noch ist kein nächster öffentlicher Schritt geplant. Ein Thema wandert hierher, wenn offene Fragen, Zuständigkeit und möglicher Beteiligungsrahmen geklärt sind."
         />
@@ -174,7 +174,7 @@ export default function ThemenPage() {
           title="Archiv"
           subtitle="Abgeschlossene oder beobachtete Themen mit nachvollziehbarem Verlauf."
           topics={archiv}
-          emptyText="Archivierte Themen erscheinen hier erst, wenn eine Runde abgeschlossen oder eine Wirkung nachvollziehbar beobachtet wurde."
+          emptyText="Archivierte Themen erscheinen hier erst, wenn ein Mitmachschritt abgeschlossen oder eine Wirkung nachvollziehbar beobachtet wurde."
         />
       </div>
     </ProductSurfaceShell>
