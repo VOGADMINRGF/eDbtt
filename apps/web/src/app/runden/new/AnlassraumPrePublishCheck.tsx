@@ -26,7 +26,7 @@ export default function AnlassraumPrePublishCheck(
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Nächste Schritte</h2>
         <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-          Prüfe den Entwurf zum Schluss noch einmal. Danach kannst du direkt speichern, Voxy drüberschauen lassen oder ihn bewusst zur Prüfung einreichen.
+          Prüfe den Entwurf zum Schluss noch einmal. Danach kannst du ohne Voxy speichern, mit Voxy strukturieren oder ihn bewusst zur Prüfung einreichen.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function AnlassraumPrePublishCheck(
               Voxy
             </p>
             <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-              {props.setup.aiSupportMode === "disabled" ? "Nicht ausgewählt" : "Optional ausgewählt"}
+              {props.setup.aiSupportMode === "disabled" ? "Ohne Voxy" : "Mit Voxy"}
             </p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function AnlassraumPrePublishCheck(
           disabled={!props.actionState.canSaveDraft || actionDisabled}
           className="vog-btn-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {props.isSaving ? "Speichert..." : "Direkt speichern"}
+          {props.isSaving ? "Speichert..." : "Ohne Voxy"}
         </button>
         <Link
           href={props.continueCreateHref}
@@ -93,7 +93,7 @@ export default function AnlassraumPrePublishCheck(
           aria-disabled={!props.actionState.canContinueCreate || actionDisabled}
           data-continue-create-href={props.continueCreateHref}
         >
-          Voxy drüberschauen lassen
+          Mit Voxy
         </Link>
         <button
           type="button"
@@ -101,7 +101,7 @@ export default function AnlassraumPrePublishCheck(
           disabled={!props.actionState.canSubmitPublicReview || actionDisabled}
           className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {props.isSaving ? "Speichert..." : "Zur Prüfung einreichen"}
+          {props.isSaving ? "Speichert..." : "Zur Prüfung"}
         </button>
         <button
           type="button"
