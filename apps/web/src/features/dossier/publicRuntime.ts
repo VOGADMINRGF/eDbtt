@@ -6,19 +6,7 @@ import type {
   DossierSourceDoc,
   OpenQuestionDoc,
 } from "@features/dossier";
-import {
-  dossierClaimsCol,
-  dossierFindingsCol,
-  dossierSourcesCol,
-  dossiersCol,
-  openQuestionsCol,
-} from "@features/dossier/db";
-import { buildDossierUpdateReadModel, type DossierPublicUpdateContext } from "@features/dossier/updateReadModel";
-import {
-  getAnyDossierPublicationRecordByDossierId,
-  getPublishedDossierPublicationRecordByDossierId,
-  listPublishedDossierPublicationRecords,
-} from "@/features/create/dossierPublishWorkflowServer";
+import type { DossierPublicUpdateContext } from "@features/dossier/updateReadModel";
 import {
   stripDossierInternalFieldsForPublic,
   type DossierPublicationRecord,
@@ -222,6 +210,9 @@ export function mapDossierToPublicDossier(input: {
 }
 
 export async function listPublishedDossiers(limit = 40) {
+  const { listPublishedDossierPublicationRecords } = await import(
+    "@/features/create/dossierPublishWorkflowServer"
+  );
   const records = await listPublishedDossierPublicationRecords(limit);
   return records.map((record): PublicDossierRuntimeItem => ({
     id: String(record.dossierId),
@@ -234,29 +225,34 @@ export async function listPublishedDossiers(limit = 40) {
 }
 
 export async function getPublishedDossierBySlugOrId(slugOrId: string) {
-  const publication = await getPublishedDossierPublicationRecordByDossierId(slugOrId);
+  const [workflowServer, dossierDb, updateReadModel] = await Promise.all([
+    import("@/features/create/dossierPublishWorkflowServer"),
+    import("@features/dossier/db"),
+    import("@features/dossier/updateReadModel"),
+  ]);
+  const publication = await workflowServer.getPublishedDossierPublicationRecordByDossierId(slugOrId);
   if (!publication) return null;
 
-  const [dossierDoc, claims, sources, findings, openQuestions, updateReadModel] =
+  const [dossierDoc, claims, sources, findings, openQuestions, updateReadModelResult] =
     await Promise.all([
-      (await dossiersCol()).findOne({ dossierId: String(publication.dossierId) } as any),
-      (await dossierClaimsCol())
+      (await dossierDb.dossiersCol()).findOne({ dossierId: String(publication.dossierId) } as any),
+      (await dossierDb.dossierClaimsCol())
         .find({ dossierId: String(publication.dossierId) })
         .sort({ createdAt: 1 })
         .toArray(),
-      (await dossierSourcesCol())
+      (await dossierDb.dossierSourcesCol())
         .find({ dossierId: String(publication.dossierId) })
         .sort({ publishedAt: -1, createdAt: -1 })
         .toArray(),
-      (await dossierFindingsCol())
+      (await dossierDb.dossierFindingsCol())
         .find({ dossierId: String(publication.dossierId) })
         .sort({ updatedAt: -1 })
         .toArray(),
-      (await openQuestionsCol())
+      (await dossierDb.openQuestionsCol())
         .find({ dossierId: String(publication.dossierId) })
         .sort({ status: 1, createdAt: 1 })
         .toArray(),
-      buildDossierUpdateReadModel({
+      updateReadModel.buildDossierUpdateReadModel({
         dossierId: String(publication.dossierId),
         materialize: true,
         publicVisible: true,
@@ -277,7 +273,7 @@ export async function getPublishedDossierBySlugOrId(slugOrId: string) {
       id: String(publication.dossierId),
       slug: String(publication.dossierId),
       dossier,
-      updateContext: updateReadModel?.publicContext ?? null,
+      updateContext: updateReadModelResult?.publicContext ?? null,
       materialLinks: [],
       source: "runtime" as const,
     },
@@ -286,5 +282,8 @@ export async function getPublishedDossierBySlugOrId(slugOrId: string) {
 }
 
 export async function getDossierPublicationRuntimeHint(slugOrId: string) {
+  const { getAnyDossierPublicationRecordByDossierId } = await import(
+    "@/features/create/dossierPublishWorkflowServer"
+  );
   return getAnyDossierPublicationRecordByDossierId(slugOrId);
 }
