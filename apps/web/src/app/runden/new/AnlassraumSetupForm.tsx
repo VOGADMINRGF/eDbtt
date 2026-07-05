@@ -7,17 +7,17 @@ import VoxyGuide from "@/components/voxy/VoxyGuide";
 import StartDraftWorkspaceChooser from "@/features/start/StartDraftWorkspaceChooser";
 import {
   clearStartDraftContext,
-  saveStartDraftContext,
-  getStartDraftForTarget,
   createStartDraftContext,
+  getStartDraftForTarget,
+  saveStartDraftContext,
   updateStartDraftContext,
   type StartDraftContext,
 } from "@/features/start/startDraftContext";
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
 import {
-  buildManualAnlassraumStartDraft,
-  buildManualAnlassraumServerDraftSavePayload,
   buildManualAnlassraumContinueCreateHref,
+  buildManualAnlassraumServerDraftSavePayload,
+  buildManualAnlassraumStartDraft,
   createEmptyManualAnlassraumSetup,
   resolveManualAnlassraumActionState,
   sanitizeManualAnlassraumSetup,
@@ -29,18 +29,19 @@ import {
   type ManualAnlassraumSetup,
   type ManualAnlassraumVisibility,
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
-import AnlassraumStartDraftPanel from "./AnlassraumStartDraftPanel";
 import AnlassraumOptionEditor from "./AnlassraumOptionEditor";
 import AnlassraumPrePublishCheck from "./AnlassraumPrePublishCheck";
+import AnlassraumStartDraftPanel from "./AnlassraumStartDraftPanel";
 import AnlassraumSupportSettings from "./AnlassraumSupportSettings";
 import AnlassraumVisibilitySettings from "./AnlassraumVisibilitySettings";
 
 const MANUAL_ANLASSRAUM_STORAGE_KEY = "manual-anlassraum-setup.v1";
+
 const MANUAL_STEP_SUMMARY = [
   { id: "rahmen", label: "Rahmen", lead: "Titel, Leitfrage, Kurzbeschreibung" },
-  { id: "optionen", label: "Optionen", lead: "Feste Antworten und Community-Vorschläge" },
-  { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Intern, später öffentlich oder nach Review" },
-  { id: "unterstuetzung", label: "Unterstützung & Start", lead: "KI, Graph und Dossier bleiben optional" },
+  { id: "optionen", label: "Antworten", lead: "Feste Antworten und Vorschläge aus der Community" },
+  { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Intern behalten, später teilen oder prüfen lassen" },
+  { id: "unterstuetzung", label: "Start", lead: "Ohne Voxy speichern oder mit Voxy strukturieren" },
 ] as const;
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
@@ -83,11 +84,22 @@ type StepGuideProps = {
   label: string;
 };
 
+function publicVoxyCopy(copy: string) {
+  return copy
+    .replace(/Anlassraum/g, "Mitmachraum")
+    .replace(/Runde/g, "Mitmachschritt")
+    .replace(/Runden/g, "Mitmachschritte")
+    .replace(/KI/gi, "Voxy")
+    .replace(/AI/gi, "Voxy")
+    .replace(/Dossier/g, "Themen-Zusammenfassung")
+    .replace(/Graph/g, "Zusammenhänge");
+}
+
 function StepMarker(props: StepGuideProps) {
   return (
     <div className="public-voxy-marker" data-manual-anlassraum-voxy-step={props.stepId}>
       <span aria-hidden="true" className="inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--grad-to))]" />
-      <span>{props.label}: {props.copy}</span>
+      <span>{props.label}: {publicVoxyCopy(props.copy)}</span>
     </div>
   );
 }
@@ -122,11 +134,9 @@ export default function AnlassraumSetupForm({
       setStartDraft(existingDraft);
     }
     const restoredSetup = initialServerDraft?.setup ?? readStoredSetup();
-    const restoreText = initialServerDraft
-      ? "Dein serverseitig gespeicherter Entwurf wurde wieder geöffnet."
-      : restoredSetup
-        ? "Dein lokal gesicherter Entwurf wurde wieder geöffnet."
-        : null;
+    const restoreText = restoredSetup
+      ? "Dein gespeicherter Entwurf wurde wieder geöffnet."
+      : null;
     if (initialServerDraft?.draftId) {
       setServerDraftId(initialServerDraft.draftId);
       syncDraftUrl(initialServerDraft.draftId);
@@ -181,7 +191,7 @@ export default function AnlassraumSetupForm({
     const nextDraft =
       buildManualAnlassraumStartDraft(nextSetup, startDraft) ??
       createStartDraftContext({
-        text: nextSetup.title || nextSetup.votingQuestion || "Manueller Anlassraum-Entwurf",
+        text: nextSetup.title || nextSetup.votingQuestion || "Mitmachraum-Entwurf",
         origin: "round_handoff",
         intent: "round_suggestion",
         targetHint,
@@ -234,9 +244,9 @@ export default function AnlassraumSetupForm({
   async function persistManualDraftWithNotice(
     nextStep: ManualAnlassraumNextStep,
     notices: {
-      serverSaved: string;
+      saved: string;
       authRequired: string;
-      serverFailed: string;
+      failed: string;
     },
   ) {
     const nextSetup = persistWithNextStep(nextStep);
@@ -248,16 +258,16 @@ export default function AnlassraumSetupForm({
       if (result.ok) {
         setServerDraftId(result.draftId);
         syncDraftUrl(result.draftId);
-        setActionNotice(notices.serverSaved);
+        setActionNotice(notices.saved);
         return;
       }
       if (result.error === "not_authenticated") {
         setActionNotice(notices.authRequired);
         return;
       }
-      setActionNotice(notices.serverFailed);
+      setActionNotice(notices.failed);
     } catch {
-      setActionNotice(notices.serverFailed);
+      setActionNotice(notices.failed);
     } finally {
       setIsPersisting(false);
     }
@@ -276,12 +286,12 @@ export default function AnlassraumSetupForm({
       if (!result.ok) {
         if (result.error === "not_authenticated") {
           setActionNotice(
-            "Zum KI-gestützten Weiterarbeiten in /create bitte zuerst anmelden. Dein Entwurf bleibt lokal gespeichert; es wurde kein KI-Lauf gestartet.",
+            "Zum Arbeiten mit Voxy bitte zuerst anmelden. Dein Entwurf bleibt lokal gespeichert; es wurde nichts veröffentlicht.",
           );
           return;
         }
         setActionNotice(
-          "Der serverseitige Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne den Entwurf erneut, bevor du in /create weitergehst. Es wurde kein KI-Lauf gestartet.",
+          "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor du mit Voxy weiterarbeitest. Es wurde nichts veröffentlicht.",
         );
         return;
       }
@@ -297,7 +307,7 @@ export default function AnlassraumSetupForm({
       );
     } catch {
       setActionNotice(
-        "Der serverseitige Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne den Entwurf erneut, bevor du in /create weitergehst. Es wurde kein KI-Lauf gestartet.",
+        "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor du mit Voxy weiterarbeitest. Es wurde nichts veröffentlicht.",
       );
     } finally {
       setIsPersisting(false);
@@ -311,35 +321,28 @@ export default function AnlassraumSetupForm({
           <aside className="public-voxy-rail order-2 lg:order-1">
             <VoxyGuide
               appearance="panel"
-              title="Ich führe dich Schritt für Schritt durch den Entwurf."
+              title="Ich helfe dir, daraus einen verständlichen Mitmachraum zu machen."
               variant="welcome"
             >
-              <p>{RUNDEN_VOXY_COPY.manualFrame}</p>
+              <p>{publicVoxyCopy(RUNDEN_VOXY_COPY.manualFrame)}</p>
             </VoxyGuide>
           </aside>
 
           <div className="public-dialog-area order-1 lg:order-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-              eDebatte Anlassraum
+              eDebatte Mitmachraum
             </p>
             <h1 className="mt-2 public-hero-title anlassraum-hero-title font-semibold tracking-tight text-[rgb(var(--fg))]">
-              Bereite deinen <span className="public-gradient-text">Anlassraum</span>{" "}
+              Bereite deinen <span className="public-gradient-text">Mitmachraum</span>{" "}
               <span className="public-gradient-text">Schritt für Schritt</span> vor.
             </h1>
             <p className="public-hero-lead mt-3 max-w-3xl">
-              Lege Rahmen, Optionen und Sichtbarkeit zuerst selbst fest. Alles Weitere bleibt ein bewusster
-              Folgeschritt.
+              Lege Thema, Frage, mögliche Antworten und Sichtbarkeit zuerst selbst fest. Danach kannst du ohne Voxy speichern oder mit Voxy strukturieren.
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-sm text-[rgb(var(--muted))]">
-              <span className="anlassraum-soft-signal">
-                4 klare Schritte
-              </span>
-              <span className="anlassraum-soft-signal">
-                KI optional
-              </span>
-              <span className="anlassraum-soft-signal">
-                Nichts geht automatisch online
-              </span>
+              <span className="anlassraum-soft-signal">4 klare Schritte</span>
+              <span className="anlassraum-soft-signal">Mit oder ohne Voxy</span>
+              <span className="anlassraum-soft-signal">Nichts geht automatisch online</span>
             </div>
           </div>
         </div>
@@ -371,9 +374,9 @@ export default function AnlassraumSetupForm({
         ) : null}
         <AnlassraumStartDraftPanel
           visible={Boolean(startDraft)}
-          title="Runde aus deinem Entwurf vorbereiten"
+          title="Mitmachraum aus deinem Entwurf vorbereiten"
           statusLine="Noch nicht veröffentlicht"
-          helperText="Optionen ergänzen. Du kannst Titel, Frage und Optionen weiterbearbeiten."
+          helperText="Du kannst Titel, Frage und Antworten weiterbearbeiten oder den Stand später fortsetzen."
         />
         {startDraft ? (
           <div className="mt-4">
@@ -390,14 +393,14 @@ export default function AnlassraumSetupForm({
                 {
                   key: "themes",
                   title: "Passende Themen finden",
-                  description: "Mit demselben Anliegen im Themenmodus weiterarbeiten.",
+                  description: "Mit demselben Anliegen im Themenüberblick weiterarbeiten.",
                   href: "/themen?startDraft=1",
                   onClick: () => updateStartDraftContext({ targetHint: "themes" }),
                 },
                 {
                   key: "rounds",
-                  title: "Runde vorbereiten",
-                  description: "Optionen weiterbearbeiten und als Runden-Entwurf offen halten.",
+                  title: "Mitmachraum vorbereiten",
+                  description: "Antworten weiterbearbeiten und als Entwurf offen halten.",
                   href: serverDraftId
                     ? `/runden/new?draftId=${encodeURIComponent(serverDraftId)}&startDraft=1&from=rounds`
                     : "/runden/new?startDraft=1&from=rounds",
@@ -405,8 +408,8 @@ export default function AnlassraumSetupForm({
                 },
                 {
                   key: "editorial",
-                  title: "Redaktionelle Prüfung anfragen",
-                  description: "Denselben Entwurf manuell prüfen lassen, ohne etwas zu veröffentlichen.",
+                  title: "Prüfung anfragen",
+                  description: "Denselben Entwurf prüfen lassen, ohne etwas zu veröffentlichen.",
                   href: "/start?review=editorial",
                   onClick: () => updateStartDraftContext({ origin: "start_relevance_review" }),
                 },
@@ -429,7 +432,7 @@ export default function AnlassraumSetupForm({
                   setSetup(createEmptyManualAnlassraumSetup());
                   setStartDraft(null);
                   setRestoreNotice(null);
-                  setActionNotice("Entwurf verworfen. Es wurde kein KI-Lauf gestartet.");
+                  setActionNotice("Entwurf verworfen. Es wurde nichts veröffentlicht.");
                 }}
               >
                 Entwurf verwerfen
@@ -448,7 +451,7 @@ export default function AnlassraumSetupForm({
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-               copy={RUNDEN_VOXY_COPY.manualFrame}
+              copy={RUNDEN_VOXY_COPY.manualFrame}
               stepId="rahmen"
               label="Schritt 1"
             />
@@ -461,7 +464,7 @@ export default function AnlassraumSetupForm({
               </p>
               <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Rahmen</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-                Noch keine perfekte Formulierung nötig. Lege erst den Rahmen fest.
+                Noch keine perfekte Formulierung nötig. Halte erst fest, worum es geht.
               </p>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -483,7 +486,7 @@ export default function AnlassraumSetupForm({
                 </label>
                 <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                    Abstimmungsfrage
+                    Leitfrage
                   </span>
                   <input
                     value={setup.votingQuestion}
@@ -512,7 +515,7 @@ export default function AnlassraumSetupForm({
                     }))
                   }
                   className="mt-2 min-h-[120px] w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200/60"
-                  placeholder="Beschreibe kurz, worum es geht, wer betroffen ist und warum der Anlass jetzt wichtig ist."
+                  placeholder="Beschreibe kurz, worum es geht, wer betroffen ist und warum das Thema jetzt wichtig ist."
                 />
               </label>
             </section>
@@ -524,7 +527,7 @@ export default function AnlassraumSetupForm({
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-               copy={RUNDEN_VOXY_COPY.manualOptions}
+              copy={RUNDEN_VOXY_COPY.manualOptions}
               stepId="optionen"
               label="Schritt 2"
             />
@@ -570,7 +573,7 @@ export default function AnlassraumSetupForm({
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-               copy={RUNDEN_VOXY_COPY.manualVisibility}
+              copy={RUNDEN_VOXY_COPY.manualVisibility}
               stepId="sichtbarkeit"
               label="Schritt 3"
             />
@@ -598,7 +601,7 @@ export default function AnlassraumSetupForm({
         <section className="space-y-4">
           <div className="space-y-4">
             <StepMarker
-               copy={RUNDEN_VOXY_COPY.manualSupport}
+              copy={RUNDEN_VOXY_COPY.manualSupport}
               stepId="unterstuetzung"
               label="Schritt 4"
             />
@@ -627,12 +630,12 @@ export default function AnlassraumSetupForm({
                   void persistManualDraftWithNotice(
                     "save_draft",
                     {
-                      serverSaved:
-                        "Anlassraum-Entwurf lokal und serverseitig gespeichert. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet. Du kannst denselben Stand später wieder auf /runden/new öffnen oder bewusst in /create vertiefen.",
+                      saved:
+                        "Mitmachraum-Entwurf gespeichert. Es wurde nichts veröffentlicht. Du kannst später ohne Voxy weiterarbeiten oder mit Voxy strukturieren.",
                       authRequired:
-                        "Anlassraum-Entwurf lokal gespeichert. Zum serverseitigen Speichern bitte anmelden. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet.",
-                      serverFailed:
-                        "Anlassraum-Entwurf lokal gespeichert. Serverseitiges Speichern ist fehlgeschlagen. Kein KI-Lauf, kein AI-Usage-Event und keine weitere Recherche-Automation wurden gestartet.",
+                        "Mitmachraum-Entwurf lokal gespeichert. Zum Speichern im Konto bitte anmelden. Es wurde nichts veröffentlicht.",
+                      failed:
+                        "Mitmachraum-Entwurf lokal gespeichert. Das Speichern im Konto ist fehlgeschlagen. Es wurde nichts veröffentlicht.",
                     },
                   );
                 }}
@@ -641,12 +644,12 @@ export default function AnlassraumSetupForm({
                   void persistManualDraftWithNotice(
                     "start_internal",
                     {
-                      serverSaved:
-                        "Interner Anlassraum-Entwurf lokal und serverseitig gespeichert. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                      saved:
+                        "Mitmachraum intern vorgemerkt. Sichtbarkeit, Prüfung und Voxy bleiben bewusste nächste Schritte.",
                       authRequired:
-                        "Interner Anlassraum-Entwurf lokal gespeichert. Zum serverseitigen Speichern bitte anmelden. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
-                      serverFailed:
-                        "Interner Anlassraum-Entwurf lokal gespeichert. Serverseitiges Speichern ist fehlgeschlagen. Sichtbarkeit, Prüfung und KI bleiben bewusste nächste Schritte.",
+                        "Mitmachraum lokal vorgemerkt. Zum Speichern im Konto bitte anmelden. Sichtbarkeit, Prüfung und Voxy bleiben bewusste nächste Schritte.",
+                      failed:
+                        "Mitmachraum lokal vorgemerkt. Das Speichern im Konto ist fehlgeschlagen. Sichtbarkeit, Prüfung und Voxy bleiben bewusste nächste Schritte.",
                     },
                   );
                 }}
@@ -655,12 +658,12 @@ export default function AnlassraumSetupForm({
                   void persistManualDraftWithNotice(
                     "submit_public_review",
                     {
-                      serverSaved:
-                        "Entwurf lokal und serverseitig für spätere öffentliche Prüfung vorgemerkt. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                      saved:
+                        "Entwurf für spätere öffentliche Prüfung vorgemerkt. Es wurde nichts automatisch veröffentlicht.",
                       authRequired:
-                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Zum serverseitigen Speichern bitte anmelden. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
-                      serverFailed:
-                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Serverseitiges Speichern ist fehlgeschlagen. Es wurde nichts automatisch veröffentlicht und kein KI-Lauf gestartet.",
+                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Zum Speichern im Konto bitte anmelden. Es wurde nichts automatisch veröffentlicht.",
+                      failed:
+                        "Entwurf lokal für spätere öffentliche Prüfung vorgemerkt. Das Speichern im Konto ist fehlgeschlagen. Es wurde nichts automatisch veröffentlicht.",
                     },
                   );
                 }}
@@ -671,15 +674,15 @@ export default function AnlassraumSetupForm({
         </section>
       </MotionStep>
 
-      <div className={joinClasses("flex flex-wrap gap-2 text-sm text-[rgb(var(--muted))]")}>
+      <div className="flex flex-wrap gap-2 text-sm text-[rgb(var(--muted))]">
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
           Titel oder Frage: {actionState.hasFrameInput ? "gesetzt" : "noch offen"}
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-          Feste Optionen: {actionState.optionCount}
+          Antwortmöglichkeiten: {actionState.optionCount}
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-          KI: {setup.aiSupportMode === "disabled" ? "nicht aktiv" : "optional"}
+          Voxy: {setup.aiSupportMode === "disabled" ? "ohne" : "mit"}
         </span>
       </div>
     </div>

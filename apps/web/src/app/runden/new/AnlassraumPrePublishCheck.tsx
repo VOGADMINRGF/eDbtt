@@ -26,8 +26,7 @@ export default function AnlassraumPrePublishCheck(
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Nächste Schritte</h2>
         <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-          Prüfe den Entwurf zum Schluss noch einmal. Danach kannst du ihn ohne KI speichern, in `/create`
-          weiter ausarbeiten oder bewusst nach Review einreichen.
+          Prüfe den Entwurf zum Schluss noch einmal. Danach kannst du ohne Voxy speichern, mit Voxy strukturieren oder ihn bewusst zur Prüfung einreichen.
         </p>
       </div>
 
@@ -46,7 +45,7 @@ export default function AnlassraumPrePublishCheck(
           </div>
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-              Feste Optionen
+              Antwortmöglichkeiten
             </p>
             <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
               {props.actionState.optionCount}
@@ -54,10 +53,10 @@ export default function AnlassraumPrePublishCheck(
           </div>
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-              KI
+              Voxy
             </p>
             <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-              {props.setup.aiSupportMode === "disabled" ? "Aus" : "Optional später"}
+              {props.setup.aiSupportMode === "disabled" ? "Ohne Voxy" : "Mit Voxy"}
             </p>
           </div>
         </div>
@@ -81,7 +80,7 @@ export default function AnlassraumPrePublishCheck(
           disabled={!props.actionState.canSaveDraft || actionDisabled}
           className="vog-btn-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {props.isSaving ? "Speichert..." : "Ohne KI speichern"}
+          {props.isSaving ? "Speichert..." : "Ohne Voxy"}
         </button>
         <Link
           href={props.continueCreateHref}
@@ -94,7 +93,7 @@ export default function AnlassraumPrePublishCheck(
           aria-disabled={!props.actionState.canContinueCreate || actionDisabled}
           data-continue-create-href={props.continueCreateHref}
         >
-          Mit KI in /create weiter
+          Mit Voxy
         </Link>
         <button
           type="button"
@@ -102,7 +101,7 @@ export default function AnlassraumPrePublishCheck(
           disabled={!props.actionState.canSubmitPublicReview || actionDisabled}
           className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {props.isSaving ? "Speichert..." : "Öffentlich nach Review einreichen"}
+          {props.isSaving ? "Speichert..." : "Zur Prüfung"}
         </button>
         <button
           type="button"
@@ -110,7 +109,7 @@ export default function AnlassraumPrePublishCheck(
           disabled={!props.actionState.canStartInternal || actionDisabled}
           className="vog-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {props.isSaving ? "Speichert..." : "Intern starten"}
+          {props.isSaving ? "Speichert..." : "Intern behalten"}
         </button>
       </div>
     </section>

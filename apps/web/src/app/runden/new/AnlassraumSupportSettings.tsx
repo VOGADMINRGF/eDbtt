@@ -12,6 +12,20 @@ function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
+function publicSupportChoiceLabel(label: string) {
+  return label
+    .replace(/KI/gi, "Voxy")
+    .replace(/AI/gi, "Voxy")
+    .replace(/Dossier/g, "Themen-Zusammenfassung");
+}
+
+function publicSupportChoiceDescription(description: string) {
+  return description
+    .replace(/KI/gi, "Voxy")
+    .replace(/AI/gi, "Voxy")
+    .replace(/Dossier/g, "Themen-Zusammenfassung");
+}
+
 export default function AnlassraumSupportSettings(
   props: AnlassraumSupportSettingsProps,
 ) {
@@ -27,29 +41,29 @@ export default function AnlassraumSupportSettings(
         Unterstützung &amp; Start
       </h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-        KI, Graph und Dossier bleiben optionale Hilfe. Nichts davon startet automatisch.
+        Du kannst ohne Voxy direkt speichern oder mit Voxy weiter strukturieren. Nichts davon geht automatisch online.
       </p>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">KI</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Optional für Formulierungen</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Ohne Voxy</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Direkt speichern</p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Nur wenn du es auswählst, kommen Hinweise oder weitere Vorschläge dazu.
+            Dein Entwurf bleibt erhalten. Du kannst Titel, Frage und Antworten später weiter anpassen.
           </p>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Graph</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Später einordnen</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mit Voxy</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Struktur vorschlagen</p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Zusammenhänge und Anschlussfragen bleiben ein bewusster Folgeschritt.
+            Voxy kann offene Fragen, Anschlussstellen und bessere Formulierungen vorschlagen.
           </p>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Dossier</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themen-Zusammenfassung</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Erst nach Prüfung weiterführen</p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Ein Dossier entsteht nicht automatisch, sondern erst nach einem bewussten nächsten Schritt.
+            Eine Zusammenfassung mit Quellenfragen und offenen Punkten entsteht erst nach einem bewussten nächsten Schritt.
           </p>
         </div>
       </div>
@@ -70,8 +84,8 @@ export default function AnlassraumSupportSettings(
                   : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]",
               )}
             >
-              <span className="block text-sm font-semibold">{choice.label}</span>
-              <span className="mt-1 block text-xs leading-5">{choice.description}</span>
+              <span className="block text-sm font-semibold">{publicSupportChoiceLabel(choice.label)}</span>
+              <span className="mt-1 block text-xs leading-5">{publicSupportChoiceDescription(choice.description)}</span>
             </button>
           );
         })}

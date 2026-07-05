@@ -7,9 +7,9 @@ import { readRundenEntryCanonReadModel } from "@/features/surfaces/runden/runden
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
 
 export const metadata: Metadata = {
-  title: "Anlassraum manuell starten - eDebatte",
+  title: "Mitmachraum vorbereiten - eDebatte",
   description:
-    "Lege einen Anlassraum zuerst manuell an und entscheide später bewusst über KI, Prüfung und Sichtbarkeit.",
+    "Lege einen Mitmachraum zuerst als Entwurf an und entscheide später bewusst über Voxy, Prüfung und Sichtbarkeit.",
 };
 
 type SearchParamsShape =
@@ -40,20 +40,20 @@ export default async function RundenManualCreatePage(props: {
         <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-              eDebatte Anlassraum
+              eDebatte Mitmachraum
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">
-              Manuell starten
+              Mitmachraum vorbereiten
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Rahmen zuerst selbst setzen. KI, Prüfung und weitere Ausarbeitung bleiben optionale nächste Schritte.
+              Setze zuerst Thema, Frage und mögliche Antworten. Danach entscheidest du: ohne Voxy weiter oder mit Voxy strukturieren.
             </p>
           </div>
           <Link
             href="/runden"
             className="vog-btn-secondary"
           >
-            Zurück zu /runden
+            Zurück zum Themenüberblick
           </Link>
         </div>
 
@@ -62,30 +62,27 @@ export default async function RundenManualCreatePage(props: {
           data-runden-entry-canon="true"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Kanonischer Einstieg heute
+            So funktioniert der Start
           </p>
           <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
-            /runden/new startet mit einem wiederaufnehmbaren Entwurf.
+            Erst festhalten, dann sortieren, dann gemeinsam klären.
           </h2>
           <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-            {entryCanon.firstPersistentRecord.runtimeTruth}
+            Ein Mitmachraum beginnt als Entwurf für eine Frage, kleine Umfrage oder gemeinsame Klärung. Du kannst direkt weiterarbeiten oder Voxy für Struktur, offene Punkte und nächste Schritte nutzen.
           </p>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
             <li>
-              <strong className="text-[rgb(var(--fg))]">Ohne KI speichern</strong> erzeugt zuerst den
-              bestehenden serverseitigen Draft plus lokalen Resume-Kontext.
+              <strong className="text-[rgb(var(--fg))]">Ohne Voxy</strong> speicherst du deinen Stand ohne zusätzliche Ausarbeitung.
             </li>
             <li>
-              <strong className="text-[rgb(var(--fg))]">Mit KI in /create weiter</strong> bereitet nur
-              den Wechsel in die vorhandene Analyze-/Planner-Surface vor.
+              <strong className="text-[rgb(var(--fg))]">Mit Voxy</strong> werden Thema, Fragen, Zielgruppe und nächste Schritte geordnet.
             </li>
             <li>
-              Echter Anlassraum, Dossier oder Beteiligungsraum entstehen erst aus bewussten
-              Review- und Runtime-Pfaden.
+              Themen-Zusammenfassung, Beteiligung oder Veröffentlichung entstehen erst nach bewusster Prüfung und Bestätigung.
             </li>
           </ul>
           <p className="mt-3 leading-6 text-[rgb(var(--muted))]">
-            {entryCanon.reusableSummary.interplay}
+            So bleibt verständlich, was vorbereitet wurde, was noch offen ist und wobei Menschen konkret mitmachen können.
           </p>
         </section>
 
