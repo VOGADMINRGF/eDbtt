@@ -41,7 +41,7 @@ const MANUAL_STEP_SUMMARY = [
   { id: "rahmen", label: "Rahmen", lead: "Titel, Leitfrage, Kurzbeschreibung" },
   { id: "optionen", label: "Antworten", lead: "Feste Antworten und Vorschläge aus der Community" },
   { id: "sichtbarkeit", label: "Sichtbarkeit", lead: "Intern behalten, später teilen oder prüfen lassen" },
-  { id: "unterstuetzung", label: "Start", lead: "Direkt speichern oder Voxy drüberschauen lassen" },
+  { id: "unterstuetzung", label: "Start", lead: "Ohne Voxy speichern oder mit Voxy strukturieren" },
 ] as const;
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
@@ -286,12 +286,12 @@ export default function AnlassraumSetupForm({
       if (!result.ok) {
         if (result.error === "not_authenticated") {
           setActionNotice(
-            "Zum Weiterarbeiten mit Voxy bitte zuerst anmelden. Dein Entwurf bleibt lokal gespeichert; es wurde nichts veröffentlicht.",
+            "Zum Arbeiten mit Voxy bitte zuerst anmelden. Dein Entwurf bleibt lokal gespeichert; es wurde nichts veröffentlicht.",
           );
           return;
         }
         setActionNotice(
-          "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor Voxy drüberschaut. Es wurde nichts veröffentlicht.",
+          "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor du mit Voxy weiterarbeitest. Es wurde nichts veröffentlicht.",
         );
         return;
       }
@@ -307,7 +307,7 @@ export default function AnlassraumSetupForm({
       );
     } catch {
       setActionNotice(
-        "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor Voxy drüberschaut. Es wurde nichts veröffentlicht.",
+        "Der Entwurf konnte nicht gespeichert werden. Bitte speichere oder öffne ihn erneut, bevor du mit Voxy weiterarbeitest. Es wurde nichts veröffentlicht.",
       );
     } finally {
       setIsPersisting(false);
@@ -337,11 +337,11 @@ export default function AnlassraumSetupForm({
               <span className="public-gradient-text">Schritt für Schritt</span> vor.
             </h1>
             <p className="public-hero-lead mt-3 max-w-3xl">
-              Lege Thema, Frage, mögliche Antworten und Sichtbarkeit zuerst selbst fest. Danach kannst du direkt speichern oder Voxy drüberschauen lassen.
+              Lege Thema, Frage, mögliche Antworten und Sichtbarkeit zuerst selbst fest. Danach kannst du ohne Voxy speichern oder mit Voxy strukturieren.
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-sm text-[rgb(var(--muted))]">
               <span className="anlassraum-soft-signal">4 klare Schritte</span>
-              <span className="anlassraum-soft-signal">Voxy optional</span>
+              <span className="anlassraum-soft-signal">Mit oder ohne Voxy</span>
               <span className="anlassraum-soft-signal">Nichts geht automatisch online</span>
             </div>
           </div>
@@ -631,7 +631,7 @@ export default function AnlassraumSetupForm({
                     "save_draft",
                     {
                       saved:
-                        "Mitmachraum-Entwurf gespeichert. Es wurde nichts veröffentlicht und Voxy hat noch keine weitere Ausarbeitung gestartet.",
+                        "Mitmachraum-Entwurf gespeichert. Es wurde nichts veröffentlicht. Du kannst später ohne Voxy weiterarbeiten oder mit Voxy strukturieren.",
                       authRequired:
                         "Mitmachraum-Entwurf lokal gespeichert. Zum Speichern im Konto bitte anmelden. Es wurde nichts veröffentlicht.",
                       failed:
@@ -682,7 +682,7 @@ export default function AnlassraumSetupForm({
           Antwortmöglichkeiten: {actionState.optionCount}
         </span>
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
-          Voxy: {setup.aiSupportMode === "disabled" ? "nicht ausgewählt" : "optional"}
+          Voxy: {setup.aiSupportMode === "disabled" ? "ohne" : "mit"}
         </span>
       </div>
     </div>
