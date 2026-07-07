@@ -112,6 +112,8 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Studio-Arbeitsstand serverseitig gespeichert");
     expect(html).toContain("reviewpflichtig und nicht veröffentlicht");
     expect(html).toContain("V3-Review-Kontext im Studio");
+    expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");
+    expect(html).toContain('data-testid="dossier-studio-v3-workflow-surface"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");

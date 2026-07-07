@@ -36,6 +36,9 @@ import {
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import V3RuntimeWorkflowSurface, {
+  buildV3RuntimeWorkflowSurfaceFromReviewContext,
+} from "@/features/create/V3RuntimeWorkflowSurface";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -264,6 +267,12 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               title="V3-Review-Kontext im Studio"
               dataTestId="dossier-studio-v3-review-context"
             />
+            <div className="mt-3">
+              <V3RuntimeWorkflowSurface
+                model={buildV3RuntimeWorkflowSurfaceFromReviewContext(v3ReviewContext)}
+                dataTestId="dossier-studio-v3-workflow-surface"
+              />
+            </div>
           </div>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2 text-xs">

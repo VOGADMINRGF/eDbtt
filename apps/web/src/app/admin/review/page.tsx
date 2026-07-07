@@ -29,6 +29,9 @@ import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAd
 import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import V3RuntimeWorkflowSurface, {
+  buildV3RuntimeWorkflowSurfaceFromReviewContext,
+} from "@/features/create/V3RuntimeWorkflowSurface";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -510,12 +513,22 @@ export default async function AdminReviewPage({
                       {item.scopeLabel} · {item.reviewAuthorityLabel} · offen seit {item.pendingHours}h
                     </p>
                     {item.v3ReviewContext ? (
-                      <V3ReviewContextSummary
-                        context={item.v3ReviewContext}
-                        audience="admin"
-                        title="V3-Review-Kontext"
-                        dataTestId={`admin-review-context-${item.id}`}
-                      />
+                      <>
+                        <V3ReviewContextSummary
+                          context={item.v3ReviewContext}
+                          audience="admin"
+                          title="V3-Review-Kontext"
+                          dataTestId={`admin-review-context-${item.id}`}
+                        />
+                        <div className="mt-3">
+                          <V3RuntimeWorkflowSurface
+                            model={buildV3RuntimeWorkflowSurfaceFromReviewContext(
+                              item.v3ReviewContext,
+                            )}
+                            dataTestId={`admin-review-workflow-${item.id}`}
+                          />
+                        </div>
+                      </>
                     ) : null}
                     {item.assignedToUserId ? (
                       <p className="text-xs text-[rgb(var(--muted))]">
