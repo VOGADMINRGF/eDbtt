@@ -235,5 +235,7 @@ describe("dossier studio server persistence UI", () => {
 
     expect(html).toContain("Aus bestehendem Create-Arbeitsstand abgeleitet.");
     expect(html).toContain("Account-Linkage ist vorhanden");
+    expect(html).toContain("Rückverknüpfung zum ursprünglichen Beitrag:");
+    expect(html).toContain("Warum das noch nicht vollständig belastbar ist:");
   });
 });

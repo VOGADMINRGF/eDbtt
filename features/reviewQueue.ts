@@ -19,6 +19,11 @@ import {
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
 import {
+  buildLedgerContributionSourceRefs,
+  buildPersistedHandoffReverseCorrelation,
+} from "@features/account/buildContributionHandoffCorrelations";
+import { loadAccountCreateContributionLedger } from "@features/account/loadAccountCreateContributionLedger";
+import {
   buildDossierWorkspaceV3ReviewContext,
   buildPersistedCreateHandoffV3ReviewContext,
   buildSocialDistributionPostV3ReviewContext,
@@ -169,6 +174,10 @@ export type ReviewQueueItem = {
     scopeSummary: string;
     sourceReferences: string[];
     provenanceSummary: string;
+    correlationStrength: string;
+    correlationBasis: string;
+    correlationLabel: string;
+    correlationReason: string | null;
   } | null;
   anlassraumContext?: {
     anlassraumIds: string[];
@@ -1154,8 +1163,28 @@ async function mapPersistedCreateHandoffItem(params: {
   record: PersistedCreateHandoffRecord;
   regionMap: Map<string, Region>;
   scope: ReviewQueueScopeContext;
+  contributionRefs: ReturnType<typeof buildLedgerContributionSourceRefs>;
 }): Promise<ReviewQueueItemCore> {
   const v3ReviewContext = buildPersistedCreateHandoffV3ReviewContext(params.record);
+  const reverseCorrelation = buildPersistedHandoffReverseCorrelation({
+    persistedHandoffRef: {
+      handoffId: params.record.id,
+      createHandoffId: params.record.id,
+      title: `${params.record.topicSeed.topicLabel} · ${params.record.selectedAction}`,
+      summary: buildPersistedCreateHandoffSummary(params.record),
+      href: params.record.resumeHref,
+      sourceText: params.record.sourceText,
+      reviewState: params.record.reviewState,
+      selectedAction: params.record.selectedAction,
+      createdByUserId: params.record.createdByUserId,
+      createdAt: params.record.createdAt,
+      updatedAt: params.record.updatedAt,
+      dossierId: params.record.dossierId ?? null,
+      sharedIds: [params.record.id],
+    },
+    contributionRefs: params.contributionRefs,
+    runtimeTruthLevel: "review_readmodel",
+  });
   const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
     sourceKind: "create_handoff",
     record: params.record,
@@ -1237,6 +1266,10 @@ async function mapPersistedCreateHandoffItem(params: {
         params.record.requestScope?.sourceOfTruth ?? "unknown_scope_source",
         params.record.accessDecision?.status ?? "review_only",
       ].join(" · "),
+      correlationStrength: reverseCorrelation.correlationStrength,
+      correlationBasis: reverseCorrelation.correlationBasis,
+      correlationLabel: reverseCorrelation.userVisibleLabel,
+      correlationReason: reverseCorrelation.adminReason,
     },
     v3ReviewContext,
   };
@@ -1620,6 +1653,20 @@ export async function buildReviewQueueReadModel(
   const persistedCreateHandoffIndexes = buildPersistedCreateHandoffIndexes(
     persistedCreateHandoffs,
   );
+  const createHandoffContributionRefsByUser = new Map<string, ReturnType<typeof buildLedgerContributionSourceRefs>>();
+  await Promise.all(
+    uniqueNonEmpty(persistedCreateHandoffs.map((record) => record.createdByUserId)).map(
+      async (userId) => {
+        const entries = await loadAccountCreateContributionLedger(userId, "de", 20).catch(
+          () => [],
+        );
+        createHandoffContributionRefsByUser.set(
+          userId,
+          buildLedgerContributionSourceRefs(entries),
+        );
+      },
+    ),
+  );
 
   const coreItems: ReviewQueueItemCore[] = [];
 
@@ -1753,7 +1800,15 @@ export async function buildReviewQueueReadModel(
 
   for (const record of persistedCreateHandoffs) {
     if (!scopeAllowsCreateHandoff({ scope: scoped, record })) continue;
-    coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope: scoped }));
+    coreItems.push(
+      await mapPersistedCreateHandoffItem({
+        record,
+        regionMap,
+        scope: scoped,
+        contributionRefs:
+          createHandoffContributionRefsByUser.get(record.createdByUserId) ?? [],
+      }),
+    );
   }
 
   const factcheckJobs = await getFactcheckWorkflowRepo().list().catch(

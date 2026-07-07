@@ -33,6 +33,7 @@ import {
   getDossierStudioWorkspaceRepo,
   type DossierStudioWorkspace,
 } from "@features/dossier/server/studioPersistence";
+import type { AccountPersistedHandoffCorrelationRef } from "./contributionHandoffCorrelationTypes";
 import type {
   AccountUserScopedRuntimeLinkage,
   AccountUserScopedRuntimeLinkageSlice,
@@ -235,6 +236,26 @@ function buildContributionRef(handoff: PersistedCreateHandoffRecord) {
     createdAt: handoff.createdAt,
     updatedAt: handoff.updatedAt,
   } as const;
+}
+
+function buildPersistedHandoffRef(
+  handoff: PersistedCreateHandoffRecord,
+): AccountPersistedHandoffCorrelationRef {
+  return {
+    handoffId: handoff.id,
+    createHandoffId: handoff.id,
+    title: `${handoff.topicSeed.topicLabel} · ${selectedActionLabel(handoff.selectedAction)}`,
+    summary: buildPersistedCreateHandoffSummary(handoff),
+    href: handoff.resumeHref,
+    sourceText: handoff.sourceText,
+    reviewState: handoff.reviewState,
+    selectedAction: handoff.selectedAction,
+    createdByUserId: handoff.createdByUserId,
+    createdAt: handoff.createdAt,
+    updatedAt: handoff.updatedAt,
+    dossierId: handoff.dossierId ?? null,
+    sharedIds: [handoff.id],
+  };
 }
 
 function buildReviewRef(handoff: PersistedCreateHandoffRecord): AccountUserScopedRuntimeSurfaceRef {
@@ -703,6 +724,7 @@ export function buildAccountUserScopedRuntimeLinkage(
 
   return {
     contributionRef: buildContributionRef(input.handoff),
+    persistedHandoffRef: buildPersistedHandoffRef(input.handoff),
     reviewQueueRef: buildReviewRef(input.handoff),
     dossierWorkspaceRef: dossierRef,
     participationRef: anlassraumRef ?? participationRef,

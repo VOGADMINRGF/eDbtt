@@ -8,6 +8,13 @@ import type { CreateBranchLedgerItem, CreateContributionLedgerEntry } from "@fea
 import { dedupeCreateContributionLedgerEntries } from "@features/create/createContributionLedger";
 import type { AccountUserScopedRuntimeLinkage } from "@features/account/userScopedRuntimeLinkageTypes";
 import {
+  buildAccountContributionHandoffCorrelation,
+} from "@features/account/buildContributionHandoffCorrelations";
+import type {
+  AccountContributionHandoffCorrelation,
+  AccountContributionSourceRef,
+} from "@features/account/contributionHandoffCorrelationTypes";
+import {
   buildLedgerBranchAnchorId,
   resolveBranchHandoffTarget,
 } from "@/features/create/branchHandoffTargets";
@@ -60,6 +67,7 @@ type ResumeWorkbenchItem = {
   nextActionStatusLabel?: string | null;
   workflow: V3AccountResumeWorkflowModel;
   downstreamTransparency: V3DownstreamKiTransparencyModel;
+  correlationRef: AccountContributionSourceRef | null;
 };
 
 type AccountResumeWorkbenchSectionProps = {
@@ -111,6 +119,32 @@ function runtimeTruthLevelLabel(value: AccountUserScopedRuntimeLinkage["runtimeT
   if (value === "review_readmodel") return "Persistierter Review-Handoff";
   if (value === "ledger") return "Server-Ledger";
   return "Lokaler Draft";
+}
+
+function correlationStrengthLabel(
+  value: AccountContributionHandoffCorrelation["correlationStrength"],
+) {
+  if (value === "exact") return "Exakt verbunden";
+  if (value === "strong") return "Stark verbunden";
+  if (value === "partial") return "Teilweise verbunden";
+  if (value === "suggested") return "Mögliche Verbindung";
+  if (value === "blocked") return "Blockiert";
+  return "Nicht verbunden";
+}
+
+function correlationBasisLabel(
+  value: AccountContributionHandoffCorrelation["correlationBasis"],
+) {
+  if (value === "shared_id") return "Gemeinsame Kennung";
+  if (value === "source_handoff_id") return "Explizite Handoff-Referenz";
+  if (value === "source_draft_id") return "Explizite Draft-Referenz";
+  if (value === "ledger_branch_id") return "Gemeinsame Branch-ID";
+  if (value === "provenance") return "Bestehende Provenance";
+  if (value === "created_by_and_dossier_id") return "Dossier und Nutzerkontext";
+  if (value === "existing_review_context") return "Bestehender Review-Kontext";
+  if (value === "existing_runtime_readmodel") return "Bestehendes Runtime-Readmodel";
+  if (value === "text_similarity_suggestion") return "Nur Textähnlichkeit";
+  return "Keine belastbare Basis";
 }
 
 export function clearAccountLocalStartDraftArtifacts() {
@@ -203,6 +237,23 @@ function buildLocalDraftResumeItem(
     nextActionStatusLabel: nextActionSummary.statusLabel,
     workflow,
     downstreamTransparency: buildV3DownstreamKiTransparencyFromStartDraft(draft, workflow),
+    correlationRef: {
+      id: `local-${draft.id}`,
+      kind: "local_start_draft",
+      title:
+        draft.campaign?.title ??
+        draft.preview?.possibleTopics?.[0] ??
+        getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
+      summary: draft.text,
+      href: resolveAccountResumeHrefFromStartDraft(draft),
+      sourceText: draft.text,
+      createdAt: draft.createdAt ?? null,
+      updatedAt: draft.updatedAt ?? draft.createdAt ?? null,
+      userId: null,
+      localDraftId: draft.id,
+      startDraftId: draft.id,
+      selectedActionHint: draft.targetHint ?? "create",
+    },
   };
 }
 
@@ -305,6 +356,24 @@ function buildResumeItemFromBranch(
       handoff,
       workflow,
     }),
+    correlationRef: {
+      id: `${entry.packageId}-${branch.branchId}`,
+      kind: "ledger_branch",
+      title: branch.title,
+      summary: branch.summary,
+      href,
+      sourceText: entry.sourceText,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      userId: entry.userId ?? null,
+      ledgerId: entry.ledgerId,
+      packageId: entry.packageId,
+      branchId: branch.branchId,
+      ledgerBranchId: `${entry.packageId}:${branch.branchId}`,
+      contributionId: entry.ledgerId,
+      dossierId: branch.targetReference?.type === "dossier" ? branch.targetReference.id : null,
+      selectedActionHint: branch.selectedAction,
+    },
   };
 }
 
@@ -330,6 +399,7 @@ export function buildAccountResumeWorkbenchItems(params: {
 
 function ResumeWorkbenchCard(props: {
   item: ResumeWorkbenchItem;
+  correlation: AccountContributionHandoffCorrelation | null;
   onDiscard?: () => void;
 }) {
   return (
@@ -392,6 +462,61 @@ function ResumeWorkbenchCard(props: {
         model={props.item.downstreamTransparency}
         dataTestId={`account-resume-downstream-ki-${props.item.id}`}
       />
+      {props.correlation ? (
+        <div className="mt-4 rounded-2xl border border-slate-200/80 px-3 py-3 text-xs dark:border-[rgb(var(--border))]">
+          <p className="font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            Verknüpfung zum Arbeitsstand
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+              {correlationStrengthLabel(props.correlation.correlationStrength)}
+            </span>
+            <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+              {correlationBasisLabel(props.correlation.correlationBasis)}
+            </span>
+          </div>
+          <div className="mt-2 space-y-1">
+            <p className="text-[rgb(var(--fg))]">
+              Handoff: {props.correlation.userVisibleLabel}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              Review: {props.correlation.reviewQueueRef?.stateLabel ?? "Noch kein persisted Review-Handoff"}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              Dossier: {props.correlation.dossierWorkspaceRef?.stateLabel ?? "Noch kein direkt verknüpfter Dossier-Arbeitsstand"}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              Beteiligung: {props.correlation.participationRef?.stateLabel ?? "Noch kein direkt verknüpfter Beteiligungs-Arbeitsstand"}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              Output/Voxy: {props.correlation.outputDraftRef?.stateLabel ?? props.correlation.voxyBriefingRef?.stateLabel ?? "Noch kein verknüpfter Output- oder Voxy-Arbeitsstand"}
+            </p>
+            {props.correlation.adminReason ? (
+              <p className="text-[rgb(var(--muted))]">
+                {props.correlation.correlationStrength === "exact" ||
+                props.correlation.correlationStrength === "strong" ||
+                props.correlation.correlationStrength === "partial"
+                  ? "Warum diese Verbindung belastbar ist: "
+                  : "Warum sie noch nicht belastbar ist: "}
+                {props.correlation.adminReason}
+              </p>
+            ) : null}
+            <p className="font-medium text-[rgb(var(--fg))]">
+              Nächster Schritt: {props.correlation.nextStep}
+            </p>
+          </div>
+          {props.correlation.persistedHandoffRef ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={props.correlation.persistedHandoffRef.href}
+                className="btn-secondary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+              >
+                Persisted Handoff öffnen
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={props.item.href} className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">
           Weiterarbeiten
@@ -543,7 +668,40 @@ export default function AccountResumeWorkbenchSection(
     [props.canDeepResearch, props.entries, startDraft],
   );
   const runtimeLinkages = props.runtimeLinkages ?? [];
-  const hasAnyWorkState = items.length > 0 || runtimeLinkages.length > 0;
+  const correlationsByItemId = React.useMemo(() => {
+    const next = new Map<string, AccountContributionHandoffCorrelation>();
+    for (const item of items) {
+      if (!item.correlationRef) continue;
+      next.set(
+        item.id,
+        buildAccountContributionHandoffCorrelation({
+          contributionRef: item.correlationRef,
+          runtimeLinkages,
+        }),
+      );
+    }
+    return next;
+  }, [items, runtimeLinkages]);
+  const correlatedHandoffIds = React.useMemo(
+    () =>
+      new Set(
+        Array.from(correlationsByItemId.values())
+          .map((correlation) => correlation.persistedHandoffRef?.handoffId ?? null)
+          .filter(
+            (handoffId): handoffId is string =>
+              Boolean(handoffId),
+          ),
+      ),
+    [correlationsByItemId],
+  );
+  const unmatchedRuntimeLinkages = React.useMemo(
+    () =>
+      runtimeLinkages.filter(
+        (linkage) => !correlatedHandoffIds.has(linkage.persistedHandoffRef.handoffId),
+      ),
+    [correlatedHandoffIds, runtimeLinkages],
+  );
+  const hasAnyWorkState = items.length > 0 || unmatchedRuntimeLinkages.length > 0;
 
   return (
     <section
@@ -563,6 +721,7 @@ export default function AccountResumeWorkbenchSection(
             <ResumeWorkbenchCard
               key={item.id}
               item={item}
+              correlation={correlationsByItemId.get(item.id) ?? null}
               onDiscard={
                 item.discardable
                   ? () => {
@@ -573,7 +732,7 @@ export default function AccountResumeWorkbenchSection(
               }
             />
           ))}
-          {runtimeLinkages.map((linkage) => (
+          {unmatchedRuntimeLinkages.map((linkage) => (
             <RuntimeLinkageCard
               key={`runtime-linkage-${linkage.contributionRef.handoffId}`}
               linkage={linkage}

@@ -83,6 +83,8 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Review oder Rückfrage");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
     expect(html).toContain("Nutzergebundene Downstream-Runtime im Account fehlt noch.");
+    expect(html).toContain("Verknüpfung zum Arbeitsstand");
+    expect(html).toContain("Noch kein belastbarer persisted Handoff");
     expect(html).toContain("Sinnvolle nächste Schritte");
     expect(html).toContain("Zur redaktionellen Prüfung geben");
     expect(html).toContain("Weiterarbeiten");
