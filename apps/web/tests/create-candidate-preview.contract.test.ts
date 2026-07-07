@@ -398,6 +398,10 @@ describe("create candidate preview contract", () => {
 
     expect(html).toContain("Review-first Kandidaten aus Draft, Planner und Analyze");
     expect(html).toContain("Nur Vorschau");
+    expect(html).toContain("V3-Arbeitsfluss ab hier");
+    expect(html).toContain("Create / Handoff");
+    expect(html).toContain("Anlassraum / Beteiligung");
+    expect(html).toContain('data-testid="create-candidate-workflow-surface"');
     expect(html).toContain("Claim-Kandidaten");
     expect(html).toContain("Gegenpositions-Kandidaten");
     expect(html).toContain("Fragen-Kandidaten");

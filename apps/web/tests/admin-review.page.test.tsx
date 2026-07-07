@@ -858,8 +858,11 @@ describe("/admin/review page", () => {
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("V3-Review-Kontext");
+    expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");
+    expect(html).toContain("Create / Handoff");
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");

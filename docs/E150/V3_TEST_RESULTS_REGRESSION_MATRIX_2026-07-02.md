@@ -153,6 +153,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/frontend-ai-transparency.contract.test.ts`
 - `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
 - `apps/web/tests/create-candidate-preview.contract.test.ts`
+- `apps/web/tests/v3-runtime-workflow-surface.test.tsx`
 - `apps/web/tests/create-claim-to-dossier-pipeline.contract.test.ts`
 - `apps/web/tests/create-feed-enrichment-review-suggestions.contract.test.ts`
 - `apps/web/tests/create-intelligent-followup.route.test.ts`

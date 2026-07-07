@@ -1,4 +1,7 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
+import V3RuntimeWorkflowSurface, {
+  buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
+} from "@/features/create/V3RuntimeWorkflowSurface";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -39,6 +42,7 @@ export default function CreateCandidatePreviewPanel({
   model,
 }: CreateCandidatePreviewPanelProps) {
   if (!model.hasPreview) return null;
+  const workflowModel = buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -90,6 +94,13 @@ export default function CreateCandidatePreviewPanel({
             Graph-/Handoff-Zustand: {model.graphTargetState}. Veröffentlichung bleibt blockiert.
           </p>
         </div>
+      </div>
+
+      <div className="mt-5">
+        <V3RuntimeWorkflowSurface
+          model={workflowModel}
+          dataTestId="create-candidate-workflow-surface"
+        />
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
