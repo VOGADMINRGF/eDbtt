@@ -62,6 +62,10 @@ import {
   readAccountGraphMergeCandidateSlice,
   type AccountGraphMergeCandidateSlice,
 } from "@features/account/graphCandidateTypes";
+import {
+  readAccountUserScopedRuntimeLinkageSlice,
+  type AccountUserScopedRuntimeLinkageSlice,
+} from "@features/account/userScopedRuntimeLinkageTypes";
 
 // Shared button primitives for consistent contrast across light/dark.
 const primaryButtonClass =
@@ -260,7 +264,8 @@ export type AccountOverview = {
 } & import("@features/account/createContributionLedgerTypes").AccountCreateContributionLedgerSlice &
   AccountEditorialReviewSlice &
   AccountFactcheckJobSlice &
-  AccountGraphMergeCandidateSlice;
+  AccountGraphMergeCandidateSlice &
+  AccountUserScopedRuntimeLinkageSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -319,6 +324,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
       <AccountCreateDraftSections
         entries={data.createContributionLedger ?? []}
         roles={data.roles}
+        runtimeLinkages={data.userScopedRuntimeLinkages ?? []}
       />
 
       <AccountEditorialReviewSupplement
@@ -3428,6 +3434,7 @@ function normalizeOverview(src: any): AccountOverview {
     ...readAccountEditorialReviewSlice(src),
     ...readAccountFactcheckJobSlice(src),
     ...readAccountGraphMergeCandidateSlice(src),
+    ...readAccountUserScopedRuntimeLinkageSlice(src),
   };
 }
 

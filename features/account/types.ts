@@ -6,10 +6,14 @@ import type { TopicKey } from "@features/interests/topics";
 import type { AccountEditorialReviewSlice } from "./editorialReviewTypes";
 import type { AccountFactcheckJobSlice } from "./factcheckJobTypes";
 import type { AccountGraphMergeCandidateSlice } from "./graphCandidateTypes";
+import type { AccountUserScopedRuntimeLinkageSlice } from "./userScopedRuntimeLinkageTypes";
 
 type AccountCreateDraftSlice = import("./createContributionLedgerTypes").AccountCreateContributionLedgerSlice;
 type AccountReviewSupplementSlices =
-  AccountEditorialReviewSlice & AccountFactcheckJobSlice & AccountGraphMergeCandidateSlice;
+  AccountEditorialReviewSlice &
+  AccountFactcheckJobSlice &
+  AccountGraphMergeCandidateSlice &
+  AccountUserScopedRuntimeLinkageSlice;
 
 export const ACCOUNT_FEATURE_INTEREST_KEYS = ["streams", "hostRights", "chat"] as const;
 export type AccountFeatureInterestKey = (typeof ACCOUNT_FEATURE_INTEREST_KEYS)[number];

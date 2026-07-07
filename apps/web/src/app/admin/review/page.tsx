@@ -599,6 +599,19 @@ export default async function AdminReviewPage({
                         </p>
                       </div>
                     ) : null}
+                    {item.createHandoffContext ? (
+                      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                          Create-/Account-Herkunft
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          Bestehender Create-Arbeitsstand mit Account-Resume-Bezug. {item.createHandoffContext.scopeSummary}
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          Review-State: {item.createHandoffContext.reviewState} · {item.createHandoffContext.provenanceSummary}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                   <Link
                     href={item.href}
