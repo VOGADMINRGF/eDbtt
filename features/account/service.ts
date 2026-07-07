@@ -26,6 +26,7 @@ import { getProfilePackageForAccessTier } from "./profilePackages";
 import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
 import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReviewRequests";
 import { loadAccountFactcheckJobs } from "./loadAccountFactcheckJobs";
+import { loadAccountManualAnlassraumServerDrafts } from "./loadAccountManualAnlassraumServerDrafts";
 import { loadAccountUserScopedRuntimeLinkage } from "./loadAccountUserScopedRuntimeLinkage";
 
 const RESEARCH_XP_AWARD = 25;
@@ -191,6 +192,10 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
   );
   const editorialReviewRequestsPromise = loadAccountEditorialReviewRequests(String(doc._id), 8);
   const factcheckJobsPromise = loadAccountFactcheckJobs(String(doc._id), 8);
+  const manualAnlassraumServerDraftsPromise = loadAccountManualAnlassraumServerDrafts(
+    String(doc._id),
+    8,
+  );
   const userScopedRuntimeLinkagesPromise = loadAccountUserScopedRuntimeLinkage(
     String(doc._id),
     8,
@@ -199,12 +204,14 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
   const [
     paymentProfileDoc,
     signatureDoc,
+    manualAnlassraumServerDrafts,
     editorialReviewRequests,
     factcheckJobs,
     userScopedRuntimeLinkages,
   ] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
+    manualAnlassraumServerDraftsPromise,
     editorialReviewRequestsPromise,
     factcheckJobsPromise,
     userScopedRuntimeLinkagesPromise,
@@ -324,6 +331,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     createdAt: doc.createdAt ?? null,
     lastLoginAt: doc.lastLoginAt ?? doc.updatedAt ?? doc.createdAt ?? null,
     createContributionLedger,
+    manualAnlassraumServerDrafts,
     editorialReviewRequests,
     factcheckJobs,
     userScopedRuntimeLinkages,

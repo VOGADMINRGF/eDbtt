@@ -5,6 +5,10 @@ const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
   getDraft: vi.fn(),
+  getCreateContributionDraftForResume: vi.fn(),
+  readManualAnlassraumServerDraftForCurrentUser: vi.fn(),
+  resolveCurrentRequestScopeContext: vi.fn(),
+  summarizeRequestScopeContext: vi.fn(),
 }));
 
 vi.mock("@/lib/server/entitlements/createEntitlements", () => ({
@@ -17,6 +21,29 @@ vi.mock("@features/account/service", () => ({
 
 vi.mock("@/server/draftStore", () => ({
   getDraft: (...args: unknown[]) => mocks.getDraft(...args),
+}));
+
+vi.mock("@/server/createContributionDrafts", () => ({
+  getCreateContributionDraftForResume: (...args: unknown[]) =>
+    mocks.getCreateContributionDraftForResume(...args),
+}));
+
+vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
+  readManualAnlassraumServerDraftForCurrentUser: (...args: unknown[]) =>
+    mocks.readManualAnlassraumServerDraftForCurrentUser(...args),
+}));
+
+vi.mock("@/lib/server/auth/requestScope", () => ({
+  resolveCurrentRequestScopeContext: (...args: unknown[]) =>
+    mocks.resolveCurrentRequestScopeContext(...args),
+  summarizeRequestScopeContext: (...args: unknown[]) =>
+    mocks.summarizeRequestScopeContext(...args),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 import CreatePage from "@/app/create/page";
@@ -73,6 +100,10 @@ describe("runden context messaging in /create", () => {
       verificationMethods: [],
     });
     mocks.getDraft.mockResolvedValue(null);
+    mocks.getCreateContributionDraftForResume.mockResolvedValue(null);
+    mocks.readManualAnlassraumServerDraftForCurrentUser.mockResolvedValue(null);
+    mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
+    mocks.summarizeRequestScopeContext.mockReturnValue(null);
   });
 
   it("shows readable runden context text without internal reason/source codes", async () => {

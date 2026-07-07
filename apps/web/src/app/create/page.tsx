@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getDraft } from "@/server/draftStore";
 import { getCreateContributionDraftForResume } from "@/server/createContributionDrafts";
+import { ObjectId } from "@core/db/triMongo";
 import { readManualAnlassraumServerDraftForCurrentUser } from "@/features/surfaces/runden/manualAnlassraumServerDraft";
 import { buildManualAnlassraumPrefill } from "@/features/surfaces/runden/manualAnlassraumSetup";
 import CreateClient from "./CreateClient";
@@ -33,6 +34,7 @@ import {
   resolveCurrentRequestScopeContext,
   summarizeRequestScopeContext,
 } from "@/lib/server/auth/requestScope";
+import { buildCreateDraftResumeLookupOrder } from "@features/account/draftSsotPolicy";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -106,6 +108,34 @@ function toQueryString(resolved: Record<string, string | string[] | undefined>) 
   return params.toString();
 }
 
+async function resolveCreateDraftResumeText(params: {
+  draftId: string | null | undefined;
+  userId: string;
+}) {
+  const draftId = String(params.draftId ?? "").trim();
+  const lookupOrder = buildCreateDraftResumeLookupOrder({
+    draftId,
+    isObjectIdLike: ObjectId.isValid(draftId),
+    preferManualAnlassraumServerDraft: false,
+  });
+
+  for (const source of lookupOrder) {
+    if (source === "create_contribution_draft_resume") {
+      const draft = await getCreateContributionDraftForResume(draftId, params.userId).catch(
+        () => null,
+      );
+      if (draft?.text) return draft.text;
+      continue;
+    }
+    if (source === "legacy_draft_store") {
+      const draft = await getDraft(draftId).catch(() => null);
+      if (draft?.text) return draft.text;
+    }
+  }
+
+  return null;
+}
+
 export default async function CreatePage({
   searchParams,
 }: {
@@ -170,12 +200,10 @@ export default async function CreatePage({
   if (manualRoundServerDraft) {
     initialText = buildManualAnlassraumPrefill(manualRoundServerDraft.setup);
   } else if (!initialText && draftId) {
-    const draft =
-      (await getDraft(draftId).catch(() => null)) ??
-      (entitlements.userId
-        ? await getCreateContributionDraftForResume(draftId, entitlements.userId).catch(() => null)
-        : null);
-    initialText = draft?.text ?? null;
+    initialText = await resolveCreateDraftResumeText({
+      draftId,
+      userId: entitlements.userId,
+    });
   }
 
   return (

@@ -2,77 +2,37 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FiCompass, FiEdit2, FiMapPin } from "react-icons/fi";
+import { FiCompass } from "react-icons/fi";
 import type { IconType } from "react-icons";
-import type { CreateBranchLedgerItem, CreateContributionLedgerEntry } from "@features/create/createContributionLedger";
-import { dedupeCreateContributionLedgerEntries } from "@features/create/createContributionLedger";
+import type { CreateContributionLedgerEntry } from "@features/create/createContributionLedger";
 import type { AccountUserScopedRuntimeLinkage } from "@features/account/userScopedRuntimeLinkageTypes";
-import {
-  buildAccountContributionHandoffCorrelation,
-} from "@features/account/buildContributionHandoffCorrelations";
 import type {
   AccountContributionHandoffCorrelation,
-  AccountContributionSourceRef,
 } from "@features/account/contributionHandoffCorrelationTypes";
+import type { ManualAnlassraumServerDraftSnapshot } from "@/features/surfaces/runden/manualAnlassraumSetup";
+import type { StartDraftContext } from "@/features/start/startDraftContext";
 import {
-  buildLedgerBranchAnchorId,
-  resolveBranchHandoffTarget,
-} from "@/features/create/branchHandoffTargets";
-import {
-  clearStartDraftContext,
-  getStartDraftGuardrailSummary,
-  getStartDraftSurfaceLabel,
-  getStartDraftStatusLabel,
-  readStartDraftContext,
-  type StartDraftContext,
-} from "@/features/start/startDraftContext";
-import {
-  resolveDraftNextActionsForResumeItem,
-  type DraftNextActionOption,
-} from "@/features/start/draftNextActionGate";
-import V3AccountResumeWorkflow, {
-  buildV3AccountResumeWorkflowFromLedgerBranch,
-  buildV3AccountResumeWorkflowFromStartDraft,
-  type V3AccountResumeWorkflowModel,
-} from "@/features/create/V3AccountResumeWorkflow";
+  buildAccountResumeWorkbenchItems,
+  buildAccountUnifiedWorkItems,
+  clearAccountLocalStartDraftArtifacts,
+  resolveAccountResumeHrefFromStartDraft,
+  type AccountUnifiedWorkItem,
+  type ResumeWorkbenchItem,
+} from "@features/account/buildAccountUnifiedWorkItems";
+import V3AccountResumeWorkflow from "@/features/create/V3AccountResumeWorkflow";
 import V3DownstreamKiTransparency, {
-  buildV3DownstreamKiTransparencyFromLedgerBranch,
   buildV3DownstreamKiTransparencyFromReviewContext,
-  buildV3DownstreamKiTransparencyFromStartDraft,
-  type V3DownstreamKiTransparencyModel,
 } from "@/features/create/V3DownstreamKiTransparency";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
-import {
-  LANDING_EDITORIAL_REVIEW_STORAGE_KEY,
-  LANDING_START_CREATE_LIGHT_STORAGE_KEY,
-} from "@/features/start/landingCreateLight";
-
-type ResumeWorkbenchItemType = "Beitrag" | "Thema" | "Runde" | "Redaktion";
-
-type ResumeWorkbenchItem = {
-  id: string;
-  title: string;
-  excerpt: string;
-  type: ResumeWorkbenchItemType;
-  status: string;
-  nextStep: string;
-  href: string;
-  isLocalOnly: boolean;
-  guardrails: string[];
-  discardable: boolean;
-  nextActions: DraftNextActionOption[];
-  nextActionStatusLabel?: string | null;
-  workflow: V3AccountResumeWorkflowModel;
-  downstreamTransparency: V3DownstreamKiTransparencyModel;
-  correlationRef: AccountContributionSourceRef | null;
-};
+import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
   entries: CreateContributionLedgerEntry[];
   initialStartDraft?: StartDraftContext | null;
+  manualAnlassraumServerDrafts?: ManualAnlassraumServerDraftSnapshot[];
   canDeepResearch?: boolean;
   runtimeLinkages?: AccountUserScopedRuntimeLinkage[];
 };
@@ -81,7 +41,10 @@ function sectionHeading(props: { id: string; title: string; description: string;
   const Icon = props.icon;
   return (
     <div className="flex flex-col gap-1">
-      <h2 id={props.id} className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
+      <h2
+        id={props.id}
+        className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[rgb(var(--fg))]"
+      >
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 ring-1 ring-sky-300/30">
           <Icon className="h-3.5 w-3.5" aria-hidden />
         </span>
@@ -90,15 +53,6 @@ function sectionHeading(props: { id: string; title: string; description: string;
       <p className="text-xs text-[rgb(var(--muted))]">{props.description}</p>
     </div>
   );
-}
-
-function canUseBrowserSessionStorage() {
-  return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
-}
-
-function removeSessionItem(key: string) {
-  if (!canUseBrowserSessionStorage()) return;
-  window.sessionStorage.removeItem(key);
 }
 
 function linkageStatusLabel(value: AccountUserScopedRuntimeLinkage["linkageStatus"]) {
@@ -147,259 +101,26 @@ function correlationBasisLabel(
   return "Keine belastbare Basis";
 }
 
-export function clearAccountLocalStartDraftArtifacts() {
-  clearStartDraftContext();
-  removeSessionItem(LANDING_START_CREATE_LIGHT_STORAGE_KEY);
-  removeSessionItem(LANDING_EDITORIAL_REVIEW_STORAGE_KEY);
-}
-
-export function resolveAccountResumeHrefFromStartDraft(draft: StartDraftContext): string {
-  if (
-    draft.origin === "start_relevance_review" ||
-    draft.preview?.relevance === "needs_reframe" ||
-    draft.preview?.relevance === "personal_only"
-  ) {
-    return "/start?review=editorial";
-  }
-  switch (draft.targetHint) {
-    case "themes":
-      return "/themen?startDraft=1";
-    case "rounds":
-      return "/runden/new?startDraft=1&from=account";
-    case "create":
-      return "/create?startDraft=1";
-    default:
-      return "/start";
-  }
-}
-
-function resolveLocalDraftType(draft: StartDraftContext): ResumeWorkbenchItemType {
-  if (
-    draft.origin === "start_relevance_review" ||
-    draft.preview?.relevance === "needs_reframe" ||
-    draft.preview?.relevance === "personal_only"
-  ) {
-    return "Redaktion";
-  }
-  switch (draft.targetHint) {
-    case "themes":
-      return "Thema";
-    case "rounds":
-      return "Runde";
-    default:
-      return "Beitrag";
-  }
-}
-
-function buildLocalDraftResumeItem(
-  draft: StartDraftContext,
-  canDeepResearch: boolean,
-): ResumeWorkbenchItem {
-  const nextActionSummary = resolveDraftNextActionsForResumeItem({
-    category: resolveLocalDraftType(draft),
-    isAuthenticated: true,
-    canDeepResearch,
-    draft,
-  });
-  const workflow = buildV3AccountResumeWorkflowFromStartDraft(draft);
-  return {
-    id: `local-${draft.id}`,
-    title:
-      draft.campaign?.title ??
-      draft.preview?.possibleTopics?.[0] ??
-      getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
-    excerpt: draft.text,
-    type: resolveLocalDraftType(draft),
-    status:
-      draft.origin === "start_relevance_review"
-        ? "Zur manuellen Prüfung vorgemerkt"
-        : draft.origin === "start_create_light"
-          ? "Analyse-Entwurf"
-        : getStartDraftStatusLabel(draft),
-    nextStep:
-      draft.origin === "start_relevance_review"
-        ? "Redaktionellen Prüfpfad fortsetzen"
-        : draft.origin === "start_create_light"
-          ? "Quellenlage klären"
-          : getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
-    href: resolveAccountResumeHrefFromStartDraft(draft),
-    isLocalOnly: true,
-    guardrails: getStartDraftGuardrailSummary(
-      draft,
-      draft.targetHint === "themes"
-        ? "themes"
-        : draft.targetHint === "rounds"
-          ? "rounds"
-          : "create",
-    ),
-    discardable: true,
-    nextActions: nextActionSummary.actions,
-    nextActionStatusLabel: nextActionSummary.statusLabel,
-    workflow,
-    downstreamTransparency: buildV3DownstreamKiTransparencyFromStartDraft(draft, workflow),
-    correlationRef: {
-      id: `local-${draft.id}`,
-      kind: "local_start_draft",
-      title:
-        draft.campaign?.title ??
-        draft.preview?.possibleTopics?.[0] ??
-        getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
-      summary: draft.text,
-      href: resolveAccountResumeHrefFromStartDraft(draft),
-      sourceText: draft.text,
-      createdAt: draft.createdAt ?? null,
-      updatedAt: draft.updatedAt ?? draft.createdAt ?? null,
-      userId: null,
-      localDraftId: draft.id,
-      startDraftId: draft.id,
-      selectedActionHint: draft.targetHint ?? "create",
-    },
-  };
-}
-
-function resolveBranchResumeType(branch: CreateBranchLedgerItem): ResumeWorkbenchItemType {
-  if (
-    branch.status === "review_draft_prepared" ||
-    branch.existingMatchDecision?.userDecision === "request_review"
-  ) {
-    return "Redaktion";
-  }
-  if (
-    branch.qrParticipationDraft ||
-    branch.swipeDraft ||
-    branch.status === "qr_draft_prepared" ||
-    branch.status === "swipe_draft_prepared"
-  ) {
-    return "Runde";
-  }
-  if (branch.needsPlaceClarification || branch.existingMatchDecision) return "Thema";
-  return "Beitrag";
-}
-
-function resolveBranchResumeStatus(branch: CreateBranchLedgerItem): string {
-  if (branch.needsPlaceClarification && branch.placeClarificationStatus !== "answered") {
-    return "Ort noch offen";
-  }
-  if (branch.status === "review_draft_prepared") return "Prüfung offen";
-  if (branch.selectedAction === "review_or_sources" || branch.needsReview) {
-    return "Prüfung empfohlen";
-  }
-  if (branch.qrParticipationDraft) return "Entwurf";
-  if (branch.swipeDraft) return "Entwurf";
-  if (branch.existingMatchDecision?.userDecision === "request_review") {
-    return "Zur manuellen Prüfung vorgemerkt";
-  }
-  return "Entwurf";
-}
-
-function buildResumeItemFromBranch(
-  entry: CreateContributionLedgerEntry,
-  branch: CreateBranchLedgerItem,
-  canDeepResearch: boolean,
-): ResumeWorkbenchItem {
-  const handoff = resolveBranchHandoffTarget({
-    packageId: entry.packageId,
-    ledgerId: entry.ledgerId,
-    branch,
-    accountAnchorId: buildLedgerBranchAnchorId(entry.packageId, branch.branchId),
-    allowPlaceClarificationRoute: true,
-  });
-  const href =
-    handoff.handoffTargetUrl ??
-    `/account#${encodeURIComponent(buildLedgerBranchAnchorId(entry.packageId, branch.branchId))}`;
-
-  const guardrails = ["Noch nicht veröffentlicht"];
-  if (branch.selectedAction === "review_or_sources" || branch.needsReview) {
-    guardrails.unshift("Analyse-Entwurf");
-    guardrails.push("Keine Quellenprüfung gestartet");
-  }
-  if (resolveBranchResumeType(branch) === "Runde") {
-    guardrails.push("Noch nicht gezählt");
-  }
-  if (resolveBranchResumeType(branch) === "Thema") {
-    guardrails.push("Noch nicht zusammengeführt");
-  }
-  if (resolveBranchResumeType(branch) === "Redaktion") {
-    guardrails.push("Keine automatische Prüfung");
-  }
-
-  const workflow = buildV3AccountResumeWorkflowFromLedgerBranch({
-    branch,
-    draftSaveStatus: entry.draftSaveStatus,
-    handoff,
-  });
-  return {
-    id: `${entry.packageId}-${branch.branchId}`,
-    title: branch.title,
-    excerpt: branch.summary,
-    type: resolveBranchResumeType(branch),
-    status: resolveBranchResumeStatus(branch),
-    nextStep:
-      branch.selectedAction === "review_or_sources" || branch.needsReview
-        ? "Quellenlage klären"
-        : handoff.nextWorkspaceLabel,
-    href,
-    isLocalOnly: entry.draftSaveStatus !== "server_saved",
-    guardrails,
-    discardable: false,
-    nextActions: resolveDraftNextActionsForResumeItem({
-      category: resolveBranchResumeType(branch),
-      isAuthenticated: true,
-      canDeepResearch,
-      draft: null,
-    }).actions,
-    nextActionStatusLabel: null,
-    workflow,
-    downstreamTransparency: buildV3DownstreamKiTransparencyFromLedgerBranch({
-      branch,
-      draftSaveStatus: entry.draftSaveStatus,
-      handoff,
-      workflow,
-    }),
-    correlationRef: {
-      id: `${entry.packageId}-${branch.branchId}`,
-      kind: "ledger_branch",
-      title: branch.title,
-      summary: branch.summary,
-      href,
-      sourceText: entry.sourceText,
-      createdAt: entry.createdAt,
-      updatedAt: entry.updatedAt,
-      userId: entry.userId ?? null,
-      ledgerId: entry.ledgerId,
-      packageId: entry.packageId,
-      branchId: branch.branchId,
-      ledgerBranchId: `${entry.packageId}:${branch.branchId}`,
-      contributionId: entry.ledgerId,
-      dossierId: branch.targetReference?.type === "dossier" ? branch.targetReference.id : null,
-      selectedActionHint: branch.selectedAction,
-    },
-  };
-}
-
-export function buildAccountResumeWorkbenchItems(params: {
-  entries: CreateContributionLedgerEntry[];
-  startDraft?: StartDraftContext | null;
-  canDeepResearch?: boolean;
-}): ResumeWorkbenchItem[] {
-  const items: ResumeWorkbenchItem[] = [];
-  if (params.startDraft) {
-    items.push(buildLocalDraftResumeItem(params.startDraft, params.canDeepResearch === true));
-  }
-
-  const entries = dedupeCreateContributionLedgerEntries(params.entries);
-  for (const entry of entries) {
-    for (const branch of entry.branches) {
-      items.push(buildResumeItemFromBranch(entry, branch, params.canDeepResearch === true));
-    }
-  }
-
-  return items;
+function SsotPolicyPanel(props: {
+  label: string;
+  summary: string;
+}) {
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200/80 px-3 py-3 text-xs dark:border-[rgb(var(--border))]">
+      <p className="font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+        Aktuelle SSOT-Lesewahrheit
+      </p>
+      <p className="mt-2 font-medium text-[rgb(var(--fg))]">{props.label}</p>
+      <p className="mt-1 leading-5 text-[rgb(var(--muted))]">{props.summary}</p>
+    </div>
+  );
 }
 
 function ResumeWorkbenchCard(props: {
   item: ResumeWorkbenchItem;
   correlation: AccountContributionHandoffCorrelation | null;
+  ssotLabel: string;
+  ssotSummary: string;
   onDiscard?: () => void;
 }) {
   return (
@@ -420,7 +141,9 @@ function ResumeWorkbenchCard(props: {
       <div className="mt-3 space-y-1">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.item.title}</p>
         <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{props.item.excerpt}</p>
-        <p className="text-xs font-medium text-[rgb(var(--fg))]">Nächster Schritt: {props.item.nextStep}</p>
+        <p className="text-xs font-medium text-[rgb(var(--fg))]">
+          Nächster Schritt: {props.item.nextStep}
+        </p>
         {props.item.nextActionStatusLabel ? (
           <p className="text-xs text-[rgb(var(--muted))]">{props.item.nextActionStatusLabel}</p>
         ) : null}
@@ -462,6 +185,7 @@ function ResumeWorkbenchCard(props: {
         model={props.item.downstreamTransparency}
         dataTestId={`account-resume-downstream-ki-${props.item.id}`}
       />
+      <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
         <div className="mt-4 rounded-2xl border border-slate-200/80 px-3 py-3 text-xs dark:border-[rgb(var(--border))]">
           <p className="font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -476,9 +200,7 @@ function ResumeWorkbenchCard(props: {
             </span>
           </div>
           <div className="mt-2 space-y-1">
-            <p className="text-[rgb(var(--fg))]">
-              Handoff: {props.correlation.userVisibleLabel}
-            </p>
+            <p className="text-[rgb(var(--fg))]">Handoff: {props.correlation.userVisibleLabel}</p>
             <p className="text-[rgb(var(--fg))]">
               Review: {props.correlation.reviewQueueRef?.stateLabel ?? "Noch kein persisted Review-Handoff"}
             </p>
@@ -518,7 +240,10 @@ function ResumeWorkbenchCard(props: {
         </div>
       ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href={props.item.href} className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">
+        <Link
+          href={props.item.href}
+          className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+        >
           Weiterarbeiten
         </Link>
         {props.item.discardable && props.onDiscard ? (
@@ -537,6 +262,8 @@ function ResumeWorkbenchCard(props: {
 
 function RuntimeLinkageCard(props: {
   linkage: AccountUserScopedRuntimeLinkage;
+  ssotLabel: string;
+  ssotSummary: string;
 }) {
   const downstreamModel = buildV3DownstreamKiTransparencyFromReviewContext(
     props.linkage.v3ReviewContext,
@@ -626,6 +353,7 @@ function RuntimeLinkageCard(props: {
         title="Downstream-KI-Transparenz"
         dataTestId={`account-runtime-linkage-downstream-${props.linkage.contributionRef.handoffId}`}
       />
+      <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={props.linkage.contributionRef.href}
@@ -646,6 +374,39 @@ function RuntimeLinkageCard(props: {
   );
 }
 
+function renderUnifiedWorkItem(
+  workItem: AccountUnifiedWorkItem,
+  onDiscardStartDraft: () => void,
+) {
+  if (workItem.kind === "runtime_linkage") {
+    return (
+      <RuntimeLinkageCard
+        key={workItem.id}
+        linkage={workItem.linkage}
+        ssotLabel={workItem.ssotPolicy.label}
+        ssotSummary={workItem.ssotPolicy.summary}
+      />
+    );
+  }
+
+  return (
+    <ResumeWorkbenchCard
+      key={workItem.id}
+      item={workItem.item}
+      correlation={workItem.correlation}
+      ssotLabel={workItem.ssotPolicy.label}
+      ssotSummary={workItem.ssotPolicy.summary}
+      onDiscard={workItem.item.discardable ? onDiscardStartDraft : undefined}
+    />
+  );
+}
+
+export {
+  buildAccountResumeWorkbenchItems,
+  clearAccountLocalStartDraftArtifacts,
+  resolveAccountResumeHrefFromStartDraft,
+};
+
 export default function AccountResumeWorkbenchSection(
   props: AccountResumeWorkbenchSectionProps,
 ) {
@@ -658,50 +419,25 @@ export default function AccountResumeWorkbenchSection(
     setStartDraft(readStartDraftContext());
   }, [props.initialStartDraft]);
 
-  const items = React.useMemo(
+  const unifiedItems = React.useMemo(
     () =>
-      buildAccountResumeWorkbenchItems({
+      buildAccountUnifiedWorkItems({
         entries: props.entries,
         startDraft,
+        manualAnlassraumServerDrafts: props.manualAnlassraumServerDrafts ?? [],
         canDeepResearch: props.canDeepResearch,
+        runtimeLinkages: props.runtimeLinkages ?? [],
       }),
-    [props.canDeepResearch, props.entries, startDraft],
+    [
+      props.canDeepResearch,
+      props.entries,
+      props.initialStartDraft,
+      props.manualAnlassraumServerDrafts,
+      props.runtimeLinkages,
+      startDraft,
+    ],
   );
-  const runtimeLinkages = props.runtimeLinkages ?? [];
-  const correlationsByItemId = React.useMemo(() => {
-    const next = new Map<string, AccountContributionHandoffCorrelation>();
-    for (const item of items) {
-      if (!item.correlationRef) continue;
-      next.set(
-        item.id,
-        buildAccountContributionHandoffCorrelation({
-          contributionRef: item.correlationRef,
-          runtimeLinkages,
-        }),
-      );
-    }
-    return next;
-  }, [items, runtimeLinkages]);
-  const correlatedHandoffIds = React.useMemo(
-    () =>
-      new Set(
-        Array.from(correlationsByItemId.values())
-          .map((correlation) => correlation.persistedHandoffRef?.handoffId ?? null)
-          .filter(
-            (handoffId): handoffId is string =>
-              Boolean(handoffId),
-          ),
-      ),
-    [correlationsByItemId],
-  );
-  const unmatchedRuntimeLinkages = React.useMemo(
-    () =>
-      runtimeLinkages.filter(
-        (linkage) => !correlatedHandoffIds.has(linkage.persistedHandoffRef.handoffId),
-      ),
-    [correlatedHandoffIds, runtimeLinkages],
-  );
-  const hasAnyWorkState = items.length > 0 || unmatchedRuntimeLinkages.length > 0;
+  const hasAnyWorkState = unifiedItems.length > 0;
 
   return (
     <section
@@ -717,39 +453,31 @@ export default function AccountResumeWorkbenchSection(
       })}
       {hasAnyWorkState ? (
         <div className="mt-4 grid gap-3 xl:grid-cols-2">
-          {items.map((item) => (
-            <ResumeWorkbenchCard
-              key={item.id}
-              item={item}
-              correlation={correlationsByItemId.get(item.id) ?? null}
-              onDiscard={
-                item.discardable
-                  ? () => {
-                      clearAccountLocalStartDraftArtifacts();
-                      setStartDraft(null);
-                    }
-                  : undefined
-              }
-            />
-          ))}
-          {unmatchedRuntimeLinkages.map((linkage) => (
-            <RuntimeLinkageCard
-              key={`runtime-linkage-${linkage.contributionRef.handoffId}`}
-              linkage={linkage}
-            />
-          ))}
+          {unifiedItems.map((workItem) =>
+            renderUnifiedWorkItem(workItem, () => {
+              clearAccountLocalStartDraftArtifacts();
+              setStartDraft(null);
+            }),
+          )}
         </div>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300/70 px-4 py-4 text-sm text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
           <p className="font-semibold text-[rgb(var(--fg))]">Noch keine offenen Arbeitsstände.</p>
           <p className="mt-2">
-            Starte einen neuen Beitrag oder schau dir bestehende Themen an, wenn du direkt weiterarbeiten willst.
+            Starte einen neuen Beitrag oder schau dir bestehende Themen an, wenn du direkt
+            weiterarbeiten willst.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/start" className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">
+            <Link
+              href="/start"
+              className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+            >
               Neuen Beitrag starten
             </Link>
-            <Link href="/themen" className="btn-secondary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">
+            <Link
+              href="/themen"
+              className="btn-secondary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+            >
               Themen ansehen
             </Link>
           </div>
