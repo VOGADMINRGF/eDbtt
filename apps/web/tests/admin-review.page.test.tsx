@@ -762,6 +762,11 @@ describe("/admin/review page", () => {
             scopeSummary: "ohne Organisationslabel · Region bezirk-berlin-reinickendorf",
             sourceReferences: [],
             provenanceSummary: "existing_scope_source · review_only",
+            correlationStrength: "missing",
+            correlationBasis: "none",
+            correlationLabel: "Rückverknüpfung zum ursprünglichen Beitrag noch offen",
+            correlationReason:
+              "Der persisted Handoff ist vorhanden, aber im aktuellen Bestand fehlt die harte Rück-ID zum ursprünglichen Draft-/Ledger-Ursprung.",
           },
         },
       ],
@@ -910,6 +915,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Create-/Account-Herkunft");
     expect(html).toContain("Bestehender Create-Arbeitsstand mit Account-Resume-Bezug.");
+    expect(html).toContain("Account-Linkage: Rückverknüpfung zum ursprünglichen Beitrag noch offen · Keine belastbare Basis");
+    expect(html).toContain("Warum noch nicht vollständig belastbar:");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("V3-Review-Kontext");
     expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");

@@ -1,4 +1,5 @@
 import type { V3ReviewQueueWiringContext } from "@/features/create/unifiedReviewQueueWiring";
+import type { AccountPersistedHandoffCorrelationRef } from "./contributionHandoffCorrelationTypes";
 
 export const ACCOUNT_USER_SCOPED_RUNTIME_LINKAGE_STATUSES = [
   "linked",
@@ -71,6 +72,7 @@ export type AccountUserScopedRuntimeSurfaceRef = {
 
 export type AccountUserScopedRuntimeLinkage = {
   contributionRef: AccountUserScopedRuntimeContributionRef;
+  persistedHandoffRef: AccountPersistedHandoffCorrelationRef;
   reviewQueueRef: AccountUserScopedRuntimeSurfaceRef | null;
   dossierWorkspaceRef: AccountUserScopedRuntimeSurfaceRef | null;
   participationRef: AccountUserScopedRuntimeSurfaceRef | null;

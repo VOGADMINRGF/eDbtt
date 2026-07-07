@@ -34,6 +34,11 @@ import {
   isRegionDraftDossierId,
 } from "@/features/runtimeDataGuardrails";
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  buildLedgerContributionSourceRefs,
+  buildPersistedHandoffReverseCorrelation,
+} from "@features/account/buildContributionHandoffCorrelations";
+import { loadAccountCreateContributionLedger } from "@features/account/loadAccountCreateContributionLedger";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
@@ -226,6 +231,35 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           () => null,
         )
       : null;
+  const sourceContributionRefs =
+    sourceRecord?.createdByUserId
+      ? buildLedgerContributionSourceRefs(
+          await loadAccountCreateContributionLedger(sourceRecord.createdByUserId, "de", 20).catch(
+            () => [],
+          ),
+        )
+      : [];
+  const reverseCorrelation = sourceRecord
+    ? buildPersistedHandoffReverseCorrelation({
+        persistedHandoffRef: {
+          handoffId: sourceRecord.id,
+          createHandoffId: sourceRecord.id,
+          title: `${sourceRecord.topicSeed.topicLabel} · ${sourceRecord.selectedAction}`,
+          summary: sourceRecord.plannerResult.shortSummary ?? sourceRecord.sourceText,
+          href: sourceRecord.resumeHref,
+          sourceText: sourceRecord.sourceText,
+          reviewState: sourceRecord.reviewState,
+          selectedAction: sourceRecord.selectedAction,
+          createdByUserId: sourceRecord.createdByUserId,
+          createdAt: sourceRecord.createdAt,
+          updatedAt: sourceRecord.updatedAt,
+          dossierId: sourceRecord.dossierId ?? null,
+          sharedIds: [sourceRecord.id],
+        },
+        contributionRefs: sourceContributionRefs,
+        runtimeTruthLevel: "dossier_readmodel",
+      })
+    : null;
   const v3ReviewContext = studioWorkspace
     ? buildDossierWorkspaceV3ReviewContext({
         workspace: studioWorkspace,
@@ -263,10 +297,20 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             : "Noch kein serverseitiger Studio-Arbeitsstand. Browser-Arbeitsstände bleiben lokal und nicht produktiv, bis explizit serverseitig gespeichert wird."}
         </p>
         {sourceRecord ? (
-          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-            Aus bestehendem Create-Arbeitsstand abgeleitet. Account-Linkage ist vorhanden; Review,
-            Sichtbarkeit und Veröffentlichung bleiben getrennte Schritte.
-          </p>
+          <>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Aus bestehendem Create-Arbeitsstand abgeleitet. Account-Linkage ist vorhanden; Review,
+              Sichtbarkeit und Veröffentlichung bleiben getrennte Schritte.
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Rückverknüpfung zum ursprünglichen Beitrag: {reverseCorrelation?.userVisibleLabel ?? "offen"}.
+            </p>
+            {reverseCorrelation?.adminReason ? (
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Warum das noch nicht vollständig belastbar ist: {reverseCorrelation.adminReason}
+              </p>
+            ) : null}
+          </>
         ) : null}
         {v3ReviewContext ? (
           <div className="mt-4">
