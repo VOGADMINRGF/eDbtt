@@ -68,6 +68,12 @@
   Claim-, Gegenpositions- und Fragen-Kandidaten gehaengt; fehlende
   Quellwahrheit bleibt explizit `missing_source_truth` oder
   `missing_runtime_truth`, und `deepsearch_state` bleibt `planned_handoff`.
+- Fuer `V3-ACCOUNT-RESUME-WORKFLOW-CONTINUITY-01` zeigt `/account` jetzt eine
+  kleine, ehrliche V3-Statuskarte fuer lokale Start-Drafts und servergesicherte
+  `/create`-Arbeitsstaende. Sichtbar sind Beitragseingang, Klassifizierung,
+  Themenanschluss, Formatvorschlag, Review-/Rückfragebedarf sowie Dossier-,
+  Participation-, Output- und Voxy-Folgepfade, ohne Freigabe, Veröffentlichung
+  oder aktive Runtime vorzutäuschen.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -153,6 +159,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/frontend-ai-transparency.contract.test.ts`
 - `apps/web/tests/ai-orchestration-provenance-trace.contract.test.ts`
 - `apps/web/tests/create-candidate-preview.contract.test.ts`
+- `apps/web/tests/v3-account-resume-workflow.test.tsx`
 - `apps/web/tests/v3-runtime-workflow-surface.test.tsx`
 - `apps/web/tests/create-claim-to-dossier-pipeline.contract.test.ts`
 - `apps/web/tests/create-feed-enrichment-review-suggestions.contract.test.ts`
@@ -169,6 +176,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 
 Wichtige Handoff-/Workflow-/Public-Route-Tests:
 
+- `apps/web/tests/account-resume-workbench.contract.test.tsx`
 - `apps/web/tests/create-handoff.persistence.route.test.ts`
 - `apps/web/tests/create-handoff-review-queue-runtime-bridge.test.ts`
 - `apps/web/tests/dossier-runtime-draft-persistence.test.ts`

@@ -1729,9 +1729,9 @@ export default function CreateClient({
           : null;
       const successMessage =
         manualReviewRequested
-          ? "Arbeitsstand eingereicht und in Prüfung. Keine automatische Veröffentlichung."
+          ? "Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung."
           : scopedSavedMessage ??
-            "Arbeitsstand gespeichert. Eingereicht, aber noch nicht veröffentlicht. Du kannst ihn weiter schärfen oder in Dossier, Anlassraum oder Swipes weiterführen.";
+            "Arbeitsstand gesichert. Noch nicht veröffentlicht. Du kannst ihn weiter schärfen oder in Dossier, Anlassraum oder Swipes weiterführen.";
       setSavedDraftId(body.draftId);
       setReviewRequestState("saved");
       setReviewRequestMessage(successMessage);

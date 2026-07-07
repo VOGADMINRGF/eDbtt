@@ -75,12 +75,16 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Zur manuellen Prüfung vorgemerkt");
     expect(html).toContain("Noch nicht veröffentlicht");
     expect(html).toContain("Öffentliche Relevanz klären");
+    expect(html).toContain("Was wurde aus deinem Beitrag?");
+    expect(html).toContain("Beitrag erhalten");
+    expect(html).toContain("Review oder Rückfrage");
     expect(html).toContain("Sinnvolle nächste Schritte");
     expect(html).toContain("Zur redaktionellen Prüfung geben");
     expect(html).toContain("Weiterarbeiten");
     expect(html).toContain("Verwerfen");
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
+    expect(html).not.toContain("review_draft_prepared");
   });
 
   it("builds useful empty and saved workbench states without productive claims", () => {
@@ -136,6 +140,8 @@ describe("account resume workbench contract", () => {
       status: "Entwurf",
       href: "/runden?from=create&packageId=package-1&branchId=branch-1",
     });
+    expect(items[0]?.workflow.currentStatusLabel).toBe("Beteiligungsformat vorbereitet");
+    expect(items[0]?.workflow.nextStepLabel).toBe("Beteiligungsformat prüfen");
     expect(items[0]?.nextActions.map((entry) => entry.label)).toContain("Runde weiter vorbereiten");
   });
 
