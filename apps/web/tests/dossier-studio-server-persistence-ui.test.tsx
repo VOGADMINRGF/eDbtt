@@ -1,5 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+
+vi.mock("@core/db/triMongo", async () => {
+  const actual = await vi.importActual<typeof import("@core/db/triMongo")>("@core/db/triMongo");
+  return {
+    ...actual,
+    shouldUseInMemoryMongoFallback: () => false,
+  };
+});
+
+vi.mock("@features/publicTopicPage", () => ({
+  getRelatedTopicPageForDossier: vi.fn(async () => null),
+}));
+
 import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
 import {
   createInMemoryDossierStudioWorkspaceRepo,
@@ -98,6 +111,8 @@ describe("dossier studio server persistence UI", () => {
 
     expect(html).toContain("Studio-Arbeitsstand serverseitig gespeichert");
     expect(html).toContain("reviewpflichtig und nicht veröffentlicht");
+    expect(html).toContain("V3-Review-Kontext im Studio");
+    expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
     expect(html).not.toContain("Jetzt veröffentlichen");
