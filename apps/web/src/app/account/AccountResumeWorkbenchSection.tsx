@@ -27,6 +27,11 @@ import V3AccountResumeWorkflow, {
   buildV3AccountResumeWorkflowFromStartDraft,
   type V3AccountResumeWorkflowModel,
 } from "@/features/create/V3AccountResumeWorkflow";
+import V3DownstreamKiTransparency, {
+  buildV3DownstreamKiTransparencyFromLedgerBranch,
+  buildV3DownstreamKiTransparencyFromStartDraft,
+  type V3DownstreamKiTransparencyModel,
+} from "@/features/create/V3DownstreamKiTransparency";
 import {
   LANDING_EDITORIAL_REVIEW_STORAGE_KEY,
   LANDING_START_CREATE_LIGHT_STORAGE_KEY,
@@ -48,6 +53,7 @@ type ResumeWorkbenchItem = {
   nextActions: DraftNextActionOption[];
   nextActionStatusLabel?: string | null;
   workflow: V3AccountResumeWorkflowModel;
+  downstreamTransparency: V3DownstreamKiTransparencyModel;
 };
 
 type AccountResumeWorkbenchSectionProps = {
@@ -134,6 +140,7 @@ function buildLocalDraftResumeItem(
     canDeepResearch,
     draft,
   });
+  const workflow = buildV3AccountResumeWorkflowFromStartDraft(draft);
   return {
     id: `local-${draft.id}`,
     title:
@@ -167,7 +174,8 @@ function buildLocalDraftResumeItem(
     discardable: true,
     nextActions: nextActionSummary.actions,
     nextActionStatusLabel: nextActionSummary.statusLabel,
-    workflow: buildV3AccountResumeWorkflowFromStartDraft(draft),
+    workflow,
+    downstreamTransparency: buildV3DownstreamKiTransparencyFromStartDraft(draft, workflow),
   };
 }
 
@@ -237,6 +245,11 @@ function buildResumeItemFromBranch(
     guardrails.push("Keine automatische Prüfung");
   }
 
+  const workflow = buildV3AccountResumeWorkflowFromLedgerBranch({
+    branch,
+    draftSaveStatus: entry.draftSaveStatus,
+    handoff,
+  });
   return {
     id: `${entry.packageId}-${branch.branchId}`,
     title: branch.title,
@@ -258,10 +271,12 @@ function buildResumeItemFromBranch(
       draft: null,
     }).actions,
     nextActionStatusLabel: null,
-    workflow: buildV3AccountResumeWorkflowFromLedgerBranch({
+    workflow,
+    downstreamTransparency: buildV3DownstreamKiTransparencyFromLedgerBranch({
       branch,
       draftSaveStatus: entry.draftSaveStatus,
       handoff,
+      workflow,
     }),
   };
 }
@@ -345,6 +360,10 @@ function ResumeWorkbenchCard(props: {
       <V3AccountResumeWorkflow
         model={props.item.workflow}
         dataTestId={`account-resume-workflow-${props.item.id}`}
+      />
+      <V3DownstreamKiTransparency
+        model={props.item.downstreamTransparency}
+        dataTestId={`account-resume-downstream-ki-${props.item.id}`}
       />
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={props.item.href} className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">

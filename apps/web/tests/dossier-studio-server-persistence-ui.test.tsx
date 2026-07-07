@@ -113,12 +113,15 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("reviewpflichtig und nicht veröffentlicht");
     expect(html).toContain("V3-Review-Kontext im Studio");
     expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");
+    expect(html).toContain("Downstream-KI-Transparenz im Studio");
+    expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
     expect(html).toContain('data-testid="dossier-studio-v3-workflow-surface"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
+    expect(html).not.toContain("blocked_by_provider");
   });
 
   it("shows explicit human official approval when a workspace was freigegeben", async () => {

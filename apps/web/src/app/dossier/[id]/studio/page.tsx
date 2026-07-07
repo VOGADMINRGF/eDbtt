@@ -34,6 +34,9 @@ import {
   isRegionDraftDossierId,
 } from "@/features/runtimeDataGuardrails";
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+import V3DownstreamKiTransparency, {
+  buildV3DownstreamKiTransparencyFromReviewContext,
+} from "@/features/create/V3DownstreamKiTransparency";
 import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import V3RuntimeWorkflowSurface, {
@@ -273,6 +276,14 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
                 dataTestId="dossier-studio-v3-workflow-surface"
               />
             </div>
+            <V3DownstreamKiTransparency
+              model={buildV3DownstreamKiTransparencyFromReviewContext(
+                v3ReviewContext,
+                "workspace",
+              )}
+              title="Downstream-KI-Transparenz im Studio"
+              dataTestId="dossier-studio-downstream-ki-transparency"
+            />
           </div>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
