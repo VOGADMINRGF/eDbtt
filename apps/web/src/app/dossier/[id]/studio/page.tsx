@@ -262,6 +262,12 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             ? `Studio-Arbeitsstand serverseitig gespeichert (${studioWorkspace.status}), reviewpflichtig und nicht veröffentlicht.`
             : "Noch kein serverseitiger Studio-Arbeitsstand. Browser-Arbeitsstände bleiben lokal und nicht produktiv, bis explizit serverseitig gespeichert wird."}
         </p>
+        {sourceRecord ? (
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            Aus bestehendem Create-Arbeitsstand abgeleitet. Account-Linkage ist vorhanden; Review,
+            Sichtbarkeit und Veröffentlichung bleiben getrennte Schritte.
+          </p>
+        ) : null}
         {v3ReviewContext ? (
           <div className="mt-4">
             <V3ReviewContextSummary
