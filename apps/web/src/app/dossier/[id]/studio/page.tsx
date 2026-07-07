@@ -44,11 +44,15 @@ import V3DownstreamKiTransparency, {
 } from "@/features/create/V3DownstreamKiTransparency";
 import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
+import {
+  buildSourceFactcheckFeedEnrichmentFromReviewContext,
+} from "@/features/create/sourceFactcheckFeedEnrichmentContract";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -347,6 +351,17 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
                 maxCards: 4,
               })}
               dataTestId="dossier-studio-voxy-cocreation"
+            />
+            <SourceFactcheckFeedEnrichmentPanel
+              model={buildSourceFactcheckFeedEnrichmentFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              dataTestId="dossier-studio-source-factcheck-feed-enrichment"
             />
           </div>
         ) : null}

@@ -24,11 +24,16 @@ import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
+import {
+  buildSourceFactcheckFeedEnrichmentFromReviewContext,
+  buildSourceFactcheckFeedEnrichmentFromVoxyDialog,
+} from "@/features/create/sourceFactcheckFeedEnrichmentContract";
 import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
@@ -191,6 +196,21 @@ function ResumeWorkbenchCard(props: {
         model={props.item.voxyCocreationDialog}
         dataTestId={`account-resume-voxy-cocreation-${props.item.id}`}
       />
+      <SourceFactcheckFeedEnrichmentPanel
+        model={buildSourceFactcheckFeedEnrichmentFromVoxyDialog(
+          props.item.voxyCocreationDialog,
+          {
+            surface: "account",
+            nextStep: props.item.nextStep,
+            userVisibleReason:
+              "Im Account bleibt dieser Block ein vorbereiteter Arbeitsstand und startet keine Recherche.",
+            reviewerVisibleReason:
+              "Lokale, servergesicherte oder resume-fähige Beiträge zeigen nur vorbereiteten Quellen- und Faktencheckbedarf.",
+            runtimeTruthMissing: true,
+          },
+        )}
+        dataTestId={`account-resume-source-factcheck-feed-${props.item.id}`}
+      />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
         <div className="mt-4 rounded-2xl border border-slate-200/80 px-3 py-3 text-xs dark:border-[rgb(var(--border))]">
@@ -290,6 +310,17 @@ function RuntimeLinkageCard(props: {
       maxCards: 4,
     },
   );
+  const sourceFactcheckFeedModel = buildSourceFactcheckFeedEnrichmentFromReviewContext(
+    props.linkage.v3ReviewContext,
+    {
+      audience: "workspace",
+      contributionRef: {
+        id: props.linkage.contributionRef.handoffId,
+        title: props.linkage.contributionRef.title,
+        href: props.linkage.contributionRef.href,
+      },
+    },
+  );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -374,6 +405,10 @@ function RuntimeLinkageCard(props: {
       <V3VoxyCocreationDialog
         model={voxyCocreationDialog}
         dataTestId={`account-runtime-linkage-voxy-${props.linkage.contributionRef.handoffId}`}
+      />
+      <SourceFactcheckFeedEnrichmentPanel
+        model={sourceFactcheckFeedModel}
+        dataTestId={`account-runtime-linkage-source-factcheck-feed-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

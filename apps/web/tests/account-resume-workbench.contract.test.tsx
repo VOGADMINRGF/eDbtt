@@ -86,6 +86,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Beitrag erhalten");
     expect(html).toContain("Review oder Rückfrage");
     expect(html).toContain("Mit Voxy weiterdenken");
+    expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
     expect(html).toContain("Nutzergebundene Downstream-Runtime im Account fehlt noch.");
@@ -351,6 +352,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("V3-Review-Kontext");
     expect(html).toContain("Downstream-KI-Transparenz");
     expect(html).toContain("Mit Voxy weiterdenken");
+    expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");

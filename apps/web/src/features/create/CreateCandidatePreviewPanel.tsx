@@ -2,10 +2,14 @@ import type { CreateCandidatePreviewReadModel } from "@/features/create/createCa
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromCreateCandidatePreview,
 } from "@/features/create/V3DownstreamKiTransparency";
+import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import {
+  buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview,
+} from "@/features/create/sourceFactcheckFeedEnrichmentContract";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -49,6 +53,8 @@ export default function CreateCandidatePreviewPanel({
   const workflowModel = buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview(model);
   const downstreamTransparencyModel =
     buildV3DownstreamKiTransparencyFromCreateCandidatePreview(model);
+  const sourceFactcheckFeedModel =
+    buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -117,6 +123,11 @@ export default function CreateCandidatePreviewPanel({
       <V3VoxyCocreationDialog
         model={model.voxyCocreationDialog}
         dataTestId="create-candidate-voxy-cocreation"
+      />
+
+      <SourceFactcheckFeedEnrichmentPanel
+        model={sourceFactcheckFeedModel}
+        dataTestId="create-candidate-source-factcheck-feed-enrichment"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

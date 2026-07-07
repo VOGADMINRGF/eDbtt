@@ -416,7 +416,10 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-workflow-surface"');
     expect(html).toContain('data-testid="create-candidate-downstream-ki-transparency"');
     expect(html).toContain('data-testid="create-candidate-voxy-cocreation"');
+    expect(html).toContain('data-testid="create-candidate-source-factcheck-feed-enrichment"');
     expect(html).toContain("Mit Voxy weiterdenken");
+    expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
+    expect(html).toContain("Noch nicht recherchiert · noch nicht geprüft · keine Quelle erfunden");
     expect(html).toContain("Antworten verbessern den Beitrag, veröffentlichen aber nichts.");
     expect(html).toContain("Welches konkrete Beispiel würde deinen Beitrag stärker und prüfbarer machen?");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");

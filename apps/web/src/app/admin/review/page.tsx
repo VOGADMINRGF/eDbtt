@@ -32,11 +32,15 @@ import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
+import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
+import {
+  buildSourceFactcheckFeedEnrichmentFromReviewContext,
+} from "@/features/create/sourceFactcheckFeedEnrichmentContract";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -568,6 +572,20 @@ export default async function AdminReviewPage({
                             },
                           )}
                           dataTestId={`admin-review-voxy-${item.id}`}
+                        />
+                        <SourceFactcheckFeedEnrichmentPanel
+                          model={buildSourceFactcheckFeedEnrichmentFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          dataTestId={`admin-review-source-factcheck-feed-${item.id}`}
                         />
                       </>
                     ) : null}
