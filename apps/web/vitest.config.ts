@@ -12,6 +12,7 @@ export default defineConfig({
       "@config": path.resolve(__dirname, "src/config"),
       "@features": path.resolve(__dirname, "..", "..", "features"),
       "@core": path.resolve(__dirname, "..", "..", "core"),
+      "server-only": path.resolve(__dirname, "tests/support/server-only.ts"),
     },
   },
 });

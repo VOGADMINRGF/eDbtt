@@ -18,6 +18,12 @@ import {
   listPersistedCreateHandoffRecords,
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  buildDossierWorkspaceV3ReviewContext,
+  buildPersistedCreateHandoffV3ReviewContext,
+  buildSocialDistributionPostV3ReviewContext,
+  type V3ReviewQueueWiringContext,
+} from "@/features/create/unifiedReviewQueueWiring";
 import type { Region } from "./region/contracts";
 import {
   publicationVisibilityLabel,
@@ -183,6 +189,7 @@ export type ReviewQueueItem = {
     sourceState: string;
     auditHint: string;
   } | null;
+  v3ReviewContext?: V3ReviewQueueWiringContext | null;
 };
 
 type ReviewQueueItemCore = Omit<
@@ -318,6 +325,59 @@ function clone<T>(value: T): T {
 
 function uniqueNonEmpty(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
+function timestampForSort(value: string | null | undefined) {
+  const parsed = Date.parse(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildPersistedCreateHandoffIndexes(
+  records: PersistedCreateHandoffRecord[],
+) {
+  const sorted = [...records].sort(
+    (left, right) => timestampForSort(right.updatedAt) - timestampForSort(left.updatedAt),
+  );
+  const byId = new Map<string, PersistedCreateHandoffRecord>();
+  const byDossierId = new Map<string, PersistedCreateHandoffRecord>();
+  const byAnlassraumId = new Map<string, PersistedCreateHandoffRecord>();
+
+  for (const record of sorted) {
+    byId.set(record.id, record);
+    if (record.dossierId && !byDossierId.has(record.dossierId)) {
+      byDossierId.set(record.dossierId, record);
+    }
+    if (record.anlassraumId && !byAnlassraumId.has(record.anlassraumId)) {
+      byAnlassraumId.set(record.anlassraumId, record);
+    }
+  }
+
+  return {
+    byId,
+    byDossierId,
+    byAnlassraumId,
+  };
+}
+
+function findCreateHandoffForWorkspace(params: {
+  workspace: DossierStudioWorkspace;
+  persistedCreateHandoffIndexes: ReturnType<typeof buildPersistedCreateHandoffIndexes>;
+}) {
+  const sourceDraftId = params.workspace.provenance.sourceDraftId;
+  if (sourceDraftId) {
+    return params.persistedCreateHandoffIndexes.byId.get(sourceDraftId) ?? null;
+  }
+  return params.persistedCreateHandoffIndexes.byDossierId.get(params.workspace.dossierId) ?? null;
+}
+
+function findCreateHandoffForSocialDistributionPost(params: {
+  post: SocialDistributionPost;
+  persistedCreateHandoffIndexes: ReturnType<typeof buildPersistedCreateHandoffIndexes>;
+}) {
+  if (params.post.dossierId) {
+    return params.persistedCreateHandoffIndexes.byDossierId.get(params.post.dossierId) ?? null;
+  }
+  return null;
 }
 
 function regionNameFor(regionMap: Map<string, Region>, regionId: string | null | undefined) {
@@ -862,6 +922,7 @@ function workspaceSummary(workspace: DossierStudioWorkspace) {
 function mapWorkspaceItem(params: {
   workspace: DossierStudioWorkspace;
   regionMap: Map<string, Region>;
+  v3ReviewContext?: V3ReviewQueueWiringContext | null;
 }): ReviewQueueItemCore | null {
   if (
     params.workspace.status !== "needs_review" &&
@@ -895,6 +956,7 @@ function mapWorkspaceItem(params: {
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
     sourceSnapshotTemplate: null,
+    v3ReviewContext: params.v3ReviewContext ?? null,
   };
 }
 
@@ -936,6 +998,7 @@ function mapWorkspaceOfficialApprovalItem(params: {
 function mapWorkspaceOutputItems(params: {
   workspace: DossierStudioWorkspace;
   regionMap: Map<string, Region>;
+  v3ReviewContext?: V3ReviewQueueWiringContext | null;
 }): ReviewQueueItemCore[] {
   const items: ReviewQueueItemCore[] = [];
   const base = {
@@ -960,6 +1023,7 @@ function mapWorkspaceOutputItems(params: {
     reviewAuthorityLabel: "Reviewpflichtig",
     contentReleaseWorkbench: null,
     sourceSnapshotTemplate: null,
+    v3ReviewContext: params.v3ReviewContext ?? null,
   };
 
   if (params.workspace.masterPostDraft?.reviewStatus === "review_required") {
@@ -999,6 +1063,7 @@ function mapWorkspaceOutputItems(params: {
 function mapSocialDistributionPostItem(params: {
   post: SocialDistributionPost;
   regionMap: Map<string, Region>;
+  v3ReviewContext?: V3ReviewQueueWiringContext | null;
 }): ReviewQueueItemCore {
   const auditHint =
     params.post.status === "approved"
@@ -1038,6 +1103,7 @@ function mapSocialDistributionPostItem(params: {
       sourceState: params.post.sourceState,
       auditHint,
     },
+    v3ReviewContext: params.v3ReviewContext ?? null,
   };
 }
 
@@ -1089,6 +1155,7 @@ async function mapPersistedCreateHandoffItem(params: {
   regionMap: Map<string, Region>;
   scope: ReviewQueueScopeContext;
 }): Promise<ReviewQueueItemCore> {
+  const v3ReviewContext = buildPersistedCreateHandoffV3ReviewContext(params.record);
   const targets = await buildContentReleaseWorkbenchTargetsForCreateHandoff({
     sourceKind: "create_handoff",
     record: params.record,
@@ -1171,6 +1238,7 @@ async function mapPersistedCreateHandoffItem(params: {
         params.record.accessDecision?.status ?? "review_only",
       ].join(" · "),
     },
+    v3ReviewContext,
   };
 }
 
@@ -1546,6 +1614,12 @@ export async function buildReviewQueueReadModel(
     listMaterialExtractionJobs({ limit: 200 }),
   ]);
   const sourceResults = await listRegionSourceTestResults({ limit: 200 });
+  const persistedCreateHandoffs = await listPersistedCreateHandoffRecords().catch(
+    () => [] as PersistedCreateHandoffRecord[],
+  );
+  const persistedCreateHandoffIndexes = buildPersistedCreateHandoffIndexes(
+    persistedCreateHandoffs,
+  );
 
   const coreItems: ReviewQueueItemCore[] = [];
 
@@ -1592,9 +1666,27 @@ export async function buildReviewQueueReadModel(
 
   for (const workspace of workspaces) {
     if (!scopeAllowsWorkspace({ scope: scoped, workspace })) continue;
-    const workspaceItem = mapWorkspaceItem({ workspace, regionMap });
+    const sourceRecord = findCreateHandoffForWorkspace({
+      workspace,
+      persistedCreateHandoffIndexes,
+    });
+    const v3ReviewContext = buildDossierWorkspaceV3ReviewContext({
+      workspace,
+      sourceRecord,
+    });
+    const workspaceItem = mapWorkspaceItem({
+      workspace,
+      regionMap,
+      v3ReviewContext,
+    });
     if (workspaceItem) coreItems.push(workspaceItem);
-    coreItems.push(...mapWorkspaceOutputItems({ workspace, regionMap }));
+    coreItems.push(
+      ...mapWorkspaceOutputItems({
+        workspace,
+        regionMap,
+        v3ReviewContext,
+      }),
+    );
     if (scoped.canApproveOfficial) {
       const officialItem = mapWorkspaceOfficialApprovalItem({ workspace, regionMap });
       if (officialItem) coreItems.push(officialItem);
@@ -1611,7 +1703,33 @@ export async function buildReviewQueueReadModel(
     ) {
       continue;
     }
-    coreItems.push(mapSocialDistributionPostItem({ post, regionMap }));
+    const sourceRecord = findCreateHandoffForSocialDistributionPost({
+      post,
+      persistedCreateHandoffIndexes,
+    });
+    const socialV3ReviewContext = buildSocialDistributionPostV3ReviewContext(post);
+    const sourceV3ReviewContext = sourceRecord
+      ? buildPersistedCreateHandoffV3ReviewContext(sourceRecord)
+      : null;
+    const v3ReviewContext =
+      sourceV3ReviewContext && sourceRecord?.dossierId === post.dossierId
+        ? {
+            ...socialV3ReviewContext,
+            sourcePack:
+              socialV3ReviewContext.sourcePack ?? sourceV3ReviewContext.sourcePack,
+            languageBridge:
+              socialV3ReviewContext.languageBridge ?? sourceV3ReviewContext.languageBridge,
+            participationCandidates: sourceV3ReviewContext.participationCandidates,
+            crossLingualSuggestions: sourceV3ReviewContext.crossLingualSuggestions,
+          }
+        : socialV3ReviewContext;
+    coreItems.push(
+      mapSocialDistributionPostItem({
+        post,
+        regionMap,
+        v3ReviewContext,
+      }),
+    );
   }
 
   for (const job of materialExtractionJobs.filter(includeMaterialExtractionItem)) {
@@ -1633,9 +1751,6 @@ export async function buildReviewQueueReadModel(
     }
   }
 
-  const persistedCreateHandoffs = await listPersistedCreateHandoffRecords().catch(
-    () => [] as PersistedCreateHandoffRecord[],
-  );
   for (const record of persistedCreateHandoffs) {
     if (!scopeAllowsCreateHandoff({ scope: scoped, record })) continue;
     coreItems.push(await mapPersistedCreateHandoffItem({ record, regionMap, scope: scoped }));
