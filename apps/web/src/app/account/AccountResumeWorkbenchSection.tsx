@@ -29,6 +29,11 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
+import {
+  buildDossierWorkspaceDecisionFromReviewContext,
+  buildDossierWorkspaceDecisionFromVoxyDialog,
+} from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -130,6 +135,15 @@ function ResumeWorkbenchCard(props: {
   ssotSummary: string;
   onDiscard?: () => void;
 }) {
+  const dossierWorkspaceDecisionModel = buildDossierWorkspaceDecisionFromVoxyDialog(
+    props.item.voxyCocreationDialog,
+    {
+      contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+      surface: "account",
+      nextStep: props.item.nextStep,
+    },
+  );
+
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
       <div className="flex flex-wrap items-center gap-2">
@@ -210,6 +224,11 @@ function ResumeWorkbenchCard(props: {
           },
         )}
         dataTestId={`account-resume-source-factcheck-feed-${props.item.id}`}
+      />
+      <DossierWorkspaceDecisionPanel
+        model={dossierWorkspaceDecisionModel}
+        title="Dossier-Entscheidungslogik"
+        dataTestId={`account-resume-dossier-decision-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -321,6 +340,24 @@ function RuntimeLinkageCard(props: {
       },
     },
   );
+  const dossierWorkspaceDecisionModel = buildDossierWorkspaceDecisionFromReviewContext(
+    props.linkage.v3ReviewContext,
+    {
+      audience: "workspace",
+      contributionRef: {
+        id: props.linkage.contributionRef.handoffId,
+        title: props.linkage.contributionRef.title,
+        href: props.linkage.contributionRef.href,
+      },
+      dossierRef: props.linkage.dossierWorkspaceRef
+        ? {
+            id: props.linkage.contributionRef.handoffId,
+            title: props.linkage.dossierWorkspaceRef.title,
+            href: props.linkage.dossierWorkspaceRef.href,
+          }
+        : null,
+    },
+  );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -409,6 +446,11 @@ function RuntimeLinkageCard(props: {
       <SourceFactcheckFeedEnrichmentPanel
         model={sourceFactcheckFeedModel}
         dataTestId={`account-runtime-linkage-source-factcheck-feed-${props.linkage.contributionRef.handoffId}`}
+      />
+      <DossierWorkspaceDecisionPanel
+        model={dossierWorkspaceDecisionModel}
+        title="Dossier-Entscheidungslogik"
+        dataTestId={`account-runtime-linkage-dossier-decision-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

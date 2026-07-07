@@ -44,11 +44,13 @@ import V3DownstreamKiTransparency, {
 } from "@/features/create/V3DownstreamKiTransparency";
 import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -362,6 +364,23 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
                 },
               })}
               dataTestId="dossier-studio-source-factcheck-feed-enrichment"
+            />
+            <DossierWorkspaceDecisionPanel
+              model={buildDossierWorkspaceDecisionFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Dossier-Entscheidungslogik im Studio"
+              dataTestId="dossier-studio-dossier-decision"
             />
           </div>
         ) : null}

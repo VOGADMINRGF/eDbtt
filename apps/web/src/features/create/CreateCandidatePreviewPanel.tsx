@@ -1,4 +1,5 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
+import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromCreateCandidatePreview,
 } from "@/features/create/V3DownstreamKiTransparency";
@@ -7,6 +8,9 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import {
+  buildDossierWorkspaceDecisionFromCreateCandidatePreview,
+} from "@/features/create/dossierWorkspaceDecisionContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
@@ -55,6 +59,8 @@ export default function CreateCandidatePreviewPanel({
     buildV3DownstreamKiTransparencyFromCreateCandidatePreview(model);
   const sourceFactcheckFeedModel =
     buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview(model);
+  const dossierWorkspaceDecisionModel =
+    buildDossierWorkspaceDecisionFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -128,6 +134,12 @@ export default function CreateCandidatePreviewPanel({
       <SourceFactcheckFeedEnrichmentPanel
         model={sourceFactcheckFeedModel}
         dataTestId="create-candidate-source-factcheck-feed-enrichment"
+      />
+
+      <DossierWorkspaceDecisionPanel
+        model={dossierWorkspaceDecisionModel}
+        title="Dossier-Entscheidungslogik"
+        dataTestId="create-candidate-dossier-workspace-decision"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

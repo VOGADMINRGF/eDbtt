@@ -87,6 +87,8 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Review oder Rückfrage");
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
+    expect(html).toContain("Dossier-Entscheidungslogik");
+    expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
     expect(html).toContain("Nutzergebundene Downstream-Runtime im Account fehlt noch.");
@@ -97,6 +99,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Zur redaktionellen Prüfung geben");
     expect(html).toContain("Weiterarbeiten");
     expect(html).toContain("Verwerfen");
+    expect((html.match(/data-testid=\"account-resume-dossier-decision-/g) ?? []).length).toBe(1);
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
     expect(html).not.toContain("review_draft_prepared");
@@ -353,6 +356,8 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Downstream-KI-Transparenz");
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
+    expect(html).toContain("Dossier-Entscheidungslogik");
+    expect(html).toContain('data-testid="account-runtime-linkage-dossier-decision-create-handoff-1"');
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
