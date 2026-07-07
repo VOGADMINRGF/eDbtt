@@ -6,10 +6,12 @@ import type { TopicKey } from "@features/interests/topics";
 import type { AccountEditorialReviewSlice } from "./editorialReviewTypes";
 import type { AccountFactcheckJobSlice } from "./factcheckJobTypes";
 import type { AccountGraphMergeCandidateSlice } from "./graphCandidateTypes";
+import type { AccountManualAnlassraumServerDraftSlice } from "./manualAnlassraumServerDraftTypes";
 import type { AccountUserScopedRuntimeLinkageSlice } from "./userScopedRuntimeLinkageTypes";
 
 type AccountCreateDraftSlice = import("./createContributionLedgerTypes").AccountCreateContributionLedgerSlice;
 type AccountReviewSupplementSlices =
+  AccountManualAnlassraumServerDraftSlice &
   AccountEditorialReviewSlice &
   AccountFactcheckJobSlice &
   AccountGraphMergeCandidateSlice &

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getCreateEntitlementsForRequest: vi.fn(),
   getAccountOverview: vi.fn(),
   getDraft: vi.fn(),
+  getCreateContributionDraftForResume: vi.fn(),
   readManualAnlassraumServerDraftForCurrentUser: vi.fn(),
   resolveCurrentRequestScopeContext: vi.fn(),
   summarizeRequestScopeContext: vi.fn(),
@@ -29,7 +30,8 @@ vi.mock("@/features/surfaces/runden/manualAnlassraumServerDraft", () => ({
 }));
 
 vi.mock("@/server/createContributionDrafts", () => ({
-  getCreateContributionDraftForResume: vi.fn().mockResolvedValue(null),
+  getCreateContributionDraftForResume: (...args: unknown[]) =>
+    mocks.getCreateContributionDraftForResume(...args),
 }));
 
 vi.mock("@/lib/server/auth/requestScope", () => ({
@@ -111,6 +113,7 @@ describe("/create start surface", () => {
     mocks.getCreateEntitlementsForRequest.mockResolvedValue(AUTH_ENTITLEMENTS);
     mocks.getAccountOverview.mockResolvedValue(OVERVIEW);
     mocks.getDraft.mockResolvedValue(null);
+    mocks.getCreateContributionDraftForResume.mockResolvedValue(null);
     mocks.readManualAnlassraumServerDraftForCurrentUser.mockResolvedValue(null);
     mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
     mocks.summarizeRequestScopeContext.mockReturnValue(null);
@@ -304,5 +307,28 @@ describe("/create start surface", () => {
 
     expect(html).toContain("Stadtverwaltung Nord · Organisations-verifiziert");
     expect(html).toContain("im Bereich deiner Organisation und wird vor Veröffentlichung geprüft");
+  });
+
+  it("prefers the user-scoped contribution draft resume over the legacy draft store for object ids", async () => {
+    mocks.getDraft.mockResolvedValue({
+      id: "65a111111111111111111122",
+      text: "Legacy-Draft-Text",
+    });
+    mocks.getCreateContributionDraftForResume.mockResolvedValue({
+      id: "65a111111111111111111122",
+      text: "Serverseitiger Contribution-Draft",
+    });
+
+    await CreatePage({
+      searchParams: Promise.resolve({
+        draftId: "65a111111111111111111122",
+      }),
+    });
+
+    expect(mocks.getCreateContributionDraftForResume).toHaveBeenCalledWith(
+      "65a111111111111111111122",
+      "user-1",
+    );
+    expect(mocks.getDraft).not.toHaveBeenCalledWith("65a111111111111111111122");
   });
 });

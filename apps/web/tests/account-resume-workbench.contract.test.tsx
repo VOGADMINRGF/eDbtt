@@ -9,6 +9,10 @@ import {
   buildAccountUserScopedRuntimeLinkage,
 } from "@features/account/loadAccountUserScopedRuntimeLinkage";
 import { createStartDraftContext } from "@/features/start/startDraftContext";
+import {
+  buildManualAnlassraumStartDraft,
+  createEmptyManualAnlassraumSetup,
+} from "@/features/surfaces/runden/manualAnlassraumSetup";
 
 function installSessionStorage(initial: Record<string, string> = {}) {
   const store = new Map<string, string>(Object.entries(initial));
@@ -83,6 +87,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Review oder Rückfrage");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
     expect(html).toContain("Nutzergebundene Downstream-Runtime im Account fehlt noch.");
+    expect(html).toContain("Lokaler Browser-Entwurf");
     expect(html).toContain("Verknüpfung zum Arbeitsstand");
     expect(html).toContain("Noch kein belastbarer persisted Handoff");
     expect(html).toContain("Sinnvolle nächste Schritte");
@@ -188,6 +193,40 @@ describe("account resume workbench contract", () => {
     expect(store.has("start-draft-context.v1")).toBe(false);
     expect(store.has("landing-create-light-draft")).toBe(false);
     expect(store.has("landing-editorial-review-draft")).toBe(false);
+  });
+
+  it("prefers the server-backed /runden/new draft over a duplicate local round handoff", () => {
+    const setup = {
+      ...createEmptyManualAnlassraumSetup(),
+      title: "Sichere Schulwege",
+      votingQuestion: "Welche Maßnahme soll zuerst kommen?",
+      description: "Eltern und Schule melden offene Querungen.",
+    };
+    const localRoundDraft = buildManualAnlassraumStartDraft(setup, {
+      id: "local-round-1",
+      createdAt: "2026-07-07T09:00:00.000Z",
+      handoffCount: 0,
+    });
+
+    const html = renderToStaticMarkup(
+      <AccountResumeWorkbenchSection
+        entries={[]}
+        initialStartDraft={localRoundDraft}
+        manualAnlassraumServerDrafts={[
+          {
+            draftId: "65a111111111111111111122",
+            updatedAt: "2026-07-07T10:00:00.000Z",
+            setup,
+          },
+        ]}
+      />,
+    );
+
+    expect(html).toContain("Serverseitig gespeichert");
+    expect(html).toContain("Serverseitiger Anlassraum-Entwurf");
+    expect(html).toContain("Runde weiter vorbereiten");
+    expect(html).toContain("In /create weiterarbeiten");
+    expect(html).not.toContain("Lokaler Entwurf");
   });
 
   it("renders persisted user-scoped runtime linkage without pretending publish or approval", () => {

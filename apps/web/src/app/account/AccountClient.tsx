@@ -63,6 +63,10 @@ import {
   type AccountGraphMergeCandidateSlice,
 } from "@features/account/graphCandidateTypes";
 import {
+  readAccountManualAnlassraumServerDraftSlice,
+  type AccountManualAnlassraumServerDraftSlice,
+} from "@features/account/manualAnlassraumServerDraftTypes";
+import {
   readAccountUserScopedRuntimeLinkageSlice,
   type AccountUserScopedRuntimeLinkageSlice,
 } from "@features/account/userScopedRuntimeLinkageTypes";
@@ -262,6 +266,7 @@ export type AccountOverview = {
   features: FeatureFlags;
   featureInterests: AccountFeatureInterestKey[];
 } & import("@features/account/createContributionLedgerTypes").AccountCreateContributionLedgerSlice &
+  AccountManualAnlassraumServerDraftSlice &
   AccountEditorialReviewSlice &
   AccountFactcheckJobSlice &
   AccountGraphMergeCandidateSlice &
@@ -323,6 +328,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <AccountCreateDraftSections
         entries={data.createContributionLedger ?? []}
+        manualAnlassraumServerDrafts={data.manualAnlassraumServerDrafts ?? []}
         roles={data.roles}
         runtimeLinkages={data.userScopedRuntimeLinkages ?? []}
       />
@@ -3431,6 +3437,7 @@ function normalizeOverview(src: any): AccountOverview {
         ? dedupeCreateContributionLedgerEntries(src.createContributionLedger)
         : [],
     }),
+    ...readAccountManualAnlassraumServerDraftSlice(src),
     ...readAccountEditorialReviewSlice(src),
     ...readAccountFactcheckJobSlice(src),
     ...readAccountGraphMergeCandidateSlice(src),
