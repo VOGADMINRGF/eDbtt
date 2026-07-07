@@ -80,6 +80,14 @@
   Die neuen Tests pruefen, dass nur vorhandene Handoff-/Review-/Runtime-Wahrheit
   sichtbar wird, fehlende Downstream- oder Provider-Wahrheit nicht gefakt wird
   und keine rohen Debug-/Enum-Strings in User-Flächen leaken.
+- Fuer `V3-ACCOUNT-USER-SCOPED-REVIEW-RUNTIME-LINKAGE-02` laedt `/account`
+  jetzt eine additive, user-scoped Runtime-Linkage-Slice aus persisted
+  Create-Handoffs, Dossier-Workspaces sowie Anlassraum-/Participation- und
+  Output-/Voxy-Readmodels. Die neue Testabdeckung sichert harte
+  ID-Korrelationen ueber `create-handoff-*`, `sourceHandoffId` und
+  `workspace.provenance.sourceDraftId`, bewahrt partielle `dossierId + owner`-
+  Zuordnungen als reviewpflichtig und verhindert Fake-Linkage aus bloßer
+  Textaehnlichkeit.
 
 ## Welche Matrix-Gruppen sichtbar sind
 
@@ -167,6 +175,7 @@ Wichtige V3-UI-/Readmodel-Tests:
 - `apps/web/tests/create-candidate-preview.contract.test.ts`
 - `apps/web/tests/v3-downstream-ki-transparency.test.tsx`
 - `apps/web/tests/v3-account-resume-workflow.test.tsx`
+- `apps/web/tests/v3-account-user-scoped-runtime-linkage.test.ts`
 - `apps/web/tests/v3-runtime-workflow-surface.test.tsx`
 - `apps/web/tests/create-claim-to-dossier-pipeline.contract.test.ts`
 - `apps/web/tests/create-feed-enrichment-review-suggestions.contract.test.ts`

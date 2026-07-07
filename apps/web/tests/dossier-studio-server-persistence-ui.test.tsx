@@ -19,6 +19,10 @@ import {
   setDossierStudioWorkspaceRepoForTests,
 } from "@features/dossier";
 import {
+  createInMemoryPersistedCreateHandoffRepo,
+  setPersistedCreateHandoffRepoForTests,
+} from "@/features/create/persistedHandoffReviewQueue";
+import {
   buildDraftRecord,
   buildSocialDistributionPlan,
   demoDossierForOutputEngine,
@@ -82,6 +86,7 @@ function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
 describe("dossier studio server persistence UI", () => {
   beforeEach(() => {
     setDossierStudioWorkspaceRepoForTests(createInMemoryDossierStudioWorkspaceRepo());
+    setPersistedCreateHandoffRepoForTests(createInMemoryPersistedCreateHandoffRepo());
   });
 
   it("shows honest empty-state persistence copy when no server workspace exists", async () => {
@@ -151,5 +156,84 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Server-Workspace · needs_review · amtlich freigegeben");
     expect(html).toContain("Menschlich freigegeben · Publikationsfreigabe");
     expect(html).toContain("Öffentliche amtliche Freigabe wurde explizit durch einen berechtigten Menschen erteilt.");
+  });
+
+  it("shows create-origin provenance when a studio workspace is linked by sourceDraftId", async () => {
+    setDossierStudioWorkspaceRepoForTests(
+      createInMemoryDossierStudioWorkspaceRepo({
+        workspaces: [
+          {
+            ...buildWorkspaceSeed(),
+            provenance: {
+              sourceDraftId: "create-handoff-1",
+            },
+          },
+        ],
+      }),
+    );
+    setPersistedCreateHandoffRepoForTests(
+      createInMemoryPersistedCreateHandoffRepo({
+        records: [
+          {
+            schemaVersion: "create_handoff_review_item.v1",
+            id: "create-handoff-1",
+            source: "create",
+            sourceText: "Wir brauchen sichere Schulwege.",
+            plannerResult: {
+              shortSummary: "Sichere Schulwege priorisieren.",
+              topicCandidates: ["Schulwege"],
+              openQuestions: ["Welche Kreuzung zuerst?"],
+            },
+            graphMatches: {
+              matches: [],
+              matchedDossiers: [],
+              matchedAnlassraeume: [],
+              matchedClaims: [],
+              matchedTopics: [],
+              matchedVotes: [],
+            },
+            selectedAction: "create_dossier",
+            claims: [{ id: "claim-1", text: "Sichere Schulwege priorisieren.", factcheckEligible: true }],
+            arguments: [],
+            openQuestions: [{ id: "question-1", question: "Welche Kreuzung zuerst?", requiredBeforePublish: true }],
+            sourceGrounding: [],
+            topicSeed: {
+              topicKey: "school-routes",
+              topicLabel: "Sichere Schulwege",
+              jurisdiction: "district",
+              themenradarSourceType: "user_input",
+            },
+            resumeHref: "/create?resume=create-handoff-1",
+            reviewState: "ready_for_confirmation",
+            visibilityState: "internal_review",
+            requiresConfirmation: true,
+            reviewRequired: true,
+            noAutoPublish: true,
+            noPublicOfficial: true,
+            noAutomaticOfficialResponse: true,
+            noAutoFinalization: true,
+            intakeClassification: "proposal",
+            createdByUserId: "user-1",
+            regionId: "region-1",
+            organizationId: null,
+            dossierId: "dossier_demo_mobility_berlin",
+            anlassraumId: null,
+            requestScope: null,
+            accessDecision: null,
+            createdAt: "2026-07-07T10:00:00.000Z",
+            updatedAt: "2026-07-07T10:05:00.000Z",
+          } as any,
+        ],
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      await DossierOutputStudioPage({
+        params: Promise.resolve({ id: "dossier_demo_mobility_berlin" }),
+      }),
+    );
+
+    expect(html).toContain("Aus bestehendem Create-Arbeitsstand abgeleitet.");
+    expect(html).toContain("Account-Linkage ist vorhanden");
   });
 });

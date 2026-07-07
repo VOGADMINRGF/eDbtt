@@ -717,6 +717,53 @@ describe("/admin/review page", () => {
             ],
           },
         },
+        {
+          id: "create_handoff:persisted:create-handoff-2",
+          domain: "create_handoff",
+          domainLabel: "Create-Handoff",
+          workflowState: "review_required",
+          workflowLabel: "Review erforderlich",
+          title: "Sichere Schulwege · Dossier-Aufbau",
+          summary: "Persistierter Handoff mit Account-Resume-Bezug.",
+          href: "/create?resume=create-handoff-2",
+          regionId: "bezirk-berlin-reinickendorf",
+          regionName: "Berlin Reinickendorf",
+          organizationId: null,
+          dossierId: "dossier-2",
+          draftId: "create-handoff-2",
+          sourceType: "create_dossier",
+          visibilityState: "internal_review",
+          visibilityLabel: "reviewpflichtig",
+          scopeLabel: "Berlin Reinickendorf",
+          priorityScore: 70,
+          priorityBucket: "medium",
+          priorityLabel: "Mittlere Priorität",
+          pendingHours: 5,
+          operationalStatus: "ready",
+          operationalStatusLabel: "Bereit",
+          assignedToUserId: null,
+          assignedAt: null,
+          assignedByUserId: null,
+          noteCount: 0,
+          latestNote: null,
+          activityTrail: [],
+          unifiedAuditTrail: [],
+          createdAt: "2026-05-19T10:00:00.000Z",
+          updatedAt: "2026-05-19T10:00:00.000Z",
+          reviewRequired: true,
+          publicOfficialCandidate: false,
+          reviewAuthority: "standard_review",
+          reviewAuthorityLabel: "Reviewpflichtig",
+          sourceSnapshotTemplate: null,
+          contentReleaseWorkbench: null,
+          createHandoffContext: {
+            intakeClassification: "proposal",
+            reviewState: "ready_for_confirmation",
+            scopeSummary: "ohne Organisationslabel · Region bezirk-berlin-reinickendorf",
+            sourceReferences: [],
+            provenanceSummary: "existing_scope_source · review_only",
+          },
+        },
       ],
       operationsPersistence: {
         mode: "persistent_primary",
@@ -741,8 +788,8 @@ describe("/admin/review page", () => {
         deploymentReconstructable: true,
       },
       summary: {
-        total: 3,
-        totalBeforeFilters: 3,
+        total: 4,
+        totalBeforeFilters: 4,
         officialApprovalCount: 1,
         highPriorityCount: 1,
         assignedCount: 1,
@@ -762,6 +809,11 @@ describe("/admin/review page", () => {
           {
             domain: "public_official_approval",
             label: "Amtliche Freigabe",
+            count: 1,
+          },
+          {
+            domain: "create_handoff",
+            label: "Create-Handoff",
             count: 1,
           },
         ],
@@ -856,6 +908,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Persistierte Sichtbarkeit");
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");
+    expect(html).toContain("Create-/Account-Herkunft");
+    expect(html).toContain("Bestehender Create-Arbeitsstand mit Account-Resume-Bezug.");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("V3-Review-Kontext");
     expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");

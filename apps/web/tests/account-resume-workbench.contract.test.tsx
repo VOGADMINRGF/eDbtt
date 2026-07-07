@@ -5,6 +5,9 @@ import AccountResumeWorkbenchSection, {
   clearAccountLocalStartDraftArtifacts,
   resolveAccountResumeHrefFromStartDraft,
 } from "@/app/account/AccountResumeWorkbenchSection";
+import {
+  buildAccountUserScopedRuntimeLinkage,
+} from "@features/account/loadAccountUserScopedRuntimeLinkage";
 import { createStartDraftContext } from "@/features/start/startDraftContext";
 
 function installSessionStorage(initial: Record<string, string> = {}) {
@@ -183,5 +186,128 @@ describe("account resume workbench contract", () => {
     expect(store.has("start-draft-context.v1")).toBe(false);
     expect(store.has("landing-create-light-draft")).toBe(false);
     expect(store.has("landing-editorial-review-draft")).toBe(false);
+  });
+
+  it("renders persisted user-scoped runtime linkage without pretending publish or approval", () => {
+    const linkage = buildAccountUserScopedRuntimeLinkage({
+      handoff: {
+        schemaVersion: "create_handoff_review_item.v1",
+        id: "create-handoff-1",
+        source: "create",
+        sourceText: "Wir brauchen sichere Schulwege.",
+        plannerResult: {
+          shortSummary: "Sichere Schulwege priorisieren.",
+          topicCandidates: ["Schulwege"],
+          openQuestions: ["Welche Kreuzung zuerst?"],
+        },
+        graphMatches: {
+          matches: [],
+          matchedDossiers: [],
+          matchedAnlassraeume: [],
+          matchedClaims: [],
+          matchedTopics: [],
+          matchedVotes: [],
+        },
+        selectedAction: "create_dossier",
+        claims: [{ id: "claim-1", text: "Sichere Schulwege priorisieren.", factcheckEligible: true }],
+        arguments: [],
+        openQuestions: [{ id: "question-1", question: "Welche Kreuzung zuerst?", requiredBeforePublish: true }],
+        sourceGrounding: [],
+        topicSeed: {
+          topicKey: "school-routes",
+          topicLabel: "Sichere Schulwege",
+          jurisdiction: "district",
+          themenradarSourceType: "user_input",
+        },
+        resumeHref: "/create?resume=create-handoff-1",
+        reviewState: "ready_for_confirmation",
+        visibilityState: "internal_review",
+        requiresConfirmation: true,
+        reviewRequired: true,
+        noAutoPublish: true,
+        noPublicOfficial: true,
+        noAutomaticOfficialResponse: true,
+        noAutoFinalization: true,
+        intakeClassification: "proposal",
+        createdByUserId: "user-1",
+        regionId: "region-1",
+        organizationId: null,
+        dossierId: "dossier-1",
+        anlassraumId: null,
+        requestScope: null,
+        accessDecision: null,
+        createdAt: "2026-07-07T10:00:00.000Z",
+        updatedAt: "2026-07-07T10:05:00.000Z",
+      } as any,
+      linkedWorkspace: {
+        workspace: {
+          id: "workspace-1",
+          dossierId: "dossier-1",
+          regionId: "region-1",
+          organizationId: null,
+          source: "manual_editor",
+          status: "needs_review",
+          visibilityState: "internal_review",
+          title: "Sichere Schulwege · Workspace",
+          masterPostDraft: {
+            body: "Sichere Schulwege priorisieren.",
+            overallPicture: "Der Bezirk prüft sichere Schulwege.",
+            topic: "Sichere Schulwege",
+            openQuestions: ["Welche Kreuzung zuerst?"],
+            sourceSituation: "Quellenlage noch in Prüfung.",
+            hook: "Schulwege zuerst sichern.",
+            sourceState: {
+              traces: [],
+              notes: ["source_needed"],
+              status: "missing",
+            },
+          },
+          distributionDraft: {
+            selectedChannels: ["linkedin_draft"],
+            reviewRequired: true,
+          },
+          createdBy: "user-1",
+          updatedBy: "user-1",
+          createdAt: "2026-07-07T11:00:00.000Z",
+          updatedAt: "2026-07-07T11:10:00.000Z",
+          officialApproval: null,
+          provenance: {
+            sourceDraftId: "create-handoff-1",
+          },
+          guardrails: {
+            noAutoPublish: true,
+            noSocialPublishing: true,
+            noAutoMandate: true,
+            noAutoVote: true,
+            reviewRequired: true,
+            localStorageIsNotProduction: true,
+          },
+        } as any,
+        linkageMode: "workspace_source_draft",
+      },
+      dossierRuntimeRecord: null,
+      dossierPublicationRecord: null,
+      anlassraumRuntimeRecord: null,
+      participationRuntimeRecord: null,
+      participationPublishRecord: null,
+    } as any);
+
+    const html = renderToStaticMarkup(
+      <AccountResumeWorkbenchSection
+        entries={[]}
+        initialStartDraft={null}
+        runtimeLinkages={[linkage]}
+      />,
+    );
+
+    expect(html).toContain("Verbundener Arbeitsstand");
+    expect(html).toContain("Sichere Schulwege · Dossier-Aufbau");
+    expect(html).toContain("Bereit für bewusste Bestätigung");
+    expect(html).toContain("Dossier");
+    expect(html).toContain("Output");
+    expect(html).toContain("V3-Review-Kontext");
+    expect(html).toContain("Downstream-KI-Transparenz");
+    expect(html).not.toContain("Jetzt veröffentlichen");
+    expect(html).not.toContain("Live posten");
   });
 });
