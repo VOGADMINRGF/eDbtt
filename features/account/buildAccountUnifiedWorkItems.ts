@@ -43,6 +43,8 @@ import {
   buildV3DownstreamKiTransparencyFromStartDraft,
   type V3DownstreamKiTransparencyModel,
 } from "@/features/create/V3DownstreamKiTransparency";
+import type { V3VoxyCocreationDialogModel } from "@/features/create/voxyCocreationDialogContract";
+import { buildVoxyCocreationDialog } from "@/features/create/voxyCocreationDialogContract";
 import {
   LANDING_EDITORIAL_REVIEW_STORAGE_KEY,
   LANDING_START_CREATE_LIGHT_STORAGE_KEY,
@@ -71,6 +73,7 @@ export type ResumeWorkbenchItem = {
   nextActionStatusLabel?: string | null;
   workflow: V3AccountResumeWorkflowModel;
   downstreamTransparency: V3DownstreamKiTransparencyModel;
+  voxyCocreationDialog: V3VoxyCocreationDialogModel | null;
   correlationRef: AccountContributionSourceRef | null;
   ssotSource: Extract<
     AccountDraftSsotSource,
@@ -110,6 +113,12 @@ function removeSessionItem(key: string) {
 function timestampForSort(value: string | null | undefined) {
   const parsed = Date.parse(String(value ?? ""));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
+  );
 }
 
 export function clearAccountLocalStartDraftArtifacts() {
@@ -167,6 +176,35 @@ function buildLocalDraftResumeItem(
     draft,
   });
   const workflow = buildV3AccountResumeWorkflowFromStartDraft(draft);
+  const voxyCocreationDialog = buildVoxyCocreationDialog({
+    contributionRef: {
+      id: `local-${draft.id}`,
+      title:
+        draft.campaign?.title ??
+        draft.preview?.possibleTopics?.[0] ??
+        getStartDraftSurfaceLabel(draft.targetHint ?? "start"),
+      href: resolveAccountResumeHrefFromStartDraft(draft),
+    },
+    sourceLanguage: "de",
+    readingLanguage: "de",
+    uiLocale: "de",
+    originalText: draft.text,
+    summaryText:
+      draft.preview?.possibleTopics?.[0] ??
+      draft.preview?.openQuestions?.[0] ??
+      null,
+    sourcePresent: false,
+    openQuestions: draft.preview?.openQuestions ?? [],
+    uncertaintyNotes:
+      draft.origin === "start_create_light"
+        ? ["source_needed", "review_first_only"]
+        : ["review_first_only"],
+    claimCount: draft.text ? 1 : 0,
+    scopeHint: draft.campaign?.regionLabel ?? null,
+    voxyBriefingState: "not_connected",
+    surface: "account",
+    maxCards: 4,
+  });
   return {
     id: `local-${draft.id}`,
     title:
@@ -202,6 +240,7 @@ function buildLocalDraftResumeItem(
     nextActionStatusLabel: nextActionSummary.statusLabel,
     workflow,
     downstreamTransparency: buildV3DownstreamKiTransparencyFromStartDraft(draft, workflow),
+    voxyCocreationDialog,
     correlationRef: {
       id: `local-${draft.id}`,
       kind: "local_start_draft",
@@ -323,6 +362,28 @@ function buildManualAnlassraumServerDraftResumeItem(
           },
           workflow,
         );
+  const voxyCocreationDialog = buildVoxyCocreationDialog({
+    contributionRef: {
+      id: `manual-anlassraum-${draft.draftId}`,
+      title: getManualAnlassraumSignalTitle(draft.setup),
+      href: roundsHref,
+    },
+    sourceLanguage: "de",
+    readingLanguage: "de",
+    uiLocale: "de",
+    originalText:
+      draft.setup.description ||
+      draft.setup.votingQuestion ||
+      getManualAnlassraumSignalTitle(draft.setup),
+    summaryText: draft.setup.votingQuestion ?? null,
+    sourcePresent: false,
+    openQuestions: draft.setup.votingQuestion ? [draft.setup.votingQuestion] : [],
+    uncertaintyNotes: ["review_first_only", "source_needed"],
+    claimCount: 1,
+    voxyBriefingState: "not_connected",
+    surface: "account",
+    maxCards: 4,
+  });
 
   return {
     id: `manual-anlassraum-${draft.draftId}`,
@@ -349,6 +410,7 @@ function buildManualAnlassraumServerDraftResumeItem(
       "Dieser Arbeitsstand lebt serverseitig im authentifizierten Draft-Pfad und bleibt bewusst review-first.",
     workflow,
     downstreamTransparency,
+    voxyCocreationDialog,
     correlationRef: null,
     ssotSource: "manual_anlassraum_server_draft",
     sortTimestamp: timestampForSort(draft.updatedAt),
@@ -426,6 +488,40 @@ function buildResumeItemFromBranch(
     draftSaveStatus: entry.draftSaveStatus,
     handoff,
   });
+  const voxyCocreationDialog = buildVoxyCocreationDialog({
+    contributionRef: {
+      id: `${entry.packageId}-${branch.branchId}`,
+      title: branch.title,
+      href,
+    },
+    sourceLanguage: entry.locale ?? "de",
+    readingLanguage: "de",
+    uiLocale: "de",
+    originalText: branch.summary,
+    summaryText: branch.title,
+    sourcePresent: false,
+    openQuestions:
+      branch.existingMatchDecision?.targetTitle
+        ? [`Wie passt dein Beitrag zu ${branch.existingMatchDecision.targetTitle}?`]
+        : [],
+    uncertaintyNotes: uniqueStrings([
+      branch.needsReview ? "review_first_only" : null,
+      branch.needsPlaceClarification ? "scope_open" : null,
+      branch.placeClarificationStatus !== "answered" ? "context_missing" : null,
+    ]),
+    missingPerspectiveCount: branch.localIssueCandidates.length,
+    counterPositionCount: branch.claimCandidates.length > 1 ? 1 : 0,
+    claimCount: branch.claimCandidates.length,
+    scopeHint:
+      branch.targetReference?.type === "dossier"
+        ? "lokal"
+        : branch.targetReference?.type === "anlassraum"
+          ? "lokal"
+          : null,
+    voxyBriefingState: "not_connected",
+    surface: "account",
+    maxCards: 4,
+  });
   return {
     id: `${entry.packageId}-${branch.branchId}`,
     title: branch.title,
@@ -448,6 +544,7 @@ function buildResumeItemFromBranch(
     }).actions,
     nextActionStatusLabel: null,
     workflow,
+    voxyCocreationDialog,
     downstreamTransparency: buildV3DownstreamKiTransparencyFromLedgerBranch({
       branch,
       draftSaveStatus: entry.draftSaveStatus,

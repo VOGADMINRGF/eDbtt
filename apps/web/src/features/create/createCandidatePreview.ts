@@ -21,6 +21,8 @@ import type {
   CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
+import type { V3VoxyCocreationDialogModel } from "@/features/create/voxyCocreationDialogContract";
+import { buildVoxyCocreationDialog } from "@/features/create/voxyCocreationDialogContract";
 
 export type CreateCandidateKind =
   | "claim"
@@ -406,6 +408,7 @@ export type CreateCandidatePreviewReadModel = {
   reviewHandoff: CreateCandidateReviewHandoffReadModel;
   claimToDossierPipeline: CreateClaimToDossierPipelineReadModel;
   feedEnrichmentSuggestions: CreateFeedEnrichmentReviewSuggestionsReadModel;
+  voxyCocreationDialog: V3VoxyCocreationDialogModel | null;
   totalCount: number;
   carriesPersistentWrite: false;
   persistentCarrierTruth: {
@@ -1719,6 +1722,58 @@ export function buildCreateCandidatePreviewReadModel(
   });
   const totalCount = sections.reduce((sum, section) => sum + section.items.length, 0);
   const hasPreview = totalCount > 0;
+  const voxyCocreationDialog = buildVoxyCocreationDialog({
+    contributionRef: {
+      id: inputRef,
+      title:
+        handoff?.topicSeed.topicLabel ??
+        input.intakeContext?.signalTitle ??
+        "Beitragsentwurf",
+      href: input.draftId ? `/create?draftId=${encodeURIComponent(input.draftId)}` : "/create",
+    },
+    sourceLanguage:
+      input.createAnalyze?.sourceLanguage ??
+      input.createAnalyze?.contentLanguage ??
+      "de",
+    readingLanguage:
+      input.createAnalyze?.uiLocale ??
+      input.createAnalyze?.contentLanguage ??
+      input.createAnalyze?.sourceLanguage ??
+      "de",
+    uiLocale: input.createAnalyze?.uiLocale ?? "de",
+    originalText: handoff?.sourceText ?? null,
+    summaryText:
+      handoff?.plannerResult.shortSummary ??
+      input.createAnalyze?.normalizedInputSummary ??
+      null,
+    sourcePresent: evidenceRefs.length > 0 || (input.sourceUrls?.length ?? 0) > 0,
+    openQuestions: uniqueStrings([
+      ...(handoff?.openQuestions.map((question) => question.question) ?? []),
+      ...(input.createAnalyze?.questions.map((question) =>
+        String((question as { text?: string }).text ?? "")
+      ) ?? []),
+      ...(input.intakeContext?.reason ? [input.intakeContext.reason] : []),
+    ]),
+    uncertaintyNotes: uniqueStrings([
+      ...(input.createAnalyze?.uncertaintyFlags ?? []),
+      ...(input.createAnalyze?.evidenceNeeds.map((entry) =>
+        String((entry as { text?: string }).text ?? "")
+      ) ?? []),
+      ...feedEnrichmentSuggestions.items.flatMap((item) => item.missingRuntimeTruth),
+    ]),
+    missingPerspectiveCount: input.createAnalyze?.missingPerspectives.length ?? 0,
+    counterPositionCount:
+      sections.find((section) => section.kind === "counter_position")?.items.length ?? 0,
+    questionCount:
+      sections.find((section) => section.kind === "question")?.items.length ?? 0,
+    claimCount:
+      sections.find((section) => section.kind === "claim")?.items.length ?? 0,
+    evidenceGapCount: input.createAnalyze?.evidenceNeeds.length ?? 0,
+    scopeHint: input.intakeContext?.scope ?? null,
+    voxyBriefingState: "blocked_by_runtime_truth",
+    maxCards: 5,
+    surface: "create",
+  });
 
   return {
     title: "Review-first Kandidaten aus Draft, Planner und Analyze",
@@ -1737,6 +1792,7 @@ export function buildCreateCandidatePreviewReadModel(
     reviewHandoff,
     claimToDossierPipeline,
     feedEnrichmentSuggestions,
+    voxyCocreationDialog,
     totalCount,
     carriesPersistentWrite: false,
     persistentCarrierTruth: {

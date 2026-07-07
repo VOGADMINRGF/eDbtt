@@ -27,6 +27,8 @@ import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
+import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
@@ -185,6 +187,10 @@ function ResumeWorkbenchCard(props: {
         model={props.item.downstreamTransparency}
         dataTestId={`account-resume-downstream-ki-${props.item.id}`}
       />
+      <V3VoxyCocreationDialog
+        model={props.item.voxyCocreationDialog}
+        dataTestId={`account-resume-voxy-cocreation-${props.item.id}`}
+      />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
         <div className="mt-4 rounded-2xl border border-slate-200/80 px-3 py-3 text-xs dark:border-[rgb(var(--border))]">
@@ -272,6 +278,18 @@ function RuntimeLinkageCard(props: {
   const runtimeWorkflowModel = buildV3RuntimeWorkflowSurfaceFromReviewContext(
     props.linkage.v3ReviewContext,
   );
+  const voxyCocreationDialog = buildVoxyCocreationDialogFromReviewContext(
+    props.linkage.v3ReviewContext,
+    {
+      contributionRef: {
+        id: props.linkage.contributionRef.handoffId,
+        title: props.linkage.contributionRef.title,
+        href: props.linkage.contributionRef.href,
+      },
+      surface: "account",
+      maxCards: 4,
+    },
+  );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -352,6 +370,10 @@ function RuntimeLinkageCard(props: {
         model={downstreamModel}
         title="Downstream-KI-Transparenz"
         dataTestId={`account-runtime-linkage-downstream-${props.linkage.contributionRef.handoffId}`}
+      />
+      <V3VoxyCocreationDialog
+        model={voxyCocreationDialog}
+        dataTestId={`account-runtime-linkage-voxy-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

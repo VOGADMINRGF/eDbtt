@@ -35,6 +35,8 @@ import V3DownstreamKiTransparency, {
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
+import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -551,6 +553,21 @@ export default async function AdminReviewPage({
                           )}
                           title="Downstream-KI-Transparenz"
                           dataTestId={`admin-review-downstream-ki-${item.id}`}
+                        />
+                        <V3VoxyCocreationDialog
+                          model={buildVoxyCocreationDialogFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                              surface: "admin",
+                              maxCards: 4,
+                            },
+                          )}
+                          dataTestId={`admin-review-voxy-${item.id}`}
                         />
                       </>
                     ) : null}

@@ -5,6 +5,7 @@ import V3DownstreamKiTransparency, {
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
+import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -111,6 +112,11 @@ export default function CreateCandidatePreviewPanel({
       <V3DownstreamKiTransparency
         model={downstreamTransparencyModel}
         dataTestId="create-candidate-downstream-ki-transparency"
+      />
+
+      <V3VoxyCocreationDialog
+        model={model.voxyCocreationDialog}
+        dataTestId="create-candidate-voxy-cocreation"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
