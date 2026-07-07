@@ -4,7 +4,7 @@ export type CreateLanguageContextTriplet = {
   sourceLanguage: string;
 };
 
-type ResolveCreateLanguageContextInput = {
+export type ResolveCreateLanguageContextInput = {
   locale?: string | null;
   uiLocale?: string | null;
   contentLanguage?: string | null;
@@ -60,4 +60,3 @@ export function resolveCreateLanguageContext(
     sourceLanguage,
   };
 }
-

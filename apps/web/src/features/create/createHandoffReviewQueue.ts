@@ -2,7 +2,14 @@ import type {
   CreateHandoffDraft,
   CreateHandoffDraftTarget,
 } from "@/features/create/createHandoffDrafts";
+import type { CanonicalPreparationStatus } from "@/features/create/canonicalPreparationStatusContract";
 import { getHandoffDraftOpenQuestions } from "@/features/create/createHandoffDrafts";
+import {
+  getRoleSpecificReviewRequirement,
+  type RoleSpecificReviewType,
+} from "@/features/create/roleSpecificReviewContract";
+import type { UserContributionLifecycleStatus } from "@/features/create/userContributionLifecycleContract";
+import type { GovernanceActorRole } from "@features/trust/types";
 
 export const CREATE_HANDOFF_REVIEW_QUEUE_ITEM_STATUSES = [
   "draft",
@@ -42,6 +49,11 @@ export type CreateHandoffReviewQueueItem = {
   sourceDraftId: string;
   kind: CreateHandoffReviewQueueItemKind;
   status: CreateHandoffReviewQueueItemStatus;
+  requiredReviewType: RoleSpecificReviewType;
+  requiredReviewerRoles: GovernanceActorRole[];
+  lifecycleStatus: UserContributionLifecycleStatus;
+  preparationStatus: CanonicalPreparationStatus;
+  reviewReadyIsApproved: false;
   title: string;
   summary: string;
   authorStandpoint?: string | null;
@@ -94,6 +106,17 @@ function mapDraftTargetToQueueItemKind(
   return "editorial_review";
 }
 
+function mapQueueItemKindToRequiredReviewType(
+  kind: CreateHandoffReviewQueueItemKind,
+): RoleSpecificReviewType {
+  if (kind === "factcheck_request_review") return "source_review";
+  if (kind === "participation_space_candidate_review") {
+    return "org_review";
+  }
+  if (kind === "opinion_count_review") return "self_review";
+  return "editorial_review";
+}
+
 function createAuditEntry(
   action: string,
   note: string,
@@ -132,12 +155,22 @@ export function createReviewQueueItemFromHandoffDraft(
 ): CreateHandoffReviewQueueItem {
   const timestamp = nowIso();
   const openQuestions = getHandoffDraftOpenQuestions(draft);
+  const kind = mapDraftTargetToQueueItemKind(draft.target);
+  const requiredReviewType = mapQueueItemKindToRequiredReviewType(kind);
+  const requiredReviewerRoles = getRoleSpecificReviewRequirement(
+    requiredReviewType,
+  ).allowedRoles;
 
   return {
     id: `create-handoff-review-item-${draft.id}`,
     sourceDraftId: draft.id,
-    kind: mapDraftTargetToQueueItemKind(draft.target),
+    kind,
     status: "draft",
+    requiredReviewType,
+    requiredReviewerRoles,
+    lifecycleStatus: "review_ready",
+    preparationStatus: "review_ready",
+    reviewReadyIsApproved: false,
     title: draft.title,
     summary: draft.summary,
     authorStandpoint: draft.authorStandpoint ?? null,
