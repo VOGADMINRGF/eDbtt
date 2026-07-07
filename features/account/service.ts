@@ -26,6 +26,7 @@ import { getProfilePackageForAccessTier } from "./profilePackages";
 import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
 import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReviewRequests";
 import { loadAccountFactcheckJobs } from "./loadAccountFactcheckJobs";
+import { loadAccountUserScopedRuntimeLinkage } from "./loadAccountUserScopedRuntimeLinkage";
 
 const RESEARCH_XP_AWARD = 25;
 
@@ -190,17 +191,23 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
   );
   const editorialReviewRequestsPromise = loadAccountEditorialReviewRequests(String(doc._id), 8);
   const factcheckJobsPromise = loadAccountFactcheckJobs(String(doc._id), 8);
+  const userScopedRuntimeLinkagesPromise = loadAccountUserScopedRuntimeLinkage(
+    String(doc._id),
+    8,
+  );
 
   const [
     paymentProfileDoc,
     signatureDoc,
     editorialReviewRequests,
     factcheckJobs,
+    userScopedRuntimeLinkages,
   ] = await Promise.all([
     getUserPaymentProfile(doc._id),
     getUserSignature(doc._id),
     editorialReviewRequestsPromise,
     factcheckJobsPromise,
+    userScopedRuntimeLinkagesPromise,
   ]);
   const createContributionLedger = await createContributionLedgerPromise;
   const graphMergeCandidates = await graphMergeCandidatesPromise;
@@ -319,6 +326,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     createContributionLedger,
     editorialReviewRequests,
     factcheckJobs,
+    userScopedRuntimeLinkages,
   };
 }
 
