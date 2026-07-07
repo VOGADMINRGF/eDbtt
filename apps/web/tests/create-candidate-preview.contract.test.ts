@@ -402,6 +402,9 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Create / Handoff");
     expect(html).toContain("Anlassraum / Beteiligung");
     expect(html).toContain('data-testid="create-candidate-workflow-surface"');
+    expect(html).toContain('data-testid="create-candidate-downstream-ki-transparency"');
+    expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
+    expect(html).toContain("Quellen- und Evidence-Pack");
     expect(html).toContain("Claim-Kandidaten");
     expect(html).toContain("Gegenpositions-Kandidaten");
     expect(html).toContain("Fragen-Kandidaten");
@@ -421,5 +424,6 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("dossier_handoff_prepared");
     expect(html).toContain("planned_handoff");
     expect(html).not.toContain("automatisch veröffentlicht");
+    expect(html).not.toContain("blocked_by_provider");
   });
 });

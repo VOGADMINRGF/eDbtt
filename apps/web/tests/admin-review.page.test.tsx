@@ -859,10 +859,13 @@ describe("/admin/review page", () => {
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
     expect(html).toContain("V3-Review-Kontext");
     expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");
+    expect(html).toContain("Downstream-KI-Transparenz");
+    expect(html).toContain("Belastbare Wahrheit");
     expect(html).toContain("Create / Handoff");
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");
@@ -871,5 +874,6 @@ describe("/admin/review page", () => {
     expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
     expect(html).toContain("Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.");
     expect(html).not.toContain("direkt veröffentlichen");
+    expect(html).not.toContain("blocked_by_provider");
   });
 });

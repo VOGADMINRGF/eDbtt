@@ -1,4 +1,7 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
+import V3DownstreamKiTransparency, {
+  buildV3DownstreamKiTransparencyFromCreateCandidatePreview,
+} from "@/features/create/V3DownstreamKiTransparency";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
@@ -43,6 +46,8 @@ export default function CreateCandidatePreviewPanel({
 }: CreateCandidatePreviewPanelProps) {
   if (!model.hasPreview) return null;
   const workflowModel = buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview(model);
+  const downstreamTransparencyModel =
+    buildV3DownstreamKiTransparencyFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -102,6 +107,11 @@ export default function CreateCandidatePreviewPanel({
           dataTestId="create-candidate-workflow-surface"
         />
       </div>
+
+      <V3DownstreamKiTransparency
+        model={downstreamTransparencyModel}
+        dataTestId="create-candidate-downstream-ki-transparency"
+      />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         {model.sections.map((section) => (

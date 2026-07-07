@@ -29,6 +29,9 @@ import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAd
 import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
+import V3DownstreamKiTransparency, {
+  buildV3DownstreamKiTransparencyFromReviewContext,
+} from "@/features/create/V3DownstreamKiTransparency";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
@@ -528,6 +531,14 @@ export default async function AdminReviewPage({
                             dataTestId={`admin-review-workflow-${item.id}`}
                           />
                         </div>
+                        <V3DownstreamKiTransparency
+                          model={buildV3DownstreamKiTransparencyFromReviewContext(
+                            item.v3ReviewContext,
+                            "admin",
+                          )}
+                          title="Downstream-KI-Transparenz"
+                          dataTestId={`admin-review-downstream-ki-${item.id}`}
+                        />
                       </>
                     ) : null}
                     {item.assignedToUserId ? (
