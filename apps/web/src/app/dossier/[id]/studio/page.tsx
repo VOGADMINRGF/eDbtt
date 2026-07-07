@@ -47,6 +47,8 @@ import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
+import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -333,6 +335,18 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               )}
               title="Downstream-KI-Transparenz im Studio"
               dataTestId="dossier-studio-downstream-ki-transparency"
+            />
+            <V3VoxyCocreationDialog
+              model={buildVoxyCocreationDialogFromReviewContext(v3ReviewContext, {
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                surface: "workspace",
+                maxCards: 4,
+              })}
+              dataTestId="dossier-studio-voxy-cocreation"
             />
           </div>
         ) : null}

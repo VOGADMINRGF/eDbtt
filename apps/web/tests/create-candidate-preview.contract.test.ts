@@ -204,6 +204,18 @@ describe("create candidate preview contract", () => {
     expect(model.carriesPersistentWrite).toBe(false);
     expect(model.provider).toBe("openai");
     expect(model.model).toBe("gpt-4.1-mini");
+    expect(model.voxyCocreationDialog).toMatchObject({
+      title: "Mit Voxy weiterdenken",
+      status: "needs_user_input",
+      sourceLanguage: "de",
+      readingLanguage: "de",
+      originalPreserved: true,
+      noManipulation: true,
+      reviewRequired: true,
+      autoPublish: false,
+    });
+    expect(model.voxyCocreationDialog?.cards.length).toBeGreaterThan(1);
+    expect(model.voxyCocreationDialog?.cards[0]?.userVisibleQuestion).toContain("Welche Kreuzung zuerst?");
     expect(model.reviewHandoff).toMatchObject({
       hasPreparedHandoff: true,
       targetCarrier: "create_handoff_review_queue",
@@ -403,6 +415,10 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Anlassraum / Beteiligung");
     expect(html).toContain('data-testid="create-candidate-workflow-surface"');
     expect(html).toContain('data-testid="create-candidate-downstream-ki-transparency"');
+    expect(html).toContain('data-testid="create-candidate-voxy-cocreation"');
+    expect(html).toContain("Mit Voxy weiterdenken");
+    expect(html).toContain("Antworten verbessern den Beitrag, veröffentlichen aber nichts.");
+    expect(html).toContain("Welches konkrete Beispiel würde deinen Beitrag stärker und prüfbarer machen?");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
     expect(html).toContain("Quellen- und Evidence-Pack");
     expect(html).toContain("Claim-Kandidaten");

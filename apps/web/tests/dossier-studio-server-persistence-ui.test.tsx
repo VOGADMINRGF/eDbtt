@@ -119,6 +119,8 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("V3-Review-Kontext im Studio");
     expect(html).toContain("V3-Arbeitsfluss über bestehende Flächen");
     expect(html).toContain("Downstream-KI-Transparenz im Studio");
+    expect(html).toContain("Mit Voxy weiterdenken");
+    expect(html).toContain('data-testid="dossier-studio-voxy-cocreation"');
     expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
     expect(html).toContain('data-testid="dossier-studio-v3-workflow-surface"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
