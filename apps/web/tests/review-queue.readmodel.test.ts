@@ -963,9 +963,64 @@ describe("review queue readmodel", () => {
             reviewState: "ready_for_confirmation",
             provenanceSummary: expect.stringContaining("operator_verified_directory"),
           }),
+          v3ReviewContext: expect.objectContaining({
+            sourcePack: expect.objectContaining({
+              sourcePackId: "create-handoff-source-pack:create-handoff-1",
+            }),
+            primaryUnifiedItem: expect.objectContaining({
+              source: "create_handoff",
+              reviewRequired: true,
+              publishReadyIsPublished: false,
+            }),
+            participationCandidates: expect.arrayContaining([
+              expect.objectContaining({
+                candidateType: "live_question_candidate",
+              }),
+            ]),
+          }),
           contentReleaseWorkbench: expect.objectContaining({
             sourceKind: "create_handoff",
             sourceId: "create-handoff-1",
+          }),
+        }),
+        expect.objectContaining({
+          domain: "dossier_workspace",
+          title: "Schulsanierung Studio",
+          v3ReviewContext: expect.objectContaining({
+            dossierWorkspaceSurface: expect.objectContaining({
+              dossierId: "dossier-1",
+              sections: expect.objectContaining({
+                openQuestions: expect.arrayContaining(["Welche Standorte haben Priorität?"]),
+                socialOutputDrafts: expect.arrayContaining(["website_update_draft"]),
+                voxyBriefingCandidates: expect.arrayContaining([
+                  "Schulsanierung Studio · Voxy-Briefing",
+                ]),
+              }),
+            }),
+            voxyRenderJob: expect.objectContaining({
+              status: "ready_after_review",
+            }),
+            voxyPublishDraft: expect.objectContaining({
+              status: "draft_only",
+              publishReadyIsPublished: false,
+            }),
+          }),
+        }),
+        expect.objectContaining({
+          id: "output_artifact:social_distribution:social-dist-1",
+          v3ReviewContext: expect.objectContaining({
+            sourcePack: expect.objectContaining({
+              sourcePackId: "social-post-source-pack:social-dist-1",
+            }),
+            languageBridge: expect.objectContaining({
+              original: expect.objectContaining({
+                language: "de",
+              }),
+            }),
+            socialOutputDrafts: expect.arrayContaining([
+              expect.objectContaining({ kind: "website_update_draft" }),
+              expect.objectContaining({ kind: "newsletter_draft" }),
+            ]),
           }),
         }),
         expect.objectContaining({
