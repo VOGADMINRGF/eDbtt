@@ -125,7 +125,7 @@ export default function AnlassraumSetupForm({
     }
     const restoredSetup = initialServerDraft?.setup ?? readStoredSetup();
     const restoreText = restoredSetup
-      ? "Dein gespeicherter Entwurf wurde wieder geöffnet."
+      ? "Dein lokal gesicherter Entwurf wurde wieder geöffnet."
       : null;
     if (initialServerDraft?.draftId) {
       setServerDraftId(initialServerDraft.draftId);
@@ -364,7 +364,7 @@ export default function AnlassraumSetupForm({
         ) : null}
         <AnlassraumStartDraftPanel
           visible={Boolean(startDraft)}
-          title="Mitmachraum aus deinem Entwurf vorbereiten"
+          title="Runde aus deinem Entwurf vorbereiten"
           statusLine="Noch nicht veröffentlicht"
           helperText="Du kannst Titel, Frage und Antworten weiterbearbeiten oder den Stand später fortsetzen."
         />
@@ -389,7 +389,7 @@ export default function AnlassraumSetupForm({
                 },
                 {
                   key: "rounds",
-                  title: "Mitmachraum vorbereiten",
+                  title: "Runde vorbereiten",
                   description: "Antworten weiterbearbeiten und als Entwurf offen halten.",
                   href: serverDraftId
                     ? `/runden/new?draftId=${encodeURIComponent(serverDraftId)}&startDraft=1&from=rounds`
@@ -398,7 +398,7 @@ export default function AnlassraumSetupForm({
                 },
                 {
                   key: "editorial",
-                  title: "Prüfung anfragen",
+                  title: "Redaktionelle Prüfung anfragen",
                   description: "Denselben Entwurf prüfen lassen, ohne etwas zu veröffentlichen.",
                   href: "/start?review=editorial",
                   onClick: () => updateStartDraftContext({ origin: "start_relevance_review" }),

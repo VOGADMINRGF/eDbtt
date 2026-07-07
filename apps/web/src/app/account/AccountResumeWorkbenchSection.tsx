@@ -22,6 +22,11 @@ import {
   resolveDraftNextActionsForResumeItem,
   type DraftNextActionOption,
 } from "@/features/start/draftNextActionGate";
+import V3AccountResumeWorkflow, {
+  buildV3AccountResumeWorkflowFromLedgerBranch,
+  buildV3AccountResumeWorkflowFromStartDraft,
+  type V3AccountResumeWorkflowModel,
+} from "@/features/create/V3AccountResumeWorkflow";
 import {
   LANDING_EDITORIAL_REVIEW_STORAGE_KEY,
   LANDING_START_CREATE_LIGHT_STORAGE_KEY,
@@ -42,6 +47,7 @@ type ResumeWorkbenchItem = {
   discardable: boolean;
   nextActions: DraftNextActionOption[];
   nextActionStatusLabel?: string | null;
+  workflow: V3AccountResumeWorkflowModel;
 };
 
 type AccountResumeWorkbenchSectionProps = {
@@ -161,6 +167,7 @@ function buildLocalDraftResumeItem(
     discardable: true,
     nextActions: nextActionSummary.actions,
     nextActionStatusLabel: nextActionSummary.statusLabel,
+    workflow: buildV3AccountResumeWorkflowFromStartDraft(draft),
   };
 }
 
@@ -251,6 +258,11 @@ function buildResumeItemFromBranch(
       draft: null,
     }).actions,
     nextActionStatusLabel: null,
+    workflow: buildV3AccountResumeWorkflowFromLedgerBranch({
+      branch,
+      draftSaveStatus: entry.draftSaveStatus,
+      handoff,
+    }),
   };
 }
 
@@ -330,6 +342,10 @@ function ResumeWorkbenchCard(props: {
           </div>
         </div>
       ) : null}
+      <V3AccountResumeWorkflow
+        model={props.item.workflow}
+        dataTestId={`account-resume-workflow-${props.item.id}`}
+      />
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={props.item.href} className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold">
           Weiterarbeiten
