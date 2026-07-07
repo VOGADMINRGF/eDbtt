@@ -33,6 +33,9 @@ import {
   isExplicitDemoDossierId,
   isRegionDraftDossierId,
 } from "@/features/runtimeDataGuardrails";
+import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
+import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -211,6 +214,18 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
     dossierId: id,
     limit: 16,
   }).catch(() => null);
+  const sourceRecord =
+    studioWorkspace?.provenance.sourceDraftId
+      ? await getPersistedCreateHandoffRecord(studioWorkspace.provenance.sourceDraftId).catch(
+          () => null,
+        )
+      : null;
+  const v3ReviewContext = studioWorkspace
+    ? buildDossierWorkspaceV3ReviewContext({
+        workspace: studioWorkspace,
+        sourceRecord,
+      })
+    : null;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -241,6 +256,16 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             ? `Studio-Arbeitsstand serverseitig gespeichert (${studioWorkspace.status}), reviewpflichtig und nicht veröffentlicht.`
             : "Noch kein serverseitiger Studio-Arbeitsstand. Browser-Arbeitsstände bleiben lokal und nicht produktiv, bis explizit serverseitig gespeichert wird."}
         </p>
+        {v3ReviewContext ? (
+          <div className="mt-4">
+            <V3ReviewContextSummary
+              context={v3ReviewContext}
+              audience="workspace"
+              title="V3-Review-Kontext im Studio"
+              dataTestId="dossier-studio-v3-review-context"
+            />
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Dossier bleibt Quelle</span>
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">{reviewStateLabel}</span>

@@ -28,6 +28,7 @@ import { loadAdminAnlassraumActivationSectionProps } from "./loadAdminAnlassraum
 import { loadAdminParticipationSpaceRuntimeCreationSectionProps } from "./loadAdminParticipationSpaceRuntimeCreationSectionProps";
 import { loadAdminParticipationSpacePublishSectionProps } from "./loadAdminParticipationSpacePublishSectionProps";
 import ReviewQueueItemActions from "./ReviewQueueItemActions";
+import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -508,6 +509,14 @@ export default async function AdminReviewPage({
                     <p className="text-xs text-[rgb(var(--muted))]">
                       {item.scopeLabel} · {item.reviewAuthorityLabel} · offen seit {item.pendingHours}h
                     </p>
+                    {item.v3ReviewContext ? (
+                      <V3ReviewContextSummary
+                        context={item.v3ReviewContext}
+                        audience="admin"
+                        title="V3-Review-Kontext"
+                        dataTestId={`admin-review-context-${item.id}`}
+                      />
+                    ) : null}
                     {item.assignedToUserId ? (
                       <p className="text-xs text-[rgb(var(--muted))]">
                         Zugewiesen an {item.assignedToUserId}
