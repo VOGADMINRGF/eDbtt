@@ -483,6 +483,117 @@ describe("/admin/review page", () => {
               },
             ],
           },
+          v3ReviewContext: {
+            primaryUnifiedItem: {
+              id: "create-handoff-1",
+              source: "create_handoff",
+              sourceId: "create-handoff-1",
+              title: "Schulsanierung im Bezirk · Dossier-Entwurf",
+              summary: "Review-first Handoff",
+              queueState: "review_ready",
+              requiredReviewType: "editorial_review",
+              requiredReviewerRoles: ["editor", "editorial_actor", "admin"],
+              lifecycleStatus: "review_ready",
+              preparationStatus: "review_ready",
+              reviewReadyIsApproved: false,
+              publishReadyIsPublished: false,
+              reviewRequired: true,
+              autoPublish: false,
+              publishGuard: {
+                autoPublish: false,
+                reviewRequired: true,
+                publicOutputAllowed: false,
+                publishActionEnabled: false,
+                externalSocialApiTriggered: false,
+              },
+              sourcePackId: "source-pack-1",
+              sourcePackEvidenceState: "partial",
+              trustState: "partially_supported",
+              languageSummary: {
+                originalLanguage: "de",
+                readingLanguage: "de",
+              },
+              nextAllowedActions: ["review"],
+              reviewWorld: "existing_review_queue",
+            },
+            unifiedItems: [],
+            sourcePack: {
+              sourcePackId: "source-pack-1",
+              sources: [
+                {
+                  sourceId: "source-1",
+                  title: "Ausgangstext",
+                  sourceLocale: "de",
+                  sourceType: "user_supplied",
+                  reliabilityHint: "secondary",
+                  translationStatus: "not_needed",
+                  evidenceState: "partial",
+                  reviewState: "review_required",
+                },
+              ],
+              openGaps: [],
+              reviewState: "review_required",
+              reviewRequired: true,
+              autoPublish: false,
+            },
+            languageBridge: {
+              languageContext: {
+                sourceLanguage: "de",
+                contentLanguage: "de",
+                uiLocale: "de",
+              },
+              original: {
+                language: "de",
+                text: "Die Schulsanierung im Bezirk braucht einen belastbaren Überblick.",
+                preserved: true,
+              },
+              translation: {
+                language: "de",
+                text: null,
+                state: "not_needed",
+                replacesOriginal: false,
+                rtl: false,
+              },
+              summary: {
+                language: "de",
+                text: "Schulsanierung im Bezirk",
+                replacesOriginal: false,
+                replacesSource: false,
+              },
+              voxyClassification: {
+                language: "de",
+                text: null,
+                reviewRequired: true,
+              },
+              sourceGrounding: {
+                trustState: "partially_supported",
+                sourcePresent: true,
+                summaryReplacesSource: false,
+              },
+              openQuestions: ["Welche Standorte haben Priorität?"],
+              uncertaintyNotes: [],
+              reviewRequired: true,
+              autoPublish: false,
+            },
+            multilingualThread: null,
+            multilingualEvidence: {
+              sourcePackId: "source-pack-1",
+              entries: [],
+              overallTrustStatus: "partially_supported",
+              overallUncertaintyReasons: [],
+              reviewRequired: true,
+              autoPublish: false,
+            },
+            participationCandidates: [],
+            crossLingualSuggestions: [],
+            socialOutputDrafts: [],
+            dossierWorkspaceSurface: null,
+            voxyBriefing: null,
+            voxyScriptSegments: [],
+            voxyReviewState: null,
+            voxyRenderJob: null,
+            voxyPublishDraft: null,
+          },
         },
         {
           id: "create_handoff:persisted:create-handoff-1",
@@ -746,6 +857,9 @@ describe("/admin/review page", () => {
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");
+    expect(html).toContain("V3-Review-Kontext");
+    expect(html).toContain("Nächster sinnvoller Review-Schritt");
+    expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");
