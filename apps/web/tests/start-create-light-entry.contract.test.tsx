@@ -36,9 +36,9 @@ describe("/start create light entry", () => {
 
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Abstimmen &amp; mitmachen");
+    expect(html).toContain("Mitentwickeln");
     expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitmachen");
+    expect(html).toContain("Mitwirken");
     expect(html).not.toContain('data-testid="start-create-light-entry"');
     expect(html).not.toContain("Beitrag eingeben");
   });

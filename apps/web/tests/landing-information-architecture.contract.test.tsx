@@ -23,12 +23,12 @@ describe("landing information architecture contract", () => {
 
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Abstimmen &amp; mitmachen");
+    expect(html).toContain("Mitentwickeln");
     expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitmachen");
+    expect(html).toContain("Mitwirken");
     expect(html).toContain("Mit Voxy");
-    expect(html).toContain("Review-first · Keine automatische Veröffentlichung · Du entscheidest den nächsten Schritt");
-    expect(html).toContain("veröffentlicht wird nichts ohne Prüfung.");
+    expect(html).toContain("Keine Schnellschüsse, keine automatische Veröffentlichung – Beiträge werden geordnet, geprüft und gemeinsam weiterentwickelt.");
+    expect(html).toContain("gesellschaftlich brauchbaren Beitrag");
     expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
     expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
     expect(html).toContain('href="/create"');
@@ -37,7 +37,7 @@ describe("landing information architecture contract", () => {
     expect(html).toContain("href=\"/dossier\"");
 
     const contributeIndex = html.indexOf("Beitrag starten");
-    const participateIndex = html.indexOf("Mitmachen");
+    const participateIndex = html.indexOf("Mitwirken");
     expect(contributeIndex).toBeGreaterThan(-1);
     expect(participateIndex).toBeGreaterThan(contributeIndex);
 

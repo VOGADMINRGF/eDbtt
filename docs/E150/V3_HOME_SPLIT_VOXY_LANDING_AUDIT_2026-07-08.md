@@ -108,6 +108,15 @@ Im naechsten PR-Feinschliff wurde die Startseite bewusst naeher an die hinterleg
 
 Damit wirkt die Startseite nicht mehr wie `Text links, Bild rechts`, sondern deutlich staerker wie eine Produkt-Landingpage mit Voxy als Host-Figur.
 
+## Spacing- und Wording-Schaerfung
+
+Im darauffolgenden Feinschliff wurde die bestehende Hero-Richtung nicht erneut umgeworfen, sondern ausbalanciert:
+
+- die beiden Hauptkarten links bekamen mehr Innenabstand, breitere Textspalten und klarere Staffelung zwischen Primaer- und Sekundaerweg
+- die rechte Voxy-Buehne wurde etwas ruhiger gesetzt; Figur, Orbit-Deko und Floating Cards kollidieren nun weniger
+- die oeffentliche Ansprache wurde weg von binärer Abstimmungslogik und naeher an konstruktiver gesellschaftlicher Ausarbeitung gezogen
+- `/swipes` bleibt technisch der zweite Hauptweg, wird sprachlich aber nicht mehr vor allem als `Abstimmen` verkauft
+
 ## Entfernte oder stark gekuerzte Bereiche
 
 Folgende Bereiche sind nicht mehr Teil der primaeren Homepage-Lesestrecke:
