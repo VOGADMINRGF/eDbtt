@@ -54,6 +54,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
+import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -65,6 +66,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderProviderHandoffFromReviewContext,
+} from "@/features/create/voxyRenderProviderHandoffContract";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -459,6 +463,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Voxy-Briefing-Arbeitsstand"
               dataTestId="dossier-studio-voxy-briefing-script"
+            />
+            <VoxyRenderProviderHandoffPanel
+              model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                outputRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Voxy-Render/Provider-Handoff im Studio"
+              dataTestId="dossier-studio-voxy-render-provider-handoff"
             />
           </div>
         ) : null}

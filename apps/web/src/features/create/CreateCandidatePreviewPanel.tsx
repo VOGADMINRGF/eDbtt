@@ -12,6 +12,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
+import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
@@ -30,6 +31,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromCreateCandidatePreview,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderProviderHandoffFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderProviderHandoffContract";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -85,6 +89,8 @@ export default function CreateCandidatePreviewPanel({
     buildOutputSocialWorkbenchFromCreateCandidatePreview(model);
   const voxyBriefingScriptCandidateModel =
     buildVoxyBriefingScriptCandidateFromCreateCandidatePreview(model);
+  const voxyRenderProviderHandoffModel =
+    buildVoxyRenderProviderHandoffFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -188,6 +194,12 @@ export default function CreateCandidatePreviewPanel({
         model={voxyBriefingScriptCandidateModel}
         title="Voxy-Briefing vorbereiten"
         dataTestId="create-candidate-voxy-briefing-script"
+      />
+
+      <VoxyRenderProviderHandoffPanel
+        model={voxyRenderProviderHandoffModel}
+        title="Voxy-Render/Provider-Handoff vorbereiten"
+        dataTestId="create-candidate-voxy-render-provider-handoff"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

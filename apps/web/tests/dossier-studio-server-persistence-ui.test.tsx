@@ -126,10 +126,12 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Poll/Frage-Arbeitsstand im Studio");
     expect(html).toContain("Output-/Social-Arbeitsstand im Studio");
     expect(html).toContain("Voxy-Briefing-Arbeitsstand");
+    expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Script-Kandidat, noch kein Video");
+    expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain('data-testid="dossier-studio-voxy-cocreation"');
     expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
@@ -140,6 +142,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-poll-question-options-review"');
     expect(html).toContain('data-testid="dossier-studio-output-social-workbench"');
     expect(html).toContain('data-testid="dossier-studio-voxy-briefing-script"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
