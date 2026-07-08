@@ -12,6 +12,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
+import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
@@ -31,6 +32,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromCreateCandidatePreview,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderPreflightReadinessFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderPreflightReadinessContract";
 import {
   buildVoxyRenderProviderHandoffFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderProviderHandoffContract";
@@ -91,6 +95,8 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyBriefingScriptCandidateFromCreateCandidatePreview(model);
   const voxyRenderProviderHandoffModel =
     buildVoxyRenderProviderHandoffFromCreateCandidatePreview(model);
+  const voxyRenderPreflightReadinessModel =
+    buildVoxyRenderPreflightReadinessFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -200,6 +206,12 @@ export default function CreateCandidatePreviewPanel({
         model={voxyRenderProviderHandoffModel}
         title="Voxy-Render/Provider-Handoff vorbereiten"
         dataTestId="create-candidate-voxy-render-provider-handoff"
+      />
+
+      <VoxyRenderPreflightReadinessPanel
+        model={voxyRenderPreflightReadinessModel}
+        title="Voxy-Render-Preflight vorbereiten"
+        dataTestId="create-candidate-voxy-render-preflight"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

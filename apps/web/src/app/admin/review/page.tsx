@@ -42,6 +42,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
+import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
@@ -54,6 +55,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderPreflightReadinessFromReviewContext,
+} from "@/features/create/voxyRenderPreflightReadinessContract";
 import {
   buildVoxyRenderProviderHandoffFromReviewContext,
 } from "@/features/create/voxyRenderProviderHandoffContract";
@@ -711,6 +715,33 @@ export default async function AdminReviewPage({
                           )}
                           title="Voxy Render/Provider Handoff Summary"
                           dataTestId={`admin-review-voxy-render-provider-handoff-${item.id}`}
+                        />
+                        <VoxyRenderPreflightReadinessPanel
+                          model={buildVoxyRenderPreflightReadinessFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                              dossierRef: item.dossierId
+                                ? {
+                                    id: item.dossierId,
+                                    title: item.title,
+                                    href: item.href,
+                                  }
+                                : null,
+                              outputRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          title="Voxy Render Preflight Summary"
+                          dataTestId={`admin-review-voxy-render-preflight-${item.id}`}
                         />
                       </>
                     ) : null}
