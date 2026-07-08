@@ -41,6 +41,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -49,6 +50,9 @@ import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/vo
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
+import {
+  buildVoxyBriefingScriptCandidateFromReviewContext,
+} from "@/features/create/voxyBriefingScriptCandidateContract";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -654,6 +658,28 @@ export default async function AdminReviewPage({
                           )}
                           title="Output Social Workbench Summary"
                           dataTestId={`admin-review-output-social-workbench-${item.id}`}
+                        />
+                        <VoxyBriefingScriptCandidatePanel
+                          model={buildVoxyBriefingScriptCandidateFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                              dossierRef: item.dossierId
+                                ? {
+                                    id: item.dossierId,
+                                    title: item.title,
+                                    href: item.href,
+                                  }
+                                : null,
+                            },
+                          )}
+                          title="Voxy Script Candidate Summary"
+                          dataTestId={`admin-review-voxy-briefing-script-${item.id}`}
                         />
                       </>
                     ) : null}
