@@ -55,6 +55,18 @@ Die Startseite wurde in eine echte Split-Voxy-Landing umgebaut:
 - nur noch kleine Sekundaerlinks zu `/themen` und `/dossier`
 - fuer eingeloggte Kontexte ein kompakter Arbeitsbereichslink statt einer zweiten langen Landing-Erklaerung
 
+## Visuelle Nachschaerfung auf PR #330
+
+Im zweiten Schritt auf demselben Branch wurde die Hero-Buehne visuell weiter gestrafft:
+
+- der grosse aeussere Hero-Kasten wurde zurueckgenommen
+- die Desktop-Breite wird jetzt deutlich staerker genutzt
+- Voxy sitzt nicht mehr als kleines Bild in einer Nebenkarte, sondern als groessere Guide-Buehne rechts
+- CTA-Flaechen wurden vergroessert und im Groessenkontrast staerker getrennt
+- dekorative Klein-Pills und Rahmen wurden reduziert
+- Sekundaerlinks wurden von Karten auf kleine, untergeordnete Textlinks reduziert
+- Trust-Hinweise bleiben sichtbar, aber knapper und ruhiger
+
 ## Entfernte oder stark gekuerzte Bereiche
 
 Folgende Bereiche sind nicht mehr Teil der primaeren Homepage-Lesestrecke:
