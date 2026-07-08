@@ -15,65 +15,49 @@ vi.mock("@/context/LocaleContext", () => ({
   useLocale: () => ({ locale: "de" }),
 }));
 
+vi.mock("next/image", () => ({
+  default: (props: Record<string, unknown>) => <img alt="" {...props} />,
+}));
+
 describe("landing clarity contract", () => {
-  it("renders the human civic landing with direct contribution intake and clear public actions", () => {
+  it("renders the split Voxy landing with two direct public entry points", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Dein Beitrag kann mehr bewirken.");
-    expect(html).toContain("Was soll öffentlich besser");
-    expect(html).toContain("verstanden</span>, geprüft oder entschieden werden?");
+    expect(html).toContain("Was bewegt dich?");
     expect(html).toContain(
-      "Schreib einen Gedanken, eine Frage, ein Problem oder einen Vorschlag. eDebatte hilft dabei, deinen Beitrag einzuordnen und mit bestehenden Themen, Argumenten und offenen Fragen zu verbinden.",
+      "Bring ein Anliegen, eine Beobachtung oder eine Idee ein. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen gesellschaftlich brauchbaren Beitrag zu entwickeln.",
     );
-    expect(html).toContain("Beitrag eingeben");
-    expect(html).toContain("Beitrag einordnen");
-    expect(html).toContain("Beispiele ansehen");
-    expect(html).toContain("Für Verwaltung / Organisation ansehen");
-    expect(html).toContain("Demo anfragen");
-    expect(html).toContain(
-      "Noch keine Veröffentlichung · keine automatische Prüfung · du bestätigst jeden nächsten Schritt",
-    );
-    expect(html).toContain("Themen erkennen");
-    expect(html).toContain("Dossier aufbauen");
-    expect(html).toContain("Sichtweisen sammeln");
-    expect(html).toContain("Abstimmen &amp; auswerten");
-    expect(html).toContain("Mitmachen kostenlos");
-    expect(html).toContain("Keine Datenverkäufe");
-    expect(html).toContain("Noch keine Veröffentlichung");
-    expect(html).toContain("Schreib kurz, worum es geht — ich helfe beim Einordnen.");
-    expect(html).toContain('data-voxy-appearance="hero"');
-    expect(html).toContain("Schreib kurz, worum es geht. Ich helfe beim Einordnen, bevor du den nächsten Schritt bestätigst.");
-    expect(html).toContain("Themen, an die dein Beitrag");
-    expect(html).toContain("anknüpfen</span> kann.");
-    expect(html).toContain("Beispiele zum Ausprobieren");
-    expect(html).toContain("Ein Anlassraum hält ein gemeinsames Thema zusammen.");
-    expect(html).toContain("Was ist belegt?");
-    expect(html).toContain("Was ist offen?");
-    expect(html).toContain("Ein Dossier bündelt Belege, Fragen und Optionen.");
-    expect(html).toContain("Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.");
-    expect(html).toContain("VoiceOpenGov ist die Initiative");
-    expect(html).toContain("Mehr zur Initiative");
-    expect(html).toContain("href=\"#start-beispiele\"");
-    expect(html).toContain("href=\"/pricing/institutionen\"");
-    expect(html).toContain("href=\"/kontakt\"");
-    expect(html).toContain("href=\"/create?intent=check\"");
+    expect(html).toContain("Etwas beitragen");
+    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Beitrag starten");
+    expect(html).toContain("Mitwirken");
+    expect(html).toContain("Mit Voxy");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
+    expect(html).toContain("Themen ansehen");
+    expect(html).toContain("Debatte &amp; Argumente");
+    expect(html).toContain('href="/create"');
+    expect(html).toContain('href="/swipes"');
+    expect(html).toContain('href="/themen"');
     expect(html).toContain("href=\"/dossier\"");
-    expect(html).toContain("href=\"/account/organization\"");
+    expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
 
-    expect(html).not.toContain("Beteiligungs- und Dossier-Tool");
-    expect(html).not.toContain("Kanonischer Einstieg");
-    expect(html).not.toContain("für Parteien");
-    expect(html).not.toContain("Entitlement");
-    expect(html).not.toContain("review-first");
-    expect(html).not.toContain("Arbeitsraum:");
+    expect(html).not.toContain("Runtime");
+    expect(html).not.toContain("Debug");
+    expect(html).not.toContain("Review Queue");
+    expect(html).not.toContain("Contract");
+    expect(html).not.toContain("500K");
+    expect(html).not.toContain("250 Partner");
+    expect(html).not.toContain("35 Länder");
+    expect(html).not.toContain("Live Poll");
     expect(html).not.toContain("/demo/");
+    expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 
   it("keeps landing source files free of forbidden card utility tokens", () => {
     const sources = [
       "src/app/start/LandingStart.tsx",
-      "src/components/quickActions/TaskFirstQuickActionCenter.tsx",
+      "src/features/home/HomeSplitVoxyLanding.tsx",
     ].map((path) => readFileSync(resolve(process.cwd(), path), "utf8"));
 
     const forbiddenTokens = [
@@ -100,11 +84,17 @@ describe("landing clarity contract", () => {
   it("keeps the productive start route free of demo, seed and localStorage landing fallbacks", () => {
     const startPageSource = readFileSync(resolve(process.cwd(), "src/app/start/page.tsx"), "utf8");
     const landingSource = readFileSync(resolve(process.cwd(), "src/app/start/LandingStart.tsx"), "utf8");
+    const splitLandingSource = readFileSync(
+      resolve(process.cwd(), "src/features/home/HomeSplitVoxyLanding.tsx"),
+      "utf8",
+    );
 
     expect(startPageSource).not.toContain("selectExamples");
     expect(startPageSource).not.toContain("seedKey");
     expect(startPageSource).not.toContain("/demo/");
     expect(landingSource).not.toContain("localStorage");
     expect(landingSource).not.toContain("/demo/");
+    expect(splitLandingSource).not.toContain("/demo/");
+    expect(splitLandingSource).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 });

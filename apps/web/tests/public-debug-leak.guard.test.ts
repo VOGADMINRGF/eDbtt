@@ -3,12 +3,14 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PUBLIC_SURFACE_FILES = [
+  "src/app/start/LandingStart.tsx",
   "src/app/runden/new/page.tsx",
   "src/app/runden/new/AnlassraumSetupForm.tsx",
   "src/app/runden/new/AnlassraumSupportSettings.tsx",
   "src/app/runden/new/AnlassraumPrePublishCheck.tsx",
   "src/app/dossier/ui.tsx",
   "src/app/themen/page.tsx",
+  "src/features/home/HomeSplitVoxyLanding.tsx",
 ] as const;
 
 const FORBIDDEN_PUBLIC_DEBUG_TERMS = [

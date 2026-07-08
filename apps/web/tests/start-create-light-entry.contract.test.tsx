@@ -21,24 +21,26 @@ vi.mock("@/context/LocaleContext", () => ({
   useLocale: () => ({ locale: "de" }),
 }));
 
+vi.mock("next/image", () => ({
+  default: (props: Record<string, unknown>) => <img alt="" {...props} />,
+}));
+
 describe("/start create light entry", () => {
   const landingCreateLightEntrySource = readFileSync(
     resolve(process.cwd(), "src/features/start/LandingCreateLightEntry.tsx"),
     "utf8",
   );
 
-  it("renders a lightweight intake field as the primary start action", () => {
+  it("keeps the homepage on the split Voxy landing instead of the create-light form", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain('data-testid="start-create-light-entry"');
-    expect(html).toContain("Dein Beitrag kann mehr bewirken.");
-    expect(html).toContain("Beitrag eingeben");
-    expect(html).toContain("Beitrag einordnen");
-    expect(html).toContain("Beispiele ansehen");
-    expect(html).toContain("Für Verwaltung / Organisation ansehen");
-    expect(html).toContain(
-      "Noch keine Veröffentlichung · keine automatische Prüfung · du bestätigst jeden nächsten Schritt",
-    );
+    expect(html).toContain("Was bewegt dich?");
+    expect(html).toContain("Etwas beitragen");
+    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Beitrag starten");
+    expect(html).toContain("Mitwirken");
+    expect(html).not.toContain('data-testid="start-create-light-entry"');
+    expect(html).not.toContain("Beitrag eingeben");
   });
 
   it("blocks too short submissions with a helpful guardrail", () => {

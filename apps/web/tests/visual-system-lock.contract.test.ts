@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const VISUAL_LOCK_SOURCES = [
   "src/app/start/LandingStart.tsx",
+  "src/features/home/HomeSplitVoxyLanding.tsx",
   "src/components/quickActions/TaskFirstQuickActionCenter.tsx",
   "src/app/create/CreateClient.tsx",
   "src/features/create/SharedCreateComposer.tsx",
