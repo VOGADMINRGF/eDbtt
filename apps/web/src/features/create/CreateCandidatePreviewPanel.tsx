@@ -1,5 +1,6 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
+import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromCreateCandidatePreview,
 } from "@/features/create/V3DownstreamKiTransparency";
@@ -11,6 +12,9 @@ import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPane
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
+import {
+  buildParticipationActivationReviewFromCreateCandidatePreview,
+} from "@/features/create/participationActivationReviewContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
@@ -61,6 +65,8 @@ export default function CreateCandidatePreviewPanel({
     buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview(model);
   const dossierWorkspaceDecisionModel =
     buildDossierWorkspaceDecisionFromCreateCandidatePreview(model);
+  const participationActivationReviewModel =
+    buildParticipationActivationReviewFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -140,6 +146,12 @@ export default function CreateCandidatePreviewPanel({
         model={dossierWorkspaceDecisionModel}
         title="Dossier-Entscheidungslogik"
         dataTestId="create-candidate-dossier-workspace-decision"
+      />
+
+      <ParticipationActivationReviewPanel
+        model={participationActivationReviewModel}
+        title="Beteiligungsraum vorbereiten"
+        dataTestId="create-candidate-participation-activation-review"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

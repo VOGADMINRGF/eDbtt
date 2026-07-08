@@ -23,6 +23,7 @@ import V3AccountResumeWorkflow from "@/features/create/V3AccountResumeWorkflow";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
+import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
@@ -34,6 +35,10 @@ import {
   buildDossierWorkspaceDecisionFromReviewContext,
   buildDossierWorkspaceDecisionFromVoxyDialog,
 } from "@/features/create/dossierWorkspaceDecisionContract";
+import {
+  buildParticipationActivationReviewFromReviewContext,
+  buildParticipationActivationReviewFromVoxyDialog,
+} from "@/features/create/participationActivationReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -143,6 +148,14 @@ function ResumeWorkbenchCard(props: {
       nextStep: props.item.nextStep,
     },
   );
+  const participationActivationReviewModel =
+    buildParticipationActivationReviewFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -229,6 +242,11 @@ function ResumeWorkbenchCard(props: {
         model={dossierWorkspaceDecisionModel}
         title="Dossier-Entscheidungslogik"
         dataTestId={`account-resume-dossier-decision-${props.item.id}`}
+      />
+      <ParticipationActivationReviewPanel
+        model={participationActivationReviewModel}
+        title="Beteiligungsraum vorbereiten"
+        dataTestId={`account-resume-participation-activation-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -358,6 +376,25 @@ function RuntimeLinkageCard(props: {
         : null,
     },
   );
+  const participationActivationReviewModel =
+    buildParticipationActivationReviewFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -451,6 +488,11 @@ function RuntimeLinkageCard(props: {
         model={dossierWorkspaceDecisionModel}
         title="Dossier-Entscheidungslogik"
         dataTestId={`account-runtime-linkage-dossier-decision-${props.linkage.contributionRef.handoffId}`}
+      />
+      <ParticipationActivationReviewPanel
+        model={participationActivationReviewModel}
+        title="Beteiligungsraum vorbereiten"
+        dataTestId={`account-runtime-linkage-participation-activation-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

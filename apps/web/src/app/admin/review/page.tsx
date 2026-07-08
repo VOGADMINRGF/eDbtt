@@ -33,12 +33,14 @@ import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
+import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
+import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -603,6 +605,21 @@ export default async function AdminReviewPage({
                           )}
                           title="Dossier-Entscheidungslogik"
                           dataTestId={`admin-review-dossier-decision-${item.id}`}
+                        />
+                        <ParticipationActivationReviewPanel
+                          model={buildParticipationActivationReviewFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          title="Beteiligungsraum vorbereiten"
+                          dataTestId={`admin-review-participation-activation-${item.id}`}
                         />
                       </>
                     ) : null}
