@@ -94,12 +94,14 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Voxy-Briefing vorbereiten");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
+    expect(html).toContain("Voxy Asset- &amp; Provider-Registry");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Script-Kandidat, noch kein Video");
     expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Render-Preflight");
+    expect(html).toContain("Asset- &amp; Provider-Registry");
     expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
@@ -119,6 +121,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-briefing-script-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
     expect(html).not.toContain("review_draft_prepared");
@@ -381,9 +384,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Ausgabe vorbereiten");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Account");
     expect(html).toContain("Voxy-Render-Preflight im Account");
+    expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Account");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Handoff-Paket");
+    expect(html).toContain("Was ist vorhanden?");
     expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain('data-testid="account-runtime-linkage-participation-activation-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-poll-question-options-create-handoff-1"');
@@ -391,6 +396,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-dossier-decision-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
