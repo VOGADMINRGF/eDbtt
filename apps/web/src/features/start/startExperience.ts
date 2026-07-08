@@ -27,15 +27,14 @@ function buildAnonymousExperience(): StartExperienceModel {
   });
   return {
     familiarity: "unknown_visitor",
-    eyebrow: "Öffentliche Debatten verständlich machen",
-    title: "Aus deinem Beitrag wird Orientierung.",
+    eyebrow: "Klarer Einstieg",
+    title: "Was bewegt dich?",
     description:
-      "eDebatte hilft dir, deinen Beitrag einzuordnen: Was ist passiert? Was ist belegt? Welche Fragen sind offen? Und welcher nächste Schritt ist sinnvoll?",
-    helperText:
-      "Du musst kein fertiges Konzept haben. Schreib einfach, was öffentlich besser verstanden, geprüft oder entschieden werden soll.",
+      "Bring ein Thema ein oder stimme ab, wo deine Sicht gebraucht wird. Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+    helperText: "Beitrag einbringen, mitmachen oder vorhandene Themen öffnen.",
     trustText:
-      "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
-    showExtendedOrientation: true,
+      "Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+    showExtendedOrientation: false,
     workspaceHref: null,
     workspaceLabel: null,
     quickActionCenter,
