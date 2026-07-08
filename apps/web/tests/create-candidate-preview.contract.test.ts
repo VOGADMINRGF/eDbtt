@@ -422,6 +422,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-poll-question-options-review"');
     expect(html).toContain('data-testid="create-candidate-output-social-workbench"');
     expect(html).toContain('data-testid="create-candidate-voxy-briefing-script"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Dossier-Entscheidungslogik");
@@ -429,11 +430,13 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Poll/Frage vorbereiten");
     expect(html).toContain("Ausgabe vorbereiten");
     expect(html).toContain("Voxy-Briefing vorbereiten");
+    expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Vorschlag, nicht aktiviert");
     expect(html).toContain("Vorschlag, kein Poll");
     expect(html).toContain("Vorschlag, nicht veröffentlicht");
     expect(html).toContain("Script-Kandidat, noch kein Video");
+    expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Übersetzung bleibt getrennte Lesefassung und ist kein Beleg.");

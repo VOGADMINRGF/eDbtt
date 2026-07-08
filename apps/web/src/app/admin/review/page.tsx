@@ -42,6 +42,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
+import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -53,6 +54,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderProviderHandoffFromReviewContext,
+} from "@/features/create/voxyRenderProviderHandoffContract";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -680,6 +684,33 @@ export default async function AdminReviewPage({
                           )}
                           title="Voxy Script Candidate Summary"
                           dataTestId={`admin-review-voxy-briefing-script-${item.id}`}
+                        />
+                        <VoxyRenderProviderHandoffPanel
+                          model={buildVoxyRenderProviderHandoffFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                              dossierRef: item.dossierId
+                                ? {
+                                    id: item.dossierId,
+                                    title: item.title,
+                                    href: item.href,
+                                  }
+                                : null,
+                              outputRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          title="Voxy Render/Provider Handoff Summary"
+                          dataTestId={`admin-review-voxy-render-provider-handoff-${item.id}`}
                         />
                       </>
                     ) : null}
