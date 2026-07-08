@@ -97,6 +97,17 @@ Die Home-Darstellung begrenzt die sichtbare Voxy-Breite bewusst, weil diese Asse
 
 Ein spaeteres echtes Home-Hero-Asset mit hoeherer Aufloesung und sauberem Alpha-Cutout bleibt weiterhin empfohlen.
 
+## Kompositorischer Hero-Umbau
+
+Im naechsten PR-Feinschliff wurde die Startseite bewusst naeher an die hinterlegten Zielreferenzen gezogen:
+
+- links steht die Homepage jetzt als klare Claim-/Headline-/CTA-Spalte statt als Textblock mit grossen Formular-Karten
+- rechts hat Voxy eine eigene Buehne mit Orbit-Linien, Glow und vier echten klickbaren Produktmodulen
+- die Module verlinken direkt auf `Beitrag starten`, `Mitmachen`, `Themen ansehen` und `Debatte & Argumente`
+- Light und Dark Mode nutzen nun bewusst getrennte Flaechenstimmungen, statt nur dieselbe Kartenlogik auf anderem Hintergrund zu zeigen
+
+Damit wirkt die Startseite nicht mehr wie `Text links, Bild rechts`, sondern deutlich staerker wie eine Produkt-Landingpage mit Voxy als Host-Figur.
+
 ## Entfernte oder stark gekuerzte Bereiche
 
 Folgende Bereiche sind nicht mehr Teil der primaeren Homepage-Lesestrecke:

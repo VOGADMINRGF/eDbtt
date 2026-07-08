@@ -25,7 +25,7 @@ describe("landing clarity contract", () => {
 
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain(
-      "Bring ein Thema ein oder stimme ab, wo deine Sicht gebraucht wird. Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+      "Bring ein Thema ein oder stimme ab, wo deine Sicht gebraucht wird. Voxy hilft beim Sortieren — veröffentlicht wird nichts ohne Prüfung.",
     );
     expect(html).toContain("Etwas beitragen");
     expect(html).toContain("Abstimmen &amp; mitmachen");
