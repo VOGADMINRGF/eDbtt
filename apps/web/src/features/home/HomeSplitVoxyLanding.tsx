@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
 import type { StartExperienceModel } from "@/features/start/startExperience";
+import { resolveVoxyAsset } from "@/features/voxy/voxyAssets";
 
 type HomeSplitVoxyLandingProps = {
   blocks?: BucketBlock[];
@@ -61,10 +62,8 @@ const TRUST_HINTS = [
   "Du entscheidest den nächsten Schritt.",
 ] as const;
 
-const VOXY_STAGE_NOTES = [
-  "Bring ein, was gesehen werden sollte.",
-  "Oder stimme ab, wo deine Sicht gebraucht wird.",
-] as const;
+const VOXY_LIGHT_HERO_ASSET = resolveVoxyAsset("createGuideLight");
+const VOXY_DARK_HERO_ASSET = resolveVoxyAsset("createGuideDark");
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -223,61 +222,64 @@ export default function HomeSplitVoxyLanding({
             </div>
 
             <aside className="order-first lg:order-none">
-              <div className="relative mx-auto flex w-full max-w-[40rem] items-center justify-center lg:justify-end">
+              <div className="relative mx-auto flex w-full max-w-[42rem] items-center justify-center lg:max-w-none lg:justify-end">
                 <div className="relative flex min-h-[21rem] w-full items-center justify-center sm:min-h-[27rem] lg:min-h-[35rem]">
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-[12%] bottom-[9%] h-[38%] rounded-full bg-[radial-gradient(circle,rgba(24,207,200,0.24),transparent_70%)] blur-3xl"
+                    className="absolute inset-x-[12%] bottom-[8%] h-[30%] rounded-full bg-[radial-gradient(circle,rgba(51,188,255,0.2),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(24,207,200,0.22),transparent_72%)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-[18%] top-[8%] h-[52%] rounded-full bg-[radial-gradient(circle,rgba(34,121,255,0.18),transparent_74%)] blur-3xl"
+                    className="absolute inset-x-[8%] top-[5%] h-[72%] rounded-full bg-[radial-gradient(circle,rgba(237,247,255,0.95),rgba(129,211,255,0.34)_38%,transparent_74%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(43,117,255,0.28),rgba(24,207,200,0.14)_42%,transparent_78%)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-[10%] inset-y-[10%] rounded-[2.8rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02))]"
-                    style={{
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-                    }}
+                    className="absolute inset-x-[10%] inset-y-[10%] rounded-[3rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.34),rgba(255,255,255,0.04)_58%,rgba(255,255,255,0))] opacity-80 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(19,32,61,0.02)_58%,rgba(19,32,61,0))]"
                   />
 
-                  <div className="absolute left-0 top-2 z-[2] rounded-full bg-[rgba(7,19,46,0.72)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm sm:left-4 lg:left-6">
+                  <div className="absolute left-0 top-2 z-[2] rounded-full bg-[rgba(246,250,255,0.72)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(7,19,46,0.62)] sm:left-4 lg:left-6">
                     Mit Voxy
                   </div>
 
                   <div
-                    className="absolute right-0 top-[18%] z-[2] hidden max-w-[13rem] rounded-[1.25rem] bg-[rgba(7,19,46,0.66)] px-4 py-3 text-sm leading-6 text-[rgb(var(--fg))]/72 backdrop-blur-sm lg:block"
-                    style={{ border: "1px solid rgba(255, 255, 255, 0.1)" }}
+                    className="absolute right-[6%] top-[14%] z-[2] hidden max-w-[12rem] rounded-[1.15rem] bg-[rgba(248,252,255,0.6)] px-4 py-3 text-sm leading-6 text-[rgb(var(--fg))]/72 backdrop-blur-sm dark:bg-[rgba(7,19,46,0.44)] lg:block"
+                    style={{
+                      border: "1px solid rgba(182, 218, 245, 0.26)",
+                      boxShadow: "0 18px 42px rgba(16, 53, 96, 0.12)",
+                    }}
                   >
-                    Schreib, was dich bewegt. Voxy hilft beim Sortieren, bevor du den nächsten Schritt auswählst.
+                    Voxy hilft beim Sortieren, bevor du den nächsten Schritt auswählst.
                   </div>
 
                   <div
-                    className="relative z-[1] mx-auto w-full max-w-[18rem] sm:max-w-[24rem] lg:max-w-[31rem]"
-                    style={{ aspectRatio: "1 / 1" }}
+                    className="relative z-[1] mx-auto w-full max-w-[19rem] overflow-hidden sm:max-w-[24rem] lg:max-w-[33rem]"
+                    style={{
+                      aspectRatio: VOXY_LIGHT_HERO_ASSET.aspectRatio,
+                      WebkitMaskImage:
+                        "radial-gradient(ellipse 74% 84% at 50% 42%, #000 58%, transparent 100%)",
+                      maskImage:
+                        "radial-gradient(ellipse 74% 84% at 50% 42%, #000 58%, transparent 100%)",
+                    }}
                     data-voxy-avatar=""
                   >
                     <Image
-                      alt="Voxy begleitet den Einstieg in eDebatte."
-                      className="object-contain"
+                      alt={VOXY_LIGHT_HERO_ASSET.alt}
+                      className="object-contain object-center dark:hidden"
                       fill
                       priority
-                      sizes="(max-width: 768px) 384px, 560px"
-                      src="/brand/voxy/voxy-presenting.webp"
+                      sizes="(max-width: 768px) 320px, (max-width: 1280px) 440px, 528px"
+                      src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
+                      style={{ transform: "translateY(2%) scale(1.08)" }}
                     />
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 z-[2] flex max-w-[14rem] flex-col gap-2.5 sm:left-3 lg:left-6">
-                    {VOXY_STAGE_NOTES.map((note) => (
-                      <div
-                        key={note}
-                        className="rounded-[1.1rem] bg-[rgba(7,19,46,0.62)] px-4 py-3 text-sm leading-6 text-[rgb(var(--fg))]/72 backdrop-blur-sm"
-                        style={{ border: "1px solid rgba(255, 255, 255, 0.1)" }}
-                      >
-                        {note}
-                      </div>
-                    ))}
+                    <Image
+                      alt={VOXY_DARK_HERO_ASSET.alt}
+                      className="hidden object-contain object-center dark:block"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 320px, (max-width: 1280px) 440px, 528px"
+                      src={VOXY_DARK_HERO_ASSET.candidates[0]}
+                      style={{ transform: "translateY(2%) scale(1.08)" }}
+                    />
                   </div>
                 </div>
               </div>

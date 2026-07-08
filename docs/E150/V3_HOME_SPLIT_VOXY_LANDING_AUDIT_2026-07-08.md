@@ -67,6 +67,18 @@ Im zweiten Schritt auf demselben Branch wurde die Hero-Buehne visuell weiter ges
 - Sekundaerlinks wurden von Karten auf kleine, untergeordnete Textlinks reduziert
 - Trust-Hinweise bleiben sichtbar, aber knapper und ruhiger
 
+## Voxy-Hero-Asset-Korrektur
+
+Im naechsten Nachschliff auf demselben Branch wurde nur die Voxy-Startseitenfigur lokal korrigiert:
+
+- `HomeSplitVoxyLanding` nutzt fuer die Hero-Figur nicht mehr direkt `voxy-presenting.webp`
+- stattdessen rendert die Startseite `createGuideLight` im Light Mode und `createGuideDark` im Dark Mode
+- die Hero-Figur liegt jetzt in einem 4:5-Wrapper statt in einer 1:1-Bildkarte
+- die Stage arbeitet mit engerem Crop, weicher Aura und gemeinsamer Canvas statt mit sichtbarer Rechteck-Flaeche
+- die dunklen Notizkarten ueber der Figur wurden entfernt; uebrig bleibt nur noch eine deutlich ruhigere Kennzeichnung
+
+Damit wirkt Voxy weniger wie ein eingefuegtes Screenshot-Bild und staerker wie eine integrierte Host-Figur der Landingpage.
+
 ## Entfernte oder stark gekuerzte Bereiche
 
 Folgende Bereiche sind nicht mehr Teil der primaeren Homepage-Lesestrecke:

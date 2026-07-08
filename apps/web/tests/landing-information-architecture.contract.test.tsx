@@ -29,6 +29,8 @@ describe("landing information architecture contract", () => {
     expect(html).toContain("Mit Voxy");
     expect(html).toContain("Nichts wird automatisch veröffentlicht.");
     expect(html).toContain("Veröffentlicht wird nichts ohne Prüfung.");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect(html).toContain('href="/themen"');
@@ -44,5 +46,6 @@ describe("landing information architecture contract", () => {
     expect(html).not.toContain("Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.");
     expect(html).not.toContain("Review Queue");
     expect(html).not.toContain("Runtime");
+    expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 });

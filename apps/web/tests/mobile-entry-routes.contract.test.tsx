@@ -108,6 +108,8 @@ describe("mobile entry routes contract", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
 
     expect(html).toContain('data-voxy-avatar=""');
-    expect(html).toContain("aspect-ratio:");
+    expect(html).toContain("aspect-ratio:4 / 5");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
   });
 });

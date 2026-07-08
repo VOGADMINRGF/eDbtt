@@ -32,8 +32,8 @@ describe("landing clarity contract", () => {
     expect(html).toContain("Beitrag starten");
     expect(html).toContain("Mitmachen");
     expect(html).toContain("Mit Voxy");
-    expect(html).toContain("Bring ein, was gesehen werden sollte.");
-    expect(html).toContain("Oder stimme ab, wo deine Sicht gebraucht wird.");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
+    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
     expect(html).toContain("Themen ansehen");
     expect(html).toContain("Debatte &amp; Argumente");
     expect(html).toContain('href="/create"');
@@ -51,6 +51,7 @@ describe("landing clarity contract", () => {
     expect(html).not.toContain("35 Länder");
     expect(html).not.toContain("Live Poll");
     expect(html).not.toContain("/demo/");
+    expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 
   it("keeps landing source files free of forbidden card utility tokens", () => {
@@ -94,5 +95,6 @@ describe("landing clarity contract", () => {
     expect(landingSource).not.toContain("localStorage");
     expect(landingSource).not.toContain("/demo/");
     expect(splitLandingSource).not.toContain("/demo/");
+    expect(splitLandingSource).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 });
