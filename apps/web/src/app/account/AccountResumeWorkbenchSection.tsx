@@ -24,6 +24,7 @@ import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
+import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
@@ -39,6 +40,10 @@ import {
   buildParticipationActivationReviewFromReviewContext,
   buildParticipationActivationReviewFromVoxyDialog,
 } from "@/features/create/participationActivationReviewContract";
+import {
+  buildPollQuestionOptionsReviewFromReviewContext,
+  buildPollQuestionOptionsReviewFromVoxyDialog,
+} from "@/features/create/pollQuestionOptionsReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -156,6 +161,14 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const pollQuestionOptionsReviewModel =
+    buildPollQuestionOptionsReviewFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -247,6 +260,11 @@ function ResumeWorkbenchCard(props: {
         model={participationActivationReviewModel}
         title="Beteiligungsraum vorbereiten"
         dataTestId={`account-resume-participation-activation-${props.item.id}`}
+      />
+      <PollQuestionOptionsReviewPanel
+        model={pollQuestionOptionsReviewModel}
+        title="Poll/Frage vorbereiten"
+        dataTestId={`account-resume-poll-question-options-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -395,6 +413,25 @@ function RuntimeLinkageCard(props: {
           : null,
       },
     );
+  const pollQuestionOptionsReviewModel =
+    buildPollQuestionOptionsReviewFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -493,6 +530,11 @@ function RuntimeLinkageCard(props: {
         model={participationActivationReviewModel}
         title="Beteiligungsraum vorbereiten"
         dataTestId={`account-runtime-linkage-participation-activation-${props.linkage.contributionRef.handoffId}`}
+      />
+      <PollQuestionOptionsReviewPanel
+        model={pollQuestionOptionsReviewModel}
+        title="Poll/Frage vorbereiten"
+        dataTestId={`account-runtime-linkage-poll-question-options-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

@@ -1,6 +1,7 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
+import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromCreateCandidatePreview,
 } from "@/features/create/V3DownstreamKiTransparency";
@@ -15,6 +16,9 @@ import {
 import {
   buildParticipationActivationReviewFromCreateCandidatePreview,
 } from "@/features/create/participationActivationReviewContract";
+import {
+  buildPollQuestionOptionsReviewFromCreateCandidatePreview,
+} from "@/features/create/pollQuestionOptionsReviewContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
@@ -67,6 +71,8 @@ export default function CreateCandidatePreviewPanel({
     buildDossierWorkspaceDecisionFromCreateCandidatePreview(model);
   const participationActivationReviewModel =
     buildParticipationActivationReviewFromCreateCandidatePreview(model);
+  const pollQuestionOptionsReviewModel =
+    buildPollQuestionOptionsReviewFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -152,6 +158,12 @@ export default function CreateCandidatePreviewPanel({
         model={participationActivationReviewModel}
         title="Beteiligungsraum vorbereiten"
         dataTestId="create-candidate-participation-activation-review"
+      />
+
+      <PollQuestionOptionsReviewPanel
+        model={pollQuestionOptionsReviewModel}
+        title="Poll/Frage vorbereiten"
+        dataTestId="create-candidate-poll-question-options-review"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
