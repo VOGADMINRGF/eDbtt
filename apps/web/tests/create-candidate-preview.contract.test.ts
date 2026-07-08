@@ -418,9 +418,13 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-cocreation"');
     expect(html).toContain('data-testid="create-candidate-source-factcheck-feed-enrichment"');
     expect(html).toContain('data-testid="create-candidate-dossier-workspace-decision"');
+    expect(html).toContain('data-testid="create-candidate-participation-activation-review"');
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Dossier-Entscheidungslogik");
+    expect(html).toContain("Beteiligungsraum vorbereiten");
+    expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
+    expect(html).toContain("Vorschlag, nicht aktiviert");
     expect(html).toContain("Übersetzung bleibt getrennte Lesefassung und ist kein Beleg.");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Noch nicht recherchiert · noch nicht geprüft · keine Quelle erfunden");

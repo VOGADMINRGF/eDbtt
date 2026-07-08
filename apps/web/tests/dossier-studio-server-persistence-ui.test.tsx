@@ -122,12 +122,15 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Dossier-Entscheidungslogik im Studio");
+    expect(html).toContain("Beteiligungsraum vorbereiten im Studio");
+    expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain('data-testid="dossier-studio-voxy-cocreation"');
     expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
     expect(html).toContain('data-testid="dossier-studio-v3-workflow-surface"');
     expect(html).toContain('data-testid="dossier-studio-source-factcheck-feed-enrichment"');
     expect(html).toContain('data-testid="dossier-studio-dossier-decision"');
+    expect(html).toContain('data-testid="dossier-studio-participation-activation-review"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");

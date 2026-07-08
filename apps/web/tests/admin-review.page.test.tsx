@@ -924,6 +924,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Dossier-Entscheidungslogik");
+    expect(html).toContain("Beteiligungsraum vorbereiten");
+    expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Belastbare Wahrheit");
     expect(html).toContain("Create / Handoff");
@@ -934,6 +936,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");

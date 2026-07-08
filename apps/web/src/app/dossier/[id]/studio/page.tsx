@@ -45,12 +45,14 @@ import V3DownstreamKiTransparency, {
 import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedReviewQueueWiring";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
+import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
+import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -381,6 +383,23 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Dossier-Entscheidungslogik im Studio"
               dataTestId="dossier-studio-dossier-decision"
+            />
+            <ParticipationActivationReviewPanel
+              model={buildParticipationActivationReviewFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Beteiligungsraum vorbereiten im Studio"
+              dataTestId="dossier-studio-participation-activation-review"
             />
           </div>
         ) : null}
