@@ -53,6 +53,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -61,6 +62,9 @@ import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/vo
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
+import {
+  buildVoxyBriefingScriptCandidateFromReviewContext,
+} from "@/features/create/voxyBriefingScriptCandidateContract";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -438,6 +442,23 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Output-/Social-Arbeitsstand im Studio"
               dataTestId="dossier-studio-output-social-workbench"
+            />
+            <VoxyBriefingScriptCandidatePanel
+              model={buildVoxyBriefingScriptCandidateFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Voxy-Briefing-Arbeitsstand"
+              dataTestId="dossier-studio-voxy-briefing-script"
             />
           </div>
         ) : null}

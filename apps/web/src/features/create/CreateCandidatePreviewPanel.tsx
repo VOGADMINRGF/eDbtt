@@ -11,6 +11,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
@@ -26,6 +27,9 @@ import {
 import {
   buildSourceFactcheckFeedEnrichmentFromCreateCandidatePreview,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
+import {
+  buildVoxyBriefingScriptCandidateFromCreateCandidatePreview,
+} from "@/features/create/voxyBriefingScriptCandidateContract";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -79,6 +83,8 @@ export default function CreateCandidatePreviewPanel({
     buildPollQuestionOptionsReviewFromCreateCandidatePreview(model);
   const outputSocialWorkbenchModel =
     buildOutputSocialWorkbenchFromCreateCandidatePreview(model);
+  const voxyBriefingScriptCandidateModel =
+    buildVoxyBriefingScriptCandidateFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -176,6 +182,12 @@ export default function CreateCandidatePreviewPanel({
         model={outputSocialWorkbenchModel}
         title="Ausgabe vorbereiten"
         dataTestId="create-candidate-output-social-workbench"
+      />
+
+      <VoxyBriefingScriptCandidatePanel
+        model={voxyBriefingScriptCandidateModel}
+        title="Voxy-Briefing vorbereiten"
+        dataTestId="create-candidate-voxy-briefing-script"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

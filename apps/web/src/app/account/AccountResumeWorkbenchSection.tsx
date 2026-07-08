@@ -32,6 +32,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import {
   buildDossierWorkspaceDecisionFromReviewContext,
@@ -54,6 +55,10 @@ import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
   buildSourceFactcheckFeedEnrichmentFromVoxyDialog,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
+import {
+  buildVoxyBriefingScriptCandidateFromReviewContext,
+  buildVoxyBriefingScriptCandidateFromVoxyDialog,
+} from "@/features/create/voxyBriefingScriptCandidateContract";
 import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
@@ -182,6 +187,14 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const voxyBriefingScriptCandidateModel =
+    buildVoxyBriefingScriptCandidateFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -283,6 +296,11 @@ function ResumeWorkbenchCard(props: {
         model={outputSocialWorkbenchModel}
         title="Ausgabe vorbereiten"
         dataTestId={`account-resume-output-social-workbench-${props.item.id}`}
+      />
+      <VoxyBriefingScriptCandidatePanel
+        model={voxyBriefingScriptCandidateModel}
+        title="Voxy-Briefing vorbereiten"
+        dataTestId={`account-resume-voxy-briefing-script-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -469,6 +487,45 @@ function RuntimeLinkageCard(props: {
           : null,
       },
     );
+  const voxyBriefingScriptCandidateModel =
+    buildVoxyBriefingScriptCandidateFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+        participationRef: props.linkage.participationRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.participationRef.title,
+              href: props.linkage.participationRef.href,
+            }
+          : null,
+        outputRef: props.linkage.outputDraftRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.outputDraftRef.title,
+              href: props.linkage.outputDraftRef.href,
+            }
+          : props.linkage.voxyBriefingRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.voxyBriefingRef.title,
+                href: props.linkage.voxyBriefingRef.href,
+              }
+            : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -577,6 +634,11 @@ function RuntimeLinkageCard(props: {
         model={outputSocialWorkbenchModel}
         title="Ausgabe vorbereiten"
         dataTestId={`account-runtime-linkage-output-social-workbench-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyBriefingScriptCandidatePanel
+        model={voxyBriefingScriptCandidateModel}
+        title="Voxy-Briefing im Account"
+        dataTestId={`account-runtime-linkage-voxy-briefing-script-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

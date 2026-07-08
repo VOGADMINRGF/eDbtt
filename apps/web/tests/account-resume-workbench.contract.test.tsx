@@ -91,9 +91,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Beteiligungsraum vorbereiten");
     expect(html).toContain("Poll/Frage vorbereiten");
     expect(html).toContain("Ausgabe vorbereiten");
+    expect(html).toContain("Voxy-Briefing vorbereiten");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
+    expect(html).toContain("Script-Kandidat, noch kein Video");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
@@ -109,6 +111,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-participation-activation-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-poll-question-options-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-output-social-workbench-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-briefing-script-/g) ?? []).length).toBe(1);
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
     expect(html).not.toContain("review_draft_prepared");
