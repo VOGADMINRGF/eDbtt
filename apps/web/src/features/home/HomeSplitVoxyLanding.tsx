@@ -30,6 +30,7 @@ type StageLink = {
   text: string;
   eyebrow: string;
   tone: "primary" | "secondary";
+  compactText: string;
   desktopClassName: string;
 };
 
@@ -46,7 +47,7 @@ const PRIMARY_CARDS: readonly PrimaryCard[] = [
   {
     href: "/swipes",
     title: "Mitentwickeln",
-    text: "Sieh, welche Fragen, Sichtweisen und Ansatzpunkte schon da sind, und hilf, den stärksten Beitrag herauszuarbeiten.",
+    text: "Sieh, welche Fragen, Sichtweisen und Ansatzpunkte schon da sind, und hilf, den brauchbaren nächsten Schritt herauszuarbeiten.",
     cta: "Mitwirken",
     eyebrow: "Gemeinsam weiterdenken",
     tone: "secondary",
@@ -60,32 +61,36 @@ const HERO_STAGE_LINKS: readonly StageLink[] = [
     title: "Beitrag starten",
     text: "Ein Anliegen einbringen und mit Voxy klarer ausarbeiten.",
     eyebrow: "Beitrag",
+    compactText: "Anliegen einbringen",
     tone: "primary",
-    desktopClassName: "left-[2%] top-[10%] lg:max-w-[14rem]",
+    desktopClassName: "col-start-1 row-start-1 max-w-[13rem] self-start justify-self-start xl:max-w-[13.35rem]",
   },
   {
     href: "/swipes",
     title: "Mitwirken",
     text: "Sichtweisen, Fragen und Richtungen konstruktiv prüfen.",
     eyebrow: "Mitdenken",
+    compactText: "Gedanken schärfen",
     tone: "primary",
-    desktopClassName: "right-[2%] top-[20%] lg:max-w-[14.25rem]",
+    desktopClassName: "col-start-3 row-start-1 max-w-[13.1rem] self-start justify-self-end xl:max-w-[13.4rem]",
   },
   {
     href: "/themen",
     title: "Themen ansehen",
     text: "Öffentliche Anliegen finden, an die dein Beitrag anknüpfen kann.",
     eyebrow: "Themen",
+    compactText: "Anliegen finden",
     tone: "secondary",
-    desktopClassName: "left-[5%] bottom-[17%] lg:max-w-[13.5rem]",
+    desktopClassName: "col-start-1 row-start-3 max-w-[12.9rem] self-end justify-self-start xl:max-w-[13.2rem]",
   },
   {
     href: "/dossier",
     title: "Debatte & Argumente",
     text: "Fragen, Perspektiven und Belege im Zusammenhang verstehen.",
     eyebrow: "Dossier",
+    compactText: "Fragen ordnen",
     tone: "secondary",
-    desktopClassName: "right-[3%] bottom-[8%] lg:max-w-[14.5rem]",
+    desktopClassName: "col-start-3 row-start-3 max-w-[13.2rem] self-end justify-self-end xl:max-w-[13.45rem]",
   },
 ] as const;
 
@@ -107,10 +112,10 @@ function PrimaryEntryCard({ href, title, text, cta, eyebrow, tone, gated = false
       data-testid="home-split-primary-card"
       data-requires-privacy-gate={gated ? "true" : undefined}
       className={joinClasses(
-        "group flex h-full min-h-[9.25rem] flex-col justify-between rounded-[1.75rem] px-5 py-5 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] sm:min-h-[9.75rem] sm:px-6 sm:py-5",
+        "group flex h-full min-h-[9.5rem] flex-col rounded-[1.8rem] px-5 py-5 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] sm:min-h-[10rem] sm:px-6 sm:py-5",
         isPrimary
           ? "bg-[linear-gradient(145deg,rgba(244,252,255,0.96),rgba(196,237,255,0.93)_48%,rgba(118,199,255,0.8))] hover:-translate-y-1 dark:bg-[linear-gradient(145deg,rgba(12,42,88,0.98),rgba(17,95,196,0.52)_52%,rgba(10,18,39,0.98))]"
-          : "bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(240,247,255,0.96)_48%,rgba(217,234,248,0.92))] hover:-translate-y-1 dark:bg-[linear-gradient(145deg,rgba(15,26,52,0.92),rgba(12,38,78,0.86)_52%,rgba(8,16,34,0.98))]",
+          : "bg-[linear-gradient(145deg,rgba(252,254,255,0.98),rgba(233,244,255,0.97)_48%,rgba(198,225,248,0.94))] hover:-translate-y-1 dark:bg-[linear-gradient(145deg,rgba(15,26,52,0.92),rgba(15,52,104,0.88)_52%,rgba(8,16,34,0.98))]",
       )}
       style={{
         border: isPrimary ? "1px solid rgba(84, 191, 247, 0.34)" : "1px solid rgba(174, 205, 229, 0.42)",
@@ -119,7 +124,7 @@ function PrimaryEntryCard({ href, title, text, cta, eyebrow, tone, gated = false
           : "0 18px 42px rgba(34, 83, 138, 0.12)",
       }}
     >
-      <div className="space-y-2">
+      <div className="flex h-full flex-col gap-4">
         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--fg))]/54">
           {eyebrow}
         </span>
@@ -132,15 +137,16 @@ function PrimaryEntryCard({ href, title, text, cta, eyebrow, tone, gated = false
           </div>
           <span
             className={joinClasses(
-              "inline-flex w-fit shrink-0 items-center rounded-full px-4 py-2 text-sm font-semibold transition duration-200",
+              "mt-auto inline-flex w-fit shrink-0 items-center rounded-full px-4 py-2 text-sm font-semibold transition duration-200",
               isPrimary
                 ? "bg-[linear-gradient(90deg,rgba(24,207,200,0.94),rgba(26,140,255,0.98))] text-[rgb(var(--btn-primary-fg))] group-hover:brightness-105"
-                : "bg-[rgba(17,91,184,0.1)] text-[rgb(17,53,95)] group-hover:bg-[rgba(17,91,184,0.16)] dark:bg-[rgba(255,255,255,0.08)] dark:text-[rgb(var(--fg))] dark:group-hover:bg-[rgba(255,255,255,0.14)]",
+                : "bg-[linear-gradient(135deg,rgba(17,91,184,0.14),rgba(24,207,200,0.16))] text-[rgb(16,56,104)] group-hover:bg-[linear-gradient(135deg,rgba(17,91,184,0.18),rgba(24,207,200,0.2))] dark:bg-[linear-gradient(135deg,rgba(57,118,255,0.16),rgba(24,207,200,0.12))] dark:text-[rgb(var(--fg))] dark:group-hover:bg-[linear-gradient(135deg,rgba(57,118,255,0.22),rgba(24,207,200,0.16))]",
             )}
             style={{
               boxShadow: isPrimary
                 ? "0 14px 32px rgba(24, 140, 255, 0.28)"
-                : "0 10px 22px rgba(52, 108, 173, 0.12)",
+                : "0 12px 28px rgba(32, 90, 154, 0.14)",
+              border: isPrimary ? "none" : "1px solid rgba(55, 126, 198, 0.18)",
             }}
           >
             {cta}
@@ -183,6 +189,33 @@ function StageLinkCard({ href, title, text, eyebrow, tone }: StageLink) {
       </span>
       <h3 className="mt-2 pl-2 text-base font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
       <p className="mt-1 pl-2 text-sm leading-6 text-[rgb(var(--fg))]/72">{text}</p>
+    </Link>
+  );
+}
+
+function CompactStageLinkCard({ href, title, eyebrow, compactText, tone }: StageLink) {
+  const isPrimary = tone === "primary";
+  return (
+    <Link
+      href={href}
+      className={joinClasses(
+        "group rounded-[1.2rem] px-3.5 py-3 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
+        isPrimary
+          ? "bg-[linear-gradient(145deg,rgba(246,252,255,0.96),rgba(214,239,255,0.88)_55%,rgba(171,225,255,0.72))] dark:bg-[linear-gradient(145deg,rgba(8,33,71,0.95),rgba(17,82,173,0.28)_55%,rgba(7,16,36,0.98))]"
+          : "bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(240,247,255,0.92)_55%,rgba(224,237,250,0.88))] dark:bg-[linear-gradient(145deg,rgba(14,25,49,0.94),rgba(10,30,64,0.8)_55%,rgba(8,16,34,0.98))]",
+      )}
+      style={{
+        border: isPrimary ? "1px solid rgba(90, 197, 251, 0.28)" : "1px solid rgba(174, 205, 229, 0.3)",
+        boxShadow: isPrimary
+          ? "0 14px 30px rgba(24, 93, 163, 0.14)"
+          : "0 12px 24px rgba(31, 74, 125, 0.1)",
+      }}
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
+        {eyebrow}
+      </span>
+      <h3 className="mt-1 text-[15px] font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
+      <p className="mt-1 text-xs leading-5 text-[rgb(var(--fg))]/68">{compactText}</p>
     </Link>
   );
 }
@@ -258,10 +291,62 @@ export default function HomeSplitVoxyLanding({
                 </div>
               ) : null}
 
-              <div className="grid gap-5 sm:grid-cols-2 xl:max-w-[38rem]">
+              <div className="grid gap-4 sm:grid-cols-2 xl:max-w-[39rem]">
                 {PRIMARY_CARDS.map((card) => (
                   <PrimaryEntryCard key={card.href} {...card} />
                 ))}
+              </div>
+
+              <div className="space-y-4 lg:hidden">
+                <div
+                  className="rounded-[1.7rem] px-4 py-4 sm:px-5"
+                  style={{
+                    border: "1px solid rgba(167, 212, 244, 0.34)",
+                    background:
+                      "linear-gradient(145deg, rgba(248,252,255,0.96), rgba(232,245,255,0.92) 52%, rgba(211,236,251,0.84))",
+                    boxShadow: "0 18px 40px rgba(20, 77, 131, 0.12)",
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-full max-w-[4.75rem] shrink-0">
+                      <div
+                        className="relative"
+                        style={{
+                          aspectRatio: VOXY_LIGHT_HERO_ASSET.aspectRatio,
+                        }}
+                      >
+                        <Image
+                          alt={VOXY_LIGHT_HERO_ASSET.alt}
+                          className="object-contain object-center dark:hidden"
+                          fill
+                          sizes="76px"
+                          src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
+                        />
+                        <Image
+                          alt={VOXY_DARK_HERO_ASSET.alt}
+                          className="hidden object-contain object-center dark:block"
+                          fill
+                          sizes="76px"
+                          src={VOXY_DARK_HERO_ASSET.candidates[0]}
+                        />
+                      </div>
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
+                        Mit Voxy
+                      </p>
+                      <p className="text-sm leading-6 text-[rgb(var(--fg))]/74">
+                        Voxy hilft, Anliegen zu schärfen, Fragen zu ordnen und den brauchbaren nächsten Schritt sichtbar zu machen.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {HERO_STAGE_LINKS.map((link) => (
+                    <CompactStageLinkCard key={`${link.href}-${link.title}-compact`} {...link} />
+                  ))}
+                </div>
               </div>
 
               <p className="max-w-[35rem] text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px]">
@@ -281,31 +366,31 @@ export default function HomeSplitVoxyLanding({
               </div>
             </div>
 
-            <aside className="order-first lg:order-none">
+            <aside className="hidden lg:block">
               <div className="relative mx-auto w-full max-w-[41rem] lg:max-w-none">
-                <div className="relative min-h-[31rem] sm:min-h-[34rem] lg:min-h-[43rem]">
-                  <div className="absolute left-2 top-4 z-[4] rounded-full bg-[rgba(248,252,255,0.78)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(9,20,44,0.64)] sm:left-6">
+                <div className="relative min-h-[41rem] xl:min-h-[43rem]">
+                  <div className="absolute left-6 top-5 z-[4] rounded-full bg-[rgba(248,252,255,0.74)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(9,20,44,0.62)]">
                     Mit Voxy
                   </div>
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-[12%] top-[16%] h-[54%] rounded-full bg-[radial-gradient(circle,rgba(238,248,255,0.88),rgba(135,217,255,0.18)_42%,transparent_76%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(27,105,232,0.22),rgba(24,207,200,0.1)_46%,transparent_80%)]"
+                    className="absolute inset-x-[18%] top-[19%] h-[46%] rounded-full bg-[radial-gradient(circle,rgba(238,248,255,0.68),rgba(135,217,255,0.12)_42%,transparent_76%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(27,105,232,0.16),rgba(24,207,200,0.08)_46%,transparent_80%)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[18%] right-[18%] top-[19%] bottom-[19%] rounded-[999px] border border-[rgba(142,211,255,0.26)] dark:border-[rgba(61,122,255,0.18)]"
+                    className="absolute left-[23%] right-[23%] top-[20%] bottom-[21%] rounded-[999px] border border-[rgba(142,211,255,0.18)] dark:border-[rgba(61,122,255,0.14)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[12%] right-[12%] top-[25%] bottom-[22%] rounded-[999px] border border-[rgba(224,242,255,0.18)] dark:border-[rgba(129,170,255,0.1)]"
+                    className="absolute left-[18%] right-[18%] top-[25%] bottom-[24%] rounded-[999px] border border-[rgba(224,242,255,0.14)] dark:border-[rgba(129,170,255,0.08)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[22%] right-[22%] bottom-[13%] h-[15%] rounded-full bg-[radial-gradient(circle,rgba(69,188,255,0.2),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(24,207,200,0.2),transparent_74%)]"
+                    className="absolute left-[28%] right-[28%] bottom-[16%] h-[11%] rounded-full bg-[radial-gradient(circle,rgba(69,188,255,0.14),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(24,207,200,0.14),transparent_74%)]"
                   />
 
                   <div
-                    className="absolute left-1/2 top-1/2 z-[3] w-full max-w-[11.25rem] -translate-x-1/2 -translate-y-[40%] sm:max-w-[12.5rem] lg:max-w-[14rem]"
+                    className="absolute left-1/2 top-1/2 z-[3] w-full max-w-[12.5rem] -translate-x-1/2 -translate-y-[39%] xl:max-w-[13.35rem]"
                   >
                     <div
                       className="relative"
@@ -319,7 +404,7 @@ export default function HomeSplitVoxyLanding({
                         className="object-contain object-center dark:hidden"
                         fill
                         priority
-                        sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 268px"
+                        sizes="(max-width: 1279px) 232px, 256px"
                         src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
                       />
                       <Image
@@ -327,23 +412,17 @@ export default function HomeSplitVoxyLanding({
                         className="hidden object-contain object-center dark:block"
                         fill
                         priority
-                        sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 268px"
+                        sizes="(max-width: 1279px) 232px, 256px"
                         src={VOXY_DARK_HERO_ASSET.candidates[0]}
                       />
                     </div>
                   </div>
 
-                  <div className="absolute inset-x-0 bottom-0 z-[2] grid grid-cols-2 gap-3 px-1 pt-8 lg:hidden">
-                    {HERO_STAGE_LINKS.map((link) => (
-                      <StageLinkCard key={`${link.href}-${link.title}-mobile`} {...link} />
-                    ))}
-                  </div>
-
-                  <div className="absolute inset-0 hidden lg:block">
+                  <div className="absolute inset-0 z-[4] grid grid-cols-[minmax(11.5rem,1fr)_14.25rem_minmax(11.5rem,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-7 gap-y-6 px-5 py-10 xl:grid-cols-[minmax(12.5rem,1fr)_14.75rem_minmax(12.5rem,1fr)] xl:px-8 xl:py-11">
                     {HERO_STAGE_LINKS.map((link) => (
                       <div
                         key={`${link.href}-${link.title}-desktop`}
-                        className={joinClasses("absolute z-[4] w-full", link.desktopClassName)}
+                        className={joinClasses("z-[4] w-full", link.desktopClassName)}
                       >
                         <StageLinkCard {...link} />
                       </div>
