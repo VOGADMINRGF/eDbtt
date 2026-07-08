@@ -933,7 +933,9 @@ describe("/admin/review page", () => {
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Script-Kandidat, noch kein Video");
     expect(html).toContain("Voxy Render/Provider Handoff Summary");
+    expect(html).toContain("Voxy Render Preflight Summary");
     expect(html).toContain("Handoff-Paket");
+    expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Belastbare Wahrheit");
     expect(html).toContain("Create / Handoff");
@@ -941,7 +943,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(3);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(4);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -949,6 +951,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-output-social-workbench-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-briefing-script-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");
