@@ -121,10 +121,10 @@ function PrimaryEntryCard({ href, title, text, cta, eyebrow, tone, gated = false
       data-testid="home-split-primary-card"
       data-requires-privacy-gate={gated ? "true" : undefined}
       className={joinClasses(
-        "group flex h-full min-h-[9.5rem] flex-col rounded-[1.8rem] px-5 py-5 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] sm:min-h-[10rem] sm:px-6 sm:py-5",
+        "group flex h-full min-h-[9.75rem] flex-col rounded-[1.9rem] px-5 py-5 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] sm:min-h-[10.15rem] sm:px-6 sm:py-5",
         isPrimary
-          ? "bg-[linear-gradient(145deg,rgba(244,252,255,0.96),rgba(196,237,255,0.93)_48%,rgba(118,199,255,0.8))] hover:-translate-y-1 dark:bg-[linear-gradient(145deg,rgba(12,42,88,0.98),rgba(17,95,196,0.52)_52%,rgba(10,18,39,0.98))]"
-          : "bg-[linear-gradient(145deg,rgba(252,254,255,0.98),rgba(233,244,255,0.97)_48%,rgba(198,225,248,0.94))] hover:-translate-y-1 dark:bg-[linear-gradient(145deg,rgba(15,26,52,0.92),rgba(15,52,104,0.88)_52%,rgba(8,16,34,0.98))]",
+          ? "bg-[linear-gradient(145deg,rgba(244,252,255,0.96),rgba(196,237,255,0.93)_48%,rgba(118,199,255,0.8))] dark:bg-[linear-gradient(145deg,rgba(12,42,88,0.98),rgba(17,95,196,0.52)_52%,rgba(10,18,39,0.98))]"
+          : "bg-[linear-gradient(145deg,rgba(252,254,255,0.98),rgba(233,244,255,0.97)_48%,rgba(198,225,248,0.94))] dark:bg-[linear-gradient(145deg,rgba(15,26,52,0.92),rgba(15,52,104,0.88)_52%,rgba(8,16,34,0.98))]",
       )}
       style={{
         border: isPrimary ? "1px solid rgba(84, 191, 247, 0.34)" : "1px solid rgba(174, 205, 229, 0.42)",
@@ -146,7 +146,7 @@ function PrimaryEntryCard({ href, title, text, cta, eyebrow, tone, gated = false
           </div>
           <span
             className={joinClasses(
-              "mt-auto inline-flex w-fit shrink-0 items-center rounded-full px-4 py-2 text-sm font-semibold transition duration-200",
+              "mt-auto inline-flex w-fit shrink-0 items-center rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200",
               isPrimary
                 ? "bg-[linear-gradient(90deg,rgba(24,207,200,0.94),rgba(26,140,255,0.98))] text-[rgb(var(--btn-primary-fg))] group-hover:brightness-105"
                 : "bg-[linear-gradient(135deg,rgba(17,91,184,0.14),rgba(24,207,200,0.16))] text-[rgb(16,56,104)] group-hover:bg-[linear-gradient(135deg,rgba(17,91,184,0.18),rgba(24,207,200,0.2))] dark:bg-[linear-gradient(135deg,rgba(57,118,255,0.16),rgba(24,207,200,0.12))] dark:text-[rgb(var(--fg))] dark:group-hover:bg-[linear-gradient(135deg,rgba(57,118,255,0.22),rgba(24,207,200,0.16))]",
@@ -172,33 +172,37 @@ function StageLinkCard({ href, title, text, eyebrow, tone }: StageLink) {
     <Link
       href={href}
       className={joinClasses(
-        "group relative overflow-hidden rounded-[1.45rem] px-5 py-4 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
+        "group relative overflow-hidden rounded-[1.7rem] px-5 py-[1.05rem] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
         isPrimary
-          ? "bg-[linear-gradient(150deg,rgba(246,251,255,0.97),rgba(212,238,255,0.9)_52%,rgba(160,221,255,0.78))] dark:bg-[linear-gradient(150deg,rgba(8,33,71,0.96),rgba(17,82,173,0.3)_52%,rgba(7,16,36,0.98))]"
-          : "bg-[linear-gradient(150deg,rgba(255,255,255,0.95),rgba(243,248,255,0.93)_54%,rgba(226,238,250,0.88))] dark:bg-[linear-gradient(150deg,rgba(14,25,49,0.94),rgba(10,30,64,0.82)_54%,rgba(8,16,34,0.98))]",
+          ? "bg-[linear-gradient(155deg,rgba(10,33,72,0.9),rgba(18,88,179,0.34)_52%,rgba(6,16,36,0.96))] dark:bg-[linear-gradient(155deg,rgba(10,33,72,0.92),rgba(18,88,179,0.34)_52%,rgba(6,16,36,0.98))]"
+          : "bg-[linear-gradient(155deg,rgba(12,24,52,0.84),rgba(20,59,118,0.28)_52%,rgba(8,16,34,0.94))] dark:bg-[linear-gradient(155deg,rgba(12,24,52,0.9),rgba(20,59,118,0.26)_52%,rgba(8,16,34,0.98))]",
       )}
       style={{
-        border: isPrimary ? "1px solid rgba(90, 197, 251, 0.34)" : "1px solid rgba(174, 205, 229, 0.36)",
+        border: isPrimary ? "1px solid rgba(90, 197, 251, 0.24)" : "1px solid rgba(132, 183, 236, 0.2)",
         boxShadow: isPrimary
-          ? "0 18px 44px rgba(24, 93, 163, 0.2)"
-          : "0 14px 36px rgba(31, 74, 125, 0.12)",
+          ? "0 22px 48px rgba(6, 22, 56, 0.26)"
+          : "0 18px 42px rgba(6, 18, 44, 0.24)",
       }}
     >
       <div
         aria-hidden="true"
-        className={joinClasses(
-          "absolute inset-y-0 left-0 w-[0.28rem] rounded-full",
-          isPrimary
-            ? "bg-[linear-gradient(180deg,rgba(24,207,200,1),rgba(26,140,255,1))]"
-            : "bg-[linear-gradient(180deg,rgba(88,145,255,0.9),rgba(24,207,200,0.75))]",
-        )}
+        className="absolute inset-x-[12%] top-[-35%] h-[70%] rounded-full bg-[radial-gradient(circle,rgba(73,191,255,0.18),transparent_68%)] blur-3xl"
       />
-      <div className="pl-3 pr-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
+      <div className="space-y-3">
+        <span
+          className={joinClasses(
+            "inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
+            isPrimary
+              ? "border-[rgba(102,210,255,0.22)] bg-[rgba(17,76,146,0.38)] text-[rgb(171,227,255)]"
+              : "border-[rgba(122,173,236,0.2)] bg-[rgba(12,36,72,0.34)] text-[rgb(162,204,255)]",
+          )}
+        >
           {eyebrow}
         </span>
-        <h3 className="mt-2 text-base font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-[rgb(var(--fg))]/72">{text}</p>
+        <div className="space-y-1.5 pr-1">
+          <h3 className="text-base font-semibold tracking-tight text-[rgb(246,251,255)]">{title}</h3>
+          <p className="text-sm leading-6 text-[rgb(227,240,255)]/78">{text}</p>
+        </div>
       </div>
     </Link>
   );
@@ -210,23 +214,32 @@ function MobileStageLinkCard({ href, eyebrow, compactText, tone, mobileClassName
     <Link
       href={href}
       className={joinClasses(
-        "group z-[2] rounded-[1.15rem] px-3 py-2.5 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
+        "group z-[2] rounded-[1.2rem] px-3 py-2.5 text-center transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
         isPrimary
-          ? "bg-[linear-gradient(145deg,rgba(246,252,255,0.96),rgba(214,239,255,0.88)_55%,rgba(171,225,255,0.72))] dark:bg-[linear-gradient(145deg,rgba(8,33,71,0.95),rgba(17,82,173,0.28)_55%,rgba(7,16,36,0.98))]"
-          : "bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(240,247,255,0.92)_55%,rgba(224,237,250,0.88))] dark:bg-[linear-gradient(145deg,rgba(14,25,49,0.94),rgba(10,30,64,0.8)_55%,rgba(8,16,34,0.98))]",
+          ? "bg-[linear-gradient(150deg,rgba(10,34,70,0.84),rgba(18,88,179,0.24)_55%,rgba(6,16,34,0.92))] dark:bg-[linear-gradient(150deg,rgba(10,34,70,0.88),rgba(18,88,179,0.24)_55%,rgba(6,16,34,0.96))]"
+          : "bg-[linear-gradient(150deg,rgba(11,23,50,0.8),rgba(17,64,122,0.18)_55%,rgba(7,16,34,0.9))] dark:bg-[linear-gradient(150deg,rgba(11,23,50,0.86),rgba(17,64,122,0.18)_55%,rgba(7,16,34,0.94))]",
         mobileClassName,
       )}
       style={{
-        border: isPrimary ? "1px solid rgba(90, 197, 251, 0.28)" : "1px solid rgba(174, 205, 229, 0.3)",
+        border: isPrimary ? "1px solid rgba(90, 197, 251, 0.2)" : "1px solid rgba(124, 174, 228, 0.16)",
         boxShadow: isPrimary
-          ? "0 12px 28px rgba(24, 93, 163, 0.13)"
-          : "0 10px 22px rgba(31, 74, 125, 0.1)",
+          ? "0 16px 32px rgba(6, 22, 56, 0.2)"
+          : "0 12px 28px rgba(6, 18, 44, 0.18)",
       }}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
+      <span
+        className={joinClasses(
+          "inline-flex rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em]",
+          isPrimary
+            ? "border-[rgba(102,210,255,0.18)] bg-[rgba(17,76,146,0.34)] text-[rgb(165,225,255)]"
+            : "border-[rgba(122,173,236,0.16)] bg-[rgba(12,36,72,0.32)] text-[rgb(168,206,255)]",
+        )}
+      >
         {eyebrow}
       </span>
-      <p className="mt-1 text-[13px] font-semibold leading-5 tracking-tight text-[rgb(var(--fg))]">{compactText}</p>
+      <p className="mt-1.5 text-[13px] font-semibold leading-5 tracking-tight text-[rgb(244,250,255)]">
+        {compactText}
+      </p>
     </Link>
   );
 }
@@ -266,32 +279,35 @@ export default function HomeSplitVoxyLanding({
             <div className="relative z-[1] max-w-[37rem] space-y-7 lg:space-y-9">
               <div className="lg:hidden">
                 <div
-                  className="relative mx-auto max-w-[28rem] overflow-hidden rounded-[2rem] px-3 pb-4 pt-4"
-                  style={{
-                    border: "1px solid rgba(167, 212, 244, 0.32)",
-                    background:
-                      "linear-gradient(145deg, rgba(248,252,255,0.97), rgba(231,244,255,0.92) 52%, rgba(214,236,251,0.82))",
-                    boxShadow: "0 22px 48px rgba(20, 77, 131, 0.13)",
-                  }}
+                  className="relative mx-auto max-w-[28rem] overflow-hidden rounded-[2rem] border border-[rgba(112,180,240,0.16)] bg-[linear-gradient(155deg,rgba(7,18,40,0.92),rgba(11,37,78,0.78)_48%,rgba(6,16,34,0.96))] px-3 pb-4 pt-4"
+                  style={{ boxShadow: "0 26px 56px rgba(5, 14, 34, 0.34)" }}
                 >
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-[17%] top-[22%] h-[32%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.96),rgba(146,220,255,0.22)_48%,transparent_82%)] blur-3xl"
+                    className="pointer-events-none absolute inset-x-[16%] top-[22%] h-[34%] rounded-full bg-[radial-gradient(circle,rgba(39,144,255,0.2),rgba(24,207,200,0.12)_40%,transparent_78%)] blur-3xl"
                   />
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute left-[20%] right-[20%] top-[28%] bottom-[29%] rounded-[999px] border border-[rgba(142,211,255,0.18)]"
+                    className="pointer-events-none absolute left-[18%] right-[18%] top-[26%] bottom-[27%] rounded-[999px] border border-[rgba(113,187,255,0.14)]"
                   />
-                  <p className="relative z-[2] text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--grad-to))]">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-[22%] top-[30%] bottom-[31%] rounded-[999px] border border-[rgba(98,155,255,0.08)]"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-[-12%] top-[-8%] h-[8rem] w-[8rem] bg-[radial-gradient(circle,rgba(119,214,255,0.18),transparent_68%)] blur-3xl"
+                  />
+                  <p className="relative z-[2] text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(172,228,255)]">
                     Mit Voxy
                   </p>
 
-                  <div className="relative mt-4 grid grid-cols-2 grid-rows-[auto_8.5rem_auto] gap-x-3 gap-y-3">
+                  <div className="relative mt-4 grid grid-cols-2 grid-rows-[auto_9.6rem_auto] gap-x-3 gap-y-3 sm:grid-rows-[auto_10rem_auto]">
                     {HERO_STAGE_LINKS.map((link) => (
                       <MobileStageLinkCard key={`${link.href}-${link.title}-mobile-stage`} {...link} />
                     ))}
 
-                    <div className="pointer-events-none relative col-span-2 row-start-2 mx-auto flex w-full max-w-[7rem] items-center justify-center">
+                    <div className="pointer-events-none relative col-span-2 row-start-2 mx-auto flex w-full max-w-[8.25rem] items-center justify-center sm:max-w-[8.75rem]">
                       <div
                         className="relative z-[3] w-full"
                         style={{
@@ -320,14 +336,14 @@ export default function HomeSplitVoxyLanding({
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 text-center lg:text-left">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[rgb(var(--grad-to))]">
                   {isUnknownVisitor ? "KLARER EINSTIEG" : experience.eyebrow}
                 </p>
-                <h2 className="max-w-3xl text-[3rem] font-semibold tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.25rem] lg:text-[5.25rem] lg:leading-[0.95]">
+                <h2 className="mx-auto max-w-3xl text-[3rem] font-semibold tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.25rem] lg:mx-0 lg:text-[5.25rem] lg:leading-[0.95]">
                   {isUnknownVisitor ? "Was bewegt dich?" : experience.title}
                 </h2>
-                <p className="max-w-[35rem] text-base leading-8 text-[rgb(var(--fg))]/76 sm:text-lg lg:text-[1.08rem]">
+                <p className="mx-auto max-w-[35rem] text-base leading-8 text-[rgb(var(--fg))]/76 sm:text-lg lg:mx-0 lg:text-[1.08rem]">
                   {isUnknownVisitor
                     ? "Bring ein Anliegen, eine Beobachtung oder eine Idee ein. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen gesellschaftlich brauchbaren Beitrag zu entwickeln."
                     : experience.description}
@@ -358,17 +374,17 @@ export default function HomeSplitVoxyLanding({
                 </div>
               ) : null}
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:max-w-[39rem]">
+              <div className="mx-auto grid max-w-[39rem] gap-4 sm:grid-cols-2 lg:mx-0">
                 {PRIMARY_CARDS.map((card) => (
                   <PrimaryEntryCard key={card.href} {...card} />
                 ))}
               </div>
 
-              <p className="max-w-[35rem] text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px]">
+              <p className="mx-auto max-w-[35rem] text-center text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px] lg:mx-0 lg:text-left">
                 {TRUST_LINE}
               </p>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-sm text-[rgb(var(--fg))]/58">
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-sm text-[rgb(var(--fg))]/58 lg:justify-start">
                 {supportLinks.map((link) => (
                   <Link
                     key={`${link.href}-${link.label}`}
@@ -384,28 +400,33 @@ export default function HomeSplitVoxyLanding({
             <aside className="hidden lg:block">
               <div className="relative mx-auto w-full max-w-[41rem] lg:max-w-none">
                 <div className="relative min-h-[41rem] xl:min-h-[43rem]">
-                  <div className="absolute left-1/2 top-2 z-[4] -translate-x-1/2 rounded-full bg-[rgba(248,252,255,0.74)] px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(9,20,44,0.62)]">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-[8%] top-[8%] bottom-[8%] rounded-[2.7rem] border border-[rgba(105,172,240,0.16)] bg-[linear-gradient(160deg,rgba(8,19,41,0.66),rgba(14,42,86,0.34)_46%,rgba(8,16,34,0.7))] backdrop-blur-[22px]"
+                    style={{ boxShadow: "0 34px 80px rgba(6, 18, 44, 0.22)" }}
+                  />
+                  <div className="absolute left-1/2 top-[8.75%] z-[4] -translate-x-1/2 rounded-full border border-[rgba(122,188,255,0.16)] bg-[rgba(8,28,58,0.5)] px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[rgb(175,226,255)] backdrop-blur-sm">
                     Mit Voxy
                   </div>
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-[18%] top-[19%] h-[46%] rounded-full bg-[radial-gradient(circle,rgba(238,248,255,0.68),rgba(135,217,255,0.12)_42%,transparent_76%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(27,105,232,0.16),rgba(24,207,200,0.08)_46%,transparent_80%)]"
+                    className="absolute inset-x-[16%] top-[18%] h-[48%] rounded-full bg-[radial-gradient(circle,rgba(52,163,255,0.2),rgba(24,207,200,0.12)_42%,transparent_78%)] blur-3xl"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[23%] right-[23%] top-[20%] bottom-[21%] rounded-[999px] border border-[rgba(142,211,255,0.18)] dark:border-[rgba(61,122,255,0.14)]"
+                    className="absolute left-[21%] right-[21%] top-[20%] bottom-[20%] rounded-[999px] border border-[rgba(142,211,255,0.12)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[18%] right-[18%] top-[25%] bottom-[24%] rounded-[999px] border border-[rgba(224,242,255,0.14)] dark:border-[rgba(129,170,255,0.08)]"
+                    className="absolute left-[17%] right-[17%] top-[24%] bottom-[24%] rounded-[999px] border border-[rgba(98,155,255,0.08)]"
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute left-[28%] right-[28%] bottom-[16%] h-[11%] rounded-full bg-[radial-gradient(circle,rgba(69,188,255,0.14),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(24,207,200,0.14),transparent_74%)]"
+                    className="absolute left-[24%] right-[24%] bottom-[15%] h-[14%] rounded-full bg-[radial-gradient(circle,rgba(69,188,255,0.12),transparent_72%)] blur-3xl"
                   />
 
                   <div
-                    className="absolute left-1/2 top-1/2 z-[3] w-full max-w-[12.5rem] -translate-x-1/2 -translate-y-[39%] xl:max-w-[13.35rem]"
+                    className="absolute left-1/2 top-1/2 z-[3] w-full max-w-[13.15rem] -translate-x-1/2 -translate-y-[37%] xl:max-w-[14.15rem]"
                   >
                     <div
                       className="relative"
@@ -419,7 +440,7 @@ export default function HomeSplitVoxyLanding({
                         className="object-contain object-center dark:hidden"
                         fill
                         priority
-                        sizes="(max-width: 1279px) 232px, 256px"
+                        sizes="(max-width: 1279px) 246px, 272px"
                         src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
                       />
                       <Image
@@ -427,13 +448,13 @@ export default function HomeSplitVoxyLanding({
                         className="hidden object-contain object-center dark:block"
                         fill
                         priority
-                        sizes="(max-width: 1279px) 232px, 256px"
+                        sizes="(max-width: 1279px) 246px, 272px"
                         src={VOXY_DARK_HERO_ASSET.candidates[0]}
                       />
                     </div>
                   </div>
 
-                  <div className="absolute inset-0 z-[4] grid grid-cols-[minmax(13.75rem,1fr)_14.25rem_minmax(13.75rem,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-8 gap-y-8 px-5 py-11 xl:grid-cols-[minmax(14.25rem,1fr)_14.75rem_minmax(14.25rem,1fr)] xl:px-8 xl:py-12">
+                  <div className="absolute inset-0 z-[4] grid grid-cols-[minmax(14.5rem,1fr)_14.75rem_minmax(14.5rem,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-9 gap-y-9 px-6 py-12 xl:grid-cols-[minmax(15rem,1fr)_15rem_minmax(15rem,1fr)] xl:px-9 xl:py-[3.25rem]">
                     {HERO_STAGE_LINKS.map((link) => (
                       <div
                         key={`${link.href}-${link.title}-desktop`}
