@@ -79,6 +79,24 @@ Im naechsten Nachschliff auf demselben Branch wurde nur die Voxy-Startseitenfigu
 
 Damit wirkt Voxy weniger wie ein eingefuegtes Screenshot-Bild und staerker wie eine integrierte Host-Figur der Landingpage.
 
+## Voxy-Asset-Inventar und finale Home-Wahl
+
+Das lokale Inventar der Brand-Dateien zeigt fuer die relevanten Startseiten-Assets:
+
+- `voxy-create-guide-light.png`: `290 x 367`, PNG, mit Alpha
+- `voxy-create-guide-dark.png`: `290 x 367`, PNG, mit Alpha
+- `voxy-create-guide.png`: `290 x 367`, PNG, mit Alpha
+- groessere Hero-Posen wie `voxy-confident.*`, `voxy-open.*` oder `voxy-presenting.*`: meist `1254 x 1254`, aber ohne Alpha und damit mit sichtbarer Raster-Hintergrundflaeche fuer diese Landing ungeeignet
+
+Final fuer Home bleibt deshalb:
+
+- Light Mode: `createGuideLight`
+- Dark Mode: `createGuideDark`
+
+Die Home-Darstellung begrenzt die sichtbare Voxy-Breite bewusst, weil diese Assets mit `290 x 367` fuer eine sehr grosse Hero-Skalierung nicht scharf genug sind.
+
+Ein spaeteres echtes Home-Hero-Asset mit hoeherer Aufloesung und sauberem Alpha-Cutout bleibt weiterhin empfohlen.
+
 ## Entfernte oder stark gekuerzte Bereiche
 
 Folgende Bereiche sind nicht mehr Teil der primaeren Homepage-Lesestrecke:
