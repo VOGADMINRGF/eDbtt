@@ -926,7 +926,9 @@ describe("/admin/review page", () => {
     expect(html).toContain("Dossier-Entscheidungslogik");
     expect(html).toContain("Beteiligungsraum vorbereiten");
     expect(html).toContain("Poll Question Review Summary");
+    expect(html).toContain("Output Social Workbench Summary");
     expect(html).toContain("Frage-Typ");
+    expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Belastbare Wahrheit");
@@ -940,6 +942,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-poll-question-options-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-output-social-workbench-/g) ?? []).length).toBe(1);
     expect(html).toContain("Als Dossier-Entwurf übernehmen");
     expect(html).toContain("Als Anlassraum vorbereiten");
     expect(html).toContain("Als öffentliche Themenseite vorbereiten");

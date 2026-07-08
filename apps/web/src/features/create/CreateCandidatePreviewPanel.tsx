@@ -1,5 +1,6 @@
 import type { CreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
+import OutputSocialWorkbenchPanel from "@/features/create/OutputSocialWorkbenchPanel";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import V3DownstreamKiTransparency, {
@@ -13,6 +14,9 @@ import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPane
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
+import {
+  buildOutputSocialWorkbenchFromCreateCandidatePreview,
+} from "@/features/create/outputSocialWorkbenchContract";
 import {
   buildParticipationActivationReviewFromCreateCandidatePreview,
 } from "@/features/create/participationActivationReviewContract";
@@ -73,6 +77,8 @@ export default function CreateCandidatePreviewPanel({
     buildParticipationActivationReviewFromCreateCandidatePreview(model);
   const pollQuestionOptionsReviewModel =
     buildPollQuestionOptionsReviewFromCreateCandidatePreview(model);
+  const outputSocialWorkbenchModel =
+    buildOutputSocialWorkbenchFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -164,6 +170,12 @@ export default function CreateCandidatePreviewPanel({
         model={pollQuestionOptionsReviewModel}
         title="Poll/Frage vorbereiten"
         dataTestId="create-candidate-poll-question-options-review"
+      />
+
+      <OutputSocialWorkbenchPanel
+        model={outputSocialWorkbenchModel}
+        title="Ausgabe vorbereiten"
+        dataTestId="create-candidate-output-social-workbench"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

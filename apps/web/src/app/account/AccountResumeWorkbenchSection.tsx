@@ -23,6 +23,7 @@ import V3AccountResumeWorkflow from "@/features/create/V3AccountResumeWorkflow";
 import V3DownstreamKiTransparency, {
   buildV3DownstreamKiTransparencyFromReviewContext,
 } from "@/features/create/V3DownstreamKiTransparency";
+import OutputSocialWorkbenchPanel from "@/features/create/OutputSocialWorkbenchPanel";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
@@ -36,6 +37,10 @@ import {
   buildDossierWorkspaceDecisionFromReviewContext,
   buildDossierWorkspaceDecisionFromVoxyDialog,
 } from "@/features/create/dossierWorkspaceDecisionContract";
+import {
+  buildOutputSocialWorkbenchFromReviewContext,
+  buildOutputSocialWorkbenchFromVoxyDialog,
+} from "@/features/create/outputSocialWorkbenchContract";
 import {
   buildParticipationActivationReviewFromReviewContext,
   buildParticipationActivationReviewFromVoxyDialog,
@@ -169,6 +174,14 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const outputSocialWorkbenchModel =
+    buildOutputSocialWorkbenchFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -265,6 +278,11 @@ function ResumeWorkbenchCard(props: {
         model={pollQuestionOptionsReviewModel}
         title="Poll/Frage vorbereiten"
         dataTestId={`account-resume-poll-question-options-${props.item.id}`}
+      />
+      <OutputSocialWorkbenchPanel
+        model={outputSocialWorkbenchModel}
+        title="Ausgabe vorbereiten"
+        dataTestId={`account-resume-output-social-workbench-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -432,6 +450,25 @@ function RuntimeLinkageCard(props: {
           : null,
       },
     );
+  const outputSocialWorkbenchModel =
+    buildOutputSocialWorkbenchFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -535,6 +572,11 @@ function RuntimeLinkageCard(props: {
         model={pollQuestionOptionsReviewModel}
         title="Poll/Frage vorbereiten"
         dataTestId={`account-runtime-linkage-poll-question-options-${props.linkage.contributionRef.handoffId}`}
+      />
+      <OutputSocialWorkbenchPanel
+        model={outputSocialWorkbenchModel}
+        title="Ausgabe vorbereiten"
+        dataTestId={`account-runtime-linkage-output-social-workbench-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">
