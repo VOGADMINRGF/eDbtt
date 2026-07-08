@@ -32,6 +32,7 @@ type StageLink = {
   tone: "primary" | "secondary";
   compactText: string;
   desktopClassName: string;
+  mobileClassName: string;
 };
 
 const PRIMARY_CARDS: readonly PrimaryCard[] = [
@@ -61,9 +62,11 @@ const HERO_STAGE_LINKS: readonly StageLink[] = [
     title: "Beitrag starten",
     text: "Ein Anliegen einbringen und mit Voxy klarer ausarbeiten.",
     eyebrow: "Beitrag",
-    compactText: "Anliegen einbringen",
+    compactText: "Anliegen ordnen",
     tone: "primary",
-    desktopClassName: "col-start-1 row-start-1 max-w-[13rem] self-start justify-self-start xl:max-w-[13.35rem]",
+    desktopClassName:
+      "col-start-1 row-start-1 min-w-[13.75rem] max-w-[15rem] self-start justify-self-start lg:mt-10",
+    mobileClassName: "col-start-1 row-start-1",
   },
   {
     href: "/swipes",
@@ -72,25 +75,31 @@ const HERO_STAGE_LINKS: readonly StageLink[] = [
     eyebrow: "Mitdenken",
     compactText: "Gedanken schärfen",
     tone: "primary",
-    desktopClassName: "col-start-3 row-start-1 max-w-[13.1rem] self-start justify-self-end xl:max-w-[13.4rem]",
+    desktopClassName:
+      "col-start-3 row-start-1 min-w-[13.9rem] max-w-[15.2rem] self-start justify-self-end lg:mt-8",
+    mobileClassName: "col-start-2 row-start-1",
   },
   {
     href: "/themen",
     title: "Themen ansehen",
     text: "Öffentliche Anliegen finden, an die dein Beitrag anknüpfen kann.",
     eyebrow: "Themen",
-    compactText: "Anliegen finden",
+    compactText: "Anknüpfen",
     tone: "secondary",
-    desktopClassName: "col-start-1 row-start-3 max-w-[12.9rem] self-end justify-self-start xl:max-w-[13.2rem]",
+    desktopClassName:
+      "col-start-1 row-start-3 min-w-[13.6rem] max-w-[14.9rem] self-end justify-self-start lg:mb-4",
+    mobileClassName: "col-start-1 row-start-3",
   },
   {
     href: "/dossier",
     title: "Debatte & Argumente",
     text: "Fragen, Perspektiven und Belege im Zusammenhang verstehen.",
     eyebrow: "Dossier",
-    compactText: "Fragen ordnen",
+    compactText: "Zusammenhang verstehen",
     tone: "secondary",
-    desktopClassName: "col-start-3 row-start-3 max-w-[13.2rem] self-end justify-self-end xl:max-w-[13.45rem]",
+    desktopClassName:
+      "col-start-3 row-start-3 min-w-[13.8rem] max-w-[15.25rem] self-end justify-self-end lg:mb-2",
+    mobileClassName: "col-start-2 row-start-3",
   },
 ] as const;
 
@@ -163,7 +172,7 @@ function StageLinkCard({ href, title, text, eyebrow, tone }: StageLink) {
     <Link
       href={href}
       className={joinClasses(
-        "group relative overflow-hidden rounded-[1.35rem] px-4 py-3 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
+        "group relative overflow-hidden rounded-[1.45rem] px-5 py-4 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
         isPrimary
           ? "bg-[linear-gradient(150deg,rgba(246,251,255,0.97),rgba(212,238,255,0.9)_52%,rgba(160,221,255,0.78))] dark:bg-[linear-gradient(150deg,rgba(8,33,71,0.96),rgba(17,82,173,0.3)_52%,rgba(7,16,36,0.98))]"
           : "bg-[linear-gradient(150deg,rgba(255,255,255,0.95),rgba(243,248,255,0.93)_54%,rgba(226,238,250,0.88))] dark:bg-[linear-gradient(150deg,rgba(14,25,49,0.94),rgba(10,30,64,0.82)_54%,rgba(8,16,34,0.98))]",
@@ -184,38 +193,40 @@ function StageLinkCard({ href, title, text, eyebrow, tone }: StageLink) {
             : "bg-[linear-gradient(180deg,rgba(88,145,255,0.9),rgba(24,207,200,0.75))]",
         )}
       />
-      <span className="pl-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
-        {eyebrow}
-      </span>
-      <h3 className="mt-2 pl-2 text-base font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
-      <p className="mt-1 pl-2 text-sm leading-6 text-[rgb(var(--fg))]/72">{text}</p>
+      <div className="pl-3 pr-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
+          {eyebrow}
+        </span>
+        <h3 className="mt-2 text-base font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-[rgb(var(--fg))]/72">{text}</p>
+      </div>
     </Link>
   );
 }
 
-function CompactStageLinkCard({ href, title, eyebrow, compactText, tone }: StageLink) {
+function MobileStageLinkCard({ href, eyebrow, compactText, tone, mobileClassName }: StageLink) {
   const isPrimary = tone === "primary";
   return (
     <Link
       href={href}
       className={joinClasses(
-        "group rounded-[1.2rem] px-3.5 py-3 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
+        "group z-[2] rounded-[1.15rem] px-3 py-2.5 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]",
         isPrimary
           ? "bg-[linear-gradient(145deg,rgba(246,252,255,0.96),rgba(214,239,255,0.88)_55%,rgba(171,225,255,0.72))] dark:bg-[linear-gradient(145deg,rgba(8,33,71,0.95),rgba(17,82,173,0.28)_55%,rgba(7,16,36,0.98))]"
           : "bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(240,247,255,0.92)_55%,rgba(224,237,250,0.88))] dark:bg-[linear-gradient(145deg,rgba(14,25,49,0.94),rgba(10,30,64,0.8)_55%,rgba(8,16,34,0.98))]",
+        mobileClassName,
       )}
       style={{
         border: isPrimary ? "1px solid rgba(90, 197, 251, 0.28)" : "1px solid rgba(174, 205, 229, 0.3)",
         boxShadow: isPrimary
-          ? "0 14px 30px rgba(24, 93, 163, 0.14)"
-          : "0 12px 24px rgba(31, 74, 125, 0.1)",
+          ? "0 12px 28px rgba(24, 93, 163, 0.13)"
+          : "0 10px 22px rgba(31, 74, 125, 0.1)",
       }}
     >
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
         {eyebrow}
       </span>
-      <h3 className="mt-1 text-[15px] font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
-      <p className="mt-1 text-xs leading-5 text-[rgb(var(--fg))]/68">{compactText}</p>
+      <p className="mt-1 text-[13px] font-semibold leading-5 tracking-tight text-[rgb(var(--fg))]">{compactText}</p>
     </Link>
   );
 }
@@ -253,6 +264,62 @@ export default function HomeSplitVoxyLanding({
 
           <div className="relative grid gap-10 lg:grid-cols-[minmax(0,0.97fr)_minmax(0,1.03fr)] lg:items-center lg:gap-12 xl:gap-14">
             <div className="relative z-[1] max-w-[37rem] space-y-7 lg:space-y-9">
+              <div className="lg:hidden">
+                <div
+                  className="relative mx-auto max-w-[28rem] overflow-hidden rounded-[2rem] px-3 pb-4 pt-4"
+                  style={{
+                    border: "1px solid rgba(167, 212, 244, 0.32)",
+                    background:
+                      "linear-gradient(145deg, rgba(248,252,255,0.97), rgba(231,244,255,0.92) 52%, rgba(214,236,251,0.82))",
+                    boxShadow: "0 22px 48px rgba(20, 77, 131, 0.13)",
+                  }}
+                >
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-[17%] top-[22%] h-[32%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.96),rgba(146,220,255,0.22)_48%,transparent_82%)] blur-3xl"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-[20%] right-[20%] top-[28%] bottom-[29%] rounded-[999px] border border-[rgba(142,211,255,0.18)]"
+                  />
+                  <p className="relative z-[2] text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--grad-to))]">
+                    Mit Voxy
+                  </p>
+
+                  <div className="relative mt-4 grid grid-cols-2 grid-rows-[auto_8.5rem_auto] gap-x-3 gap-y-3">
+                    {HERO_STAGE_LINKS.map((link) => (
+                      <MobileStageLinkCard key={`${link.href}-${link.title}-mobile-stage`} {...link} />
+                    ))}
+
+                    <div className="pointer-events-none relative col-span-2 row-start-2 mx-auto flex w-full max-w-[7rem] items-center justify-center">
+                      <div
+                        className="relative z-[3] w-full"
+                        style={{
+                          aspectRatio: VOXY_LIGHT_HERO_ASSET.aspectRatio,
+                        }}
+                      >
+                        <Image
+                          alt={VOXY_LIGHT_HERO_ASSET.alt}
+                          className="object-contain object-center dark:hidden"
+                          fill
+                          priority
+                          sizes="112px"
+                          src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
+                        />
+                        <Image
+                          alt={VOXY_DARK_HERO_ASSET.alt}
+                          className="hidden object-contain object-center dark:block"
+                          fill
+                          priority
+                          sizes="112px"
+                          src={VOXY_DARK_HERO_ASSET.candidates[0]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[rgb(var(--grad-to))]">
                   {isUnknownVisitor ? "KLARER EINSTIEG" : experience.eyebrow}
@@ -297,58 +364,6 @@ export default function HomeSplitVoxyLanding({
                 ))}
               </div>
 
-              <div className="space-y-4 lg:hidden">
-                <div
-                  className="rounded-[1.7rem] px-4 py-4 sm:px-5"
-                  style={{
-                    border: "1px solid rgba(167, 212, 244, 0.34)",
-                    background:
-                      "linear-gradient(145deg, rgba(248,252,255,0.96), rgba(232,245,255,0.92) 52%, rgba(211,236,251,0.84))",
-                    boxShadow: "0 18px 40px rgba(20, 77, 131, 0.12)",
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-full max-w-[4.75rem] shrink-0">
-                      <div
-                        className="relative"
-                        style={{
-                          aspectRatio: VOXY_LIGHT_HERO_ASSET.aspectRatio,
-                        }}
-                      >
-                        <Image
-                          alt={VOXY_LIGHT_HERO_ASSET.alt}
-                          className="object-contain object-center dark:hidden"
-                          fill
-                          sizes="76px"
-                          src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
-                        />
-                        <Image
-                          alt={VOXY_DARK_HERO_ASSET.alt}
-                          className="hidden object-contain object-center dark:block"
-                          fill
-                          sizes="76px"
-                          src={VOXY_DARK_HERO_ASSET.candidates[0]}
-                        />
-                      </div>
-                    </div>
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
-                        Mit Voxy
-                      </p>
-                      <p className="text-sm leading-6 text-[rgb(var(--fg))]/74">
-                        Voxy hilft, Anliegen zu schärfen, Fragen zu ordnen und den brauchbaren nächsten Schritt sichtbar zu machen.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {HERO_STAGE_LINKS.map((link) => (
-                    <CompactStageLinkCard key={`${link.href}-${link.title}-compact`} {...link} />
-                  ))}
-                </div>
-              </div>
-
               <p className="max-w-[35rem] text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px]">
                 {TRUST_LINE}
               </p>
@@ -369,7 +384,7 @@ export default function HomeSplitVoxyLanding({
             <aside className="hidden lg:block">
               <div className="relative mx-auto w-full max-w-[41rem] lg:max-w-none">
                 <div className="relative min-h-[41rem] xl:min-h-[43rem]">
-                  <div className="absolute left-6 top-5 z-[4] rounded-full bg-[rgba(248,252,255,0.74)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(9,20,44,0.62)]">
+                  <div className="absolute left-1/2 top-2 z-[4] -translate-x-1/2 rounded-full bg-[rgba(248,252,255,0.74)] px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))] backdrop-blur-sm dark:bg-[rgba(9,20,44,0.62)]">
                     Mit Voxy
                   </div>
                   <div
@@ -418,7 +433,7 @@ export default function HomeSplitVoxyLanding({
                     </div>
                   </div>
 
-                  <div className="absolute inset-0 z-[4] grid grid-cols-[minmax(11.5rem,1fr)_14.25rem_minmax(11.5rem,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-7 gap-y-6 px-5 py-10 xl:grid-cols-[minmax(12.5rem,1fr)_14.75rem_minmax(12.5rem,1fr)] xl:px-8 xl:py-11">
+                  <div className="absolute inset-0 z-[4] grid grid-cols-[minmax(13.75rem,1fr)_14.25rem_minmax(13.75rem,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-8 gap-y-8 px-5 py-11 xl:grid-cols-[minmax(14.25rem,1fr)_14.75rem_minmax(14.25rem,1fr)] xl:px-8 xl:py-12">
                     {HERO_STAGE_LINKS.map((link) => (
                       <div
                         key={`${link.href}-${link.title}-desktop`}
