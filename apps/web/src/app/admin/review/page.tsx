@@ -34,6 +34,7 @@ import V3DownstreamKiTransparency, {
 } from "@/features/create/V3DownstreamKiTransparency";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
+import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
@@ -41,6 +42,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
+import { buildPollQuestionOptionsReviewFromReviewContext } from "@/features/create/pollQuestionOptionsReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -620,6 +622,21 @@ export default async function AdminReviewPage({
                           )}
                           title="Beteiligungsraum vorbereiten"
                           dataTestId={`admin-review-participation-activation-${item.id}`}
+                        />
+                        <PollQuestionOptionsReviewPanel
+                          model={buildPollQuestionOptionsReviewFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          title="Poll Question Review Summary"
+                          dataTestId={`admin-review-poll-question-options-${item.id}`}
                         />
                       </>
                     ) : null}

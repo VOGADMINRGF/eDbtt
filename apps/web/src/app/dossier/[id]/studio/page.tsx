@@ -46,6 +46,7 @@ import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedR
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
+import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
 import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
@@ -53,6 +54,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
+import { buildPollQuestionOptionsReviewFromReviewContext } from "@/features/create/pollQuestionOptionsReviewContract";
 import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/voxyCocreationDialogContract";
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
@@ -400,6 +402,23 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Beteiligungsraum vorbereiten im Studio"
               dataTestId="dossier-studio-participation-activation-review"
+            />
+            <PollQuestionOptionsReviewPanel
+              model={buildPollQuestionOptionsReviewFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Poll/Frage-Arbeitsstand im Studio"
+              dataTestId="dossier-studio-poll-question-options-review"
             />
           </div>
         ) : null}
