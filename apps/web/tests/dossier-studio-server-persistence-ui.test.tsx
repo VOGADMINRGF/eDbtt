@@ -129,7 +129,9 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Render-Entscheidung im Studio");
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
+    expect(html).toContain("Render-Queue-Vertrag");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");
+    expect(html).toContain("Persistenter Voxy-Queue-Preview-Store");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
@@ -155,6 +157,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-briefing-script"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-decision"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-request-draft"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-queue-contract"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');

@@ -95,8 +95,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Render-Entscheidung");
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
+    expect(html).toContain("Render-Queue-Vertrag");
     expect(html).toContain("Kein Request-Draft-Store im Surface");
     expect(html).toContain("Noch kein Renderjob");
+    expect(html).toContain("Kein Queue-Preview-Store im Surface");
+    expect(html).toContain("Noch keine Queue");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
@@ -129,6 +132,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-briefing-script-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-request-draft-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-queue-contract-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -396,6 +400,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Render-Entscheidung im Account");
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
+    expect(html).toContain("Render-Queue-Vertrag");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Account");
     expect(html).toContain("Voxy-Render-Preflight im Account");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Account");
@@ -410,6 +415,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-dossier-decision-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-decision-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-request-draft-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-queue-contract-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');

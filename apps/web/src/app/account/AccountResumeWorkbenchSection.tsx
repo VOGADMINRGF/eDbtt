@@ -34,6 +34,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
@@ -42,6 +43,11 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderQueuePanelModel,
+  buildVoxyRenderQueuePreviewFromReviewContext,
+  buildVoxyRenderQueuePreviewFromVoxyDialog,
+} from "@/features/create/voxyRenderQueueContract";
 import {
   buildVoxyRenderRequestDraftFromReviewContext,
   buildVoxyRenderRequestDraftFromVoxyDialog,
@@ -279,6 +285,12 @@ function ResumeWorkbenchCard(props: {
       nextStep: props.item.nextStep,
     }),
   });
+  const voxyRenderQueueContractModel = buildVoxyRenderQueuePanelModel({
+    preview: buildVoxyRenderQueuePreviewFromVoxyDialog(props.item.voxyCocreationDialog, {
+      contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+      nextStep: props.item.nextStep,
+    }),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -395,6 +407,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderRequestDraftPanel
         model={voxyRenderRequestDraftModel}
         dataTestId={`account-resume-voxy-render-request-draft-${props.item.id}`}
+      />
+      <VoxyRenderQueueContractPanel
+        model={voxyRenderQueueContractModel}
+        dataTestId={`account-resume-voxy-render-queue-contract-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -841,6 +857,67 @@ function RuntimeLinkageCard(props: {
           : null,
     }),
   });
+  const voxyRenderQueueContractModel = buildVoxyRenderQueuePanelModel({
+    preview: buildVoxyRenderQueuePreviewFromReviewContext(props.linkage.v3ReviewContext, {
+      audience: "workspace",
+      latestRequestDraftRecord: buildVoxyRenderRequestDraftFromReviewContext(
+        props.linkage.v3ReviewContext,
+        {
+          audience: "workspace",
+          contributionRef: {
+            id: props.linkage.contributionRef.handoffId,
+            title: props.linkage.contributionRef.title,
+            href: props.linkage.contributionRef.href,
+          },
+          dossierRef: props.linkage.dossierWorkspaceRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.dossierWorkspaceRef.title,
+                href: props.linkage.dossierWorkspaceRef.href,
+              }
+            : null,
+          outputRef: props.linkage.outputDraftRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.outputDraftRef.title,
+                href: props.linkage.outputDraftRef.href,
+              }
+            : props.linkage.voxyBriefingRef
+              ? {
+                  id: props.linkage.contributionRef.handoffId,
+                  title: props.linkage.voxyBriefingRef.title,
+                  href: props.linkage.voxyBriefingRef.href,
+                }
+              : null,
+        },
+      ),
+      contributionRef: {
+        id: props.linkage.contributionRef.handoffId,
+        title: props.linkage.contributionRef.title,
+        href: props.linkage.contributionRef.href,
+      },
+      dossierRef: props.linkage.dossierWorkspaceRef
+        ? {
+            id: props.linkage.contributionRef.handoffId,
+            title: props.linkage.dossierWorkspaceRef.title,
+            href: props.linkage.dossierWorkspaceRef.href,
+          }
+        : null,
+      outputRef: props.linkage.outputDraftRef
+        ? {
+            id: props.linkage.contributionRef.handoffId,
+            title: props.linkage.outputDraftRef.title,
+            href: props.linkage.outputDraftRef.href,
+          }
+        : props.linkage.voxyBriefingRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.voxyBriefingRef.title,
+              href: props.linkage.voxyBriefingRef.href,
+            }
+          : null,
+    }),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -964,6 +1041,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderRequestDraftPanel
         model={voxyRenderRequestDraftModel}
         dataTestId={`account-runtime-linkage-voxy-render-request-draft-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderQueueContractPanel
+        model={voxyRenderQueueContractModel}
+        dataTestId={`account-runtime-linkage-voxy-render-queue-contract-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
