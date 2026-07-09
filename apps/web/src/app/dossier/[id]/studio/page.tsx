@@ -59,6 +59,13 @@ import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScri
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
+import {
+  buildVoxyRenderDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  getLatestVoxyRenderDecisionRecord,
+  getVoxyRenderDecisionPersistenceState,
+} from "@/features/create/voxyRenderDecisionPersistenceStore";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -304,6 +311,31 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         sourceRecord,
       })
     : null;
+  const workspaceVoxyRefs = {
+    id: pkg.dossierId,
+    title: pkg.title,
+    href: pkg.dossierBacklinkTarget,
+  };
+  const workspaceVoxyDecisionGateModel = v3ReviewContext
+    ? buildVoxyRenderReviewDecisionGateFromReviewContext(v3ReviewContext, {
+        audience: "workspace",
+        dossierRef: workspaceVoxyRefs,
+        contributionRef: workspaceVoxyRefs,
+        outputRef: workspaceVoxyRefs,
+      })
+    : null;
+  const workspaceVoxyLatestDecisionRecord = workspaceVoxyDecisionGateModel
+    ? await getLatestVoxyRenderDecisionRecord(
+        workspaceVoxyDecisionGateModel.decisionGateId,
+      ).catch(() => null)
+    : null;
+  const workspaceVoxyDecisionPersistenceModel = buildVoxyRenderDecisionPersistencePanelModel({
+    gate: workspaceVoxyDecisionGateModel,
+    latestRecord: workspaceVoxyLatestDecisionRecord,
+    storeState: workspaceVoxyDecisionGateModel
+      ? getVoxyRenderDecisionPersistenceState()
+      : null,
+  });
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -481,24 +513,8 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               dataTestId="dossier-studio-voxy-briefing-script"
             />
             <VoxyRenderReviewDecisionGatePanel
-              model={buildVoxyRenderReviewDecisionGateFromReviewContext(v3ReviewContext, {
-                audience: "workspace",
-                dossierRef: {
-                  id: pkg.dossierId,
-                  title: pkg.title,
-                  href: pkg.dossierBacklinkTarget,
-                },
-                contributionRef: {
-                  id: pkg.dossierId,
-                  title: pkg.title,
-                  href: pkg.dossierBacklinkTarget,
-                },
-                outputRef: {
-                  id: pkg.dossierId,
-                  title: pkg.title,
-                  href: pkg.dossierBacklinkTarget,
-                },
-              })}
+              model={workspaceVoxyDecisionGateModel}
+              persistenceModel={workspaceVoxyDecisionPersistenceModel}
               title="Render-Entscheidung im Studio"
               dataTestId="dossier-studio-voxy-render-decision"
             />

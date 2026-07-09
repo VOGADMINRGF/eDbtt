@@ -929,6 +929,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Output Social Workbench Summary");
     expect(html).toContain("Voxy Script Candidate Summary");
     expect(html).toContain("Voxy Render Decision Summary");
+    expect(html).toContain("Review-Entscheidung dokumentieren");
+    expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");

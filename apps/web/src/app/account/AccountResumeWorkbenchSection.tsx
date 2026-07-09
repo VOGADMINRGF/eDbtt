@@ -38,6 +38,9 @@ import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScri
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
+import {
+  buildVoxyRenderDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderDecisionPersistenceContract";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import {
   buildDossierWorkspaceDecisionFromReviewContext,
@@ -260,6 +263,10 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const voxyRenderDecisionPersistenceModel =
+    buildVoxyRenderDecisionPersistencePanelModel({
+      gate: voxyRenderReviewDecisionGateModel,
+    });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -369,6 +376,7 @@ function ResumeWorkbenchCard(props: {
       />
       <VoxyRenderReviewDecisionGatePanel
         model={voxyRenderReviewDecisionGateModel}
+        persistenceModel={voxyRenderDecisionPersistenceModel}
         title="Render-Entscheidung"
         dataTestId={`account-resume-voxy-render-decision-${props.item.id}`}
       />
@@ -783,6 +791,10 @@ function RuntimeLinkageCard(props: {
             : null,
       },
     );
+  const voxyRenderDecisionPersistenceModel =
+    buildVoxyRenderDecisionPersistencePanelModel({
+      gate: voxyRenderReviewDecisionGateModel,
+    });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -899,6 +911,7 @@ function RuntimeLinkageCard(props: {
       />
       <VoxyRenderReviewDecisionGatePanel
         model={voxyRenderReviewDecisionGateModel}
+        persistenceModel={voxyRenderDecisionPersistenceModel}
         title="Render-Entscheidung im Account"
         dataTestId={`account-runtime-linkage-voxy-render-decision-${props.linkage.contributionRef.handoffId}`}
       />
