@@ -43,6 +43,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
@@ -51,9 +52,17 @@ import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
 import {
+  buildVoxyRenderRequestDraftFromReviewContext,
+  buildVoxyRenderRequestDraftPanelModel,
+} from "@/features/create/voxyRenderRequestDraftContract";
+import {
   getVoxyRenderDecisionPersistenceState,
   listLatestVoxyRenderDecisionRecordsByDecisionGateIds,
 } from "@/features/create/voxyRenderDecisionPersistenceStore";
+import {
+  getVoxyRenderRequestDraftPersistenceState,
+  listLatestVoxyRenderRequestDraftRecordsByDecisionGateIds,
+} from "@/features/create/voxyRenderRequestDraftStore";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -275,8 +284,10 @@ export default async function AdminReviewPage({
     {
       gateModel: ReturnType<typeof buildVoxyRenderReviewDecisionGateFromReviewContext>;
       persistenceModel: ReturnType<typeof buildVoxyRenderDecisionPersistencePanelModel>;
+      requestDraftModel: ReturnType<typeof buildVoxyRenderRequestDraftPanelModel>;
     }
   >();
+  const reviewItemsById = new Map(readModel.items.map((item) => [item.id, item]));
   for (const item of readModel.items) {
     const gateModel = item.v3ReviewContext
       ? buildVoxyRenderReviewDecisionGateFromReviewContext(item.v3ReviewContext, {
@@ -303,24 +314,64 @@ export default async function AdminReviewPage({
     adminVoxyDecisionPanels.set(item.id, {
       gateModel,
       persistenceModel: null,
+      requestDraftModel: null,
     });
   }
   const adminVoxyDecisionStoreState = getVoxyRenderDecisionPersistenceState();
+  const adminVoxyRequestDraftStoreState = getVoxyRenderRequestDraftPersistenceState();
   const adminVoxyLatestRecords = await listLatestVoxyRenderDecisionRecordsByDecisionGateIds(
     Array.from(adminVoxyDecisionPanels.values())
       .map((entry) => entry.gateModel?.decisionGateId ?? null)
       .filter((value): value is string => Boolean(value)),
   ).catch(() => new Map<string, any>());
+  const adminVoxyLatestRequestDrafts =
+    await listLatestVoxyRenderRequestDraftRecordsByDecisionGateIds(
+      Array.from(adminVoxyDecisionPanels.values())
+        .map((entry) => entry.gateModel?.decisionGateId ?? null)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   for (const [itemId, panel] of adminVoxyDecisionPanels.entries()) {
+    const item = reviewItemsById.get(itemId);
+    const latestDecisionRecord = panel.gateModel
+      ? adminVoxyLatestRecords.get(panel.gateModel.decisionGateId) ?? null
+      : null;
+    const latestRequestDraftRecord = panel.gateModel
+      ? adminVoxyLatestRequestDrafts.get(panel.gateModel.decisionGateId) ?? null
+      : null;
     adminVoxyDecisionPanels.set(itemId, {
       gateModel: panel.gateModel,
       persistenceModel: buildVoxyRenderDecisionPersistencePanelModel({
         gate: panel.gateModel,
-        latestRecord: panel.gateModel
-          ? adminVoxyLatestRecords.get(panel.gateModel.decisionGateId) ?? null
-          : null,
+        latestRecord: latestDecisionRecord,
         storeState: panel.gateModel ? adminVoxyDecisionStoreState : null,
       }),
+      requestDraftModel: panel.gateModel && item?.v3ReviewContext
+        ? buildVoxyRenderRequestDraftPanelModel({
+            draft: buildVoxyRenderRequestDraftFromReviewContext(item.v3ReviewContext, {
+              audience: "admin",
+              latestDecisionRecord,
+              contributionRef: {
+                id: item.id,
+                title: item.title,
+                href: item.href,
+              },
+              dossierRef: item.dossierId
+                ? {
+                    id: item.dossierId,
+                    title: item.title,
+                    href: item.href,
+                  }
+                : null,
+              outputRef: {
+                id: item.id,
+                title: item.title,
+                href: item.href,
+              },
+            }),
+            latestRecord: latestRequestDraftRecord,
+            storeState: adminVoxyRequestDraftStoreState,
+          })
+        : null,
     });
   }
   return (
@@ -768,6 +819,10 @@ export default async function AdminReviewPage({
                           }
                           title="Voxy Render Decision Summary"
                           dataTestId={`admin-review-voxy-render-decision-${item.id}`}
+                        />
+                        <VoxyRenderRequestDraftPanel
+                          model={adminVoxyDecisionPanels.get(item.id)?.requestDraftModel ?? null}
+                          dataTestId={`admin-review-voxy-render-request-draft-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(
