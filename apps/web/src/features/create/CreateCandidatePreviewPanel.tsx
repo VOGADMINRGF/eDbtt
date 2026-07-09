@@ -13,6 +13,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
@@ -20,6 +21,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderRequestDraftFromCreateCandidatePreview,
+  buildVoxyRenderRequestDraftPanelModel,
+} from "@/features/create/voxyRenderRequestDraftContract";
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
@@ -122,6 +127,9 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderDecisionPersistencePanelModel({
       gate: voxyRenderReviewDecisionGateModel,
     });
+  const voxyRenderRequestDraftModel = buildVoxyRenderRequestDraftPanelModel({
+    draft: buildVoxyRenderRequestDraftFromCreateCandidatePreview(model),
+  });
 
   return (
     <section
@@ -232,6 +240,11 @@ export default function CreateCandidatePreviewPanel({
         persistenceModel={voxyRenderDecisionPersistenceModel}
         title="Render-Entscheidung"
         dataTestId="create-candidate-voxy-render-decision"
+      />
+
+      <VoxyRenderRequestDraftPanel
+        model={voxyRenderRequestDraftModel}
+        dataTestId="create-candidate-voxy-render-request-draft"
       />
 
       <VoxyRenderProviderHandoffPanel
