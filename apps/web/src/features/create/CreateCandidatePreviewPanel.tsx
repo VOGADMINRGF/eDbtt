@@ -13,6 +13,7 @@ import V3RuntimeWorkflowSurface, {
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
@@ -21,6 +22,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderQueuePanelModel,
+  buildVoxyRenderQueuePreviewFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderQueueContract";
 import {
   buildVoxyRenderRequestDraftFromCreateCandidatePreview,
   buildVoxyRenderRequestDraftPanelModel,
@@ -129,6 +134,9 @@ export default function CreateCandidatePreviewPanel({
     });
   const voxyRenderRequestDraftModel = buildVoxyRenderRequestDraftPanelModel({
     draft: buildVoxyRenderRequestDraftFromCreateCandidatePreview(model),
+  });
+  const voxyRenderQueueContractModel = buildVoxyRenderQueuePanelModel({
+    preview: buildVoxyRenderQueuePreviewFromCreateCandidatePreview(model),
   });
 
   return (
@@ -245,6 +253,11 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderRequestDraftPanel
         model={voxyRenderRequestDraftModel}
         dataTestId="create-candidate-voxy-render-request-draft"
+      />
+
+      <VoxyRenderQueueContractPanel
+        model={voxyRenderQueueContractModel}
+        dataTestId="create-candidate-voxy-render-queue-contract"
       />
 
       <VoxyRenderProviderHandoffPanel
