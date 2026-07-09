@@ -11,6 +11,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
@@ -32,6 +33,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromCreateCandidatePreview,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderAssetProviderRegistryFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderAssetProviderRegistryContract";
 import {
   buildVoxyRenderPreflightReadinessFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderPreflightReadinessContract";
@@ -97,6 +101,8 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderProviderHandoffFromCreateCandidatePreview(model);
   const voxyRenderPreflightReadinessModel =
     buildVoxyRenderPreflightReadinessFromCreateCandidatePreview(model);
+  const voxyRenderAssetProviderRegistryModel =
+    buildVoxyRenderAssetProviderRegistryFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -212,6 +218,12 @@ export default function CreateCandidatePreviewPanel({
         model={voxyRenderPreflightReadinessModel}
         title="Voxy-Render-Preflight vorbereiten"
         dataTestId="create-candidate-voxy-render-preflight"
+      />
+
+      <VoxyRenderAssetProviderRegistryPanel
+        model={voxyRenderAssetProviderRegistryModel}
+        title="Voxy Asset- & Provider-Registry"
+        dataTestId="create-candidate-voxy-render-registry"
       />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

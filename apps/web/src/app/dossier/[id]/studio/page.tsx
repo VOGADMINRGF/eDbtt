@@ -53,6 +53,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
@@ -67,6 +68,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderAssetProviderRegistryFromReviewContext,
+} from "@/features/create/voxyRenderAssetProviderRegistryContract";
 import {
   buildVoxyRenderPreflightReadinessFromReviewContext,
 } from "@/features/create/voxyRenderPreflightReadinessContract";
@@ -511,6 +515,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Voxy-Render-Preflight im Studio"
               dataTestId="dossier-studio-voxy-render-preflight"
+            />
+            <VoxyRenderAssetProviderRegistryPanel
+              model={buildVoxyRenderAssetProviderRegistryFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                outputRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Voxy Asset- & Provider-Registry im Studio"
+              dataTestId="dossier-studio-voxy-render-registry"
             />
           </div>
         ) : null}
