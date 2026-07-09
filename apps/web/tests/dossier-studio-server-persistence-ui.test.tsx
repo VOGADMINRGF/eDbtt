@@ -126,6 +126,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Poll/Frage-Arbeitsstand im Studio");
     expect(html).toContain("Output-/Social-Arbeitsstand im Studio");
     expect(html).toContain("Voxy-Briefing-Arbeitsstand");
+    expect(html).toContain("Render-Entscheidung im Studio");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Studio");
@@ -148,6 +149,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-poll-question-options-review"');
     expect(html).toContain('data-testid="dossier-studio-output-social-workbench"');
     expect(html).toContain('data-testid="dossier-studio-voxy-briefing-script"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-decision"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');

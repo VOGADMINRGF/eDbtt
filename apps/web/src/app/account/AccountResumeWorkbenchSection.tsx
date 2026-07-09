@@ -37,6 +37,7 @@ import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAs
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
+import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import {
   buildDossierWorkspaceDecisionFromReviewContext,
@@ -79,6 +80,10 @@ import {
   buildVoxyRenderProviderHandoffFromReviewContext,
   buildVoxyRenderProviderHandoffFromVoxyDialog,
 } from "@/features/create/voxyRenderProviderHandoffContract";
+import {
+  buildVoxyRenderReviewDecisionGateFromReviewContext,
+  buildVoxyRenderReviewDecisionGateFromVoxyDialog,
+} from "@/features/create/voxyRenderReviewDecisionGateContract";
 import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
@@ -247,6 +252,14 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const voxyRenderReviewDecisionGateModel =
+    buildVoxyRenderReviewDecisionGateFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -353,6 +366,11 @@ function ResumeWorkbenchCard(props: {
         model={voxyBriefingScriptCandidateModel}
         title="Voxy-Briefing vorbereiten"
         dataTestId={`account-resume-voxy-briefing-script-${props.item.id}`}
+      />
+      <VoxyRenderReviewDecisionGatePanel
+        model={voxyRenderReviewDecisionGateModel}
+        title="Render-Entscheidung"
+        dataTestId={`account-resume-voxy-render-decision-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -733,6 +751,38 @@ function RuntimeLinkageCard(props: {
             : null,
       },
     );
+  const voxyRenderReviewDecisionGateModel =
+    buildVoxyRenderReviewDecisionGateFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+        outputRef: props.linkage.outputDraftRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.outputDraftRef.title,
+              href: props.linkage.outputDraftRef.href,
+            }
+          : props.linkage.voxyBriefingRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.voxyBriefingRef.title,
+                href: props.linkage.voxyBriefingRef.href,
+              }
+            : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -846,6 +896,11 @@ function RuntimeLinkageCard(props: {
         model={voxyBriefingScriptCandidateModel}
         title="Voxy-Briefing im Account"
         dataTestId={`account-runtime-linkage-voxy-briefing-script-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderReviewDecisionGatePanel
+        model={voxyRenderReviewDecisionGateModel}
+        title="Render-Entscheidung im Account"
+        dataTestId={`account-runtime-linkage-voxy-render-decision-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

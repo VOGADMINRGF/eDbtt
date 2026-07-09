@@ -58,6 +58,7 @@ import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAs
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
+import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -81,6 +82,9 @@ import {
 import {
   buildVoxyRenderProviderHandoffFromReviewContext,
 } from "@/features/create/voxyRenderProviderHandoffContract";
+import {
+  buildVoxyRenderReviewDecisionGateFromReviewContext,
+} from "@/features/create/voxyRenderReviewDecisionGateContract";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -475,6 +479,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Voxy-Briefing-Arbeitsstand"
               dataTestId="dossier-studio-voxy-briefing-script"
+            />
+            <VoxyRenderReviewDecisionGatePanel
+              model={buildVoxyRenderReviewDecisionGateFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                outputRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Render-Entscheidung im Studio"
+              dataTestId="dossier-studio-voxy-render-decision"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

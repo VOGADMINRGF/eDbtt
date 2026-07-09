@@ -928,6 +928,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Poll Question Review Summary");
     expect(html).toContain("Output Social Workbench Summary");
     expect(html).toContain("Voxy Script Candidate Summary");
+    expect(html).toContain("Voxy Render Decision Summary");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
@@ -947,13 +948,14 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(6);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(7);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-poll-question-options-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-output-social-workbench-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-briefing-script-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-voxy-render-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-registry-/g) ?? []).length).toBe(1);

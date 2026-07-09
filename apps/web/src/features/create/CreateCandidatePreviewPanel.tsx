@@ -16,6 +16,7 @@ import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAs
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
+import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
 import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
@@ -46,6 +47,9 @@ import {
 import {
   buildVoxyRenderProviderHandoffFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderProviderHandoffContract";
+import {
+  buildVoxyRenderReviewDecisionGateFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderReviewDecisionGateContract";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -109,6 +113,8 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderAssetProviderRegistryFromCreateCandidatePreview(model);
   const voxyRenderAdapterNoopModel =
     buildVoxyRenderAdapterNoopFromCreateCandidatePreview(model);
+  const voxyRenderReviewDecisionGateModel =
+    buildVoxyRenderReviewDecisionGateFromCreateCandidatePreview(model);
 
   return (
     <section
@@ -212,6 +218,12 @@ export default function CreateCandidatePreviewPanel({
         model={voxyBriefingScriptCandidateModel}
         title="Voxy-Briefing vorbereiten"
         dataTestId="create-candidate-voxy-briefing-script"
+      />
+
+      <VoxyRenderReviewDecisionGatePanel
+        model={voxyRenderReviewDecisionGateModel}
+        title="Render-Entscheidung"
+        dataTestId="create-candidate-voxy-render-decision"
       />
 
       <VoxyRenderProviderHandoffPanel
