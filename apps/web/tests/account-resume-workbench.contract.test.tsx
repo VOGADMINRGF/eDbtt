@@ -92,6 +92,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Poll/Frage vorbereiten");
     expect(html).toContain("Ausgabe vorbereiten");
     expect(html).toContain("Voxy-Briefing vorbereiten");
+    expect(html).toContain("Render-Entscheidung");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry");
@@ -121,6 +122,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-poll-question-options-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-output-social-workbench-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-briefing-script-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -385,6 +387,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Beteiligungsraum vorbereiten");
     expect(html).toContain("Poll/Frage vorbereiten");
     expect(html).toContain("Ausgabe vorbereiten");
+    expect(html).toContain("Render-Entscheidung im Account");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Account");
     expect(html).toContain("Voxy-Render-Preflight im Account");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Account");
@@ -397,6 +400,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-poll-question-options-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-output-social-workbench-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-dossier-decision-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-decision-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');
