@@ -1,9 +1,13 @@
 import type {
   VoxyRenderReviewDecisionGateModel,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
+import type {
+  VoxyRenderDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderDecisionPersistenceContract";
 
 type VoxyRenderReviewDecisionGatePanelProps = {
   model: VoxyRenderReviewDecisionGateModel | null;
+  persistenceModel?: VoxyRenderDecisionPersistencePanelModel | null;
   title?: string;
   dataTestId?: string;
 };
@@ -102,6 +106,7 @@ function ReviewGateGrid(props: { items: VoxyRenderReviewDecisionGateModel["revie
 
 export default function VoxyRenderReviewDecisionGatePanel({
   model,
+  persistenceModel,
   title,
   dataTestId,
 }: VoxyRenderReviewDecisionGatePanelProps) {
@@ -199,6 +204,96 @@ export default function VoxyRenderReviewDecisionGatePanel({
           <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">Nächster Schritt: {model.nextStep}</p>
         </div>
       </div>
+
+      {persistenceModel ? (
+        <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                {persistenceModel.title}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                {persistenceModel.summary}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatusChip label={persistenceModel.persistenceStatusLabel} />
+              <StatusChip label={persistenceModel.storeStateLabel} subtle />
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Decision-Command
+              </p>
+              <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
+                {persistenceModel.selectedDecisionLabel}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                {persistenceModel.userVisibleReason}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                {persistenceModel.reviewerVisibleReason}
+              </p>
+              <p className="mt-2 text-[11px] font-medium text-[rgb(var(--fg))]">
+                Keine Ausführung: kein Renderjob, kein Providerlauf, keine Queue, keine Datei, keine Kosten, kein Publish.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Store-Grenze
+              </p>
+              <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
+                {persistenceModel.storeStateLabel}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                {persistenceModel.storeStateSummary}
+              </p>
+              <p className="mt-3 text-sm font-medium text-[rgb(var(--fg))]">
+                Nächster Schritt: {persistenceModel.nextStep}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <TextList
+              title="Audit-Lesart"
+              items={persistenceModel.auditLines}
+              emptyLabel="Noch keine Audit-Lesart sichtbar."
+            />
+            <div className="rounded-2xl border border-[rgb(var(--border))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Letzter Record
+              </p>
+              {persistenceModel.latestRecord ? (
+                <div className="mt-2 space-y-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                  <p className="text-sm font-medium text-[rgb(var(--fg))]">
+                    {persistenceModel.latestRecord.selectedDecisionLabel}
+                  </p>
+                  <p>Status: {persistenceModel.latestRecord.statusLabel}</p>
+                  <p>
+                    Version: {persistenceModel.latestRecord.decisionVersion ?? "1"} · ID:{" "}
+                    {persistenceModel.latestRecord.decisionId}
+                  </p>
+                  <p>
+                    Zeitpunkt: {persistenceModel.latestRecord.persistedAt ?? "offen"} · Von:{" "}
+                    {persistenceModel.latestRecord.persistedBy ?? "offen"}
+                  </p>
+                  <p>{persistenceModel.latestRecord.auditReason}</p>
+                  {persistenceModel.latestRecord.reviewerNote ? (
+                    <p>Notiz: {persistenceModel.latestRecord.reviewerNote}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+                  Noch kein persistierter Decision Record sichtbar.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

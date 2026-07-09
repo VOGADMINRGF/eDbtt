@@ -435,6 +435,8 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Ausgabe vorbereiten");
     expect(html).toContain("Voxy-Briefing vorbereiten");
     expect(html).toContain("Render-Entscheidung");
+    expect(html).toContain("Review-Entscheidung dokumentieren");
+    expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry");

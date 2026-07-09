@@ -127,6 +127,8 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Output-/Social-Arbeitsstand im Studio");
     expect(html).toContain("Voxy-Briefing-Arbeitsstand");
     expect(html).toContain("Render-Entscheidung im Studio");
+    expect(html).toContain("Review-Entscheidung dokumentieren");
+    expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Studio");

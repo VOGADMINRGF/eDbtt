@@ -18,6 +18,9 @@ import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPrefl
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
 import {
+  buildVoxyRenderDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
   buildDossierWorkspaceDecisionFromCreateCandidatePreview,
 } from "@/features/create/dossierWorkspaceDecisionContract";
 import {
@@ -115,6 +118,10 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderAdapterNoopFromCreateCandidatePreview(model);
   const voxyRenderReviewDecisionGateModel =
     buildVoxyRenderReviewDecisionGateFromCreateCandidatePreview(model);
+  const voxyRenderDecisionPersistenceModel =
+    buildVoxyRenderDecisionPersistencePanelModel({
+      gate: voxyRenderReviewDecisionGateModel,
+    });
 
   return (
     <section
@@ -222,6 +229,7 @@ export default function CreateCandidatePreviewPanel({
 
       <VoxyRenderReviewDecisionGatePanel
         model={voxyRenderReviewDecisionGateModel}
+        persistenceModel={voxyRenderDecisionPersistenceModel}
         title="Render-Entscheidung"
         dataTestId="create-candidate-voxy-render-decision"
       />

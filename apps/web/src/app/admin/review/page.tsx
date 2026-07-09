@@ -47,6 +47,13 @@ import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScri
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
+import {
+  buildVoxyRenderDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  getVoxyRenderDecisionPersistenceState,
+  listLatestVoxyRenderDecisionRecordsByDecisionGateIds,
+} from "@/features/create/voxyRenderDecisionPersistenceStore";
 import { buildDossierWorkspaceDecisionFromReviewContext } from "@/features/create/dossierWorkspaceDecisionContract";
 import { buildOutputSocialWorkbenchFromReviewContext } from "@/features/create/outputSocialWorkbenchContract";
 import { buildParticipationActivationReviewFromReviewContext } from "@/features/create/participationActivationReviewContract";
@@ -263,6 +270,59 @@ export default async function AdminReviewPage({
     restartReconstructable: false,
     deploymentReconstructable: false,
   };
+  const adminVoxyDecisionPanels = new Map<
+    string,
+    {
+      gateModel: ReturnType<typeof buildVoxyRenderReviewDecisionGateFromReviewContext>;
+      persistenceModel: ReturnType<typeof buildVoxyRenderDecisionPersistencePanelModel>;
+    }
+  >();
+  for (const item of readModel.items) {
+    const gateModel = item.v3ReviewContext
+      ? buildVoxyRenderReviewDecisionGateFromReviewContext(item.v3ReviewContext, {
+          audience: "admin",
+          contributionRef: {
+            id: item.id,
+            title: item.title,
+            href: item.href,
+          },
+          dossierRef: item.dossierId
+            ? {
+                id: item.dossierId,
+                title: item.title,
+                href: item.href,
+              }
+            : null,
+          outputRef: {
+            id: item.id,
+            title: item.title,
+            href: item.href,
+          },
+        })
+      : null;
+    adminVoxyDecisionPanels.set(item.id, {
+      gateModel,
+      persistenceModel: null,
+    });
+  }
+  const adminVoxyDecisionStoreState = getVoxyRenderDecisionPersistenceState();
+  const adminVoxyLatestRecords = await listLatestVoxyRenderDecisionRecordsByDecisionGateIds(
+    Array.from(adminVoxyDecisionPanels.values())
+      .map((entry) => entry.gateModel?.decisionGateId ?? null)
+      .filter((value): value is string => Boolean(value)),
+  ).catch(() => new Map<string, any>());
+  for (const [itemId, panel] of adminVoxyDecisionPanels.entries()) {
+    adminVoxyDecisionPanels.set(itemId, {
+      gateModel: panel.gateModel,
+      persistenceModel: buildVoxyRenderDecisionPersistencePanelModel({
+        gate: panel.gateModel,
+        latestRecord: panel.gateModel
+          ? adminVoxyLatestRecords.get(panel.gateModel.decisionGateId) ?? null
+          : null,
+        storeState: panel.gateModel ? adminVoxyDecisionStoreState : null,
+      }),
+    });
+  }
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
@@ -702,29 +762,10 @@ export default async function AdminReviewPage({
                           dataTestId={`admin-review-voxy-briefing-script-${item.id}`}
                         />
                         <VoxyRenderReviewDecisionGatePanel
-                          model={buildVoxyRenderReviewDecisionGateFromReviewContext(
-                            item.v3ReviewContext,
-                            {
-                              audience: "admin",
-                              contributionRef: {
-                                id: item.id,
-                                title: item.title,
-                                href: item.href,
-                              },
-                              dossierRef: item.dossierId
-                                ? {
-                                    id: item.dossierId,
-                                    title: item.title,
-                                    href: item.href,
-                                  }
-                                : null,
-                              outputRef: {
-                                id: item.id,
-                                title: item.title,
-                                href: item.href,
-                              },
-                            },
-                          )}
+                          model={adminVoxyDecisionPanels.get(item.id)?.gateModel ?? null}
+                          persistenceModel={
+                            adminVoxyDecisionPanels.get(item.id)?.persistenceModel ?? null
+                          }
                           title="Voxy Render Decision Summary"
                           dataTestId={`admin-review-voxy-render-decision-${item.id}`}
                         />
