@@ -41,6 +41,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
@@ -56,6 +57,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderAdapterNoopFromReviewContext,
+} from "@/features/create/voxyRenderAdapterNoopContract";
 import {
   buildVoxyRenderAssetProviderRegistryFromReviewContext,
 } from "@/features/create/voxyRenderAssetProviderRegistryContract";
@@ -773,6 +777,33 @@ export default async function AdminReviewPage({
                           )}
                           title="Voxy Asset & Provider Registry Summary"
                           dataTestId={`admin-review-voxy-render-registry-${item.id}`}
+                        />
+                        <VoxyRenderAdapterNoopPanel
+                          model={buildVoxyRenderAdapterNoopFromReviewContext(
+                            item.v3ReviewContext,
+                            {
+                              audience: "admin",
+                              contributionRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                              dossierRef: item.dossierId
+                                ? {
+                                    id: item.dossierId,
+                                    title: item.title,
+                                    href: item.href,
+                                  }
+                                : null,
+                              outputRef: {
+                                id: item.id,
+                                title: item.title,
+                                href: item.href,
+                              },
+                            },
+                          )}
+                          title="Voxy Render Adapter Summary"
+                          dataTestId={`admin-review-voxy-render-adapter-${item.id}`}
                         />
                       </>
                     ) : null}

@@ -95,6 +95,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry");
+    expect(html).toContain("Render-Adapter vorbereiten");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
@@ -102,6 +103,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Render-Preflight");
     expect(html).toContain("Asset- &amp; Provider-Registry");
+    expect(html).toContain("Noop-Ergebnis");
     expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
@@ -122,6 +124,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-adapter-/g) ?? []).length).toBe(1);
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
     expect(html).not.toContain("review_draft_prepared");

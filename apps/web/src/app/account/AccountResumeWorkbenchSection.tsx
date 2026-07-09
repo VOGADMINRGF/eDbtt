@@ -32,6 +32,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
@@ -62,6 +63,10 @@ import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
   buildVoxyBriefingScriptCandidateFromVoxyDialog,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderAdapterNoopFromReviewContext,
+  buildVoxyRenderAdapterNoopFromVoxyDialog,
+} from "@/features/create/voxyRenderAdapterNoopContract";
 import {
   buildVoxyRenderAssetProviderRegistryFromReviewContext,
   buildVoxyRenderAssetProviderRegistryFromVoxyDialog,
@@ -234,6 +239,14 @@ function ResumeWorkbenchCard(props: {
         nextStep: props.item.nextStep,
       },
     );
+  const voxyRenderAdapterNoopModel =
+    buildVoxyRenderAdapterNoopFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -355,6 +368,11 @@ function ResumeWorkbenchCard(props: {
         model={voxyRenderAssetProviderRegistryModel}
         title="Voxy Asset- & Provider-Registry"
         dataTestId={`account-resume-voxy-render-registry-${props.item.id}`}
+      />
+      <VoxyRenderAdapterNoopPanel
+        model={voxyRenderAdapterNoopModel}
+        title="Render-Adapter vorbereiten"
+        dataTestId={`account-resume-voxy-render-adapter-${props.item.id}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       {props.correlation ? (
@@ -683,6 +701,38 @@ function RuntimeLinkageCard(props: {
             : null,
       },
     );
+  const voxyRenderAdapterNoopModel =
+    buildVoxyRenderAdapterNoopFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+        outputRef: props.linkage.outputDraftRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.outputDraftRef.title,
+              href: props.linkage.outputDraftRef.href,
+            }
+          : props.linkage.voxyBriefingRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.voxyBriefingRef.title,
+                href: props.linkage.voxyBriefingRef.href,
+              }
+            : null,
+      },
+    );
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -811,6 +861,11 @@ function RuntimeLinkageCard(props: {
         model={voxyRenderAssetProviderRegistryModel}
         title="Voxy Asset- & Provider-Registry im Account"
         dataTestId={`account-runtime-linkage-voxy-render-registry-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderAdapterNoopPanel
+        model={voxyRenderAdapterNoopModel}
+        title="Render-Adapter im Account"
+        dataTestId={`account-runtime-linkage-voxy-render-adapter-${props.linkage.contributionRef.handoffId}`}
       />
       <SsotPolicyPanel label={props.ssotLabel} summary={props.ssotSummary} />
       <div className="mt-4 flex flex-wrap gap-2">

@@ -53,6 +53,7 @@ import V3RuntimeWorkflowSurface, {
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
+import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
@@ -68,6 +69,9 @@ import {
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
+import {
+  buildVoxyRenderAdapterNoopFromReviewContext,
+} from "@/features/create/voxyRenderAdapterNoopContract";
 import {
   buildVoxyRenderAssetProviderRegistryFromReviewContext,
 } from "@/features/create/voxyRenderAssetProviderRegistryContract";
@@ -537,6 +541,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Voxy Asset- & Provider-Registry im Studio"
               dataTestId="dossier-studio-voxy-render-registry"
+            />
+            <VoxyRenderAdapterNoopPanel
+              model={buildVoxyRenderAdapterNoopFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                contributionRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+                outputRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Render-Adapter im Studio"
+              dataTestId="dossier-studio-voxy-render-adapter"
             />
           </div>
         ) : null}
