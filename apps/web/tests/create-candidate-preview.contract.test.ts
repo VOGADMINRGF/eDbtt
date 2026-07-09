@@ -425,6 +425,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-adapter"');
     expect(html).toContain("Mit Voxy weiterdenken");
     expect(html).toContain("Quellen &amp; Faktencheck vorbereiten");
     expect(html).toContain("Dossier-Entscheidungslogik");
@@ -435,6 +436,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry");
+    expect(html).toContain("Render-Adapter vorbereiten");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
     expect(html).toContain("Vorschlag, nicht aktiviert");
     expect(html).toContain("Vorschlag, kein Poll");
@@ -443,6 +445,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Render-Preflight");
     expect(html).toContain("Asset- &amp; Provider-Registry");
+    expect(html).toContain("Noop-Ergebnis");
     expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");

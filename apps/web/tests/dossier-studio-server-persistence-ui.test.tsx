@@ -129,6 +129,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Studio");
+    expect(html).toContain("Render-Adapter im Studio");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Vorgeschlagenes Beteiligungsformat");
@@ -136,6 +137,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Handoff-Paket");
     expect(html).toContain("Was ist vorhanden?");
     expect(html).toContain("Warum noch nicht gerendert wird");
+    expect(html).toContain("Noop-Ergebnis");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain('data-testid="dossier-studio-voxy-cocreation"');
     expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
@@ -149,6 +151,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-adapter"');
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
     expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
