@@ -131,9 +131,11 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
     expect(html).toContain("Kosten &amp; Credits");
+    expect(html).toContain("Render-Asset-Pack");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");
     expect(html).toContain("Persistenter Voxy-Queue-Preview-Store");
     expect(html).toContain("Persistenter Voxy-Cost-/Credit-Policy-Store");
+    expect(html).toContain("Voxy-Asset-Pack-Draft-Store");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
@@ -147,6 +149,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Was ist vorhanden?");
     expect(html).toContain("Warum noch nicht gerendert wird");
     expect(html).toContain("Noop-Ergebnis");
+    expect(html).toContain("Noch keine Datei");
     expect(html).toContain("Nächste Entscheidung");
     expect(html).toContain('data-testid="dossier-studio-voxy-cocreation"');
     expect(html).toContain('data-testid="dossier-studio-downstream-ki-transparency"');
@@ -161,6 +164,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-request-draft"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-queue-contract"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-cost-credit-policy"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-asset-pack-draft"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');

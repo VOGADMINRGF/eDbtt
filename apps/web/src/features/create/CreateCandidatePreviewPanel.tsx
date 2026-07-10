@@ -12,6 +12,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
+import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -23,6 +24,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderAssetPackDraftPanelModel,
+  buildVoxyRenderAssetPackDraftPreviewFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderAssetPackDraftContract";
 import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
@@ -145,6 +150,9 @@ export default function CreateCandidatePreviewPanel({
   });
   const voxyRenderCostCreditPolicyModel = buildVoxyRenderCostCreditPolicyPanelModel({
     preview: buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview(model),
+  });
+  const voxyRenderAssetPackDraftModel = buildVoxyRenderAssetPackDraftPanelModel({
+    preview: buildVoxyRenderAssetPackDraftPreviewFromCreateCandidatePreview(model),
   });
 
   return (
@@ -271,6 +279,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderCostCreditPolicyPanel
         model={voxyRenderCostCreditPolicyModel}
         dataTestId="create-candidate-voxy-render-cost-credit-policy"
+      />
+      <VoxyRenderAssetPackDraftPanel
+        model={voxyRenderAssetPackDraftModel}
+        dataTestId="create-candidate-voxy-render-asset-pack-draft"
       />
 
       <VoxyRenderProviderHandoffPanel

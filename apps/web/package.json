@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "BROWSERSLIST_IGNORE_OLD_DATA=1 node ../../scripts/check-page-contracts.mjs && NODE_OPTIONS='--require=../../scripts/suppress-baseline-browser-mapping-warning.cjs' BROWSERSLIST_IGNORE_OLD_DATA=1 next build --webpack",
+    "build": "BROWSERSLIST_IGNORE_OLD_DATA=1 node ../../scripts/check-page-contracts.mjs && NODE_OPTIONS='--max-old-space-size=4096 --require=../../scripts/suppress-baseline-browser-mapping-warning.cjs' BROWSERSLIST_IGNORE_OLD_DATA=1 next build --webpack",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:production-public-routes": "pnpm exec vitest run tests/participation-space-public-route-runtime.test.tsx tests/dossier-public-route-runtime.test.tsx tests/anlassraum-public-route-runtime.test.ts",

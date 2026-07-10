@@ -42,6 +42,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
+import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -53,6 +54,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderAssetPackDraftPanelModel,
+  buildVoxyRenderAssetPackDraftPreviewFromReviewContext,
+} from "@/features/create/voxyRenderAssetPackDraftContract";
 import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
@@ -69,6 +74,10 @@ import {
   getVoxyRenderDecisionPersistenceState,
   listLatestVoxyRenderDecisionRecordsByDecisionGateIds,
 } from "@/features/create/voxyRenderDecisionPersistenceStore";
+import {
+  getVoxyRenderAssetPackDraftPersistenceState,
+  listLatestVoxyRenderAssetPackDraftRecordsByDecisionGateIds,
+} from "@/features/create/voxyRenderAssetPackDraftStore";
 import {
   getVoxyRenderCostCreditPolicyPersistenceState,
   listLatestVoxyRenderCostCreditPolicyRecordsByDecisionGateIds,
@@ -305,6 +314,7 @@ export default async function AdminReviewPage({
       requestDraftModel: ReturnType<typeof buildVoxyRenderRequestDraftPanelModel>;
       queuePreviewModel: ReturnType<typeof buildVoxyRenderQueuePanelModel>;
       costCreditPolicyModel: ReturnType<typeof buildVoxyRenderCostCreditPolicyPanelModel>;
+      assetPackDraftModel: ReturnType<typeof buildVoxyRenderAssetPackDraftPanelModel>;
     }
   >();
   const reviewItemsById = new Map(readModel.items.map((item) => [item.id, item]));
@@ -337,12 +347,14 @@ export default async function AdminReviewPage({
       requestDraftModel: null,
       queuePreviewModel: null,
       costCreditPolicyModel: null,
+      assetPackDraftModel: null,
     });
   }
   const adminVoxyDecisionStoreState = getVoxyRenderDecisionPersistenceState();
   const adminVoxyRequestDraftStoreState = getVoxyRenderRequestDraftPersistenceState();
   const adminVoxyQueueStoreState = getVoxyRenderQueuePersistenceState();
   const adminVoxyCostCreditStoreState = getVoxyRenderCostCreditPolicyPersistenceState();
+  const adminVoxyAssetPackDraftStoreState = getVoxyRenderAssetPackDraftPersistenceState();
   const adminVoxyLatestRecords = await listLatestVoxyRenderDecisionRecordsByDecisionGateIds(
     Array.from(adminVoxyDecisionPanels.values())
       .map((entry) => entry.gateModel?.decisionGateId ?? null)
@@ -366,6 +378,12 @@ export default async function AdminReviewPage({
         .map((entry) => entry.gateModel?.decisionGateId ?? null)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestAssetPackDrafts =
+    await listLatestVoxyRenderAssetPackDraftRecordsByDecisionGateIds(
+      Array.from(adminVoxyDecisionPanels.values())
+        .map((entry) => entry.gateModel?.decisionGateId ?? null)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   for (const [itemId, panel] of adminVoxyDecisionPanels.entries()) {
     const item = reviewItemsById.get(itemId);
     const latestDecisionRecord = panel.gateModel
@@ -379,6 +397,9 @@ export default async function AdminReviewPage({
       : null;
     const latestCostCreditPolicyRecord = panel.gateModel
       ? adminVoxyLatestCostCreditPolicies.get(panel.gateModel.decisionGateId) ?? null
+      : null;
+    const latestAssetPackDraftRecord = panel.gateModel
+      ? adminVoxyLatestAssetPackDrafts.get(panel.gateModel.decisionGateId) ?? null
       : null;
     adminVoxyDecisionPanels.set(itemId, {
       gateModel: panel.gateModel,
@@ -472,6 +493,39 @@ export default async function AdminReviewPage({
             ),
             latestRecord: latestCostCreditPolicyRecord,
             storeState: adminVoxyCostCreditStoreState,
+          })
+        : null,
+      assetPackDraftModel: panel.gateModel && item?.v3ReviewContext
+        ? buildVoxyRenderAssetPackDraftPanelModel({
+            preview: buildVoxyRenderAssetPackDraftPreviewFromReviewContext(
+              item.v3ReviewContext,
+              {
+                audience: "admin",
+                latestDecisionRecord,
+                latestRequestDraftRecord,
+                latestQueuePreviewRecord,
+                latestCostPolicyPreviewRecord: latestCostCreditPolicyRecord,
+                contributionRef: {
+                  id: item.id,
+                  title: item.title,
+                  href: item.href,
+                },
+                dossierRef: item.dossierId
+                  ? {
+                      id: item.dossierId,
+                      title: item.title,
+                      href: item.href,
+                    }
+                  : null,
+                outputRef: {
+                  id: item.id,
+                  title: item.title,
+                  href: item.href,
+                },
+              },
+            ),
+            latestRecord: latestAssetPackDraftRecord,
+            storeState: adminVoxyAssetPackDraftStoreState,
           })
         : null,
     });
@@ -935,6 +989,12 @@ export default async function AdminReviewPage({
                             adminVoxyDecisionPanels.get(item.id)?.costCreditPolicyModel ?? null
                           }
                           dataTestId={`admin-review-voxy-render-cost-credit-policy-${item.id}`}
+                        />
+                        <VoxyRenderAssetPackDraftPanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.assetPackDraftModel ?? null
+                          }
+                          dataTestId={`admin-review-voxy-render-asset-pack-draft-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(
