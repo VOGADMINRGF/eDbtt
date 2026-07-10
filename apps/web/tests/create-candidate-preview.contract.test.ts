@@ -425,6 +425,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-render-decision"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-request-draft"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-queue-contract"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-cost-credit-policy"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');
@@ -440,10 +441,13 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
+    expect(html).toContain("Kosten &amp; Credits");
     expect(html).toContain("Kein Request-Draft-Store im Surface");
     expect(html).toContain("Noch kein Renderjob");
     expect(html).toContain("Kein Queue-Preview-Store im Surface");
     expect(html).toContain("Noch keine Queue");
+    expect(html).toContain("Kein Cost-/Credit-Policy-Store im Surface");
+    expect(html).toContain("Noch keine Buchung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");

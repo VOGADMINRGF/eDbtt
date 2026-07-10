@@ -33,6 +33,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
+import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -43,6 +44,11 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderCostCreditPolicyPanelModel,
+  buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
+  buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
+} from "@/features/create/voxyRenderCostCreditPolicyContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -291,6 +297,15 @@ function ResumeWorkbenchCard(props: {
       nextStep: props.item.nextStep,
     }),
   });
+  const voxyRenderCostCreditPolicyModel = buildVoxyRenderCostCreditPolicyPanelModel({
+    preview: buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    ),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -411,6 +426,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderQueueContractPanel
         model={voxyRenderQueueContractModel}
         dataTestId={`account-resume-voxy-render-queue-contract-${props.item.id}`}
+      />
+      <VoxyRenderCostCreditPolicyPanel
+        model={voxyRenderCostCreditPolicyModel}
+        dataTestId={`account-resume-voxy-render-cost-credit-policy-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -916,7 +935,40 @@ function RuntimeLinkageCard(props: {
               href: props.linkage.voxyBriefingRef.href,
             }
           : null,
-    }),
+      }),
+  });
+  const voxyRenderCostCreditPolicyModel = buildVoxyRenderCostCreditPolicyPanelModel({
+    preview: buildVoxyRenderCostCreditPolicyPreviewFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+        outputRef: props.linkage.outputDraftRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.outputDraftRef.title,
+              href: props.linkage.outputDraftRef.href,
+            }
+          : props.linkage.voxyBriefingRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.voxyBriefingRef.title,
+                href: props.linkage.voxyBriefingRef.href,
+              }
+            : null,
+      },
+    ),
   });
 
   return (
@@ -1045,6 +1097,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderQueueContractPanel
         model={voxyRenderQueueContractModel}
         dataTestId={`account-runtime-linkage-voxy-render-queue-contract-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderCostCreditPolicyPanel
+        model={voxyRenderCostCreditPolicyModel}
+        dataTestId={`account-runtime-linkage-voxy-render-cost-credit-policy-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

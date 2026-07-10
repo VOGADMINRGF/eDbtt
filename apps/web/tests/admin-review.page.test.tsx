@@ -932,8 +932,10 @@ describe("/admin/review page", () => {
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
+    expect(html).toContain("Kosten &amp; Credits");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Queue-Preview-Store");
+    expect(html).toContain("Cost-/Credit-Policy-Store");
     expect(html).toContain("Ohne Request-Draft blockiert");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
@@ -954,7 +956,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(9);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(10);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -964,6 +966,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-voxy-render-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-request-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-queue-contract-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-voxy-render-cost-credit-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-registry-/g) ?? []).length).toBe(1);

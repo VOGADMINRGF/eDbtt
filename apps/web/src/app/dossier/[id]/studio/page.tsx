@@ -54,6 +54,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
+import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -64,6 +65,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderCostCreditPolicyPanelModel,
+  buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
+} from "@/features/create/voxyRenderCostCreditPolicyContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -76,6 +81,10 @@ import {
   getLatestVoxyRenderDecisionRecord,
   getVoxyRenderDecisionPersistenceState,
 } from "@/features/create/voxyRenderDecisionPersistenceStore";
+import {
+  getLatestVoxyRenderCostCreditPolicyRecord,
+  getVoxyRenderCostCreditPolicyPersistenceState,
+} from "@/features/create/voxyRenderCostCreditPolicyStore";
 import {
   getLatestVoxyRenderQueuePreviewRecord,
   getVoxyRenderQueuePersistenceState,
@@ -395,6 +404,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       ? getVoxyRenderQueuePersistenceState()
       : null,
   });
+  const workspaceVoxyLatestCostCreditPolicyRecord = workspaceVoxyDecisionGateModel
+    ? await getLatestVoxyRenderCostCreditPolicyRecord(
+        workspaceVoxyDecisionGateModel.decisionGateId,
+      ).catch(() => null)
+    : null;
+  const workspaceVoxyCostCreditPolicyModel = buildVoxyRenderCostCreditPolicyPanelModel({
+    preview: v3ReviewContext
+      ? buildVoxyRenderCostCreditPolicyPreviewFromReviewContext(v3ReviewContext, {
+          audience: "workspace",
+          latestDecisionRecord: workspaceVoxyLatestDecisionRecord,
+          latestRequestDraftRecord: workspaceVoxyLatestRequestDraftRecord,
+          latestQueuePreviewRecord: workspaceVoxyLatestQueuePreviewRecord,
+          dossierRef: workspaceVoxyRefs,
+          contributionRef: workspaceVoxyRefs,
+          outputRef: workspaceVoxyRefs,
+        })
+      : null,
+    latestRecord: workspaceVoxyLatestCostCreditPolicyRecord,
+    storeState: workspaceVoxyDecisionGateModel
+      ? getVoxyRenderCostCreditPolicyPersistenceState()
+      : null,
+  });
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -584,6 +615,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderQueueContractPanel
               model={workspaceVoxyQueueContractModel}
               dataTestId="dossier-studio-voxy-render-queue-contract"
+            />
+            <VoxyRenderCostCreditPolicyPanel
+              model={workspaceVoxyCostCreditPolicyModel}
+              dataTestId="dossier-studio-voxy-render-cost-credit-policy"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

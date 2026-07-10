@@ -12,6 +12,7 @@ import V3RuntimeWorkflowSurface, {
 } from "@/features/create/V3RuntimeWorkflowSurface";
 import V3VoxyCocreationDialog from "@/features/create/V3VoxyCocreationDialogPanel";
 import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopPanel";
+import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -22,6 +23,10 @@ import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderRevie
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
+import {
+  buildVoxyRenderCostCreditPolicyPanelModel,
+  buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderCostCreditPolicyContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromCreateCandidatePreview,
@@ -137,6 +142,9 @@ export default function CreateCandidatePreviewPanel({
   });
   const voxyRenderQueueContractModel = buildVoxyRenderQueuePanelModel({
     preview: buildVoxyRenderQueuePreviewFromCreateCandidatePreview(model),
+  });
+  const voxyRenderCostCreditPolicyModel = buildVoxyRenderCostCreditPolicyPanelModel({
+    preview: buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview(model),
   });
 
   return (
@@ -258,6 +266,11 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderQueueContractPanel
         model={voxyRenderQueueContractModel}
         dataTestId="create-candidate-voxy-render-queue-contract"
+      />
+
+      <VoxyRenderCostCreditPolicyPanel
+        model={voxyRenderCostCreditPolicyModel}
+        dataTestId="create-candidate-voxy-render-cost-credit-policy"
       />
 
       <VoxyRenderProviderHandoffPanel

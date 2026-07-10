@@ -96,10 +96,13 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
+    expect(html).toContain("Kosten &amp; Credits");
     expect(html).toContain("Kein Request-Draft-Store im Surface");
     expect(html).toContain("Noch kein Renderjob");
     expect(html).toContain("Kein Queue-Preview-Store im Surface");
     expect(html).toContain("Noch keine Queue");
+    expect(html).toContain("Kein Cost-/Credit-Policy-Store im Surface");
+    expect(html).toContain("Noch keine Buchung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
@@ -133,6 +136,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-request-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-queue-contract-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-cost-credit-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -401,9 +405,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Review-Entscheidung dokumentieren");
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
+    expect(html).toContain("Kosten &amp; Credits");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Account");
     expect(html).toContain("Voxy-Render-Preflight im Account");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Account");
+    expect(html).toContain("Kein Cost-/Credit-Policy-Store im Surface");
     expect(html).toContain("Frage-Typ");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).toContain("Handoff-Paket");
@@ -416,6 +422,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-decision-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-request-draft-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-queue-contract-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-cost-credit-policy-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');
