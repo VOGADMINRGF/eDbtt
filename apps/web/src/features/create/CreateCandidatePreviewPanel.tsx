@@ -15,6 +15,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
@@ -32,6 +33,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderProviderSelectionDraftFromCreateCandidatePreview,
+  buildVoxyRenderProviderSelectionDraftPanelModel,
+} from "@/features/create/voxyRenderProviderSelectionDraftContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromCreateCandidatePreview,
@@ -153,6 +158,9 @@ export default function CreateCandidatePreviewPanel({
   });
   const voxyRenderAssetPackDraftModel = buildVoxyRenderAssetPackDraftPanelModel({
     preview: buildVoxyRenderAssetPackDraftPreviewFromCreateCandidatePreview(model),
+  });
+  const voxyRenderProviderSelectionDraftModel = buildVoxyRenderProviderSelectionDraftPanelModel({
+    preview: buildVoxyRenderProviderSelectionDraftFromCreateCandidatePreview(model),
   });
 
   return (
@@ -283,6 +291,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderAssetPackDraftPanel
         model={voxyRenderAssetPackDraftModel}
         dataTestId="create-candidate-voxy-render-asset-pack-draft"
+      />
+      <VoxyRenderProviderSelectionDraftPanel
+        model={voxyRenderProviderSelectionDraftModel}
+        dataTestId="create-candidate-voxy-render-provider-selection-draft"
       />
 
       <VoxyRenderProviderHandoffPanel

@@ -57,6 +57,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
@@ -74,6 +75,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderProviderSelectionDraftFromReviewContext,
+  buildVoxyRenderProviderSelectionDraftPanelModel,
+} from "@/features/create/voxyRenderProviderSelectionDraftContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -94,6 +99,10 @@ import {
   getLatestVoxyRenderCostCreditPolicyRecord,
   getVoxyRenderCostCreditPolicyPersistenceState,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getLatestVoxyRenderProviderSelectionDraftRecord,
+  getVoxyRenderProviderSelectionPersistenceState,
+} from "@/features/create/voxyRenderProviderSelectionDraftStore";
 import {
   getLatestVoxyRenderQueuePreviewRecord,
   getVoxyRenderQueuePersistenceState,
@@ -458,6 +467,31 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       ? getVoxyRenderAssetPackDraftPersistenceState()
       : null,
   });
+  const workspaceVoxyLatestProviderSelectionDraftRecord = workspaceVoxyDecisionGateModel
+    ? await getLatestVoxyRenderProviderSelectionDraftRecord(
+        workspaceVoxyDecisionGateModel.decisionGateId,
+      ).catch(() => null)
+    : null;
+  const workspaceVoxyProviderSelectionDraftModel =
+    buildVoxyRenderProviderSelectionDraftPanelModel({
+      preview: v3ReviewContext
+        ? buildVoxyRenderProviderSelectionDraftFromReviewContext(v3ReviewContext, {
+            audience: "workspace",
+            latestDecisionRecord: workspaceVoxyLatestDecisionRecord,
+            latestRequestDraftRecord: workspaceVoxyLatestRequestDraftRecord,
+            latestQueuePreviewRecord: workspaceVoxyLatestQueuePreviewRecord,
+            latestCostPolicyPreviewRecord: workspaceVoxyLatestCostCreditPolicyRecord,
+            latestAssetPackDraftRecord: workspaceVoxyLatestAssetPackDraftRecord,
+            dossierRef: workspaceVoxyRefs,
+            contributionRef: workspaceVoxyRefs,
+            outputRef: workspaceVoxyRefs,
+          })
+        : null,
+      latestRecord: workspaceVoxyLatestProviderSelectionDraftRecord,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderProviderSelectionPersistenceState()
+        : null,
+    });
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -655,6 +689,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderAssetPackDraftPanel
               model={workspaceVoxyAssetPackDraftModel}
               dataTestId="dossier-studio-voxy-render-asset-pack-draft"
+            />
+            <VoxyRenderProviderSelectionDraftPanel
+              model={workspaceVoxyProviderSelectionDraftModel}
+              dataTestId="dossier-studio-voxy-render-provider-selection-draft"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
