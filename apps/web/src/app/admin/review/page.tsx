@@ -45,6 +45,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -63,6 +64,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext,
+  buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixContract";
 import {
   buildVoxyRenderProviderSelectionDraftFromReviewContext,
   buildVoxyRenderProviderSelectionDraftPanelModel,
@@ -87,6 +92,10 @@ import {
   getVoxyRenderCostCreditPolicyPersistenceState,
   listLatestVoxyRenderCostCreditPolicyRecordsByDecisionGateIds,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getVoxyRenderRuntimeGoNogoMatrixPersistenceState,
+  listLatestVoxyRenderRuntimeGoNogoMatrixRecordsByDecisionGateIds,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixStore";
 import {
   getVoxyRenderProviderSelectionPersistenceState,
   listLatestVoxyRenderProviderSelectionDraftRecordsByDecisionGateIds,
@@ -324,6 +333,7 @@ export default async function AdminReviewPage({
       queuePreviewModel: ReturnType<typeof buildVoxyRenderQueuePanelModel>;
       costCreditPolicyModel: ReturnType<typeof buildVoxyRenderCostCreditPolicyPanelModel>;
       assetPackDraftModel: ReturnType<typeof buildVoxyRenderAssetPackDraftPanelModel>;
+      runtimeGoNogoMatrixModel: ReturnType<typeof buildVoxyRenderRuntimeGoNogoMatrixPanelModel>;
       providerSelectionDraftModel: ReturnType<typeof buildVoxyRenderProviderSelectionDraftPanelModel>;
     }
   >();
@@ -358,6 +368,7 @@ export default async function AdminReviewPage({
       queuePreviewModel: null,
       costCreditPolicyModel: null,
       assetPackDraftModel: null,
+      runtimeGoNogoMatrixModel: null,
       providerSelectionDraftModel: null,
     });
   }
@@ -366,6 +377,7 @@ export default async function AdminReviewPage({
   const adminVoxyQueueStoreState = getVoxyRenderQueuePersistenceState();
   const adminVoxyCostCreditStoreState = getVoxyRenderCostCreditPolicyPersistenceState();
   const adminVoxyAssetPackDraftStoreState = getVoxyRenderAssetPackDraftPersistenceState();
+  const adminVoxyRuntimeGoNogoStoreState = getVoxyRenderRuntimeGoNogoMatrixPersistenceState();
   const adminVoxyProviderSelectionStoreState = getVoxyRenderProviderSelectionPersistenceState();
   const adminVoxyLatestRecords = await listLatestVoxyRenderDecisionRecordsByDecisionGateIds(
     Array.from(adminVoxyDecisionPanels.values())
@@ -402,6 +414,12 @@ export default async function AdminReviewPage({
         .map((entry) => entry.gateModel?.decisionGateId ?? null)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestRuntimeGoNogoMatrices =
+    await listLatestVoxyRenderRuntimeGoNogoMatrixRecordsByDecisionGateIds(
+      Array.from(adminVoxyDecisionPanels.values())
+        .map((entry) => entry.gateModel?.decisionGateId ?? null)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   for (const [itemId, panel] of adminVoxyDecisionPanels.entries()) {
     const item = reviewItemsById.get(itemId);
     const latestDecisionRecord = panel.gateModel
@@ -421,6 +439,9 @@ export default async function AdminReviewPage({
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
       ? adminVoxyLatestProviderSelectionDrafts.get(panel.gateModel.decisionGateId) ?? null
+      : null;
+    const latestRuntimeGoNogoMatrixRecord = panel.gateModel
+      ? adminVoxyLatestRuntimeGoNogoMatrices.get(panel.gateModel.decisionGateId) ?? null
       : null;
     adminVoxyDecisionPanels.set(itemId, {
       gateModel: panel.gateModel,
@@ -547,6 +568,21 @@ export default async function AdminReviewPage({
             ),
             latestRecord: latestAssetPackDraftRecord,
             storeState: adminVoxyAssetPackDraftStoreState,
+          })
+        : null,
+      runtimeGoNogoMatrixModel: panel.gateModel && item?.v3ReviewContext
+        ? buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
+            preview: buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext({
+              reviewContext: item.v3ReviewContext,
+              latestDecisionRecord,
+              latestRequestDraft: latestRequestDraftRecord,
+              latestQueuePreview: latestQueuePreviewRecord,
+              latestCostPolicyPreview: latestCostCreditPolicyRecord,
+              latestAssetPackDraft: latestAssetPackDraftRecord,
+              latestProviderSelectionDraft: latestProviderSelectionDraftRecord,
+            }),
+            latestRecord: latestRuntimeGoNogoMatrixRecord,
+            persistenceState: adminVoxyRuntimeGoNogoStoreState,
           })
         : null,
       providerSelectionDraftModel: panel.gateModel && item?.v3ReviewContext
@@ -1057,6 +1093,13 @@ export default async function AdminReviewPage({
                             null
                           }
                           dataTestId={`admin-review-voxy-render-provider-selection-draft-${item.id}`}
+                        />
+                        <VoxyRenderRuntimeGoNogoMatrixPanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.runtimeGoNogoMatrixModel ??
+                            null
+                          }
+                          dataTestId={`admin-review-voxy-render-runtime-go-nogo-matrix-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(

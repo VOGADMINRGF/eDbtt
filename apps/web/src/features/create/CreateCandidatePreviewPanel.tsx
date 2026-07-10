@@ -15,6 +15,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -33,6 +34,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeGoNogoMatrixFromCreateCandidatePreview,
+  buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixContract";
 import {
   buildVoxyRenderProviderSelectionDraftFromCreateCandidatePreview,
   buildVoxyRenderProviderSelectionDraftPanelModel,
@@ -161,6 +166,9 @@ export default function CreateCandidatePreviewPanel({
   });
   const voxyRenderProviderSelectionDraftModel = buildVoxyRenderProviderSelectionDraftPanelModel({
     preview: buildVoxyRenderProviderSelectionDraftFromCreateCandidatePreview(model),
+  });
+  const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
+    preview: buildVoxyRenderRuntimeGoNogoMatrixFromCreateCandidatePreview(model),
   });
 
   return (
@@ -295,6 +303,11 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId="create-candidate-voxy-render-provider-selection-draft"
+      />
+
+      <VoxyRenderRuntimeGoNogoMatrixPanel
+        model={voxyRenderRuntimeGoNogoMatrixModel}
+        dataTestId="create-candidate-voxy-render-runtime-go-nogo-matrix"
       />
 
       <VoxyRenderProviderHandoffPanel

@@ -57,6 +57,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -75,6 +76,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext,
+  buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixContract";
 import {
   buildVoxyRenderProviderSelectionDraftFromReviewContext,
   buildVoxyRenderProviderSelectionDraftPanelModel,
@@ -99,6 +104,10 @@ import {
   getLatestVoxyRenderCostCreditPolicyRecord,
   getVoxyRenderCostCreditPolicyPersistenceState,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getLatestVoxyRenderRuntimeGoNogoMatrixRecord,
+  getVoxyRenderRuntimeGoNogoMatrixPersistenceState,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixStore";
 import {
   getLatestVoxyRenderProviderSelectionDraftRecord,
   getVoxyRenderProviderSelectionPersistenceState,
@@ -492,6 +501,29 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         ? getVoxyRenderProviderSelectionPersistenceState()
         : null,
     });
+  const workspaceVoxyLatestRuntimeGoNogoMatrixRecord = workspaceVoxyDecisionGateModel
+    ? await getLatestVoxyRenderRuntimeGoNogoMatrixRecord(
+        workspaceVoxyDecisionGateModel.decisionGateId,
+      ).catch(() => null)
+    : null;
+  const workspaceVoxyRuntimeGoNogoMatrixModel =
+    buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
+      preview: v3ReviewContext
+        ? buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext({
+            reviewContext: v3ReviewContext,
+            latestDecisionRecord: workspaceVoxyLatestDecisionRecord,
+            latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+            latestQueuePreview: workspaceVoxyLatestQueuePreviewRecord,
+            latestCostPolicyPreview: workspaceVoxyLatestCostCreditPolicyRecord,
+            latestAssetPackDraft: workspaceVoxyLatestAssetPackDraftRecord,
+            latestProviderSelectionDraft: workspaceVoxyLatestProviderSelectionDraftRecord,
+          })
+        : null,
+      latestRecord: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      persistenceState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeGoNogoMatrixPersistenceState()
+        : null,
+    });
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-[rgb(var(--fg))] sm:px-6 lg:px-8">
@@ -693,6 +725,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderProviderSelectionDraftPanel
               model={workspaceVoxyProviderSelectionDraftModel}
               dataTestId="dossier-studio-voxy-render-provider-selection-draft"
+            />
+            <VoxyRenderRuntimeGoNogoMatrixPanel
+              model={workspaceVoxyRuntimeGoNogoMatrixModel}
+              dataTestId="dossier-studio-voxy-render-runtime-go-nogo-matrix"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

@@ -36,6 +36,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -56,6 +57,11 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
   buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext,
+  buildVoxyRenderRuntimeGoNogoMatrixFromVoxyDialog,
+  buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
+} from "@/features/create/voxyRenderRuntimeGoNogoMatrixContract";
 import {
   buildVoxyRenderProviderSelectionDraftFromReviewContext,
   buildVoxyRenderProviderSelectionDraftFromVoxyDialog,
@@ -336,6 +342,12 @@ function ResumeWorkbenchCard(props: {
       },
     ),
   });
+  const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
+    preview: buildVoxyRenderRuntimeGoNogoMatrixFromVoxyDialog(props.item.voxyCocreationDialog, {
+      contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+      nextStep: props.item.nextStep,
+    }),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -468,6 +480,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId={`account-resume-voxy-render-provider-selection-draft-${props.item.id}`}
+      />
+      <VoxyRenderRuntimeGoNogoMatrixPanel
+        model={voxyRenderRuntimeGoNogoMatrixModel}
+        dataTestId={`account-resume-voxy-render-runtime-go-nogo-matrix-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1074,6 +1090,11 @@ function RuntimeLinkageCard(props: {
       },
     ),
   });
+  const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
+    preview: buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext({
+      reviewContext: props.linkage.v3ReviewContext,
+    }),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1213,6 +1234,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId={`account-runtime-linkage-voxy-render-provider-selection-draft-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderRuntimeGoNogoMatrixPanel
+        model={voxyRenderRuntimeGoNogoMatrixModel}
+        dataTestId={`account-runtime-linkage-voxy-render-runtime-go-nogo-matrix-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
