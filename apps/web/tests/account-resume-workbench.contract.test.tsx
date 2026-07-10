@@ -106,6 +106,9 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Render-Asset-Pack");
     expect(html).toContain("Kein Asset-Pack-Draft-Store im Surface");
     expect(html).toContain("Noch keine Datei");
+    expect(html).toContain("Provider-Auswahl");
+    expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
+    expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
@@ -141,6 +144,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-queue-contract-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-cost-credit-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-asset-pack-draft-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-provider-selection-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -428,6 +432,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-queue-contract-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-cost-credit-policy-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-asset-pack-draft-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-selection-draft-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');

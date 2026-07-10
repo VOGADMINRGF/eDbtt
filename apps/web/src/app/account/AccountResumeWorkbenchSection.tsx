@@ -36,6 +36,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScriptCandidatePanel";
@@ -55,6 +56,11 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
   buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderProviderSelectionDraftFromReviewContext,
+  buildVoxyRenderProviderSelectionDraftFromVoxyDialog,
+  buildVoxyRenderProviderSelectionDraftPanelModel,
+} from "@/features/create/voxyRenderProviderSelectionDraftContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -321,6 +327,15 @@ function ResumeWorkbenchCard(props: {
       },
     ),
   });
+  const voxyRenderProviderSelectionDraftModel = buildVoxyRenderProviderSelectionDraftPanelModel({
+    preview: buildVoxyRenderProviderSelectionDraftFromVoxyDialog(
+      props.item.voxyCocreationDialog,
+      {
+        contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+        nextStep: props.item.nextStep,
+      },
+    ),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -449,6 +464,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderAssetPackDraftPanel
         model={voxyRenderAssetPackDraftModel}
         dataTestId={`account-resume-voxy-render-asset-pack-draft-${props.item.id}`}
+      />
+      <VoxyRenderProviderSelectionDraftPanel
+        model={voxyRenderProviderSelectionDraftModel}
+        dataTestId={`account-resume-voxy-render-provider-selection-draft-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1022,6 +1041,39 @@ function RuntimeLinkageCard(props: {
       },
     ),
   });
+  const voxyRenderProviderSelectionDraftModel = buildVoxyRenderProviderSelectionDraftPanelModel({
+    preview: buildVoxyRenderProviderSelectionDraftFromReviewContext(
+      props.linkage.v3ReviewContext,
+      {
+        audience: "workspace",
+        contributionRef: {
+          id: props.linkage.contributionRef.handoffId,
+          title: props.linkage.contributionRef.title,
+          href: props.linkage.contributionRef.href,
+        },
+        dossierRef: props.linkage.dossierWorkspaceRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.dossierWorkspaceRef.title,
+              href: props.linkage.dossierWorkspaceRef.href,
+            }
+          : null,
+        outputRef: props.linkage.outputDraftRef
+          ? {
+              id: props.linkage.contributionRef.handoffId,
+              title: props.linkage.outputDraftRef.title,
+              href: props.linkage.outputDraftRef.href,
+            }
+          : props.linkage.voxyBriefingRef
+            ? {
+                id: props.linkage.contributionRef.handoffId,
+                title: props.linkage.voxyBriefingRef.title,
+                href: props.linkage.voxyBriefingRef.href,
+              }
+            : null,
+      },
+    ),
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1157,6 +1209,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderAssetPackDraftPanel
         model={voxyRenderAssetPackDraftModel}
         dataTestId={`account-runtime-linkage-voxy-render-asset-pack-draft-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderProviderSelectionDraftPanel
+        model={voxyRenderProviderSelectionDraftModel}
+        dataTestId={`account-runtime-linkage-voxy-render-provider-selection-draft-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

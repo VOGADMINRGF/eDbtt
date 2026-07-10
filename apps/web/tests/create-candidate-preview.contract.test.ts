@@ -427,6 +427,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-render-queue-contract"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-cost-credit-policy"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-asset-pack-draft"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-provider-selection-draft"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');
@@ -452,6 +453,9 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Render-Asset-Pack");
     expect(html).toContain("Kein Asset-Pack-Draft-Store im Surface");
     expect(html).toContain("Noch keine Datei");
+    expect(html).toContain("Provider-Auswahl");
+    expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
+    expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
     expect(html).toContain("Voxy-Render-Preflight vorbereiten");
