@@ -4,6 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
+import {
   buildVoxyRenderRequestDraftFromReadmodels,
   buildVoxyRenderRequestDraftPanelModel,
   type VoxyRenderRequestDraftPersistenceState,
@@ -63,6 +66,95 @@ function buildDecisionRecord(overrides?: Record<string, unknown>) {
     idempotencyKey: "decision-idempotency-1",
     previousDecisionRef: null,
     supersedesDecisionRef: null,
+    decisionVersion: 1,
+    ...overrides,
+  } as any;
+}
+
+function buildLatestPreviewDecisionRecord(overrides?: Record<string, unknown>) {
+  return {
+    decisionRecordId: "voxy-render-preview-review-decision:1",
+    previewReviewFlowId: "voxy-render-preview-review-flow:preview-1",
+    decisionGateId: "voxy-render-review-decision-gate:admin-1",
+    enablementBacklogId: "voxy-render-runtime-enablement-backlog:preview-1",
+    matrixId: "voxy-render-runtime-go-nogo-matrix:preview-1",
+    requestDraftId: "voxy-render-request-draft:preview-1",
+    renderDecisionId: "voxy-render-decision:test-1",
+    scriptRef: null,
+    contributionRef: {
+      id: "review-item-1",
+      title: "Sichere Schulwege",
+      href: "/admin/review",
+    },
+    dossierRef: {
+      id: "dossier-1",
+      title: "Sichere Schulwege",
+      href: "/dossier/demo",
+    },
+    reviewerRef: { id: "admin-1", title: "Admin", href: null },
+    createdAt: "2026-07-11T10:00:00.000Z",
+    updatedAt: "2026-07-11T10:00:00.000Z",
+    sourceLanguage: "de",
+    readingLanguage: "de",
+    scriptLanguage: "de",
+    renderLanguage: "de",
+    subtitleLanguage: null,
+    originalPreserved: true,
+    translationIsEvidence: false,
+    rtlRequired: false,
+    decisionType: "mark_review_ready",
+    decisionStatus: "persisted_audit_only",
+    decisionPayload: {
+      reviewerComment: "Review-ready bleibt audit-only.",
+      revisionReason: null,
+      rejectionReason: null,
+      reviewReadyReason: "Checkliste ist review-ready.",
+      checklistFindings: [],
+      languageNotes: "Quelle und Lesefassung bleiben sichtbar.",
+      sourceCaptionNotes: "Caption-Treue bleibt Review-Aufgabe.",
+      claimSafetyNotes: "Claim-Sicherheit bleibt manuell.",
+      brandNotes: "Brand-Fit bleibt sichtbar.",
+      accessibilityNotes: "Barrierefreiheit bleibt offen.",
+      legalSafetyNotes: "Rechtliche Sicherheit bleibt Review-Punkt.",
+    },
+    checklistResults: [],
+    decisionEffects: {
+      createsRenderJob: false,
+      triggersRerender: false,
+      triggersProvider: false,
+      createsQueueJob: false,
+      createsMediaFile: false,
+      createsUpload: false,
+      triggersPublish: false,
+      costDebitAllowed: false,
+      creditDebitAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    executionFlags: {
+      previewRendered: false,
+      renderAllowed: false,
+      rerenderAllowed: false,
+      queueAllowed: false,
+      workerAllowed: false,
+      providerExecutionAllowed: false,
+      secretsAccessed: false,
+      mediaFileCreationAllowed: false,
+      previewFileAvailable: false,
+      uploadAllowed: false,
+      publishAllowed: false,
+      socialPostAllowed: false,
+      schedulingAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    nextStep: "Review-ready bleibt getrennt.",
+    userVisibleSummary: "Review-ready bleibt getrennt.",
+    reviewerVisibleSummary: "Review-ready bleibt getrennt.",
+    previewReviewStatusHint: "no_preview_available",
+    persistedAt: "2026-07-11T10:00:00.000Z",
+    persistedBy: "admin-1",
+    idempotencyKey: "decision-idempotency-1",
+    previousDecisionRecordRef: null,
+    supersedesDecisionRecordRef: null,
     decisionVersion: 1,
     ...overrides,
   } as any;
@@ -324,5 +416,21 @@ describe("voxy render request draft contract", () => {
     expect(html).toContain("Keine Veröffentlichung");
     expect(html).toContain("Store-Grenze");
     expect(html).toContain("Letzter Draft-Record");
+  });
+
+  it("keeps request draft linkage when review-ready only becomes an outcome handoff", () => {
+    const draft = buildDraft();
+    const outcomeCommand = buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow: null,
+      latestPreviewReviewDecisionRecord: buildLatestPreviewDecisionRecord({
+        requestDraftId: draft.requestDraftId,
+      }),
+      latestRequestDraft: draft,
+    });
+
+    expect(outcomeCommand.requestDraftId).toBe(draft.requestDraftId);
+    expect(outcomeCommand.downstreamTarget).toBe("publish_guard");
+    expect(outcomeCommand.handoffEffects.marksReviewReadyOnly).toBe(true);
+    expect(outcomeCommand.executionFlags.publishAllowed).toBe(false);
   });
 });

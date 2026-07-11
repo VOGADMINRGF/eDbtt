@@ -4,6 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
+import {
+  buildVoxyRenderPreviewReviewFlowFromReadmodels,
+} from "@/features/create/voxyRenderPreviewReviewFlowContract";
+import {
   buildVoxyRenderRuntimeGoNogoMatrixFromReadmodels,
   buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
 } from "@/features/create/voxyRenderRuntimeGoNogoMatrixContract";
@@ -28,6 +34,87 @@ function buildDecisionRecord(overrides?: Record<string, unknown>) {
     scriptLanguage: "de",
     renderLanguage: "de",
     subtitleLanguage: "de",
+    ...overrides,
+  } as any;
+}
+
+function buildLatestPreviewDecisionRecord(overrides?: Record<string, unknown>) {
+  return {
+    decisionRecordId: "voxy-render-preview-review-decision:1",
+    previewReviewFlowId: "voxy-render-preview-review-flow:preview-1",
+    decisionGateId: "voxy-render-review-decision-gate:admin-1",
+    enablementBacklogId: "voxy-render-runtime-enablement-backlog:preview-1",
+    matrixId: "voxy-render-runtime-go-nogo-matrix:preview-1",
+    requestDraftId: "voxy-render-request-draft:preview-1",
+    renderDecisionId: "voxy-render-decision:test-1",
+    scriptRef: { id: "script-1", title: "Voxy Script", href: "/admin/review" },
+    contributionRef: { id: "review-item-1", title: "Sichere Schulwege", href: "/admin/review" },
+    dossierRef: { id: "dossier-1", title: "Sichere Schulwege", href: "/dossier/demo" },
+    reviewerRef: { id: "admin-1", title: "Admin", href: null },
+    createdAt: "2026-07-11T10:00:00.000Z",
+    updatedAt: "2026-07-11T10:00:00.000Z",
+    sourceLanguage: "de",
+    readingLanguage: "de",
+    scriptLanguage: "de",
+    renderLanguage: "de",
+    subtitleLanguage: "de",
+    originalPreserved: true,
+    translationIsEvidence: false,
+    rtlRequired: false,
+    decisionType: "request_revision",
+    decisionStatus: "persisted_audit_only",
+    decisionPayload: {
+      reviewerComment: "Revision bleibt audit-only.",
+      revisionReason: "Untertitelvorlage fehlt.",
+      rejectionReason: null,
+      reviewReadyReason: null,
+      checklistFindings: ["Untertitelvorlage fehlt."],
+      languageNotes: "Quelle und Lesefassung bleiben sichtbar.",
+      sourceCaptionNotes: "Caption-Treue bleibt Review-Aufgabe.",
+      claimSafetyNotes: "Claim-Sicherheit bleibt manuell.",
+      brandNotes: "Brand-Fit bleibt sichtbar.",
+      accessibilityNotes: "Barrierefreiheit bleibt offen.",
+      legalSafetyNotes: "Rechtliche Sicherheit bleibt Review-Punkt.",
+    },
+    checklistResults: [],
+    decisionEffects: {
+      createsRenderJob: false,
+      triggersRerender: false,
+      triggersProvider: false,
+      createsQueueJob: false,
+      createsMediaFile: false,
+      createsUpload: false,
+      triggersPublish: false,
+      costDebitAllowed: false,
+      creditDebitAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    executionFlags: {
+      previewRendered: false,
+      renderAllowed: false,
+      rerenderAllowed: false,
+      queueAllowed: false,
+      workerAllowed: false,
+      providerExecutionAllowed: false,
+      secretsAccessed: false,
+      mediaFileCreationAllowed: false,
+      previewFileAvailable: false,
+      uploadAllowed: false,
+      publishAllowed: false,
+      socialPostAllowed: false,
+      schedulingAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    nextStep: "Asset-Revision vorbereiten.",
+    userVisibleSummary: "Revision bleibt audit-only.",
+    reviewerVisibleSummary: "Revision bleibt audit-only.",
+    previewReviewStatusHint: "needs_preview_asset",
+    persistedAt: "2026-07-11T10:00:00.000Z",
+    persistedBy: "admin-1",
+    idempotencyKey: "decision-idempotency-1",
+    previousDecisionRecordRef: null,
+    supersedesDecisionRecordRef: null,
+    decisionVersion: 1,
     ...overrides,
   } as any;
 }
@@ -358,6 +445,82 @@ describe("voxy render runtime go/no-go matrix", () => {
     expect(preview.runtimeGate.status).toBe("no_go");
     expect(preview.matrixStatus).toBe("runtime_no_go");
     expect(preview.overallDecision).toBe("runtime_not_available");
+  });
+
+  it("feeds asset blockers into the outcome handoff as an asset revision candidate", () => {
+    const matrix = buildPreview({
+      assetPackDraft: buildAssetPackDraft({
+        assetPackStatus: "needs_subtitle_template",
+        assetEntries: [{ assetKey: "subtitle_template", status: "missing" }],
+        userVisibleReason: "Untertitelvorlage fehlt.",
+        reviewerVisibleReason: "Untertitelvorlage fehlt.",
+      }),
+    });
+    const previewFlow = buildVoxyRenderPreviewReviewFlowFromReadmodels({
+      surface: "admin",
+      backlog: {
+        backlogId: "voxy-render-runtime-enablement-backlog:preview-1",
+        matrixId: matrix.matrixId,
+        providerSelectionDraftId: matrix.providerSelectionDraftId,
+        assetPackDraftId: matrix.assetPackDraftId,
+        costPolicyPreviewId: matrix.costPolicyPreviewId,
+        queuePreviewId: matrix.queuePreviewId,
+        requestDraftId: matrix.requestDraftId,
+        decisionId: matrix.decisionId,
+        decisionGateId: matrix.decisionGateId,
+        scriptRef: matrix.scriptRef,
+        contributionRef: matrix.contributionRef,
+        dossierRef: matrix.dossierRef,
+        videoFormat: "briefing_video",
+        sourceLanguage: "de",
+        readingLanguage: "de",
+        scriptLanguage: "de",
+        renderLanguage: "de",
+        subtitleLanguage: "de",
+        originalPreserved: true,
+        translationIsEvidence: false,
+        rtlRequired: false,
+        surface: "admin",
+        backlogStatus: "runtime_planning_only",
+        items: [],
+        topP0Items: ["Untertitelvorlage fehlt."],
+        nextRecommendedAction: "prepare_runtime_enablement",
+        reviewerVisibleSummary: "Noch kein Preview und keine Runtime.",
+        userVisibleSummary: "Es werden nur spätere Aufgaben gesammelt.",
+        execution: {
+          runtimeEnabled: false,
+          renderAllowed: false,
+          queueAllowed: false,
+          workerAllowed: false,
+          providerExecutionAllowed: false,
+          secretsAccessed: false,
+          mediaFileCreationAllowed: false,
+          costDebitAllowed: false,
+          creditDebitAllowed: false,
+          uploadAllowed: false,
+          publishAllowed: false,
+          socialPostAllowed: false,
+          schedulingAllowed: false,
+          runtimeClaimAllowed: false,
+        },
+        persistedAt: null,
+        persistedBy: null,
+        idempotencyKey: null,
+        previousBacklogRef: null,
+        supersedesBacklogRef: null,
+        backlogVersion: null,
+      } as any,
+      matrix,
+    });
+    const outcomeCommand = buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow,
+      latestPreviewReviewDecisionRecord: buildLatestPreviewDecisionRecord(),
+      latestMatrix: matrix,
+    });
+
+    expect(outcomeCommand.downstreamTarget).toBe("asset_revision");
+    expect(outcomeCommand.handoffEffects.createsAssetRevisionTask).toBe(true);
+    expect(outcomeCommand.handoffEffects.triggersRerender).toBe(false);
   });
 
   it("renders a human-readable panel without raw enum leakage", () => {

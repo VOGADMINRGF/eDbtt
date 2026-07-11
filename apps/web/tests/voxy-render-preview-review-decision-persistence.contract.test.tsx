@@ -8,6 +8,9 @@ import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
   deriveVoxyRenderPreviewReviewDecisionStatus,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
+import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import { buildVoxyRenderPreviewReviewFlowFromReadmodels } from "@/features/create/voxyRenderPreviewReviewFlowContract";
 
 function buildGate(overrides?: Record<string, unknown>) {
@@ -239,6 +242,34 @@ describe("voxy render preview review decision persistence contract", () => {
     expect(command.decisionType).toBe("keep_as_script_only");
     expect(status).toBe("keep_as_script_only");
     expect(command.previewReviewFlowId).toContain("voxy-render-preview-review-flow");
+  });
+
+  it("maps a persisted preview-review decision to a downstream noop handoff", () => {
+    const previewFlow = buildPreviewFlow();
+    const decisionCommand = buildVoxyRenderPreviewReviewDecisionCommandFromPreviewReviewFlow(
+      previewFlow,
+      {
+        decisionType: "comment_only",
+      },
+    );
+    const outcomeCommand = buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow,
+      latestPreviewReviewDecisionRecord: {
+        ...decisionCommand,
+        decisionRecordId: "voxy-render-preview-review-decision:1",
+        decisionStatus: "persisted_audit_only",
+        persistedAt: "2026-07-11T10:00:00.000Z",
+        persistedBy: "admin-1",
+        idempotencyKey: "decision-idempotency-1",
+        previousDecisionRecordRef: null,
+        supersedesDecisionRecordRef: null,
+        decisionVersion: 1,
+      },
+    });
+
+    expect(outcomeCommand.handoffStatus).toBe("review_context_only");
+    expect(outcomeCommand.downstreamTarget).toBe("review_context");
+    expect(outcomeCommand.handoffEffects.triggersPublish).toBe(false);
   });
 
   it("renders the panel without raw enum strings", () => {

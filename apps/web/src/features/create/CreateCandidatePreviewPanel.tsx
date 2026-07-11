@@ -15,6 +15,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPreviewOutcomeHandoffPanel";
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -37,6 +38,9 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderPreviewOutcomeHandoffPanelModel,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -195,6 +199,9 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+  });
 
   return (
     <section
@@ -345,6 +352,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderPreviewReviewDecisionPersistencePanel
         model={voxyRenderPreviewReviewDecisionPersistenceModel}
         dataTestId="create-candidate-voxy-render-preview-review-decision-persistence"
+      />
+      <VoxyRenderPreviewOutcomeHandoffPanel
+        model={voxyRenderPreviewOutcomeHandoffModel}
+        dataTestId="create-candidate-voxy-render-preview-outcome-handoff"
       />
 
       <VoxyRenderProviderHandoffPanel

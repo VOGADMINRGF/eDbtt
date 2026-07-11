@@ -434,6 +434,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain(
       'data-testid="create-candidate-voxy-render-preview-review-decision-persistence"',
     );
+    expect(html).toContain('data-testid="create-candidate-voxy-render-preview-outcome-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');
@@ -466,12 +467,14 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
+    expect(html).toContain("Preview Outcome Handoff");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Runtime-Go/No-Go-Store im Surface");
     expect(html).toContain("Kein Runtime-Enablement-Backlog-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Decision-Store im Surface");
+    expect(html).toContain("Kein Preview-Outcome-Handoff-Store im Surface");
     expect(html).toContain("Keine Veröffentlichung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
     expect(html).toContain("Voxy-Render/Provider-Handoff vorbereiten");
