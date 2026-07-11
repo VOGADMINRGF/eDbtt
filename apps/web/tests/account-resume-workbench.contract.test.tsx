@@ -109,9 +109,13 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
+    expect(html).toContain("Preview Review");
+    expect(html).toContain("Noch kein Preview-Video");
+    expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
     expect(html).toContain("Kein Runtime-Go/No-Go-Store im Surface");
     expect(html).toContain("Kein Runtime-Enablement-Backlog-Store im Surface");
+    expect(html).toContain("Kein Preview-Review-Store im Surface");
     expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Keine Veröffentlichung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
@@ -151,6 +155,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-asset-pack-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-selection-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-runtime-go-nogo-matrix-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-preview-review-flow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);

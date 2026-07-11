@@ -135,6 +135,9 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
+    expect(html).toContain("Preview Review");
+    expect(html).toContain("Noch kein Preview-Video");
+    expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");
     expect(html).toContain("Persistenter Voxy-Queue-Preview-Store");
     expect(html).toContain("Persistenter Voxy-Cost-/Credit-Policy-Store");
@@ -142,6 +145,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Voxy-Provider-Selection-Draft-Store");
     expect(html).toContain("Runtime-Go/No-Go-Matrix");
     expect(html).toContain("Runtime-Enablement-Backlog");
+    expect(html).toContain("Preview-Review-Flow-Store");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
@@ -174,6 +178,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-selection-draft"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-go-nogo-matrix"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-enablement-backlog"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-preview-review-flow"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
