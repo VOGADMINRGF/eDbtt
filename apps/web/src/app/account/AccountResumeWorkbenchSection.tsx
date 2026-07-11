@@ -36,6 +36,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -57,6 +58,11 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
   buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeEnablementBacklogFromReviewContext,
+  buildVoxyRenderRuntimeEnablementBacklogFromVoxyDialog,
+  buildVoxyRenderRuntimeEnablementBacklogPanelModel,
+} from "@/features/create/voxyRenderRuntimeEnablementBacklogContract";
 import {
   buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext,
   buildVoxyRenderRuntimeGoNogoMatrixFromVoxyDialog,
@@ -348,6 +354,16 @@ function ResumeWorkbenchCard(props: {
       nextStep: props.item.nextStep,
     }),
   });
+  const voxyRenderRuntimeEnablementBacklogModel =
+    buildVoxyRenderRuntimeEnablementBacklogPanelModel({
+      preview: buildVoxyRenderRuntimeEnablementBacklogFromVoxyDialog(
+        props.item.voxyCocreationDialog,
+        {
+          contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+          nextStep: props.item.nextStep,
+        },
+      ),
+    });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -484,6 +500,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderRuntimeGoNogoMatrixPanel
         model={voxyRenderRuntimeGoNogoMatrixModel}
         dataTestId={`account-resume-voxy-render-runtime-go-nogo-matrix-${props.item.id}`}
+      />
+      <VoxyRenderRuntimeEnablementBacklogPanel
+        model={voxyRenderRuntimeEnablementBacklogModel}
+        dataTestId={`account-resume-voxy-render-runtime-enablement-backlog-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1095,6 +1115,12 @@ function RuntimeLinkageCard(props: {
       reviewContext: props.linkage.v3ReviewContext,
     }),
   });
+  const voxyRenderRuntimeEnablementBacklogModel =
+    buildVoxyRenderRuntimeEnablementBacklogPanelModel({
+      preview: buildVoxyRenderRuntimeEnablementBacklogFromReviewContext({
+        reviewContext: props.linkage.v3ReviewContext,
+      }),
+    });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1238,6 +1264,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderRuntimeGoNogoMatrixPanel
         model={voxyRenderRuntimeGoNogoMatrixModel}
         dataTestId={`account-runtime-linkage-voxy-render-runtime-go-nogo-matrix-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderRuntimeEnablementBacklogPanel
+        model={voxyRenderRuntimeEnablementBacklogModel}
+        dataTestId={`account-runtime-linkage-voxy-render-runtime-enablement-backlog-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

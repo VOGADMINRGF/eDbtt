@@ -57,6 +57,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -76,6 +77,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderRuntimeEnablementBacklogFromReviewContext,
+  buildVoxyRenderRuntimeEnablementBacklogPanelModel,
+} from "@/features/create/voxyRenderRuntimeEnablementBacklogContract";
 import {
   buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext,
   buildVoxyRenderRuntimeGoNogoMatrixPanelModel,
@@ -104,6 +109,10 @@ import {
   getLatestVoxyRenderCostCreditPolicyRecord,
   getVoxyRenderCostCreditPolicyPersistenceState,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getLatestVoxyRenderRuntimeEnablementBacklogRecord,
+  getVoxyRenderRuntimeEnablementBacklogPersistenceState,
+} from "@/features/create/voxyRenderRuntimeEnablementBacklogStore";
 import {
   getLatestVoxyRenderRuntimeGoNogoMatrixRecord,
   getVoxyRenderRuntimeGoNogoMatrixPersistenceState,
@@ -506,6 +515,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         workspaceVoxyDecisionGateModel.decisionGateId,
       ).catch(() => null)
     : null;
+  const workspaceVoxyLatestRuntimeEnablementBacklogRecord = workspaceVoxyDecisionGateModel
+    ? await getLatestVoxyRenderRuntimeEnablementBacklogRecord(
+        workspaceVoxyDecisionGateModel.decisionGateId,
+      ).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -522,6 +536,25 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       latestRecord: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
       persistenceState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderRuntimeGoNogoMatrixPersistenceState()
+        : null,
+    });
+  const workspaceVoxyRuntimeEnablementBacklogModel =
+    buildVoxyRenderRuntimeEnablementBacklogPanelModel({
+      preview: v3ReviewContext
+        ? buildVoxyRenderRuntimeEnablementBacklogFromReviewContext({
+            reviewContext: v3ReviewContext,
+            latestDecisionRecord: workspaceVoxyLatestDecisionRecord,
+            latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+            latestQueuePreview: workspaceVoxyLatestQueuePreviewRecord,
+            latestCostPolicyPreview: workspaceVoxyLatestCostCreditPolicyRecord,
+            latestAssetPackDraft: workspaceVoxyLatestAssetPackDraftRecord,
+            latestProviderSelectionDraft: workspaceVoxyLatestProviderSelectionDraftRecord,
+            latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+          })
+        : null,
+      latestRecord: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      persistenceState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeEnablementBacklogPersistenceState()
         : null,
     });
 
@@ -729,6 +762,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderRuntimeGoNogoMatrixPanel
               model={workspaceVoxyRuntimeGoNogoMatrixModel}
               dataTestId="dossier-studio-voxy-render-runtime-go-nogo-matrix"
+            />
+            <VoxyRenderRuntimeEnablementBacklogPanel
+              model={workspaceVoxyRuntimeEnablementBacklogModel}
+              dataTestId="dossier-studio-voxy-render-runtime-enablement-backlog"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
