@@ -141,9 +141,11 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Publish Readiness");
     expect(html).toContain("Social Distribution");
     expect(html).toContain("Approval Semantik");
+    expect(html).toContain("Media &amp; Storage");
     expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Posting");
     expect(html).toContain("Approved ist nicht uploaded");
+    expect(html).toContain("Kein Storage-Write");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");
@@ -195,6 +197,7 @@ describe("dossier studio server persistence UI", () => {
     );
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preview-outcome-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-publish-readiness-guard"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-media-storage-truth"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');

@@ -436,6 +436,7 @@ describe("create candidate preview contract", () => {
     );
     expect(html).toContain('data-testid="create-candidate-voxy-render-preview-outcome-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-publish-readiness-guard"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-media-storage-truth"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');
@@ -472,10 +473,12 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Publish Readiness");
     expect(html).toContain("Social Distribution");
     expect(html).toContain("Approval Semantik");
+    expect(html).toContain("Media &amp; Storage");
     expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Posting");
     expect(html).toContain("Review-ready ist nicht approved");
     expect(html).toContain("Approved ist nicht uploaded");
+    expect(html).toContain("Kein Storage-Write");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Runtime-Go/No-Go-Store im Surface");
