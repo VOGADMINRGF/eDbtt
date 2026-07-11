@@ -936,6 +936,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Render-Asset-Pack");
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
+    expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Queue-Preview-Store");
     expect(html).toContain("Cost-/Credit-Policy-Store");
@@ -960,7 +961,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(13);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(14);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -974,6 +975,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-voxy-render-asset-pack-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-selection-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-runtime-go-nogo-matrix-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"admin-review-voxy-render-runtime-enablement-backlog-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-registry-/g) ?? []).length).toBe(1);
