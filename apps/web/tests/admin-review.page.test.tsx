@@ -942,8 +942,10 @@ describe("/admin/review page", () => {
     expect(html).toContain("Preview Outcome Handoff");
     expect(html).toContain("Publish Readiness");
     expect(html).toContain("Social Distribution");
+    expect(html).toContain("Approval Semantik");
     expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Posting");
+    expect(html).toContain("Approved ist nicht uploaded");
     expect(html).toContain("Publish-Readiness-Guard-Store");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
@@ -973,7 +975,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(19);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(20);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);

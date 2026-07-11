@@ -20,6 +20,7 @@ import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/V
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
+import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -49,6 +50,9 @@ import {
 import {
   buildVoxyRenderSocialDistributionHandoffPanelModel,
 } from "@/features/create/voxyRenderSocialDistributionHandoffContract";
+import {
+  buildVoxyRenderApprovalSemanticsPanelModel,
+} from "@/features/create/voxyRenderApprovalSemanticsContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -217,6 +221,12 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderSocialDistributionHandoffPanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderApprovalSemanticsModel = buildVoxyRenderApprovalSemanticsPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+  });
 
   return (
     <section
@@ -379,6 +389,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderSocialDistributionHandoffPanel
         model={voxyRenderSocialDistributionHandoffModel}
         dataTestId="create-candidate-voxy-render-social-distribution-handoff"
+      />
+      <VoxyRenderApprovalSemanticsPanel
+        model={voxyRenderApprovalSemanticsModel}
+        dataTestId="create-candidate-voxy-render-approval-semantics"
       />
 
       <VoxyRenderProviderHandoffPanel
