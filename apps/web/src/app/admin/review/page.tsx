@@ -45,6 +45,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
@@ -66,6 +67,9 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
+} from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
 import {
   buildVoxyRenderPreviewReviewFlowFromReviewContext,
   buildVoxyRenderPreviewReviewFlowPanelModel,
@@ -102,6 +106,10 @@ import {
   getVoxyRenderCostCreditPolicyPersistenceState,
   listLatestVoxyRenderCostCreditPolicyRecordsByDecisionGateIds,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getVoxyRenderPreviewReviewDecisionPersistenceState,
+  listLatestVoxyRenderPreviewReviewDecisionRecordsByDecisionGateIds,
+} from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceStore";
 import {
   getVoxyRenderPreviewReviewFlowPersistenceState,
   listLatestVoxyRenderPreviewReviewFlowRecordsByDecisionGateIds,
@@ -351,6 +359,9 @@ export default async function AdminReviewPage({
       queuePreviewModel: ReturnType<typeof buildVoxyRenderQueuePanelModel>;
       costCreditPolicyModel: ReturnType<typeof buildVoxyRenderCostCreditPolicyPanelModel>;
       assetPackDraftModel: ReturnType<typeof buildVoxyRenderAssetPackDraftPanelModel>;
+      previewReviewDecisionPersistenceModel: ReturnType<
+        typeof buildVoxyRenderPreviewReviewDecisionPersistencePanelModel
+      >;
       previewReviewFlowModel: ReturnType<typeof buildVoxyRenderPreviewReviewFlowPanelModel>;
       runtimeEnablementBacklogModel: ReturnType<typeof buildVoxyRenderRuntimeEnablementBacklogPanelModel>;
       runtimeGoNogoMatrixModel: ReturnType<typeof buildVoxyRenderRuntimeGoNogoMatrixPanelModel>;
@@ -388,6 +399,7 @@ export default async function AdminReviewPage({
       queuePreviewModel: null,
       costCreditPolicyModel: null,
       assetPackDraftModel: null,
+      previewReviewDecisionPersistenceModel: null,
       previewReviewFlowModel: null,
       runtimeEnablementBacklogModel: null,
       runtimeGoNogoMatrixModel: null,
@@ -399,6 +411,8 @@ export default async function AdminReviewPage({
   const adminVoxyQueueStoreState = getVoxyRenderQueuePersistenceState();
   const adminVoxyCostCreditStoreState = getVoxyRenderCostCreditPolicyPersistenceState();
   const adminVoxyAssetPackDraftStoreState = getVoxyRenderAssetPackDraftPersistenceState();
+  const adminVoxyPreviewReviewDecisionStoreState =
+    getVoxyRenderPreviewReviewDecisionPersistenceState();
   const adminVoxyRuntimeEnablementBacklogStoreState =
     getVoxyRenderRuntimeEnablementBacklogPersistenceState();
   const adminVoxyPreviewReviewFlowStoreState =
@@ -430,6 +444,12 @@ export default async function AdminReviewPage({
     ).catch(() => new Map<string, any>());
   const adminVoxyLatestAssetPackDrafts =
     await listLatestVoxyRenderAssetPackDraftRecordsByDecisionGateIds(
+      Array.from(adminVoxyDecisionPanels.values())
+        .map((entry) => entry.gateModel?.decisionGateId ?? null)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
+  const adminVoxyLatestPreviewReviewDecisions =
+    await listLatestVoxyRenderPreviewReviewDecisionRecordsByDecisionGateIds(
       Array.from(adminVoxyDecisionPanels.values())
         .map((entry) => entry.gateModel?.decisionGateId ?? null)
         .filter((value): value is string => Boolean(value)),
@@ -474,6 +494,9 @@ export default async function AdminReviewPage({
       : null;
     const latestAssetPackDraftRecord = panel.gateModel
       ? adminVoxyLatestAssetPackDrafts.get(panel.gateModel.decisionGateId) ?? null
+      : null;
+    const latestPreviewReviewDecisionRecord = panel.gateModel
+      ? adminVoxyLatestPreviewReviewDecisions.get(panel.gateModel.decisionGateId) ?? null
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
       ? adminVoxyLatestProviderSelectionDrafts.get(panel.gateModel.decisionGateId) ?? null
@@ -612,6 +635,24 @@ export default async function AdminReviewPage({
             ),
             latestRecord: latestAssetPackDraftRecord,
             storeState: adminVoxyAssetPackDraftStoreState,
+          })
+        : null,
+      previewReviewDecisionPersistenceModel: panel.gateModel && item?.v3ReviewContext
+        ? buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
+            previewFlow: buildVoxyRenderPreviewReviewFlowFromReviewContext({
+              reviewContext: item.v3ReviewContext,
+              surface: "admin",
+              latestDecisionRecord,
+              latestRequestDraft: latestRequestDraftRecord,
+              latestQueuePreview: latestQueuePreviewRecord,
+              latestCostPolicyPreview: latestCostCreditPolicyRecord,
+              latestAssetPackDraft: latestAssetPackDraftRecord,
+              latestProviderSelectionDraft: latestProviderSelectionDraftRecord,
+              latestMatrix: latestRuntimeGoNogoMatrixRecord,
+              latestBacklog: latestRuntimeEnablementBacklogRecord,
+            }),
+            latestRecord: latestPreviewReviewDecisionRecord,
+            storeState: adminVoxyPreviewReviewDecisionStoreState,
           })
         : null,
       previewReviewFlowModel: panel.gateModel && item?.v3ReviewContext
@@ -1192,6 +1233,13 @@ export default async function AdminReviewPage({
                             adminVoxyDecisionPanels.get(item.id)?.previewReviewFlowModel ?? null
                           }
                           dataTestId={`admin-review-voxy-render-preview-review-flow-${item.id}`}
+                        />
+                        <VoxyRenderPreviewReviewDecisionPersistencePanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)
+                              ?.previewReviewDecisionPersistenceModel ?? null
+                          }
+                          dataTestId={`admin-review-voxy-render-preview-review-decision-persistence-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(
