@@ -15,6 +15,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -35,6 +36,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderPreviewReviewFlowFromCreateCandidatePreview,
+  buildVoxyRenderPreviewReviewFlowPanelModel,
+} from "@/features/create/voxyRenderPreviewReviewFlowContract";
 import {
   buildVoxyRenderRuntimeEnablementBacklogFromCreateCandidatePreview,
   buildVoxyRenderRuntimeEnablementBacklogPanelModel,
@@ -179,6 +184,9 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderRuntimeEnablementBacklogPanelModel({
       preview: buildVoxyRenderRuntimeEnablementBacklogFromCreateCandidatePreview(model),
     });
+  const voxyRenderPreviewReviewFlowModel = buildVoxyRenderPreviewReviewFlowPanelModel({
+    preview: buildVoxyRenderPreviewReviewFlowFromCreateCandidatePreview(model),
+  });
 
   return (
     <section
@@ -321,6 +329,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderRuntimeEnablementBacklogPanel
         model={voxyRenderRuntimeEnablementBacklogModel}
         dataTestId="create-candidate-voxy-render-runtime-enablement-backlog"
+      />
+      <VoxyRenderPreviewReviewFlowPanel
+        model={voxyRenderPreviewReviewFlowModel}
+        dataTestId="create-candidate-voxy-render-preview-review-flow"
       />
 
       <VoxyRenderProviderHandoffPanel
