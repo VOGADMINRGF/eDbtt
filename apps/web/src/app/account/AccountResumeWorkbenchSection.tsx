@@ -41,6 +41,7 @@ import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/V
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
+import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -72,6 +73,9 @@ import {
 import {
   buildVoxyRenderSocialDistributionHandoffPanelModel,
 } from "@/features/create/voxyRenderSocialDistributionHandoffContract";
+import {
+  buildVoxyRenderApprovalSemanticsPanelModel,
+} from "@/features/create/voxyRenderApprovalSemanticsContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -407,6 +411,12 @@ function ResumeWorkbenchCard(props: {
     buildVoxyRenderSocialDistributionHandoffPanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderApprovalSemanticsModel = buildVoxyRenderApprovalSemanticsPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -567,6 +577,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderSocialDistributionHandoffPanel
         model={voxyRenderSocialDistributionHandoffModel}
         dataTestId={`account-resume-voxy-render-social-distribution-handoff-${props.item.id}`}
+      />
+      <VoxyRenderApprovalSemanticsPanel
+        model={voxyRenderApprovalSemanticsModel}
+        dataTestId={`account-resume-voxy-render-approval-semantics-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1204,6 +1218,12 @@ function RuntimeLinkageCard(props: {
     buildVoxyRenderSocialDistributionHandoffPanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderApprovalSemanticsModel = buildVoxyRenderApprovalSemanticsPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1371,6 +1391,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderSocialDistributionHandoffPanel
         model={voxyRenderSocialDistributionHandoffModel}
         dataTestId={`account-runtime-linkage-voxy-render-social-distribution-handoff-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderApprovalSemanticsPanel
+        model={voxyRenderApprovalSemanticsModel}
+        dataTestId={`account-runtime-linkage-voxy-render-approval-semantics-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

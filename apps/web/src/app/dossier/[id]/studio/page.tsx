@@ -62,6 +62,7 @@ import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/V
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
+import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -91,6 +92,9 @@ import {
 import {
   buildVoxyRenderSocialDistributionHandoffPanelModel,
 } from "@/features/create/voxyRenderSocialDistributionHandoffContract";
+import {
+  buildVoxyRenderApprovalSemanticsPanelModel,
+} from "@/features/create/voxyRenderApprovalSemanticsContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -142,6 +146,10 @@ import {
   getLatestVoxyRenderSocialDistributionHandoffRecord,
   getVoxyRenderSocialDistributionPersistenceState,
 } from "@/features/create/voxyRenderSocialDistributionHandoffStore";
+import {
+  getLatestVoxyRenderApprovalSemanticsRecord,
+  getVoxyRenderApprovalPersistenceState,
+} from "@/features/create/voxyRenderApprovalSemanticsStore";
 import {
   getLatestVoxyRenderPreviewReviewDecisionRecord,
   getVoxyRenderPreviewReviewDecisionPersistenceState,
@@ -596,6 +604,20 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         previewReviewFlowId: workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestApprovalSemanticsRecord = workspaceVoxyLatestSocialDistributionHandoffRecord
+    ? await getLatestVoxyRenderApprovalSemanticsRecord({
+        socialDistributionHandoffId:
+          workspaceVoxyLatestSocialDistributionHandoffRecord.socialDistributionHandoffId,
+        publishReadinessGuardId:
+          workspaceVoxyLatestPublishReadinessGuardRecord?.publishReadinessGuardId ?? null,
+        previewOutcomeHandoffId:
+          workspaceVoxyLatestPreviewOutcomeHandoffRecord?.outcomeHandoffId ?? null,
+        previewReviewDecisionRecordId:
+          workspaceVoxyLatestPreviewReviewDecisionRecord?.decisionRecordId ?? null,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -705,6 +727,22 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       gate: workspaceVoxyDecisionGateModel,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderSocialDistributionPersistenceState()
+        : null,
+    });
+  const workspaceVoxyApprovalSemanticsModel =
+    buildVoxyRenderApprovalSemanticsPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestPreviewOutcomeHandoffRecord: workspaceVoxyLatestPreviewOutcomeHandoffRecord,
+      latestPreviewReviewDecisionRecord: workspaceVoxyLatestPreviewReviewDecisionRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestSocialDistributionHandoffRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderApprovalPersistenceState()
         : null,
     });
 
@@ -936,6 +974,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderSocialDistributionHandoffPanel
               model={workspaceVoxySocialDistributionHandoffModel}
               dataTestId="dossier-studio-voxy-render-social-distribution-handoff"
+            />
+            <VoxyRenderApprovalSemanticsPanel
+              model={workspaceVoxyApprovalSemanticsModel}
+              dataTestId="dossier-studio-voxy-render-approval-semantics"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

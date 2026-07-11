@@ -50,6 +50,7 @@ import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/V
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
+import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -79,6 +80,9 @@ import {
 import {
   buildVoxyRenderSocialDistributionHandoffPanelModel,
 } from "@/features/create/voxyRenderSocialDistributionHandoffContract";
+import {
+  buildVoxyRenderApprovalSemanticsPanelModel,
+} from "@/features/create/voxyRenderApprovalSemanticsContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -130,6 +134,10 @@ import {
   getVoxyRenderSocialDistributionPersistenceState,
   listLatestVoxyRenderSocialDistributionHandoffsByPublishReadinessGuardIds,
 } from "@/features/create/voxyRenderSocialDistributionHandoffStore";
+import {
+  getVoxyRenderApprovalPersistenceState,
+  listLatestVoxyRenderApprovalSemanticsBySocialDistributionHandoffIds,
+} from "@/features/create/voxyRenderApprovalSemanticsStore";
 import {
   getVoxyRenderPreviewReviewDecisionPersistenceState,
   listLatestVoxyRenderPreviewReviewDecisionRecordsByDecisionGateIds,
@@ -388,6 +396,7 @@ export default async function AdminReviewPage({
       socialDistributionHandoffModel: ReturnType<
         typeof buildVoxyRenderSocialDistributionHandoffPanelModel
       >;
+      approvalSemanticsModel: ReturnType<typeof buildVoxyRenderApprovalSemanticsPanelModel>;
       previewReviewDecisionPersistenceModel: ReturnType<
         typeof buildVoxyRenderPreviewReviewDecisionPersistencePanelModel
       >;
@@ -431,6 +440,7 @@ export default async function AdminReviewPage({
       previewOutcomeHandoffModel: null,
       publishReadinessGuardModel: null,
       socialDistributionHandoffModel: null,
+      approvalSemanticsModel: null,
       previewReviewDecisionPersistenceModel: null,
       previewReviewFlowModel: null,
       runtimeEnablementBacklogModel: null,
@@ -451,6 +461,7 @@ export default async function AdminReviewPage({
     getVoxyRenderPublishReadinessPersistenceState();
   const adminVoxySocialDistributionStoreState =
     getVoxyRenderSocialDistributionPersistenceState();
+  const adminVoxyApprovalStoreState = getVoxyRenderApprovalPersistenceState();
   const adminVoxyRuntimeEnablementBacklogStoreState =
     getVoxyRenderRuntimeEnablementBacklogPersistenceState();
   const adminVoxyPreviewReviewFlowStoreState =
@@ -510,6 +521,12 @@ export default async function AdminReviewPage({
         .map((record) => record.publishReadinessGuardId)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestApprovalSemantics =
+    await listLatestVoxyRenderApprovalSemanticsBySocialDistributionHandoffIds(
+      Array.from(adminVoxyLatestSocialDistributionHandoffs.values())
+        .map((record) => record.socialDistributionHandoffId)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   const adminVoxyLatestProviderSelectionDrafts =
     await listLatestVoxyRenderProviderSelectionDraftRecordsByDecisionGateIds(
       Array.from(adminVoxyDecisionPanels.values())
@@ -567,6 +584,12 @@ export default async function AdminReviewPage({
       ?.publishReadinessGuardId
       ? adminVoxyLatestSocialDistributionHandoffs.get(
           latestPublishReadinessGuardRecord.publishReadinessGuardId,
+        ) ?? null
+      : null;
+    const latestApprovalSemanticsRecord = latestSocialDistributionHandoffRecord
+      ?.socialDistributionHandoffId
+      ? adminVoxyLatestApprovalSemantics.get(
+          latestSocialDistributionHandoffRecord.socialDistributionHandoffId,
         ) ?? null
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
@@ -759,6 +782,21 @@ export default async function AdminReviewPage({
             latestRequestDraft: latestRequestDraftRecord,
             gate: panel.gateModel,
             storeState: adminVoxySocialDistributionStoreState,
+          })
+        : null,
+      approvalSemanticsModel: previewReviewFlow
+        ? buildVoxyRenderApprovalSemanticsPanelModel({
+            previewFlow: previewReviewFlow,
+            latestPreviewOutcomeHandoffRecord,
+            latestPreviewReviewDecisionRecord,
+            latestPublishReadinessGuardRecord,
+            latestSocialDistributionHandoffRecord,
+            latestRecord: latestApprovalSemanticsRecord,
+            latestBacklog: latestRuntimeEnablementBacklogRecord,
+            latestMatrix: latestRuntimeGoNogoMatrixRecord,
+            latestRequestDraft: latestRequestDraftRecord,
+            gate: panel.gateModel,
+            storeState: adminVoxyApprovalStoreState,
           })
         : null,
       previewReviewDecisionPersistenceModel: panel.gateModel && item?.v3ReviewContext
@@ -1363,6 +1401,12 @@ export default async function AdminReviewPage({
                             null
                           }
                           dataTestId={`admin-review-voxy-render-social-distribution-handoff-${item.id}`}
+                        />
+                        <VoxyRenderApprovalSemanticsPanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.approvalSemanticsModel ?? null
+                          }
+                          dataTestId={`admin-review-voxy-render-approval-semantics-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(
