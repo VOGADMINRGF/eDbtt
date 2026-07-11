@@ -139,7 +139,9 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
     expect(html).toContain("Publish Readiness");
+    expect(html).toContain("Social Distribution");
     expect(html).toContain("Noch nicht veröffentlichungsbereit");
+    expect(html).toContain("Noch kein Posting");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");

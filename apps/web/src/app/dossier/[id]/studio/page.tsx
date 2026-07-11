@@ -61,6 +61,7 @@ import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPr
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
+import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -87,6 +88,9 @@ import {
 import {
   buildVoxyRenderPublishReadinessGuardPanelModel,
 } from "@/features/create/voxyRenderPublishReadinessGuardContract";
+import {
+  buildVoxyRenderSocialDistributionHandoffPanelModel,
+} from "@/features/create/voxyRenderSocialDistributionHandoffContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -134,6 +138,10 @@ import {
   getLatestVoxyRenderPublishReadinessGuardRecord,
   getVoxyRenderPublishReadinessPersistenceState,
 } from "@/features/create/voxyRenderPublishReadinessGuardStore";
+import {
+  getLatestVoxyRenderSocialDistributionHandoffRecord,
+  getVoxyRenderSocialDistributionPersistenceState,
+} from "@/features/create/voxyRenderSocialDistributionHandoffStore";
 import {
   getLatestVoxyRenderPreviewReviewDecisionRecord,
   getVoxyRenderPreviewReviewDecisionPersistenceState,
@@ -579,6 +587,15 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         previewReviewFlowId: workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestSocialDistributionHandoffRecord = workspaceVoxyLatestPublishReadinessGuardRecord
+    ? await getLatestVoxyRenderSocialDistributionHandoffRecord({
+        publishReadinessGuardId: workspaceVoxyLatestPublishReadinessGuardRecord.publishReadinessGuardId,
+        previewOutcomeHandoffId: workspaceVoxyLatestPreviewOutcomeHandoffRecord?.outcomeHandoffId ?? null,
+        previewReviewDecisionRecordId:
+          workspaceVoxyLatestPreviewReviewDecisionRecord?.decisionRecordId ?? null,
+        previewReviewFlowId: workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -673,6 +690,21 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       gate: workspaceVoxyDecisionGateModel,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderPublishReadinessPersistenceState()
+        : null,
+    });
+  const workspaceVoxySocialDistributionHandoffModel =
+    buildVoxyRenderSocialDistributionHandoffPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestPreviewOutcomeHandoffRecord: workspaceVoxyLatestPreviewOutcomeHandoffRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestPreviewReviewDecisionRecord: workspaceVoxyLatestPreviewReviewDecisionRecord,
+      latestRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderSocialDistributionPersistenceState()
         : null,
     });
 
@@ -900,6 +932,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderPublishReadinessGuardPanel
               model={workspaceVoxyPublishReadinessGuardModel}
               dataTestId="dossier-studio-voxy-render-publish-readiness-guard"
+            />
+            <VoxyRenderSocialDistributionHandoffPanel
+              model={workspaceVoxySocialDistributionHandoffModel}
+              dataTestId="dossier-studio-voxy-render-social-distribution-handoff"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
