@@ -110,12 +110,14 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Preview Review");
+    expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
     expect(html).toContain("Kein Runtime-Go/No-Go-Store im Surface");
     expect(html).toContain("Kein Runtime-Enablement-Backlog-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Store im Surface");
+    expect(html).toContain("Kein Preview-Review-Decision-Store im Surface");
     expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Keine Veröffentlichung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
@@ -156,6 +158,13 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-selection-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-runtime-go-nogo-matrix-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preview-review-flow-/g) ?? []).length).toBe(1);
+    expect(
+      (
+        html.match(
+          /data-testid=\"account-resume-voxy-render-preview-review-decision-persistence-/g,
+        ) ?? []
+      ).length,
+    ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -446,6 +455,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-selection-draft-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-runtime-go-nogo-matrix-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-runtime-enablement-backlog-create-handoff-1"');
+    expect(
+      html,
+    ).toContain(
+      'data-testid="account-runtime-linkage-voxy-render-preview-review-decision-persistence-create-handoff-1"',
+    );
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-registry-create-handoff-1"');
