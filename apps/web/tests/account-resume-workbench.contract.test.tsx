@@ -112,6 +112,8 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
+    expect(html).toContain("Publish Readiness");
+    expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
@@ -120,6 +122,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Kein Preview-Review-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Decision-Store im Surface");
     expect(html).toContain("Kein Preview-Outcome-Handoff-Store im Surface");
+    expect(html).toContain("Kein Publish-Readiness-Guard-Store im Surface");
     expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Keine Veröffentlichung");
     expect(html).toContain("Kein Persistenz-Store im Surface");
@@ -468,6 +471,9 @@ describe("account resume workbench contract", () => {
     );
     expect(html).toContain(
       'data-testid="account-runtime-linkage-voxy-render-preview-outcome-handoff-create-handoff-1"',
+    );
+    expect(html).toContain(
+      'data-testid="account-runtime-linkage-voxy-render-publish-readiness-guard-create-handoff-1"',
     );
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');
