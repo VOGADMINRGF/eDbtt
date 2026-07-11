@@ -939,6 +939,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
+    expect(html).toContain("Preview Outcome Handoff");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Voxy-Decision-Store");
@@ -967,7 +968,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(16);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(17);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -989,6 +990,10 @@ describe("/admin/review page", () => {
           /data-testid=\"admin-review-voxy-render-preview-review-decision-persistence-/g,
         ) ?? []
       ).length,
+    ).toBe(1);
+    expect(
+      (html.match(/data-testid=\"admin-review-voxy-render-preview-outcome-handoff-/g) ?? [])
+        .length,
     ).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);

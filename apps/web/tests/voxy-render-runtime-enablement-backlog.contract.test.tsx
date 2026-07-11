@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
+import {
+  buildVoxyRenderPreviewReviewFlowFromReadmodels,
+} from "@/features/create/voxyRenderPreviewReviewFlowContract";
+import {
   buildVoxyRenderRuntimeEnablementBacklogFromReadmodels,
   buildVoxyRenderRuntimeEnablementBacklogPanelModel,
 } from "@/features/create/voxyRenderRuntimeEnablementBacklogContract";
@@ -112,6 +118,87 @@ function buildMatrix(overrides?: Record<string, unknown>) {
     previousMatrixRef: null,
     supersedesMatrixRef: null,
     matrixVersion: null,
+    ...overrides,
+  } as any;
+}
+
+function buildLatestDecisionRecord(overrides?: Record<string, unknown>) {
+  return {
+    decisionRecordId: "voxy-render-preview-review-decision:1",
+    previewReviewFlowId: "voxy-render-preview-review-flow:preview-1",
+    decisionGateId: "voxy-render-review-decision-gate:admin-1",
+    enablementBacklogId: "voxy-render-runtime-enablement-backlog:preview-1",
+    matrixId: "voxy-render-runtime-go-nogo-matrix:preview-1",
+    requestDraftId: "voxy-render-request-draft:preview-1",
+    renderDecisionId: "voxy-render-decision:test-1",
+    scriptRef: { id: "script-1", title: "Voxy Script", href: "/admin/review" },
+    contributionRef: { id: "review-item-1", title: "Sichere Schulwege", href: "/admin/review" },
+    dossierRef: { id: "dossier-1", title: "Sichere Schulwege", href: "/dossier/demo" },
+    reviewerRef: { id: "admin-1", title: "Admin", href: null },
+    createdAt: "2026-07-11T10:00:00.000Z",
+    updatedAt: "2026-07-11T10:00:00.000Z",
+    sourceLanguage: "de",
+    readingLanguage: "de",
+    scriptLanguage: "de",
+    renderLanguage: "de",
+    subtitleLanguage: "de",
+    originalPreserved: true,
+    translationIsEvidence: false,
+    rtlRequired: false,
+    decisionType: "request_revision",
+    decisionStatus: "persisted_audit_only",
+    decisionPayload: {
+      reviewerComment: "Revision bleibt audit-only.",
+      revisionReason: "Runtime und Provider fehlen weiterhin.",
+      rejectionReason: null,
+      reviewReadyReason: null,
+      checklistFindings: ["Runtime-Wahrheit fehlt weiterhin."],
+      languageNotes: "Quelle und Lesefassung bleiben sichtbar.",
+      sourceCaptionNotes: "Caption-Treue bleibt Review-Aufgabe.",
+      claimSafetyNotes: "Claim-Sicherheit bleibt manuell.",
+      brandNotes: "Brand-Fit bleibt sichtbar.",
+      accessibilityNotes: "Barrierefreiheit bleibt offen.",
+      legalSafetyNotes: "Rechtliche Sicherheit bleibt Review-Punkt.",
+    },
+    checklistResults: [],
+    decisionEffects: {
+      createsRenderJob: false,
+      triggersRerender: false,
+      triggersProvider: false,
+      createsQueueJob: false,
+      createsMediaFile: false,
+      createsUpload: false,
+      triggersPublish: false,
+      costDebitAllowed: false,
+      creditDebitAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    executionFlags: {
+      previewRendered: false,
+      renderAllowed: false,
+      rerenderAllowed: false,
+      queueAllowed: false,
+      workerAllowed: false,
+      providerExecutionAllowed: false,
+      secretsAccessed: false,
+      mediaFileCreationAllowed: false,
+      previewFileAvailable: false,
+      uploadAllowed: false,
+      publishAllowed: false,
+      socialPostAllowed: false,
+      schedulingAllowed: false,
+      runtimeClaimAllowed: false,
+    },
+    nextStep: "Runtime-Backlog ergänzen.",
+    userVisibleSummary: "Revision bleibt audit-only.",
+    reviewerVisibleSummary: "Revision bleibt audit-only.",
+    previewReviewStatusHint: "needs_render_runtime",
+    persistedAt: "2026-07-11T10:00:00.000Z",
+    persistedBy: "admin-1",
+    idempotencyKey: "decision-idempotency-1",
+    previousDecisionRecordRef: null,
+    supersedesDecisionRecordRef: null,
+    decisionVersion: 1,
     ...overrides,
   } as any;
 }
@@ -357,6 +444,49 @@ describe("voxy render runtime enablement backlog contract", () => {
     expect(preview.execution.socialPostAllowed).toBe(false);
     expect(preview.execution.schedulingAllowed).toBe(false);
     expect(preview.execution.runtimeClaimAllowed).toBe(false);
+  });
+
+  it("feeds runtime blockers into the outcome handoff as a backlog candidate", () => {
+    const matrix = buildMatrix({
+      runtimeGate: buildGate({
+        gateKey: "runtime",
+        label: "Runtime",
+        status: "no_go",
+        blockerSeverity: "blocker",
+        reviewerVisibleReason: "Runtime-Wahrheit fehlt weiterhin.",
+        userVisibleReason: "Runtime-Wahrheit fehlt weiterhin.",
+        nextAction: "wait_for_runtime",
+      }),
+      matrixStatus: "blocked_by_runtime_truth",
+      overallDecision: "runtime_not_available",
+    });
+    const backlog = buildVoxyRenderRuntimeEnablementBacklogFromReadmodels({
+      surface: "admin",
+      matrix,
+    });
+    const previewFlow = buildVoxyRenderPreviewReviewFlowFromReadmodels({
+      surface: "admin",
+      backlog,
+      matrix,
+    });
+    const outcomeCommand = buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow,
+      latestPreviewReviewDecisionRecord: buildLatestDecisionRecord({
+        decisionPayload: {
+          ...buildLatestDecisionRecord().decisionPayload,
+          revisionReason: "Runtime und Provider fehlen weiterhin.",
+          sourceCaptionNotes: "Quellen bleiben sichtbar.",
+          brandNotes: "Review bleibt offen.",
+          accessibilityNotes: "Review bleibt offen.",
+        },
+      }),
+      latestBacklog: backlog,
+      latestMatrix: matrix,
+    });
+
+    expect(outcomeCommand.downstreamTarget).toBe("runtime_enablement_backlog");
+    expect(outcomeCommand.handoffEffects.createsRuntimeBacklogTask).toBe(true);
+    expect(outcomeCommand.handoffEffects.triggersRerender).toBe(false);
   });
 
   it("renders human-readable backlog labels without leaking raw enums", () => {

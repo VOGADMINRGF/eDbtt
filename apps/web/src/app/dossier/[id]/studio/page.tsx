@@ -57,6 +57,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPreviewOutcomeHandoffPanel";
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -79,6 +80,9 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderPreviewOutcomeHandoffPanelModel,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -118,6 +122,10 @@ import {
   getLatestVoxyRenderCostCreditPolicyRecord,
   getVoxyRenderCostCreditPolicyPersistenceState,
 } from "@/features/create/voxyRenderCostCreditPolicyStore";
+import {
+  getLatestVoxyRenderPreviewOutcomeHandoffRecord,
+  getVoxyRenderPreviewOutcomeHandoffPersistenceState,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffStore";
 import {
   getLatestVoxyRenderPreviewReviewDecisionRecord,
   getVoxyRenderPreviewReviewDecisionPersistenceState,
@@ -548,6 +556,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         previewReviewFlowId: workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestPreviewOutcomeHandoffRecord = workspaceVoxyLatestPreviewReviewDecisionRecord
+    ? await getLatestVoxyRenderPreviewOutcomeHandoffRecord({
+        previewReviewDecisionRecordId:
+          workspaceVoxyLatestPreviewReviewDecisionRecord.decisionRecordId,
+        previewReviewFlowId: workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -615,6 +630,19 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       latestRecord: workspaceVoxyLatestPreviewReviewDecisionRecord,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderPreviewReviewDecisionPersistenceState()
+        : null,
+    });
+  const workspaceVoxyPreviewOutcomeHandoffModel =
+    buildVoxyRenderPreviewOutcomeHandoffPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestPreviewReviewDecisionRecord: workspaceVoxyLatestPreviewReviewDecisionRecord,
+      latestRecord: workspaceVoxyLatestPreviewOutcomeHandoffRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderPreviewOutcomeHandoffPersistenceState()
         : null,
     });
 
@@ -834,6 +862,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderPreviewReviewDecisionPersistencePanel
               model={workspaceVoxyPreviewReviewDecisionPersistenceModel}
               dataTestId="dossier-studio-voxy-render-preview-review-decision-persistence"
+            />
+            <VoxyRenderPreviewOutcomeHandoffPanel
+              model={workspaceVoxyPreviewOutcomeHandoffModel}
+              dataTestId="dossier-studio-voxy-render-preview-outcome-handoff"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

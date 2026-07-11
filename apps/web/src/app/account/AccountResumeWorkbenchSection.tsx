@@ -36,6 +36,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPreviewOutcomeHandoffPanel";
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -60,6 +61,9 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromReviewContext,
   buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderPreviewOutcomeHandoffPanelModel,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -385,6 +389,9 @@ function ResumeWorkbenchCard(props: {
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -533,6 +540,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderPreviewReviewDecisionPersistencePanel
         model={voxyRenderPreviewReviewDecisionPersistenceModel}
         dataTestId={`account-resume-voxy-render-preview-review-decision-persistence-${props.item.id}`}
+      />
+      <VoxyRenderPreviewOutcomeHandoffPanel
+        model={voxyRenderPreviewOutcomeHandoffModel}
+        dataTestId={`account-resume-voxy-render-preview-outcome-handoff-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1160,6 +1171,9 @@ function RuntimeLinkageCard(props: {
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1315,6 +1329,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderPreviewReviewDecisionPersistencePanel
         model={voxyRenderPreviewReviewDecisionPersistenceModel}
         dataTestId={`account-runtime-linkage-voxy-render-preview-review-decision-persistence-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderPreviewOutcomeHandoffPanel
+        model={voxyRenderPreviewOutcomeHandoffModel}
+        dataTestId={`account-runtime-linkage-voxy-render-preview-outcome-handoff-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

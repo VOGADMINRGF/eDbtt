@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
+} from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
+import {
   buildVoxyRenderPreviewReviewFlowFromReadmodels,
   buildVoxyRenderPreviewReviewFlowPanelModel,
 } from "@/features/create/voxyRenderPreviewReviewFlowContract";
@@ -262,6 +265,21 @@ describe("voxy render preview review flow contract", () => {
       ]),
     );
     expect(Object.values(preview.execution).every((value) => value === false)).toBe(true);
+  });
+
+  it("keeps the outcome handoff blocked until a preview-review decision exists", () => {
+    const preview = buildVoxyRenderPreviewReviewFlowFromReadmodels({
+      surface: "admin",
+      backlog: buildBacklog(),
+      matrix: buildMatrix(),
+    });
+    const outcomeCommand = buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow: preview,
+    });
+
+    expect(outcomeCommand.outcomeType).toBe("blocked");
+    expect(outcomeCommand.handoffStatus).toBe("blocked_by_missing_preview_review_decision");
+    expect(outcomeCommand.executionFlags.renderAllowed).toBe(false);
   });
 
   it("renders a review-first panel without raw enum strings", () => {
