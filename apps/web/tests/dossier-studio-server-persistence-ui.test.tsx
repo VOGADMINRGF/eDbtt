@@ -138,6 +138,8 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
+    expect(html).toContain("Publish Readiness");
+    expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Persistenter Voxy-Request-Draft-Store");
@@ -150,6 +152,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Preview-Review-Flow-Store");
     expect(html).toContain("Preview-Review-Decision-Store");
     expect(html).toContain("Preview-Outcome-Handoff-Store");
+    expect(html).toContain("Publish-Readiness-Guard-Store");
     expect(html).toContain("Voxy-Decision-Store");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Studio");
     expect(html).toContain("Voxy-Render-Preflight im Studio");
@@ -187,6 +190,7 @@ describe("dossier studio server persistence UI", () => {
       'data-testid="dossier-studio-voxy-render-preview-review-decision-persistence"',
     );
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preview-outcome-handoff"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-publish-readiness-guard"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
