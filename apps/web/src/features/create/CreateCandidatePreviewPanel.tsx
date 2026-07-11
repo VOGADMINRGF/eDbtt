@@ -19,6 +19,7 @@ import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPr
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
+import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -45,6 +46,9 @@ import {
 import {
   buildVoxyRenderPublishReadinessGuardPanelModel,
 } from "@/features/create/voxyRenderPublishReadinessGuardContract";
+import {
+  buildVoxyRenderSocialDistributionHandoffPanelModel,
+} from "@/features/create/voxyRenderSocialDistributionHandoffContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -209,6 +213,10 @@ export default function CreateCandidatePreviewPanel({
   const voxyRenderPublishReadinessGuardModel = buildVoxyRenderPublishReadinessGuardPanelModel({
     previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
   });
+  const voxyRenderSocialDistributionHandoffModel =
+    buildVoxyRenderSocialDistributionHandoffPanelModel({
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    });
 
   return (
     <section
@@ -367,6 +375,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderPublishReadinessGuardPanel
         model={voxyRenderPublishReadinessGuardModel}
         dataTestId="create-candidate-voxy-render-publish-readiness-guard"
+      />
+      <VoxyRenderSocialDistributionHandoffPanel
+        model={voxyRenderSocialDistributionHandoffModel}
+        dataTestId="create-candidate-voxy-render-social-distribution-handoff"
       />
 
       <VoxyRenderProviderHandoffPanel
