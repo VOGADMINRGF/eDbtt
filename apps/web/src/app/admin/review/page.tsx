@@ -52,6 +52,7 @@ import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPu
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
+import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
@@ -88,6 +89,9 @@ import {
 import {
   buildVoxyRenderMediaStorageTruthPanelModel,
 } from "@/features/create/voxyRenderMediaStorageTruthContract";
+import {
+  buildVoxyRenderSchedulingPolicyPanelModel,
+} from "@/features/create/voxyRenderSchedulingPolicyContract";
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
@@ -150,6 +154,10 @@ import {
   getVoxyRenderMediaStoragePersistenceState,
   listLatestVoxyRenderMediaStorageTruthByApprovalSemanticsIds,
 } from "@/features/create/voxyRenderMediaStorageTruthStore";
+import {
+  getVoxyRenderSchedulingPolicyPersistenceState,
+  listLatestVoxyRenderSchedulingPoliciesByUploadTargetPolicyIds,
+} from "@/features/create/voxyRenderSchedulingPolicyStore";
 import {
   getVoxyRenderUploadTargetPolicyPersistenceState,
   listLatestVoxyRenderUploadTargetPoliciesByMediaStorageTruthIds,
@@ -414,6 +422,7 @@ export default async function AdminReviewPage({
       >;
       approvalSemanticsModel: ReturnType<typeof buildVoxyRenderApprovalSemanticsPanelModel>;
       mediaStorageTruthModel: ReturnType<typeof buildVoxyRenderMediaStorageTruthPanelModel>;
+      schedulingPolicyModel: ReturnType<typeof buildVoxyRenderSchedulingPolicyPanelModel>;
       uploadTargetPolicyModel: ReturnType<typeof buildVoxyRenderUploadTargetPolicyPanelModel>;
       previewReviewDecisionPersistenceModel: ReturnType<
         typeof buildVoxyRenderPreviewReviewDecisionPersistencePanelModel
@@ -460,6 +469,7 @@ export default async function AdminReviewPage({
       socialDistributionHandoffModel: null,
       approvalSemanticsModel: null,
       mediaStorageTruthModel: null,
+      schedulingPolicyModel: null,
       uploadTargetPolicyModel: null,
       previewReviewDecisionPersistenceModel: null,
       previewReviewFlowModel: null,
@@ -483,6 +493,8 @@ export default async function AdminReviewPage({
     getVoxyRenderSocialDistributionPersistenceState();
   const adminVoxyApprovalStoreState = getVoxyRenderApprovalPersistenceState();
   const adminVoxyMediaStorageStoreState = getVoxyRenderMediaStoragePersistenceState();
+  const adminVoxySchedulingPolicyStoreState =
+    getVoxyRenderSchedulingPolicyPersistenceState();
   const adminVoxyUploadTargetPolicyStoreState =
     getVoxyRenderUploadTargetPolicyPersistenceState();
   const adminVoxyRuntimeEnablementBacklogStoreState =
@@ -562,6 +574,12 @@ export default async function AdminReviewPage({
         .map((record) => record.mediaStorageTruthId)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestSchedulingPolicies =
+    await listLatestVoxyRenderSchedulingPoliciesByUploadTargetPolicyIds(
+      Array.from(adminVoxyLatestUploadTargetPolicies.values())
+        .map((record) => record.uploadTargetPolicyId)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   const adminVoxyLatestProviderSelectionDrafts =
     await listLatestVoxyRenderProviderSelectionDraftRecordsByDecisionGateIds(
       Array.from(adminVoxyDecisionPanels.values())
@@ -633,6 +651,10 @@ export default async function AdminReviewPage({
       : null;
     const latestUploadTargetPolicyRecord = latestMediaStorageTruthRecord?.mediaStorageTruthId
       ? adminVoxyLatestUploadTargetPolicies.get(latestMediaStorageTruthRecord.mediaStorageTruthId) ??
+        null
+      : null;
+    const latestSchedulingPolicyRecord = latestUploadTargetPolicyRecord?.uploadTargetPolicyId
+      ? adminVoxyLatestSchedulingPolicies.get(latestUploadTargetPolicyRecord.uploadTargetPolicyId) ??
         null
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
@@ -852,6 +874,22 @@ export default async function AdminReviewPage({
             latestRequestDraft: latestRequestDraftRecord,
             gate: panel.gateModel,
             storeState: adminVoxyMediaStorageStoreState,
+          })
+        : null,
+      schedulingPolicyModel: previewReviewFlow
+        ? buildVoxyRenderSchedulingPolicyPanelModel({
+            previewFlow: previewReviewFlow,
+            latestUploadTargetPolicyRecord,
+            latestMediaStorageTruthRecord,
+            latestApprovalSemanticsRecord,
+            latestPublishReadinessGuardRecord,
+            latestSocialDistributionHandoffRecord,
+            latestRecord: latestSchedulingPolicyRecord,
+            latestBacklog: latestRuntimeEnablementBacklogRecord,
+            latestMatrix: latestRuntimeGoNogoMatrixRecord,
+            latestRequestDraft: latestRequestDraftRecord,
+            gate: panel.gateModel,
+            storeState: adminVoxySchedulingPolicyStoreState,
           })
         : null,
       uploadTargetPolicyModel: previewReviewFlow
@@ -1489,6 +1527,12 @@ export default async function AdminReviewPage({
                             adminVoxyDecisionPanels.get(item.id)?.uploadTargetPolicyModel ?? null
                           }
                           dataTestId={`admin-review-voxy-render-upload-target-policy-${item.id}`}
+                        />
+                        <VoxyRenderSchedulingPolicyPanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.schedulingPolicyModel ?? null
+                          }
+                          dataTestId={`admin-review-voxy-render-scheduling-policy-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(
