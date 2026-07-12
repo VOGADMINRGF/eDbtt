@@ -10,6 +10,12 @@ The single operational source of truth for implementation work is:
 
 Codex and other coding agents must treat `OpenTasks.md` as the canonical work queue for implementation slices, documentation harmonization, follow-up hardening, and backlog hygiene.
 
+The controlled continuous-operation, autonomy, escalation, budget, and data-protection rules are defined in:
+
+- `docs/E150/CODEX_AUTONOMOUS_OPERATING_MODEL.md`
+
+The autonomous operating model extends these rules but never overrides `OpenTasks.md` as the implementation SSOT.
+
 ---
 
 ## Core Operating Rules
@@ -86,6 +92,16 @@ Für deutschsprachige Frontend-Texte gilt:
 - keine Umschreibungen mit `ae`, `oe`, `ue` in UI-Texten
 - technische Bezeichner, IDs und APIs bleiben davon unberührt
 
+### 9. Continuous operation is bounded
+When an agent is instructed to continue through eligible work without a new manual prompt after every slice, it must follow `docs/E150/CODEX_AUTONOMOUS_OPERATING_MODEL.md`.
+
+In particular:
+- only eligible `codex_ready` work may be selected;
+- autonomy classes and approval gates apply;
+- retry, budget, security, and escalation stop conditions are mandatory;
+- no agent may purchase credits, broaden permissions, access production data, or enable auto-publish autonomously;
+- auto-merge is disabled by default until the documented supervised rollout has produced acceptable evidence.
+
 ---
 
 ## Required Task Status Meanings
@@ -113,6 +129,12 @@ Each actionable task in `docs/E150/OpenTasks.md` should contain or imply:
 - `Acceptance Criteria`
 - `Decision open`
 - optional: `Evidence / Notes`
+
+For autonomous continuous operation, a task should additionally carry or clearly imply:
+
+- `Autonomy class`: `green`, `yellow`, `orange`, or `red`
+- `Required gates`
+- `Escalation triggers`, when task-specific rules exceed the repository defaults
 
 ---
 
@@ -151,6 +173,10 @@ Arbeite ausschliesslich die naechsten 1-3 `codex_ready` Tasks aus `docs/E150/Ope
 Halte Code und Docs synchron, aktualisiere OpenTasks nach jedem erledigten Task und stoppe an
 Begriffs-/Routing-/Governance-Entscheidungsgrenzen mit einer kurzen Rueckfrage.
 
+For continuous operation, use this extended form:
+
+Arbeite die naechsten ausfuehrbaren `codex_ready` Tasks gemaess `docs/E150/CODEX_AUTONOMOUS_OPERATING_MODEL.md` ab. Schliesse jeden Slice inklusive Tests, Review, Reparaturschleife, Dokumentation und OpenTasks-Update ab, bevor du den naechsten Slice startest. Halte Budget-, Datenschutz-, Autonomie- und Eskalationsgrenzen ein. Stoppe nur an einer dokumentierten Entscheidungs-, Sicherheits-, Budget- oder Wiederholungsgrenze und liefere dann ein strukturiertes Entscheidungspaket.
+
 ---
 
 ## Final Response Requirements
@@ -163,6 +189,8 @@ After completing a slice, always report:
 4. what tests were run
 5. what remains open
 6. whether `OpenTasks.md` was updated
+7. which autonomy class applied
+8. whether any budget, privacy, or escalation threshold was approached
 
 ---
 
@@ -176,3 +204,5 @@ When asked to "work through OpenTasks" or similar, the agent should:
 4. update `docs/E150/OpenTasks.md`
 5. stop at any real decision boundary
 6. return a concise implementation summary
+
+When explicitly asked for continuous autonomous operation, the agent may continue with the next eligible task without a new prompt only under the controlled operating model and its approval gates.
