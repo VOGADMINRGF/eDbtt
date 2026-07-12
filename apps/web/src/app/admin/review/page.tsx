@@ -53,6 +53,7 @@ import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRend
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
+import VoxyRenderRuntimeCutoverGatePanel from "@/features/create/VoxyRenderRuntimeCutoverGatePanel";
 import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRuntimeObservabilityPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -93,6 +94,9 @@ import {
 import {
   buildVoxyRenderSchedulingPolicyPanelModel,
 } from "@/features/create/voxyRenderSchedulingPolicyContract";
+import {
+  buildVoxyRenderRuntimeCutoverGatePanelModel,
+} from "@/features/create/voxyRenderRuntimeCutoverGateContract";
 import {
   buildVoxyRenderRuntimeObservabilityPanelModel,
 } from "@/features/create/voxyRenderRuntimeObservabilityContract";
@@ -162,6 +166,10 @@ import {
   getVoxyRenderSchedulingPolicyPersistenceState,
   listLatestVoxyRenderSchedulingPoliciesByUploadTargetPolicyIds,
 } from "@/features/create/voxyRenderSchedulingPolicyStore";
+import {
+  getVoxyRenderRuntimeCutoverGatePersistenceState,
+  listLatestVoxyRenderRuntimeCutoverGatesByRuntimeObservabilityIds,
+} from "@/features/create/voxyRenderRuntimeCutoverGateStore";
 import {
   getVoxyRenderRuntimeObservabilityPersistenceState,
   listLatestVoxyRenderRuntimeObservabilityBySchedulingPolicyIds,
@@ -431,6 +439,7 @@ export default async function AdminReviewPage({
       approvalSemanticsModel: ReturnType<typeof buildVoxyRenderApprovalSemanticsPanelModel>;
       mediaStorageTruthModel: ReturnType<typeof buildVoxyRenderMediaStorageTruthPanelModel>;
       schedulingPolicyModel: ReturnType<typeof buildVoxyRenderSchedulingPolicyPanelModel>;
+      runtimeCutoverGateModel: ReturnType<typeof buildVoxyRenderRuntimeCutoverGatePanelModel>;
       runtimeObservabilityModel: ReturnType<
         typeof buildVoxyRenderRuntimeObservabilityPanelModel
       >;
@@ -481,6 +490,7 @@ export default async function AdminReviewPage({
       approvalSemanticsModel: null,
       mediaStorageTruthModel: null,
       schedulingPolicyModel: null,
+      runtimeCutoverGateModel: null,
       runtimeObservabilityModel: null,
       uploadTargetPolicyModel: null,
       previewReviewDecisionPersistenceModel: null,
@@ -509,6 +519,8 @@ export default async function AdminReviewPage({
     getVoxyRenderSchedulingPolicyPersistenceState();
   const adminVoxyRuntimeObservabilityStoreState =
     getVoxyRenderRuntimeObservabilityPersistenceState();
+  const adminVoxyRuntimeCutoverGateStoreState =
+    getVoxyRenderRuntimeCutoverGatePersistenceState();
   const adminVoxyUploadTargetPolicyStoreState =
     getVoxyRenderUploadTargetPolicyPersistenceState();
   const adminVoxyRuntimeEnablementBacklogStoreState =
@@ -600,6 +612,12 @@ export default async function AdminReviewPage({
         .map((record) => record.schedulingPolicyId)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestRuntimeCutoverGates =
+    await listLatestVoxyRenderRuntimeCutoverGatesByRuntimeObservabilityIds(
+      Array.from(adminVoxyLatestRuntimeObservability.values())
+        .map((record) => record.runtimeObservabilityId)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   const adminVoxyLatestProviderSelectionDrafts =
     await listLatestVoxyRenderProviderSelectionDraftRecordsByDecisionGateIds(
       Array.from(adminVoxyDecisionPanels.values())
@@ -680,6 +698,12 @@ export default async function AdminReviewPage({
     const latestRuntimeObservabilityRecord = latestSchedulingPolicyRecord?.schedulingPolicyId
       ? adminVoxyLatestRuntimeObservability.get(latestSchedulingPolicyRecord.schedulingPolicyId) ??
         null
+      : null;
+    const latestRuntimeCutoverGateRecord = latestRuntimeObservabilityRecord
+      ?.runtimeObservabilityId
+      ? adminVoxyLatestRuntimeCutoverGates.get(
+          latestRuntimeObservabilityRecord.runtimeObservabilityId,
+        ) ?? null
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
       ? adminVoxyLatestProviderSelectionDrafts.get(panel.gateModel.decisionGateId) ?? null
@@ -914,6 +938,28 @@ export default async function AdminReviewPage({
             latestRequestDraft: latestRequestDraftRecord,
             gate: panel.gateModel,
             storeState: adminVoxySchedulingPolicyStoreState,
+          })
+        : null,
+      runtimeCutoverGateModel: previewReviewFlow
+        ? buildVoxyRenderRuntimeCutoverGatePanelModel({
+            latestRuntimeObservabilityRecord,
+            latestSchedulingPolicyRecord,
+            latestUploadTargetPolicyRecord,
+            latestMediaStorageTruthRecord,
+            latestApprovalSemanticsRecord,
+            latestSocialDistributionHandoffRecord,
+            latestPublishReadinessGuardRecord,
+            latestProviderSelectionDraft: latestProviderSelectionDraftRecord,
+            latestQueueContract: latestQueuePreviewRecord,
+            latestCostCreditPolicy: latestCostCreditPolicyRecord,
+            latestBacklog: latestRuntimeEnablementBacklogRecord,
+            latestMatrix: latestRuntimeGoNogoMatrixRecord,
+            latestRequestDraft: latestRequestDraftRecord,
+            previewFlow: previewReviewFlow,
+            gate: panel.gateModel,
+            latestRecord: latestRuntimeCutoverGateRecord,
+            storeState: adminVoxyRuntimeCutoverGateStoreState,
+            runtimeObservabilityStoreState: adminVoxyRuntimeObservabilityStoreState,
           })
         : null,
       runtimeObservabilityModel: previewReviewFlow
@@ -1583,6 +1629,13 @@ export default async function AdminReviewPage({
                             null
                           }
                           dataTestId={`admin-review-voxy-render-runtime-observability-${item.id}`}
+                        />
+                        <VoxyRenderRuntimeCutoverGatePanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.runtimeCutoverGateModel ??
+                            null
+                          }
+                          dataTestId={`admin-review-voxy-render-runtime-cutover-gate-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(

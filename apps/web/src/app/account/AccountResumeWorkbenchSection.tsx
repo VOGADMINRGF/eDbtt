@@ -44,6 +44,7 @@ import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRend
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
+import VoxyRenderRuntimeCutoverGatePanel from "@/features/create/VoxyRenderRuntimeCutoverGatePanel";
 import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRuntimeObservabilityPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -86,6 +87,9 @@ import {
 import {
   buildVoxyRenderSchedulingPolicyPanelModel,
 } from "@/features/create/voxyRenderSchedulingPolicyContract";
+import {
+  buildVoxyRenderRuntimeCutoverGatePanelModel,
+} from "@/features/create/voxyRenderRuntimeCutoverGateContract";
 import {
   buildVoxyRenderRuntimeObservabilityPanelModel,
 } from "@/features/create/voxyRenderRuntimeObservabilityContract";
@@ -482,6 +486,26 @@ function ResumeWorkbenchCard(props: {
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
     });
+  const voxyRenderRuntimeCutoverGateModel =
+    buildVoxyRenderRuntimeCutoverGatePanelModel({
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
+      latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+      latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
       <div className="flex flex-wrap items-center gap-2">
@@ -661,6 +685,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderRuntimeObservabilityPanel
         model={voxyRenderRuntimeObservabilityModel}
         dataTestId={`account-resume-voxy-render-runtime-observability-${props.item.id}`}
+      />
+      <VoxyRenderRuntimeCutoverGatePanel
+        model={voxyRenderRuntimeCutoverGateModel}
+        dataTestId={`account-resume-voxy-render-runtime-cutover-gate-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1353,6 +1381,26 @@ function RuntimeLinkageCard(props: {
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
     });
+  const voxyRenderRuntimeCutoverGateModel =
+    buildVoxyRenderRuntimeCutoverGatePanelModel({
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
+      latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+      latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1540,6 +1588,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderRuntimeObservabilityPanel
         model={voxyRenderRuntimeObservabilityModel}
         dataTestId={`account-runtime-linkage-voxy-render-runtime-observability-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderRuntimeCutoverGatePanel
+        model={voxyRenderRuntimeCutoverGateModel}
+        dataTestId={`account-runtime-linkage-voxy-render-runtime-cutover-gate-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
