@@ -937,6 +937,7 @@ describe("/admin/review page", () => {
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
+    expect(html).toContain("Runtime Observability");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -977,7 +978,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(23);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(24);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -1007,6 +1008,10 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-voxy-render-media-storage-truth-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-upload-target-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-scheduling-policy-/g) ?? []).length).toBe(1);
+    expect(
+      (html.match(/data-testid=\"admin-review-voxy-render-runtime-observability-/g) ?? [])
+        .length,
+    ).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-registry-/g) ?? []).length).toBe(1);

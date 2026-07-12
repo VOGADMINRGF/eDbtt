@@ -135,6 +135,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
+    expect(html).toContain("Runtime Observability");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -200,6 +201,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-media-storage-truth"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-upload-target-policy"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-scheduling-policy"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-observability"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
