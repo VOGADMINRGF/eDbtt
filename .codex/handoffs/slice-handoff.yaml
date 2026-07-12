@@ -1,0 +1,63 @@
+version: 1
+slice:
+  task_id: ""
+  title: ""
+  autonomy_class: "green|yellow|orange|red"
+  branch: ""
+  base_sha: ""
+  head_sha: ""
+  status: "implemented|changes_required|blocked|merge_ready"
+
+scope:
+  declared_paths: []
+  changed_files: []
+  out_of_scope_changes: []
+
+acceptance_criteria:
+  - criterion: ""
+    status: "pass|fail|not_run|blocked"
+    evidence: []
+
+checks:
+  - command: ""
+    result: "pass|fail|not_run"
+    notes: ""
+
+product_integrity:
+  review_first_preserved: true
+  no_auto_publish: true
+  no_fake_runtime_truth: true
+  multilingual_principles_preserved: true
+  voxy_principles_preserved: true
+  notes: ""
+
+security_and_privacy:
+  secrets_touched: false
+  production_data_used: false
+  permissions_broadened: false
+  external_service_added: false
+  notes: ""
+
+documentation:
+  open_tasks_updated: false
+  readiness_matrix_updated: false
+  other_docs_updated: []
+
+risks:
+  blockers: []
+  major: []
+  minor: []
+  follow_ups: []
+
+usage:
+  expensive_full_repo_checks: []
+  repair_rounds_used: 0
+  budget_threshold_approached: false
+
+review:
+  reviewer_status: "pending|approved_green_merge_eligible|approved_yellow_human_merge_required|changes_required|blocked_decision_required|blocked_budget_or_security"
+  findings: []
+
+next_action:
+  type: "review|repair|human_approval|decision|close|next_slice"
+  details: ""
