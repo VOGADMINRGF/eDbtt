@@ -42,6 +42,7 @@ import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPrevie
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
+import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -76,6 +77,9 @@ import {
 import {
   buildVoxyRenderApprovalSemanticsPanelModel,
 } from "@/features/create/voxyRenderApprovalSemanticsContract";
+import {
+  buildVoxyRenderMediaStorageTruthPanelModel,
+} from "@/features/create/voxyRenderMediaStorageTruthContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -417,6 +421,14 @@ function ResumeWorkbenchCard(props: {
     latestSocialDistributionHandoffRecord:
       voxyRenderSocialDistributionHandoffModel?.preview ?? null,
   });
+  const voxyRenderMediaStorageTruthModel = buildVoxyRenderMediaStorageTruthPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -581,6 +593,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderApprovalSemanticsPanel
         model={voxyRenderApprovalSemanticsModel}
         dataTestId={`account-resume-voxy-render-approval-semantics-${props.item.id}`}
+      />
+      <VoxyRenderMediaStorageTruthPanel
+        model={voxyRenderMediaStorageTruthModel}
+        dataTestId={`account-resume-voxy-render-media-storage-truth-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1224,6 +1240,14 @@ function RuntimeLinkageCard(props: {
     latestSocialDistributionHandoffRecord:
       voxyRenderSocialDistributionHandoffModel?.preview ?? null,
   });
+  const voxyRenderMediaStorageTruthModel = buildVoxyRenderMediaStorageTruthPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1395,6 +1419,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderApprovalSemanticsPanel
         model={voxyRenderApprovalSemanticsModel}
         dataTestId={`account-runtime-linkage-voxy-render-approval-semantics-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderMediaStorageTruthPanel
+        model={voxyRenderMediaStorageTruthModel}
+        dataTestId={`account-runtime-linkage-voxy-render-media-storage-truth-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

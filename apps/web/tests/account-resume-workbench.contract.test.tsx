@@ -115,9 +115,11 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Publish Readiness");
     expect(html).toContain("Social Distribution");
     expect(html).toContain("Approval Semantik");
+    expect(html).toContain("Media &amp; Storage");
     expect(html).toContain("Noch nicht veröffentlichungsbereit");
     expect(html).toContain("Noch kein Posting");
     expect(html).toContain("Approved ist nicht uploaded");
+    expect(html).toContain("Kein Storage-Write");
     expect(html).toContain("Noch kein Preview-Video");
     expect(html).toContain("Keine Medien-Datei");
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
@@ -179,6 +181,7 @@ describe("account resume workbench contract", () => {
         .length,
     ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-approval-semantics-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-media-storage-truth-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -479,6 +482,9 @@ describe("account resume workbench contract", () => {
     );
     expect(html).toContain(
       'data-testid="account-runtime-linkage-voxy-render-publish-readiness-guard-create-handoff-1"',
+    );
+    expect(html).toContain(
+      'data-testid="account-runtime-linkage-voxy-render-media-storage-truth-create-handoff-1"',
     );
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');

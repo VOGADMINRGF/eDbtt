@@ -21,6 +21,7 @@ import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPrevie
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
+import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -53,6 +54,9 @@ import {
 import {
   buildVoxyRenderApprovalSemanticsPanelModel,
 } from "@/features/create/voxyRenderApprovalSemanticsContract";
+import {
+  buildVoxyRenderMediaStorageTruthPanelModel,
+} from "@/features/create/voxyRenderMediaStorageTruthContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -227,6 +231,14 @@ export default function CreateCandidatePreviewPanel({
     latestSocialDistributionHandoffRecord:
       voxyRenderSocialDistributionHandoffModel?.preview ?? null,
   });
+  const voxyRenderMediaStorageTruthModel = buildVoxyRenderMediaStorageTruthPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <section
@@ -393,6 +405,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderApprovalSemanticsPanel
         model={voxyRenderApprovalSemanticsModel}
         dataTestId="create-candidate-voxy-render-approval-semantics"
+      />
+      <VoxyRenderMediaStorageTruthPanel
+        model={voxyRenderMediaStorageTruthModel}
+        dataTestId="create-candidate-voxy-render-media-storage-truth"
       />
 
       <VoxyRenderProviderHandoffPanel

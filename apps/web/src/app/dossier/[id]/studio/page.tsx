@@ -63,6 +63,7 @@ import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPrevie
 import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPublishReadinessGuardPanel";
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
+import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -95,6 +96,9 @@ import {
 import {
   buildVoxyRenderApprovalSemanticsPanelModel,
 } from "@/features/create/voxyRenderApprovalSemanticsContract";
+import {
+  buildVoxyRenderMediaStorageTruthPanelModel,
+} from "@/features/create/voxyRenderMediaStorageTruthContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -150,6 +154,10 @@ import {
   getLatestVoxyRenderApprovalSemanticsRecord,
   getVoxyRenderApprovalPersistenceState,
 } from "@/features/create/voxyRenderApprovalSemanticsStore";
+import {
+  getLatestVoxyRenderMediaStorageTruthRecord,
+  getVoxyRenderMediaStoragePersistenceState,
+} from "@/features/create/voxyRenderMediaStorageTruthStore";
 import {
   getLatestVoxyRenderPreviewReviewDecisionRecord,
   getVoxyRenderPreviewReviewDecisionPersistenceState,
@@ -618,6 +626,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestMediaStorageTruthRecord = workspaceVoxyLatestApprovalSemanticsRecord
+    ? await getLatestVoxyRenderMediaStorageTruthRecord({
+        approvalSemanticsId: workspaceVoxyLatestApprovalSemanticsRecord.approvalSemanticsId,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -743,6 +758,19 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       gate: workspaceVoxyDecisionGateModel,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderApprovalPersistenceState()
+        : null,
+    });
+  const workspaceVoxyMediaStorageTruthModel =
+    buildVoxyRenderMediaStorageTruthPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestApprovalSemanticsRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestRecord: workspaceVoxyLatestMediaStorageTruthRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderMediaStoragePersistenceState()
         : null,
     });
 
@@ -978,6 +1006,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderApprovalSemanticsPanel
               model={workspaceVoxyApprovalSemanticsModel}
               dataTestId="dossier-studio-voxy-render-approval-semantics"
+            />
+            <VoxyRenderMediaStorageTruthPanel
+              model={workspaceVoxyMediaStorageTruthModel}
+              dataTestId="dossier-studio-voxy-render-media-storage-truth"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
