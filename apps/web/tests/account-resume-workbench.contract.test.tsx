@@ -182,6 +182,7 @@ describe("account resume workbench contract", () => {
     ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-approval-semantics-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-media-storage-truth-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-render-upload-target-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -485,6 +486,9 @@ describe("account resume workbench contract", () => {
     );
     expect(html).toContain(
       'data-testid="account-runtime-linkage-voxy-render-media-storage-truth-create-handoff-1"',
+    );
+    expect(html).toContain(
+      'data-testid="account-runtime-linkage-voxy-render-upload-target-policy-create-handoff-1"',
     );
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-handoff-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-preflight-create-handoff-1"');

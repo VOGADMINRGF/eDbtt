@@ -64,6 +64,7 @@ import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPu
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
+import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -99,6 +100,9 @@ import {
 import {
   buildVoxyRenderMediaStorageTruthPanelModel,
 } from "@/features/create/voxyRenderMediaStorageTruthContract";
+import {
+  buildVoxyRenderUploadTargetPolicyPanelModel,
+} from "@/features/create/voxyRenderUploadTargetPolicyContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -158,6 +162,10 @@ import {
   getLatestVoxyRenderMediaStorageTruthRecord,
   getVoxyRenderMediaStoragePersistenceState,
 } from "@/features/create/voxyRenderMediaStorageTruthStore";
+import {
+  getLatestVoxyRenderUploadTargetPolicyRecord,
+  getVoxyRenderUploadTargetPolicyPersistenceState,
+} from "@/features/create/voxyRenderUploadTargetPolicyStore";
 import {
   getLatestVoxyRenderPreviewReviewDecisionRecord,
   getVoxyRenderPreviewReviewDecisionPersistenceState,
@@ -633,6 +641,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestUploadTargetPolicyRecord = workspaceVoxyLatestMediaStorageTruthRecord
+    ? await getLatestVoxyRenderUploadTargetPolicyRecord({
+        mediaStorageTruthId: workspaceVoxyLatestMediaStorageTruthRecord.mediaStorageTruthId,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -771,6 +786,22 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       gate: workspaceVoxyDecisionGateModel,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderMediaStoragePersistenceState()
+        : null,
+    });
+  const workspaceVoxyUploadTargetPolicyModel =
+    buildVoxyRenderUploadTargetPolicyPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestMediaStorageTruthRecord: workspaceVoxyLatestMediaStorageTruthRecord,
+      latestApprovalSemanticsRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestSocialDistributionHandoffRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestRecord: workspaceVoxyLatestUploadTargetPolicyRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderUploadTargetPolicyPersistenceState()
         : null,
     });
 
@@ -1010,6 +1041,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderMediaStorageTruthPanel
               model={workspaceVoxyMediaStorageTruthModel}
               dataTestId="dossier-studio-voxy-render-media-storage-truth"
+            />
+            <VoxyRenderUploadTargetPolicyPanel
+              model={workspaceVoxyUploadTargetPolicyModel}
+              dataTestId="dossier-studio-voxy-render-upload-target-policy"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {

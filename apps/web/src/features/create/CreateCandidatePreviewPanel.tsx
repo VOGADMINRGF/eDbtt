@@ -22,6 +22,7 @@ import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPu
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
+import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
@@ -57,6 +58,9 @@ import {
 import {
   buildVoxyRenderMediaStorageTruthPanelModel,
 } from "@/features/create/voxyRenderMediaStorageTruthContract";
+import {
+  buildVoxyRenderUploadTargetPolicyPanelModel,
+} from "@/features/create/voxyRenderUploadTargetPolicyContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -239,6 +243,18 @@ export default function CreateCandidatePreviewPanel({
     latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
     gate: voxyRenderReviewDecisionGateModel ?? null,
   });
+  const voxyRenderUploadTargetPolicyModel = buildVoxyRenderUploadTargetPolicyPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <section
@@ -409,6 +425,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderMediaStorageTruthPanel
         model={voxyRenderMediaStorageTruthModel}
         dataTestId="create-candidate-voxy-render-media-storage-truth"
+      />
+      <VoxyRenderUploadTargetPolicyPanel
+        model={voxyRenderUploadTargetPolicyModel}
+        dataTestId="create-candidate-voxy-render-upload-target-policy"
       />
 
       <VoxyRenderProviderHandoffPanel
