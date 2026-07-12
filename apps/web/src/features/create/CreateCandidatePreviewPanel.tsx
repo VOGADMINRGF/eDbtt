@@ -28,6 +28,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -47,6 +48,7 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
   buildVoxyRenderPreviewOutcomeHandoffPanelModel,
 } from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import {
@@ -73,6 +75,9 @@ import {
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
+import {
+  buildVoxyVideoBriefingFlowMasterClosurePanelModel,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -231,6 +236,10 @@ export default function CreateCandidatePreviewPanel({
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffPreview =
+    buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    });
   const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
     previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
   });
@@ -315,6 +324,28 @@ export default function CreateCandidatePreviewPanel({
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
+  const voxyVideoBriefingFlowMasterClosureModel =
+    buildVoxyVideoBriefingFlowMasterClosurePanelModel({
+      latestRuntimeCutoverGateRecord: voxyRenderRuntimeCutoverGateModel?.preview ?? null,
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestPreviewOutcomeHandoffRecord:
+        voxyRenderPreviewOutcomeHandoffPreview,
+      latestPreviewReviewFlowRecord: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      latestScriptCandidate: voxyBriefingScriptCandidateModel ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestAssetPackDraft: voxyRenderAssetPackDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
     });
 
   return (
@@ -502,6 +533,11 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderRuntimeCutoverGatePanel
         model={voxyRenderRuntimeCutoverGateModel}
         dataTestId="create-candidate-voxy-render-runtime-cutover-gate"
+      />
+
+      <VoxyVideoBriefingFlowMasterClosurePanel
+        model={voxyVideoBriefingFlowMasterClosureModel}
+        dataTestId="create-candidate-voxy-video-briefing-flow-master-closure"
       />
 
       <VoxyRenderProviderHandoffPanel

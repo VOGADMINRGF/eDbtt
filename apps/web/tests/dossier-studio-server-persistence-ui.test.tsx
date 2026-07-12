@@ -137,6 +137,10 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
     expect(html).toContain("Runtime Cutover Gate");
+    expect(html).toContain("Voxy Video Briefing Flow");
+    expect(html).toContain("Review-first Architektur geschlossen");
+    expect(html).toContain("Runtime noch nicht aktiviert");
+    expect(html).toContain("Nächster Schritt: Runtime-Pfad entscheiden");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -204,6 +208,9 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-scheduling-policy"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-observability"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-cutover-gate"');
+    expect(
+      html,
+    ).toContain('data-testid="dossier-studio-voxy-video-briefing-flow-master-closure"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
@@ -214,6 +221,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
     expect(html).not.toContain("blocked_by_provider");
+    expect(html).not.toContain("review_first_architecture_complete");
   });
 
   it("shows explicit human official approval when a workspace was freigegeben", async () => {
