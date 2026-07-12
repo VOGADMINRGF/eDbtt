@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
+import { PRICING_PATH_CONTRACT } from "@features/pricing";
 
 const mockNavigation = vi.hoisted(() => ({
   params: new URLSearchParams(),
@@ -24,7 +25,9 @@ describe("pricing/order shared entry contract", () => {
     expect(html).toContain("Weitere Segmente");
     expect(html).toContain('href="/pricing?segment=organisationen"');
     expect(html).toContain("segment=organisationen");
-    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen"');
+    expect(html).toContain(
+      `href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=b2b_basis&amp;segment=organisationen"`,
+    );
     expect(html).toContain("Professionell nutzen");
   });
 

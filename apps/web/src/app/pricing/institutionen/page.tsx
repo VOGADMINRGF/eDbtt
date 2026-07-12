@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
+  getPricingEntryTrustCopy,
   formatPackageBillingModeLabel,
   getInstitutionalAddOnById,
   getInstitutionalAddOnMaturityMeta,
@@ -17,14 +18,16 @@ import {
 } from "@features/pricing";
 
 const SALES_EMAIL = "sales@edebatte.org";
+const DE_TRUST = getPricingEntryTrustCopy("de");
+const EN_TRUST = getPricingEntryTrustCopy("en");
 
 const PAGE_COPY = {
   de: {
     heroTitle: "Institutionelle Konditionen",
     heroIntro:
-      "Lesen, Swipes und Grundbeteiligung bleiben frei. Dieser Pfad ist für bewusste Organisations-, Projekt- und Freischaltungsanfragen; nach ein paar Fragen zu Einsatz, Ziel und Rahmen schlagen wir dir das passende Modell und sinnvolle Erweiterungen vor.",
+      `${DE_TRUST.freeCorePromise} Dieser Pfad ist für bewusste Organisations-, Projekt- und Freischaltungsanfragen; nach ein paar Fragen zu Einsatz, Ziel und Rahmen schlagen wir dir das passende Modell und sinnvolle Erweiterungen vor.`,
     heroAuditNote:
-      "Freischaltungen laufen review-first über Betreiber-Verifikation und Vertragsaudit. Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; sonst bleiben manuelle Rechnung und Betreiberfreigabe der Standard. Keine automatische Veröffentlichung. Keine versteckten AI-Kosten: zusätzliche Recherche-, Review- oder Aktivierungspfade werden nur bewusst aktiviert.",
+      `${DE_TRUST.reviewFirstActivation} ${DE_TRUST.selfServiceCheckoutOnly} Keine automatische Veröffentlichung. ${DE_TRUST.noHiddenAiCosts}`,
     directToSelection: "Direkt zur Auswahl",
     contact: "Kontakt",
     toPrivateOverview: "Zur Privatübersicht",
@@ -91,9 +94,9 @@ const PAGE_COPY = {
   en: {
     heroTitle: "Institutional conditions",
     heroIntro:
-      "Reading, swipes and basic participation stay free. This path is for deliberate organization, project and activation requests; after a few questions about target use and operating frame, we recommend the best-fit model and useful extensions.",
+      `${EN_TRUST.freeCorePromise} This path is for deliberate organization, project and activation requests; after a few questions about target use and operating frame, we recommend the best-fit model and useful extensions.`,
     heroAuditNote:
-      "Activations stay review-first through operator verification and contract audit. Self-service checkout appears only when a payment provider is explicitly enabled; otherwise manual invoicing and operator approval remain the default. No automatic publishing is claimed. No hidden AI costs: additional research, review or activation paths are only enabled deliberately.",
+      `${EN_TRUST.reviewFirstActivation} ${EN_TRUST.selfServiceCheckoutOnly} No automatic publishing is claimed. ${EN_TRUST.noHiddenAiCosts}`,
     directToSelection: "Jump to guided selection",
     contact: "Contact",
     toPrivateOverview: "Back to civic pricing",

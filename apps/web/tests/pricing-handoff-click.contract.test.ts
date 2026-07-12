@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
 import InstitutionalPricingPage from "@/app/pricing/institutionen/page";
+import { PRICING_PATH_CONTRACT } from "@features/pricing";
 
 describe("pricing handoff click contract", () => {
   it("keeps kommunen bridge CTAs clickable toward canonical B2G configurator", async () => {
@@ -14,8 +15,12 @@ describe("pricing handoff click contract", () => {
   it("keeps package CTAs segment-stable for organization entry", async () => {
     const html = renderToStaticMarkup(await PricingPage({ searchParams: { segment: "organisationen" } }));
 
-    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen"');
-    expect(html).toContain('href="/vormerken?paket=b2b_pro&amp;segment=organisationen"');
+    expect(html).toContain(
+      `href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=b2b_basis&amp;segment=organisationen"`,
+    );
+    expect(html).toContain(
+      `href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=b2b_pro&amp;segment=organisationen"`,
+    );
   });
 
   it("keeps municipal institutional CTAs with package and completion context", async () => {

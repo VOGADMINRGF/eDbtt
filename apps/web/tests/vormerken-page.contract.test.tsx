@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { getPricingEntryTrustCopy, PRICING_PATH_CONTRACT } from "@features/pricing";
 
 const mockNavigation = vi.hoisted(() => ({
   params: new URLSearchParams(),
@@ -11,17 +12,22 @@ vi.mock("next/navigation", () => ({
 
 import VormerkenPage from "@/app/vormerken/page";
 
+const DE_TRUST = getPricingEntryTrustCopy("de");
+
 function setSearch(query = "") {
   mockNavigation.params = new URLSearchParams(query);
 }
 
 describe("/vormerken package-start flow", () => {
-  it("communicates package-led shop flow", () => {
+  it("keeps /vormerken as a reachable legacy fallback instead of the primary package funnel", () => {
     setSearch();
     const html = renderToStaticMarkup(<VormerkenPage />);
 
     expect(html).toContain("Paket wählen und Start vorbereiten");
-    expect(html).toContain("Ein klarer Bestellfluss");
+    expect(html).toContain(DE_TRUST.freeCorePromise);
+    expect(html).toContain(DE_TRUST.legacySurfaceTitle);
+    expect(html).toContain(DE_TRUST.legacySurfaceBody);
+    expect(html).toContain(`href="${PRICING_PATH_CONTRACT.primaryOrderPath}"`);
     expect(html).toContain("jährliche Zahlung bevorzugt");
     expect(html).toContain("Segment wählen");
     expect(html).toContain("Bestellung absenden");

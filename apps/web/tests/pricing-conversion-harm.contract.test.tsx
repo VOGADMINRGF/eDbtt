@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
+import { getPricingEntryTrustCopy } from "@features/pricing";
 
 const mockNavigation = vi.hoisted(() => ({
   params: new URLSearchParams(),
@@ -12,6 +13,8 @@ vi.mock("next/navigation", () => ({
 
 import OrderPage from "@/app/order/page";
 import VormerkenPage from "@/app/vormerken/page";
+
+const DE_TRUST = getPricingEntryTrustCopy("de");
 
 function setSearch(query = "") {
   mockNavigation.params = new URLSearchParams(query);
@@ -41,8 +44,8 @@ describe("conversion family harmonization", () => {
     setSearch();
     const html = renderToStaticMarkup(<VormerkenPage />);
 
-    expect(html).toContain("Mitgliedschaft und Paketfreischaltung werden getrennt geführt.");
-    expect(html).toContain("Der Mitgliedschaftsantrag verändert den Paketpreis nicht.");
+    expect(html).toContain(DE_TRUST.membershipActivationSeparation);
+    expect(html).toContain(DE_TRUST.privateMemberInterestedHint);
   });
 
   it("keeps /order as entry surface without locking segment or package", () => {

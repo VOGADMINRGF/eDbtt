@@ -1,5 +1,61 @@
 import { PRICING_TRUST_LOOP_DE, PRICING_TRUST_LOOP_EN } from "./trustLoop.de";
 
+export const PRICING_PATH_CONTRACT = {
+  primaryOrderPath: "/order",
+  legacyFallbackPath: "/vormerken",
+} as const;
+
+export const PRICING_ENTRY_TRUST_COPY = {
+  de: {
+    freeCorePromise: "Lesen, Swipes und Grundbeteiligung bleiben frei.",
+    noHiddenAiCosts:
+      "Keine versteckten AI-Kosten: zusätzliche Recherche-, Review- oder Aktivierungspfade werden nur bewusst aktiviert.",
+    reviewFirstActivation:
+      "Freischaltungen laufen review-first über Betreiber-Verifikation und Vertragsaudit.",
+    selfServiceCheckoutOnly:
+      "Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; sonst bleiben manuelle Rechnung und Betreiberfreigabe der Standard.",
+    orderPrimaryHint:
+      "Du bist im direkten Paketpfad. Segment- und Paketwahl bleiben jederzeit direkt hier änderbar.",
+    orderDirectStartHint:
+      "Direkter Start heißt: anmelden, registrieren, Organisation anlegen oder beitreten und dann bewusst freischalten lassen.",
+    legacySurfaceTitle: "Bestandslink / Fallback",
+    legacySurfaceBody:
+      "Dieser Pfad bleibt erreichbar, falls ältere Links noch genutzt werden. Der direkte aktuelle Paketpfad ist /order; produktionsreif ist anmelden, registrieren und loslegen.",
+    organizationScopeOnly:
+      "Diese Seite ist nur für bewusste Organisations-Claims, Rollen und Freischaltungen.",
+    membershipActivationSeparation:
+      "Mitgliedschaft und Paketfreischaltung werden getrennt geführt. Die finale Bestätigung erfolgt separat per E-Mail-Link.",
+    privateMemberInterestedHint:
+      "Für Mitglieder gilt beim Paket „Interessiert“ der kostenfreie Einstieg. Der Mitgliedschaftsantrag verändert den Paketpreis nicht.",
+    institutionalMembershipNoDiscountHint:
+      "Für Journalismus, Organisationen und Kommunen erzeugt der Mitgliedsantrag keinen Paketrabatt.",
+  },
+  en: {
+    freeCorePromise: "Reading, swipes and basic participation stay free.",
+    noHiddenAiCosts:
+      "No hidden AI costs: additional research, review or activation paths are only enabled deliberately.",
+    reviewFirstActivation:
+      "Activations stay review-first through operator verification and contract audit.",
+    selfServiceCheckoutOnly:
+      "Self-service checkout appears only when a payment provider is explicitly enabled; otherwise manual invoicing and operator approval remain the default.",
+    orderPrimaryHint:
+      "You are on the direct package path. Segment and package can still be changed here at any time.",
+    orderDirectStartHint:
+      "Direct start means: sign in, register, create or join an organization, then request deliberate activation where needed.",
+    legacySurfaceTitle: "Legacy link / fallback",
+    legacySurfaceBody:
+      "This path remains reachable in case older links are still used. The current direct package path is /order; production-ready entry means sign in, register and get started.",
+    organizationScopeOnly:
+      "This page is only for deliberate organization claims, roles and activations.",
+    membershipActivationSeparation:
+      "Membership and package activation are handled separately. Final confirmation runs via a dedicated email link.",
+    privateMemberInterestedHint:
+      "For members, the \"Interested\" package keeps the free entry. The membership request does not change package pricing.",
+    institutionalMembershipNoDiscountHint:
+      "For journalism, organizations and municipalities, membership request does not create a package discount.",
+  },
+} as const;
+
 export const PRICING_PAGE_CONTENT = {
   pageKicker: "Preis",
   heroTitle: "Pakete & Preise",
@@ -115,7 +171,7 @@ export const PRICING_PAGE_CONTENT = {
   moreSegmentsTitle: "Weitere Segmente",
   openSegmentLabel: "Segment öffnen",
   focusSegmentCta: "Segment fokussieren",
-  reservePackagesCta: "Pakete vormerken",
+  reservePackagesCta: "Pakete direkt starten",
   openProfileCta: "Profil öffnen",
   detailOrganizationCta: "Institutionelle Preise im Detail",
   detailMunicipalityCta: "Preise für Organisationen & Kommunen ansehen",
@@ -124,9 +180,9 @@ export const PRICING_PAGE_CONTENT = {
   segmentActivationLabel: "Aktivierung / Freischaltung",
   trustSectionKicker: "Fairness / Unabhängigkeit / Erlöslogik",
   trustSectionTitle: "Vertrauen und tragfähiger Betrieb",
-  closingTitle: "Paketstart vorbereiten",
+  closingTitle: "Direkt starten",
   closingText:
-    "Alle Segmente nutzen dieselbe finale Paketwelt. Du kannst dein Paket jetzt vormerken und den nächsten Schritt für Freischaltung und Einführung strukturiert anschließen.",
+    "Alle Segmente nutzen dieselbe finale Paketwelt. Der direkte Paketpfad läuft über /order; ältere /vormerken-Links bleiben nur als Fallback erreichbar. Registrierung, Organisation und Freischaltung schließen daran strukturiert an.",
   membershipApplyCta: "Mitgliedschaft beantragen",
 } as const;
 
@@ -245,7 +301,7 @@ export const PRICING_PAGE_CONTENT_EN = {
   moreSegmentsTitle: "Other segments",
   openSegmentLabel: "Open segment",
   focusSegmentCta: "Focus segment",
-  reservePackagesCta: "Reserve packages",
+  reservePackagesCta: "Start packages directly",
   openProfileCta: "Open profile",
   detailOrganizationCta: "Institutional pricing in detail",
   detailMunicipalityCta: "View pricing for organizations & municipalities",
@@ -254,9 +310,9 @@ export const PRICING_PAGE_CONTENT_EN = {
   segmentActivationLabel: "Activation / enablement",
   trustSectionKicker: "Fairness / independence / revenue logic",
   trustSectionTitle: "Trust and sustainable operations",
-  closingTitle: "Prepare package onboarding",
+  closingTitle: "Start directly",
   closingText:
-    "All segments use the same final package world. You can reserve your package now and continue with activation and onboarding in a structured flow.",
+    "All segments use the same final package world. The direct package path runs through /order; older /vormerken links remain fallback-only. Registration, organization onboarding and activation continue from there in a structured flow.",
   membershipApplyCta: "Apply for membership",
 } as const;
 
@@ -509,6 +565,10 @@ export function getPricingPageContent(locale: "de" | "en" = "de") {
 
 export function getVormerkenPageContent(locale: "de" | "en" = "de") {
   return locale === "en" ? VORMERKEN_PAGE_CONTENT_EN : VORMERKEN_PAGE_CONTENT;
+}
+
+export function getPricingEntryTrustCopy(locale: "de" | "en" = "de") {
+  return PRICING_ENTRY_TRUST_COPY[locale];
 }
 
 export function getPricingUiLabels(locale: "de" | "en" = "de") {

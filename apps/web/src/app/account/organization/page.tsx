@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { getRegionOrganizationRuntimeRepo } from "@features/region";
+import { getPricingEntryTrustCopy } from "@features/pricing";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
+
+const DE_TRUST = getPricingEntryTrustCopy("de");
 
 export const metadata = {
   title: "Organisations-Onboarding · eDebatte",
@@ -29,14 +32,13 @@ export default async function AccountOrganizationPage() {
           Organisations-Onboarding und Freischaltung
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Öffentliche Grundbeteiligung mit Lesen, Swipes und allgemeinen Hinweisen bleibt frei.
-          Diese Seite ist nur für bewusste Organisations-Claims, Rollen und Freischaltungen.
+          {DE_TRUST.freeCorePromise} {DE_TRUST.organizationScopeOnly}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Self-Provisioning bleibt review-first: Angaben zu Organisation, Region oder Wirkraum,
           verantwortlicher Person und Rolle sind zunächst Selbstauskunft. Rechte und
           Freischaltungen entstehen erst nach bewusster Betreiberentscheidung und bestätigter
-          Membership. Kein verpflichtender Checkout und keine versteckten AI-Kosten.
+          Membership. Kein verpflichtender Checkout. {DE_TRUST.noHiddenAiCosts}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Ein Einstieg, dann eine geführte Auswahl: Verwaltung / Kommune, Verein / Träger /

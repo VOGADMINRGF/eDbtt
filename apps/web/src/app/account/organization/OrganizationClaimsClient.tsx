@@ -6,10 +6,13 @@ import type {
   OrganizationProvisioningKind,
   OrganizationProvisioningStatus,
 } from "@features/region";
+import { getPricingEntryTrustCopy } from "@features/pricing";
 import {
   inferProvisioningRequestFromClaimView,
   resolveProvisioningRequestStatusView,
 } from "@/lib/organizationProvisioning";
+
+const DE_TRUST = getPricingEntryTrustCopy("de");
 
 const ORGANIZATION_KIND_OPTIONS: Array<{
   value: OrganizationProvisioningKind;
@@ -159,8 +162,8 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
           Organisation oder Wirkraum beantragen
         </h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Lesen, Swipes und allgemeine Grundbeteiligung bleiben frei. Dieser Antrag dient nur
-          bewusstem Org-Scope, Rollen und Freischaltungen.
+          {DE_TRUST.freeCorePromise} Dieser Antrag dient nur bewusstem Org-Scope, Rollen und
+          Freischaltungen.
         </p>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Hier startet der eine Organisations-Einstieg für Verwaltung, Kommune, Verein, Träger,
@@ -170,8 +173,7 @@ export function OrganizationClaimsClient({ initialClaims }: Props) {
         </p>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           `publication_approved`, `public_official` und öffentliche Sichtbarkeit werden nie
-          automatisch gesetzt. Keine versteckten AI-Kosten: zusätzliche Recherche-, Review- oder
-          Aktivierungspfade werden nur bewusst aktiviert.
+          automatisch gesetzt. {DE_TRUST.noHiddenAiCosts}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 grid gap-3 sm:grid-cols-2">

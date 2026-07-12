@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
+import { PRICING_PATH_CONTRACT } from "@features/pricing";
 
 async function renderPricing(params?: Record<string, string>) {
   const element = await PricingPage({ searchParams: params });
@@ -30,7 +31,11 @@ describe("/pricing i18n contract", () => {
     const html = await renderPricing({ lang: "en", segment: "organisationen" });
 
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen&amp;lang=en"');
-    expect(html).toContain('href="/vormerken?paket=b2b_pro&amp;segment=organisationen&amp;lang=en"');
+    expect(html).toContain(
+      `href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=b2b_basis&amp;segment=organisationen&amp;lang=en"`,
+    );
+    expect(html).toContain(
+      `href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=b2b_pro&amp;segment=organisationen&amp;lang=en"`,
+    );
   });
 });

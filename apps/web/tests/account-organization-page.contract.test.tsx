@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { getPricingEntryTrustCopy } from "@features/pricing";
 
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn((href: string) => {
@@ -25,6 +26,8 @@ vi.mock("@features/region", () => ({
 
 import AccountOrganizationPage from "@/app/account/organization/page";
 
+const DE_TRUST = getPricingEntryTrustCopy("de");
+
 describe("/account/organization page contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,10 +43,9 @@ describe("/account/organization page contract", () => {
   it("keeps free civic participation separate from org activation and claims", async () => {
     const html = renderToStaticMarkup(await AccountOrganizationPage());
 
-    expect(html).toContain("Öffentliche Grundbeteiligung mit Lesen, Swipes und allgemeinen Hinweisen bleibt frei.");
-    expect(html).toContain("Diese Seite ist nur für bewusste Organisations-Claims, Rollen und Freischaltungen.");
-    expect(html).toContain("Kein verpflichtender Checkout und keine versteckten AI-Kosten.");
+    expect(html).toContain(DE_TRUST.freeCorePromise);
+    expect(html).toContain(DE_TRUST.organizationScopeOnly);
+    expect(html).toContain(DE_TRUST.noHiddenAiCosts);
     expect(html).toContain("Dieser Antrag dient nur bewusstem Org-Scope, Rollen und Freischaltungen.");
-    expect(html).toContain("Keine versteckten AI-Kosten: zusätzliche Recherche-, Review- oder Aktivierungspfade werden nur bewusst aktiviert.");
   });
 });
