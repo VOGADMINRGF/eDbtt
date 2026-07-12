@@ -1,44 +1,45 @@
 # Codex Agent Setup for eDebatte
 
-This directory contains reusable role prompts and handoff contracts for controlled autonomous operation.
+This directory contains reusable prompts and handoff contracts for controlled autonomous operation.
 
 ## Recommended initial topology
 
-Start with three roles, not four concurrent agents:
+Start with one primary agent:
 
-1. `slice-orchestrator.md` — selects and closes one eligible slice at a time.
-2. `implementation-agent.md` — implements the selected scope and updates tests/docs.
-3. `review-maintenance-agent.md` — independently reviews, runs focused quality gates, and proposes or applies bounded repairs.
+- `prompts/lean-continuous-slice-runner.md`
 
-The Product Integrity role is initially embedded in the review agent. Split it into a fourth independent agent only after the ten-slice pilot shows stable quality and acceptable usage.
+This single runner selects, implements, tests, self-reviews, documents, and continues through up to three eligible `codex_ready` tasks.
+
+Do not start a separate analysis agent. The documented repository state in `OpenTasks.md`, the readiness matrix, and existing evidence is the default truth.
+
+The other role prompts remain available as escalation tools:
+
+- `slice-orchestrator.md` for later multi-agent coordination;
+- `implementation-agent.md` for delegated implementation;
+- `review-maintenance-agent.md` for risk-based independent review.
 
 ## Activation sequence
 
 1. Merge the operating-model pull request.
-2. Open the repository in Codex using the ChatGPT desktop app, Codex web, IDE extension, or CLI.
-3. Confirm that Codex reads the root `AGENTS.md` and `docs/E150/OpenTasks.md`.
-4. Start one supervised run with the full prompt from `prompts/slice-orchestrator.md`.
-5. Let the orchestrator select exactly one `codex_ready` task and create a focused branch or worktree.
-6. Run the implementation prompt in that branch/worktree.
-7. Run the independent review/maintenance prompt only after implementation is complete.
-8. Keep all pull requests as drafts during the ten-slice pilot.
-9. After the pilot, enable a scheduled task for the orchestrator only. Do not schedule implementation and review as independent blind loops; the orchestrator must sequence them.
+2. Open the repository in Codex using the desktop app, Codex web, IDE extension, or CLI.
+3. Confirm that Codex reads `AGENTS.md` and `docs/E150/OpenTasks.md`.
+4. Start a supervised run using `prompts/lean-continuous-slice-runner.md`.
+5. Allow up to three consecutive eligible tasks in one Draft PR.
+6. Keep merge, deployment, publishing, billing, permissions, production data, and external-service decisions manual.
+7. Use independent review only for the risk classes listed in the lean-runner prompt.
 
 ## Scheduling recommendation
 
-Initial pilot:
+Because Codex volume is constrained:
 
-- no schedule for the first three slices;
-- then one orchestrator run each weekday morning;
-- maximum one active implementation slice;
-- review starts only after the implementation handoff exists;
-- no automatic merge or deployment.
+- start manually rather than on a frequent schedule;
+- run when sufficient usage reserve is available;
+- maximum one active runner;
+- no parallel implementation agents during the initial phase;
+- no recurring full-repository audit;
+- stop when the configured usage reserve is reached.
 
-After ten successful slices:
-
-- allow the orchestrator to continue immediately to the next eligible task;
-- optionally allow a second implementation worktree only for non-overlapping scopes;
-- keep public UI, architecture, security, data, billing, permissions, and publishing changes approval-gated.
+After ten successful runs, consider a low-frequency schedule for the same single runner. Multi-agent operation is an optional later phase, not the default.
 
 ## Required repository inputs
 
@@ -46,8 +47,7 @@ After ten successful slices:
 - `docs/E150/OpenTasks.md`
 - `docs/E150/ProductionReadinessMatrix.md`
 - `docs/E150/CODEX_AUTONOMOUS_OPERATING_MODEL.md`
-- role prompts in `.codex/prompts/`
-- handoff contract in `.codex/handoffs/slice-handoff.yaml`
+- `.codex/prompts/lean-continuous-slice-runner.md`
 
 ## Human checkpoints
 
@@ -63,4 +63,4 @@ Human approval remains mandatory for:
 
 ## Usage guardrail
 
-Check the Codex usage page before enabling recurring runs. Stop starting new slices when the configured weekly reserve is reached. Never authorize automatic credit purchases from a repository instruction.
+Check the Codex usage page before starting a run. Stop starting new slices when the configured weekly reserve is reached. Never authorize automatic credit purchases from a repository instruction.
