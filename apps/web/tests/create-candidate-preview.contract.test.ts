@@ -438,6 +438,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-render-publish-readiness-guard"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-media-storage-truth"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-upload-target-policy"');
+    expect(html).toContain('data-testid="create-candidate-voxy-render-scheduling-policy"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preflight"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-registry"');

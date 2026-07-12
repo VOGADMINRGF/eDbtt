@@ -43,6 +43,7 @@ import VoxyRenderPublishReadinessGuardPanel from "@/features/create/VoxyRenderPu
 import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRenderSocialDistributionHandoffPanel";
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
+import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
@@ -81,6 +82,9 @@ import {
 import {
   buildVoxyRenderMediaStorageTruthPanelModel,
 } from "@/features/create/voxyRenderMediaStorageTruthContract";
+import {
+  buildVoxyRenderSchedulingPolicyPanelModel,
+} from "@/features/create/voxyRenderSchedulingPolicyContract";
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
@@ -445,6 +449,19 @@ function ResumeWorkbenchCard(props: {
     latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
     gate: voxyRenderReviewDecisionGateModel ?? null,
   });
+  const voxyRenderSchedulingPolicyModel = buildVoxyRenderSchedulingPolicyPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+    latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -617,6 +634,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderUploadTargetPolicyPanel
         model={voxyRenderUploadTargetPolicyModel}
         dataTestId={`account-resume-voxy-render-upload-target-policy-${props.item.id}`}
+      />
+      <VoxyRenderSchedulingPolicyPanel
+        model={voxyRenderSchedulingPolicyModel}
+        dataTestId={`account-resume-voxy-render-scheduling-policy-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1280,6 +1301,19 @@ function RuntimeLinkageCard(props: {
     latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
     gate: voxyRenderReviewDecisionGateModel ?? null,
   });
+  const voxyRenderSchedulingPolicyModel = buildVoxyRenderSchedulingPolicyPanelModel({
+    previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+    latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+    latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+    latestPublishReadinessGuardRecord: voxyRenderPublishReadinessGuardModel?.preview ?? null,
+    latestSocialDistributionHandoffRecord:
+      voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+    latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+    latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+    latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+    gate: voxyRenderReviewDecisionGateModel ?? null,
+  });
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -1459,6 +1493,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderUploadTargetPolicyPanel
         model={voxyRenderUploadTargetPolicyModel}
         dataTestId={`account-runtime-linkage-voxy-render-upload-target-policy-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderSchedulingPolicyPanel
+        model={voxyRenderSchedulingPolicyModel}
+        dataTestId={`account-runtime-linkage-voxy-render-scheduling-policy-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
