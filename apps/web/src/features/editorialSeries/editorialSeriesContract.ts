@@ -58,6 +58,17 @@ export type EditorialSeriesModel = {
   noTracking: true;
 };
 
+export type EditorialQueueSeriesStage =
+  | EditorialSeriesStageId
+  | "rejected"
+  | "archived";
+
+export type EditorialQueueSeriesStatus = {
+  id: EditorialQueueSeriesStage;
+  label: string;
+  reason: string;
+};
+
 type BuildEditorialSeriesModelInput = {
   title: string;
   summary: string;
@@ -431,6 +442,139 @@ export function buildEditorialSeriesFromReviewContext(
               mapDossierDraftKindToSeriesFormat(draft.kind),
             ),
           ),
+    sourceContext,
+    claimContext,
+  });
+}
+
+type EditorialQueueItemLike = {
+  id: string;
+  status: string;
+  title?: string | null;
+  summary?: string | null;
+  topicKey?: string | null;
+  ownerUserId?: string | null;
+  updatedAt?: string | null;
+};
+
+function mapEditorialStatusToSeriesStage(status: string): EditorialQueueSeriesStage {
+  if (status === "ready") return "approved";
+  if (status === "published") return "published";
+  if (status === "review" || status === "fact_check") return "review_ready";
+  if (status === "rejected") return "rejected";
+  if (status === "archived") return "archived";
+  return "draft";
+}
+
+export function describeEditorialQueueSeriesStatus(
+  status: string,
+): EditorialQueueSeriesStatus {
+  const stage = mapEditorialStatusToSeriesStage(status);
+  if (stage === "approved") {
+    return {
+      id: stage,
+      label: "Approved",
+      reason: "Fachlich bereit für den nächsten bewussten Freigabeschritt, aber noch nicht veröffentlicht.",
+    };
+  }
+  if (stage === "published") {
+    return {
+      id: stage,
+      label: "Published",
+      reason: "Veröffentlicht; Quellen- und Claim-Kontext bleiben weiterhin prüfbar.",
+    };
+  }
+  if (stage === "review_ready") {
+    return {
+      id: stage,
+      label: "Review-ready",
+      reason: "In Prüfung oder Faktencheck; noch nicht approved und nicht published.",
+    };
+  }
+  if (stage === "rejected") {
+    return {
+      id: stage,
+      label: "Rejected",
+      reason: "Bewusst aus dem aktiven Serienpfad genommen; kein Publish- oder Exportschritt.",
+    };
+  }
+  if (stage === "archived") {
+    return {
+      id: stage,
+      label: "Archiviert",
+      reason: "Nur Historie; kein aktiver Review-, Export- oder Publish-Pfad.",
+    };
+  }
+  return {
+    id: "draft",
+    label: "Entwurf",
+    reason: "Triage- oder Vorbereitungsstand vor review-ready.",
+  };
+}
+
+export function buildEditorialSeriesFromEditorialQueue(input: {
+  statusFilter: string;
+  items: readonly EditorialQueueItemLike[];
+}): EditorialSeriesModel {
+  const normalizedFilter = input.statusFilter.trim();
+  const statuses = unique(input.items.map((item) => item.status));
+  const mappedStages = statuses.map((status) =>
+    mapEditorialStatusToSeriesStage(status),
+  );
+  const hasPublished = mappedStages.includes("published");
+  const hasApproved = mappedStages.includes("approved");
+  const hasReviewReady = mappedStages.includes("review_ready");
+  const hasDraft = mappedStages.includes("draft");
+
+  let currentStage: EditorialSeriesStageId = "draft";
+  if (hasPublished || normalizedFilter === "published") currentStage = "published";
+  else if (hasApproved || normalizedFilter === "ready") currentStage = "approved";
+  else if (
+    hasReviewReady ||
+    normalizedFilter === "review" ||
+    normalizedFilter === "fact_check"
+  ) {
+    currentStage = "review_ready";
+  } else if (hasDraft || normalizedFilter === "triage") {
+    currentStage = "draft";
+  }
+
+  const reviewCount = input.items.filter(
+    (item) =>
+      item.status === "review" ||
+      item.status === "fact_check" ||
+      item.status === "triage",
+  ).length;
+  const approvedCount = input.items.filter((item) => item.status === "ready").length;
+  const publishedCount = input.items.filter((item) => item.status === "published").length;
+  const sourceContext = unique(
+    input.items.flatMap((item) => [item.title ?? null, item.summary ?? null]),
+  ).slice(0, 3);
+  const claimContext = unique(input.items.map((item) => item.topicKey ?? null)).slice(0, 3);
+
+  return buildEditorialSeriesModel({
+    title: "Editorial Queue · Editorial Series",
+    summary:
+      input.items.length > 0
+        ? `${input.items.length} Items im Filter ${normalizedFilter || "all"}: ${reviewCount} in Review/Factcheck/Triage, ${approvedCount} approved, ${publishedCount} published.`
+        : "Die Queue bleibt eine review-first Arbeitsfläche. Ohne Items gibt es keinen aktiven Export- oder Publish-Schritt.",
+    clusterLabel: "Zentrale redaktionelle Review-Oberfläche",
+    cadenceLabel: "Queue / Review / Export-Übergabe",
+    currentStage,
+    audienceLabel: "Redaktion, Review und Freigabeverantwortliche",
+    callToActionLabel:
+      "Items prüfen, Quellen-/Claim-Kontext halten und erst nach bewusster Freigabe weiterführen.",
+    routeHints: ["/admin/editorial/queue", "/admin/editorial/published"],
+    reviewGates: [
+      "Queue bleibt review-first und startet keinen Auto-Export.",
+      "Review-ready ist nicht approved.",
+      "Approved ist nicht published.",
+      "Kein Auto-Publish, kein Social Posting und kein Scheduling.",
+      normalizedFilter === "rejected" || normalizedFilter === "archived"
+        ? "Rejected/archived bleiben außerhalb des aktiven Serienpfads."
+        : null,
+    ],
+    exportFormats: ["Manuelle Detailprüfung", "Revision", "Bewusste Publish-Übergabe"],
     sourceContext,
     claimContext,
   });

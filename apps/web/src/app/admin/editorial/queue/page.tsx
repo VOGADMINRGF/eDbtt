@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import EditorialSeriesPanel from "@/features/editorialSeries/EditorialSeriesPanel";
+import {
+  buildEditorialSeriesFromEditorialQueue,
+  describeEditorialQueueSeriesStatus,
+} from "@/features/editorialSeries/editorialSeriesContract";
 
 const STATUS_OPTIONS = ["triage", "review", "fact_check", "ready", "rejected", "archived"] as const;
 
@@ -89,6 +94,14 @@ export default function AdminEditorialQueuePage() {
     if (!data) return 1;
     return Math.max(1, Math.ceil(data.total / data.pageSize));
   }, [data]);
+  const editorialSeries = useMemo(
+    () =>
+      buildEditorialSeriesFromEditorialQueue({
+        statusFilter: status,
+        items: data?.items ?? [],
+      }),
+    [data?.items, status],
+  );
 
   const allSelected = useMemo(() => {
     if (!data?.items?.length) return false;
@@ -148,6 +161,12 @@ export default function AdminEditorialQueuePage() {
           Triage, Review und Freigaben zentral steuern.
         </p>
       </header>
+
+      <EditorialSeriesPanel
+        model={editorialSeries}
+        title="Editorial-Series-Überblick in der Queue"
+        dataTestId="admin-editorial-queue-series"
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
@@ -225,6 +244,7 @@ export default function AdminEditorialQueuePage() {
               </th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Serienstatus</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Topic</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Owner</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Updated</th>
@@ -233,14 +253,14 @@ export default function AdminEditorialQueuePage() {
           <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Queue...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Items gefunden. Prüfe Status-, Such- oder Org-Filter oder ob aktuell keine editorialen Datensätze vorliegen.
                 </td>
               </tr>
@@ -269,6 +289,24 @@ export default function AdminEditorialQueuePage() {
                     <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       {item.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const seriesStatus = describeEditorialQueueSeriesStatus(item.status);
+                      return (
+                        <div>
+                          <span
+                            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
+                            title={seriesStatus.reason}
+                          >
+                            {seriesStatus.label}
+                          </span>
+                          <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                            {seriesStatus.reason}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.topicKey ?? "—"}</td>
                   <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.ownerUserId ? item.ownerUserId.slice(-6) : "—"}</td>

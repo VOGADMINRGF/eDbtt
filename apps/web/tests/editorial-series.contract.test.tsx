@@ -13,8 +13,10 @@ import {
 import type { V3ReviewQueueWiringContext } from "@/features/create/unifiedReviewQueueWiring";
 import EditorialSeriesPanel from "@/features/editorialSeries/EditorialSeriesPanel";
 import {
+  buildEditorialSeriesFromEditorialQueue,
   buildEditorialSeriesFromReviewContext,
   buildEditorialSeriesFromThemenradar,
+  describeEditorialQueueSeriesStatus,
 } from "@/features/editorialSeries/editorialSeriesContract";
 import {
   generateThemenradarContentPrep,
@@ -182,5 +184,36 @@ describe("editorial series contract", () => {
     expect(html).toContain("Editorial-Series-Arbeitsstand im Studio");
     expect(html).toContain("Freigabe und Veröffentlichung bleiben getrennte Schritte.");
     expect(html).toContain("Newsletter");
+  });
+
+  it("maps editorial queue statuses onto the same review-first series semantics", () => {
+    const ready = describeEditorialQueueSeriesStatus("ready");
+    const review = describeEditorialQueueSeriesStatus("review");
+    const archived = describeEditorialQueueSeriesStatus("archived");
+
+    expect(review.label).toBe("Review-ready");
+    expect(ready.label).toBe("Approved");
+    expect(archived.label).toBe("Archiviert");
+
+    const model = buildEditorialSeriesFromEditorialQueue({
+      statusFilter: "ready",
+      items: [
+        {
+          id: "item-1",
+          status: "ready",
+          title: "Schulwege",
+          summary: "Bereit für bewusste Freigabe.",
+          topicKey: "mobilitaet",
+          ownerUserId: "owner-1",
+          updatedAt: "2026-07-12T10:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(model.currentStage).toBe("approved");
+    expect(model.reviewGates).toContain(
+      "Kein Auto-Publish, kein Social Posting und kein Scheduling.",
+    );
+    expect(model.routeHints).toContain("/admin/editorial/queue");
   });
 });
