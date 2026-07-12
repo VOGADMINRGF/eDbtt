@@ -70,6 +70,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyRenderHybridRuntimeFoundationPanel from "@/features/create/VoxyRenderHybridRuntimeFoundationPanel";
 import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -138,6 +139,10 @@ import {
   buildVoxyRenderProviderSelectionDraftFromReviewContext,
   buildVoxyRenderProviderSelectionDraftPanelModel,
 } from "@/features/create/voxyRenderProviderSelectionDraftContract";
+import {
+  buildVoxyRenderHybridRuntimeFoundationFromReviewContext,
+  buildVoxyRenderHybridRuntimeFoundationPanelModel,
+} from "@/features/create/voxyRenderHybridRuntimeFoundationContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -605,6 +610,14 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       latestRecord: workspaceVoxyLatestProviderSelectionDraftRecord,
       storeState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderProviderSelectionPersistenceState()
+        : null,
+    });
+  const workspaceVoxyHybridRuntimeFoundationModel =
+    buildVoxyRenderHybridRuntimeFoundationPanelModel({
+      preview: v3ReviewContext
+        ? buildVoxyRenderHybridRuntimeFoundationFromReviewContext(v3ReviewContext, {
+            surface: "workspace",
+          })
         : null,
     });
   const workspaceVoxyLatestRuntimeGoNogoMatrixRecord = workspaceVoxyDecisionGateModel
@@ -1177,6 +1190,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderProviderSelectionDraftPanel
               model={workspaceVoxyProviderSelectionDraftModel}
               dataTestId="dossier-studio-voxy-render-provider-selection-draft"
+            />
+            <VoxyRenderHybridRuntimeFoundationPanel
+              model={workspaceVoxyHybridRuntimeFoundationModel}
+              dataTestId="dossier-studio-voxy-hybrid-runtime-foundation"
             />
             <VoxyRenderRuntimeGoNogoMatrixPanel
               model={workspaceVoxyRuntimeGoNogoMatrixModel}

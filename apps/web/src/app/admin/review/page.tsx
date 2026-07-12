@@ -58,6 +58,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyRenderHybridRuntimeFoundationPanel from "@/features/create/VoxyRenderHybridRuntimeFoundationPanel";
 import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -126,6 +127,10 @@ import {
   buildVoxyRenderProviderSelectionDraftFromReviewContext,
   buildVoxyRenderProviderSelectionDraftPanelModel,
 } from "@/features/create/voxyRenderProviderSelectionDraftContract";
+import {
+  buildVoxyRenderHybridRuntimeFoundationFromReviewContext,
+  buildVoxyRenderHybridRuntimeFoundationPanelModel,
+} from "@/features/create/voxyRenderHybridRuntimeFoundationContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -460,6 +465,9 @@ export default async function AdminReviewPage({
       runtimeEnablementBacklogModel: ReturnType<typeof buildVoxyRenderRuntimeEnablementBacklogPanelModel>;
       runtimeGoNogoMatrixModel: ReturnType<typeof buildVoxyRenderRuntimeGoNogoMatrixPanelModel>;
       providerSelectionDraftModel: ReturnType<typeof buildVoxyRenderProviderSelectionDraftPanelModel>;
+      hybridRuntimeFoundationModel: ReturnType<
+        typeof buildVoxyRenderHybridRuntimeFoundationPanelModel
+      >;
     }
   >();
   const reviewItemsById = new Map(readModel.items.map((item) => [item.id, item]));
@@ -508,6 +516,7 @@ export default async function AdminReviewPage({
       runtimeEnablementBacklogModel: null,
       runtimeGoNogoMatrixModel: null,
       providerSelectionDraftModel: null,
+      hybridRuntimeFoundationModel: null,
     });
   }
   const adminVoxyDecisionStoreState = getVoxyRenderDecisionPersistenceState();
@@ -1143,6 +1152,14 @@ export default async function AdminReviewPage({
             storeState: adminVoxyProviderSelectionStoreState,
           })
         : null,
+      hybridRuntimeFoundationModel: item?.v3ReviewContext
+        ? buildVoxyRenderHybridRuntimeFoundationPanelModel({
+            preview: buildVoxyRenderHybridRuntimeFoundationFromReviewContext(
+              item.v3ReviewContext,
+              { surface: "admin" },
+            ),
+          })
+        : null,
     });
   }
   return (
@@ -1617,6 +1634,13 @@ export default async function AdminReviewPage({
                             null
                           }
                           dataTestId={`admin-review-voxy-render-provider-selection-draft-${item.id}`}
+                        />
+                        <VoxyRenderHybridRuntimeFoundationPanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.hybridRuntimeFoundationModel ??
+                            null
+                          }
+                          dataTestId={`admin-review-voxy-hybrid-runtime-foundation-${item.id}`}
                         />
                         <VoxyRenderRuntimeGoNogoMatrixPanel
                           model={

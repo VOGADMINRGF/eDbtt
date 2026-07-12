@@ -107,6 +107,9 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Kein Asset-Pack-Draft-Store im Surface");
     expect(html).toContain("Noch keine Datei");
     expect(html).toContain("Provider-Auswahl");
+    expect(html).toContain("Hybrid Runtime Foundation");
+    expect(html).toContain("selected_path = hybrid_external_render_adapter");
+    expect(html).toContain("runtimeEnabled = false");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
@@ -174,6 +177,7 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-cost-credit-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-asset-pack-draft-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-selection-draft-/g) ?? []).length).toBe(1);
+    expect((html.match(/data-testid=\"account-resume-voxy-hybrid-runtime-foundation-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-runtime-go-nogo-matrix-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preview-review-flow-/g) ?? []).length).toBe(1);
     expect(
@@ -476,6 +480,9 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Render-Request-Draft");
     expect(html).toContain("Render-Queue-Vertrag");
     expect(html).toContain("Kosten &amp; Credits");
+    expect(html).toContain("Hybrid Runtime Foundation");
+    expect(html).toContain("selected_path = hybrid_external_render_adapter");
+    expect(html).toContain("runtimeEnabled = false");
     expect(html).toContain("Voxy-Render/Provider-Handoff im Account");
     expect(html).toContain("Voxy-Render-Preflight im Account");
     expect(html).toContain("Voxy Asset- &amp; Provider-Registry im Account");
@@ -495,6 +502,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-cost-credit-policy-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-asset-pack-draft-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-provider-selection-draft-create-handoff-1"');
+    expect(html).toContain('data-testid="account-runtime-linkage-voxy-hybrid-runtime-foundation-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-runtime-go-nogo-matrix-create-handoff-1"');
     expect(html).toContain('data-testid="account-runtime-linkage-voxy-render-runtime-enablement-backlog-create-handoff-1"');
     expect(

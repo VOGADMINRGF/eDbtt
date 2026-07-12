@@ -152,6 +152,99 @@ export interface PublishProvider {
   createDraft(input: { briefing: VoxyVideoBriefing }): Promise<{ draftRef: string }>;
 }
 
+export const VOXY_HYBRID_RUNTIME_PATHS = [
+  "hybrid_external_render_adapter",
+] as const;
+
+export type VoxyHybridRuntimePath =
+  (typeof VOXY_HYBRID_RUNTIME_PATHS)[number];
+
+export const VOXY_HYBRID_RUNTIME_CONFIG_REQUIREMENT_KEYS = [
+  "provider_adapter_endpoint",
+  "provider_adapter_timeout_policy",
+  "provider_adapter_model_mapping",
+  "runtime_idempotency_namespace",
+  "queue_routing_contract",
+  "preview_storage_policy",
+  "upload_access_policy",
+  "observability_gate_mapping",
+] as const;
+
+export type VoxyHybridRuntimeConfigRequirementKey =
+  (typeof VOXY_HYBRID_RUNTIME_CONFIG_REQUIREMENT_KEYS)[number];
+
+export const VOXY_HYBRID_RUNTIME_SECRET_REQUIREMENT_KEYS = [
+  "provider_api_key",
+  "provider_signing_secret",
+  "storage_signing_secret",
+  "queue_connection_secret",
+] as const;
+
+export type VoxyHybridRuntimeSecretRequirementKey =
+  (typeof VOXY_HYBRID_RUNTIME_SECRET_REQUIREMENT_KEYS)[number];
+
+export type VoxyHybridRuntimeConfigRequirement = {
+  key: VoxyHybridRuntimeConfigRequirementKey;
+  status: "requirement_only";
+  reviewRequired: true;
+  runtimeEnabled: false;
+  reason: string;
+};
+
+export type VoxyHybridRuntimeSecretRequirement = {
+  key: VoxyHybridRuntimeSecretRequirementKey;
+  status: "requirement_only";
+  reviewRequired: true;
+  runtimeEnabled: false;
+  secretValuePresent: false;
+  reason: string;
+};
+
+export type VoxyHybridRuntimeAdapterRequest = {
+  requestId: string;
+  path: VoxyHybridRuntimePath;
+  briefing: VoxyVideoBriefing;
+  segments: VoxyScriptSegment[];
+  reviewRequired: true;
+  providerNeutral: true;
+  runtimeEnabled: false;
+  externalApiCalled: false;
+  queueExecutionAllowed: false;
+  storageWriteAllowed: false;
+  uploadAllowed: false;
+  schedulingAllowed: false;
+  publishAllowed: false;
+  socialPostingAllowed: false;
+  sourceLanguage: string;
+  readingLanguage: string;
+  renderLanguage: string;
+  subtitleLanguage: string | null;
+  idempotencyKey: string;
+};
+
+export type VoxyHybridRuntimeAdapterDisabledResult = {
+  path: VoxyHybridRuntimePath;
+  status: "disabled_noop";
+  foundationReady: true;
+  runtimeEnabled: false;
+  providerConfigured: false;
+  providerCalled: false;
+  externalApiCalled: false;
+  queueJobCreated: false;
+  storageWritten: false;
+  uploadTriggered: false;
+  schedulingTriggered: false;
+  published: false;
+  socialPosted: false;
+  reason: string;
+};
+
+export interface VoxyHybridRuntimeAdapter {
+  preparePreviewRuntime(
+    input: VoxyHybridRuntimeAdapterRequest,
+  ): Promise<VoxyHybridRuntimeAdapterDisabledResult>;
+}
+
 export type BuildVoxySourcePackBridgeInput = {
   sourcePack: CanonicalSourcePack;
   readingLocale?: string | null;
@@ -229,6 +322,60 @@ export function buildVoxyVideoBriefing(
     autoRender: false,
     providerBound: false,
     publishReadyIsPublished: false,
+  };
+}
+
+export function buildVoxyHybridRuntimeAdapterRequest(input: {
+  requestId: string;
+  briefing: VoxyVideoBriefing;
+  segments: VoxyScriptSegment[];
+  sourceLanguage: string;
+  readingLanguage: string;
+  renderLanguage: string;
+  subtitleLanguage?: string | null;
+  idempotencyKey: string;
+}): VoxyHybridRuntimeAdapterRequest {
+  return {
+    requestId: input.requestId.trim(),
+    path: "hybrid_external_render_adapter",
+    briefing: input.briefing,
+    segments: input.segments,
+    reviewRequired: true,
+    providerNeutral: true,
+    runtimeEnabled: false,
+    externalApiCalled: false,
+    queueExecutionAllowed: false,
+    storageWriteAllowed: false,
+    uploadAllowed: false,
+    schedulingAllowed: false,
+    publishAllowed: false,
+    socialPostingAllowed: false,
+    sourceLanguage: input.sourceLanguage.trim().toLowerCase(),
+    readingLanguage: input.readingLanguage.trim().toLowerCase(),
+    renderLanguage: input.renderLanguage.trim().toLowerCase(),
+    subtitleLanguage: input.subtitleLanguage?.trim().toLowerCase() ?? null,
+    idempotencyKey: input.idempotencyKey.trim(),
+  };
+}
+
+export function buildVoxyHybridRuntimeAdapterDisabledResult(
+  reason: string,
+): VoxyHybridRuntimeAdapterDisabledResult {
+  return {
+    path: "hybrid_external_render_adapter",
+    status: "disabled_noop",
+    foundationReady: true,
+    runtimeEnabled: false,
+    providerConfigured: false,
+    providerCalled: false,
+    externalApiCalled: false,
+    queueJobCreated: false,
+    storageWritten: false,
+    uploadTriggered: false,
+    schedulingTriggered: false,
+    published: false,
+    socialPosted: false,
+    reason: reason.trim() || "Hybrid Runtime bleibt deaktiviert.",
   };
 }
 

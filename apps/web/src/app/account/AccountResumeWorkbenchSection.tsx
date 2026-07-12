@@ -49,6 +49,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyRenderHybridRuntimeFoundationPanel from "@/features/create/VoxyRenderHybridRuntimeFoundationPanel";
 import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
@@ -124,6 +125,11 @@ import {
   buildVoxyRenderProviderSelectionDraftFromVoxyDialog,
   buildVoxyRenderProviderSelectionDraftPanelModel,
 } from "@/features/create/voxyRenderProviderSelectionDraftContract";
+import {
+  buildVoxyRenderHybridRuntimeFoundationFromReviewContext,
+  buildVoxyRenderHybridRuntimeFoundationFromVoxyDialog,
+  buildVoxyRenderHybridRuntimeFoundationPanelModel,
+} from "@/features/create/voxyRenderHybridRuntimeFoundationContract";
 import {
   buildVoxyRenderQueuePanelModel,
   buildVoxyRenderQueuePreviewFromReviewContext,
@@ -399,6 +405,16 @@ function ResumeWorkbenchCard(props: {
       },
     ),
   });
+  const voxyRenderHybridRuntimeFoundationModel =
+    buildVoxyRenderHybridRuntimeFoundationPanelModel({
+      preview: buildVoxyRenderHybridRuntimeFoundationFromVoxyDialog(
+        props.item.voxyCocreationDialog,
+        {
+          contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
+          nextStep: props.item.nextStep,
+        },
+      ),
+    });
   const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
     preview: buildVoxyRenderRuntimeGoNogoMatrixFromVoxyDialog(props.item.voxyCocreationDialog, {
       contributionRef: props.item.voxyCocreationDialog?.contributionRef ?? null,
@@ -668,6 +684,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId={`account-resume-voxy-render-provider-selection-draft-${props.item.id}`}
+      />
+      <VoxyRenderHybridRuntimeFoundationPanel
+        model={voxyRenderHybridRuntimeFoundationModel}
+        dataTestId={`account-resume-voxy-hybrid-runtime-foundation-${props.item.id}`}
       />
       <VoxyRenderRuntimeGoNogoMatrixPanel
         model={voxyRenderRuntimeGoNogoMatrixModel}
@@ -1330,6 +1350,13 @@ function RuntimeLinkageCard(props: {
       },
     ),
   });
+  const voxyRenderHybridRuntimeFoundationModel =
+    buildVoxyRenderHybridRuntimeFoundationPanelModel({
+      preview: buildVoxyRenderHybridRuntimeFoundationFromReviewContext(
+        props.linkage.v3ReviewContext,
+        { surface: "workspace" },
+      ),
+    });
   const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
     preview: buildVoxyRenderRuntimeGoNogoMatrixFromReviewContext({
       reviewContext: props.linkage.v3ReviewContext,
@@ -1601,6 +1628,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId={`account-runtime-linkage-voxy-render-provider-selection-draft-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyRenderHybridRuntimeFoundationPanel
+        model={voxyRenderHybridRuntimeFoundationModel}
+        dataTestId={`account-runtime-linkage-voxy-hybrid-runtime-foundation-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderRuntimeGoNogoMatrixPanel
         model={voxyRenderRuntimeGoNogoMatrixModel}

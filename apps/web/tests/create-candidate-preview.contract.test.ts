@@ -428,6 +428,7 @@ describe("create candidate preview contract", () => {
     expect(html).toContain('data-testid="create-candidate-voxy-render-cost-credit-policy"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-asset-pack-draft"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-provider-selection-draft"');
+    expect(html).toContain('data-testid="create-candidate-voxy-hybrid-runtime-foundation"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-runtime-go-nogo-matrix"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-runtime-enablement-backlog"');
     expect(html).toContain('data-testid="create-candidate-voxy-render-preview-review-flow"');
@@ -467,6 +468,9 @@ describe("create candidate preview contract", () => {
     expect(html).toContain("Kein Asset-Pack-Draft-Store im Surface");
     expect(html).toContain("Noch keine Datei");
     expect(html).toContain("Provider-Auswahl");
+    expect(html).toContain("Hybrid Runtime Foundation");
+    expect(html).toContain("selected_path = hybrid_external_render_adapter");
+    expect(html).toContain("runtimeEnabled = false");
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
     expect(html).toContain("Noch kein Providerlauf");
     expect(html).toContain("Runtime Go/No-Go");
