@@ -29,10 +29,14 @@ export default async function AccountOrganizationPage() {
           Organisations-Onboarding und Freischaltung
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Öffentliche Grundbeteiligung mit Lesen, Swipes und allgemeinen Hinweisen bleibt frei.
+          Diese Seite ist nur für bewusste Organisations-Claims, Rollen und Freischaltungen.
+        </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Self-Provisioning bleibt review-first: Angaben zu Organisation, Region oder Wirkraum,
           verantwortlicher Person und Rolle sind zunächst Selbstauskunft. Rechte und
           Freischaltungen entstehen erst nach bewusster Betreiberentscheidung und bestätigter
-          Membership.
+          Membership. Kein verpflichtender Checkout und keine versteckten AI-Kosten.
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Ein Einstieg, dann eine geführte Auswahl: Verwaltung / Kommune, Verein / Träger /
