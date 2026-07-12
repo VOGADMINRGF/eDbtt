@@ -192,6 +192,18 @@ Warum Option C:
 4. Sie haelt den Pfad zu spaeterer Eigenstaendigkeit offen, statt frueh
    Full-Provider-Produktgrenzen zu kanonisieren.
 
+## Decision Closure (2026-07-12)
+
+Die Produktentscheidung fuer den Startpfad ist inzwischen getroffen und in
+`docs/E150/V3_VOXY_RUNTIME_PATH_CHOICE_2026-07-12.md` festgehalten:
+
+- `selected_path = hybrid_external_render_adapter`
+- `recommended_next_task = V3-VOXY-HYBRID-RUNTIME-FOUNDATION-03`
+
+Die Entscheidung bestaetigt Option C, ohne Runtime, Secrets, Provider-Creds,
+Render, Upload, Scheduling, Publish, Social Posting, Kostenpfade oder
+Feature-Flags zu aktivieren.
+
 ## Offene Produktentscheidungen vor jedem Implementierungsslice
 
 Diese Punkte muessen explizit entschieden werden, bevor ein Folge-Slice auf
@@ -218,22 +230,27 @@ Diese Punkte muessen explizit entschieden werden, bevor ein Folge-Slice auf
 
 ## Konkrete Folge-Slices
 
-### 1. `V3-VOXY-RUNTIME-PATH-CHOICE-02` (`needs_decision`)
+### 1. `V3-VOXY-RUNTIME-PATH-CHOICE-02` (`done`)
 
-- Formale Produktentscheidung fuer Option C oder bewusst abweichenden Pfad
-- verbindliche Guardrails fuer Datenschutz, Kosten und Freigaberollen
-- Festlegung des ersten Zielmodus `script-only preview` vs.
-  `voiceover/caption preview` vs. `avatar preview`
+- Option C wurde formell freigegeben
+- `selected_path = hybrid_external_render_adapter`
+- `recommended_next_task = V3-VOXY-HYBRID-RUNTIME-FOUNDATION-03`
+- die Entscheidung haelt den Produktkern fuer Script, Review, Approval, Gates,
+  Asset-Pack, Cost-/Credit-Policy, Queue-Vertrag, Storage-/Upload-/
+  Scheduling-/Observability-/Cutover-Gates und Distribution-Handoff bewusst im
+  Repo
 
-### 2. `V3-VOXY-HYBRID-RUNTIME-FOUNDATION-03` (`blocked`)
+### 2. `V3-VOXY-HYBRID-RUNTIME-FOUNDATION-03` (`codex_ready`)
 
-Nur nach expliziter Pfadentscheidung:
+Nach expliziter Pfadentscheidung:
 
 - Adaptervertrag fuer einen externen Render-Schritt konkretisieren
 - server-only Queue-/Worker-/Idempotency-/Retry-Rahmen fuer genau einen
   Preview-Lauf vorbereiten
 - Storage-/Upload-/Retention-/Delete-Pfad fuer Preview-Artefakte klar ziehen
 - weiterhin kein Publish- oder Social-Cutover
+- weiterhin keine Provider-Secrets, keine echte Runtime und keine
+  Render-Ausfuehrung
 
 ### 3. spaeterer Ausbaupfad (noch nicht freigegeben)
 
