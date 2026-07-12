@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import type { ThemenradarItem } from "@features/themenradar/contracts";
+import type { ThemenradarContentPrep } from "@features/themenradar/contentPrep";
 import { resolveThemenradarMembershipEntry } from "@features/themenradar/membershipCta";
+import EditorialSeriesPanel from "@/features/editorialSeries/EditorialSeriesPanel";
+import { buildEditorialSeriesFromThemenradar } from "@/features/editorialSeries/editorialSeriesContract";
 
 type ThemenradarLifecycleStatus =
   | "raw"
@@ -57,64 +61,8 @@ type ThemenradarExportDraft = {
 };
 
 type ThemenradarDetailPayload = {
-  item: {
-    id: string;
-    title: string;
-    rawSignal: string;
-    sourceType: "manual" | "news" | "community" | "create_intake";
-    heatScore: number;
-    everydayRelevanceScore: number;
-    polarizationScore: number;
-    membershipPotentialScore: number;
-    jurisdiction: "bund" | "land" | "kommune" | "mixed";
-    lifecycleStatus: ThemenradarLifecycleStatus;
-    linkedAnlassraumId?: string | null;
-    linkedDossierId?: string | null;
-    campaignKey?: string | null;
-    shareContractSnapshot?: {
-      canonicalPublicTarget: string;
-      qrTarget: string;
-      socialPublication: {
-        autoPostEligible: false;
-        needsReviewBeforeOfficialSocial: true;
-      };
-      shareMeta: {
-        shareTitle: string;
-        sharePrompt: string;
-        shareSummary: string;
-      };
-    } | null;
-    telemetrySnapshot?: {
-      clicks: number;
-      leads: number;
-      memberships: number;
-      updatedAt: string;
-    } | null;
-    reviewRequired: true;
-    autoPostEligible: false;
-    officialSocialRequiresReview: true;
-    createdBy: string | null;
-    updatedBy: string | null;
-    lastReviewedBy: string | null;
-    lastReviewedAt: string | null;
-    reviewNotes: string[];
-    auditVersion: number;
-    archivedAt: string | null;
-    archivedBy: string | null;
-    createdAt: string;
-    updatedAt: string;
-  };
-  contentPrep: {
-    socialHook: string;
-    captionVariants: [string, string, string];
-    carouselOutline: Array<{ title: string; message: string }>;
-    shortVideoScript: {
-      targetDurationSeconds: number;
-      lines: string[];
-    };
-    membershipCta: string;
-    dossierOrAnlassraumCta: string;
-  } | null;
+  item: ThemenradarItem;
+  contentPrep: ThemenradarContentPrep | null;
   lifecycleHistory: Array<{
     status: ThemenradarLifecycleStatus;
     at: string;
@@ -227,6 +175,14 @@ export default function AdminThemenradarDetailPage() {
       membershipPotentialScore: detail.item.membershipPotentialScore,
     });
   }, [detail]);
+  const editorialSeries = useMemo(() => {
+    if (!detail) return null;
+    return buildEditorialSeriesFromThemenradar({
+      item: detail.item,
+      contentPrep: detail.contentPrep,
+      membershipEntry,
+    });
+  }, [detail, membershipEntry]);
   const exportAllowed =
     detail?.item.lifecycleStatus === "review_ready" ||
     detail?.item.lifecycleStatus === "published";
@@ -634,6 +590,11 @@ export default function AdminThemenradarDetailPage() {
               </div>
             </div>
           ) : null}
+          <EditorialSeriesPanel
+            model={editorialSeries}
+            title="Editorial-Series-Arbeitsstand"
+            dataTestId="themenradar-editorial-series"
+          />
           {detail.item.shareContractSnapshot ? (
             <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))] space-y-1">
               <p>

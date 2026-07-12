@@ -46,6 +46,8 @@ import { buildDossierWorkspaceV3ReviewContext } from "@/features/create/unifiedR
 import V3ReviewContextSummary from "@/features/create/V3ReviewContextSummary";
 import DossierWorkspaceDecisionPanel from "@/features/create/DossierWorkspaceDecisionPanel";
 import OutputSocialWorkbenchPanel from "@/features/create/OutputSocialWorkbenchPanel";
+import EditorialSeriesPanel from "@/features/editorialSeries/EditorialSeriesPanel";
+import { buildEditorialSeriesFromReviewContext } from "@/features/editorialSeries/editorialSeriesContract";
 import ParticipationActivationReviewPanel from "@/features/create/ParticipationActivationReviewPanel";
 import PollQuestionOptionsReviewPanel from "@/features/create/PollQuestionOptionsReviewPanel";
 import SourceFactcheckFeedEnrichmentPanel from "@/features/create/SourceFactcheckFeedEnrichmentPanel";
@@ -1147,6 +1149,18 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               })}
               title="Output-/Social-Arbeitsstand im Studio"
               dataTestId="dossier-studio-output-social-workbench"
+            />
+            <EditorialSeriesPanel
+              model={buildEditorialSeriesFromReviewContext(v3ReviewContext, {
+                audience: "workspace",
+                dossierRef: {
+                  id: pkg.dossierId,
+                  title: pkg.title,
+                  href: pkg.dossierBacklinkTarget,
+                },
+              })}
+              title="Editorial-Series-Arbeitsstand im Studio"
+              dataTestId="dossier-studio-editorial-series"
             />
             <VoxyBriefingScriptCandidatePanel
               model={buildVoxyBriefingScriptCandidateFromReviewContext(v3ReviewContext, {
