@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { LoginPageShell } from "@/components/auth/LoginPageShell";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 
 export default function LoginPage() {
   const params = useSearchParams();
@@ -34,6 +35,9 @@ export default function LoginPage() {
         <Link href={registerHref} className="font-semibold text-sky-600 underline">
           Jetzt registrieren
         </Link>
+      </p>
+      <p className="mt-2 text-center text-xs text-[rgb(var(--muted))]">
+        {PRODUCTION_ENTRY_COPY.loginRegisterHint}
       </p>
     </div>
   );

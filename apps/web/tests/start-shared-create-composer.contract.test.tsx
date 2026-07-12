@@ -28,8 +28,9 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("Beitrag eingeben");
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitmachen");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht.");
+    expect(html).toContain("Mitwirken");
+    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Keine Schnellschüsse, keine automatische Veröffentlichung");
     expect(html).toContain("/create");
     expect(html).toContain("/swipes");
     expect(html).toContain("/themen");
@@ -66,7 +67,8 @@ describe("/start shared create composer contract", () => {
     expect(html).toContain("Bereite Beteiligung nachvollziehbar vor.");
     expect(html).toContain("Organisation prüfen");
     expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Abstimmen &amp; mitmachen");
+    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Mitwirken");
     expect(html).toContain("Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.");
     expect(html).toContain('href="/account/organization/dashboard"');
     expect(html).toContain('href="/create"');

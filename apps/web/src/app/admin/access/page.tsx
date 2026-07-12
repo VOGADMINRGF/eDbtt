@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { AccessGroup, RoutePolicy } from "@features/access/types";
 import type { AccessTier } from "@features/pricing/types";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 
 type RouteRow = RoutePolicy & { overrides: number };
 
@@ -169,7 +170,7 @@ export default function AccessCenterPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Access Center</p>
           <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Seitenzugriffe verwalten</h1>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Definiere, welche Gruppen und Nutzer einzelne Seiten sehen dürfen. Änderungen wirken sofort.
+            Definiere, welche Gruppen und Nutzer einzelne Seiten sehen dürfen. {PRODUCTION_ENTRY_COPY.adminAccessLead}
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm">

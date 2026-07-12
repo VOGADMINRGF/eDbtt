@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getPricingEntryTrustCopy } from "@features/pricing";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn((href: string) => {
@@ -46,6 +47,7 @@ describe("/account/organization page contract", () => {
     expect(html).toContain(DE_TRUST.freeCorePromise);
     expect(html).toContain(DE_TRUST.organizationScopeOnly);
     expect(html).toContain(DE_TRUST.noHiddenAiCosts);
+    expect(html).toContain(PRODUCTION_ENTRY_COPY.organizationPathHint);
     expect(html).toContain("Dieser Antrag dient nur bewusstem Org-Scope, Rollen und Freischaltungen.");
   });
 });

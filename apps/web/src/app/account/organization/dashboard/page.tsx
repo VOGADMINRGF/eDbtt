@@ -11,6 +11,11 @@ import {
   type OrganizationMembershipRole,
 } from "@/lib/server/auth/membershipDirectoryRepository";
 import {
+  hasVerifiedOrganizationMembershipStatus,
+  isOrganizationAccessBlocked,
+  isOrganizationAccessLimited,
+} from "@/features/access/productionEntryContract";
+import {
   buildOrganizationDashboardReadModel,
   organizationBillingStatusLabel,
   organizationContractStatusLabel,
@@ -370,7 +375,7 @@ export default async function AccountOrganizationDashboardPage() {
           body: "Dieser Bereich läuft nicht auf belastbarer Produktionswahrheit. Betreiber-Verifikation und Audit sind damit nur als Test- oder Demospur sichtbar.",
         }
       : null,
-    !readModel.organization.isOperatorMode && normalizedMembershipStatus !== "verified"
+    !readModel.organization.isOperatorMode && !hasVerifiedOrganizationMembershipStatus(normalizedMembershipStatus)
       ? {
           title: "Organisation noch nicht verifiziert",
           body: "Ohne verifizierte Membership bleiben Moderation, Sichtbarkeit und interne Regionsdaten gesperrt. Sichtbar bleiben nur sichere nächste Schritte.",
@@ -480,33 +485,26 @@ export default async function AccountOrganizationDashboardPage() {
   const quickActionContext: DashboardQuickActionContext =
     readModel.organization.isOperatorMode
       ? "operator"
-      : readModel.provisioningSummary.currentStatus === "suspended" ||
-            readModel.contractSummary.currentContractStatus === "suspended" ||
-            readModel.contractSummary.currentContractStatus === "cancelled" ||
-            readModel.contractSummary.currentContractStatus === "expired" ||
-            readModel.contractSummary.billingStatus === "suspended" ||
-            readModel.contractSummary.billingStatus === "cancelled" ||
-            readModel.contractSummary.billingStatus === "expired" ||
-            readModel.entitlementSummary.currentStatus === "suspended" ||
-            readModel.entitlementSummary.currentStatus === "revoked" ||
-            readModel.entitlementSummary.currentStatus === "expired"
+      : isOrganizationAccessBlocked({
+            provisioningStatus: readModel.provisioningSummary.currentStatus,
+            contractStatus: readModel.contractSummary.currentContractStatus,
+            billingStatus: readModel.contractSummary.billingStatus,
+            entitlementStatus: readModel.entitlementSummary.currentStatus,
+          })
           ? "blocked"
-          : normalizedMembershipStatus !== "verified" ||
+          : !hasVerifiedOrganizationMembershipStatus(normalizedMembershipStatus) ||
               readModel.provisioningSummary.currentStatus === "draft" ||
               readModel.provisioningSummary.currentStatus === "submitted" ||
               readModel.provisioningSummary.currentStatus === "verification_required" ||
               readModel.provisioningSummary.currentStatus === "operator_review_required"
             ? "pending"
-          : !hasWritableOrganizationContext ||
-              readModel.entitlementSummary.currentStatus === "limited" ||
-              readModel.entitlementSummary.currentStatus === "pending_operator_decision" ||
-              readModel.contractSummary.currentContractStatus === "limited" ||
-              readModel.contractSummary.currentContractStatus === "draft" ||
-              readModel.contractSummary.currentContractStatus === "offered" ||
-              readModel.contractSummary.currentContractStatus === "accepted" ||
-              readModel.contractSummary.billingStatus === "billing_pending" ||
-              readModel.contractSummary.billingStatus === "grace_period" ||
-              readModel.contractSummary.billingStatus === "overdue"
+          : isOrganizationAccessLimited({
+              provisioningStatus: readModel.provisioningSummary.currentStatus,
+              contractStatus: readModel.contractSummary.currentContractStatus,
+              billingStatus: readModel.contractSummary.billingStatus,
+              entitlementStatus: readModel.entitlementSummary.currentStatus,
+              hasWritableOrganizationContext,
+            })
             ? "limited"
             : "verified";
   const quickActionCenter: TaskFirstQuickActionCenterModel =
