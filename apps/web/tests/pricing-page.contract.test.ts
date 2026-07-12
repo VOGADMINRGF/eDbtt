@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
+import { PRICING_PATH_CONTRACT } from "@features/pricing";
 
 async function renderPricing(params?: Record<string, string>) {
   const element = await PricingPage({ searchParams: params });
@@ -74,10 +75,10 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain('href="#pricing-privat"');
     expect(html).toContain('href="/community/contributions"');
     expect(html).toContain('href="/pricing/institutionen"');
-    expect(html).toContain('href="/vormerken?paket=basis&amp;segment=privat"');
-    expect(html).toContain('href="/vormerken?paket=start&amp;segment=privat"');
-    expect(html).toContain('href="/vormerken?paket=pro&amp;segment=privat"');
-    expect(html).not.toContain('href="/order?paket=');
+    expect(html).toContain(`href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=basis&amp;segment=privat"`);
+    expect(html).toContain(`href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=start&amp;segment=privat"`);
+    expect(html).toContain(`href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=pro&amp;segment=privat"`);
+    expect(html).not.toContain(`href="${PRICING_PATH_CONTRACT.legacyFallbackPath}?paket=`);
   });
 
   it("keeps locale-aware links in EN mode", async () => {
@@ -87,7 +88,7 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("Choose package");
     expect(html).toContain("Use professionally");
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/vormerken?paket=pro&amp;segment=privat&amp;lang=en"');
+    expect(html).toContain(`href="${PRICING_PATH_CONTRACT.primaryOrderPath}?paket=pro&amp;segment=privat&amp;lang=en"`);
   });
 
   it("shows billing mode labels and annual preference on package cards", async () => {

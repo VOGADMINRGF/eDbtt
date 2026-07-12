@@ -12,16 +12,19 @@ vi.mock("next/navigation", () => ({
 vi.mock("server-only", () => ({}));
 
 import VormerkenPage from "@/app/vormerken/page";
+import { getPricingEntryTrustCopy } from "@features/pricing";
 import { createPreorderLead } from "@features/pricing/usecases/createPreorderLead";
 import type { PreorderLeadRecord } from "@features/pricing";
+
+const DE_TRUST = getPricingEntryTrustCopy("de");
 
 describe("member checkbox flow contract", () => {
   it("renders optional membership checkbox and explanatory hints", () => {
     const html = renderToStaticMarkup(<VormerkenPage />);
 
     expect(html).toContain("Ich möchte zusätzlich die VoiceOpenGov-Mitgliedschaft beantragen.");
-    expect(html).toContain("Mitgliedschaft und Paketfreischaltung werden getrennt geführt.");
-    expect(html).toContain("Für Mitglieder gilt beim Paket „Interessiert“ der kostenfreie Einstieg.");
+    expect(html).toContain(DE_TRUST.membershipActivationSeparation);
+    expect(html).toContain(DE_TRUST.privateMemberInterestedHint);
     expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €");
   });
 

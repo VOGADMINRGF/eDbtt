@@ -3,6 +3,7 @@ import PackagesGrid from "@/components/pricing/PackagesGrid";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
   ORDER_SEGMENT_ORDER,
+  PRICING_PATH_CONTRACT,
   getPackagesForJourneySegment,
   normalizePricingLocale,
   resolvePricingOrderEntrySelection,
@@ -35,10 +36,12 @@ function withSegmentOnInternalOrderHref(href: string, segment: PricingSegmentId)
   if (!href.startsWith("/")) return href;
   const [pathAndQuery, hash = ""] = href.split("#");
   const [path, query = ""] = pathAndQuery.split("?");
-  const normalizedPath = path === "/order" ? "/vormerken" : path;
   const params = new URLSearchParams(query);
   if (!params.get("segment")) params.set("segment", segment);
   const queryString = params.toString();
+  const normalizedPath = path === PRICING_PATH_CONTRACT.legacyFallbackPath
+    ? PRICING_PATH_CONTRACT.primaryOrderPath
+    : path;
   return `${normalizedPath}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
 }
 

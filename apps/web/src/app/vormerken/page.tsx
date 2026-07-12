@@ -7,8 +7,10 @@ import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import { HumanCheck } from "@/components/security/HumanCheck";
 import {
   ORDER_SEGMENT_ORDER,
+  PRICING_PATH_CONTRACT,
   formatPackageBillingModeLabel,
   formatPackagePriceLabel,
+  getPricingEntryTrustCopy,
   getInstitutionalAddonFollowupQuestions,
   getInstitutionalAddOnMaturityMeta,
   getInstitutionalAddonNotNeededHint,
@@ -35,6 +37,8 @@ import {
 } from "@features/pricing";
 
 const SALES_EMAIL = "sales@edebatte.org";
+const DE_TRUST = getPricingEntryTrustCopy("de");
+const EN_TRUST = getPricingEntryTrustCopy("en");
 
 type QuoteCadence = "monthly" | "variable";
 
@@ -52,12 +56,11 @@ const VORMERKEN_LABELS = {
     pageKicker: "Paketstart",
     heroTitle: "Paket wählen und Start vorbereiten",
     heroText:
-      "Ein klarer Bestellfluss: Segment und Paket wählen, relevante Angaben ergänzen und Bestellung absenden.",
+      `${DE_TRUST.freeCorePromise} Dieser Pfad ist für bewusste Paket-, Membership- und Freischaltungsanfragen: Segment und Paket wählen, relevante Angaben ergänzen und Bestellung absenden. ${DE_TRUST.orderDirectStartHint}`,
     toPricing: "Zur Preisübersicht",
     toInstitutional: "Zu B2B/B2G-Konditionen",
     orderEntryHintTitle: "Vorauswahl aktiv",
-    orderEntryHintText:
-      "Du bist im Order-Einstieg. Segment- und Paketwahl bleiben jederzeit direkt hier änderbar.",
+    orderEntryHintText: DE_TRUST.orderPrimaryHint,
     segmentTitle: "Segment wählen",
     segmentLabels: {
       privat: "Einzelpersonen",
@@ -130,12 +133,9 @@ const VORMERKEN_LABELS = {
     membershipSectionIntro:
       "Mitgliedschaft ist keine Abo-Option, sondern eine gesellschaftliche Beteiligungsentscheidung.",
     membershipCheckbox: "Ich möchte zusätzlich die VoiceOpenGov-Mitgliedschaft beantragen.",
-    membershipHint:
-      "Mitgliedschaft und Paketfreischaltung werden getrennt geführt. Die finale Bestätigung erfolgt separat per E-Mail-Link.",
-    membershipInterestedHint:
-      "Der Mitgliedschaftsantrag verändert den Paketpreis nicht.",
-    membershipNoDiscountHint:
-      "Für Journalismus, Organisationen und Kommunen erzeugt der Mitgliedsantrag keinen Paketrabatt.",
+    membershipHint: DE_TRUST.membershipActivationSeparation,
+    membershipInterestedHint: DE_TRUST.privateMemberInterestedHint,
+    membershipNoDiscountHint: DE_TRUST.institutionalMembershipNoDiscountHint,
     membershipContributionHint:
       "Der frei gewählte Mitgliedsbeitrag bleibt davon unabhängig. Empfohlener Mitgliedsbeitrag: 5,63 € (aus sozialen Erwägungen).",
     membershipSystemsHint:
@@ -178,7 +178,7 @@ const VORMERKEN_LABELS = {
     accountCta: "Zum Konto",
     contactSales: "Kontakt an sales@edebatte.org",
     institutionalHint:
-      "Direktbestellung bleibt möglich. Alternativ kannst du einen Downloadlink anfordern oder das Team kontaktieren.",
+      `Direktbestellung bleibt möglich. Alternativ kannst du einen Downloadlink anfordern oder das Team kontaktieren. ${DE_TRUST.noHiddenAiCosts}`,
     annualPreferredHint: "Bei kostenpflichtigen Monatsmodellen wird jährliche Zahlung bevorzugt.",
     contactPathsTitle: "Kontaktwege",
     contactPathsIntro: "Bei Bedarf erreichst du das Team über den passenden Kanal.",
@@ -191,12 +191,11 @@ const VORMERKEN_LABELS = {
     pageKicker: "Package start",
     heroTitle: "Choose package and prepare start",
     heroText:
-      "One clear ordering flow: choose segment and package, complete relevant details and submit.",
+      `${EN_TRUST.freeCorePromise} This path is for deliberate package, membership and activation requests: choose segment and package, complete relevant details and submit. ${EN_TRUST.orderDirectStartHint}`,
     toPricing: "Back to pricing",
     toInstitutional: "Go to B2B/B2G conditions",
     orderEntryHintTitle: "Preselection active",
-    orderEntryHintText:
-      "You are in the order entry path. Segment and package can still be changed here at any time.",
+    orderEntryHintText: EN_TRUST.orderPrimaryHint,
     segmentTitle: "Choose segment",
     segmentLabels: {
       privat: "Individuals",
@@ -268,12 +267,9 @@ const VORMERKEN_LABELS = {
     membershipSectionIntro:
       "Membership is not an add-on subscription. It is a civic participation decision.",
     membershipCheckbox: "I also want to request VoiceOpenGov membership.",
-    membershipHint:
-      "Membership and package activation are handled separately. Final confirmation runs via a dedicated email link.",
-    membershipInterestedHint:
-      "Membership request does not change package pricing.",
-    membershipNoDiscountHint:
-      "For journalism, organizations and municipalities, membership request does not create a package discount.",
+    membershipHint: EN_TRUST.membershipActivationSeparation,
+    membershipInterestedHint: EN_TRUST.privateMemberInterestedHint,
+    membershipNoDiscountHint: EN_TRUST.institutionalMembershipNoDiscountHint,
     membershipContributionHint:
       "The freely chosen membership contribution stays independent from package pricing. Recommended membership contribution: €5.63 (social benchmark).",
     membershipSystemsHint:
@@ -316,7 +312,7 @@ const VORMERKEN_LABELS = {
     accountCta: "Open account",
     contactSales: "Contact sales@edebatte.org",
     institutionalHint:
-      "Direct order remains available. Alternatively request a download link or contact the team.",
+      `Direct order remains available. Alternatively request a download link or contact the team. ${EN_TRUST.noHiddenAiCosts}`,
     annualPreferredHint: "Annual billing is preferred for paid monthly models.",
     contactPathsTitle: "Contact paths",
     contactPathsIntro: "Use the channel that best fits your process.",
@@ -484,6 +480,7 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
   const searchParams = useSearchParams();
   const locale = useMemo(() => normalizePricingLocale(searchParams.get("lang")), [searchParams]);
   const text = VORMERKEN_LABELS[locale];
+  const trustCopy = locale === "en" ? EN_TRUST : DE_TRUST;
 
   const queryPackageId = useMemo(() => searchParams.get("paket"), [searchParams]);
   const querySelection = useMemo(
@@ -984,7 +981,18 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
               <p className="font-semibold">{text.orderEntryHintTitle}</p>
               <p className="mt-1">{text.orderEntryHintText}</p>
             </div>
-          ) : null}
+          ) : (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-semibold">{trustCopy.legacySurfaceTitle}</p>
+              <p className="mt-1">{trustCopy.legacySurfaceBody}</p>
+              <p className="mt-2">{trustCopy.orderDirectStartHint}</p>
+              <div className="mt-3">
+                <Link href={withLocaleHref(PRICING_PATH_CONTRACT.primaryOrderPath, locale)} className="btn-secondary inline-flex">
+                  {locale === "en" ? "Open direct package path" : "Direkten Paketpfad öffnen"}
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

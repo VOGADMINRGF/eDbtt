@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  PRICING_PATH_CONTRACT,
+  getPricingEntryTrustCopy,
   TRUST_LOOP_FORBIDDEN_PHRASES,
   getPricingPageContent,
   getPricingTrustLoop,
@@ -44,6 +46,16 @@ describe("pricing trust loop contract", () => {
     expect(vormerkenEn.packageAndMembershipHint).toBe(enLoop.context.orderActivationHint);
   });
 
+  it("keeps one canonical direct order path plus legacy fallback path metadata", () => {
+    const deEntry = getPricingEntryTrustCopy("de");
+    const enEntry = getPricingEntryTrustCopy("en");
+
+    expect(PRICING_PATH_CONTRACT.primaryOrderPath).toBe("/order");
+    expect(PRICING_PATH_CONTRACT.legacyFallbackPath).toBe("/vormerken");
+    expect(deEntry.legacySurfaceBody).toContain("/order");
+    expect(enEntry.legacySurfaceBody).toContain("/order");
+  });
+
   it("avoids forbidden legal-risky phrases in trust SSOT", () => {
     const allTexts = [
       ...flattenTexts(getPricingTrustLoop("de")),
@@ -65,4 +77,3 @@ describe("pricing trust loop contract", () => {
     expect(en.short).not.toContain("papierhafte");
   });
 });
-
