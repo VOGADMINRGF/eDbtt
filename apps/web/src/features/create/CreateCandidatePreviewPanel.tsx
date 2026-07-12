@@ -15,6 +15,7 @@ import VoxyRenderAdapterNoopPanel from "@/features/create/VoxyRenderAdapterNoopP
 import VoxyRenderAssetPackDraftPanel from "@/features/create/VoxyRenderAssetPackDraftPanel";
 import VoxyRenderCostCreditPolicyPanel from "@/features/create/VoxyRenderCostCreditPolicyPanel";
 import VoxyRenderAssetProviderRegistryPanel from "@/features/create/VoxyRenderAssetProviderRegistryPanel";
+import VoxyRenderHybridRuntimeFoundationPanel from "@/features/create/VoxyRenderHybridRuntimeFoundationPanel";
 import VoxyRenderPreviewOutcomeHandoffPanel from "@/features/create/VoxyRenderPreviewOutcomeHandoffPanel";
 import VoxyRenderPreviewReviewDecisionPersistencePanel from "@/features/create/VoxyRenderPreviewReviewDecisionPersistencePanel";
 import VoxyRenderPreviewReviewFlowPanel from "@/features/create/VoxyRenderPreviewReviewFlowPanel";
@@ -47,6 +48,10 @@ import {
   buildVoxyRenderCostCreditPolicyPanelModel,
   buildVoxyRenderCostCreditPolicyPreviewFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
+import {
+  buildVoxyRenderHybridRuntimeFoundationPanelModel,
+  buildVoxyRenderHybridRuntimeFoundationFromCreateCandidatePreview,
+} from "@/features/create/voxyRenderHybridRuntimeFoundationContract";
 import {
   buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
   buildVoxyRenderPreviewOutcomeHandoffPanelModel,
@@ -222,6 +227,10 @@ export default function CreateCandidatePreviewPanel({
   const voxyRenderProviderSelectionDraftModel = buildVoxyRenderProviderSelectionDraftPanelModel({
     preview: buildVoxyRenderProviderSelectionDraftFromCreateCandidatePreview(model),
   });
+  const voxyRenderHybridRuntimeFoundationModel =
+    buildVoxyRenderHybridRuntimeFoundationPanelModel({
+      preview: buildVoxyRenderHybridRuntimeFoundationFromCreateCandidatePreview(model),
+    });
   const voxyRenderRuntimeGoNogoMatrixModel = buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
     preview: buildVoxyRenderRuntimeGoNogoMatrixFromCreateCandidatePreview(model),
   });
@@ -480,6 +489,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderProviderSelectionDraftPanel
         model={voxyRenderProviderSelectionDraftModel}
         dataTestId="create-candidate-voxy-render-provider-selection-draft"
+      />
+      <VoxyRenderHybridRuntimeFoundationPanel
+        model={voxyRenderHybridRuntimeFoundationModel}
+        dataTestId="create-candidate-voxy-hybrid-runtime-foundation"
       />
 
       <VoxyRenderRuntimeGoNogoMatrixPanel

@@ -133,6 +133,9 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Kosten &amp; Credits");
     expect(html).toContain("Render-Asset-Pack");
     expect(html).toContain("Provider-Auswahl");
+    expect(html).toContain("Hybrid Runtime Foundation");
+    expect(html).toContain("selected_path = hybrid_external_render_adapter");
+    expect(html).toContain("runtimeEnabled = false");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
@@ -195,6 +198,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-cost-credit-policy"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-asset-pack-draft"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-selection-draft"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-hybrid-runtime-foundation"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-go-nogo-matrix"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-runtime-enablement-backlog"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preview-review-flow"');

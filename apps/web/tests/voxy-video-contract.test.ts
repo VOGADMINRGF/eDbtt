@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { buildCanonicalLanguageBridgeRecord } from "@/features/create/languageBridgeTrustFormatContract";
 import { buildCanonicalSourcePack } from "@/features/create/canonicalSourcePackContract";
 import {
+  buildVoxyHybridRuntimeAdapterDisabledResult,
+  buildVoxyHybridRuntimeAdapterRequest,
   buildVoxyPublishDraft,
   buildVoxyScriptSegments,
   buildVoxyVideoBriefing,
@@ -73,5 +75,55 @@ describe("voxy video contract", () => {
     expect(draft.autoPublish).toBe(false);
     expect(draft.publishReadyIsPublished).toBe(false);
     expect(draft.externalPublishTriggered).toBe(false);
+  });
+
+  it("defines a provider-neutral hybrid runtime adapter request that stays disabled", () => {
+    const briefing = buildVoxyVideoBriefing({
+      briefingId: "briefing-5",
+      sourceContextKind: "dossier",
+      sourceContextId: "d-5",
+      title: "Hybrid Foundation",
+      summary: "Nur Contract",
+      languageBridge: buildCanonicalLanguageBridgeRecord({
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
+        originalText: "Original",
+        summaryText: "Zusammenfassung",
+      }),
+      sourcePack: buildCanonicalSourcePack({
+        sourcePackId: "sp-5",
+        sources: [{ sourceId: "s-5", title: "Quelle", evidenceState: "supported" }],
+      }),
+    });
+    const segments = buildVoxyScriptSegments({
+      briefingId: briefing.briefingId,
+      segments: [{ kind: "intro", text: "Einordnung" }],
+    });
+
+    const request = buildVoxyHybridRuntimeAdapterRequest({
+      requestId: "hybrid-request-1",
+      briefing,
+      segments,
+      sourceLanguage: "de",
+      readingLanguage: "de",
+      renderLanguage: "de",
+      subtitleLanguage: "de",
+      idempotencyKey: "idempotency-1",
+    });
+    const result = buildVoxyHybridRuntimeAdapterDisabledResult(
+      "Hybrid Runtime bleibt review-first deaktiviert.",
+    );
+
+    expect(request.path).toBe("hybrid_external_render_adapter");
+    expect(request.providerNeutral).toBe(true);
+    expect(request.runtimeEnabled).toBe(false);
+    expect(request.externalApiCalled).toBe(false);
+    expect(request.storageWriteAllowed).toBe(false);
+    expect(result.status).toBe("disabled_noop");
+    expect(result.foundationReady).toBe(true);
+    expect(result.runtimeEnabled).toBe(false);
+    expect(result.providerCalled).toBe(false);
+    expect(result.storageWritten).toBe(false);
   });
 });
