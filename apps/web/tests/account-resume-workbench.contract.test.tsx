@@ -110,6 +110,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
+    expect(html).toContain("Runtime Cutover Gate");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -188,6 +189,10 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-scheduling-policy-/g) ?? []).length).toBe(1);
     expect(
       (html.match(/data-testid=\"account-resume-voxy-render-runtime-observability-/g) ?? [])
+        .length,
+    ).toBe(1);
+    expect(
+      (html.match(/data-testid=\"account-resume-voxy-render-runtime-cutover-gate-/g) ?? [])
         .length,
     ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);

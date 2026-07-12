@@ -23,6 +23,7 @@ import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRend
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
+import VoxyRenderRuntimeCutoverGatePanel from "@/features/create/VoxyRenderRuntimeCutoverGatePanel";
 import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRuntimeObservabilityPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -63,6 +64,9 @@ import {
 import {
   buildVoxyRenderSchedulingPolicyPanelModel,
 } from "@/features/create/voxyRenderSchedulingPolicyContract";
+import {
+  buildVoxyRenderRuntimeCutoverGatePanelModel,
+} from "@/features/create/voxyRenderRuntimeCutoverGateContract";
 import {
   buildVoxyRenderRuntimeObservabilityPanelModel,
 } from "@/features/create/voxyRenderRuntimeObservabilityContract";
@@ -292,6 +296,26 @@ export default function CreateCandidatePreviewPanel({
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
     });
+  const voxyRenderRuntimeCutoverGateModel =
+    buildVoxyRenderRuntimeCutoverGatePanelModel({
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
+      latestBacklog: voxyRenderRuntimeEnablementBacklogModel?.preview ?? null,
+      latestMatrix: voxyRenderRuntimeGoNogoMatrixModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
 
   return (
     <section
@@ -474,6 +498,10 @@ export default function CreateCandidatePreviewPanel({
       <VoxyRenderRuntimeObservabilityPanel
         model={voxyRenderRuntimeObservabilityModel}
         dataTestId="create-candidate-voxy-render-runtime-observability"
+      />
+      <VoxyRenderRuntimeCutoverGatePanel
+        model={voxyRenderRuntimeCutoverGateModel}
+        dataTestId="create-candidate-voxy-render-runtime-cutover-gate"
       />
 
       <VoxyRenderProviderHandoffPanel

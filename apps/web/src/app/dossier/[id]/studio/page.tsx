@@ -65,6 +65,7 @@ import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRend
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
+import VoxyRenderRuntimeCutoverGatePanel from "@/features/create/VoxyRenderRuntimeCutoverGatePanel";
 import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRuntimeObservabilityPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
@@ -105,6 +106,9 @@ import {
 import {
   buildVoxyRenderSchedulingPolicyPanelModel,
 } from "@/features/create/voxyRenderSchedulingPolicyContract";
+import {
+  buildVoxyRenderRuntimeCutoverGatePanelModel,
+} from "@/features/create/voxyRenderRuntimeCutoverGateContract";
 import {
   buildVoxyRenderRuntimeObservabilityPanelModel,
 } from "@/features/create/voxyRenderRuntimeObservabilityContract";
@@ -174,6 +178,10 @@ import {
   getLatestVoxyRenderSchedulingPolicyRecord,
   getVoxyRenderSchedulingPolicyPersistenceState,
 } from "@/features/create/voxyRenderSchedulingPolicyStore";
+import {
+  getLatestVoxyRenderRuntimeCutoverGateRecord,
+  getVoxyRenderRuntimeCutoverGatePersistenceState,
+} from "@/features/create/voxyRenderRuntimeCutoverGateStore";
 import {
   getLatestVoxyRenderRuntimeObservabilityRecord,
   getVoxyRenderRuntimeObservabilityPersistenceState,
@@ -678,6 +686,14 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestRuntimeCutoverGateRecord = workspaceVoxyLatestRuntimeObservabilityRecord
+    ? await getLatestVoxyRenderRuntimeCutoverGateRecord({
+        runtimeObservabilityId:
+          workspaceVoxyLatestRuntimeObservabilityRecord.runtimeObservabilityId,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -871,6 +887,31 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         : null,
       schedulingPolicyStoreState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderSchedulingPolicyPersistenceState()
+        : null,
+    });
+  const workspaceVoxyRuntimeCutoverGateModel =
+    buildVoxyRenderRuntimeCutoverGatePanelModel({
+      latestRuntimeObservabilityRecord: workspaceVoxyLatestRuntimeObservabilityRecord,
+      latestSchedulingPolicyRecord: workspaceVoxyLatestSchedulingPolicyRecord,
+      latestUploadTargetPolicyRecord: workspaceVoxyLatestUploadTargetPolicyRecord,
+      latestMediaStorageTruthRecord: workspaceVoxyLatestMediaStorageTruthRecord,
+      latestApprovalSemanticsRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestSocialDistributionHandoffRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestProviderSelectionDraft: workspaceVoxyLatestProviderSelectionDraftRecord,
+      latestQueueContract: workspaceVoxyLatestQueuePreviewRecord,
+      latestCostCreditPolicy: workspaceVoxyLatestCostCreditPolicyRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      gate: workspaceVoxyDecisionGateModel,
+      latestRecord: workspaceVoxyLatestRuntimeCutoverGateRecord,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeCutoverGatePersistenceState()
+        : null,
+      runtimeObservabilityStoreState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeObservabilityPersistenceState()
         : null,
     });
 
@@ -1122,6 +1163,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderRuntimeObservabilityPanel
               model={workspaceVoxyRuntimeObservabilityModel}
               dataTestId="dossier-studio-voxy-render-runtime-observability"
+            />
+            <VoxyRenderRuntimeCutoverGatePanel
+              model={workspaceVoxyRuntimeCutoverGateModel}
+              dataTestId="dossier-studio-voxy-render-runtime-cutover-gate"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
