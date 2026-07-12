@@ -241,6 +241,7 @@ import { buildVoxyCocreationDialogFromReviewContext } from "@/features/create/vo
 import {
   buildSourceFactcheckFeedEnrichmentFromReviewContext,
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
+import { dossierReviewStatusLabel } from "@/features/review/reviewSurfaceStatusLabels";
 import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
@@ -276,16 +277,6 @@ function withOfficialVisibility<T extends { visibilityState: string }>(
       officialApproval: officialApproval ?? null,
     }),
   };
-}
-
-function reviewStatusLabel(value: string): string {
-  if (value === "draft") return "Entwurf";
-  if (value === "needs_review") return "Review erforderlich";
-  if (value === "approved") return "Freigegeben";
-  if (value === "rejected") return "Abgelehnt";
-  if (value === "published") return "Veröffentlicht";
-  if (value === "archived") return "Archiviert";
-  return value;
 }
 
 function completenessLabel(value: string): string {
@@ -1417,7 +1408,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[rgb(var(--muted))]">
-            Status: {reviewStatusLabel(pkg.reviewStatus)}
+            Status: {dossierReviewStatusLabel(pkg.reviewStatus)}
           </span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[rgb(var(--muted))]">
             Sichtbarkeit: {publicationVisibilityLabel(pkg.visibilityState)}

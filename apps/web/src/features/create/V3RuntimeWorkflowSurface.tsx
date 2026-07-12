@@ -3,6 +3,11 @@ import type {
   DossierSocialOutputDraftKind,
 } from "@/features/create/dossierSocialOutputDraftContract";
 import type { V3ReviewQueueWiringContext } from "@/features/create/unifiedReviewQueueWiring";
+import {
+  preparationStatusLabel as sharedPreparationStatusLabel,
+  reviewQueueStateLabel as sharedReviewQueueStateLabel,
+  REVIEW_SURFACE_GUARDRAILS,
+} from "@/features/review/reviewSurfaceStatusLabels";
 
 export const V3_RUNTIME_WORKFLOW_STAGE_STATUSES = [
   "operational_basic",
@@ -53,30 +58,6 @@ function stageStatusLabel(value: V3RuntimeWorkflowStageStatus): string {
   if (value === "blocked_by_secret") return "Zugangsdaten fehlen";
   if (value === "blocked_by_runtime_truth") return "Runtime blockiert";
   return "Runtime-Wahrheit fehlt";
-}
-
-function queueStateLabel(value: string | null | undefined): string {
-  if (value === "queued_for_review") return "Zur Prüfung vorgemerkt";
-  if (value === "in_review") return "In Prüfung";
-  if (value === "review_ready") return "Bereit für Prüfung";
-  if (value === "approval_required") return "Freigabe nötig";
-  if (value === "publish_ready") return "Bereit für Freigabe";
-  if (value === "approved") return "Freigegeben";
-  if (value === "needs_clarification") return "Klärung nötig";
-  if (value === "archived") return "Archiviert";
-  if (value === "draft") return "Entwurf";
-  return "Noch offen";
-}
-
-function preparationStatusLabel(value: string | null | undefined): string {
-  if (value === "draft") return "Entwurf";
-  if (value === "review_ready") return "Bereit für Prüfung";
-  if (value === "publish_ready") return "Bereit für Freigabe";
-  if (value === "scheduled_after_review") return "Nach Freigabe planbar";
-  if (value === "active_or_published") return "Sichtbar oder historisch veröffentlicht";
-  if (value === "archived") return "Archiviert";
-  if (value === "failed") return "Technisch blockiert";
-  return "Noch offen";
 }
 
 function socialDraftKindLabel(value: DossierSocialOutputDraftKind): string {
@@ -148,8 +129,8 @@ export function buildV3RuntimeWorkflowSurfaceFromReviewContext(
         : "Im aktuellen Kontext ist kein belastbarer Create-Handoff sichtbar.",
       details: createHandoff
         ? [
-            queueStateLabel(createHandoff.queueState),
-            preparationStatusLabel(createHandoff.preparationStatus),
+            sharedReviewQueueStateLabel(createHandoff.queueState),
+            sharedPreparationStatusLabel(createHandoff.preparationStatus),
             createHandoff.title,
           ]
         : ["Keine neue Intake- oder Handoff-Welt erzeugt."],
@@ -170,15 +151,15 @@ export function buildV3RuntimeWorkflowSurfaceFromReviewContext(
         uniqueReviewItems.length > 0
           ? [
               `${uniqueReviewItems.length} Review-Items`,
-              ...unique(uniqueReviewItems.map((item) => queueStateLabel(item.queueState))).slice(
+              ...unique(uniqueReviewItems.map((item) => sharedReviewQueueStateLabel(item.queueState))).slice(
                 0,
                 3,
               ),
             ]
           : ["Keine zweite Queue und keine Queue-Parallelwelt."],
       guardrails: [
-        "review_ready ist nicht approved",
-        "publish_ready ist nicht published",
+        REVIEW_SURFACE_GUARDRAILS.reviewReadyNotApproved,
+        REVIEW_SURFACE_GUARDRAILS.publishReadyNotPublished,
       ],
     }),
     buildStage({
@@ -190,7 +171,7 @@ export function buildV3RuntimeWorkflowSurfaceFromReviewContext(
         : "Ein Dossier-Workspace ist im aktuellen Kontext noch nicht sichtbar.",
       details: context.dossierWorkspaceSurface
         ? [
-            preparationStatusLabel(context.dossierWorkspaceSurface.preparationStatus),
+            sharedPreparationStatusLabel(context.dossierWorkspaceSurface.preparationStatus),
             `${context.dossierWorkspaceSurface.sections.claims.length} Claims`,
             `${context.dossierWorkspaceSurface.sections.openQuestions.length} offene Fragen`,
           ]
@@ -260,8 +241,8 @@ export function buildV3RuntimeWorkflowSurfaceFromReviewContext(
       details: context.voxyBriefing
         ? [
             context.voxyBriefing.title,
-            queueStateLabel(context.voxyReviewState?.scriptReview.status),
-            queueStateLabel(context.voxyReviewState?.publishReview.status),
+            sharedReviewQueueStateLabel(context.voxyReviewState?.scriptReview.status),
+            sharedReviewQueueStateLabel(context.voxyReviewState?.publishReview.status),
           ]
         : ["Kein echter Render- oder Publish-Provider wird behauptet."],
       guardrails: [
@@ -364,7 +345,7 @@ export function buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview(
             : "Ohne Dossier-Handoff bleibt dieser Schritt nur als Lesart sichtbar.",
       details: dossierRuntime
         ? [
-            preparationStatusLabel(dossierRuntime.dossierRuntimeState),
+            sharedPreparationStatusLabel(dossierRuntime.dossierRuntimeState),
             dossierRuntime.dossierRuntimeId ?? "Noch keine echte Dossier-Runtime-ID",
           ]
         : ["Keine neue Dossier-Parallelwelt im Frontend."],

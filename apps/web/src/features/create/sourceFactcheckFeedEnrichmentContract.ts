@@ -5,6 +5,7 @@ import type {
 import {
   buildV3ReviewContextSummaryModel,
 } from "@/features/create/V3ReviewContextSummary";
+import { sourceFactcheckEnrichmentStatusLabel } from "@/features/review/reviewSurfaceStatusLabels";
 import type { V3ReviewQueueWiringContext } from "@/features/create/unifiedReviewQueueWiring";
 import type {
   V3VoxyCocreationDialogModel,
@@ -187,17 +188,6 @@ function languageLabel(language: string): string {
   if (language === "he") return "Hebräisch";
   if (language === "ur") return "Urdu";
   return language || "Unklar";
-}
-
-function statusLabel(value: SourceFactcheckFeedEnrichmentStatus): string {
-  if (value === "prepared") return "Vorbereitet";
-  if (value === "needs_source_review") return "Quellenprüfung offen";
-  if (value === "needs_factcheck_review") return "Faktencheck-Fragen offen";
-  if (value === "needs_feed_review") return "Feed-/Research-Hinweis offen";
-  if (value === "blocked_by_provider") return "Provider blockiert";
-  if (value === "blocked_by_cost_preflight") return "Kosten-/Providerprüfung offen";
-  if (value === "blocked_by_runtime_truth") return "Runtime-Wahrheit fehlt";
-  return "Nur Readmodel";
 }
 
 function sourceNeedLabel(value: SourceFactcheckSourceNeed): string {
@@ -754,7 +744,7 @@ function buildModelFromSignals(input: BuildSignalsInput): SourceFactcheckFeedEnr
     translationAvailable: input.translationAvailable,
     rtlDisplayHint,
     enrichmentStatus,
-    statusLabel: statusLabel(enrichmentStatus),
+    statusLabel: sourceFactcheckEnrichmentStatusLabel(enrichmentStatus),
     sourceNeeds,
     claimReviewNeeds,
     referenceScopes,
