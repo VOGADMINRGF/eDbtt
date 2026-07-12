@@ -198,6 +198,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preview-outcome-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-publish-readiness-guard"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-media-storage-truth"');
+    expect(html).toContain('data-testid="dossier-studio-voxy-render-upload-target-policy"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-provider-handoff"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-preflight"');
     expect(html).toContain('data-testid="dossier-studio-voxy-render-registry"');
