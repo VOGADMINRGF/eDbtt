@@ -49,6 +49,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -70,6 +71,7 @@ import {
   buildVoxyRenderCostCreditPolicyPreviewFromVoxyDialog,
 } from "@/features/create/voxyRenderCostCreditPolicyContract";
 import {
+  buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels,
   buildVoxyRenderPreviewOutcomeHandoffPanelModel,
 } from "@/features/create/voxyRenderPreviewOutcomeHandoffContract";
 import {
@@ -96,6 +98,9 @@ import {
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
+import {
+  buildVoxyVideoBriefingFlowMasterClosurePanelModel,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -421,6 +426,10 @@ function ResumeWorkbenchCard(props: {
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffPreview =
+    buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    });
   const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
     previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
   });
@@ -505,6 +514,28 @@ function ResumeWorkbenchCard(props: {
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
+  const voxyVideoBriefingFlowMasterClosureModel =
+    buildVoxyVideoBriefingFlowMasterClosurePanelModel({
+      latestRuntimeCutoverGateRecord: voxyRenderRuntimeCutoverGateModel?.preview ?? null,
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestPreviewOutcomeHandoffRecord:
+        voxyRenderPreviewOutcomeHandoffPreview,
+      latestPreviewReviewFlowRecord: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      latestScriptCandidate: voxyBriefingScriptCandidateModel ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestAssetPackDraft: voxyRenderAssetPackDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
     });
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
@@ -689,6 +720,10 @@ function ResumeWorkbenchCard(props: {
       <VoxyRenderRuntimeCutoverGatePanel
         model={voxyRenderRuntimeCutoverGateModel}
         dataTestId={`account-resume-voxy-render-runtime-cutover-gate-${props.item.id}`}
+      />
+      <VoxyVideoBriefingFlowMasterClosurePanel
+        model={voxyVideoBriefingFlowMasterClosureModel}
+        dataTestId={`account-resume-voxy-video-briefing-flow-master-closure-${props.item.id}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}
@@ -1316,6 +1351,10 @@ function RuntimeLinkageCard(props: {
     buildVoxyRenderPreviewReviewDecisionPersistencePanelModel({
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
     });
+  const voxyRenderPreviewOutcomeHandoffPreview =
+    buildVoxyRenderPreviewOutcomeHandoffCommandFromReadmodels({
+      previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+    });
   const voxyRenderPreviewOutcomeHandoffModel = buildVoxyRenderPreviewOutcomeHandoffPanelModel({
     previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
   });
@@ -1400,6 +1439,28 @@ function RuntimeLinkageCard(props: {
       latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
       previewFlow: voxyRenderPreviewReviewFlowModel?.preview ?? null,
       gate: voxyRenderReviewDecisionGateModel ?? null,
+    });
+  const voxyVideoBriefingFlowMasterClosureModel =
+    buildVoxyVideoBriefingFlowMasterClosurePanelModel({
+      latestRuntimeCutoverGateRecord: voxyRenderRuntimeCutoverGateModel?.preview ?? null,
+      latestRuntimeObservabilityRecord: voxyRenderRuntimeObservabilityModel?.preview ?? null,
+      latestSchedulingPolicyRecord: voxyRenderSchedulingPolicyModel?.preview ?? null,
+      latestUploadTargetPolicyRecord: voxyRenderUploadTargetPolicyModel?.preview ?? null,
+      latestMediaStorageTruthRecord: voxyRenderMediaStorageTruthModel?.preview ?? null,
+      latestApprovalSemanticsRecord: voxyRenderApprovalSemanticsModel?.preview ?? null,
+      latestSocialDistributionHandoffRecord:
+        voxyRenderSocialDistributionHandoffModel?.preview ?? null,
+      latestPublishReadinessGuardRecord:
+        voxyRenderPublishReadinessGuardModel?.preview ?? null,
+      latestPreviewOutcomeHandoffRecord:
+        voxyRenderPreviewOutcomeHandoffPreview,
+      latestPreviewReviewFlowRecord: voxyRenderPreviewReviewFlowModel?.preview ?? null,
+      latestRequestDraft: voxyRenderRequestDraftModel?.draft ?? null,
+      latestScriptCandidate: voxyBriefingScriptCandidateModel ?? null,
+      latestProviderSelectionDraft: voxyRenderProviderSelectionDraftModel?.preview ?? null,
+      latestAssetPackDraft: voxyRenderAssetPackDraftModel?.preview ?? null,
+      latestQueueContract: voxyRenderQueueContractModel?.preview ?? null,
+      latestCostCreditPolicy: voxyRenderCostCreditPolicyModel?.preview ?? null,
     });
 
   return (
@@ -1592,6 +1653,10 @@ function RuntimeLinkageCard(props: {
       <VoxyRenderRuntimeCutoverGatePanel
         model={voxyRenderRuntimeCutoverGateModel}
         dataTestId={`account-runtime-linkage-voxy-render-runtime-cutover-gate-${props.linkage.contributionRef.handoffId}`}
+      />
+      <VoxyVideoBriefingFlowMasterClosurePanel
+        model={voxyVideoBriefingFlowMasterClosureModel}
+        dataTestId={`account-runtime-linkage-voxy-video-briefing-flow-master-closure-${props.linkage.contributionRef.handoffId}`}
       />
       <VoxyRenderProviderHandoffPanel
         model={voxyRenderProviderHandoffModel}

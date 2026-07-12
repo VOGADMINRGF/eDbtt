@@ -939,6 +939,10 @@ describe("/admin/review page", () => {
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
     expect(html).toContain("Runtime Cutover Gate");
+    expect(html).toContain("Voxy Video Briefing Flow");
+    expect(html).toContain("Review-first Architektur geschlossen");
+    expect(html).toContain("Runtime noch nicht aktiviert");
+    expect(html).toContain("Nächster Schritt: Runtime-Pfad entscheiden");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -979,7 +983,7 @@ describe("/admin/review page", () => {
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
-    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(25);
+    expect((html.match(/data-testid=\"admin-review-voxy-/g) ?? []).length).toBe(26);
     expect((html.match(/data-testid=\"admin-review-source-factcheck-feed-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-dossier-decision-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-participation-activation-/g) ?? []).length).toBe(1);
@@ -1017,6 +1021,13 @@ describe("/admin/review page", () => {
       (html.match(/data-testid=\"admin-review-voxy-render-runtime-cutover-gate-/g) ?? [])
         .length,
     ).toBe(1);
+    expect(
+      (
+        html.match(
+          /data-testid=\"admin-review-voxy-video-briefing-flow-master-closure-/g,
+        ) ?? []
+      ).length,
+    ).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -1030,5 +1041,6 @@ describe("/admin/review page", () => {
     expect(html).toContain("Sichtbarkeit kann später wieder zurückgenommen oder archiviert werden.");
     expect(html).not.toContain("direkt veröffentlichen");
     expect(html).not.toContain("blocked_by_provider");
+    expect(html).not.toContain("review_first_architecture_complete");
   });
 });

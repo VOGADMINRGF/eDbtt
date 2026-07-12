@@ -111,6 +111,10 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Runtime Enablement Backlog");
     expect(html).toContain("Runtime Observability");
     expect(html).toContain("Runtime Cutover Gate");
+    expect(html).toContain("Voxy Video Briefing Flow");
+    expect(html).toContain("Review-first Architektur geschlossen");
+    expect(html).toContain("Runtime noch nicht aktiviert");
+    expect(html).toContain("Nächster Schritt: Runtime-Pfad entscheiden");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -195,6 +199,13 @@ describe("account resume workbench contract", () => {
       (html.match(/data-testid=\"account-resume-voxy-render-runtime-cutover-gate-/g) ?? [])
         .length,
     ).toBe(1);
+    expect(
+      (
+        html.match(
+          /data-testid=\"account-resume-voxy-video-briefing-flow-master-closure-/g,
+        ) ?? []
+      ).length,
+    ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);
@@ -202,6 +213,7 @@ describe("account resume workbench contract", () => {
     expect(html).not.toContain("autoPublish");
     expect(html).not.toContain("recordSwipeVoteInGraph");
     expect(html).not.toContain("review_draft_prepared");
+    expect(html).not.toContain("review_first_architecture_complete");
   });
 
   it("builds useful empty and saved workbench states without productive claims", () => {

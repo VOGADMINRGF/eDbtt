@@ -58,6 +58,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -103,6 +104,9 @@ import {
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
+import {
+  buildVoxyVideoBriefingFlowMasterClosurePanelModel,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -170,6 +174,10 @@ import {
   getVoxyRenderRuntimeCutoverGatePersistenceState,
   listLatestVoxyRenderRuntimeCutoverGatesByRuntimeObservabilityIds,
 } from "@/features/create/voxyRenderRuntimeCutoverGateStore";
+import {
+  getVoxyVideoBriefingFlowMasterClosurePersistenceState,
+  listLatestVoxyVideoBriefingFlowMasterClosuresByRuntimeCutoverGateIds,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureStore";
 import {
   getVoxyRenderRuntimeObservabilityPersistenceState,
   listLatestVoxyRenderRuntimeObservabilityBySchedulingPolicyIds,
@@ -440,6 +448,7 @@ export default async function AdminReviewPage({
       mediaStorageTruthModel: ReturnType<typeof buildVoxyRenderMediaStorageTruthPanelModel>;
       schedulingPolicyModel: ReturnType<typeof buildVoxyRenderSchedulingPolicyPanelModel>;
       runtimeCutoverGateModel: ReturnType<typeof buildVoxyRenderRuntimeCutoverGatePanelModel>;
+      masterClosureModel: ReturnType<typeof buildVoxyVideoBriefingFlowMasterClosurePanelModel>;
       runtimeObservabilityModel: ReturnType<
         typeof buildVoxyRenderRuntimeObservabilityPanelModel
       >;
@@ -491,6 +500,7 @@ export default async function AdminReviewPage({
       mediaStorageTruthModel: null,
       schedulingPolicyModel: null,
       runtimeCutoverGateModel: null,
+      masterClosureModel: null,
       runtimeObservabilityModel: null,
       uploadTargetPolicyModel: null,
       previewReviewDecisionPersistenceModel: null,
@@ -521,6 +531,8 @@ export default async function AdminReviewPage({
     getVoxyRenderRuntimeObservabilityPersistenceState();
   const adminVoxyRuntimeCutoverGateStoreState =
     getVoxyRenderRuntimeCutoverGatePersistenceState();
+  const adminVoxyMasterClosureStoreState =
+    getVoxyVideoBriefingFlowMasterClosurePersistenceState();
   const adminVoxyUploadTargetPolicyStoreState =
     getVoxyRenderUploadTargetPolicyPersistenceState();
   const adminVoxyRuntimeEnablementBacklogStoreState =
@@ -618,6 +630,12 @@ export default async function AdminReviewPage({
         .map((record) => record.runtimeObservabilityId)
         .filter((value): value is string => Boolean(value)),
     ).catch(() => new Map<string, any>());
+  const adminVoxyLatestMasterClosures =
+    await listLatestVoxyVideoBriefingFlowMasterClosuresByRuntimeCutoverGateIds(
+      Array.from(adminVoxyLatestRuntimeCutoverGates.values())
+        .map((record) => record.runtimeCutoverGateId)
+        .filter((value): value is string => Boolean(value)),
+    ).catch(() => new Map<string, any>());
   const adminVoxyLatestProviderSelectionDrafts =
     await listLatestVoxyRenderProviderSelectionDraftRecordsByDecisionGateIds(
       Array.from(adminVoxyDecisionPanels.values())
@@ -704,6 +722,10 @@ export default async function AdminReviewPage({
       ? adminVoxyLatestRuntimeCutoverGates.get(
           latestRuntimeObservabilityRecord.runtimeObservabilityId,
         ) ?? null
+      : null;
+    const latestMasterClosureRecord = latestRuntimeCutoverGateRecord?.runtimeCutoverGateId
+      ? adminVoxyLatestMasterClosures.get(latestRuntimeCutoverGateRecord.runtimeCutoverGateId) ??
+        null
       : null;
     const latestProviderSelectionDraftRecord = panel.gateModel
       ? adminVoxyLatestProviderSelectionDrafts.get(panel.gateModel.decisionGateId) ?? null
@@ -960,6 +982,51 @@ export default async function AdminReviewPage({
             latestRecord: latestRuntimeCutoverGateRecord,
             storeState: adminVoxyRuntimeCutoverGateStoreState,
             runtimeObservabilityStoreState: adminVoxyRuntimeObservabilityStoreState,
+          })
+        : null,
+      masterClosureModel: previewReviewFlow && item?.v3ReviewContext
+        ? buildVoxyVideoBriefingFlowMasterClosurePanelModel({
+            latestRuntimeCutoverGateRecord,
+            latestRuntimeObservabilityRecord,
+            latestSchedulingPolicyRecord,
+            latestUploadTargetPolicyRecord,
+            latestMediaStorageTruthRecord,
+            latestApprovalSemanticsRecord,
+            latestSocialDistributionHandoffRecord,
+            latestPublishReadinessGuardRecord,
+            latestPreviewOutcomeHandoffRecord,
+            latestPreviewReviewFlowRecord: previewReviewFlow,
+            latestRequestDraft: latestRequestDraftRecord,
+            latestScriptCandidate: buildVoxyBriefingScriptCandidateFromReviewContext(
+              item.v3ReviewContext,
+              {
+                audience: "admin",
+                contributionRef: {
+                  id: item.id,
+                  title: item.title,
+                  href: item.href,
+                },
+                dossierRef: item.dossierId
+                  ? {
+                      id: item.dossierId,
+                      title: item.title,
+                      href: item.href,
+                    }
+                  : null,
+                outputRef: {
+                  id: item.id,
+                  title: item.title,
+                  href: item.href,
+                },
+              },
+            ),
+            latestProviderSelectionDraft: latestProviderSelectionDraftRecord,
+            latestAssetPackDraft: latestAssetPackDraftRecord,
+            latestQueueContract: latestQueuePreviewRecord,
+            latestCostCreditPolicy: latestCostCreditPolicyRecord,
+            latestRecord: latestMasterClosureRecord,
+            storeState: adminVoxyMasterClosureStoreState,
+            runtimeCutoverGateStoreState: adminVoxyRuntimeCutoverGateStoreState,
           })
         : null,
       runtimeObservabilityModel: previewReviewFlow
@@ -1636,6 +1703,12 @@ export default async function AdminReviewPage({
                             null
                           }
                           dataTestId={`admin-review-voxy-render-runtime-cutover-gate-${item.id}`}
+                        />
+                        <VoxyVideoBriefingFlowMasterClosurePanel
+                          model={
+                            adminVoxyDecisionPanels.get(item.id)?.masterClosureModel ?? null
+                          }
+                          dataTestId={`admin-review-voxy-video-briefing-flow-master-closure-${item.id}`}
                         />
                         <VoxyRenderProviderHandoffPanel
                           model={buildVoxyRenderProviderHandoffFromReviewContext(

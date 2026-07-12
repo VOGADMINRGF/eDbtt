@@ -70,6 +70,7 @@ import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRun
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
+import VoxyVideoBriefingFlowMasterClosurePanel from "@/features/create/VoxyVideoBriefingFlowMasterClosurePanel";
 import VoxyRenderProviderSelectionDraftPanel from "@/features/create/VoxyRenderProviderSelectionDraftPanel";
 import VoxyRenderQueueContractPanel from "@/features/create/VoxyRenderQueueContractPanel";
 import VoxyRenderRequestDraftPanel from "@/features/create/VoxyRenderRequestDraftPanel";
@@ -115,6 +116,9 @@ import {
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
+import {
+  buildVoxyVideoBriefingFlowMasterClosurePanelModel,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureContract";
 import {
   buildVoxyRenderPreviewReviewDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderPreviewReviewDecisionPersistenceContract";
@@ -182,6 +186,10 @@ import {
   getLatestVoxyRenderRuntimeCutoverGateRecord,
   getVoxyRenderRuntimeCutoverGatePersistenceState,
 } from "@/features/create/voxyRenderRuntimeCutoverGateStore";
+import {
+  getLatestVoxyVideoBriefingFlowMasterClosureRecord,
+  getVoxyVideoBriefingFlowMasterClosurePersistenceState,
+} from "@/features/create/voxyVideoBriefingFlowMasterClosureStore";
 import {
   getLatestVoxyRenderRuntimeObservabilityRecord,
   getVoxyRenderRuntimeObservabilityPersistenceState,
@@ -694,6 +702,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestMasterClosureRecord = workspaceVoxyLatestRuntimeCutoverGateRecord
+    ? await getLatestVoxyVideoBriefingFlowMasterClosureRecord({
+        runtimeCutoverGateId: workspaceVoxyLatestRuntimeCutoverGateRecord.runtimeCutoverGateId,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -912,6 +927,53 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
         : null,
       runtimeObservabilityStoreState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderRuntimeObservabilityPersistenceState()
+        : null,
+    });
+  const workspaceVoxyVideoBriefingFlowMasterClosureModel =
+    buildVoxyVideoBriefingFlowMasterClosurePanelModel({
+      latestRuntimeCutoverGateRecord: workspaceVoxyLatestRuntimeCutoverGateRecord,
+      latestRuntimeObservabilityRecord: workspaceVoxyLatestRuntimeObservabilityRecord,
+      latestSchedulingPolicyRecord: workspaceVoxyLatestSchedulingPolicyRecord,
+      latestUploadTargetPolicyRecord: workspaceVoxyLatestUploadTargetPolicyRecord,
+      latestMediaStorageTruthRecord: workspaceVoxyLatestMediaStorageTruthRecord,
+      latestApprovalSemanticsRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestSocialDistributionHandoffRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestPreviewOutcomeHandoffRecord: workspaceVoxyLatestPreviewOutcomeHandoffRecord,
+      latestPreviewReviewFlowRecord: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      latestScriptCandidate: v3ReviewContext
+        ? buildVoxyBriefingScriptCandidateFromReviewContext(v3ReviewContext, {
+            audience: "workspace",
+            contributionRef: sourceRecord?.id
+              ? {
+                  id: sourceRecord.id,
+                  title: workspaceVoxyRefs.title,
+                  href: sourceRecord.resumeHref,
+                }
+              : null,
+            dossierRef: {
+              id: workspaceVoxyRefs.id,
+              title: workspaceVoxyRefs.title,
+              href: workspaceVoxyRefs.href,
+            },
+            outputRef: {
+              id: workspaceVoxyRefs.id,
+              title: workspaceVoxyRefs.title,
+              href: workspaceVoxyRefs.href,
+            },
+          })
+        : null,
+      latestProviderSelectionDraft: workspaceVoxyLatestProviderSelectionDraftRecord,
+      latestAssetPackDraft: workspaceVoxyLatestAssetPackDraftRecord,
+      latestQueueContract: workspaceVoxyLatestQueuePreviewRecord,
+      latestCostCreditPolicy: workspaceVoxyLatestCostCreditPolicyRecord,
+      latestRecord: workspaceVoxyLatestMasterClosureRecord,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyVideoBriefingFlowMasterClosurePersistenceState()
+        : null,
+      runtimeCutoverGateStoreState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeCutoverGatePersistenceState()
         : null,
     });
 
@@ -1167,6 +1229,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderRuntimeCutoverGatePanel
               model={workspaceVoxyRuntimeCutoverGateModel}
               dataTestId="dossier-studio-voxy-render-runtime-cutover-gate"
+            />
+            <VoxyVideoBriefingFlowMasterClosurePanel
+              model={workspaceVoxyVideoBriefingFlowMasterClosureModel}
+              dataTestId="dossier-studio-voxy-video-briefing-flow-master-closure"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
