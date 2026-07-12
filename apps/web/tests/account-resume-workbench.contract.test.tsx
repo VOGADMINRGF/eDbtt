@@ -109,6 +109,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Provider-Auswahl");
     expect(html).toContain("Runtime Go/No-Go");
     expect(html).toContain("Runtime Enablement Backlog");
+    expect(html).toContain("Runtime Observability");
     expect(html).toContain("Preview Review");
     expect(html).toContain("Preview-Review-Entscheidung");
     expect(html).toContain("Preview Outcome Handoff");
@@ -125,6 +126,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Kein Provider-Selection-Draft-Store im Surface");
     expect(html).toContain("Kein Runtime-Go/No-Go-Store im Surface");
     expect(html).toContain("Kein Runtime-Enablement-Backlog-Store im Surface");
+    expect(html).toContain("Kein Runtime-Observability-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Store im Surface");
     expect(html).toContain("Kein Preview-Review-Decision-Store im Surface");
     expect(html).toContain("Kein Preview-Outcome-Handoff-Store im Surface");
@@ -184,6 +186,10 @@ describe("account resume workbench contract", () => {
     expect((html.match(/data-testid=\"account-resume-voxy-render-media-storage-truth-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-upload-target-policy-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-scheduling-policy-/g) ?? []).length).toBe(1);
+    expect(
+      (html.match(/data-testid=\"account-resume-voxy-render-runtime-observability-/g) ?? [])
+        .length,
+    ).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-provider-handoff-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-preflight-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"account-resume-voxy-render-registry-/g) ?? []).length).toBe(1);

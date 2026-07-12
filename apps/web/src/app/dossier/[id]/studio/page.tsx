@@ -65,6 +65,7 @@ import VoxyRenderSocialDistributionHandoffPanel from "@/features/create/VoxyRend
 import VoxyRenderApprovalSemanticsPanel from "@/features/create/VoxyRenderApprovalSemanticsPanel";
 import VoxyRenderMediaStorageTruthPanel from "@/features/create/VoxyRenderMediaStorageTruthPanel";
 import VoxyRenderSchedulingPolicyPanel from "@/features/create/VoxyRenderSchedulingPolicyPanel";
+import VoxyRenderRuntimeObservabilityPanel from "@/features/create/VoxyRenderRuntimeObservabilityPanel";
 import VoxyRenderUploadTargetPolicyPanel from "@/features/create/VoxyRenderUploadTargetPolicyPanel";
 import VoxyRenderRuntimeEnablementBacklogPanel from "@/features/create/VoxyRenderRuntimeEnablementBacklogPanel";
 import VoxyRenderRuntimeGoNogoMatrixPanel from "@/features/create/VoxyRenderRuntimeGoNogoMatrixPanel";
@@ -104,6 +105,9 @@ import {
 import {
   buildVoxyRenderSchedulingPolicyPanelModel,
 } from "@/features/create/voxyRenderSchedulingPolicyContract";
+import {
+  buildVoxyRenderRuntimeObservabilityPanelModel,
+} from "@/features/create/voxyRenderRuntimeObservabilityContract";
 import {
   buildVoxyRenderUploadTargetPolicyPanelModel,
 } from "@/features/create/voxyRenderUploadTargetPolicyContract";
@@ -170,6 +174,10 @@ import {
   getLatestVoxyRenderSchedulingPolicyRecord,
   getVoxyRenderSchedulingPolicyPersistenceState,
 } from "@/features/create/voxyRenderSchedulingPolicyStore";
+import {
+  getLatestVoxyRenderRuntimeObservabilityRecord,
+  getVoxyRenderRuntimeObservabilityPersistenceState,
+} from "@/features/create/voxyRenderRuntimeObservabilityStore";
 import {
   getLatestVoxyRenderUploadTargetPolicyRecord,
   getVoxyRenderUploadTargetPolicyPersistenceState,
@@ -663,6 +671,13 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
       }).catch(() => null)
     : null;
+  const workspaceVoxyLatestRuntimeObservabilityRecord = workspaceVoxyLatestSchedulingPolicyRecord
+    ? await getLatestVoxyRenderRuntimeObservabilityRecord({
+        schedulingPolicyId: workspaceVoxyLatestSchedulingPolicyRecord.schedulingPolicyId,
+        previewReviewFlowId:
+          workspaceVoxyLatestPreviewReviewFlowRecord?.previewReviewFlowId ?? null,
+      }).catch(() => null)
+    : null;
   const workspaceVoxyRuntimeGoNogoMatrixModel =
     buildVoxyRenderRuntimeGoNogoMatrixPanelModel({
       preview: v3ReviewContext
@@ -833,6 +848,28 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
       gate: workspaceVoxyDecisionGateModel,
       storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderSchedulingPolicyPersistenceState()
+        : null,
+    });
+  const workspaceVoxyRuntimeObservabilityModel =
+    buildVoxyRenderRuntimeObservabilityPanelModel({
+      previewFlow: workspaceVoxyPreviewReviewFlowModel?.preview ?? null,
+      latestSchedulingPolicyRecord: workspaceVoxyLatestSchedulingPolicyRecord,
+      latestUploadTargetPolicyRecord: workspaceVoxyLatestUploadTargetPolicyRecord,
+      latestMediaStorageTruthRecord: workspaceVoxyLatestMediaStorageTruthRecord,
+      latestApprovalSemanticsRecord: workspaceVoxyLatestApprovalSemanticsRecord,
+      latestSocialDistributionHandoffRecord: workspaceVoxyLatestSocialDistributionHandoffRecord,
+      latestPublishReadinessGuardRecord: workspaceVoxyLatestPublishReadinessGuardRecord,
+      latestPreviewOutcomeHandoffRecord: workspaceVoxyLatestPreviewOutcomeHandoffRecord,
+      latestRecord: workspaceVoxyLatestRuntimeObservabilityRecord,
+      latestBacklog: workspaceVoxyLatestRuntimeEnablementBacklogRecord,
+      latestMatrix: workspaceVoxyLatestRuntimeGoNogoMatrixRecord,
+      latestRequestDraft: workspaceVoxyLatestRequestDraftRecord,
+      gate: workspaceVoxyDecisionGateModel,
+      storeState: workspaceVoxyDecisionGateModel
+        ? getVoxyRenderRuntimeObservabilityPersistenceState()
+        : null,
+      schedulingPolicyStoreState: workspaceVoxyDecisionGateModel
         ? getVoxyRenderSchedulingPolicyPersistenceState()
         : null,
     });
@@ -1081,6 +1118,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
             <VoxyRenderSchedulingPolicyPanel
               model={workspaceVoxySchedulingPolicyModel}
               dataTestId="dossier-studio-voxy-render-scheduling-policy"
+            />
+            <VoxyRenderRuntimeObservabilityPanel
+              model={workspaceVoxyRuntimeObservabilityModel}
+              dataTestId="dossier-studio-voxy-render-runtime-observability"
             />
             <VoxyRenderProviderHandoffPanel
               model={buildVoxyRenderProviderHandoffFromReviewContext(v3ReviewContext, {
