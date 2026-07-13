@@ -22,6 +22,10 @@ vi.mock("next/image", () => ({
 describe("landing clarity contract", () => {
   it("renders the split Voxy landing with two direct public entry points", () => {
     const html = renderToStaticMarkup(<LandingStart />);
+    const headings = [...html.matchAll(/<h1([^>]*)>/g)];
+
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
 
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain(

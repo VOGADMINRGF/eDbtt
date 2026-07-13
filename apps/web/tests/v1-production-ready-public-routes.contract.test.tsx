@@ -41,8 +41,9 @@ describe("v1 production ready public routes contract", () => {
     expect(streamSource).toContain('href="/swipes"');
     expect(streamSource).toContain("Öffentliche Hinweise bleiben reviewpflichtig.");
 
-    expect(pricingInstitutionenSource).toContain("Startpaket vormerken");
+    expect(pricingInstitutionenSource).toContain("Zum Paketstart");
     expect(pricingInstitutionenSource).toContain("Startpaket");
+    expect(pricingInstitutionenSource).not.toContain("Startpaket vormerken");
     expect(pricingInstitutionenSource).not.toContain("Pilotpaket");
   });
 });

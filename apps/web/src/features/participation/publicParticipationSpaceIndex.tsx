@@ -4,6 +4,7 @@ import type {
   PublicParticipationSpaceRuntimeItem,
   PublicParticipationSpaceRuntimeStatus,
 } from "@/features/participation/publicParticipationSpaceRuntime";
+import { getPublicParticipationSourceLabel } from "@/features/participation/publicParticipationSpaceRuntime";
 
 type Props = {
   items: PublicParticipationSpaceRuntimeItem[];
@@ -21,27 +22,12 @@ function formatPublicTimestamp(value: string) {
 
 function resolveHeroCopy(status: PublicParticipationSpaceRuntimeStatus) {
   if (status.source === "runtime") {
-    return "Read-only Übersicht über explizit veröffentlichte Beteiligungsräume. Die Seite zeigt nur redaktionell freigegebene Runtime-Räume und blendet interne Review-, Audit- und Moderationsdaten aus.";
+    return "Read-only Übersicht über ausdrücklich öffentlich freigegebene Beteiligungsräume. Interne Review-, Audit- und Moderationsdaten bleiben verborgen.";
   }
   if (status.source === "fixture_fallback") {
-    return "Aktuell liegt noch keine veröffentlichte Runtime vor. Deshalb bleibt die bisherige Preview-Lesart sichtbar gekennzeichnet, ohne sie als echte Produktionsruntime auszugeben.";
+    return "Noch liegt keine veröffentlichte Fassung vor. Deshalb bleibt eine klar gekennzeichnete Vorschau sichtbar, ohne sie als Produktivstand auszugeben.";
   }
   return "Weitere Räume erscheinen erst nach Prüfung und Freigabe. Die öffentliche Route bleibt read-only und erzeugt keine Veröffentlichung als Seiteneffekt.";
-}
-
-function resolveSourceLabel(status: PublicParticipationSpaceRuntimeStatus) {
-  switch (status.source) {
-    case "runtime":
-      return "Runtime-basiert";
-    case "fixture_fallback":
-      return "Fixture-basiert";
-    case "error":
-      return "Runtime-Fehler";
-    case "blocked_unwired":
-      return "Noch nicht verdrahtet";
-    default:
-      return "Leerzustand";
-  }
 }
 
 export function PublicParticipationSpaceIndex({ items, status }: Props) {
@@ -70,7 +56,7 @@ export function PublicParticipationSpaceIndex({ items, status }: Props) {
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
               <HeroBadge>Öffentlich lesbar</HeroBadge>
               <HeroBadge>Read-only Übersicht</HeroBadge>
-              <HeroBadge>{resolveSourceLabel(status)}</HeroBadge>
+              <HeroBadge>{getPublicParticipationSourceLabel(status.source)}</HeroBadge>
             </div>
             <p className="max-w-3xl text-sm leading-6 text-slate-200/90">
               Quellen- und Kontextangaben dienen der Einordnung, nicht als automatische Wahrheitsbestätigung.
@@ -84,9 +70,9 @@ export function PublicParticipationSpaceIndex({ items, status }: Props) {
               detail="Nur öffentliche und read-only sichtbare Einträge"
             />
             <HeroStatusCard
-              label="Runtime-Published"
+              label="Veröffentlicht"
               value={String(status.totalRuntimePublished)}
-              detail="Explizit veröffentlichte Runtime-Räume"
+              detail="Explizit freigegebene öffentliche Räume"
             />
             <HeroStatusCard
               label="Detailroute"
@@ -115,7 +101,7 @@ export function PublicParticipationSpaceIndex({ items, status }: Props) {
             <SummaryMetricCard label="Ohne Detailrückmeldung" value={feedbackPrepared} />
             <SummaryMetricCard
               label="Datenquelle"
-              value={resolveSourceLabel(status)}
+              value={getPublicParticipationSourceLabel(status.source)}
             />
           </dl>
         </article>

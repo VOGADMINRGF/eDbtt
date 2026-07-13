@@ -121,8 +121,8 @@ describe("participation space public detail runtime", () => {
     const html = await renderDetail("sichere-schulwege");
 
     expect(html).toContain("Beteiligungsraum Sichere Schulwege");
-    expect(html).toContain("Runtime-basiert");
-    expect(html).toContain("Dieser Raum wurde redaktionell freigegeben.");
+    expect(html).toContain("Veröffentlicht");
+    expect(html).toContain("Dieser Raum wurde redaktionell öffentlich freigegeben.");
     expect(html).toContain(
       "Quellen- und Kontextangaben dienen der Einordnung, nicht als automatische Wahrheitsbestätigung.",
     );
@@ -134,6 +134,8 @@ describe("participation space public detail runtime", () => {
     expect(html).not.toContain("auditTrail");
     expect(html).not.toContain("Auto-Graph");
     expect(html).not.toContain("Auto-Merge");
+    expect(html).not.toContain("Runtime-basiert");
+    expect(html).not.toContain("Fixture-basiert");
   });
 
   it("returns notFound for a non-public detail", async () => {
