@@ -52,6 +52,8 @@ describe("dossier public route contract", () => {
     expect(html).toContain("Öffentlich lesbarer Dossierstand");
     expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
     expect(html).toContain("Amtlich freigegeben bleibt ausschließlich der Official-Release-Pfad.");
+    expect(html).toContain("Öffentlich lesbare Debattenstände bleiben frei zugänglich.");
+    expect(html).toContain("Personalisierung blendet weder starke Gegenargumente noch Quellen- oder Evidenzgrenzen aus.");
     expect(html).toContain("ShareDeepLinkActions");
     expect(html).toContain("SocialOutputPreviewPanel");
     expect(html).toContain("RouteBoundCompanionPanel");
@@ -70,6 +72,7 @@ describe("dossier public route contract", () => {
 
     expect(html).toContain("Reviewpflichtiger Dossier-Draft");
     expect(html).toContain("Öffentlicher Link, Share-Fläche und QR bleiben aus");
+    expect(html).toContain("Öffentlich lesbare Debattenstände bleiben frei zugänglich.");
     expect(html).not.toContain("ShareDeepLinkActions");
     expect(html).not.toContain("SocialOutputPreviewPanel");
     expect(html).not.toContain("RouteBoundCompanionPanel");

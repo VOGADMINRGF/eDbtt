@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { RegionPublicationVisibilityState } from "@features/region";
+import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import RundenPublicInputPanel from "./RundenPublicInputPanel";
 
 const PUBLIC_CREATE_HREF =
@@ -91,6 +92,7 @@ export default function RundenPublicSharingGuide(props: {
   featuredAnlassraumId?: string | null;
   featuredAnlassraumTitle?: string | null;
 }) {
+  const publicReadingGuardrails = buildPublicReadingGuardrailLines();
   return (
     <section className="grid gap-4">
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
@@ -110,6 +112,9 @@ export default function RundenPublicSharingGuide(props: {
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
               Sichtbar heißt nicht automatisch geprüft oder amtlich. Dossier/Faktenstatus
               bleibt in Prüfung. Amtliche Antworten nur durch verifizierte Rollen.
+            </p>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              {publicReadingGuardrails[0]} {publicReadingGuardrails[1]}
             </p>
           </div>
 

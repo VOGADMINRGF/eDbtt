@@ -349,6 +349,14 @@ describe("/account/organization/dashboard page", () => {
     expect(html.indexOf("Schnell starten")).toBeLessThan(html.indexOf("Meine Organisation"));
   });
 
+  it("keeps institutional workspace wording separate from a forced personal companion", async () => {
+    const html = renderToStaticMarkup(await AccountOrganizationDashboardPage());
+
+    expect(html).toContain("B2B-Workbench");
+    expect(html).toContain("Geführte Hilfe oder benannter Kontakt bleiben optional.");
+    expect(html).not.toContain("persönlicher Companion wird erzwungen");
+  });
+
   it("renders verified organization workspace with freischaltung, startlage and reviewpflichtige drafts", async () => {
     const persistence = createInMemoryRegionSignalDraftPersistence();
     setRegionSignalDraftPersistenceForTests(persistence);

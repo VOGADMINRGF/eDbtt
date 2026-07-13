@@ -61,6 +61,8 @@ describe("admin access and entitlements surface contract", () => {
 
     expect(html).toContain("Seitenzugriffe verwalten");
     expect(html).toContain(PRODUCTION_ENTRY_COPY.adminAccessLead);
+    expect(html).toContain("institutionelle Workbenches und Cockpits");
+    expect(html).toContain("Personal Voxy bleibt davon getrennt");
   });
 
   it("keeps entitlements page explicit about review-first activation without billing promises", async () => {
@@ -68,5 +70,7 @@ describe("admin access and entitlements surface contract", () => {
 
     expect(html).toContain("Freischaltungen verwalten");
     expect(html).toContain(PRODUCTION_ENTRY_COPY.adminEntitlementsLead);
+    expect(html).toContain("institutionelle Workbenches und Cockpits");
+    expect(html).toContain("Personal Voxy bleibt davon getrennt");
   });
 });

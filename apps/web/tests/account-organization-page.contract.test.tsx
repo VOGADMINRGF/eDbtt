@@ -49,5 +49,7 @@ describe("/account/organization page contract", () => {
     expect(html).toContain(DE_TRUST.noHiddenAiCosts);
     expect(html).toContain(PRODUCTION_ENTRY_COPY.organizationPathHint);
     expect(html).toContain("Dieser Antrag dient nur bewusstem Org-Scope, Rollen und Freischaltungen.");
+    expect(html).toContain("B2B und B2G starten hier als Team- oder Jurisdiktionsarbeitsbereich");
+    expect(html).toContain("Ein persönlicher Companion wird nicht erzwungen.");
   });
 });

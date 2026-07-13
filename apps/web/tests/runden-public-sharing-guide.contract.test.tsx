@@ -15,8 +15,10 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Anlassraum = öffentlicher Gesprächsraum");
     expect(html).toContain("Hier sammeln wir Fragen, Perspektiven, Quellen, Optionen und Hinweise");
     expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
-    expect(html).toContain("Dossier/Faktenstatus bleibt reviewpflichtig.");
+    expect(html).toContain("Dossier/Faktenstatus bleibt in Prüfung.");
     expect(html).toContain("Amtliche Antworten nur durch verifizierte Rollen.");
+    expect(html).toContain("Öffentlich lesbare Debattenstände bleiben frei zugänglich.");
+    expect(html).toContain("Personalisierung blendet weder starke Gegenargumente noch Quellen- oder Evidenzgrenzen aus.");
     expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
     expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
     expect(html).toContain("Link und QR gehören nur zu sichtbaren Anlässen.");
@@ -35,7 +37,7 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("veröffentlicht");
     expect(html).toContain("amtlich");
     expect(html).toContain("archiviert");
-    expect(html).toContain("Review-only bleibt intern.");
+    expect(html).toContain("Nur intern sichtbare Beiträge bleiben intern.");
     expect(html).toContain("Pausiert, archiviert und geschlossen");
     expect(html).toContain("Keine automatische amtliche Antwort.");
     expect(html).toContain("Keine automatische Dossier- oder Anlassraum-Finalisierung.");

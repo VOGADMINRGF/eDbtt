@@ -4,6 +4,7 @@ import { AccountClient } from "./AccountClient";
 import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
+import { buildPersonalAccountSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 
 export const metadata = {
   title: "Mein Konto & eDebatte · eDebatte",
@@ -52,6 +53,9 @@ export default async function AccountPage({ searchParams }: Props) {
           </h1>
           <p className="text-xs text-[rgb(var(--muted))]">
             Interessen, Kontakte und Inbox an einem Ort. {PRODUCTION_ENTRY_COPY.accountLead}
+          </p>
+          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
+            {buildPersonalAccountSegmentHint()}
           </p>
         </header>
 
