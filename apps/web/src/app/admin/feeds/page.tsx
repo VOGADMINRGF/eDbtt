@@ -8,6 +8,7 @@ import {
   getOperatorFeedsTexts,
   resolveOperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
+import FeedSourceIntakeSurfaceTruthCallout from "@/features/review/FeedSourceIntakeSurfaceTruthCallout";
 
 type FeedConfigScope = {
   scope: string;
@@ -402,6 +403,9 @@ export default function AdminFeedsPage() {
             </div>
           ) : null}
         </div>
+        <div className="mt-4">
+          <FeedSourceIntakeSurfaceTruthCallout surface="admin_feeds" />
+        </div>
         {runtimeLoading && (
           <p className="mt-3 text-sm text-[rgb(var(--muted))]">
             Runtime-Leitstand wird geladen. Danach erscheinen hier auch Quellen-Health und Material-Extraktionsjobs ohne Demo-Fallback.
@@ -496,6 +500,9 @@ export default function AdminFeedsPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                              Publish-Vorbereitung
+                            </p>
                             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{handoff.label}</p>
                             <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
                               {handoff.description}
@@ -635,6 +642,9 @@ export default function AdminFeedsPage() {
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                              Source Connection
+                            </p>
                             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.sourceLabel}</p>
                             <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                               {item.healthLabel} · {humanizeAutomationMode(item.automationMode)} · {humanizeSourceKind(item.sourceKind)}
@@ -721,6 +731,9 @@ export default function AdminFeedsPage() {
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                              Material Intake
+                            </p>
                             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.materialLabel}</p>
                             <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                               {item.statusLabel} · {humanizeExtractionMode(item.extractionMode)} · {item.costGuardLabel}

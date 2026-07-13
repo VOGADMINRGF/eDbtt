@@ -15,6 +15,7 @@ import {
   type RegionSourceTestResult,
   type SourceConnectionType,
 } from "@features/region/sourceConnections";
+import FeedSourceIntakeSurfaceTruthCallout from "@/features/review/FeedSourceIntakeSurfaceTruthCallout";
 
 type FormState = {
   sourceType: SourceConnectionType;
@@ -167,6 +168,9 @@ export function RegionSourceConnectionsPanel(props: {
           Demo-/Pilotstände reproduzierbar. Beispiel-Seeds bleiben optional und markieren keinen
           Produkt-Sonderfall.
         </p>
+        <div className="mt-4">
+          <FeedSourceIntakeSurfaceTruthCallout surface="admin_region" />
+        </div>
 
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
           <label className="grid gap-1 text-sm text-[rgb(var(--fg))]">
@@ -306,6 +310,9 @@ export function RegionSourceConnectionsPanel(props: {
               <div key={connection.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Source Connection
+                    </p>
                     <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connection.label}</p>
                     <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                       {regionSourceConnectionTypeLabel(connection.sourceType)} ·{" "}
@@ -368,6 +375,9 @@ export function RegionSourceConnectionsPanel(props: {
           {props.results.length > 0 ? (
             props.results.map((result) => (
               <div key={result.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  Snapshot
+                </p>
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{result.title}</p>
                 <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                   {regionSourceConnectionTypeLabel(result.sourceType)} · {result.visibilityLabel} ·{" "}

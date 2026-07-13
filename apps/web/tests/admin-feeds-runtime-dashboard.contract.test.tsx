@@ -22,6 +22,12 @@ describe("admin feeds runtime dashboard contract", () => {
     expect(html).toContain("Quellen-Health");
     expect(html).toContain("Material-Extraktionsjobs");
     expect(html).toContain("Letzte Läufe");
+    expect(html).toContain("Kanonischer Review-first Pfad");
+    expect(html).toContain("Review-first Intake-Handoff");
+    expect(html).toContain("Source Connection");
+    expect(html).toContain("Material Intake");
+    expect(html).toContain("Review Item");
+    expect(html).toContain("Publish-Vorbereitung");
     expect(html).toContain("Scheduler-Claim bewusst ausgeschlossen");
     expect(html).toContain("Noch kein öffentlicher Anschluss vorbereitet");
   });
