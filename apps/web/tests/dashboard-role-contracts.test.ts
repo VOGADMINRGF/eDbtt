@@ -35,8 +35,9 @@ describe("dashboard role contracts", () => {
 
     expect(accountPage).toContain("Mein Profil");
     expect(accountPage).toContain("/login?next=");
+    expect(accountPage).toContain("buildPersonalAccountSegmentHint()");
     expect(adminPage).toContain("Steuerzentrale");
-    expect(adminPage).toContain("Pricing Orders");
+    expect(adminPage).toContain('getOperatorWorkbenchSurface("pricingOrders").title');
     expect(adminPage).toContain("Betreiber-Modus aktiv");
     expect(adminLayout).toContain("Betreiber-Modus aktiv");
   });

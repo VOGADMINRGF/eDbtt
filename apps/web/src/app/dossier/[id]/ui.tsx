@@ -23,6 +23,7 @@ import {
   resolveDossierStatusChips,
   toneClassForB2CStatus,
 } from "@/features/b2cJourney/statusContract";
+import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
 type ApiResponse =
@@ -108,6 +109,7 @@ export function DossierPagePublicBody({
   updateContext?: DossierPublicUpdateContext | null;
 }) {
   const showPublicReadingSurface = shouldShowPublicReadingSurface(loadState);
+  const publicReadingGuardrails = buildPublicReadingGuardrailLines();
   const statusChips = resolveDossierStatusChips({
     loadState,
     handoffDraft,
@@ -175,6 +177,9 @@ export function DossierPagePublicBody({
       </div>
       <p className="mb-3 text-xs text-[rgb(var(--muted))]">
         Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).
+      </p>
+      <p className="mb-4 text-sm text-[rgb(var(--muted))]">
+        {publicReadingGuardrails[0]} {publicReadingGuardrails[1]}
       </p>
       <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">

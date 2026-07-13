@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { buildAgenticBootstrapReadiness } from "@/features/agenticRuntime/agentRegistryBootstrapContract";
 import {
+  buildAdminSegmentHint,
+  listSegmentedAgentExperiences,
+} from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import {
   getOperatorWorkbenchSurface,
   type OperatorWorkbenchSurfaceKey,
 } from "@/features/admin/operatorWorkbenchSurfaces";
@@ -60,6 +64,7 @@ const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
 export default async function AdminSystemHubPage() {
   const systemSurface = getOperatorWorkbenchSurface("systemHub");
   const agenticReadiness = buildAgenticBootstrapReadiness();
+  const segmentedExperiences = listSegmentedAgentExperiences();
   const materializedFollowups =
     agenticReadiness.bootstrap.followupTaskCount - agenticReadiness.bootstrap.missingFollowupTaskIds.length;
   return (
@@ -101,6 +106,7 @@ export default async function AdminSystemHubPage() {
               Validiert Registry, denied actions, shared rules und Task-Mapping ohne Runtime-Aktivierung,
               Parallel-Agenten oder externe Provider.
             </p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildAdminSegmentHint()}</p>
           </div>
           <div className="rounded-2xl bg-[rgb(var(--soft))] px-3 py-2 text-right text-xs text-[rgb(var(--muted))]">
             <p>Bootstrap-Task</p>
@@ -139,12 +145,11 @@ export default async function AdminSystemHubPage() {
           <div>
             <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Segmentgrenzen</h3>
             <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
-              {agenticReadiness.segments.map((segment) => (
+              {segmentedExperiences.map((segment) => (
                 <li key={segment.id}>
                   <span className="font-medium text-[rgb(var(--fg))]">{segment.title}:</span>{" "}
-                  {segment.userFacingMode}, optionale Hilfe{" "}
-                  {segment.optionalGuidance ? "ja" : "nein"}, erzwungener Companion{" "}
-                  {segment.forcedCompanion ? "ja" : "nein"}.
+                  {segment.primaryExperience}, geführte Hilfe {segment.guidedAssistance === "optional" ? "optional" : "nicht primär"}, benannter Kontakt{" "}
+                  {segment.namedHumanContact === "optional" ? "optional" : "nicht primär"}, erzwungener Companion nein.
                 </li>
               ))}
             </ul>

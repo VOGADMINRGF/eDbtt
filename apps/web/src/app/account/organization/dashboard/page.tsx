@@ -15,6 +15,7 @@ import {
   isOrganizationAccessBlocked,
   isOrganizationAccessLimited,
 } from "@/features/access/productionEntryContract";
+import { buildInstitutionalWorkspaceSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import {
   buildOrganizationDashboardReadModel,
   organizationBillingStatusLabel,
@@ -566,6 +567,12 @@ export default async function AccountOrganizationDashboardPage() {
             <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
               Aussage, Dossier, Anlassraum und Beteiligungssignal bleiben reviewpflichtige
               Arbeitsstände. Wir veröffentlichen nichts ungeprüft.
+            </p>
+            <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+              {buildInstitutionalWorkspaceSegmentHint({
+                organizationType: readModel.organizationType,
+                isOperatorMode: readModel.organization.isOperatorMode,
+              })}
             </p>
           </div>
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">

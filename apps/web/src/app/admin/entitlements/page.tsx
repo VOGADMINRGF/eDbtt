@@ -7,6 +7,7 @@ import {
   resolveProvisioningRequestStatus,
 } from "@features/region";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
+import { buildAdminSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 import { AdminEntitlementsClient } from "./AdminEntitlementsClient";
 
@@ -57,6 +58,7 @@ export default async function AdminEntitlementsPage() {
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           {PRODUCTION_ENTRY_COPY.adminEntitlementsLead}
         </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildAdminSegmentHint()}</p>
       </header>
       <AdminEntitlementsClient
         initialEntitlements={entitlements}
