@@ -10,8 +10,9 @@ Read only:
 2. `docs/E150/CODEX_AUTONOMOUS_OPERATING_MODEL.md`
 3. `docs/E150/V3_AGENTIC_RUNTIME_MANIFEST_2026-07-13.md`
 4. `.codex/agents/registry.json`
-5. the relevant `codex_ready` entries in `docs/E150/OpenTasks.md`
-6. directly affected files, dependencies, open PRs, and CI checks
+5. `.codex/agents/bootstrap.json`
+6. the relevant `codex_ready` entries in `docs/E150/OpenTasks.md`
+7. directly affected files, dependencies, open PRs, and CI checks
 
 ## Operating model
 
@@ -27,6 +28,23 @@ For each selected cluster:
 6. implement real product behavior only when the task explicitly releases it.
 
 Do not expose private chain-of-thought. User-facing AI trace may show role, step, input artifact, output artifact, source usage, confidence, status and required human action.
+
+## Automatic bootstrap
+
+Before normal queue selection, inspect `.codex/agents/bootstrap.json`.
+
+If `V3-AGENT-REGISTRY-RUNNER-BOOTSTRAP-01` is not already present as `in_progress` or `done` in `docs/E150/OpenTasks.md`, treat the bootstrap task as the highest-priority eligible `codex_ready` task.
+
+The bootstrap slice must:
+
+- validate the registry and bootstrap schemas;
+- add typed role and task-to-role resolution contracts;
+- add focused tests for shared rules and denied actions;
+- expose read-only registry readiness in the existing admin/operator system area;
+- materialize the follow-up task rows from `.codex/agents/bootstrap.json` into `docs/E150/OpenTasks.md` with their declared statuses and dependencies;
+- mark the bootstrap task done with evidence.
+
+After the bootstrap task is materialized and completed, normal `OpenTasks.md` selection resumes. Do not repeatedly re-bootstrap.
 
 ## Mission
 
@@ -155,7 +173,7 @@ Stop only when:
 - acceptance criteria conflict with repository reality;
 - tests remain red after two repair attempts;
 - production access, secrets, personal data, an external recipient or a paid service are required;
-- no meaningful `codex_ready` production cluster remains in `OpenTasks.md`;
+- no meaningful `codex_ready` production cluster remains in `OpenTasks.md` and no pending bootstrap task exists;
 - the Codex usage limit or configured reserve is reached.
 
 When stopping, provide a structured decision package rather than an open-ended question.
