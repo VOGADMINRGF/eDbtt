@@ -1,7 +1,8 @@
- "use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getMembershipActivationTruth } from "@features/pricing";
 
 type WaitingItem = {
   coreUserId: string;
@@ -25,6 +26,8 @@ type Overview = {
   pendingInviteCount?: number;
   waiting: WaitingItem[];
 };
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 export default function AdminMembershipsPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -63,10 +66,21 @@ export default function AdminMembershipsPage() {
         <div>
           <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Admin</p>
           <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Mitgliedschaften</h1>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.adminMembershipSupportHint}</p>
+          <p className="mt-1 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.adminMembershipManualActionsHint}</p>
+          <p className="mt-1 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.legacySupportSurfaceHint}</p>
         </div>
-        <Link href="/dashboard/admin" className="text-sm text-sky-600 underline">
-          Zurück
-        </Link>
+        <div className="flex flex-wrap gap-3 text-sm text-sky-600">
+          <Link href="/admin/pricing/orders" className="underline">
+            Bestellungen
+          </Link>
+          <Link href="/admin/entitlements" className="underline">
+            Freischaltungen
+          </Link>
+          <Link href="/dashboard/admin" className="underline">
+            Zurück
+          </Link>
+        </div>
       </div>
 
       {error && (

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  getMembershipActivationTruth,
   getInstitutionalSharedAddOns,
   organizationBillingStatusLabel,
   organizationBillingSourceLabel,
@@ -239,6 +240,8 @@ const PARTNER_REPORTING_STATE_OPTIONS: PartnerReportingState[] = [
   "archived",
 ];
 
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
+
 const PARTNER_DISCLOSURE_ROLE_OPTIONS: PartnerFundingDisclosureRole[] = [
   "auftraggeber",
   "partner",
@@ -465,6 +468,7 @@ export default function AdminPricingOrdersPage() {
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Direkte Bestellungen aus Pricing/Vormerken werden hier geprüft, freigegeben, angepasst oder abgelehnt.
         </p>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.adminOrderReviewHint}</p>
       </header>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">

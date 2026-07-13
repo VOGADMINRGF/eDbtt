@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { readSession } from "@/utils/session";
 import { getAccountOverview } from "@features/account/service";
-import { PRICING_TRUST_LOOP_DE } from "@features/pricing";
+import { getMembershipActivationTruth, PRICING_TRUST_LOOP_DE } from "@features/pricing";
 import { PaymentProfileForm } from "./PaymentProfileForm";
 import { MicroTransferVerificationForm } from "./MicroTransferVerificationForm";
 
 export const metadata = {
   title: "Zahlungsprofil · eDebatte",
 };
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 export default async function PaymentPage() {
   const session = await readSession();
@@ -44,6 +46,7 @@ export default async function PaymentPage() {
           <p className="text-sm text-[rgb(var(--muted))]">
             Hinterlegte Bankverbindung für Beiträge und Abrechnungen. Du kannst dein Standardkonto hier aktualisieren; bei Fragen helfen wir dir im Support.
           </p>
+          <p className="text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.paymentProfileHint}</p>
           <p className="text-xs text-[rgb(var(--muted))]">{PRICING_TRUST_LOOP_DE.context.registryVerificationHint}</p>
         </header>
 
@@ -81,6 +84,7 @@ export default async function PaymentPage() {
             <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Bevorzugte Zahlungsart</p>
             <p className="text-sm text-[rgb(var(--fg))]">Aktuell Bankeinzug / Überweisung. Weitere Optionen (z.B. Karte) folgen.</p>
             <p className="mt-1 text-xs text-[rgb(var(--muted))]">{PRICING_TRUST_LOOP_DE.context.orderActivationHint}</p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.membershipScopeHint}</p>
           </div>
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-[11px] text-[rgb(var(--muted))]">

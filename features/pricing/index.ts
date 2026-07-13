@@ -12,6 +12,7 @@ export * from "./domain/organizationContract";
 export * from "./domain/partnerProjectPackage";
 export * from "./domain/orderEntry";
 export * from "./domain/trustLoop.de";
+export * from "./domain/membershipActivationTruth";
 export * from "./domain/helpers";
 export * from "./domain/formatters";
 export * from "./domain/i18n";

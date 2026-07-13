@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
+import { getMembershipActivationTruth } from "@features/pricing";
 
 type MembershipRow = {
   id: string;
@@ -9,6 +11,8 @@ type MembershipRow = {
   status: string;
   createdAt: string | null;
 };
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 export default async function MembershipAdminPage() {
   const cookieStore = cookies();
@@ -38,7 +42,20 @@ export default async function MembershipAdminPage() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Mitgliedsanträge</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">Eingegangene Anträge mit Betrag, Rhythmus, Haushalt und Status.</p>
+        <p className="text-sm text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.adminMembershipSupportHint}</p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.adminMembershipManualActionsHint}</p>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.legacySupportSurfaceHint}</p>
+        <div className="mt-3 flex flex-wrap gap-3 text-sm text-sky-600">
+          <Link href="/admin/memberships" className="underline">
+            Support-Übersicht
+          </Link>
+          <Link href="/admin/pricing/orders" className="underline">
+            Bestellungen
+          </Link>
+          <Link href="/admin/entitlements" className="underline">
+            Freischaltungen
+          </Link>
+        </div>
       </div>
       <div className="overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <table className="min-w-full text-sm">
