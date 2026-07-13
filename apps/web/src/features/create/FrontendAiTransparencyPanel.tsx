@@ -9,6 +9,12 @@ import {
   getAiOrchestrationPublishStateLabel,
   getAiOrchestrationReviewStateLabel,
 } from "@/features/create/aiOrchestrationProvenanceTrace";
+import {
+  buildAiTraceHiddenByPolicyLines,
+  formatAiTraceMissingRuntimeLine,
+  formatAiTraceTechnicalVisibility,
+  getAiTraceSurfaceScopeLine,
+} from "@/features/ai/aiTraceSurfaceTruth";
 
 type FrontendAiTransparencyPanelProps = {
   model: FrontendAiTransparencyReadModel;
@@ -37,6 +43,9 @@ function StatusBadge({ status }: { status: FrontendAiTransparencyStatus }) {
 export default function FrontendAiTransparencyPanel({
   model,
 }: FrontendAiTransparencyPanelProps) {
+  const traceTruthLine = getAiTraceSurfaceScopeLine("user");
+  const traceHiddenLines = buildAiTraceHiddenByPolicyLines("user");
+
   return (
     <section
       className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-4 text-sm text-[rgb(var(--fg))]"
@@ -47,6 +56,9 @@ export default function FrontendAiTransparencyPanel({
       </p>
       <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{model.title}</h2>
       <p className="mt-2 max-w-3xl leading-6 text-[rgb(var(--muted))]">{model.summary}</p>
+      <p className="mt-2 max-w-3xl text-xs leading-5 text-[rgb(var(--muted))]">
+        {traceTruthLine}
+      </p>
 
       <div className="mt-4 space-y-3">
         {model.steps.map((step) => (
@@ -97,15 +109,15 @@ export default function FrontendAiTransparencyPanel({
                   {getAiOrchestrationPublishStateLabel(step.publishState)}.
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-                  {step.providerVisibility === "admin_review_only"
-                    ? "Technische Laufdetails bleiben im Admin-/Review-Kontext."
-                    : step.providerKnown
-                      ? "Technische Laufdetails sind für diesen Schritt sicher sichtbar."
-                      : "Kein belastbarer technischer Laufkontext im Frontend vorhanden."}
+                  {formatAiTraceTechnicalVisibility({
+                    audience: "user",
+                    providerVisibility: step.providerVisibility,
+                    providerKnown: step.providerKnown,
+                  })}
                 </p>
                 {step.missingRuntimeTruth ? (
                   <p className="mt-2 text-xs leading-5 text-amber-700">
-                    Missing runtime truth: {step.missingRuntimeTruthReasons[0] ?? "Technische Provenance ist nur teilweise vorhanden."}
+                    {formatAiTraceMissingRuntimeLine(step.missingRuntimeTruthReasons, "user")}
                   </p>
                 ) : null}
               </div>
@@ -131,6 +143,9 @@ export default function FrontendAiTransparencyPanel({
           </p>
           <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
             {model.hiddenByPolicy.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+            {traceHiddenLines.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>

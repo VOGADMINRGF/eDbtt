@@ -153,6 +153,8 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
     expect(html).not.toContain("Pipeline");
+    expect(html).not.toContain("Missing runtime truth");
+    expect(html).not.toContain("runId");
     expect(html).not.toContain("Weitere Wege");
 
     expect(html).not.toContain("Kontext-Picker");

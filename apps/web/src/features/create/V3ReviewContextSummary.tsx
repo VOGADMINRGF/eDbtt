@@ -18,6 +18,7 @@ import {
   buildLanguageBridgeTrustHint,
   formatCanonicalLanguageBridgeStateLabel,
 } from "@/features/i18n/languageBridgeSurfaceTruth";
+import { getAiTraceSurfaceScopeLine } from "@/features/ai/aiTraceSurfaceTruth";
 
 export type V3ReviewContextSummaryModel = {
   reviewTypeLabels: string[];
@@ -30,6 +31,7 @@ export type V3ReviewContextSummaryModel = {
   candidateLine: string;
   blockerLabels: string[];
   nextStepLabel: string;
+  traceLine: string;
   technicalLine: string | null;
 };
 
@@ -205,22 +207,28 @@ export function buildV3ReviewContextSummaryModel(
   const evidenceState = context.sourcePack
     ? getCanonicalSourcePackOverallEvidenceState(context.sourcePack)
     : null;
+  const languageUiLocale = context.languageBridge
+    ? context.languageBridge.languageContext?.uiLocale ??
+      context.languageBridge.original.language ??
+      context.languageBridge.translation.language ??
+      "de"
+    : "de";
   const evidenceLine = context.sourcePack
     ? `${context.sourcePack.sources.length} Quellenhinweise · ${evidenceStateLabel(evidenceState ?? "source_needed")} · Vertrauensstatus ${trustStateLabel(context.multilingualEvidence?.overallTrustStatus)}`
     : "Noch keine belastbare Quellenlesart im V3-Kontext sichtbar.";
   const languageLine = context.languageBridge
     ? buildLanguageBridgeSurfaceLine({
-        uiLocale: context.languageBridge.languageContext.uiLocale,
+        uiLocale: languageUiLocale,
         originalLanguage: context.languageBridge.original.language,
         readingLanguage: context.languageBridge.translation.language,
         statusLabel: formatCanonicalLanguageBridgeStateLabel({
-          uiLocale: context.languageBridge.languageContext.uiLocale,
+          uiLocale: languageUiLocale,
           state: context.languageBridge.translation.state,
         }),
       })
     : "Keine Sprachbrücke im V3-Kontext sichtbar.";
   const languageTrustLine = context.languageBridge
-    ? buildLanguageBridgeTrustHint(context.languageBridge.languageContext.uiLocale)
+    ? buildLanguageBridgeTrustHint(languageUiLocale)
     : "Original und Lesefassung müssen erst sichtbar getrennt verdrahtet werden.";
   const guardrails = [
     "Keine automatische Veröffentlichung.",
@@ -229,6 +237,7 @@ export function buildV3ReviewContextSummaryModel(
   ];
   const blockerLabels = buildBlockerLabels(context);
   const nextStepLabel = buildNextStepLabel(items, blockerLabels);
+  const traceLine = getAiTraceSurfaceScopeLine(audience === "admin" ? "operator" : "user");
   const technicalLine =
     audience === "admin" && items.length > 0
       ? `Aktive Kontexte: ${unique(items.map((item) => sourceLabel(item.source))).join(", ")}`
@@ -248,6 +257,7 @@ export function buildV3ReviewContextSummaryModel(
     candidateLine: buildCandidateLine(context),
     blockerLabels,
     nextStepLabel,
+    traceLine,
     technicalLine,
   };
 }
@@ -320,6 +330,10 @@ export default function V3ReviewContextSummary(props: {
         <div>
           <dt className="font-semibold text-[rgb(var(--fg))]">Nächster sinnvoller Review-Schritt</dt>
           <dd>{model.nextStepLabel}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-[rgb(var(--fg))]">Trace und Orchestrierung</dt>
+          <dd>{model.traceLine}</dd>
         </div>
         {model.technicalLine ? (
           <div>

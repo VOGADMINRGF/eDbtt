@@ -8,6 +8,10 @@ import {
   buildV3ReviewContextSummaryModel,
 } from "@/features/create/V3ReviewContextSummary";
 import {
+  buildAiTraceHiddenByPolicyLines,
+  getAiTraceSurfaceScopeLine,
+} from "@/features/ai/aiTraceSurfaceTruth";
+import {
   buildV3RuntimeWorkflowSurfaceFromCreateCandidatePreview,
   buildV3RuntimeWorkflowSurfaceFromReviewContext,
   type V3RuntimeWorkflowStageStatus,
@@ -760,6 +764,10 @@ export default function V3DownstreamKiTransparency(props: {
   dataTestId?: string;
 }) {
   const title = props.title ?? props.model.title;
+  const operatorFacing = props.model.steps.some((step) => step.audience !== "user");
+  const traceAudience = operatorFacing ? "operator" : "user";
+  const traceScopeLine = getAiTraceSurfaceScopeLine(traceAudience);
+  const hiddenTraceLines = buildAiTraceHiddenByPolicyLines(traceAudience);
 
   return (
     <section
@@ -792,6 +800,16 @@ export default function V3DownstreamKiTransparency(props: {
             {guardrail}
           </span>
         ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">Sichere Trace-Wahrheit</p>
+        <p className="mt-1 leading-5">{traceScopeLine}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {hiddenTraceLines.map((line) => (
+            <li key={`${title}-${line}`}>{line}</li>
+          ))}
+        </ul>
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-2">

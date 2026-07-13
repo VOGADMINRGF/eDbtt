@@ -63,9 +63,10 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain("Unterstützung &amp; Start");
     expect(html).toContain("Ohne KI speichern");
     expect(html).toContain("Mit KI in /create weiter");
-    expect(html).toContain("Öffentlich nach Review einreichen");
-    expect(html).toContain("Kanonischer Einstieg heute");
-    expect(html).toContain("/runden/new startet mit einem wiederaufnehmbaren Entwurf.");
+    expect(html).toContain("Erst nach Prüfung weiterführen");
+    expect(html).toContain("Zur Prüfung");
+    expect(html).toContain("So funktioniert der Start");
+    expect(html).toContain("Erst festhalten, dann sortieren, dann gemeinsam klären.");
     expect(html).toContain("KI-Transparenz");
     expect(html).toContain("Welche KI hier greift oder bewusst nicht greift");
     expect(html).toContain("Nachvollziehbarkeit heute");
@@ -73,8 +74,8 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain("Kein AI-Usage-Event, kein DeepSearch");
     expect(html).toContain("Geplant, nicht aktiv");
     expect(html).toContain("Bleibt im Review");
-    expect(html).toContain("noch kein Anlassraum-, Dossier- oder Beteiligungsraum-Record");
-    expect(html).toContain("bewussten Review- und Runtime-Pfaden");
+    expect(html).toContain("Anlassraum, Dossier und Beteiligungsraum entstehen später");
+    expect(html).toContain("bewusste Review- und Runtime-Pfade");
     expect(html).toContain('data-manual-anlassraum-stepper="true"');
     expect(html).toContain('data-frontend-ai-transparency="/runden/new"');
     expect(html).toContain('data-ai-provenance-step="runden_no_ai_draft"');
@@ -86,12 +87,12 @@ describe("/runden/new manual create contract", () => {
     expect(html).toContain('data-manual-anlassraum-voxy-step="sichtbarkeit"');
     expect(html).toContain('data-manual-anlassraum-voxy-step="unterstuetzung"');
     expect((html.match(/data-voxy-guide=/g) ?? []).length).toBe(1);
-    expect(html).toContain("Ich führe dich Schritt für Schritt durch den Entwurf.");
+    expect(html).toContain("Ich helfe dir, daraus einen verständlichen Mitmachraum zu machen.");
     expect(html).toContain("Noch keine perfekte Formulierung nötig. Lege erst den Rahmen fest.");
     expect(html).toContain("Feste Optionen geben Kontrolle. Community-Vorschläge machen den Raum offener.");
     expect(html).toContain("Öffentlich heißt nicht automatisch geprüft. Du bestimmst, wann sichtbar wird.");
-    expect(html).toContain("KI, Graph und Dossier bleiben optional. Nichts startet automatisch.");
-    expect(html).toContain("KI, Graph und Dossier bleiben optionale Hilfe. Nichts davon startet automatisch.");
+    expect(html).toContain("Voxy, Zusammenhänge und Debatte &amp; Argumente bleiben optional. Nichts startet automatisch.");
+    expect(html).toContain("Du kannst ohne Voxy direkt speichern oder mit Voxy weiter strukturieren. Nichts davon geht automatisch online.");
     expect(html).not.toContain("Du bist im Überblick. Quellen und Prüfung findest du im Prüfmodus.");
   });
 
@@ -179,7 +180,7 @@ describe("/runden/new manual create contract", () => {
     expect(source).toContain("history.replaceState");
     expect(source).toContain("saveStartDraftContext");
     expect(source).toContain("Runde aus deinem Entwurf vorbereiten");
-    expect(source).toContain("Optionen ergänzen");
+    expect(source).toContain("Du kannst Titel, Frage und Antworten weiterbearbeiten oder den Stand später fortsetzen.");
     expect(source).toContain("Entwurf verwerfen");
     expect(source).not.toContain("sanitizeManualAnlassraumSetup(updater(current))");
     expect(source).not.toContain("callOpenAI");

@@ -7,12 +7,14 @@ function read(rel: string) {
 }
 
 describe("admin ai telemetry ui contracts", () => {
-  it("orchestrator page separates Provider Probe, Runtime Smoke and Full Contract", () => {
+  it("orchestrator page separates Provider Probe, Runtime Smoke and Full Contract as safe operator summaries", () => {
     const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
     const diag = read("src/features/ai/adminTelemetryDiagnostics.ts");
     expect(page).toContain("Direktprüfung Provider");
     expect(page).toContain("Runtime Smoke");
     expect(page).toContain("Full Analyze Contract Test");
+    expect(page).toContain("Sichere Trace-Wahrheit");
+    expect(page).toContain("Sichere Orchestrierungszusammenfassung");
     expect(diag).toContain('return "GPT / OpenAI"');
     expect(diag).toContain("Provider erreichbar; Analyze-/JSON-Contract pruefen.");
   });
@@ -31,24 +33,29 @@ describe("admin ai telemetry ui contracts", () => {
     expect(dashboardPage).toContain("Provider-Details anzeigen");
   });
 
-  it("orchestrator diagnostics expose parse and schema details separately", () => {
+  it("orchestrator diagnostics keep raw parse, schema, provider and token details out of the UI surface", () => {
     const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
     const diag = read("src/features/ai/adminTelemetryDiagnostics.ts");
 
-    expect(page).toContain("providerCode=");
-    expect(page).toContain("parseError=");
-    expect(page).toContain("schemaError=");
-    expect(page).toContain("schemaPath=");
+    expect(page).not.toContain("providerCode=");
+    expect(page).not.toContain("parseError=");
+    expect(page).not.toContain("schemaError=");
+    expect(page).not.toContain("schemaPath=");
+    expect(page).not.toContain("rawExcerpt");
+    expect(page).not.toContain("Tokens in/out");
+    expect(page).not.toContain("estimatedCost");
     expect(diag).toContain("Schema-Contract und Pflichtfelder pruefen.");
   });
 
-  it("orchestrator page explains normalized lanes and skipped states without false alarms", () => {
+  it("orchestrator page explains review-first routing without leaking raw lane or provider-role internals", () => {
     const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
     const policy = read("src/features/ai/v2OrchestrationPolicy.ts");
 
-    expect(page).toContain("normalizedLane=");
-    expect(page).toContain("Provider Roles");
-    expect(page).toContain("smokeStatus=");
+    expect(page).not.toContain("normalizedLane=");
+    expect(page).not.toContain("Provider Roles");
+    expect(page).not.toContain("smokeStatus=");
+    expect(page).toContain("Review");
+    expect(page).toContain("Kosten und Freigaben");
     expect(policy).toContain("Übersprungen, nicht nötig");
     expect(policy).toContain("Übersprungen, nicht in dieser Lane");
     expect(policy).toContain("Konfiguration fehlt");

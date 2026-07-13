@@ -163,6 +163,8 @@ describe("V3ReviewContextSummary", () => {
     expect(html).toContain(
       "Original bleibt Evidenz und Review-Grundlage.",
     );
+    expect(html).toContain("Trace und Orchestrierung");
+    expect(html).toContain("nicht Prompts, Tokens oder Rohdiagnostik");
     expect(html).not.toContain("review_ready");
     expect(html).not.toContain("queued_for_review");
   });
@@ -188,6 +190,7 @@ describe("V3ReviewContextSummary", () => {
     expect(html).toContain("Lesefassung: Deutsch");
     expect(html).toContain("Social-Entwürfe");
     expect(html).toContain("Voxy-Briefing: Anbieter-Anbindung fehlt");
+    expect(html).toContain("Die sichtbare Spur zeigt Arbeitsschritte");
     expect(html).not.toContain("blocked_by_provider");
     expect(html).not.toContain("publish_ready");
   });

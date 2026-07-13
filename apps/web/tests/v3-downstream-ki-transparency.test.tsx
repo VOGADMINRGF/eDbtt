@@ -139,9 +139,11 @@ describe("V3DownstreamKiTransparency", () => {
     );
 
     expect(html).toContain("KI-, Review- und Enrichment-Transparenz");
+    expect(html).toContain("Sichere Trace-Wahrheit");
     expect(html).toContain("Quellen- und Evidence-Pack");
     expect(html).toContain("Beteiligungsformate bleiben bis zur Freigabe nur vorbereitet.");
     expect(html).toContain("Belastbare Downstream-Runtime oder Kostenfreigabe fehlt noch.");
+    expect(html).toContain("nicht Debug- oder Systemdaten");
     expect(html).not.toContain("missing_runtime_truth");
     expect(html).not.toContain("planned_handoff");
   });
@@ -222,6 +224,7 @@ describe("V3DownstreamKiTransparency", () => {
     expect(html).toContain("Blocker: Anbieter-Anbindung fehlt");
     expect(html).toContain("Rolle: Redaktion");
     expect(html).toContain("Voxy bleibt ein reviewpflichtiger Briefing- oder Skriptkandidat.");
+    expect(html).toContain("nicht Prompts, Tokens oder Rohdiagnostik");
     expect(html).not.toContain("blocked_by_provider");
     expect(html).not.toContain("translation_uncertain");
   });
@@ -248,6 +251,7 @@ describe("V3DownstreamKiTransparency", () => {
     expect(html).toContain("Lokaler oder browsergestützter Review-Entwurf");
     expect(html).toContain("Nutzergebundene Downstream-Runtime im Account fehlt noch.");
     expect(html).toContain("Menschliche Prüfung bleibt erforderlich.");
+    expect(html).toContain("nicht Debug- oder Systemdaten");
     expect(html).not.toContain("missing_runtime_truth");
     expect(html).not.toContain("blocked_by_runtime_truth");
   });
