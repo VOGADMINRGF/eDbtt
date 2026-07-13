@@ -1,6 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+const navigationMocks = vi.hoisted(() => ({
+  redirect: vi.fn((target: string) => {
+    throw new Error(`NEXT_REDIRECT:${target}`);
+  }),
+}));
+
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<object>("next/navigation");
+  return {
+    ...actual,
+    redirect: (...args: unknown[]) => navigationMocks.redirect(...args),
+    useRouter: () => ({
+      refresh: vi.fn(),
+    }),
+  };
+});
+
 vi.mock("@features/region", async () => {
   const actual = await vi.importActual<object>("@features/region");
   return {

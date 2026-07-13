@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getInstitutionalSharedAddOns,
   organizationBillingStatusLabel,
+  organizationBillingSourceLabel,
   organizationContractStatusLabel,
   partnerFundingDisclosureRoleLabel,
   partnerPackageScopeLabel,
@@ -244,23 +245,6 @@ const PARTNER_DISCLOSURE_ROLE_OPTIONS: PartnerFundingDisclosureRole[] = [
   "foerderer",
   "traeger",
 ];
-
-function billingSourceLabel(source: OrganizationBillingSource | null) {
-  switch (source) {
-    case "operator_verified_contract":
-      return "Betreiber-verifizierter Vertrag";
-    case "manual_invoice":
-      return "Manuelle Rechnung";
-    case "external_checkout_pending":
-      return "Externer Checkout später optional";
-    case "external_checkout_integrated":
-      return "Externer Checkout integriert";
-    case "fixture_demo":
-      return "Demo / Fixture";
-    default:
-      return "Noch keine Quelle";
-  }
-}
 
 function toDraft(row: OrderRow): ReviewDraft {
   return {
@@ -565,7 +549,9 @@ export default function AdminPricingOrdersPage() {
                   </div>
                   <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 sm:col-span-2">
                     Wirkung: {row.internal.accessProvisioningDecision || "none"} · Quelle:{" "}
-                    {billingSourceLabel(row.internal.billingSource)}
+                    {row.internal.billingSource
+                      ? organizationBillingSourceLabel(row.internal.billingSource)
+                      : "Noch keine Quelle"}
                   </div>
                   <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
                     Projektpaket:{" "}
@@ -669,7 +655,7 @@ export default function AdminPricingOrdersPage() {
                         <option value="">automatisch ableiten</option>
                         {BILLING_SOURCE_OPTIONS.map((source) => (
                           <option key={source} value={source}>
-                            {billingSourceLabel(source)}
+                            {organizationBillingSourceLabel(source)}
                           </option>
                         ))}
                       </select>

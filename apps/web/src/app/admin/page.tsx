@@ -45,15 +45,25 @@ import {
   type V3DeepsearchConsumptionTruthOperation,
   type V3DeepsearchConsumptionTruthReadModel,
 } from "@/features/admin/v3DeepsearchConsumptionTruthReadModel";
+import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 
 export const metadata = {
   title: "Admin Dashboard · eDebatte",
 };
 
 const FOOTER_LINKS = [
-  { label: "Pricing Orders", href: "/admin/pricing/orders" },
-  { label: "Freischaltungen", href: "/admin/entitlements" },
-  { label: "Organisationssicht", href: "/account/organization/dashboard" },
+  {
+    label: getOperatorWorkbenchSurface("pricingOrders").title,
+    href: getOperatorWorkbenchSurface("pricingOrders").href,
+  },
+  {
+    label: getOperatorWorkbenchSurface("entitlements").title,
+    href: getOperatorWorkbenchSurface("entitlements").href,
+  },
+  {
+    label: "Organisationssicht",
+    href: getOperatorWorkbenchSurface("organizationDashboard").href,
+  },
   { label: "Graph Repairs (aktiv)", href: "/admin/graph/repairs" },
 ] as const;
 

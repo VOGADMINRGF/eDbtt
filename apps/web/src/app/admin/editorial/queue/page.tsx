@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EditorialSeriesPanel from "@/features/editorialSeries/EditorialSeriesPanel";
+import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 import {
   buildEditorialSeriesFromEditorialQueue,
   describeEditorialQueueSeriesStatus,
@@ -33,6 +34,7 @@ type EditorialResponse = {
 };
 
 export default function AdminEditorialQueuePage() {
+  const editorialSurface = getOperatorWorkbenchSurface("editorialQueue");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<string>("triage");
@@ -155,11 +157,11 @@ export default function AdminEditorialQueuePage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Redaktion</p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Editorial Queue</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Triage, Review und Freigaben zentral steuern.
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          {editorialSurface.eyebrow}
         </p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{editorialSurface.title}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{editorialSurface.summary}</p>
       </header>
 
       <EditorialSeriesPanel

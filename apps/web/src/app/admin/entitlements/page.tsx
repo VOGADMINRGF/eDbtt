@@ -7,6 +7,7 @@ import {
   resolveProvisioningRequestStatus,
 } from "@features/region";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
+import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 import { AdminEntitlementsClient } from "./AdminEntitlementsClient";
 
 export const metadata = {
@@ -14,6 +15,7 @@ export const metadata = {
 };
 
 export default async function AdminEntitlementsPage() {
+  const entitlementsSurface = getOperatorWorkbenchSurface("entitlements");
   const user = await getSessionUser();
   if (!user || !user.sessionValid) {
     redirect(`/login?next=${encodeURIComponent("/admin/entitlements")}`);
@@ -49,9 +51,9 @@ export default async function AdminEntitlementsPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-          Admin Freischaltung
+          {entitlementsSurface.eyebrow}
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Freischaltungen verwalten</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{entitlementsSurface.title}</h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           {PRODUCTION_ENTRY_COPY.adminEntitlementsLead}
         </p>

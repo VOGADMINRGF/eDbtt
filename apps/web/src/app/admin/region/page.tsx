@@ -4,6 +4,14 @@ import type { RegionAllowedAction, RegionalAdminCockpitReadModel } from "@featur
 import {
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
+  organizationVerificationStatusLabel,
+  regionEntitlementReasonLabel,
+  regionEntitlementStatusLabel,
+  regionFeedSignalOriginLabel,
+  regionGuardrailLabel,
+  regionOpenReviewOriginLabel,
+  regionReviewStatusLabel,
+  regionVisibilityStateLabel,
   resolveFeedVisibilityState,
 } from "@features/region";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
@@ -70,46 +78,6 @@ function sourceTypeLabel(value: string) {
   }
 }
 
-function reviewStatusLabel(value: string) {
-  switch (value) {
-    case "accepted":
-      return "akzeptiert";
-    case "rejected":
-      return "abgelehnt";
-    case "archived":
-      return "archiviert";
-    case "needs_region_review":
-      return "Region prüfen";
-    case "revoked":
-      return "widerrufen";
-    case "needs_review":
-      return "reviewpflichtig";
-    default:
-      return "Entwurf";
-  }
-}
-
-function visibilityStateLabel(value: string) {
-  switch (value) {
-    case "private_draft":
-      return "nur intern als Entwurf";
-    case "internal_review":
-      return "intern in Prüfung";
-    case "public_unverified":
-      return "öffentlich ungeprüft";
-    case "public_reviewed":
-      return "öffentlich geprüft";
-    case "public_official":
-      return "offiziell freigegeben";
-    case "archived":
-      return "archiviert";
-    case "blocked":
-      return "gesperrt";
-    default:
-      return "Sichtbarkeit offen";
-  }
-}
-
 function authoritySourceLabel(value: RegionalAdminCockpitReadModel["accessSummary"]["authoritySource"]) {
   switch (value) {
     case "admin_fallback":
@@ -118,93 +86,6 @@ function authoritySourceLabel(value: RegionalAdminCockpitReadModel["accessSummar
       return "Verifizierte Behördenzuordnung";
     default:
       return "Unverifizierter Region-Hinweis";
-  }
-}
-
-function verificationStatusLabel(
-  value: RegionalAdminCockpitReadModel["accessSummary"]["verificationStatus"],
-) {
-  switch (value) {
-    case "admin_fallback":
-      return "Admin-Fallback";
-    case "publication_approved":
-      return "Publikationsfreigabe bestätigt";
-    case "unit_verified":
-      return "Unit-verifiziert";
-    case "organization_verified":
-      return "Organisations-verifiziert";
-    case "email_verified":
-      return "E-Mail-verifiziert";
-    case "pending_review":
-      return "In Prüfung";
-    case "unverified":
-      return "Unverifiziert";
-    case "rejected":
-      return "Abgelehnt";
-    case "revoked":
-      return "Widerrufen";
-    default:
-      return "Keine verifizierte Behördenrolle";
-  }
-}
-
-function entitlementStatusLabel(
-  value: RegionalAdminCockpitReadModel["accessSummary"]["entitlementStatus"],
-) {
-  switch (value) {
-    case "admin_fallback":
-      return "Admin-Fallback";
-    case "active":
-      return "Aktiv";
-    case "trial":
-      return "Testweise aktiv";
-    case "past_due":
-      return "Überfällig";
-    case "suspended":
-      return "Suspendiert";
-    case "cancelled":
-      return "Gekündigt";
-    case "expired":
-      return "Abgelaufen";
-    case "revoked":
-      return "Widerrufen";
-    case "inactive":
-      return "Inaktiv";
-    default:
-      return "Keine Freischaltung";
-  }
-}
-
-function entitlementReasonLabel(
-  value: RegionalAdminCockpitReadModel["accessSummary"]["entitlementReason"],
-) {
-  switch (value) {
-    case "admin_fallback":
-      return "Globale Adminsicht ohne gesonderte Freischaltung.";
-    case "active":
-      return "Freischaltung aktiv.";
-    case "trial":
-      return "Test- oder Pilotfreischaltung aktiv.";
-    case "missing_entitlement":
-      return "Verifizierte Membership vorhanden, aber Freischaltung fehlt.";
-    case "expired":
-      return "Freischaltung ist abgelaufen.";
-    case "suspended":
-      return "Freischaltung ist vorübergehend gesperrt.";
-    case "past_due":
-      return "Freischaltung steht auf überfällig und ist deshalb blockiert.";
-    case "over_limit":
-      return "Limit erreicht. Lesen oder Aktionen bleiben eingeschränkt.";
-    case "wrong_region":
-      return "Freischaltung passt nicht zur aktuellen Region.";
-    case "wrong_organization":
-      return "Freischaltung passt nicht zur aktuellen Organisation.";
-    case "membership_not_verified":
-      return "Freischaltung allein reicht nicht ohne verifizierte Membership.";
-    case "unsupported_organization_type":
-      return "Dieser Organisationstyp braucht einen gesonderten Review-Pfad.";
-    default:
-      return "Freischaltung wurde noch nicht geprüft.";
   }
 }
 
@@ -439,7 +320,7 @@ export default async function AdminRegionPage({
                 {authoritySourceLabel(cockpit.accessSummary.authoritySource)}
               </p>
               <p className="text-sm text-[rgb(var(--muted))]">
-                {verificationStatusLabel(cockpit.accessSummary.verificationStatus)}
+                {organizationVerificationStatusLabel(cockpit.accessSummary.verificationStatus)}
               </p>
             </div>
           </section>
@@ -461,7 +342,7 @@ export default async function AdminRegionPage({
                 <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Verification</p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {verificationStatusLabel(cockpit.accessSummary.verificationStatus)}
+                    {organizationVerificationStatusLabel(cockpit.accessSummary.verificationStatus)}
                   </p>
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                     In Prüfung hat keine Behördenrechte. Publikationsfreigabe bleibt gesondert erforderlich.
@@ -470,10 +351,12 @@ export default async function AdminRegionPage({
                 <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Freischaltung</p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {entitlementStatusLabel(cockpit.accessSummary.entitlementStatus)}
+                    {cockpit.accessSummary.entitlementStatus
+                      ? regionEntitlementStatusLabel(cockpit.accessSummary.entitlementStatus)
+                      : "Keine Freischaltung"}
                   </p>
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    {entitlementReasonLabel(cockpit.accessSummary.entitlementReason)}
+                    {regionEntitlementReasonLabel(cockpit.accessSummary.entitlementReason)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
@@ -545,22 +428,22 @@ export default async function AdminRegionPage({
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  reviewRequired: {cockpit.guardrails.reviewRequired ? "true" : "false"}
+                  {regionGuardrailLabel("reviewRequired")}
                 </span>
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  noAutoPublish: {cockpit.guardrails.noAutoPublish ? "true" : "false"}
+                  {regionGuardrailLabel("noAutoPublish")}
                 </span>
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  noAutoDossierCreation: {cockpit.guardrails.noAutoDossierCreation ? "true" : "false"}
+                  {regionGuardrailLabel("noAutoDossierCreation")}
                 </span>
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  noAutoAnlassraumCreation: {cockpit.guardrails.noAutoAnlassraumCreation ? "true" : "false"}
+                  {regionGuardrailLabel("noAutoAnlassraumCreation")}
                 </span>
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  noTenderMonitoring: {cockpit.guardrails.noTenderMonitoring ? "true" : "false"}
+                  {regionGuardrailLabel("noTenderMonitoring")}
                 </span>
                 <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  noProcurementMonitoring: {cockpit.guardrails.noProcurementMonitoring ? "true" : "false"}
+                  {regionGuardrailLabel("noProcurementMonitoring")}
                 </span>
               </div>
               <div className="mt-5 grid gap-3 lg:grid-cols-3">
@@ -569,7 +452,8 @@ export default async function AdminRegionPage({
                     Produktive Quellen
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus.productiveLabel}
+                    {cockpit.intelligenceSourceStatus?.productiveLabel ??
+                      "Noch keine produktive Quelle verbunden"}
                   </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     Kein produktiver Regionaladapter ist verbunden, solange keine echte Quelle angebunden ist.
@@ -580,7 +464,8 @@ export default async function AdminRegionPage({
                     Kuratierte Quellen
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus.curatedLabel}
+                    {cockpit.intelligenceSourceStatus?.curatedLabel ??
+                      "Noch keine kuratierte Quelle verbunden"}
                   </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     Kuration bleibt reviewpflichtig und ist keine automatische amtliche Bewertung.
@@ -591,7 +476,8 @@ export default async function AdminRegionPage({
                     Manuelle Quellen
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus.manualLabel}
+                    {cockpit.intelligenceSourceStatus?.manualLabel ??
+                      "Noch keine manuellen Quellen verbunden"}
                   </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     Öffentliche und manuelle Hinweise laufen nur über bestehende Review-Pfade ein.
@@ -603,7 +489,7 @@ export default async function AdminRegionPage({
                   Quellengewichtung und Adapter
                 </p>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                  {cockpit.intelligenceWeighting.label}
+                  {cockpit.intelligenceWeighting?.label ?? "Gewichtung vorbereitet"}
                 </p>
                 <div className="mt-3 grid gap-3 lg:grid-cols-3">
                   {intelligenceSources.map((source) => (
@@ -633,9 +519,9 @@ export default async function AdminRegionPage({
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(signal.sourceType)}</span>
                         <span>·</span>
-                        <span>{reviewStatusLabel(signal.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(signal.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{visibilityStateLabel(resolveFeedVisibilityState({
+                        <span>{regionVisibilityStateLabel(resolveFeedVisibilityState({
                           reviewStatus: signal.reviewStatus,
                           sourceType: signal.sourceType,
                         }))}</span>
@@ -643,11 +529,7 @@ export default async function AdminRegionPage({
                         <span>Confidence {signal.confidence.toFixed(2)}</span>
                         <span>·</span>
                         <span>
-                          {signal.provenance.dataOrigin === "pilot_fixture"
-                            ? "pilot fixture · notRealNews=true · notProductionData=true"
-                            : signal.provenance.dataOrigin === "source_connection_runtime"
-                              ? "explizit verbundene produktive Quelle · reviewpflichtig"
-                              : "runtime review queue"}
+                          {regionFeedSignalOriginLabel(signal.provenance.dataOrigin)}
                         </span>
                       </div>
                       <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
@@ -682,7 +564,7 @@ export default async function AdminRegionPage({
                   topicClusters.slice(0, 5).map((cluster) => (
                     <div key={cluster.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{reviewStatusLabel(cluster.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(cluster.reviewStatus)}</span>
                         <span>·</span>
                         <span>{toArray(cluster.signalIds).length} Signale</span>
                         <span>·</span>
@@ -817,7 +699,7 @@ export default async function AdminRegionPage({
                       <div key={signal.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2">
                         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          {reviewStatusLabel(signal.reviewStatus)} · {privacyModeLabel(signal.privacyMode)}
+                          {regionReviewStatusLabel(signal.reviewStatus)} · {privacyModeLabel(signal.privacyMode)}
                         </p>
                       </div>
                     ))}
@@ -831,9 +713,9 @@ export default async function AdminRegionPage({
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(signal.sourceType)}</span>
                         <span>·</span>
-                        <span>{reviewStatusLabel(signal.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(signal.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{visibilityStateLabel(signal.visibilityState)}</span>
+                        <span>{regionVisibilityStateLabel(signal.visibilityState)}</span>
                         <span>·</span>
                         <span>{aggregationModeLabel(signal.aggregationMode)}</span>
                         <span>·</span>
@@ -905,7 +787,7 @@ export default async function AdminRegionPage({
                     reviewItemsFromPublicInput.slice(0, 4).map((item) => (
                       <div key={item.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
                         {item.title} · {privacyModeLabel(item.privacyMode)} · {aggregationModeLabel(item.aggregationMode)}
-                        {" "}· {visibilityStateLabel(item.visibilityState)}
+                        {" "}· {regionVisibilityStateLabel(item.visibilityState)}
                       </div>
                     ))
                   ) : (
@@ -925,7 +807,7 @@ export default async function AdminRegionPage({
                   suggestedAnlassraeume.slice(0, 4).map((suggestion) => (
                     <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
                         <span>·</span>
                         <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
                         <span>·</span>
@@ -949,7 +831,7 @@ export default async function AdminRegionPage({
                   suggestedDossiers.slice(0, 4).map((suggestion) => (
                     <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
                         <span>·</span>
                         <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
                         <span>·</span>
@@ -990,11 +872,11 @@ export default async function AdminRegionPage({
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{sourceTypeLabel(item.sourceType)}</span>
                         <span>·</span>
-                        <span>{reviewStatusLabel(item.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(item.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{visibilityStateLabel(item.visibilityState)}</span>
+                        <span>{regionVisibilityStateLabel(item.visibilityState)}</span>
                         <span>·</span>
-                        <span>{item.isFixture ? "Pilotvorschau / kuratierte Startlage" : "Runtime-Review"}</span>
+                        <span>{regionOpenReviewOriginLabel(item.isFixture)}</span>
                         <span>·</span>
                         <span>Confidence {item.confidence.toFixed(2)}</span>
                       </div>
@@ -1062,9 +944,9 @@ export default async function AdminRegionPage({
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                         <span>{intelligenceSuggestionLabel(suggestion.suggestionType)}</span>
                         <span>·</span>
-                        <span>{reviewStatusLabel(suggestion.reviewStatus)}</span>
+                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
                         <span>·</span>
-                        <span>{visibilityStateLabel(suggestion.visibilityState)}</span>
+                        <span>{regionVisibilityStateLabel(suggestion.visibilityState)}</span>
                         <span>·</span>
                         <span>Confidence {suggestion.confidence.toFixed(2)}</span>
                       </div>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 
 type ErrorRow = {
   _id?: string;
@@ -36,6 +38,11 @@ const RESOLVED_OPTIONS = [
 ];
 
 export default function AdminErrorsPage() {
+  const errorSurface = getOperatorWorkbenchSurface("errorLogs");
+  const reviewSurface = getOperatorWorkbenchSurface("reviewQueue");
+  const feedSurface = getOperatorWorkbenchSurface("feedControl");
+  const entitlementsSurface = getOperatorWorkbenchSurface("entitlements");
+  const pricingSurface = getOperatorWorkbenchSurface("pricingOrders");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -140,12 +147,36 @@ export default function AdminErrorsPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · System</p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Error Logs</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          {errorSurface.eyebrow}
+        </p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{errorSurface.title}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{errorSurface.summary}</p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Systemweite Fehler und Trace-IDs. Filtere nach Level oder Trace, um Ursache und Kontext zu finden.
+          Filtere nach Level oder Trace, um Ursache und Kontext zu finden.
         </p>
       </header>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Nächste Workbench-Schritte
+        </p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          Fehlerdiagnose bleibt hier. Die eigentliche Betreiberarbeit läuft danach in den bestehenden Review-,
+          Feed-, Freischaltungs- oder Vertragsflächen weiter.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[reviewSurface, feedSurface, entitlementsSurface, pricingSurface].map((surface) => (
+            <Link
+              key={surface.href}
+              href={surface.href}
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))]"
+            >
+              {surface.title}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="flex flex-wrap items-center gap-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <input

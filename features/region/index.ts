@@ -9,6 +9,7 @@ export * from "./organizationContracts";
 export * from "./organizationEntitlements";
 export * from "./organizationPartnerPackages";
 export * from "./organizationOnboarding";
+export * from "./operatorWorkbenchLabels";
 export * from "./publicationRiskLadder";
 export * from "./regionFeedSignals";
 export * from "./regionParticipationSignals";

@@ -23,10 +23,13 @@ import {
   organizationEntitlementAllowsScope,
   organizationEntitlementScopeLabel,
   organizationEntitlementStatusLabel,
+  organizationProvisioningStatusLabel,
+  organizationVerificationStatusLabel,
   type OrganizationDashboardDraftSummary,
   type OrganizationDashboardReadModel,
 } from "@features/region";
 import {
+  organizationBillingSourceLabel,
   partnerFundingDisclosureRoleLabel,
   partnerPackageScopeLabel,
   partnerPackageStatusLabel,
@@ -50,35 +53,6 @@ import ReviewQueueItemActions from "@/app/admin/review/ReviewQueueItemActions";
 export const metadata = {
   title: "Organisationsbereich · eDebatte",
 };
-
-function verificationLabel(value: OrganizationDashboardReadModel["verificationStatus"]) {
-  switch (value) {
-    case "publication_approved":
-      return "Publikationsfreigabe bestätigt";
-    case "limited":
-      return "Eingeschränkt";
-    case "suspended":
-      return "Gesperrt";
-    case "unit_verified":
-      return "Unit-verifiziert";
-    case "organization_verified":
-      return "Organisations-verifiziert";
-    case "email_verified":
-      return "E-Mail verifiziert";
-    case "pending_review":
-      return "In Prüfung";
-    case "unverified":
-      return "Unverifiziert";
-    case "rejected":
-      return "Abgelehnt";
-    case "revoked":
-      return "Widerrufen";
-    case "admin_fallback":
-      return "Betreiber-Modus";
-    default:
-      return "Noch kein Status";
-  }
-}
 
 function organizationTypeLabel(value: OrganizationDashboardReadModel["organizationType"]) {
   switch (value) {
@@ -139,32 +113,6 @@ function organizationScopeRoleLabel(value: OrganizationMembershipRole | null) {
       return "Betreiberkontext";
     default:
       return "Noch keine Rolle bestätigt";
-  }
-}
-
-function provisioningStatusLabel(
-  value: OrganizationDashboardReadModel["provisioningSummary"]["currentStatus"],
-) {
-  switch (value) {
-    case "draft":
-      return "Antrag gestartet";
-    case "submitted":
-      return "Prüfung läuft";
-    case "verification_required":
-      return "Prüfung erforderlich";
-    case "operator_review_required":
-      return "Betreiberprüfung läuft";
-    case "approved":
-      return "Freigeschaltet";
-    case "limited":
-      return "Eingeschränkt";
-    case "rejected":
-      return "Abgelehnt";
-    case "suspended":
-      return "Gesperrt";
-    case "none":
-    default:
-      return "Noch kein Antrag";
   }
 }
 
@@ -244,24 +192,6 @@ function socialDistributionSourceStateLabel(
     case "review_only":
     default:
       return "Review-only";
-  }
-}
-
-function billingSourceLabel(
-  source: OrganizationDashboardReadModel["contractSummary"]["sourceOfTruth"],
-) {
-  switch (source) {
-    case "operator_verified_contract":
-      return "Betreiber-verifizierter Vertragsprozess";
-    case "manual_invoice":
-      return "Manuelle Rechnung / Vertragspfad";
-    case "external_checkout_pending":
-      return "Externer Checkout später optional";
-    case "external_checkout_integrated":
-      return "Externer Checkout integriert";
-    case "fixture_demo":
-    default:
-      return "Demo- oder Testpfad";
   }
 }
 
@@ -779,7 +709,7 @@ export default async function AccountOrganizationDashboardPage() {
                   Onboarding-Status
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-                  {provisioningStatusLabel(readModel.provisioningSummary.currentStatus)}
+                  {organizationProvisioningStatusLabel(readModel.provisioningSummary.currentStatus)}
                 </p>
               </div>
               <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
@@ -846,7 +776,7 @@ export default async function AccountOrganizationDashboardPage() {
                     Status:{" "}
                     {region.verificationStatus === "self_declared"
                       ? "Selbstauskunft"
-                      : verificationLabel(region.verificationStatus)}
+                      : organizationVerificationStatusLabel(region.verificationStatus)}
                     {region.roleLabel ? ` · Rolle: ${region.roleLabel}` : ""}
                   </p>
                 </article>
@@ -891,7 +821,7 @@ export default async function AccountOrganizationDashboardPage() {
                   Vertragswahrheit
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-                  {billingSourceLabel(readModel.contractSummary.sourceOfTruth)}
+                  {organizationBillingSourceLabel(readModel.contractSummary.sourceOfTruth)}
                 </p>
               </div>
               <span
