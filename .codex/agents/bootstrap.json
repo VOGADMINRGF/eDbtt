@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "bootstrapTask": {
+    "id": "V3-AGENT-REGISTRY-RUNNER-BOOTSTRAP-01",
+    "status": "codex_ready",
+    "priority": 1,
+    "cluster": "Agent registry / runner bootstrap / validation",
+    "primaryRole": "governance_compliance",
+    "supportingRoles": ["personal_voxy", "intake_format", "research_source", "claims_factcheck", "participation_moderation", "dossier_briefing"],
+    "scope": [
+      "validate registry schema and all unique role ids",
+      "add typed runtime contracts for role id, capability, denied action and task mapping",
+      "add a deterministic task-to-role resolver",
+      "add tests proving denied actions and shared rules cannot be silently overridden",
+      "surface registry readiness in the existing admin/operator system area without runtime activation",
+      "materialize the follow-up tasks below into docs/E150/OpenTasks.md with evidence links"
+    ],
+    "nonGoals": [
+      "no model or provider calls",
+      "no parallel agent processes",
+      "no personal profile persistence",
+      "no external notification",
+      "no publish or deployment",
+      "no entitlement activation"
+    ],
+    "independentReviewRequired": true
+  },
+  "followupTasks": [
+    {
+      "id": "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
+      "status": "codex_ready",
+      "priority": 2,
+      "cluster": "Personal Voxy / onboarding / profile / consent",
+      "primaryRole": "personal_voxy",
+      "supportingRoles": ["governance_compliance"]
+    },
+    {
+      "id": "V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01",
+      "status": "codex_ready",
+      "priority": 3,
+      "cluster": "Agent run / artifact provenance / user-safe trace",
+      "primaryRole": "governance_compliance",
+      "supportingRoles": ["dossier_briefing", "intake_format"]
+    },
+    {
+      "id": "V3-INTAKE-FORMAT-AGENT-E2E-01",
+      "status": "blocked",
+      "priority": 4,
+      "unblockAfter": ["V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01"],
+      "cluster": "Create / intake / occasion / format recommendation",
+      "primaryRole": "intake_format",
+      "supportingRoles": ["personal_voxy", "governance_compliance"]
+    },
+    {
+      "id": "V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01",
+      "status": "blocked",
+      "priority": 5,
+      "unblockAfter": ["V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01"],
+      "cluster": "Research / provenance / international transferability",
+      "primaryRole": "research_source",
+      "supportingRoles": ["dossier_briefing", "governance_compliance"]
+    },
+    {
+      "id": "V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01",
+      "status": "blocked",
+      "priority": 6,
+      "unblockAfter": ["V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01"],
+      "cluster": "Claims / evidence / factcheck / civic graph",
+      "primaryRole": "claims_factcheck",
+      "supportingRoles": ["research_source", "governance_compliance"]
+    },
+    {
+      "id": "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
+      "status": "blocked",
+      "priority": 7,
+      "unblockAfter": ["V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01"],
+      "cluster": "Dossier / Debattenstand / transfer tree / responsibility graph",
+      "primaryRole": "dossier_briefing",
+      "supportingRoles": ["research_source", "claims_factcheck", "governance_compliance"]
+    },
+    {
+      "id": "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
+      "status": "blocked",
+      "priority": 8,
+      "unblockAfter": ["V3-INTAKE-FORMAT-AGENT-E2E-01"],
+      "cluster": "Participation / moderation / clustering / missing perspectives",
+      "primaryRole": "participation_moderation",
+      "supportingRoles": ["personal_voxy", "governance_compliance"]
+    },
+    {
+      "id": "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
+      "status": "needs_decision",
+      "priority": 9,
+      "cluster": "Municipal handoff / verified authority / three free internal adoptions",
+      "primaryRole": "dossier_briefing",
+      "supportingRoles": ["governance_compliance"],
+      "decisionBoundary": "pricing, entitlement, recipient verification and external notification workflow require independent approval"
+    },
+    {
+      "id": "V3-AGENTIC-CIVIC-E2E-PILOT-01",
+      "status": "blocked",
+      "priority": 10,
+      "unblockAfter": [
+        "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
+        "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
+        "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01"
+      ],
+      "cluster": "Create to authority-response civic pilot",
+      "primaryRole": "dossier_briefing",
+      "supportingRoles": ["personal_voxy", "intake_format", "research_source", "claims_factcheck", "participation_moderation", "governance_compliance"]
+    }
+  ]
+}
