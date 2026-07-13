@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { getMembershipActivationTruth } from "@features/pricing";
 import type { PaidDashboardEntitlement } from "@features/region";
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
 };
 
 const STATUS_OPTIONS = ["trial", "active", "suspended", "revoked"] as const;
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 export function AdminEntitlementsClient({
   initialEntitlements,
@@ -149,6 +151,7 @@ export function AdminEntitlementsClient({
           Diese Eingaben erzeugen nur eine serverseitige Freischaltung. Kein Checkout, keine
           Abbuchung, keine Rechnung und keine automatische Publikationsfreigabe.
         </p>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.entitlementHint}</p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <input
             value={createForm.organizationId}

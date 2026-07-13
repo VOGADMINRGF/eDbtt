@@ -11,6 +11,7 @@ import { canEditTopTopics } from "@features/account/capabilities";
 import {
   EDEBATTE_PACKAGES_DE,
   formatPackagePriceLabel,
+  getMembershipActivationTruth,
   getPackagesByIds,
   PRIVATE_PACKAGE_IDS,
   type EDebattePackageDefinition,
@@ -103,6 +104,8 @@ function formatEuro(amount?: number | null) {
   if (amount === null || amount === undefined || Number.isNaN(amount)) return null;
   return EURO.format(amount);
 }
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 /**
  * Typen – können bei Bedarf mit getAccountOverview harmonisiert werden.
@@ -3457,7 +3460,7 @@ function MembershipBanner() {
     >
       <p className="font-medium">Vielen Dank für deinen eDebatte-Paketstart.</p>
       <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-200">
-        Dein eDebatte-Paket ist in deinem Konto hinterlegt. Als Nächstes wird die Freischaltung passend zum Nutzungskontext abgestimmt.
+        Dein eDebatte-Paket ist in deinem Konto hinterlegt. {ACTIVATION_TRUTH.packageStartBannerHint}
       </p>
     </section>
   );
@@ -3827,7 +3830,7 @@ function getEDebatteLabel(pkg: EDebattePackage): string {
 function getEDebatteStatusLabel(info: EDebattePackageInfo): string {
   switch (info.status) {
     case "preorder":
-      return "Paketstart erfasst – Freischaltung und Aktivierung folgen im nächsten Schritt.";
+      return "Paketstart erfasst – Freischaltung, Vertrag und Aktivierung bleiben bewusste nächste Schritte.";
     case "active":
       return "Aktiv";
     case "canceled":
@@ -4434,7 +4437,7 @@ type VOGMembershipCardProps = {
 };
 
 function VOGMembershipCard({ membership, membershipStatus, paymentReference }: VOGMembershipCardProps) {
-  const title = membership.label || "Mitgliedschaft eDebatte";
+  const title = membership.label || ACTIVATION_TRUTH.membershipTitle;
   const status = membership.statusLabel || (membership.isMember ? "Aktiv" : "Noch nicht Mitglied");
   const isWaitingPayment = membershipStatus === "waiting_payment";
   const paymentHint = paymentReference ? `Verwendungszweck: ${paymentReference}` : null;
@@ -4463,7 +4466,7 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
       )}
 
       <p className="mt-3 text-[11px] text-[rgb(var(--muted))]">
-        eDebatte finanziert sich unabhängig durch viele kleine Beiträge. Details findest du im Transparenzbericht.
+        {ACTIVATION_TRUTH.membershipScopeHint} Details findest du im Transparenzbericht.
       </p>
 
       <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">

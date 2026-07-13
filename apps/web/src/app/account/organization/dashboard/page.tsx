@@ -30,6 +30,7 @@ import {
 } from "@features/region";
 import {
   organizationBillingSourceLabel,
+  getMembershipActivationTruth,
   partnerFundingDisclosureRoleLabel,
   partnerPackageScopeLabel,
   partnerPackageStatusLabel,
@@ -53,6 +54,8 @@ import ReviewQueueItemActions from "@/app/admin/review/ReviewQueueItemActions";
 export const metadata = {
   title: "Organisationsbereich · eDebatte",
 };
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 function organizationTypeLabel(value: OrganizationDashboardReadModel["organizationType"]) {
   switch (value) {
@@ -800,6 +803,7 @@ export default async function AccountOrganizationDashboardPage() {
             Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider; sonst
             bleibt der Vertragspfad manuell und auditierbar.
           </p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.contractBillingHint}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <p className="text-xs text-[rgb(var(--muted))]">Vertragsstatus</p>
@@ -982,6 +986,7 @@ export default async function AccountOrganizationDashboardPage() {
             Freischaltung zeigt den Arbeitszugang, nicht automatische Amtlichkeit. Zahlung,
             Vertrag und Arbeitszugang bleiben getrennt und auditierbar.
           </p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">{ACTIVATION_TRUTH.entitlementHint}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <p className="text-xs text-[rgb(var(--muted))]">Status</p>

@@ -34,6 +34,7 @@ import {
   setReviewQueueOperationRepoForTests,
 } from "@features/reviewQueueOperations";
 import { setMembershipDirectoryRepositoryForTests } from "@/lib/server/auth/runtimeAdapters";
+import { getMembershipActivationTruth } from "@features/pricing";
 import { setPricingOrderContractsRuntimeRepoForTests } from "@features/pricing/orderContractsRuntime";
 
 const mocks = vi.hoisted(() => ({
@@ -60,6 +61,8 @@ vi.mock("next/navigation", async () => {
 });
 
 import AccountOrganizationDashboardPage from "@/app/account/organization/dashboard/page";
+
+const ACTIVATION_TRUTH = getMembershipActivationTruth("de");
 
 function buildOperatorDashboardReadModel() {
   return {
@@ -303,6 +306,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Vertrag &amp; Billing");
     expect(html).toContain("Vertrag ausstehend");
     expect(html).toContain("Self-Service-Checkout erscheint nur bei bewusst aktiviertem Zahlungsprovider");
+    expect(html).toContain(ACTIVATION_TRUTH.contractBillingHint);
     expect(html).toContain("Verifikationsstatus");
     expect(html).toContain("Directory-Wahrheit");
     expect(html).toContain("Demo- oder Testwahrheit");
@@ -318,6 +322,7 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Ich kläre die Anlassraum-Freischaltung");
     expect(html).toContain("Ich prüfe meine Organisation");
     expect(html).toContain("Freischaltung nötig");
+    expect(html).toContain(ACTIVATION_TRUTH.entitlementHint);
     expect(html).toContain("/account/organization");
     expect(html).toContain("/themen");
     expect(html).toContain("Nächster sicherer Schritt");
