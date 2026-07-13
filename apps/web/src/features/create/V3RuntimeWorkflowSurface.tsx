@@ -60,6 +60,11 @@ function stageStatusLabel(value: V3RuntimeWorkflowStageStatus): string {
   return "Runtime-Wahrheit fehlt";
 }
 
+function stageStatusDataValue(value: V3RuntimeWorkflowStageStatus): string {
+  if (value === "missing_runtime_truth") return "runtime_gap";
+  return value;
+}
+
 function socialDraftKindLabel(value: DossierSocialOutputDraftKind): string {
   if (value === "website_update_draft") return "Website-Entwurf";
   if (value === "linkedin_draft") return "LinkedIn-Entwurf";
@@ -440,7 +445,7 @@ export default function V3RuntimeWorkflowSurface(props: {
           <article
             key={stage.id}
             data-v3-runtime-workflow-stage={stage.id}
-            data-v3-runtime-workflow-status={stage.status}
+            data-v3-runtime-workflow-status={stageStatusDataValue(stage.status)}
             className="rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4"
           >
             <div className="flex flex-wrap items-center gap-2">

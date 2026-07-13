@@ -463,6 +463,8 @@ describe("account resume workbench contract", () => {
     );
 
     expect(html).toContain("Verbundener Arbeitsstand");
+    expect(html).toContain("Durch Review blockiert");
+    expect(html).toContain("Output- oder Briefing-Arbeitsstand sichtbar");
     expect(html).toContain("Sichere Schulwege · Dossier-Aufbau");
     expect(html).toContain("Bereit für bewusste Bestätigung");
     expect(html).toContain("Dossier");
@@ -528,5 +530,7 @@ describe("account resume workbench contract", () => {
     expect(html).toContain("Welche Quelle, Erfahrung oder Beobachtung stützt deine Einschätzung?");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
+    expect(html).not.toContain("Weitergeführte Runtime");
+    expect(html).not.toContain("Output-/Voxy-Readmodel");
   });
 });
