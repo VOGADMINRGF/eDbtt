@@ -143,6 +143,13 @@ import {
 import {
   buildVoxyRenderReviewDecisionGateFromCreateCandidatePreview,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
+import {
+  createFlowOpenTruthListLabel,
+  createFlowProviderTruthLabel,
+  createFlowRuntimeStatusLabel,
+  createFlowTargetCarrierLabel,
+  createFlowTransitionLabel,
+} from "@/features/review/e2eFlowUserFacingLabels";
 
 type CreateCandidatePreviewPanelProps = {
   model: CreateCandidatePreviewReadModel;
@@ -166,9 +173,7 @@ function graphTargetLabel(value: string) {
 }
 
 function targetCarrierLabel(value: string) {
-  if (value === "participation_space_runtime_record") return "Participation Runtime";
-  if (value === "dossier_runtime_record") return "Dossier Runtime";
-  return "Create-Handoff-Review-Queue";
+  return createFlowTargetCarrierLabel(value);
 }
 
 function enrichmentSourceTypeLabel(value: string) {
@@ -384,19 +389,22 @@ export default function CreateCandidatePreviewPanel({
             Persistenz
           </p>
           <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-            Dieser Schritt bleibt `preview_only`. Persistente Claims und Fragen hängen weiter am
-            `dossier_runtime_record`, Umfragen am `participation_space_runtime_record`.
+            Dieser Schritt bleibt ein Vorschau-Arbeitsstand. Claims und offene Fragen wechseln
+            erst nach bewusstem Review in den Dossier-Arbeitsstand; Beteiligungsfragen erst nach
+            separatem Beteiligungs-Handoff.
           </p>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            Runtime Truth
+            Laufdetails
           </p>
           <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-            Provider: {model.provider ?? "missing_runtime_truth"} · Modell: {model.model ?? "missing_runtime_truth"}
+            Provider: {createFlowProviderTruthLabel(model.provider)} · Modell:{" "}
+            {createFlowProviderTruthLabel(model.model)}
           </p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Nur wirklich vorhandene Laufdetails werden gezeigt. Fehlende Modellwahrheit wird nicht erfunden.
+            Es werden nur belastbare Laufdetails gezeigt. Fehlende Anschlussdaten werden sichtbar
+            gemacht, aber nicht erfunden.
           </p>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
@@ -648,10 +656,10 @@ export default function CreateCandidatePreviewPanel({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    {item.targetCarrier}
+                    {createFlowTargetCarrierLabel(item.targetCarrier)}
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    {item.targetState}
+                    {createFlowTransitionLabel(item.targetState)}
                   </span>
                 </div>
                 <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{item.title}</p>
@@ -659,12 +667,15 @@ export default function CreateCandidatePreviewPanel({
                 <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
                   <p>Candidate: {item.candidateType} · Ref: {item.inputRef}</p>
                   <p>Zielruntime: {targetCarrierLabel(item.targetRuntimeCarrier)}</p>
-                  <p>Review: {item.reviewState} · Publish: {item.publishState}</p>
-                  <p>Graph: {item.graphTargetState}</p>
+                  <p>
+                    Review: {createFlowTransitionLabel(item.reviewState)} · Veröffentlichung:{" "}
+                    {createFlowTransitionLabel(item.publishState)}
+                  </p>
+                  <p>Graph: {createFlowTransitionLabel(item.graphTargetState)}</p>
                 </div>
                 {item.missingRuntimeTruth.length > 0 ? (
                   <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                    Offene Anschlussdaten: {createFlowOpenTruthListLabel(item.missingRuntimeTruth)}
                   </p>
                 ) : null}
               </article>
@@ -688,7 +699,7 @@ export default function CreateCandidatePreviewPanel({
             </p>
           </div>
           <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-            no_auto_deepsearch
+            review-first
           </span>
         </div>
 
@@ -707,7 +718,7 @@ export default function CreateCandidatePreviewPanel({
             </p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
               {model.feedEnrichmentSuggestions.plannedCandidateTypes.join(", ")} bleiben ohne
-              passende Runtime-Struktur nur `planned_handoff`.
+              passenden Review-Handoff nur als nächster Arbeitsschritt vorgemerkt.
             </p>
           </div>
         </div>
@@ -732,10 +743,10 @@ export default function CreateCandidatePreviewPanel({
                 <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
                   <p>Candidate: {item.candidateType}</p>
                   <p>Origin: {item.sourceOrigin}</p>
-                  <p>Quelle: {item.sourceTitle ?? "missing_source_truth"}</p>
-                  <p>Ref: {item.sourceRef ?? "missing_runtime_truth"}</p>
-                  <p>Factcheck: {item.factcheckState}</p>
-                  <p>DeepSearch: {item.deepsearchState}</p>
+                  <p>Quelle: {item.sourceTitle ?? "Quellenhinweis noch offen"}</p>
+                  <p>Ref: {item.sourceRef ?? "noch kein belastbarer Verweis"}</p>
+                  <p>Factcheck: {createFlowTransitionLabel(item.factcheckState)}</p>
+                  <p>DeepSearch: {createFlowTransitionLabel(item.deepsearchState)}</p>
                 </div>
                 {item.sourceUrl ? (
                   <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
@@ -744,11 +755,11 @@ export default function CreateCandidatePreviewPanel({
                 ) : null}
                 {item.missingRuntimeTruth.length > 0 ? (
                   <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                    Offene Anschlussdaten: {createFlowOpenTruthListLabel(item.missingRuntimeTruth)}
                   </p>
                 ) : (
                   <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                    provenance preserved · review_required · not_published
+                    Herkunft sichtbar · reviewpflichtig · nicht veröffentlicht
                   </p>
                 )}
               </article>
@@ -781,10 +792,10 @@ export default function CreateCandidatePreviewPanel({
               Review-Record
             </p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-              {model.claimToDossierPipeline.reviewRecordTruth}
+              {createFlowTransitionLabel(model.claimToDossierPipeline.reviewRecordTruth)}
             </p>
             <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-              {model.claimToDossierPipeline.reviewRecordId ?? "Kein persistierter Review-Record"}
+              {model.claimToDossierPipeline.reviewRecordId ?? "Noch kein serverseitig gesicherter Review-Arbeitsstand"}
             </p>
           </div>
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
@@ -792,12 +803,14 @@ export default function CreateCandidatePreviewPanel({
               Target Record
             </p>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-              {model.claimToDossierPipeline.dossierRuntimeHandoff?.persistenceState ??
-                "missing_dossier_runtime_truth"}
+              {createFlowTransitionLabel(
+                model.claimToDossierPipeline.dossierRuntimeHandoff?.persistenceState ??
+                  "missing_dossier_runtime_truth",
+              )}
             </p>
             <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
               {model.claimToDossierPipeline.dossierRuntimeHandoff?.dossierRuntimeId ??
-                "Ein echtes `dossier_runtime_record` entsteht erst nach separater Review-Freigabe."}
+                "Ein Dossier-Arbeitsstand entsteht erst nach separater Review-Freigabe."}
             </p>
           </div>
         </div>
@@ -809,16 +822,28 @@ export default function CreateCandidatePreviewPanel({
             </p>
             <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
               <p>
-                Zustand: {model.claimToDossierPipeline.dossierRuntimeHandoff.dossierRuntimeState}
+                Zustand:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierRuntimeHandoff.dossierRuntimeState,
+                )}
               </p>
               <p>
-                Runtime-Status: {model.claimToDossierPipeline.dossierRuntimeHandoff.runtimeStatus ?? "missing_runtime_truth"}
+                Arbeitsstand:{" "}
+                {createFlowRuntimeStatusLabel(
+                  model.claimToDossierPipeline.dossierRuntimeHandoff.runtimeStatus,
+                )}
               </p>
               <p>
-                Publish: {model.claimToDossierPipeline.dossierRuntimeHandoff.publishState}
+                Veröffentlichung:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierRuntimeHandoff.publishState,
+                )}
               </p>
               <p>
-                Graph: {model.claimToDossierPipeline.dossierRuntimeHandoff.graphTargetState}
+                Graph:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierRuntimeHandoff.graphTargetState,
+                )}
               </p>
               <p>
                 Kandidaten: {model.claimToDossierPipeline.dossierRuntimeHandoff.sourceCandidateIds.length}
@@ -829,8 +854,10 @@ export default function CreateCandidatePreviewPanel({
             </div>
             {model.claimToDossierPipeline.dossierRuntimeHandoff.missingRuntimeTruth.length > 0 ? (
               <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                missing_runtime_truth:{" "}
-                {model.claimToDossierPipeline.dossierRuntimeHandoff.missingRuntimeTruth.join(", ")}
+                Offene Anschlussdaten:{" "}
+                {createFlowOpenTruthListLabel(
+                  model.claimToDossierPipeline.dossierRuntimeHandoff.missingRuntimeTruth,
+                )}
               </p>
             ) : null}
           </div>
@@ -843,39 +870,60 @@ export default function CreateCandidatePreviewPanel({
             </p>
             <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
               <p>
-                Graph-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphTargetState}
+                Graph-Ziel:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphTargetState,
+                )}
               </p>
               <p>
-                Anlassraum-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.anlassraumTargetState}
+                Anlassraum-Ziel:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.anlassraumTargetState,
+                )}
               </p>
               <p>
-                Beteiligungs-Ziel: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.participationTargetState}
+                Beteiligungs-Ziel:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.participationTargetState,
+                )}
               </p>
               <p>
-                Branch-Workspace: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.branchWorkspaceTargetState}
+                Branch-Workspace:{" "}
+                {createFlowTransitionLabel(
+                  model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.branchWorkspaceTargetState,
+                )}
               </p>
               <p>
-                target_graph_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetGraphId ?? "nicht vorhanden"}
+                Graph-Verknüpfung:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetGraphId ??
+                  "noch keine"}
               </p>
               <p>
-                target_anlassraum_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetAnlassraumId ?? "nicht vorhanden"}
+                Anlassraum-Verknüpfung:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetAnlassraumId ??
+                  "noch keine"}
               </p>
               <p>
-                target_participation_space_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetParticipationSpaceId ?? "nicht vorhanden"}
+                Beteiligungs-Verknüpfung:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff
+                  .targetParticipationSpaceId ?? "noch keine"}
               </p>
               <p>
-                target_branch_workspace_id: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.targetBranchWorkspaceId ?? "nicht vorhanden"}
+                Workspace-Verknüpfung:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff
+                  .targetBranchWorkspaceId ?? "noch keine"}
               </p>
             </div>
             {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed ? (
               <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                topic_seed: {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed.topicLabel} ·{" "}
+                Thema:{" "}
+                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed.topicLabel} ·{" "}
                 {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.topicSeed.jurisdiction}
               </p>
             ) : null}
             {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphMatches.length > 0 ? (
               <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                graph_matches:{" "}
+                Bestehende Anschlusspunkte:{" "}
                 {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.graphMatches
                   .map((match) => `${match.kind}:${match.label}`)
                   .join(", ")}
@@ -883,14 +931,16 @@ export default function CreateCandidatePreviewPanel({
             ) : null}
             {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.feedEnrichmentRefs.length > 0 ? (
               <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                feed_enrichment_refs:{" "}
+                Verknüpfte Quellen- oder Feed-Hinweise:{" "}
                 {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.feedEnrichmentRefs.join(", ")}
               </p>
             ) : null}
             {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.missingRuntimeTruth.length > 0 ? (
               <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                missing_runtime_truth:{" "}
-                {model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.missingRuntimeTruth.join(", ")}
+                Offene Anschlussdaten:{" "}
+                {createFlowOpenTruthListLabel(
+                  model.claimToDossierPipeline.dossierGraphAnlassraumHandoff.missingRuntimeTruth,
+                )}
               </p>
             ) : null}
           </div>
@@ -935,25 +985,31 @@ export default function CreateCandidatePreviewPanel({
                     {targetCarrierLabel(item.targetCarrier)}
                   </span>
                   <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    {item.targetState}
+                    {createFlowTransitionLabel(item.targetState)}
                   </span>
                   <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                    {item.persistenceState}
+                    {createFlowTransitionLabel(item.persistenceState)}
                   </span>
                 </div>
                 <div className="mt-3 grid gap-2 text-xs leading-5 text-[rgb(var(--muted))] md:grid-cols-2">
                   <p>Candidate: {item.candidateType} · Ref: {item.inputRef}</p>
-                  <p>Zieltyp: {item.targetRecordType}</p>
+                  <p>Zieltyp: {createFlowTransitionLabel(item.targetRecordType)}</p>
                   <p>
-                    Dossier-Ziel: {item.dossierTargetState ?? "nicht aktiv"}
+                    Dossier-Ziel:{" "}
+                    {item.dossierTargetState
+                      ? createFlowTransitionLabel(item.dossierTargetState)
+                      : "noch nicht aktiv"}
                   </p>
                   <p>
-                    Beteiligungs-Ziel: {item.participationTargetState ?? "nicht aktiv"}
+                    Beteiligungs-Ziel:{" "}
+                    {item.participationTargetState
+                      ? createFlowTransitionLabel(item.participationTargetState)
+                      : "noch nicht aktiv"}
                   </p>
                 </div>
                 {item.missingRuntimeTruth.length > 0 ? (
                   <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-                    missing_runtime_truth: {item.missingRuntimeTruth.join(", ")}
+                    Offene Anschlussdaten: {createFlowOpenTruthListLabel(item.missingRuntimeTruth)}
                   </p>
                 ) : null}
               </article>

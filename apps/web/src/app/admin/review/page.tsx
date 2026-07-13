@@ -5,6 +5,7 @@ import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
 import { factcheckSealDecisionLabel } from "@features/factcheck/workflow";
 import FeedSourceIntakeSurfaceTruthCallout from "@/features/review/FeedSourceIntakeSurfaceTruthCallout";
+import { accountCorrelationBasisLabel } from "@/features/review/e2eFlowUserFacingLabels";
 import { createHandoffReviewStateLabel } from "@/features/review/reviewSurfaceStatusLabels";
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
 import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
@@ -333,19 +334,6 @@ function compactAuditLine(input: {
   note: string | null;
 }) {
   return `${input.title} · ${input.detail} · ${input.actorLabel} · ${new Date(input.at).toLocaleString("de-DE")}${input.note ? ` · ${input.note}` : ""}`;
-}
-
-function correlationBasisLabel(value: string) {
-  if (value === "shared_id") return "Gemeinsame Kennung";
-  if (value === "source_handoff_id") return "Explizite Handoff-Referenz";
-  if (value === "source_draft_id") return "Explizite Draft-Referenz";
-  if (value === "ledger_branch_id") return "Gemeinsame Branch-ID";
-  if (value === "provenance") return "Bestehende Provenance";
-  if (value === "created_by_and_dossier_id") return "Dossier und Nutzerkontext";
-  if (value === "existing_review_context") return "Bestehender Review-Kontext";
-  if (value === "existing_runtime_readmodel") return "Bestehendes Runtime-Readmodel";
-  if (value === "text_similarity_suggestion") return "Nur Textähnlichkeit";
-  return "Keine belastbare Basis";
 }
 
 export default async function AdminReviewPage({
@@ -1920,7 +1908,7 @@ export default async function AdminReviewPage({
                           {item.createHandoffContext.provenanceSummary}
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          Account-Linkage: {item.createHandoffContext.correlationLabel} · {correlationBasisLabel(item.createHandoffContext.correlationBasis)}
+                          Account-Linkage: {item.createHandoffContext.correlationLabel} · {accountCorrelationBasisLabel(item.createHandoffContext.correlationBasis)}
                         </p>
                         {item.createHandoffContext.correlationReason ? (
                           <p className="mt-1 text-xs text-[rgb(var(--muted))]">

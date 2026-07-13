@@ -186,6 +186,12 @@ import {
   buildVoxyRenderReviewDecisionGateFromReviewContext,
   buildVoxyRenderReviewDecisionGateFromVoxyDialog,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
+import {
+  accountCorrelationBasisLabel,
+  accountCorrelationStrengthLabel,
+  accountRuntimeLinkageStatusLabel,
+  accountRuntimeTruthLevelLabel,
+} from "@/features/review/e2eFlowUserFacingLabels";
 import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
@@ -212,52 +218,6 @@ function sectionHeading(props: { id: string; title: string; description: string;
       <p className="text-xs text-[rgb(var(--muted))]">{props.description}</p>
     </div>
   );
-}
-
-function linkageStatusLabel(value: AccountUserScopedRuntimeLinkage["linkageStatus"]) {
-  if (value === "linked") return "Verknüpft";
-  if (value === "partially_linked") return "Teilweise verknüpft";
-  if (value === "blocked_by_runtime_truth") return "Runtime-Wahrheit fehlt";
-  if (value === "blocked_by_review") return "Durch Review blockiert";
-  if (value === "blocked_by_provider") return "Durch Provider-Gate blockiert";
-  if (value === "not_available") return "Noch nicht verfügbar";
-  return "Noch nicht verknüpft";
-}
-
-function runtimeTruthLevelLabel(value: AccountUserScopedRuntimeLinkage["runtimeTruthLevel"]) {
-  if (value === "runtime_confirmed") return "Weitergeführte Runtime";
-  if (value === "output_readmodel") return "Output-/Voxy-Readmodel";
-  if (value === "participation_readmodel") return "Participation-Readmodel";
-  if (value === "dossier_readmodel") return "Dossier-Readmodel";
-  if (value === "review_readmodel") return "Persistierter Review-Handoff";
-  if (value === "ledger") return "Server-Ledger";
-  return "Lokaler Draft";
-}
-
-function correlationStrengthLabel(
-  value: AccountContributionHandoffCorrelation["correlationStrength"],
-) {
-  if (value === "exact") return "Exakt verbunden";
-  if (value === "strong") return "Stark verbunden";
-  if (value === "partial") return "Teilweise verbunden";
-  if (value === "suggested") return "Mögliche Verbindung";
-  if (value === "blocked") return "Blockiert";
-  return "Nicht verbunden";
-}
-
-function correlationBasisLabel(
-  value: AccountContributionHandoffCorrelation["correlationBasis"],
-) {
-  if (value === "shared_id") return "Gemeinsame Kennung";
-  if (value === "source_handoff_id") return "Explizite Handoff-Referenz";
-  if (value === "source_draft_id") return "Explizite Draft-Referenz";
-  if (value === "ledger_branch_id") return "Gemeinsame Branch-ID";
-  if (value === "provenance") return "Bestehende Provenance";
-  if (value === "created_by_and_dossier_id") return "Dossier und Nutzerkontext";
-  if (value === "existing_review_context") return "Bestehender Review-Kontext";
-  if (value === "existing_runtime_readmodel") return "Bestehendes Runtime-Readmodel";
-  if (value === "text_similarity_suggestion") return "Nur Textähnlichkeit";
-  return "Keine belastbare Basis";
 }
 
 function SsotPolicyPanel(props: {
@@ -773,10 +733,10 @@ function ResumeWorkbenchCard(props: {
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-              {correlationStrengthLabel(props.correlation.correlationStrength)}
+              {accountCorrelationStrengthLabel(props.correlation.correlationStrength)}
             </span>
             <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-              {correlationBasisLabel(props.correlation.correlationBasis)}
+              {accountCorrelationBasisLabel(props.correlation.correlationBasis)}
             </span>
           </div>
           <div className="mt-2 space-y-1">
@@ -1497,10 +1457,10 @@ function RuntimeLinkageCard(props: {
           Verbundener Arbeitsstand
         </span>
         <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-          {linkageStatusLabel(props.linkage.linkageStatus)}
+          {accountRuntimeLinkageStatusLabel(props.linkage.linkageStatus)}
         </span>
         <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-          {runtimeTruthLevelLabel(props.linkage.runtimeTruthLevel)}
+          {accountRuntimeTruthLevelLabel(props.linkage.runtimeTruthLevel)}
         </span>
       </div>
       <div className="mt-3 space-y-1">
