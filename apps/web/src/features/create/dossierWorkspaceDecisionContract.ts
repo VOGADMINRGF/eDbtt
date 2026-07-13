@@ -14,6 +14,7 @@ import type {
 import {
   buildVoxyCocreationDialogFromReviewContext,
 } from "@/features/create/voxyCocreationDialogContract";
+import { dossierWorkspaceDecisionStatusLabel } from "@/features/review/reviewSurfaceStatusLabels";
 
 export const DOSSIER_WORKSPACE_DECISION_STATUSES = [
   "readmodel_only",
@@ -242,18 +243,6 @@ function thesisConfidenceLabel(value: DossierWorkspaceThesisConfidence): string 
   if (value === "explicit") return "Explizit";
   if (value === "inferred") return "Abgeleitet";
   return "Noch offen";
-}
-
-function workspaceStatusLabel(value: DossierWorkspaceDecisionStatus): string {
-  if (value === "decision_preview") return "Entscheidungsvorschau";
-  if (value === "needs_editorial_review") return "Redaktionelle Prüfung offen";
-  if (value === "needs_source_review") return "Quellenprüfung offen";
-  if (value === "needs_factcheck_review") return "Factcheck-Fragen offen";
-  if (value === "needs_human_input") return "Menschliche Ergänzung offen";
-  if (value === "blocked_by_provider") return "Provider blockiert";
-  if (value === "blocked_by_missing_review") return "Review fehlt";
-  if (value === "blocked_by_runtime_truth") return "Runtime-Wahrheit fehlt";
-  return "Nur Readmodel";
 }
 
 function counterpositionStatusLabel(value: DossierWorkspaceCounterpositionStatus): string {
@@ -608,7 +597,7 @@ function buildModelFromSignals(input: GenericSignalsInput): DossierWorkspaceDeci
     translationIsEvidence: false,
     rtlDisplayHint: input.rtlDisplayHint,
     workspaceStatus,
-    workspaceStatusLabel: workspaceStatusLabel(workspaceStatus),
+    workspaceStatusLabel: dossierWorkspaceDecisionStatusLabel(workspaceStatus),
     thesis: {
       label: thesisText,
       confidence: input.thesisConfidence,

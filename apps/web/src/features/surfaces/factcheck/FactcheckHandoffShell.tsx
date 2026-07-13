@@ -6,6 +6,7 @@ import type { DemoPersona } from "@/features/demo/personas";
 import { FactcheckSurface } from "@/features/surfaces/factcheck";
 import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
 import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
+import { REVIEW_SURFACE_GUARDRAILS } from "@/features/review/reviewSurfaceStatusLabels";
 
 export function FactcheckHandoffShell(props: {
   context: SurfaceContext;
@@ -24,7 +25,7 @@ export function FactcheckHandoffShell(props: {
         <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
           <CreateHandoffPanel draft={draft} title="Faktencheck-Handoff aus /create" showClaimPreview />
           <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-            Recherche startet nicht automatisch. Kein Factcheck-Siegel, keine DeepSearch und keine Kostenbuchung ohne weitere Bestätigung.
+            {REVIEW_SURFACE_GUARDRAILS.factcheckNoAutoRun}
           </p>
         </div>
       ) : null}

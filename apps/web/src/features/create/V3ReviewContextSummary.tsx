@@ -3,14 +3,16 @@ import {
   type CanonicalSourcePackEvidenceState,
 } from "@/features/create/canonicalSourcePackContract";
 import type { DossierSocialOutputDraftKind } from "@/features/create/dossierSocialOutputDraftContract";
-import type { CanonicalPreparationStatus } from "@/features/create/canonicalPreparationStatusContract";
 import type { RoleSpecificReviewType } from "@/features/create/roleSpecificReviewContract";
 import type {
   V3UnifiedReviewQueueItem,
-  V3UnifiedReviewQueueState,
 } from "@/features/create/unifiedReviewQueueContract";
 import type { V3ReviewQueueWiringContext } from "@/features/create/unifiedReviewQueueWiring";
 import type { GovernanceActorRole } from "@features/trust/types";
+import {
+  preparationStatusLabel as sharedPreparationStatusLabel,
+  reviewQueueStateLabel as sharedReviewQueueStateLabel,
+} from "@/features/review/reviewSurfaceStatusLabels";
 
 export type V3ReviewContextSummaryModel = {
   reviewTypeLabels: string[];
@@ -51,29 +53,6 @@ function reviewTypeLabel(value: RoleSpecificReviewType): string {
   if (value === "voxy_script_review") return "Voxy-Skriptprüfung";
   if (value === "voxy_render_review") return "Voxy-Renderfreigabe";
   return "Selbstprüfung";
-}
-
-function queueStateLabel(value: V3UnifiedReviewQueueState): string {
-  if (value === "queued_for_review") return "Zur Prüfung vorgemerkt";
-  if (value === "in_review") return "In Prüfung";
-  if (value === "needs_clarification") return "Klärung nötig";
-  if (value === "review_ready") return "Bereit für Prüfung";
-  if (value === "approval_required") return "Freigabe nötig";
-  if (value === "publish_ready") return "Bereit für Freigabe";
-  if (value === "approved") return "Freigabe erteilt";
-  if (value === "archived") return "Archiviert";
-  return "Entwurf";
-}
-
-function preparationStatusLabel(value: CanonicalPreparationStatus): string {
-  if (value === "needs_clarification") return "Klärung nötig";
-  if (value === "review_ready") return "Bereit für Prüfung";
-  if (value === "publish_ready") return "Bereit für Freigabe";
-  if (value === "scheduled_after_review") return "Nach Freigabe planbar";
-  if (value === "active_or_published") return "Sichtbar oder historisch veröffentlicht";
-  if (value === "archived") return "Archiviert";
-  if (value === "failed") return "Technisch blockiert";
-  return "Entwurf";
 }
 
 function evidenceStateLabel(value: CanonicalSourcePackEvidenceState): string {
@@ -212,9 +191,9 @@ export function buildV3ReviewContextSummaryModel(
     items.flatMap((item) => item.requiredReviewerRoles.map(roleLabel)),
   );
   const statusLabels = unique([
-    ...items.map((item) => queueStateLabel(item.queueState)),
+    ...items.map((item) => sharedReviewQueueStateLabel(item.queueState)),
     ...(context.dossierWorkspaceSurface
-      ? [preparationStatusLabel(context.dossierWorkspaceSurface.preparationStatus)]
+      ? [sharedPreparationStatusLabel(context.dossierWorkspaceSurface.preparationStatus)]
       : []),
   ]);
   const evidenceState = context.sourcePack

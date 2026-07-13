@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
+import { factcheckSealDecisionLabel } from "@features/factcheck/workflow";
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
 import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
 import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
@@ -1895,7 +1896,7 @@ export default async function AdminReviewPage({
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                           {item.factcheckContext.scopeSummary} · Research: {item.factcheckContext.researchMode} ·
-                          Siegel: {item.factcheckContext.sealDecision}
+                          Siegel: {factcheckSealDecisionLabel(item.factcheckContext.sealDecision as "none" | "requested" | "granted" | "revoked")}
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                           {item.factcheckContext.sourceRefCount} Quellenhinweise · {item.factcheckContext.limitationHint}

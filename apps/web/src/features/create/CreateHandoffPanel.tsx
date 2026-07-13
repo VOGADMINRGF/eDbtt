@@ -12,6 +12,7 @@ import {
   resolveCreateHandoffJourneySummary,
   toneClassForB2CStatus,
 } from "@/features/b2cJourney/statusContract";
+import { createHandoffReviewStateLabel } from "@/features/review/reviewSurfaceStatusLabels";
 
 type CreateHandoffPanelProps = {
   draft: CreateHandoffDraft;
@@ -19,15 +20,6 @@ type CreateHandoffPanelProps = {
   showClaimPreview?: boolean;
   onSaveOnly?: () => void;
 };
-
-function renderReviewStateLabel(state: CreateHandoffDraft["reviewState"]): string {
-  if (state === "clarification_required") return "Weitere Klärung nötig";
-  if (state === "graph_review_required") return "Anschlüsse prüfen";
-  if (state === "factcheck_candidate") return "Für Faktenprüfung vorbereitet";
-  if (state === "manual_review_required") return "Zur Prüfung eingereicht";
-  if (state === "ready_for_confirmation") return "Bereit zur Freigabe";
-  return "Entwurf";
-}
 
 function readableMatchRelation(value: string): string {
   switch (value) {
@@ -110,7 +102,7 @@ export function CreateHandoffPanel({
         <div className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
           <p className="text-lg font-semibold text-[rgb(var(--fg))]">{draft.plannerResult.plannerCore}</p>
-          <p className="text-sm text-[rgb(var(--muted))]">Prüfstatus: {renderReviewStateLabel(draft.reviewState)}</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Prüfstatus: {createHandoffReviewStateLabel(draft.reviewState)}</p>
           <p className="text-sm text-[rgb(var(--muted))]">
             Sichtbarkeit: {publicationVisibilityLabel(visibilityState)}
           </p>
