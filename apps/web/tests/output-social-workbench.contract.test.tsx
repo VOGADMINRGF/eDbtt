@@ -177,6 +177,8 @@ describe("output social workbench contract", () => {
 
     expect(html).toContain("Ausgabe vorbereiten");
     expect(html).toContain("Vorschlag, nicht veröffentlicht");
+    expect(html).toContain("Review-ready ist nicht approved_for_export.");
+    expect(html).toContain("approved_for_export ist nicht publish_ready oder published.");
     expect(html).toContain("Mögliche Ausgabeformate");
     expect(html).not.toContain("output_preview");
     expect(html).not.toContain("translation_misread_risk");

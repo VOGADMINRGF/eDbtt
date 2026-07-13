@@ -126,7 +126,7 @@ describe("dossier studio server persistence UI", () => {
     expect(html).toContain("Poll/Frage-Arbeitsstand im Studio");
     expect(html).toContain("Output-/Social-Arbeitsstand im Studio");
     expect(html).toContain("Editorial-Series-Arbeitsstand im Studio");
-    expect(html).toContain("Review-ready ist nicht approved. Approved ist nicht published.");
+    expect(html).toContain("Review-ready ist nicht approved_for_export. approved_for_export ist nicht publish_ready oder published.");
     expect(html).toContain("Voxy-Briefing-Arbeitsstand");
     expect(html).toContain("Render-Entscheidung im Studio");
     expect(html).toContain("Review-Entscheidung dokumentieren");

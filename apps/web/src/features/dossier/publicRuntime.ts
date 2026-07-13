@@ -11,6 +11,7 @@ import {
   stripDossierInternalFieldsForPublic,
   type DossierPublicationRecord,
 } from "@/features/create/dossierPublishWorkflow";
+import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 
 export type PublicDossierRuntimeItem = {
   id: string;
@@ -157,17 +158,17 @@ export function mapDossierToPublicDossier(input: {
         {
           id: `note-publication-${input.publication.sourceHandoffId}`,
           kind: "context",
-          text: "Freigabe bedeutet Veröffentlichung, nicht Wahrheitszertifikat.",
+          text: DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[0],
         },
         {
           id: `note-sources-${input.publication.sourceHandoffId}`,
           kind: "context",
-          text: "Quellen bleiben prüfbare Belege und Kontext, keine automatische Verifikation.",
+          text: DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[1],
         },
         {
           id: `note-guardrails-${input.publication.sourceHandoffId}`,
           kind: "context",
-          text: "Dossier-Veröffentlichung erzeugt keinen Graph Merge und keinen Anlassraum.",
+          text: DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[4],
         },
       ],
       questions: openQuestions,

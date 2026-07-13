@@ -7,6 +7,7 @@ import {
   type DossierPublicationRecord,
   type DossierPublishAuditEvent,
 } from "@/features/create/dossierPublishWorkflow";
+import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 import DossierPublishActions from "./DossierPublishActions";
 
 type Props = {
@@ -132,7 +133,7 @@ export default function AdminDossierPublishSection({
                         Review- und Guardrail-Copy
                       </p>
                       <p className="mt-2 text-sm text-[rgb(var(--fg))]">
-                        Freigabe bedeutet Veröffentlichung, nicht Wahrheitszertifikat. Quellen bleiben prüfbare Belege/Kontext, keine automatische Verifikation.
+                        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[0]} {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[1]}
                       </p>
                     </div>
                   </div>
@@ -155,7 +156,7 @@ export default function AdminDossierPublishSection({
                         Guardrails
                       </p>
                       <p className="mt-2 text-sm text-[rgb(var(--fg))]">
-                        Dossier-Veröffentlichung erzeugt keinen Graph Merge und keinen Anlassraum.
+                        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[4]}
                       </p>
                     </div>
                   </div>

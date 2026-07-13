@@ -243,6 +243,11 @@ import {
 } from "@/features/create/sourceFactcheckFeedEnrichmentContract";
 import { dossierReviewStatusLabel } from "@/features/review/reviewSurfaceStatusLabels";
 import {
+  buildDossierExportShareSemanticsLines,
+  dossierExportShareStageLabel,
+  resolveDossierExportShareStage,
+} from "@/features/review/dossierExportShareTruth";
+import {
   buildVoxyBriefingScriptCandidateFromReviewContext,
 } from "@/features/create/voxyBriefingScriptCandidateContract";
 import {
@@ -423,6 +428,15 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
   const persistedDistributionDraft = studioWorkspace?.distributionDraft ?? null;
   const sourceNarrative = masterPost.sourceSituation;
   const reviewStateLabel = reviewRequired ? "Review erforderlich" : "Review abgeschlossen";
+  const exportShareStage = resolveDossierExportShareStage({
+    visibleToPublic:
+      studioWorkspace?.visibilityState === "public_unverified" ||
+      studioWorkspace?.visibilityState === "public_reviewed" ||
+      studioWorkspace?.visibilityState === "public_official",
+    officialApprovalGranted: Boolean(studioWorkspace?.officialApproval),
+    reviewRequired,
+  });
+  const exportShareSemantics = buildDossierExportShareSemanticsLines(exportShareStage);
   const relatedTopicPage = await getRelatedTopicPageForDossier(id);
   const queueReadModel = await loadSocialDistributionQueueReadModel({
     dossierId: id,
@@ -1004,6 +1018,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           oder archiviert werden.
         </p>
         <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          {dossierExportShareStageLabel(exportShareStage)} · {exportShareSemantics.join(" ")}
+        </p>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
           Datenherkunft: {runtimeState.guardrailLabel}. LocalStorage-Arbeitsstände bleiben lokal und gelten nicht
           als produktive Behördenpersistenz.
         </p>
@@ -1351,6 +1368,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">{reviewStateLabel}</span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
             Sichtbarkeit: {publicationVisibilityLabel(pkg.visibilityState)}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+            Export/Share: {dossierExportShareStageLabel(exportShareStage)}
           </span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Noch nicht live veröffentlicht</span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">

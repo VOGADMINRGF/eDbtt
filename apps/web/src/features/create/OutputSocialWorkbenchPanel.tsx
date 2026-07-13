@@ -1,6 +1,7 @@
 import type {
   OutputSocialWorkbenchModel,
 } from "@/features/create/outputSocialWorkbenchContract";
+import { buildDossierExportShareSemanticsLines } from "@/features/review/dossierExportShareTruth";
 
 type OutputSocialWorkbenchPanelProps = {
   model: OutputSocialWorkbenchModel | null;
@@ -85,6 +86,9 @@ export default function OutputSocialWorkbenchPanel({
   dataTestId,
 }: OutputSocialWorkbenchPanelProps) {
   if (!model) return null;
+  const semanticsLine = buildDossierExportShareSemanticsLines("approved_for_export")
+    .slice(0, 4)
+    .join(" ");
 
   return (
     <section
@@ -100,6 +104,9 @@ export default function OutputSocialWorkbenchPanel({
           <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{model.languageLabel}</p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
             Original bleibt erhalten. Übersetzung ist Lesehilfe und kein Beleg.
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+            {semanticsLine}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

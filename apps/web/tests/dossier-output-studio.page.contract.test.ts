@@ -24,8 +24,11 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("eDebatte Studio");
     expect(html).toContain("Vom Dossier zum fertigen Beitrag, Kanal-Versionen und Veröffentlichungsplan.");
     expect(html).toContain("Public URL, Share-Link und QR werden erst im bestehenden Review-to-Publish-Workspace");
+    expect(html).toContain("Review-ready ist nicht approved_for_export.");
+    expect(html).toContain("Share-Vorschau ist keine öffentliche Veröffentlichung.");
     expect(html).toContain("Dossier bleibt Quelle");
     expect(html).toContain("Sichtbarkeit: privater Entwurf");
+    expect(html).toContain("Export/Share: Review-ready");
     expect(html).toContain("Noch nicht live veröffentlicht");
     expect(html).toContain("Fertiger Post-Entwurf");
     expect(html).toContain("Beteiligungsfrage");
@@ -48,6 +51,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Konfiguration erforderlich");
     expect(html).toContain("Review erforderlich");
     expect(html).toContain("Nur Export/Kopieren möglich");
+    expect(html).toContain("approved_for_export ist nicht publish_ready oder published.");
     expect(html).toContain("Kein Auto-Publish und keine externe API-Verteilung im v1-Pfad");
     expect(html).toContain("Kanalentwürfe bleiben review-first und werden nur manuell veröffentlicht");
     expect(html).toContain("Entwurf erstellen");

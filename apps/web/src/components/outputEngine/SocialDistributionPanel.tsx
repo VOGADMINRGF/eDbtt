@@ -32,6 +32,7 @@ import { socialDistributionStatusLabel } from "@features/outputEngine/socialDist
 import { recordStudioTelemetryEvent } from "@features/outputEngine/studioTelemetry";
 import type { MasterPost } from "@features/outputEngine/masterPost";
 import type { SocialCarouselOutput } from "@features/outputEngine/socialCarousel";
+import { buildDossierExportShareSemanticsLines } from "@/features/review/dossierExportShareTruth";
 
 type SocialDistributionPanelProps = {
   plan: SocialDistributionPlan;
@@ -191,6 +192,7 @@ export default function SocialDistributionPanel({
   initialDistributionDraft,
   queueReadModel,
 }: SocialDistributionPanelProps) {
+  const exportShareSemantics = buildDossierExportShareSemanticsLines("publish_ready");
   const initialPersistedSnapshot = snapshotFromQueueReadModel(queueReadModel, dossierId);
   const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
     new Set(initialDistributionDraft?.selectedChannels ?? plan.selectedChannels),
@@ -1060,6 +1062,10 @@ export default function SocialDistributionPanel({
           <li>Kein Auto-Publish und kein unkontrolliertes Multi-Channel-Scheduling.</li>
           <li>Freigabe, Queue, Export und Planung bleiben bewusste Einzelaktionen.</li>
           <li>Review-Checkpoints werden vor Export oder interner Vorbereitung gespeichert.</li>
+          <li>{exportShareSemantics[1]}</li>
+          <li>{exportShareSemantics[2]}</li>
+          <li>{exportShareSemantics[3]}</li>
+          <li>{exportShareSemantics[4]}</li>
         </ul>
       </section>
 
