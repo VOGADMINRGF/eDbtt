@@ -3,6 +3,11 @@ import {
   resolveLocalizedContentForReader,
   type LocalizedContentRecord,
 } from "@/features/i18n/contentTranslations";
+import {
+  buildLanguageBridgeSurfaceLine,
+  buildLanguageBridgeTrustHint,
+  formatLocalizedContentBridgeStateLabel,
+} from "@/features/i18n/languageBridgeSurfaceTruth";
 
 type LocalizedContentDisplayProps = {
   content?: LocalizedContentRecord | null;
@@ -15,6 +20,7 @@ type LocalizedContentDisplayProps = {
   metaClassName?: string;
   originalTextClassName?: string;
   missingClassName?: string;
+  showLanguageBridgeMeta?: boolean;
 };
 
 function truncateText(value: string, maxLength?: number): string {
@@ -33,6 +39,7 @@ export function LocalizedContentDisplay({
   metaClassName = "",
   originalTextClassName = "",
   missingClassName = "",
+  showLanguageBridgeMeta = false,
 }: LocalizedContentDisplayProps) {
   const resolved = resolveLocalizedContentForReader({
     content,
@@ -48,10 +55,34 @@ export function LocalizedContentDisplay({
   const ui = getContentRenderUiText(resolved.preferredLocale);
   const displayText = truncateText(resolved.displayText, truncateTo);
   const originalText = truncateText(resolved.originalText, truncateTo);
+  const readingLanguage =
+    resolved.state === "translated"
+      ? resolved.preferredLocale
+      : resolved.originalLanguage ?? resolved.preferredLocale;
+  const languageBridgeStateLabel = formatLocalizedContentBridgeStateLabel({
+    uiLocale: resolved.preferredLocale,
+    state: resolved.state,
+    translationStatus: resolved.translationStatus,
+  });
+  const languageBridgeLine = buildLanguageBridgeSurfaceLine({
+    uiLocale: resolved.preferredLocale,
+    originalLanguage: resolved.originalLanguage,
+    readingLanguage,
+    statusLabel: languageBridgeStateLabel,
+  });
+  const trustHint = buildLanguageBridgeTrustHint(resolved.preferredLocale);
+  const showTrustMeta =
+    showLanguageBridgeMeta &&
+    (resolved.state !== "original" ||
+      Boolean(resolved.originalLanguage && resolved.originalLanguage !== resolved.preferredLocale));
 
   return (
     <div className={className}>
       <p className={textClassName}>{displayText}</p>
+      {showLanguageBridgeMeta ? (
+        <p className={metaClassName}>{languageBridgeLine}</p>
+      ) : null}
+      {showTrustMeta ? <p className={metaClassName}>{trustHint}</p> : null}
       {resolved.state === "translated" ? (
         <>
           <p className={metaClassName}>{ui.translatedFrom(resolved.originalLanguage)}</p>

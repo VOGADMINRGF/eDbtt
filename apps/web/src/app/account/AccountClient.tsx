@@ -2516,6 +2516,7 @@ function CompactProfileHubSection({
                               metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                               originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
                               missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              showLanguageBridgeMeta
                             />
                           </div>
                           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -2570,6 +2571,7 @@ function CompactProfileHubSection({
                               metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                               originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
                               missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              showLanguageBridgeMeta
                             />
                           </div>
                           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -2874,6 +2876,7 @@ function CompactProfileHubSection({
                     metaClassName="mt-1 text-[10px] text-[rgb(var(--muted))]"
                     originalTextClassName="mt-1 text-sm text-[rgb(var(--fg))]"
                     missingClassName="mt-1 text-[10px] text-[rgb(var(--muted))]"
+                    showLanguageBridgeMeta
                   />
                 </div>
               ) : null}
@@ -2962,6 +2965,7 @@ function CompactProfileHubSection({
                               metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                               originalTextClassName="mt-0.5 whitespace-pre-wrap text-xs text-[inherit]"
                               missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              showLanguageBridgeMeta
                             />
                             <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(entry.createdAt)}</p>
                           </div>

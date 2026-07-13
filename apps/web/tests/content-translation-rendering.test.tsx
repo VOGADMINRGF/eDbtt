@@ -20,11 +20,19 @@ describe("reader-locale content translation rendering", () => {
         textClassName="body"
         metaClassName="meta"
         originalTextClassName="original"
+        showLanguageBridgeMeta
       />,
     );
 
     expect(html).toContain("Translated message");
     expect(html).toContain("Translated from de");
+    expect(html).toContain("UI locale: English");
+    expect(html).toContain("Original language: Deutsch");
+    expect(html).toContain("Reading version: English");
+    expect(html).toContain("Status: Reading version available");
+    expect(html).toContain(
+      "The original remains the evidence and review basis.",
+    );
   });
 
   it("falls back to original content when preferred locale equals original language", () => {
@@ -52,6 +60,7 @@ describe("reader-locale content translation rendering", () => {
           translations: { en: "Visible translation" },
           translationStatus: "translated",
         }}
+        showLanguageBridgeMeta
       />,
     );
 
@@ -69,11 +78,14 @@ describe("reader-locale content translation rendering", () => {
           translations: { en: "English only" },
           translationStatus: "missing",
         }}
+        showLanguageBridgeMeta
       />,
     );
 
     expect(html).toContain("Kein FR-Text");
     expect(html).toContain("Aucune traduction pour FR.");
+    expect(html).toContain("Langue de l&#x27;interface: Français");
+    expect(html).toContain("Version de lecture manquante");
   });
 
   it("keeps preferred-locale fallback stable for unsupported locale inputs", () => {

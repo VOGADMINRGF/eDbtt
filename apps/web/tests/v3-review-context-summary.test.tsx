@@ -156,7 +156,13 @@ describe("V3ReviewContextSummary", () => {
 
     expect(html).toContain("Redaktionelle Prüfung");
     expect(html).toContain("Bereit für Prüfung");
-    expect(html).toContain("Originalsprache: de");
+    expect(html).toContain("UI-Sprache: Deutsch");
+    expect(html).toContain("Originalsprache: Deutsch");
+    expect(html).toContain("Lesefassung: Deutsch");
+    expect(html).toContain("keine getrennte Lesefassung nötig");
+    expect(html).toContain(
+      "Original bleibt Evidenz und Review-Grundlage.",
+    );
     expect(html).not.toContain("review_ready");
     expect(html).not.toContain("queued_for_review");
   });
@@ -177,8 +183,9 @@ describe("V3ReviewContextSummary", () => {
 
     expect(html).toContain("Bereit für Freigabe");
     expect(html).not.toContain("Veröffentlicht");
-    expect(html).toContain("Originalsprache: de");
-    expect(html).toContain("Lesefassung: de");
+    expect(html).toContain("UI-Sprache: Deutsch");
+    expect(html).toContain("Originalsprache: Deutsch");
+    expect(html).toContain("Lesefassung: Deutsch");
     expect(html).toContain("Social-Entwürfe");
     expect(html).toContain("Voxy-Briefing: Anbieter-Anbindung fehlt");
     expect(html).not.toContain("blocked_by_provider");

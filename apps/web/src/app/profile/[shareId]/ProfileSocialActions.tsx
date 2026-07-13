@@ -428,6 +428,7 @@ export default function ProfileSocialActions({ shareId, preferredLocale = "de" }
                               metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                               originalTextClassName="mt-0.5 whitespace-pre-wrap text-[inherit]"
                               missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              showLanguageBridgeMeta
                             />
                             <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</p>
                     </div>

@@ -13,6 +13,11 @@ import {
   preparationStatusLabel as sharedPreparationStatusLabel,
   reviewQueueStateLabel as sharedReviewQueueStateLabel,
 } from "@/features/review/reviewSurfaceStatusLabels";
+import {
+  buildLanguageBridgeSurfaceLine,
+  buildLanguageBridgeTrustHint,
+  formatCanonicalLanguageBridgeStateLabel,
+} from "@/features/i18n/languageBridgeSurfaceTruth";
 
 export type V3ReviewContextSummaryModel = {
   reviewTypeLabels: string[];
@@ -20,6 +25,7 @@ export type V3ReviewContextSummaryModel = {
   statusLabels: string[];
   guardrails: string[];
   languageLine: string;
+  languageTrustLine: string;
   evidenceLine: string;
   candidateLine: string;
   blockerLabels: string[];
@@ -203,8 +209,19 @@ export function buildV3ReviewContextSummaryModel(
     ? `${context.sourcePack.sources.length} Quellenhinweise · ${evidenceStateLabel(evidenceState ?? "source_needed")} · Vertrauensstatus ${trustStateLabel(context.multilingualEvidence?.overallTrustStatus)}`
     : "Noch keine belastbare Quellenlesart im V3-Kontext sichtbar.";
   const languageLine = context.languageBridge
-    ? `Originalsprache: ${context.languageBridge.original.language} · Lesefassung: ${context.languageBridge.translation.language} · Übersetzungsstatus: ${context.languageBridge.translation.state}`
+    ? buildLanguageBridgeSurfaceLine({
+        uiLocale: context.languageBridge.languageContext.uiLocale,
+        originalLanguage: context.languageBridge.original.language,
+        readingLanguage: context.languageBridge.translation.language,
+        statusLabel: formatCanonicalLanguageBridgeStateLabel({
+          uiLocale: context.languageBridge.languageContext.uiLocale,
+          state: context.languageBridge.translation.state,
+        }),
+      })
     : "Keine Sprachbrücke im V3-Kontext sichtbar.";
+  const languageTrustLine = context.languageBridge
+    ? buildLanguageBridgeTrustHint(context.languageBridge.languageContext.uiLocale)
+    : "Original und Lesefassung müssen erst sichtbar getrennt verdrahtet werden.";
   const guardrails = [
     "Keine automatische Veröffentlichung.",
     "Prüfung bleibt erforderlich.",
@@ -226,6 +243,7 @@ export function buildV3ReviewContextSummaryModel(
       statusLabels.length > 0 ? statusLabels : ["Entwurf"],
     guardrails,
     languageLine,
+    languageTrustLine,
     evidenceLine,
     candidateLine: buildCandidateLine(context),
     blockerLabels,
@@ -280,6 +298,10 @@ export default function V3ReviewContextSummary(props: {
         <div>
           <dt className="font-semibold text-[rgb(var(--fg))]">Sprache und Lesefassung</dt>
           <dd>{model.languageLine}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-[rgb(var(--fg))]">Sprach- und Trust-Hinweis</dt>
+          <dd>{model.languageTrustLine}</dd>
         </div>
         <div>
           <dt className="font-semibold text-[rgb(var(--fg))]">Quellen, Belege und Vertrauen</dt>
