@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useLocale } from "@/context/LocaleContext";
-import {
-  formatContentTranslationStatusLabel,
-  resolveContentTranslationStatus,
-  type LocalizedContentRecord,
-} from "@/features/i18n/contentTranslations";
+import { type LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 
 type Contribution = {
   id: string;
@@ -130,6 +126,7 @@ export default function AdminContributionsPage() {
                 metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                 originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
                 missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                showLanguageBridgeMeta
               />
               <LocalizedContentDisplay
                 className="mt-1"
@@ -140,18 +137,13 @@ export default function AdminContributionsPage() {
                 metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                 originalTextClassName="mt-0.5 text-[rgb(var(--muted))]"
                 missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                showLanguageBridgeMeta
               />
               {item.url && (
                 <a className="mt-2 inline-block text-xs text-sky-600 underline" href={item.url} target="_blank" rel="noreferrer">
                   Quelle öffnen
                 </a>
               )}
-              <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">
-                {formatContentTranslationStatusLabel(
-                  resolveContentTranslationStatus(item.bodyContent ?? item.titleContent ?? null),
-                  locale,
-                )}
-              </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
                   className="rounded-full border border-emerald-200 px-3 py-1 text-emerald-700 disabled:opacity-60"

@@ -2,9 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { LocaleProvider } from "@/context/LocaleContext";
 
-vi.mock("next/navigation", () => ({
-  useParams: () => ({ id: "65f000000000000000000111" }),
-}));
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<typeof import("next/navigation")>(
+    "next/navigation",
+  );
+  return {
+    ...actual,
+    useParams: () => ({ id: "65f000000000000000000111" }),
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    }),
+  };
+});
 
 vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   __esModule: true,
@@ -86,7 +100,7 @@ describe("operator surface locale render", () => {
       );
       // Create is currently DE-first in the primary intake block; keep this
       // assertion stable against locale while still checking render viability.
-      expect(createHtml).toContain("Beitrag erfassen");
+      expect(createHtml).toContain("Beitrag vorbereiten");
 
       const feedHtml = renderWithLocale(locale, <AdminFeedsPage />);
       expect(feedHtml).toContain(expected.feeds.headerTitle);

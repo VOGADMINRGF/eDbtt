@@ -6,11 +6,7 @@ import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useLocale } from "@/context/LocaleContext";
 import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
 import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
-import {
-  formatContentTranslationStatusLabel,
-  resolveContentTranslationStatus,
-  type LocalizedContentRecord,
-} from "@/features/i18n/contentTranslations";
+import { type LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 
 type ContributionType = "source" | "option" | "question" | "impact" | "view";
 
@@ -436,6 +432,7 @@ export default function CommunityContributionsPage() {
                 metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                 originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
                 missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                showLanguageBridgeMeta
               />
               <LocalizedContentDisplay
                 className="mt-1"
@@ -446,18 +443,13 @@ export default function CommunityContributionsPage() {
                 metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
                 originalTextClassName="mt-0.5 text-[rgb(var(--muted))]"
                 missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                showLanguageBridgeMeta
               />
               {item.url && (
                 <a className="mt-2 inline-block text-xs text-sky-600 underline" href={item.url} target="_blank" rel="noreferrer">
                   Quelle öffnen
                 </a>
               )}
-              <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">
-                {formatContentTranslationStatusLabel(
-                  resolveContentTranslationStatus(item.bodyContent ?? item.titleContent ?? null),
-                  locale,
-                )}
-              </p>
             </article>
           ))}
         </div>
