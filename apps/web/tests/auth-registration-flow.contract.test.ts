@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { resolveRegisterBridge } from "@/app/register/registerFlowBridge";
 import { resolvePostRegistrationRedirect } from "@/features/auth/roleExperienceContract";
+import { PRICING_PATH_CONTRACT } from "@features/pricing";
 
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn((href: string) => {
@@ -15,10 +16,20 @@ vi.mock("next/navigation", () => ({
 import RegisterPreorderAliasPage from "@/app/register/preorder/page";
 
 describe("auth registration flow contracts", () => {
-  it("keeps register bridge copy for pricing/vormerken contexts", () => {
-    const bridge = resolveRegisterBridge("/pricing?segment=organisationen");
+  it("keeps register bridge copy aligned with the direct package path", () => {
+    const bridge = resolveRegisterBridge("/order?segment=organisationen");
     expect(bridge).not.toBeNull();
-    expect(bridge?.text).toContain("Pricing/Order-Flow");
+    expect(bridge?.text).toContain("direkten Paketpfad");
+    expect(bridge?.text).toContain(PRICING_PATH_CONTRACT.primaryOrderPath);
+    expect(bridge?.text).not.toContain("Wartelisten");
+  });
+
+  it("keeps /vormerken framed as legacy fallback in the register bridge", () => {
+    const bridge = resolveRegisterBridge("/vormerken?segment=kommunen");
+    expect(bridge).not.toBeNull();
+    expect(bridge?.text).toContain("Legacy-/Fallback-Pfad");
+    expect(bridge?.text).toContain(PRICING_PATH_CONTRACT.legacyFallbackPath);
+    expect(bridge?.text).toContain(PRICING_PATH_CONTRACT.primaryOrderPath);
   });
 
   it("keeps post-registration default route safe and deterministic", () => {

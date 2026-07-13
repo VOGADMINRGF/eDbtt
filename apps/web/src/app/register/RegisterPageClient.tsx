@@ -10,6 +10,7 @@ import {
   REGISTER_HONEYPOT_FIELD_NAME,
   validateRegisterStep3,
 } from "@/features/auth/registerSecurityContract";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { RegisterStepper } from "./RegisterStepper";
 import { resolveRegisterBridge } from "./registerFlowBridge";
 
@@ -521,6 +522,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         <p className="text-xs text-[rgb(var(--muted))]">
           Dein eDebatte-Konto: sicherer Zugang, verlässliche Identitätsprüfung und klarer Datenschutz.
         </p>
+        <p className="text-xs text-[rgb(var(--muted))]">{PRODUCTION_ENTRY_COPY.registerTrustHint}</p>
       </header>
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 text-xs text-[rgb(var(--muted))]">

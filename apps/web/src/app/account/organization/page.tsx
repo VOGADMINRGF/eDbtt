@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { getPricingEntryTrustCopy } from "@features/pricing";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
 
 const DE_TRUST = getPricingEntryTrustCopy("de");
@@ -32,18 +33,18 @@ export default async function AccountOrganizationPage() {
           Organisations-Onboarding und Freischaltung
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          {DE_TRUST.freeCorePromise} {DE_TRUST.organizationScopeOnly}
+          {PRODUCTION_ENTRY_COPY.organizationLead}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Self-Provisioning bleibt review-first: Angaben zu Organisation, Region oder Wirkraum,
-          verantwortlicher Person und Rolle sind zunächst Selbstauskunft. Rechte und
-          Freischaltungen entstehen erst nach bewusster Betreiberentscheidung und bestätigter
-          Membership. Kein verpflichtender Checkout. {DE_TRUST.noHiddenAiCosts}
+          {PRODUCTION_ENTRY_COPY.organizationReviewHint} {DE_TRUST.noHiddenAiCosts}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Ein Einstieg, dann eine geführte Auswahl: Verwaltung / Kommune, Verein / Träger /
           Verband, Medienpartner / Redaktion, Beteiligungsbüro / Agentur oder Stiftung /
           Programmträger.
+        </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {PRODUCTION_ENTRY_COPY.organizationPathHint}
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
           Der Arbeitsbereich deiner Organisation liegt unter{" "}

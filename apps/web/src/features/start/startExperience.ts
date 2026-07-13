@@ -1,6 +1,11 @@
 import { buildOrganizationDashboardReadModel } from "@features/region";
 import type { TaskFirstQuickActionCenterModel, StartQuickActionContext } from "@/features/quickActions/taskFirstQuickActions";
 import { buildPublicTaskFirstQuickActionCenter } from "@/features/quickActions/taskFirstQuickActions";
+import {
+  isOrganizationAccessBlocked,
+  isOrganizationAccessLimited,
+  isOrganizationVerificationPending,
+} from "@/features/access/productionEntryContract";
 
 export type StartExperienceModel = {
   familiarity: StartQuickActionContext;
@@ -84,32 +89,27 @@ export async function buildStartExperienceModel(input: {
     Boolean(readModel.organization.primaryOrganizationId) ||
     readModel.pendingOrganizationClaims.length > 0 ||
     readModel.membershipStatus.totalMemberships > 0;
-  const blocked =
-    readModel.provisioningSummary.currentStatus === "suspended" ||
-    readModel.contractSummary.currentContractStatus === "suspended" ||
-    readModel.contractSummary.currentContractStatus === "cancelled" ||
-    readModel.contractSummary.currentContractStatus === "expired" ||
-    readModel.contractSummary.billingStatus === "suspended" ||
-    readModel.contractSummary.billingStatus === "cancelled" ||
-    readModel.contractSummary.billingStatus === "expired" ||
-    readModel.entitlementSummary.currentStatus === "suspended" ||
-    readModel.entitlementSummary.currentStatus === "revoked" ||
-    readModel.entitlementSummary.currentStatus === "expired";
+  const blocked = isOrganizationAccessBlocked({
+    provisioningStatus: readModel.provisioningSummary.currentStatus,
+    contractStatus: readModel.contractSummary.currentContractStatus,
+    billingStatus: readModel.contractSummary.billingStatus,
+    entitlementStatus: readModel.entitlementSummary.currentStatus,
+  });
   const pending =
-    verificationStatus !== "organization_verified" &&
-    verificationStatus !== "unit_verified" &&
-    verificationStatus !== "publication_approved"
-      ? hasOrganizationSignal
-      : readModel.provisioningSummary.currentStatus === "draft" ||
-        readModel.provisioningSummary.currentStatus === "submitted" ||
-        readModel.provisioningSummary.currentStatus === "verification_required" ||
-        readModel.provisioningSummary.currentStatus === "operator_review_required" ||
-        readModel.entitlementSummary.currentStatus === "limited" ||
-        readModel.entitlementSummary.currentStatus === "pending_operator_decision" ||
-        readModel.contractSummary.currentContractStatus === "limited" ||
-        readModel.contractSummary.currentContractStatus === "draft" ||
-        readModel.contractSummary.currentContractStatus === "offered" ||
-        readModel.contractSummary.currentContractStatus === "accepted";
+    isOrganizationVerificationPending({
+      verificationStatus,
+      hasOrganizationSignal,
+    }) ||
+    readModel.provisioningSummary.currentStatus === "draft" ||
+    readModel.provisioningSummary.currentStatus === "submitted" ||
+    readModel.provisioningSummary.currentStatus === "verification_required" ||
+    readModel.provisioningSummary.currentStatus === "operator_review_required" ||
+    isOrganizationAccessLimited({
+      provisioningStatus: readModel.provisioningSummary.currentStatus,
+      contractStatus: readModel.contractSummary.currentContractStatus,
+      billingStatus: readModel.contractSummary.billingStatus,
+      entitlementStatus: readModel.entitlementSummary.currentStatus,
+    });
 
   const familiarity: StartQuickActionContext = blocked
     ? "organization_blocked"

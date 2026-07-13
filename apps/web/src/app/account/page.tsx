@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AccountClient } from "./AccountClient";
 import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 
 export const metadata = {
   title: "Mein Konto & eDebatte · eDebatte",
@@ -49,7 +50,9 @@ export default async function AccountPage({ searchParams }: Props) {
           <h1 className="text-[1.35rem] font-semibold leading-tight text-[rgb(var(--fg))] md:text-[1.9rem]">
             Mein Profil
           </h1>
-          <p className="text-xs text-[rgb(var(--muted))]">Interessen, Kontakte und Inbox an einem Ort.</p>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Interessen, Kontakte und Inbox an einem Ort. {PRODUCTION_ENTRY_COPY.accountLead}
+          </p>
         </header>
 
         <AccountClient

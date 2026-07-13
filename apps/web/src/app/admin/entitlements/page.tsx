@@ -6,6 +6,7 @@ import {
   getRegionOrganizationRuntimeRepo,
   resolveProvisioningRequestStatus,
 } from "@features/region";
+import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { AdminEntitlementsClient } from "./AdminEntitlementsClient";
 
 export const metadata = {
@@ -52,8 +53,7 @@ export default async function AdminEntitlementsPage() {
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Freischaltungen verwalten</h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Freischaltungen ergänzen verifizierte Memberships, ersetzen sie aber nicht. Diese Oberfläche verwaltet
-          Pilot-, Test- und Admin-Freischaltungen ohne Checkout, automatische Abbuchung oder Rechnungslogik.
+          {PRODUCTION_ENTRY_COPY.adminEntitlementsLead}
         </p>
       </header>
       <AdminEntitlementsClient
