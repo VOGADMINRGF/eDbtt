@@ -1,8 +1,18 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { resolveAiSmokeStatusCopy } from "@/features/ai/v2OrchestrationPolicy";
+import {
+  buildAiTraceHiddenByPolicyLines,
+  formatAiTraceMissingRuntimeLine,
+  formatAiTraceTechnicalVisibility,
+  getAiTraceSurfaceScopeLine,
+} from "@/features/ai/aiTraceSurfaceTruth";
+import {
+  buildAdminOrchestratorAiProvenanceTraceStep,
+  getAiOrchestrationPublishStateLabel,
+  getAiOrchestrationReviewStateLabel,
+} from "@/features/create/aiOrchestrationProvenanceTrace";
 
 type SmokeMode = "provider_probe" | "runtime_smoke" | "full_contract";
 
@@ -11,83 +21,7 @@ type ProviderDiagnostic = {
   displayName: string;
   model: string | null;
   mode: SmokeMode;
-  stage: string;
   status: "ok" | "skipped" | "failed" | "degraded" | "config_missing";
-  errorKind: string | null;
-  providerErrorCode: string | null;
-  httpStatus: number | null;
-  errorMessage: string | null;
-  reason: string | null;
-  validationMode: string;
-  providerStatus: "reachable" | "down" | "unknown";
-  adapterStatus: "ok" | "failed" | "not_started";
-  parseStatus: "ok" | "failed" | "not_started";
-  schemaStatus: "ok" | "failed" | "not_started";
-  parseError: string | null;
-  schemaError: string | null;
-  schemaPath: string | null;
-  rawExcerpt: string | null;
-  durationMs: number | null;
-  tokensIn: number | null;
-  tokensOut: number | null;
-  estimatedCostUsd?: number | null;
-  estimatedCostEur?: number | null;
-  costKnown?: boolean;
-  pricingSource?: string | null;
-  costReason?: string | null;
-  runCostGroup?: string | null;
-  smokeMode?: string | null;
-  budgetProfile?: string | null;
-  fallbackUsed: boolean | null;
-  fallbackReason: string | null;
-  journeyDecision: string;
-  strictStatus: "ok" | "failed" | "blocked" | "not_started";
-  strictProviderErrorCode: string | null;
-  strictSchemaPath: string | null;
-  repairAttempted: boolean;
-  repairStatus: "ok" | "failed" | "blocked" | "not_attempted";
-  repairProviderErrorCode: string | null;
-  repairSchemaPath: string | null;
-  repairReason: string | null;
-  repairUsed: boolean;
-  directStrictStatus: "ok" | "failed" | "blocked" | "not_started";
-  draftStatus: "ok" | "failed" | "not_attempted";
-  envelopeBuildStatus: "ok" | "failed" | "not_attempted";
-  finalSchemaStatus: "ok" | "failed" | "not_started";
-  finalContractStatus:
-    | "strict_ok"
-    | "built_valid"
-    | "repaired_degraded"
-    | "failed"
-    | "blocked"
-    | "not_started";
-  buildWarnings: string[];
-  filledDefaults: string[];
-  missingContainers: string[];
-  normalizedEnumWarnings: string[];
-  generatedIds: string[];
-  nativeStrategy: string;
-  preferredContractStrategy: string;
-  providerStrategy: string;
-  fallbackStrategy: string;
-  supportsStrictJsonSchema: boolean;
-  supportsJsonObjectMode: boolean | "prompt_only";
-  supportsPromptEnvelope: boolean;
-  supportsRepairAttempt: boolean;
-  canBeUsedAsRepairProvider: boolean;
-  knownBlockers: string[];
-  nonRepairableErrorCodes: string[];
-  diagnosticNotes: string[];
-  formatUsed: "json_schema" | "json_object" | null;
-  didFallback: boolean | null;
-  timeoutMs?: number | null;
-  maxOutputTokens?: number | null;
-  openaiErrorCode?: string | null;
-  openaiErrorMessage?: string | null;
-  selectedSmokeModel?: string | null;
-  smokeModelEnvPresent?: boolean | null;
-  effectiveModel?: string | null;
-  openAiSmokeModelMismatch?: boolean | null;
   rootCause: string;
   nextAction: string;
 };
@@ -97,67 +31,24 @@ type SmokeResponse = {
   mode: SmokeMode;
   runId: string;
   correlationId: string;
-  bestProviderId?: string | null;
-  orchestratorOk: boolean;
   rows: ProviderDiagnostic[];
-  directContractRows?: ProviderDiagnostic[];
   operationalSummary?: {
-    selectedLane:
-      | "fast_draft"
-      | "standard_analyze"
-      | "dossier_enrichment"
-      | "sealed_factcheck"
-      | "premium_deep_research";
-    normalizedLane:
-      | "standard"
-      | "material_extraction"
-      | "feed_signal"
-      | "themenradar_cluster"
-      | "sealed_factcheck"
-      | "research_addon"
-      | "fallback_only";
     normalizedLaneLabel: string;
     normalizedLaneDescription: string;
-    primaryAnalyzeProvider: string | null;
-    draftFallbackProviders: string[];
-    optionalProviders: string[];
-    researchProviders: string[];
-    blockedProviders: string[];
-    productionEligible: boolean;
-    researchRequired: boolean;
-    selectedResearchProvider: string | null;
-    availableResearchProviders: string[];
-    blockedResearchProviders: Array<{ provider: string; reason: string | null }>;
-    researchProviderAvailable: boolean;
-    researchCreditRequired: boolean;
-    researchCreditSatisfied: boolean;
-    researchDisabledReason: string | null;
-    standardAnalyzeUnaffected: boolean;
-    safeToRunStandardAnalyze: boolean;
-    safeToRunSealedFactcheck: boolean;
-    safeToRunPremiumDeepResearch: boolean;
     reviewRequired: boolean;
-    sealEligible: boolean;
     publicOutputAllowed: boolean;
     costApprovalRequired: boolean;
     researchAllowed: boolean;
-    providerRoleSummary: Array<{
-      provider: string;
-      displayName: string;
-      roles: string[];
-      requiresExplicitApproval: boolean;
-    }>;
     nextResearchAction: string;
     nextAction: string;
   };
-  error?: string;
   createAnalyzeApi: {
     state: "ok" | "failed" | "skipped";
     ok: boolean;
-    durationMs: number;
     reason: string | null;
     code: string | null;
   };
+  error?: string;
 };
 
 type ModeCard = {
@@ -171,19 +62,19 @@ const MODE_CARDS: ModeCard[] = [
   {
     mode: "provider_probe",
     title: "Direktprüfung Provider",
-    subtitle: "Kann der Provider direkt aufgerufen werden (ohne Journey-Plan)?",
+    subtitle: "Prüft nur, ob ein sicherer technischer Kontakt möglich wäre.",
     action: "Direktprobe ausführen",
   },
   {
     mode: "runtime_smoke",
     title: "Runtime Smoke",
-    subtitle: "Kann der Orchestrator einen kleinen Lauf ausführen (json_only)?",
+    subtitle: "Prüft den bestehenden Orchestrierungsweg als sichere Diagnose ohne Produktlauf.",
     action: "Runtime Smoke ausführen",
   },
   {
     mode: "full_contract",
     title: "Full Analyze Contract Test",
-    subtitle: "Erfüllt der Lauf den strikten Analyze-JSON/Schema-Contract?",
+    subtitle: "Prüft den bestehenden Analyze-Vertrag als sichere Betreiberdiagnose.",
     action: "Full Contract ausführen",
   },
 ];
@@ -194,292 +85,109 @@ function modeToQuery(mode: SmokeMode): string {
   return "";
 }
 
-function statusChipClass(status: ProviderDiagnostic["status"]): string {
-  if (status === "ok") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (status === "degraded") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "config_missing") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "skipped") return "bg-slate-100 text-slate-700 border-slate-200";
-  return "bg-rose-50 text-rose-700 border-rose-200";
+function countRows(rows: ProviderDiagnostic[]) {
+  return {
+    ok: rows.filter((row) => row.status === "ok").length,
+    degraded: rows.filter((row) => row.status === "degraded").length,
+    blocked: rows.filter((row) => row.status === "failed" || row.status === "config_missing").length,
+    skipped: rows.filter((row) => row.status === "skipped").length,
+  };
 }
 
-function contractStatusChipClass(status: ProviderDiagnostic["finalContractStatus"]): string {
-  if (status === "strict_ok") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (status === "built_valid") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "repaired_degraded") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "blocked") return "bg-rose-50 text-rose-700 border-rose-200";
-  if (status === "failed") return "bg-rose-50 text-rose-700 border-rose-200";
-  return "bg-slate-100 text-slate-700 border-slate-200";
+type SummaryTone = "emerald" | "amber" | "rose" | "slate";
+
+function toneClasses(tone: SummaryTone) {
+  if (tone === "emerald") return "border-emerald-300/60 bg-emerald-50/80 text-emerald-800";
+  if (tone === "amber") return "border-amber-300/60 bg-amber-50/80 text-amber-800";
+  if (tone === "rose") return "border-rose-300/60 bg-rose-50/80 text-rose-800";
+  return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
 }
 
-function formatTokens(row: ProviderDiagnostic): string {
-  if (typeof row.tokensIn === "number" || typeof row.tokensOut === "number") {
-    return `${row.tokensIn ?? 0}/${row.tokensOut ?? 0}`;
-  }
-  return "n/a";
-}
-
-function formatEstimatedCost(row: ProviderDiagnostic): string {
-  if (row.costKnown !== true) return "n/a";
-  const eur = typeof row.estimatedCostEur === "number" ? row.estimatedCostEur.toFixed(6) : "n/a";
-  const usd = typeof row.estimatedCostUsd === "number" ? row.estimatedCostUsd.toFixed(6) : "n/a";
-  return `EUR ${eur} · USD ${usd}`;
-}
-
-function compactReason(row: ProviderDiagnostic): string {
-  const parts = [
-    row.reason,
-    row.errorMessage,
-    row.errorKind ? `errorKind=${row.errorKind}` : null,
-    typeof row.httpStatus === "number" ? `http=${row.httpStatus}` : null,
-    row.providerErrorCode ? `code=${row.providerErrorCode}` : null,
-  ].filter((value): value is string => Boolean(value && value.trim().length > 0));
-  return parts.length ? parts.join(" · ") : "Keine Fehlerdetails";
-}
-
-function hasDetail(row: ProviderDiagnostic): boolean {
-  return Boolean(
-    row.rawExcerpt ||
-      row.parseError ||
-      row.schemaError ||
-      row.schemaPath ||
-      row.providerErrorCode ||
-      row.errorKind ||
-      row.errorMessage ||
-      row.reason ||
-      row.openaiErrorCode ||
-      row.openaiErrorMessage ||
-      (Array.isArray(row.buildWarnings) && row.buildWarnings.length > 0) ||
-      (Array.isArray(row.filledDefaults) && row.filledDefaults.length > 0) ||
-      (Array.isArray(row.missingContainers) && row.missingContainers.length > 0) ||
-      (Array.isArray(row.normalizedEnumWarnings) && row.normalizedEnumWarnings.length > 0) ||
-      (Array.isArray(row.generatedIds) && row.generatedIds.length > 0) ||
-      row.selectedSmokeModel ||
-      row.effectiveModel ||
-      typeof row.smokeModelEnvPresent === "boolean" ||
-      row.openAiSmokeModelMismatch === true ||
-      typeof row.timeoutMs === "number" ||
-      typeof row.maxOutputTokens === "number" ||
-      (Array.isArray(row.diagnosticNotes) && row.diagnosticNotes.length > 0),
-  );
-}
-
-function formatModeLabel(mode: SmokeMode): string {
-  if (mode === "provider_probe") return "Provider Probe";
-  if (mode === "full_contract") return "Full Contract";
-  return "Runtime Smoke";
-}
-
-function formatSmokeStatus(row: ProviderDiagnostic) {
-  return resolveAiSmokeStatusCopy({
-    status: row.status,
-    journeyDecision: row.journeyDecision as
-      | "selected"
-      | "skipped"
-      | "fallback_not_needed"
-      | "not_in_plan"
-      | "disabled"
-      | "config_missing",
-    errorKind: row.errorKind,
-    providerErrorCode: row.providerErrorCode,
-    finalContractStatus: row.finalContractStatus,
-  });
-}
-
-type ProviderHealthStatus = "green" | "yellow" | "red" | "gray";
-
-type ProviderHealthRow = {
-  provider: string;
-  displayName: string;
-  overall: ProviderHealthStatus;
-  connection: ProviderHealthStatus;
-  runtime: ProviderHealthStatus;
-  strictContract: ProviderHealthStatus;
-  journey: ProviderHealthStatus;
-  account: ProviderHealthStatus;
-  rootCause: string;
-  nextAction: string;
-  detail: string;
-};
-
-const HEALTH_PROVIDERS = ["openai", "anthropic", "mistral", "gemini", "ari"];
-
-function healthDotClass(status: ProviderHealthStatus): string {
-  if (status === "green") return "bg-emerald-500";
-  if (status === "yellow") return "bg-amber-500";
-  if (status === "red") return "bg-rose-500";
-  return "bg-slate-300";
-}
-
-function healthLabel(status: ProviderHealthStatus): string {
-  if (status === "green") return "grün";
-  if (status === "yellow") return "gelb";
-  if (status === "red") return "rot";
-  return "grau";
-}
-
-function StatusDot({ status, label }: { status: ProviderHealthStatus; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-[rgb(var(--muted))]">
-      <span className={`h-2.5 w-2.5 rounded-full ${healthDotClass(status)}`} />
-      <span>{label}</span>
-    </span>
-  );
-}
-
-function providerOf(row: ProviderDiagnostic | undefined): string {
-  return row?.displayName || row?.provider || "Provider";
-}
-
-function isAccountProblem(row: ProviderDiagnostic | undefined): boolean {
-  if (!row) return false;
-  const text = [
-    row.errorKind,
-    row.providerErrorCode,
-    row.reason,
-    row.errorMessage,
-    typeof row.httpStatus === "number" ? String(row.httpStatus) : null,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return (
-    text.includes("429") ||
-    text.includes("quota") ||
-    text.includes("rate") ||
-    text.includes("402") ||
-    text.includes("payment") ||
-    text.includes("billing") ||
-    text.includes("invalid_api_key") ||
-    text.includes("config_missing")
-  );
-}
-
-function statusFromDiagnostic(row: ProviderDiagnostic | undefined, skippedAsGray = true): ProviderHealthStatus {
-  if (!row) return "gray";
-  if (row.status === "ok") return "green";
-  if (row.status === "degraded") return "yellow";
-  if (row.status === "skipped" && skippedAsGray) return "gray";
-  if (row.status === "config_missing") return "red";
-  if (isAccountProblem(row)) return "red";
-  return "red";
-}
-
-function accountStatusFor(rows: Array<ProviderDiagnostic | undefined>): ProviderHealthStatus {
-  const present = rows.filter(Boolean) as ProviderDiagnostic[];
-  if (present.some(isAccountProblem)) return "red";
-  if (present.some((row) => row.status === "ok" || row.providerStatus === "reachable")) return "green";
-  return "gray";
-}
-
-function firstProblem(rows: Array<ProviderDiagnostic | undefined>): ProviderDiagnostic | undefined {
-  return rows.find((row) => row && row.status !== "ok" && row.status !== "skipped");
-}
-
-function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResponse>>): ProviderHealthRow[] {
-  const probeRows = dataByMode.provider_probe?.rows ?? [];
-  const runtimeRows = dataByMode.runtime_smoke?.rows ?? [];
-  const journeyRows = dataByMode.full_contract?.rows ?? [];
-  const strictRows = dataByMode.full_contract?.directContractRows ?? [];
-
-  return HEALTH_PROVIDERS.map((provider) => {
-    const isPrimaryContractProvider =
-      provider === "openai" || provider === "anthropic" || provider === "mistral";
-    const probe = probeRows.find((row) => row.provider === provider);
-    const runtime = runtimeRows.find((row) => row.provider === provider);
-    const journey = journeyRows.find((row) => row.provider === provider);
-    const strict = strictRows.find((row) => row.provider === provider);
-
-    const connection = statusFromDiagnostic(probe);
-    const runtimeStatus = statusFromDiagnostic(runtime);
-    const journeyStatus = statusFromDiagnostic(journey);
-    const strictStatus = statusFromDiagnostic(strict, false);
-    const account = accountStatusFor([probe, runtime, journey, strict]);
-
-    const relevant = [probe, runtime, strict, journey];
-    const problem = firstProblem(relevant);
-
-    let overall: ProviderHealthStatus = "gray";
-    if (account === "red") {
-      overall = "red";
-    } else if (isPrimaryContractProvider) {
-      if (strictStatus === "green" && connection === "green" && (runtimeStatus === "green" || runtimeStatus === "gray")) {
-        overall = "green";
-      } else if (strictStatus === "yellow" && connection === "green" && runtimeStatus !== "red") {
-        overall = "yellow";
-      } else if (strictStatus === "red" || [connection, runtimeStatus].includes("red")) {
-        overall = "red";
-      }
-    } else if (connection === "green" && runtimeStatus === "green" && strictStatus === "green") {
-      overall = "green";
-    } else if (connection === "green" && (runtimeStatus === "green" || runtimeStatus === "gray") && strictStatus !== "green") {
-      overall = "yellow";
-    } else if ([connection, runtimeStatus, strictStatus, journeyStatus].some((status) => status === "red")) {
-      overall = "red";
-    }
-
-    const displayName =
-      providerOf(probe) !== "Provider"
-        ? providerOf(probe)
-        : providerOf(runtime) !== "Provider"
-          ? providerOf(runtime)
-          : providerOf(strict) !== "Provider"
-            ? providerOf(strict)
-            : providerOf(journey) !== "Provider"
-              ? providerOf(journey)
-              : provider;
-
-    const detailParts = [
-      probe ? `DirectProbe=${probe.status}` : "DirectProbe=n/a",
-      runtime ? `JourneyRuntime=${runtime.status}` : "JourneyRuntime=n/a",
-      strict ? `DirectContract=${strict.status}${strict.schemaPath ? ` @ ${strict.schemaPath}` : ""}` : "DirectContract=n/a",
-      journey ? `JourneyContract=${journey.status}` : "JourneyContract=n/a",
-    ];
-
+function summarizeMode(data: SmokeResponse | null) {
+  if (!data) {
     return {
-      provider,
-      displayName,
-      overall,
-      connection,
-      runtime: runtimeStatus,
-      strictContract: strictStatus,
-      journey: journeyStatus,
-      account,
-      rootCause: problem?.rootCause ?? (overall === "green" ? "OK" : "Noch nicht vollständig geprüft"),
-      nextAction:
-        problem?.nextAction ??
-        (overall === "green"
-          ? "Keine Aktion nötig."
-          : "Provider-Probe, Runtime und Full Contract ausführen."),
-      detail: detailParts.join(" · "),
+      label: "Noch nicht geprüft",
+      tone: "slate" as const,
+      summary: "Für diesen Diagnosemodus liegt noch kein sicherer Lauf in dieser Oberfläche vor.",
+      rootCause: "Noch kein Lauf vorhanden",
+      nextAction: "Bei Bedarf bewusst starten.",
+      counts: countRows([]),
     };
-  });
+  }
+
+  const counts = countRows(data.rows);
+  const firstProblem = data.rows.find(
+    (row) => row.status === "failed" || row.status === "config_missing" || row.status === "degraded",
+  );
+
+  if (counts.blocked > 0) {
+    return {
+      label: "Blocker sichtbar",
+      tone: "rose" as const,
+      summary:
+        "Die sichere Diagnose zeigt mindestens einen blockierenden Orchestrierungs- oder Vertragszustand. Nichts startet dadurch automatisch.",
+      rootCause: firstProblem?.rootCause ?? "Blocker im Diagnoselauf sichtbar",
+      nextAction: firstProblem?.nextAction ?? "Blocker im bestehenden Betriebsweg prüfen.",
+      counts,
+    };
+  }
+
+  if (counts.degraded > 0) {
+    return {
+      label: "Teilweise belastbar",
+      tone: "amber" as const,
+      summary:
+        "Der Diagnosemodus ist teilweise belastbar, aber mindestens ein Schritt bleibt nur eingeschränkt oder reviewpflichtig verwertbar.",
+      rootCause: firstProblem?.rootCause ?? "Teilweise belastbare Diagnose",
+      nextAction: firstProblem?.nextAction ?? "Review-first weiter prüfen.",
+      counts,
+    };
+  }
+
+  if (counts.ok > 0) {
+    return {
+      label: "Belastbar geprüft",
+      tone: "emerald" as const,
+      summary:
+        "Der Diagnosemodus ist im bestehenden Betriebsrahmen belastbar sichtbar. Das bleibt eine sichere Betreiberdiagnose und kein Produktlauf.",
+      rootCause: "Kein aktueller Blocker",
+      nextAction: "Nur bei Änderungen erneut prüfen.",
+      counts,
+    };
+  }
+
+  return {
+    label: "Nur übersprungen oder offen",
+    tone: "slate" as const,
+    summary:
+      "Es liegt kein belastbarer positiver Lauf vor. Sichtbar sind nur bewusst übersprungene oder noch nicht ausgeführte Diagnoseschritte.",
+    rootCause: firstProblem?.rootCause ?? "Keine belastbare Diagnose sichtbar",
+    nextAction: firstProblem?.nextAction ?? "Falls nötig später bewusst ausführen.",
+    counts,
+  };
 }
 
-function overallCardClass(status: ProviderHealthStatus): string {
-  if (status === "green") return "border-l-4 border-l-emerald-500 bg-[rgb(var(--card))]";
-  if (status === "yellow") return "border-l-4 border-l-amber-500 bg-[rgb(var(--card))]";
-  if (status === "red") return "border-l-4 border-l-rose-500 bg-[rgb(var(--card))]";
-  return "border-l-4 border-l-slate-500 bg-[rgb(var(--card))]";
+function formatCreateAnalyzeState(data: SmokeResponse | null) {
+  if (!data || data.mode !== "full_contract") {
+    return "Der Analyze-Vertrag wurde in dieser Oberfläche noch nicht separat geprüft.";
+  }
+  if (data.createAnalyzeApi.state === "ok") {
+    return "Der bestehende Analyze-Vertrag war im Diagnosekontext belastbar erreichbar.";
+  }
+  if (data.createAnalyzeApi.state === "failed") {
+    return "Der bestehende Analyze-Vertrag blieb im Diagnosekontext blockiert oder unvollständig.";
+  }
+  return "Der Analyze-Vertrag wurde in diesem Lauf bewusst nicht separat ausgeführt.";
 }
-
 
 export default function OrchestratorTelemetryPage() {
   const [dataByMode, setDataByMode] = useState<Partial<Record<SmokeMode, SmokeResponse>>>({});
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [loadingMode, setLoadingMode] = useState<SmokeMode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const orderedRows = useMemo(() => {
-    const byMode: Record<SmokeMode, ProviderDiagnostic[]> = {
-      provider_probe: dataByMode.provider_probe?.rows ?? [],
-      runtime_smoke: dataByMode.runtime_smoke?.rows ?? [],
-      full_contract: dataByMode.full_contract?.rows ?? [],
-    };
-    return byMode;
-  }, [dataByMode]);
+  const traceScopeLine = getAiTraceSurfaceScopeLine("operator");
+  const hiddenByPolicy = buildAiTraceHiddenByPolicyLines("operator");
 
-  const providerHealthRows = useMemo(() => buildProviderHealthRows(dataByMode), [dataByMode]);
   const operationalSummary = useMemo(
     () =>
       dataByMode.full_contract?.operationalSummary ??
@@ -489,16 +197,31 @@ export default function OrchestratorTelemetryPage() {
     [dataByMode],
   );
 
+  const operatorTrace = useMemo(() => {
+    const active =
+      dataByMode.full_contract ?? dataByMode.runtime_smoke ?? dataByMode.provider_probe ?? null;
+    if (!active) return null;
+    const representative = active.rows.find((row) => row.status === "ok") ?? active.rows[0] ?? null;
+    return buildAdminOrchestratorAiProvenanceTraceStep({
+      runId: active.runId,
+      correlationId: active.correlationId,
+      provider: representative?.provider ?? null,
+      model: representative?.model ?? null,
+    });
+  }, [dataByMode]);
+
   async function run(mode: SmokeMode) {
     setLoadingMode(mode);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/ai/orchestrator-smoke${modeToQuery(mode)}`, { method: "POST" });
+      const res = await fetch(`/api/admin/ai/orchestrator-smoke${modeToQuery(mode)}`, {
+        method: "POST",
+      });
       const body = (await res.json().catch(() => null)) as SmokeResponse | null;
       if (!res.ok || !body) throw new Error(body?.error || res.statusText);
       setDataByMode((prev) => ({ ...prev, [mode]: body }));
     } catch (err: any) {
-      setError(err?.message ?? "Smoke-Test fehlgeschlagen");
+      setError(err?.message ?? "Diagnoselauf fehlgeschlagen");
     } finally {
       setLoadingMode(null);
     }
@@ -510,13 +233,19 @@ export default function OrchestratorTelemetryPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Telemetry · AI
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Orchestrator-Diagnose</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Orchestrator-Übersicht</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Getrennte Sicht auf Provider-Probe, Runtime und strikten Analyze-Contract.
-          ARI kann direkt geprüft werden, auch wenn ARI im Journey-Plan übersprungen wird.
+          Diese Oberfläche zeigt sichere Betriebs- und Review-Zusammenfassungen für den bestehenden
+          Orchestrierungsweg. Sie ist bewusst keine Debug-, Prompt- oder Providerdetail-Ansicht.
         </p>
         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-          Ergänzende Live-Übersicht: <Link href="/admin/telemetry/ai/dashboard" className="text-sky-700 underline">Recent Runs</Link>
+          Ergänzende Live-Übersicht:{" "}
+          <Link
+            href="/admin/telemetry/ai/dashboard"
+            className="text-sky-700 underline"
+          >
+            Recent Runs
+          </Link>
         </p>
       </header>
 
@@ -526,159 +255,105 @@ export default function OrchestratorTelemetryPage() {
         </div>
       )}
 
-      {operationalSummary && (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Operational Routing Summary</h2>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            Lane-/Provider-Entscheidung gemäß Policy-Routing (#48) für Diagnose und spätere Orchestrierungsentscheide.
-          </p>
-          <div className="mt-3 space-y-3 text-sm text-[rgb(var(--muted))]">
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-              <div className="font-semibold text-[rgb(var(--fg))]">
-                {operationalSummary.normalizedLaneLabel}
-              </div>
-              <div>{operationalSummary.normalizedLaneDescription}</div>
-              <div className="mt-1 text-xs">
-                normalizedLane={operationalSummary.normalizedLane} · selectedLane={operationalSummary.selectedLane} ·
-                productionEligible={String(operationalSummary.productionEligible)}
-              </div>
-              <div className="mt-1 text-xs">
-                reviewRequired={String(operationalSummary.reviewRequired)} ·
-                researchAllowed={String(operationalSummary.researchAllowed)} ·
-                costApprovalRequired={String(operationalSummary.costApprovalRequired)} ·
-                sealEligible={String(operationalSummary.sealEligible)} ·
-                publicOutputAllowed={String(operationalSummary.publicOutputAllowed)}
-              </div>
-            </div>
-            <div className="grid gap-2 text-xs text-[rgb(var(--muted))]">
-              <div>primaryAnalyzeProvider={operationalSummary.primaryAnalyzeProvider ?? "none"} · draftFallbackProviders={operationalSummary.draftFallbackProviders.join(",") || "none"}</div>
-              <div>optionalProviders={operationalSummary.optionalProviders.join(",") || "none"} · researchProviders={operationalSummary.researchProviders.join(",") || "none"}</div>
-              <div>blockedProviders={operationalSummary.blockedProviders.join(",") || "none"}</div>
-              <div>selectedResearchProvider={operationalSummary.selectedResearchProvider ?? "none"} · researchProviderAvailable={String(operationalSummary.researchProviderAvailable)}</div>
-              <div>availableResearchProviders={operationalSummary.availableResearchProviders.join(",") || "none"} · blockedResearchProviders={operationalSummary.blockedResearchProviders.map((entry) => `${entry.provider}:${entry.reason ?? "blocked"}`).join(",") || "none"}</div>
-              <div>researchCreditRequired={String(operationalSummary.researchCreditRequired)} · researchCreditSatisfied={String(operationalSummary.researchCreditSatisfied)} · researchDisabledReason={operationalSummary.researchDisabledReason ?? "none"}</div>
-              <div>safeToRunStandardAnalyze={String(operationalSummary.safeToRunStandardAnalyze)} · safeToRunSealedFactcheck={String(operationalSummary.safeToRunSealedFactcheck)} · safeToRunPremiumDeepResearch={String(operationalSummary.safeToRunPremiumDeepResearch)}</div>
-              <div>standardAnalyzeUnaffected={String(operationalSummary.standardAnalyzeUnaffected)} · nextResearchAction={operationalSummary.nextResearchAction}</div>
-            </div>
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                Provider Roles
-              </div>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                {operationalSummary.providerRoleSummary.map((provider) => (
-                  <div key={provider.provider} className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs">
-                    <div className="font-semibold text-[rgb(var(--fg))]">{provider.displayName}</div>
-                    <div>roles={provider.roles.join(", ")}</div>
-                    <div>requiresExplicitApproval={String(provider.requiresExplicitApproval)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="font-semibold text-[rgb(var(--fg))]">nextAction={operationalSummary.nextAction}</div>
-          </div>
-        </section>
-      )}
-
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Anbieter-Ampel</h2>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              Provider-zentrierte Zusammenfassung aus Verbindung, Runtime, Strict Contract, Journey und Account-Status.
-            </p>
-            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-              Grün bedeutet: erreichbar, Runtime ok und Strict Analyze Contract ok. Gelb bedeutet: nutzbar/teilweise, aber Contract-Qualität nicht sauber. Rot bedeutet: blockierend.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
-              disabled={loadingMode !== null}
-              onClick={() => run("provider_probe")}
-            >
-              Probe
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
-              disabled={loadingMode !== null}
-              onClick={() => run("runtime_smoke")}
-            >
-              Runtime
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
-              disabled={loadingMode !== null}
-              onClick={() => run("full_contract")}
-            >
-              Full Contract
-            </button>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-          Direct Probe und Direct Contract pruefen Anbieter direkt. Journey Runtime und Journey Contract zeigen nur den
-          aktuellen Orchestrator-Pfad und koennen bewusst `skipped` oder `fallback_not_needed` sein.
-        </p>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
-            <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              <tr>
-                <th className="px-3 py-2">Provider</th>
-                <th className="px-3 py-2">Gesamt</th>
-                <th className="px-3 py-2">Direct Probe</th>
-                <th className="px-3 py-2">Journey Runtime</th>
-                <th className="px-3 py-2">Direct Contract</th>
-                <th className="px-3 py-2">Journey Contract</th>
-                <th className="px-3 py-2">Account</th>
-                <th className="px-3 py-2">Hauptursache</th>
-                <th className="px-3 py-2">Next Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[rgb(var(--border))]">
-              {providerHealthRows.map((row) => (
-                <tr key={row.provider} className={overallCardClass(row.overall)}>
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-[rgb(var(--fg))]">{row.provider}</div>
-                    <div className="text-xs text-[rgb(var(--muted))]">{row.displayName}</div>
-                    <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">{row.detail}</div>
-                  </td>
-                  <td className="px-3 py-2"><StatusDot status={row.overall} label={healthLabel(row.overall)} /></td>
-                  <td className="px-3 py-2"><StatusDot status={row.connection} label={healthLabel(row.connection)} /></td>
-                  <td className="px-3 py-2"><StatusDot status={row.runtime} label={healthLabel(row.runtime)} /></td>
-                  <td className="px-3 py-2"><StatusDot status={row.strictContract} label={healthLabel(row.strictContract)} /></td>
-                  <td className="px-3 py-2"><StatusDot status={row.journey} label={healthLabel(row.journey)} /></td>
-                  <td className="px-3 py-2"><StatusDot status={row.account} label={healthLabel(row.account)} /></td>
-                  <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
-                  <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{row.nextAction}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Sichere Trace-Wahrheit</h2>
+        <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{traceScopeLine}</p>
+        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-[rgb(var(--muted))]">
+          {hiddenByPolicy.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       </section>
+
+      {operatorTrace ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Aktuelle Operator-Spur</h2>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+            {operatorTrace.userVisibleLabel}
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            Review: {getAiOrchestrationReviewStateLabel(operatorTrace.reviewState)}. Veröffentlichung:{" "}
+            {getAiOrchestrationPublishStateLabel(operatorTrace.publishState)}.
+          </p>
+          <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+            {formatAiTraceTechnicalVisibility({
+              audience: "operator",
+              providerVisibility: operatorTrace.providerVisibility,
+              providerKnown: operatorTrace.providerKnown,
+            })}
+          </p>
+          {operatorTrace.missingRuntimeTruth ? (
+            <p className="mt-2 text-xs text-amber-800">
+              {formatAiTraceMissingRuntimeLine(operatorTrace.missingRuntimeTruthReasons, "operator")}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {operationalSummary ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Sichere Orchestrierungszusammenfassung</h2>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            {operationalSummary.normalizedLaneLabel}: {operationalSummary.normalizedLaneDescription}
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <SummaryChip
+              label="Review"
+              value={
+                operationalSummary.reviewRequired
+                  ? "Bleibt erforderlich"
+                  : "Kein zusätzlicher Review-Schritt im aktuellen Diagnoselauf"
+              }
+            />
+            <SummaryChip
+              label="Veröffentlichung"
+              value={
+                operationalSummary.publicOutputAllowed
+                  ? "Nur als bewusst freizugebender Folgepfad"
+                  : "Nicht für öffentliche Ausgabe freigegeben"
+              }
+            />
+            <SummaryChip
+              label="Kosten und Freigaben"
+              value={
+                operationalSummary.costApprovalRequired
+                  ? "Bewusste Freigabe nötig"
+                  : "Kein zusätzlicher Freigabeschritt im aktuellen Diagnoselauf"
+              }
+            />
+            <SummaryChip
+              label="Recherche"
+              value={
+                operationalSummary.researchAllowed
+                  ? "Als getrennter Folgepfad möglich"
+                  : "Im aktuellen Diagnoselauf nicht aktiv"
+              }
+            />
+          </div>
+          <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+            Nächster Research-Schritt: {operationalSummary.nextResearchAction}
+          </p>
+          <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">
+            Nächste Betreiberaktion: {operationalSummary.nextAction}
+          </p>
+        </section>
+      ) : null}
 
       <section className="grid gap-4">
         {MODE_CARDS.map((card) => {
           const data = dataByMode[card.mode] ?? null;
-          const rows = orderedRows[card.mode];
+          const summary = summarizeMode(data);
+          const counts = summary.counts;
+
           return (
             <article
               key={card.mode}
               className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div className="max-w-3xl">
                   <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{card.title}</h2>
                   <p className="text-sm text-[rgb(var(--muted))]">{card.subtitle}</p>
-                  {data && (
-                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                      runId: <span className="font-mono">{data.runId}</span> · Ergebnis: {data.ok ? "OK" : "Fehler"}
-                    </p>
-                  )}
                 </div>
                 <button
                   type="button"
@@ -690,185 +365,53 @@ export default function OrchestratorTelemetryPage() {
                 </button>
               </div>
 
-              {data && card.mode === "full_contract" && (
-                <div className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
-                  createAnalyzeApi: {data.createAnalyzeApi.state} · code={data.createAnalyzeApi.code ?? "none"} · reason={data.createAnalyzeApi.reason ?? "none"}
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses(summary.tone)}`}
+                >
+                  {summary.label}
+                </span>
+                {counts.ok > 0 ? <MiniCount label="belastbar" value={counts.ok} /> : null}
+                {counts.degraded > 0 ? <MiniCount label="teilweise" value={counts.degraded} /> : null}
+                {counts.blocked > 0 ? <MiniCount label="blockiert" value={counts.blocked} /> : null}
+                {counts.skipped > 0 ? <MiniCount label="übersprungen" value={counts.skipped} /> : null}
+              </div>
 
-              {data && card.mode === "full_contract" && (data.directContractRows?.length ?? 0) > 0 && (
-                <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Direkter Provider-Contract</h3>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Prüft OpenAI/GPT, Anthropic, Mistral, Gemini und ARI direkt gegen den AnalyzeResultSchema-Contract – unabhängig vom Journey-Plan.
-                  </p>
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
-                      <thead className="bg-[rgb(var(--card))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                        <tr>
-                          <th className="px-3 py-2">Provider</th>
-                          <th className="px-3 py-2">Modell</th>
-                          <th className="px-3 py-2">Result</th>
-                          <th className="px-3 py-2">Root Cause</th>
-                          <th className="px-3 py-2">Next Action</th>
-                          <th className="px-3 py-2">Diagnose</th>
-                          <th className="px-3 py-2">Dauer</th>
-                          <th className="px-3 py-2">Tokens in/out</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[rgb(var(--border))]">
-                        {data.directContractRows?.map((row) => {
-                          const rowKey = `${card.mode}-direct-${row.provider}`;
-                          const expanded = expandedRows[rowKey] ?? false;
-                          return (
-                            <Fragment key={rowKey}>
-                              <tr>
-                                <td className="px-3 py-2">
-                                  <div className="font-semibold text-[rgb(var(--fg))]">{row.provider}</div>
-                                  <div className="text-xs text-[rgb(var(--muted))]">{row.displayName}</div>
-                                </td>
-                                <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.model ?? "unknown"}</td>
-                                <td className="px-3 py-2">
-                                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${contractStatusChipClass(row.finalContractStatus)}`}>
-                                    {row.finalContractStatus}
-                                  </span>
-                                  <div className="mt-1 text-xs text-[rgb(var(--muted))]">
-                                    strict={row.strictStatus} · draft={row.draftStatus} · build={row.envelopeBuildStatus} · repair={row.repairStatus}
-                                  </div>
-                                  <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
-                                    native={row.nativeStrategy} · preferred={row.preferredContractStrategy} · format={row.formatUsed ?? "none"} · fallback={String(row.didFallback)}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
-                                <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{row.nextAction}</td>
-                                <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{compactReason(row)}</td>
-                                <td className="px-3 py-2">{typeof row.durationMs === "number" ? `${row.durationMs} ms` : "n/a"}</td>
-                                <td className="px-3 py-2">{formatTokens(row)}</td>
-                              </tr>
-                              {hasDetail(row) && (
-                                <tr>
-                                  <td className="px-3 pb-3" colSpan={8}>
-                                    <button
-                                      type="button"
-                                      className="text-xs font-semibold text-sky-700 underline"
-                                      onClick={() => setExpandedRows((prev) => ({ ...prev, [rowKey]: !expanded }))}
-                                    >
-                                      {expanded ? "Details ausblenden" : "Details anzeigen"}
-                                    </button>
-                                    {expanded && (
-                                      <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))]">
-                                        <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · finalContractStatus={row.finalContractStatus}</div>
-                                        <div>nativeStrategy={row.nativeStrategy} · providerStrategy={row.providerStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
-                                        <div>model={row.model ?? "unknown"} · timeoutMs={row.timeoutMs ?? "n/a"} · maxOutputTokens={row.maxOutputTokens ?? "n/a"}</div>
-                                        <div>smokeMode={row.smokeMode ?? "n/a"} · budgetProfile={row.budgetProfile ?? "n/a"} · runCostGroup={row.runCostGroup ?? "n/a"} · estimatedCost={formatEstimatedCost(row)}</div>
-                                        <div>selectedSmokeModel={row.selectedSmokeModel ?? "n/a"} · smokeModelEnvPresent={typeof row.smokeModelEnvPresent === "boolean" ? String(row.smokeModelEnvPresent) : "n/a"} · effectiveModel={row.effectiveModel ?? "n/a"} · openAiSmokeModelMismatch={String(row.openAiSmokeModelMismatch ?? false)}</div>
-                                        <div>strictStatus={row.strictStatus} · strictProviderCode={row.strictProviderErrorCode ?? "none"} · strictSchemaPath={row.strictSchemaPath ?? "none"}</div>
-                                        <div>directStrictStatus={row.directStrictStatus} · draftStatus={row.draftStatus} · envelopeBuildStatus={row.envelopeBuildStatus} · finalSchemaStatus={row.finalSchemaStatus}</div>
-                                        <div>repairStatus={row.repairStatus} · repairUsed={String(row.repairUsed)} · repairProviderCode={row.repairProviderErrorCode ?? "none"} · repairSchemaPath={row.repairSchemaPath ?? "none"} · repairReason={row.repairReason ?? "none"}</div>
-                                        <div>filledDefaults={row.filledDefaults.join(",") || "none"} · missingContainers={row.missingContainers.join(",") || "none"}</div>
-                                        <div>normalizedEnumWarnings={row.normalizedEnumWarnings.join(" | ") || "none"} · generatedIds={row.generatedIds.join(",") || "none"}</div>
-                                        <div>buildWarnings={row.buildWarnings.join(" | ") || "none"}</div>
-                                        <div>formatUsed={row.formatUsed ?? "none"} · didFallback={String(row.didFallback)} · supportsPromptEnvelope={String(row.supportsPromptEnvelope)}</div>
-                                        <div>openaiErrorCode={row.openaiErrorCode ?? "none"} · openaiErrorMessage={row.openaiErrorMessage ?? "none"}</div>
-                                        <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
-                                        <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>
-                                        <div>fallbackUsed={String(row.fallbackUsed)} · fallbackReason={row.fallbackReason ?? "none"}</div>
-                                        <div>knownBlockers={row.knownBlockers.join(",") || "none"} · nonRepairable={row.nonRepairableErrorCodes.join(",") || "none"}</div>
-                                        {row.diagnosticNotes.length > 0 && (
-                                          <div className="mt-1">diagnosticNotes: {row.diagnosticNotes.join(" | ")}</div>
-                                        )}
-                                        <div className="mt-1">rawExcerpt: {row.rawExcerpt ?? "none"}</div>
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+              <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{summary.summary}</p>
+              <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
+                Hauptursache: {summary.rootCause}
+              </p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                Nächster Schritt: {summary.nextAction}
+              </p>
 
-              {rows.length > 0 && (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
-                    <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                      <tr>
-                        <th className="px-3 py-2">Provider</th>
-                        <th className="px-3 py-2">Modell</th>
-                        <th className="px-3 py-2">Result</th>
-                        <th className="px-3 py-2">Root Cause</th>
-                        <th className="px-3 py-2">Next Action</th>
-                        <th className="px-3 py-2">Diagnose</th>
-                        <th className="px-3 py-2">Dauer</th>
-                        <th className="px-3 py-2">Tokens in/out</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[rgb(var(--border))]">
-                      {rows.map((row) => {
-                        const rowKey = `${card.mode}-${row.stage}-${row.provider}`;
-                        const expanded = expandedRows[rowKey] ?? false;
-                        const smokeStatus = formatSmokeStatus(row);
-                        return (
-                          <Fragment key={rowKey}>
-                            <tr key={rowKey}>
-                              <td className="px-3 py-2">
-                                <div className="font-semibold text-[rgb(var(--fg))]">{row.provider}</div>
-                                <div className="text-xs text-[rgb(var(--muted))]">{row.displayName}</div>
-                              </td>
-                              <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.model ?? "unknown"}</td>
-                              <td className="px-3 py-2">
-                                <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusChipClass(row.status)}`}>
-                                  {smokeStatus.label}
-                                </span>
-                                <div className="mt-1 text-xs text-[rgb(var(--muted))]">
-                                  provider={row.providerStatus} · adapter={row.adapterStatus} · parse={row.parseStatus} · schema={row.schemaStatus}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
-                              <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{row.nextAction}</td>
-                              <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{compactReason(row)}</td>
-                              <td className="px-3 py-2">{typeof row.durationMs === "number" ? `${row.durationMs} ms` : "n/a"}</td>
-                              <td className="px-3 py-2">{formatTokens(row)}</td>
-                            </tr>
-                            {hasDetail(row) && (
-                              <tr>
-                                <td className="px-3 pb-3" colSpan={8}>
-                                  <button
-                                    type="button"
-                                    className="text-xs font-semibold text-sky-700 underline"
-                                    onClick={() => setExpandedRows((prev) => ({ ...prev, [rowKey]: !expanded }))}
-                                  >
-                                    {expanded ? "Details ausblenden" : "Details anzeigen"}
-                                  </button>
-                                  {expanded && (
-                                    <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
-                                      <div>smokeStatus={smokeStatus.code} · smokeStatusLabel={smokeStatus.label}</div>
-                                      <div>{smokeStatus.description}</div>
-                                      <div>mode={formatModeLabel(row.mode)} · stage={row.stage} · journeyDecision={row.journeyDecision} · validationMode={row.validationMode}</div>
-                                      <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
-                                      <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>
-                                      <div>fallbackUsed={String(row.fallbackUsed)} · fallbackReason={row.fallbackReason ?? "none"}</div>
-                                      <div className="mt-1">rawExcerpt: {row.rawExcerpt ?? "none"}</div>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              {card.mode === "full_contract" ? (
+                <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                  <p className="font-semibold text-[rgb(var(--fg))]">Analyze-Vertrag</p>
+                  <p className="mt-1">{formatCreateAnalyzeState(data)}</p>
                 </div>
-              )}
+              ) : null}
             </article>
           );
         })}
       </section>
     </main>
+  );
+}
+
+function SummaryChip(props: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+      <p className="font-semibold uppercase tracking-[0.12em]">{props.label}</p>
+      <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">{props.value}</p>
+    </div>
+  );
+}
+
+function MiniCount(props: { label: string; value: number }) {
+  return (
+    <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]">
+      {props.label}: {props.value}
+    </span>
   );
 }

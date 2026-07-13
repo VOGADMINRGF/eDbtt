@@ -8,6 +8,7 @@ const PUBLIC_SURFACE_FILES = [
   "src/app/runden/new/AnlassraumSetupForm.tsx",
   "src/app/runden/new/AnlassraumSupportSettings.tsx",
   "src/app/runden/new/AnlassraumPrePublishCheck.tsx",
+  "src/features/create/FrontendAiTransparencyPanel.tsx",
   "src/app/dossier/ui.tsx",
   "src/app/themen/page.tsx",
   "src/features/home/HomeSplitVoxyLanding.tsx",
