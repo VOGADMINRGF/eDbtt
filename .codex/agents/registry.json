@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "mode": "single-runner-multi-role",
+  "runner": {
+    "id": "lean-continuous-slice-runner",
+    "maySpawnParallelAgents": false,
+    "mayAutoMerge": false,
+    "mayDeploy": false,
+    "mayPublish": false,
+    "mayNotifyExternalRecipients": false,
+    "mayUseSecrets": false
+  },
+  "sharedRules": {
+    "canonicalArtifactsOnly": true,
+    "reuseExistingV3Contracts": true,
+    "noParallelStores": true,
+    "noAutoPublish": true,
+    "reviewFirst": true,
+    "safeTraceOnly": true,
+    "personalizationCannotHideMaterialFacts": true,
+    "translationIsNotEvidence": true,
+    "publicDebattenstandReadingRemainsFree": true
+  },
+  "roles": [
+    {
+      "id": "personal_voxy",
+      "title": "Personal Voxy",
+      "primaryDomains": ["onboarding", "profile", "dialogue", "relevance", "notifications", "topic-connections", "individual-action"],
+      "allowedArtifacts": ["civic_interest_profile", "relevance_explanation", "participation_preference", "topic_connection", "action_option"],
+      "deniedActions": ["vote_for_user", "political_label_targeting", "hide_counterarguments", "external_profile_sale", "unapproved_notification"]
+    },
+    {
+      "id": "intake_format",
+      "title": "Intake & Format Agent",
+      "primaryDomains": ["create", "occasion", "topic-assignment", "geography", "participation-format"],
+      "allowedArtifacts": ["occasion_candidate", "topic_assignment", "affected_group_candidate", "format_recommendation", "open_question"],
+      "deniedActions": ["publish", "final_factcheck", "institutional_notification"]
+    },
+    {
+      "id": "research_source",
+      "title": "Research & Source Agent",
+      "primaryDomains": ["sources", "feeds", "provenance", "international-reference", "transferability"],
+      "allowedArtifacts": ["source_pack", "source_snapshot", "international_reference", "transferability_candidate"],
+      "deniedActions": ["mark_unverified_source_authoritative", "treat_translation_as_evidence", "publish"]
+    },
+    {
+      "id": "claims_factcheck",
+      "title": "Claims & Factcheck Agent",
+      "primaryDomains": ["claims", "arguments", "evidence", "contradictions", "factcheck"],
+      "allowedArtifacts": ["claim_candidate", "argument", "evidence_link", "contradiction", "factcheck_request"],
+      "deniedActions": ["final_official_verdict_without_review", "publish", "delete_source"]
+    },
+    {
+      "id": "participation_moderation",
+      "title": "Participation & Moderation Agent",
+      "primaryDomains": ["participation", "clustering", "moderation", "minority-perspectives", "missing-voices"],
+      "allowedArtifacts": ["participation_space_candidate", "contribution_cluster", "moderation_candidate", "missing_perspective", "tension_map"],
+      "deniedActions": ["automatic_lawful_view_removal", "manufacture_consensus", "rank_only_by_engagement", "publish"]
+    },
+    {
+      "id": "dossier_briefing",
+      "title": "Dossier & Briefing Agent",
+      "primaryDomains": ["dossier", "debate-status", "graph", "cause-effect", "responsibility", "transferability", "briefing"],
+      "allowedArtifacts": ["dossier_draft", "debate_status", "civic_graph_patch", "transferability_tree", "institutional_handoff_candidate", "voxy_briefing_candidate"],
+      "deniedActions": ["publish", "notify_external_recipient", "activate_render_runtime"]
+    },
+    {
+      "id": "governance_compliance",
+      "title": "Governance & Compliance Agent",
+      "primaryDomains": ["consent", "privacy", "rbac", "entitlements", "review", "audit", "publication-gates", "institutional-handoff-gates"],
+      "allowedArtifacts": ["compliance_check", "review_gate", "permission_decision_candidate", "audit_event", "handoff_gate"],
+      "deniedActions": ["broaden_permissions", "change_entitlement_without_approved_task", "auto_publish", "use_secret", "contact_external_recipient"]
+    }
+  ],
+  "taskMapping": {
+    "profile|onboarding|relevance|notification|interest": ["personal_voxy", "governance_compliance"],
+    "create|intake|occasion|format": ["intake_format", "governance_compliance"],
+    "source|feed|research|provenance|international|transfer": ["research_source", "dossier_briefing", "governance_compliance"],
+    "claim|argument|factcheck|evidence": ["claims_factcheck", "research_source", "governance_compliance"],
+    "participation|moderation|cluster|minority": ["participation_moderation", "governance_compliance"],
+    "dossier|debate-status|graph|briefing|handoff": ["dossier_briefing", "governance_compliance"],
+    "auth|access|privacy|entitlement|publish|audit": ["governance_compliance"]
+  },
+  "municipalTrial": {
+    "publicReadingAlwaysFree": true,
+    "verifiedTrialAdoptions": 3,
+    "trialFeatures": ["internal_assignment", "processing_status", "internal_note", "public_receipt", "simple_response_channel"],
+    "requiresApprovalBeforeNotification": true,
+    "requiresVerifiedAuthority": true,
+    "postTrial": "professional_adoption_requires_pilot_single_case_or_operating_package"
+  }
+}
