@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
 import InstitutionalPricingPage from "@/app/pricing/institutionen/page";
+import OrderPage from "@/app/order/page";
 import VormerkenPage from "@/app/vormerken/page";
 import {
   PRODUCT_SURFACE_MAIN_CLASSNAME,
@@ -33,6 +34,11 @@ async function renderInstitutions() {
   return renderToStaticMarkup(element);
 }
 
+function renderOrder(query = "") {
+  mockNavigation.params = new URLSearchParams(query);
+  return renderToStaticMarkup(<OrderPage />);
+}
+
 function renderVormerken(query = "") {
   mockNavigation.params = new URLSearchParams(query);
   return renderToStaticMarkup(<VormerkenPage />);
@@ -41,17 +47,19 @@ function renderVormerken(query = "") {
 describe("product surface layout contract", () => {
   it("classifies product surface routes explicitly", () => {
     expect(classifyProductSurfacePath("/pricing").id).toBe("pricing");
+    expect(classifyProductSurfacePath("/order?segment=organisationen").id).toBe("order");
     expect(classifyProductSurfacePath("/vormerken?segment=kommunen").id).toBe("vormerken");
     expect(classifyProductSurfacePath("/pricing/institutionen").id).toBe("pricing_institutionen");
     expect(classifyProductSurfacePath("/account").isProductSurface).toBe(false);
   });
 
-  it("keeps /pricing, /vormerken and /pricing/institutionen on one shared shell wrapper", async () => {
+  it("keeps /pricing, /order, /vormerken and /pricing/institutionen on one shared shell wrapper", async () => {
     const pricing = await renderPricing();
     const institutions = await renderInstitutions();
+    const order = renderOrder();
     const vormerken = renderVormerken();
 
-    [pricing, institutions, vormerken].forEach((html) => {
+    [pricing, institutions, order, vormerken].forEach((html) => {
       expect(html).toContain('data-product-surface-root="true"');
       expect(html).toContain('data-product-surface-shell="true"');
       expect(html).toContain(PRODUCT_SURFACE_MAIN_CLASSNAME);

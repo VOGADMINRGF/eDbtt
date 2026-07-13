@@ -10,6 +10,7 @@ describe("wrapper android MVP surface policy", () => {
     expect(classifyWrapperMvpPath("/swipes?fromDraft=abc")).toBe("mvp");
     expect(classifyWrapperMvpPath("/stream/demo-session")).toBe("mvp");
     expect(classifyWrapperMvpPath("/pricing/institutionen")).toBe("mvp");
+    expect(classifyWrapperMvpPath("/order?segment=organisationen")).toBe("mvp");
     expect(classifyWrapperMvpPath("/vormerken?segment=kommunen&quote=1")).toBe("mvp");
   });
 

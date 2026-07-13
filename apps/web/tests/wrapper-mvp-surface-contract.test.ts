@@ -19,8 +19,13 @@ describe("wrapper MVP surface contract", () => {
     const pricingNested = classifyWrapperMvpPath("/pricing/institutionen");
     expect(pricingNested.bucket).toBe("mvp");
 
+    const order = classifyWrapperMvpPath("/order?segment=organisationen");
+    expect(order.bucket).toBe("mvp");
+    expect(order.canonicalPath).toBeNull();
+
     const quoteFlow = classifyWrapperMvpPath("/vormerken?segment=kommunen&quote=1");
     expect(quoteFlow.bucket).toBe("mvp");
+    expect(quoteFlow.canonicalPath).toBe("/order");
   });
 
   it("marks later and excluded surfaces explicitly", () => {

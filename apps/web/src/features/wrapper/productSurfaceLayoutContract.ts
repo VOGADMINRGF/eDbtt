@@ -1,6 +1,10 @@
 import { normalizeInternalRedirectPath, type InternalRedirectPath } from "@/features/create/finalizeRedirect";
+import {
+  PRODUCT_SURFACE_ROUTE_IDS,
+  type ProductSurfaceRouteId,
+} from "@features/routes/routeInventoryContract";
 
-export type ProductSurfaceId = "pricing" | "vormerken" | "pricing_institutionen";
+export type ProductSurfaceId = ProductSurfaceRouteId;
 
 export type ProductSurfaceLayoutContract = {
   id: ProductSurfaceId | null;
@@ -23,11 +27,7 @@ function toComparablePath(input: InternalRedirectPath): InternalRedirectPath {
 }
 
 function resolveProductSurfaceId(path: InternalRedirectPath): ProductSurfaceId | null {
-  if (path === "/pricing") return "pricing";
-  if (path === "/vormerken") return "vormerken";
-  if (path === "/order") return "vormerken";
-  if (path === "/pricing/institutionen") return "pricing_institutionen";
-  return null;
+  return PRODUCT_SURFACE_ROUTE_IDS[path as keyof typeof PRODUCT_SURFACE_ROUTE_IDS] ?? null;
 }
 
 export function classifyProductSurfacePath(pathname: unknown): ProductSurfaceLayoutContract {

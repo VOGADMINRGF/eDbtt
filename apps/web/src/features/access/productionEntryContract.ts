@@ -52,7 +52,11 @@ export function resolveRegisterBridgeForProductionEntry(next: string | null): Re
       text: "Du kommst aus dem Eingabe-Flow. Mit einem Konto können wir deine Eingabe sicher speichern und danach direkt weiterführen.",
     };
   }
-  if (path.startsWith("/mitglied-antrag") || path.startsWith("/mitglied-werden")) {
+  if (
+    path.startsWith("/mitglied-antrag") ||
+    path.startsWith("/mitglied-werden") ||
+    path.startsWith("/beitritt")
+  ) {
     return {
       title: "Willkommen bei eDebatte",
       text: "Du kommst aus dem Initiativ-Flow. Nach der Registrierung führen wir dich ohne Umweg zurück zum Mitgliedsantrag.",
