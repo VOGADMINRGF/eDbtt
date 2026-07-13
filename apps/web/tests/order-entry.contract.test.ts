@@ -20,6 +20,10 @@ describe("order entry wrapper contract", () => {
   it("keeps /order as package-start entry with mutable segment and package", () => {
     setOrderSearch("segment=organisationen&paket=b2b_basis");
     const html = renderToStaticMarkup(createElement(OrderPage));
+    const headings = [...html.matchAll(/<h1([^>]*)>/g)];
+
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
 
     expect(html).toContain("Vorauswahl aktiv");
     expect(html).toContain("Segment wählen");

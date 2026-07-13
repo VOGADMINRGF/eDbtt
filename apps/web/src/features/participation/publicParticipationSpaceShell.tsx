@@ -185,7 +185,7 @@ export function PublicParticipationSpaceShell(props: {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[rgb(var(--muted))] sm:text-base">
             Hinweise können erst eingereicht werden, wenn dieser Beteiligungsraum
-            als veröffentlichte Runtime vorliegt. Die klar gekennzeichnete
+            als veröffentlichte Fassung vorliegt. Die klar gekennzeichnete
             Preview-Lesart bleibt deshalb ohne aktiven öffentlichen Submit.
           </p>
         </section>

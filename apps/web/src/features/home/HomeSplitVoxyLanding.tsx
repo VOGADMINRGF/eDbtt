@@ -338,9 +338,9 @@ export default function HomeSplitVoxyLanding({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[rgb(var(--grad-to))]">
                   {isUnknownVisitor ? "KLARER EINSTIEG" : experience.eyebrow}
                 </p>
-                <h2 className="mx-auto max-w-3xl text-[3rem] font-semibold tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.25rem] lg:mx-0 lg:text-[5.25rem] lg:leading-[0.95]">
+                <h1 className="mx-auto max-w-3xl text-[3rem] font-semibold tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.25rem] lg:mx-0 lg:text-[5.25rem] lg:leading-[0.95]">
                   {isUnknownVisitor ? "Was bewegt dich?" : experience.title}
-                </h2>
+                </h1>
                 <p className="mx-auto max-w-[35rem] text-base leading-8 text-[rgb(var(--fg))]/76 sm:text-lg lg:mx-0 lg:text-[1.08rem]">
                   {isUnknownVisitor
                     ? "Bring ein Anliegen, eine Beobachtung oder eine Idee ein. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen gesellschaftlich brauchbaren Beitrag zu entwickeln."

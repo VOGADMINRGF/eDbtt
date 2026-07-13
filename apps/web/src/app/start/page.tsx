@@ -3,6 +3,8 @@ import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildStartExperienceModel } from "@/features/start/startExperience";
 
+/* page-contract: delegated-h1 */
+
 export default async function StartPage() {
   const user = await getSessionUser();
   const isAdmin = user ? userIsAdminDashboard(user) : false;
@@ -10,7 +12,6 @@ export default async function StartPage() {
 
   return (
     <main className="min-h-[100svh]">
-      <h1 className="sr-only">Start</h1>
       <LandingStart experience={experience} />
     </main>
   );

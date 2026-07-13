@@ -233,7 +233,7 @@ function buildInstitutionalStateHref(args: {
   return `/pricing/institutionen?${params.toString()}#guided-selection`;
 }
 
-function buildVormerkenHref(args: {
+function buildOrderEntryHref(args: {
   locale: PricingLocale;
   segment: InstitutionalPricingSegmentId;
   packageId: string;
@@ -262,7 +262,7 @@ function buildMunicipalTenderCards(args: {
   goal: string;
   frame: string;
 }): readonly MunicipalTenderCard[] {
-  const card1Href = buildVormerkenHref({
+  const card1Href = buildOrderEntryHref({
     locale: args.locale,
     segment: "kommunen",
     packageId: "b2g_basis",
@@ -271,7 +271,7 @@ function buildMunicipalTenderCards(args: {
     completion: "direct_order",
     addOnIds: ["reports_outcomes"],
   });
-  const card2Href = buildVormerkenHref({
+  const card2Href = buildOrderEntryHref({
     locale: args.locale,
     segment: "kommunen",
     packageId: "b2g_basis",
@@ -281,7 +281,7 @@ function buildMunicipalTenderCards(args: {
     addOnIds: ["reports_outcomes", "companion_kommunikation"],
     quote: true,
   });
-  const card3Href = buildVormerkenHref({
+  const card3Href = buildOrderEntryHref({
     locale: args.locale,
     segment: "kommunen",
     packageId: "b2g_pro",
@@ -290,7 +290,7 @@ function buildMunicipalTenderCards(args: {
     completion: "conversation_request",
     addOnIds: ["managed_governance", "reports_outcomes", "moderation_assistenz"],
   });
-  const card4Href = buildVormerkenHref({
+  const card4Href = buildOrderEntryHref({
     locale: args.locale,
     segment: "kommunen",
     packageId: "b2g_pro",
@@ -321,9 +321,9 @@ function buildMunicipalTenderCards(args: {
           "Recommend suitable next format",
         ],
         deliverable: "Participation check memo with next-step recommendation and clearly defined initial scope.",
-        orderability: "Cost estimate possible · directly reservable",
+        orderability: "Cost estimate available · direct package start",
         procurementHint: "Suitable as preparatory service package.",
-        ctaLabel: "Reserve starter package",
+        ctaLabel: "Go to package start",
         href: card1Href,
       },
       {
@@ -417,9 +417,9 @@ function buildMunicipalTenderCards(args: {
         "Empfehlung für Format und nächsten Schritt",
       ],
       deliverable: "Kurzbericht zur Beteiligungsreife mit nächstem Schritt und Startumfang.",
-      orderability: "Kostenvoranschlag möglich · direkt vormerkbar",
+      orderability: "Kostenvoranschlag möglich · direkter Paketstart",
       procurementHint: "Als Startpaket und vorbereitender Leistungsbaustein geeignet.",
-      ctaLabel: "Startpaket vormerken",
+      ctaLabel: "Zum Paketstart",
       href: card1Href,
     },
     {
@@ -499,7 +499,7 @@ function buildB2BPartnerCards(args: {
   goal: string;
   frame: string;
 }): readonly B2BPartnerCard[] {
-  const starterHref = buildVormerkenHref({
+  const starterHref = buildOrderEntryHref({
     locale: args.locale,
     segment: "organisationen",
     packageId: "b2b_basis",
@@ -508,7 +508,7 @@ function buildB2BPartnerCards(args: {
     completion: "direct_order",
     addOnIds: ["reports_outcomes"],
   });
-  const starterDemoHref = buildVormerkenHref({
+  const starterDemoHref = buildOrderEntryHref({
     locale: args.locale,
     segment: "organisationen",
     packageId: "b2b_basis",
@@ -516,7 +516,7 @@ function buildB2BPartnerCards(args: {
     frame: args.frame,
     completion: "conversation_request",
   });
-  const projectHref = buildVormerkenHref({
+  const projectHref = buildOrderEntryHref({
     locale: args.locale,
     segment: "organisationen",
     packageId: "b2b_basis",
@@ -526,7 +526,7 @@ function buildB2BPartnerCards(args: {
     addOnIds: ["companion_kommunikation", "reports_outcomes"],
     quote: true,
   });
-  const officeOpsHref = buildVormerkenHref({
+  const officeOpsHref = buildOrderEntryHref({
     locale: args.locale,
     segment: "organisationen",
     packageId: "b2b_pro",
@@ -535,7 +535,7 @@ function buildB2BPartnerCards(args: {
     completion: "conversation_request",
     addOnIds: ["managed_governance", "moderation_assistenz", "reports_outcomes"],
   });
-  const frameworkHref = buildVormerkenHref({
+  const frameworkHref = buildOrderEntryHref({
     locale: args.locale,
     segment: "organisationen",
     packageId: "b2b_pro",
@@ -562,9 +562,9 @@ function buildB2BPartnerCards(args: {
           "Result documentation for client handover",
         ],
         result: "Operational dossier and communication package for first client projects.",
-        orderability: "Directly reservable as starter package",
+        orderability: "Direct package start available",
         note: "eDebatte supports process design work, it does not replace participation offices.",
-        ctaLabel: "Reserve starter package",
+        ctaLabel: "Go to package start",
         href: starterHref,
         secondaryCtaLabel: "Request demo",
         secondaryHref: starterDemoHref,
@@ -647,9 +647,9 @@ function buildB2BPartnerCards(args: {
         "Ergebnisdokumentation für Auftraggeber",
       ],
       result: "Belastbares Dossier- und Kommunikationspaket für erste Kundenprojekte.",
-      orderability: "Direkt vormerkbar als Startpaket",
+      orderability: "Direkter Paketstart möglich",
       note: "eDebatte ersetzt keine Moderation, sondern ergänzt bestehende Beteiligungsarbeit.",
-      ctaLabel: "Startpaket vormerken",
+      ctaLabel: "Zum Paketstart",
       href: starterHref,
       secondaryCtaLabel: "Demo anfragen",
       secondaryHref: starterDemoHref,
@@ -880,7 +880,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
       frame: next.frame ?? selectedFrame,
     });
 
-  const applyRecommendationHref = buildVormerkenHref({
+  const applyRecommendationHref = buildOrderEntryHref({
     locale,
     segment,
     packageId: recommendation.recommendedPackageId,
@@ -890,7 +890,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
     completion: "direct_order",
   });
 
-  const directOrderHref = buildVormerkenHref({
+  const directOrderHref = buildOrderEntryHref({
     locale,
     segment,
     packageId: recommendation.recommendedPackageId,
@@ -899,7 +899,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
     completion: "direct_order",
   });
 
-  const quoteHref = buildVormerkenHref({
+  const quoteHref = buildOrderEntryHref({
     locale,
     segment,
     packageId: recommendation.recommendedPackageId,
@@ -909,7 +909,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
     completion: "quote_request",
   });
 
-  const quoteDownloadHref = buildVormerkenHref({
+  const quoteDownloadHref = buildOrderEntryHref({
     locale,
     segment,
     packageId: recommendation.recommendedPackageId,
@@ -920,7 +920,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
     completion: "quote_request",
   });
 
-  const conversationHref = buildVormerkenHref({
+  const conversationHref = buildOrderEntryHref({
     locale,
     segment,
     packageId: recommendation.recommendedPackageId,
@@ -1275,7 +1275,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
                   </Link>
                   {entry.id === "vergabe_rahmenvertrag" ? (
                     <Link
-                      href={buildVormerkenHref({
+                      href={buildOrderEntryHref({
                         locale,
                         segment: "kommunen",
                         packageId: "b2g_pro",
@@ -1440,7 +1440,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.statusLabel}</p>
                 <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{status}</p>
                 <Link
-                  href={buildVormerkenHref({
+                  href={buildOrderEntryHref({
                     locale,
                     segment,
                     packageId: recommendation.recommendedPackageId,

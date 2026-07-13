@@ -110,14 +110,14 @@ export function summarizePublicParticipationSpaceRuntimeState(input: {
 }): PublicParticipationSpaceRuntimeStatus {
   const defaultMessage =
     input.source === "runtime"
-      ? "Die öffentliche Route liest veröffentlichte Beteiligungsräume aus der persistierten Runtime."
+      ? "Die öffentliche Route zeigt nur ausdrücklich veröffentlichte Beteiligungsräume."
       : input.source === "fixture_fallback"
-        ? "Es liegen noch keine veröffentlichten Runtime-Räume vor. Deshalb bleibt die bisherige Preview-Fallback-Lesart sichtbar gekennzeichnet."
+        ? "Noch liegt keine veröffentlichte Fassung vor. Deshalb bleibt eine klar gekennzeichnete Vorschau sichtbar."
         : input.source === "empty"
           ? "Weitere Räume erscheinen erst nach Prüfung und Freigabe."
           : input.source === "blocked_unwired"
-            ? "Die öffentliche Runtime ist noch nicht belastbar verdrahtet."
-            : "Die öffentliche Runtime konnte gerade nicht sicher geladen werden.";
+            ? "Die öffentliche Fassung wird noch vorbereitet."
+            : "Die öffentliche Fassung konnte gerade nicht sicher geladen werden.";
 
   return buildStatus({
     source: input.source,
@@ -127,20 +127,35 @@ export function summarizePublicParticipationSpaceRuntimeState(input: {
   });
 }
 
+export function getPublicParticipationSourceLabel(source: PublicParticipationSpaceRuntimeSource) {
+  switch (source) {
+    case "runtime":
+      return "Veröffentlicht";
+    case "fixture_fallback":
+      return "Vorschau gekennzeichnet";
+    case "blocked_unwired":
+      return "Vorbereitung läuft";
+    case "error":
+      return "Vorübergehend eingeschränkt";
+    default:
+      return "Noch keine öffentliche Freigabe";
+  }
+}
+
 function runtimeSourceBadgeLabel(source: PublicParticipationSpaceRuntimeItem["source"]) {
-  return source === "runtime" ? "Runtime-basiert" : "Fixture-basiert";
+  return getPublicParticipationSourceLabel(source);
 }
 
 function buildRuntimeSourceNotice(source: PublicParticipationSpaceRuntimeItem["source"]) {
   return source === "runtime"
-    ? "Die öffentliche Route bleibt read-only und liest nur explizit veröffentlichte Beteiligungsräume. Review-, Audit-, Abuse- und Trust-Interna bleiben verborgen."
-    : "Dieser Eintrag stammt aus einer klar gekennzeichneten Fixture-/Preview-Lesart, solange noch keine veröffentlichte Runtime vorliegt.";
+    ? "Die öffentliche Route bleibt read-only und zeigt nur ausdrücklich freigegebene Beteiligungsräume. Review-, Audit-, Abuse- und Trust-Details bleiben verborgen."
+    : "Dieser Eintrag bleibt als klar gekennzeichnete Vorschau sichtbar, bis eine veröffentlichte Fassung vorliegt.";
 }
 
 function buildPublicLabel(source: PublicParticipationSpaceRuntimeItem["source"]) {
   return source === "runtime"
-    ? "Dieser Raum wurde redaktionell freigegeben."
-    : "Dieser Preview-Raum ist nur als öffentliche Beispiel-Lesart markiert.";
+    ? "Dieser Raum wurde redaktionell öffentlich freigegeben."
+    : "Dieser Vorschau-Raum bleibt als Beispiel sichtbar, bis eine veröffentlichte Fassung vorliegt.";
 }
 
 export function isPublicParticipationSpace(

@@ -167,12 +167,15 @@ describe("participation space public route runtime", () => {
     const html = renderToStaticMarkup(await PublicParticipationSpaceIndexPage());
 
     expect(html).toContain("Öffentlich freigegebene Beteiligungsräume");
-    expect(html).toContain("Runtime-basiert");
+    expect(html).toContain("Veröffentlicht");
     expect(html).toContain("Beteiligungsraum Sichere Schulwege");
     expect(html).not.toContain("Nur intern");
     expect(html).not.toContain("communitySignals");
     expect(html).not.toContain("auditTrail");
     expect(html).not.toContain("admin-1");
+    expect(html).not.toContain("Runtime-basiert");
+    expect(html).not.toContain("Fixture-basiert");
+    expect(html).not.toContain("Runtime-Published");
   });
 
   it("keeps the existing fixture fallback clearly marked when no runtime publish exists", async () => {
@@ -182,6 +185,6 @@ describe("participation space public route runtime", () => {
 
     expect(result.status.source).toBe("fixture_fallback");
     expect(result.items.length).toBeGreaterThan(0);
-    expect(result.status.message).toContain("Preview-Fallback");
+    expect(result.status.message).toContain("klar gekennzeichnete Vorschau");
   });
 });
