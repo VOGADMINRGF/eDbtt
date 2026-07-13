@@ -9,6 +9,7 @@ import {
   canUnpublishDossier,
   type DossierPublicationRecord,
 } from "@/features/create/dossierPublishWorkflow";
+import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 
 type DossierPublicationAction =
   | "requestDossierPublicationReview"
@@ -74,13 +75,19 @@ export default function DossierPublishActions({ record }: Props) {
   return (
     <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
       <p className="text-xs text-[rgb(var(--muted))]">
-        Freigabe bedeutet Veröffentlichung, nicht Wahrheitszertifikat.
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[0]}
       </p>
       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-        Quellen bleiben prüfbare Belege und Kontext, keine automatische Verifikation.
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[1]}
       </p>
       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-        Dossier-Veröffentlichung erzeugt keinen Graph Merge und keinen Anlassraum.
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[2]}
+      </p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[3]}
+      </p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[4]}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">

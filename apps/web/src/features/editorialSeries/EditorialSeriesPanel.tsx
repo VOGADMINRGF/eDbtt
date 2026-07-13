@@ -2,6 +2,7 @@ import type {
   EditorialSeriesModel,
   EditorialSeriesStage,
 } from "@/features/editorialSeries/editorialSeriesContract";
+import { buildDossierExportShareSemanticsLines } from "@/features/review/dossierExportShareTruth";
 
 type EditorialSeriesPanelProps = {
   model: EditorialSeriesModel | null;
@@ -25,6 +26,9 @@ export default function EditorialSeriesPanel({
   dataTestId,
 }: EditorialSeriesPanelProps) {
   if (!model) return null;
+  const semanticsLine = buildDossierExportShareSemanticsLines("approved_for_export")
+    .slice(0, 2)
+    .join(" ");
 
   return (
     <section
@@ -41,7 +45,7 @@ export default function EditorialSeriesPanel({
             {model.clusterLabel} · {model.cadenceLabel}
           </p>
           <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-            Review-ready ist nicht approved. Approved ist nicht published.
+            {semanticsLine}
           </p>
         </div>
         <div className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">

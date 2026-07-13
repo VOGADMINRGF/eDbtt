@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import type { ReviewQueueItem } from "@features/reviewQueue";
 import type { ContentReleasePersistenceState } from "@features/contentReleaseWorkbench";
+import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 
 type Props = {
   itemId: string;
@@ -84,6 +85,12 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
         eDebatte bereitet Inhalte veröffentlichbar vor. Du entscheidest, was sichtbar wird.
         Sichtbar heißt nicht automatisch amtlich.
+      </p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[2]}
+      </p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[3]}
       </p>
       {props.scopeCopy ? (
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">{props.scopeCopy}</p>

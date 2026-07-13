@@ -9,6 +9,11 @@ import {
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { sanitizeClaimPublic, selectEffectiveFindings } from "@features/dossier/effective";
+import {
+  getAnyDossierPublicationRecordByDossierId,
+} from "@/features/create/dossierPublishWorkflowServer";
+import { resolveDossierPublicExportAccess } from "@/features/dossier/publicExportAccess";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { rateLimitHeaders } from "@/utils/rateLimitHelpers";
 import { rateLimitPublic } from "@/utils/publicRateLimit";
 
@@ -94,6 +99,19 @@ export async function GET(
   const dossier = await findDossierByAnyId(dossierId);
   if (!dossier) {
     return new Response("dossier_not_found", { status: 404 });
+  }
+
+  const access = resolveDossierPublicExportAccess(
+    await getAnyDossierPublicationRecordByDossierId(dossier.dossierId).catch(() => null),
+  );
+  if (access.allowed === false) {
+    const adminGate = await requireAdminOrResponse(req);
+    if (adminGate instanceof Response) {
+      return new Response("dossier_review_only", {
+        status: 409,
+        headers: rateLimitHeaders(rl),
+      });
+    }
   }
 
   const dossierKey = dossier.dossierId;

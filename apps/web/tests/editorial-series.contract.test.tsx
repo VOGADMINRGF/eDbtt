@@ -153,7 +153,7 @@ describe("editorial series contract", () => {
       }),
     );
 
-    expect(html).toContain("Review-ready ist nicht approved. Approved ist nicht published.");
+    expect(html).toContain("Review-ready ist nicht approved_for_export. approved_for_export ist nicht publish_ready oder published.");
     expect(html).toContain("Kampagnenkontext: schulwege-quartier");
   });
 

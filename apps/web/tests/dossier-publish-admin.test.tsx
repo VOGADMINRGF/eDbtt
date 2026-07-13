@@ -138,7 +138,9 @@ describe("dossier publish admin ui", () => {
     expect(markup).toContain("Dossier-Veröffentlichung prüfen");
     expect(markup).toContain("Veröffentlichungsprüfung anfordern");
     expect(markup).toContain("Freigabe bedeutet Veröffentlichung, nicht Wahrheitszertifikat.");
-    expect(markup).toContain("Quellen bleiben prüfbare Belege/Kontext");
+    expect(markup).toContain("Quellen bleiben prüfbare Belege und Kontext");
+    expect(markup).toContain("Share-Vorschau ist keine öffentliche Veröffentlichung.");
+    expect(markup).toContain("Export bleibt manuell und löst keinen Publish-Schritt aus.");
     expect(markup).toContain("Dossier-Veröffentlichung erzeugt keinen Graph Merge");
     expect(markup).toContain("Audit Trail");
     expect(markup).toContain("runtime_wired");

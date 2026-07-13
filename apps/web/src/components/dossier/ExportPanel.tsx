@@ -1,3 +1,5 @@
+import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
+
 type ExportPanelProps = {
   dossierId: string;
   exportBase?: string;
@@ -25,6 +27,9 @@ export function ExportPanel({ dossierId, exportBase }: ExportPanelProps) {
       </div>
       <div className="text-[11px] text-[rgb(var(--muted))]">
         Export enthält: Snapshot · Signatur · Audit-Kette · Workflow-Status.
+      </div>
+      <div className="text-[11px] text-[rgb(var(--muted))]">
+        {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[2]} {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[3]}
       </div>
       <details className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[11px] text-[rgb(var(--muted))]">
         <summary className="cursor-pointer text-[11px] font-semibold text-[rgb(var(--fg))]">

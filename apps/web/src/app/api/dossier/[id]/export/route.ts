@@ -10,6 +10,11 @@ import type {
   StoredDossier,
   WorkflowDoc,
 } from "@features/dossier/infra/types";
+import {
+  getAnyDossierPublicationRecordByDossierId,
+} from "@/features/create/dossierPublishWorkflowServer";
+import { resolveDossierPublicExportAccess } from "@/features/dossier/publicExportAccess";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,8 +76,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 });
   }
 
-  const { meta, analyze, sourceSet } = dossier;
   const dossierId = id === "demo" ? demoDossier.meta.id : id;
+  const access =
+    id === "demo" || id === demoDossier.meta.id
+      ? { allowed: true as const, truthStage: "published" as const, truthStageLabel: "Veröffentlicht" }
+      : resolveDossierPublicExportAccess(
+          await getAnyDossierPublicationRecordByDossierId(dossierId).catch(() => null),
+        );
+  if (access.allowed === false) {
+    const adminGate = await requireAdminOrResponse(request);
+    if (adminGate instanceof Response) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: access.error,
+          truthStage: access.truthStage,
+          truthStageLabel: access.truthStageLabel,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  const { meta, analyze, sourceSet } = dossier;
 
   let snapshot: DossierSnapshot | null = null;
   let auditTrail: AuditEvent[] = [];

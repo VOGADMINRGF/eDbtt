@@ -15,7 +15,7 @@ describe("admin editorial hubs", () => {
 
     expect(html).toContain("Editorial Queue");
     expect(html).toContain("Editorial-Series-Überblick in der Queue");
-    expect(html).toContain("Review-ready ist nicht approved. Approved ist nicht published.");
+    expect(html).toContain("Review-ready ist nicht approved_for_export. approved_for_export ist nicht publish_ready oder published.");
     expect(html).toContain("Kein Auto-Publish, kein Social Posting und kein Scheduling.");
     expect(html).toContain("Lädt Queue...");
   });
