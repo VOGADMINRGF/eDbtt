@@ -42,3 +42,18 @@ Den freigegebenen Pfad `selected_path = hybrid_external_render_adapter` als klei
 - Spaetere Runtime-Aktivierung bleibt separater Decision-/Enablement-Pfad
 - Provider-Adapter bleibt bewusst noop/disabled
 - Queue-, Storage-, Upload-, Scheduling- und Publish-Ausfuehrung bleiben ausserhalb dieses Slices
+
+## Strategische Fortsetzung ab 2026-07-13
+
+Der Hybridpfad bleibt der freigegebene Uebergangs- und Fallback-Pfad fuer eine fruehe echte Preview. Das langfristige Produktziel wird jedoch auf einen eigenen eDebatte-Self-Renderer erweitert:
+
+- eDebatte besitzt Script, Evidence, Assets, Templates, Voice-/Motion-Cues, Review und Rendersteuerung.
+- Ein externer Adapter darf erste Tests beschleunigen, wird aber nicht zum Produktkern.
+- Standard-Voxy-Videos sollen langfristig serverseitig durch eDebatte selbst gerendert werden, um Anbieterabhaengigkeit und wiederkehrende externe Videokosten zu reduzieren.
+- Vor der Runtime darf ein kontrollierter Marketing-Pilot mit zehn reproduzierbaren Werbevideo-Briefings und wenigen manuellen Stilprototypen stattfinden.
+- Adobe Character Animator oder andere Tools bleiben optionale Pilotwerkzeuge; OBS und eine Webcam sind keine Voraussetzung fuer vorproduzierte Voxy-Videos.
+- Kein Auto-Publish und kein Review-Bypass.
+
+Kanonische Roadmap und vorgeschlagener OpenTasks-Block:
+
+- `docs/E150/V3_VOXY_SELF_RENDER_AND_MARKETING_PILOT_ROADMAP_2026-07-13.md`
