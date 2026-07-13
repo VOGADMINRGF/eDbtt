@@ -34,6 +34,7 @@ const EXACT_MVP_PATHS = new Set([
   "/runden",
   "/anlassraum",
   "/pricing",
+  "/order",
   "/vormerken",
   "/impressum",
   "/datenschutz",

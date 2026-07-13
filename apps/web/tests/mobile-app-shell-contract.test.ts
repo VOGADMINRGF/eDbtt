@@ -43,6 +43,11 @@ describe("mobile app shell contract", () => {
     expect(pricing.bottomNavEnabled).toBe(true);
     expect(pricing.reason).toBe("core");
 
+    const order = classifyMobileAppShellPath("/order?segment=organisationen");
+    expect(order.shellEnabled).toBe(true);
+    expect(order.bottomNavEnabled).toBe(true);
+    expect(order.reason).toBe("core");
+
     const preorder = classifyMobileAppShellPath("/vormerken?segment=kommunen");
     expect(preorder.shellEnabled).toBe(true);
     expect(preorder.bottomNavEnabled).toBe(true);

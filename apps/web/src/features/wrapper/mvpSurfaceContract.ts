@@ -1,5 +1,6 @@
 import { BRAND } from "@/lib/brand";
 import { normalizeInternalRedirectPath, type InternalRedirectPath } from "@/features/create/finalizeRedirect";
+import { ROUTE_ALIAS_CANONICAL_PATHS } from "@features/routes/routeInventoryContract";
 
 export type WrapperMvpSurfaceBucket = "mvp" | "later" | "excluded" | "unknown" | "invalid";
 
@@ -28,10 +29,10 @@ export type WrapperHrefClassification =
     };
 
 const WRAPPER_ALIAS_CANONICAL: Record<InternalRedirectPath, InternalRedirectPath> = {
-  "/anlassraum": "/runden",
+  "/anlassraum": ROUTE_ALIAS_CANONICAL_PATHS["/anlassraum"] as InternalRedirectPath,
   "/sw": "/swipes",
   "/swipe": "/swipes",
-  "/vormerken": "/order",
+  "/vormerken": ROUTE_ALIAS_CANONICAL_PATHS["/vormerken"] as InternalRedirectPath,
 };
 
 const MVP_EXACT_PATHS = new Set<InternalRedirectPath>([
