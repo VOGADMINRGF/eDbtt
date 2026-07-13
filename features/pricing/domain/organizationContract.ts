@@ -116,6 +116,22 @@ export function organizationBillingStatusLabel(status: OrganizationBillingStatus
   }
 }
 
+export function organizationBillingSourceLabel(source: OrganizationBillingSource): string {
+  switch (source) {
+    case "operator_verified_contract":
+      return "Betreiber-verifizierter Vertragsprozess";
+    case "manual_invoice":
+      return "Manuelle Rechnung / Vertragspfad";
+    case "external_checkout_pending":
+      return "Externer Checkout später optional";
+    case "external_checkout_integrated":
+      return "Externer Checkout integriert";
+    case "fixture_demo":
+    default:
+      return "Demo- oder Testpfad";
+  }
+}
+
 export function mapPricingOrderStatusToContractStatus(status: PricingOrderStatus): OrganizationContractStatus {
   switch (status) {
     case "package_selected":

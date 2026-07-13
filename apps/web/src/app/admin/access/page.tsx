@@ -6,6 +6,7 @@ import type { AccessGroup, RoutePolicy } from "@features/access/types";
 import type { AccessTier } from "@features/pricing/types";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
+import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 
 type RouteRow = RoutePolicy & { overrides: number };
 
@@ -22,6 +23,7 @@ const ACCESS_GROUP_OPTIONS: AccessGroup[] = [
 ];
 
 export default function AccessCenterPage() {
+  const accessSurface = getOperatorWorkbenchSurface("accessCenter");
   const searchParams = useSearchParams();
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,8 +169,10 @@ export default function AccessCenterPage() {
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Access Center</p>
-          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Seitenzugriffe verwalten</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            {accessSurface.eyebrow}
+          </p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{accessSurface.title}</h1>
           <p className="text-sm text-[rgb(var(--muted))]">
             Definiere, welche Gruppen und Nutzer einzelne Seiten sehen dürfen. {PRODUCTION_ENTRY_COPY.adminAccessLead}
           </p>

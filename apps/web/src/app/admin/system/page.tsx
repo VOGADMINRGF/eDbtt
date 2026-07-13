@@ -1,10 +1,22 @@
 import Link from "next/link";
+import {
+  getOperatorWorkbenchSurface,
+  type OperatorWorkbenchSurfaceKey,
+} from "@/features/admin/operatorWorkbenchSurfaces";
 
 type HubItem = {
   title: string;
   description: string;
   href: string;
 };
+
+const NEXT_STEP_SURFACES: OperatorWorkbenchSurfaceKey[] = [
+  "reviewQueue",
+  "accessCenter",
+  "entitlements",
+  "pricingOrders",
+  "organizationDashboard",
+];
 
 const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
   {
@@ -45,17 +57,29 @@ const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
 ];
 
 export default function AdminSystemHubPage() {
+  const systemSurface = getOperatorWorkbenchSurface("systemHub");
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-          Admin · System
+          {systemSurface.eyebrow}
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">System Hub</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Betriebs- und Konfigurationsbereiche schnell erreichbar.
-        </p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{systemSurface.title}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{systemSurface.summary}</p>
       </header>
+
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Häufige nächste Schritte</h2>
+          <span className="text-xs text-[rgb(var(--muted))]">{NEXT_STEP_SURFACES.length} Wege</span>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {NEXT_STEP_SURFACES.map((key) => {
+            const surface = getOperatorWorkbenchSurface(key);
+            return <HubCard key={surface.href} title={surface.title} description={surface.summary} href={surface.href} />;
+          })}
+        </div>
+      </section>
 
       {SECTIONS.map((section) => (
         <section

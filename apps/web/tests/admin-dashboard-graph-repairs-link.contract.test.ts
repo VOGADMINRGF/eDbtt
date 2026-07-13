@@ -17,7 +17,7 @@ describe("admin dashboard graph repairs link contract", () => {
     expect(adminPage).toContain("Ruhige Operator-Konsole");
     expect(adminPage).toContain("Nächste sichere Schritte");
     expect(adminPage).toContain("Review Queue");
-    expect(adminPage).toContain("Pricing Orders");
+    expect(adminPage).toContain('getOperatorWorkbenchSurface("pricingOrders")');
     expect(adminPage).not.toContain('href="#"');
   });
 });
