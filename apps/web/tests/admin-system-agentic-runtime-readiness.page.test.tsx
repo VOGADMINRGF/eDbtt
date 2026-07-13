@@ -14,8 +14,10 @@ describe("admin system agentic runtime readiness page", () => {
     expect(html).toContain("B2G Jurisdiktions- und Debattenstand-Cockpit");
     expect(html).toContain("Daily Civic Impulses bleiben optional, maximal 3 pro Tag.");
     expect(html).toContain("Screenshot-Intake trennt visible_observation -&gt; user_interpretation -&gt; possible_hypothesis -&gt; source_backed_fact");
-    expect(html).toContain("V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01");
-    expect(html).toContain("V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01");
+    expect(html).toContain("V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01");
+    expect(html).toContain("V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01");
+    expect(html).toContain("V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01");
+    expect(html).not.toContain("V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01</li>");
     expect(html).toContain("Public Debattenstand bleibt frei lesbar");
     expect(html).toContain("benannter Kontakt optional");
     expect(html).not.toContain("Provider aktiviert");

@@ -28,10 +28,24 @@ describe("agent registry bootstrap contract", () => {
     expect(bootstrap.bootstrapTask.id).toBe("V3-AGENT-REGISTRY-RUNNER-BOOTSTRAP-01");
     expect(bootstrap.followupTasks).toHaveLength(13);
     expect(readiness.registry.sharedRuleKeys).toContain("translationIsNotEvidence");
-    expect(readiness.bootstrap.codexReadyTaskIds).toEqual([
+    expect(readiness.bootstrap.doneTaskIds).toContain(
       "V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01",
-      "V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01",
-    ]);
+    );
+    expect(readiness.bootstrap.doneTaskIds).toEqual(
+      expect.arrayContaining([
+        "V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01",
+        "V3-INTAKE-FORMAT-AGENT-E2E-01",
+        "V3-REGIONAL-CIVIC-RADAR-AND-PARTICIPATION-DISCOVERY-01",
+        "V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01",
+      ]),
+    );
+    expect(readiness.bootstrap.codexReadyTaskIds).toEqual(
+      expect.arrayContaining([
+        "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
+        "V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01",
+        "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
+      ]),
+    );
   });
 
   it("keeps denied actions and shared rules enforceable without silent override", () => {
