@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "bootstrapTask": {
     "id": "V3-AGENT-REGISTRY-RUNNER-BOOTSTRAP-01",
     "status": "codex_ready",
@@ -13,7 +13,8 @@
       "add a deterministic task-to-role resolver",
       "add tests proving denied actions and shared rules cannot be silently overridden",
       "surface registry readiness in the existing admin/operator system area without runtime activation",
-      "materialize the follow-up tasks below into docs/E150/OpenTasks.md with evidence links"
+      "materialize the follow-up tasks below into docs/E150/OpenTasks.md with evidence links",
+      "load docs/E150/V3_SEGMENTED_AGENT_EXPERIENCE_AND_DAILY_CIVIC_IMPULSES_2026-07-13.md as canonical segment behavior"
     ],
     "nonGoals": [
       "no model or provider calls",
@@ -27,17 +28,48 @@
   },
   "followupTasks": [
     {
-      "id": "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
+      "id": "V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01",
       "status": "codex_ready",
       "priority": 2,
-      "cluster": "Personal Voxy / onboarding / profile / consent",
+      "cluster": "B2C Personal Voxy / B2B workbench / B2G authority cockpit",
+      "primaryRole": "governance_compliance",
+      "supportingRoles": ["personal_voxy", "dossier_briefing"],
+      "scope": [
+        "define typed segment experience modes",
+        "prevent Personal Voxy from being forced onto B2B and B2G",
+        "define optional guided assistance and named human contact modes",
+        "add tests for segment boundaries"
+      ]
+    },
+    {
+      "id": "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
+      "status": "blocked",
+      "priority": 3,
+      "unblockAfter": ["V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01"],
+      "cluster": "Personal Voxy / onboarding / profile / consent / active-passive modes",
       "primaryRole": "personal_voxy",
       "supportingRoles": ["governance_compliance"]
     },
     {
+      "id": "V3-DAILY-CIVIC-IMPULSES-OBSERVATION-INTAKE-01",
+      "status": "blocked",
+      "priority": 4,
+      "unblockAfter": ["V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01"],
+      "cluster": "Three daily civic impulses / text / voice / screenshot / observation confirmation",
+      "primaryRole": "personal_voxy",
+      "supportingRoles": ["intake_format", "governance_compliance"],
+      "scope": [
+        "offer up to three optional daily civic impulses without negativity framing",
+        "separate observation, user interpretation, hypothesis and fact",
+        "require confirmation before profile or graph persistence",
+        "support passive, relevant-only, periodic, active and topic-watch modes",
+        "reward civic understanding rather than complaint volume"
+      ]
+    },
+    {
       "id": "V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01",
       "status": "codex_ready",
-      "priority": 3,
+      "priority": 5,
       "cluster": "Agent run / artifact provenance / user-safe trace",
       "primaryRole": "governance_compliance",
       "supportingRoles": ["dossier_briefing", "intake_format"]
@@ -45,16 +77,31 @@
     {
       "id": "V3-INTAKE-FORMAT-AGENT-E2E-01",
       "status": "blocked",
-      "priority": 4,
+      "priority": 6,
       "unblockAfter": ["V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01"],
-      "cluster": "Create / intake / occasion / format recommendation",
+      "cluster": "Create / observation classification / occasion / format recommendation",
       "primaryRole": "intake_format",
       "supportingRoles": ["personal_voxy", "governance_compliance"]
     },
     {
+      "id": "V3-REGIONAL-CIVIC-RADAR-AND-PARTICIPATION-DISCOVERY-01",
+      "status": "blocked",
+      "priority": 7,
+      "unblockAfter": ["V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01"],
+      "cluster": "Regional topics / civic participation / citizen initiatives / relevance reasons",
+      "primaryRole": "research_source",
+      "supportingRoles": ["personal_voxy", "governance_compliance"],
+      "scope": [
+        "discover current regional topics, participation opportunities and citizen initiatives",
+        "preserve organizer, jurisdiction, deadline, source and retrieval time",
+        "show why each result is relevant",
+        "respect passive and proactive suggestion settings"
+      ]
+    },
+    {
       "id": "V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01",
       "status": "blocked",
-      "priority": 5,
+      "priority": 8,
       "unblockAfter": ["V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01"],
       "cluster": "Research / provenance / international transferability",
       "primaryRole": "research_source",
@@ -63,34 +110,50 @@
     {
       "id": "V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01",
       "status": "blocked",
-      "priority": 6,
+      "priority": 9,
       "unblockAfter": ["V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01"],
-      "cluster": "Claims / evidence / factcheck / civic graph",
+      "cluster": "Claims / interpretation / hypothesis / evidence / factcheck / civic graph",
       "primaryRole": "claims_factcheck",
       "supportingRoles": ["research_source", "governance_compliance"]
     },
     {
       "id": "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
       "status": "blocked",
-      "priority": 7,
+      "priority": 10,
       "unblockAfter": ["V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01"],
-      "cluster": "Dossier / Debattenstand / transfer tree / responsibility graph",
+      "cluster": "Dossier / Debattenstand / causal branches / transfer tree / responsibility graph",
       "primaryRole": "dossier_briefing",
       "supportingRoles": ["research_source", "claims_factcheck", "governance_compliance"]
     },
     {
       "id": "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
       "status": "blocked",
-      "priority": 8,
+      "priority": 11,
       "unblockAfter": ["V3-INTAKE-FORMAT-AGENT-E2E-01"],
-      "cluster": "Participation / moderation / clustering / missing perspectives",
+      "cluster": "Participation / moderation / format fitness / clustering / missing perspectives",
       "primaryRole": "participation_moderation",
       "supportingRoles": ["personal_voxy", "governance_compliance"]
     },
     {
+      "id": "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
+      "status": "blocked",
+      "priority": 12,
+      "unblockAfter": ["V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01"],
+      "cluster": "Verified authority first login / jurisdiction matches / available and suggested participation",
+      "primaryRole": "dossier_briefing",
+      "supportingRoles": ["research_source", "governance_compliance"],
+      "scope": [
+        "show available public Debattenstaende in jurisdiction",
+        "show current public participation and votes",
+        "show reviewed topic candidates that may warrant participation",
+        "keep available, recommended adoption and suggested future process distinct",
+        "offer self-service, guided assistance, named contact and managed governance modes"
+      ]
+    },
+    {
       "id": "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
       "status": "needs_decision",
-      "priority": 9,
+      "priority": 13,
       "cluster": "Municipal handoff / verified authority / three free internal adoptions",
       "primaryRole": "dossier_briefing",
       "supportingRoles": ["governance_compliance"],
@@ -99,13 +162,16 @@
     {
       "id": "V3-AGENTIC-CIVIC-E2E-PILOT-01",
       "status": "blocked",
-      "priority": 10,
+      "priority": 14,
       "unblockAfter": [
+        "V3-DAILY-CIVIC-IMPULSES-OBSERVATION-INTAKE-01",
+        "V3-REGIONAL-CIVIC-RADAR-AND-PARTICIPATION-DISCOVERY-01",
         "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
         "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
+        "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
         "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01"
       ],
-      "cluster": "Create to authority-response civic pilot",
+      "cluster": "Observation or regional topic to authority-response civic pilot",
       "primaryRole": "dossier_briefing",
       "supportingRoles": ["personal_voxy", "intake_format", "research_source", "claims_factcheck", "participation_moderation", "governance_compliance"]
     }
