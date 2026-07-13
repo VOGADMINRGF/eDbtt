@@ -275,6 +275,10 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain("Quelle auswerten");
     expect(html).toContain("Explizite URL kontrolliert und reviewpflichtig auswerten");
+    expect(html).toContain("Kanonischer Review-first Pfad");
+    expect(html).toContain("Review-first Quellenpfad");
+    expect(html).toContain("Source Connection");
+    expect(html).toContain("Snapshot");
     expect(html).toContain("Beispiel-Snapshot");
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Demo-/Pilotstand reproduzierbar");

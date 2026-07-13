@@ -879,6 +879,8 @@ describe("/admin/review page", () => {
     const html = renderToStaticMarkup(await AdminReviewPage());
 
     expect(html).toContain("Zentrale Review-Queue");
+    expect(html).toContain("Kanonischer Review-first Pfad");
+    expect(html).toContain("Kanonische Review-Herkunft");
     expect(html).toContain("Review-to-Visible Journey");
     expect(html).toContain("Review, Vorschau, Sichtbarkeit und Widerruf laufen auf demselben Pfad");
     expect(html).toContain("Operations-Persistenz");
@@ -915,6 +917,8 @@ describe("/admin/review page", () => {
     expect(html).toContain("Beispiel-Seed");
     expect(html).toContain("Create-/Account-Herkunft");
     expect(html).toContain("Bestehender Create-Arbeitsstand mit Account-Resume-Bezug.");
+    expect(html).toContain("Review-State: Bereit zur Freigabe");
+    expect(html).not.toContain("Review-State: ready_for_confirmation");
     expect(html).toContain("Account-Linkage: Rückverknüpfung zum ursprünglichen Beitrag noch offen · Keine belastbare Basis");
     expect(html).toContain("Warum noch nicht vollständig belastbar:");
     expect(html).toContain("Schulsanierung im Bezirk · Dossier-Entwurf");

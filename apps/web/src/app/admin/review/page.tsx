@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildReviewQueueReadModel, type ReviewQueueFilters } from "@features/reviewQueue";
 import { factcheckSealDecisionLabel } from "@features/factcheck/workflow";
+import FeedSourceIntakeSurfaceTruthCallout from "@/features/review/FeedSourceIntakeSurfaceTruthCallout";
+import { createHandoffReviewStateLabel } from "@/features/review/reviewSurfaceStatusLabels";
 import AdminFactcheckJobsSection from "./AdminFactcheckJobsSection";
 import AdminEditorialReviewSection from "./AdminEditorialReviewSection";
 import AdminGraphMergeCandidatesSection from "./AdminGraphMergeCandidatesSection";
@@ -1184,6 +1186,8 @@ export default async function AdminReviewPage({
         </p>
       </header>
 
+      <FeedSourceIntakeSurfaceTruthCallout surface="admin_review" />
+
       <section
         data-testid="admin-review-journey"
         className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
@@ -1912,7 +1916,8 @@ export default async function AdminReviewPage({
                           Bestehender Create-Arbeitsstand mit Account-Resume-Bezug. {item.createHandoffContext.scopeSummary}
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          Review-State: {item.createHandoffContext.reviewState} · {item.createHandoffContext.provenanceSummary}
+                          Review-State: {createHandoffReviewStateLabel(item.createHandoffContext.reviewState)} ·{" "}
+                          {item.createHandoffContext.provenanceSummary}
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                           Account-Linkage: {item.createHandoffContext.correlationLabel} · {correlationBasisLabel(item.createHandoffContext.correlationBasis)}

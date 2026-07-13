@@ -729,6 +729,9 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Anlassraum/Event starten");
     expect(html).toContain("Beitrag starten");
     expect(html).toContain("Erste Schritte");
+    expect(html).toContain("Kanonischer Review-first Pfad");
+    expect(html).toContain("Direkter Organisationspfad");
+    expect(html).toContain("Review Item");
     expect(html).toContain("Material &amp; Uploads");
     expect(html).toContain("Material-Intake bereit");
     expect(html).toContain("Material bewusst einreichen");

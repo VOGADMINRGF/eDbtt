@@ -36,6 +36,7 @@ import {
   materialIntakeStatusLabel,
   materialIntakeTypeLabel,
 } from "@/features/material/materialIntakeContract";
+import FeedSourceIntakeSurfaceTruthCallout from "@/features/review/FeedSourceIntakeSurfaceTruthCallout";
 import TaskFirstQuickActionCenter from "@/components/quickActions/TaskFirstQuickActionCenter";
 import {
   buildOrganizationTaskFirstQuickActionCenter,
@@ -1227,6 +1228,10 @@ export default async function AccountOrganizationDashboardPage() {
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <FeedSourceIntakeSurfaceTruthCallout surface="organization_dashboard" />
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
@@ -1519,6 +1524,9 @@ export default async function AccountOrganizationDashboardPage() {
                       {item.regionName ?? "Übergreifend"}
                     </span>
                   </div>
+                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Review Item
+                  </p>
                   <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                     {item.domainLabel} · {item.workflowLabel} · {item.operationalStatusLabel} ·{" "}
                     {item.priorityLabel}
