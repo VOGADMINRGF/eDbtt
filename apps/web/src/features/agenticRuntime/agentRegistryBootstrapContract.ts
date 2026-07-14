@@ -170,6 +170,7 @@ export type AgenticBootstrapReadiness = {
     codexReadyTaskIds: string[];
     blockedTaskIds: string[];
     needsDecisionTaskIds: string[];
+    doneTaskIds: string[];
     primaryRole: AgentRoleId;
     supportingRoles: AgentRoleId[];
     independentReviewRequired: true;
@@ -244,6 +245,21 @@ function resolveRepoFile(...segments: string[]) {
 
 function readRepoTextFile(...segments: string[]) {
   return readFileSync(resolveRepoFile(...segments), "utf8");
+}
+
+function readTaskStatusMapFromOpenTasks() {
+  const openTasks = readOpenTasksText();
+  const matches = openTasks.matchAll(/^\|\s*(V3-[^|]+?)\s*\|\s*([^|]+?)\s*\|/gm);
+  const statusMap = new Map<string, string>();
+
+  for (const match of matches) {
+    const taskId = match[1]?.trim();
+    const status = match[2]?.trim();
+    if (!taskId || !status) continue;
+    statusMap.set(taskId, status);
+  }
+
+  return statusMap;
 }
 
 function ensureUniqueRoleIds(registry: AgentRegistry) {
@@ -412,6 +428,7 @@ export function buildAgenticBootstrapReadiness(): AgenticBootstrapReadiness {
   const registry = loadAgentRegistry();
   const bootstrap = loadAgentBootstrap();
   const openTasks = readOpenTasksText();
+  const openTaskStatusMap = readTaskStatusMapFromOpenTasks();
   const followupStatuses: Record<FollowupTaskStatus, number> = {
     codex_ready: 0,
     blocked: 0,
@@ -439,10 +456,22 @@ export function buildAgenticBootstrapReadiness(): AgenticBootstrapReadiness {
     (total, role) => total + role.allowedArtifacts.length,
     0,
   );
+  const codexReadyTaskIds = bootstrap.followupTasks
+    .map((task) => task.id)
+    .filter((taskId) => openTaskStatusMap.get(taskId) === "codex_ready");
+  const blockedTaskIds = bootstrap.followupTasks
+    .map((task) => task.id)
+    .filter((taskId) => openTaskStatusMap.get(taskId) === "blocked");
+  const needsDecisionTaskIds = bootstrap.followupTasks
+    .map((task) => task.id)
+    .filter((taskId) => openTaskStatusMap.get(taskId) === "needs_decision");
+  const doneTaskIds = bootstrap.followupTasks
+    .map((task) => task.id)
+    .filter((taskId) => openTaskStatusMap.get(taskId) === "done");
 
   const resolverPreviewTasks = [
     bootstrap.bootstrapTask,
-    ...bootstrap.followupTasks.filter((task) => task.status === "codex_ready"),
+    ...bootstrap.followupTasks.filter((task) => codexReadyTaskIds.includes(task.id)),
   ];
 
   return {
@@ -462,15 +491,10 @@ export function buildAgenticBootstrapReadiness(): AgenticBootstrapReadiness {
       followupTaskCount: bootstrap.followupTasks.length,
       followupStatuses,
       missingFollowupTaskIds,
-      codexReadyTaskIds: bootstrap.followupTasks
-        .filter((task) => task.status === "codex_ready")
-        .map((task) => task.id),
-      blockedTaskIds: bootstrap.followupTasks
-        .filter((task) => task.status === "blocked")
-        .map((task) => task.id),
-      needsDecisionTaskIds: bootstrap.followupTasks
-        .filter((task) => task.status === "needs_decision")
-        .map((task) => task.id),
+      codexReadyTaskIds,
+      blockedTaskIds,
+      needsDecisionTaskIds,
+      doneTaskIds,
       primaryRole: bootstrap.bootstrapTask.primaryRole,
       supportingRoles: [...bootstrap.bootstrapTask.supportingRoles],
       independentReviewRequired: true,
