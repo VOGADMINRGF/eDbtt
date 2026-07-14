@@ -51,5 +51,6 @@ describe("/account/organization page contract", () => {
     expect(html).toContain("Dieser Antrag dient nur bewusstem Org-Scope, Rollen und Freischaltungen.");
     expect(html).toContain("B2B und B2G starten hier als Team- oder Jurisdiktionsarbeitsbereich");
     expect(html).toContain("Ein persönlicher Companion wird nicht erzwungen.");
+    expect(html).toContain("verifizierter Erstlogin ist keine Behördenaktivierung");
   });
 });

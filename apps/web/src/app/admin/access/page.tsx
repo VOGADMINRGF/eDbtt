@@ -7,6 +7,7 @@ import type { AccessTier } from "@features/pricing/types";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
+import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { buildAdminSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 
 type RouteRow = RoutePolicy & { overrides: number };
@@ -178,6 +179,7 @@ export default function AccessCenterPage() {
             Definiere, welche Gruppen und Nutzer einzelne Seiten sehen dürfen. {PRODUCTION_ENTRY_COPY.adminAccessLead}
           </p>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildAdminSegmentHint()}</p>
+          <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
         </div>
         <div className="flex items-center gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm">
           <svg

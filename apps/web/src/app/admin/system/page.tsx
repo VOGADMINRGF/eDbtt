@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { buildAgenticBootstrapReadiness } from "@/features/agenticRuntime/agentRegistryBootstrapContract";
 import {
+  buildAgenticCivicE2EStatusHint,
+  buildB2GFirstLoginJurisdictionCockpitContract,
+  buildB2GFirstLoginSummaryCards,
+} from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitContract";
+import { buildMunicipalHandoffDecisionBoundaryHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import {
   buildAdminSegmentHint,
   listSegmentedAgentExperiences,
 } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
@@ -65,6 +71,9 @@ export default async function AdminSystemHubPage() {
   const systemSurface = getOperatorWorkbenchSurface("systemHub");
   const agenticReadiness = buildAgenticBootstrapReadiness();
   const segmentedExperiences = listSegmentedAgentExperiences();
+  const b2gFirstLoginContract = buildB2GFirstLoginJurisdictionCockpitContract({
+    municipalHandoffStatus: "needs_decision",
+  });
   const materializedFollowups =
     agenticReadiness.bootstrap.followupTaskCount - agenticReadiness.bootstrap.missingFollowupTaskIds.length;
   return (
@@ -174,11 +183,17 @@ export default async function AdminSystemHubPage() {
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div>
             <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Nächste codex_ready Tasks</h3>
-            <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
-              {agenticReadiness.bootstrap.codexReadyTaskIds.map((taskId) => (
-                <li key={taskId}>{taskId}</li>
-              ))}
-            </ul>
+            {agenticReadiness.bootstrap.codexReadyTaskIds.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+                {agenticReadiness.bootstrap.codexReadyTaskIds.map((taskId) => (
+                  <li key={taskId}>{taskId}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Keine weiteren codex_ready Controlled-Agentic-Folgepfade. {buildMunicipalHandoffDecisionBoundaryHint()}
+              </p>
+            )}
           </div>
           <div>
             <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Blocked / needs_decision</h3>
@@ -190,7 +205,40 @@ export default async function AdminSystemHubPage() {
               Personal Voxy, B2B Workbench und B2G Cockpit bleiben getrennt; Übersetzung bleibt keine Evidenz;
               Public Debattenstand bleibt frei lesbar.
             </p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
+            </p>
           </div>
+        </div>
+      </section>
+
+      <section
+        data-testid="b2g-first-login-readiness-card"
+        className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              B2G Authority Cockpit
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              First Login / Jurisdiktion / Response Boundaries
+            </h2>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              Verified authority first login bleibt getrennt von Aktivierung, externem Handoff und Entitlement.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[rgb(var(--soft))] px-3 py-2 text-right text-xs text-[rgb(var(--muted))]">
+            <p>Agentic Civic E2E</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">
+              {b2gFirstLoginContract.agenticCivicE2E.status}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (
+            <ReadinessMetric key={card.id} label={card.title} value="review-first" detail={card.body} />
+          ))}
         </div>
       </section>
 

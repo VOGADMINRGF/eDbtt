@@ -14,6 +14,7 @@ import {
   regionVisibilityStateLabel,
   resolveFeedVisibilityState,
 } from "@features/region";
+import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
 type SearchParamsShape =
@@ -260,6 +261,7 @@ export default async function AdminRegionPage({
           automatische Veröffentlichung, keine automatische Dossier-Erstellung, kein Vergabe- oder
           Procurement-Monitoring.
         </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
       </header>
 
       <section
@@ -280,6 +282,9 @@ export default async function AdminRegionPage({
           Der nächste operative Schritt liegt in der Review Queue: dort wird aus dem Review-Item
           eine Vorschau, danach eine bewusste Sichtbarkeit und erst dann Public URL, QR oder
           Share. Sichtbarkeit kann anschließend wieder zurückgenommen oder archiviert werden.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Jurisdiktions-Match, reviewed topic candidate und vorgeschlagene Beteiligung bleiben getrennt von offizieller Behördenzuständigkeit oder gestartetem Verfahren.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link

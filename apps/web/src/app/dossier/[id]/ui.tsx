@@ -23,6 +23,7 @@ import {
   resolveDossierStatusChips,
   toneClassForB2CStatus,
 } from "@/features/b2cJourney/statusContract";
+import { buildB2GPublicReadingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import PwaRouteStatusHint from "@/components/mobile/PwaRouteStatusHint";
 
@@ -181,6 +182,7 @@ export function DossierPagePublicBody({
       <p className="mb-4 text-sm text-[rgb(var(--muted))]">
         {publicReadingGuardrails[0]} {publicReadingGuardrails[1]}
       </p>
+      <p className="mb-4 text-sm text-[rgb(var(--muted))]">{buildB2GPublicReadingHint()}</p>
       <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellenlage</h2>

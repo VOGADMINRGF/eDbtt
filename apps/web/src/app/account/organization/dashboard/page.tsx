@@ -15,7 +15,19 @@ import {
   isOrganizationAccessBlocked,
   isOrganizationAccessLimited,
 } from "@/features/access/productionEntryContract";
-import { buildInstitutionalWorkspaceSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import {
+  buildAgenticCivicE2EStatusHint,
+  buildB2GFirstLoginJurisdictionCockpitContract,
+  buildB2GFirstLoginSummaryCards,
+} from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitContract";
+import {
+  buildB2GFirstLoginWorkspaceHint,
+  buildMunicipalHandoffDecisionBoundaryHint,
+} from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import {
+  buildInstitutionalWorkspaceSegmentHint,
+  resolveInstitutionalSegmentForOrganizationType,
+} from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import {
   buildOrganizationDashboardReadModel,
   organizationBillingStatusLabel,
@@ -549,6 +561,28 @@ export default async function AccountOrganizationDashboardPage() {
     restartReconstructable: false,
     deploymentReconstructable: false,
   };
+  const institutionalSegment = resolveInstitutionalSegmentForOrganizationType(
+    readModel.organizationType,
+  );
+  const b2gFirstLoginContract =
+    institutionalSegment === "b2g"
+      ? buildB2GFirstLoginJurisdictionCockpitContract({
+          authorityFirstLoginState: readModel.organization.isOperatorMode
+            ? "operator_preview"
+            : hasVerifiedOrganizationMembershipStatus(normalizedMembershipStatus)
+              ? "verified_authority_first_login"
+              : "pending_authority_review",
+          jurisdictionMatchState: hasReadableRegion
+            ? hasVerifiedOrganizationMembershipStatus(normalizedMembershipStatus)
+              ? "verified_authority_scope"
+              : "public_jurisdiction_match"
+            : "no_match",
+          matchedJurisdictionLabels: readModel.regionSummary
+            .filter((entry) => entry.dashboardAccess)
+            .map((entry) => entry.regionName),
+          municipalHandoffStatus: "needs_decision",
+        })
+      : null;
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -1378,6 +1412,57 @@ export default async function AccountOrganizationDashboardPage() {
           ))}
         </div>
       </section>
+
+      {b2gFirstLoginContract ? (
+        <section
+          data-testid="organization-dashboard-b2g-first-login"
+          className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            B2G First Login
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+            Jurisdiktions- und Authority-Cockpit bleibt review-first
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            {buildB2GFirstLoginWorkspaceHint()}
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (
+              <article
+                key={card.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+              >
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{card.body}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Betriebsmodi</h3>
+              <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+                {b2gFirstLoginContract.guidanceModes.map((mode) => (
+                  <li key={mode.id}>
+                    <span className="font-medium text-[rgb(var(--fg))]">{mode.label}:</span>{" "}
+                    menschliche Freigabe {mode.humanApprovalRequired ? "erforderlich" : "nicht nötig"},
+                    keine automatische Zuweisung, keine automatische Entitlement-Aktivierung.
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Decision Boundary</h3>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                {buildMunicipalHandoffDecisionBoundaryHint()}
+              </p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <article
