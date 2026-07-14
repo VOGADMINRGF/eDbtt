@@ -2,11 +2,16 @@
 
 ## Kontext
 
-Nach Abschluss von `V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01` ist der nächste fachlich naheliegende B2G-Folgepfad `V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01`.
+Diese Datei dokumentierte die offene Decision Boundary direkt nach `V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01`.
 
-Dieser Task bleibt bewusst `needs_decision`.
+Seit dem Decision-Slice
 
-## Warum die Boundary real ist
+- `V3-CIVIC-PRINCIPLES-GOV-LIGHT-MUNICIPAL-HANDOFF-DECISION-01`
+- Evidence: `docs/E150/V3_CIVIC_PRINCIPLES_GOV_LIGHT_MUNICIPAL_HANDOFF_DECISION_2026-07-14.md`
+
+ist diese Boundary repo-seitig aufgeloest.
+
+## Historische Boundary
 
 Der Handoff würde Produktentscheidungen berühren, die in `OpenTasks.md`, `.codex/agents/bootstrap.json` und dem Runtime-Manifest weiterhin getrennt gehalten werden:
 
@@ -23,21 +28,23 @@ Der Handoff würde Produktentscheidungen berühren, die in `OpenTasks.md`, `.cod
 - wie externe Behördenbenachrichtigung, Empfangsbestätigung und Response-Kanal konkret freigegeben werden
 - ob `named contact` oder `managed governance` einen operativen Handoff ersetzen dürfen
 
-## Repo-seitige Konsequenz
+## Aktuelle Konsequenz
 
-- `V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01` bleibt `needs_decision`
-- `V3-AGENTIC-CIVIC-E2E-PILOT-01` bleibt `blocked`
+- `V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01` ist nicht mehr `needs_decision`, sondern `codex_ready`
+- `V3-AGENTIC-CIVIC-E2E-PILOT-01` bleibt dennoch `blocked`, bis der Municipal-Handoff-Cluster selbst umgesetzt ist
 - B2G First Login bleibt read-only und review-first
 - keine automatische Entitlement-Aktivierung
-- keine automatische Empfängerbenachrichtigung
-- keine automatische Behördenantwort
+- keine automatische Empfaengerbenachrichtigung
+- keine automatische Behoerdenantwort
 
-## Nötige Entscheidung für den nächsten Folgeslice
+## Abgeloest durch
 
-Vor einem Municipal-Handoff-Slice muss explizit freigegeben werden:
+Die notwendigen Produktentscheidungen zu
 
 1. Pricing-/Trial-Semantik
 2. Entitlement-/Counter-Semantik
 3. Recipient-Verification-Semantik
 4. External-Notification-Semantik
-5. bewusster Human-Approval-Schritt vor Handoff
+5. bewusstem Human-Approval-Schritt vor Handoff
+
+sind jetzt im Decision-Contract dokumentiert.

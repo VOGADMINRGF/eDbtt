@@ -152,12 +152,17 @@
     },
     {
       "id": "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
-      "status": "needs_decision",
+      "status": "codex_ready",
       "priority": 13,
       "cluster": "Municipal handoff / verified authority / three free internal adoptions",
       "primaryRole": "dossier_briefing",
       "supportingRoles": ["governance_compliance"],
-      "decisionBoundary": "pricing, entitlement, recipient verification and external notification workflow require independent approval"
+      "scope": [
+        "apply civic principles, gov-light slot semantics and verified publisher preflight to municipal handoff",
+        "keep authority continuation, internal adoption and external notification clearly separated",
+        "prepare human-approved pipeline, response and CRM semantics without automatic external contact",
+        "preserve free public reading and no automatic entitlement activation"
+      ]
     },
     {
       "id": "V3-AGENTIC-CIVIC-E2E-PILOT-01",
