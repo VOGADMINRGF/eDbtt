@@ -52,5 +52,8 @@ describe("/account/organization page contract", () => {
     expect(html).toContain("B2B und B2G starten hier als Team- oder Jurisdiktionsarbeitsbereich");
     expect(html).toContain("Ein persönlicher Companion wird nicht erzwungen.");
     expect(html).toContain("verifizierter Erstlogin ist keine Behördenaktivierung");
+    expect(html).toContain(
+      "Öffentliche Lesbarkeit, GOV-light-Teaser und internes Bookmarking bleiben frei",
+    );
   });
 });

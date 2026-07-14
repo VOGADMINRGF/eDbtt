@@ -76,7 +76,18 @@ describe("b2g first login jurisdiction cockpit contract", () => {
     expect(contract.municipalHandoff.status).toBe("needs_decision");
     expect(contract.municipalHandoff.summary).toContain("Recipient Verification");
     expect(contract.agenticCivicE2E.status).toBe("blocked");
-    expect(buildMunicipalHandoffDecisionBoundaryHint()).toContain("External Notification Workflow");
+    expect(buildMunicipalHandoffDecisionBoundaryHint()).toContain("GOV-light-/Three-Slot-/Preflight-Contract");
     expect(buildAgenticCivicE2EStatusHint(contract)).toContain("blocked");
+  });
+
+  it("marks the civic e2e pilot codex_ready once municipal handoff follows the trial contract", () => {
+    const contract = buildB2GFirstLoginJurisdictionCockpitContract({
+      municipalHandoffStatus: "done",
+    });
+
+    expect(contract.municipalHandoff.status).toBe("done");
+    expect(contract.municipalHandoff.summary).toContain("GOV-light-/Three-Slot-/Preflight-Contract");
+    expect(contract.agenticCivicE2E.status).toBe("codex_ready");
+    expect(buildAgenticCivicE2EStatusHint(contract)).toContain("Municipal-Handoff-Gates");
   });
 });

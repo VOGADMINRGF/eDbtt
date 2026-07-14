@@ -43,11 +43,10 @@ describe("agent registry bootstrap contract", () => {
         "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
         "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
         "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
+        "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
       ]),
     );
-    expect(readiness.bootstrap.codexReadyTaskIds).toEqual([
-      "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
-    ]);
+    expect(readiness.bootstrap.codexReadyTaskIds).toEqual(["V3-AGENTIC-CIVIC-E2E-PILOT-01"]);
     expect(readiness.bootstrap.needsDecisionTaskIds).toEqual([]);
   });
 

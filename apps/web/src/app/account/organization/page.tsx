@@ -5,6 +5,7 @@ import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { getPricingEntryTrustCopy } from "@features/pricing";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { buildB2GFirstLoginOnboardingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialOnboardingHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildInstitutionalOnboardingSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import { OrganizationClaimsClient } from "./OrganizationClaimsClient";
 
@@ -50,6 +51,9 @@ export default async function AccountOrganizationPage() {
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           {buildB2GFirstLoginOnboardingHint()}
+        </p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {buildMunicipalHandoffTrialOnboardingHint()}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           {PRODUCTION_ENTRY_COPY.organizationPathHint}

@@ -219,7 +219,7 @@ export function buildB2GFirstLoginJurisdictionCockpitContract(input?: {
   const jurisdictionMatchState =
     input?.jurisdictionMatchState ?? "public_jurisdiction_match";
   const matchedJurisdictionLabels = [...(input?.matchedJurisdictionLabels ?? [])];
-  const municipalHandoffStatus = input?.municipalHandoffStatus ?? "needs_decision";
+  const municipalHandoffStatus = input?.municipalHandoffStatus ?? "done";
   const availableDebattenstaende = (input?.availableDebattenstaende ?? []).map((entry) => ({
     id: entry.id,
     title: entry.title,
@@ -356,14 +356,14 @@ export function buildB2GFirstLoginJurisdictionCockpitContract(input?: {
       externalNotificationAutomatic: false,
       summary:
         municipalHandoffStatus === "done"
-          ? "Municipal Handoff ist separat freigegeben."
+          ? "Municipal Handoff läuft auf einem separaten GOV-light-/Three-Slot-/Preflight-Contract: keine automatische Recipient Verification, keine automatische externe Notification und keine automatische Entitlement-Aktivierung."
           : "Municipal Handoff bleibt needs_decision: Pricing, Entitlement, Recipient Verification und External Notification Workflow sind noch nicht freigegeben.",
     },
     agenticCivicE2E: {
       status: agenticCivicE2EStatus,
       summary:
         agenticCivicE2EStatus === "codex_ready"
-          ? "Alle dokumentierten B2G-Gates sind fuer den naechsten E2E-Pfad frei."
+          ? "Alle dokumentierten B2G- und Municipal-Handoff-Gates sind fuer den naechsten E2E-Pfad frei."
           : "Agentic Civic E2E bleibt blocked, solange Municipal Handoff auf needs_decision steht.",
     },
     publicDebattenstandRemainsFree: true,

@@ -20,6 +20,9 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Öffentlich lesbare Debattenstände bleiben frei zugänglich.");
     expect(html).toContain("Personalisierung blendet weder starke Gegenargumente noch Quellen- oder Evidenzgrenzen aus.");
     expect(html).toContain("Ein B2G-Cockpit ändert nichts an der freien öffentlichen Lesbarkeit");
+    expect(html).toContain(
+      "Read-only Lesen, Teilen und QR für bereits sichtbare öffentliche Stände verbrauchen keinen GOV-light-Slot",
+    );
     expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
     expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
     expect(html).toContain("Link und QR gehören nur zu sichtbaren Anlässen.");

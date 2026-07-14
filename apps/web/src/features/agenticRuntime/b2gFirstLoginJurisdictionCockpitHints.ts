@@ -15,5 +15,5 @@ export function buildB2GPublicReadingHint() {
 }
 
 export function buildMunicipalHandoffDecisionBoundaryHint() {
-  return "Municipal Handoff bleibt needs_decision: Pricing, Entitlement, Recipient Verification und External Notification Workflow brauchen eine eigene Freigabe.";
+  return "Municipal Handoff folgt jetzt einem eigenen GOV-light-/Three-Slot-/Preflight-Contract: keine automatische externe Notification, keine automatische Entitlement-Aktivierung und kein Agent-Auto-Publish.";
 }

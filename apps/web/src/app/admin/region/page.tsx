@@ -15,6 +15,7 @@ import {
   resolveFeedVisibilityState,
 } from "@features/region";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialRegionHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
 type SearchParamsShape =
@@ -262,6 +263,7 @@ export default async function AdminRegionPage({
           Procurement-Monitoring.
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialRegionHint()}</p>
       </header>
 
       <section

@@ -744,8 +744,14 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Erste Schritte");
     expect(html).toContain('data-testid="organization-dashboard-b2g-first-login"');
     expect(html).toContain("Jurisdiktions- und Authority-Cockpit bleibt review-first");
-    expect(html).toContain("Municipal Handoff bleibt needs_decision");
-    expect(html).toContain("Agentic Civic E2E bleibt blocked");
+    expect(html).toContain("Municipal Handoff Trial");
+    expect(html).toContain(
+      "GOV-light Trial, interne Adoption, Verified Publisher Preflight und externer Behördenkontakt bleiben getrennte Schritte.",
+    );
+    expect(html).toContain(
+      "Alle dokumentierten B2G- und Municipal-Handoff-Gates sind fuer den naechsten E2E-Pfad frei.",
+    );
+    expect(html).toContain("Three-Slot Trial");
     expect(html).toContain("Self-Service");
     expect(html).toContain("Kanonischer Review-first Pfad");
     expect(html).toContain("Direkter Organisationspfad");
