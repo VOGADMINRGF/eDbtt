@@ -7,15 +7,16 @@
 
 ## Baseline verifiziert
 
-- `main` ist aktuell auf `193656d1`.
+- `main` ist aktuell auf `ad27feeb`.
 - `git status --short` war vor Start sauber.
-- Die Produktionscluster `#363` bis `#376` liegen auf `main`:
+- Die Produktionscluster `#363` bis `#389` liegen auf `main`:
   - `66d6e54b` `#363`
   - `1e4acab4` `#364`
   - `bb19e0a6` `#365`
   - `5a60daca` `#366`
   - `84628611` `#367`
   - `530c2b39` `#368`
+  - `a8d4edc7` `#369`
   - `593a6a14` `#370`
   - `897576d1` `#371`
   - `b3dbe946` `#372`
@@ -23,6 +24,19 @@
   - `bd3c314b` `#374`
   - `5c87d4a9` `#375`
   - `193656d1` `#376`
+  - `b024cec4` `#377`
+  - `27d33d47` `#378`
+  - `6719d797` `#379`
+  - `492a4623` `#380`
+  - `3780a11c` `#381`
+  - `ac7cef82` `#382`
+  - `2f08136d` `#383`
+  - `b1d9173c` `#384`
+  - `198657f9` `#385`
+  - `1d887ec4` `#386`
+  - `4c528634` `#387`
+  - `ad27feeb` `#388`
+  - `e84002fe` `#389`
 
 ## Gesamtentscheidung
 
@@ -34,7 +48,8 @@
 Begruendung:
 
 - Queue 02 hat die produktiven Kernpfade fuer Einstieg, Review, Dossier, Membership, Sprache, AI-Trace und Operator-Surfaces repo-seitig stabilisiert.
-- Die bestehende Evidence aus `V3_TEST_RESULTS_REGRESSION_MATRIX`, `V3_HANDOFF_INTEGRITY_AND_LINKAGE_MAP`, `V3_ADMIN_DASHBOARD_CONTROL_CENTER` und den Clustern `#363` bis `#376` zeigt aber weiterhin bewusst `operational_basic`, `wired` und `partially_built`, nicht `endstate_ready`.
+- Der anschliessende Controlled-Agentic-Track `#380` bis `#389` schliesst zusaetzlich Voxy-Shell-, Segment-, Safe-Trace-, B2G-, GOV-light- und Civic-E2E-Contracts repo-seitig als read-only Produktwahrheit, ohne Runtime-, Provider-, Notification- oder Auto-Publish-Freigabe.
+- Die bestehende Evidence aus `V3_TEST_RESULTS_REGRESSION_MATRIX`, `V3_HANDOFF_INTEGRITY_AND_LINKAGE_MAP`, `V3_ADMIN_DASHBOARD_CONTROL_CENTER` und den Clustern `#363` bis `#389` zeigt aber weiterhin bewusst `operational_basic`, `wired` und `partially_built`, nicht `endstate_ready`.
 - Fuer einen echten oeffentlichen Release fehlen weiterhin eine belastbare externe Browser-/Deploy-Smoke-Stufe, ein engerer Release-Ops-/Incident-/Rollback-Pfad und ein sauber abgegrenzter Umgang mit bewusst deaktivierten Voxy-Runtime-Themen.
 
 ## Matrix A-J
@@ -44,11 +59,16 @@ Begruendung:
 - Surfaces: `/`, `/start`, `/create`, `/register`, `/login`, `/order`, `/pricing`, `/pricing/institutionen`, `/vormerken`, `/mitglied-werden`, `/beitritt`
 - Status: `beta_candidate_smoke_required`
 - Produktwahrheit:
+  - Die oeffentliche Landing transportiert jetzt eine sichtbare Voxy-Shell fuer Page, Mobile und Agentic Guidance, ohne Runtime zu behaupten.
+  - Voxy bleibt responsive, viewport-sicher und ohne rohe/unstyled Navigation.
   - `/order` ist kanonischer Paket- und Startpfad.
   - `/vormerken` bleibt Legacy-/Fallback-/Info-Pfad.
   - `/mitglied-werden` und `/beitritt` bleiben Alias-/Redirect-Pfade, nicht zweite Hauptwelt.
-- Evidence: `V3_AUTH_ACCOUNT_ORG_ACCESS_CLUSTER_AUDIT_2026-07-12.md`, `V3_PUBLIC_QA_MOBILE_DEBUG_LEAK_AUDIT_2026-07-13.md`, `V3_ROUTE_INVENTORY_LEGACY_PATH_HARDENING_2026-07-13.md`
+- Evidence: `V3_AUTH_ACCOUNT_ORG_ACCESS_CLUSTER_AUDIT_2026-07-12.md`, `V3_PUBLIC_QA_MOBILE_DEBUG_LEAK_AUDIT_2026-07-13.md`, `V3_ROUTE_INVENTORY_LEGACY_PATH_HARDENING_2026-07-13.md`, `V3_VOXY_EXPERIENCE_SHELL_MOBILE_AGENTIC_INTEGRATION_2026-07-14.md`
 - Relevante Tests in diesem Slice:
+  - `landing-clarity.contract`
+  - `landing-information-architecture.contract`
+  - `mobile-entry-routes.contract`
   - `route-inventory-legacy-path.contract`
   - `pricing-page.contract`
   - `pricing-order-flow.contract`
@@ -63,13 +83,19 @@ Begruendung:
 - Status: `beta_candidate_smoke_required`
 - Produktwahrheit:
   - Create-Handoff bleibt review-first Arbeitsstand.
+  - Voxy erklaert auf `/create`, `/account` und Organisationspfaden den sicheren naechsten Schritt, startet aber keine Runtime.
+  - Der Agentic-Civic-E2E-Pilot bleibt ein read-only Stage-/Status-Contract von Beobachtung ueber Dossier und Beteiligung bis GOV-light und Verified Publisher Preflight.
   - `review_ready` ist nicht `approved`.
   - Dossier-/Participation-/Output-Folgepfade bleiben getrennt.
-- Evidence: `V3_E2E_CREATE_REVIEW_DOSSIER_ACCOUNT_FLOW_HARDENING_2026-07-13.md`, `V3_HANDOFF_INTEGRITY_AND_LINKAGE_MAP_2026-07-02.md`
+- Evidence: `V3_E2E_CREATE_REVIEW_DOSSIER_ACCOUNT_FLOW_HARDENING_2026-07-13.md`, `V3_HANDOFF_INTEGRITY_AND_LINKAGE_MAP_2026-07-02.md`, `V3_VOXY_EXPERIENCE_SHELL_MOBILE_AGENTIC_INTEGRATION_2026-07-14.md`, `V3_AGENTIC_CIVIC_E2E_PILOT_2026-07-14.md`
 - Relevante Tests in diesem Slice:
+  - `create-mode.page`
   - `create-candidate-preview.contract`
   - `account-resume-workbench.contract`
+  - `account-organization-page.contract`
+  - `account-organization-dashboard.page`
   - `admin-review.page`
+  - `agentic-civic-e2e-pilot.contract`
   - `dossier-studio-server-persistence-ui`
   - `v3-account-user-scoped-runtime-linkage`
   - `v3-review-context-summary`
@@ -178,13 +204,15 @@ Begruendung:
 - Produktwahrheit:
   - `/admin/review` bleibt zentrale Review-Workbench.
   - `/admin/errors` und `/admin/system` bleiben Diagnose- und Ruecksprung-Surfaces.
+  - `/admin/system` zeigt nach dem Controlled-Agentic-Track Bootstrap-, Voxy-, B2G-, Municipal-Handoff- und Civic-E2E-Readiness als Contract-/Preview-Wahrheit, nicht als Fake-Runtime.
   - Operator sieht Review-first Arbeitsstaende statt roher Debug-/Runtime-Sprache.
-- Evidence: `V3_ADMIN_OPERATOR_REVIEW_WORKBENCH_HARDENING_2026-07-13.md`, `V3_ADMIN_DASHBOARD_CONTROL_CENTER_2026-07-02.md`
+- Evidence: `V3_ADMIN_OPERATOR_REVIEW_WORKBENCH_HARDENING_2026-07-13.md`, `V3_ADMIN_DASHBOARD_CONTROL_CENTER_2026-07-02.md`, `V3_AGENT_REGISTRY_RUNNER_BOOTSTRAP_2026-07-13.md`, `V3_B2G_FIRST_LOGIN_JURISDICTION_COCKPIT_2026-07-14.md`, `V3_MUNICIPAL_HANDOFF_THREE_ADOPTION_TRIAL_2026-07-14.md`, `V3_AGENTIC_CIVIC_E2E_PILOT_2026-07-14.md`
 - Relevante Tests in diesem Slice:
   - `operator-console-page.contract`
   - `operator-workbench-labels.contract`
   - `admin-region-page.render`
   - `admin-access-entitlements-surface.contract`
+  - `admin-system-agentic-runtime-readiness.page`
   - `admin-editorial-hubs.page`
   - `v3-test-regression-matrix-admin.page`
   - `v3-control-center-admin.page`
@@ -192,17 +220,25 @@ Begruendung:
 - Offenes Risiko:
   - kein geschlossener Incident-/Rollback-/Notification-Betriebspfad fuer einen echten Release
 
-### I. Voxy
+### I. Voxy / Agentic Shell Boundary
 
-- Surfaces: Voxy Guidance auf `/`, `/start`, `/create`, `/runden`, `/dossier`, `/swipes`
-- Status: `intentionally_disabled_for_runtime`
+- Surfaces: Voxy Guidance auf `/`, `/start`, `/create`, `/runden`, `/dossier/[id]`, `/account`, `/account/organization`, `/account/organization/dashboard`, `/admin/system`, `/admin/review`, `/admin/region`
+- Status: `preview_candidate_runtime_disabled`
 - Produktwahrheit:
-  - Review-first Architektur und Hybrid Foundation sind dokumentiert.
+  - Die Voxy Experience Shell ist als sichtbare Page-/Mobile-/Agentic-Fassade integriert.
+  - `passive`, `guided` und `active` bleiben klar getrennt; `active` startet nur nach bewusster Nutzeraktion.
+  - B2C bleibt consent-gated; B2B/B2G werden nicht in einen persoenlichen Companion gezwungen.
+  - Agentic Civic E2E, GOV-light und Municipal Handoff erscheinen als review-first Statuspfade ohne Runtime-, Provider-, Prompt- oder Chain-of-Thought-Leak.
   - Runtime bleibt deaktiviert.
   - `#369` bleibt Roadmap-/Doku-Kontext und keine Runtime-Freigabe.
-- Evidence: `V3_VOXY_HYBRID_RUNTIME_FOUNDATION_2026-07-12.md`, `V3_VOXY_RUNTIME_PATH_DECISION_PACK_2026-07-12.md`, `V3_VOXY_RUNTIME_PATH_CHOICE_2026-07-12.md`
+- Evidence: `V3_VOXY_HYBRID_RUNTIME_FOUNDATION_2026-07-12.md`, `V3_VOXY_RUNTIME_PATH_DECISION_PACK_2026-07-12.md`, `V3_VOXY_RUNTIME_PATH_CHOICE_2026-07-12.md`, `V3_VOXY_EXPERIENCE_SHELL_MOBILE_AGENTIC_INTEGRATION_2026-07-14.md`, `V3_AGENT_RUN_ARTIFACT_SAFE_TRACE_CONTRACT_2026-07-13.md`, `V3_AGENTIC_CIVIC_E2E_PILOT_2026-07-14.md`
+- Relevante Tests in diesem Slice:
+  - `voxy-experience-shell.contract`
+  - `agent-run-artifact-safe-trace.contract`
+  - `agentic-civic-e2e-pilot.contract`
+  - `admin-system-agentic-runtime-readiness.page`
 - Offenes Risiko:
-  - nur dann Release-Blocker, wenn ein oeffentlicher Launch eine echte Voxy-Runtime versprechen wuerde
+  - nur dann Release-Blocker, wenn ein oeffentlicher Launch eine echte Voxy-Runtime, automatische Agentenaktivitaet oder Auto-Publish versprechen wuerde
 
 ### J. Release-/Beta-Entscheidung
 
@@ -214,12 +250,14 @@ Begruendung:
   - Language Bridge
   - sichere AI-Trace-Transparenz
   - Admin-/Operator-Workbench
+  - Voxy Experience Shell und Controlled-Agentic-Readiness als read-only Contract-Wahrheit
 - Pfade mit zusaetzlichem Smoke-Test vor Beta:
   - `/`, `/start`, `/create`, `/register`, `/login`, `/order`, `/pricing`, `/pricing/institutionen`
-  - `/admin/review`, `/dossier/[id]/studio`, `/account`, `/account/organization/dashboard`
+  - `/admin/review`, `/dossier/[id]/studio`, `/account`, `/account/organization`, `/account/organization/dashboard`
   - Export-Routen und Public-Dossier-Read-Pfade
   - `/account/payment`, `/admin/pricing/orders`, `/admin/entitlements`
-  - `/admin/telemetry/ai/orchestrator`, `/admin/errors`, `/admin/system`
+  - `/admin/telemetry/ai/orchestrator`, `/admin/errors`, `/admin/system`, `/admin/region`
+  - `/runden` sowie die oeffentliche und institutionelle Voxy-Shell
 - Bewusst disabled:
   - Voxy Runtime
   - Auto-Publish
@@ -232,6 +270,7 @@ Begruendung:
   - `V3-EXTERNAL-BROWSER-E2E-01` bleibt offen
   - `V3-NOTIFICATIONS-REALTIME-MAIL-01`, `V3-INCIDENT-RECOVERY-MAINTENANCE-01` und `V3-MONITORING-ALERTING-ROLLBACK-01` bleiben offen
   - `V3_TEST_RESULTS_REGRESSION_MATRIX` und `V3_HANDOFF_INTEGRITY_AND_LINKAGE_MAP` markieren weiterhin keinen `endstate_ready`-Stand
+  - der Controlled-Agentic-Track schafft Contract- und Surface-Wahrheit, ersetzt aber keine echte Browser-/Deploy-/Incident-Stufe
 - Spaetere Optimierung, aber kein akuter Preview-Blocker:
   - `V3-TEMPLATE-OUTPUT-STANDARDIZATION-01`
   - `V3-QR-SHARING-PUBLIC-ENTRY-01`
@@ -244,28 +283,16 @@ Begruendung:
 ## Validierung in diesem Slice
 
 - `git diff --check`
-- `pnpm -C apps/web exec vitest run tests/route-inventory-legacy-path.contract.test.ts tests/pricing-page.contract.test.ts tests/order-entry.contract.test.ts tests/pricing-order-flow.contract.test.ts tests/public-route-h1-visibility.contract.test.tsx`
-  - Ergebnis: `5` Dateien, `17/17` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/create-candidate-preview.contract.test.ts tests/account-resume-workbench.contract.test.tsx tests/admin-review.page.test.tsx tests/dossier-studio-server-persistence-ui.test.tsx tests/v3-account-user-scoped-runtime-linkage.test.ts tests/v3-review-context-summary.test.tsx`
-  - Ergebnis: `6` Dateien, `20/20` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/dossier-export-route-guards.test.ts tests/dossier-public-route.contract.test.tsx tests/dossier-output-studio.page.contract.test.ts tests/dossier-studio-social-queue.contract.test.tsx tests/social-manual-export-fallback.contract.test.ts`
-  - Ergebnis: `5` Dateien, `13/13` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/membership-activation-support-surfaces.contract.test.tsx tests/account-payment.page.contract.test.tsx tests/payment-checkout-session.contract.test.ts tests/payment-entitlement-after-checkout.contract.test.ts tests/admin-entitlements.route.test.ts tests/admin-pricing-orders.route.test.ts`
-  - Ergebnis: `6` Dateien, `18/18` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/content-translation-rendering.test.tsx tests/language-bridge-trust-format-contract.test.ts tests/create-i18n.contract.test.ts tests/community-contributions.route.translation.test.ts tests/social-thread.route.translation.test.ts`
-  - Ergebnis: `5` Dateien, `17/17` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/ai-trace-surface-truth.test.ts tests/frontend-ai-transparency.contract.test.ts tests/ai-orchestration-provenance-trace.contract.test.ts tests/admin-ai-telemetry-ui.contract.test.ts tests/public-debug-leak.guard.test.ts`
-  - Ergebnis: `5` Dateien, `16/16` Tests gruen
-- `pnpm -C apps/web exec vitest run tests/operator-console-page.contract.test.tsx tests/operator-workbench-labels.contract.test.ts tests/admin-region-page.render.test.tsx tests/admin-access-entitlements-surface.contract.test.tsx tests/admin-editorial-hubs.page.test.tsx tests/v3-test-regression-matrix-admin.page.test.tsx tests/v3-control-center-admin.page.test.tsx tests/v3-handoff-linkage-admin.page.test.tsx`
-  - Ergebnis: `8` Dateien, `14/14` Tests gruen
+- `pnpm -C apps/web exec vitest run tests/landing-clarity.contract.test.tsx tests/landing-information-architecture.contract.test.tsx tests/mobile-entry-routes.contract.test.tsx tests/order-entry.contract.test.ts tests/pricing-page.contract.test.ts tests/create-mode.page.test.ts tests/create-candidate-preview.contract.test.ts tests/runden-public-sharing-guide.contract.test.tsx tests/dossier-public-route.contract.test.tsx tests/dossier-output-studio.page.contract.test.ts tests/dossier-export-route-guards.test.ts tests/account-organization-page.contract.test.tsx tests/account-organization-dashboard.page.test.tsx tests/account-resume-workbench.contract.test.tsx tests/admin-review.page.test.tsx tests/admin-system-agentic-runtime-readiness.page.test.tsx tests/admin-access-entitlements-surface.contract.test.tsx tests/admin-region-page.render.test.tsx tests/voxy-experience-shell.contract.test.ts tests/agentic-civic-e2e-pilot.contract.test.ts tests/ai-trace-surface-truth.test.ts tests/frontend-ai-transparency.contract.test.ts tests/content-translation-rendering.test.tsx tests/language-bridge-trust-format-contract.test.ts tests/create-i18n.contract.test.ts tests/public-debug-leak.guard.test.ts`
+  - Ergebnis: `26` Dateien, `93/93` Tests gruen
 - `pnpm -C apps/web run lint`
   - Ergebnis: gruen
 - `pnpm -C apps/web run build`
   - Ergebnis: gruen
 - `pnpm -C apps/web run typecheck`
-  - Ergebnis: nicht gruen wegen der bekannten `.next/types/**/*.ts`-Drift mit `TS6053` auf fehlende generierte Dateien; nicht als Slice-Regression gewertet, weil Build, Lint und die reprasentativen Regression-Suiten gruen sind
+  - Ergebnis: gruen
 - Hinweise:
-  - `public-route-h1-visibility.contract` emittiert weiter bekannte React-Warnungen zu nicht-booleanschen `fill`- und `priority`-Attributen, laeuft aber gruen und ist kein Slice-Blocker
+  - `landing-clarity.contract`, `landing-information-architecture.contract` und `mobile-entry-routes.contract` emittieren weiter bekannte React-Warnungen zu nicht-booleanschen `fill`- und `priority`-Attributen, laufen aber gruen und sind kein Slice-Blocker
 
 ## Offene Folgepfade
 
