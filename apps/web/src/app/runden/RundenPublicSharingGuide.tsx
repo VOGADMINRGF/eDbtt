@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RegionPublicationVisibilityState } from "@features/region";
 import { buildB2GPublicReadingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialPublicReadingHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import RundenPublicInputPanel from "./RundenPublicInputPanel";
 
@@ -119,6 +120,9 @@ export default function RundenPublicSharingGuide(props: {
             </p>
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
               {buildB2GPublicReadingHint()}
+            </p>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              {buildMunicipalHandoffTrialPublicReadingHint()}
             </p>
           </div>
 

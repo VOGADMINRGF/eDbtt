@@ -8,6 +8,7 @@ import {
 } from "@features/region";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialAdminHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildAdminSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 import { AdminEntitlementsClient } from "./AdminEntitlementsClient";
@@ -61,6 +62,7 @@ export default async function AdminEntitlementsPage() {
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildAdminSegmentHint()}</p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialAdminHint()}</p>
       </header>
       <AdminEntitlementsClient
         initialEntitlements={entitlements}

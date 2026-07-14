@@ -8,6 +8,7 @@ import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { getOperatorWorkbenchSurface } from "@/features/admin/operatorWorkbenchSurfaces";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialAdminHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildAdminSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 
 type RouteRow = RoutePolicy & { overrides: number };
@@ -180,6 +181,7 @@ export default function AccessCenterPage() {
           </p>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildAdminSegmentHint()}</p>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
+          <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialAdminHint()}</p>
         </div>
         <div className="flex items-center gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm">
           <svg

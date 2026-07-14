@@ -250,6 +250,7 @@ import {
   buildVoxyRenderReviewDecisionGateFromReviewContext,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildMunicipalHandoffTrialReviewHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -1175,6 +1176,9 @@ export default async function AdminReviewPage({
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           {buildB2GFirstLoginAdminHint()} Reviewed topic candidates sind noch kein offizieller Behördenprozess, und das Response Cockpit bleibt getrennt von externer Notification.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {buildMunicipalHandoffTrialReviewHint()}
         </p>
       </header>
 

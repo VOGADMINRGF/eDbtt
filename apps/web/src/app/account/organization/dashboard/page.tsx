@@ -22,8 +22,12 @@ import {
 } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitContract";
 import {
   buildB2GFirstLoginWorkspaceHint,
-  buildMunicipalHandoffDecisionBoundaryHint,
 } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import {
+  buildMunicipalHandoffThreeAdoptionTrialContract,
+  buildMunicipalHandoffThreeAdoptionTrialSummaryCards,
+  buildMunicipalHandoffTrialWorkspaceHint,
+} from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import {
   buildInstitutionalWorkspaceSegmentHint,
   resolveInstitutionalSegmentForOrganizationType,
@@ -580,8 +584,12 @@ export default async function AccountOrganizationDashboardPage() {
           matchedJurisdictionLabels: readModel.regionSummary
             .filter((entry) => entry.dashboardAccess)
             .map((entry) => entry.regionName),
-          municipalHandoffStatus: "needs_decision",
+          municipalHandoffStatus: "done",
         })
+      : null;
+  const municipalHandoffTrialContract =
+    institutionalSegment === "b2g"
+      ? buildMunicipalHandoffThreeAdoptionTrialContract()
       : null;
 
   return (
@@ -1427,6 +1435,9 @@ export default async function AccountOrganizationDashboardPage() {
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
             {buildB2GFirstLoginWorkspaceHint()}
           </p>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            {buildMunicipalHandoffTrialWorkspaceHint()}
+          </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (
               <article
@@ -1452,15 +1463,30 @@ export default async function AccountOrganizationDashboardPage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Decision Boundary</h3>
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Municipal Handoff Trial</h3>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                {buildMunicipalHandoffDecisionBoundaryHint()}
+                GOV-light Trial, interne Adoption, Verified Publisher Preflight und externer Behördenkontakt bleiben getrennte Schritte.
               </p>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                 {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
               </p>
             </div>
           </div>
+          {municipalHandoffTrialContract ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {buildMunicipalHandoffThreeAdoptionTrialSummaryCards(
+                municipalHandoffTrialContract,
+              ).map((card) => (
+                <article
+                  key={card.id}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4"
+                >
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{card.body}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

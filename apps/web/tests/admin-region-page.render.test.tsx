@@ -214,6 +214,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-context"');
     expect(html).toContain('data-testid="admin-region-journey"');
     expect(html).toContain("Authority First Login, Jurisdiktions-Match, Freischaltung, Entitlement und externe Benachrichtigung bleiben getrennte Review-Schritte.");
+    expect(html).toContain(
+      "Authority Continuation bleibt ein Kandidat mit System-Thema, Jurisdiktions-Plausibilität und Machbarkeitsnotiz",
+    );
     expect(html).toContain("Jurisdiktions-Match, reviewed topic candidate und vorgeschlagene Beteiligung bleiben getrennt");
     expect(html).toContain('data-testid="admin-region-summary"');
     expect(html).toContain('data-testid="admin-region-access-summary"');

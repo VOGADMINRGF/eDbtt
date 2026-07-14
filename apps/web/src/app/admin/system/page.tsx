@@ -5,7 +5,11 @@ import {
   buildB2GFirstLoginJurisdictionCockpitContract,
   buildB2GFirstLoginSummaryCards,
 } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitContract";
-import { buildMunicipalHandoffDecisionBoundaryHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import {
+  buildMunicipalHandoffThreeAdoptionTrialContract,
+  buildMunicipalHandoffThreeAdoptionTrialSummaryCards,
+  buildMunicipalHandoffTrialAdminHint,
+} from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import {
   buildAdminSegmentHint,
   listSegmentedAgentExperiences,
@@ -72,8 +76,9 @@ export default async function AdminSystemHubPage() {
   const agenticReadiness = buildAgenticBootstrapReadiness();
   const segmentedExperiences = listSegmentedAgentExperiences();
   const b2gFirstLoginContract = buildB2GFirstLoginJurisdictionCockpitContract({
-    municipalHandoffStatus: "needs_decision",
+    municipalHandoffStatus: "done",
   });
+  const municipalHandoffTrialContract = buildMunicipalHandoffThreeAdoptionTrialContract();
   const materializedFollowups =
     agenticReadiness.bootstrap.followupTaskCount - agenticReadiness.bootstrap.missingFollowupTaskIds.length;
   return (
@@ -191,7 +196,7 @@ export default async function AdminSystemHubPage() {
               </ul>
             ) : (
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Keine weiteren codex_ready Controlled-Agentic-Folgepfade. {buildMunicipalHandoffDecisionBoundaryHint()}
+                Keine weiteren codex_ready Controlled-Agentic-Folgepfade.
               </p>
             )}
           </div>
@@ -208,6 +213,7 @@ export default async function AdminSystemHubPage() {
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">
               {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
             </p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialAdminHint()}</p>
           </div>
         </div>
       </section>
@@ -238,6 +244,13 @@ export default async function AdminSystemHubPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (
             <ReadinessMetric key={card.id} label={card.title} value="review-first" detail={card.body} />
+          ))}
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {buildMunicipalHandoffThreeAdoptionTrialSummaryCards(
+            municipalHandoffTrialContract,
+          ).map((card) => (
+            <ReadinessMetric key={card.id} label={card.title} value="contract" detail={card.body} />
           ))}
         </div>
       </section>
