@@ -16,6 +16,7 @@ import {
 } from "@features/region";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { buildMunicipalHandoffTrialRegionHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
 type SearchParamsShape =
@@ -264,6 +265,9 @@ export default async function AdminRegionPage({
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialRegionHint()}</p>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {buildVoxyExperienceShellHint("admin_region")}
+        </p>
       </header>
 
       <section

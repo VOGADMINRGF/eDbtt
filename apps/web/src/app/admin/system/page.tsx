@@ -15,6 +15,11 @@ import {
   listSegmentedAgentExperiences,
 } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import {
+  buildVoxyExperienceShellContract,
+  buildVoxyExperienceShellModeHint,
+  buildVoxyExperienceShellSummaryCards,
+} from "@/features/voxy/voxyExperienceShellContract";
+import {
   getOperatorWorkbenchSurface,
   type OperatorWorkbenchSurfaceKey,
 } from "@/features/admin/operatorWorkbenchSurfaces";
@@ -79,6 +84,7 @@ export default async function AdminSystemHubPage() {
     municipalHandoffStatus: "done",
   });
   const municipalHandoffTrialContract = buildMunicipalHandoffThreeAdoptionTrialContract();
+  const voxyExperienceShell = buildVoxyExperienceShellContract();
   const materializedFollowups =
     agenticReadiness.bootstrap.followupTaskCount - agenticReadiness.bootstrap.missingFollowupTaskIds.length;
   return (
@@ -214,6 +220,62 @@ export default async function AdminSystemHubPage() {
               {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
             </p>
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialAdminHint()}</p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        data-testid="voxy-experience-shell-card"
+        className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Voxy Experience Shell
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              Page, Mobile und Agentic Integration bleiben lesbar und sicher
+            </h2>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {voxyExperienceShell.surfaces.find((surface) => surface.id === "admin_system")?.pageHint}
+            </p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+              {buildVoxyExperienceShellModeHint()}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[rgb(var(--soft))] px-3 py-2 text-right text-xs text-[rgb(var(--muted))]">
+            <p>Next codex_ready</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">
+              {voxyExperienceShell.nextCodexReadyTaskId ?? "kein Folgepfad"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {buildVoxyExperienceShellSummaryCards(voxyExperienceShell).map((card) => (
+            <ReadinessMetric key={card.id} label={card.title} value="contract" detail={card.body} />
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Voxy Modi</h3>
+            <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+              {voxyExperienceShell.modes.map((mode) => (
+                <li key={mode.id}>
+                  <span className="font-medium text-[rgb(var(--fg))]">{mode.label}:</span> {mode.summary}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Grenzen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+              <li>Keine Runtime-Aktivierung, keine Provider-Leaks und keine Prompt- oder Chain-of-Thought-Leaks.</li>
+              <li>Mobil bleibt Voxy sticky, safe-area-aware und chip-first statt dialogerzwungen.</li>
+              <li>B2C Personal Voxy bleibt consent-gated; B2B und B2G werden nicht in einen persönlichen Companion gezwungen.</li>
+              <li>V3-AGENTIC-CIVIC-E2E-PILOT-01 bleibt nach diesem Shell-Slice der nächste codex_ready Folgepfad.</li>
+            </ul>
           </div>
         </div>
       </section>

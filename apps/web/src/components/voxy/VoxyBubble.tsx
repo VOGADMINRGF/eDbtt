@@ -1,6 +1,7 @@
 import type { VoxySharedProps } from "./VoxyGuide";
 import { VoxyAvatar } from "./VoxyGuide";
 import { resolveVoxyAsset } from "@/features/voxy/voxyAssets";
+import { VOXY_EXPERIENCE_LAYOUT_GUARD } from "@/features/voxy/voxyExperienceShellContract";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -18,6 +19,7 @@ export default function VoxyBubble({
     <div
       className={joinClasses(
         "inline-flex max-w-2xl items-start gap-3 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm",
+        VOXY_EXPERIENCE_LAYOUT_GUARD.bubbleClassName,
         compact ? "px-3 py-2.5" : "px-4 py-3",
       )}
       data-voxy-bubble=""

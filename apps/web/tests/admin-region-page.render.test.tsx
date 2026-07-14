@@ -218,6 +218,9 @@ describe("admin-region-page.render", () => {
       "Authority Continuation bleibt ein Kandidat mit System-Thema, Jurisdiktions-Plausibilität und Machbarkeitsnotiz",
     );
     expect(html).toContain("Jurisdiktions-Match, reviewed topic candidate und vorgeschlagene Beteiligung bleiben getrennt");
+    expect(html).toContain(
+      "In der Regionssicht erklärt Voxy Quellenprüfung, reviewed topic candidates, Beteiligungsoptionen und Handoff-Status",
+    );
     expect(html).toContain('data-testid="admin-region-summary"');
     expect(html).toContain('data-testid="admin-region-access-summary"');
     expect(html).toContain('data-testid="admin-region-guardrails"');

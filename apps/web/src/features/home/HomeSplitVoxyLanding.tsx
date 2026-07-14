@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
 import type { StartExperienceModel } from "@/features/start/startExperience";
 import { resolveVoxyAsset } from "@/features/voxy/voxyAssets";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 
 type HomeSplitVoxyLandingProps = {
   blocks?: BucketBlock[];
@@ -380,6 +381,9 @@ export default function HomeSplitVoxyLanding({
 
               <p className="mx-auto max-w-[35rem] text-center text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px] lg:mx-0 lg:text-left">
                 {TRUST_LINE}
+              </p>
+              <p className="mx-auto max-w-[35rem] text-center text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px] lg:mx-0 lg:text-left">
+                {buildVoxyExperienceShellHint("home")}
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-sm text-[rgb(var(--fg))]/58 lg:justify-start">

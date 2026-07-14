@@ -58,6 +58,9 @@ describe("dossier public route contract", () => {
     expect(html).toContain(
       "Read-only Lesen, Teilen und QR für bereits sichtbare öffentliche Stände verbrauchen keinen GOV-light-Slot",
     );
+    expect(html).toContain(
+      "Im Dossier bleibt Voxy eine verständliche Status-Schicht für Quellenlage, offene Fragen und Review-Gates",
+    );
     expect(html).toContain("ShareDeepLinkActions");
     expect(html).toContain("SocialOutputPreviewPanel");
     expect(html).toContain("RouteBoundCompanionPanel");
@@ -80,6 +83,9 @@ describe("dossier public route contract", () => {
     expect(html).toContain("Ein B2G-Cockpit ändert nichts an der freien öffentlichen Lesbarkeit");
     expect(html).toContain(
       "Read-only Lesen, Teilen und QR für bereits sichtbare öffentliche Stände verbrauchen keinen GOV-light-Slot",
+    );
+    expect(html).toContain(
+      "Im Dossier bleibt Voxy eine verständliche Status-Schicht für Quellenlage, offene Fragen und Review-Gates",
     );
     expect(html).not.toContain("ShareDeepLinkActions");
     expect(html).not.toContain("SocialOutputPreviewPanel");
