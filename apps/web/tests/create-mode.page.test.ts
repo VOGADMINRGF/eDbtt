@@ -144,6 +144,9 @@ describe("/create start surface", () => {
     expect(html).toContain("Noch nicht gestartet");
     expect(html).toContain("Bleibt im Review");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
+    expect(html).toContain(
+      "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
+    );
     expect(html).toContain('data-frontend-ai-transparency="/create"');
     expect(html).toContain('data-ai-provenance-step="create_planner_trace"');
     expect(html).toContain('data-ai-provenance-step="create_analyze_trace"');

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { resolveVoxyAsset, type VoxyVariant } from "@/features/voxy/voxyAssets";
+import { VOXY_EXPERIENCE_LAYOUT_GUARD } from "@/features/voxy/voxyExperienceShellContract";
 
 export type VoxyRenderableVariant = VoxyVariant | string | null | undefined;
 export type VoxyGuideAppearance = "hero" | "panel" | "inline" | "compact";
@@ -49,6 +50,8 @@ export function VoxyAvatar({
     <div
       className={joinClasses(
         "public-voxy-image relative shrink-0",
+        VOXY_EXPERIENCE_LAYOUT_GUARD.avatarContainerClassName,
+        VOXY_EXPERIENCE_LAYOUT_GUARD.safeHeightClassName,
         resolvedAppearance === "hero"
           ? isStage
             ? "w-[12rem] sm:w-[14rem] lg:w-[16rem]"
@@ -61,7 +64,7 @@ export function VoxyAvatar({
               ? "w-12"
               : "w-14",
       )}
-      style={{ aspectRatio: asset.aspectRatio }}
+      style={{ aspectRatio: asset.aspectRatio, maxWidth: "100%" }}
       data-voxy-avatar=""
       data-voxy-appearance={resolvedAppearance}
       data-voxy-variant={asset.variant}
@@ -113,6 +116,7 @@ export default function VoxyGuide({
     <aside
       className={joinClasses(
         "public-voxy-stage text-[rgb(var(--fg))]",
+        VOXY_EXPERIENCE_LAYOUT_GUARD.shellClassName,
         isHero
           ? "min-h-[19rem] md:min-h-[21rem]"
           : isInline || isCompact

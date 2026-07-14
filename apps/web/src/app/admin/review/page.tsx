@@ -71,6 +71,7 @@ import VoxyBriefingScriptCandidatePanel from "@/features/create/VoxyBriefingScri
 import VoxyRenderPreflightReadinessPanel from "@/features/create/VoxyRenderPreflightReadinessPanel";
 import VoxyRenderProviderHandoffPanel from "@/features/create/VoxyRenderProviderHandoffPanel";
 import VoxyRenderReviewDecisionGatePanel from "@/features/create/VoxyRenderReviewDecisionGatePanel";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import {
   buildVoxyRenderDecisionPersistencePanelModel,
 } from "@/features/create/voxyRenderDecisionPersistenceContract";
@@ -1179,6 +1180,9 @@ export default async function AdminReviewPage({
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
           {buildMunicipalHandoffTrialReviewHint()}
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {buildVoxyExperienceShellHint("admin_review")}
         </p>
       </header>
 

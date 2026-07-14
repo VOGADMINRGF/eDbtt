@@ -32,6 +32,7 @@ import {
   buildInstitutionalWorkspaceSegmentHint,
   resolveInstitutionalSegmentForOrganizationType,
 } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import {
   buildOrganizationDashboardReadModel,
   organizationBillingStatusLabel,
@@ -615,6 +616,9 @@ export default async function AccountOrganizationDashboardPage() {
                 organizationType: readModel.organizationType,
                 isOperatorMode: readModel.organization.isOperatorMode,
               })}
+            </p>
+            <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+              {buildVoxyExperienceShellHint("account_organization_dashboard")}
             </p>
           </div>
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
@@ -1437,6 +1441,9 @@ export default async function AccountOrganizationDashboardPage() {
           </p>
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
             {buildMunicipalHandoffTrialWorkspaceHint()}
+          </p>
+          <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+            {buildVoxyExperienceShellHint("account_organization_dashboard")}
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (

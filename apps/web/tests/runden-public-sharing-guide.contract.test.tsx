@@ -23,6 +23,9 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain(
       "Read-only Lesen, Teilen und QR für bereits sichtbare öffentliche Stände verbrauchen keinen GOV-light-Slot",
     );
+    expect(html).toContain(
+      "Im öffentlichen Anlassraum erklärt Voxy Status, Sichtbarkeit und nächste Schritte",
+    );
     expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
     expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
     expect(html).toContain("Link und QR gehören nur zu sichtbaren Anlässen.");

@@ -35,6 +35,7 @@ describe("landing information architecture contract", () => {
     expect(html).toContain('href="/swipes"');
     expect(html).toContain('href="/themen"');
     expect(html).toContain("href=\"/dossier\"");
+    expect(html).toContain("Voxy ist hier Hero, Guide und Status-Schicht");
 
     const contributeIndex = html.indexOf("Beitrag starten");
     const participateIndex = html.indexOf("Mitwirken");

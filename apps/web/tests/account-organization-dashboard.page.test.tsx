@@ -354,6 +354,9 @@ describe("/account/organization/dashboard page", () => {
 
     expect(html).toContain("B2B-Workbench");
     expect(html).toContain("Geführte Hilfe oder benannter Kontakt bleiben optional.");
+    expect(html).toContain(
+      "Im Organisationsbereich erklärt Voxy Arbeitsstand, Review-Gates, B2G-Hinweise und sichere nächste Schritte",
+    );
     expect(html).not.toContain("persönlicher Companion wird erzwungen");
   });
 
@@ -787,6 +790,9 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Bildung &amp; Schulinfrastruktur Reinickendorf");
     expect(html).toContain("Wir veröffentlichen nichts ungeprüft.");
     expect(html).toContain("Sichtbar heißt nicht automatisch amtlich.");
+    expect(html).toContain(
+      "Im Organisationsbereich erklärt Voxy Arbeitsstand, Review-Gates, B2G-Hinweise und sichere nächste Schritte",
+    );
     expect(html.indexOf("Schnell starten")).toBeLessThan(html.indexOf("Meine Organisation"));
   });
 

@@ -22,6 +22,12 @@ describe("admin system agentic runtime readiness page", () => {
     expect(html).not.toContain("V3-SEGMENTED-AGENT-EXPERIENCE-CONTRACT-01</li>");
     expect(html).toContain("Public Debattenstand bleibt frei lesbar");
     expect(html).toContain("benannter Kontakt optional");
+    expect(html).toContain("Voxy Experience Shell");
+    expect(html).toContain("Page, Mobile und Agentic Integration bleiben lesbar und sicher");
+    expect(html).toContain("Page Shell");
+    expect(html).toContain("Mobile / PWA");
+    expect(html).toContain("Agentic Fassade");
+    expect(html).toContain("B2C Personal Voxy bleibt consent-gated");
     expect(html).toContain("First Login / Jurisdiktion / Response Boundaries");
     expect(html).toContain("Alle dokumentierten B2G- und Municipal-Handoff-Gates sind fuer den naechsten E2E-Pfad frei.");
     expect(html).toContain("Municipal Handoff Boundary");

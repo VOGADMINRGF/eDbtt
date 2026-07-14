@@ -71,9 +71,12 @@ describe("VoxyGuide render contract", () => {
   it("keeps voxy guide token-based without hardcoded dark-only surface classes", () => {
     const source = readFileSync(resolve(process.cwd(), "src/components/voxy/VoxyGuide.tsx"), "utf8");
 
+    expect(source).toContain("VOXY_EXPERIENCE_LAYOUT_GUARD");
     expect(source).toContain("public-voxy-stage");
     expect(source).toContain("public-voxy-image");
     expect(source).toContain("public-voxy-aura");
+    expect(source).toContain("avatarContainerClassName");
+    expect(source).toContain("safeHeightClassName");
     expect(source).toContain("rgb(var(--fg))");
     expect(source).toContain("rgb(var(--muted))");
     expect(source).not.toContain("bg-slate-");

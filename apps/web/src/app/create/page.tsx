@@ -36,6 +36,7 @@ import {
 } from "@/lib/server/auth/requestScope";
 import { buildCreateDraftResumeLookupOrder } from "@features/account/draftSsotPolicy";
 import { buildCreateSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -212,6 +213,9 @@ export default async function CreatePage({
       <h1 className="sr-only">{createText.srOnlyCreate}</h1>
       <div className="mx-auto w-full max-w-[1560px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-11">
         <p className="mb-4 max-w-4xl text-sm text-[rgb(var(--muted))]">{buildCreateSegmentHint()}</p>
+        <p className="mb-4 max-w-4xl text-sm text-[rgb(var(--muted))]">
+          {buildVoxyExperienceShellHint("create")}
+        </p>
         <LocaleProvider initialLocale={pageLocale}>
           <CreateClient
             initialEntitlements={entitlements}

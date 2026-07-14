@@ -5,6 +5,7 @@ import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { buildPersonalAccountSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 
 export const metadata = {
   title: "Mein Konto & eDebatte · eDebatte",
@@ -56,6 +57,9 @@ export default async function AccountPage({ searchParams }: Props) {
           </p>
           <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
             {buildPersonalAccountSegmentHint()}
+          </p>
+          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
+            {buildVoxyExperienceShellHint("account")}
           </p>
         </header>
 
