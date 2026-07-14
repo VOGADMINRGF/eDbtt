@@ -33,18 +33,19 @@ describe("agent registry bootstrap contract", () => {
     );
     expect(readiness.bootstrap.doneTaskIds).toEqual(
       expect.arrayContaining([
+        "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
+        "V3-DAILY-CIVIC-IMPULSES-OBSERVATION-INTAKE-01",
         "V3-AGENT-RUN-ARTIFACT-SAFE-TRACE-CONTRACT-01",
         "V3-INTAKE-FORMAT-AGENT-E2E-01",
         "V3-REGIONAL-CIVIC-RADAR-AND-PARTICIPATION-DISCOVERY-01",
         "V3-RESEARCH-SOURCE-TRANSFERABILITY-AGENT-01",
-      ]),
-    );
-    expect(readiness.bootstrap.codexReadyTaskIds).toEqual(
-      expect.arrayContaining([
-        "V3-PERSONAL-VOXY-PROFILE-CONSENT-ONBOARDING-01",
         "V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01",
+        "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
         "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
       ]),
+    );
+    expect(readiness.bootstrap.codexReadyTaskIds).toContain(
+      "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
     );
   });
 
