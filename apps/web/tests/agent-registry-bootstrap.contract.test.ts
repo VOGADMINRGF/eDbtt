@@ -45,7 +45,10 @@ describe("agent registry bootstrap contract", () => {
         "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
       ]),
     );
-    expect(readiness.bootstrap.codexReadyTaskIds).toEqual([]);
+    expect(readiness.bootstrap.codexReadyTaskIds).toEqual([
+      "V3-MUNICIPAL-HANDOFF-THREE-ADOPTION-TRIAL-01",
+    ]);
+    expect(readiness.bootstrap.needsDecisionTaskIds).toEqual([]);
   });
 
   it("keeps denied actions and shared rules enforceable without silent override", () => {
