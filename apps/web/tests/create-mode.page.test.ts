@@ -147,6 +147,9 @@ describe("/create start surface", () => {
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
     );
+    expect(html).toContain(
+      "Der Agentic Civic Pilot bleibt review-first: Beobachtung, Format, Claims, Dossier, Beteiligung und Handoff werden vorbereitet, aber nichts wird automatisch veröffentlicht oder extern benachrichtigt.",
+    );
     expect(html).toContain('data-frontend-ai-transparency="/create"');
     expect(html).toContain('data-ai-provenance-step="create_planner_trace"');
     expect(html).toContain('data-ai-provenance-step="create_analyze_trace"');

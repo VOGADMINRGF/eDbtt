@@ -251,6 +251,7 @@ import {
   buildVoxyRenderReviewDecisionGateFromReviewContext,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
 import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildAgenticCivicE2EAdminHint } from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
 import { buildMunicipalHandoffTrialReviewHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 
 export const metadata = {
@@ -1182,7 +1183,7 @@ export default async function AdminReviewPage({
           {buildMunicipalHandoffTrialReviewHint()}
         </p>
         <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          {buildVoxyExperienceShellHint("admin_review")}
+          {buildVoxyExperienceShellHint("admin_review")} {buildAgenticCivicE2EAdminHint()}
         </p>
       </header>
 

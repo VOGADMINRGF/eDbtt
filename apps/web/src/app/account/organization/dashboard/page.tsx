@@ -20,6 +20,7 @@ import {
   buildB2GFirstLoginJurisdictionCockpitContract,
   buildB2GFirstLoginSummaryCards,
 } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitContract";
+import { buildAgenticCivicE2EOrganizationHint } from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
 import {
   buildB2GFirstLoginWorkspaceHint,
 } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
@@ -1443,7 +1444,8 @@ export default async function AccountOrganizationDashboardPage() {
             {buildMunicipalHandoffTrialWorkspaceHint()}
           </p>
           <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-            {buildVoxyExperienceShellHint("account_organization_dashboard")}
+            {buildVoxyExperienceShellHint("account_organization_dashboard")}{" "}
+            {buildAgenticCivicE2EOrganizationHint()}
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {buildB2GFirstLoginSummaryCards(b2gFirstLoginContract).map((card) => (

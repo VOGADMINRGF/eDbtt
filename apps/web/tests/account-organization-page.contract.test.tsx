@@ -53,6 +53,12 @@ describe("/account/organization page contract", () => {
     expect(html).toContain("Ein persönlicher Companion wird nicht erzwungen.");
     expect(html).toContain("verifizierter Erstlogin ist keine Behördenaktivierung");
     expect(html).toContain(
+      "Im institutionellen Onboarding bleibt Voxy eine verständliche Shell für Status, Freischaltung und nächste Schritte",
+    );
+    expect(html).toContain(
+      "Der E2E-Pilot verbindet Dossier, Beteiligung, GOV-light und Municipal Handoff als Statuspfad, ohne Behördenkontakt, Entitlement-Aktivierung oder Auto-Publish auszulösen.",
+    );
+    expect(html).toContain(
       "Öffentliche Lesbarkeit, GOV-light-Teaser und internes Bookmarking bleiben frei",
     );
   });
