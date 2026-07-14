@@ -742,6 +742,11 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain("Anlassraum/Event starten");
     expect(html).toContain("Beitrag starten");
     expect(html).toContain("Erste Schritte");
+    expect(html).toContain('data-testid="organization-dashboard-b2g-first-login"');
+    expect(html).toContain("Jurisdiktions- und Authority-Cockpit bleibt review-first");
+    expect(html).toContain("Municipal Handoff bleibt needs_decision");
+    expect(html).toContain("Agentic Civic E2E bleibt blocked");
+    expect(html).toContain("Self-Service");
     expect(html).toContain("Kanonischer Review-first Pfad");
     expect(html).toContain("Direkter Organisationspfad");
     expect(html).toContain("Review Item");

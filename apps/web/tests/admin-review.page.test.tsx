@@ -879,6 +879,8 @@ describe("/admin/review page", () => {
     const html = renderToStaticMarkup(await AdminReviewPage());
 
     expect(html).toContain("Zentrale Review-Queue");
+    expect(html).toContain("Authority First Login, Jurisdiktions-Match, Freischaltung, Entitlement und externe Benachrichtigung bleiben getrennte Review-Schritte.");
+    expect(html).toContain("Reviewed topic candidates sind noch kein offizieller Behördenprozess");
     expect(html).toContain("Kanonischer Review-first Pfad");
     expect(html).toContain("Kanonische Review-Herkunft");
     expect(html).toContain("Review-to-Visible Journey");

@@ -42,11 +42,10 @@ describe("agent registry bootstrap contract", () => {
         "V3-CLAIMS-FACTCHECK-AGENT-GRAPH-INTEGRATION-01",
         "V3-DOSSIER-CAUSE-EFFECT-RESPONSIBILITY-TRANSFER-GRAPH-01",
         "V3-PARTICIPATION-MODERATION-AGENT-RUNTIME-01",
+        "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
       ]),
     );
-    expect(readiness.bootstrap.codexReadyTaskIds).toContain(
-      "V3-B2G-FIRST-LOGIN-JURISDICTION-COCKPIT-01",
-    );
+    expect(readiness.bootstrap.codexReadyTaskIds).toEqual([]);
   });
 
   it("keeps denied actions and shared rules enforceable without silent override", () => {

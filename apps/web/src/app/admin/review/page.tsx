@@ -249,6 +249,7 @@ import {
 import {
   buildVoxyRenderReviewDecisionGateFromReviewContext,
 } from "@/features/create/voxyRenderReviewDecisionGateContract";
+import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 
 export const metadata = {
   title: "Admin Review Queue · eDebatte",
@@ -1171,6 +1172,9 @@ export default async function AdminReviewPage({
           automatische Dossier-/Anlassraum-Finalisierung. Social-/CI-Distribution bleibt review-first,
           auditierbar und manuell veröffentlicht. Provider- oder Siegelpfade bleiben
           bewusste, auditierbare Einzelentscheidungen.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
+          {buildB2GFirstLoginAdminHint()} Reviewed topic candidates sind noch kein offizieller Behördenprozess, und das Response Cockpit bleibt getrennt von externer Notification.
         </p>
       </header>
 
