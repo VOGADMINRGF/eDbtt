@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { buildAgenticBootstrapReadiness } from "@/features/agenticRuntime/agentRegistryBootstrapContract";
 import {
+  buildAgenticCivicE2EAdminHint,
+  buildAgenticCivicE2EPilotContract,
+  buildAgenticCivicE2EPilotSummaryCards,
+} from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
+import {
   buildAgenticCivicE2EStatusHint,
   buildB2GFirstLoginJurisdictionCockpitContract,
   buildB2GFirstLoginSummaryCards,
@@ -83,8 +88,13 @@ export default async function AdminSystemHubPage() {
   const b2gFirstLoginContract = buildB2GFirstLoginJurisdictionCockpitContract({
     municipalHandoffStatus: "done",
   });
+  const agenticCivicE2EPilotContract = buildAgenticCivicE2EPilotContract();
   const municipalHandoffTrialContract = buildMunicipalHandoffThreeAdoptionTrialContract();
   const voxyExperienceShell = buildVoxyExperienceShellContract();
+  const voxyNextTaskLabel =
+    agenticCivicE2EPilotContract.statusInOpenTasks === "done"
+      ? "kein Folgepfad"
+      : voxyExperienceShell.nextCodexReadyTaskId ?? "kein Folgepfad";
   const materializedFollowups =
     agenticReadiness.bootstrap.followupTaskCount - agenticReadiness.bootstrap.missingFollowupTaskIds.length;
   return (
@@ -220,6 +230,7 @@ export default async function AdminSystemHubPage() {
               {buildAgenticCivicE2EStatusHint(b2gFirstLoginContract)}
             </p>
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialAdminHint()}</p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildAgenticCivicE2EAdminHint()}</p>
           </div>
         </div>
       </section>
@@ -246,7 +257,7 @@ export default async function AdminSystemHubPage() {
           <div className="rounded-2xl bg-[rgb(var(--soft))] px-3 py-2 text-right text-xs text-[rgb(var(--muted))]">
             <p>Next codex_ready</p>
             <p className="font-semibold text-[rgb(var(--fg))]">
-              {voxyExperienceShell.nextCodexReadyTaskId ?? "kein Folgepfad"}
+              {voxyNextTaskLabel}
             </p>
           </div>
         </div>
@@ -314,6 +325,56 @@ export default async function AdminSystemHubPage() {
           ).map((card) => (
             <ReadinessMetric key={card.id} label={card.title} value="contract" detail={card.body} />
           ))}
+        </div>
+      </section>
+
+      <section
+        data-testid="agentic-civic-e2e-pilot-card"
+        className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Agentic Civic E2E Pilot
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              Review-first End-to-End Status
+            </h2>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{buildAgenticCivicE2EAdminHint()}</p>
+          </div>
+          <div className="rounded-2xl bg-[rgb(var(--soft))] px-3 py-2 text-right text-xs text-[rgb(var(--muted))]">
+            <p>Pilot-Task</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">
+              {agenticCivicE2EPilotContract.statusInOpenTasks}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {buildAgenticCivicE2EPilotSummaryCards(agenticCivicE2EPilotContract).map((card) => (
+            <ReadinessMetric key={card.id} label={card.title} value="review-first" detail={card.body} />
+          ))}
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">E2E Stages</h3>
+            <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+              {agenticCivicE2EPilotContract.stages.map((stage) => (
+                <li key={stage.id}>
+                  <span className="font-medium text-[rgb(var(--fg))]">{stage.title}:</span>{" "}
+                  {stage.summary}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Pilot-Grenzen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
+              <li>Review-first bleibt Pflicht: {agenticCivicE2EPilotContract.reviewPipeline.reviewFirst ? "ja" : "nein"}.</li>
+              <li>Öffentliche Debattenstände bleiben frei lesbar: {agenticCivicE2EPilotContract.publicDebattenstandRemainsFree ? "ja" : "nein"}.</li>
+              <li>GOV-light nutzt {agenticCivicE2EPilotContract.govLight.slotLimit} aktive Themen-Slots.</li>
+              <li>Verified Publisher Preflight bleibt bewusster Publish-Pfad ohne Agent-Auto-Publish.</li>
+            </ul>
+          </div>
         </div>
       </section>
 

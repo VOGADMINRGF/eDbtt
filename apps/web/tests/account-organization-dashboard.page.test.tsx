@@ -754,6 +754,9 @@ describe("/account/organization/dashboard page", () => {
     expect(html).toContain(
       "Alle dokumentierten B2G- und Municipal-Handoff-Gates sind fuer den naechsten E2E-Pfad frei.",
     );
+    expect(html).toContain(
+      "Der E2E-Pilot verbindet Dossier, Beteiligung, GOV-light und Municipal Handoff als Statuspfad, ohne Behördenkontakt, Entitlement-Aktivierung oder Auto-Publish auszulösen.",
+    );
     expect(html).toContain("Three-Slot Trial");
     expect(html).toContain("Self-Service");
     expect(html).toContain("Kanonischer Review-first Pfad");

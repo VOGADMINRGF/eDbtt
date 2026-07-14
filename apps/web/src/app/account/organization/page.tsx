@@ -5,6 +5,7 @@ import { getRegionOrganizationRuntimeRepo } from "@features/region";
 import { getPricingEntryTrustCopy } from "@features/pricing";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
 import { buildB2GFirstLoginOnboardingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
+import { buildAgenticCivicE2EOrganizationHint } from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
 import { buildMunicipalHandoffTrialOnboardingHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildInstitutionalOnboardingSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
@@ -57,7 +58,8 @@ export default async function AccountOrganizationPage() {
           {buildMunicipalHandoffTrialOnboardingHint()}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          {buildVoxyExperienceShellHint("account_organization")}
+          {buildVoxyExperienceShellHint("account_organization")}{" "}
+          {buildAgenticCivicE2EOrganizationHint()}
         </p>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           {PRODUCTION_ENTRY_COPY.organizationPathHint}

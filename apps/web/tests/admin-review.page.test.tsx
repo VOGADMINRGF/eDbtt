@@ -995,6 +995,9 @@ describe("/admin/review page", () => {
     expect(html).toContain("Belastbare Wahrheit");
     expect(html).toContain("Create / Handoff");
     expect(html).toContain("Nächster sinnvoller Review-Schritt");
+    expect(html).toContain(
+      "Der Agentic Civic E2E Pilot bündelt Intake, Safe Trace, Claims, Dossier, Beteiligung, GOV-light und Preflight in einem read-only Review-/Pipeline-Pfad ohne Runtime-Aktivierung.",
+    );
     expect((html.match(/data-testid=\"admin-review-context-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-workflow-/g) ?? []).length).toBe(1);
     expect((html.match(/data-testid=\"admin-review-downstream-ki-/g) ?? []).length).toBe(1);
