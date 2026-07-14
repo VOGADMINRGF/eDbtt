@@ -213,10 +213,9 @@ export default async function CreatePage({
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">{createText.srOnlyCreate}</h1>
       <div className="mx-auto w-full max-w-[1560px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-11">
-        <p className="mb-4 max-w-4xl text-sm text-[rgb(var(--muted))]">{buildCreateSegmentHint()}</p>
-        <p className="mb-4 max-w-4xl text-sm text-[rgb(var(--muted))]">
-          {buildVoxyExperienceShellHint("create")} {buildAgenticCivicE2ECreateHint()}
-        </p>
+        <div className="sr-only" data-create-guardrails="review-first">
+          {buildCreateSegmentHint()} {buildVoxyExperienceShellHint("create")} {buildAgenticCivicE2ECreateHint()}
+        </div>
         <LocaleProvider initialLocale={pageLocale}>
           <CreateClient
             initialEntitlements={entitlements}
