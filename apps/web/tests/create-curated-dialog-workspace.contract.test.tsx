@@ -79,10 +79,17 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("data-create-thread-prompt-chip");
     expect(clientSource).toContain("Schreib unten frei los.");
     expect(clientSource).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(clientSource).toContain("selectedPrimaryTopic");
+    expect(clientSource).toContain("workspaceActionMode");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(clientSource).toContain("create-public-shell create-dialog-workspace overflow-visible");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("experienceVariant=\"create_minimal\"");
+    expect(clientSource).not.toContain("<CreateInlineAnalysisScene");
+    expect(clientSource).not.toContain("showPostInputModules && !showIntelligentFollowup");
+    expect(clientSource).not.toContain("showFollowupQuestionCard && !showLinkClarification");
+    expect(clientSource).not.toContain("showPostInputModules && pickerEnabled");
+    expect(clientSource).not.toContain("showPostInputModules && workingState");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("CreateStructureOverviewCard");
     expect(followupSource).toContain("CreateStructureOverview");
@@ -102,6 +109,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("WorkspaceStageRail");
     expect(followupSource).toContain("WorkspaceMetricRail");
     expect(followupSource).toContain("TopicBranchPreviewGrid");
+    expect(followupSource).toContain("ManualTopicChooser");
+    expect(followupSource).toContain("WorkspaceActionThreadNote");
     expect(followupSource).toContain("StructuredWorkstateBlock");
     expect(followupSource).toContain("data-create-chat-thread");
     expect(followupSource).toContain("data-create-structure-rail");

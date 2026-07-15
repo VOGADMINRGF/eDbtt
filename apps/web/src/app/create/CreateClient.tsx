@@ -1,18 +1,13 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
+import { type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
 import type { AccountOverview } from "@features/account/types";
 import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitlements";
 import type { CreateMode } from "@/features/create/intents";
-import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { useLocale } from "@/context/LocaleContext";
-import {
-  hasCreateIntakeContext,
-  type CreateIntakeContext,
-} from "@/features/create/intakeContext";
+import { type CreateIntakeContext } from "@/features/create/intakeContext";
 import {
   resolveCreateOrchestratorIntentContract,
   type CreateEntryIntent,
@@ -29,10 +24,7 @@ import {
   resolveInitialCreateIntent,
   type CreateIntent,
 } from "@/features/create/intentFlows";
-import {
-  buildFinalizeFallbackPath,
-  normalizeInternalRedirectPath,
-} from "@/features/create/finalizeRedirect";
+import { normalizeInternalRedirectPath } from "@/features/create/finalizeRedirect";
 import type { RundenCreateHandoffIntegrityState } from "@/features/create/rundenCreateHandoffIntegrity";
 import {
   getCreateComposerTexts,
@@ -134,12 +126,6 @@ function buildCreateToRundenHref(text: string): string {
   return `/runden?${params.toString()}`;
 }
 
-type CreateWorkingState = {
-  summary: string;
-  recognizedType: string;
-  suggestedAssignment: string;
-};
-
 function dedupeCreatePlannerTopicLabels(labels: string[]): string[] {
   const seen = new Set<string>();
   const topics: string[] = [];
@@ -220,11 +206,9 @@ export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
 
 export function shouldRenderCreateIntelligentFollowup(params: {
   hasStarted: boolean;
-  productMode: CreateProductMode;
   followup: CreateIntelligentFollowupResult | null;
 }): boolean {
   if (!params.hasStarted) return false;
-  if (params.productMode !== "analyze") return false;
   return Boolean(params.followup);
 }
 
@@ -447,129 +431,6 @@ function CreateAssistantStatusBubble(props: {
   );
 }
 
-function CreateInlineAnalysisScene(props: {
-  productMode: CreateProductMode;
-  notice?: string | null;
-  children: React.ReactNode;
-}) {
-  const heading =
-    props.productMode === "media"
-      ? { lead: "Beitrag", tail: "prüfen" }
-      : props.productMode === "guided"
-        ? { lead: "Entwurf", tail: "ausarbeiten" }
-        : { lead: "Statement", tail: "analysieren" };
-  const stepper = [
-    {
-      id: "input",
-      label: "Eingabe",
-      lead: "aufgenommen",
-      state: "done",
-    },
-    {
-      id: "classification",
-      label: "Einordnung",
-      lead: "geordnet",
-      state: "done",
-    },
-    {
-      id: "analysis",
-      label: "Analyse",
-      lead: props.productMode === "media" ? "offen" : "aktiv",
-      state: "active",
-    },
-    {
-      id: "factcheck",
-      label: "Prüfen",
-      lead: "optional",
-      state: "upcoming",
-    },
-    {
-      id: "handoff",
-      label: "Weiterführen",
-      lead: "danach",
-      state: "upcoming",
-    },
-  ] as const;
-
-  return (
-    <section className="public-dialog-surface space-y-4 rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] p-4 md:p-5">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Analyse-Szene</p>
-            <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))] sm:text-2xl">
-              <span className="bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 bg-clip-text text-transparent">
-                {heading.lead}
-              </span>{" "}
-              {heading.tail}
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-              Prüfmodus jetzt im selben Arbeitsraum geöffnet. Analyse, Quellenbindung und optionaler Faktencheck bleiben ein durchgehender nächster Schritt statt ein separater Abzweig.
-            </p>
-          </div>
-          <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
-            Kein Auto-Start nach außen
-          </span>
-        </div>
-
-        <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-max items-center gap-3">
-            {stepper.map((stage, index) => {
-              const isDone = stage.state === "done";
-              const isActive = stage.state === "active";
-              return (
-                <React.Fragment key={stage.id}>
-                  <div
-                    className={`flex min-w-[9rem] items-center gap-3 rounded-full border px-3 py-2 ${
-                      isActive
-                        ? "border-cyan-300/50 bg-cyan-500/[0.09]"
-                        : isDone
-                          ? "border-emerald-300/35 bg-emerald-500/[0.08]"
-                          : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
-                        isActive
-                          ? "border-cyan-300/60 text-cyan-900 dark:text-cyan-100"
-                          : isDone
-                            ? "border-emerald-300/60 text-emerald-800 dark:text-emerald-100"
-                            : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
-                      }`}
-                    >
-                      {isDone ? "✓" : index + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.label}</p>
-                      <p className="text-[11px] text-[rgb(var(--muted))]">{stage.lead}</p>
-                    </div>
-                  </div>
-                  {index < stepper.length - 1 ? (
-                    <span
-                      aria-hidden="true"
-                      className="h-px w-8 shrink-0 bg-gradient-to-r from-cyan-400/35 to-emerald-300/20"
-                    />
-                  ) : null}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {props.notice ? (
-        <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/[0.08] px-4 py-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
-          {props.notice}
-        </div>
-      ) : null}
-
-      <div className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5">
-        {props.children}
-      </div>
-    </section>
-  );
-}
-
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
 export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
@@ -596,27 +457,6 @@ export function parseCreatePrimaryIntakeSnapshot(raw: string | null): CreatePrim
   } catch {
     return null;
   }
-}
-
-function deriveUseCaseAccessForProductMode(
-  productMode: CreateProductMode,
-  text: OperatorCreateTexts,
-  modeConfig: { description: string },
-): UseCaseAccess {
-  const preferredUseCase = resolveCreateProductModeConfig(productMode).preferredUseCase;
-  const modeNote = modeConfig.description;
-
-  return {
-    allowed: [preferredUseCase],
-    note: modeNote,
-    lockLabels: {
-      civic: text.lockLabelCivic,
-      journalism: text.lockLabelJournalism,
-      agenda: text.lockLabelAgenda,
-    },
-    ctaHref: "/pricing",
-    ctaLabel: text.upgradeLabel,
-  };
 }
 
 function deriveGate(entitlements: CreateEntitlements): GateState {
@@ -773,34 +613,6 @@ export function resolveInitialCreateProductMode(params: {
   );
 }
 
-function summarizeWorkingText(value: string): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (!normalized) return "";
-  if (normalized.length <= 220) return normalized;
-  return `${normalized.slice(0, 217).trim()}...`;
-}
-
-function detectRecognizedType(intent: CreateIntent, value: string): string {
-  const text = value.toLowerCase();
-  if (intent === "contribute") {
-    if (/https?:\/\/|www\./i.test(text) || /quelle|link|dokument|bericht/i.test(text)) return "Quelle";
-    if (/frage|warum|wie|wo|wer|wann|\?/i.test(text)) return "Frage";
-    if (/vorschlag|option|lösung|loesung/i.test(text)) return "Vorschlag";
-    if (/erfahrung|erlebt|beobachtung|wahrnehmung/i.test(text)) return "Erfahrung";
-    return "Hinweis";
-  }
-  if (intent === "check") {
-    if (/https?:\/\/|www\./i.test(text)) return "Quelle";
-    if (/entscheidung|beschluss|abstimmung/i.test(text)) return "Entscheidung";
-    if (/forderung|these|behauptung|aussage/i.test(text)) return "Behauptung";
-    return "Aussage";
-  }
-  if (/fragenkatalog|fragebogen|leitfrage/i.test(text)) return "Fragenkatalog";
-  if (/beteiligungsrunde|workshop|beteiligung/i.test(text)) return "Beteiligungsansatz";
-  if (/antrag|vorschlag|vorlage/i.test(text)) return "Vorschlag";
-  return "Dossier-Entwurf";
-}
-
 export function resolveCreateProductModeConfig(
   mode: CreateProductMode,
   locale: string = "de",
@@ -894,12 +706,12 @@ export default function CreateClient({
   );
 
   const [contextItems, setContextItems] = React.useState<CreateContextPickerItem[]>([]);
-  const [contextLoadState, setContextLoadState] = React.useState<ContextLoadState>("idle");
-  const [contextLoadError, setContextLoadError] = React.useState<string | null>(null);
+  const [, setContextLoadState] = React.useState<ContextLoadState>("idle");
+  const [, setContextLoadError] = React.useState<string | null>(null);
   const [selectedAnlassraumId, setSelectedAnlassraumId] = React.useState<string | null>(() =>
     normalizeAnlassraumId(initialAnlassraumId),
   );
-  const [selectionInfo, setSelectionInfo] = React.useState<string | null>(() => {
+  const [, setSelectionInfo] = React.useState<string | null>(() => {
     if (!initialAnlassraumId) return null;
     if (normalizeAnlassraumId(initialAnlassraumId)) return null;
     return text.selectionInfoInvalidContext;
@@ -933,18 +745,11 @@ export default function CreateClient({
   const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
   const [guidedBridgeAnswer] = React.useState("");
   const [guidedBridgeConfirmed, setGuidedBridgeConfirmed] = React.useState(false);
-  const [workingState, setWorkingState] = React.useState<CreateWorkingState | null>(null);
-  const [followupAnswers, setFollowupAnswers] = React.useState<Record<CreateIntent, string>>({
-    contribute: "",
-    check: "",
-    draft: "",
-  });
-  const [followupAnswerSaved, setFollowupAnswerSaved] = React.useState<Record<CreateIntent, boolean>>({
-    contribute: false,
-    check: false,
-    draft: false,
-  });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
+  const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
+  const [workspaceActionMode, setWorkspaceActionMode] = React.useState<
+    "default" | "edit" | "source" | "manual_topic"
+  >("default");
   const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
   const [persistedCandidateDossierReviewRecord, setPersistedCandidateDossierReviewRecord] =
     React.useState<PersistedCandidateDossierReviewRecordState | null>(null);
@@ -1105,8 +910,6 @@ export default function CreateClient({
   );
   const intakeHelperText = activeContextAnchor?.helperText ?? productModeConfig.helperText;
   const intakePlaceholder = activeContextAnchor?.placeholder ?? productModeConfig.placeholder;
-  const activeFollowupAnswer = followupAnswers[activeIntent];
-  const activeFollowupSaved = followupAnswerSaved[activeIntent];
   const currentLinkDetection = React.useMemo(() => detectCreateLinkIntake(intakeText), [intakeText]);
   const composerAttachmentMaterialItems = React.useMemo(
     () => buildCreateAttachmentMaterialItems(composerAttachments),
@@ -1216,9 +1019,6 @@ export default function CreateClient({
       return;
     }
     try {
-      const activeSelectedContext = selectedAnlassraumId
-        ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
-        : null;
       setIntakeRestoreInfo(null);
       setIntakeError(null);
       setReviewRequestState("idle");
@@ -1233,9 +1033,10 @@ export default function CreateClient({
           additionalContext: current?.additionalContext ?? "",
         }));
         setFollowupSnapshot(null);
-        setWorkingState(null);
         setIntelligentFollowup(null);
         setUnderstandingConfirmed(false);
+        setSelectedPrimaryTopic(null);
+        setWorkspaceActionMode("default");
         setActionNotice(null);
         setHasStarted(true);
         setFollowupSurface("none");
@@ -1250,27 +1051,12 @@ export default function CreateClient({
         surfaceTexts,
       });
       setFollowupSnapshot(snapshot);
-      setWorkingState(
-        productMode === "analyze"
-          ? null
-          : {
-              summary: summarizeWorkingText(normalizedText),
-              recognizedType: detectRecognizedType(activeIntent, normalizedText),
-              suggestedAssignment: activeSelectedContext
-                ? activeSelectedContext.title
-                : initialIntakeContext?.sourceLabel
-                  ? initialIntakeContext.sourceLabel
-                  : productMode === "guided"
-                    ? "Neuer gemeinsamer Arbeitsstand"
-                    : productMode === "media"
-                      ? "Prüfweg noch offen"
-                      : "Thema oder nächster Schritt noch offen",
-            },
-      );
       setIntelligentFollowup(null);
       setPlannerTrace(null);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
+      setSelectedPrimaryTopic(null);
+      setWorkspaceActionMode("default");
       setHasStarted(true);
       setGuidedBridgeConfirmed(productMode !== "guided");
       setFollowupSurface("none");
@@ -1297,35 +1083,32 @@ export default function CreateClient({
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
-      if (productMode === "analyze") {
-        const response = await fetch("/api/create/intelligent-followup", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            text: normalizedText,
-            locale: surfaceLocale,
-            anlassraumId: selectedAnlassraumId,
-            dossierId: dossierId ?? null,
-            intent: activeIntent,
-            sourceUrls: materialRouting.sourceUrls,
-            materialItems: materialRouting.materialItems,
-          }),
-        });
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok || !body?.ok || !body?.result) {
-          throw new Error("create_intelligent_followup_failed");
-        }
-        nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
-        nextPlannerTrace = body.trace ?? null;
+      const response = await fetch("/api/create/intelligent-followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: normalizedText,
+          locale: surfaceLocale,
+          anlassraumId: selectedAnlassraumId,
+          dossierId: dossierId ?? null,
+          intent: activeIntent,
+          sourceUrls: materialRouting.sourceUrls,
+          materialItems: materialRouting.materialItems,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || !body?.result) {
+        throw new Error("create_intelligent_followup_failed");
       }
+      nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
+      nextPlannerTrace = body.trace ?? null;
 
       setIntelligentFollowup(nextIntelligentFollowup);
       setPlannerTrace(nextPlannerTrace);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
 
-      const nextFollowupSurface =
-        productMode === "analyze" ? "none" : resolveFollowupSurfaceOnStart(productMode);
+      const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
       setFollowupSurface(nextFollowupSurface);
       setAnalysisSceneMode(nextFollowupSurface === "analysis" ? productMode : null);
       if (nextFollowupSurface === "analysis") {
@@ -1363,26 +1146,6 @@ export default function CreateClient({
     await startCreateFlow(intakeText);
   }, [intakeText, privacyGate, startCreateFlow]);
 
-  const handleSaveFollowupAnswer = React.useCallback(() => {
-    const normalized = activeFollowupAnswer.trim();
-    if (!normalized) {
-      setActionNotice(productModeConfig.firstQuestionPlaceholder);
-      return;
-    }
-    setFollowupAnswerSaved((current) => ({
-      ...current,
-      [activeIntent]: true,
-    }));
-    setActionNotice(surfaceTexts.followupQuestionSavedLabel);
-  }, [activeFollowupAnswer, activeIntent, productModeConfig.firstQuestionPlaceholder, surfaceTexts.followupQuestionSavedLabel]);
-
-  const triggerActionNotice = React.useCallback(
-    (message?: string) => {
-      setActionNotice(message ?? surfaceTexts.actionNotAvailableLabel);
-    },
-    [surfaceTexts.actionNotAvailableLabel],
-  );
-
   const handleContinueConversation = React.useCallback(async () => {
     if (!privacyGate.ensureActiveProcessingAllowed("create-continue")) return;
     const normalizedContinuation = chatContinuationText.trim();
@@ -1396,6 +1159,8 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setSelectedPrimaryTopic(null);
+    setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
   }, [chatContinuationText, intakeText, privacyGate, startCreateFlow]);
@@ -1407,92 +1172,12 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setSelectedPrimaryTopic(null);
+    setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
   }, [intakeText, startCreateFlow]);
 
-  const handleIntentAction = React.useCallback(
-    (actionIndex: number) => {
-      if (activeIntent === "contribute") {
-        if (actionIndex === 0) {
-          triggerActionNotice("Hinweis vorgemerkt. Du kannst jetzt den nächsten Schritt wählen oder einfach weiterschreiben.");
-          return;
-        }
-        if (actionIndex === 1) {
-          setProductMode("media");
-          setFollowupSurface("analysis");
-          setAnalysisSceneMode("media");
-          setAnalysisAutoRunToken((current) => current + 1);
-          triggerActionNotice("Prüfweg wird geöffnet.");
-          return;
-        }
-        if (actionIndex === 2) {
-          setProductMode("media");
-          setActiveContextAnchorId("source");
-          triggerActionNotice("Quellenhinweis ergänzen aktiviert. Ergänze jetzt die Referenz im Textfeld.");
-          return;
-        }
-        triggerActionNotice("Beteiligung vorbereiten: als nächstes in Swipes weiterführen.");
-        return;
-      }
-
-      if (activeIntent === "check") {
-        if (actionIndex === 0) {
-          setFollowupSurface("analysis");
-          setAnalysisSceneMode("media");
-          setAnalysisAutoRunToken((current) => current + 1);
-          triggerActionNotice("Dossier-Weiterführung wird als Prüfstand vorbereitet.");
-          return;
-        }
-        if (actionIndex === 1) {
-          setActiveContextAnchorId("source");
-          triggerActionNotice("Quellenhinweis ergänzen aktiviert. Ergänze jetzt die Referenzen im Textfeld.");
-          return;
-        }
-        if (actionIndex === 2) {
-          setProductMode("analyze");
-          setActiveContextAnchorId("objection");
-          triggerActionNotice("Gegenposition ergänzen aktiviert.");
-          return;
-        }
-        setFollowupSurface("analysis");
-        setAnalysisSceneMode("media");
-        setAnalysisAutoRunToken((current) => current + 1);
-        triggerActionNotice("Prüfbericht wird vorbereitet.");
-        return;
-      }
-
-      if (actionIndex === 0) {
-        triggerActionNotice("Beitrag oder Themenstruktur kann im nächsten Schritt übernommen werden.");
-        return;
-      }
-      if (actionIndex === 1) {
-        setActiveContextAnchorId("question");
-        triggerActionNotice("Fragenkatalog vorbereitet.");
-        return;
-      }
-      if (actionIndex === 2) {
-        triggerActionNotice("Beteiligungsrunde vorbereiten: als nächstes in /runden weiterführen.");
-        return;
-      }
-      triggerActionNotice("Der nächste Arbeitsschritt ist markiert.");
-    },
-    [activeIntent, triggerActionNotice],
-  );
-
-  const maxClaimsCap =
-    canonicalIntent === "statement"
-      ? Math.min(entitlements.maxVisibleAiProposals, 3)
-      : Math.min(entitlements.maxVisibleAiProposals, 8);
-
-  const maxFinalizeClaims =
-    canonicalIntent === "statement"
-      ? 1
-      : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
-
-  const selectedContext = selectedAnlassraumId
-    ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
-    : null;
   const effectiveSelectedAnlassraumId = canonicalIntent === "statement" ? null : selectedAnlassraumId;
   const normalizedReturnTo = normalizeInternalRedirectPath(initialReturnTo);
   const fromRundenFlow =
@@ -1505,20 +1190,6 @@ export default function CreateClient({
     (fromRundenFlow
       ? buildRundenReturnHref(effectiveSelectedAnlassraumId ?? initialAnlassraumId)
       : null);
-  const afterFinalizeNavigateTo = buildFinalizeFallbackPath({
-    dossierId,
-    preferredSurface: fromRundenFlow ? "runden" : "swipes",
-    anlassraumId: effectiveSelectedAnlassraumId ?? initialAnlassraumId ?? null,
-    fallbackReturnTo: contextualReturnHref,
-  });
-  const useCaseAccess = deriveUseCaseAccessForProductMode(productMode, text, productModeConfig);
-  const workspaceVerificationLevel =
-    overview.verificationLevel && overview.verificationLevel !== "none"
-      ? overview.verificationLevel
-      : undefined;
-
-  const hasLegacyModeParam = Boolean(initialMode);
-  const showIntakeContext = hasCreateIntakeContext(initialIntakeContext);
   const readableRundenContextLabel = renderRundenContextLabel(initialIntakeContext);
   const showPostInputModules = shouldShowCreatePostInputModules({
     hasStarted,
@@ -1530,7 +1201,6 @@ export default function CreateClient({
     Boolean(linkClarificationState?.detection.mostlyLinkOnly);
   const showIntelligentFollowup = shouldRenderCreateIntelligentFollowup({
     hasStarted,
-    productMode,
     followup: intelligentFollowup,
   });
   const showFollowupQuestionCard = shouldShowCreateFollowupQuestionCard({
@@ -1597,21 +1267,25 @@ export default function CreateClient({
       ? "input"
       : isStarting
         ? "understanding"
-        : showAnalyzeWorkspace
-          ? "draft"
-          : showLinkClarification
-            ? "understanding"
-            : showIntelligentFollowup
-              ? understandingConfirmed
-                ? "sources"
+        : showLinkClarification
+          ? "understanding"
+          : showIntelligentFollowup
+            ? workspaceActionMode === "source"
+              ? "sources"
+              : selectedPrimaryTopic || understandingConfirmed
+                ? "draft"
                 : "topics"
-              : showFollowupQuestionCard
-                ? "sources"
-                : "draft";
+            : "draft";
   const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
-    ? "Schreib weiter oder ergänze, was wichtig ist …"
+    ? workspaceActionMode === "edit"
+      ? "Was soll ergänzt oder geschärft werden?"
+      : workspaceActionMode === "source"
+        ? "Welche Quelle oder welcher Hinweis soll ergänzt werden?"
+        : workspaceActionMode === "manual_topic"
+          ? "Welches Hauptthema möchtest du setzen?"
+          : "Schreib weiter oder ergänze, was wichtig ist …"
     : intakePlaceholder;
   const workspaceComposerStartLabel = hasStarted
     ? "Weiter"
@@ -1681,19 +1355,51 @@ export default function CreateClient({
           actionNotice={actionNotice}
           isConfirmed={understandingConfirmed}
           embedInWorkspaceShell
+          selectedPrimaryTopic={selectedPrimaryTopic}
+          composerMode={workspaceActionMode}
           reviewRequestState={reviewRequestState}
           reviewRequestMessage={reviewRequestMessage}
           factcheckMessage={factcheckMessage}
           showCorrectionComposer={showFollowupCorrectionComposer}
           onConfirm={() => {
+            const defaultPrimaryTopic =
+              selectedPrimaryTopic ??
+              buildCreateStructureBranches(intelligentFollowup, 3)[0]?.title ??
+              intelligentFollowup.understanding.dossierContext ??
+              intelligentFollowup.understanding.topics[0]?.label ??
+              null;
+            if (defaultPrimaryTopic) {
+              setSelectedPrimaryTopic(defaultPrimaryTopic);
+            }
             setUnderstandingConfirmed(true);
+            setWorkspaceActionMode("default");
+            setChatContinuationText("");
             setShowFollowupCorrectionComposer(false);
-            setActionNotice("Verstanden. Du kannst jetzt tiefer ins Thema gehen. Nichts wird automatisch veröffentlicht.");
+            setActionNotice(
+              defaultPrimaryTopic
+                ? `Hauptthema „${defaultPrimaryTopic}“ gewählt. Du kannst den Beitrag jetzt gezielt weiterentwickeln.`
+                : "Hauptthema gewählt. Du kannst den Beitrag jetzt gezielt weiterentwickeln.",
+            );
           }}
           onEdit={() => {
-            setUnderstandingConfirmed(false);
+            setWorkspaceActionMode("edit");
+            setChatContinuationText("");
             setShowFollowupCorrectionComposer(true);
-            setActionNotice("Manuelle Weiterführung geöffnet. Passe den Text an oder wähle selbst ein Thema.");
+            setActionNotice("Weiterarbeit aktiv. Ergänze unten, was geschärft oder geändert werden soll.");
+          }}
+          onSelectPrimaryTopic={(topicLabel) => {
+            const normalizedTopicLabel = topicLabel.trim();
+            if (!normalizedTopicLabel) return;
+            setSelectedPrimaryTopic(normalizedTopicLabel);
+            setUnderstandingConfirmed(true);
+            setWorkspaceActionMode("default");
+            setShowFollowupCorrectionComposer(false);
+            setActionNotice(`Hauptthema „${normalizedTopicLabel}“ gewählt. Der nächste Schritt ist jetzt die Weiterentwicklung.`);
+          }}
+          onOpenManualTopicChooser={() => {
+            setWorkspaceActionMode("manual_topic");
+            setChatContinuationText("");
+            setActionNotice("Themenwahl geöffnet. Du kannst einen sichtbaren Zweig übernehmen oder unten ein eigenes Hauptthema setzen.");
           }}
           onPrepareSubmission={handlePrepareSubmission}
           onPrepareAnlassraum={handlePrepareAnlassraum}
@@ -1823,13 +1529,16 @@ export default function CreateClient({
   );
   const workspaceNextStepLabel = React.useMemo(() => {
     if (!hasStarted) return "Beitrag prüfen";
+    if (workspaceActionMode === "source") return "Quellen ergänzen";
+    if (workspaceActionMode === "manual_topic") return "Hauptthema bestätigen";
+    if (selectedPrimaryTopic) return "Beitrag weiterentwickeln";
     if (understandingConfirmed) return "Entwurf speichern";
     if (intelligentFollowup) {
       const branchCount = buildCreateStructureBranches(intelligentFollowup, 3).length;
       if (branchCount > 1) return "Hauptthema wählen";
     }
     return "Beitrag prüfen";
-  }, [hasStarted, intelligentFollowup, understandingConfirmed]);
+  }, [hasStarted, intelligentFollowup, selectedPrimaryTopic, understandingConfirmed, workspaceActionMode]);
 
   const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
@@ -2054,6 +1763,8 @@ export default function CreateClient({
       setIntelligentFollowup(nextFollowup);
       setPlannerTrace(body.trace ?? null);
       setUnderstandingConfirmed(false);
+      setSelectedPrimaryTopic(null);
+      setWorkspaceActionMode("default");
       setShowFollowupCorrectionComposer(false);
       setActionNotice(
         isPlannerReadyForStructuredHandoff(nextFollowup)
@@ -2092,9 +1803,13 @@ export default function CreateClient({
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
+    if (!selectedPrimaryTopic) {
+      setActionNotice("Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten.");
+      return;
+    }
     const baseHref = resolveCreateAnlassraumTargetHref(intelligentFollowup);
     void navigateWithCreateHandoff("prepare_anlassraum", baseHref);
-  }, [intelligentFollowup, navigateWithCreateHandoff]);
+  }, [intelligentFollowup, navigateWithCreateHandoff, selectedPrimaryTopic]);
 
   const handleOpenExistingAnlassraum = React.useCallback(() => {
     const prefill = normalizedIntakeText.trim();
@@ -2219,10 +1934,13 @@ export default function CreateClient({
 
   const confirmFactcheckServiceStart = React.useCallback(() => {
     setFactcheckMessage(
-      "Prüfpfad vorbereitet. Factcheck / Quellenprüfung startet erst nach deiner weiteren Bestätigung.",
+      "Quellenmodus aktiv. Ergänze unten Hinweise, Links oder Dokumente. Eine externe Quellenprüfung startet erst nach deiner ausdrücklichen Bestätigung.",
     );
-    void navigateWithCreateHandoff("request_factcheck", "/factcheck");
-  }, [navigateWithCreateHandoff]);
+    setWorkspaceActionMode("source");
+    setChatContinuationText("");
+    setShowFollowupCorrectionComposer(true);
+    setActionNotice("Quellenmodus aktiv. Du kannst jetzt lokal Hinweise ergänzen, ohne einen externen Prüfpfad zu starten.");
+  }, []);
 
   const handleSaveOnly = React.useCallback(async () => {
     if (!privacyGate.ensureActiveProcessingAllowed("create-save")) return;
@@ -2364,6 +2082,8 @@ export default function CreateClient({
                   setActiveContextAnchorId(null);
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
+                  setSelectedPrimaryTopic(null);
+                  setWorkspaceActionMode("default");
                   setLinkClarificationState(null);
                   setChatContinuationText("");
                   setAnalysisSceneMode(null);
@@ -2394,6 +2114,8 @@ export default function CreateClient({
                   setActiveContextAnchorId(anchorId);
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
+                  setSelectedPrimaryTopic(null);
+                  setWorkspaceActionMode("default");
                   setLinkClarificationState(null);
                   setChatContinuationText("");
                   if (!anchor) return;
@@ -2428,273 +2150,8 @@ export default function CreateClient({
               />
             }
           />
-
-          {showAnalyzeWorkspace ? (
-            <div
-              ref={analysisSceneRef}
-              tabIndex={-1}
-              className="scroll-mt-24 pt-4 outline-none md:pt-5"
-            >
-              <CreateInlineAnalysisScene
-                productMode={analysisSceneMode ?? productMode}
-                notice={factcheckMessage ?? actionNotice}
-              >
-                <AnalyzeWorkspace
-                  key={`${productMode}-${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
-                  mode={canonicalIntent}
-                  createMode={canonicalCreateMode}
-                  defaultLevel={2}
-                  storageKey={
-                    canonicalIntent === "statement"
-                      ? `vog_create_freistart_statement_${productMode}_v1`
-                      : `vog_create_freistart_contribution_${productMode}_v1`
-                  }
-                  analyzeEndpoint="/api/create/analyze"
-                  saveEndpoint="/api/create/save"
-                  finalizeEndpoint="/api/create/finalize"
-                  afterFinalizeNavigateTo={afterFinalizeNavigateTo}
-                  dossierId={dossierId ?? undefined}
-                  selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
-                  verificationLevel={workspaceVerificationLevel}
-                  verificationStatus="ok"
-                  authorName={overview.displayName ?? overview.profile?.headline ?? ""}
-                  useCaseAccess={useCaseAccess}
-                  initialText={workspaceInitialText}
-                  embeddedSingleIntake
-                  syncTextFromParent
-                  autoRunToken={analysisAutoRunToken}
-                  maxClaimsCap={maxClaimsCap}
-                  maxFinalizeClaims={maxFinalizeClaims}
-                  analysisEntryVariant="single_button"
-                  analysisModeHint={analysisSceneMode ?? productMode}
-                  analysisIntentHint={activeIntent}
-                  sourceUrls={currentMaterialRouting.sourceUrls}
-                  materialItems={currentMaterialRouting.materialItems}
-                  onRuntimeTraceChange={setAnalyzeTrace}
-                />
-              </CreateInlineAnalysisScene>
-            </div>
-          ) : null}
         </section>
-
-        {showPostInputModules && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
-          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{productModeConfig.postStartTitle}</p>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.postStartLead}</p>
-            {showIntakeContext && initialIntakeContext?.sourceLabel ? (
-              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                {surfaceTexts.followupContextPrefix}: {initialIntakeContext.sourceLabel}
-                {initialIntakeContext.scope
-                  ? ` · ${formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}`
-                  : ""}
-              </p>
-            ) : null}
-            {hasLegacyModeParam ? (
-              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                {text.legacyModePrefix} {text.legacyModeSuffix}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-
-        {showFollowupQuestionCard && !showLinkClarification && !showAnalyzeWorkspace ? (
-          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
-            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.firstQuestion}</p>
-            <label className="sr-only" htmlFor="create-followup-answer">
-              {surfaceTexts.followupQuestionLabel}
-            </label>
-            <textarea
-              id="create-followup-answer"
-              rows={5}
-              value={activeFollowupAnswer}
-              onChange={(event) => {
-                const value = event.target.value;
-                setFollowupAnswers((current) => ({
-                  ...current,
-                  [activeIntent]: value,
-                }));
-                setFollowupAnswerSaved((current) => ({
-                  ...current,
-                  [activeIntent]: false,
-                }));
-                if (actionNotice) setActionNotice(null);
-              }}
-              className="mt-3 w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              placeholder={productModeConfig.firstQuestionPlaceholder}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button type="button" className="btn-primary" onClick={handleSaveFollowupAnswer}>
-                {surfaceTexts.followupQuestionSaveLabel}
-              </button>
-              <span className="text-xs text-[rgb(var(--muted))]">
-                {productModeConfig.inputLabel}
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-[rgb(var(--muted))]">Schreib einfach weiter, wenn du die Antwort lieber frei im Chat ergänzen möchtest.</p>
-            {activeFollowupSaved ? (
-              <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{surfaceTexts.followupQuestionSavedLabel}</p>
-            ) : null}
-          </section>
-        ) : null}
-
-      {showPostInputModules && pickerEnabled && !showLinkClarification && !showAnalyzeWorkspace ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              {text.contextPickerLead}
-            </p>
-          </div>
-
-          {contextLoadState === "loading" ? (
-            <p className="mt-3 text-sm text-[rgb(var(--muted))]">{text.loadingContextList}</p>
-          ) : null}
-
-          {contextLoadState === "error" ? (
-            <div className="mt-3 rounded-xl border border-rose-300/50 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
-              <p>{text.contextUnavailable}.</p>
-              {contextLoadError ? <p className="mt-2 text-xs">Bitte versuche es gleich noch einmal.</p> : null}
-              <button type="button" onClick={() => void loadContextItems()} className="btn-secondary mt-2 text-xs">
-                {text.reload}
-              </button>
-            </div>
-          ) : null}
-
-          {contextLoadState === "ready" && contextItems.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
-              {text.contextEmpty}
-            </p>
-          ) : null}
-
-          {contextLoadState === "ready" && contextItems.length > 0 ? (
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {contextItems.map((item) => {
-                const isSelected = selectedAnlassraumId === item.anlassraumId;
-                return (
-                  <li key={item.anlassraumId}>
-                    <button
-                      type="button"
-                      className={`w-full rounded-xl border px-3 py-2 text-left ${
-                        isSelected
-                          ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))]"
-                          : "border-[rgb(var(--border))] bg-transparent hover:border-[rgb(var(--grad-from))]/40"
-                      }`}
-                      onClick={() => {
-                        setSelectionInfo(null);
-                        setSelectedAnlassraumId(item.anlassraumId);
-                      }}
-                    >
-                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-[rgb(var(--muted))]">{item.summary}</p>
-                      <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-                        {item.topicKey ? `${text.topicLabel}: ${item.topicKey} · ` : ""}
-                        {item.anlassraumStatus ? `${text.statusLabel}: ${item.anlassraumStatus}` : `${text.statusLabel}: ${text.statusOpen}`}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          {selectedContext ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-              <span className="vog-chip">{text.selectedLabel}: {selectedContext.title}</span>
-              <button
-                type="button"
-                className="vog-chip border border-[rgb(var(--border))] bg-transparent"
-                onClick={() => setSelectedAnlassraumId(null)}
-              >
-                {text.clearSelection}
-              </button>
-            </div>
-          ) : null}
-
-          {selectionInfo ? (
-            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">{selectionInfo}</p>
-          ) : null}
-        </section>
-      ) : null}
-
-      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-            {productMode === "guided" ? surfaceTexts.followupGuidedTitle : productModeConfig.postStartTitle}
-          </p>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-            {productMode === "guided" ? surfaceTexts.followupGuidedLead : productModeConfig.postStartLead}
-          </p>
-
-          <div className="mt-3 grid gap-3">
-            <div>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kurzfassung</p>
-              <p className="mt-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
-                {workingState.summary}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">{productModeConfig.recognizedTypeLabel}</p>
-                <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.recognizedType}</p>
-              </div>
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Passendes Thema oder nächster Schritt</p>
-                <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.suggestedAssignment}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Klärungsfragen</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
-                {productModeConfig.openPoints.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupNextStepLabel}</p>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{surfaceTexts.followupNextStepLead}</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {productModeConfig.nextActions.map((actionLabel, actionIndex) => (
-                <button
-                  key={actionLabel}
-                  type="button"
-                  className="btn-secondary justify-start text-left text-xs"
-                  onClick={() => handleIntentAction(actionIndex)}
-                >
-                  {actionLabel}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/dossier/demo" className="btn-secondary text-xs">
-              Thema öffnen
-            </Link>
-            <Link href="/swipes" className="btn-secondary text-xs">
-              Beteiligung öffnen
-            </Link>
-          </div>
-
-          {followupSnapshot ? (
-            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-              {surfaceTexts.followupUnderstandingLabel}: {followupSnapshot.understandingLine}
-            </p>
-          ) : null}
-          <p className="mt-2 text-xs text-[rgb(var(--muted))]">{surfaceTexts.followupNotPublishedLabel}</p>
-          {actionNotice ? (
-            <p className="mt-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
-              {actionNotice}
-            </p>
-          ) : null}
-        </section>
-      ) : null}
-    </div>
+      </div>
     </section>
   );
 }

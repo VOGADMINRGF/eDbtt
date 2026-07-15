@@ -63,12 +63,16 @@ type CreateVisualFollowupProps = {
   actionNotice?: string | null;
   isConfirmed?: boolean;
   embedInWorkspaceShell?: boolean;
+  selectedPrimaryTopic?: string | null;
+  composerMode?: "default" | "edit" | "source" | "manual_topic";
   reviewRequestState?: "idle" | "saving" | "saved" | "error";
   reviewRequestMessage?: string | null;
   factcheckMessage?: string | null;
   showCorrectionComposer?: boolean;
   onConfirm: () => void;
   onEdit: () => void;
+  onSelectPrimaryTopic?: (topicLabel: string) => void;
+  onOpenManualTopicChooser?: () => void;
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
   onOpenDossierAppend: () => void;
@@ -179,6 +183,24 @@ const BROAD_TOPIC_FIELD_ORDER = [
   "Gesundheit/Pflege",
   "kommunale Finanzen",
   "Bürgerbeteiligung",
+] as const;
+
+const DEGRADED_FALLBACK_TOPIC_RULES = [
+  {
+    label: "Verkehr",
+    pattern: /verkehr|bus|bahn|radweg|radwege|schulweg|mobilität|mobilitaet|parkplatz|straße|strasse/i,
+    description: "Fragen zu Wegen, Mobilität und Erreichbarkeit bleiben als eigener Themenstrang sichtbar.",
+  },
+  {
+    label: "Sicherheit/Rechtsstaat",
+    pattern: /sicherheit|rechtsstaat|ordnung|kontrolle|regel|regelverstoß|regelverstoss|polizei|schutz/i,
+    description: "Hinweise zu Sicherheit, Regeln und Durchsetzung werden getrennt betrachtet.",
+  },
+  {
+    label: "Kommunale Finanzen",
+    pattern: /haushalt|finanz|finanzen|finanzierung|kosten|investition|spar|etat/i,
+    description: "Kosten, Finanzierung und kommunale Prioritäten bleiben als eigener Prüfstrang erkennbar.",
+  },
 ] as const;
 
 function resolveDialogIntelligenceUiSourceState(input: {
@@ -431,7 +453,7 @@ function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResu
     return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
   }
   if (isTechnicalPlannerFallback(result)) {
-    return "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.";
+    return "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.";
   }
   if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
     return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
@@ -511,6 +533,46 @@ function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): st
     if (startPoints.length === 4) break;
   }
   return startPoints;
+}
+
+function buildDeterministicFallbackTopicLabels(result: CreateIntelligentFollowupResult): string[] {
+  const sourceText = `${result.sourceText}\n${result.understanding.summary}`.trim();
+  const detected = DEGRADED_FALLBACK_TOPIC_RULES.filter((rule) => rule.pattern.test(sourceText)).map(
+    (rule) => rule.label,
+  );
+  const labels = [...detected];
+  for (const rule of DEGRADED_FALLBACK_TOPIC_RULES) {
+    if (labels.includes(rule.label)) continue;
+    labels.push(rule.label);
+  }
+  return labels.slice(0, 3);
+}
+
+function buildDeterministicFallbackBranches(
+  result: CreateIntelligentFollowupResult,
+): CreateStructureBranch[] {
+  const fallbackClaim =
+    result.understanding.statements[0]?.text?.trim() ||
+    result.understanding.summary.trim() ||
+    "Dieser Themenstrang bleibt bis zur tieferen Einordnung als Entwurf sichtbar.";
+  return buildDeterministicFallbackTopicLabels(result).map((label, index) => {
+    const rule = DEGRADED_FALLBACK_TOPIC_RULES.find((entry) => entry.label === label);
+    return {
+      id: `degraded-fallback-branch-${index}`,
+      title: label,
+      topics: [label],
+      topicTags: [label],
+      part06CategoryKeys: [],
+      part06CategoryLabels: [label],
+      need:
+        rule?.description ??
+        "Dieser Themenstrang bleibt als eigenständiger Arbeitsstrang sichtbar.",
+      claims: [fallbackClaim],
+      voteQuestions: [],
+      openReviewPoints: [],
+      positionClusters: [],
+    };
+  });
 }
 
 function buildMultiTopicActionTopics(result: CreateIntelligentFollowupResult): string[] {
@@ -1697,6 +1759,8 @@ function WorkspaceMetricRail(props: {
 function TopicBranchPreviewGrid(props: {
   rootTopic: string;
   branches: CreateStructureBranch[];
+  selectedPrimaryTopic?: string | null;
+  onSelectPrimaryTopic?: (topicLabel: string) => void;
 }) {
   if (props.branches.length === 0) return null;
 
@@ -1730,7 +1794,12 @@ function TopicBranchPreviewGrid(props: {
           <article
             key={branch.id}
             data-create-topic-branch-card=""
-            className="rounded-[26px] border border-cyan-200/45 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))]"
+            data-selected-primary-topic={props.selectedPrimaryTopic === branch.title ? "true" : undefined}
+            className={`rounded-[26px] border px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
+              props.selectedPrimaryTopic === branch.title
+                ? "border-cyan-400/75 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--grad-from))_26%),color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%))] ring-2 ring-cyan-300/35 dark:border-cyan-300/55"
+                : "border-cyan-200/45 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-cyan-300/20"
+            }`}
           >
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
               <span className="rounded-full border border-cyan-300/40 px-2.5 py-0.5">Thema</span>
@@ -1755,8 +1824,17 @@ function TopicBranchPreviewGrid(props: {
             </div>
             <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
               <p className="font-semibold text-[rgb(var(--fg))]">Empfohlene Aktion</p>
-              <div className="mt-2 inline-flex rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50">
-                {index === 0 ? "Hauptthema wählen" : "Als Zweig parken"}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
+                  onClick={() => props.onSelectPrimaryTopic?.(branch.title)}
+                >
+                  {props.selectedPrimaryTopic === branch.title ? "Gewählt als Hauptthema" : "Hauptthema wählen"}
+                </button>
+                <span className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                  {index === 0 ? "Als Schwerpunkt prüfen" : "Als Zweig parken"}
+                </span>
               </div>
             </div>
           </article>
@@ -2354,14 +2432,21 @@ function PlannerClarificationPanel(props: {
   details?: string | null;
   startPoints: string[];
   technicalFallback?: boolean;
+  primaryTopicLabel?: string | null;
+  onConfirm: () => void;
   onRetryPlanner?: () => void;
   isRetryPlannerPending?: boolean;
   onEdit: () => void;
+  onOpenManualTopicChooser: () => void;
+  onStartOptionalService: () => void;
   onPrepareSubmission: () => void;
+  onSaveOnly: () => void;
   onPrepareAnlassraum: () => void;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
 }) {
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
+
   return (
     <div className="space-y-3 rounded-[28px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       <div className="space-y-1">
@@ -2370,7 +2455,7 @@ function PlannerClarificationPanel(props: {
         </p>
         <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
           {props.technicalFallback
-            ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
+            ? "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird."
             : "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor."}
         </p>
       </div>
@@ -2393,9 +2478,9 @@ function PlannerClarificationPanel(props: {
         <button
           type="button"
           className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.onEdit}
+          onClick={props.onConfirm}
         >
-          Hauptthema wählen
+          {props.primaryTopicLabel ? `Hauptthema wählen: ${props.primaryTopicLabel}` : "Hauptthema wählen"}
         </button>
         <button
           type="button"
@@ -2404,19 +2489,46 @@ function PlannerClarificationPanel(props: {
         >
           Beitrag weiterentwickeln
         </button>
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.onStartOptionalService}
+        >
+          Quellen ergänzen
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
           Entwurf speichern
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
         </button>
       </div>
-      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--fg))]">
-          Details ansehen
-        </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 text-left text-sm font-medium text-[rgb(var(--fg))]"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((current) => !current)}
+        >
+          <span>Details ansehen</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${detailsOpen ? "rotate-90" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path d="M7 4.5 13 10l-6 5.5" />
+          </svg>
+        </button>
+        {detailsOpen ? (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+            onClick={props.onOpenManualTopicChooser}
+          >
             Thema selbst wählen
           </button>
           <button
@@ -2430,8 +2542,9 @@ function PlannerClarificationPanel(props: {
               ? "Einordnung wird erneut versucht …"
               : "Einordnung erneut versuchen"}
           </button>
-        </div>
-      </details>
+          </div>
+        ) : null}
+      </div>
       {props.reviewRequestMessage ? (
         <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
           {props.reviewRequestMessage}
@@ -2445,12 +2558,110 @@ function PlannerClarificationPanel(props: {
   );
 }
 
+function WorkspaceActionThreadNote(props: {
+  mode: "default" | "edit" | "source" | "manual_topic";
+  selectedPrimaryTopic?: string | null;
+  factcheckMessage?: string | null;
+}) {
+  if (props.mode === "default") return null;
+
+  const copy =
+    props.mode === "edit"
+      ? {
+          title: "Weiterarbeit aktiv",
+          body: "Schreib unten, was ergänzt, geschärft oder umformuliert werden soll.",
+        }
+      : props.mode === "source"
+        ? {
+            title: "Quellenmodus aktiv",
+            body:
+              props.factcheckMessage ??
+              "Ergänze unten Hinweise, Links oder Dokumente. Eine externe Quellenprüfung startet erst nach deiner ausdrücklichen Bestätigung.",
+          }
+        : {
+            title: "Thema selbst wählen",
+            body:
+              props.selectedPrimaryTopic
+                ? `Der Workspace ist gerade auf „${props.selectedPrimaryTopic}“ fokussiert. Du kannst unten ein anderes Hauptthema benennen.`
+                : "Wähle unten ein eigenes Hauptthema oder greife einen sichtbaren Themenzweig direkt auf.",
+          };
+
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistent</p>
+        <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{copy.title}</p>
+        <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{copy.body}</p>
+      </div>
+    </div>
+  );
+}
+
+function ManualTopicChooser(props: {
+  topicOptions: string[];
+  selectedPrimaryTopic?: string | null;
+  onSelectPrimaryTopic?: (topicLabel: string) => void;
+}) {
+  const [manualTopic, setManualTopic] = React.useState("");
+
+  return (
+    <div className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Thema selbst wählen</p>
+      <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+        Du kannst einen der sichtbaren Themenzweige übernehmen oder unten ein eigenes Hauptthema setzen.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {props.topicOptions.map((topicLabel) => (
+          <button
+            key={`manual-topic-option-${topicLabel}`}
+            type="button"
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              props.selectedPrimaryTopic === topicLabel
+                ? "border-cyan-400/70 bg-cyan-500/[0.12] text-cyan-950 dark:text-cyan-50"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+            }`}
+            onClick={() => props.onSelectPrimaryTopic?.(topicLabel)}
+          >
+            {topicLabel}
+          </button>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          value={manualTopic}
+          onChange={(event) => setManualTopic(event.target.value)}
+          placeholder="Eigenes Hauptthema benennen"
+          className="min-w-0 flex-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+        />
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-4 py-2 text-sm"
+          onClick={() => {
+            const normalizedTopic = manualTopic.trim();
+            if (!normalizedTopic) return;
+            props.onSelectPrimaryTopic?.(normalizedTopic);
+            setManualTopic("");
+          }}
+          disabled={!manualTopic.trim()}
+          aria-disabled={!manualTopic.trim()}
+        >
+          Thema setzen
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NextStepPanel(props: {
   multiTopicActionTopics: string[];
   showMultiTopicActionPanel: boolean;
   onDeepenAllTopics: () => void;
   onDeepenTopic: (topicLabel: string) => void;
   onContinueInAccount: () => void;
+  selectedPrimaryTopic?: string | null;
+  onConfirm: () => void;
+  onEdit: () => void;
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
   onOpenDossierAppend: () => void;
@@ -2574,11 +2785,11 @@ function NextStepPanel(props: {
         <button
           type="button"
           className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.showMultiTopicActionPanel ? () => props.onDeepenTopic(props.multiTopicActionTopics[0] ?? "") : props.onContinueInAccount}
+          onClick={props.onConfirm}
         >
-          Hauptthema wählen
+          {props.selectedPrimaryTopic ? `Hauptthema: ${props.selectedPrimaryTopic}` : "Hauptthema wählen"}
         </button>
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onContinueInAccount}>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
           Beitrag weiterentwickeln
         </button>
         <button
@@ -2678,12 +2889,16 @@ export default function CreateVisualFollowup({
   actionNotice,
   isConfirmed = false,
   embedInWorkspaceShell = false,
+  selectedPrimaryTopic = null,
+  composerMode = "default",
   reviewRequestState = "idle",
   reviewRequestMessage = null,
   factcheckMessage = null,
   showCorrectionComposer = false,
   onConfirm,
   onEdit,
+  onSelectPrimaryTopic,
+  onOpenManualTopicChooser = () => {},
   onPrepareSubmission,
   onPrepareAnlassraum,
   onOpenDossierAppend,
@@ -2761,7 +2976,18 @@ export default function CreateVisualFollowup({
   const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
-  const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
+  const fallbackBranches = React.useMemo(
+    () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
+    [plannerClarificationRequired, result],
+  );
+  const displayedBranches = plannerClarificationRequired && structureBranches.length === 0
+    ? fallbackBranches
+    : structureBranches;
+  const degradedStartPoints = React.useMemo(() => {
+    const plannerPoints = extractDegradedStartPoints(result);
+    if (plannerPoints.length > 0) return plannerPoints;
+    return fallbackBranches.map((branch) => branch.title);
+  }, [fallbackBranches, result]);
   const dialogIntelligenceRuntimeResult = React.useMemo(
     () => runDialogIntelligenceRuntime({ result, isConfirmed }),
     [isConfirmed, result],
@@ -2819,7 +3045,7 @@ export default function CreateVisualFollowup({
     [dialogIntelligenceRuntimeResult, existingTopicMatchesRuntimeResult.status],
   );
   const plannerClarificationLeadText = plannerTechnicalFallback
-    ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
+    ? "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird."
     : "Du kannst trotzdem weitermachen.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
@@ -2847,7 +3073,12 @@ export default function CreateVisualFollowup({
     assistantLead,
     dedupedCopy.prominentCoreClaim,
   );
-  const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
+  const rootTopic = plannerClarificationRequired
+    ? displayedBranches[0]?.title ??
+      result.understanding.dossierContext ??
+      topicLabels.find((label) => !/Öffentliches Anliegen/i.test(label)) ??
+      "Öffentliches Thema"
+    : result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
   const openQuestion = result.understanding.openQuestion ?? null;
   const placeClarification = isPlaceClarificationQuestion(openQuestion)
     ? {
@@ -2876,7 +3107,7 @@ export default function CreateVisualFollowup({
         },
         {
           label: "Themen",
-          value: String(Math.max(1, structureBranches.length)),
+          value: String(Math.max(1, displayedBranches.length)),
           detail: "Sichtbar getrennte Schwerpunkte",
         },
       {
@@ -2888,7 +3119,9 @@ export default function CreateVisualFollowup({
         label: "Nächster Schritt",
         value: plannerClarificationRequired
           ? "Thema selbst wählen"
-          : showMultiTopicActionPanel
+          : selectedPrimaryTopic
+            ? "Beitrag weiterentwickeln"
+            : showMultiTopicActionPanel
             ? "Hauptthema wählen"
             : isConfirmed
               ? "Entwurf speichern"
@@ -2898,9 +3131,10 @@ export default function CreateVisualFollowup({
     ],
     [
       isConfirmed,
+      displayedBranches.length,
       plannerClarificationRequired,
+      selectedPrimaryTopic,
       showMultiTopicActionPanel,
-      structureBranches.length,
       topicLabels.length,
       voteQuestions.length,
     ],
@@ -3166,27 +3400,31 @@ export default function CreateVisualFollowup({
                 {plannerClarificationRequired ? (
                   <div className="mt-4 space-y-3">
                     <SecondaryFollowupNote>{plannerClarificationDetails ?? "Du kannst jetzt selbst wählen, wie du weitermachen willst."}</SecondaryFollowupNote>
-                    {degradedStartPoints.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {degradedStartPoints.map((label) => (
-                          <span
-                            key={`degraded-start-${label}`}
-                            className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
+                    <TopicBranchPreviewGrid
+                      rootTopic={rootTopic}
+                      branches={displayedBranches}
+                      selectedPrimaryTopic={selectedPrimaryTopic}
+                      onSelectPrimaryTopic={onSelectPrimaryTopic}
+                    />
                   </div>
                 ) : (
                   <div className="mt-5 space-y-4">
-                    <TopicBranchPreviewGrid rootTopic={rootTopic} branches={structureBranches} />
+                    <TopicBranchPreviewGrid
+                      rootTopic={rootTopic}
+                      branches={displayedBranches}
+                      selectedPrimaryTopic={selectedPrimaryTopic}
+                      onSelectPrimaryTopic={onSelectPrimaryTopic}
+                    />
                     <OpenQuestionCards questions={voteQuestions} />
                     <SourceHintsAndNextStepsGrid modules={contentModules} nextStepTitles={nextStepTitles} />
                   </div>
                 )}
               </AssistantUnderstandingBubble>
+              <WorkspaceActionThreadNote
+                mode={composerMode}
+                selectedPrimaryTopic={selectedPrimaryTopic}
+                factcheckMessage={factcheckMessage}
+              />
             </div>
 
             {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
@@ -3209,10 +3447,15 @@ export default function CreateVisualFollowup({
                   details={plannerClarificationDetails}
                   startPoints={degradedStartPoints}
                   technicalFallback={plannerTechnicalFallback}
+                  primaryTopicLabel={selectedPrimaryTopic ?? displayedBranches[0]?.title ?? degradedStartPoints[0] ?? null}
+                  onConfirm={onConfirm}
                   onRetryPlanner={onRetryPlanner}
                   isRetryPlannerPending={isRetryPlannerPending}
                   onEdit={() => openCorrection("Thema")}
+                  onOpenManualTopicChooser={onOpenManualTopicChooser}
+                  onStartOptionalService={onStartOptionalService}
                   onPrepareSubmission={onPrepareSubmission}
+                  onSaveOnly={onSaveOnly}
                   onPrepareAnlassraum={onPrepareAnlassraum}
                   reviewRequestState={reviewRequestState}
                   reviewRequestMessage={reviewRequestMessage}
@@ -3240,6 +3483,9 @@ export default function CreateVisualFollowup({
               onDeepenAllTopics={onDeepenAllTopics}
               onDeepenTopic={onDeepenTopic}
               onContinueInAccount={onContinueInAccount}
+              selectedPrimaryTopic={selectedPrimaryTopic}
+              onConfirm={onConfirm}
+              onEdit={onEdit}
               onPrepareSubmission={onPrepareSubmission}
               onPrepareAnlassraum={onPrepareAnlassraum}
               onOpenDossierAppend={onOpenDossierAppend}
@@ -3251,6 +3497,14 @@ export default function CreateVisualFollowup({
               reviewRequestState={reviewRequestState}
               reviewRequestMessage={reviewRequestMessage}
               factcheckMessage={factcheckMessage}
+            />
+          ) : null}
+
+          {composerMode === "manual_topic" && !placeClarification ? (
+            <ManualTopicChooser
+              topicOptions={Array.from(new Set(displayedBranches.map((branch) => branch.title))).slice(0, 4)}
+              selectedPrimaryTopic={selectedPrimaryTopic}
+              onSelectPrimaryTopic={onSelectPrimaryTopic}
             />
           ) : null}
 

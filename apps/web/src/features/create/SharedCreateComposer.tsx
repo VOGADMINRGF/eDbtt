@@ -415,16 +415,13 @@ export default function SharedCreateComposer({
       >
         <div className="space-y-2.5">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
-              {modeOrder.map(renderModeChip)}
-            </div>
-            {isWorkspaceContinuation ? (
+          {isWorkspaceContinuation ? (
+            <div className="flex flex-wrap items-center justify-end gap-2.5">
               <span className="text-[13px] leading-relaxed text-[rgb(var(--muted))]">
                 Schreib weiter oder ergänze, was wichtig ist.
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {contextBanner}
 

@@ -129,23 +129,27 @@ describe("create degraded followup actions contract", () => {
     );
 
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
-    expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("Einordnung erneut versuchen");
+    expect(html).toContain("Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.");
     expect(html).toContain("Details ansehen");
     expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
+    expect(html).toContain("Verkehr");
+    expect(html).toContain("Sicherheit/Rechtsstaat");
+    expect(html).toContain("Kommunale Finanzen");
     expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
+    expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Öffentliches Anliegen</p>");
     expect(html).not.toContain("Kern</p>");
     expect(html).not.toContain("Direkt Entwurf");
     expect(html).not.toContain("Faktencheck anfragen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
-    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.lastIndexOf("Einordnung erneut versuchen"));
+    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.indexOf("Details ansehen"));
   });
 
   it("keeps retry secondary in details, shows a loading label, and keeps retry on the same planner_only route", () => {
@@ -264,9 +268,8 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.indexOf("Einordnung wird erneut versucht"));
-    expect(html).toContain("Einordnung wird erneut versucht …");
     expect(html).toContain("Details ansehen");
+    expect(html).not.toContain("Einordnung wird erneut versucht …");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
     expect(clientSource).toContain('fetch("/api/create/intelligent-followup"');

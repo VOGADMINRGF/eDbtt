@@ -382,12 +382,15 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("So kannst du weitermachen");
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
-    expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("Einordnung erneut versuchen");
+    expect(html).toContain("Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.");
     expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Thema selbst wählen");
+    expect(html).toContain("Verkehr");
+    expect(html).toContain("Sicherheit/Rechtsstaat");
+    expect(html).toContain("Kommunale Finanzen");
+    expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
     expect(html).not.toContain("Gleichberechtigung");
     expect(html).not.toContain("Frauenquote");
@@ -537,8 +540,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
     expect(followupSource).toContain("{detailsOpen ? (");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");
-    expect(clientSource).toContain("CreateInlineAnalysisScene");
-    expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(clientSource).not.toContain("CreateInlineAnalysisScene");
+    expect(clientSource).toContain("CreateWorkspaceShell");
     expect(linkClarificationSource).not.toContain("sourceHints");
   });
 });

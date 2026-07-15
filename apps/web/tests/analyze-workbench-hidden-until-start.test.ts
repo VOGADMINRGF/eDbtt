@@ -212,7 +212,6 @@ describe("analyze workbench progressive disclosure", () => {
     expect(
       shouldRenderCreateIntelligentFollowup({
         hasStarted: false,
-        productMode: "analyze",
         followup: null,
       }),
     ).toBe(false);
@@ -220,7 +219,6 @@ describe("analyze workbench progressive disclosure", () => {
     expect(
       shouldRenderCreateIntelligentFollowup({
         hasStarted: true,
-        productMode: "analyze",
         followup: {
           understanding: {
             summary: "Kurzfassung",
@@ -337,8 +335,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Antwort fortsetzen");
     expect(clientSource).toContain("setChatContinuationText");
     expect(clientSource).toContain("handleContinueConversation");
-    expect(clientSource).toContain("CreateInlineAnalysisScene");
-    expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(clientSource).not.toContain("CreateInlineAnalysisScene");
+    expect(clientSource).toContain("CreateWorkspaceShell");
     expect(workspaceSource).toContain("shouldRenderCompactEmbeddedWorkspaceHeader");
     expect(workspaceSource).toContain("shouldUseInlineCreateActionBar");
     expect(workspaceSource).toContain("Im selben Arbeitsraum");
@@ -400,9 +398,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("/api/create/save");
     expect(clientSource).toContain("manualReviewRequested");
     expect(clientSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
-    expect(clientSource).toContain(
-      "Prüfpfad vorbereitet. Factcheck / Quellenprüfung startet erst nach deiner weiteren Bestätigung.",
-    );
+    expect(clientSource).toContain("Quellenmodus aktiv.");
     expect(clientSource).toContain("setReviewRequestState(\"saving\")");
     expect(clientSource).toContain("setFactcheckMessage(");
   });

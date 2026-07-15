@@ -63,6 +63,11 @@ Ergebnis:
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
 - nach dem ersten Submit zeigt die untere Bar keinen duplizierten Ursprungstext mehr, sondern nur noch den Fortsetzungs-Composer
 - die Fortsetzungs-Bar spricht jetzt neutraler (`Schreib weiter oder ergänze, was wichtig ist …`) statt wie ein zweites Formular
+- die sichtbaren Workspace-Aktionen arbeiten jetzt auf echtem lokalem UI-State:
+  - `Hauptthema wählen` markiert den gewaehlten Themenzweig sichtbar und setzt den naechsten Schritt im Rail fort
+  - `Beitrag weiterentwickeln` aktiviert den Composer sichtbar als Anschluss-Editor
+  - `Quellen ergänzen` bleibt lokal im Workspace und startet keinen externen Prüfpfad ohne weitere Bestätigung
+  - `Entwurf speichern` bleibt review-first und ohne Auto-Publish
 - das Transparenzpanel bleibt erhalten, wird initial aber nicht mehr als sichtbarer Block unter dem Workspace gerendert, sondern erst nach explizitem Oeffnen von `Details & Transparenz`
 
 ### 2. Nach dem Start zeigt `/create` eine echte Pipeline statt einer Analysewand
@@ -95,6 +100,10 @@ Ergebnis:
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - die Branch-Map spricht oeffentlich nur noch von `Themen`, zeigt `aus deinem Beitrag erkannt` als Ursprungshinweis und vermeidet die alte technische `Themenzweige`-/`Themenäste`-Sprache im Hauptflow
 - Fragen- und degraded-Fallback-Bloecke wurden farblich von dominanten gelb/braun-Warnflaechen auf ruhigere Workspace-Tones zurueckgenommen; `Einordnung erneut versuchen` bleibt nur in Details
+- bei langsamer oder fehlgeschlagener Planner-Einordnung erscheinen sofort lokale Fallback-Themenkarten statt einer Retry-dominierten Warteflaeche:
+  - `Verkehr`
+  - `Sicherheit/Rechtsstaat`
+  - `Kommunale Finanzen`
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
 - `Einordnung erneut versuchen` liegt im degraded Pfad nur noch in `Details ansehen`
@@ -170,14 +179,14 @@ Ergebnis:
 ## Validierung
 
 - `git diff --check`
-- fokussierte Vitest-Suite fuer Create/Runden/Themen
+- fokussierte Vitest-Suite fuer Create/Runden/Themen plus neue Workspace-Interaktions-Tests
 - `pnpm -C apps/web run lint`
 - `pnpm -C apps/web run build`
 - `pnpm -C apps/web run typecheck`
 
 Ergebnis dieser Remediation:
 
-- fokussierte Create-Contracts: `49/49` Tests gruen
+- fokussierte Create-Contracts inkl. Workspace-Aktionen: `52/52` Tests gruen
 - Lint: gruen
 - Typecheck: gruen
 - Build: gruen

@@ -155,6 +155,8 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Kurzer Einstieg");
     expect(html).not.toContain("Beitrag einreichen");
     expect(html).not.toContain("Composer</p>");
+    expect(html).not.toContain(">Beitragen<");
+    expect(html).not.toContain(">Entwerfen<");
     expect(html).toMatch(/>Prüfen</);
     expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
     expect(html).not.toContain("Developer-Hinweis");

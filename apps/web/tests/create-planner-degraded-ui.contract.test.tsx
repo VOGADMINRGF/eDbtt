@@ -130,17 +130,21 @@ describe("create planner degraded ui contract", () => {
     );
 
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
-    expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("Einordnung erneut versuchen");
+    expect(html).toContain("Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.");
     expect(html).toContain("Details ansehen");
     expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
+    expect(html).toContain("Verkehr");
+    expect(html).toContain("Sicherheit/Rechtsstaat");
+    expect(html).toContain("Kommunale Finanzen");
     expect(html).toContain("Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.");
     expect(html).toContain("Die automatische Einordnung hat nicht rechtzeitig geantwortet.");
+    expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).not.toContain("Kern</p><p class=\"text-base font-semibold text-[rgb(var(--fg))]\">Aussage");
     expect(html).not.toContain("Direkt Entwurf");
@@ -148,7 +152,7 @@ describe("create planner degraded ui contract", () => {
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
     expect(html).not.toContain("Timeout");
-    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.lastIndexOf("Einordnung erneut versuchen"));
+    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.indexOf("Details ansehen"));
 
     const metrics = deriveCreateStructureOverviewMetrics({ result: degradedResult, isConfirmed: false });
     expect(metrics).toEqual({
