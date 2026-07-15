@@ -377,7 +377,7 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
-      <div className="max-w-4xl">
+      <div className="w-full max-w-[78%] min-w-0">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
           <p className="whitespace-pre-wrap text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">
@@ -401,7 +401,7 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-1 shrink-0">
         <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
       </div>
-      <div className="max-w-[64rem] flex-1">
+      <div className="w-full max-w-[78%] min-w-0 flex-1">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
           <p className="text-sm font-medium text-[rgb(var(--muted))]">{props.eyebrow}</p>
@@ -2000,8 +2000,14 @@ export default function CreateClient({
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
-      <div className="public-shell vog-main-shell min-h-screen max-w-[108rem] space-y-4 md:space-y-5">
-        <section className="create-public-shell create-dialog-workspace overflow-visible px-0 py-2 sm:py-3 md:py-4" data-create-stage-shell="true">
+      <div
+        data-create-workspace-host="wide-screen"
+        className="public-shell vog-main-shell min-h-screen w-full max-w-none space-y-3 px-[clamp(0.75rem,2vw,1.5rem)] py-2 md:space-y-4 md:px-[clamp(1rem,2.4vw,2rem)]"
+      >
+        <section
+          className="create-public-shell create-dialog-workspace mx-auto w-full max-w-none overflow-visible px-0 py-1 md:py-2"
+          data-create-stage-shell="true"
+        >
           <CreateWorkspaceShell
             locale={surfaceLocale === "en" ? "en" : "de"}
             activeStage={workspaceActiveStage}

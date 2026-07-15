@@ -82,7 +82,8 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("selectedPrimaryTopic");
     expect(clientSource).toContain("workspaceActionMode");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
-    expect(clientSource).toContain("create-public-shell create-dialog-workspace overflow-visible");
+    expect(clientSource).toContain("create-public-shell create-dialog-workspace mx-auto w-full max-w-none overflow-visible");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("experienceVariant=\"create_minimal\"");
     expect(clientSource).not.toContain("<CreateInlineAnalysisScene");
@@ -277,7 +278,8 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("composer={");
     expect(clientSource).toContain("footer={");
     expect(clientSource).toContain("data-create-shell-secondary-details");
-    expect(clientSource).toContain("max-w-[108rem]");
+    expect(clientSource).toContain("max-w-none");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("public-dialog-area");
     expect(composerSource).not.toContain(">Composer<");

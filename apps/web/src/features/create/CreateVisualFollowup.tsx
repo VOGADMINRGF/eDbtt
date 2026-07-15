@@ -1078,7 +1078,7 @@ function UserContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-3xl min-w-0">
+      <div className="w-full max-w-[78%] min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
@@ -1105,7 +1105,7 @@ function AssistantUnderstandingBubble(props: {
       <div className="mt-1 shrink-0">
         <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
       </div>
-      <div className="max-w-5xl min-w-0 flex-1">
+      <div className="w-full max-w-[78%] min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
@@ -1543,7 +1543,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
             : "Kompakt zuerst, Details bei Bedarf."}
         </p>
       </div>
-      <div data-structure-overview-grid className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div data-structure-overview-grid className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <CreateStructureOverviewCard
           area="priorities"
           title={isEnglish ? "Priorities" : "Prioritäten"}
@@ -1887,7 +1887,7 @@ function TopicBranchPreviewGrid(props: {
           aus deinem Beitrag erkannt
         </span>
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         {props.branches.slice(0, 3).map((branch, index) => (
           <article
             key={branch.id}

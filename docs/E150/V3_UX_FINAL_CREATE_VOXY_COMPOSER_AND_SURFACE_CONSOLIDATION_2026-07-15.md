@@ -175,6 +175,7 @@ Ergebnis:
 
 - `V3-UX-FINAL-CREATE-VOXY-COMPOSER-AND-SURFACE-CONSOLIDATION-01` bleibt `done`, die Evidence wurde fuer die PR-391-Remediation auf den tatsaechlichen Chat-Workspace-Zustand nachgezogen
 - der letzte PR-391-Follow-up schuetzt den bekannten Rahnsdorf/Kita/Querung/Haushalt-Smoke lokal mit civic-intuitiven Fallback-Branches (`Verkehrssicherheit`, `Kita-/Schulweg & Barrierefreiheit`, `Stadtplanung & Finanzierung`), reduziert die Branch-Card-Verschachtelung, verlegt die sichtbare Themenwahl vollstaendig auf die BranchCards und deckt `Hauptthema wählen`, `Als Zweig parken`, `Beitrag weiterentwickeln`, `Quellen ergänzen`, `Entwurf speichern`, `Anlassraum vorbereiten` und `Details ansehen` per Interaction-Test ab
+- der abschliessende Layout-Fix hebt `/create` aus der schmalen Mittelspaltenwirkung: der Workspace-Host laeuft jetzt ohne enge Public-Shell-Max-Width, die Shell markiert sich ueber `data-create-workspace-size="wide-screen"` und nutzt `max-w-[min(92vw,96rem)]`, waehrend Thread-Bubbles und BranchCards sichtbar mehr Monitorbreite ausnutzen
 - naechster operativer Schritt bleibt der reale manuelle Preview-Smoke auf den konsolidierten Surfaces
 
 ## Validierung

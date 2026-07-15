@@ -107,7 +107,9 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-workspace-host="wide-screen"');
     expect(html).toContain('data-create-shell-layout="wide"');
+    expect(html).toContain('data-create-workspace-size="wide-screen"');
     expect(html).toContain('data-create-shell-pipeline="true"');
     expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
@@ -138,11 +140,19 @@ describe("create entry hierarchy contract", () => {
     expect(composerSource).toContain("workspacePhase === \"continuation\"");
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
+    expect(clientSource).toContain("max-w-none");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[82.5rem]");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[76vh]");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("overflow-y-auto");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("sticky bottom-0");
+    const workspaceShellSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"),
+      "utf8",
+    );
+    expect(workspaceShellSource).toContain("data-create-workspace-size=\"wide-screen\"");
+    expect(workspaceShellSource).toContain("max-w-[min(92vw,96rem)]");
+    expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
+    expect(workspaceShellSource).toContain("overflow-y-auto");
+    expect(workspaceShellSource).toContain("sticky bottom-0");
+    expect(workspaceShellSource).not.toContain("max-w-[82.5rem]");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");

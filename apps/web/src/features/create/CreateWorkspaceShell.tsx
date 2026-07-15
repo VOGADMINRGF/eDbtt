@@ -187,7 +187,8 @@ export default function CreateWorkspaceShell({
     <section
       data-create-workspace-shell
       data-create-shell-layout="wide"
-      className="mx-auto flex min-h-[76vh] w-full max-w-[82.5rem] flex-col rounded-[2.25rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_32px_80px_rgba(2,6,23,0.14)] sm:px-4 md:min-h-[78vh] md:px-5 md:py-5 xl:px-6"
+      data-create-workspace-size="wide-screen"
+      className="mx-auto flex min-h-[calc(100vh-7.5rem)] w-full max-w-[min(92vw,96rem)] flex-col rounded-[2.4rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_36px_96px_rgba(2,6,23,0.18)] sm:px-4 md:min-h-[calc(100vh-6rem)] md:px-5 md:py-5 xl:px-7"
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <WorkspaceHeader notice={notice} />
@@ -208,7 +209,7 @@ export default function CreateWorkspaceShell({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[42rem] md:px-7"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[46rem] md:px-7 xl:px-8"
           >
             {chatThread}
           </div>
