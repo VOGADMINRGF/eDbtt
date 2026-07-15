@@ -141,6 +141,8 @@ describe("create entry hierarchy contract", () => {
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[82.5rem]");
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[76vh]");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("overflow-y-auto");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("sticky bottom-0");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");

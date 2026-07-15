@@ -747,6 +747,7 @@ export default function CreateClient({
   const [guidedBridgeConfirmed, setGuidedBridgeConfirmed] = React.useState(false);
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
+  const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
   const [workspaceActionMode, setWorkspaceActionMode] = React.useState<
     "default" | "edit" | "source" | "manual_topic"
   >("default");
@@ -1036,6 +1037,7 @@ export default function CreateClient({
         setIntelligentFollowup(null);
         setUnderstandingConfirmed(false);
         setSelectedPrimaryTopic(null);
+        setParkedTopicLabels([]);
         setWorkspaceActionMode("default");
         setActionNotice(null);
         setHasStarted(true);
@@ -1056,6 +1058,7 @@ export default function CreateClient({
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
       setSelectedPrimaryTopic(null);
+      setParkedTopicLabels([]);
       setWorkspaceActionMode("default");
       setHasStarted(true);
       setGuidedBridgeConfirmed(productMode !== "guided");
@@ -1160,6 +1163,7 @@ export default function CreateClient({
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
     setSelectedPrimaryTopic(null);
+    setParkedTopicLabels([]);
     setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
@@ -1173,6 +1177,7 @@ export default function CreateClient({
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
     setSelectedPrimaryTopic(null);
+    setParkedTopicLabels([]);
     setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
@@ -1356,6 +1361,7 @@ export default function CreateClient({
           isConfirmed={understandingConfirmed}
           embedInWorkspaceShell
           selectedPrimaryTopic={selectedPrimaryTopic}
+          parkedTopicLabels={parkedTopicLabels}
           composerMode={workspaceActionMode}
           reviewRequestState={reviewRequestState}
           reviewRequestMessage={reviewRequestMessage}
@@ -1370,6 +1376,9 @@ export default function CreateClient({
               null;
             if (defaultPrimaryTopic) {
               setSelectedPrimaryTopic(defaultPrimaryTopic);
+              setParkedTopicLabels((current) =>
+                current.filter((topicLabel) => topicLabel !== defaultPrimaryTopic),
+              );
             }
             setUnderstandingConfirmed(true);
             setWorkspaceActionMode("default");
@@ -1391,10 +1400,29 @@ export default function CreateClient({
             const normalizedTopicLabel = topicLabel.trim();
             if (!normalizedTopicLabel) return;
             setSelectedPrimaryTopic(normalizedTopicLabel);
+            setParkedTopicLabels((current) =>
+              current.filter((topicLabelEntry) => topicLabelEntry !== normalizedTopicLabel),
+            );
             setUnderstandingConfirmed(true);
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
             setActionNotice(`Hauptthema „${normalizedTopicLabel}“ gewählt. Der nächste Schritt ist jetzt die Weiterentwicklung.`);
+          }}
+          onParkTopic={(topicLabel) => {
+            const normalizedTopicLabel = topicLabel.trim();
+            if (!normalizedTopicLabel) return;
+            setParkedTopicLabels((current) =>
+              current.includes(normalizedTopicLabel)
+                ? current
+                : [...current, normalizedTopicLabel],
+            );
+            setSelectedPrimaryTopic((current) =>
+              current === normalizedTopicLabel ? null : current,
+            );
+            setUnderstandingConfirmed(false);
+            setWorkspaceActionMode("default");
+            setShowFollowupCorrectionComposer(false);
+            setActionNotice(`„${normalizedTopicLabel}“ bleibt als Zweig sichtbar geparkt. Du kannst jetzt ein anderes Hauptthema wählen oder direkt weiterarbeiten.`);
           }}
           onOpenManualTopicChooser={() => {
             setWorkspaceActionMode("manual_topic");
@@ -1764,6 +1792,7 @@ export default function CreateClient({
       setPlannerTrace(body.trace ?? null);
       setUnderstandingConfirmed(false);
       setSelectedPrimaryTopic(null);
+      setParkedTopicLabels([]);
       setWorkspaceActionMode("default");
       setShowFollowupCorrectionComposer(false);
       setActionNotice(
@@ -2083,6 +2112,7 @@ export default function CreateClient({
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
                   setSelectedPrimaryTopic(null);
+                  setParkedTopicLabels([]);
                   setWorkspaceActionMode("default");
                   setLinkClarificationState(null);
                   setChatContinuationText("");
@@ -2115,6 +2145,7 @@ export default function CreateClient({
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
                   setSelectedPrimaryTopic(null);
+                  setParkedTopicLabels([]);
                   setWorkspaceActionMode("default");
                   setLinkClarificationState(null);
                   setChatContinuationText("");

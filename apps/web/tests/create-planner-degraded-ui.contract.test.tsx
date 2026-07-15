@@ -17,7 +17,7 @@ describe("create planner degraded ui contract", () => {
         statements: [
           {
             id: "statement-1",
-            text: "Aussage",
+            text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
             kind: "claim" as const,
             stance: "open" as const,
             confidence: "medium" as const,
@@ -28,7 +28,8 @@ describe("create planner degraded ui contract", () => {
         confidence: "medium" as const,
       },
       suggestions: [],
-      sourceText: "Längerer Mehrthemenbeitrag.",
+      sourceText:
+        "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
       generatedAt: "2026-05-11T10:00:00.000Z",
       degraded: false,
       degradedReason: null,
@@ -140,8 +141,9 @@ describe("create planner degraded ui contract", () => {
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
     expect(html).toContain("Verkehr");
-    expect(html).toContain("Sicherheit/Rechtsstaat");
-    expect(html).toContain("Kommunale Finanzen");
+    expect(html).toContain("Verkehrssicherheit");
+    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
+    expect(html).toContain("Stadtplanung &amp; Finanzierung");
     expect(html).toContain("Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.");
     expect(html).toContain("Die automatische Einordnung hat nicht rechtzeitig geantwortet.");
     expect(html).not.toContain("Einordnung erneut versuchen");

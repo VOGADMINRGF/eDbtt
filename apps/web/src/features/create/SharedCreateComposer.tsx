@@ -415,13 +415,6 @@ export default function SharedCreateComposer({
       >
         <div className="space-y-2.5">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
-          {isWorkspaceContinuation ? (
-            <div className="flex flex-wrap items-center justify-end gap-2.5">
-              <span className="text-[13px] leading-relaxed text-[rgb(var(--muted))]">
-                Schreib weiter oder ergänze, was wichtig ist.
-              </span>
-            </div>
-          ) : null}
 
           {contextBanner}
 
@@ -434,7 +427,7 @@ export default function SharedCreateComposer({
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               rows={isWorkspaceContinuation ? 3 : Math.max(5, minRows - 2)}
-              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-5 ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[156px]"}`}
+              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-5 ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[120px]"}`}
               placeholder={resolvedPlaceholder}
             />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-2.5 text-xs text-[rgb(var(--muted))] md:px-5">

@@ -122,7 +122,7 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
     statements: [
       {
         id: "s1",
-        text: "Der Text bleibt als Entwurf erhalten.",
+        text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Grünflächen und Haushalt spielen ebenfalls mit hinein.",
         kind: "hint" as const,
         stance: "unclear" as const,
         confidence: "low" as const,
@@ -134,7 +134,7 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
   },
   suggestions: [],
   sourceText:
-    "ich bin gegen frauenquote aber für mehr gleichberechtigung, gibt es eine frauenquote müsste es auch quoten von anderen minderheiten geben, das kann nicht richtig und wirtschaftlich für ein unternehmen sein.",
+    "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
   generatedAt: "2026-05-15T12:00:00.000Z",
   meta: {
     planner: {
@@ -387,15 +387,11 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Verkehr");
-    expect(html).toContain("Sicherheit/Rechtsstaat");
-    expect(html).toContain("Kommunale Finanzen");
+    expect(html).toContain("Verkehrssicherheit");
+    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
+    expect(html).toContain("Stadtplanung &amp; Finanzierung");
     expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
-    expect(html).not.toContain("Gleichberechtigung");
-    expect(html).not.toContain("Frauenquote");
-    expect(html).not.toContain("Minderheitenförderung");
-    expect(html).not.toContain("wirtschaftliche Auswirkungen für Unternehmen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
   });
@@ -415,8 +411,8 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("Wie möchtest du tiefer ins Thema gehen?");
     expect(html).toContain("Darin stecken mehrere Themenstränge");
-    expect(html).toContain("Zusammen lassen");
-    expect(html).toContain("Schwerpunkt wählen");
+    expect(html).toContain("Die sichtbaren BranchCards oben tragen die Themenwahl.");
+    expect(html).toContain("Branches lassen sich direkt im Thread als Hauptthema wählen oder als Zweig parken.");
     expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
     expect(html).toContain("Quellen ergänzen");

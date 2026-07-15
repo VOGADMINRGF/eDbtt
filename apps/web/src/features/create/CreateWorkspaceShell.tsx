@@ -189,7 +189,7 @@ export default function CreateWorkspaceShell({
       data-create-shell-layout="wide"
       className="mx-auto flex min-h-[76vh] w-full max-w-[82.5rem] flex-col rounded-[2.25rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_32px_80px_rgba(2,6,23,0.14)] sm:px-4 md:min-h-[78vh] md:px-5 md:py-5 xl:px-6"
     >
-      <div className="flex flex-1 flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
         <WorkspaceHeader notice={notice} />
         <ProgressPipeline stages={stages} />
         <div
@@ -205,16 +205,16 @@ export default function CreateWorkspaceShell({
             nextStepLabel={structureOverview.nextStepLabel}
           />
         </div>
-        <div className="flex flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread
-            className="flex min-h-[34rem] flex-1 flex-col px-5 py-5 md:min-h-[42rem] md:px-7"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[42rem] md:px-7"
           >
             {chatThread}
           </div>
           <div
             data-create-shell-composer
-            className="border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_66%,rgb(var(--bg))_34%)]"
+            className="sticky bottom-0 z-10 border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--bg))_26%)] supports-[backdrop-filter]:backdrop-blur"
           >
             {composer}
           </div>

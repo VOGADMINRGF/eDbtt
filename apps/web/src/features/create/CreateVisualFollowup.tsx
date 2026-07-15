@@ -64,6 +64,7 @@ type CreateVisualFollowupProps = {
   isConfirmed?: boolean;
   embedInWorkspaceShell?: boolean;
   selectedPrimaryTopic?: string | null;
+  parkedTopicLabels?: string[];
   composerMode?: "default" | "edit" | "source" | "manual_topic";
   reviewRequestState?: "idle" | "saving" | "saved" | "error";
   reviewRequestMessage?: string | null;
@@ -72,6 +73,7 @@ type CreateVisualFollowupProps = {
   onConfirm: () => void;
   onEdit: () => void;
   onSelectPrimaryTopic?: (topicLabel: string) => void;
+  onParkTopic?: (topicLabel: string) => void;
   onOpenManualTopicChooser?: () => void;
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
@@ -187,19 +189,60 @@ const BROAD_TOPIC_FIELD_ORDER = [
 
 const DEGRADED_FALLBACK_TOPIC_RULES = [
   {
-    label: "Verkehr",
-    pattern: /verkehr|bus|bahn|radweg|radwege|schulweg|mobilität|mobilitaet|parkplatz|straße|strasse/i,
-    description: "Fragen zu Wegen, Mobilität und Erreichbarkeit bleiben als eigener Themenstrang sichtbar.",
+    id: "traffic_safety",
+    label: "Verkehrssicherheit",
+    pattern: /verkehr|straße|strasse|querung|überweg|ueberweg|zebrastreifen|radfahrer|radweg|haltestelle|tempo|kreuzung/i,
+    description: "Sichere Querungen, Haltestellen und Radverkehr bilden hier den naheliegenden Schwerpunkt.",
+    referencePoints: [
+      { label: "Straße", pattern: /straße|strasse/i },
+      { label: "Querung", pattern: /querung|überweg|ueberweg|zebrastreifen/i },
+      { label: "Radfahrer", pattern: /radfahrer|radweg|fahrrad/i },
+      { label: "Haltestelle", pattern: /haltestelle|bus|bahn/i },
+    ],
   },
   {
-    label: "Sicherheit/Rechtsstaat",
-    pattern: /sicherheit|rechtsstaat|ordnung|kontrolle|regel|regelverstoß|regelverstoss|polizei|schutz/i,
-    description: "Hinweise zu Sicherheit, Regeln und Durchsetzung werden getrennt betrachtet.",
+    id: "school_routes",
+    label: "Kita- und Schulwege",
+    pattern: /kita|schule|schulweg|schulwege|kinder|eltern|hort/i,
+    description: "Wege rund um Kita, Schule und Alltagssicherheit können als eigener Fokus weitergeführt werden.",
+    referencePoints: [
+      { label: "Kita", pattern: /kita|hort/i },
+      { label: "Schule", pattern: /schule|schulweg|schulwege/i },
+      { label: "Kinder", pattern: /kinder|eltern/i },
+    ],
   },
   {
-    label: "Kommunale Finanzen",
+    id: "accessibility",
+    label: "Barrierefreiheit",
+    pattern: /barriere|barrierefrei|rollstuhl|bordstein|rampe|gehhilfe|sehbehind|mobilitätseinschr/i,
+    description: "Barrieren, sichere Querungen und Nutzbarkeit für alle bleiben als sichtbarer Arbeitsstrang erhalten.",
+    referencePoints: [
+      { label: "Barrierefreiheit", pattern: /barriere|barrierefrei/i },
+      { label: "Bordsteine", pattern: /bordstein|absenk/i },
+      { label: "Rampen", pattern: /rampe|aufzug/i },
+    ],
+  },
+  {
+    id: "planning_green",
+    label: "Stadtplanung und Grünflächen",
+    pattern: /bauprojekt|bauprojekte|planung|stadtplanung|grünfläche|gruenflaeche|grün|gruen|platz|quartier/i,
+    description: "Bauprojekte, Freiräume und Grünflächen können als eigener Planungsstrang sichtbar bleiben.",
+    referencePoints: [
+      { label: "Bauprojekte", pattern: /bauprojekt|bauprojekte/i },
+      { label: "Grünflächen", pattern: /grünfläche|gruenflaeche|grün|gruen/i },
+      { label: "Stadtplanung", pattern: /planung|stadtplanung|quartier/i },
+    ],
+  },
+  {
+    id: "municipal_finance",
+    label: "Kommunale Finanzierung",
     pattern: /haushalt|finanz|finanzen|finanzierung|kosten|investition|spar|etat/i,
     description: "Kosten, Finanzierung und kommunale Prioritäten bleiben als eigener Prüfstrang erkennbar.",
+    referencePoints: [
+      { label: "Haushalt", pattern: /haushalt|etat/i },
+      { label: "Finanzierung", pattern: /finanz|kosten|investition/i },
+      { label: "Prioritäten", pattern: /priorität|prioritaet|sparen/i },
+    ],
   },
 ] as const;
 
@@ -535,17 +578,84 @@ function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): st
   return startPoints;
 }
 
-function buildDeterministicFallbackTopicLabels(result: CreateIntelligentFollowupResult): string[] {
-  const sourceText = `${result.sourceText}\n${result.understanding.summary}`.trim();
-  const detected = DEGRADED_FALLBACK_TOPIC_RULES.filter((rule) => rule.pattern.test(sourceText)).map(
-    (rule) => rule.label,
-  );
-  const labels = [...detected];
-  for (const rule of DEGRADED_FALLBACK_TOPIC_RULES) {
-    if (labels.includes(rule.label)) continue;
-    labels.push(rule.label);
+type DeterministicFallbackBranchDraft = {
+  title: string;
+  description: string;
+  referencePoints: string[];
+};
+
+function dedupeLabelsCaseInsensitive(labels: string[]): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const label of labels) {
+    const normalized = label.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(normalized);
   }
-  return labels.slice(0, 3);
+  return deduped;
+}
+
+function buildDeterministicFallbackBranchDrafts(
+  result: CreateIntelligentFollowupResult,
+): DeterministicFallbackBranchDraft[] {
+  const sourceText = `${result.sourceText}\n${result.understanding.summary}`.trim();
+  const matchedRules = DEGRADED_FALLBACK_TOPIC_RULES.filter((rule) => rule.pattern.test(sourceText));
+  const matchedIds = new Set(matchedRules.map((rule) => rule.id));
+  const matchedReferencePoints = (ruleIds: readonly string[]) =>
+    dedupeLabelsCaseInsensitive(
+      matchedRules
+        .filter((rule) => ruleIds.includes(rule.id))
+        .flatMap((rule) =>
+          rule.referencePoints
+            .filter((reference) => reference.pattern.test(sourceText))
+            .map((reference) => reference.label),
+        ),
+    );
+
+  const looksLikeCivicSmoke =
+    matchedIds.has("traffic_safety") &&
+    (matchedIds.has("school_routes") || matchedIds.has("accessibility")) &&
+    (matchedIds.has("planning_green") || matchedIds.has("municipal_finance"));
+
+  if (looksLikeCivicSmoke) {
+    return [
+      {
+        title: "Verkehrssicherheit",
+        description: "Sichere Querungen, Haltestellen und Radverkehr wirken hier wie der naheliegende erste Schwerpunkt.",
+        referencePoints: matchedReferencePoints(["traffic_safety"]),
+      },
+      {
+        title: "Kita-/Schulweg & Barrierefreiheit",
+        description: "Wege zu Kita und Schule plus Barrieren im Alltag lassen sich als gemeinsamer Strang sichtbar halten.",
+        referencePoints: matchedReferencePoints(["school_routes", "accessibility"]),
+      },
+      {
+        title: "Stadtplanung & Finanzierung",
+        description: "Bauprojekte, Grünflächen und kommunale Finanzierung bilden hier einen zweiten planerischen Schwerpunkt.",
+        referencePoints: matchedReferencePoints(["planning_green", "municipal_finance"]),
+      },
+    ];
+  }
+
+  const detectedDrafts = matchedRules.map((rule) => ({
+    title: rule.label,
+    description: rule.description,
+    referencePoints: matchedReferencePoints([rule.id]),
+  }));
+  const fallbackDrafts = DEGRADED_FALLBACK_TOPIC_RULES.map((rule) => ({
+    title: rule.label,
+    description: rule.description,
+    referencePoints: rule.referencePoints.slice(0, 2).map((reference) => reference.label),
+  }));
+  const combinedDrafts = [...detectedDrafts];
+  for (const draft of fallbackDrafts) {
+    if (combinedDrafts.some((entry) => entry.title === draft.title)) continue;
+    combinedDrafts.push(draft);
+  }
+  return combinedDrafts.slice(0, 3);
 }
 
 function buildDeterministicFallbackBranches(
@@ -555,21 +665,19 @@ function buildDeterministicFallbackBranches(
     result.understanding.statements[0]?.text?.trim() ||
     result.understanding.summary.trim() ||
     "Dieser Themenstrang bleibt bis zur tieferen Einordnung als Entwurf sichtbar.";
-  return buildDeterministicFallbackTopicLabels(result).map((label, index) => {
-    const rule = DEGRADED_FALLBACK_TOPIC_RULES.find((entry) => entry.label === label);
+  return buildDeterministicFallbackBranchDrafts(result).map((draft, index) => {
     return {
       id: `degraded-fallback-branch-${index}`,
-      title: label,
-      topics: [label],
-      topicTags: [label],
+      title: draft.title,
+      topics: [draft.title],
+      topicTags: draft.referencePoints.length > 0 ? draft.referencePoints : [draft.title],
       part06CategoryKeys: [],
-      part06CategoryLabels: [label],
+      part06CategoryLabels: [draft.title],
       need:
-        rule?.description ??
-        "Dieser Themenstrang bleibt als eigenständiger Arbeitsstrang sichtbar.",
+        draft.description,
       claims: [fallbackClaim],
       voteQuestions: [],
-      openReviewPoints: [],
+      openReviewPoints: draft.referencePoints,
       positionClusters: [],
     };
   });
@@ -1760,15 +1868,14 @@ function TopicBranchPreviewGrid(props: {
   rootTopic: string;
   branches: CreateStructureBranch[];
   selectedPrimaryTopic?: string | null;
+  parkedTopicLabels?: string[];
   onSelectPrimaryTopic?: (topicLabel: string) => void;
+  onParkTopic?: (topicLabel: string) => void;
 }) {
   if (props.branches.length === 0) return null;
 
   return (
-    <div
-      data-create-topic-branches
-      className="space-y-5 rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-5 py-5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
-    >
+    <div data-create-topic-branches className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
@@ -1780,7 +1887,7 @@ function TopicBranchPreviewGrid(props: {
           aus deinem Beitrag erkannt
         </span>
       </div>
-      <div className="flex items-center gap-3 text-sm text-[rgb(var(--muted))]">
+      <div className="flex items-center gap-3 rounded-[24px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 text-sm text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
         <span className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-50">
           1
         </span>
@@ -1795,48 +1902,90 @@ function TopicBranchPreviewGrid(props: {
             key={branch.id}
             data-create-topic-branch-card=""
             data-selected-primary-topic={props.selectedPrimaryTopic === branch.title ? "true" : undefined}
+            data-parked-topic={props.parkedTopicLabels?.includes(branch.title) ? "true" : undefined}
             className={`rounded-[26px] border px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
               props.selectedPrimaryTopic === branch.title
                 ? "border-cyan-400/75 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--grad-from))_26%),color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%))] ring-2 ring-cyan-300/35 dark:border-cyan-300/55"
+                : props.parkedTopicLabels?.includes(branch.title)
+                  ? "border-amber-300/65 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--grad-from))_18%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-amber-300/35"
                 : "border-cyan-200/45 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-cyan-300/20"
             }`}
           >
+            {(() => {
+              const referencePoints = dedupeLabelsCaseInsensitive([
+                ...branch.openReviewPoints,
+                ...branch.topicTags,
+              ]).slice(0, 4);
+              const isSelected = props.selectedPrimaryTopic === branch.title;
+              const isParked = props.parkedTopicLabels?.includes(branch.title) ?? false;
+              const recommendedAction = isSelected
+                ? "Dieses Thema ist gerade als Hauptthema gewählt."
+                : isParked
+                  ? "Dieser Zweig bleibt sichtbar geparkt, bis du ihn wieder aufgreifen willst."
+                  : index === 0
+                    ? "Wenn das der Kern ist, wähle ihn direkt als Hauptthema."
+                    : "Wenn der Strang wichtig bleibt, parke ihn oder nimm ihn als Hauptthema.";
+              return (
+                <>
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
               <span className="rounded-full border border-cyan-300/40 px-2.5 py-0.5">Thema</span>
               <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[rgb(var(--muted))]">
                 aus deinem Beitrag erkannt
               </span>
-              <span className="text-[rgb(var(--muted))]">{branch.claims.length || 1} Aussagen</span>
+                    {isParked ? (
+                      <span className="rounded-full border border-amber-300/50 px-2.5 py-0.5 text-amber-900 dark:text-amber-100">
+                        Geparkt
+                      </span>
+                    ) : null}
             </div>
             <p className="mt-3 text-lg font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
             <p className="mt-2 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
               {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {branch.topicTags.slice(0, 3).map((topic) => (
-                <span
-                  key={`${branch.id}-${topic}`}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
-                >
-                  {topic}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-              <p className="font-semibold text-[rgb(var(--fg))]">Empfohlene Aktion</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
-                  onClick={() => props.onSelectPrimaryTopic?.(branch.title)}
-                >
-                  {props.selectedPrimaryTopic === branch.title ? "Gewählt als Hauptthema" : "Hauptthema wählen"}
-                </button>
-                <span className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
-                  {index === 0 ? "Als Schwerpunkt prüfen" : "Als Zweig parken"}
-                </span>
-              </div>
-            </div>
+                  {referencePoints.length > 0 ? (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                        Erkannte Bezugspunkte
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {referencePoints.map((topic) => (
+                          <span
+                            key={`${branch.id}-${topic}`}
+                            className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Empfohlene Aktion
+                    </p>
+                    <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
+                      onClick={() => props.onSelectPrimaryTopic?.(branch.title)}
+                      aria-pressed={isSelected}
+                    >
+                      {isSelected ? "Gewählt als Hauptthema" : "Hauptthema wählen"}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] transition hover:border-amber-300/55 hover:text-[rgb(var(--fg))]"
+                      onClick={() => props.onParkTopic?.(branch.title)}
+                      aria-pressed={isParked}
+                    >
+                      {isParked ? "Als Zweig geparkt" : "Als Zweig parken"}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </article>
         ))}
       </div>
@@ -2432,8 +2581,6 @@ function PlannerClarificationPanel(props: {
   details?: string | null;
   startPoints: string[];
   technicalFallback?: boolean;
-  primaryTopicLabel?: string | null;
-  onConfirm: () => void;
   onRetryPlanner?: () => void;
   isRetryPlannerPending?: boolean;
   onEdit: () => void;
@@ -2475,13 +2622,6 @@ function PlannerClarificationPanel(props: {
         </div>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.onConfirm}
-        >
-          {props.primaryTopicLabel ? `Hauptthema wählen: ${props.primaryTopicLabel}` : "Hauptthema wählen"}
-        </button>
         <button
           type="button"
           className="btn-primary min-h-[46px] px-4 py-2 text-sm"
@@ -2686,7 +2826,7 @@ function NextStepPanel(props: {
       {props.showMultiTopicActionPanel ? (
         <div
           data-create-multitheme-actions
-          className="space-y-4 rounded-[24px] border border-cyan-300/18 bg-white/[0.03] px-4 py-4"
+          className="space-y-3 rounded-[24px] border border-cyan-300/18 bg-white/[0.03] px-4 py-4"
         >
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
@@ -2694,18 +2834,11 @@ function NextStepPanel(props: {
             </p>
             <p className="text-sm font-semibold text-white">Darin stecken mehrere Themenstränge</p>
             <p className="text-sm leading-relaxed text-slate-300">
-              Du entscheidest, ob diese Themen zusammenbleiben, als Schwerpunkt getrennt werden oder erst als Nebenthema geparkt bleiben.
+              Die sichtbaren BranchCards oben tragen die Themenwahl. Hier bündelst du nur die nächsten Folgeaktionen.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {[
-              "Schwerpunkt wählen",
-              "Zusammen lassen",
-              "Als Zweig parken",
-              "An Debatte anknüpfen",
-              "Dossier prüfen",
-              "Beteiligung vorbereiten",
-            ].map((label) => (
+            {props.multiTopicActionTopics.map((label) => (
               <span
                 key={`multitopic-choice-${label}`}
                 className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-cyan-50"
@@ -2714,81 +2847,12 @@ function NextStepPanel(props: {
               </span>
             ))}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-              onClick={() => props.onDeepenTopic(props.multiTopicActionTopics[0] ?? "")}
-            >
-              Hauptthema wählen
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onContinueInAccount}
-            >
-              Als Zweig parken
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onPrepareVote}
-            >
-              Beteiligung vorbereiten
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onStartOptionalService}
-            >
-              Quelle prüfen
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onPrepareAnlassraum}
-            >
-              An Debatte anknüpfen
-            </button>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {props.multiTopicActionTopics.map((topicLabel) => (
-              <article
-                key={`deepen-topic-${topicLabel}`}
-                className="rounded-2xl border border-cyan-300/18 bg-slate-950/25 px-3 py-3"
-              >
-                <p className="text-sm font-semibold text-white">{topicLabel}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-300">
-                  Dieser Themenstrang bleibt im Draft und kann gezielt weitergeführt werden.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-2.5 py-1 text-[11px] text-cyan-50">
-                    Schwerpunkt wählen
-                  </span>
-                  <span className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-2.5 py-1 text-[11px] text-cyan-50">
-                    Aufteilen
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary mt-3 min-h-[40px] px-3 py-2 text-sm"
-                  onClick={() => props.onDeepenTopic(topicLabel)}
-                >
-                  Schwerpunkt wählen
-                </button>
-              </article>
-            ))}
-          </div>
+          <p className="text-xs leading-relaxed text-slate-300">
+            Branches lassen sich direkt im Thread als Hauptthema wählen oder als Zweig parken.
+          </p>
         </div>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.onConfirm}
-        >
-          {props.selectedPrimaryTopic ? `Hauptthema: ${props.selectedPrimaryTopic}` : "Hauptthema wählen"}
-        </button>
         <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
           Beitrag weiterentwickeln
         </button>
@@ -2890,6 +2954,7 @@ export default function CreateVisualFollowup({
   isConfirmed = false,
   embedInWorkspaceShell = false,
   selectedPrimaryTopic = null,
+  parkedTopicLabels = [],
   composerMode = "default",
   reviewRequestState = "idle",
   reviewRequestMessage = null,
@@ -2898,6 +2963,7 @@ export default function CreateVisualFollowup({
   onConfirm,
   onEdit,
   onSelectPrimaryTopic,
+  onParkTopic,
   onOpenManualTopicChooser = () => {},
   onPrepareSubmission,
   onPrepareAnlassraum,
@@ -2980,9 +3046,10 @@ export default function CreateVisualFollowup({
     () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
     [plannerClarificationRequired, result],
   );
-  const displayedBranches = plannerClarificationRequired && structureBranches.length === 0
-    ? fallbackBranches
-    : structureBranches;
+  const displayedBranches =
+    plannerClarificationRequired && (plannerTechnicalFallback || structureBranches.length === 0)
+      ? fallbackBranches
+      : structureBranches;
   const degradedStartPoints = React.useMemo(() => {
     const plannerPoints = extractDegradedStartPoints(result);
     if (plannerPoints.length > 0) return plannerPoints;
@@ -3404,7 +3471,9 @@ export default function CreateVisualFollowup({
                       rootTopic={rootTopic}
                       branches={displayedBranches}
                       selectedPrimaryTopic={selectedPrimaryTopic}
+                      parkedTopicLabels={parkedTopicLabels}
                       onSelectPrimaryTopic={onSelectPrimaryTopic}
+                      onParkTopic={onParkTopic}
                     />
                   </div>
                 ) : (
@@ -3413,7 +3482,9 @@ export default function CreateVisualFollowup({
                       rootTopic={rootTopic}
                       branches={displayedBranches}
                       selectedPrimaryTopic={selectedPrimaryTopic}
+                      parkedTopicLabels={parkedTopicLabels}
                       onSelectPrimaryTopic={onSelectPrimaryTopic}
+                      onParkTopic={onParkTopic}
                     />
                     <OpenQuestionCards questions={voteQuestions} />
                     <SourceHintsAndNextStepsGrid modules={contentModules} nextStepTitles={nextStepTitles} />
@@ -3447,8 +3518,6 @@ export default function CreateVisualFollowup({
                   details={plannerClarificationDetails}
                   startPoints={degradedStartPoints}
                   technicalFallback={plannerTechnicalFallback}
-                  primaryTopicLabel={selectedPrimaryTopic ?? displayedBranches[0]?.title ?? degradedStartPoints[0] ?? null}
-                  onConfirm={onConfirm}
                   onRetryPlanner={onRetryPlanner}
                   isRetryPlannerPending={isRetryPlannerPending}
                   onEdit={() => openCorrection("Thema")}

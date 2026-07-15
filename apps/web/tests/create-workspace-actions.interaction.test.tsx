@@ -234,7 +234,7 @@ function buildDegradedResult(): CreateIntelligentFollowupResult {
       statements: [
         {
           id: "statement-1",
-          text: "Busse fahren zu selten, Regeln werden missachtet und der Haushalt ist knapp.",
+          text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer und Familien kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
           kind: "claim",
           stance: "open",
           confidence: "medium",
@@ -246,7 +246,7 @@ function buildDegradedResult(): CreateIntelligentFollowupResult {
     },
     suggestions: [],
     sourceText:
-      "Verkehr rund um die Schule ist unsicher, Regeln werden missachtet und der kommunale Haushalt ist knapp.",
+      "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer und Familien kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
     generatedAt: "2026-07-15T10:05:00.000Z",
     meta: {
       planner: buildDegradedPlanner(),
@@ -260,20 +260,26 @@ function buildDegradedResult(): CreateIntelligentFollowupResult {
 
 function Harness(props: { result: CreateIntelligentFollowupResult }) {
   const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
+  const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
   const [composerMode, setComposerMode] = React.useState<"default" | "edit" | "source" | "manual_topic">(
     "default",
   );
   const [confirmed, setConfirmed] = React.useState(false);
   const [saveCount, setSaveCount] = React.useState(0);
   const [sourceCount, setSourceCount] = React.useState(0);
+  const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
 
   return (
     <div>
       <CreateVisualFollowup
         result={props.result}
+        actionNotice={actionNotice}
         isConfirmed={confirmed}
         selectedPrimaryTopic={selectedPrimaryTopic}
+        parkedTopicLabels={parkedTopicLabels}
         composerMode={composerMode}
+        reviewRequestMessage={reviewRequestMessage}
         factcheckMessage={
           composerMode === "source"
             ? "Quellenmodus aktiv. Eine externe Prüfung startet erst nach Bestätigung."
@@ -281,18 +287,41 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
         }
         onConfirm={() => {
           setSelectedPrimaryTopic((current) => current ?? "Verkehr");
+          setParkedTopicLabels((current) => current.filter((topic) => topic !== "Verkehr"));
           setConfirmed(true);
           setComposerMode("default");
+          setActionNotice("Hauptthema „Verkehr“ gewählt.");
         }}
         onSelectPrimaryTopic={(topicLabel) => {
           setSelectedPrimaryTopic(topicLabel);
+          setParkedTopicLabels((current) => current.filter((topic) => topic !== topicLabel));
           setConfirmed(true);
           setComposerMode("default");
+          setActionNotice(`Hauptthema „${topicLabel}“ gewählt.`);
         }}
-        onEdit={() => setComposerMode("edit")}
-        onOpenManualTopicChooser={() => setComposerMode("manual_topic")}
+        onParkTopic={(topicLabel) => {
+          setParkedTopicLabels((current) => (current.includes(topicLabel) ? current : [...current, topicLabel]));
+          setSelectedPrimaryTopic((current) => (current === topicLabel ? null : current));
+          setConfirmed(false);
+          setComposerMode("default");
+          setActionNotice(`„${topicLabel}“ wurde als Zweig geparkt.`);
+        }}
+        onEdit={() => {
+          setComposerMode("edit");
+          setActionNotice("Weiterarbeit aktiv. Ergänze unten, was geschärft oder geändert werden soll.");
+        }}
+        onOpenManualTopicChooser={() => {
+          setComposerMode("manual_topic");
+          setActionNotice("Themenwahl geöffnet.");
+        }}
         onPrepareSubmission={() => {}}
-        onPrepareAnlassraum={() => {}}
+        onPrepareAnlassraum={() => {
+          if (!selectedPrimaryTopic) {
+            setActionNotice("Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten.");
+            return;
+          }
+          setActionNotice(`Anlassraum für „${selectedPrimaryTopic}“ wird vorbereitet.`);
+        }}
         onOpenDossierAppend={() => {}}
         onOpenDossierCreate={() => {}}
         onPrepareVote={() => {}}
@@ -300,14 +329,20 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
         onStartOptionalService={() => {
           setComposerMode("source");
           setSourceCount((count) => count + 1);
+          setActionNotice("Quellenmodus aktiv. Eine externe Prüfung startet erst nach Bestätigung.");
         }}
         onRetryPlanner={() => {}}
-        onSaveOnly={() => setSaveCount((count) => count + 1)}
+        onSaveOnly={() => {
+          setSaveCount((count) => count + 1);
+          setReviewRequestMessage("Entwurf gespeichert. Noch nicht veröffentlicht.");
+          setActionNotice("Entwurf gespeichert. Noch nicht veröffentlicht.");
+        }}
         continuationValue=""
         onContinuationChange={() => {}}
         onContinueConversation={() => {}}
       />
       <div data-testid="selected-topic">{selectedPrimaryTopic ?? ""}</div>
+      <div data-testid="parked-topics">{parkedTopicLabels.join("|")}</div>
       <div data-testid="composer-mode">{composerMode}</div>
       <div data-testid="save-count">{String(saveCount)}</div>
       <div data-testid="source-count">{String(sourceCount)}</div>
@@ -316,7 +351,7 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
 }
 
 describe("create workspace actions interaction", () => {
-  it("marks the chosen primary topic and drives follow-up actions locally", async () => {
+  it("marks the chosen primary topic, parks branches and drives follow-up actions locally", async () => {
     const user = userEvent.setup();
     const { container } = render(<Harness result={buildStandardResult()} />);
 
@@ -329,6 +364,20 @@ describe("create workspace actions interaction", () => {
     const selectedCard = container.querySelector('[data-selected-primary-topic="true"]');
     expect(selectedCard).not.toBeNull();
     expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehr");
+    expect(screen.queryByText("Hauptthema „Verkehr“ gewählt.")).not.toBeNull();
+
+    const allBranchCards = Array.from(container.querySelectorAll("[data-create-topic-branch-card]"));
+    expect(allBranchCards.length).toBeGreaterThan(1);
+    const secondBranchCard = allBranchCards[1];
+    if (!secondBranchCard) return;
+
+    await user.click(within(secondBranchCard).getByRole("button", { name: "Als Zweig parken" }));
+    expect(screen.getByTestId("parked-topics").textContent).toContain("Sicherheit/Rechtsstaat");
+    expect(screen.queryByText("„Sicherheit/Rechtsstaat“ wurde als Zweig geparkt.")).not.toBeNull();
+    expect(
+      secondBranchCard.getAttribute("data-parked-topic") === "true" ||
+      within(secondBranchCard).queryByRole("button", { name: "Als Zweig geparkt" }) !== null,
+    ).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Beitrag weiterentwickeln" }));
     expect(screen.queryByText("Weiterarbeit aktiv")).not.toBeNull();
@@ -338,9 +387,7 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByText("Quellenmodus aktiv")).not.toBeNull();
     expect(screen.getByTestId("composer-mode").textContent).toBe("source");
     expect(screen.getByTestId("source-count").textContent).toBe("1");
-
-    await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
-    expect(screen.getByTestId("save-count").textContent).toBe("1");
+    expect(screen.queryAllByText(/erst nach Bestätigung/i).length).toBeGreaterThan(0);
   });
 
   it("keeps retry behind details and opens the manual topic chooser on demand", async () => {
@@ -360,15 +407,36 @@ describe("create workspace actions interaction", () => {
     expect(screen.getByTestId("composer-mode").textContent).toBe("manual_topic");
   });
 
-  it("shows deterministic degraded fallback branches and keeps the primary CTA group usable", () => {
-    render(<Harness result={buildDegradedResult()} />);
+  it("shows deterministic civic fallback branches and keeps retry out of the main CTA group", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Harness result={buildDegradedResult()} />);
 
-    expect(screen.queryByText("Verkehr")).not.toBeNull();
-    expect(screen.queryByText("Sicherheit/Rechtsstaat")).not.toBeNull();
-    expect(screen.queryByText("Kommunale Finanzen")).not.toBeNull();
+    const branchGrids = Array.from(container.querySelectorAll("[data-create-topic-branches]"));
+    const branchGrid =
+      branchGrids.find((node) => node.textContent?.includes("Verkehrssicherheit")) ??
+      branchGrids[branchGrids.length - 1] ??
+      null;
+    expect(branchGrid).not.toBeNull();
+    if (!branchGrid) return;
+
+    expect(branchGrid.textContent ?? "").toContain("Verkehrssicherheit");
+    expect(branchGrid.textContent ?? "").toContain("Kita-/Schulweg & Barrierefreiheit");
+    expect(branchGrid.textContent ?? "").toContain("Stadtplanung & Finanzierung");
+    expect(branchGrid.textContent ?? "").not.toContain("Wohnen und Genehmigungen");
+    expect(branchGrid.textContent ?? "").not.toContain("Bildung, Integration und Sicherheit");
     expect(screen.queryAllByRole("button", { name: /Hauptthema wählen/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Beitrag weiterentwickeln" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Quellen ergänzen" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Entwurf speichern" })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
+    expect(screen.getByTestId("save-count").textContent).toBe("1");
+    expect(screen.queryAllByText("Entwurf gespeichert. Noch nicht veröffentlicht.").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Anlassraum vorbereiten" }));
+    expect(
+      screen.queryByText("Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten."),
+    ).not.toBeNull();
   });
 });

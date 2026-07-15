@@ -12,13 +12,13 @@ describe("create degraded followup actions contract", () => {
       <CreateVisualFollowup
         result={{
           understanding: {
-            summary: "Der Beitrag berührt mehrere mögliche Themen rund um Gleichberechtigung und Unternehmensregeln.",
+            summary: "Der Beitrag berührt mehrere kommunale Themen rund um Schule, Wege, Bauprojekte und Haushalt.",
             categories: [{ id: "claim", label: "Aussage", confidence: "medium" }],
             topics: [{ id: "topic-1", label: "Öffentliches Anliegen", confidence: "low" }],
             statements: [
               {
                 id: "statement-1",
-                text: "Aussage",
+                text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
                 kind: "claim",
                 stance: "open",
                 confidence: "medium",
@@ -30,7 +30,7 @@ describe("create degraded followup actions contract", () => {
           },
           suggestions: [],
           sourceText:
-            "ich bin gegen frauenquote aber für mehr gleichberechtigung. gibt es eine frauenquote müsste es auch quoten von anderen minderheiten geben, das kann nicht richtig und wirtschaftlich für ein unternehmen sein.",
+            "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
           generatedAt: "2026-05-12T08:00:00.000Z",
           degraded: false,
           degradedReason: null,
@@ -138,9 +138,9 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
-    expect(html).toContain("Verkehr");
-    expect(html).toContain("Sicherheit/Rechtsstaat");
-    expect(html).toContain("Kommunale Finanzen");
+    expect(html).toContain("Verkehrssicherheit");
+    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
+    expect(html).toContain("Stadtplanung &amp; Finanzierung");
     expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Öffentliches Anliegen</p>");

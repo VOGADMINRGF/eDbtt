@@ -155,8 +155,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Quellen ergänzen");
     expect(followupSource).toContain("Entwurf speichern");
     expect(followupSource).toContain("Ich sehe mehrere mögliche Themenstränge.");
-    expect(followupSource).toContain("Zusammen lassen");
     expect(followupSource).toContain("Als Zweig parken");
+    expect(followupSource).toContain("Als Zweig geparkt");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
     expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).toContain("Beteiligung vorbereiten");
