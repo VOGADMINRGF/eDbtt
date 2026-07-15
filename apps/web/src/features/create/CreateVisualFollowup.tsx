@@ -3223,7 +3223,7 @@ export default function CreateVisualFollowup({
             />
           ) : null}
 
-          {showCorrectionComposer && !placeClarification ? (
+          {showCorrectionComposer && !placeClarification && !embedInWorkspaceShell ? (
             <ContinueWritingComposer
               value={continuationValue}
               onChange={onContinuationChange}

@@ -95,9 +95,10 @@ describe("create entry hierarchy contract", () => {
     );
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
+    expect((html.match(/data-create-workspace-shell="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/data-create-composer-bar="true"/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
     expect(html).toContain("Ein Workspace für deinen Beitrag");
-    expect(html).toContain("Schreib frei oder entwickle den Beitrag direkt weiter.");
     expect(html).toContain("Dein KI-Assistent");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
@@ -106,6 +107,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
     expect(html).toContain('data-create-composer-bar="true"');
+    expect(html).toContain('data-create-shell-secondary-details="true"');
     expect(html).toContain("Eingabe");
     expect(html).toContain("Verstehen");
     expect(html).toContain("Themen ordnen");
@@ -127,6 +129,10 @@ describe("create entry hierarchy contract", () => {
     expect(followupSource).toContain("data-create-embedded-followup");
     expect(composerSource).toContain("data-create-composer-bar");
     expect(composerSource).toContain("experienceVariant === \"workspace_shell\"");
+    expect(composerSource).toContain("workspacePhase === \"continuation\"");
+    expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");
@@ -139,6 +145,9 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Kontingente und Zugriff");
     expect(html).not.toContain("Beitrag sortieren");
     expect(html).not.toContain("Kurzer Einstieg");
+    expect(html).not.toContain("Beitrag einreichen");
+    expect(html).not.toContain("Composer</p>");
+    expect(html).toMatch(/>Prüfen</);
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");

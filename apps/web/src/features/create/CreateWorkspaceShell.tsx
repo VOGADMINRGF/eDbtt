@@ -204,13 +204,20 @@ export default function CreateWorkspaceShell({
             showOpenLabels
           />
         </div>
-        <div
-          data-create-shell-thread
-          className="min-h-[18rem] rounded-[28px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:min-h-[24rem] md:px-5"
-        >
-          {chatThread}
+        <div className="overflow-hidden rounded-[28px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
+          <div
+            data-create-shell-thread
+            className="min-h-[18rem] px-4 py-4 md:min-h-[24rem] md:px-5"
+          >
+            {chatThread}
+          </div>
+          <div
+            data-create-shell-composer
+            className="border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_64%,rgb(var(--bg))_36%)]"
+          >
+            {composer}
+          </div>
         </div>
-        <div data-create-shell-composer>{composer}</div>
         {footer ? <div data-create-shell-footer>{footer}</div> : null}
       </div>
     </section>

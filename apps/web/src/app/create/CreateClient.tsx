@@ -941,6 +941,7 @@ export default function CreateClient({
   const [isRetryPlannerPending, setIsRetryPlannerPending] = React.useState(false);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
+  const [workspaceTransparencyOpen, setWorkspaceTransparencyOpen] = React.useState(false);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
   const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
   const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
@@ -1594,6 +1595,40 @@ export default function CreateClient({
                 ? "sources"
                 : "draft";
   const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
+  const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
+  const workspaceComposerPlaceholder = hasStarted
+    ? "Schreib weiter oder ergänze, was ich anpassen soll …"
+    : intakePlaceholder;
+  const workspaceComposerStartLabel = hasStarted
+    ? "Weiter"
+    : productMode === "guided"
+      ? "Entwurf vorbereiten"
+      : "Prüfen";
+  const workspaceComposerStartBusyLabel = hasStarted
+    ? "Ich ordne deine Ergänzung gerade …"
+    : startBusyStatusLabel;
+  const workspaceComposerStartDisabled = hasStarted
+    ? isStarting || !chatContinuationText.trim()
+    : startDisabled;
+  const handleWorkspaceComposerChange = (value: string) => {
+    if (hasStarted) {
+      setChatContinuationText(value);
+    } else {
+      setIntakeText(value);
+    }
+    if (intakeRestoreInfo) setIntakeRestoreInfo(null);
+    if (intakeError) setIntakeError(null);
+    if (actionNotice) setActionNotice(null);
+    setLinkClarificationState((current) => {
+      if (!current || hasStarted) return current;
+      const nextDetection = detectCreateLinkIntake(value);
+      if (!nextDetection.hasLink) return null;
+      return {
+        ...current,
+        detection: nextDetection,
+      };
+    });
+  };
   const renderWorkspaceThread = () =>
     showLinkClarification && linkClarificationState ? (
       <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
@@ -2203,6 +2238,36 @@ export default function CreateClient({
             notice={workspaceNotice}
             structureOverview={structureOverviewMetrics}
             chatThread={renderWorkspaceThread()}
+            footer={
+              <div
+                data-create-shell-secondary-details
+                className="rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[rgb(var(--fg))]"
+                  aria-expanded={workspaceTransparencyOpen}
+                  onClick={() => setWorkspaceTransparencyOpen((current) => !current)}
+                >
+                  Details & Transparenz
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${workspaceTransparencyOpen ? "rotate-90" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M7 4.5 13 10l-6 5.5" />
+                  </svg>
+                </button>
+                {workspaceTransparencyOpen ? (
+                  <div className="border-t border-[rgb(var(--border))] px-3 py-3 md:px-4">
+                    <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
+                  </div>
+                ) : null}
+              </div>
+            }
             composer={
               <SharedCreateComposer
                 badge={surfaceTexts.badgeCanonical}
@@ -2282,32 +2347,18 @@ export default function CreateClient({
                 helperText={intakeHelperText}
                 inputId="create-primary-intake"
                 inputLabel={productModeConfig.inputLabel}
-                inputValue={intakeText}
-                inputPlaceholder={intakePlaceholder}
-                onInputChange={(value) => {
-                  setIntakeText(value);
-                  if (intakeRestoreInfo) setIntakeRestoreInfo(null);
-                  if (intakeError) setIntakeError(null);
-                  if (actionNotice) setActionNotice(null);
-                  setLinkClarificationState((current) => {
-                    if (!current) return null;
-                    const nextDetection = detectCreateLinkIntake(value);
-                    if (!nextDetection.hasLink) return null;
-                    return {
-                      ...current,
-                      detection: nextDetection,
-                    };
-                  });
-                }}
+                inputValue={workspaceComposerValue}
+                inputPlaceholder={workspaceComposerPlaceholder}
+                onInputChange={handleWorkspaceComposerChange}
                 onAttachmentsChange={setComposerAttachments}
-                onStart={handleStart}
-                startLabel={productModeConfig.ctaLabel}
-                startDisabled={startDisabled}
+                onStart={hasStarted ? handleContinueConversation : handleStart}
+                startLabel={workspaceComposerStartLabel}
+                startDisabled={workspaceComposerStartDisabled}
                 startBusy={isStarting}
-                startBusyLabel={startBusyStatusLabel}
+                startBusyLabel={workspaceComposerStartBusyLabel}
                 secondaryAction={{
                   href: contextualReturnHref ?? "/account",
-                  label: contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
+                  label: !hasStarted && contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
                 }}
                 contextAnchors={surfaceContextAnchors}
                 activeContextAnchorId={activeContextAnchorId}
@@ -2344,6 +2395,7 @@ export default function CreateClient({
                 collapseModeSelector
                 embeddedWorkspace
                 experienceVariant="workspace_shell"
+                workspacePhase={hasStarted ? "continuation" : "initial"}
                 hideAlternateModeDisclosure
                 locale={surfaceLocale}
               />
@@ -2396,8 +2448,6 @@ export default function CreateClient({
               </CreateInlineAnalysisScene>
             </div>
           ) : null}
-
-          <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
         </section>
 
         {showPostInputModules && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (

@@ -174,6 +174,7 @@ export type SharedCreateComposerProps = {
   collapseModeSelector?: boolean;
   embeddedWorkspace?: boolean;
   experienceVariant?: "standard" | "create_minimal" | "workspace_shell";
+  workspacePhase?: "initial" | "continuation";
   minimalHeading?: React.ReactNode;
   minimalLead?: string;
   hideAlternateModeDisclosure?: boolean;
@@ -213,6 +214,7 @@ export default function SharedCreateComposer({
   collapseModeSelector = false,
   embeddedWorkspace = false,
   experienceVariant = "standard",
+  workspacePhase = "initial",
   minimalHeading,
   minimalLead,
   hideAlternateModeDisclosure = false,
@@ -229,6 +231,7 @@ export default function SharedCreateComposer({
   const compactMetaMode = embeddedWorkspace && collapseModeSelector;
   const isMinimalCreate = experienceVariant === "create_minimal";
   const isWorkspaceShell = experienceVariant === "workspace_shell";
+  const isWorkspaceContinuation = isWorkspaceShell && workspacePhase === "continuation";
   const isEnglishMinimal = isMinimalCreate && locale === "en";
   const resolvedPlaceholder = isMinimalCreate
     ? isEnglishMinimal
@@ -408,24 +411,20 @@ export default function SharedCreateComposer({
     return (
       <section
         data-create-composer-bar="true"
-        className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4"
+        className="space-y-3 px-4 py-3 md:px-5"
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                Composer
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-                Schreib frei oder entwickle den Beitrag direkt weiter.
-              </p>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-[rgb(var(--muted))]">
-                {helperText}
-              </p>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
               {modeOrder.map(renderModeChip)}
+            </div>
+            <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
+              <span className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+                {isWorkspaceContinuation
+                  ? "Schreib weiter oder ergänze, was ich anpassen soll."
+                  : helperText}
+              </span>
             </div>
           </div>
 
@@ -434,17 +433,18 @@ export default function SharedCreateComposer({
           <label className="sr-only" htmlFor={inputId}>
             {inputLabel ?? texts.inputLabel}
           </label>
-          <div className="rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
+          <div className="rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
             <textarea
               id={inputId}
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
-              rows={Math.max(5, minRows - 2)}
-              className="min-h-[156px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+              rows={isWorkspaceContinuation ? 3 : Math.max(5, minRows - 2)}
+              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${isWorkspaceContinuation ? "min-h-[112px]" : "min-h-[156px]"}`}
               placeholder={resolvedPlaceholder}
             />
-            <div className="border-t border-[rgb(var(--border))] px-4 py-2 text-xs text-[rgb(var(--muted))]">
-              {characterCount} / 2.000
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-2 text-xs text-[rgb(var(--muted))]">
+              <span>{characterCount} / 2.000</span>
+              <span>Nichts wird automatisch veröffentlicht.</span>
             </div>
           </div>
 
@@ -519,10 +519,6 @@ export default function SharedCreateComposer({
               <p className="mt-2 text-xs text-[rgb(var(--muted))]">{texts.attachmentsSelected(attachments)}</p>
             </details>
           ) : null}
-
-          <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-            Nichts wird automatisch veröffentlicht. Die Assistenz macht Vorschläge, du entscheidest.
-          </p>
 
           {attachmentsError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
           {voiceError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}

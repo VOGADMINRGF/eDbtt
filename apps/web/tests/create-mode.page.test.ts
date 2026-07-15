@@ -128,9 +128,9 @@ describe("/create start surface", () => {
 
     expect(html).toContain("Dein KI-Assistent");
     expect(html).toContain("Ein Workspace für deinen Beitrag");
-    expect(html).toContain("Schreib frei oder entwickle den Beitrag direkt weiter.");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
+    expect(html).toContain("Details &amp; Transparenz");
     expect(html).toContain("create-primary-intake");
     expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-shell-pipeline="true"');
@@ -142,8 +142,7 @@ describe("/create start surface", () => {
     expect(html).toContain("Themen ordnen");
     expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Entwurf vorbereiten");
-    expect(html).toContain("Warum sehe ich das?");
-    expect(html).toContain("Was passiert im Hintergrund?");
+    expect(html).toContain("Prüfen");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
@@ -151,16 +150,16 @@ describe("/create start surface", () => {
     expect(html).toContain(
       "Der Agentic Civic Pilot bleibt review-first: Beobachtung, Format, Claims, Dossier, Beteiligung und Handoff werden vorbereitet, aber nichts wird automatisch veröffentlicht oder extern benachrichtigt.",
     );
-    expect(html).toContain('data-frontend-ai-transparency="/create"');
-    expect(html).toContain('data-ai-provenance-step="create_planner_trace"');
-    expect(html).toContain('data-ai-provenance-step="create_analyze_trace"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
     expect(html).not.toContain("Missing runtime truth");
     expect(html).not.toContain("runId");
+    expect(html).not.toContain("Beitrag einreichen");
     expect(html).not.toContain("Beitrag sortieren");
+    expect(html).not.toContain("Warum sehe ich das?");
+    expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
     expect(html).not.toContain('data-voxy-appearance="panel"');
     expect(html).not.toContain("Kurzer Einstieg");
     expect(html).not.toContain("create-start-chat-preview");
@@ -266,9 +265,8 @@ describe("/create start surface", () => {
     );
     expect(html).toContain("Serverseitiger Anlassraum-Entwurf übernommen");
     expect(html).toContain("Der serverseitig gespeicherte Entwurf aus /runden/new wurde geladen.");
-    expect(html).toContain("Entwurf aus /runden/new übernehmen");
-    expect(html).toContain("Abgeschlossen");
     expect(html).toContain("Sichere Schulwege");
+    expect(html).toContain('data-create-runden-handoff-status="loaded"');
   });
 
   it("shows an honest warning when a manual /runden/new draft is missing", async () => {
@@ -284,7 +282,7 @@ describe("/create start surface", () => {
 
     expect(html).toContain("Serverseitiger Anlassraum-Entwurf wurde nicht gefunden");
     expect(html).toContain("Es gibt keine belastbare serverseitige Draft-Wahrheit");
-    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain('data-create-runden-handoff-status="missing"');
   });
 
   it("shows an honest warning for invalid manual round draft ids", async () => {
@@ -301,7 +299,7 @@ describe("/create start surface", () => {
     expect(mocks.readManualAnlassraumServerDraftForCurrentUser).toHaveBeenCalledWith("bad-draft-id");
     expect(html).toContain("Draft-ID ist ungültig");
     expect(html).toContain("Es wurde kein serverseitiger Entwurf übernommen.");
-    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain('data-create-runden-handoff-status="invalid"');
   });
 
   it("shows the resolved organization scope when available", async () => {

@@ -56,9 +56,10 @@ Ergebnis:
   - `StructureRail`
   - `ChatThread`
   - `ComposerBar`
-- der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar reduziert
-- die Textarea sitzt nicht mehr als separate grosse Formular-Card ueber dem Ergebnis
-- das Transparenzpanel bleibt erhalten, steht aber nicht mehr ueber dem eigentlichen Workspace
+- der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
+- Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
+- nach dem ersten Submit zeigt die untere Bar keinen duplizierten Ursprungstext mehr, sondern nur noch den Fortsetzungs-Composer
+- das Transparenzpanel bleibt erhalten, wird initial aber nicht mehr als sichtbarer Block unter dem Workspace gerendert, sondern erst nach explizitem Oeffnen von `Details & Transparenz`
 
 ### 2. Nach dem Start zeigt `/create` eine echte Pipeline statt einer Analysewand
 

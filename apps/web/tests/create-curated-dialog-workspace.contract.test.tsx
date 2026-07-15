@@ -71,6 +71,12 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("experienceVariant=\"workspace_shell\"");
     expect(clientSource).toContain("renderWorkspaceThread");
     expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource).toContain("workspaceComposerStartLabel");
+    expect(clientSource).toContain("workspaceComposerValue");
+    expect(clientSource).toContain("workspaceComposerPlaceholder");
+    expect(clientSource).toContain("workspaceComposerStartDisabled");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(clientSource).toContain("create-public-shell create-dialog-workspace overflow-visible");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("experienceVariant=\"create_minimal\"");
@@ -243,12 +249,19 @@ describe("create curated dialog workspace contract", () => {
       resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
       "utf8",
     );
+    const composerSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
+      "utf8",
+    );
 
     expect(clientSource).toContain("CreateWorkspaceShell");
     expect(clientSource).toContain("chatThread={renderWorkspaceThread()}");
     expect(clientSource).toContain("composer={");
+    expect(clientSource).toContain("footer={");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("public-dialog-area");
+    expect(composerSource).not.toContain(">Composer<");
   });
 
   it("keeps tab controls aligned with persistent tabpanels", () => {
