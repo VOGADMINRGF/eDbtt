@@ -157,8 +157,10 @@ describe("create entry hierarchy contract", () => {
     expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
     expect(workspaceShellSource).toContain("lg:grid lg:min-w-0 lg:grid-cols-5");
     expect(workspaceShellSource).toContain("data-create-thread-phase={phase}");
-    expect(workspaceShellSource).toContain("md:min-h-[22rem]");
+    expect(workspaceShellSource).toContain("md:min-h-[18rem]");
     expect(workspaceShellSource).not.toContain("md:min-h-[46rem]");
+    expect(clientSource).not.toContain("min-h-[30rem]");
+    expect(clientSource).not.toContain("md:min-h-[36rem]");
     expect(workspaceShellSource).toContain("overflow-y-auto");
     expect(workspaceShellSource).toContain("sticky bottom-0");
     expect(workspaceShellSource).not.toContain("max-w-[82.5rem]");

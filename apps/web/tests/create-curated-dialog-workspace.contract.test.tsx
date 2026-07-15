@@ -224,6 +224,7 @@ describe("create curated dialog workspace contract", () => {
     expect(html).toContain("Quellen &amp; Hinweise");
     expect(html).toContain("Erkannte Themen");
     expect(html).toContain("aus deinem Beitrag erkannt");
+    expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Erkannte Themenzweige");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");

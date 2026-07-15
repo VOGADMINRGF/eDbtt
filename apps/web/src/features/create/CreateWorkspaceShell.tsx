@@ -87,10 +87,10 @@ function buildWorkspaceStages(params: {
   }));
 }
 
-function WorkspaceHeader(props: { notice?: React.ReactNode }) {
+function WorkspaceHeader(props: { notice?: React.ReactNode; compact?: boolean }) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className={props.compact ? "space-y-2.5" : "space-y-3"}>
+      <div className={`flex flex-wrap items-start justify-between ${props.compact ? "gap-2.5" : "gap-3"}`}>
         <div className="flex min-w-0 items-start gap-3">
           <div className="mt-0.5">
             <div className="w-9">
@@ -101,7 +101,7 @@ function WorkspaceHeader(props: { notice?: React.ReactNode }) {
             <p className="text-[1.35rem] font-semibold tracking-[-0.01em] text-[rgb(var(--fg))] md:text-[1.7rem]">
               Ein Workspace für deinen Beitrag
             </p>
-            <p className="mt-1.5 max-w-4xl text-[15px] leading-relaxed text-[rgb(var(--muted))] md:text-base">
+            <p className={`max-w-4xl text-[15px] leading-relaxed text-[rgb(var(--muted))] md:text-base ${props.compact ? "mt-1" : "mt-1.5"}`}>
               Ich halte Eingabe, Themen, Fragen, Quellen und nächste Schritte zusammen.
             </p>
           </div>
@@ -111,7 +111,7 @@ function WorkspaceHeader(props: { notice?: React.ReactNode }) {
         </span>
       </div>
       {props.notice ? (
-        <div className="rounded-[1.25rem] border border-cyan-500/18 bg-cyan-500/[0.06] px-4 py-3 text-[15px] leading-relaxed text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/12 dark:text-cyan-100">
+        <div className={`rounded-[1.25rem] border border-cyan-500/18 bg-cyan-500/[0.06] px-4 text-[15px] leading-relaxed text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/12 dark:text-cyan-100 ${props.compact ? "py-2.5" : "py-3"}`}>
           {props.notice}
         </div>
       ) : null}
@@ -121,12 +121,13 @@ function WorkspaceHeader(props: { notice?: React.ReactNode }) {
 
 function ProgressPipeline(props: {
   stages: WorkspaceStage[];
+  compact?: boolean;
 }) {
   return (
     <div
       data-create-shell-pipeline
       data-create-pipeline-rail
-      className="overflow-x-auto rounded-[2rem] border border-[rgb(var(--border))] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--card))_97%,white_3%),color-mix(in_oklab,rgb(var(--card))_91%,rgb(var(--bg))_9%))] px-4 py-4 md:px-5 md:py-5"
+      className={`overflow-x-auto rounded-[2rem] border border-[rgb(var(--border))] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--card))_97%,white_3%),color-mix(in_oklab,rgb(var(--card))_91%,rgb(var(--bg))_9%))] px-4 md:px-5 ${props.compact ? "py-3.5 md:py-4" : "py-4 md:py-5"}`}
     >
       <div className="flex min-w-max items-stretch gap-3 lg:grid lg:min-w-0 lg:grid-cols-5">
         {props.stages.map((stage, index) => {
@@ -195,7 +196,7 @@ export default function CreateWorkspaceShell({
   const isInitialPhase = phase === "initial";
   const isLoadingPhase = phase === "loading";
   const threadClassName = isInitialPhase
-    ? "flex min-h-[18rem] flex-none flex-col overflow-y-auto px-4 py-4 md:min-h-[22rem] md:px-6 md:py-5 xl:px-7"
+    ? "flex min-h-[15rem] flex-none flex-col overflow-y-auto px-4 py-3.5 md:min-h-[18rem] md:px-6 md:py-4 xl:px-7"
     : isLoadingPhase
       ? "flex min-h-[24rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[32rem] md:px-7 xl:px-8"
       : "flex min-h-[26rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[40rem] md:px-7 xl:px-8";
@@ -209,11 +210,11 @@ export default function CreateWorkspaceShell({
       className="mx-auto flex min-h-[calc(100vh-7.5rem)] w-full max-w-[min(92vw,96rem)] flex-col rounded-[2.4rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_36px_96px_rgba(2,6,23,0.18)] sm:px-4 md:min-h-[calc(100vh-6rem)] md:px-5 md:py-5 xl:px-7"
     >
       <div className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}>
-        <WorkspaceHeader notice={notice} />
-        <ProgressPipeline stages={stages} />
+        <WorkspaceHeader notice={notice} compact={isInitialPhase} />
+        <ProgressPipeline stages={stages} compact={isInitialPhase} />
         <div
           data-create-shell-structure-rail
-          className={`rounded-[1.9rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] px-4 md:px-5 ${isInitialPhase ? "py-3.5 md:py-4" : "py-4 md:py-5"}`}
+          className={`rounded-[1.9rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] px-4 md:px-5 ${isInitialPhase ? "py-3 md:py-3.5" : "py-4 md:py-5"}`}
         >
           <CreateStructureOverview
             locale={locale}

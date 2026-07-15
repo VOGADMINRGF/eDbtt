@@ -410,6 +410,18 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
   });
 
+  it("keeps details closed by default in the normal result flow", async () => {
+    const user = userEvent.setup();
+    render(<Harness result={buildStandardResult()} />);
+
+    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
+
+    const detailButtons = screen.getAllByRole("button", { name: "Details ansehen" });
+    await user.click(detailButtons[0]);
+
+    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
+  });
+
   it("shows deterministic civic fallback branches and keeps retry out of the main CTA group", async () => {
     const user = userEvent.setup();
     const { container } = render(<Harness result={buildDegradedResult()} />);
