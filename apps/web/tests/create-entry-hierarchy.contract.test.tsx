@@ -110,9 +110,11 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain('data-create-workspace-host="wide-screen"');
     expect(html).toContain('data-create-shell-layout="wide"');
     expect(html).toContain('data-create-workspace-size="wide-screen"');
+    expect(html).toContain('data-create-workspace-phase="initial"');
     expect(html).toContain('data-create-shell-pipeline="true"');
     expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-thread-phase="initial"');
     expect(html).toContain('data-create-composer-bar="true"');
     expect(html).toContain('data-create-shell-secondary-details="true"');
     expect(html).toContain("Eingabe");
@@ -139,6 +141,7 @@ describe("create entry hierarchy contract", () => {
     expect(composerSource).toContain("experienceVariant === \"workspace_shell\"");
     expect(composerSource).toContain("workspacePhase === \"continuation\"");
     expect(composerSource).toContain("resize-none");
+    expect(clientSource).toContain("const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted");
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
@@ -149,9 +152,13 @@ describe("create entry hierarchy contract", () => {
       "utf8",
     );
     expect(workspaceShellSource).toContain("data-create-workspace-size=\"wide-screen\"");
+    expect(workspaceShellSource).toContain("data-create-workspace-phase={phase}");
     expect(workspaceShellSource).toContain("max-w-[min(92vw,96rem)]");
     expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
     expect(workspaceShellSource).toContain("lg:grid lg:min-w-0 lg:grid-cols-5");
+    expect(workspaceShellSource).toContain("data-create-thread-phase={phase}");
+    expect(workspaceShellSource).toContain("md:min-h-[22rem]");
+    expect(workspaceShellSource).not.toContain("md:min-h-[46rem]");
     expect(workspaceShellSource).toContain("overflow-y-auto");
     expect(workspaceShellSource).toContain("sticky bottom-0");
     expect(workspaceShellSource).not.toContain("max-w-[82.5rem]");

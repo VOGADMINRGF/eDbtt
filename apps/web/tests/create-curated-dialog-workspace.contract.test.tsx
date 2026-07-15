@@ -71,6 +71,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("experienceVariant=\"workspace_shell\"");
     expect(clientSource).toContain("renderWorkspaceThread");
     expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource).toContain("workspaceShellPhase");
     expect(clientSource).toContain("workspaceComposerStartLabel");
     expect(clientSource).toContain("workspaceComposerValue");
     expect(clientSource).toContain("workspaceComposerPlaceholder");
@@ -129,6 +130,9 @@ describe("create curated dialog workspace contract", () => {
     );
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
       "data-create-shell-layout=\"wide\"",
+    );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-thread-phase={phase}",
     );
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
@@ -275,6 +279,7 @@ describe("create curated dialog workspace contract", () => {
 
     expect(clientSource).toContain("CreateWorkspaceShell");
     expect(clientSource).toContain("chatThread={renderWorkspaceThread()}");
+    expect(clientSource).toContain("phase={workspaceShellPhase}");
     expect(clientSource).toContain("composer={");
     expect(clientSource).toContain("footer={");
     expect(clientSource).toContain("data-create-shell-secondary-details");

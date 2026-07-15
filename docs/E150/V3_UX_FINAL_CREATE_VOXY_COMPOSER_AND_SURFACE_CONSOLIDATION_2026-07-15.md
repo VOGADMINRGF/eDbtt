@@ -59,6 +59,7 @@ Ergebnis:
 - die Shell nutzt jetzt sichtbar mehr Monitorbreite und Mindesthoehe; ChatThread, Composer und Footer sitzen in einer grossen durchgehenden Workspace-Maske statt in einer schmalen Mittelkarte
 - der finale Finish-Pass vergroessert Shell-Breite auf eine breitere Desktop-Maske, vergroessert Typo, Pipeline und Struktur-Rail nochmals sichtbar und zieht den Chat-Thread staerker auf die Hauptbuehne
 - der abschliessende Density-/Hierarchy-Pass reduziert Microcopy, Uppercase-Badges und Card-in-Card-Verschachtelung zusaetzlich, damit der 1216px-Workspace nicht wie ein technisches Mini-Widget wirkt
+- der finale Above-the-Fold-Fix macht den Startzustand phasenabhaengig: `CreateWorkspaceShell` kennt jetzt `initial`, `loading`, `result` und `continuation`, damit Assistant-Intro und Composer im ersten Viewport sichtbar bleiben
 - Header und Footer wurden gleichzeitig reduziert, damit sie Orientierung bleiben und nicht wie eigene Zusatzmodule wirken
 - der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
@@ -99,6 +100,7 @@ Ergebnis:
 - der eigentliche Dialog erscheint als Chat-Thread:
   - vor Submit mit einer echten Assistenz-Intro-Nachricht plus Beispielchips
   - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
+- im Initialzustand bleibt der Thread bewusst kuerzer und rutscht naeher an die Composer-Bar; die groessere scrollbare Thread-Hoehe wird erst fuer Loading-, Result- und Continuation-Zustaende aktiviert
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - fuer den bekannten Rahnsdorf/Kita/Querung/Haushalt-Smoke bleiben die lokalen Fallback-Kandidaten civic-intuitiv:
   - `Verkehrssicherheit`

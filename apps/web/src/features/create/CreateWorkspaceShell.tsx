@@ -14,9 +14,16 @@ export type CreateWorkspaceStageId =
   | "sources"
   | "draft";
 
+export type CreateWorkspaceShellPhase =
+  | "initial"
+  | "loading"
+  | "result"
+  | "continuation";
+
 type CreateWorkspaceShellProps = {
   locale: "de" | "en";
   activeStage: CreateWorkspaceStageId;
+  phase?: CreateWorkspaceShellPhase;
   isBusy?: boolean;
   notice?: React.ReactNode;
   chatThread: React.ReactNode;
@@ -173,6 +180,7 @@ function ProgressPipeline(props: {
 export default function CreateWorkspaceShell({
   locale,
   activeStage,
+  phase = "initial",
   isBusy = false,
   notice,
   chatThread,
@@ -184,20 +192,28 @@ export default function CreateWorkspaceShell({
     () => buildWorkspaceStages({ activeStage, isBusy }),
     [activeStage, isBusy],
   );
+  const isInitialPhase = phase === "initial";
+  const isLoadingPhase = phase === "loading";
+  const threadClassName = isInitialPhase
+    ? "flex min-h-[18rem] flex-none flex-col overflow-y-auto px-4 py-4 md:min-h-[22rem] md:px-6 md:py-5 xl:px-7"
+    : isLoadingPhase
+      ? "flex min-h-[24rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[32rem] md:px-7 xl:px-8"
+      : "flex min-h-[26rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[40rem] md:px-7 xl:px-8";
 
   return (
     <section
       data-create-workspace-shell
       data-create-shell-layout="wide"
       data-create-workspace-size="wide-screen"
+      data-create-workspace-phase={phase}
       className="mx-auto flex min-h-[calc(100vh-7.5rem)] w-full max-w-[min(92vw,96rem)] flex-col rounded-[2.4rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_36px_96px_rgba(2,6,23,0.18)] sm:px-4 md:min-h-[calc(100vh-6rem)] md:px-5 md:py-5 xl:px-7"
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}>
         <WorkspaceHeader notice={notice} />
         <ProgressPipeline stages={stages} />
         <div
           data-create-shell-structure-rail
-          className="rounded-[1.9rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] px-4 py-4 md:px-5 md:py-5"
+          className={`rounded-[1.9rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] px-4 md:px-5 ${isInitialPhase ? "py-3.5 md:py-4" : "py-4 md:py-5"}`}
         >
           <CreateStructureOverview
             locale={locale}
@@ -211,7 +227,8 @@ export default function CreateWorkspaceShell({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[46rem] md:px-7 xl:px-8"
+            data-create-thread-phase={phase}
+            className={threadClassName}
           >
             {chatThread}
           </div>

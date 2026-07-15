@@ -48,6 +48,7 @@ import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparenc
 import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
 import { buildCreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
 import CreateWorkspaceShell from "@/features/create/CreateWorkspaceShell";
+import type { CreateWorkspaceShellPhase } from "@/features/create/CreateWorkspaceShell";
 import type {
   CreateAnalyzeRuntimeTrace,
   CreatePlannerRuntimeTrace,
@@ -1280,7 +1281,14 @@ export default function CreateClient({
               : selectedPrimaryTopic || understandingConfirmed
                 ? "draft"
                 : "topics"
-            : "draft";
+        : "draft";
+  const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted
+    ? "initial"
+    : isStarting
+      ? "loading"
+      : showIntelligentFollowup || showLinkClarification || showStartChatPreview
+        ? "result"
+        : "continuation";
   const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
@@ -1469,7 +1477,7 @@ export default function CreateClient({
     ) : (
       <div
         data-create-initial-thread="true"
-        className="create-chat-spine relative flex min-h-[30rem] min-w-0 items-center before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] md:min-h-[36rem]"
+        className="create-chat-spine relative flex min-h-[18rem] min-w-0 items-start pt-1 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] md:min-h-[22rem] md:pt-2"
       >
         <CreateAssistantStatusBubble
           eyebrow="Assistent"
@@ -2011,6 +2019,7 @@ export default function CreateClient({
           <CreateWorkspaceShell
             locale={surfaceLocale === "en" ? "en" : "de"}
             activeStage={workspaceActiveStage}
+            phase={workspaceShellPhase}
             isBusy={isStarting}
             notice={workspaceNotice}
             structureOverview={{
