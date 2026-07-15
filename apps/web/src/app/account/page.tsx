@@ -1,6 +1,7 @@
 // file: app/account/page.tsx
 import { redirect } from "next/navigation";
 import { AccountClient } from "./AccountClient";
+import { PersonalVoxyFirstLoginCompanion } from "./PersonalVoxyFirstLoginCompanion";
 import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
 import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
@@ -63,6 +64,8 @@ export default async function AccountPage({ searchParams }: Props) {
             {buildVoxyExperienceShellHint("account")} {buildAgenticCivicE2EAccountHint()}
           </p>
         </header>
+
+        <PersonalVoxyFirstLoginCompanion welcomeNotice={welcomeNotice} />
 
         <AccountClient
           initialData={overview}
