@@ -20,7 +20,7 @@ describe("personal Voxy first-login companion runtime", () => {
     expect(html).toContain("Was könnte aus deiner Sicht dahinterstecken?");
     expect(html).toContain("ausschließlich in diesem Browser speichern");
     expect(html).toContain("keine politische Einstufung");
-    expect(html).toContain("Keine automatische Veröffentlichung");
+    expect(html).toContain("keine automatische Veröffentlichung");
     expect(html).toContain("Einen Gedanken teilen");
     expect(html).toContain("Aktuelle Themen ansehen");
   });
