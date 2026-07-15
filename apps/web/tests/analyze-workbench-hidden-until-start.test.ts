@@ -165,6 +165,19 @@ describe("analyze workbench progressive disclosure", () => {
     ).toBe(true);
   });
 
+  it("shows the loading thread immediately before waiting for intelligent follow-up", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+
+    expect(clientSource).toContain('data-create-loading-thread={isStarting ? "true" : undefined}');
+    expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource.indexOf("setFollowupSnapshot(snapshot);")).toBeLessThan(
+      clientSource.indexOf('await fetch("/api/create/intelligent-followup"'),
+    );
+  });
+
   it("maps mode-specific follow-up surfaces so Beitragen stays lightweight by default", () => {
     expect(resolveFollowupSurfaceOnStart("analyze")).toBe("lightweight");
     expect(resolveFollowupSurfaceOnStart("media")).toBe("analysis");
@@ -376,7 +389,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("collapseModeSelector");
     expect(clientSource).toContain("create-dialog-workspace");
     expect(clientSource).toContain("embeddedWorkspace");
-    expect(clientSource).toContain("create-start-chat-preview");
+    expect(clientSource).toContain("CreateWorkspaceShell");
+    expect(clientSource).toContain("data-create-loading-thread");
     expect(composerSource).toContain("alternateModeLabel");
     expect(composerSource).toContain("attachmentsDisclosureLabel");
   });

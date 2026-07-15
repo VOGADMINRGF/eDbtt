@@ -60,19 +60,20 @@ describe("create curated dialog workspace contract", () => {
     );
 
     expect(clientSource).toContain("SharedCreateComposer");
+    expect(clientSource).toContain("CreateWorkspaceShell");
     expect(clientSource).toContain("CreateVisualFollowup");
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("create-dialog-workspace");
-    expect(clientSource).toContain("create-start-chat-preview");
     expect(clientSource).toContain("CreateSubmittedContributionBubble");
     expect(clientSource).toContain("CreateAssistantStatusBubble");
-    expect(clientSource).toContain("CreateStructureOverview");
     expect(clientSource).toContain("deriveCreateStructureOverviewMetrics");
     expect(clientSource).toContain("embeddedWorkspace");
-    expect(clientSource).toContain("experienceVariant=\"create_minimal\"");
-    expect(clientSource).toContain("Write freely. I sort topic, context and next steps - nothing is published automatically.");
-    expect(clientSource).toContain("create-public-shell create-dialog-workspace public-dialog-surface");
-    expect(clientSource).toContain("data-create-deep-followup");
+    expect(clientSource).toContain("experienceVariant=\"workspace_shell\"");
+    expect(clientSource).toContain("renderWorkspaceThread");
+    expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource).toContain("create-public-shell create-dialog-workspace overflow-visible");
+    expect(clientSource).not.toContain("create-start-chat-preview");
+    expect(clientSource).not.toContain("experienceVariant=\"create_minimal\"");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("CreateStructureOverviewCard");
     expect(followupSource).toContain("CreateStructureOverview");
@@ -95,6 +96,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("StructuredWorkstateBlock");
     expect(followupSource).toContain("data-create-chat-thread");
     expect(followupSource).toContain("data-create-structure-rail");
+    expect(followupSource).toContain("embedInWorkspaceShell");
+    expect(followupSource).toContain("data-create-embedded-followup");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-pipeline-rail");
@@ -102,6 +105,9 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("data-create-topic-branches");
     expect(followupSource).toContain("data-create-topic-branch-card");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-shell-pipeline",
+    );
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -187,9 +193,8 @@ describe("create curated dialog workspace contract", () => {
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
     expect(html).toContain("Details ansehen");
-    expect(html).toContain("Dein KI-Assistent");
     expect(html).toContain("Quellen &amp; Hinweise");
-    expect(html).toContain("Voxy Pilotpfad");
+    expect(html).toContain("Quellen &amp; Hinweise");
     expect(html).toContain("Erkannte Themenzweige");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
@@ -231,6 +236,19 @@ describe("create curated dialog workspace contract", () => {
     expect(contractSource).not.toContain("CreateInputSafetyQualityGate");
     expect(followupSource).not.toContain("Dossier ansehen");
     expect(followupSource).not.toContain("Dossier ansehen pro Thema");
+  });
+
+  it("uses one workspace shell instead of separate top composer and lower followup blocks", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+
+    expect(clientSource).toContain("CreateWorkspaceShell");
+    expect(clientSource).toContain("chatThread={renderWorkspaceThread()}");
+    expect(clientSource).toContain("composer={");
+    expect(clientSource).not.toContain("create-start-chat-preview");
+    expect(clientSource).not.toContain("public-dialog-area");
   });
 
   it("keeps tab controls aligned with persistent tabpanels", () => {

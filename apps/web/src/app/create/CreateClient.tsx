@@ -54,8 +54,8 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
 import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
-import CreateCandidatePreviewPanel from "@/features/create/CreateCandidatePreviewPanel";
 import { buildCreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
+import CreateWorkspaceShell from "@/features/create/CreateWorkspaceShell";
 import type {
   CreateAnalyzeRuntimeTrace,
   CreatePlannerRuntimeTrace,
@@ -70,7 +70,6 @@ import {
   buildCreateFollowupTargetHref,
 } from "@/features/create/followupTargetHref";
 import CreateVisualFollowup, {
-  CreateStructureOverview,
   deriveCreateStructureOverviewMetrics,
 } from "@/features/create/CreateVisualFollowup";
 import {
@@ -102,6 +101,7 @@ import {
 import CreateDraftNextActionGate from "./CreateDraftNextActionGate";
 import CreateStartDraftHandoff from "./CreateStartDraftHandoff";
 import { useCreateStartDraftRestore } from "./createStartDraftRestore";
+import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -413,9 +413,11 @@ function CreateAssistantStatusBubble(props: {
 }) {
   return (
     <div className="create-chat-message flex gap-3">
-      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--grad-from))] ring-4 ring-[rgb(var(--card))]" />
+      <div className="mt-1 shrink-0">
+        <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+      </div>
       <div className="max-w-5xl flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">eDebatte</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.eyebrow}</p>
           <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.title}</p>
@@ -1232,6 +1234,40 @@ export default function CreateClient({
         contextAnchorLabel: activeContextAnchor?.label,
         surfaceTexts,
       });
+      setFollowupSnapshot(snapshot);
+      setWorkingState(
+        productMode === "analyze"
+          ? null
+          : {
+              summary: summarizeWorkingText(normalizedText),
+              recognizedType: detectRecognizedType(activeIntent, normalizedText),
+              suggestedAssignment: activeSelectedContext
+                ? activeSelectedContext.title
+                : initialIntakeContext?.sourceLabel
+                  ? initialIntakeContext.sourceLabel
+                  : productMode === "guided"
+                    ? "Neuer gemeinsamer Arbeitsstand"
+                    : productMode === "media"
+                      ? "Prüfweg noch offen"
+                      : "Thema oder nächster Schritt noch offen",
+            },
+      );
+      setIntelligentFollowup(null);
+      setPlannerTrace(null);
+      setAnalyzeTrace(null);
+      setUnderstandingConfirmed(false);
+      setHasStarted(true);
+      setGuidedBridgeConfirmed(productMode !== "guided");
+      setFollowupSurface("none");
+      setAnalysisSceneMode(null);
+      setActionNotice(
+        linkDetection.hasLink
+          ? buildCreateLinkSourceNotice({
+              locale: surfaceLocale,
+              selectedIntentId: linkClarificationState?.selectedIntentId,
+            })
+          : null,
+      );
       setIsStarting(true);
       setLinkClarificationState((current) =>
         current && linkDetection.hasLink
@@ -1268,41 +1304,10 @@ export default function CreateClient({
         nextPlannerTrace = body.trace ?? null;
       }
 
-      const recognizedType = detectRecognizedType(activeIntent, normalizedText);
-      const suggestedAssignment = activeSelectedContext
-        ? activeSelectedContext.title
-        : initialIntakeContext?.sourceLabel
-          ? initialIntakeContext.sourceLabel
-          : productMode === "guided"
-            ? "Neuer gemeinsamer Arbeitsstand"
-            : productMode === "media"
-              ? "Prüfweg noch offen"
-              : "Thema oder nächster Schritt noch offen";
-
-      setFollowupSnapshot(snapshot);
-      setWorkingState(
-        productMode === "analyze"
-          ? null
-          : {
-              summary: summarizeWorkingText(normalizedText),
-              recognizedType,
-              suggestedAssignment,
-            },
-      );
       setIntelligentFollowup(nextIntelligentFollowup);
       setPlannerTrace(nextPlannerTrace);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
-      setActionNotice(
-        linkDetection.hasLink
-          ? buildCreateLinkSourceNotice({
-              locale: surfaceLocale,
-              selectedIntentId: linkClarificationState?.selectedIntentId,
-            })
-          : null,
-      );
-      setHasStarted(true);
-      setGuidedBridgeConfirmed(productMode !== "guided");
 
       const nextFollowupSurface =
         productMode === "analyze" ? "none" : resolveFollowupSurfaceOnStart(productMode);
@@ -1315,6 +1320,7 @@ export default function CreateClient({
     } catch {
       setIsStarting(false);
       if (productMode === "analyze") {
+        setActionNotice("Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst den Beitrag weiterentwickeln oder Details später erneut prüfen.");
         setIntakeError("Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.");
       } else {
         setIntakeError(surfaceTexts.startFailedError);
@@ -1571,6 +1577,125 @@ export default function CreateClient({
       : productMode === "media"
         ? productModeConfig.postStartLead
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
+  const workspaceActiveStage =
+    !hasStarted
+      ? "input"
+      : isStarting
+        ? "understanding"
+        : showAnalyzeWorkspace
+          ? "draft"
+          : showLinkClarification
+            ? "understanding"
+            : showIntelligentFollowup
+              ? understandingConfirmed
+                ? "sources"
+                : "topics"
+              : showFollowupQuestionCard
+                ? "sources"
+                : "draft";
+  const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
+  const renderWorkspaceThread = () =>
+    showLinkClarification && linkClarificationState ? (
+      <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
+        <CreateSubmittedContributionBubble text={followupSnapshot?.originalText ?? normalizedIntakeText} />
+        <CreateLinkIntakeClarification
+          locale={surfaceLocale}
+          detection={linkClarificationState.detection}
+          selectedIntentId={linkClarificationState.selectedIntentId}
+          additionalContext={linkClarificationState.additionalContext}
+          onSelectIntent={(intentId) => {
+            setLinkClarificationState((current) =>
+              current
+                ? {
+                    ...current,
+                    selectedIntentId: intentId,
+                  }
+                : current,
+            );
+          }}
+          onAdditionalContextChange={(value) => {
+            setLinkClarificationState((current) =>
+              current
+                ? {
+                    ...current,
+                    additionalContext: value,
+                  }
+                : current,
+            );
+          }}
+        />
+      </div>
+    ) : showIntelligentFollowup && intelligentFollowup ? (
+      <div ref={intelligentFollowupResultRef} className="scroll-mt-24">
+        <CreateVisualFollowup
+          result={intelligentFollowup}
+          actionNotice={actionNotice}
+          isConfirmed={understandingConfirmed}
+          embedInWorkspaceShell
+          reviewRequestState={reviewRequestState}
+          reviewRequestMessage={reviewRequestMessage}
+          factcheckMessage={factcheckMessage}
+          showCorrectionComposer={showFollowupCorrectionComposer}
+          onConfirm={() => {
+            setUnderstandingConfirmed(true);
+            setShowFollowupCorrectionComposer(false);
+            setActionNotice("Verstanden. Du kannst jetzt tiefer ins Thema gehen. Nichts wird automatisch veröffentlicht.");
+          }}
+          onEdit={() => {
+            setUnderstandingConfirmed(false);
+            setShowFollowupCorrectionComposer(true);
+            setActionNotice("Manuelle Weiterführung geöffnet. Passe den Text an oder wähle selbst ein Thema.");
+          }}
+          onPrepareSubmission={handlePrepareSubmission}
+          onPrepareAnlassraum={handlePrepareAnlassraum}
+          onOpenDossierAppend={handleOpenDossierAppend}
+          onOpenDossierCreate={handleOpenDossierCreate}
+          onPrepareVote={handlePrepareVote}
+          onRequestEditorialReview={handleRequestEditorialReview}
+          onStartOptionalService={confirmFactcheckServiceStart}
+          onDeepenAllTopics={handleDeepenAllTopics}
+          onDeepenTopic={handleDeepenSingleTopic}
+          onContinueInAccount={handleContinueInAccount}
+          onRetryPlanner={handleRetryPlanner}
+          isRetryPlannerPending={isRetryPlannerPending}
+          onSaveOnly={handleSaveOnly}
+          onSkipPlaceClarification={handleSkipPlaceClarification}
+          continuationValue={chatContinuationText}
+          onContinuationChange={setChatContinuationText}
+          onContinueConversation={handleContinueConversation}
+          continueConversationDisabled={isStarting || !chatContinuationText.trim()}
+          handoffRuntimeDossierId={dossierId ?? null}
+          handoffRuntimeAnlassraumId={effectiveSelectedAnlassraumId ?? null}
+          handoffRuntimeSourceUrls={currentMaterialRouting.sourceUrls}
+          handoffRuntimeMaterialItems={currentMaterialRouting.materialItems}
+        />
+      </div>
+    ) : showStartChatPreview && followupSnapshot ? (
+      <div
+        data-create-loading-thread={isStarting ? "true" : undefined}
+        className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+      >
+        <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
+        <CreateAssistantStatusBubble
+          eyebrow={isStarting ? "Verstehen" : surfaceTexts.followupUnderstandingLabel}
+          title={isStarting ? "Ich ordne deinen Beitrag gerade …" : startChatAssistantTitle}
+          body={startChatAssistantBody}
+          notice={isStarting ? null : actionNotice}
+        />
+      </div>
+    ) : (
+      <div
+        data-create-initial-thread="true"
+        className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+      >
+        <CreateAssistantStatusBubble
+          eyebrow="Assistent"
+          title="Ich halte deinen Beitrag als Arbeitsdialog zusammen."
+          body="Schreib unten los. Pipeline, Themen, Fragen und nächster Schritt bleiben an derselben Stelle sichtbar."
+          notice={actionNotice}
+        />
+      </div>
+    );
   const frontendAiTransparency = React.useMemo(
     () => {
       const candidatePreview = buildCreateCandidatePreviewReadModel({
@@ -1637,7 +1762,6 @@ export default function CreateClient({
       startBusyStatusLabel,
     ],
   );
-  const createCandidatePreview = frontendAiTransparency.candidatePreview;
   const frontendAiTransparencyModel = frontendAiTransparency.transparency;
   const structureOverviewMetrics = React.useMemo(
     () =>
@@ -2070,296 +2194,161 @@ export default function CreateClient({
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
-      <div className="public-shell vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
-        <section
-          className="create-public-shell create-dialog-workspace public-dialog-surface overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
-          data-create-stage-shell="true"
-        >
-          <div className="public-dialog-area">
-            <SharedCreateComposer
-              badge={surfaceTexts.badgeCanonical}
-              subline={surfaceTexts.sublineCanonical}
-              texts={surfaceComposerTexts}
-              topMeta={
-                !hasStarted || intakeRestoreInfo || scopeNotice ? (
-                  <div className="space-y-2">
-                    {startDraftRestore.draft ? (
-                      <>
-                        <CreateStartDraftHandoff
-                          draft={startDraftRestore.draft}
-                          pendingImport={startDraftRestore.pendingImport}
-                          onApplyPendingImport={startDraftRestore.applyPendingImport}
-                          onDismissPendingImport={startDraftRestore.dismissPendingImport}
-                          onClearDraftState={startDraftRestore.clearDraftState}
-                        />
-                        <CreateDraftNextActionGate
-                          draft={startDraftRestore.draft}
-                          initialNextActionParam={initialNextActionParam}
-                          hasStarted={hasStarted}
-                          isAuthenticated={entitlements.isAuthenticated}
-                          canDeepResearch={entitlements.canDeepResearch}
-                          onStartLightAnalysis={() => void handleStart()}
-                          onConfirmFactcheck={confirmFactcheckServiceStart}
-                        />
-                      </>
-                    ) : null}
-                    {intakeRestoreInfo ? (
-                      <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
-                    ) : null}
-                    {scopeNotice ? (
-                      <div
-                        className={`rounded-2xl border px-3 py-2 text-xs ${
-                          scopeNotice.tone === "operator"
-                            ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                            : scopeNotice.tone === "limited"
-                              ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
-                              : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                        }`}
-                      >
-                        <p className="font-semibold">{scopeNotice.title}</p>
-                        <p className="mt-1">{scopeNotice.body}</p>
-                      </div>
-                    ) : null}
-                    {fromManualAnlassraumContinueCreate && initialRundenCreateHandoff ? (
-                      <div
-                        className={`rounded-2xl border px-3 py-2 text-xs ${
-                          initialRundenCreateHandoff.status === "loaded"
-                            ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-800"
-                            : "border-amber-300/60 bg-amber-50/80 text-amber-800"
-                        }`}
-                        data-create-runden-handoff-status={initialRundenCreateHandoff.status}
-                      >
-                        <p className="font-semibold">{initialRundenCreateHandoff.title}</p>
-                        <p className="mt-1">{initialRundenCreateHandoff.detail}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : undefined
-              }
-              modeOrder={CREATE_PRODUCT_MODES}
-              modeDefinitions={surfaceModeDefinitions}
-              activeMode={productMode}
-              onModeChange={(modeOption) => {
-                setProductMode(modeOption);
-                setActiveContextAnchorId(null);
-                setIntelligentFollowup(null);
-                setUnderstandingConfirmed(false);
-                setLinkClarificationState(null);
-                setChatContinuationText("");
-                setAnalysisSceneMode(null);
-                if (!hasStarted) return;
-                setFollowupSurface("none");
-                setGuidedBridgeConfirmed(modeOption !== "guided");
-              }}
-              helperText={intakeHelperText}
-              inputId="create-primary-intake"
-              inputLabel={productModeConfig.inputLabel}
-              inputValue={intakeText}
-              inputPlaceholder={intakePlaceholder}
-              onInputChange={(value) => {
-                setIntakeText(value);
-                if (intakeRestoreInfo) setIntakeRestoreInfo(null);
-                if (intakeError) setIntakeError(null);
-                if (actionNotice) setActionNotice(null);
-                setLinkClarificationState((current) => {
-                  if (!current) return null;
-                  const nextDetection = detectCreateLinkIntake(value);
-                  if (!nextDetection.hasLink) return null;
-                  return {
-                    ...current,
-                    detection: nextDetection,
-                  };
-                });
-              }}
-              onAttachmentsChange={setComposerAttachments}
-              onStart={handleStart}
-              startLabel={productModeConfig.ctaLabel}
-              startDisabled={startDisabled}
-              startBusy={isStarting}
-              startBusyLabel={startBusyStatusLabel}
-              secondaryAction={{
-                href: contextualReturnHref ?? "/account",
-                label: contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
-              }}
-              contextAnchors={surfaceContextAnchors}
-              activeContextAnchorId={activeContextAnchorId}
-              onContextAnchorSelect={(anchorId) => {
-                const anchor = resolveCreateContextAnchorById(anchorId, surfaceLocale);
-                setActiveContextAnchorId(anchorId);
-                setIntelligentFollowup(null);
-                setUnderstandingConfirmed(false);
-                setLinkClarificationState(null);
-                setChatContinuationText("");
-                if (!anchor) return;
-                setProductMode(anchor.mode);
-                if (!hasStarted) return;
-                setFollowupSurface("none");
-                setGuidedBridgeConfirmed(anchor.mode !== "guided");
-              }}
-              activeContextAnchorLead={activeContextAnchor?.lead}
-              helperLinks={surfaceHelperLinks}
-              error={intakeError}
-              contextBanner={
-                fromRundenFlow ? (
-                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--fg))]">
-                    <p className="font-semibold">{surfaceTexts.rundenContextTitle}</p>
-                    <p className="mt-1">
-                      {readableRundenContextLabel
-                        ? surfaceTexts.rundenContextWithLabel(readableRundenContextLabel)
-                        : surfaceTexts.rundenContextFallback}{" "}
-                      {surfaceTexts.rundenContextReturnHint}
-                    </p>
-                  </div>
-                ) : null
-              }
-              minRows={8}
-              collapseModeSelector
-              embeddedWorkspace
-              experienceVariant="create_minimal"
-              hideAlternateModeDisclosure
-              locale={surfaceLocale}
-              minimalHeading={
-                surfaceLocale === "en"
-                  ? "Write freely. I sort topic, context and next steps - nothing is published automatically."
-                  : "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht."
-              }
-            />
-          </div>
-
-          {showTooShortHint ? (
-            <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
-              {productModeConfig.minimumInputHint}
-            </p>
-          ) : null}
-
-          {!showIntelligentFollowup ? (
-            <CreateStructureOverview
-              locale={surfaceLocale === "en" ? "en" : "de"}
-              prioritiesCount={structureOverviewMetrics.prioritiesCount}
-              clustersCount={structureOverviewMetrics.clustersCount}
-              questionsCount={structureOverviewMetrics.questionsCount}
-              nextStepsCount={structureOverviewMetrics.nextStepsCount}
-            />
-          ) : null}
-
-          {showStartChatPreview && followupSnapshot ? (
-            <div className="create-start-chat-preview create-chat-workspace hidden rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:block md:px-5">
-              <div className="create-chat-spine space-y-5">
-                <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
-                <CreateAssistantStatusBubble
-                  eyebrow={isStarting ? startBusyStatusLabel : surfaceTexts.followupUnderstandingLabel}
-                  title={startChatAssistantTitle}
-                  body={startChatAssistantBody}
-                  notice={isStarting ? null : actionNotice}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {showLinkClarification && linkClarificationState ? (
-            <div className="create-chat-workspace rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:px-5">
-              <div className="create-chat-spine space-y-5">
-                <CreateSubmittedContributionBubble
-                  text={followupSnapshot?.originalText ?? normalizedIntakeText}
-                />
-                <CreateLinkIntakeClarification
-                  locale={surfaceLocale}
-                  detection={linkClarificationState.detection}
-                  selectedIntentId={linkClarificationState.selectedIntentId}
-                  additionalContext={linkClarificationState.additionalContext}
-                  onSelectIntent={(intentId) => {
-                    setLinkClarificationState((current) =>
-                      current
-                        ? {
-                            ...current,
-                            selectedIntentId: intentId,
-                          }
-                        : current,
-                    );
-                  }}
-                  onAdditionalContextChange={(value) => {
-                    setLinkClarificationState((current) =>
-                      current
-                        ? {
-                            ...current,
-                            additionalContext: value,
-                          }
-                        : current,
-                    );
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {showIntelligentFollowup && intelligentFollowup ? (
-            <div
-              ref={intelligentFollowupResultRef}
-              className="scroll-mt-24 pt-4 md:pt-5"
-            >
-              <CreateVisualFollowup
-                result={intelligentFollowup}
-                actionNotice={actionNotice}
-                isConfirmed={understandingConfirmed}
-                reviewRequestState={reviewRequestState}
-                reviewRequestMessage={reviewRequestMessage}
-                factcheckMessage={factcheckMessage}
-                showCorrectionComposer={showFollowupCorrectionComposer}
-                onConfirm={() => {
-                  setUnderstandingConfirmed(true);
-                  setShowFollowupCorrectionComposer(false);
-                  setActionNotice("Verstanden. Du kannst jetzt tiefer ins Thema gehen. Nichts wird automatisch veröffentlicht.");
-                }}
-                onEdit={() => {
+      <div className="public-shell vog-main-shell min-h-screen max-w-[92rem] space-y-4 md:space-y-6">
+        <section className="create-public-shell create-dialog-workspace overflow-visible px-0 py-2 sm:py-3 md:py-4" data-create-stage-shell="true">
+          <CreateWorkspaceShell
+            locale={surfaceLocale === "en" ? "en" : "de"}
+            activeStage={workspaceActiveStage}
+            isBusy={isStarting}
+            notice={workspaceNotice}
+            structureOverview={structureOverviewMetrics}
+            chatThread={renderWorkspaceThread()}
+            composer={
+              <SharedCreateComposer
+                badge={surfaceTexts.badgeCanonical}
+                subline={surfaceTexts.sublineCanonical}
+                texts={surfaceComposerTexts}
+                topMeta={
+                  !hasStarted || intakeRestoreInfo || scopeNotice ? (
+                    <div className="space-y-2">
+                      {startDraftRestore.draft ? (
+                        <>
+                          <CreateStartDraftHandoff
+                            draft={startDraftRestore.draft}
+                            pendingImport={startDraftRestore.pendingImport}
+                            onApplyPendingImport={startDraftRestore.applyPendingImport}
+                            onDismissPendingImport={startDraftRestore.dismissPendingImport}
+                            onClearDraftState={startDraftRestore.clearDraftState}
+                          />
+                          <CreateDraftNextActionGate
+                            draft={startDraftRestore.draft}
+                            initialNextActionParam={initialNextActionParam}
+                            hasStarted={hasStarted}
+                            isAuthenticated={entitlements.isAuthenticated}
+                            canDeepResearch={entitlements.canDeepResearch}
+                            onStartLightAnalysis={() => void handleStart()}
+                            onConfirmFactcheck={confirmFactcheckServiceStart}
+                          />
+                        </>
+                      ) : null}
+                      {intakeRestoreInfo ? (
+                        <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
+                      ) : null}
+                      {scopeNotice ? (
+                        <div
+                          className={`rounded-2xl border px-3 py-2 text-xs ${
+                            scopeNotice.tone === "operator"
+                              ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                              : scopeNotice.tone === "limited"
+                                ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                                : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                          }`}
+                        >
+                          <p className="font-semibold">{scopeNotice.title}</p>
+                          <p className="mt-1">{scopeNotice.body}</p>
+                        </div>
+                      ) : null}
+                      {fromManualAnlassraumContinueCreate && initialRundenCreateHandoff ? (
+                        <div
+                          className={`rounded-2xl border px-3 py-2 text-xs ${
+                            initialRundenCreateHandoff.status === "loaded"
+                              ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-800"
+                              : "border-amber-300/60 bg-amber-50/80 text-amber-800"
+                          }`}
+                          data-create-runden-handoff-status={initialRundenCreateHandoff.status}
+                        >
+                          <p className="font-semibold">{initialRundenCreateHandoff.title}</p>
+                          <p className="mt-1">{initialRundenCreateHandoff.detail}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : undefined
+                }
+                modeOrder={CREATE_PRODUCT_MODES}
+                modeDefinitions={surfaceModeDefinitions}
+                activeMode={productMode}
+                onModeChange={(modeOption) => {
+                  setProductMode(modeOption);
+                  setActiveContextAnchorId(null);
+                  setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
-                  setShowFollowupCorrectionComposer(true);
-                  setActionNotice("Manuelle Weiterführung geöffnet. Passe den Text an oder wähle selbst ein Thema.");
+                  setLinkClarificationState(null);
+                  setChatContinuationText("");
+                  setAnalysisSceneMode(null);
+                  if (!hasStarted) return;
+                  setFollowupSurface("none");
+                  setGuidedBridgeConfirmed(modeOption !== "guided");
                 }}
-                onPrepareSubmission={handlePrepareSubmission}
-                onPrepareAnlassraum={handlePrepareAnlassraum}
-                onOpenDossierAppend={handleOpenDossierAppend}
-                onOpenDossierCreate={handleOpenDossierCreate}
-                onPrepareVote={handlePrepareVote}
-                onRequestEditorialReview={handleRequestEditorialReview}
-                onStartOptionalService={confirmFactcheckServiceStart}
-                onDeepenAllTopics={handleDeepenAllTopics}
-                onDeepenTopic={handleDeepenSingleTopic}
-                onContinueInAccount={handleContinueInAccount}
-                onRetryPlanner={handleRetryPlanner}
-                isRetryPlannerPending={isRetryPlannerPending}
-                onSaveOnly={handleSaveOnly}
-                onSkipPlaceClarification={handleSkipPlaceClarification}
-                continuationValue={chatContinuationText}
-                onContinuationChange={setChatContinuationText}
-                onContinueConversation={handleContinueConversation}
-                continueConversationDisabled={isStarting || !chatContinuationText.trim()}
-                handoffRuntimeDossierId={dossierId ?? null}
-                handoffRuntimeAnlassraumId={effectiveSelectedAnlassraumId ?? null}
-                handoffRuntimeSourceUrls={currentMaterialRouting.sourceUrls}
-                handoffRuntimeMaterialItems={currentMaterialRouting.materialItems}
+                helperText={intakeHelperText}
+                inputId="create-primary-intake"
+                inputLabel={productModeConfig.inputLabel}
+                inputValue={intakeText}
+                inputPlaceholder={intakePlaceholder}
+                onInputChange={(value) => {
+                  setIntakeText(value);
+                  if (intakeRestoreInfo) setIntakeRestoreInfo(null);
+                  if (intakeError) setIntakeError(null);
+                  if (actionNotice) setActionNotice(null);
+                  setLinkClarificationState((current) => {
+                    if (!current) return null;
+                    const nextDetection = detectCreateLinkIntake(value);
+                    if (!nextDetection.hasLink) return null;
+                    return {
+                      ...current,
+                      detection: nextDetection,
+                    };
+                  });
+                }}
+                onAttachmentsChange={setComposerAttachments}
+                onStart={handleStart}
+                startLabel={productModeConfig.ctaLabel}
+                startDisabled={startDisabled}
+                startBusy={isStarting}
+                startBusyLabel={startBusyStatusLabel}
+                secondaryAction={{
+                  href: contextualReturnHref ?? "/account",
+                  label: contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
+                }}
+                contextAnchors={surfaceContextAnchors}
+                activeContextAnchorId={activeContextAnchorId}
+                onContextAnchorSelect={(anchorId) => {
+                  const anchor = resolveCreateContextAnchorById(anchorId, surfaceLocale);
+                  setActiveContextAnchorId(anchorId);
+                  setIntelligentFollowup(null);
+                  setUnderstandingConfirmed(false);
+                  setLinkClarificationState(null);
+                  setChatContinuationText("");
+                  if (!anchor) return;
+                  setProductMode(anchor.mode);
+                  if (!hasStarted) return;
+                  setFollowupSurface("none");
+                  setGuidedBridgeConfirmed(anchor.mode !== "guided");
+                }}
+                activeContextAnchorLead={activeContextAnchor?.lead}
+                helperLinks={surfaceHelperLinks}
+                error={intakeError}
+                contextBanner={
+                  fromRundenFlow ? (
+                    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--fg))]">
+                      <p className="font-semibold">{surfaceTexts.rundenContextTitle}</p>
+                      <p className="mt-1">
+                        {readableRundenContextLabel
+                          ? surfaceTexts.rundenContextWithLabel(readableRundenContextLabel)
+                          : surfaceTexts.rundenContextFallback}{" "}
+                        {surfaceTexts.rundenContextReturnHint}
+                      </p>
+                    </div>
+                  ) : null
+                }
+                minRows={7}
+                collapseModeSelector
+                embeddedWorkspace
+                experienceVariant="workspace_shell"
+                hideAlternateModeDisclosure
+                locale={surfaceLocale}
               />
-
-              <div className="mt-4">
-                <details
-                  className="rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
-                  data-create-deep-followup
-                >
-                  <summary className="cursor-pointer list-none text-sm font-semibold text-[rgb(var(--fg))] marker:hidden">
-                    Was passiert im Hintergrund?
-                  </summary>
-                  <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                    Review-first Vorschläge, Dossier-, Debatten- und Beteiligungsanschlüsse bleiben
-                    sichtbar, aber eingeklappt, bis du tiefer prüfen willst.
-                  </p>
-                  <div className="mt-4">
-                    <CreateCandidatePreviewPanel model={createCandidatePreview} />
-                  </div>
-                </details>
-              </div>
-            </div>
-          ) : null}
-
-          <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
+            }
+          />
 
           {showAnalyzeWorkspace ? (
             <div
@@ -2407,6 +2396,8 @@ export default function CreateClient({
               </CreateInlineAnalysisScene>
             </div>
           ) : null}
+
+          <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
         </section>
 
         {showPostInputModules && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (

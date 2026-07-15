@@ -43,24 +43,30 @@ Der erste Stand von PR `#391` blieb visuell zu nah an Formular + Analysewand. Di
 Geaendert:
 
 - `apps/web/src/app/create/CreateClient.tsx`
+- `apps/web/src/features/create/CreateWorkspaceShell.tsx`
 - `apps/web/src/features/create/SharedCreateComposer.tsx`
 - `apps/web/src/features/create/CreateVisualFollowup.tsx`
 
 Ergebnis:
 
-- oberhalb der ersten Eingabe bleiben nur noch kurze Assistenz-Fuehrung und die explizite Safety-Line sichtbar
-- Start-Copy:
-  - `Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.`
-- die alte obere Chip-Leiste ist aus dem Hauptflow entfernt
-- die Assistenz erscheint inline im Composer statt als grosses Seitenfenster
-- die Textarea bleibt der klare visuelle Hauptanker
+- `CreateWorkspaceShell` ist jetzt die sichtbare Hauptstruktur von `/create`
+- die Shell bleibt von Seitenstart an sichtbar und haelt dieselben Zonen vor und nach Submit an derselben Stelle:
+  - `WorkspaceHeader`
+  - `ProgressPipeline`
+  - `StructureRail`
+  - `ChatThread`
+  - `ComposerBar`
+- der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar reduziert
+- die Textarea sitzt nicht mehr als separate grosse Formular-Card ueber dem Ergebnis
 - das Transparenzpanel bleibt erhalten, steht aber nicht mehr ueber dem eigentlichen Workspace
 
 ### 2. Nach dem Start zeigt `/create` eine echte Pipeline statt einer Analysewand
 
 Geaendert:
 
+- `apps/web/src/app/create/CreateClient.tsx`
 - `apps/web/src/features/create/CreateVisualFollowup.tsx`
+- `apps/web/src/features/create/SharedCreateComposer.tsx`
 
 Ergebnis:
 
@@ -81,11 +87,16 @@ Ergebnis:
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
+- `Einordnung erneut versuchen` liegt im degraded Pfad nur noch in `Details ansehen`
 - primaere CTAs sind jetzt:
   - `Hauptthema wählen`
   - `Beitrag weiterentwickeln`
   - `Quellen ergänzen`
   - `Entwurf speichern`
+- waehrend die Einordnung laeuft, erscheint sofort ein sichtbarer Chat-Zwischenzustand:
+  - User-Bubble mit dem Beitrag
+  - Assistant-Bubble `Ich ordne deinen Beitrag gerade …`
+  - aktive Pipeline-Stufe `Verstehen`
 - Dialog Intelligence, Handoff, Match-Kandidaten und weitere Systemtransparenz bleiben erhalten, liegen aber hinter `Details ansehen`
 - Kandidaten bleiben Kandidaten:
   - Mehrthemen-Erkennung fuehrt nicht zu Auto-Split
@@ -156,8 +167,7 @@ Ergebnis:
 
 Ergebnis dieser Remediation:
 
-- Vitest Lauf 1: `29/29` Tests gruen
-- Vitest Lauf 2: `21/21` Tests gruen
+- fokussierte Create-Contracts: `49/49` Tests gruen
 - Lint: gruen
 - Typecheck: gruen
 - Build: gruen

@@ -131,6 +131,8 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
     expect(html).toContain("Einordnung erneut versuchen");
+    expect(html).toContain("Details ansehen");
+    expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
@@ -143,9 +145,10 @@ describe("create degraded followup actions contract", () => {
     expect(html).not.toContain("Faktencheck anfragen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
+    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.lastIndexOf("Einordnung erneut versuchen"));
   });
 
-  it("makes retry the primary CTA, shows a loading label, and keeps retry on the same planner_only route", () => {
+  it("keeps retry secondary in details, shows a loading label, and keeps retry on the same planner_only route", () => {
     const html = renderToStaticMarkup(
       <CreateVisualFollowup
         result={{
@@ -261,8 +264,9 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html.indexOf("Thema selbst wählen")).toBeLessThan(html.indexOf("Einordnung wird erneut versucht"));
+    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.indexOf("Einordnung wird erneut versucht"));
     expect(html).toContain("Einordnung wird erneut versucht …");
+    expect(html).toContain("Details ansehen");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
     expect(clientSource).toContain('fetch("/api/create/intelligent-followup"');

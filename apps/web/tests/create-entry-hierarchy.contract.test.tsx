@@ -85,6 +85,10 @@ describe("create entry hierarchy contract", () => {
       resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
       "utf8",
     );
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
@@ -92,14 +96,21 @@ describe("create entry hierarchy contract", () => {
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
-    expect(html).toContain(
-      "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
-    );
-    expect(html).toContain("Assistent");
+    expect(html).toContain("Ein Workspace für deinen Beitrag");
+    expect(html).toContain("Schreib frei oder entwickle den Beitrag direkt weiter.");
+    expect(html).toContain("Dein KI-Assistent");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
-    expect(html).toContain('data-voxy-inline-guide="true"');
-    expect(html).toContain('data-voxy-appearance="inline"');
+    expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-shell-pipeline="true"');
+    expect(html).toContain('data-create-shell-structure-rail="true"');
+    expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-composer-bar="true"');
+    expect(html).toContain("Eingabe");
+    expect(html).toContain("Verstehen");
+    expect(html).toContain("Themen ordnen");
+    expect(html).toContain("Quellen prüfen");
+    expect(html).toContain("Entwurf vorbereiten");
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).toContain("Prioritäten");
     expect(html).toContain("Was zählt zuerst?");
@@ -113,9 +124,9 @@ describe("create entry hierarchy contract", () => {
     expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-structure-rail");
-    expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
-    expect(composerSource).toContain("data-voxy-inline-guide");
-    expect(composerSource).toContain("hideAlternateModeDisclosure");
+    expect(followupSource).toContain("data-create-embedded-followup");
+    expect(composerSource).toContain("data-create-composer-bar");
+    expect(composerSource).toContain("experienceVariant === \"workspace_shell\"");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");
@@ -127,9 +138,11 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Checkliste");
     expect(html).not.toContain("Kontingente und Zugriff");
     expect(html).not.toContain("Beitrag sortieren");
+    expect(html).not.toContain("Kurzer Einstieg");
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
-    expect(html).not.toContain("Pipeline");
+    expect(clientSource).toContain('experienceVariant="workspace_shell"');
+    expect(clientSource).not.toContain('experienceVariant="create_minimal"');
   });
 });

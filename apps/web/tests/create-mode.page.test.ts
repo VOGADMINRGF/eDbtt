@@ -126,15 +126,22 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain(
-      "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
-    );
-    expect(html).toContain("Assistent");
+    expect(html).toContain("Dein KI-Assistent");
+    expect(html).toContain("Ein Workspace für deinen Beitrag");
+    expect(html).toContain("Schreib frei oder entwickle den Beitrag direkt weiter.");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
-    expect(html).toContain('data-voxy-inline-guide="true"');
-    expect(html).toContain('data-voxy-appearance="inline"');
+    expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-shell-pipeline="true"');
+    expect(html).toContain('data-create-shell-structure-rail="true"');
+    expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-composer-bar="true"');
+    expect(html).toContain("Eingabe");
+    expect(html).toContain("Verstehen");
+    expect(html).toContain("Themen ordnen");
+    expect(html).toContain("Quellen prüfen");
+    expect(html).toContain("Entwurf vorbereiten");
     expect(html).toContain("Warum sehe ich das?");
     expect(html).toContain("Was passiert im Hintergrund?");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
@@ -147,16 +154,23 @@ describe("/create start surface", () => {
     expect(html).toContain('data-frontend-ai-transparency="/create"');
     expect(html).toContain('data-ai-provenance-step="create_planner_trace"');
     expect(html).toContain('data-ai-provenance-step="create_analyze_trace"');
-    expect(html).toContain('data-create-focus-stage="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
-    expect(html).not.toContain("Pipeline");
     expect(html).not.toContain("Missing runtime truth");
     expect(html).not.toContain("runId");
     expect(html).not.toContain("Beitrag sortieren");
     expect(html).not.toContain('data-voxy-appearance="panel"');
+    expect(html).not.toContain("Kurzer Einstieg");
+    expect(html).not.toContain("create-start-chat-preview");
+
+    expect(html.indexOf('data-create-shell-pipeline="true"')).toBeLessThan(
+      html.indexOf('id="create-primary-intake"'),
+    );
+    expect(html.indexOf('data-create-shell-structure-rail="true"')).toBeLessThan(
+      html.indexOf('id="create-primary-intake"'),
+    );
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");
@@ -212,7 +226,7 @@ describe("/create start surface", () => {
       "Für diesen Übergang wurde noch kein serverseitiger Entwurf übernommen. Analyse und Planner arbeiten dann nur mit dem aktuell sichtbaren Text.",
     );
     expect(html).toContain('data-create-runden-handoff-status="not_requested"');
-    expect(html).toContain('data-create-focus-stage="true"');
+    expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).toContain("Aus laufendem Anlass gestartet");
     expect(html).not.toContain('data-voxy-appearance="panel"');

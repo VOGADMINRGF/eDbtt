@@ -173,7 +173,7 @@ export type SharedCreateComposerProps = {
   heroBadgeOverride?: string;
   collapseModeSelector?: boolean;
   embeddedWorkspace?: boolean;
-  experienceVariant?: "standard" | "create_minimal";
+  experienceVariant?: "standard" | "create_minimal" | "workspace_shell";
   minimalHeading?: React.ReactNode;
   minimalLead?: string;
   hideAlternateModeDisclosure?: boolean;
@@ -228,6 +228,7 @@ export default function SharedCreateComposer({
   const speechRef = React.useRef<SpeechRecognitionLike | null>(null);
   const compactMetaMode = embeddedWorkspace && collapseModeSelector;
   const isMinimalCreate = experienceVariant === "create_minimal";
+  const isWorkspaceShell = experienceVariant === "workspace_shell";
   const isEnglishMinimal = isMinimalCreate && locale === "en";
   const resolvedPlaceholder = isMinimalCreate
     ? isEnglishMinimal
@@ -402,6 +403,134 @@ export default function SharedCreateComposer({
     },
     [activeMode, modeDefinitions, onModeChange],
   );
+
+  if (isWorkspaceShell) {
+    return (
+      <section
+        data-create-composer-bar="true"
+        className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4"
+      >
+        <div className="space-y-4">
+          {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Composer
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                Schreib frei oder entwickle den Beitrag direkt weiter.
+              </p>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-[rgb(var(--muted))]">
+                {helperText}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
+              {modeOrder.map(renderModeChip)}
+            </div>
+          </div>
+
+          {contextBanner}
+
+          <label className="sr-only" htmlFor={inputId}>
+            {inputLabel ?? texts.inputLabel}
+          </label>
+          <div className="rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
+            <textarea
+              id={inputId}
+              value={inputValue}
+              onChange={(event) => onInputChange(event.target.value)}
+              rows={Math.max(5, minRows - 2)}
+              className="min-h-[156px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+              placeholder={resolvedPlaceholder}
+            />
+            <div className="border-t border-[rgb(var(--border))] px-4 py-2 text-xs text-[rgb(var(--muted))]">
+              {characterCount} / 2.000
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={texts.attachAria}
+                title={texts.attachAria}
+              >
+                <IconPaperclip />
+                <span>{texts.attachLabel}</span>
+              </button>
+
+              <button
+                type="button"
+                className={[
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition",
+                  voiceActive
+                    ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
+                  !speechSupported ? "opacity-50" : "",
+                ].join(" ")}
+                onClick={toggleVoice}
+                aria-pressed={voiceActive}
+                aria-label={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                title={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                disabled={!speechSupported}
+              >
+                <IconMic />
+                <span>{voiceActive ? texts.voiceStopLabel : texts.voiceStartLabel}</span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+              <button
+                type="button"
+                onClick={onStart}
+                className="btn-primary min-h-[48px] px-4 text-sm"
+                disabled={startBusy || startDisabled}
+                aria-busy={startBusy}
+              >
+                {startBusy ? startBusyLabel ?? startLabel : startLabel}
+              </button>
+              {secondaryAction.label ? (
+                <Link
+                  href={secondaryAction.href}
+                  className="text-sm text-[rgb(var(--muted))] underline underline-offset-4"
+                >
+                  {secondaryAction.label}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={FILE_ACCEPT}
+            className="sr-only"
+            onChange={handleFilesChange}
+          />
+
+          {attachments.length > 0 ? (
+            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--fg))]">
+                {texts.attachmentsDisclosureLabel(attachments.length)}
+              </summary>
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">{texts.attachmentsSelected(attachments)}</p>
+            </details>
+          ) : null}
+
+          <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+            Nichts wird automatisch veröffentlicht. Die Assistenz macht Vorschläge, du entscheidest.
+          </p>
+
+          {attachmentsError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
+          {voiceError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
+          {error ? <p className="text-sm text-[rgb(var(--fg))]">{error}</p> : null}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

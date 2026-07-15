@@ -62,6 +62,7 @@ type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
   actionNotice?: string | null;
   isConfirmed?: boolean;
+  embedInWorkspaceShell?: boolean;
   reviewRequestState?: "idle" | "saving" | "saved" | "error";
   reviewRequestMessage?: string | null;
   factcheckMessage?: string | null;
@@ -157,7 +158,7 @@ type DialogIntelligenceUiSourceState = {
   detail: string;
 };
 
-type CreateStructureOverviewProps = {
+export type CreateStructureOverviewProps = {
   locale?: "de" | "en";
   prioritiesCount: number;
   clustersCount: number;
@@ -2362,29 +2363,43 @@ function PlannerClarificationPanel(props: {
           className="btn-primary min-h-[46px] px-4 py-2 text-sm"
           onClick={props.onEdit}
         >
+          Hauptthema wählen
+        </button>
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.onEdit}
+        >
           Beitrag weiterentwickeln
         </button>
         <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
           Entwurf speichern
         </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
-          Thema selbst wählen
-        </button>
-        <button
-          type="button"
-          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={props.onRetryPlanner}
-          disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
-          aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
-        >
-          {props.isRetryPlannerPending
-            ? "Einordnung wird erneut versucht …"
-            : "Einordnung erneut versuchen"}
-        </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
         </button>
       </div>
+      <details className="rounded-2xl border border-amber-300/25 bg-amber-500/[0.06] px-3 py-3">
+        <summary className="cursor-pointer text-sm font-medium text-amber-950 dark:text-amber-100">
+          Details ansehen
+        </summary>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+            Thema selbst wählen
+          </button>
+          <button
+            type="button"
+            className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={props.onRetryPlanner}
+            disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
+          aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
+          >
+            {props.isRetryPlannerPending
+              ? "Einordnung wird erneut versucht …"
+              : "Einordnung erneut versuchen"}
+          </button>
+        </div>
+      </details>
       {props.reviewRequestMessage ? (
         <p className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
           {props.reviewRequestMessage}
@@ -2630,6 +2645,7 @@ export default function CreateVisualFollowup({
   result,
   actionNotice,
   isConfirmed = false,
+  embedInWorkspaceShell = false,
   reviewRequestState = "idle",
   reviewRequestMessage = null,
   factcheckMessage = null,
@@ -3029,52 +3045,71 @@ export default function CreateVisualFollowup({
   ]);
 
   return (
-    <section className="create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)] lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,24rem)]">
+    <section
+      data-create-embedded-followup={embedInWorkspaceShell ? "true" : undefined}
+      className={`create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip ${embedInWorkspaceShell ? "space-y-4" : "pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10"}`}
+    >
+      <div
+        className={
+          embedInWorkspaceShell
+            ? "space-y-4"
+            : "grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)] lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,24rem)]"
+        }
+      >
         <div className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                    Dein KI-Assistent
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
-                    {plannerClarificationRequired
-                      ? plannerTechnicalFallback
-                        ? "Automatische Einordnung nicht abgeschlossen"
-                        : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
-                      : plannerUsesProvisionalStructure
-                        ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
-                        : "Chat-Arbeitsstand für deinen Beitrag"}
-                  </p>
-                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-                    {plannerClarificationRequired
-                      ? plannerClarificationReason
-                      : "Ich halte Eingabe, Themenzweige, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
-                  </p>
+          <div
+            className={
+              embedInWorkspaceShell
+                ? "space-y-4"
+                : "rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            }
+          >
+            {!embedInWorkspaceShell ? (
+              <>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                        Dein KI-Assistent
+                      </p>
+                      <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+                        {plannerClarificationRequired
+                          ? plannerTechnicalFallback
+                            ? "Automatische Einordnung nicht abgeschlossen"
+                            : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                          : plannerUsesProvisionalStructure
+                            ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
+                            : "Chat-Arbeitsstand für deinen Beitrag"}
+                      </p>
+                      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+                        {plannerClarificationRequired
+                          ? plannerClarificationReason
+                          : "Ich halte Eingabe, Themenzweige, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
+                    Noch nicht veröffentlicht
+                  </span>
                 </div>
-              </div>
-              <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
-                Noch nicht veröffentlicht
-              </span>
-            </div>
 
-            {actionNotice ? (
-              <p className="mt-3 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-100">
-                {actionNotice}
-              </p>
+                {actionNotice ? (
+                  <p className="mt-3 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-100">
+                    {actionNotice}
+                  </p>
+                ) : null}
+
+                <div className="mt-4 space-y-4">
+                  <WorkspaceStageRail stages={followupStages} />
+                  <WorkspaceMetricRail items={workspaceMetrics} />
+                </div>
+              </>
             ) : null}
-
-            <div className="mt-4 space-y-4">
-              <WorkspaceStageRail stages={followupStages} />
-              <WorkspaceMetricRail items={workspaceMetrics} />
-            </div>
 
             <div
               data-create-chat-thread
-              className="create-chat-spine relative mt-5 min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+              className={`create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] ${embedInWorkspaceShell ? "" : "mt-5"}`}
             >
               <UserContributionBubble text={dedupedCopy.userBubbleText} />
               <AssistantUnderstandingBubble
