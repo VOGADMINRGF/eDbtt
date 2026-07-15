@@ -56,6 +56,7 @@ Ergebnis:
   - `StructureRail`
   - `ChatThread`
   - `ComposerBar`
+- die Shell nutzt jetzt sichtbar mehr Monitorbreite und Mindesthoehe; ChatThread, Composer und Footer sitzen in einer grossen durchgehenden Workspace-Maske statt in einer schmalen Mittelkarte
 - der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
 - nach dem ersten Submit zeigt die untere Bar keinen duplizierten Ursprungstext mehr, sondern nur noch den Fortsetzungs-Composer
@@ -79,12 +80,12 @@ Ergebnis:
   - `Entwurf vorbereiten`
 - direkt unter dieser Pipeline steht eine kompakte Struktur-Leiste fuer:
   - `Prioritäten`
-  - `Themenäste`
+  - `Themen`
   - `Offene Fragen`
   - `Nächster Schritt`
 - der eigentliche Dialog erscheint als Chat-Thread:
-  - `Du` zeigt den echten Beitrag direkt als Bubble
-  - `Assistent` zeigt die erste Einordnung als Antwort-Bubble
+  - vor Submit mit einer echten Assistenz-Intro-Nachricht plus Beispielchips
+  - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA

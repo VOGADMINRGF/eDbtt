@@ -126,13 +126,18 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Dein KI-Assistent");
     expect(html).toContain("Ein Workspace für deinen Beitrag");
+    expect(html).toContain("Schreib unten frei los.");
+    expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(html).toContain("Thema ordnen");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("Details &amp; Transparenz");
     expect(html).toContain("create-primary-intake");
     expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-shell-layout="wide"');
     expect(html).toContain('data-create-shell-pipeline="true"');
     expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
@@ -143,7 +148,6 @@ describe("/create start surface", () => {
     expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Entwurf vorbereiten");
     expect(html).toContain("Prüfen");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
     );

@@ -411,7 +411,7 @@ export default function SharedCreateComposer({
     return (
       <section
         data-create-composer-bar="true"
-        className="space-y-3 px-4 py-3 md:px-5"
+        className="space-y-3 px-4 py-3 md:px-6"
       >
         <div className="space-y-3">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
@@ -419,13 +419,11 @@ export default function SharedCreateComposer({
             <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
               {modeOrder.map(renderModeChip)}
             </div>
-            <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
+            {isWorkspaceContinuation ? (
               <span className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-                {isWorkspaceContinuation
-                  ? "Schreib weiter oder ergänze, was ich anpassen soll."
-                  : helperText}
+                Schreib weiter oder ergänze, was ich anpassen soll.
               </span>
-            </div>
+            ) : null}
           </div>
 
           {contextBanner}
@@ -433,72 +431,69 @@ export default function SharedCreateComposer({
           <label className="sr-only" htmlFor={inputId}>
             {inputLabel ?? texts.inputLabel}
           </label>
-          <div className="rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
             <textarea
               id={inputId}
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               rows={isWorkspaceContinuation ? 3 : Math.max(5, minRows - 2)}
-              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${isWorkspaceContinuation ? "min-h-[112px]" : "min-h-[156px]"}`}
+              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-5 ${isWorkspaceContinuation ? "min-h-[112px]" : "min-h-[148px]"}`}
               placeholder={resolvedPlaceholder}
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-2 text-xs text-[rgb(var(--muted))]">
-              <span>{characterCount} / 2.000</span>
-              <span>Nichts wird automatisch veröffentlicht.</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label={texts.attachAria}
-                title={texts.attachAria}
-              >
-                <IconPaperclip />
-                <span>{texts.attachLabel}</span>
-              </button>
-
-              <button
-                type="button"
-                className={[
-                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition",
-                  voiceActive
-                    ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
-                  !speechSupported ? "opacity-50" : "",
-                ].join(" ")}
-                onClick={toggleVoice}
-                aria-pressed={voiceActive}
-                aria-label={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
-                title={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
-                disabled={!speechSupported}
-              >
-                <IconMic />
-                <span>{voiceActive ? texts.voiceStopLabel : texts.voiceStartLabel}</span>
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-              <button
-                type="button"
-                onClick={onStart}
-                className="btn-primary min-h-[48px] px-4 text-sm"
-                disabled={startBusy || startDisabled}
-                aria-busy={startBusy}
-              >
-                {startBusy ? startBusyLabel ?? startLabel : startLabel}
-              </button>
-              {secondaryAction.label ? (
-                <Link
-                  href={secondaryAction.href}
-                  className="text-sm text-[rgb(var(--muted))] underline underline-offset-4"
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-3 text-xs text-[rgb(var(--muted))] md:px-5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-xs font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label={texts.attachAria}
+                  title={texts.attachAria}
                 >
-                  {secondaryAction.label}
-                </Link>
-              ) : null}
+                  <IconPaperclip />
+                  <span>{texts.attachLabel}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={[
+                    "inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                    voiceActive
+                      ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
+                    !speechSupported ? "opacity-50" : "",
+                  ].join(" ")}
+                  onClick={toggleVoice}
+                  aria-pressed={voiceActive}
+                  aria-label={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                  title={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                  disabled={!speechSupported}
+                >
+                  <IconMic />
+                  <span>{voiceActive ? texts.voiceStopLabel : texts.voiceStartLabel}</span>
+                </button>
+
+                <span>{characterCount} / 2.000</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {secondaryAction.label ? (
+                  <Link
+                    href={secondaryAction.href}
+                    className="text-xs text-[rgb(var(--muted))] underline underline-offset-4"
+                  >
+                    {secondaryAction.label}
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={onStart}
+                  className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-cyan-300/45 bg-cyan-500/[0.08] px-4 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.12] disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
+                  disabled={startBusy || startDisabled}
+                  aria-busy={startBusy}
+                >
+                  {startBusy ? startBusyLabel ?? startLabel : startLabel}
+                </button>
+              </div>
             </div>
           </div>
 

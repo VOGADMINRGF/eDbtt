@@ -410,6 +410,7 @@ function CreateAssistantStatusBubble(props: {
   title: string;
   body: string;
   notice?: string | null;
+  chips?: string[];
 }) {
   return (
     <div className="create-chat-message flex gap-3">
@@ -422,6 +423,19 @@ function CreateAssistantStatusBubble(props: {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.eyebrow}</p>
           <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.title}</p>
           <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--fg))] md:text-base">{props.body}</p>
+          {props.chips?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {props.chips.map((chip) => (
+                <span
+                  key={chip}
+                  data-create-thread-prompt-chip
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-medium text-[rgb(var(--muted))]"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          ) : null}
           {props.notice ? (
             <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
               {props.notice}
@@ -1721,12 +1735,13 @@ export default function CreateClient({
     ) : (
       <div
         data-create-initial-thread="true"
-        className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+        className="create-chat-spine relative flex min-h-[25rem] min-w-0 items-center before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
       >
         <CreateAssistantStatusBubble
           eyebrow="Assistent"
-          title="Ich halte deinen Beitrag als Arbeitsdialog zusammen."
-          body="Schreib unten los. Pipeline, Themen, Fragen und nächster Schritt bleiben an derselben Stelle sichtbar."
+          title="Schreib unten frei los."
+          body="Ich sortiere daraus Thema, Kontext und nächste Schritte."
+          chips={["Thema ordnen", "Frage schärfen", "Quellen prüfen"]}
           notice={actionNotice}
         />
       </div>
@@ -2229,7 +2244,7 @@ export default function CreateClient({
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
-      <div className="public-shell vog-main-shell min-h-screen max-w-[92rem] space-y-4 md:space-y-6">
+      <div className="public-shell vog-main-shell min-h-screen max-w-[100rem] space-y-4 md:space-y-5">
         <section className="create-public-shell create-dialog-workspace overflow-visible px-0 py-2 sm:py-3 md:py-4" data-create-stage-shell="true">
           <CreateWorkspaceShell
             locale={surfaceLocale === "en" ? "en" : "de"}
@@ -2241,11 +2256,11 @@ export default function CreateClient({
             footer={
               <div
                 data-create-shell-secondary-details
-                className="rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)]"
+                className="text-sm"
               >
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[rgb(var(--fg))]"
+                  className="flex w-full items-center justify-between gap-3 py-1 text-left text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]"
                   aria-expanded={workspaceTransparencyOpen}
                   onClick={() => setWorkspaceTransparencyOpen((current) => !current)}
                 >
@@ -2262,7 +2277,7 @@ export default function CreateClient({
                   </svg>
                 </button>
                 {workspaceTransparencyOpen ? (
-                  <div className="border-t border-[rgb(var(--border))] px-3 py-3 md:px-4">
+                  <div className="pt-2">
                     <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
                   </div>
                 ) : null}

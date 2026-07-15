@@ -981,6 +981,19 @@ function TopicFieldList(props: { labels: string[]; onPick: (label: string) => vo
   );
 }
 
+function resolveFollowupChatHeadline(params: {
+  plannerClarificationRequired: boolean;
+  branchCount: number;
+}): string {
+  if (params.plannerClarificationRequired) {
+    return CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification;
+  }
+  if (params.branchCount > 1) {
+    return "Ich sehe mehrere mögliche Themenstränge.";
+  }
+  return CREATE_VISUAL_FOLLOWUP_COPY.headline;
+}
+
 function PositionClusterList(props: { labels: string[]; onPick: (label: string) => void }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
@@ -1299,13 +1312,13 @@ function CreateStructureOverviewCard(props: {
   onClick?: () => void;
 }) {
   const content = (
-    <div data-mobile-structure-card className="flex items-center gap-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.05] dark:border-cyan-300/20 dark:bg-cyan-500/10">
+    <div data-mobile-structure-card className="flex items-start gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/45 bg-cyan-500/[0.06] text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-500/10 dark:text-cyan-100">
         <FocusAreaIcon area={props.area} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-[15px]">{props.title}</p>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
             {props.pillLabel}
           </span>
@@ -1315,18 +1328,18 @@ function CreateStructureOverviewCard(props: {
             </span>
           ) : null}
         </div>
-        <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+        <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
       {props.onClick ? (
-        <span className="text-sm text-[rgb(var(--muted))]" aria-hidden="true">
-          ·
+        <span className="pt-1 text-base text-[rgb(var(--muted))]" aria-hidden="true">
+          →
         </span>
       ) : null}
     </div>
   );
 
   const className =
-    "inline-flex min-h-[3rem] items-center rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-3 py-2";
+    "flex min-h-[5.5rem] items-start rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-4 py-3";
 
   if (!props.onClick) {
     return <article className={className}>{content}</article>;
@@ -1347,23 +1360,23 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   const isEnglish = props.locale === "en";
   const openLabel = isEnglish ? "open" : "offen";
   return (
-    <section data-mobile-structure-overview className="space-y-3 border-t border-[rgb(var(--border))] px-0 pt-4">
+    <section data-mobile-structure-overview className="space-y-3 px-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
         </p>
-        <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+        <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
           {isEnglish
             ? "Compact first, details only on demand."
             : "Kompakt zuerst, Details bei Bedarf."}
         </p>
       </div>
-      <div data-structure-overview-grid className="flex flex-wrap items-center gap-2.5">
+      <div data-structure-overview-grid className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <CreateStructureOverviewCard
           area="priorities"
           title={isEnglish ? "Priorities" : "Prioritäten"}
           description={isEnglish ? "What matters most?" : "Was zählt zuerst?"}
-          pillLabel={String(props.prioritiesCount)}
+          pillLabel={props.prioritiesCount > 0 ? String(props.prioritiesCount) : isEnglish ? "Open" : "Offen"}
           unreadLabel={
             props.prioritiesCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined
           }
@@ -1373,7 +1386,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           area="clusters"
           title={isEnglish ? "Topics" : "Themen"}
           description={isEnglish ? "Recognized clusters" : "Erkannte Schwerpunkte"}
-          pillLabel={String(props.clustersCount)}
+          pillLabel={props.clustersCount > 0 ? String(props.clustersCount) : isEnglish ? "Open" : "Offen"}
           unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("clusters") : undefined}
         />
@@ -1381,15 +1394,23 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
           area="questions"
           title={isEnglish ? "Questions" : "Fragen"}
           description={isEnglish ? "Open questions" : "Offene Fragen"}
-          pillLabel={String(props.questionsCount)}
+          pillLabel={props.questionsCount > 0 ? String(props.questionsCount) : isEnglish ? "Open" : "Offen"}
           unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("questions") : undefined}
         />
         <CreateStructureOverviewCard
           area="next_steps"
           title={isEnglish ? "Next step" : "Nächster Schritt"}
-          description={isEnglish ? "What happens next" : "Was als Nächstes folgt"}
-          pillLabel={String(props.nextStepsCount)}
+          description={isEnglish ? "What happens next" : "Als Nächstes entsteht ein klarer Arbeitsschritt."}
+          pillLabel={
+            props.nextStepsCount > 0
+              ? isEnglish
+                ? `${props.nextStepsCount} ready`
+                : `${props.nextStepsCount} bereit`
+              : isEnglish
+                ? "Open"
+                : "Offen"
+          }
           unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : props.showOpenLabels ? openLabel : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("next_steps") : undefined}
         />
@@ -3114,11 +3135,10 @@ export default function CreateVisualFollowup({
               <UserContributionBubble text={dedupedCopy.userBubbleText} />
               <AssistantUnderstandingBubble
                 eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
-                headline={
-                  plannerClarificationRequired
-                    ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
-                    : CREATE_VISUAL_FOLLOWUP_COPY.headline
-                }
+                headline={resolveFollowupChatHeadline({
+                  plannerClarificationRequired,
+                  branchCount: structureBranches.length,
+                })}
                 summary={plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
                 assistantLead={assistantLead}
                 coreClaim={dedupedCopy.prominentCoreClaim}

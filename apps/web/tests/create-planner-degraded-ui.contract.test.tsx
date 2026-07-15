@@ -161,7 +161,7 @@ describe("create planner degraded ui contract", () => {
     const overviewHtml = renderToStaticMarkup(
       <CreateStructureOverview locale="de" showOpenLabels prioritiesCount={0} clustersCount={0} questionsCount={0} nextStepsCount={0} />,
     );
-    expect((overviewHtml.match(/>0<\/span>/g) ?? []).length).toBe(4);
+    expect((overviewHtml.match(/>Offen<\/span>/g) ?? []).length).toBe(4);
     expect((overviewHtml.match(/>offen<\/span>/g) ?? []).length).toBe(4);
     expect(overviewHtml).not.toContain(">neu</span>");
   });

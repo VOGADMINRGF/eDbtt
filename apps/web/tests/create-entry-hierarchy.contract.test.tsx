@@ -99,10 +99,15 @@ describe("create entry hierarchy contract", () => {
     expect((html.match(/data-create-composer-bar="true"/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
     expect(html).toContain("Ein Workspace für deinen Beitrag");
-    expect(html).toContain("Dein KI-Assistent");
+    expect(html).toContain("Schreib unten frei los.");
+    expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(html).toContain("Thema ordnen");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-shell-layout="wide"');
     expect(html).toContain('data-create-shell-pipeline="true"');
     expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
@@ -121,9 +126,9 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Fragen");
     expect(html).toContain("Offene Fragen");
     expect(html).toContain("Nächster Schritt");
-    expect(html).toContain("Was als Nächstes folgt");
+    expect(html).toContain("Als Nächstes entsteht ein klarer Arbeitsschritt.");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
-    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
+    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-3\"");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-structure-rail");
     expect(followupSource).toContain("data-create-embedded-followup");
@@ -133,6 +138,8 @@ describe("create entry hierarchy contract", () => {
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[80rem]");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[75vh]");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");
@@ -148,6 +155,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Beitrag einreichen");
     expect(html).not.toContain("Composer</p>");
     expect(html).toMatch(/>Prüfen</);
+    expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");

@@ -76,6 +76,9 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("workspaceComposerPlaceholder");
     expect(clientSource).toContain("workspaceComposerStartDisabled");
     expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("data-create-thread-prompt-chip");
+    expect(clientSource).toContain("Schreib unten frei los.");
+    expect(clientSource).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(clientSource).toContain("create-public-shell create-dialog-workspace overflow-visible");
     expect(clientSource).not.toContain("create-start-chat-preview");
@@ -114,6 +117,9 @@ describe("create curated dialog workspace contract", () => {
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
       "data-create-shell-pipeline",
     );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-shell-layout=\"wide\"",
+    );
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -139,6 +145,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Beitrag weiterentwickeln");
     expect(followupSource).toContain("Quellen ergänzen");
     expect(followupSource).toContain("Entwurf speichern");
+    expect(followupSource).toContain("Ich sehe mehrere mögliche Themenstränge.");
     expect(followupSource).toContain("Zusammen lassen");
     expect(followupSource).toContain("Als Zweig parken");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
@@ -259,6 +266,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("composer={");
     expect(clientSource).toContain("footer={");
     expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("max-w-[100rem]");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("public-dialog-area");
     expect(composerSource).not.toContain(">Composer<");
