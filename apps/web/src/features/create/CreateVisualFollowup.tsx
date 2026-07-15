@@ -1655,6 +1655,136 @@ function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
   );
 }
 
+function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
+  return (
+    <div
+      data-create-pipeline-rail
+      className="overflow-x-auto rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Voxy Pilotpfad</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Vom Eingang bis zur bewussten nächsten Aktion</p>
+        </div>
+        <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+          review-first
+        </span>
+      </div>
+      <div className="flex min-w-max items-stretch gap-2">
+        {props.stages.map((stage) => {
+          const toneClass =
+            stage.status === "done"
+              ? "border-emerald-300/35 bg-emerald-500/[0.08]"
+              : stage.status === "active"
+                ? "border-cyan-300/45 bg-cyan-500/[0.08]"
+                : "border-slate-200/75 bg-[rgb(var(--bg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]";
+          const badge =
+            stage.status === "done" ? "bereit" : stage.status === "active" ? "jetzt" : "danach";
+
+          return (
+            <article
+              key={stage.id}
+              className={`min-w-[9.75rem] rounded-[20px] border px-3 py-3 transition-all duration-300 ease-out ${toneClass}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
+                <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  {badge}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceMetricRail(props: {
+  items: Array<{
+    label: string;
+    value: string;
+    detail: string;
+  }>;
+}) {
+  return (
+    <div
+      data-create-workspace-kpis
+      className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+    >
+      {props.items.map((item) => (
+        <article
+          key={item.label}
+          className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{item.label}</p>
+          <p className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{item.value}</p>
+          <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function TopicBranchPreviewGrid(props: {
+  rootTopic: string;
+  branches: CreateStructureBranch[];
+}) {
+  if (props.branches.length === 0) return null;
+
+  return (
+    <div
+      data-create-topic-branches
+      className="space-y-3 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Erkannte Themenäste</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+            {props.rootTopic}
+          </p>
+        </div>
+        <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+          {props.branches.length} sichtbar
+        </span>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {props.branches.map((branch) => (
+          <article
+            key={branch.id}
+            className="rounded-[22px] border border-cyan-200/45 bg-cyan-500/[0.05] px-3 py-3 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-cyan-300/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-900 dark:text-cyan-100">
+                Themenast
+              </span>
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-0.5 text-[10px] font-semibold text-[rgb(var(--muted))]">
+                {Math.max(1, branch.topicTags.length)} Schwerpunkte
+              </span>
+            </div>
+            <p className="mt-3 text-base font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{branch.need}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {branch.topicTags.slice(0, 3).map((topic) => (
+                <span
+                  key={`${branch.id}-${topic}`}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
+                >
+                  {topic}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[rgb(var(--muted))]">
+              {branch.voteQuestions[0] ?? "Der nächste Schritt bleibt bewusst gewählt und wird nicht automatisch ausgelöst."}
+            </p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionFlowDiagram(props: { sections: ReturnType<typeof buildCreateVisualSections> }) {
   if (props.sections.length === 0) return null;
   return (
@@ -2785,6 +2915,39 @@ export default function CreateVisualFollowup({
     [result.understanding.dossierContext, result.understanding.statements, structureBranches, topicLabels.length],
   );
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
+  const followupStages = React.useMemo(
+    () =>
+      buildWorkflowStages({
+        isConfirmed,
+        hasSuggestions: sortedSuggestions.length > 0,
+      }),
+    [isConfirmed, sortedSuggestions.length],
+  );
+  const workspaceMetrics = React.useMemo(
+    () => [
+      {
+        label: "Prioritäten",
+        value: String(Math.max(1, Math.min(topicLabels.length, 3))),
+        detail: "Was du zuerst schärfen solltest",
+      },
+      {
+        label: "Themenäste",
+        value: String(Math.max(1, structureBranches.length)),
+        detail: "Sichtbar getrennte Anschlusslinien",
+      },
+      {
+        label: "Offene Fragen",
+        value: String(Math.max(1, voteQuestions.length)),
+        detail: "Bleiben review-first sichtbar",
+      },
+      {
+        label: "Nächster Schritt",
+        value: isConfirmed ? "bereit" : "offen",
+        detail: "Nur nach bewusster Entscheidung",
+      },
+    ],
+    [isConfirmed, structureBranches.length, topicLabels.length, voteQuestions.length],
+  );
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
   const [preparedReviewQueueItem, setPreparedReviewQueueItem] =
@@ -2998,6 +3161,14 @@ export default function CreateVisualFollowup({
               <p className="mt-3 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-100">
                 {actionNotice}
               </p>
+            ) : null}
+
+            {!plannerClarificationRequired ? (
+              <div className="mt-4 space-y-4">
+                <WorkspaceStageRail stages={followupStages} />
+                <WorkspaceMetricRail items={workspaceMetrics} />
+                <TopicBranchPreviewGrid rootTopic={rootTopic} branches={structureBranches} />
+              </div>
             ) : null}
 
             {!plannerClarificationRequired ? (

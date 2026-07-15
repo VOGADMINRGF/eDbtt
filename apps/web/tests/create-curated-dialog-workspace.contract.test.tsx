@@ -88,10 +88,16 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
     expect(followupSource).toContain("NextStepPanel");
+    expect(followupSource).toContain("WorkspaceStageRail");
+    expect(followupSource).toContain("WorkspaceMetricRail");
+    expect(followupSource).toContain("TopicBranchPreviewGrid");
     expect(followupSource).toContain("StructuredWorkstateBlock");
     expect(followupSource).toContain("data-mobile-compact-details");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-structure-overview-grid");
+    expect(followupSource).toContain("data-create-pipeline-rail");
+    expect(followupSource).toContain("data-create-workspace-kpis");
+    expect(followupSource).toContain("data-create-topic-branches");
     expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
@@ -183,6 +189,8 @@ describe("create curated dialog workspace contract", () => {
     expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
     expect(html).toContain("KI-Auswertung derzeit nicht verfügbar");
     expect(html).toContain("Anschluss prüfen");
+    expect(html).toContain("Voxy Pilotpfad");
+    expect(html).toContain("Erkannte Themenäste");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
     expect(html).not.toContain("Vorgeschlagener Arbeitsstand");

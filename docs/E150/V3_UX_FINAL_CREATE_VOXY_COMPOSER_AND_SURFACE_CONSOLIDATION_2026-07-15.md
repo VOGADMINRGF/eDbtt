@@ -29,6 +29,14 @@ Leitsatz:
 
 ## Umgesetzte Konsolidierung
 
+### Update innerhalb von PR #391
+
+Die erste Konsolidierung wurde im bestehenden PR-Branch weitergezogen, ohne neuen Task und ohne neuen PR:
+
+- `/create` ist jetzt staerker als zentraler Voxy-Workspace gebuendelt
+- `/runden` und `/themen` teilen sich einen kleinen wiederkehrenden Voxy-Dock statt weiterer grosser Hinweisflaechen
+- die Surface-Sprache bleibt ueber Create, Themen und Runden hinweg konsistent review-first
+
 ### 1. `/create` ist jetzt klar composer-first
 
 Geaendert:
@@ -63,6 +71,15 @@ Geaendert:
 Ergebnis:
 
 - erste Voxy-Deutung wird kuerzer und dialogischer
+- der Ergebnisbereich traegt den Pilotpfad jetzt direkt im Chat-Kopf:
+  - `Voxy Pilotpfad`
+  - Eingabe -> Einordnung -> Vorschlag -> Bestaetigung -> Naechste Aktion
+- oberhalb der Detailarbeit gibt es jetzt eine kleine KPI-Leiste fuer:
+  - `Prioritäten`
+  - `Themenäste`
+  - `Offene Fragen`
+  - `Nächster Schritt`
+- erkannte Schwerpunkte erscheinen sofort als sichtbare Themenast-Karten statt erst tiefer im Detailmodus
 - Mehrthemen-Faelle bleiben explizit Nutzerentscheidung
 - sichtbare Folgeaktionen wurden auf steuerbare, review-first Sprache umgestellt:
   - `Zusammen lassen`
@@ -94,7 +111,28 @@ Ergebnis:
 - Landing fuehrt persoenlicher und ruhiger in den Voxy-Composer
 - `/runden` benennt den Einstieg explizit als Voxy-Vorbereitung
 - `/themen` erklaert Anschluss an bestehende Debatten review-first statt als Ja/Nein-Mechanik
+- `/runden` und `/themen` teilen jetzt denselben kleinen Voxy-Dock als wiederkehrende Assistenzschicht:
+  - bottom-right / mobile-bottom angedockt
+  - kurze Guardrails statt eines zweiten grossen Workspaces
+  - klare CTA in Richtung `/create`, ohne Auto-Publish oder Auto-Split
 - der Uebergang vom Voxy-Entwurf in Themen-/Debattenlogik bleibt bearbeitbar und ohne automatische Zusammenfuehrung
+
+### 4. Contract-Sync fuer die Surface-Wahrheit
+
+Geaendert:
+
+- `apps/web/src/features/voxy/voxyExperienceShellContract.ts`
+- `apps/web/src/components/voxy/VoxyFloatingDock.tsx`
+
+Ergebnis:
+
+- `themen` ist jetzt Teil des Voxy-Experience-Shell-Contracts
+- der Surface-Hinweis fuer Themen beschreibt explizit Andocken, Themenzweige und review-first naechste Schritte
+- der neue Floating-Dock bleibt reine UX-Fassade:
+  - keine Runtime
+  - keine Provider
+  - kein Auto-Publish
+  - kein Auto-Split
 
 ## Guardrails
 
@@ -130,11 +168,12 @@ Die exakten Ergebnisse werden im PR festgehalten.
 - `/create`
   - composer-first Eindruck
   - Voxy inline statt Seitenfenster
+  - Pilotpfad, KPI-Rail und Themenaeste direkt im Chat pruefen
   - Transparenz kompakt und einklappbar
   - Mehrthemen-Steuerung ohne Auto-Aufteilung
 - `/`
   - Landing fuehrt logisch und ruhig in den Create-Flow
 - `/runden`
-  - Voxy-Einstieg bleibt review-first und nicht polarisierend
+  - Voxy-Dock bleibt klein, verstaendlich und review-first
 - `/themen` und Dossier-/Debattenanschluesse
-  - Anschluss, Bearbeitbarkeit und Kandidaten-Semantik bleiben klar
+  - Voxy-Dock, Anschluss, Bearbeitbarkeit und Kandidaten-Semantik bleiben klar

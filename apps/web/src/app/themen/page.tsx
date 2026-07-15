@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
+import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRound";
+import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
 
 export const metadata: Metadata = {
@@ -177,6 +179,20 @@ export default function ThemenPage() {
           emptyText="Archivierte Themen erscheinen hier erst, wenn ein Mitmachschritt abgeschlossen oder eine Wirkung nachvollziehbar beobachtet wurde."
         />
       </div>
+
+      <VoxyFloatingDock
+        title="Voxy Dock · Themensuche"
+        body={`${buildVoxyExperienceShellHint("themen")} Themen werden nicht automatisch zusammengeführt oder aufgeteilt.`}
+        primaryAction={{
+          href: "/create?intent=issue_signal",
+          label: "Mit Voxy andocken",
+        }}
+        secondaryAction={{
+          href: "/runden",
+          label: "Aktiv dabei",
+        }}
+        chips={["Anschluss prüfen", "review-first", "kein Auto-Split"]}
+      />
     </ProductSurfaceShell>
   );
 }

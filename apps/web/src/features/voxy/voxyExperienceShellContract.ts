@@ -16,6 +16,7 @@ export const VOXY_EXPERIENCE_SHELL_SURFACE_IDS = [
   "home",
   "create",
   "runden",
+  "themen",
   "dossier",
   "account",
   "account_organization",
@@ -239,6 +240,16 @@ function buildSurfaces(): VoxyExperienceShellSurfaceContract[] {
       mobileShellPattern: "assist_bar",
       pageHint:
         "Im öffentlichen Anlassraum erklärt Voxy Status, Sichtbarkeit und nächste Schritte, ohne öffentliche Lesbarkeit, Review-Grenzen oder Handoff-Gates zu verstecken.",
+    }),
+    buildSurface({
+      id: "themen",
+      route: "/themen",
+      title: "Themensuche",
+      supportedSegments: ["b2c", "b2b", "b2g"],
+      pageShellRole: "public_reader_status",
+      mobileShellPattern: "assist_bar",
+      pageHint:
+        "In der Themensuche bleibt Voxy eine verständliche Andock-Schicht für Anschlüsse, Themenzweige und review-first nächste Schritte, ohne etwas automatisch zusammenzuführen oder aufzuteilen.",
     }),
     buildSurface({
       id: "dossier",

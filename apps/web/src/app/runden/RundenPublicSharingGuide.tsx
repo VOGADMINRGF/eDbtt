@@ -3,6 +3,7 @@ import type { RegionPublicationVisibilityState } from "@features/region";
 import { buildB2GPublicReadingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { buildMunicipalHandoffTrialPublicReadingHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import RundenPublicInputPanel from "./RundenPublicInputPanel";
 
@@ -250,6 +251,20 @@ export default function RundenPublicSharingGuide(props: {
       <RundenPublicInputPanel
         anlassraumId={props.featuredAnlassraumId ?? null}
         anlassraumTitle={props.featuredAnlassraumTitle ?? null}
+      />
+
+      <VoxyFloatingDock
+        title="Voxy Dock · Anlassraum"
+        body="Voxy hält den öffentlichen Anlassraum lesbar und review-first. Du kannst etwas vorbereiten, ohne dass automatisch veröffentlicht oder extern benachrichtigt wird."
+        primaryAction={{
+          href: PUBLIC_CREATE_HREF,
+          label: "Beitrag vorbereiten",
+        }}
+        secondaryAction={{
+          href: "/themen",
+          label: "Themen ansehen",
+        }}
+        chips={["review-first", "kein Auto-Publish", "öffentliche Lesbarkeit bleibt frei"]}
       />
     </section>
   );

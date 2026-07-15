@@ -366,6 +366,12 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Wohnen und Genehmigungen");
     expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
     expect(html).toContain("data-mobile-inline-create-actions");
+    expect(html).toContain("data-create-pipeline-rail");
+    expect(html).toContain("data-create-workspace-kpis");
+    expect(html).toContain("data-create-topic-branches");
+    expect(html).toContain("Voxy Pilotpfad");
+    expect(html).toContain("Erkannte Themenäste");
+    expect(html).toContain("Themenast");
     expect(html).toContain("Details ansehen");
     expect(html).not.toContain("Korrektur oder Ergänzung");
     expect(html).not.toContain("Vorgeschlagener Arbeitsstand");

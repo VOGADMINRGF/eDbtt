@@ -49,5 +49,9 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Keine automatische amtliche Antwort.");
     expect(html).toContain("Keine automatische Dossier- oder Anlassraum-Finalisierung.");
     expect(html).toContain("Mit Voxy Beitrag vorbereiten");
+    expect(html).toContain("Voxy Dock · Anlassraum");
+    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Themen ansehen");
+    expect(html).toContain("data-voxy-floating-dock");
   });
 });

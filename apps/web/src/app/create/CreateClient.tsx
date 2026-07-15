@@ -2295,13 +2295,15 @@ export default function CreateClient({
             </p>
           ) : null}
 
-          <CreateStructureOverview
-            locale={surfaceLocale === "en" ? "en" : "de"}
-            prioritiesCount={structureOverviewMetrics.prioritiesCount}
-            clustersCount={structureOverviewMetrics.clustersCount}
-            questionsCount={structureOverviewMetrics.questionsCount}
-            nextStepsCount={structureOverviewMetrics.nextStepsCount}
-          />
+          {!showIntelligentFollowup ? (
+            <CreateStructureOverview
+              locale={surfaceLocale === "en" ? "en" : "de"}
+              prioritiesCount={structureOverviewMetrics.prioritiesCount}
+              clustersCount={structureOverviewMetrics.clustersCount}
+              questionsCount={structureOverviewMetrics.questionsCount}
+              nextStepsCount={structureOverviewMetrics.nextStepsCount}
+            />
+          ) : null}
 
           {showStartChatPreview && followupSnapshot ? (
             <div className="create-start-chat-preview create-chat-workspace hidden rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:block md:px-5">

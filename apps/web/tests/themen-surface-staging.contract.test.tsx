@@ -15,6 +15,10 @@ describe("themen surface staging", () => {
     expect(html).toContain("Aktiv dabei");
     expect(html).toContain("Beitrag mit Voxy einordnen");
     expect(html).toContain("Abstimmungsfähigkeit prüfen");
+    expect(html).toContain("Mit Voxy andocken");
+    expect(html).toContain("Voxy Dock · Themensuche");
+    expect(html).toContain("kein Auto-Split");
+    expect(html).toContain("data-voxy-floating-dock");
     expect(html).toContain("Bezahlbare Energie und belastbare Wärmewende in Berlin");
   });
 
