@@ -411,9 +411,9 @@ export default function SharedCreateComposer({
     return (
       <section
         data-create-composer-bar="true"
-        className="space-y-3 px-4 py-3 md:px-6"
+        className="space-y-2.5 px-4 py-3 md:px-6"
       >
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
@@ -431,7 +431,7 @@ export default function SharedCreateComposer({
           <label className="sr-only" htmlFor={inputId}>
             {inputLabel ?? texts.inputLabel}
           </label>
-          <div className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+          <div className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_94%,white_6%)] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
             <textarea
               id={inputId}
               value={inputValue}
@@ -440,7 +440,7 @@ export default function SharedCreateComposer({
               className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-5 ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[156px]"}`}
               placeholder={resolvedPlaceholder}
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-3 text-xs text-[rgb(var(--muted))] md:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-2.5 text-xs text-[rgb(var(--muted))] md:px-5">
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
@@ -487,7 +487,7 @@ export default function SharedCreateComposer({
                 <button
                   type="button"
                   onClick={onStart}
-                  className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-cyan-300/45 bg-cyan-500/[0.08] px-4 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.12] disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
+                  className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-cyan-300/40 bg-cyan-500/[0.07] px-4 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.11] disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
                   disabled={startBusy || startDisabled}
                   aria-busy={startBusy}
                 >

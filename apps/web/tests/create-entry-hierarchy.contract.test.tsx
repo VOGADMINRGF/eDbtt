@@ -117,7 +117,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Verstehen");
     expect(html).toContain("Themen ordnen");
     expect(html).toContain("Quellen prüfen");
-    expect(html).toContain("Entwurf vorbereiten");
+    expect(html).toContain("Entwurf");
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).toContain("Prioritäten");
     expect(html).toContain("Was zählt zuerst?");
@@ -139,7 +139,7 @@ describe("create entry hierarchy contract", () => {
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[80rem]");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[82.5rem]");
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[76vh]");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");

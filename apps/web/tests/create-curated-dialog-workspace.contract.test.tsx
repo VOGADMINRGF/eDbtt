@@ -268,7 +268,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("composer={");
     expect(clientSource).toContain("footer={");
     expect(clientSource).toContain("data-create-shell-secondary-details");
-    expect(clientSource).toContain("max-w-[100rem]");
+    expect(clientSource).toContain("max-w-[108rem]");
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("public-dialog-area");
     expect(composerSource).not.toContain(">Composer<");

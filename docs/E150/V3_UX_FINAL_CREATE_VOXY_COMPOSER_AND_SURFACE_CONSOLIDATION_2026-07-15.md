@@ -57,7 +57,8 @@ Ergebnis:
   - `ChatThread`
   - `ComposerBar`
 - die Shell nutzt jetzt sichtbar mehr Monitorbreite und Mindesthoehe; ChatThread, Composer und Footer sitzen in einer grossen durchgehenden Workspace-Maske statt in einer schmalen Mittelkarte
-- der finale Finish-Pass vergroessert Typo, Pipeline und Struktur-Rail nochmals sichtbar und zieht den Chat-Thread staerker auf die Hauptbuehne
+- der finale Finish-Pass vergroessert Shell-Breite auf eine breitere Desktop-Maske, vergroessert Typo, Pipeline und Struktur-Rail nochmals sichtbar und zieht den Chat-Thread staerker auf die Hauptbuehne
+- Header und Footer wurden gleichzeitig reduziert, damit sie Orientierung bleiben und nicht wie eigene Zusatzmodule wirken
 - der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
 - nach dem ersten Submit zeigt die untere Bar keinen duplizierten Ursprungstext mehr, sondern nur noch den Fortsetzungs-Composer
@@ -79,18 +80,21 @@ Ergebnis:
   - `Verstehen`
   - `Themen ordnen`
   - `Quellen prüfen`
-  - `Entwurf vorbereiten`
+  - `Entwurf`
+- die Pipeline nutzt kuerzere, ruhigere Lead-Texte und dezentere Verbindungen statt eines technischen Steppers
 - direkt unter dieser Pipeline steht eine kompakte Struktur-Leiste fuer:
   - `Prioritäten`
   - `Themen`
   - `Offene Fragen`
   - `Nächster Schritt`
 - die Struktur-Leiste zeigt fuer den naechsten Schritt jetzt einen echten Arbeitsimpuls wie `Beitrag prüfen` oder `Hauptthema wählen` statt nur einen generischen Statussatz
+- im sichtbaren Hauptflow wurden die zusaetzlichen `offen`-/`neu`-Badges der Rail bewusst reduziert, damit die Orientierung ruhiger wirkt
 - der eigentliche Dialog erscheint als Chat-Thread:
   - vor Submit mit einer echten Assistenz-Intro-Nachricht plus Beispielchips
   - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - die Branch-Map spricht oeffentlich nur noch von `Themen`, zeigt `aus deinem Beitrag erkannt` als Ursprungshinweis und vermeidet die alte technische `Themenzweige`-/`Themenäste`-Sprache im Hauptflow
+- Fragen- und degraded-Fallback-Bloecke wurden farblich von dominanten gelb/braun-Warnflaechen auf ruhigere Workspace-Tones zurueckgenommen; `Einordnung erneut versuchen` bleibt nur in Details
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
 - `Einordnung erneut versuchen` liegt im degraded Pfad nur noch in `Details ansehen`

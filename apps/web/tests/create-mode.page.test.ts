@@ -146,7 +146,7 @@ describe("/create start surface", () => {
     expect(html).toContain("Verstehen");
     expect(html).toContain("Themen ordnen");
     expect(html).toContain("Quellen prüfen");
-    expect(html).toContain("Entwurf vorbereiten");
+    expect(html).toContain("Entwurf");
     expect(html).toContain("Prüfen");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",

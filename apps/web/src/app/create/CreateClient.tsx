@@ -417,7 +417,7 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-1 shrink-0">
         <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
       </div>
-      <div className="max-w-none flex-1">
+      <div className="max-w-[64rem] flex-1">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
           <p className="text-sm font-medium text-[rgb(var(--muted))]">{props.eyebrow}</p>
@@ -1735,7 +1735,7 @@ export default function CreateClient({
     ) : (
       <div
         data-create-initial-thread="true"
-        className="create-chat-spine relative flex min-h-[25rem] min-w-0 items-center before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+        className="create-chat-spine relative flex min-h-[30rem] min-w-0 items-center before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] md:min-h-[36rem]"
       >
         <CreateAssistantStatusBubble
           eyebrow="Assistent"
@@ -2253,7 +2253,7 @@ export default function CreateClient({
 
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
-      <div className="public-shell vog-main-shell min-h-screen max-w-[100rem] space-y-4 md:space-y-5">
+      <div className="public-shell vog-main-shell min-h-screen max-w-[108rem] space-y-4 md:space-y-5">
         <section className="create-public-shell create-dialog-workspace overflow-visible px-0 py-2 sm:py-3 md:py-4" data-create-stage-shell="true">
           <CreateWorkspaceShell
             locale={surfaceLocale === "en" ? "en" : "de"}
@@ -2272,7 +2272,7 @@ export default function CreateClient({
               >
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 py-0.5 text-left text-[11px] font-medium text-[rgb(var(--muted))]"
+                  className="flex w-full items-center justify-between gap-3 py-0.5 text-left text-[10px] font-medium text-[rgb(var(--muted))]"
                   aria-expanded={workspaceTransparencyOpen}
                   onClick={() => setWorkspaceTransparencyOpen((current) => !current)}
                 >

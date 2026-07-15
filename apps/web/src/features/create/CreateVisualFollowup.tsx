@@ -1360,6 +1360,7 @@ function CreateStructureOverviewCard(props: {
 export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   const isEnglish = props.locale === "en";
   const openLabel = isEnglish ? "open" : "offen";
+  const nextStepDescription = props.nextStepLabel?.trim() || (isEnglish ? "Review the contribution" : "Beitrag prüfen");
   return (
     <section data-mobile-structure-overview className="space-y-3 px-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1402,12 +1403,12 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
         <CreateStructureOverviewCard
           area="next_steps"
           title={isEnglish ? "Next step" : "Nächster Schritt"}
-          description={isEnglish ? "What happens next" : props.nextStepLabel ?? "Beitrag prüfen"}
+          description={nextStepDescription}
           pillLabel={
             props.nextStepsCount > 0
               ? isEnglish
-                ? `${props.nextStepsCount} ready`
-                : `${props.nextStepsCount} bereit`
+                ? "Now"
+                : "Jetzt"
               : isEnglish
                 ? "Open"
                 : "Offen"
@@ -1702,7 +1703,7 @@ function TopicBranchPreviewGrid(props: {
   return (
     <div
       data-create-topic-branches
-      className="space-y-4 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+      className="space-y-5 rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-5 py-5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -1724,12 +1725,12 @@ function TopicBranchPreviewGrid(props: {
           <p className="text-sm leading-relaxed">Diese Themen können zusammenbleiben oder getrennt weitergeführt werden.</p>
         </div>
       </div>
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {props.branches.slice(0, 3).map((branch, index) => (
           <article
             key={branch.id}
             data-create-topic-branch-card=""
-            className="rounded-[24px] border border-cyan-200/45 bg-cyan-500/[0.05] px-4 py-4 shadow-[0_16px_36px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
+            className="rounded-[26px] border border-cyan-200/45 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))]"
           >
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
               <span className="rounded-full border border-cyan-300/40 px-2.5 py-0.5">Thema</span>
@@ -1754,7 +1755,9 @@ function TopicBranchPreviewGrid(props: {
             </div>
             <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
               <p className="font-semibold text-[rgb(var(--fg))]">Empfohlene Aktion</p>
-              <p className="mt-1">{index === 0 ? "Hauptthema wählen" : "Als Zweig parken"}</p>
+              <div className="mt-2 inline-flex rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50">
+                {index === 0 ? "Hauptthema wählen" : "Als Zweig parken"}
+              </div>
             </div>
           </article>
         ))}
@@ -1767,12 +1770,12 @@ function OpenQuestionCards(props: { questions: string[] }) {
   if (props.questions.length === 0) return null;
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Fragen</p>
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Fragen</p>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {props.questions.slice(0, 5).map((question) => (
           <article
             key={question}
-            className="rounded-[20px] border border-amber-200/70 bg-amber-500/[0.08] px-4 py-3 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50"
+            className="rounded-[20px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
           >
             {question}
           </article>
@@ -2296,9 +2299,9 @@ function StructureProposalPanel(props: {
     <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
-          <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Nächster Schritt</p>
+          <p className="text-lg font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+          <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
             Halte alles kurz und steuerbar: Hauptthema festlegen, den Beitrag weiterentwickeln, Quellen ergänzen oder den Entwurf bewusst speichern.
           </p>
         </div>
@@ -2360,12 +2363,12 @@ function PlannerClarificationPanel(props: {
   reviewRequestMessage?: string | null;
 }) {
   return (
-    <div className="space-y-3 rounded-[28px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+    <div className="space-y-3 rounded-[28px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
           So kannst du weitermachen
         </p>
-        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+        <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
           {props.technicalFallback
             ? "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen."
             : "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor."}
@@ -2373,12 +2376,12 @@ function PlannerClarificationPanel(props: {
       </div>
       {props.startPoints.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Mögliche Startpunkte</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Mögliche Startpunkte</p>
           <div className="flex flex-wrap gap-2">
             {props.startPoints.map((label) => (
               <span
                 key={`degraded-start-${label}`}
-                className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
+                className="rounded-full border border-cyan-300/25 bg-cyan-500/[0.08] px-2.5 py-1 text-xs text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
               >
                 {label}
               </span>
@@ -2408,8 +2411,8 @@ function PlannerClarificationPanel(props: {
           Anlassraum vorbereiten
         </button>
       </div>
-      <details className="rounded-2xl border border-amber-300/25 bg-amber-500/[0.06] px-3 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-amber-950 dark:text-amber-100">
+      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--fg))]">
           Details ansehen
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -2430,14 +2433,14 @@ function PlannerClarificationPanel(props: {
         </div>
       </details>
       {props.reviewRequestMessage ? (
-        <p className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
           {props.reviewRequestMessage}
         </p>
       ) : null}
-      <p className="text-xs leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
         Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
       </p>
-      {props.details ? <p className="text-xs leading-relaxed text-amber-950/75 dark:text-amber-100/75">{props.details}</p> : null}
+      {props.details ? <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">{props.details}</p> : null}
     </div>
   );
 }
