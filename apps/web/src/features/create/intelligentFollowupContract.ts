@@ -422,6 +422,22 @@ function resolveSectionThemeLabel(params: {
     `${params.sourceText} ${params.statementLabel ?? ""} ${params.topicLabel ?? ""}`,
   );
 
+  if (
+    /(kita|schule|schulweg|hauptstra|hauptstrasse|hauptstraße|querung|haltestelle|radfahrer|gehweg|gruenflaeche|grünfläche|haushalt)/.test(
+      haystack,
+    ) &&
+    /(verkehr|auto|rad|querung|haltestelle|bauprojekt|gruen|grün|haushalt|finanz)/.test(haystack)
+  ) {
+    if (/(querung|hauptstra|hauptstrasse|hauptstraße|radfahrer|gehweg|haltestelle|verkehr|auto)/.test(haystack)) {
+      return "Verkehrssicherheit";
+    }
+    if (/(kita|schule|schulweg)/.test(haystack)) return "Kita- und Schulwege";
+    if (/(gruenflaeche|grünfläche|gruen|grün|bauprojekt)/.test(haystack)) {
+      return "Stadtplanung und Grünflächen";
+    }
+    if (/(haushalt|finanz)/.test(haystack)) return "Kommunale Finanzierung";
+  }
+
   if (/wohn|miete|genehmigung|bau|leerstand/.test(haystack)) return "Wohnen und Genehmigungen";
   if (/verkehr|mobilit|auto|rad|bus|bahn|klima/.test(haystack)) {
     return "Verkehr, Klima und Alltagstauglichkeit";
@@ -565,6 +581,16 @@ type PlannerBranchDefinition = {
   defaultNeed: string;
   defaultQuestion: string;
   topicTags: string[];
+};
+
+type CivicPriorityPreviewBranch = {
+  id: string;
+  title: string;
+  topicTags: string[];
+  part06CategoryKeys: Part06CategoryKey[];
+  need: string;
+  voteQuestion: string;
+  openReviewPoints: string[];
 };
 
 // Heuristische UI-Grouping-Regeln fuer den Follow-up-Workspace.
@@ -714,6 +740,143 @@ const PLANNER_BRANCH_DEFINITIONS: Readonly<Record<string, PlannerBranchDefinitio
     topicTags: ["Ethik", "Tierhaltung", "Bewertung"],
   },
 };
+
+const CIVIC_SMOKE_BRANCHES_FIVE: readonly CivicPriorityPreviewBranch[] = [
+  {
+    id: "traffic-safety",
+    title: "Verkehrssicherheit",
+    topicTags: ["Hauptstraße", "sichere Querung", "Radfahrer", "Haltestelle"],
+    part06CategoryKeys: ["mobility_urban", "local_community"],
+    need: "Zu schnelle Autos, unsichere Querungen und Konflikte zwischen Rad- und Fußverkehr brauchen eine klare Priorität.",
+    voteQuestion: "Welche Sofortmaßnahme verbessert die Verkehrssicherheit an Hauptstraße und Haltestelle zuerst?",
+    openReviewPoints: ["Querung sichern", "Tempo prüfen", "Rad- und Fußverkehr entflechten"],
+  },
+  {
+    id: "school-routes",
+    title: "Kita- und Schulwege",
+    topicTags: ["Kita", "Schulweg", "Familien"],
+    part06CategoryKeys: ["education_research", "mobility_urban", "local_community"],
+    need: "Wege rund um Kita und Schule sollen für Kinder und Begleitpersonen sicherer und verlässlicher werden.",
+    voteQuestion: "Welche Wege rund um Kita und Schule sollen zuerst gesichert werden?",
+    openReviewPoints: ["Kita-Bezug klären", "Schulweg sichern", "Bring- und Holverkehr ordnen"],
+  },
+  {
+    id: "accessibility",
+    title: "Barrierefreiheit",
+    topicTags: ["ältere Menschen", "Haltestelle", "Gehweg"],
+    part06CategoryKeys: ["mobility_urban", "social_family", "local_community"],
+    need: "Haltestellen, Gehwege und Querungen sollen auch für ältere Menschen und Menschen mit Einschränkungen nutzbar bleiben.",
+    voteQuestion: "Welche Barrieren an Haltestelle und Gehweg sollen zuerst beseitigt werden?",
+    openReviewPoints: ["Barrieren benennen", "Haltestelle prüfen", "Fußwege nutzbar halten"],
+  },
+  {
+    id: "planning-green",
+    title: "Stadtplanung und Grünflächen",
+    topicTags: ["Bauprojekte", "Grünflächen", "Quartier"],
+    part06CategoryKeys: ["local_community", "climate_environment", "mobility_urban"],
+    need: "Bauprojekte und Grünflächen müssen so geplant werden, dass das Quartier nicht weiter an Aufenthaltsqualität verliert.",
+    voteQuestion: "Wie sollen Bauprojekte und Grünflächen im Quartier gegeneinander abgewogen werden?",
+    openReviewPoints: ["Bauprojekte sichtbar machen", "Grünflächen schützen", "Quartierswirkung prüfen"],
+  },
+  {
+    id: "municipal-finance",
+    title: "Kommunale Finanzierung",
+    topicTags: ["Haushalt", "Prioritäten", "Finanzierung"],
+    part06CategoryKeys: ["budget_finance", "local_community"],
+    need: "Knappe Haushaltsmittel erzwingen eine klare Reihenfolge zwischen Sicherheit, Barrierefreiheit und Planung.",
+    voteQuestion: "Welche Maßnahmen sind trotz knapper Haushaltsmittel zuerst finanzierbar?",
+    openReviewPoints: ["Haushaltslage prüfen", "Prioritäten ordnen", "Finanzierung offenlegen"],
+  },
+] as const;
+
+const CIVIC_SMOKE_BRANCHES_THREE: readonly CivicPriorityPreviewBranch[] = [
+  {
+    id: "traffic-safety",
+    title: "Verkehrssicherheit",
+    topicTags: ["Hauptstraße", "sichere Querung", "Radfahrer", "Haltestelle"],
+    part06CategoryKeys: ["mobility_urban", "local_community"],
+    need: "Zu schnelle Autos, unsichere Querungen und Konflikte zwischen Rad- und Fußverkehr bilden den naheliegenden ersten Schwerpunkt.",
+    voteQuestion: "Welche Sofortmaßnahme verbessert die Verkehrssicherheit zuerst?",
+    openReviewPoints: ["Querung sichern", "Tempo prüfen", "Rad- und Fußverkehr entflechten"],
+  },
+  {
+    id: "school-routes-accessibility",
+    title: "Kita-/Schulweg & Barrierefreiheit",
+    topicTags: ["Kita", "Schulweg", "ältere Menschen", "Gehweg"],
+    part06CategoryKeys: ["education_research", "mobility_urban", "social_family", "local_community"],
+    need: "Kinder, Begleitpersonen und ältere Menschen brauchen sichere, barrierearme Wege zu Kita, Schule und Haltestelle.",
+    voteQuestion: "Welche Wege zu Kita, Schule und Haltestelle sollen zuerst sicher und barrierearm werden?",
+    openReviewPoints: ["Schulweg sichern", "Barrieren abbauen", "Haltestelle nutzbar halten"],
+  },
+  {
+    id: "planning-finance",
+    title: "Stadtplanung & Finanzierung",
+    topicTags: ["Bauprojekte", "Grünflächen", "Haushalt"],
+    part06CategoryKeys: ["local_community", "climate_environment", "budget_finance"],
+    need: "Bauprojekte, Grünflächen und knappe Haushaltsmittel müssen als gemeinsamer Planungs- und Prioritätskonflikt bewertet werden.",
+    voteQuestion: "Welche Bau- und Grünflächenmaßnahmen sind unter knappen Haushaltsmitteln zuerst tragfähig?",
+    openReviewPoints: ["Bauprojekte prüfen", "Grünflächen schützen", "Finanzierung ordnen"],
+  },
+] as const;
+
+function matchesCivicStreetSafetySmoke(text: string): boolean {
+  const haystack = normalizeText(text);
+  return (
+    /(kita|schule|schulweg)/.test(haystack) &&
+    /(hauptstra|hauptstrasse|hauptstraße|verkehr|auto|radfahrer|gehweg|querung|haltestelle)/.test(haystack) &&
+    /(bauprojekt|gruenflaeche|grünfläche|gruen|grün)/.test(haystack) &&
+    /(haushalt|finanz|knapp)/.test(haystack)
+  );
+}
+
+function buildCivicStreetSafetySmokeBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number,
+): CreateStructureBranch[] {
+  const sourceText = normalizeText(result.sourceText);
+  const positionClusters = selectPositionClusters(result.understanding);
+  const definitions =
+    maxBranches >= 5 ? CIVIC_SMOKE_BRANCHES_FIVE : CIVIC_SMOKE_BRANCHES_THREE;
+
+  return definitions.slice(0, Math.max(1, maxBranches)).map((definition) => {
+    const matchingTopics = result.understanding.topics
+      .map((topic) => topic.label)
+      .filter((label) => {
+        const normalizedLabel = normalizeText(label);
+        return (
+          definition.topicTags.some((tag) => normalizedLabel.includes(normalizeText(tag))) ||
+          (definition.title === "Verkehrssicherheit" && /verkehr/.test(normalizedLabel)) ||
+          (definition.title.includes("Schulweg") && /(bildung|schule|kita)/.test(normalizedLabel)) ||
+          (definition.title.includes("Finanz") && /finanz/.test(normalizedLabel))
+        );
+      });
+
+    return {
+      id: definition.id,
+      title: definition.title,
+      topics: matchingTopics.length > 0 ? matchingTopics : [definition.title],
+      topicTags: dedupeStrings([
+        ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
+        ...definition.topicTags,
+      ]).slice(0, 6),
+      part06CategoryKeys: [...definition.part06CategoryKeys],
+      part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
+      need: definition.need,
+      claims: dedupeStrings([
+        ...result.understanding.statements
+          .map((statement) => statement.text)
+          .filter((text) => {
+            const normalized = normalizeText(text);
+            return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
+          }),
+        definition.need,
+      ]).slice(0, 2),
+      voteQuestions: [definition.voteQuestion],
+      openReviewPoints: [...definition.openReviewPoints],
+      positionClusters,
+    };
+  });
+}
 
 function topicMatchesBranch(topic: string, branch: BranchDefinition): boolean {
   return branch.topicPatterns.some((pattern) => pattern.test(topic));
@@ -866,6 +1029,10 @@ export function buildCreateStructureBranches(
       };
     }
     return plannerBranches;
+  }
+
+  if (matchesCivicStreetSafetySmoke(result.sourceText)) {
+    return buildCivicStreetSafetySmokeBranches(result, maxBranches);
   }
 
   const sourceText = normalizeText(result.sourceText);

@@ -1876,25 +1876,16 @@ function TopicBranchPreviewGrid(props: {
 
   return (
     <div data-create-topic-branches className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
-            {props.branches.length} Themen direkt aus deinem Beitrag erkannt
+          <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
+            Aus „{props.rootTopic}“ erkenne ich {props.branches.length} sichtbare Themen. Die Themenwahl passiert direkt auf den Karten.
           </p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
           aus deinem Beitrag erkannt
         </span>
-      </div>
-      <div className="flex items-center gap-3 rounded-[24px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 text-sm text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-50">
-          1
-        </span>
-        <div>
-          <p className="text-base font-semibold text-[rgb(var(--fg))]">{props.rootTopic}</p>
-          <p className="text-sm leading-relaxed">Diese Themen können zusammenbleiben oder getrennt weitergeführt werden.</p>
-        </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         {props.branches.slice(0, 3).map((branch, index) => (
@@ -2514,10 +2505,10 @@ function PlaceClarificationPanel(props: {
 }
 
 function StructureProposalPanel(props: {
-  onConfirm: () => void;
   onEdit: () => void;
   onStartOptionalService: () => void;
-  onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
+  onSaveOnly: () => void;
   onRequestEditorialReview: () => void;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
@@ -2526,29 +2517,25 @@ function StructureProposalPanel(props: {
     <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl space-y-1">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Nächster Schritt</p>
-          <p className="text-lg font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">So kannst du weitermachen</p>
+          <p className="text-lg font-semibold text-[rgb(var(--fg))]">Der Thread bleibt dein Arbeitsdialog</p>
           <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Halte alles kurz und steuerbar: Hauptthema festlegen, den Beitrag weiterentwickeln, Quellen ergänzen oder den Entwurf bewusst speichern.
+            Die sichtbaren BranchCards tragen die Themenwahl. Hier steuerst du nur die nächsten Folgeaktionen für den Entwurf.
           </p>
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
-          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[32rem]">
-            <button
-              type="button"
-              className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-              onClick={props.onConfirm}
-            >
-              Hauptthema wählen
-            </button>
+          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[28rem]">
             <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
               Beitrag weiterentwickeln
             </button>
             <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onStartOptionalService}>
               Quellen ergänzen
             </button>
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
               Entwurf speichern
+            </button>
+            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
+              Anlassraum vorbereiten
             </button>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
@@ -2723,7 +2710,7 @@ function WorkspaceActionThreadNote(props: {
             body:
               props.selectedPrimaryTopic
                 ? `Der Workspace ist gerade auf „${props.selectedPrimaryTopic}“ fokussiert. Du kannst unten ein anderes Hauptthema benennen.`
-                : "Wähle unten ein eigenes Hauptthema oder greife einen sichtbaren Themenzweig direkt auf.",
+                : "Wähle unten ein eigenes Hauptthema oder greife eines der sichtbaren Themen direkt auf.",
           };
 
   return (
@@ -2749,7 +2736,7 @@ function ManualTopicChooser(props: {
     <div className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       <p className="text-sm font-semibold text-[rgb(var(--fg))]">Thema selbst wählen</p>
       <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
-        Du kannst einen der sichtbaren Themenzweige übernehmen oder unten ein eigenes Hauptthema setzen.
+        Du kannst eines der sichtbaren Themen übernehmen oder unten ein eigenes Hauptthema setzen.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {props.topicOptions.map((topicLabel) => (
@@ -3207,6 +3194,7 @@ export default function CreateVisualFollowup({
     ],
   );
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [deepDiveOpen, setDeepDiveOpen] = React.useState(false);
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
   const [preparedReviewQueueItem, setPreparedReviewQueueItem] =
     React.useState<CreateHandoffReviewQueueItem | null>(null);
@@ -3225,6 +3213,7 @@ export default function CreateVisualFollowup({
 
   React.useEffect(() => {
     setDetailsOpen(false);
+    setDeepDiveOpen(false);
   }, [resultChangeKey]);
 
   React.useEffect(() => {
@@ -3501,17 +3490,17 @@ export default function CreateVisualFollowup({
             {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
               <div className="mt-4">
                 <StructureProposalPanel
-                  onConfirm={onConfirm}
                   onEdit={() => openCorrection("Thema")}
                   onStartOptionalService={onStartOptionalService}
-                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
+                  onSaveOnly={onSaveOnly}
                   onRequestEditorialReview={onRequestEditorialReview}
                   reviewRequestState={reviewRequestState}
                   reviewRequestMessage={reviewRequestMessage}
                 />
               </div>
             ) : null}
-            {!isConfirmed && !placeClarification && plannerClarificationRequired ? (
+            {!placeClarification && plannerClarificationRequired ? (
               <div className="mt-4">
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}
@@ -3607,132 +3596,170 @@ export default function CreateVisualFollowup({
             </button>
             {detailsOpen ? (
               <div className="mt-4 space-y-4">
-                {plannerClarificationRequired ? (
-                  <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
-                      {plannerTechnicalFallback ? "Vorläufige Einordnung" : "Einordnung offen"}
-                    </p>
-                    <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
-                    <p className="mt-2">
-                      Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Anschlüssen, solange die
-                      automatische Einordnung noch nicht belastbar genug ist.
-                    </p>
-                    {plannerClarificationDetails ? <p className="mt-2">{plannerClarificationDetails}</p> : null}
-                    {degradedStartPoints.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {degradedStartPoints.map((label) => (
-                          <span
-                            key={`degraded-detail-start-${label}`}
-                            className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <StructuredWorkstateBlock
-                    rootTopic={rootTopic}
-                    topicLabels={topicLabels}
-                    positionClusters={positionClusters}
-                    voteQuestions={voteQuestions}
-                    keyStatement={dedupedCopy.prominentCoreClaim}
-                    structureBranches={structureBranches}
-                    sortedSuggestions={sortedSuggestions}
-                    isConfirmed={isConfirmed}
-                    onEdit={openCorrection}
-                    resultChangeKey={resultChangeKey}
-                    sections={sections}
-                    modules={contentModules}
-                  />
-                )}
-                <div className="space-y-3">
-                  <div
-                    className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]"
-                    data-dialog-runtime-status={dialogIntelligenceUiSource.kind}
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-                      Dialog Intelligence
-                    </p>
-                    <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
-                      {dialogIntelligenceUiSource.title}
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                      {dialogIntelligenceUiSource.detail}
-                    </p>
-                  </div>
-
-                  <DialogResultsHandoffPanel
-                    outcome={dialogOutcomePreview}
-                    onConfirmStandpoint={onConfirm}
-                    onSelectHandoff={prepareDialogHandoffDraft}
-                    onSelectBranch={prepareDialogBranchDraft}
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <ExistingTopicMatchesPanel
-                    model={existingTopicMatchesModel}
-                    onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
-                    onCountSimilarOpinion={(matchId) =>
-                      prepareExistingMatchDraft(matchId, "opinion_count")
-                    }
-                    onPrepareReview={(matchId) => prepareExistingMatchDraft(matchId)}
-                    onStartNewBranch={prepareNewBranchDraft}
-                  />
-                </div>
-
-                {primaryTopicDeduplicationCandidate ? (
-                  <div className="mt-4 rounded-[24px] border border-amber-300/35 bg-amber-500/[0.08] px-4 py-4 text-sm dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950 dark:text-amber-100">
-                      Mögliche Dopplung erkannt
-                    </p>
-                    <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
-                      {primaryTopicDeduplicationCandidate.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
-                      Ähnliche Beiträge können redaktionell zusammengeführt oder getrennt gehalten werden.
-                      Es wurde noch nichts automatisch zusammengeführt.
-                    </p>
+                <div className="rounded-[24px] border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+                    Kompakte Einordnung
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                    {plannerClarificationRequired
+                      ? "Die tiefe Einordnung bleibt absichtlich zurückhaltend, bis das Thema belastbar genug gewählt ist."
+                      : `Der aktuelle Arbeitsstand bündelt ${Math.max(1, displayedBranches.length)} sichtbare Themen und ${Math.max(1, voteQuestions.length)} offene Fragen.`}
+                  </p>
+                  {plannerClarificationDetails ? (
                     <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                      {primaryTopicDeduplicationCandidate.summary}
+                      {plannerClarificationDetails}
                     </p>
-                    {primaryTopicDeduplicationState ? (
-                      <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
-                        {primaryTopicDeduplicationState}
-                      </p>
-                    ) : null}
-                    {primaryTopicGraphMutationState ? (
-                      <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
-                        {primaryTopicGraphMutationState}
-                      </p>
-                    ) : null}
-                    {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          onClick={prepareTopicDeduplicationDraft}
-                          className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/[0.14] px-3 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-500/[0.2] dark:border-amber-300/30 dark:bg-amber-500/[0.18] dark:text-amber-50"
+                  ) : null}
+                  {degradedStartPoints.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {degradedStartPoints.map((label) => (
+                        <span
+                          key={`degraded-detail-start-${label}`}
+                          className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]"
                         >
-                          Mögliche Zusammenführung prüfen
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
 
-                {preparedHandoffDraft ? (
-                  <div className="mt-4">
-                    <CreateHandoffDraftSummary
-                      draft={preparedHandoffDraft}
-                      reviewQueueItem={preparedReviewQueueItem}
-                      onQueueForReview={queuePreparedHandoffDraftForReview}
-                      runtimeSubmissionState={reviewQueueRuntimeState}
-                      runtimeSubmissionMessage={reviewQueueRuntimeMessage}
-                    />
-                  </div>
-                ) : null}
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 text-left text-sm font-medium text-[rgb(var(--fg))]"
+                    aria-expanded={deepDiveOpen}
+                    onClick={() => setDeepDiveOpen((current) => !current)}
+                  >
+                    <span>Vertiefte Analyse anzeigen</span>
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 20 20"
+                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${deepDiveOpen ? "rotate-90" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path d="M7 4.5 13 10l-6 5.5" />
+                    </svg>
+                  </button>
+                  {deepDiveOpen ? (
+                    <div className="mt-4 space-y-4">
+                      {plannerClarificationRequired ? (
+                        <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+                            {plannerTechnicalFallback ? "Vorläufige Einordnung" : "Einordnung offen"}
+                          </p>
+                          <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
+                          <p className="mt-2">
+                            Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Anschlüssen, solange die automatische Einordnung noch nicht belastbar genug ist.
+                          </p>
+                        </div>
+                      ) : (
+                        <StructuredWorkstateBlock
+                          rootTopic={rootTopic}
+                          topicLabels={topicLabels}
+                          positionClusters={positionClusters}
+                          voteQuestions={voteQuestions}
+                          keyStatement={dedupedCopy.prominentCoreClaim}
+                          structureBranches={structureBranches}
+                          sortedSuggestions={sortedSuggestions}
+                          isConfirmed={isConfirmed}
+                          onEdit={openCorrection}
+                          resultChangeKey={resultChangeKey}
+                          sections={sections}
+                          modules={contentModules}
+                        />
+                      )}
+                      <div className="space-y-3">
+                        <div
+                          className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]"
+                          data-dialog-runtime-status={dialogIntelligenceUiSource.kind}
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+                            Dialog Intelligence
+                          </p>
+                          <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
+                            {dialogIntelligenceUiSource.title}
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                            {dialogIntelligenceUiSource.detail}
+                          </p>
+                        </div>
+
+                        <DialogResultsHandoffPanel
+                          outcome={dialogOutcomePreview}
+                          onConfirmStandpoint={onConfirm}
+                          onSelectHandoff={prepareDialogHandoffDraft}
+                          onSelectBranch={prepareDialogBranchDraft}
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <ExistingTopicMatchesPanel
+                          model={existingTopicMatchesModel}
+                          onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
+                          onCountSimilarOpinion={(matchId) =>
+                            prepareExistingMatchDraft(matchId, "opinion_count")
+                          }
+                          onPrepareReview={(matchId) => prepareExistingMatchDraft(matchId)}
+                          onStartNewBranch={prepareNewBranchDraft}
+                        />
+                      </div>
+
+                      {primaryTopicDeduplicationCandidate ? (
+                        <div className="mt-4 rounded-[24px] border border-amber-300/35 bg-amber-500/[0.08] px-4 py-4 text-sm dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950 dark:text-amber-100">
+                            Mögliche Dopplung erkannt
+                          </p>
+                          <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
+                            {primaryTopicDeduplicationCandidate.title}
+                          </h3>
+                          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                            Ähnliche Beiträge können redaktionell zusammengeführt oder getrennt gehalten werden.
+                            Es wurde noch nichts automatisch zusammengeführt.
+                          </p>
+                          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                            {primaryTopicDeduplicationCandidate.summary}
+                          </p>
+                          {primaryTopicDeduplicationState ? (
+                            <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                              {primaryTopicDeduplicationState}
+                            </p>
+                          ) : null}
+                          {primaryTopicGraphMutationState ? (
+                            <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                              {primaryTopicGraphMutationState}
+                            </p>
+                          ) : null}
+                          {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={prepareTopicDeduplicationDraft}
+                                className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/[0.14] px-3 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-500/[0.2] dark:border-amber-300/30 dark:bg-amber-500/[0.18] dark:text-amber-50"
+                              >
+                                Mögliche Zusammenführung prüfen
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {preparedHandoffDraft ? (
+                        <div className="mt-4">
+                          <CreateHandoffDraftSummary
+                            draft={preparedHandoffDraft}
+                            reviewQueueItem={preparedReviewQueueItem}
+                            onQueueForReview={queuePreparedHandoffDraftForReview}
+                            runtimeSubmissionState={reviewQueueRuntimeState}
+                            runtimeSubmissionMessage={reviewQueueRuntimeMessage}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>

@@ -405,6 +405,9 @@ describe("create workspace actions interaction", () => {
 
     expect(screen.queryByPlaceholderText("Eigenes Hauptthema benennen")).not.toBeNull();
     expect(screen.getByTestId("composer-mode").textContent).toBe("manual_topic");
+
+    await user.click(detailButtons[0]);
+    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
   });
 
   it("shows deterministic civic fallback branches and keeps retry out of the main CTA group", async () => {
@@ -430,11 +433,29 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByRole("button", { name: "Entwurf speichern" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
 
+    const firstBranchCard = container.querySelector("[data-create-topic-branch-card]");
+    expect(firstBranchCard).not.toBeNull();
+    if (!firstBranchCard) return;
+
+    const trafficBranchButton = within(firstBranchCard).getByRole("button", { name: "Hauptthema wählen" });
+    await user.click(trafficBranchButton);
+    expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehrssicherheit");
+    expect(screen.queryByText("Hauptthema „Verkehrssicherheit“ gewählt.")).not.toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Anlassraum vorbereiten" }));
+    expect(screen.queryByText("Anlassraum für „Verkehrssicherheit“ wird vorbereitet.")).not.toBeNull();
+
     await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
     expect(screen.getByTestId("save-count").textContent).toBe("1");
     expect(screen.queryAllByText("Entwurf gespeichert. Noch nicht veröffentlicht.").length).toBeGreaterThan(0);
+  });
+
+  it("blocks Anlassraum preparation until a primary topic was chosen", async () => {
+    const user = userEvent.setup();
+    render(<Harness result={buildDegradedResult()} />);
 
     await user.click(screen.getByRole("button", { name: "Anlassraum vorbereiten" }));
+
     expect(
       screen.queryByText("Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten."),
     ).not.toBeNull();

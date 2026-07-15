@@ -349,7 +349,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Prüfung anfragen");
-    expect((html.match(/btn-primary/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect((html.match(/btn-primary/g) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
 
