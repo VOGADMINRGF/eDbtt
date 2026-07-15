@@ -411,9 +411,9 @@ export default function SharedCreateComposer({
     return (
       <section
         data-create-composer-bar="true"
-        className="space-y-2.5 px-4 py-3 md:px-6"
+        className="space-y-3 px-4 py-3 md:px-6"
       >
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {topMeta ? <div className="space-y-2">{topMeta}</div> : null}
 
           {contextBanner}
@@ -421,20 +421,20 @@ export default function SharedCreateComposer({
           <label className="sr-only" htmlFor={inputId}>
             {inputLabel ?? texts.inputLabel}
           </label>
-          <div className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_94%,white_6%)] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+          <div className="rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_95%,white_5%)] shadow-[0_16px_36px_rgba(15,23,42,0.07)]">
             <textarea
               id={inputId}
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               rows={isWorkspaceContinuation ? 3 : Math.max(5, minRows - 2)}
-              className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-5 ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[120px]"}`}
+              className={`w-full resize-none border-0 bg-transparent px-5 py-4 text-[15px] leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-6 md:text-base ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[124px]"}`}
               placeholder={resolvedPlaceholder}
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-4 py-2.5 text-xs text-[rgb(var(--muted))] md:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--border))] px-5 py-3 text-[13px] text-[rgb(var(--muted))] md:px-6">
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-xs font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
                   onClick={() => fileInputRef.current?.click()}
                   aria-label={texts.attachAria}
                   title={texts.attachAria}
@@ -446,7 +446,7 @@ export default function SharedCreateComposer({
                 <button
                   type="button"
                   className={[
-                    "inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                    "inline-flex items-center justify-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition",
                     voiceActive
                       ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
@@ -469,7 +469,7 @@ export default function SharedCreateComposer({
                 {secondaryAction.label ? (
                   <Link
                     href={secondaryAction.href}
-                    className="text-xs text-[rgb(var(--muted))] underline underline-offset-4"
+                    className="text-[13px] text-[rgb(var(--muted))] underline underline-offset-4"
                   >
                     {secondaryAction.label}
                   </Link>
@@ -477,7 +477,7 @@ export default function SharedCreateComposer({
                 <button
                   type="button"
                   onClick={onStart}
-                  className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-cyan-300/40 bg-cyan-500/[0.07] px-4 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.11] disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-500/[0.07] px-5 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.11] disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
                   disabled={startBusy || startDisabled}
                   aria-busy={startBusy}
                 >
@@ -497,17 +497,17 @@ export default function SharedCreateComposer({
           />
 
           {attachments.length > 0 ? (
-            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-              <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--fg))]">
+            <details className="rounded-[1.3rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <summary className="cursor-pointer text-[15px] font-medium text-[rgb(var(--fg))]">
                 {texts.attachmentsDisclosureLabel(attachments.length)}
               </summary>
-              <p className="mt-2 text-xs text-[rgb(var(--muted))]">{texts.attachmentsSelected(attachments)}</p>
+              <p className="mt-2 text-[13px] text-[rgb(var(--muted))]">{texts.attachmentsSelected(attachments)}</p>
             </details>
           ) : null}
 
-          {attachmentsError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
-          {voiceError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
-          {error ? <p className="text-sm text-[rgb(var(--fg))]">{error}</p> : null}
+          {attachmentsError ? <p className="text-[13px] text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
+          {voiceError ? <p className="text-[13px] text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
+          {error ? <p className="text-[15px] text-[rgb(var(--fg))]">{error}</p> : null}
         </div>
       </section>
     );

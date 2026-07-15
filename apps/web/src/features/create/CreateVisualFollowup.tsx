@@ -1079,9 +1079,9 @@ function UserContributionBubble(props: { text: string }) {
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="w-full max-w-[78%] min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
+        <p className="text-[14px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Du</p>
+        <div className="mt-2 rounded-[1.5rem] rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-5 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="text-[15px] leading-relaxed text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
         </div>
       </div>
     </div>
@@ -1106,25 +1106,25 @@ function AssistantUnderstandingBubble(props: {
         <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
       </div>
       <div className="w-full max-w-[78%] min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
-        <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
-          <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{props.headline}</p>
-          <p className="mt-4 text-base leading-relaxed text-cyan-950 md:text-[1.15rem] dark:text-cyan-100">{props.summary || props.assistantLead}</p>
+        <p className="text-[14px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
+        <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
+          <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">{props.eyebrow}</p>
+          <p className="mt-1.5 text-[1.35rem] font-semibold tracking-[-0.01em] text-cyan-950 md:text-[1.6rem] dark:text-cyan-50">{props.headline}</p>
+          <p className="mt-4 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">{props.summary || props.assistantLead}</p>
           {props.showAssistantLead ? (
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
+            <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
           ) : null}
           {props.showCoreBlock ? (
-            <div className="mt-5 rounded-3xl border border-cyan-200/40 bg-cyan-500/[0.07] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-              <p className="mt-2 text-base font-semibold leading-relaxed text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
+            <div className="mt-5 rounded-[1.5rem] border border-cyan-200/40 bg-cyan-500/[0.07] px-5 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]">
+              <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
+              <p className="mt-2 text-[15px] font-semibold leading-relaxed text-cyan-950 md:text-[1.1rem] dark:text-cyan-50">{props.coreClaim}</p>
             </div>
           ) : null}
           <div className="mt-4 flex flex-wrap gap-2 opacity-90">
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1.5 text-[14px] text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
               Haltung: {props.stanceLabel}
             </span>
-            <span className="rounded-full border border-amber-500/35 bg-amber-50 px-3 py-1 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-50">
+            <span className="rounded-full border border-amber-500/35 bg-amber-50 px-3 py-1.5 text-[14px] text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-50">
               Ebene: {props.scopeLabel}
             </span>
           </div>
@@ -1483,26 +1483,21 @@ function CreateStructureOverviewCard(props: {
   onClick?: () => void;
 }) {
   const content = (
-    <div data-mobile-structure-card className="flex items-start gap-3">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.15rem] border border-cyan-300/45 bg-cyan-500/[0.06] text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-500/10 dark:text-cyan-100">
+    <div data-mobile-structure-card className="flex items-start gap-4">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.2rem] border border-cyan-300/45 bg-cyan-500/[0.06] text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-500/10 dark:text-cyan-100">
         <FocusAreaIcon area={props.area} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-base font-semibold text-[rgb(var(--fg))]">{props.title}</p>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
-            {props.pillLabel}
-          </span>
-          {props.unreadLabel ? (
-            <span className="rounded-full border border-cyan-300/45 px-2 py-0.5 text-[11px] font-semibold text-cyan-800 dark:text-cyan-100">
-              {props.unreadLabel}
-            </span>
-          ) : null}
+        <p className="text-[1.02rem] font-semibold tracking-[-0.01em] text-[rgb(var(--fg))]">{props.title}</p>
+        <p className="mt-1.5 text-[15px] leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[rgb(var(--muted))]">
+          <span>{props.pillLabel}</span>
+          {props.unreadLabel ? <span aria-hidden="true">•</span> : null}
+          {props.unreadLabel ? <span>{props.unreadLabel}</span> : null}
         </div>
-        <p className="mt-1 text-[15px] leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
       {props.onClick ? (
-        <span className="pt-1 text-base text-[rgb(var(--muted))]" aria-hidden="true">
+        <span className="pt-1 text-[1.05rem] text-[rgb(var(--muted))]" aria-hidden="true">
           →
         </span>
       ) : null}
@@ -1510,7 +1505,7 @@ function CreateStructureOverviewCard(props: {
   );
 
   const className =
-    "flex min-h-[6rem] items-start rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-4 py-3.5";
+    "flex min-h-[6.5rem] items-start rounded-[1.55rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--bg))_14%)] px-4 py-4";
 
   if (!props.onClick) {
     return <article className={className}>{content}</article>;
@@ -1534,10 +1529,10 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   return (
     <section data-mobile-structure-overview className="space-y-3 px-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+        <p className="text-[1rem] font-semibold text-[rgb(var(--fg))] md:text-[1.05rem]">
           {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
         </p>
-        <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+        <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
           {isEnglish
             ? "Compact first, details only on demand."
             : "Kompakt zuerst, Details bei Bedarf."}
@@ -1878,12 +1873,12 @@ function TopicBranchPreviewGrid(props: {
     <div data-create-topic-branches className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
+          <p className="text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
           <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
             Aus „{props.rootTopic}“ erkenne ich {props.branches.length} sichtbare Themen. Die Themenwahl passiert direkt auf den Karten.
           </p>
         </div>
-        <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+        <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))]">
           aus deinem Beitrag erkannt
         </span>
       </div>
@@ -1894,7 +1889,7 @@ function TopicBranchPreviewGrid(props: {
             data-create-topic-branch-card=""
             data-selected-primary-topic={props.selectedPrimaryTopic === branch.title ? "true" : undefined}
             data-parked-topic={props.parkedTopicLabels?.includes(branch.title) ? "true" : undefined}
-            className={`rounded-[26px] border px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
+            className={`rounded-[1.75rem] border px-5 py-5 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
               props.selectedPrimaryTopic === branch.title
                 ? "border-cyan-400/75 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--grad-from))_26%),color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%))] ring-2 ring-cyan-300/35 dark:border-cyan-300/55"
                 : props.parkedTopicLabels?.includes(branch.title)
@@ -1918,31 +1913,30 @@ function TopicBranchPreviewGrid(props: {
                     : "Wenn der Strang wichtig bleibt, parke ihn oder nimm ihn als Hauptthema.";
               return (
                 <>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
-              <span className="rounded-full border border-cyan-300/40 px-2.5 py-0.5">Thema</span>
-              <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[rgb(var(--muted))]">
+            <div className="flex flex-wrap items-center gap-2 text-[13px] text-cyan-900 dark:text-cyan-100">
+              <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
                 aus deinem Beitrag erkannt
               </span>
                     {isParked ? (
-                      <span className="rounded-full border border-amber-300/50 px-2.5 py-0.5 text-amber-900 dark:text-amber-100">
+                      <span className="rounded-full border border-amber-300/50 px-3 py-1 text-amber-900 dark:text-amber-100">
                         Geparkt
                       </span>
                     ) : null}
             </div>
-            <p className="mt-3 text-lg font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
+            <p className="mt-3 text-[1.28rem] font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--fg))]">{branch.title}</p>
+            <p className="mt-2.5 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
               {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
             </p>
                   {referencePoints.length > 0 ? (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    <div className="mt-4 space-y-2.5">
+                      <p className="text-sm font-medium text-[rgb(var(--fg))]">
                         Erkannte Bezugspunkte
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {referencePoints.map((topic) => (
                           <span
                             key={`${branch.id}-${topic}`}
-                            className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
+                            className={`rounded-full border px-3 py-1.5 text-[13px] ${resolveNodeTone("topic")}`}
                           >
                             {topic}
                           </span>
@@ -1951,15 +1945,15 @@ function TopicBranchPreviewGrid(props: {
                     </div>
                   ) : null}
                   <div className="mt-4 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    <p className="text-sm font-medium text-[rgb(var(--fg))]">
                       Empfohlene Aktion
                     </p>
-                    <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
+                    <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
                       type="button"
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-xs font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-4 py-1.5 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
                       onClick={() => props.onSelectPrimaryTopic?.(branch.title)}
                       aria-pressed={isSelected}
                     >
@@ -1967,7 +1961,7 @@ function TopicBranchPreviewGrid(props: {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] transition hover:border-amber-300/55 hover:text-[rgb(var(--fg))]"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] transition hover:border-amber-300/55 hover:text-[rgb(var(--fg))]"
                       onClick={() => props.onParkTopic?.(branch.title)}
                       aria-pressed={isParked}
                     >
@@ -1988,12 +1982,12 @@ function OpenQuestionCards(props: { questions: string[] }) {
   if (props.questions.length === 0) return null;
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Fragen</p>
+      <p className="text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Offene Fragen</p>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {props.questions.slice(0, 5).map((question) => (
           <article
             key={question}
-            className="rounded-[20px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            className="rounded-[1.35rem] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_93%,rgb(var(--bg))_7%)] px-4 py-4 text-[15px] leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
           >
             {question}
           </article>
@@ -2014,40 +2008,40 @@ function SourceHintsAndNextStepsGrid(props: {
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      <div className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Quellen & Hinweise</p>
-        <div className="mt-3 space-y-2">
+      <div className="rounded-[1.45rem] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
+        <p className="text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Quellen & Hinweise</p>
+        <div className="mt-3 space-y-3">
           {sourceHints.length > 0 ? (
             sourceHints.map((module) => (
               <article
                 key={module.id}
-                className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                className="rounded-[1.1rem] bg-[color-mix(in_oklab,rgb(var(--card))_93%,rgb(var(--bg))_7%)] px-3.5 py-3 dark:bg-[rgb(var(--card))]"
               >
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{module.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{module.lead}</p>
+                <p className="text-[15px] font-semibold text-[rgb(var(--fg))]">{module.title}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-[rgb(var(--muted))]">{module.lead}</p>
               </article>
             ))
           ) : (
-            <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+            <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
               Zusätzliche Quellen bleiben optional und werden erst nach deiner Auswahl ergänzt.
             </p>
           )}
         </div>
       </div>
-      <div className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene nächste Schritte</p>
-        <ol className="mt-3 space-y-2">
+      <div className="rounded-[1.45rem] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
+        <p className="text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Vorgeschlagene nächste Schritte</p>
+        <ol className="mt-3 space-y-3">
           {nextSteps.length > 0 ? (
             nextSteps.map((step, index) => (
               <li
                 key={`${step}-${index}`}
-                className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                className="rounded-[1.1rem] bg-[color-mix(in_oklab,rgb(var(--card))_93%,rgb(var(--bg))_7%)] px-3.5 py-3 text-[15px] leading-relaxed text-[rgb(var(--fg))] dark:bg-[rgb(var(--card))]"
               >
                 {step}
               </li>
             ))
           ) : (
-            <li className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+            <li className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
               Hauptthema wählen und danach den Entwurf bewusst weiterführen.
             </li>
           )}

@@ -131,13 +131,14 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Nächster Schritt");
     expect(html).toContain("Beitrag prüfen");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
-    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-3\"");
+    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-4\"");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-structure-rail");
     expect(followupSource).toContain("data-create-embedded-followup");
     expect(composerSource).toContain("data-create-composer-bar");
     expect(composerSource).toContain("experienceVariant === \"workspace_shell\"");
     expect(composerSource).toContain("workspacePhase === \"continuation\"");
+    expect(composerSource).toContain("resize-none");
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
@@ -150,6 +151,7 @@ describe("create entry hierarchy contract", () => {
     expect(workspaceShellSource).toContain("data-create-workspace-size=\"wide-screen\"");
     expect(workspaceShellSource).toContain("max-w-[min(92vw,96rem)]");
     expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
+    expect(workspaceShellSource).toContain("lg:grid lg:min-w-0 lg:grid-cols-5");
     expect(workspaceShellSource).toContain("overflow-y-auto");
     expect(workspaceShellSource).toContain("sticky bottom-0");
     expect(workspaceShellSource).not.toContain("max-w-[82.5rem]");

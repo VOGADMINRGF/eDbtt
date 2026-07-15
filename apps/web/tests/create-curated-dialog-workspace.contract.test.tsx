@@ -283,6 +283,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).not.toContain("create-start-chat-preview");
     expect(clientSource).not.toContain("public-dialog-area");
     expect(composerSource).not.toContain(">Composer<");
+    expect(composerSource).toContain("resize-none");
   });
 
   it("keeps tab controls aligned with persistent tabpanels", () => {

@@ -58,6 +58,7 @@ Ergebnis:
   - `ComposerBar`
 - die Shell nutzt jetzt sichtbar mehr Monitorbreite und Mindesthoehe; ChatThread, Composer und Footer sitzen in einer grossen durchgehenden Workspace-Maske statt in einer schmalen Mittelkarte
 - der finale Finish-Pass vergroessert Shell-Breite auf eine breitere Desktop-Maske, vergroessert Typo, Pipeline und Struktur-Rail nochmals sichtbar und zieht den Chat-Thread staerker auf die Hauptbuehne
+- der abschliessende Density-/Hierarchy-Pass reduziert Microcopy, Uppercase-Badges und Card-in-Card-Verschachtelung zusaetzlich, damit der 1216px-Workspace nicht wie ein technisches Mini-Widget wirkt
 - Header und Footer wurden gleichzeitig reduziert, damit sie Orientierung bleiben und nicht wie eigene Zusatzmodule wirken
 - der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
@@ -87,6 +88,7 @@ Ergebnis:
   - `Quellen prüfen`
   - `Entwurf`
 - die Pipeline nutzt kuerzere, ruhigere Lead-Texte und dezentere Verbindungen statt eines technischen Steppers
+- auf Desktop verteilt sich die Pipeline jetzt ueber fuenf gleichmaessigere, groessere Schritte statt wie eine abgeschnittene Mini-Leiste zu wirken
 - direkt unter dieser Pipeline steht eine kompakte Struktur-Leiste fuer:
   - `Prioritäten`
   - `Themen`
@@ -98,12 +100,13 @@ Ergebnis:
   - vor Submit mit einer echten Assistenz-Intro-Nachricht plus Beispielchips
   - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
+- fuer den bekannten Rahnsdorf/Kita/Querung/Haushalt-Smoke bleiben die lokalen Fallback-Kandidaten civic-intuitiv:
+  - `Verkehrssicherheit`
+  - `Kita-/Schulweg & Barrierefreiheit`
+  - `Stadtplanung & Finanzierung`
 - die Branch-Map spricht oeffentlich nur noch von `Themen`, zeigt `aus deinem Beitrag erkannt` als Ursprungshinweis und vermeidet die alte technische `Themenzweige`-/`Themenäste`-Sprache im Hauptflow
 - Fragen- und degraded-Fallback-Bloecke wurden farblich von dominanten gelb/braun-Warnflaechen auf ruhigere Workspace-Tones zurueckgenommen; `Einordnung erneut versuchen` bleibt nur in Details
-- bei langsamer oder fehlgeschlagener Planner-Einordnung erscheinen sofort lokale Fallback-Themenkarten statt einer Retry-dominierten Warteflaeche:
-  - `Verkehr`
-  - `Sicherheit/Rechtsstaat`
-  - `Kommunale Finanzen`
+- bei langsamer oder fehlgeschlagener Planner-Einordnung erscheinen sofort diese lokalen Fallback-Themenkarten statt einer Retry-dominierten Warteflaeche
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
 - `Einordnung erneut versuchen` liegt im degraded Pfad nur noch in `Details ansehen`
@@ -176,6 +179,7 @@ Ergebnis:
 - `V3-UX-FINAL-CREATE-VOXY-COMPOSER-AND-SURFACE-CONSOLIDATION-01` bleibt `done`, die Evidence wurde fuer die PR-391-Remediation auf den tatsaechlichen Chat-Workspace-Zustand nachgezogen
 - der letzte PR-391-Follow-up schuetzt den bekannten Rahnsdorf/Kita/Querung/Haushalt-Smoke lokal mit civic-intuitiven Fallback-Branches (`Verkehrssicherheit`, `Kita-/Schulweg & Barrierefreiheit`, `Stadtplanung & Finanzierung`), reduziert die Branch-Card-Verschachtelung, verlegt die sichtbare Themenwahl vollstaendig auf die BranchCards und deckt `Hauptthema wählen`, `Als Zweig parken`, `Beitrag weiterentwickeln`, `Quellen ergänzen`, `Entwurf speichern`, `Anlassraum vorbereiten` und `Details ansehen` per Interaction-Test ab
 - der abschliessende Layout-Fix hebt `/create` aus der schmalen Mittelspaltenwirkung: der Workspace-Host laeuft jetzt ohne enge Public-Shell-Max-Width, die Shell markiert sich ueber `data-create-workspace-size="wide-screen"` und nutzt `max-w-[min(92vw,96rem)]`, waehrend Thread-Bubbles und BranchCards sichtbar mehr Monitorbreite ausnutzen
+- der letzte UI-Pass haelt dieselben funktionalen Pfade bei, vergroessert aber Chat-Bubbles, Rail-Karten, BranchCards und Composer-Bedienelemente sichtbar und entschlackt die sichtbare Badge-/Pill-Dichte
 - naechster operativer Schritt bleibt der reale manuelle Preview-Smoke auf den konsolidierten Surfaces
 
 ## Validierung
