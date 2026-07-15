@@ -473,7 +473,7 @@ export default function SharedCreateComposer({
                           data-voxy-inline-guide="true"
                           data-voxy-appearance="inline"
                         >
-                          {isEnglishMinimal ? "Voxy" : "Voxy"}
+                          {isEnglishMinimal ? "Assistant" : "Assistent"}
                         </span>
                         <span className="vog-focus-stage-muted text-xs">
                           {isEnglishMinimal ? "Composer-first" : "Kurzer Einstieg"}
@@ -598,8 +598,8 @@ export default function SharedCreateComposer({
                 <div className="border-t border-[rgb(var(--focus-panel-border))] px-4 py-3 sm:px-5">
                   <p className="text-xs leading-relaxed text-[rgb(var(--focus-panel-muted))]">
                     {isEnglishMinimal
-                      ? "Nothing is published automatically. Voxy suggests, you decide."
-                      : "Nichts wird automatisch veröffentlicht. Voxy macht Vorschläge, du entscheidest."}
+                      ? "Nothing is published automatically. The assistant suggests, you decide."
+                      : "Nichts wird automatisch veröffentlicht. Die Assistenz macht Vorschläge, du entscheidest."}
                   </p>
                 </div>
               ) : null}

@@ -178,7 +178,7 @@ export default function RundenPublicSharingGuide(props: {
               href={PUBLIC_CREATE_HREF}
               className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              Mit Voxy Beitrag vorbereiten
+              Beitrag mit Assistenz vorbereiten
             </Link>
             <Link
               href="/runden/demo"
@@ -254,17 +254,17 @@ export default function RundenPublicSharingGuide(props: {
       />
 
       <VoxyFloatingDock
-        title="Voxy Dock · Anlassraum"
-        body="Voxy hält den öffentlichen Anlassraum lesbar und review-first. Du kannst etwas vorbereiten, ohne dass automatisch veröffentlicht oder extern benachrichtigt wird."
+        title="Mit Assistent chatten"
+        body="Fragen? Ich helfe gern."
         primaryAction={{
           href: PUBLIC_CREATE_HREF,
-          label: "Beitrag vorbereiten",
+          label: "Chat öffnen",
         }}
         secondaryAction={{
           href: "/themen",
           label: "Themen ansehen",
         }}
-        chips={["review-first", "kein Auto-Publish", "öffentliche Lesbarkeit bleibt frei"]}
+        chips={["review-first", "kein Auto-Publish"]}
       />
     </section>
   );

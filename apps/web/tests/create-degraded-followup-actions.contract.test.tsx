@@ -131,7 +131,8 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
     expect(html).toContain("Einordnung erneut versuchen");
-    expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
+    expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
@@ -260,7 +261,7 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html.indexOf("Einordnung wird erneut versucht")).toBeLessThan(html.indexOf("Thema selbst wählen"));
+    expect(html.indexOf("Thema selbst wählen")).toBeLessThan(html.indexOf("Einordnung wird erneut versucht"));
     expect(html).toContain("Einordnung wird erneut versucht …");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");

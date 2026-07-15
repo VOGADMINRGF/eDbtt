@@ -132,7 +132,8 @@ describe("create planner degraded ui contract", () => {
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
     expect(html).toContain("Einordnung erneut versuchen");
-    expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
+    expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");

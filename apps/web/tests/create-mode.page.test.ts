@@ -129,10 +129,7 @@ describe("/create start surface", () => {
     expect(html).toContain(
       "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
     );
-    expect(html).toContain("Beitrag sortieren");
-    expect(html).toContain("Frage schärfen");
-    expect(html).toContain("Quelle prüfen");
-    expect(html).toContain("Direkt Entwurf");
+    expect(html).toContain("Assistent");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
@@ -158,7 +155,7 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Pipeline");
     expect(html).not.toContain("Missing runtime truth");
     expect(html).not.toContain("runId");
-    expect(html).not.toContain("Weitere Wege");
+    expect(html).not.toContain("Beitrag sortieren");
     expect(html).not.toContain('data-voxy-appearance="panel"');
 
     expect(html).not.toContain("Kontext-Picker");

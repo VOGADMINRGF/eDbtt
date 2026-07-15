@@ -84,7 +84,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("resolveExistingTopicMatchesFromRuntime");
     expect(followupSource).toContain("setExistingTopicMatchesRuntimeResult");
     expect(followupSource).toContain("CreateHandoffDraftSummary");
-    expect(followupSource).toContain("CompactPreviewCard");
+    expect(followupSource).toContain("OpenQuestionCards");
+    expect(followupSource).toContain("SourceHintsAndNextStepsGrid");
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
     expect(followupSource).toContain("NextStepPanel");
@@ -92,13 +93,14 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("WorkspaceMetricRail");
     expect(followupSource).toContain("TopicBranchPreviewGrid");
     expect(followupSource).toContain("StructuredWorkstateBlock");
-    expect(followupSource).toContain("data-mobile-compact-details");
+    expect(followupSource).toContain("data-create-chat-thread");
+    expect(followupSource).toContain("data-create-structure-rail");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-pipeline-rail");
     expect(followupSource).toContain("data-create-workspace-kpis");
     expect(followupSource).toContain("data-create-topic-branches");
-    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
+    expect(followupSource).toContain("data-create-topic-branch-card");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
@@ -117,23 +119,22 @@ describe("create curated dialog workspace contract", () => {
     );
 
     expect(followupSource).toContain("Du");
-    expect(followupSource).toContain("eDebatte");
+    expect(followupSource).toContain("Assistent");
     expect(followupSource).toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(followupSource).toContain("Kern");
-    expect(followupSource).toContain("Thema");
-    expect(followupSource).toContain("Noch offen");
+    expect(followupSource).toContain("Dein KI-Assistent");
     expect(followupSource).toContain("Details ansehen");
-    expect(followupSource).toContain("Direkt Entwurf");
-    expect(followupSource).toContain("Tiefer prüfen");
+    expect(followupSource).toContain("Hauptthema wählen");
+    expect(followupSource).toContain("Beitrag weiterentwickeln");
+    expect(followupSource).toContain("Quellen ergänzen");
+    expect(followupSource).toContain("Entwurf speichern");
     expect(followupSource).toContain("Zusammen lassen");
-    expect(followupSource).toContain("Nebenthema parken");
+    expect(followupSource).toContain("Als Zweig parken");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
-    expect(followupSource).toContain("Quelle prüfen");
+    expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).toContain("Beteiligung vorbereiten");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueRuntimeState");
     expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
-    expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
     expect(followupSource).toContain("Keine automatische Kostenbuchung");
@@ -172,7 +173,7 @@ describe("create curated dialog workspace contract", () => {
     );
 
     const coreIndex = followupSource.indexOf("Ich sehe einen gemeinsamen Kern.");
-    const confirmIndex = followupSource.indexOf("Direkt Entwurf");
+    const confirmIndex = followupSource.indexOf("Hauptthema wählen");
     const detailsToggleIndex = followupSource.indexOf("Details ansehen");
     const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
     const detailsIndex = followupSource.indexOf("<StructuredWorkstateBlock");
@@ -186,19 +187,14 @@ describe("create curated dialog workspace contract", () => {
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
     expect(html).toContain("Details ansehen");
-    expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
-    expect(html).toContain("KI-Auswertung derzeit nicht verfügbar");
-    expect(html).toContain("Anschluss prüfen");
+    expect(html).toContain("Dein KI-Assistent");
+    expect(html).toContain("Quellen &amp; Hinweise");
     expect(html).toContain("Voxy Pilotpfad");
-    expect(html).toContain("Erkannte Themenäste");
+    expect(html).toContain("Erkannte Themenzweige");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
-    expect(html).not.toContain("Vorgeschlagener Arbeitsstand");
-    expect(html).not.toContain("Kompakte Details");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");
     expect(followupSource).toContain("{detailsOpen ? (");
-    expect(followupSource).toContain("lg:hidden");
-    expect(followupSource).toContain("hidden lg:block");
   });
 
   it("keeps the heavy structure explorer behind the explicit details toggle", () => {
@@ -223,7 +219,7 @@ describe("create curated dialog workspace contract", () => {
     expect(contractSource).toContain("Verkehr, Klima und Alltagstauglichkeit");
     expect(contractSource).toContain("Bildung, Integration und Sicherheit");
     expect(followupSource).toContain("<StructuredWorkstateBlock");
-    expect(followupSource).toContain("data-mobile-compact-details");
+    expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).not.toContain("result.clarifications");
     expect(followupSource).not.toContain("qualityGate");
     expect(followupSource).not.toContain("editorial_review_required");

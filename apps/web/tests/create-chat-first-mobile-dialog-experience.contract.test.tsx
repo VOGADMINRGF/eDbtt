@@ -344,40 +344,35 @@ describe("create chat-first mobile dialog experience contract", () => {
     const html = renderVisualFollowup();
 
     expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(html).toContain("Direkt Entwurf");
-    expect(html).toContain("Tiefer prüfen");
-    expect(html).toContain("Ändern");
+    expect(html).toContain("Hauptthema wählen");
+    expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Quellen ergänzen");
+    expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Prüfung anfragen");
-    expect((html.match(/btn-primary/g) ?? []).length).toBe(2);
-    expect(html).not.toContain("Arbeitsstand speichern");
+    expect((html.match(/btn-primary/g) ?? []).length).toBeGreaterThanOrEqual(4);
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
 
   it("renders a compact understood state before details", () => {
     const html = renderMultiBranchVisualFollowup();
 
-    expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(html).toContain("Kern");
-    expect(html).toContain("Thema");
-    expect(html).toContain("Noch offen");
-    expect(html).toContain("Mehrere kommunale Zielkonflikte priorisieren");
-    expect(html).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
-    expect(html).toContain("Erkannte Bedarfspunkte");
+    expect(html).toContain("Chat-Arbeitsstand für deinen Beitrag");
+    expect(html).toContain("Erkannte Themenzweige");
     expect(html).toContain("Wohnen und Genehmigungen");
     expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
+    expect(html).toContain("Quellen &amp; Hinweise");
+    expect(html).toContain("Vorgeschlagene nächste Schritte");
+    expect(html).toContain("data-create-chat-thread");
+    expect(html).toContain("data-create-structure-rail");
     expect(html).toContain("data-mobile-inline-create-actions");
     expect(html).toContain("data-create-pipeline-rail");
     expect(html).toContain("data-create-workspace-kpis");
     expect(html).toContain("data-create-topic-branches");
     expect(html).toContain("Voxy Pilotpfad");
-    expect(html).toContain("Erkannte Themenäste");
-    expect(html).toContain("Themenast");
+    expect(html).toContain("Themenzweig");
     expect(html).toContain("Details ansehen");
     expect(html).not.toContain("Korrektur oder Ergänzung");
-    expect(html).not.toContain("Vorgeschlagener Arbeitsstand");
-    expect(html).not.toContain("Gelesene Sinnabschnitte");
     expect(html).not.toContain("Original oben anzeigen");
-    expect(html).not.toContain("Kompakte Details");
   });
 
   it("keeps the technical planner fallback in a clearly degraded clarification state", () => {
@@ -387,7 +382,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
     expect(html).toContain("Einordnung erneut versuchen");
-    expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
+    expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
@@ -395,7 +391,6 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("Frauenquote");
     expect(html).not.toContain("Minderheitenförderung");
     expect(html).not.toContain("wirtschaftliche Auswirkungen für Unternehmen");
-    expect(html).not.toContain("Kern");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
   });
@@ -417,14 +412,15 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Darin stecken mehrere Themenstränge");
     expect(html).toContain("Zusammen lassen");
     expect(html).toContain("Schwerpunkt wählen");
+    expect(html).toContain("Hauptthema wählen");
+    expect(html).toContain("Beitrag weiterentwickeln");
+    expect(html).toContain("Quellen ergänzen");
+    expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Dossier prüfen");
-    expect(html).toContain("Nebenthema parken");
+    expect(html).toContain("Als Zweig parken");
     expect(html).toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Als Ergänzung anhängen");
-    expect(html).toContain("Neues Dossier vorbereiten");
-    expect(html).toContain("QR-/Live-Kontext vorbereiten");
+    expect(html).toContain("Anschluss prüfen");
     expect(html).toContain("Redaktionell prüfen lassen");
-    expect(html).toContain("Quelle prüfen");
     expect(html).toContain("Kein Auto-Publish");
     expect(html).toContain("kein Auto-Dossier");
     expect(html).toContain("kein Auto-Anlassraum");
@@ -480,7 +476,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("Um welchen Ort geht es?");
     expect(html).not.toContain("Ort ergänzen");
     expect(html).not.toContain("Ort später ergänzen");
-    expect(html).toContain("Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?");
+    expect(html).toContain("Offene Fragen");
   });
 
   it("shows the correction composer only after the user chooses edit", () => {
@@ -529,18 +525,16 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
     expect(followupSource).toContain("NextStepPanel");
-    expect(followupSource).toContain("data-mobile-compact-details");
+    expect(followupSource).toContain("data-create-chat-thread");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(followupSource).toContain("nextStepsCount");
-    expect(followupSource).toContain("Mehrere kommunale Zielkonflikte priorisieren");
-    expect(followupSource).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
+    expect(followupSource).toContain("Erkannte Themenzweige");
     expect(followupSource).toContain("unreadLabel");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
+    expect(followupSource).toContain("data-create-structure-rail");
     expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
     expect(followupSource).toContain("{detailsOpen ? (");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");
-    expect(followupSource).not.toContain("Arbeitsstand speichern");
     expect(clientSource).toContain("CreateInlineAnalysisScene");
     expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
     expect(linkClarificationSource).not.toContain("sourceHints");

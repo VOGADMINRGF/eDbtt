@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRound";
-import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
 
 export const metadata: Metadata = {
@@ -140,7 +139,7 @@ export default function ThemenPage() {
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
-            Beitrag mit Voxy einordnen
+            Beitrag mit Assistenz einordnen
           </Link>
           <Link href="/runden" className="btn-secondary inline-flex">
             Aktiv dabei
@@ -181,17 +180,17 @@ export default function ThemenPage() {
       </div>
 
       <VoxyFloatingDock
-        title="Voxy Dock · Themensuche"
-        body={`${buildVoxyExperienceShellHint("themen")} Themen werden nicht automatisch zusammengeführt oder aufgeteilt.`}
+        title="Mit Assistent chatten"
+        body="Fragen? Ich helfe gern."
         primaryAction={{
           href: "/create?intent=issue_signal",
-          label: "Mit Voxy andocken",
+          label: "Chat öffnen",
         }}
         secondaryAction={{
           href: "/runden",
           label: "Aktiv dabei",
         }}
-        chips={["Anschluss prüfen", "review-first", "kein Auto-Split"]}
+        chips={["Anschluss prüfen", "review-first"]}
       />
     </ProductSurfaceShell>
   );

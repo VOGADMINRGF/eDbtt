@@ -13,11 +13,11 @@ describe("themen surface staging", () => {
     expect(html).toContain("Geplant");
     expect(html).toContain("Archiv");
     expect(html).toContain("Aktiv dabei");
-    expect(html).toContain("Beitrag mit Voxy einordnen");
+    expect(html).toContain("Beitrag mit Assistenz einordnen");
     expect(html).toContain("Abstimmungsfähigkeit prüfen");
-    expect(html).toContain("Mit Voxy andocken");
-    expect(html).toContain("Voxy Dock · Themensuche");
-    expect(html).toContain("kein Auto-Split");
+    expect(html).toContain("Mit Assistent chatten");
+    expect(html).toContain("Chat öffnen");
+    expect(html).toContain("Fragen? Ich helfe gern.");
     expect(html).toContain("data-voxy-floating-dock");
     expect(html).toContain("Bezahlbare Energie und belastbare Wärmewende in Berlin");
   });

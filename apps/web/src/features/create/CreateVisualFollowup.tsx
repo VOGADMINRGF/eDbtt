@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
 import {
   buildCreateVisualSections,
   buildCreateStructureBranches,
@@ -129,13 +130,13 @@ type NextStepChecklistItem = {
   done: boolean;
 };
 
-type FollowupStageId = "input" | "analysis" | "proposal" | "confirm" | "next";
+type FollowupStageId = "input" | "understanding" | "topics" | "sources" | "draft";
 
 type FollowupStage = {
   id: FollowupStageId;
   title: string;
   lead: string;
-  status: "done" | "active" | "upcoming";
+  status: "done" | "active" | "planned";
 };
 
 type ContentModuleTone = "source" | "vote" | "topic" | "context" | "stats";
@@ -164,12 +165,6 @@ type CreateStructureOverviewProps = {
   nextStepsCount: number;
   showOpenLabels?: boolean;
   onOpenSection?: (section: "priorities" | "clusters" | "questions" | "next_steps") => void;
-};
-
-type TopNeedPoint = {
-  id: string;
-  label: string;
-  detail: string;
 };
 
 const BROAD_TOPIC_FIELD_ORDER = [
@@ -530,18 +525,6 @@ function shouldShowMultiTopicActionPanel(actionTopics: string[]): boolean {
   return actionTopics.length >= 3;
 }
 
-function resolveUnderstandingKindLabel(result: CreateIntelligentFollowupResult): string {
-  const primaryStatementKind = result.understanding.statements[0]?.kind;
-  if (primaryStatementKind === "demand") return "Forderung";
-  if (primaryStatementKind === "claim") return "Aussage";
-  if (primaryStatementKind === "argument") return "Argument";
-  if (primaryStatementKind === "question" || primaryStatementKind === "option") return "Fragestellung";
-  if (primaryStatementKind === "objection") return "Einwand";
-  if (primaryStatementKind === "source") return "Quellenhinweis";
-  if (primaryStatementKind === "hint") return "Hinweis";
-  return result.understanding.categories[0]?.label ?? "Öffentliches Anliegen";
-}
-
 export function deriveCreateStructureOverviewMetrics(params: {
   result?: CreateIntelligentFollowupResult | null;
   isConfirmed?: boolean;
@@ -663,28 +646,28 @@ function buildWorkflowStages(params: { isConfirmed: boolean; hasSuggestions: boo
       status: "done",
     },
     {
-      id: "analysis",
-      title: "Einordnung",
-      lead: "Signale erkannt",
+      id: "understanding",
+      title: "Verstehen",
+      lead: "Kern erkannt",
       status: "done",
     },
     {
-      id: "proposal",
-      title: "Vorschlag",
-      lead: params.hasSuggestions ? "Arbeitsstand vorbereitet" : "Arbeitsstand verdichtet",
+      id: "topics",
+      title: "Themen ordnen",
+      lead: params.isConfirmed ? "Hauptthema gewählt" : "Hauptthema bestimmen",
       status: params.isConfirmed ? "done" : "active",
     },
     {
-      id: "confirm",
-      title: "Bestätigung",
-      lead: params.isConfirmed ? "Bestätigt" : "Offen",
-      status: params.isConfirmed ? "done" : "active",
+      id: "sources",
+      title: "Quellen prüfen",
+      lead: params.hasSuggestions ? "Hinweise sichtbar" : "Optional ergänzen",
+      status: params.isConfirmed ? "active" : "planned",
     },
     {
-      id: "next",
-      title: "Nächste Aktion",
-      lead: params.isConfirmed ? "Bereit" : "Wird danach angeboten",
-      status: params.isConfirmed ? "active" : "upcoming",
+      id: "draft",
+      title: "Entwurf vorbereiten",
+      lead: params.isConfirmed ? "Als Nächstes speichern" : "Danach speichern",
+      status: "planned",
     },
   ];
 }
@@ -887,51 +870,6 @@ function resolveCoreClaim(params: {
   return params.fallback;
 }
 
-function resolveCorePreviewTitle(params: {
-  result: CreateIntelligentFollowupResult;
-  fallbackLabel: string;
-}): string {
-  if (params.result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    return "Mehrere kommunale Zielkonflikte priorisieren";
-  }
-  return params.fallbackLabel;
-}
-
-function resolveDefaultOpenQuestion(result: CreateIntelligentFollowupResult, voteQuestions: string[]): string {
-  const plannerQuestion = result.meta?.planner?.plannerOpenQuestions[0] ?? result.meta?.planner?.openQuestions[0] ?? null;
-  if (plannerQuestion) return plannerQuestion;
-  if (result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    return "Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?";
-  }
-  return voteQuestions[0] ?? "Welche Rückfrage ist für die Einordnung noch offen?";
-}
-
-function buildTopNeedPoints(params: {
-  structureBranches: CreateStructureBranch[];
-  statements: CreateIntelligentFollowupResult["understanding"]["statements"];
-  dossierContext?: string;
-  topicCount: number;
-}): TopNeedPoint[] {
-  const preferBranches =
-    params.structureBranches.length > 1 ||
-    params.topicCount > 3 ||
-    params.dossierContext === "Kommunale Prioritäten und Zielkonflikte";
-
-  if (preferBranches && params.structureBranches.length > 0) {
-    return params.structureBranches.slice(0, 3).map((branch) => ({
-      id: branch.id,
-      label: branch.title,
-      detail: branch.need,
-    }));
-  }
-
-  return params.statements.slice(0, 3).map((statement, index) => ({
-    id: statement.id || `statement-${index + 1}`,
-    label: `Bedarfspunkt ${index + 1}`,
-    detail: statement.text,
-  }));
-}
-
 function sortSuggestions(
   suggestions: CreateConnectionSuggestion[],
 ): CreateConnectionSuggestion[] {
@@ -971,13 +909,7 @@ function UserContributionBubble(props: { text: string }) {
       <div className="max-w-3xl min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original oben anzeigen</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200/85 bg-[color-mix(in_oklab,white_72%,rgb(var(--bg))_28%)] px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
-              {props.text}
-            </pre>
-          </details>
+          <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
         </div>
       </div>
     </div>
@@ -998,9 +930,11 @@ function AssistantUnderstandingBubble(props: {
 }) {
   return (
     <div className="create-chat-message flex gap-3">
-      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
+      <div className="mt-1 shrink-0">
+        <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+      </div>
       <div className="max-w-5xl min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
           <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{props.headline}</p>
@@ -1710,19 +1644,28 @@ function WorkspaceMetricRail(props: {
 }) {
   return (
     <div
+      data-create-structure-rail
       data-create-workspace-kpis
-      className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+      className="overflow-x-auto rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
     >
-      {props.items.map((item) => (
-        <article
-          key={item.label}
-          className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-3 py-3 dark:border-[rgb(var(--border))]"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{item.label}</p>
-          <p className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{item.value}</p>
-          <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
-        </article>
-      ))}
+      <div className="flex min-w-max flex-wrap items-center gap-2">
+        {props.items.map((item, index) => (
+          <React.Fragment key={item.label}>
+            <article className="rounded-full border border-slate-200/75 bg-[rgb(var(--bg))] px-3 py-2 dark:border-[rgb(var(--border))]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                {item.label}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{item.value}</p>
+              <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+            </article>
+            {index < props.items.length - 1 ? (
+              <span className="text-sm text-[rgb(var(--muted))]" aria-hidden="true">
+                ·
+              </span>
+            ) : null}
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1736,35 +1679,39 @@ function TopicBranchPreviewGrid(props: {
   return (
     <div
       data-create-topic-branches
-      className="space-y-3 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+      className="space-y-4 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Erkannte Themenäste</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
-            {props.rootTopic}
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Erkannte Themenzweige</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{props.branches.length} Hauptthemen identifiziert</p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
-          {props.branches.length} sichtbar
+          vom Ursprung aus
         </span>
       </div>
+      <div className="flex items-center gap-3 text-sm text-[rgb(var(--muted))]">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-50">
+          1
+        </span>
+        <div>
+          <p className="font-semibold text-[rgb(var(--fg))]">{props.rootTopic}</p>
+          <p className="text-xs leading-relaxed">Themen können zusammenbleiben oder getrennt weitergeführt werden.</p>
+        </div>
+      </div>
       <div className="grid gap-3 lg:grid-cols-3">
-        {props.branches.map((branch) => (
+        {props.branches.slice(0, 3).map((branch, index) => (
           <article
             key={branch.id}
-            className="rounded-[22px] border border-cyan-200/45 bg-cyan-500/[0.05] px-3 py-3 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
+            data-create-topic-branch-card=""
+            className="rounded-[22px] border border-cyan-200/45 bg-cyan-500/[0.05] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-cyan-300/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-900 dark:text-cyan-100">
-                Themenast
-              </span>
-              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-0.5 text-[10px] font-semibold text-[rgb(var(--muted))]">
-                {Math.max(1, branch.topicTags.length)} Schwerpunkte
-              </span>
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-900 dark:text-cyan-100">
+              <span className="rounded-full border border-cyan-300/40 px-2 py-0.5">Themenzweig</span>
+              <span className="text-[rgb(var(--muted))]">{branch.claims.length || 1} Aussagen</span>
             </div>
             <p className="mt-3 text-base font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{branch.need}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{branch.need || branch.claims[0] || "Dieser Zweig bleibt als eigenständiger Arbeitsstrang sichtbar."}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {branch.topicTags.slice(0, 3).map((topic) => (
                 <span
@@ -1775,11 +1722,85 @@ function TopicBranchPreviewGrid(props: {
                 </span>
               ))}
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-[rgb(var(--muted))]">
-              {branch.voteQuestions[0] ?? "Der nächste Schritt bleibt bewusst gewählt und wird nicht automatisch ausgelöst."}
-            </p>
+            <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+              <p className="font-semibold text-[rgb(var(--fg))]">Empfohlene Aktion</p>
+              <p className="mt-1">{index === 0 ? "Hauptthema wählen" : "Als Zweig parken"}</p>
+            </div>
           </article>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function OpenQuestionCards(props: { questions: string[] }) {
+  if (props.questions.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Fragen</p>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {props.questions.slice(0, 5).map((question) => (
+          <article
+            key={question}
+            className="rounded-[20px] border border-amber-200/70 bg-amber-500/[0.08] px-4 py-3 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50"
+          >
+            {question}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SourceHintsAndNextStepsGrid(props: {
+  modules: CreateFollowupContentModule[];
+  nextStepTitles: string[];
+}) {
+  const sourceHints = props.modules
+    .filter((module) => module.tone === "source" || module.tone === "context" || module.tone === "stats")
+    .slice(0, 3);
+  const nextSteps = props.nextStepTitles.slice(0, 4);
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <div className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Quellen & Hinweise</p>
+        <div className="mt-3 space-y-2">
+          {sourceHints.length > 0 ? (
+            sourceHints.map((module) => (
+              <article
+                key={module.id}
+                className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+              >
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{module.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{module.lead}</p>
+              </article>
+            ))
+          ) : (
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+              Zusätzliche Quellen bleiben optional und werden erst nach deiner Auswahl ergänzt.
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="rounded-[22px] border border-slate-200/75 bg-[rgb(var(--bg))] px-4 py-4 dark:border-[rgb(var(--border))]">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene nächste Schritte</p>
+        <ol className="mt-3 space-y-2">
+          {nextSteps.length > 0 ? (
+            nextSteps.map((step, index) => (
+              <li
+                key={`${step}-${index}`}
+                className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+              >
+                {step}
+              </li>
+            ))
+          ) : (
+            <li className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+              Hauptthema wählen und danach den Entwurf bewusst weiterführen.
+            </li>
+          )}
+        </ol>
       </div>
     </div>
   );
@@ -2185,58 +2206,6 @@ function StructuredWorkstateBlock(props: {
   );
 }
 
-function CompactPreviewCard(props: {
-  title: string;
-  lead: string;
-  body: React.ReactNode;
-  tone?: "topic" | "core" | "question";
-}) {
-  const toneClass =
-    props.tone === "core"
-      ? "border-cyan-200/55 bg-cyan-500/[0.08] dark:border-cyan-300/20"
-      : props.tone === "question"
-        ? "border-amber-200/60 bg-amber-500/[0.08] dark:border-amber-300/20"
-        : "border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:border-[rgb(var(--border))]";
-  return (
-    <article className={`rounded-[24px] border px-4 py-4 ${toneClass}`}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.lead}</p>
-      <p className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">{props.title}</p>
-      <div className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.body}</div>
-    </article>
-  );
-}
-
-function TopNeedPointList(props: { items: TopNeedPoint[]; topicLabels: string[] }) {
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-          Erkannte Bedarfspunkte
-        </p>
-        {props.topicLabels.slice(0, 4).map((label) => (
-          <span
-            key={`need-topic-${label}`}
-            className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {props.items.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
-          >
-            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{item.label}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function PlaceClarificationPanel(props: {
   question: string;
   privacyHint?: string;
@@ -2284,63 +2253,10 @@ function PlaceClarificationPanel(props: {
   );
 }
 
-function MobileDetailList(props: {
-  summary: string;
-  rootTopic: string;
-  topicLabels: string[];
-  stanceLabel: string;
-  scopeLabel: string;
-  openQuestion: string;
-  nextStepTitles: string[];
-}) {
-  const detailRows = [
-    {
-      label: "Kurzfassung",
-      value: props.summary,
-    },
-    {
-      label: "Themen",
-      value: props.topicLabels.length > 0 ? toSentenceList(props.topicLabels.slice(0, 4)) : props.rootTopic,
-    },
-    {
-      label: "Haltung & Ebene",
-      value: `${props.stanceLabel} · ${props.scopeLabel}`,
-    },
-    {
-      label: "Nächster Schritt",
-      value: props.nextStepTitles[0] ?? props.openQuestion,
-    },
-  ];
-
-  return (
-    <div
-      data-mobile-compact-details
-      className="space-y-3 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
-    >
-      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kompakte Details</p>
-      <div className="space-y-2">
-        {detailRows.map((row) => (
-          <div
-            key={row.label}
-            className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-              {row.label}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{row.value}</p>
-          </div>
-        ))}
-      </div>
-      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-        Signalbild, Status, Sinnabschnitte und Lesemodus bleiben auf Mobile bewusst hinter dem Detail-Tap reduziert.
-      </p>
-    </div>
-  );
-}
-
 function StructureProposalPanel(props: {
   onConfirm: () => void;
   onEdit: () => void;
+  onStartOptionalService: () => void;
   onPrepareSubmission: () => void;
   onRequestEditorialReview: () => void;
   reviewRequestState: CreateReviewRequestState;
@@ -2353,24 +2269,29 @@ function StructureProposalPanel(props: {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
           <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Halte alles kurz und steuerbar: als Entwurf weiterführen, korrigieren oder bewusst in den tieferen Themenpfad wechseln.
+            Halte alles kurz und steuerbar: Hauptthema festlegen, den Beitrag weiterentwickeln, Quellen ergänzen oder den Entwurf bewusst speichern.
           </p>
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[32rem]">
             <button
               type="button"
               className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-              onClick={props.onPrepareSubmission}
+              onClick={props.onConfirm}
             >
-              Direkt Entwurf
+              Hauptthema wählen
             </button>
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
-              Tiefer prüfen
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
+              Beitrag weiterentwickeln
             </button>
-            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
-              Ändern
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onStartOptionalService}>
+              Quellen ergänzen
             </button>
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
+              Entwurf speichern
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
@@ -2438,7 +2359,20 @@ function PlannerClarificationPanel(props: {
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.onEdit}
+        >
+          Beitrag weiterentwickeln
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
+          Entwurf speichern
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+          Thema selbst wählen
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           onClick={props.onRetryPlanner}
           disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
           aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
@@ -2446,12 +2380,6 @@ function PlannerClarificationPanel(props: {
           {props.isRetryPlannerPending
             ? "Einordnung wird erneut versucht …"
             : "Einordnung erneut versuchen"}
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
-          Thema selbst wählen
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareSubmission}>
-          Beitrag als Entwurf weiter vorbereiten
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
@@ -2513,10 +2441,9 @@ function NextStepPanel(props: {
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              "Zusammen lassen",
-              "Aufteilen",
               "Schwerpunkt wählen",
-              "Nebenthema parken",
+              "Zusammen lassen",
+              "Als Zweig parken",
               "An Debatte anknüpfen",
               "Dossier prüfen",
               "Beteiligung vorbereiten",
@@ -2533,16 +2460,16 @@ function NextStepPanel(props: {
             <button
               type="button"
               className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-              onClick={props.onDeepenAllTopics}
+              onClick={() => props.onDeepenTopic(props.multiTopicActionTopics[0] ?? "")}
             >
-              Zusammen lassen
+              Hauptthema wählen
             </button>
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onOpenDossierCreate}
+              onClick={props.onContinueInAccount}
             >
-              Dossier prüfen
+              Als Zweig parken
             </button>
             <button
               type="button"
@@ -2564,13 +2491,6 @@ function NextStepPanel(props: {
               onClick={props.onPrepareAnlassraum}
             >
               An Debatte anknüpfen
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onContinueInAccount}
-            >
-              Nebenthema parken
             </button>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
@@ -2603,25 +2523,42 @@ function NextStepPanel(props: {
           </div>
         </div>
       ) : null}
-      <button
-        type="button"
-        className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm"
-        onClick={props.onPrepareSubmission}
-      >
-        Direkt Entwurf
-      </button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.showMultiTopicActionPanel ? () => props.onDeepenTopic(props.multiTopicActionTopics[0] ?? "") : props.onContinueInAccount}
+        >
+          Hauptthema wählen
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onContinueInAccount}>
+          Beitrag weiterentwickeln
+        </button>
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.onStartOptionalService}
+          aria-label="Quellen ergänzen"
+          title="Quellen ergänzen"
+        >
+          Quellen ergänzen
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
+          Entwurf speichern
+        </button>
+      </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierAppend}>
-          Als Ergänzung anhängen
+          Anschluss prüfen
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierCreate}>
-          Neues Dossier vorbereiten
+          Dossier prüfen
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareVote}>
-          QR-/Live-Kontext vorbereiten
+          Beteiligung vorbereiten
         </button>
         <button
           type="button"
@@ -2633,18 +2570,6 @@ function NextStepPanel(props: {
           title="Redaktionelle Prüfung anfragen"
         >
           Redaktionell prüfen lassen
-        </button>
-        <button
-          type="button"
-          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-          onClick={props.onStartOptionalService}
-          aria-label="Quelle prüfen"
-          title="Quelle prüfen"
-        >
-          Quelle prüfen
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
-          Nur speichern
         </button>
       </div>
       <p className="text-xs leading-relaxed text-slate-400">
@@ -2885,35 +2810,6 @@ export default function CreateVisualFollowup({
           "Bitte nenne Ort, Bezirk oder Kommune nur so genau wie nötig. Private Wohnadressen werden nicht öffentlich übernommen.",
       }
     : null;
-  const openQuestionText =
-    placeClarification?.question ??
-    result.understanding.openQuestion?.trim() ??
-    resolveDefaultOpenQuestion(result, voteQuestions);
-  const openQuestionDetail = placeClarification
-    ? openQuestionText
-    : result.meta?.planner?.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards"
-      ? "Offen bleibt, welche Produkte, Länder, Standards und Kontrollmechanismen konkret gemeint sind."
-      : result.meta?.planner?.plannerTopic === "Gleichberechtigung, Antidiskriminierung und Quotenregelungen"
-        ? "Offen bleibt vor allem, welche Quotenform, welche Vergleichsgruppen und welches Format als nächster Schritt gemeint sind."
-        : result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte"
-          ? "Welche Bereiche sollen zuerst bearbeitet werden – und was braucht noch Klärung?"
-          : "Diese Rückfrage bleibt vor der weiteren Vorbereitung sichtbar.";
-  const visibleTopicLabels = topicLabels.filter((label) => label !== rootTopic).slice(0, 4);
-  const understandingKindLabel = resolveUnderstandingKindLabel(result);
-  const corePreviewTitle = resolveCorePreviewTitle({
-    result,
-    fallbackLabel: understandingKindLabel,
-  });
-  const topNeedPoints = React.useMemo(
-    () =>
-      buildTopNeedPoints({
-        structureBranches,
-        statements: result.understanding.statements,
-        dossierContext: result.understanding.dossierContext,
-        topicCount: topicLabels.length,
-      }),
-    [result.understanding.dossierContext, result.understanding.statements, structureBranches, topicLabels.length],
-  );
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
   const followupStages = React.useMemo(
     () =>
@@ -2942,11 +2838,24 @@ export default function CreateVisualFollowup({
       },
       {
         label: "Nächster Schritt",
-        value: isConfirmed ? "bereit" : "offen",
+        value: plannerClarificationRequired
+          ? "Thema selbst wählen"
+          : showMultiTopicActionPanel
+            ? "Hauptthema wählen"
+            : isConfirmed
+              ? "Entwurf speichern"
+              : "Beitrag weiterentwickeln",
         detail: "Nur nach bewusster Entscheidung",
       },
     ],
-    [isConfirmed, structureBranches.length, topicLabels.length, voteQuestions.length],
+    [
+      isConfirmed,
+      plannerClarificationRequired,
+      showMultiTopicActionPanel,
+      structureBranches.length,
+      topicLabels.length,
+      voteQuestions.length,
+    ],
   );
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
@@ -3124,37 +3033,32 @@ export default function CreateVisualFollowup({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)] lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,24rem)]">
         <div className="space-y-4">
           <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                {plannerClarificationRequired
-                  ? plannerTechnicalFallback
-                    ? "Automatische Einordnung"
-                    : "Einordnung offen"
-                  : plannerUsesProvisionalStructure
-                    ? "Vorläufige Einordnung"
-                    : "Verstanden"}
-              </p>
-              <p className="text-lg font-semibold text-[rgb(var(--fg))]">
-                {plannerClarificationRequired
-                  ? plannerTechnicalFallback
-                    ? "Automatische Einordnung nicht abgeschlossen"
-                    : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
-                  : plannerUsesProvisionalStructure
-                    ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
-                    : CREATE_VISUAL_FOLLOWUP_COPY.headline}
-              </p>
-              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
-                {plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
-              </p>
-              {showAssistantLeadText && !plannerClarificationRequired ? (
-                <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{assistantLead}</p>
-              ) : null}
-              {plannerClarificationRequired ? (
-                <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerClarificationReason}</p>
-              ) : null}
-              {plannerUsesProvisionalStructure ? (
-                <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerProvisionalNotice}</p>
-              ) : null}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                    Dein KI-Assistent
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+                    {plannerClarificationRequired
+                      ? plannerTechnicalFallback
+                        ? "Automatische Einordnung nicht abgeschlossen"
+                        : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                      : plannerUsesProvisionalStructure
+                        ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
+                        : "Chat-Arbeitsstand für deinen Beitrag"}
+                  </p>
+                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+                    {plannerClarificationRequired
+                      ? plannerClarificationReason
+                      : "Ich halte Eingabe, Themenzweige, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
+                Noch nicht veröffentlicht
+              </span>
             </div>
 
             {actionNotice ? (
@@ -3163,63 +3067,68 @@ export default function CreateVisualFollowup({
               </p>
             ) : null}
 
-            {!plannerClarificationRequired ? (
-              <div className="mt-4 space-y-4">
-                <WorkspaceStageRail stages={followupStages} />
-                <WorkspaceMetricRail items={workspaceMetrics} />
-                <TopicBranchPreviewGrid rootTopic={rootTopic} branches={structureBranches} />
-              </div>
-            ) : null}
+            <div className="mt-4 space-y-4">
+              <WorkspaceStageRail stages={followupStages} />
+              <WorkspaceMetricRail items={workspaceMetrics} />
+            </div>
 
-            {!plannerClarificationRequired ? (
-              <>
-                <div className="mt-4 grid gap-2 md:grid-cols-3">
-                  <CompactPreviewCard
-                    lead="Kern"
-                    title={corePreviewTitle}
-                    tone="core"
-                    body={<p>{dedupedCopy.prominentCoreClaim}</p>}
-                  />
-                  <CompactPreviewCard
-                    lead="Thema"
-                    title={rootTopic}
-                    tone="topic"
-                    body={
-                      visibleTopicLabels.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {visibleTopicLabels.map((label) => (
-                            <span
-                              key={`topic-preview-${label}`}
-                              className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
-                            >
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p>{dedupedCopy.prominentSummary}</p>
-                      )
-                    }
-                  />
-                  <CompactPreviewCard
-                    lead="Noch offen"
-                    title={placeClarification ? "Um welchen Ort geht es?" : openQuestionText}
-                    tone="question"
-                    body={<p>{openQuestionDetail}</p>}
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <TopNeedPointList items={topNeedPoints} topicLabels={topicLabels} />
-                </div>
-              </>
-            ) : null}
+            <div
+              data-create-chat-thread
+              className="create-chat-spine relative mt-5 min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
+            >
+              <UserContributionBubble text={dedupedCopy.userBubbleText} />
+              <AssistantUnderstandingBubble
+                eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
+                headline={
+                  plannerClarificationRequired
+                    ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                    : CREATE_VISUAL_FOLLOWUP_COPY.headline
+                }
+                summary={plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
+                assistantLead={assistantLead}
+                coreClaim={dedupedCopy.prominentCoreClaim}
+                showCoreBlock={showCoreBlock && !plannerClarificationRequired}
+                showAssistantLead={showAssistantLeadText && !plannerClarificationRequired}
+                stanceLabel={resolveStanceLead(dominantStance)}
+                scopeLabel={resolveScopeLabel(scopeChip)}
+              >
+                {plannerUsesProvisionalStructure ? (
+                  <p className="mt-3 text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+                    {plannerProvisionalNotice}
+                  </p>
+                ) : null}
+                {plannerClarificationRequired ? (
+                  <div className="mt-4 space-y-3">
+                    <SecondaryFollowupNote>{plannerClarificationDetails ?? "Du kannst jetzt selbst wählen, wie du weitermachen willst."}</SecondaryFollowupNote>
+                    {degradedStartPoints.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {degradedStartPoints.map((label) => (
+                          <span
+                            key={`degraded-start-${label}`}
+                            className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-5 space-y-4">
+                    <TopicBranchPreviewGrid rootTopic={rootTopic} branches={structureBranches} />
+                    <OpenQuestionCards questions={voteQuestions} />
+                    <SourceHintsAndNextStepsGrid modules={contentModules} nextStepTitles={nextStepTitles} />
+                  </div>
+                )}
+              </AssistantUnderstandingBubble>
+            </div>
 
             {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
               <div className="mt-4">
                 <StructureProposalPanel
                   onConfirm={onConfirm}
                   onEdit={() => openCorrection("Thema")}
+                  onStartOptionalService={onStartOptionalService}
                   onPrepareSubmission={onPrepareSubmission}
                   onRequestEditorialReview={onRequestEditorialReview}
                   reviewRequestState={reviewRequestState}
@@ -3259,26 +3168,24 @@ export default function CreateVisualFollowup({
           ) : null}
 
           {isConfirmed && !plannerClarificationRequired ? (
-            <div className="lg:hidden">
-                <NextStepPanel
-                  multiTopicActionTopics={multiTopicActionTopics}
-                  showMultiTopicActionPanel={showMultiTopicActionPanel}
-                  onDeepenAllTopics={onDeepenAllTopics}
-                  onDeepenTopic={onDeepenTopic}
-                  onContinueInAccount={onContinueInAccount}
-                  onPrepareSubmission={onPrepareSubmission}
-                  onPrepareAnlassraum={onPrepareAnlassraum}
-                  onOpenDossierAppend={onOpenDossierAppend}
-                  onOpenDossierCreate={onOpenDossierCreate}
-                  onPrepareVote={onPrepareVote}
-                  onRequestEditorialReview={onRequestEditorialReview}
-                  onStartOptionalService={onStartOptionalService}
-                  onSaveOnly={onSaveOnly}
-                  reviewRequestState={reviewRequestState}
-                  reviewRequestMessage={reviewRequestMessage}
-                  factcheckMessage={factcheckMessage}
-              />
-            </div>
+            <NextStepPanel
+              multiTopicActionTopics={multiTopicActionTopics}
+              showMultiTopicActionPanel={showMultiTopicActionPanel}
+              onDeepenAllTopics={onDeepenAllTopics}
+              onDeepenTopic={onDeepenTopic}
+              onContinueInAccount={onContinueInAccount}
+              onPrepareSubmission={onPrepareSubmission}
+              onPrepareAnlassraum={onPrepareAnlassraum}
+              onOpenDossierAppend={onOpenDossierAppend}
+              onOpenDossierCreate={onOpenDossierCreate}
+              onPrepareVote={onPrepareVote}
+              onRequestEditorialReview={onRequestEditorialReview}
+              onStartOptionalService={onStartOptionalService}
+              onSaveOnly={onSaveOnly}
+              reviewRequestState={reviewRequestState}
+              reviewRequestMessage={reviewRequestMessage}
+              factcheckMessage={factcheckMessage}
+            />
           ) : null}
 
           {showCorrectionComposer && !placeClarification ? (
@@ -3336,170 +3243,111 @@ export default function CreateVisualFollowup({
                     ) : null}
                   </div>
                 ) : (
-                  <>
-                    <div className="lg:hidden">
-                      <MobileDetailList
-                        summary={dedupedCopy.prominentSummary}
-                        rootTopic={rootTopic}
-                        topicLabels={topicLabels}
-                        stanceLabel={resolveStanceLead(dominantStance)}
-                        scopeLabel={resolveScopeLabel(scopeChip)}
-                        openQuestion={openQuestionText}
-                        nextStepTitles={nextStepTitles}
-                      />
-                    </div>
-                    <div className="hidden lg:block">
-                      <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
-                        <UserContributionBubble text={dedupedCopy.userBubbleText} />
-                        <AssistantUnderstandingBubble
-                          eyebrow={CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}
-                          headline={CREATE_VISUAL_FOLLOWUP_COPY.headline}
-                          summary={dedupedCopy.prominentSummary}
-                          assistantLead={assistantLead}
-                          coreClaim={dedupedCopy.prominentCoreClaim}
-                          showCoreBlock={showCoreBlock}
-                          showAssistantLead={showAssistantLeadText}
-                          stanceLabel={resolveStanceLead(dominantStance)}
-                          scopeLabel={resolveScopeLabel(scopeChip)}
-                        >
-                          <div className="mt-4 rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-                            Desktop zeigt hier bewusst mehr Arbeitskontext. Auf Mobile bleibt dieser Bereich hinter Details verborgen.
-                          </div>
-                        </AssistantUnderstandingBubble>
-                      </div>
-                      <StructuredWorkstateBlock
-                        rootTopic={rootTopic}
-                        topicLabels={topicLabels}
-                        positionClusters={positionClusters}
-                        voteQuestions={voteQuestions}
-                        keyStatement={dedupedCopy.prominentCoreClaim}
-                        structureBranches={structureBranches}
-                        sortedSuggestions={sortedSuggestions}
-                        isConfirmed={isConfirmed}
-                        onEdit={openCorrection}
-                        resultChangeKey={resultChangeKey}
-                        sections={sections}
-                        modules={contentModules}
-                      />
-                    </div>
-                  </>
+                  <StructuredWorkstateBlock
+                    rootTopic={rootTopic}
+                    topicLabels={topicLabels}
+                    positionClusters={positionClusters}
+                    voteQuestions={voteQuestions}
+                    keyStatement={dedupedCopy.prominentCoreClaim}
+                    structureBranches={structureBranches}
+                    sortedSuggestions={sortedSuggestions}
+                    isConfirmed={isConfirmed}
+                    onEdit={openCorrection}
+                    resultChangeKey={resultChangeKey}
+                    sections={sections}
+                    modules={contentModules}
+                  />
                 )}
-              </div>
-            ) : null}
+                <div className="space-y-3">
+                  <div
+                    className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]"
+                    data-dialog-runtime-status={dialogIntelligenceUiSource.kind}
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+                      Dialog Intelligence
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
+                      {dialogIntelligenceUiSource.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                      {dialogIntelligenceUiSource.detail}
+                    </p>
+                  </div>
 
-            <div className="space-y-3">
-              <div
-                className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-3 dark:border-[rgb(var(--border))]"
-                data-dialog-runtime-status={dialogIntelligenceUiSource.kind}
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-                  Dialog-Status
-                </p>
-                <p className="mt-2 text-sm font-medium text-[rgb(var(--fg))]">
-                  {dialogIntelligenceUiSource.title}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                  {dialogIntelligenceUiSource.detail}
-                </p>
-              </div>
+                  <DialogResultsHandoffPanel
+                    outcome={dialogOutcomePreview}
+                    onConfirmStandpoint={onConfirm}
+                    onSelectHandoff={prepareDialogHandoffDraft}
+                    onSelectBranch={prepareDialogBranchDraft}
+                  />
+                </div>
 
-              <DialogResultsHandoffPanel
-                outcome={dialogOutcomePreview}
-                onConfirmStandpoint={onConfirm}
-                onSelectHandoff={prepareDialogHandoffDraft}
-                onSelectBranch={prepareDialogBranchDraft}
-              />
-            </div>
+                <div className="mt-4">
+                  <ExistingTopicMatchesPanel
+                    model={existingTopicMatchesModel}
+                    onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
+                    onCountSimilarOpinion={(matchId) =>
+                      prepareExistingMatchDraft(matchId, "opinion_count")
+                    }
+                    onPrepareReview={(matchId) => prepareExistingMatchDraft(matchId)}
+                    onStartNewBranch={prepareNewBranchDraft}
+                  />
+                </div>
 
-            <div className="mt-4">
-              <ExistingTopicMatchesPanel
-                model={existingTopicMatchesModel}
-                onSelectMatch={(matchId) => prepareExistingMatchDraft(matchId)}
-                onCountSimilarOpinion={(matchId) =>
-                  prepareExistingMatchDraft(matchId, "opinion_count")
-                }
-                onPrepareReview={(matchId) => prepareExistingMatchDraft(matchId)}
-                onStartNewBranch={prepareNewBranchDraft}
-              />
-            </div>
-
-            {primaryTopicDeduplicationCandidate ? (
-              <div className="mt-4 rounded-[24px] border border-amber-300/35 bg-amber-500/[0.08] px-4 py-4 text-sm dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950 dark:text-amber-100">
-                  Mögliche Dopplung erkannt
-                </p>
-                <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
-                  {primaryTopicDeduplicationCandidate.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
-                  Ähnliche Beiträge können redaktionell zusammengeführt oder getrennt gehalten werden.
-                  Es wurde noch nichts automatisch zusammengeführt.
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                  {primaryTopicDeduplicationCandidate.summary}
-                </p>
-                {primaryTopicDeduplicationState ? (
-                  <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
-                    {primaryTopicDeduplicationState}
-                  </p>
+                {primaryTopicDeduplicationCandidate ? (
+                  <div className="mt-4 rounded-[24px] border border-amber-300/35 bg-amber-500/[0.08] px-4 py-4 text-sm dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950 dark:text-amber-100">
+                      Mögliche Dopplung erkannt
+                    </p>
+                    <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">
+                      {primaryTopicDeduplicationCandidate.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                      Ähnliche Beiträge können redaktionell zusammengeführt oder getrennt gehalten werden.
+                      Es wurde noch nichts automatisch zusammengeführt.
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                      {primaryTopicDeduplicationCandidate.summary}
+                    </p>
+                    {primaryTopicDeduplicationState ? (
+                      <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                        {primaryTopicDeduplicationState}
+                      </p>
+                    ) : null}
+                    {primaryTopicGraphMutationState ? (
+                      <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                        {primaryTopicGraphMutationState}
+                      </p>
+                    ) : null}
+                    {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={prepareTopicDeduplicationDraft}
+                          className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/[0.14] px-3 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-500/[0.2] dark:border-amber-300/30 dark:bg-amber-500/[0.18] dark:text-amber-50"
+                        >
+                          Mögliche Zusammenführung prüfen
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
-                {primaryTopicGraphMutationState ? (
-                  <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
-                    {primaryTopicGraphMutationState}
-                  </p>
-                ) : null}
-                {canQueueTopicDeduplicationReview(primaryTopicDeduplicationCandidate) ? (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      onClick={prepareTopicDeduplicationDraft}
-                      className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/[0.14] px-3 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-500/[0.2] dark:border-amber-300/30 dark:bg-amber-500/[0.18] dark:text-amber-50"
-                    >
-                      Mögliche Zusammenführung prüfen
-                    </button>
+
+                {preparedHandoffDraft ? (
+                  <div className="mt-4">
+                    <CreateHandoffDraftSummary
+                      draft={preparedHandoffDraft}
+                      reviewQueueItem={preparedReviewQueueItem}
+                      onQueueForReview={queuePreparedHandoffDraftForReview}
+                      runtimeSubmissionState={reviewQueueRuntimeState}
+                      runtimeSubmissionMessage={reviewQueueRuntimeMessage}
+                    />
                   </div>
                 ) : null}
               </div>
             ) : null}
-
-            {preparedHandoffDraft ? (
-              <div className="mt-4">
-                <CreateHandoffDraftSummary
-                  draft={preparedHandoffDraft}
-                  reviewQueueItem={preparedReviewQueueItem}
-                  onQueueForReview={queuePreparedHandoffDraftForReview}
-                  runtimeSubmissionState={reviewQueueRuntimeState}
-                  runtimeSubmissionMessage={reviewQueueRuntimeMessage}
-                />
-              </div>
-            ) : null}
           </div>
         </div>
-
-        {isConfirmed && !plannerClarificationRequired ? (
-          <aside className="hidden lg:block lg:space-y-4">
-            <div className="lg:sticky lg:top-4">
-                <NextStepPanel
-                  multiTopicActionTopics={multiTopicActionTopics}
-                  showMultiTopicActionPanel={showMultiTopicActionPanel}
-                  onDeepenAllTopics={onDeepenAllTopics}
-                  onDeepenTopic={onDeepenTopic}
-                  onContinueInAccount={onContinueInAccount}
-                  onPrepareSubmission={onPrepareSubmission}
-                  onPrepareAnlassraum={onPrepareAnlassraum}
-                  onOpenDossierAppend={onOpenDossierAppend}
-                  onOpenDossierCreate={onOpenDossierCreate}
-                onPrepareVote={onPrepareVote}
-                onRequestEditorialReview={onRequestEditorialReview}
-                onStartOptionalService={onStartOptionalService}
-                onSaveOnly={onSaveOnly}
-                reviewRequestState={reviewRequestState}
-                reviewRequestMessage={reviewRequestMessage}
-                factcheckMessage={factcheckMessage}
-              />
-            </div>
-          </aside>
-        ) : null}
       </div>
     </section>
   );

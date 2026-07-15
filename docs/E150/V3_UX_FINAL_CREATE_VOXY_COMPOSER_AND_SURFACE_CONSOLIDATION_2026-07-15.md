@@ -9,7 +9,7 @@
 
 ## Ziel
 
-`/create` soll wie ein moderner Voxy-Composer wirken: kurz beim Einstieg, chat-nativ im Fokus und zugleich tief genug fuer Themen-Erkennung, Mehrthemen-Steuerung, Anschluss an Debatten/Dossiers/Beteiligung und review-first Guardrails.
+`/create` soll wie ein moderner chat-nativer Workspace wirken: kurzer Einstieg, danach sofort sichtbarer Arbeitsdialog statt Formular + Analysewand, mit klarer Themenwahl, sichtbaren Themenaesten und deep-on-demand Transparenz.
 
 Leitsatz:
 
@@ -18,8 +18,9 @@ Leitsatz:
 ## Eingangsquellen
 
 - `AGENTS.md`
-- `.codex/prompts/lean-continuous-slice-runner.md`
+- `.codex/prompts/v3-ux-target-voxy-chat-workspace-remediation.md`
 - `docs/E150/OpenTasks.md`
+- `docs/E150/V3_UX_TARGET_VOXY_CHAT_WORKSPACE_REFERENCE_2026-07-15.md`
 - `docs/E150/V3_PREVIEW_SMOKE_RESULTS_AFTER_AGENTIC_2026-07-14.md`
 - `docs/E150/V3_PREVIEW_SMOKE_RESULTS_2026-07-13.md`
 - `docs/E150/V3_AGENTIC_CIVIC_E2E_PILOT_2026-07-14.md`
@@ -29,106 +30,98 @@ Leitsatz:
 
 ## Umgesetzte Konsolidierung
 
-### Update innerhalb von PR #391
+### Remediation innerhalb von PR #391
 
-Die erste Konsolidierung wurde im bestehenden PR-Branch weitergezogen, ohne neuen Task und ohne neuen PR:
+Der erste Stand von PR `#391` blieb visuell zu nah an Formular + Analysewand. Diese Remediation zieht denselben PR gezielt auf das dokumentierte Zielbild nach, ohne neuen Task und ohne neuen PR:
 
-- `/create` ist jetzt staerker als zentraler Voxy-Workspace gebuendelt
-- `/runden` und `/themen` teilen sich einen kleinen wiederkehrenden Voxy-Dock statt weiterer grosser Hinweisflaechen
-- die Surface-Sprache bleibt ueber Create, Themen und Runden hinweg konsistent review-first
+- `/create` ist jetzt als klarer Workspace-Dialog statt als lange vertikale Analyseflaeche aufgebaut
+- `/runden` und `/themen` zeigen nur noch einen kleinen Assistant-Dock unten rechts, keinen zentralen Chat
+- die sichtbare Assistenten-Sprache bleibt ueber Create, Themen und Runden hinweg konsistent review-first, ohne das Maskottchen staendig oeffentlich als `Voxy` auszuschreiben
 
-### 1. `/create` ist jetzt klar composer-first
+### 1. `/create` startet kurz und wechselt dann in einen sichtbaren Chat-Workspace
 
 Geaendert:
 
 - `apps/web/src/app/create/CreateClient.tsx`
 - `apps/web/src/features/create/SharedCreateComposer.tsx`
-- `apps/web/src/features/create/FrontendAiTransparencyPanel.tsx`
+- `apps/web/src/features/create/CreateVisualFollowup.tsx`
 
 Ergebnis:
 
-- oberhalb der ersten Eingabe bleiben nur noch kurze Voxy-Fuehrung, wenige Chips und die explizite Safety-Line sichtbar
+- oberhalb der ersten Eingabe bleiben nur noch kurze Assistenz-Fuehrung und die explizite Safety-Line sichtbar
 - Start-Copy:
   - `Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.`
-- sichtbare Chips:
-  - `Beitrag sortieren`
-  - `Frage schärfen`
-  - `Quelle prüfen`
-  - `Direkt Entwurf`
-- Voxy erscheint inline im Composer statt als grosses Seitenfenster
+- die alte obere Chip-Leiste ist aus dem Hauptflow entfernt
+- die Assistenz erscheint inline im Composer statt als grosses Seitenfenster
 - die Textarea bleibt der klare visuelle Hauptanker
-- das Transparenzpanel bleibt erhalten, startet aber kompakt mit `Warum sehe ich das?`
+- das Transparenzpanel bleibt erhalten, steht aber nicht mehr ueber dem eigentlichen Workspace
 
-### 2. Nach dem Start bleibt die Deutung kompakt und steuerbar
+### 2. Nach dem Start zeigt `/create` eine echte Pipeline statt einer Analysewand
 
 Geaendert:
 
 - `apps/web/src/features/create/CreateVisualFollowup.tsx`
-- `apps/web/src/features/create/createSurfaceConfig.ts`
-- `apps/web/src/features/create/ExistingTopicMatchesPanel.tsx`
-- `apps/web/src/features/create/existingTopicMatches.ts`
 
 Ergebnis:
 
-- erste Voxy-Deutung wird kuerzer und dialogischer
-- der Ergebnisbereich traegt den Pilotpfad jetzt direkt im Chat-Kopf:
-  - `Voxy Pilotpfad`
-  - Eingabe -> Einordnung -> Vorschlag -> Bestaetigung -> Naechste Aktion
-- oberhalb der Detailarbeit gibt es jetzt eine kleine KPI-Leiste fuer:
+- der obere Arbeitsfluss ist jetzt eine echte Pipeline:
+  - `Eingabe`
+  - `Verstehen`
+  - `Themen ordnen`
+  - `Quellen prüfen`
+  - `Entwurf vorbereiten`
+- direkt unter dieser Pipeline steht eine kompakte Struktur-Leiste fuer:
   - `Prioritäten`
   - `Themenäste`
   - `Offene Fragen`
   - `Nächster Schritt`
-- erkannte Schwerpunkte erscheinen sofort als sichtbare Themenast-Karten statt erst tiefer im Detailmodus
-- Mehrthemen-Faelle bleiben explizit Nutzerentscheidung
-- sichtbare Folgeaktionen wurden auf steuerbare, review-first Sprache umgestellt:
-  - `Zusammen lassen`
-  - `Aufteilen`
-  - `Schwerpunkt wählen`
-  - `Nebenthema parken`
-  - `An Debatte anknüpfen`
-  - `Dossier prüfen`
-  - `Beteiligung vorbereiten`
+- der eigentliche Dialog erscheint als Chat-Thread:
+  - `Du` zeigt den echten Beitrag direkt als Bubble
+  - `Assistent` zeigt die erste Einordnung als Antwort-Bubble
+- erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
+- der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
+- `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
+- primaere CTAs sind jetzt:
+  - `Hauptthema wählen`
+  - `Beitrag weiterentwickeln`
+  - `Quellen ergänzen`
+  - `Entwurf speichern`
+- Dialog Intelligence, Handoff, Match-Kandidaten und weitere Systemtransparenz bleiben erhalten, liegen aber hinter `Details ansehen`
 - Kandidaten bleiben Kandidaten:
-  - `multi_topic_detected` ist nicht gleich automatische Aufteilung
-  - `dossier_candidate` ist nicht gleich Dossier-Erstellung
-  - `participation_candidate` ist nicht gleich Start
-  - `agent_suggestion` ist nicht gleich Nutzerentscheidung
-- tiefe Anschluss- und Preview-Module bleiben erhalten, sind aber eingeklappt und damit deep-on-demand
+  - Mehrthemen-Erkennung fuehrt nicht zu Auto-Split
+  - Dossier-/Beteiligungs-/Review-Hinweise fuehren nicht zu Auto-Start
+  - Assistenten-Vorschlaege bleiben Nutzerentscheidung
 
-### 3. Landing-, Themen- und Rundenflaechen sprechen dieselbe UX-Sprache
+### 3. `/runden` und `/themen` behalten nur den kleinen Assistant-Dock
 
 Geaendert:
 
-- `apps/web/src/app/start/LandingStart.tsx`
-- `apps/web/src/features/home/HomeSplitVoxyLanding.tsx`
 - `apps/web/src/app/runden/RundenPublicSharingGuide.tsx`
 - `apps/web/src/app/themen/page.tsx`
-- `apps/web/src/app/themen/ThemenStartDraftAssistant.tsx`
+- `apps/web/src/components/voxy/VoxyFloatingDock.tsx`
 
 Ergebnis:
 
-- Landing fuehrt persoenlicher und ruhiger in den Voxy-Composer
-- `/runden` benennt den Einstieg explizit als Voxy-Vorbereitung
-- `/themen` erklaert Anschluss an bestehende Debatten review-first statt als Ja/Nein-Mechanik
-- `/runden` und `/themen` teilen jetzt denselben kleinen Voxy-Dock als wiederkehrende Assistenzschicht:
+- `/runden` und `/themen` behalten keinen zentralen Chat
+- beide Surfaces teilen jetzt denselben kleinen Assistant-Dock als wiederkehrende Assistenzschicht:
   - bottom-right / mobile-bottom angedockt
+  - reduzierte Groesse und visuelle Dominanz
   - kurze Guardrails statt eines zweiten grossen Workspaces
-  - klare CTA in Richtung `/create`, ohne Auto-Publish oder Auto-Split
-- der Uebergang vom Voxy-Entwurf in Themen-/Debattenlogik bleibt bearbeitbar und ohne automatische Zusammenfuehrung
+  - CTA `Chat öffnen` in Richtung `/create`
+- Haupt-CTAs sprechen von `Assistenz` statt von `Voxy`, das Maskottchen bleibt aber als Figur erhalten
+- der Uebergang vom Assistenten-Entwurf in Themen-/Debattenlogik bleibt bearbeitbar und ohne automatische Zusammenfuehrung
 
 ### 4. Contract-Sync fuer die Surface-Wahrheit
 
 Geaendert:
 
-- `apps/web/src/features/voxy/voxyExperienceShellContract.ts`
 - `apps/web/src/components/voxy/VoxyFloatingDock.tsx`
+- `apps/web/src/features/create/SharedCreateComposer.tsx`
 
 Ergebnis:
 
-- `themen` ist jetzt Teil des Voxy-Experience-Shell-Contracts
-- der Surface-Hinweis fuer Themen beschreibt explizit Andocken, Themenzweige und review-first naechste Schritte
-- der neue Floating-Dock bleibt reine UX-Fassade:
+- die sichtbare Assistenten-Sprache wurde in den oeffentlichen Einstiegen zurueckgenommen, ohne das Maskottchen zu entfernen
+- der kleine Floating-Dock bleibt reine UX-Fassade:
   - keine Runtime
   - keine Provider
   - kein Auto-Publish
@@ -150,30 +143,35 @@ Ergebnis:
 
 ## OpenTasks-Sync
 
-- `V3-UX-FINAL-CREATE-VOXY-COMPOSER-AND-SURFACE-CONSOLIDATION-01` in `docs/E150/OpenTasks.md` auf `done` dokumentiert
+- `V3-UX-FINAL-CREATE-VOXY-COMPOSER-AND-SURFACE-CONSOLIDATION-01` bleibt `done`, die Evidence wurde fuer die PR-391-Remediation auf den tatsaechlichen Chat-Workspace-Zustand nachgezogen
 - naechster operativer Schritt bleibt der reale manuelle Preview-Smoke auf den konsolidierten Surfaces
 
 ## Validierung
 
 - `git diff --check`
-- fokussierte Vitest-Suite fuer Create/Landing/Runden/Themen
+- fokussierte Vitest-Suite fuer Create/Runden/Themen
 - `pnpm -C apps/web run lint`
 - `pnpm -C apps/web run build`
 - `pnpm -C apps/web run typecheck`
 
-Die exakten Ergebnisse werden im PR festgehalten.
+Ergebnis dieser Remediation:
+
+- Vitest Lauf 1: `29/29` Tests gruen
+- Vitest Lauf 2: `21/21` Tests gruen
+- Lint: gruen
+- Typecheck: gruen
+- Build: gruen
 
 ## Manuell zu pruefen
 
 - `/create`
-  - composer-first Eindruck
-  - Voxy inline statt Seitenfenster
-  - Pilotpfad, KPI-Rail und Themenaeste direkt im Chat pruefen
-  - Transparenz kompakt und einklappbar
-  - Mehrthemen-Steuerung ohne Auto-Aufteilung
-- `/`
-  - Landing fuehrt logisch und ruhig in den Create-Flow
+  - nicht mehr wie Formular + Analysewand
+  - Pipeline, Struktur-Leiste, Chat-Thread und drei Themenkarten sofort sichtbar
+  - primaere CTA-Hierarchie nach Themenwahl / Weiterentwicklung / Quellen / Speichern
+  - Transparenz und Dialog Intelligence nur sekundär / einklappbar
 - `/runden`
-  - Voxy-Dock bleibt klein, verstaendlich und review-first
-- `/themen` und Dossier-/Debattenanschluesse
-  - Voxy-Dock, Anschluss, Bearbeitbarkeit und Kandidaten-Semantik bleiben klar
+  - kein zentraler Chat
+  - kleiner Assistant-Dock unten rechts
+- `/themen`
+  - kein zentraler Chat
+  - kleiner Assistant-Dock unten rechts

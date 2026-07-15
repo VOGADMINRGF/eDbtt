@@ -2068,49 +2068,6 @@ export default function CreateClient({
     );
   }
 
-  const createEntryPills = [
-    {
-      id: "submit",
-      label: surfaceLocale === "en" ? "Sort contribution" : "Beitrag sortieren",
-      active: productMode === "analyze",
-      onClick: () => {
-        setProductMode("analyze");
-        setActiveContextAnchorId(null);
-        setActionNotice(null);
-      },
-    },
-    {
-      id: "guided",
-      label: surfaceLocale === "en" ? "Sharpen question" : "Frage schärfen",
-      active: productMode === "guided",
-      onClick: () => {
-        setProductMode("guided");
-        setActiveContextAnchorId(null);
-        setActionNotice(
-          surfaceLocale === "en"
-            ? "Voxy keeps guidance optional and review-first."
-            : "Voxy hält die Einordnung optional und review-first.",
-        );
-      },
-    },
-    {
-      id: "review",
-      label: surfaceLocale === "en" ? "Check source" : "Quelle prüfen",
-      active: productMode === "media",
-      onClick: () => {
-        setProductMode("media");
-        setActiveContextAnchorId("source");
-        setActionNotice(null);
-      },
-    },
-    {
-      id: "round",
-      label: surfaceLocale === "en" ? "Direct draft" : "Direkt Entwurf",
-      active: false,
-      onClick: handleOpenExistingAnlassraum,
-    },
-  ] as const;
-
   return (
     <section className="public-canvas vog-page-stage min-h-screen">
       <div className="public-shell vog-main-shell min-h-screen max-w-[84rem] space-y-5 md:space-y-8">
@@ -2145,24 +2102,6 @@ export default function CreateClient({
                           onConfirmFactcheck={confirmFactcheckServiceStart}
                         />
                       </>
-                    ) : null}
-                    {!hasStarted ? (
-                      <div className="flex flex-wrap gap-2">
-                        {createEntryPills.map((pill) => (
-                          <button
-                            key={pill.id}
-                            type="button"
-                            onClick={pill.onClick}
-                            className={`public-soft-pill transition ${
-                              pill.active
-                                ? "border-[rgb(var(--grad-from))]/35 text-[rgb(var(--fg))]"
-                                : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
-                            }`}
-                          >
-                            {pill.label}
-                          </button>
-                        ))}
-                      </div>
                     ) : null}
                     {intakeRestoreInfo ? (
                       <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
@@ -2286,8 +2225,6 @@ export default function CreateClient({
               }
             />
           </div>
-
-          <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
 
           {showTooShortHint ? (
             <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
@@ -2421,6 +2358,8 @@ export default function CreateClient({
               </div>
             </div>
           ) : null}
+
+          <FrontendAiTransparencyPanel model={frontendAiTransparencyModel} />
 
           {showAnalyzeWorkspace ? (
             <div

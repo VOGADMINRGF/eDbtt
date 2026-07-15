@@ -95,10 +95,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain(
       "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
     );
-    expect(html).toContain("Beitrag sortieren");
-    expect(html).toContain("Frage schärfen");
-    expect(html).toContain("Quelle prüfen");
-    expect(html).toContain("Direkt Entwurf");
+    expect(html).toContain("Assistent");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain('data-voxy-inline-guide="true"');
@@ -115,7 +112,7 @@ describe("create entry hierarchy contract", () => {
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
     expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
+    expect(followupSource).toContain("data-create-structure-rail");
     expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
     expect(composerSource).toContain("data-voxy-inline-guide");
     expect(composerSource).toContain("hideAlternateModeDisclosure");
@@ -129,7 +126,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Test stadt");
     expect(html).not.toContain("Checkliste");
     expect(html).not.toContain("Kontingente und Zugriff");
-    expect(html).not.toContain("Weitere Wege");
+    expect(html).not.toContain("Beitrag sortieren");
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
