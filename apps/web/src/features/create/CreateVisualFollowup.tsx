@@ -164,6 +164,7 @@ export type CreateStructureOverviewProps = {
   clustersCount: number;
   questionsCount: number;
   nextStepsCount: number;
+  nextStepLabel?: string;
   showOpenLabels?: boolean;
   onOpenSection?: (section: "priorities" | "clusters" | "questions" | "next_steps") => void;
 };
@@ -1313,22 +1314,22 @@ function CreateStructureOverviewCard(props: {
 }) {
   const content = (
     <div data-mobile-structure-card className="flex items-start gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/45 bg-cyan-500/[0.06] text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-500/10 dark:text-cyan-100">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.15rem] border border-cyan-300/45 bg-cyan-500/[0.06] text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-500/10 dark:text-cyan-100">
         <FocusAreaIcon area={props.area} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-[15px]">{props.title}</p>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
+          <p className="text-base font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
             {props.pillLabel}
           </span>
           {props.unreadLabel ? (
-            <span className="rounded-full border border-cyan-300/45 px-2 py-0.5 text-[10px] font-semibold text-cyan-800 dark:text-cyan-100">
+            <span className="rounded-full border border-cyan-300/45 px-2 py-0.5 text-[11px] font-semibold text-cyan-800 dark:text-cyan-100">
               {props.unreadLabel}
             </span>
           ) : null}
         </div>
-        <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+        <p className="mt-1 text-[15px] leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
       {props.onClick ? (
         <span className="pt-1 text-base text-[rgb(var(--muted))]" aria-hidden="true">
@@ -1339,7 +1340,7 @@ function CreateStructureOverviewCard(props: {
   );
 
   const className =
-    "flex min-h-[5.5rem] items-start rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-4 py-3";
+    "flex min-h-[6rem] items-start rounded-[24px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] px-4 py-3.5";
 
   if (!props.onClick) {
     return <article className={className}>{content}</article>;
@@ -1362,7 +1363,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   return (
     <section data-mobile-structure-overview className="space-y-3 px-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
           {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
         </p>
         <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
@@ -1401,7 +1402,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
         <CreateStructureOverviewCard
           area="next_steps"
           title={isEnglish ? "Next step" : "Nächster Schritt"}
-          description={isEnglish ? "What happens next" : "Als Nächstes entsteht ein klarer Arbeitsschritt."}
+          description={isEnglish ? "What happens next" : props.nextStepLabel ?? "Beitrag prüfen"}
           pillLabel={
             props.nextStepsCount > 0
               ? isEnglish
@@ -1705,20 +1706,22 @@ function TopicBranchPreviewGrid(props: {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Erkannte Themenzweige</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{props.branches.length} Hauptthemen identifiziert</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
+          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+            {props.branches.length} Themen direkt aus deinem Beitrag erkannt
+          </p>
         </div>
-        <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
-          vom Ursprung aus
+        <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+          aus deinem Beitrag erkannt
         </span>
       </div>
       <div className="flex items-center gap-3 text-sm text-[rgb(var(--muted))]">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-50">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-50">
           1
         </span>
         <div>
-          <p className="font-semibold text-[rgb(var(--fg))]">{props.rootTopic}</p>
-          <p className="text-xs leading-relaxed">Themen können zusammenbleiben oder getrennt weitergeführt werden.</p>
+          <p className="text-base font-semibold text-[rgb(var(--fg))]">{props.rootTopic}</p>
+          <p className="text-sm leading-relaxed">Diese Themen können zusammenbleiben oder getrennt weitergeführt werden.</p>
         </div>
       </div>
       <div className="grid gap-3 lg:grid-cols-3">
@@ -1726,14 +1729,19 @@ function TopicBranchPreviewGrid(props: {
           <article
             key={branch.id}
             data-create-topic-branch-card=""
-            className="rounded-[22px] border border-cyan-200/45 bg-cyan-500/[0.05] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
+            className="rounded-[24px] border border-cyan-200/45 bg-cyan-500/[0.05] px-4 py-4 shadow-[0_16px_36px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]"
           >
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-900 dark:text-cyan-100">
-              <span className="rounded-full border border-cyan-300/40 px-2 py-0.5">Themenzweig</span>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
+              <span className="rounded-full border border-cyan-300/40 px-2.5 py-0.5">Thema</span>
+              <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[rgb(var(--muted))]">
+                aus deinem Beitrag erkannt
+              </span>
               <span className="text-[rgb(var(--muted))]">{branch.claims.length || 1} Aussagen</span>
             </div>
-            <p className="mt-3 text-base font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{branch.need || branch.claims[0] || "Dieser Zweig bleibt als eigenständiger Arbeitsstrang sichtbar."}</p>
+            <p className="mt-3 text-lg font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
+              {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {branch.topicTags.slice(0, 3).map((topic) => (
                 <span
@@ -1744,7 +1752,7 @@ function TopicBranchPreviewGrid(props: {
                 </span>
               ))}
             </div>
-            <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+            <div className="mt-4 rounded-2xl border border-slate-200/70 bg-[rgb(var(--bg))] px-3 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
               <p className="font-semibold text-[rgb(var(--fg))]">Empfohlene Aktion</p>
               <p className="mt-1">{index === 0 ? "Hauptthema wählen" : "Als Zweig parken"}</p>
             </div>
@@ -2858,16 +2866,16 @@ export default function CreateVisualFollowup({
   );
   const workspaceMetrics = React.useMemo(
     () => [
-      {
-        label: "Prioritäten",
-        value: String(Math.max(1, Math.min(topicLabels.length, 3))),
-        detail: "Was du zuerst schärfen solltest",
-      },
-      {
-        label: "Themenäste",
-        value: String(Math.max(1, structureBranches.length)),
-        detail: "Sichtbar getrennte Anschlusslinien",
-      },
+        {
+          label: "Prioritäten",
+          value: String(Math.max(1, Math.min(topicLabels.length, 3))),
+          detail: "Was du zuerst schärfen solltest",
+        },
+        {
+          label: "Themen",
+          value: String(Math.max(1, structureBranches.length)),
+          detail: "Sichtbar getrennte Schwerpunkte",
+        },
       {
         label: "Offene Fragen",
         value: String(Math.max(1, voteQuestions.length)),
@@ -3106,7 +3114,7 @@ export default function CreateVisualFollowup({
                       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
                         {plannerClarificationRequired
                           ? plannerClarificationReason
-                          : "Ich halte Eingabe, Themenzweige, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
+                          : "Ich halte Eingabe, Themen, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
                       </p>
                     </div>
                   </div>

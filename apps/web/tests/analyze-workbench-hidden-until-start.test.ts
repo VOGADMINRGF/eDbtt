@@ -319,7 +319,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("data-structure-overview-grid");
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
-    expect(source).toContain("Erkannte Themenzweige");
+    expect(source).toContain("Erkannte Themen");
     expect(source).not.toContain("Details zum Originaltext");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).not.toContain("Was ich nach deiner Bestätigung vorbereiten kann");

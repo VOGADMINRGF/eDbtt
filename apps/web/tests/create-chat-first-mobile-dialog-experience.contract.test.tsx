@@ -357,7 +357,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     const html = renderMultiBranchVisualFollowup();
 
     expect(html).toContain("Chat-Arbeitsstand für deinen Beitrag");
-    expect(html).toContain("Erkannte Themenzweige");
+    expect(html).toContain("Erkannte Themen");
+    expect(html).toContain("aus deinem Beitrag erkannt");
     expect(html).toContain("Wohnen und Genehmigungen");
     expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
     expect(html).toContain("Quellen &amp; Hinweise");
@@ -369,7 +370,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("data-create-workspace-kpis");
     expect(html).toContain("data-create-topic-branches");
     expect(html).toContain("Voxy Pilotpfad");
-    expect(html).toContain("Themenzweig");
+    expect(html).toContain("Thema");
+    expect(html).not.toContain("Themenzweig");
     expect(html).toContain("Details ansehen");
     expect(html).not.toContain("Korrektur oder Ergänzung");
     expect(html).not.toContain("Original oben anzeigen");
@@ -528,7 +530,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("data-create-chat-thread");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(followupSource).toContain("nextStepsCount");
-    expect(followupSource).toContain("Erkannte Themenzweige");
+    expect(followupSource).toContain("Erkannte Themen");
     expect(followupSource).toContain("unreadLabel");
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("data-create-structure-rail");

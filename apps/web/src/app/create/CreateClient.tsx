@@ -393,10 +393,10 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Du</p>
+      <div className="max-w-4xl">
+        <p className="text-sm font-semibold text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
-          <p className="whitespace-pre-wrap text-sm text-[rgb(var(--fg))] md:text-base">
+          <p className="whitespace-pre-wrap text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">
             {props.text}
           </p>
         </div>
@@ -417,19 +417,19 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-1 shrink-0">
         <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
       </div>
-      <div className="max-w-5xl flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistent</p>
+      <div className="max-w-none flex-1">
+        <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.eyebrow}</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.title}</p>
-          <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--fg))] md:text-base">{props.body}</p>
+          <p className="text-sm font-medium text-[rgb(var(--muted))]">{props.eyebrow}</p>
+          <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))] md:text-[1.35rem]">{props.title}</p>
+          <p className="mt-3 text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">{props.body}</p>
           {props.chips?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {props.chips.map((chip) => (
                 <span
                   key={chip}
                   data-create-thread-prompt-chip
-                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-medium text-[rgb(var(--muted))]"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-sm font-medium text-[rgb(var(--muted))]"
                 >
                   {chip}
                 </span>
@@ -1611,7 +1611,7 @@ export default function CreateClient({
   const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
-    ? "Schreib weiter oder ergänze, was ich anpassen soll …"
+    ? "Schreib weiter oder ergänze, was wichtig ist …"
     : intakePlaceholder;
   const workspaceComposerStartLabel = hasStarted
     ? "Weiter"
@@ -1821,6 +1821,15 @@ export default function CreateClient({
       }),
     [intelligentFollowup, understandingConfirmed],
   );
+  const workspaceNextStepLabel = React.useMemo(() => {
+    if (!hasStarted) return "Beitrag prüfen";
+    if (understandingConfirmed) return "Entwurf speichern";
+    if (intelligentFollowup) {
+      const branchCount = buildCreateStructureBranches(intelligentFollowup, 3).length;
+      if (branchCount > 1) return "Hauptthema wählen";
+    }
+    return "Beitrag prüfen";
+  }, [hasStarted, intelligentFollowup, understandingConfirmed]);
 
   const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
@@ -2251,7 +2260,10 @@ export default function CreateClient({
             activeStage={workspaceActiveStage}
             isBusy={isStarting}
             notice={workspaceNotice}
-            structureOverview={structureOverviewMetrics}
+            structureOverview={{
+              ...structureOverviewMetrics,
+              nextStepLabel: workspaceNextStepLabel,
+            }}
             chatThread={renderWorkspaceThread()}
             footer={
               <div
@@ -2260,7 +2272,7 @@ export default function CreateClient({
               >
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 py-1 text-left text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]"
+                  className="flex w-full items-center justify-between gap-3 py-0.5 text-left text-[11px] font-medium text-[rgb(var(--muted))]"
                   aria-expanded={workspaceTransparencyOpen}
                   onClick={() => setWorkspaceTransparencyOpen((current) => !current)}
                 >

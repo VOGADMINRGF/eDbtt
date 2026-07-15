@@ -9,7 +9,7 @@
 
 ## Ziel
 
-`/create` soll wie ein moderner chat-nativer Workspace wirken: kurzer Einstieg, danach sofort sichtbarer Arbeitsdialog statt Formular + Analysewand, mit klarer Themenwahl, sichtbaren Themenaesten und deep-on-demand Transparenz.
+`/create` soll wie ein moderner chat-nativer Workspace wirken: kurzer Einstieg, danach sofort sichtbarer Arbeitsdialog statt Formular + Analysewand, mit klarer Themenwahl, sichtbaren Themen und deep-on-demand Transparenz.
 
 Leitsatz:
 
@@ -57,9 +57,11 @@ Ergebnis:
   - `ChatThread`
   - `ComposerBar`
 - die Shell nutzt jetzt sichtbar mehr Monitorbreite und Mindesthoehe; ChatThread, Composer und Footer sitzen in einer grossen durchgehenden Workspace-Maske statt in einer schmalen Mittelkarte
+- der finale Finish-Pass vergroessert Typo, Pipeline und Struktur-Rail nochmals sichtbar und zieht den Chat-Thread staerker auf die Hauptbuehne
 - der alte dominante Ober-Composer wurde zu einer eingebetteten `workspace_shell`-Composer-Bar im selben Shell-Panel reduziert
 - Thread und Composer teilen jetzt dieselbe grosse Workspace-Karte; unterhalb haengt keine zweite Formular-Card mehr
 - nach dem ersten Submit zeigt die untere Bar keinen duplizierten Ursprungstext mehr, sondern nur noch den Fortsetzungs-Composer
+- die Fortsetzungs-Bar spricht jetzt neutraler (`Schreib weiter oder ergänze, was wichtig ist …`) statt wie ein zweites Formular
 - das Transparenzpanel bleibt erhalten, wird initial aber nicht mehr als sichtbarer Block unter dem Workspace gerendert, sondern erst nach explizitem Oeffnen von `Details & Transparenz`
 
 ### 2. Nach dem Start zeigt `/create` eine echte Pipeline statt einer Analysewand
@@ -83,10 +85,12 @@ Ergebnis:
   - `Themen`
   - `Offene Fragen`
   - `Nächster Schritt`
+- die Struktur-Leiste zeigt fuer den naechsten Schritt jetzt einen echten Arbeitsimpuls wie `Beitrag prüfen` oder `Hauptthema wählen` statt nur einen generischen Statussatz
 - der eigentliche Dialog erscheint als Chat-Thread:
   - vor Submit mit einer echten Assistenz-Intro-Nachricht plus Beispielchips
   - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
+- die Branch-Map spricht oeffentlich nur noch von `Themen`, zeigt `aus deinem Beitrag erkannt` als Ursprungshinweis und vermeidet die alte technische `Themenzweige`-/`Themenäste`-Sprache im Hauptflow
 - der Hauptflow fuehrt von Themenwahl zu Quellen- und Entwurfsarbeit, nicht zu einer Retry-/Analyse-Primaraktion
 - `Einordnung erneut versuchen` ist nicht mehr primaerer CTA
 - `Einordnung erneut versuchen` liegt im degraded Pfad nur noch in `Details ansehen`

@@ -123,10 +123,11 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Was zählt zuerst?");
     expect(html).toContain("Themen");
     expect(html).toContain("Erkannte Schwerpunkte");
+    expect(html).not.toContain("Themenäste");
     expect(html).toContain("Fragen");
     expect(html).toContain("Offene Fragen");
     expect(html).toContain("Nächster Schritt");
-    expect(html).toContain("Als Nächstes entsteht ein klarer Arbeitsschritt.");
+    expect(html).toContain("Beitrag prüfen");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
     expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-3\"");
     expect(followupSource).toContain("data-structure-overview-grid");
@@ -139,7 +140,7 @@ describe("create entry hierarchy contract", () => {
     expect(clientSource).toContain("data-create-shell-secondary-details");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("max-w-[80rem]");
-    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[75vh]");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain("min-h-[76vh]");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");

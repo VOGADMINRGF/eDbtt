@@ -24,7 +24,7 @@ type CreateWorkspaceShellProps = {
   footer?: React.ReactNode;
   structureOverview: Pick<
     CreateStructureOverviewProps,
-    "prioritiesCount" | "clustersCount" | "questionsCount" | "nextStepsCount"
+    "prioritiesCount" | "clustersCount" | "questionsCount" | "nextStepsCount" | "nextStepLabel"
   >;
 };
 
@@ -59,7 +59,7 @@ function buildWorkspaceStages(params: {
     },
     topics: {
       title: "Themen ordnen",
-      lead: "Themenzweige bleiben sichtbar und steuerbar.",
+      lead: "Themen bleiben sichtbar und steuerbar.",
     },
     sources: {
       title: "Quellen prüfen",
@@ -91,13 +91,13 @@ function WorkspaceHeader(props: { notice?: React.ReactNode }) {
             </div>
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-semibold text-[rgb(var(--fg))] md:text-xl">Ein Workspace für deinen Beitrag</p>
-            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+            <p className="text-xl font-semibold text-[rgb(var(--fg))] md:text-2xl">Ein Workspace für deinen Beitrag</p>
+            <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))] md:text-base">
               Ich halte Eingabe, Themen, Fragen, Quellen und nächste Schritte zusammen.
             </p>
           </div>
         </div>
-        <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
+        <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
           Kein Auto-Publish
         </span>
       </div>
@@ -117,9 +117,9 @@ function ProgressPipeline(props: {
     <div
       data-create-shell-pipeline
       data-create-pipeline-rail
-      className="overflow-x-auto rounded-[28px] border border-[rgb(var(--border))] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%))] px-3 py-3 md:px-4 md:py-4"
+      className="overflow-x-auto rounded-[32px] border border-[rgb(var(--border))] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%))] px-4 py-4 md:px-5 md:py-5"
     >
-      <div className="flex min-w-max items-stretch gap-3">
+      <div className="flex min-w-max items-stretch gap-3.5">
         {props.stages.map((stage, index) => {
           const isActive = stage.status === "active";
           const isDone = stage.status === "done";
@@ -128,7 +128,7 @@ function ProgressPipeline(props: {
               <article
                 data-create-pipeline-stage={stage.id}
                 data-create-pipeline-state={stage.status}
-                className={`min-w-[12.5rem] rounded-[24px] border px-3 py-3 transition md:min-w-[13.75rem] md:px-4 ${
+                className={`min-w-[13.5rem] rounded-[26px] border px-4 py-4 transition md:min-w-[14.75rem] md:px-5 ${
                   isActive
                     ? "border-cyan-300/55 bg-cyan-500/[0.1] shadow-[0_18px_36px_rgba(8,145,178,0.12)]"
                     : isDone
@@ -138,7 +138,7 @@ function ProgressPipeline(props: {
               >
                 <div className="flex items-start gap-3">
                   <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold ${
                       isActive
                         ? "border-cyan-300/45 text-cyan-900 dark:text-cyan-100"
                         : isDone
@@ -149,8 +149,8 @@ function ProgressPipeline(props: {
                     {index + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-[15px]">{stage.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))] md:text-[13px]">{stage.lead}</p>
+                    <p className="text-[15px] font-semibold text-[rgb(var(--fg))] md:text-base">{stage.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
                   </div>
                 </div>
               </article>
@@ -186,14 +186,14 @@ export default function CreateWorkspaceShell({
     <section
       data-create-workspace-shell
       data-create-shell-layout="wide"
-      className="mx-auto flex min-h-[75vh] w-full max-w-[80rem] flex-col rounded-[2.25rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_32px_80px_rgba(2,6,23,0.14)] sm:px-4 md:min-h-[76vh] md:px-5 md:py-5 xl:px-6"
+      className="mx-auto flex min-h-[76vh] w-full max-w-[80rem] flex-col rounded-[2.25rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_32px_80px_rgba(2,6,23,0.14)] sm:px-4 md:min-h-[78vh] md:px-5 md:py-5 xl:px-6"
     >
       <div className="flex flex-1 flex-col gap-4">
         <WorkspaceHeader notice={notice} />
         <ProgressPipeline stages={stages} />
         <div
           data-create-shell-structure-rail
-          className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_90%,white_10%)] px-3 py-3 md:px-4"
+          className="rounded-[30px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_90%,white_10%)] px-4 py-4 md:px-5"
         >
           <CreateStructureOverview
             locale={locale}
@@ -207,7 +207,7 @@ export default function CreateWorkspaceShell({
         <div className="flex flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread
-            className="flex min-h-[30rem] flex-1 flex-col px-4 py-5 md:min-h-[36rem] md:px-6"
+            className="flex min-h-[32rem] flex-1 flex-col px-5 py-5 md:min-h-[38rem] md:px-7"
           >
             {chatThread}
           </div>
