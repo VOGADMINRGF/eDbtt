@@ -102,6 +102,7 @@ Ergebnis:
   - nach Submit mit `Du`-Bubble, `Assistent`-Antwort und sofort sichtbaren Themenkarten
 - im Initialzustand bleibt der Thread bewusst kuerzer und rutscht naeher an die Composer-Bar; die groessere scrollbare Thread-Hoehe wird erst fuer Loading-, Result- und Continuation-Zustaende aktiviert
 - `Details ansehen` bleibt im normalen Ergebniszustand standardmaessig geschlossen; `Einordnung erneut versuchen` taucht erst nach explizitem Oeffnen der Details auf und bleibt damit sichtbar sekundär
+- der letzte Ergebnis-Pass kuerzt den sichtbaren Arbeitsdialog nochmals: im Hauptflow bleiben nach der Analyse nur noch die kurze Assistenz-Zusammenfassung, die drei Themenkarten und wenige direkte Folgeaktionen; Fragen-, Quellen- und Runtime-/Handoff-Erklaerungen liegen nur noch hinter Details
 - erkannte Themen erscheinen sofort als drei sichtbare Branch-Cards statt tief im Scrollbereich
 - fuer den bekannten Rahnsdorf/Kita/Querung/Haushalt-Smoke bleiben die lokalen Fallback-Kandidaten civic-intuitiv:
   - `Verkehrssicherheit`

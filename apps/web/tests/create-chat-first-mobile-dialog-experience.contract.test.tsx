@@ -348,7 +348,6 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Beitrag weiterentwickeln");
     expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Prüfung anfragen");
     expect((html.match(/btn-primary/g) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
@@ -361,8 +360,6 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("aus deinem Beitrag erkannt");
     expect(html).toContain("Wohnen und Genehmigungen");
     expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
-    expect(html).toContain("Quellen &amp; Hinweise");
-    expect(html).toContain("Vorgeschlagene nächste Schritte");
     expect(html).toContain("data-create-chat-thread");
     expect(html).toContain("data-create-structure-rail");
     expect(html).toContain("data-mobile-inline-create-actions");
@@ -370,7 +367,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("data-create-workspace-kpis");
     expect(html).toContain("data-create-topic-branches");
     expect(html).toContain("Voxy Pilotpfad");
-    expect(html).toContain("Thema");
+    expect(html).toContain("Was du jetzt tun kannst");
     expect(html).not.toContain("Themenzweig");
     expect(html).toContain("Details ansehen");
     expect(html).not.toContain("Korrektur oder Ergänzung");
@@ -380,9 +377,9 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("keeps the technical planner fallback in a clearly degraded clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
-    expect(html).toContain("So kannst du weitermachen");
-    expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
-    expect(html).toContain("Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.");
+    expect(html).toContain("Was du jetzt tun kannst");
+    expect(html).toContain("Ich habe diese Themen erkannt.");
+    expect(html).toContain("Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen.");
     expect(html).toContain("Beitrag weiterentwickeln");
     expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
@@ -409,23 +406,14 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("shows the next-step choices only after confirmation and keeps Deep Search secondary", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
-    expect(html).toContain("Wie möchtest du tiefer ins Thema gehen?");
-    expect(html).toContain("Darin stecken mehrere Themenstränge");
-    expect(html).toContain("Die sichtbaren BranchCards oben tragen die Themenwahl.");
-    expect(html).toContain("Branches lassen sich direkt im Thread als Hauptthema wählen oder als Zweig parken.");
+    expect(html).toContain("Was du jetzt tun kannst");
     expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
     expect(html).toContain("Quellen ergänzen");
     expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Dossier prüfen");
     expect(html).toContain("Als Zweig parken");
     expect(html).toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Anschluss prüfen");
-    expect(html).toContain("Redaktionell prüfen lassen");
     expect(html).toContain("Kein Auto-Publish");
-    expect(html).toContain("kein Auto-Dossier");
-    expect(html).toContain("kein Auto-Anlassraum");
-    expect(html).toContain("kein Auto-Graph");
   });
 
   it("surfaces the place clarification prominently for vague local references", () => {

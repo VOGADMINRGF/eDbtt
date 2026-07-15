@@ -162,9 +162,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Ich sehe mehrere mögliche Themenstränge.");
     expect(followupSource).toContain("Als Zweig parken");
     expect(followupSource).toContain("Als Zweig geparkt");
-    expect(followupSource).toContain("Redaktionell prüfen lassen");
     expect(followupSource).toContain("Dialog Intelligence");
-    expect(followupSource).toContain("Beteiligung vorbereiten");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueRuntimeState");
     expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
@@ -220,8 +218,6 @@ describe("create curated dialog workspace contract", () => {
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
     expect(html).toContain("Details ansehen");
-    expect(html).toContain("Quellen &amp; Hinweise");
-    expect(html).toContain("Quellen &amp; Hinweise");
     expect(html).toContain("Erkannte Themen");
     expect(html).toContain("aus deinem Beitrag erkannt");
     expect(html).not.toContain("Einordnung erneut versuchen");

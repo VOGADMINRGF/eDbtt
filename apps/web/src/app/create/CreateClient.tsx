@@ -1293,9 +1293,9 @@ export default function CreateClient({
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
     ? workspaceActionMode === "edit"
-      ? "Was soll ergänzt oder geschärft werden?"
+      ? "Was möchtest du ergänzen oder schärfen?"
       : workspaceActionMode === "source"
-        ? "Welche Quelle oder welcher Hinweis soll ergänzt werden?"
+        ? "Füge Quellen, Beschlüsse, Links oder Beispiele hinzu …"
         : workspaceActionMode === "manual_topic"
           ? "Welches Hauptthema möchtest du setzen?"
           : "Schreib weiter oder ergänze, was wichtig ist …"
@@ -1402,7 +1402,7 @@ export default function CreateClient({
             setWorkspaceActionMode("edit");
             setChatContinuationText("");
             setShowFollowupCorrectionComposer(true);
-            setActionNotice("Weiterarbeit aktiv. Ergänze unten, was geschärft oder geändert werden soll.");
+            setActionNotice("Du kannst den Beitrag jetzt weiterentwickeln.");
           }}
           onSelectPrimaryTopic={(topicLabel) => {
             const normalizedTopicLabel = topicLabel.trim();
@@ -1414,7 +1414,7 @@ export default function CreateClient({
             setUnderstandingConfirmed(true);
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
-            setActionNotice(`Hauptthema „${normalizedTopicLabel}“ gewählt. Der nächste Schritt ist jetzt die Weiterentwicklung.`);
+            setActionNotice(`${normalizedTopicLabel} ist jetzt dein Hauptthema.`);
           }}
           onParkTopic={(topicLabel) => {
             const normalizedTopicLabel = topicLabel.trim();
@@ -1430,7 +1430,7 @@ export default function CreateClient({
             setUnderstandingConfirmed(false);
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
-            setActionNotice(`„${normalizedTopicLabel}“ bleibt als Zweig sichtbar geparkt. Du kannst jetzt ein anderes Hauptthema wählen oder direkt weiterarbeiten.`);
+            setActionNotice("Dieser Zweig bleibt sichtbar, wird aber nicht als Hauptthema weitergeführt.");
           }}
           onOpenManualTopicChooser={() => {
             setWorkspaceActionMode("manual_topic");
@@ -1976,7 +1976,7 @@ export default function CreateClient({
     setWorkspaceActionMode("source");
     setChatContinuationText("");
     setShowFollowupCorrectionComposer(true);
-    setActionNotice("Quellenmodus aktiv. Du kannst jetzt lokal Hinweise ergänzen, ohne einen externen Prüfpfad zu starten.");
+    setActionNotice("Quellenmodus aktiv. Du kannst jetzt Quellen ergänzen.");
   }, []);
 
   const handleSaveOnly = React.useCallback(async () => {

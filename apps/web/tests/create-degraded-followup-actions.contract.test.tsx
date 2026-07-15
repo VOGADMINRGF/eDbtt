@@ -128,8 +128,8 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
-    expect(html).toContain("Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.");
+    expect(html).toContain("Ich habe diese Themen erkannt.");
+    expect(html).toContain("Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen.");
     expect(html).toContain("Details ansehen");
     expect(html).toContain("Hauptthema wählen");
     expect(html).toContain("Beitrag weiterentwickeln");
@@ -137,7 +137,7 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
-    expect(html).toContain("So kannst du weitermachen");
+    expect(html).toContain("Was du jetzt tun kannst");
     expect(html).toContain("Verkehrssicherheit");
     expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
     expect(html).toContain("Stadtplanung &amp; Finanzierung");

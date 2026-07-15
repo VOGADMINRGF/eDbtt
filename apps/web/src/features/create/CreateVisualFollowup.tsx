@@ -493,15 +493,15 @@ function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boo
 function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
   const planner = result.meta?.planner;
   if (!planner) {
-    return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
+    return "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   }
   if (isTechnicalPlannerFallback(result)) {
-    return "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird.";
+    return "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   }
   if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
-    return "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor.";
+    return "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   }
-  return "Du kannst manuell fortfahren und den nächsten Schritt selbst wählen.";
+  return "Du entscheidest, wie wir weiterarbeiten.";
 }
 
 function resolvePlannerClarificationDetails(result: CreateIntelligentFollowupResult): string | null {
@@ -2509,16 +2509,14 @@ function StructureProposalPanel(props: {
 }) {
   return (
     <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="space-y-3">
         <div className="max-w-2xl space-y-1">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">So kannst du weitermachen</p>
-          <p className="text-lg font-semibold text-[rgb(var(--fg))]">Der Thread bleibt dein Arbeitsdialog</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Was du jetzt tun kannst</p>
           <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Die sichtbaren BranchCards tragen die Themenwahl. Hier steuerst du nur die nächsten Folgeaktionen für den Entwurf.
+            Du entscheidest, wie wir mit dem erkannten Thema weiterarbeiten.
           </p>
         </div>
-        <div className="flex flex-col gap-2 lg:items-end">
-          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[28rem]">
+        <div className="grid gap-2 sm:grid-cols-2 xl:max-w-3xl">
             <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
               Beitrag weiterentwickeln
             </button>
@@ -2531,21 +2529,6 @@ function StructureProposalPanel(props: {
             <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
               Anlassraum vorbereiten
             </button>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={props.onRequestEditorialReview}
-              disabled={props.reviewRequestState === "saving"}
-              aria-disabled={props.reviewRequestState === "saving"}
-            >
-              {resolveReviewRequestLabel(props.reviewRequestState, "compact")}
-            </button>
-          </div>
-          <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))] lg:text-right">
-            Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
-          </p>
         </div>
       </div>
       {props.reviewRequestMessage ? (
@@ -2553,6 +2536,9 @@ function StructureProposalPanel(props: {
           {props.reviewRequestMessage}
         </p>
       ) : null}
+      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+      </p>
     </div>
   );
 }
@@ -2579,29 +2565,14 @@ function PlannerClarificationPanel(props: {
     <div className="space-y-3 rounded-[28px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       <div className="space-y-1">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-          So kannst du weitermachen
+          Was du jetzt tun kannst
         </p>
         <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
           {props.technicalFallback
-            ? "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird."
-            : "Wähle selbst ein Thema oder bereite den Beitrag zur Prüfung vor."}
+            ? "Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen."
+            : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten."}
         </p>
       </div>
-      {props.startPoints.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Mögliche Startpunkte</p>
-          <div className="flex flex-wrap gap-2">
-            {props.startPoints.map((label) => (
-              <span
-                key={`degraded-start-${label}`}
-                className="rounded-full border border-cyan-300/25 bg-cyan-500/[0.08] px-2.5 py-1 text-xs text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
@@ -2690,7 +2661,7 @@ function WorkspaceActionThreadNote(props: {
     props.mode === "edit"
       ? {
           title: "Weiterarbeit aktiv",
-          body: "Schreib unten, was ergänzt, geschärft oder umformuliert werden soll.",
+          body: "Was möchtest du ergänzen oder schärfen?",
         }
       : props.mode === "source"
         ? {
@@ -2796,43 +2767,13 @@ function NextStepPanel(props: {
   factcheckMessage?: string | null;
 }) {
   return (
-    <div className="space-y-4 rounded-[28px] border border-cyan-300/28 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(8,145,178,0.12)]">
+    <div className="space-y-3 rounded-[28px] border border-cyan-300/28 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(8,145,178,0.12)]">
       <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Nächster Schritt</p>
-        <p className="text-base font-semibold text-white">Wie möchtest du tiefer ins Thema gehen?</p>
-        <p className="text-sm leading-relaxed text-slate-300">
-          Alles bleibt Entwurf und review-first. Themenstränge werden weder automatisch aufgeteilt noch zusammengeführt.
+        <p className="text-sm font-semibold text-white">Was du jetzt tun kannst</p>
+        <p className="text-[15px] leading-relaxed text-slate-300">
+          Du entscheidest, wie wir mit dem gewählten Thema weiterarbeiten.
         </p>
       </div>
-      {props.showMultiTopicActionPanel ? (
-        <div
-          data-create-multitheme-actions
-          className="space-y-3 rounded-[24px] border border-cyan-300/18 bg-white/[0.03] px-4 py-4"
-        >
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
-              Mehrthemen-Follow-up
-            </p>
-            <p className="text-sm font-semibold text-white">Darin stecken mehrere Themenstränge</p>
-            <p className="text-sm leading-relaxed text-slate-300">
-              Die sichtbaren BranchCards oben tragen die Themenwahl. Hier bündelst du nur die nächsten Folgeaktionen.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {props.multiTopicActionTopics.map((label) => (
-              <span
-                key={`multitopic-choice-${label}`}
-                className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-cyan-50"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-          <p className="text-xs leading-relaxed text-slate-300">
-            Branches lassen sich direkt im Thread als Hauptthema wählen oder als Zweig parken.
-          </p>
-        </div>
-      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
           Beitrag weiterentwickeln
@@ -2849,35 +2790,11 @@ function NextStepPanel(props: {
         <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
           Entwurf speichern
         </button>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
           Anlassraum vorbereiten
         </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierAppend}>
-          Anschluss prüfen
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierCreate}>
-          Dossier prüfen
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareVote}>
-          Beteiligung vorbereiten
-        </button>
-        <button
-          type="button"
-          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={props.onRequestEditorialReview}
-          disabled={props.reviewRequestState === "saving"}
-          aria-disabled={props.reviewRequestState === "saving"}
-          aria-label="Redaktionelle Prüfung anfragen"
-          title="Redaktionelle Prüfung anfragen"
-        >
-          Redaktionell prüfen lassen
-        </button>
       </div>
-      <p className="text-xs leading-relaxed text-slate-400">
-        Kein Auto-Publish, kein Auto-Dossier, kein Auto-Anlassraum und kein Auto-Graph.
-      </p>
+      <p className="text-xs leading-relaxed text-slate-400">Kein Auto-Publish.</p>
       {props.reviewRequestMessage ? (
         <p className="rounded-xl border border-cyan-300/20 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-100">
           {props.reviewRequestMessage}
@@ -3092,9 +3009,9 @@ export default function CreateVisualFollowup({
       }),
     [dialogIntelligenceRuntimeResult, existingTopicMatchesRuntimeResult.status],
   );
-  const plannerClarificationLeadText = plannerTechnicalFallback
-    ? "Ich sehe mehrere mögliche Themenstränge. Du kannst schon weiterarbeiten, während die tiefere Einordnung geprüft wird."
-    : "Du kannst trotzdem weitermachen.";
+  const plannerClarificationLeadText = displayedBranches.length === 3
+    ? "Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen."
+    : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
@@ -3391,16 +3308,14 @@ export default function CreateVisualFollowup({
                       </p>
                       <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
                         {plannerClarificationRequired
-                          ? plannerTechnicalFallback
-                            ? "Automatische Einordnung nicht abgeschlossen"
-                            : CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                          ? "Ich habe diese Themen erkannt."
                           : plannerUsesProvisionalStructure
                             ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
                             : "Chat-Arbeitsstand für deinen Beitrag"}
                       </p>
                       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
                         {plannerClarificationRequired
-                          ? plannerClarificationReason
+                          ? "Aus deinem Beitrag ergeben sich diese Stränge. Du entscheidest, wie wir weiterarbeiten."
                           : "Ich halte Eingabe, Themen, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
                       </p>
                     </div>
@@ -3448,8 +3363,7 @@ export default function CreateVisualFollowup({
                   </p>
                 ) : null}
                 {plannerClarificationRequired ? (
-                  <div className="mt-4 space-y-3">
-                    <SecondaryFollowupNote>{plannerClarificationDetails ?? "Du kannst jetzt selbst wählen, wie du weitermachen willst."}</SecondaryFollowupNote>
+                  <div className="mt-4">
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
@@ -3460,7 +3374,7 @@ export default function CreateVisualFollowup({
                     />
                   </div>
                 ) : (
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-5">
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
@@ -3469,8 +3383,6 @@ export default function CreateVisualFollowup({
                       onSelectPrimaryTopic={onSelectPrimaryTopic}
                       onParkTopic={onParkTopic}
                     />
-                    <OpenQuestionCards questions={voteQuestions} />
-                    <SourceHintsAndNextStepsGrid modules={contentModules} nextStepTitles={nextStepTitles} />
                   </div>
                 )}
               </AssistantUnderstandingBubble>
@@ -3650,20 +3562,24 @@ export default function CreateVisualFollowup({
                           </p>
                         </div>
                       ) : (
-                        <StructuredWorkstateBlock
-                          rootTopic={rootTopic}
-                          topicLabels={topicLabels}
-                          positionClusters={positionClusters}
-                          voteQuestions={voteQuestions}
-                          keyStatement={dedupedCopy.prominentCoreClaim}
-                          structureBranches={structureBranches}
-                          sortedSuggestions={sortedSuggestions}
-                          isConfirmed={isConfirmed}
-                          onEdit={openCorrection}
-                          resultChangeKey={resultChangeKey}
-                          sections={sections}
-                          modules={contentModules}
-                        />
+                        <div className="space-y-4">
+                          <StructuredWorkstateBlock
+                            rootTopic={rootTopic}
+                            topicLabels={topicLabels}
+                            positionClusters={positionClusters}
+                            voteQuestions={voteQuestions}
+                            keyStatement={dedupedCopy.prominentCoreClaim}
+                            structureBranches={structureBranches}
+                            sortedSuggestions={sortedSuggestions}
+                            isConfirmed={isConfirmed}
+                            onEdit={openCorrection}
+                            resultChangeKey={resultChangeKey}
+                            sections={sections}
+                            modules={contentModules}
+                          />
+                          <OpenQuestionCards questions={voteQuestions} />
+                          <SourceHintsAndNextStepsGrid modules={contentModules} nextStepTitles={nextStepTitles} />
+                        </div>
                       )}
                       <div className="space-y-3">
                         <div

@@ -269,6 +269,24 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
   const [sourceCount, setSourceCount] = React.useState(0);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
+  const composerPlaceholder =
+    composerMode === "edit"
+      ? "Was möchtest du ergänzen oder schärfen?"
+      : composerMode === "source"
+        ? "Füge Quellen, Beschlüsse, Links oder Beispiele hinzu …"
+        : composerMode === "manual_topic"
+          ? "Welches Hauptthema möchtest du setzen?"
+          : "Schreib weiter oder ergänze, was wichtig ist …";
+  const nextStepLabel =
+    composerMode === "source"
+      ? "Quellen ergänzen"
+      : composerMode === "manual_topic"
+        ? "Hauptthema bestätigen"
+        : selectedPrimaryTopic
+          ? "Beitrag weiterentwickeln"
+          : confirmed
+            ? "Entwurf speichern"
+            : "Hauptthema wählen";
 
   return (
     <div>
@@ -297,18 +315,18 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
           setParkedTopicLabels((current) => current.filter((topic) => topic !== topicLabel));
           setConfirmed(true);
           setComposerMode("default");
-          setActionNotice(`Hauptthema „${topicLabel}“ gewählt.`);
+          setActionNotice(`${topicLabel} ist jetzt dein Hauptthema.`);
         }}
         onParkTopic={(topicLabel) => {
           setParkedTopicLabels((current) => (current.includes(topicLabel) ? current : [...current, topicLabel]));
           setSelectedPrimaryTopic((current) => (current === topicLabel ? null : current));
           setConfirmed(false);
           setComposerMode("default");
-          setActionNotice(`„${topicLabel}“ wurde als Zweig geparkt.`);
+          setActionNotice("Dieser Zweig bleibt sichtbar, wird aber nicht als Hauptthema weitergeführt.");
         }}
         onEdit={() => {
           setComposerMode("edit");
-          setActionNotice("Weiterarbeit aktiv. Ergänze unten, was geschärft oder geändert werden soll.");
+          setActionNotice("Du kannst den Beitrag jetzt weiterentwickeln.");
         }}
         onOpenManualTopicChooser={() => {
           setComposerMode("manual_topic");
@@ -329,7 +347,7 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
         onStartOptionalService={() => {
           setComposerMode("source");
           setSourceCount((count) => count + 1);
-          setActionNotice("Quellenmodus aktiv. Eine externe Prüfung startet erst nach Bestätigung.");
+          setActionNotice("Quellenmodus aktiv. Du kannst jetzt Quellen ergänzen.");
         }}
         onRetryPlanner={() => {}}
         onSaveOnly={() => {
@@ -344,6 +362,8 @@ function Harness(props: { result: CreateIntelligentFollowupResult }) {
       <div data-testid="selected-topic">{selectedPrimaryTopic ?? ""}</div>
       <div data-testid="parked-topics">{parkedTopicLabels.join("|")}</div>
       <div data-testid="composer-mode">{composerMode}</div>
+      <div data-testid="composer-placeholder">{composerPlaceholder}</div>
+      <div data-testid="next-step-label">{nextStepLabel}</div>
       <div data-testid="save-count">{String(saveCount)}</div>
       <div data-testid="source-count">{String(sourceCount)}</div>
     </div>
@@ -364,7 +384,8 @@ describe("create workspace actions interaction", () => {
     const selectedCard = container.querySelector('[data-selected-primary-topic="true"]');
     expect(selectedCard).not.toBeNull();
     expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehr");
-    expect(screen.queryByText("Hauptthema „Verkehr“ gewählt.")).not.toBeNull();
+    expect(screen.queryByText("Verkehr ist jetzt dein Hauptthema.")).not.toBeNull();
+    expect(screen.getByTestId("next-step-label").textContent).toBe("Beitrag weiterentwickeln");
 
     const allBranchCards = Array.from(container.querySelectorAll("[data-create-topic-branch-card]"));
     expect(allBranchCards.length).toBeGreaterThan(1);
@@ -373,7 +394,7 @@ describe("create workspace actions interaction", () => {
 
     await user.click(within(secondBranchCard).getByRole("button", { name: "Als Zweig parken" }));
     expect(screen.getByTestId("parked-topics").textContent).toContain("Sicherheit/Rechtsstaat");
-    expect(screen.queryByText("„Sicherheit/Rechtsstaat“ wurde als Zweig geparkt.")).not.toBeNull();
+    expect(screen.queryByText("Dieser Zweig bleibt sichtbar, wird aber nicht als Hauptthema weitergeführt.")).not.toBeNull();
     expect(
       secondBranchCard.getAttribute("data-parked-topic") === "true" ||
       within(secondBranchCard).queryByRole("button", { name: "Als Zweig geparkt" }) !== null,
@@ -382,12 +403,14 @@ describe("create workspace actions interaction", () => {
     await user.click(screen.getByRole("button", { name: "Beitrag weiterentwickeln" }));
     expect(screen.queryByText("Weiterarbeit aktiv")).not.toBeNull();
     expect(screen.getByTestId("composer-mode").textContent).toBe("edit");
+    expect(screen.getByTestId("composer-placeholder").textContent).toBe("Was möchtest du ergänzen oder schärfen?");
 
     await user.click(screen.getByRole("button", { name: "Quellen ergänzen" }));
     expect(screen.queryByText("Quellenmodus aktiv")).not.toBeNull();
     expect(screen.getByTestId("composer-mode").textContent).toBe("source");
+    expect(screen.getByTestId("composer-placeholder").textContent).toBe("Füge Quellen, Beschlüsse, Links oder Beispiele hinzu …");
+    expect(screen.getByTestId("next-step-label").textContent).toBe("Quellen ergänzen");
     expect(screen.getByTestId("source-count").textContent).toBe("1");
-    expect(screen.queryAllByText(/erst nach Bestätigung/i).length).toBeGreaterThan(0);
   });
 
   it("keeps retry behind details and opens the manual topic chooser on demand", async () => {
@@ -452,7 +475,8 @@ describe("create workspace actions interaction", () => {
     const trafficBranchButton = within(firstBranchCard).getByRole("button", { name: "Hauptthema wählen" });
     await user.click(trafficBranchButton);
     expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehrssicherheit");
-    expect(screen.queryByText("Hauptthema „Verkehrssicherheit“ gewählt.")).not.toBeNull();
+    expect(screen.queryByText("Verkehrssicherheit ist jetzt dein Hauptthema.")).not.toBeNull();
+    expect(screen.getByTestId("next-step-label").textContent).toBe("Beitrag weiterentwickeln");
 
     await user.click(screen.getByRole("button", { name: "Anlassraum vorbereiten" }));
     expect(screen.queryByText("Anlassraum für „Verkehrssicherheit“ wird vorbereitet.")).not.toBeNull();
