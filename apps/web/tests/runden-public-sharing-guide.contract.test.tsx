@@ -48,5 +48,6 @@ describe("runden public sharing guide contract", () => {
     expect(html).toContain("Pausiert, archiviert und geschlossen");
     expect(html).toContain("Keine automatische amtliche Antwort.");
     expect(html).toContain("Keine automatische Dossier- oder Anlassraum-Finalisierung.");
+    expect(html).toContain("Mit Voxy Beitrag vorbereiten");
   });
 });

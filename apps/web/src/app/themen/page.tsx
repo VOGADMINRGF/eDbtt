@@ -134,11 +134,11 @@ export default function ThemenPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themensuche</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Finde, wo dein Beitrag anknüpft.</h1>
         <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
-          eDebatte sammelt Anliegen nicht als lose Kommentare. Die Themensuche zeigt, welche Debatten bereits sichtbar sind, wo Argumente und offene Fragen gesammelt werden und wo du aktiv dabei sein kannst.
+          eDebatte sammelt Anliegen nicht als lose Kommentare. Die Themensuche zeigt, wo dein Entwurf an bestehende Debatten anschließt, welche Themenstränge schon sichtbar sind und wo du review-first weiterarbeiten kannst.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
-            Beitrag einordnen
+            Beitrag mit Voxy einordnen
           </Link>
           <Link href="/runden" className="btn-secondary inline-flex">
             Aktiv dabei

@@ -233,7 +233,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufig verstanden");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So könnte der Arbeitsstand aussehen");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Wie möchtest du weitergehen?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Wie willst du damit weitergehen?");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint).toContain("Schreib einfach weiter");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint).toContain("Nach deiner Bestätigung");
@@ -297,8 +297,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Du");
     expect(source).toContain("eDebatte");
     expect(source).toContain("Wie möchtest du tiefer ins Thema gehen?");
-    expect(source).toContain("Ja, so einreichen");
-    expect(source).toContain("Ich möchte tiefer ins Thema");
+    expect(source).toContain("Direkt Entwurf");
+    expect(source).toContain("Tiefer prüfen");
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
     expect(source).toContain("data-structure-overview-grid");
@@ -306,7 +306,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
-    expect(source).toContain("Faktencheck / Deep Search");
+    expect(source).toContain("Quelle prüfen");
     expect(source).not.toContain("Details zum Originaltext");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Original oben anzeigen");
@@ -387,7 +387,9 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("/api/create/save");
     expect(clientSource).toContain("manualReviewRequested");
     expect(clientSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
-    expect(clientSource).toContain("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
+    expect(clientSource).toContain(
+      "Prüfpfad vorbereitet. Factcheck / Quellenprüfung startet erst nach deiner weiteren Bestätigung.",
+    );
     expect(clientSource).toContain("setReviewRequestState(\"saving\")");
     expect(clientSource).toContain("setFactcheckMessage(");
   });

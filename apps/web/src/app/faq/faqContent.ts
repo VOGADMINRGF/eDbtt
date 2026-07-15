@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: "grundlagen-1d",
         question: "Was passiert zuerst in /create?",
         answer:
-          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen, als Arbeitsstand speichern oder zur Prüfung vorbereiten, je nach Kontext und Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
+          "In /create schreibst du zuerst frei. Voxy sortiert Thema, Kontext und nächste Schritte direkt im Composer und antwortet kurz mit einem gemeinsamen Kern, statt dich erst durch eine Tool- oder Formularwand zu schicken. Danach entscheidest du review-first, ob du weiter schärfst, einen Entwurf vorbereitest, Anschluss prüfst oder etwas zur Prüfung vormerkst. Nichts wird automatisch veröffentlicht.",
       },
       {
         id: "grundlagen-1e",

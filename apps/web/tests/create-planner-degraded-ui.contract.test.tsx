@@ -131,17 +131,16 @@ describe("create planner degraded ui contract", () => {
 
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("GPT-Einordnung erneut versuchen");
+    expect(html).toContain("Einordnung erneut versuchen");
     expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
     expect(html).toContain("Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.");
     expect(html).toContain("Die automatische Einordnung hat nicht rechtzeitig geantwortet.");
-    expect(html).not.toContain("Haben wir dich richtig verstanden?");
+    expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).not.toContain("Kern</p><p class=\"text-base font-semibold text-[rgb(var(--fg))]\">Aussage");
-    expect(html).not.toContain("Öffentliches Anliegen mit Klärungsbedarf");
-    expect(html).not.toContain("Ja, so einreichen");
+    expect(html).not.toContain("Direkt Entwurf");
     expect(html).not.toContain("Faktencheck anfragen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");

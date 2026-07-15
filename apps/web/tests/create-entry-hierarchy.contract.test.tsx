@@ -92,15 +92,17 @@ describe("create entry hierarchy contract", () => {
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
-    expect(html).toContain("Schreib auf, was dich");
-    expect(html).toContain("beschäftigt");
-    expect(html).toContain("Beitrag vorbereiten");
-    expect(html).toContain("Du musst es noch nicht perfekt formulieren.");
-    expect(html).toContain("Text sortieren lassen");
-    expect(html).toContain("Quelle/Datei prüfen");
-    expect(html).toContain("Zu Anlassraum hinzufügen");
+    expect(html).toContain(
+      "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
+    );
+    expect(html).toContain("Beitrag sortieren");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quelle prüfen");
+    expect(html).toContain("Direkt Entwurf");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
+    expect(html).toContain('data-voxy-inline-guide="true"');
+    expect(html).toContain('data-voxy-appearance="inline"');
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).toContain("Prioritäten");
     expect(html).toContain("Was zählt zuerst?");
@@ -115,7 +117,7 @@ describe("create entry hierarchy contract", () => {
     expect(followupSource).toContain("data-structure-overview-grid");
     expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
     expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
-    expect(composerSource).toContain("text-lg font-semibold tracking-tight");
+    expect(composerSource).toContain("data-voxy-inline-guide");
     expect(composerSource).toContain("hideAlternateModeDisclosure");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");

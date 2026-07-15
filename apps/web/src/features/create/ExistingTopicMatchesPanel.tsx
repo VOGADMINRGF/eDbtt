@@ -111,7 +111,7 @@ export default function ExistingTopicMatchesPanel(
           Anschlussvorschläge
         </p>
         <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
-          Dazu gibt es bereits ähnliche Themen
+          Anschluss prüfen
         </h3>
         <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
           {props.model.introText}
@@ -217,7 +217,7 @@ export default function ExistingTopicMatchesPanel(
           disabled={!canStartNewBranch(props.model) || !props.onStartNewBranch}
           className="inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-[rgb(var(--fg))] transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[rgb(var(--border))]"
         >
-          Eigenen Zweig starten
+          Eigenen Strang weiterführen
         </button>
       </div>
 

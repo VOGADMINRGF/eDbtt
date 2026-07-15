@@ -324,7 +324,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     const combined = `${html} ${linkHtml} ${visibleConfigText}`;
     expect(combined).not.toContain("Part06");
     expect(combined).not.toContain("Dossier-Kontext");
-    expect(combined).not.toContain("Anschluss");
+    expect(combined).not.toContain("Anschlussdaten");
     expect(combined).not.toContain("sourceHints");
     expect(combined).not.toContain("evidenceNeeds");
     expect(combined).not.toContain("Claims");
@@ -337,15 +337,15 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(guided.firstQuestion).toBe("Wofür soll der Entwurf zuerst genutzt werden?");
     expect(guided.firstQuestionPlaceholder).toContain("Beitrag");
     expect(guided.postStartLead).toContain("statt dich in ein Formular zu schicken");
-    expect(texts.followupGuidedTitle).toContain("Ich bereite daraus einen gemeinsamen Arbeitsstand vor");
+    expect(texts.followupGuidedTitle).toContain("Ich baue daraus einen kompakten Arbeitsstand");
   });
 
   it("keeps the pre-confirmation flow statement-first with two primary branches", () => {
     const html = renderVisualFollowup();
 
-    expect(html).toContain("Haben wir dich richtig verstanden?");
-    expect(html).toContain("Ja, so einreichen");
-    expect(html).toContain("Ich möchte tiefer ins Thema");
+    expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
+    expect(html).toContain("Direkt Entwurf");
+    expect(html).toContain("Tiefer prüfen");
     expect(html).toContain("Ändern");
     expect(html).toContain("Prüfung anfragen");
     expect((html.match(/btn-primary/g) ?? []).length).toBe(2);
@@ -356,7 +356,7 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("renders a compact understood state before details", () => {
     const html = renderMultiBranchVisualFollowup();
 
-    expect(html).toContain("Haben wir dich richtig verstanden?");
+    expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).toContain("Kern");
     expect(html).toContain("Thema");
     expect(html).toContain("Noch offen");
@@ -380,7 +380,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("So kannst du weitermachen");
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("GPT-Einordnung erneut versuchen");
+    expect(html).toContain("Einordnung erneut versuchen");
     expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
@@ -408,22 +408,17 @@ describe("create chat-first mobile dialog experience contract", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
     expect(html).toContain("Wie möchtest du tiefer ins Thema gehen?");
-    expect(html).toContain("Mehrere Themen erkannt");
-    expect(html).toContain("Alle Themen vertiefen");
-    expect(html).toContain("Wohnen vertiefen");
-    expect(html).toContain("Verkehr vertiefen");
-    expect(html).toContain("Bildung vertiefen");
-    expect(html).toContain("Migration/Integration vertiefen");
-    expect(html).toContain("Sicherheit/Rechtsstaat vertiefen");
-    expect(html).toContain("Dossier vorbereiten");
-    expect(html).toContain("Später im Account weiterarbeiten");
-    expect(html).toContain("Ja, so einreichen");
+    expect(html).toContain("Darin stecken mehrere Themenstränge");
+    expect(html).toContain("Zusammen lassen");
+    expect(html).toContain("Schwerpunkt wählen");
+    expect(html).toContain("Dossier prüfen");
+    expect(html).toContain("Nebenthema parken");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Als Ergänzung anhängen");
     expect(html).toContain("Neues Dossier vorbereiten");
     expect(html).toContain("QR-/Live-Kontext vorbereiten");
     expect(html).toContain("Redaktionell prüfen lassen");
-    expect(html).toContain("Factcheck / Quellenprüfung vorbereiten");
+    expect(html).toContain("Quelle prüfen");
     expect(html).toContain("Kein Auto-Publish");
     expect(html).toContain("kein Auto-Dossier");
     expect(html).toContain("kein Auto-Anlassraum");

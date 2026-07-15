@@ -92,15 +92,15 @@ type CreateVisualFollowupProps = {
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
-  headline: "Haben wir dich richtig verstanden?",
-  headlineProvisional: "Wir haben erste Themen erkannt.",
-  headlineNeedsClarification: "Du kannst ein Thema auswählen oder den Beitrag weiter sortieren.",
+  headline: "Ich sehe einen gemeinsamen Kern.",
+  headlineProvisional: "Ich sehe einen möglichen Kern.",
+  headlineNeedsClarification: "Ich sehe mehrere mögliche Themenstränge.",
   structureTitle: "Vorläufig verstanden",
   structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
   overviewTitle: "Deine Struktur auf einen Blick",
-  confirmTitle: "Wie möchtest du weitergehen?",
+  confirmTitle: "Wie willst du damit weitergehen?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
   freeWriteHint: "Schreib einfach weiter. eDebatte passt den Arbeitsstand an, wenn etwas anders gemeint war.",
@@ -2223,7 +2223,7 @@ function StructureProposalPanel(props: {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
           <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Reiche die Aussage direkt ein oder öffne danach bewusst den tieferen Themenpfad.
+            Halte alles kurz und steuerbar: als Entwurf weiterführen, korrigieren oder bewusst in den tieferen Themenpfad wechseln.
           </p>
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
@@ -2233,10 +2233,10 @@ function StructureProposalPanel(props: {
               className="btn-primary min-h-[46px] px-4 py-2 text-sm"
               onClick={props.onPrepareSubmission}
             >
-              Ja, so einreichen
+              Direkt Entwurf
             </button>
             <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
-              Ich möchte tiefer ins Thema
+              Tiefer prüfen
             </button>
             <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
               Ändern
@@ -2314,8 +2314,8 @@ function PlannerClarificationPanel(props: {
           aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
         >
           {props.isRetryPlannerPending
-            ? "GPT-Einordnung wird erneut versucht …"
-            : "GPT-Einordnung erneut versuchen"}
+            ? "Einordnung wird erneut versucht …"
+            : "Einordnung erneut versuchen"}
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
           Thema selbst wählen
@@ -2364,7 +2364,7 @@ function NextStepPanel(props: {
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Nächster Schritt</p>
         <p className="text-base font-semibold text-white">Wie möchtest du tiefer ins Thema gehen?</p>
         <p className="text-sm leading-relaxed text-slate-300">
-          Alles bleibt Entwurf und review-first. Kein Auto-Publish, kein Auto-Dossier, kein Auto-Anlassraum, kein Auto-Graph und keine automatische Kostenbuchung.
+          Alles bleibt Entwurf und review-first. Themenstränge werden weder automatisch aufgeteilt noch zusammengeführt.
         </p>
       </div>
       {props.showMultiTopicActionPanel ? (
@@ -2376,10 +2376,28 @@ function NextStepPanel(props: {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
               Mehrthemen-Follow-up
             </p>
-            <p className="text-sm font-semibold text-white">Mehrere Themen erkannt</p>
+            <p className="text-sm font-semibold text-white">Darin stecken mehrere Themenstränge</p>
             <p className="text-sm leading-relaxed text-slate-300">
-              Du kannst alle Themen gemeinsam weiterführen oder einzelne Themen gezielt vertiefen. Quellenprüfung wird nur vorbereitet oder angefragt, nie automatisch gestartet.
+              Du entscheidest, ob diese Themen zusammenbleiben, als Schwerpunkt getrennt werden oder erst als Nebenthema geparkt bleiben.
             </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Zusammen lassen",
+              "Aufteilen",
+              "Schwerpunkt wählen",
+              "Nebenthema parken",
+              "An Debatte anknüpfen",
+              "Dossier prüfen",
+              "Beteiligung vorbereiten",
+            ].map((label) => (
+              <span
+                key={`multitopic-choice-${label}`}
+                className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-cyan-50"
+              >
+                {label}
+              </span>
+            ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <button
@@ -2387,42 +2405,42 @@ function NextStepPanel(props: {
               className="btn-primary min-h-[46px] px-4 py-2 text-sm"
               onClick={props.onDeepenAllTopics}
             >
-              Alle Themen vertiefen
+              Zusammen lassen
             </button>
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
               onClick={props.onOpenDossierCreate}
             >
-              Dossier vorbereiten
-            </button>
-            <button
-              type="button"
-              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-              onClick={props.onPrepareAnlassraum}
-            >
-              Anlassraum vorbereiten
+              Dossier prüfen
             </button>
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
               onClick={props.onPrepareVote}
             >
-              QR-/Live-Kontext vorbereiten
+              Beteiligung vorbereiten
             </button>
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
               onClick={props.onStartOptionalService}
             >
-              Factcheck / Quellenprüfung vorbereiten
+              Quelle prüfen
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+              onClick={props.onPrepareAnlassraum}
+            >
+              An Debatte anknüpfen
             </button>
             <button
               type="button"
               className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
               onClick={props.onContinueInAccount}
             >
-              Später im Account weiterarbeiten
+              Nebenthema parken
             </button>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
@@ -2435,20 +2453,32 @@ function NextStepPanel(props: {
                 <p className="mt-1 text-xs leading-relaxed text-slate-300">
                   Dieser Themenstrang bleibt im Draft und kann gezielt weitergeführt werden.
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-2.5 py-1 text-[11px] text-cyan-50">
+                    Schwerpunkt wählen
+                  </span>
+                  <span className="rounded-full border border-cyan-300/20 bg-white/[0.05] px-2.5 py-1 text-[11px] text-cyan-50">
+                    Aufteilen
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="btn-secondary mt-3 min-h-[40px] px-3 py-2 text-sm"
                   onClick={() => props.onDeepenTopic(topicLabel)}
                 >
-                  {topicLabel} vertiefen
+                  Schwerpunkt wählen
                 </button>
               </article>
             ))}
           </div>
         </div>
       ) : null}
-      <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
-        Ja, so einreichen
+      <button
+        type="button"
+        className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm"
+        onClick={props.onPrepareSubmission}
+      >
+        Direkt Entwurf
       </button>
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
@@ -2478,15 +2508,18 @@ function NextStepPanel(props: {
           type="button"
           className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
           onClick={props.onStartOptionalService}
-          aria-label="Factcheck / Quellenprüfung vorbereiten"
-          title="Factcheck / Quellenprüfung vorbereiten"
+          aria-label="Quelle prüfen"
+          title="Quelle prüfen"
         >
-          Factcheck / Quellenprüfung vorbereiten
+          Quelle prüfen
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
           Nur speichern
         </button>
       </div>
+      <p className="text-xs leading-relaxed text-slate-400">
+        Kein Auto-Publish, kein Auto-Dossier, kein Auto-Anlassraum und kein Auto-Graph.
+      </p>
       {props.reviewRequestMessage ? (
         <p className="rounded-xl border border-cyan-300/20 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-100">
           {props.reviewRequestMessage}

@@ -29,7 +29,7 @@ describe("landing clarity contract", () => {
 
     expect(html).toContain("Was bewegt dich?");
     expect(html).toContain(
-      "Bring ein Anliegen, eine Beobachtung oder eine Idee ein. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen gesellschaftlich brauchbaren Beitrag zu entwickeln.",
+      "Schreib frei, was dich bewegt. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen nachvollziehbaren nächsten Schritt zu machen.",
     );
     expect(html).toContain("Etwas beitragen");
     expect(html).toContain("Mitentwickeln");
@@ -45,6 +45,7 @@ describe("landing clarity contract", () => {
     expect(html).toContain('href="/themen"');
     expect(html).toContain("href=\"/dossier\"");
     expect(html).toContain("Voxy ist hier Hero, Guide und Status-Schicht");
+    expect(html).toContain("ordnet Thema, Kontext und nächste Schritte");
     expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
 
     expect(html).not.toContain("Runtime");

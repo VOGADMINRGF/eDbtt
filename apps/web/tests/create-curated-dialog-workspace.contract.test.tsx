@@ -70,8 +70,9 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("deriveCreateStructureOverviewMetrics");
     expect(clientSource).toContain("embeddedWorkspace");
     expect(clientSource).toContain("experienceVariant=\"create_minimal\"");
-    expect(clientSource).toContain("What is on your mind?");
+    expect(clientSource).toContain("Write freely. I sort topic, context and next steps - nothing is published automatically.");
     expect(clientSource).toContain("create-public-shell create-dialog-workspace public-dialog-surface");
+    expect(clientSource).toContain("data-create-deep-followup");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("CreateStructureOverviewCard");
     expect(followupSource).toContain("CreateStructureOverview");
@@ -111,18 +112,18 @@ describe("create curated dialog workspace contract", () => {
 
     expect(followupSource).toContain("Du");
     expect(followupSource).toContain("eDebatte");
-    expect(followupSource).toContain("Haben wir dich richtig verstanden?");
+    expect(followupSource).toContain("Ich sehe einen gemeinsamen Kern.");
     expect(followupSource).toContain("Kern");
     expect(followupSource).toContain("Thema");
     expect(followupSource).toContain("Noch offen");
     expect(followupSource).toContain("Details ansehen");
-    expect(followupSource).toContain("Ja, so einreichen");
-    expect(followupSource).toContain("Ich möchte tiefer ins Thema");
-    expect(followupSource).toContain("Alle Themen vertiefen");
-    expect(followupSource).toContain("Später im Account weiterarbeiten");
+    expect(followupSource).toContain("Direkt Entwurf");
+    expect(followupSource).toContain("Tiefer prüfen");
+    expect(followupSource).toContain("Zusammen lassen");
+    expect(followupSource).toContain("Nebenthema parken");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
-    expect(followupSource).toContain("Factcheck / Quellenprüfung vorbereiten");
-    expect(followupSource).toContain("QR-/Live-Kontext vorbereiten");
+    expect(followupSource).toContain("Quelle prüfen");
+    expect(followupSource).toContain("Beteiligung vorbereiten");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueRuntimeState");
     expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
@@ -164,8 +165,8 @@ describe("create curated dialog workspace contract", () => {
       />,
     );
 
-    const coreIndex = followupSource.indexOf("Haben wir dich richtig verstanden?");
-    const confirmIndex = followupSource.indexOf("Ja, so einreichen");
+    const coreIndex = followupSource.indexOf("Ich sehe einen gemeinsamen Kern.");
+    const confirmIndex = followupSource.indexOf("Direkt Entwurf");
     const detailsToggleIndex = followupSource.indexOf("Details ansehen");
     const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
     const detailsIndex = followupSource.indexOf("<StructuredWorkstateBlock");
@@ -181,7 +182,7 @@ describe("create curated dialog workspace contract", () => {
     expect(html).toContain("Details ansehen");
     expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
     expect(html).toContain("KI-Auswertung derzeit nicht verfügbar");
-    expect(html).toContain("Dazu gibt es bereits ähnliche Themen");
+    expect(html).toContain("Anschluss prüfen");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
     expect(html).not.toContain("Vorgeschlagener Arbeitsstand");

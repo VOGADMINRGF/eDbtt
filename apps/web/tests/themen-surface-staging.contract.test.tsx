@@ -8,12 +8,12 @@ describe("themen surface staging", () => {
   it("stages topics into aktuell, geplant and archiv with operational CTAs", () => {
     const html = renderToStaticMarkup(<ThemenPage />);
 
-    expect(html).toContain("Themen als Dachfläche");
+    expect(html).toContain("Finde, wo dein Beitrag anknüpft.");
     expect(html).toContain("Aktuell");
     expect(html).toContain("Geplant");
     expect(html).toContain("Archiv");
-    expect(html).toContain("Anlass starten");
-    expect(html).toContain("Beitrag vorbereiten");
+    expect(html).toContain("Aktiv dabei");
+    expect(html).toContain("Beitrag mit Voxy einordnen");
     expect(html).toContain("Abstimmungsfähigkeit prüfen");
     expect(html).toContain("Bezahlbare Energie und belastbare Wärmewende in Berlin");
   });
@@ -25,10 +25,10 @@ describe("themen surface staging", () => {
     );
 
     expect(source).toContain("GlobalDraftStatusBar");
-    expect(source).toContain("Aus Analyse-Entwurf übernommen.");
-    expect(source).toContain("Wir suchen Themen, an die dein Beitrag anknüpfen könnte. Nichts wird automatisch zusammengeführt.");
-    expect(source).toContain("Passende Themen anzeigen");
-    expect(source).toContain("Als neues Thema vorschlagen");
+    expect(source).toContain("Aus dem Voxy-Entwurf übernommen.");
+    expect(source).toContain("Wir prüfen, ob dein Entwurf an bestehende Debatten anschließt. Nichts wird automatisch zusammengeführt oder aufgeteilt.");
+    expect(source).toContain("Anschluss prüfen");
+    expect(source).toContain("Als eigenes Thema weiterführen");
     expect(source).not.toContain("autoPublish");
     expect(source).not.toContain("DeepSearch");
   });

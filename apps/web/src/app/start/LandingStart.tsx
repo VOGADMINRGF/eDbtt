@@ -12,10 +12,10 @@ const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
   eyebrow: "Klarer Einstieg",
   title: "Was bewegt dich?",
   description:
-    "Bring ein Thema ein oder stimme ab, wo deine Sicht gebraucht wird. Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+    "Schreib frei, was dich bewegt. Voxy hilft beim Sortieren, Schärfen und Weiterführen, ohne dir Veröffentlichung oder Entscheidung abzunehmen.",
   helperText: "Beitrag einbringen, mitmachen oder vorhandene Themen öffnen.",
   trustText:
-    "Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+    "Nichts wird automatisch veröffentlicht. Voxy hilft beim Sortieren, du entscheidest den nächsten Schritt.",
   showExtendedOrientation: false,
   workspaceHref: null,
   workspaceLabel: null,

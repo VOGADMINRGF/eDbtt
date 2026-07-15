@@ -126,23 +126,20 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Schreib auf, was dich");
-    expect(html).toContain("beschäftigt");
     expect(html).toContain(
-      "Du musst es noch nicht perfekt formulieren. eDebatte hilft dir, daraus ein Thema, eine Frage, einen Beitrag oder einen Anlassraum zu machen.",
+      "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte — nichts wird automatisch veröffentlicht.",
     );
-    expect(html).toContain("Beitrag vorbereiten");
-    expect(html).toContain("Text sortieren lassen");
-    expect(html).toContain("Quelle/Datei prüfen");
-    expect(html).toContain("Zu Anlassraum hinzufügen");
+    expect(html).toContain("Beitrag sortieren");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quelle prüfen");
+    expect(html).toContain("Direkt Entwurf");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("create-primary-intake");
-    expect(html).toContain("KI-Transparenz");
-    expect(html).toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
-    expect(html).toContain("Nachvollziehbarkeit heute");
-    expect(html).toContain("Noch nicht gestartet");
-    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain('data-voxy-inline-guide="true"');
+    expect(html).toContain('data-voxy-appearance="inline"');
+    expect(html).toContain("Warum sehe ich das?");
+    expect(html).toContain("Was passiert im Hintergrund?");
     expect(html).toContain("Nichts wird automatisch veröffentlicht");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
@@ -162,6 +159,7 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Missing runtime truth");
     expect(html).not.toContain("runId");
     expect(html).not.toContain("Weitere Wege");
+    expect(html).not.toContain('data-voxy-appearance="panel"');
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");
@@ -212,12 +210,15 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Der Rahmen steht. Als Nächstes kannst du Frage, Optionen oder Quellen weiter schärfen.");
-    expect(html).toContain("Ich helfe dir, den nächsten Schritt auszuarbeiten.");
-    expect(html).toContain('data-voxy-appearance="panel"');
+    expect(html).toContain("Kein serverseitiger Entwurf angefordert");
+    expect(html).toContain(
+      "Für diesen Übergang wurde noch kein serverseitiger Entwurf übernommen. Analyse und Planner arbeiten dann nur mit dem aktuell sichtbaren Text.",
+    );
+    expect(html).toContain('data-create-runden-handoff-status="not_requested"');
     expect(html).toContain('data-create-focus-stage="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).toContain("Aus laufendem Anlass gestartet");
+    expect(html).not.toContain('data-voxy-appearance="panel"');
     expect(html).not.toContain("autoAnalyze");
     expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
   });

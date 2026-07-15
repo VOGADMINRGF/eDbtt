@@ -55,14 +55,14 @@ export default function FrontendAiTransparencyPanel({
         <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 marker:hidden">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-              Transparenz
+              Warum sehe ich das?
             </p>
             <h2 className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
               {model.title}
             </h2>
           </div>
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] transition group-open:bg-[rgb(var(--card))]">
-            Details bei Bedarf
+            Was passiert im Hintergrund?
           </span>
         </summary>
 

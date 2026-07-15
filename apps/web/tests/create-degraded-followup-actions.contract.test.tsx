@@ -130,15 +130,15 @@ describe("create degraded followup actions contract", () => {
 
     expect(html).toContain("Automatische Einordnung nicht abgeschlossen");
     expect(html).toContain("Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.");
-    expect(html).toContain("GPT-Einordnung erneut versuchen");
+    expect(html).toContain("Einordnung erneut versuchen");
     expect(html).toContain("Beitrag als Entwurf weiter vorbereiten");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Thema selbst wählen");
     expect(html).toContain("So kannst du weitermachen");
-    expect(html).not.toContain("Haben wir dich richtig verstanden?");
+    expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).not.toContain("Öffentliches Anliegen</p>");
     expect(html).not.toContain("Kern</p>");
-    expect(html).not.toContain("Ja, so einreichen");
+    expect(html).not.toContain("Direkt Entwurf");
     expect(html).not.toContain("Faktencheck anfragen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
@@ -260,8 +260,8 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html.indexOf("GPT-Einordnung wird erneut versucht")).toBeLessThan(html.indexOf("Thema selbst wählen"));
-    expect(html).toContain("GPT-Einordnung wird erneut versucht …");
+    expect(html.indexOf("Einordnung wird erneut versucht")).toBeLessThan(html.indexOf("Thema selbst wählen"));
+    expect(html).toContain("Einordnung wird erneut versucht …");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
     expect(clientSource).toContain('fetch("/api/create/intelligent-followup"');

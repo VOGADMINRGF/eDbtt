@@ -177,6 +177,7 @@ export type SharedCreateComposerProps = {
   minimalHeading?: React.ReactNode;
   minimalLead?: string;
   hideAlternateModeDisclosure?: boolean;
+  locale?: "de" | "en";
 };
 
 export default function SharedCreateComposer({
@@ -215,6 +216,7 @@ export default function SharedCreateComposer({
   minimalHeading,
   minimalLead,
   hideAlternateModeDisclosure = false,
+  locale = "de",
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -226,10 +228,7 @@ export default function SharedCreateComposer({
   const speechRef = React.useRef<SpeechRecognitionLike | null>(null);
   const compactMetaMode = embeddedWorkspace && collapseModeSelector;
   const isMinimalCreate = experienceVariant === "create_minimal";
-  const isEnglishMinimal =
-    isMinimalCreate &&
-    typeof minimalHeading === "string" &&
-    (minimalHeading.toLowerCase().includes("what would you like") ?? false);
+  const isEnglishMinimal = isMinimalCreate && locale === "en";
   const resolvedPlaceholder = isMinimalCreate
     ? isEnglishMinimal
       ? "Describe your topic, idea, or proposed solution..."
@@ -422,12 +421,6 @@ export default function SharedCreateComposer({
         {isMinimalCreate ? (
           <div className="space-y-3">
             {topMeta}
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-              {badge}
-            </p>
-            <h2 className="text-lg font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-xl">
-              {minimalHeading ?? "Schreib auf, was dich beschäftigt."}
-            </h2>
             {minimalLead ? (
               <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{minimalLead}</p>
             ) : null}
@@ -474,11 +467,20 @@ export default function SharedCreateComposer({
                       <IconCompose />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-lg font-semibold text-[rgb(var(--focus-panel-fg))] sm:text-[1.4rem]">
-                        {isEnglishMinimal ? "Prepare your contribution" : "Beitrag vorbereiten"}
-                      </p>
-                      <p className="vog-focus-stage-muted mt-1 text-sm leading-relaxed">
-                        {isEnglishMinimal ? "Start with your own words." : "Schreib zuerst in deinen eigenen Worten."}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="rounded-full border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--focus-panel-fg))]"
+                          data-voxy-inline-guide="true"
+                          data-voxy-appearance="inline"
+                        >
+                          {isEnglishMinimal ? "Voxy" : "Voxy"}
+                        </span>
+                        <span className="vog-focus-stage-muted text-xs">
+                          {isEnglishMinimal ? "Composer-first" : "Kurzer Einstieg"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-[rgb(var(--focus-panel-fg))] sm:text-[15px]">
+                        {minimalHeading ?? "Schreib frei. Ich sortiere Thema, Kontext und nächste Schritte."}
                       </p>
                     </div>
                   </div>
@@ -514,7 +516,7 @@ export default function SharedCreateComposer({
                       value={inputValue}
                       onChange={(event) => onInputChange(event.target.value)}
                       rows={minRows}
-                      className="min-h-[210px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[250px] sm:px-5 sm:py-5"
+                      className="min-h-[168px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[192px] sm:px-5 sm:py-5"
                       placeholder={resolvedPlaceholder}
                     />
                     <div className="vog-focus-stage-muted border-t border-[rgb(var(--focus-panel-border))] px-4 py-2 text-xs sm:px-5">
@@ -533,63 +535,74 @@ export default function SharedCreateComposer({
                 />
               )}
 
-              <div className={`flex flex-col px-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-5 ${compactMetaMode ? "gap-2.5" : "gap-3"} ${isMinimalCreate ? "pt-4" : ""}`}>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <button
-                    type="button"
-                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
-                    onClick={() => fileInputRef.current?.click()}
-                    aria-label={texts.attachAria}
-                    title={texts.attachAria}
-                  >
-                    <IconPaperclip />
-                    <span className="hidden sm:inline">{texts.attachLabel}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={[
-                      "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition",
-                      voiceActive
-                        ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
-                        : isMinimalCreate
-                          ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]"
-                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]",
-                      !speechSupported ? "opacity-50" : "",
-                    ].join(" ")}
-                    onClick={toggleVoice}
-                    aria-pressed={voiceActive}
-                    aria-label={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
-                    title={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
-                    disabled={!speechSupported}
-                  >
-                    <IconMic />
-                    <span className="hidden sm:inline">
-                      {voiceActive ? texts.voiceStopLabel : texts.voiceStartLabel}
-                    </span>
-                  </button>
-                </div>
-
-                <div className={`flex flex-wrap items-center ${isMinimalCreate ? "gap-2 pt-1 sm:justify-end" : "gap-3.5"}`}>
-                  <button
-                    type="button"
-                    onClick={onStart}
-                    className={`btn-primary ${isMinimalCreate ? "min-h-[50px] w-full px-4 text-sm sm:w-auto" : ""}`}
-                    disabled={startBusy || startDisabled}
-                    aria-busy={startBusy}
-                  >
-                    {startBusy ? startBusyLabel ?? startLabel : startLabel}
-                  </button>
-                  {secondaryAction.label ? (
-                    <Link
-                      href={secondaryAction.href}
-                      className="text-sm text-[rgb(var(--muted))] underline underline-offset-4"
+                <div
+                  className={`flex flex-col px-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-5 ${compactMetaMode ? "gap-2.5" : "gap-3"} ${isMinimalCreate ? "pt-4" : ""}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                      type="button"
+                      className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${isMinimalCreate ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"}`}
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label={texts.attachAria}
+                      title={texts.attachAria}
                     >
-                      {secondaryAction.label}
-                    </Link>
-                  ) : null}
+                      <IconPaperclip />
+                      <span className="hidden sm:inline">{texts.attachLabel}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={[
+                        "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition",
+                        voiceActive
+                          ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
+                          : isMinimalCreate
+                            ? "border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_80%,white_20%)] text-[rgb(var(--focus-panel-muted))] hover:bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_72%,white_28%)] hover:text-[rgb(var(--focus-panel-fg))]"
+                            : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]",
+                        !speechSupported ? "opacity-50" : "",
+                      ].join(" ")}
+                      onClick={toggleVoice}
+                      aria-pressed={voiceActive}
+                      aria-label={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                      title={voiceActive ? texts.voiceStopAria : texts.voiceStartAria}
+                      disabled={!speechSupported}
+                    >
+                      <IconMic />
+                      <span className="hidden sm:inline">
+                        {voiceActive ? texts.voiceStopLabel : texts.voiceStartLabel}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className={`flex flex-wrap items-center ${isMinimalCreate ? "gap-2 pt-1 sm:justify-end" : "gap-3.5"}`}>
+                    <button
+                      type="button"
+                      onClick={onStart}
+                      className={`btn-primary ${isMinimalCreate ? "min-h-[50px] w-full px-4 text-sm sm:w-auto" : ""}`}
+                      disabled={startBusy || startDisabled}
+                      aria-busy={startBusy}
+                    >
+                      {startBusy ? startBusyLabel ?? startLabel : startLabel}
+                    </button>
+                    {secondaryAction.label ? (
+                      <Link
+                        href={secondaryAction.href}
+                        className="text-sm text-[rgb(var(--muted))] underline underline-offset-4"
+                      >
+                        {secondaryAction.label}
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
+              {isMinimalCreate ? (
+                <div className="border-t border-[rgb(var(--focus-panel-border))] px-4 py-3 sm:px-5">
+                  <p className="text-xs leading-relaxed text-[rgb(var(--focus-panel-muted))]">
+                    {isEnglishMinimal
+                      ? "Nothing is published automatically. Voxy suggests, you decide."
+                      : "Nichts wird automatisch veröffentlicht. Voxy macht Vorschläge, du entscheidest."}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 
