@@ -12,9 +12,9 @@ Stand: 2026-07-17
 - `OpenTasks.md` bleibt die Aufgaben-SSOT; Code, Tests, gemergte PRs und reale Preview-Beobachtungen haben Vorrang vor veralteten Statusnotizen.
 - PR #391 ist der aktive `/create`-UX-Kandidat. Er bleibt bis zum manuellen Smoke auf `/create`, `/runden` und `/themen` ungemergt und wird nicht als auf `main` erledigt behauptet.
 - PR #392 ist ein separater Draft fuer den persoenlichen B2C-Voxy auf `/account`. Vor Merge fehlen fokussierte Tests und manueller Consent-/Persistenz-Smoke; serverseitiger Profilstore, regionale Live-Recherche und Benachrichtigungen bleiben ausserhalb dieses PRs.
-- PR #312 ist durch die spaeteren V3-Sweeps und gemergten Runtime-/Review-Cluster ueberholt. PR #356 ist als alter konfliktbehafteter Sammel-PR ebenfalls ueberholt; sein weiterhin benoetigtes Operating-Model-Dokument wird in einem sauberen Main-basierten Cleanup-Slice wiederhergestellt.
+- PR #312 wurde als durch die spaeteren V3-Sweeps und gemergten Runtime-/Review-Cluster ueberholt geschlossen. PR #356 wurde als alter konfliktbehafteter Sammel-PR ebenfalls geschlossen; sein weiterhin benoetigtes Operating-Model-Dokument wird in diesem sauberen Main-basierten Cleanup-Slice wiederhergestellt.
 - Issue #310 bleibt als Voxy-Video-Master offen. Review-Architektur, Verträge und deaktivierte Gates sind vorhanden; echte Voice-/Avatar-/Render-Runtime, Medienartefakte, Upload und Publishing-Ausfuehrung sind nicht aktiv.
-- Die alten AI-Issues #40, #43 und #48 sind durch `V2-AI-ORCHESTRATION-CONSOLIDATION-01` fachlich konsolidiert und werden nicht als parallele aktive Architekturpfade fortgefuehrt.
+- Die alten AI-Issues #40, #43 und #48 wurden als durch `V2-AI-ORCHESTRATION-CONSOLIDATION-01` fachlich konsolidiert geschlossen und werden nicht als parallele aktive Architekturpfade fortgefuehrt.
 - Contract-/Noop-/Readmodel-Abschluss darf nicht als produktive Runtime bezeichnet werden. `publish_ready` bleibt ungleich `published`; `runtime_pending` bleibt ungleich `runtime_enabled`.
 
 ## Quick Read (2026-04-04)
