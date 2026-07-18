@@ -48,8 +48,11 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.");
     expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
     expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
-    expect(html).toContain("Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)");
-    expect(html).toContain("Deep Research Credit: ca. 20 € je Credit (einzeln buchbar)");
+    expect(html).toContain("Quellenprüfung / Recherche-Kontingent: ca. 10 € je Kontingent (einzeln buchbar)");
+    expect(html).toContain("Premium-Recherche / vertiefte externe Quellenanalyse: ca. 20 € je Freigabe (einzeln buchbar)");
+    expect(html).not.toContain("Perplexity");
+    expect(html).not.toContain("ARI");
+    expect(html).not.toContain("Deep Search");
     expect(html).toContain("Zur Initiative");
     expect(html).toContain("So funktioniert eDebatte");
   });

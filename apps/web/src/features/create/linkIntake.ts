@@ -219,7 +219,7 @@ export function buildCreateLinkSourceNotice(params: {
     const prefix = selection ? `Selected: ${selection}. ` : "";
     const factcheckGuardrail =
       params.selectedIntentId === "prepare_factcheck"
-        ? " Fact-check / Deep Search only starts after explicit confirmation. No automatic cost booking."
+        ? " Source verification or external source analysis starts only after explicit confirmation. No automatic cost booking."
         : "";
     return `${prefix}The link stays a source hint for now. Its content has not been automatically evaluated yet.${factcheckGuardrail}`;
   }
@@ -227,7 +227,7 @@ export function buildCreateLinkSourceNotice(params: {
   const prefix = selection ? `Gewählt: ${selection}. ` : "";
   const factcheckGuardrail =
     params.selectedIntentId === "prepare_factcheck"
-      ? " Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
+      ? " Quellenprüfung oder externe Quellenanalyse startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       : "";
   return `${prefix}Der Link bleibt vorerst ein Quellenhinweis. Der Inhalt wurde noch nicht automatisch ausgewertet.${factcheckGuardrail}`;
 }

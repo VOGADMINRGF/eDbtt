@@ -15,7 +15,7 @@ describe("create planner routing contract", () => {
     vi.clearAllMocks();
   });
 
-  it("uses planner_only metadata for normal free text without mutative actions", async () => {
+  it("uses planner_only metadata for validated normal free text without mutative actions", async () => {
     mocks.buildCreatePlanner.mockResolvedValue({
       source: "openai",
       plannerSource: "openai",
@@ -25,18 +25,26 @@ describe("create planner routing contract", () => {
       plannerCore: "Forderung nach besseren Tierschutz- und Tierhaltungsstandards",
       plannerScope: ["eu", "federal", "international"],
       plannerStance: "pro",
-      plannerClusters: ["Tierwohl und Haltungsstandards", "Import- und Exportregeln"],
+      plannerClusters: [
+        "Tierwohl und Haltungsstandards",
+        "Import- und Exportregeln",
+        "EU-/internationale Mindeststandards",
+      ],
       plannerOpenQuestions: ["Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?"],
       shortSummary: "Der Beitrag fordert strengere Tierwohlstandards.",
       topicCandidates: ["Tierschutz, Tierhaltung und Agrarstandards", "Tierwohl"],
-      clusterCandidates: ["Tierwohl und Haltungsstandards", "Import- und Exportregeln"],
+      clusterCandidates: [
+        "Tierwohl und Haltungsstandards",
+        "Import- und Exportregeln",
+        "EU-/internationale Mindeststandards",
+      ],
       scopeCandidates: ["eu", "federal", "international"],
       stance: "pro",
       openQuestions: [
         "Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?",
         "Sollten importierte und exportierte Tierprodukte nur zugelassen werden, wenn vergleichbare Tierwohlstandards eingehalten werden?",
       ],
-      graphSearchTerms: ["Tierwohl", "Import Export Tierprodukte"],
+      graphSearchTerms: ["Tierwohl", "Import Export Tierprodukte", "EU Mindeststandards", "Agrarstandards"],
       materialSignals: [],
       recommendedLane: "create_fast_followup",
       providerPlan: {
@@ -77,6 +85,7 @@ describe("create planner routing contract", () => {
         qualityGatePassed: true,
       },
     });
+
     const result = await buildCreateIntelligentFollowup({
       text: "Ich bin für bessere Tierwohlstandards.",
       locale: "de",
@@ -93,6 +102,8 @@ describe("create planner routing contract", () => {
     expect(result.meta?.researchUsed).toBe("none");
     expect(result.meta?.researchProvider).toBeNull();
     expect(result.meta?.deepSearchUsed).toBe(false);
+    expect(result.meta?.analysis?.state).toBe("result_ready");
+    expect(result.meta?.analysis?.validationStatus).toBe("validated");
     expect(result.meta?.graphMatch.stage).toBe("after_structure");
     expect(result.meta?.graphMatch.requiresConfirmation).toBe(true);
     expect(result.meta?.graphMatch.searchTerms).toEqual(expect.arrayContaining(["Tierwohl"]));
@@ -119,15 +130,15 @@ describe("create planner routing contract", () => {
       plannerCore: "Mehr sichere Schulwege im Quartier.",
       plannerScope: ["district"],
       plannerStance: "pro",
-      plannerClusters: ["Mobilität"],
+      plannerClusters: ["Mobilität", "Verkehrssicherheit", "Schulumfeld"],
       plannerOpenQuestions: ["Welche Kreuzungen zuerst?"],
       shortSummary: "Kurzfassung",
       topicCandidates: ["Sichere Schulwege"],
-      clusterCandidates: ["Mobilität"],
+      clusterCandidates: ["Mobilität", "Verkehrssicherheit", "Schulumfeld"],
       scopeCandidates: ["district"],
       stance: "pro",
       openQuestions: ["Welche Kreuzungen zuerst?"],
-      graphSearchTerms: ["Schulwege"],
+      graphSearchTerms: ["Schulwege", "Kreuzungen", "Verkehrssicherheit", "Tempo 30"],
       materialSignals: [],
       recommendedLane: "create_fast_followup",
       providerPlan: {
@@ -190,24 +201,24 @@ describe("create planner routing contract", () => {
     );
   });
 
-  it("keeps fallback planners visible as degraded when the provider contract is not fulfilled", async () => {
+  it("keeps provider contract failures on a technical fallback path", async () => {
     mocks.buildCreatePlanner.mockResolvedValue({
-      source: "heuristic_fallback",
-      plannerSource: "heuristic_fallback",
+      source: "technical_fallback",
+      plannerSource: "technical_fallback",
       plannerProvider: "local_fallback",
       plannerRole: "planner_only",
-      plannerTopic: "Öffentliches Anliegen mit Klärungsbedarf",
-      plannerCore: "Neues öffentliches Thema strukturieren",
+      plannerTopic: "Analyse noch nicht validiert",
+      plannerCore: "Es liegt noch kein validierter KI-Run vor.",
       plannerScope: ["unclear"],
-      plannerStance: "open",
+      plannerStance: "unclear",
       plannerClusters: [],
-      plannerOpenQuestions: ["Was genau soll geklärt, verändert oder vorbereitet werden?"],
-      shortSummary: "Kurzfassung",
-      topicCandidates: ["Öffentliches Anliegen mit Klärungsbedarf"],
+      plannerOpenQuestions: [],
+      shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+      topicCandidates: [],
       clusterCandidates: [],
       scopeCandidates: ["unclear"],
-      stance: "open",
-      openQuestions: ["Was genau soll geklärt, verändert oder vorbereitet werden?"],
+      stance: "unclear",
+      openQuestions: [],
       graphSearchTerms: [],
       materialSignals: [],
       recommendedLane: "standard",
@@ -232,8 +243,8 @@ describe("create planner routing contract", () => {
       plannerDegraded: true,
       degradedReason: "quality_gate_failed",
       plannerDegradedReason: "quality_gate_failed",
-      qualityStatus: "generic",
-      qualityIssues: ["core_generic", "topic_generic"],
+      qualityStatus: "failed",
+      qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: true,
       providerCallSucceeded: false,
       plannerDebug: {
@@ -249,6 +260,7 @@ describe("create planner routing contract", () => {
         qualityGatePassed: false,
       },
     });
+
     const result = await buildCreateIntelligentFollowup({
       text: "Ein längerer Mehrthemenbeitrag ohne brauchbaren Planner-Vertrag.",
       locale: "de",
@@ -257,69 +269,41 @@ describe("create planner routing contract", () => {
 
     expect(result.meta?.planner.plannerDegraded).toBe(true);
     expect(result.meta?.planner.degradedReason).toBe("quality_gate_failed");
-    expect(result.meta?.planner.qualityStatus).toBe("generic");
+    expect(result.meta?.planner.qualityStatus).toBe("failed");
+    expect(result.meta?.analysis?.state).toBe("ai_failed");
     expect(result.meta?.graphMatch.prepared).toBe(false);
     expect(result.meta?.graphMatch.searchTerms).toEqual([]);
     expect(result.meta?.planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(result.meta?.planner.plannerDebug.usedProvider).toBe("local_fallback");
     expect(result.degraded).toBe(true);
+    expect(result.understanding.topics).toEqual([]);
+    expect(result.understanding.statements).toEqual([]);
+    expect(result.suggestions).toEqual([]);
   });
 
-  it("keeps concrete local planner structure usable when the automatic planner timed out", async () => {
+  it("keeps timed-out planner runs on the same technical fallback path", async () => {
     mocks.buildCreatePlanner.mockResolvedValue({
-      source: "heuristic_fallback",
-      plannerSource: "heuristic_fallback",
+      source: "technical_fallback",
+      plannerSource: "technical_fallback",
       plannerProvider: "local_fallback",
       plannerRole: "planner_only",
-      plannerTopic: "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
-      plannerCore:
-        "Zielkonflikt zwischen Menschenwürde, Grundrechten, gesellschaftlicher Verantwortung, Migration, europäischer Politik, regionaler Beteiligung und Budgetprioritäten.",
-      plannerScope: ["federal", "eu", "local"],
-      plannerStance: "reform_oriented",
-      plannerClusters: [
-        "Menschenwürde, Grundrechte und Verantwortung",
-        "Migration, offene Grenzen und gesellschaftliche Regeln",
-        "Europäische Energie- und Industriepolitik",
-        "Regionale Abstimmungen und Bürgerbeteiligung",
-        "Budgetverteilung und öffentliche Prioritäten",
-      ],
-      plannerOpenQuestions: [
-        "Welcher Teil soll zuerst bearbeitet werden: Grundrechte, Migration, Energiepolitik, regionale Abstimmung oder Budgetverteilung?",
-      ],
-      shortSummary:
-        "Der Beitrag verbindet Grundrechte, Migration, europäische Politik, Beteiligung und Budgetfragen zu einem Mehrthemenkonflikt.",
-      topicCandidates: [
-        "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
-        "Menschenwürde",
-        "Migration",
-        "Energiepolitik Europa",
-        "regionale Abstimmungen",
-        "Budgetpriorisierung",
-      ],
-      clusterCandidates: [
-        "Menschenwürde, Grundrechte und Verantwortung",
-        "Migration, offene Grenzen und gesellschaftliche Regeln",
-        "Europäische Energie- und Industriepolitik",
-        "Regionale Abstimmungen und Bürgerbeteiligung",
-        "Budgetverteilung und öffentliche Prioritäten",
-      ],
-      scopeCandidates: ["federal", "eu", "local"],
-      stance: "reform_oriented",
-      openQuestions: [
-        "Welcher Teil soll zuerst bearbeitet werden: Grundrechte, Migration, Energiepolitik, regionale Abstimmung oder Budgetverteilung?",
-      ],
-      graphSearchTerms: [
-        "Menschenwürde",
-        "Grundrechte",
-        "Migration",
-        "EU Energiepolitik",
-        "regionale Abstimmungen",
-        "Budgetpriorisierung",
-      ],
+      plannerTopic: "Analyse noch nicht validiert",
+      plannerCore: "Es liegt noch kein validierter KI-Run vor.",
+      plannerScope: ["unclear"],
+      plannerStance: "unclear",
+      plannerClusters: [],
+      plannerOpenQuestions: [],
+      shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+      topicCandidates: [],
+      clusterCandidates: [],
+      scopeCandidates: ["unclear"],
+      stance: "unclear",
+      openQuestions: [],
+      graphSearchTerms: [],
       materialSignals: [],
-      recommendedLane: "create_fast_followup",
+      recommendedLane: "standard",
       providerPlan: {
-        lane: "create_fast_followup",
+        lane: "standard",
         plannerProvider: "local_fallback",
         plannerRole: "planner_only",
         structureProvider: "mistral",
@@ -339,8 +323,8 @@ describe("create planner routing contract", () => {
       plannerDegraded: true,
       degradedReason: "timeout",
       plannerDegradedReason: "timeout",
-      qualityStatus: "needs_confirmation",
-      qualityIssues: ["provider_timeout"],
+      qualityStatus: "failed",
+      qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: true,
       providerCallSucceeded: false,
       plannerDebug: {
@@ -365,22 +349,14 @@ describe("create planner routing contract", () => {
 
     expect(result.degraded).toBe(true);
     expect(result.meta?.planner.degradedReason).toBe("timeout");
-    expect(result.understanding.summary).toContain("Grundrechte");
-    expect(result.understanding.topics).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung" }),
-        expect.objectContaining({ label: "Menschenwürde" }),
-        expect.objectContaining({ label: "Migration" }),
-        expect.objectContaining({ label: "Energiepolitik Europa" }),
-        expect.objectContaining({ label: "regionale Abstimmungen" }),
-        expect.objectContaining({ label: "Budgetpriorisierung" }),
-      ]),
-    );
-    expect(result.understanding.statements[0]?.text).toContain("Menschenwürde");
+    expect(result.meta?.analysis?.state).toBe("ai_failed");
+    expect(result.understanding.summary).toContain("Die KI-Analyse konnte noch nicht");
+    expect(result.understanding.topics).toEqual([]);
+    expect(result.understanding.statements).toEqual([]);
     expect(result.meta?.graphMatch.prepared).toBe(false);
   });
 
-  it("builds a concrete local planner for mixed quota and equality text when AI is unavailable", async () => {
+  it("builds a technical fallback planner when AI is unavailable", async () => {
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;
 
@@ -393,25 +369,14 @@ describe("create planner routing contract", () => {
         locale: "de",
       });
 
-      expect(planner.source).toBe("heuristic_fallback");
+      expect(planner.source).toBe("technical_fallback");
       expect(planner.plannerProvider).toBe("local_fallback");
       expect(planner.plannerRole).toBe("planner_only");
-      expect(planner.plannerTopic).toBe("Gleichberechtigung, Antidiskriminierung und Quotenregelungen");
-      expect(planner.plannerCore).toBe(
-        "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
-      );
-      expect(planner.plannerClusters).toEqual([
-        "Gleichberechtigung",
-        "Frauenquote",
-        "Minderheitenförderung",
-        "wirtschaftliche Auswirkungen für Unternehmen",
-      ]);
-      expect(planner.plannerOpenQuestions).toEqual([
-        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
-        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
-        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
-      ]);
-      expect(planner.qualityStatus).toBe("needs_confirmation");
+      expect(planner.plannerTopic).toBe("Analyse noch nicht validiert");
+      expect(planner.plannerCore).toBe("Es liegt noch kein validierter KI-Run vor.");
+      expect(planner.plannerClusters).toEqual([]);
+      expect(planner.plannerOpenQuestions).toEqual([]);
+      expect(planner.qualityStatus).toBe("failed");
       expect(planner.plannerDegraded).toBe(true);
       expect(planner.degradedReason).toBe("missing_provider_key");
       expect(planner.qualityIssues).toContain("technical_fallback_only");

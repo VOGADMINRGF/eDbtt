@@ -217,65 +217,6 @@ const BROAD_TOPIC_FIELD_ORDER = [
   "Bürgerbeteiligung",
 ] as const;
 
-const DEGRADED_FALLBACK_TOPIC_RULES = [
-  {
-    id: "traffic_safety",
-    label: "Verkehrssicherheit",
-    pattern: /verkehr|straße|strasse|querung|überweg|ueberweg|zebrastreifen|radfahrer|radweg|haltestelle|tempo|kreuzung/i,
-    description: "Sichere Querungen, Haltestellen und Radverkehr bilden hier den naheliegenden Schwerpunkt.",
-    referencePoints: [
-      { label: "Straße", pattern: /straße|strasse/i },
-      { label: "Querung", pattern: /querung|überweg|ueberweg|zebrastreifen/i },
-      { label: "Radfahrer", pattern: /radfahrer|radweg|fahrrad/i },
-      { label: "Haltestelle", pattern: /haltestelle|bus|bahn/i },
-    ],
-  },
-  {
-    id: "school_routes",
-    label: "Kita- und Schulwege",
-    pattern: /kita|schule|schulweg|schulwege|kinder|eltern|hort/i,
-    description: "Wege rund um Kita, Schule und Alltagssicherheit können als eigener Fokus weitergeführt werden.",
-    referencePoints: [
-      { label: "Kita", pattern: /kita|hort/i },
-      { label: "Schule", pattern: /schule|schulweg|schulwege/i },
-      { label: "Kinder", pattern: /kinder|eltern/i },
-    ],
-  },
-  {
-    id: "accessibility",
-    label: "Barrierefreiheit",
-    pattern: /barriere|barrierefrei|rollstuhl|bordstein|rampe|gehhilfe|sehbehind|mobilitätseinschr/i,
-    description: "Barrieren, sichere Querungen und Nutzbarkeit für alle bleiben als sichtbarer Arbeitsstrang erhalten.",
-    referencePoints: [
-      { label: "Barrierefreiheit", pattern: /barriere|barrierefrei/i },
-      { label: "Bordsteine", pattern: /bordstein|absenk/i },
-      { label: "Rampen", pattern: /rampe|aufzug/i },
-    ],
-  },
-  {
-    id: "planning_green",
-    label: "Stadtplanung und Grünflächen",
-    pattern: /bauprojekt|bauprojekte|planung|stadtplanung|grünfläche|gruenflaeche|grün|gruen|platz|quartier/i,
-    description: "Bauprojekte, Freiräume und Grünflächen können als eigener Planungsstrang sichtbar bleiben.",
-    referencePoints: [
-      { label: "Bauprojekte", pattern: /bauprojekt|bauprojekte/i },
-      { label: "Grünflächen", pattern: /grünfläche|gruenflaeche|grün|gruen/i },
-      { label: "Stadtplanung", pattern: /planung|stadtplanung|quartier/i },
-    ],
-  },
-  {
-    id: "municipal_finance",
-    label: "Kommunale Finanzierung",
-    pattern: /haushalt|finanz|finanzen|finanzierung|kosten|investition|spar|etat/i,
-    description: "Kosten, Finanzierung und kommunale Prioritäten bleiben als eigener Prüfstrang erkennbar.",
-    referencePoints: [
-      { label: "Haushalt", pattern: /haushalt|etat/i },
-      { label: "Finanzierung", pattern: /finanz|kosten|investition/i },
-      { label: "Prioritäten", pattern: /priorität|prioritaet|sparen/i },
-    ],
-  },
-] as const;
-
 function resolveDialogIntelligenceUiSourceState(input: {
   runtimeResult: DialogIntelligenceRuntimeResult;
   existingTopicMatchesRuntimeStatus: ResolveExistingTopicMatchesFromRuntimeResult["status"];
@@ -631,61 +572,20 @@ function dedupeLabelsCaseInsensitive(labels: string[]): string[] {
 function buildDeterministicFallbackBranchDrafts(
   result: CreateIntelligentFollowupResult,
 ): DeterministicFallbackBranchDraft[] {
-  const sourceText = `${result.sourceText}\n${result.understanding.summary}`.trim();
-  const matchedRules = DEGRADED_FALLBACK_TOPIC_RULES.filter((rule) => rule.pattern.test(sourceText));
-  const matchedIds = new Set(matchedRules.map((rule) => rule.id));
-  const matchedReferencePoints = (ruleIds: readonly string[]) =>
-    dedupeLabelsCaseInsensitive(
-      matchedRules
-        .filter((rule) => ruleIds.includes(rule.id))
-        .flatMap((rule) =>
-          rule.referencePoints
-            .filter((reference) => reference.pattern.test(sourceText))
-            .map((reference) => reference.label),
-        ),
-    );
-
-  const looksLikeCivicSmoke =
-    matchedIds.has("traffic_safety") &&
-    (matchedIds.has("school_routes") || matchedIds.has("accessibility")) &&
-    (matchedIds.has("planning_green") || matchedIds.has("municipal_finance"));
-
-  if (looksLikeCivicSmoke) {
-    return [
-      {
-        title: "Verkehrssicherheit",
-        description: "Sichere Querungen, Haltestellen und Radverkehr wirken hier wie der naheliegende erste Schwerpunkt.",
-        referencePoints: ["Tempo", "sichere Querung", "Rad-/Fußverkehr"],
-      },
-      {
-        title: "Kita-/Schulweg & Barrierefreiheit",
-        description: "Wege zu Kita und Schule plus Barrieren im Alltag lassen sich als gemeinsamer Strang sichtbar halten.",
-        referencePoints: ["Kinder", "ältere Menschen", "Haltestelle"],
-      },
-      {
-        title: "Stadtplanung & Finanzierung",
-        description: "Bauprojekte, Grünflächen und kommunale Finanzierung bilden hier einen zweiten planerischen Schwerpunkt.",
-        referencePoints: ["Bauprojekte", "Grünflächen", "Haushalt"],
-      },
-    ];
-  }
-
-  const detectedDrafts = matchedRules.map((rule) => ({
-    title: rule.label,
-    description: rule.description,
-    referencePoints: matchedReferencePoints([rule.id]),
+  const topicDrafts = result.understanding.topics.slice(0, 3).map((topic) => ({
+    title: topic.label,
+    description: `${topic.label} bleibt bis zur bestätigten Einordnung als technischer Themenhinweis markiert.`,
+    referencePoints: [],
   }));
-  const fallbackDrafts = DEGRADED_FALLBACK_TOPIC_RULES.map((rule) => ({
-    title: rule.label,
-    description: rule.description,
-    referencePoints: rule.referencePoints.slice(0, 2).map((reference) => reference.label),
-  }));
-  const combinedDrafts = [...detectedDrafts];
-  for (const draft of fallbackDrafts) {
-    if (combinedDrafts.some((entry) => entry.title === draft.title)) continue;
-    combinedDrafts.push(draft);
-  }
-  return combinedDrafts.slice(0, 3);
+  return topicDrafts.length > 0
+    ? topicDrafts
+    : [
+        {
+          title: "Thema noch offen",
+          description: "Ohne validierte Analyse bleibt der Arbeitsstand technisch offen.",
+          referencePoints: [],
+        },
+      ];
 }
 
 function buildDeterministicFallbackBranches(
@@ -1025,16 +925,12 @@ function buildVoteQuestions(params: {
     questions.push(normalized);
   };
 
-  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    pushQuestion("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
-    for (const field of params.broadTopicFields) {
-      pushQuestion(BROAD_TOPIC_QUESTION_BY_FIELD[field as (typeof BROAD_TOPIC_FIELD_ORDER)[number]]);
-    }
-  }
-
   for (const suggestion of params.suggestions) {
     if (suggestion.kind !== "vote") continue;
     pushQuestion(suggestion.title);
+  }
+  for (const field of params.broadTopicFields) {
+    pushQuestion(BROAD_TOPIC_QUESTION_BY_FIELD[field as (typeof BROAD_TOPIC_FIELD_ORDER)[number]]);
   }
   if (questions.length === 0) {
     pushQuestion(`Welche Prioritäten sollen im Kontext ${params.fallbackTopic} zuerst bearbeitet werden?`);
@@ -1049,23 +945,6 @@ function resolveAssistantLead(params: {
   dossierContext?: string;
   plannerTopic?: string | null;
 }): string {
-  if (params.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards") {
-    return "Ich erkenne eine normative Forderung nach strengeren Tierwohl-, Tierhaltungs- und Agrarstandards mit Blick auf Import, Export, Kennzeichnung und EU-Regeln.";
-  }
-  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte, die zusammen priorisiert werden müssen.";
-  }
-  const lowered = params.topicLabels.join(" ").toLowerCase();
-  if (
-    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
-    lowered.includes("politische verantwortung") &&
-    lowered.includes("amtsträger") &&
-    lowered.includes("qualifikation") &&
-    lowered.includes("sanktionen") &&
-    lowered.includes("gesetzgebung")
-  ) {
-    return "Ich erkenne eine Forderung nach klareren Mindestanforderungen und Konsequenzen für Amtsträger. Dein Beitrag berührt außerdem Gesetzgebung und mögliche Abstimmungsoptionen.";
-  }
   const topicSentence = toSentenceList(params.topicLabels.slice(0, 4).map((label) => label.toLowerCase()));
   if (topicSentence) return `Du sprichst vor allem über ${topicSentence}.`;
   if (params.summary.trim().length > 0) return params.summary.trim();
@@ -1080,17 +959,6 @@ function resolveCoreClaim(params: {
 }): string {
   if (params.plannerCore?.trim()) {
     return params.plannerCore.trim();
-  }
-  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    return "Du beschreibst mehrere kommunale Zielkonflikte, die gemeinsam priorisiert und nachvollziehbar abgewogen werden sollen.";
-  }
-  const lowered = params.topicLabels.join(" ").toLowerCase();
-  if (
-    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
-    lowered.includes("qualifikation") &&
-    lowered.includes("sanktionen")
-  ) {
-    return "Du forderst klare Mindestanforderungen und Konsequenzen für Amtsträger.";
   }
   return params.fallback;
 }
@@ -1840,6 +1708,78 @@ function DocumentAnalysisBubble(props: {
               </button>
             </div>
           ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisStateBubble(props: {
+  state: NonNullable<CreateIntelligentFollowupResult["meta"]>["analysis"]["state"];
+  message: string;
+  onPrimaryAction?: () => void;
+  onSaveOnly?: () => void;
+  onDeferWork?: () => void;
+}) {
+  const primaryLabel =
+    props.state === "link_detected"
+      ? "Link analysieren"
+      : props.state === "entitlement_required"
+        ? "Analyse starten"
+        : props.state === "fetch_failed" || props.state === "ai_failed"
+          ? "Erneut versuchen"
+          : null;
+
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-1 shrink-0">
+        <VoxyAvatar appearance="inline" variant="presenting" />
+      </div>
+      <div className="w-full max-w-[78%] min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            2 · Analyse offen
+          </p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
+            Assistent
+          </p>
+        </div>
+        <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
+          <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">
+            {props.state === "link_detected" || props.state === "entitlement_required" ? "Link erkannt" : "Analyse noch nicht abgeschlossen"}
+          </p>
+          <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+            {props.message}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            {primaryLabel && props.onPrimaryAction ? (
+              <button
+                type="button"
+                className="btn-primary min-h-[42px] px-4 py-2 text-sm"
+                onClick={props.onPrimaryAction}
+              >
+                {primaryLabel}
+              </button>
+            ) : null}
+            {props.onSaveOnly ? (
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                onClick={props.onSaveOnly}
+              >
+                Eingabe speichern
+              </button>
+            ) : null}
+            {props.onDeferWork ? (
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                onClick={props.onDeferWork}
+              >
+                Später fortsetzen
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -3291,23 +3231,34 @@ export default function CreateVisualFollowup({
   );
 
   const topicLabels = result.understanding.topics.map((topic) => topic.label);
-  const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
-  const dominantStance = deriveDominantUnderstandingStance(result.understanding);
-  const sortedSuggestions = sortSuggestions(result.suggestions)
-    .filter((suggestion) => suggestion.kind !== "topic")
-    .slice(0, 4);
+  const analysisState = result.meta?.analysis?.state ?? "result_ready";
+  const analysisMessage = result.meta?.analysis?.userMessage ?? "";
+  const hasValidatedAnalysis =
+    analysisState === "analysis_validated" || analysisState === "result_ready";
+  const broadTopicFields = React.useMemo(
+    () => (hasValidatedAnalysis ? deriveBroadTopicFields(topicLabels) : []),
+    [hasValidatedAnalysis, topicLabels],
+  );
+  const dominantStance = hasValidatedAnalysis
+    ? deriveDominantUnderstandingStance(result.understanding)
+    : "offen/unklar";
+  const sortedSuggestions = hasValidatedAnalysis
+    ? sortSuggestions(result.suggestions)
+        .filter((suggestion) => suggestion.kind !== "topic")
+        .slice(0, 4)
+    : [];
   const compactBranchLimit = Math.max(1, compactBranchLimitProp ?? 3);
   const expandedBranchLimit = Math.max(
     compactBranchLimit,
     expandedBranchLimitProp ?? compactBranchLimit,
   );
   const compactStructureBranches = React.useMemo(
-    () => buildCreateStructureBranches(result, compactBranchLimit),
-    [compactBranchLimit, result],
+    () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, compactBranchLimit) : []),
+    [compactBranchLimit, hasValidatedAnalysis, result],
   );
   const fullStructureBranches = React.useMemo(
-    () => buildCreateStructureBranches(result, expandedBranchLimit),
-    [expandedBranchLimit, result],
+    () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, expandedBranchLimit) : []),
+    [expandedBranchLimit, hasValidatedAnalysis, result],
   );
   const structureBranches = showExpandedTopicPreview ? fullStructureBranches : compactStructureBranches;
   const semanticTopicLabels =
@@ -3327,23 +3278,25 @@ export default function CreateVisualFollowup({
   );
   const voteQuestions = React.useMemo(
     () =>
-      buildVoteQuestions({
-        dossierContext: result.understanding.dossierContext,
-        broadTopicFields,
-        suggestions: sortedSuggestions,
-        fallbackTopic: result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema",
-      }),
-    [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
+      hasValidatedAnalysis
+        ? buildVoteQuestions({
+            dossierContext: result.understanding.dossierContext,
+            broadTopicFields,
+            suggestions: sortedSuggestions,
+            fallbackTopic: result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema",
+          })
+        : [],
+    [broadTopicFields, hasValidatedAnalysis, result.understanding.dossierContext, sortedSuggestions, topicLabels],
   );
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
-  const plannerClarificationRequired = needsPlannerClarification(result);
-  const plannerClarificationReason = resolvePlannerClarificationReason(result);
-  const plannerClarificationDetails = resolvePlannerClarificationDetails(result);
-  const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
+  const plannerClarificationRequired = hasValidatedAnalysis ? needsPlannerClarification(result) : false;
+  const plannerClarificationReason = hasValidatedAnalysis ? resolvePlannerClarificationReason(result) : "";
+  const plannerClarificationDetails = hasValidatedAnalysis ? resolvePlannerClarificationDetails(result) : null;
+  const plannerProvisionalNotice = hasValidatedAnalysis ? resolvePlannerProvisionalNotice(result) : null;
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
-  const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
+  const plannerTechnicalFallback = hasValidatedAnalysis ? isTechnicalPlannerFallback(result) : true;
   const documentAnalysis = result.meta?.documentAnalysis ?? null;
-  const showDocumentTopicOverview = !documentAnalysis || documentTopicOverviewOpened;
+  const showDocumentTopicOverview = hasValidatedAnalysis && (!documentAnalysis || documentTopicOverviewOpened);
   const fallbackBranches = React.useMemo(
     () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
     [plannerClarificationRequired, result],
@@ -3422,20 +3375,23 @@ export default function CreateVisualFollowup({
     : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   const assistantLead = resolveAssistantLead({
     topicLabels: semanticTopicLabels,
-    summary: result.understanding.summary,
+    summary: hasValidatedAnalysis ? result.understanding.summary : "",
     statementText: result.understanding.statements[0]?.text ?? "",
     dossierContext: result.understanding.dossierContext,
     plannerTopic: result.meta?.planner?.plannerTopic ?? null,
   });
-  const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
+  const positionClusters = React.useMemo(
+    () => (hasValidatedAnalysis ? derivePositionClusters(result) : []),
+    [hasValidatedAnalysis, result],
+  );
   const keyStatement = resolveCoreClaim({
     topicLabels: semanticTopicLabels,
-    fallback: result.understanding.statements[0]?.text ?? result.understanding.summary,
+    fallback: hasValidatedAnalysis ? result.understanding.statements[0]?.text ?? result.understanding.summary : "",
     dossierContext: result.understanding.dossierContext,
     plannerCore: result.meta?.planner?.plannerCore ?? null,
   });
   const dedupedCopy = dedupeCreateFollowupSections({
-    summary: result.understanding.summary,
+    summary: hasValidatedAnalysis ? result.understanding.summary : analysisMessage,
     coreClaim: keyStatement,
     sourceText: result.sourceText,
     statementText: result.understanding.statements[0]?.text ?? "",
@@ -3476,34 +3432,40 @@ export default function CreateVisualFollowup({
   const followupStages = React.useMemo(
     () =>
       buildWorkflowStages({
-        isConfirmed,
+        isConfirmed: hasValidatedAnalysis && isConfirmed,
         composerMode,
-        activeTopicLabel,
-        selectedPrimaryTopic,
-        groupedTopicLabels,
+        activeTopicLabel: hasValidatedAnalysis ? activeTopicLabel : null,
+        selectedPrimaryTopic: hasValidatedAnalysis ? selectedPrimaryTopic : null,
+        groupedTopicLabels: hasValidatedAnalysis ? groupedTopicLabels : [],
       }),
-    [activeTopicLabel, composerMode, groupedTopicLabels, isConfirmed, selectedPrimaryTopic],
+    [activeTopicLabel, composerMode, groupedTopicLabels, hasValidatedAnalysis, isConfirmed, selectedPrimaryTopic],
   );
   const workspaceMetrics = React.useMemo(
     () => [
         {
           label: "Prioritäten",
-          value: String(Math.max(1, Math.min(topicLabels.length, 3))),
+          value: String(hasValidatedAnalysis ? Math.max(1, Math.min(topicLabels.length, 3)) : 0),
           detail: "Was du zuerst schärfen solltest",
         },
         {
           label: "Themen",
-          value: String(Math.max(1, fullStructureBranches.length)),
+          value: String(hasValidatedAnalysis ? Math.max(1, fullStructureBranches.length) : 0),
           detail: "Sichtbar getrennte Schwerpunkte",
         },
       {
         label: "Offene Fragen",
-        value: String(Math.max(1, voteQuestions.length)),
+        value: String(hasValidatedAnalysis ? Math.max(1, voteQuestions.length) : 0),
         detail: "Bleiben review-first sichtbar",
       },
         {
           label: "Nächster Schritt",
-          value: plannerClarificationRequired
+          value: !hasValidatedAnalysis
+            ? analysisState === "entitlement_required"
+              ? "Analyse starten"
+              : analysisState === "link_detected"
+                ? "Link analysieren"
+                : "Erneut versuchen"
+            : plannerClarificationRequired
             ? "Themenstruktur bestätigen"
             : groupedTopicLabels.length > 1
               ? "Gemeinsam weiterführen"
@@ -3524,6 +3486,8 @@ export default function CreateVisualFollowup({
       fullStructureBranches.length,
       groupedTopicLabels.length,
       plannerClarificationRequired,
+      hasValidatedAnalysis,
+      analysisState,
       selectedPrimaryTopic,
       showMultiTopicActionPanel,
       topicLabels.length,
@@ -3531,7 +3495,10 @@ export default function CreateVisualFollowup({
     ],
   );
   const inlineNextStepLabel = workspaceMetrics[3]?.value ?? "Themenstruktur bestätigen";
-  const showLinkReviewPrompt = Boolean(linkDetection?.hasLink) && !documentAnalysis;
+  const showLinkReviewPrompt =
+    Boolean(linkDetection?.hasLink) &&
+    !hasValidatedAnalysis &&
+    (analysisState === "link_detected" || analysisState === "entitlement_required");
   const showTopicExpansionPrompt =
     showDocumentTopicOverview &&
     (showLinkReviewPrompt || structureOverflowCount > 0) &&
@@ -3770,7 +3737,16 @@ export default function CreateVisualFollowup({
               className={`create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] ${embedInWorkspaceShell ? "" : "mt-5"}`}
             >
               <UserContributionBubble text={dedupedCopy.userBubbleText} />
-              {documentAnalysis ? (
+              {!hasValidatedAnalysis ? (
+                <AnalysisStateBubble
+                  state={analysisState}
+                  message={analysisMessage}
+                  onPrimaryAction={onPrepareLinkReview}
+                  onSaveOnly={onSaveOnly}
+                  onDeferWork={onDeferWork}
+                />
+              ) : null}
+              {hasValidatedAnalysis && documentAnalysis ? (
                 <DocumentAnalysisBubble
                   analysis={documentAnalysis}
                   onOpenTopics={
@@ -3778,7 +3754,7 @@ export default function CreateVisualFollowup({
                   }
                 />
               ) : null}
-              {showDocumentTopicOverview ? (
+              {hasValidatedAnalysis && showDocumentTopicOverview ? (
                 <AssistantUnderstandingBubble
                   eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
                   stepLabel={documentAnalysis ? "3 · Themenübersicht" : "2 · Themen erkannt"}
@@ -3847,7 +3823,7 @@ export default function CreateVisualFollowup({
                   )}
                 </AssistantUnderstandingBubble>
               ) : null}
-              {showTopicExpansionPrompt ? (
+              {hasValidatedAnalysis && showTopicExpansionPrompt ? (
                 <TopicExpansionPrompt
                   showLinkReviewPrompt={showLinkReviewPrompt}
                   totalTopicCount={
@@ -3868,7 +3844,7 @@ export default function CreateVisualFollowup({
                 />
               ) : null}
               {actionNotice ? <WorkspaceActionEventBubble message={actionNotice} /> : null}
-              {showDocumentTopicOverview && !isConfirmed && !plannerClarificationRequired && activeBranch && activeTopicIndex > -1 ? (
+              {hasValidatedAnalysis && showDocumentTopicOverview && !isConfirmed && !plannerClarificationRequired && activeBranch && activeTopicIndex > -1 ? (
                 <TopicFocusPanel
                   activeBranch={activeBranch}
                   activeTopicIndex={activeTopicIndex}
@@ -3877,7 +3853,7 @@ export default function CreateVisualFollowup({
                   onParkTopic={onParkTopic}
                 />
               ) : null}
-              {showDocumentTopicOverview ? (
+              {hasValidatedAnalysis && showDocumentTopicOverview ? (
                 <WorkspaceActionThreadNote
                   mode={composerMode}
                   selectedPrimaryTopic={selectedPrimaryTopic}
@@ -3886,7 +3862,8 @@ export default function CreateVisualFollowup({
               ) : null}
             </div>
 
-            {showDocumentTopicOverview &&
+            {hasValidatedAnalysis &&
+            showDocumentTopicOverview &&
             !isConfirmed &&
             !placeClarification &&
             !plannerClarificationRequired &&
@@ -3898,7 +3875,7 @@ export default function CreateVisualFollowup({
                 />
               </div>
             ) : null}
-            {showDocumentTopicOverview && !placeClarification && plannerClarificationRequired ? (
+            {hasValidatedAnalysis && showDocumentTopicOverview && !placeClarification && plannerClarificationRequired ? (
               <div className="mt-4">
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}
@@ -3910,7 +3887,7 @@ export default function CreateVisualFollowup({
             ) : null}
           </div>
 
-          {placeClarification ? (
+          {hasValidatedAnalysis && placeClarification ? (
             <PlaceClarificationPanel
               question={placeClarification.question}
               privacyHint={placeClarification.privacyHint}
@@ -3938,7 +3915,7 @@ export default function CreateVisualFollowup({
             />
           ) : null}
 
-          {composerMode === "manual_topic" && !placeClarification ? (
+          {hasValidatedAnalysis && composerMode === "manual_topic" && !placeClarification ? (
             <ManualTopicChooser
               topicOptions={Array.from(new Set(displayedBranches.map((branch) => branch.title))).slice(0, 4)}
               selectedPrimaryTopic={selectedPrimaryTopic}
@@ -3982,13 +3959,23 @@ export default function CreateVisualFollowup({
                     Kompakte Einordnung
                   </p>
                   <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
-                    <li>{Math.max(1, displayedBranches.length)} sichtbare Themen bleiben getrennt im Chat.</li>
-                    <li>{Math.max(1, voteQuestions.length)} offene Fragen bleiben review-first.</li>
-                    <li>Quellenprüfung startet erst nach deiner Bestätigung.</li>
-                    <li>Entwürfe bleiben unveröffentlicht und werden nicht automatisch übergeben.</li>
+                    {hasValidatedAnalysis ? (
+                      <>
+                        <li>{Math.max(1, displayedBranches.length)} sichtbare Themen bleiben getrennt im Chat.</li>
+                        <li>{Math.max(1, voteQuestions.length)} offene Fragen bleiben review-first.</li>
+                        <li>Quellenprüfung startet erst nach deiner Bestätigung.</li>
+                        <li>Entwürfe bleiben unveröffentlicht und werden nicht automatisch übergeben.</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>Ohne validierten KI-Run werden keine Themenkarten oder Zusammenfassungen gezeigt.</li>
+                        <li>Der Link- oder Texteingang bleibt bis zur erfolgreichen Analyse technisch gerahmt.</li>
+                        <li>Quellenprüfung wurde noch nicht durchgeführt.</li>
+                      </>
+                    )}
                     {plannerClarificationDetails ? <li>{plannerClarificationDetails}</li> : null}
                   </ul>
-                  {plannerClarificationRequired && onRetryPlanner ? (
+                  {hasValidatedAnalysis && plannerClarificationRequired && onRetryPlanner ? (
                     <div className="mt-4">
                       <button
                         type="button"
@@ -4024,7 +4011,7 @@ export default function CreateVisualFollowup({
                       <path d="M7 4.5 13 10l-6 5.5" />
                     </svg>
                   </button>
-                  {deepDiveOpen ? (
+                  {deepDiveOpen && hasValidatedAnalysis ? (
                     <div className="mt-4 space-y-4">
                       {plannerClarificationRequired ? (
                         <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
@@ -4142,6 +4129,10 @@ export default function CreateVisualFollowup({
                           />
                         </div>
                       ) : null}
+                    </div>
+                  ) : deepDiveOpen ? (
+                    <div className="mt-4 rounded-[24px] border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 text-sm leading-relaxed text-[rgb(var(--fg))] dark:border-[rgb(var(--border))]">
+                      Vertiefte Analyse erscheint erst nach einem validierten KI-Run auf dem tatsächlichen Quellinhalt.
                     </div>
                   ) : null}
                 </div>

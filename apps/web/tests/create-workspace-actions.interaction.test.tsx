@@ -2,14 +2,19 @@
 
 import * as React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
 import {
   buildCreateStructureBranches,
   type CreateIntelligentFollowupResult,
+  type DocumentAnalysisSummary,
 } from "@/features/create/intelligentFollowupContract";
+import {
+  buildCreateTechnicalFollowup,
+  buildCreateValidatedDocumentFollowup,
+} from "@/features/create/intelligentFollowupResults";
 import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 
 vi.mock("next/link", () => ({
@@ -26,7 +31,7 @@ vi.mock("@/features/create/existingTopicMatchesRuntimeBridge", () => ({
     blockers: [],
     usedSources: ["preview"],
     model: {
-      topicTitle: "Verkehr",
+      topicTitle: "Preview",
       introText: "Preview",
       matches: [],
       suggestedDecision: "connect_to_existing",
@@ -49,7 +54,7 @@ function buildGraphMatch() {
     stage: "after_structure" as const,
     prepared: false,
     requiresConfirmation: true as const,
-    searchTerms: ["verkehr", "sicherheit", "finanzen"],
+    searchTerms: [],
     matches: [],
     matchedTopics: [],
     matchedDossiers: [],
@@ -66,19 +71,36 @@ function buildSpecificPlanner() {
     plannerSource: "openai" as const,
     plannerProvider: "openai" as const,
     plannerRole: "planner_only" as const,
-    plannerTopic: "Verkehr",
-    plannerCore: "Der Beitrag verbindet Schulwegsicherheit, Regelklarheit und Finanzierung.",
+    plannerTopic: "ÖPNV und Mobilität",
+    plannerCore:
+      "Der Beitrag verbindet abendlichen Bus-Takt, Anschlussmobilität sowie Fragen zu Straßenraum, Parkraum und Radwegen.",
     plannerScope: ["district" as const],
     plannerStance: "open" as const,
-    plannerClusters: ["Verkehr", "Sicherheit/Rechtsstaat", "Kommunale Finanzen"],
+    plannerClusters: [
+      "ÖPNV und Mobilität",
+      "Straßenraum und Radverkehr",
+      "Parkraum und kommunale Planung",
+      "Pendler- und Anschlussmobilität",
+    ],
     plannerOpenQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
-    shortSummary: "Mehrere Themenstränge sind erkennbar und können jetzt sortiert werden.",
-    topicCandidates: ["Verkehr", "Sicherheit/Rechtsstaat", "Kommunale Finanzen"],
-    clusterCandidates: ["Verkehr", "Sicherheit/Rechtsstaat", "Kommunale Finanzen"],
+    shortSummary:
+      "Der Beitrag verknüpft Bus-Takt, Anschlussmobilität, Straßenumbau, Parkraum und Radwege.",
+    topicCandidates: [
+      "ÖPNV und Mobilität",
+      "Straßenraum und Radverkehr",
+      "Parkraum und kommunale Planung",
+      "Pendler- und Anschlussmobilität",
+    ],
+    clusterCandidates: [
+      "ÖPNV und Mobilität",
+      "Straßenraum und Radverkehr",
+      "Parkraum und kommunale Planung",
+      "Pendler- und Anschlussmobilität",
+    ],
     scopeCandidates: ["district" as const],
     stance: "open" as const,
     openQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
-    graphSearchTerms: ["verkehr", "schulweg", "sicherheit", "haushalt"],
+    graphSearchTerms: ["öpnv", "straßenraum", "parkraum", "anschlussmobilität"],
     materialSignals: [],
     recommendedLane: "create_fast_followup" as const,
     providerPlan: {
@@ -121,128 +143,17 @@ function buildSpecificPlanner() {
   };
 }
 
-function buildDegradedPlanner() {
-  return {
-    source: "heuristic_fallback" as const,
-    plannerSource: "heuristic_fallback" as const,
-    plannerProvider: "openai" as const,
-    plannerRole: "planner_only" as const,
-    plannerTopic: "GPT-Einordnung nicht abgeschlossen",
-    plannerCore: "Die Einordnung ist noch nicht belastbar genug.",
-    plannerScope: ["unclear" as const],
-    plannerStance: "open" as const,
-    plannerClusters: [],
-    plannerOpenQuestions: ["Thema selbst wählen oder später erneut prüfen."],
-    shortSummary: "Vorläufiger Fallback aktiv.",
-    topicCandidates: [],
-    clusterCandidates: [],
-    scopeCandidates: ["unclear" as const],
-    stance: "open" as const,
-    openQuestions: ["Thema selbst wählen oder später erneut prüfen."],
-    graphSearchTerms: [],
-    materialSignals: [],
-    recommendedLane: "standard" as const,
-    providerPlan: {
-      lane: "standard" as const,
-      plannerProvider: "openai" as const,
-      plannerRole: "planner_only" as const,
-      structureProvider: "mistral" as const,
-      summaryProvider: "claude" as const,
-      researchUsed: "none" as const,
-      researchProvider: null,
-      deepSearchUsed: false,
-      graphMatch: "after_structure" as const,
-    },
-    permissions: {
-      nonMutative: true as const,
-      canPublish: false as const,
-      canSave: false as const,
-      canMerge: false as const,
-      canDeepSearch: false as const,
-    },
-    plannerDegraded: true,
-    degradedReason: "timeout" as const,
-    plannerDegradedReason: "timeout" as const,
-    qualityStatus: "failed" as const,
-    qualityIssues: ["technical_fallback_only"],
-    providerCallAttempted: true,
-    providerCallSucceeded: false,
-    plannerDebug: {
-      attemptedProvider: "openai" as const,
-      usedProvider: "none" as const,
-      providerAvailable: true,
-      providerErrorCode: null,
-      providerErrorMessage: "timeout",
-      errorMessage: "timeout",
-      rawPayloadValid: false,
-      rawTextValid: false,
-      normalizedPayloadValid: false,
-      qualityGatePassed: false,
-    },
-  };
-}
-
-function buildStandardResult(): CreateIntelligentFollowupResult {
+function buildValidatedTopicResult(): CreateIntelligentFollowupResult {
   return {
     understanding: {
-      summary: "Der Beitrag verbindet sichere Schulwege, klare Regeln und eine belastbare Finanzierung.",
-      dossierContext: "Verkehr",
-      categories: [{ id: "hint", label: "Hinweis", confidence: "high" }],
-      topics: [
-        { id: "verkehr", label: "Verkehr", confidence: "high" },
-        { id: "sicherheit", label: "Sicherheit/Rechtsstaat", confidence: "medium" },
-        { id: "finanzen", label: "Kommunale Finanzen", confidence: "medium" },
-      ],
-      statements: [
-        {
-          id: "statement-1",
-          text: "Vor der Schule fehlen sichere Querungen und klare Tempo-30-Kontrollen.",
-          kind: "demand",
-          stance: "pro",
-          confidence: "high",
-        },
-      ],
-      scopes: ["district"],
-      confidence: "high",
-    },
-    suggestions: [
-      {
-        id: "dossier-auto",
-        kind: "dossier",
-        title: "Sichere Schulwege",
-        reason: "Das Thema passt zu einem bestehenden Arbeitsstand.",
-        confidence: "high",
-        href: "/dossier?topic=schulwege",
-        requiresConfirmation: true,
-      },
-    ],
-    sourceText:
-      "Verkehr rund um die Schule ist unsicher, Regeln werden missachtet und die Finanzierung ist unklar.",
-    generatedAt: "2026-07-15T10:00:00.000Z",
-    meta: {
-      planner: buildSpecificPlanner(),
-      graphMatch: buildGraphMatch(),
-      researchUsed: "none",
-      researchProvider: null,
-      deepSearchUsed: false,
-    },
-  };
-}
-
-function buildOverflowResult(): CreateIntelligentFollowupResult {
-  const base = buildStandardResult();
-  return {
-    ...base,
-    understanding: {
-      ...base.understanding,
       summary:
-        "Der Beitrag verbindet abendlichen ÖPNV, Anschlussmobilität und den Umbau der Hauptstraße mit Parkraum- und Radverkehrsfragen.",
-      dossierContext: "Mobilität und Straßenumbau im Bezirk",
+        "Der Beitrag verknüpft Bus-Takt, Anschlussmobilität, Straßenumbau, Parkraum und Radwege.",
+      categories: [{ id: "claim", label: "Aussage", confidence: "high" }],
       topics: [
-        { id: "wohnen", label: "Wohnen", confidence: "medium" },
-        { id: "verkehr", label: "Verkehr", confidence: "high" },
-        { id: "bildung", label: "Bildung", confidence: "low" },
-        { id: "integration", label: "Migration/Integration", confidence: "low" },
+        { id: "topic-1", label: "ÖPNV und Mobilität", confidence: "high" },
+        { id: "topic-2", label: "Straßenraum und Radverkehr", confidence: "high" },
+        { id: "topic-3", label: "Parkraum und kommunale Planung", confidence: "high" },
+        { id: "topic-4", label: "Pendler- und Anschlussmobilität", confidence: "medium" },
       ],
       statements: [
         {
@@ -252,157 +163,85 @@ function buildOverflowResult(): CreateIntelligentFollowupResult {
           stance: "open",
           confidence: "high",
         },
-        {
-          id: "statement-2",
-          text: "Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn.",
-          kind: "claim",
-          stance: "open",
-          confidence: "high",
-        },
-        {
-          id: "statement-3",
-          text: "Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
-          kind: "claim",
-          stance: "open",
-          confidence: "high",
-        },
-      ],
-    },
-    sourceText:
-      "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
-  };
-}
-
-function buildLongInventoryResult(): CreateIntelligentFollowupResult {
-  return {
-    understanding: {
-      summary:
-        "Der Beitrag verbindet sichere Querungen, Schulwege, Barrierefreiheit, Bauprojekte, Grünflächen und einen knappen Haushalt.",
-      dossierContext: "Quartier und sichere Wege",
-      categories: [{ id: "hint", label: "Hinweis", confidence: "high" }],
-      topics: [
-        { id: "verkehr", label: "Verkehr", confidence: "high" },
-        { id: "bildung", label: "Bildung", confidence: "medium" },
-        { id: "barrierefrei", label: "Barrierefreiheit", confidence: "medium" },
-        { id: "gruen", label: "Grünflächen", confidence: "medium" },
-        { id: "haushalt", label: "Kommunale Finanzen", confidence: "medium" },
-      ],
-      statements: [
-        {
-          id: "statement-1",
-          text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle.",
-          kind: "claim",
-          stance: "open",
-          confidence: "high",
-        },
-        {
-          id: "statement-2",
-          text: "Radfahrer, Familien und ältere Menschen kommen schlecht durch.",
-          kind: "claim",
-          stance: "open",
-          confidence: "high",
-        },
-        {
-          id: "statement-3",
-          text: "Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-          kind: "claim",
-          stance: "open",
-          confidence: "high",
-        },
       ],
       scopes: ["district"],
+      openQuestion: "Welcher Themenstrang soll zuerst vertieft werden?",
       confidence: "high",
     },
     suggestions: [],
     sourceText:
-      "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer, Familien und ältere Menschen kommen schlecht durch. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-    generatedAt: "2026-07-15T10:10:00.000Z",
-  };
-}
-
-function buildDocumentAnalysisResult(): CreateIntelligentFollowupResult {
-  const base = buildOverflowResult();
-  return {
-    ...base,
+      "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
+    generatedAt: "2026-07-18T10:00:00.000Z",
     meta: {
       planner: buildSpecificPlanner(),
       graphMatch: buildGraphMatch(),
       researchUsed: "none",
       researchProvider: null,
       deepSearchUsed: false,
-      documentAnalysis: {
-        sourceUrl: "https://example.com/fdp-programm.pdf",
-        documentTitle: "Grundsatzprogramm der FDP",
-        documentType: "party_program",
-        pageCount: 78,
-        wordCount: 18240,
-        topicCount: 4,
-        subtopicCount: 18,
-        keyStatementCount: 94,
-        verifiableClaimCount: 31,
-        policyProposalCount: 12,
-        subjectBreadth: "broad",
-        subjectDepth: "mixed",
-        balanceAssessment: "programmatic",
-        sourceSpecificity: "partly_specific",
-        sourceVerificationStatus: "not_started",
-        counterpositionCoverage: "weak",
-        summary:
-          "Das Programm verbindet wirtschaftliche Liberalisierung, Digitalisierung, Bürgerrechte und staatliche Modernisierung. Konkrete Vorhaben und überprüfbare Claims sind sichtbar, Gegenpositionen bleiben im Dokument aber nur begrenzt enthalten.",
-        topics: [
-          { id: "topic-1", label: "Wirtschaft & Steuern" },
-          { id: "topic-2", label: "Arbeit & Soziales" },
-          { id: "topic-3", label: "Bildung & Forschung" },
-          { id: "topic-4", label: "Staat & Verwaltung" },
-        ],
+      analysis: {
+        state: "result_ready",
+        analysisId: "analysis-topics",
+        sourceType: "text",
+        sourceUrl: null,
+        sourceContentHash: "hash-topics",
+        analyzedAt: "2026-07-18T10:00:00.000Z",
+        orchestrationRunId: "orch-topics",
+        schemaVersion: "create_followup.v2",
+        validationStatus: "validated",
+        evidenceReferences: [],
+        confidence: 0.88,
+        sourceLoaded: true,
+        userMessage: null,
       },
     },
   };
 }
 
-function buildDegradedResult(): CreateIntelligentFollowupResult {
+function buildDocumentAnalysis(): DocumentAnalysisSummary {
   return {
-    understanding: {
-      summary: "Mehrere Themenstränge sind vorhanden, die Einordnung bleibt vorläufig.",
-      categories: [{ id: "claim", label: "Aussage", confidence: "medium" }],
-      topics: [{ id: "placeholder", label: "Öffentliches Anliegen mit Klärungsbedarf", confidence: "low" }],
-      statements: [
-        {
-          id: "statement-1",
-          text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer und Familien kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-          kind: "claim",
-          stance: "open",
-          confidence: "medium",
-        },
-      ],
-      scopes: ["unclear"],
-      openQuestion: "Was soll zuerst bearbeitet werden?",
-      confidence: "medium",
-    },
-    suggestions: [],
-    sourceText:
-      "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer und Familien kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-    generatedAt: "2026-07-15T10:05:00.000Z",
-    meta: {
-      planner: buildDegradedPlanner(),
-      graphMatch: buildGraphMatch(),
-      researchUsed: "none",
-      researchProvider: null,
-      deepSearchUsed: false,
-    },
+    sourceUrl: "https://example.com/fdp-programm.pdf",
+    documentTitle: "Grundsatzprogramm der FDP",
+    documentType: "party_program",
+    pageCount: 78,
+    wordCount: 18240,
+    topicCount: 4,
+    subtopicCount: 18,
+    keyStatementCount: 94,
+    verifiableClaimCount: 31,
+    policyProposalCount: 12,
+    subjectBreadth: "broad",
+    subjectDepth: "mixed",
+    balanceAssessment: "programmatic",
+    sourceSpecificity: "partly_specific",
+    sourceVerificationStatus: "not_started",
+    counterpositionCoverage: "weak",
+    summary:
+      "Das Programm verbindet wirtschaftliche Liberalisierung, Digitalisierung, Bürgerrechte und staatliche Modernisierung.",
+    topics: [
+      { id: "topic-1", label: "Wirtschaft & Steuern", subtopicCount: 5, keyStatementCount: 20, verifiableClaimCount: 7, policyProposalCount: 3, summary: "Wirtschaftspolitische Leitlinien." },
+      { id: "topic-2", label: "Arbeit & Soziales", subtopicCount: 4, keyStatementCount: 18, verifiableClaimCount: 6, policyProposalCount: 2, summary: "Arbeitsmarkt und Sozialstaat." },
+      { id: "topic-3", label: "Bildung & Forschung", subtopicCount: 4, keyStatementCount: 16, verifiableClaimCount: 5, policyProposalCount: 3, summary: "Bildungspolitische Schwerpunkte." },
+      { id: "topic-4", label: "Staat & Verwaltung", subtopicCount: 5, keyStatementCount: 21, verifiableClaimCount: 13, policyProposalCount: 4, summary: "Verwaltungsmodernisierung." },
+    ],
   };
 }
 
+function buildDocumentResult() {
+  return buildCreateValidatedDocumentFollowup({
+    text: "https://example.com/fdp-programm.pdf",
+    sourceUrl: "https://example.com/fdp-programm.pdf",
+    documentAnalysis: buildDocumentAnalysis(),
+    generatedAt: "2026-07-18T11:00:00.000Z",
+  });
+}
+
 function Harness(props: {
-  result: CreateIntelligentFollowupResult;
+  initialResult: CreateIntelligentFollowupResult;
   linkText?: string;
   previewAllTopics?: boolean;
 }) {
-  const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
-  const [activeTopicLabel, setActiveTopicLabel] = React.useState<string | null>(null);
-  const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
-  const [groupedTopicLabels, setGroupedTopicLabels] = React.useState<string[]>([]);
-  const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
+  const [result, setResult] = React.useState(props.initialResult);
+  const [confirmed, setConfirmed] = React.useState(false);
   const [documentTopicOverviewOpened, setDocumentTopicOverviewOpened] = React.useState(false);
   const [showExpandedTopicPreview, setShowExpandedTopicPreview] = React.useState(false);
   const [topicExpansionDecision, setTopicExpansionDecision] = React.useState<
@@ -411,450 +250,245 @@ function Harness(props: {
   const [composerMode, setComposerMode] = React.useState<"default" | "edit" | "source" | "manual_topic">(
     "default",
   );
-  const [confirmed, setConfirmed] = React.useState(false);
-  const [saveCount, setSaveCount] = React.useState(0);
-  const [sourceCount, setSourceCount] = React.useState(0);
+  const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
+  const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
-  const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
+
   const linkDetection = React.useMemo(
-    () => detectCreateLinkIntake(props.linkText ?? props.result.sourceText),
-    [props.linkText, props.result.sourceText],
+    () => detectCreateLinkIntake(props.linkText ?? result.sourceText),
+    [props.linkText, result.sourceText],
   );
-  const fullBranchCount = React.useMemo(
-    () => buildCreateStructureBranches(props.result, 5).length,
-    [props.result],
-  );
-  const visibleBranchCount = 3;
-  const overflowCount = Math.max(0, fullBranchCount - visibleBranchCount);
+
   const composerPlaceholder =
     composerMode === "source"
       ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
       : !confirmed
         ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
-        : composerMode === "edit"
-          ? "Welche Aussage möchtest du schärfen?"
-          : composerMode === "manual_topic"
-            ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
-            : "Welche Aussage möchtest du schärfen?";
-  const nextStepLabel =
-    !confirmed
-      ? "Themenstruktur bestätigen"
-      : composerMode === "source"
-      ? "Quellen prüfen"
-      : composerMode === "manual_topic"
-        ? "Themen ändern"
-        : groupedTopicLabels.length > 1
-          ? "Themen gemeinsam weiterführen"
-          : selectedPrimaryTopic
-            ? "Aussage schärfen"
-            : "Aussage schärfen";
-
-  React.useEffect(() => {
-    if (composerMode === "default") return;
-    composerRef.current?.focus();
-  }, [composerMode]);
+        : "Welche Aussage möchtest du schärfen?";
 
   return (
     <div>
       <CreateVisualFollowup
-        result={props.result}
+        result={result}
         actionNotice={actionNotice}
         isConfirmed={confirmed}
-        activeTopicLabel={activeTopicLabel}
         selectedPrimaryTopic={selectedPrimaryTopic}
-        groupedTopicLabels={groupedTopicLabels}
         parkedTopicLabels={parkedTopicLabels}
         composerMode={composerMode}
-        reviewRequestMessage={reviewRequestMessage}
-        factcheckMessage={
-          composerMode === "source"
-            ? "Quellenmodus aktiv. Eine externe Prüfung startet erst nach Bestätigung."
-            : null
-        }
         linkDetection={linkDetection}
         compactBranchLimit={3}
-        expandedBranchLimit={5}
+        expandedBranchLimit={4}
         documentTopicOverviewOpened={documentTopicOverviewOpened}
         showExpandedTopicPreview={showExpandedTopicPreview}
         topicExpansionDecision={topicExpansionDecision}
         expandedTopicAccess={{
-          canPreviewAllTopics: props.previewAllTopics ?? false,
+          canPreviewAllTopics: props.previewAllTopics ?? true,
           isPrivilegedPreview: false,
-          costState: props.previewAllTopics ? "uses_search_credit" : "addon_required",
-        }}
-        onOpenDocumentTopicOverview={() => {
-          setDocumentTopicOverviewOpened(true);
-          setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
+          costState: "uses_search_credit",
         }}
         onConfirm={() => {
-          setSelectedPrimaryTopic((current) => current ?? activeTopicLabel ?? "Verkehr");
-          setParkedTopicLabels((current) => current.filter((topic) => topic !== "Verkehr"));
-          setGroupedTopicLabels([]);
           setConfirmed(true);
           setComposerMode("default");
+          setSelectedPrimaryTopic((current) => current ?? buildCreateStructureBranches(result, 3)[0]?.title ?? null);
           setActionNotice("Themenstruktur bestätigt.");
         }}
-        onFocusTopic={(topicLabel) => {
-          setActiveTopicLabel(topicLabel);
-          setComposerMode("default");
-          setActionNotice(`${topicLabel} wurde fokussiert.`);
-        }}
-        onSelectPrimaryTopic={(topicLabel) => {
-          setActiveTopicLabel(topicLabel);
-          setSelectedPrimaryTopic(topicLabel);
-          setGroupedTopicLabels([]);
-          setParkedTopicLabels((current) => current.filter((topic) => topic !== topicLabel));
-          setConfirmed(true);
-          setComposerMode("default");
-          setActionNotice(`${topicLabel} ist jetzt dein Fokus.`);
-        }}
-        onGroupTopics={(topicLabels) => {
-          setGroupedTopicLabels(topicLabels);
-          setConfirmed(false);
-          setComposerMode("default");
-          setActionNotice(`${topicLabels.join(", ")} werden gemeinsam weitergeführt.`);
-        }}
-        onSeparateTopics={() => {
-          setGroupedTopicLabels([]);
-          setConfirmed(false);
-          setComposerMode("default");
-          setActionNotice("Die Themen werden wieder getrennt weitergeführt.");
-        }}
+        onEdit={() => setComposerMode("edit")}
         onParkTopic={(topicLabel) => {
           setParkedTopicLabels((current) => (current.includes(topicLabel) ? current : [...current, topicLabel]));
-          setGroupedTopicLabels((current) => current.filter((topic) => topic !== topicLabel));
-          setActiveTopicLabel((current) => (current === topicLabel ? null : current));
-          setSelectedPrimaryTopic((current) => (current === topicLabel ? null : current));
-          setConfirmed(false);
-          setComposerMode("default");
           setActionNotice(`${topicLabel} wurde geparkt.`);
         }}
-        onEdit={() => {
-          setComposerMode("edit");
-          setActionNotice("Aussage schärfen geöffnet.");
-        }}
-        onOpenManualTopicChooser={() => {
-          setComposerMode("manual_topic");
-          setActionNotice("Themen ändern geöffnet.");
-        }}
+        onOpenManualTopicChooser={() => setComposerMode("manual_topic")}
         onPrepareSubmission={() => {}}
-        onPrepareAnlassraum={() => {
-          if (!selectedPrimaryTopic) {
-            setActionNotice("Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten.");
-            return;
-          }
-          setActionNotice(`Anlassraum für „${selectedPrimaryTopic}“ wird vorbereitet.`);
-        }}
+        onPrepareAnlassraum={() => {}}
         onOpenDossierAppend={() => {}}
         onOpenDossierCreate={() => {}}
         onPrepareVote={() => {}}
-        onRequestEditorialReview={() => {}}
-        onStartOptionalService={() => {}}
-        onSaveQuestion={() => {
-          setSaveCount((count) => count + 1);
-          setActionNotice("Die Frage wurde gespeichert.");
-        }}
-        onSaveTopic={() => {
-          setSaveCount((count) => count + 1);
-          setActionNotice("Das Thema wurde gespeichert.");
-        }}
-        onSaveSource={() => {
-          setSourceCount((count) => count + 1);
-          setActionNotice("Der Quellenhinweis wurde gespeichert.");
-        }}
-        onPrepareCommunity={() => {
-          setSaveCount((count) => count + 1);
-          setActionNotice("Ich bereite daraus einen überprüfbaren Community-Beitrag vor.");
-        }}
-        onDeferWork={() => {
-          setSaveCount((count) => count + 1);
-          setActionNotice("Der Arbeitsstand wurde für später gespeichert.");
-        }}
         onExpandTopicPreview={() => {
           setShowExpandedTopicPreview(true);
           setTopicExpansionDecision("expanded");
-          setActionNotice(
-            overflowCount === 1
-              ? "Das weitere Thema wird jetzt angezeigt."
-              : "Alle Themen wurden geöffnet.",
-          );
+          setActionNotice("Das weitere Thema wird jetzt angezeigt.");
         }}
         onKeepCompactTopicPreview={() => {
           setShowExpandedTopicPreview(false);
           setTopicExpansionDecision("compact");
           setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
         }}
-        onDeferExpandedReview={() => {
-          setShowExpandedTopicPreview(false);
-          setTopicExpansionDecision("later");
-          setActionNotice("Vollständige Auswertung bleibt vorerst zurückgestellt.");
+        onOpenDocumentTopicOverview={() => {
+          setDocumentTopicOverviewOpened(true);
+          setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
         }}
         onPrepareLinkReview={() => {
-          setDocumentTopicOverviewOpened(true);
-          setComposerMode("source");
+          const state = result.meta?.analysis?.state;
+          if (state === "link_detected") {
+            setResult(
+              buildCreateTechnicalFollowup({
+                text: result.sourceText,
+                analysisState: "entitlement_required",
+                sourceType: "link",
+                sourceUrl: linkDetection.primaryUrl,
+                sourceLoaded: false,
+                userMessage:
+                  "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
+              }),
+            );
+            return;
+          }
           setTopicExpansionDecision("link");
-          setActionNotice("Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.");
         }}
-        onRetryPlanner={() => {}}
-        onSaveOnly={() => {
-          setSaveCount((count) => count + 1);
-          setReviewRequestMessage("Entwurf gespeichert. Noch nicht veröffentlicht.");
-          setActionNotice("Entwurf gespeichert. Noch nicht veröffentlicht.");
-        }}
+        onDeferExpandedReview={() => setTopicExpansionDecision("later")}
+        onSaveOnly={() => setActionNotice("Entwurf gespeichert. Noch nicht veröffentlicht.")}
+        onSaveQuestion={() => {}}
+        onSaveTopic={() => {}}
+        onSaveSource={() => {}}
+        onSaveInternal={() => {}}
+        onPrepareCommunity={() => {}}
+        onDeferWork={() => setActionNotice("Später fortsetzen gewählt.")}
         continuationValue=""
         onContinuationChange={() => {}}
         onContinueConversation={() => {}}
       />
-      <div data-testid="selected-topic">{selectedPrimaryTopic ?? ""}</div>
-      <div data-testid="parked-topics">{parkedTopicLabels.join("|")}</div>
-      <div data-testid="composer-mode">{composerMode}</div>
       <div data-testid="composer-placeholder">{composerPlaceholder}</div>
-      <div data-testid="next-step-label">{nextStepLabel}</div>
-      <div data-testid="save-count">{String(saveCount)}</div>
-      <div data-testid="source-count">{String(sourceCount)}</div>
       <div data-testid="topic-expansion-decision">{topicExpansionDecision}</div>
-      <textarea ref={composerRef} placeholder={composerPlaceholder} data-testid="composer-input" />
+      <div data-testid="parked-topics">{parkedTopicLabels.join("|")}</div>
+      <div data-testid="analysis-state">{result.meta?.analysis?.state ?? ""}</div>
     </div>
   );
 }
 
 describe("create workspace actions interaction", () => {
-  it("marks the chosen primary topic, parks branches and drives follow-up actions locally", async () => {
+  it("keeps unloaded links purely technical until analysis is explicitly started", async () => {
     const user = userEvent.setup();
-    const { container } = render(<Harness result={buildStandardResult()} />);
+    render(
+      <Harness
+        initialResult={buildCreateTechnicalFollowup({
+          text: "https://example.com/fundstelle.pdf",
+          analysisState: "link_detected",
+          sourceType: "link",
+          sourceUrl: "https://example.com/fundstelle.pdf",
+          sourceLoaded: false,
+          userMessage:
+            "Ich muss den verlinkten Inhalt zuerst vollständig laden und mit dem KI-Orchester analysieren. Vorher leite ich keine Themen ab.",
+        })}
+        linkText="https://example.com/fundstelle.pdf"
+      />,
+    );
 
-    const firstBranchCard = container.querySelector("[data-create-topic-branch-card]");
-    expect(firstBranchCard).not.toBeNull();
-    if (!firstBranchCard) return;
+    expect(screen.getByText("Link erkannt")).toBeTruthy();
+    expect(screen.getAllByText(/Vorher leite ich keine Themen ab/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Link analysieren" })).toBeTruthy();
+    expect(screen.queryByText("ÖPNV und Mobilität")).toBeNull();
+    expect(screen.queryByText("78 Seiten")).toBeNull();
 
-    await user.click(within(firstBranchCard).getByRole("button", { name: /Verkehr/ }));
+    await user.click(screen.getByRole("button", { name: "Link analysieren" }));
 
-    const focusedCard = container.querySelector('[data-active-topic="true"]');
-    expect(focusedCard).not.toBeNull();
-    expect(screen.queryByText("Du schaust Thema 1: Verkehr.")).not.toBeNull();
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Themenstruktur bestätigen");
-
-    await user.click(screen.getAllByRole("button", { name: "Themenstruktur bestätigen" })[0]!);
-    expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehr");
-    expect(screen.queryAllByText("Themenstruktur bestätigt.").length).toBeGreaterThan(0);
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Aussage schärfen");
-
-    const allBranchCards = Array.from(container.querySelectorAll("[data-create-topic-branch-card]"));
-    expect(allBranchCards.length).toBeGreaterThan(1);
-    const secondBranchCard = allBranchCards[1];
-    if (!secondBranchCard) return;
-
-    await user.click(within(secondBranchCard).getByRole("button", { name: "Thema parken" }));
-    expect(screen.getByTestId("parked-topics").textContent).toContain("Sicherheit/Rechtsstaat");
-    expect(screen.queryAllByText("Sicherheit/Rechtsstaat wurde geparkt.").length).toBeGreaterThan(0);
-    expect(
-      secondBranchCard.getAttribute("data-parked-topic") === "true" ||
-      within(secondBranchCard).queryByText("Geparkt") !== null,
-    ).toBe(true);
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Themenstruktur bestätigen");
-
-    await user.click(screen.getAllByRole("button", { name: "Themenstruktur bestätigen" })[0]!);
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Aussage schärfen");
-
-    await user.click(screen.getAllByRole("button", { name: "Aussage schärfen" })[0]!);
-    expect(screen.queryByText("Aussage schärfen aktiv")).not.toBeNull();
-    expect(screen.getByTestId("composer-mode").textContent).toBe("edit");
-    expect(screen.getByTestId("composer-placeholder").textContent).toBe("Welche Aussage möchtest du schärfen?");
-    expect(document.activeElement).toBe(screen.getByTestId("composer-input"));
-
-    await user.click(screen.getAllByRole("button", { name: "Quelle vormerken" })[0]!);
-    expect(screen.queryByText("Der Quellenhinweis wurde gespeichert.")).not.toBeNull();
-    expect(screen.getByTestId("composer-mode").textContent).toBe("edit");
-    expect(screen.getByTestId("source-count").textContent).toBe("1");
+    expect(screen.getByTestId("analysis-state").textContent).toBe("entitlement_required");
+    expect(screen.getAllByText(/Analyse-\/Recherche-Kontingent/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Analyse starten" })).toBeTruthy();
   });
 
-  it("shows a real document diagnosis before opening the topic overview", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<Harness result={buildDocumentAnalysisResult()} previewAllTopics />);
+  it("shows fetch and ai failures without deriving fallback topics", () => {
+    render(
+      <div>
+        <Harness
+          initialResult={buildCreateTechnicalFollowup({
+            text: "https://example.com/kaputt.pdf",
+            analysisState: "fetch_failed",
+            sourceType: "link",
+            sourceUrl: "https://example.com/kaputt.pdf",
+            sourceLoaded: false,
+            userMessage:
+              "Der Linkinhalt konnte nicht vollständig geladen werden. Es wurden keine Themen abgeleitet.",
+          })}
+        />
+        <Harness
+          initialResult={buildCreateTechnicalFollowup({
+            text: "https://example.com/inhalt.pdf",
+            analysisState: "ai_failed",
+            sourceType: "document",
+            sourceUrl: "https://example.com/inhalt.pdf",
+            sourceLoaded: true,
+            userMessage:
+              "Der Inhalt wurde geladen, konnte aber noch nicht durch das KI-Orchester analysiert werden. Es wurden keine Themen abgeleitet.",
+          })}
+        />
+      </div>,
+    );
 
-    expect(screen.queryByText("Dokument erkannt")).not.toBeNull();
-    expect(screen.queryByText("Grundsatzprogramm der FDP")).not.toBeNull();
-    expect(screen.queryByText("78 Seiten · 4 Themen · 18 Unterthemen")).not.toBeNull();
-    expect(screen.queryByText("31 überprüfbare Tatsachenbehauptungen")).not.toBeNull();
-    expect(screen.queryByText("Quellenprüfung")).not.toBeNull();
-    expect(screen.queryByText("noch nicht erfolgt")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Themenübersicht öffnen" })).not.toBeNull();
+    expect(screen.getAllByText(/konnte nicht vollständig geladen werden/).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/konnte aber noch nicht durch das KI-Orchester analysiert werden/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Parkraum und kommunale Planung")).toBeNull();
+    expect(screen.queryByText("Wohnen und Genehmigungen")).toBeNull();
+  });
+
+  it("renders the validated document diagnosis before the topic overview and uses result counts only", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Harness initialResult={buildDocumentResult()} previewAllTopics />);
+
+    expect(screen.getByText("Dokument erkannt")).toBeTruthy();
+    expect(screen.getByText("Grundsatzprogramm der FDP")).toBeTruthy();
+    expect(screen.getByText("78 Seiten · 4 Themen · 18 Unterthemen")).toBeTruthy();
+    expect(screen.getByText("31 überprüfbare Tatsachenbehauptungen")).toBeTruthy();
+    expect(screen.getByText("noch nicht erfolgt")).toBeTruthy();
     expect(screen.queryByText("27 Unterthemen")).toBeNull();
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(0);
 
     await user.click(screen.getByRole("button", { name: "Themenübersicht öffnen" }));
 
-    expect(screen.queryAllByText("Die Themenübersicht ist jetzt geöffnet.").length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Ich habe 4 Themenbereiche und 18 Unterthemen erkannt/)).not.toBeNull();
+    expect(screen.getByText("Ich habe 4 Themenbereiche und 18 Unterthemen erkannt. Drei zeige ich dir als Einstieg.")).toBeTruthy();
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
-    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Weiteres Thema anzeigen" })).toBeTruthy();
   });
 
-  it("keeps the unloaded-link fallback honest and action-driven", async () => {
+  it("keeps the bus and street-planning smoke topics consistent and removes wrong fallback topics", async () => {
     const user = userEvent.setup();
-    render(<Harness result={buildStandardResult()} linkText="https://example.com/fundstelle.pdf" />);
-
-    expect(screen.queryByText("Link erkannt")).not.toBeNull();
-    expect(screen.queryByText(/Ich habe den Inhalt noch nicht vollständig geladen/)).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Dokument prüfen" })).not.toBeNull();
-    expect(screen.queryByText(/^78 Seiten$/)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Später" })).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Dokument prüfen" }));
-
-    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("link");
-    expect(
-      screen.queryAllByText(
-        "Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.",
-      ).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByTestId("composer-mode").textContent).toBe("source");
-  });
-
-  it("surfaces link and topic-overflow decisions without auto-starting external search", async () => {
-    const user = userEvent.setup();
-    const { container, unmount } = render(
-      <Harness
-        result={buildOverflowResult()}
-        linkText="https://example.com/artikel Mehr Themen bitte prüfen"
-        previewAllTopics
-      />,
-    );
+    const { container } = render(<Harness initialResult={buildValidatedTopicResult()} previewAllTopics />);
 
     expect(container.querySelectorAll("[data-create-pipeline-rail]")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Details & Transparenz" })).toHaveLength(1);
-    expect(screen.queryByText(/Ich habe 4 Themenbereiche/)).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Nur mit diesen 3 weiterarbeiten" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Später" })).not.toBeNull();
-    expect(container.textContent ?? "").toContain("ÖPNV und Mobilität");
-    expect(container.textContent ?? "").toContain("Straßenraum und Radverkehr");
-    expect(container.textContent ?? "").toContain("Parkraum und kommunale Planung");
+    expect(screen.getAllByText("ÖPNV und Mobilität").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Straßenraum und Radverkehr").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Parkraum und kommunale Planung").length).toBeGreaterThan(0);
     expect(container.textContent ?? "").not.toContain("Wohnen und Genehmigungen");
     expect(container.textContent ?? "").not.toContain("Bildung, Integration und Sicherheit");
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
-
-    await user.click(screen.getByRole("button", { name: "Später" }));
-    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("later");
-    expect(screen.queryByText("Vollständige Auswertung bleibt vorerst zurückgestellt.")).not.toBeNull();
-
-    unmount();
-
-    const expandedRender = render(
-      <Harness
-        result={buildOverflowResult()}
-        linkText="https://example.com/artikel Mehr Themen bitte prüfen"
-        previewAllTopics
-      />,
+    expect(screen.getByRole("button", { name: "Weiteres Thema anzeigen" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
+    expect(screen.getByTestId("composer-placeholder").textContent).toBe(
+      "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?",
     );
 
     await user.click(screen.getByRole("button", { name: "Weiteres Thema anzeigen" }));
     expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("expanded");
-    expect(screen.queryByText("Das weitere Thema wird jetzt angezeigt.")).not.toBeNull();
-    expect(expandedRender.container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
-    expect(expandedRender.container.textContent ?? "").toContain("Pendler- und Anschlussmobilität");
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
+    expect(container.textContent ?? "").toContain("Pendler- und Anschlussmobilität");
   });
 
-  it("keeps the full long-document inventory internally and opens all topics on demand", async () => {
+  it("keeps themes confirm-first and updates placeholder and topic state after visible actions", async () => {
     const user = userEvent.setup();
-    const { container } = render(<Harness result={buildLongInventoryResult()} previewAllTopics />);
+    const { container } = render(<Harness initialResult={buildValidatedTopicResult()} previewAllTopics />);
 
-    expect(screen.queryByText(/Ich habe 5 Themenbereiche/)).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Alle Themen öffnen" })).not.toBeNull();
-    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
-
-    await user.click(screen.getByRole("button", { name: "Alle Themen öffnen" }));
-
-    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("expanded");
-    expect(screen.queryByText("Alle Themen wurden geöffnet.")).not.toBeNull();
-    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(5);
-    expect(container.textContent ?? "").toContain("Verkehrssicherheit");
-    expect(container.textContent ?? "").toContain("Kita- und Schulwege");
-    expect(container.textContent ?? "").toContain("Barrierefreiheit");
-    expect(container.textContent ?? "").toContain("Stadtplanung und Grünflächen");
-    expect(container.textContent ?? "").toContain("Kommunale Finanzierung");
-  });
-
-  it("keeps retry behind details and opens the manual topic chooser on demand", async () => {
-    const user = userEvent.setup();
-    render(<Harness result={buildDegradedResult()} />);
-
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
-
-    const detailButtons = screen.getAllByRole("button", { name: "Details & Transparenz" });
-    await user.click(detailButtons[0]);
-
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).not.toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Themen ändern" }));
-
-    expect(screen.queryByPlaceholderText("Eigenes Hauptthema benennen")).not.toBeNull();
-    expect(screen.getByTestId("composer-mode").textContent).toBe("manual_topic");
-
-    await user.click(detailButtons[0]);
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
-  });
-
-  it("keeps details closed by default in the normal result flow", async () => {
-    const user = userEvent.setup();
-    render(<Harness result={buildStandardResult()} />);
-
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
-
-    const detailButtons = screen.getAllByRole("button", { name: "Details & Transparenz" });
-    await user.click(detailButtons[0]);
-
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
-  });
-
-  it("shows deterministic civic fallback branches and keeps retry out of the main CTA group", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<Harness result={buildDegradedResult()} />);
-
-    const branchGrids = Array.from(container.querySelectorAll("[data-create-topic-branches]"));
-    const branchGrid =
-      branchGrids.find((node) => node.textContent?.includes("Verkehrssicherheit")) ??
-      branchGrids[branchGrids.length - 1] ??
-      null;
-    expect(branchGrid).not.toBeNull();
-    if (!branchGrid) return;
-
-    expect(branchGrid.textContent ?? "").toContain("Verkehrssicherheit");
-    expect(branchGrid.textContent ?? "").toContain("Kita-/Schulweg & Barrierefreiheit");
-    expect(branchGrid.textContent ?? "").toContain("Stadtplanung & Finanzierung");
-    expect(branchGrid.textContent ?? "").not.toContain("Wohnen und Genehmigungen");
-    expect(branchGrid.textContent ?? "").not.toContain("Bildung, Integration und Sicherheit");
-    expect(screen.queryByRole("button", { name: "Themenstruktur bestätigen" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Themen ändern" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quelle vormerken" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Entwurf speichern" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
-
-    const firstBranchCard = container.querySelector("[data-create-topic-branch-card]");
-    expect(firstBranchCard).not.toBeNull();
-    if (!firstBranchCard) return;
-
-    const trafficBranchButton = within(firstBranchCard).getByRole("button", { name: /Verkehrssicherheit/ });
-    await user.click(trafficBranchButton);
-    expect(firstBranchCard.getAttribute("data-active-topic")).toBe("true");
+    const branchCards = Array.from(container.querySelectorAll("[data-create-topic-branch-card]"));
+    expect(branchCards.length).toBeGreaterThanOrEqual(2);
 
     await user.click(screen.getAllByRole("button", { name: "Themenstruktur bestätigen" })[0]!);
-    expect(screen.getByTestId("selected-topic").textContent).toBe("Verkehrssicherheit");
-    expect(screen.queryAllByText("Themenstruktur bestätigt.").length).toBeGreaterThan(0);
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Aussage schärfen");
+    expect(screen.getByTestId("composer-placeholder").textContent).toBe(
+      "Welche Aussage möchtest du schärfen?",
+    );
+    expect(screen.getByRole("button", { name: "Aussage schärfen" })).toBeTruthy();
+
+    await user.click(screen.getAllByRole("button", { name: "Thema parken" })[0]!);
+    expect(screen.getByTestId("parked-topics").textContent).not.toBe("");
   });
 
-  it("keeps only one primary CTA before the theme structure was confirmed", () => {
-    render(<Harness result={buildOverflowResult()} />);
+  it("keeps public wording free of provider, runtime and policy leakage in the main flow", () => {
+    const { container } = render(<Harness initialResult={buildValidatedTopicResult()} previewAllTopics />);
+    const text = container.textContent ?? "";
 
-    const primaryActions = screen.getAllByRole("button", { name: "Themenstruktur bestätigen" });
-    expect(primaryActions).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quelle vormerken" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Entwurf speichern" })).toBeNull();
-    expect(screen.getByTestId("composer-placeholder").textContent).toBe(
-      "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?",
-    );
+    expect(text).not.toContain("OpenAI");
+    expect(text).not.toContain("Provider");
+    expect(text).not.toContain("Runtime");
+    expect(text).not.toContain("Policy");
   });
 });

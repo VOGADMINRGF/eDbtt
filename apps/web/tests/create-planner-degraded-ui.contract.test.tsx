@@ -6,110 +6,19 @@ import CreateVisualFollowup, {
   CreateStructureOverview,
   deriveCreateStructureOverviewMetrics,
 } from "@/features/create/CreateVisualFollowup";
+import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 
 describe("create planner degraded ui contract", () => {
-  it("does not claim finished understanding when the planner is degraded or generic", () => {
-    const degradedResult = {
-      understanding: {
-        summary: "Der Beitrag berührt mehrere politische Themen gleichzeitig.",
-        categories: [{ id: "claim", label: "Aussage", confidence: "medium" as const }],
-        topics: [{ id: "topic-1", label: "Öffentliches Anliegen mit Klärungsbedarf", confidence: "low" as const }],
-        statements: [
-          {
-            id: "statement-1",
-            text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-            kind: "claim" as const,
-            stance: "open" as const,
-            confidence: "medium" as const,
-          },
-        ],
-        scopes: ["unclear" as const],
-        openQuestion: "Was genau soll zuerst bearbeitet werden?",
-        confidence: "medium" as const,
-      },
-      suggestions: [],
-      sourceText:
-        "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-      generatedAt: "2026-05-11T10:00:00.000Z",
-      degraded: false,
-      degradedReason: null,
-      meta: {
-        planner: {
-          source: "heuristic_fallback" as const,
-          plannerSource: "heuristic_fallback" as const,
-          plannerProvider: "openai" as const,
-          plannerRole: "planner_only" as const,
-          plannerTopic: "GPT-Einordnung nicht abgeschlossen",
-          plannerCore: "Die schnelle GPT-Einordnung konnte nicht abgeschlossen werden.",
-          plannerScope: ["unclear" as const],
-          plannerStance: "open" as const,
-          plannerClusters: [],
-          plannerOpenQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-          shortSummary: "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.",
-          topicCandidates: [],
-          clusterCandidates: [],
-          scopeCandidates: ["unclear" as const],
-          stance: "open" as const,
-          openQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-          graphSearchTerms: [],
-          materialSignals: [],
-          recommendedLane: "standard" as const,
-          providerPlan: {
-            lane: "standard" as const,
-            plannerProvider: "openai" as const,
-            plannerRole: "planner_only" as const,
-            structureProvider: "mistral" as const,
-            summaryProvider: "claude" as const,
-            researchUsed: "none" as const,
-            researchProvider: null,
-            deepSearchUsed: false,
-            graphMatch: "after_structure" as const,
-          },
-          permissions: {
-            nonMutative: true,
-            canPublish: false,
-            canSave: false,
-            canMerge: false,
-            canDeepSearch: false,
-          },
-          plannerDegraded: true,
-          degradedReason: "timeout" as const,
-          plannerDegradedReason: "timeout" as const,
-          qualityStatus: "failed" as const,
-          qualityIssues: ["technical_fallback_only"],
-          providerCallAttempted: true,
-          providerCallSucceeded: false,
-          plannerDebug: {
-            attemptedProvider: "openai" as const,
-            usedProvider: "none" as const,
-            providerAvailable: true,
-            providerErrorCode: null,
-            providerErrorMessage: "create_planner_timeout_after_4000ms",
-            errorMessage: "create_planner_timeout_after_4000ms",
-            rawPayloadValid: false,
-            rawTextValid: false,
-            normalizedPayloadValid: false,
-            qualityGatePassed: false,
-          },
-        },
-        graphMatch: {
-          stage: "after_structure" as const,
-          prepared: false,
-          requiresConfirmation: true,
-          searchTerms: [],
-          matches: [],
-          matchedTopics: [],
-          matchedDossiers: [],
-          matchedClaims: [],
-          matchedAnlassraeume: [],
-          matchedVotes: [],
-          shouldCreateNewTopic: false,
-        },
-        researchUsed: "none" as const,
-        researchProvider: null,
-        deepSearchUsed: false as const,
-      },
-    };
+  it("shows an honest technical state instead of a finished semantic understanding", () => {
+    const degradedResult = buildCreateTechnicalFollowup({
+      text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle.",
+      analysisState: "ai_failed",
+      sourceType: "text",
+      sourceLoaded: true,
+      userMessage:
+        "Der Inhalt wurde geladen, konnte aber noch nicht durch das KI-Orchester analysiert werden. Es wurden keine Themen abgeleitet.",
+    });
+
     const html = renderToStaticMarkup(
       <CreateVisualFollowup
         result={degradedResult}
@@ -130,41 +39,33 @@ describe("create planner degraded ui contract", () => {
       />,
     );
 
-    expect(html).toContain("Ich habe diese Themen erkannt.");
-    expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
+    expect(html).toContain("Analyse noch nicht abgeschlossen");
+    expect(html).toContain("Es wurden keine Themen abgeleitet.");
+    expect(html).toContain("Erneut versuchen");
     expect(html).toContain("Details &amp; Transparenz");
-    expect(html).toContain("Themenstruktur bestätigen");
-    expect(html).toContain("Themen ändern");
-    expect(html).toContain("Was du jetzt tun kannst");
-    expect(html).toContain("Verkehr");
-    expect(html).toContain("Verkehrssicherheit");
-    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
-    expect(html).toContain("Stadtplanung &amp; Finanzierung");
-    expect(html).not.toContain("Beitrag weiterentwickeln");
-    expect(html).not.toContain("Quellen ergänzen");
-    expect(html).not.toContain("Entwurf speichern");
-    expect(html).not.toContain("Anlassraum vorbereiten");
-    expect(html).not.toContain("Thema selbst wählen");
-    expect(html).not.toContain("Einordnung erneut versuchen");
-    expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(html).not.toContain("Kern</p><p class=\"text-base font-semibold text-[rgb(var(--fg))]\">Aussage");
-    expect(html).not.toContain("Direkt Entwurf");
-    expect(html).not.toContain("Faktencheck anfragen");
-    expect(html).not.toContain("KI-Suche aktivieren");
-    expect(html).not.toContain("Bericht an die Redaktion senden");
-    expect(html).not.toContain("Timeout");
-    expect(html.indexOf("Themenstruktur bestätigen")).toBeLessThan(html.indexOf("Details &amp; Transparenz"));
+    expect(html).not.toContain("Ich habe diese Themen erkannt.");
+    expect(html).not.toContain("Verkehrssicherheit");
+    expect(html).not.toContain("Kita-/Schulweg &amp; Barrierefreiheit");
+    expect(html).not.toContain("Stadtplanung &amp; Finanzierung");
+    expect(html).not.toContain("Themenstruktur bestätigen");
 
     const metrics = deriveCreateStructureOverviewMetrics({ result: degradedResult, isConfirmed: false });
     expect(metrics).toEqual({
-      prioritiesCount: 0,
-      clustersCount: 0,
-      questionsCount: 0,
-      nextStepsCount: 0,
+      prioritiesCount: 1,
+      clustersCount: 1,
+      questionsCount: 1,
+      nextStepsCount: 1,
     });
 
     const overviewHtml = renderToStaticMarkup(
-      <CreateStructureOverview locale="de" showOpenLabels prioritiesCount={0} clustersCount={0} questionsCount={0} nextStepsCount={0} />,
+      <CreateStructureOverview
+        locale="de"
+        showOpenLabels
+        prioritiesCount={0}
+        clustersCount={0}
+        questionsCount={0}
+        nextStepsCount={0}
+      />,
     );
     expect((overviewHtml.match(/>Offen<\/span>/g) ?? []).length).toBe(4);
     expect((overviewHtml.match(/>offen<\/span>/g) ?? []).length).toBe(4);

@@ -35,7 +35,7 @@ const COPY = {
     contextPlaceholder:
       "Zum Beispiel: Welche Aussage soll geprüft werden, worum geht es genau oder was soll ich daraus vorbereiten?",
     factcheckGuardrail:
-      "Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.",
+      "Quellenprüfung oder externe Quellenanalyse startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.",
   },
   en: {
     title: "I detected a link. What should happen with it?",
@@ -54,7 +54,7 @@ const COPY = {
     contextPlaceholder:
       "For example: which statement should be checked, which source should be attached, or which vote question should be prepared?",
     factcheckGuardrail:
-      "Fact-check / Deep Search starts only after explicit confirmation. No automatic cost booking.",
+      "Source verification or external source analysis starts only after explicit confirmation. No automatic cost booking.",
   },
 } as const;
 

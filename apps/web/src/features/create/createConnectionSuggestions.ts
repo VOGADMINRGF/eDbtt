@@ -77,63 +77,18 @@ function resolvePlannerTopic(planner?: CreatePlannerResult | null): string | nul
 function resolveHumanConnectionTitle(topics: Array<{ label: string }>, planner?: CreatePlannerResult | null): string {
   const plannerTopic = resolvePlannerTopic(planner);
   if (plannerTopic) return plannerTopic;
-  const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
-  if (
-    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration\/integration|sicherheit\/rechtsstaat|gesundheit\/pflege|kommunale finanzen|bürgerbeteiligung/.test(
-      lowered,
-    )
-  ) {
-    return "Kommunale Prioritäten und Zielkonflikte";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /qualifikation|verantwort|sanktion/.test(lowered)) {
-    return "Politische Verantwortung und Mindestanforderungen für Amtsträger";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /sanktion|kontroll|mandat/.test(lowered)) {
-    return "Sanktionen und Kontrolle öffentlicher Mandate";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /gesetz|gesetzgebung/.test(lowered)) {
-    return "Gesetzgebung und Verantwortung im Amt";
-  }
-  return "Neues öffentliches Thema";
+  return topics[0]?.label?.trim() || "Öffentliches Thema";
 }
 
 function resolveDossierSuggestionTitle(topics: Array<{ label: string }>, planner?: CreatePlannerResult | null): string {
   const plannerTopic = resolvePlannerTopic(planner);
   if (plannerTopic) return plannerTopic;
-  const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
-  if (
-    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration\/integration|sicherheit\/rechtsstaat|gesundheit\/pflege|kommunale finanzen|bürgerbeteiligung/.test(
-      lowered,
-    )
-  ) {
-    return "Kommunale Prioritäten und Zielkonflikte";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /verantwort|mandat|qualifikation|sanktion/.test(lowered)) {
-    return "Politische Verantwortung öffentlicher Mandate";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /sanktion|qualifikation/.test(lowered)) {
-    return "Sanktionen und Qualifikation politischer Ämter";
-  }
   return resolveHumanConnectionTitle(topics, planner);
 }
 
 function resolveNewAnlassraumTitle(topics: Array<{ label: string }>, planner?: CreatePlannerResult | null): string {
   const plannerTopic = resolvePlannerTopic(planner);
   if (plannerTopic) return plannerTopic;
-  const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
-  if (
-    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration|integration|sicherheit|rechtsstaat|pflege|kommunale finanzen|bürgerbeteiligung/.test(
-      lowered,
-    )
-  ) {
-    return "Kommunale Prioritäten und Zielkonflikte";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /sanktion|qualifikation/.test(lowered)) {
-    return "Sanktionen und Qualifikation politischer Ämter";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /gesetz|gesetzgebung/.test(lowered)) {
-    return "Gesetzgebung und Verantwortung im Amt";
-  }
   return resolveHumanConnectionTitle(topics, planner);
 }
 
@@ -144,13 +99,6 @@ function resolveVoteSuggestionTitle(params: {
 }): string {
   const plannerQuestion = params.planner?.plannerOpenQuestions[1] ?? params.planner?.openQuestions[1] ?? null;
   if (plannerQuestion) return plannerQuestion;
-  const lowered = params.topics.map((topic) => topic.label.toLowerCase()).join(" ");
-  if (/kommunale priorit[aä]ten und zielkonflikte/.test(lowered)) {
-    return "Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?";
-  }
-  if (hasExplicitOfficeholderTopic(lowered) && /qualifikation|sanktion/.test(lowered)) {
-    return "Mindestanforderungen und Konsequenzen für Amtsträger";
-  }
   const statement = String(params.statementText ?? "").trim();
   if (!statement) return "Mögliche Abstimmung aus deinem Beitrag";
   return statement.length > 84 ? `${statement.slice(0, 81)}...` : statement;
@@ -162,7 +110,7 @@ export function buildCreateConnectionSuggestions(
   const suggestions: CreateConnectionSuggestion[] = [];
   const maxSuggestions = Math.max(2, Math.min(8, input.maxSuggestions ?? 5));
   const plannerReadyForStructuredHandoff = input.planner
-    ? input.planner.qualityStatus === "specific"
+    ? input.planner.qualityStatus === "specific" && input.planner.source === "openai" && input.planner.plannerDegraded === false
     : true;
   const topics = input.understanding.topics.slice(0, 3);
   const topStatement = input.understanding.statements[0];
@@ -171,17 +119,6 @@ export function buildCreateConnectionSuggestions(
   const mappedStance = topStatement ? mapVoteStance(topStatement.stance) : null;
 
   if (!plannerReadyForStructuredHandoff) {
-    suggestions.push({
-      id: "new_anlassraum:clarify-first",
-      kind: "new_anlassraum",
-      title: "Thema zuerst bestätigen",
-      reason: "Die Einordnung ist noch zu allgemein. Dossier-, Anlassraum- oder Beteiligungsanschlüsse bleiben bis zur Bestätigung gesperrt.",
-      confidence: "low",
-      href: input.intent === "check" ? "/create?intent=check" : "/create?intent=contribute",
-      suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",
-      suggestedStance: mappedStance,
-      requiresConfirmation: true,
-    });
     return suggestions;
   }
 

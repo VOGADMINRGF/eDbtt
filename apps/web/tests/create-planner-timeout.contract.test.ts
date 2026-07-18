@@ -34,7 +34,7 @@ describe("create planner timeout contract", () => {
     else process.env.CREATE_PLANNER_TIMEOUT_MS = originalPlannerTimeout;
   });
 
-  it("falls back quickly when planner_only openai call does not return", async () => {
+  it("returns a technical fallback quickly when planner_only openai call does not return", async () => {
     mocks.callOpenAIJson.mockImplementation(
       () => new Promise(() => undefined) as Promise<{ text: string }>,
     );
@@ -51,11 +51,13 @@ describe("create planner timeout contract", () => {
     const planner = await plannerPromise;
 
     expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
-    expect(planner.source).toBe("heuristic_fallback");
-    expect(planner.recommendedLane).toBe("create_fast_followup");
+    expect(planner.source).toBe("technical_fallback");
+    expect(planner.recommendedLane).toBe("standard");
     expect(planner.providerPlan.plannerProvider).toBe("local_fallback");
     expect(planner.plannerDegraded).toBe(true);
     expect(planner.degradedReason).toBe("timeout");
+    expect(planner.plannerTopic).toBe("Analyse noch nicht validiert");
+    expect(planner.topicCandidates).toEqual([]);
     expect(planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(planner.plannerDebug.providerAvailable).toBe(true);
     expect(planner.plannerDebug.errorMessage).toContain("create_planner_timeout_after_");

@@ -5,112 +5,20 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
+import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 
 describe("create degraded followup actions contract", () => {
-  it("replaces the normal understanding summary with degraded planner actions", () => {
+  it("replaces semantic fallback actions with an honest technical state", () => {
     const html = renderToStaticMarkup(
       <CreateVisualFollowup
-        result={{
-          understanding: {
-            summary: "Der Beitrag berührt mehrere kommunale Themen rund um Schule, Wege, Bauprojekte und Haushalt.",
-            categories: [{ id: "claim", label: "Aussage", confidence: "medium" }],
-            topics: [{ id: "topic-1", label: "Öffentliches Anliegen", confidence: "low" }],
-            statements: [
-              {
-                id: "statement-1",
-                text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-                kind: "claim",
-                stance: "open",
-                confidence: "medium",
-              },
-            ],
-            scopes: ["unclear"],
-            openQuestion: "Was genau soll zuerst bearbeitet werden?",
-            confidence: "medium",
-          },
-          suggestions: [],
-          sourceText:
-            "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-          generatedAt: "2026-05-12T08:00:00.000Z",
-          degraded: false,
-          degradedReason: null,
-          meta: {
-            planner: {
-              source: "heuristic_fallback",
-              plannerSource: "heuristic_fallback",
-              plannerProvider: "openai",
-              plannerRole: "planner_only",
-              plannerTopic: "GPT-Einordnung nicht abgeschlossen",
-              plannerCore: "Die schnelle GPT-Einordnung konnte nicht abgeschlossen werden.",
-              plannerScope: ["unclear"],
-              plannerStance: "open",
-              plannerClusters: [],
-              plannerOpenQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-              shortSummary: "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.",
-              topicCandidates: [],
-              clusterCandidates: [],
-              scopeCandidates: ["unclear"],
-              stance: "open",
-              openQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-              graphSearchTerms: [],
-              materialSignals: [],
-              recommendedLane: "standard",
-              providerPlan: {
-                lane: "standard",
-                plannerProvider: "openai",
-                plannerRole: "planner_only",
-                structureProvider: "mistral",
-                summaryProvider: "claude",
-                researchUsed: "none",
-                researchProvider: null,
-                deepSearchUsed: false,
-                graphMatch: "after_structure",
-              },
-              permissions: {
-                nonMutative: true,
-                canPublish: false,
-                canSave: false,
-                canMerge: false,
-                canDeepSearch: false,
-              },
-              plannerDegraded: true,
-              degradedReason: "timeout",
-              plannerDegradedReason: "timeout",
-              qualityStatus: "failed",
-              qualityIssues: ["technical_fallback_only"],
-              providerCallAttempted: true,
-              providerCallSucceeded: false,
-              plannerDebug: {
-                attemptedProvider: "openai",
-                usedProvider: "none",
-                providerAvailable: true,
-                providerErrorCode: null,
-                providerErrorMessage: "create_planner_timeout_after_4000ms",
-                errorMessage: "create_planner_timeout_after_4000ms",
-                rawPayloadValid: false,
-                rawTextValid: false,
-                normalizedPayloadValid: false,
-                qualityGatePassed: false,
-              },
-            },
-            graphMatch: {
-              stage: "after_structure",
-              prepared: false,
-              requiresConfirmation: true,
-              searchTerms: [],
-              matches: [],
-              matchedTopics: [],
-              matchedDossiers: [],
-              matchedClaims: [],
-              matchedAnlassraeume: [],
-              matchedVotes: [],
-              shouldCreateNewTopic: false,
-            },
-            researchUsed: "none",
-            researchProvider: null,
-            deepSearchUsed: false,
-          },
-        }}
+        result={buildCreateTechnicalFollowup({
+          text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle.",
+          analysisState: "ai_failed",
+          sourceType: "text",
+          sourceLoaded: true,
+          userMessage:
+            "Der Inhalt wurde geladen, konnte aber noch nicht durch das KI-Orchester analysiert werden. Es wurden keine Themen abgeleitet.",
+        })}
         onConfirm={() => {}}
         onEdit={() => {}}
         onPrepareSubmission={() => {}}
@@ -128,129 +36,29 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html).toContain("Ich habe diese Themen erkannt.");
-    expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
+    expect(html).toContain("Analyse noch nicht abgeschlossen");
+    expect(html).toContain("Es wurden keine Themen abgeleitet.");
+    expect(html).toContain("Erneut versuchen");
+    expect(html).toContain("Eingabe speichern");
     expect(html).toContain("Details &amp; Transparenz");
-    expect(html).toContain("Themenstruktur bestätigen");
-    expect(html).toContain("Themen ändern");
-    expect(html).toContain("Was du jetzt tun kannst");
-    expect(html).toContain("Verkehrssicherheit");
-    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
-    expect(html).toContain("Stadtplanung &amp; Finanzierung");
-    expect(html).not.toContain("Beitrag weiterentwickeln");
-    expect(html).not.toContain("Quelle vormerken");
-    expect(html).not.toContain("Später weiterarbeiten");
-    expect(html).not.toContain("Anlassraum vorbereiten");
-    expect(html).not.toContain("Thema selbst wählen");
-    expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(html).not.toContain("Einordnung erneut versuchen");
-    expect(html).not.toContain("Öffentliches Anliegen</p>");
-    expect(html).not.toContain("Kern</p>");
-    expect(html).not.toContain("Direkt Entwurf");
-    expect(html).not.toContain("Faktencheck anfragen");
-    expect(html).not.toContain("KI-Suche aktivieren");
-    expect(html).not.toContain("Bericht an die Redaktion senden");
-    expect(html.indexOf("Themenstruktur bestätigen")).toBeLessThan(html.indexOf("Details &amp; Transparenz"));
+    expect(html).not.toContain("Ich habe diese Themen erkannt.");
+    expect(html).not.toContain("Verkehrssicherheit");
+    expect(html).not.toContain("Kita-/Schulweg &amp; Barrierefreiheit");
+    expect(html).not.toContain("Stadtplanung &amp; Finanzierung");
+    expect(html).not.toContain("Themenstruktur bestätigen");
   });
 
-  it("keeps retry secondary in details, shows a loading label, and keeps retry on the same planner_only route", () => {
+  it("keeps retry on the same planner route and avoids reload-based recovery", () => {
     const html = renderToStaticMarkup(
       <CreateVisualFollowup
-        result={{
-          understanding: {
-            summary: "Der Beitrag bleibt als Entwurf erhalten.",
-            categories: [{ id: "claim", label: "Aussage", confidence: "medium" }],
-            topics: [],
-            statements: [
-              {
-                id: "statement-1",
-                text: "Mehrthemenbeitrag",
-                kind: "claim",
-                stance: "open",
-                confidence: "medium",
-              },
-            ],
-            scopes: ["unclear"],
-            openQuestion: "Was genau soll zuerst bearbeitet werden?",
-            confidence: "medium",
-          },
-          suggestions: [],
-          sourceText: "Mehrthemenbeitrag",
-          generatedAt: "2026-06-03T12:00:00.000Z",
-          meta: {
-            planner: {
-              source: "heuristic_fallback",
-              plannerSource: "heuristic_fallback",
-              plannerProvider: "openai",
-              plannerRole: "planner_only",
-              plannerTopic: "GPT-Einordnung nicht abgeschlossen",
-              plannerCore: "Die schnelle GPT-Einordnung konnte nicht abgeschlossen werden.",
-              plannerScope: ["unclear"],
-              plannerStance: "open",
-              plannerClusters: [],
-              plannerOpenQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-              shortSummary: "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.",
-              topicCandidates: [],
-              clusterCandidates: [],
-              scopeCandidates: ["unclear"],
-              stance: "open",
-              openQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-              graphSearchTerms: [],
-              materialSignals: [],
-              recommendedLane: "standard",
-              providerPlan: {
-                lane: "standard",
-                plannerProvider: "openai",
-                plannerRole: "planner_only",
-                structureProvider: "mistral",
-                summaryProvider: "claude",
-                researchUsed: "none",
-                researchProvider: null,
-                deepSearchUsed: false,
-                graphMatch: "after_structure",
-              },
-              permissions: {
-                nonMutative: true,
-                canPublish: false,
-                canSave: false,
-                canMerge: false,
-                canDeepSearch: false,
-              },
-              plannerDegraded: true,
-              degradedReason: "timeout",
-              plannerDegradedReason: "timeout",
-              qualityStatus: "failed",
-              qualityIssues: ["technical_fallback_only"],
-              providerCallAttempted: true,
-              providerCallSucceeded: false,
-              plannerDebug: {
-                attemptedProvider: "openai",
-                usedProvider: "openai",
-                providerAvailable: true,
-                rawPayloadValid: false,
-                rawTextValid: false,
-                normalizedPayloadValid: false,
-                qualityGatePassed: false,
-              },
-            },
-            graphMatch: {
-              stage: "after_structure",
-              prepared: false,
-              requiresConfirmation: true,
-              searchTerms: [],
-              matches: [],
-              matchedTopics: [],
-              matchedDossiers: [],
-              matchedClaims: [],
-              matchedAnlassraeume: [],
-              matchedVotes: [],
-              shouldCreateNewTopic: false,
-            },
-            researchUsed: "none",
-            researchProvider: null,
-            deepSearchUsed: false,
-          },
-        }}
+        result={buildCreateTechnicalFollowup({
+          text: "Mehrthemenbeitrag",
+          analysisState: "ai_failed",
+          sourceType: "text",
+          sourceLoaded: true,
+          userMessage:
+            "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden keine Themen abgeleitet.",
+        })}
         onConfirm={() => {}}
         onEdit={() => {}}
         onPrepareSubmission={() => {}}
@@ -270,6 +78,7 @@ describe("create degraded followup actions contract", () => {
     );
 
     expect(html).toContain("Details &amp; Transparenz");
+    expect(html).toContain("Erneut versuchen");
     expect(html).not.toContain("Einordnung wird erneut versucht …");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");

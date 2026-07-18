@@ -19,7 +19,7 @@ export type CreatePlannerStance =
   | "reform_oriented"
   | "unclear";
 export type CreatePlannerRecommendedLane = "standard" | "create_fast_followup";
-export type CreatePlannerSource = "openai" | "heuristic_fallback";
+export type CreatePlannerSource = "openai" | "technical_fallback" | "heuristic_fallback";
 export type CreatePlannerProviderName = "openai" | "anthropic" | "mistral" | "local_fallback" | "none";
 export type CreatePlannerDegradedReason =
   | "missing_provider_key"
@@ -802,8 +802,8 @@ function buildBroadCommunalPlanner(params: {
   plannerDebug: CreatePlannerDebug;
 }): CreatePlannerResult {
   const fields = detectBroadCommunalTopicFields(params.text);
-  const topic = "Kommunale Prioritäten und Zielkonflikte";
-  const core = "Mehrere kommunale Zielkonflikte priorisieren";
+  const topic = "Mehrere kommunale Themen";
+  const core = "Mehrere kommunale Themen gemeinsam strukturieren";
   const openQuestions = ["Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?"];
 
   return finalizePlannerResult({
@@ -1044,23 +1044,37 @@ function buildHeuristicPlanner(params: {
   providerCallSucceeded: boolean;
   plannerDebug: CreatePlannerDebug;
 }): CreatePlannerResult {
-  const common = {
+  return finalizePlannerResult({
     text: params.text,
-    source: "heuristic_fallback" as const,
+    source: "technical_fallback",
     plannerProvider: params.plannerProvider,
-    plannerDegraded: params.plannerDegraded,
+    plannerDegraded: true,
     degradedReason: params.degradedReason,
     providerCallAttempted: params.providerCallAttempted,
     providerCallSucceeded: params.providerCallSucceeded,
     plannerDebug: params.plannerDebug,
-  };
-  if (isAnimalWelfareText(params.text)) return buildAnimalWelfarePlanner(common);
-  if (isQuotaEqualityPolicyText(params.text)) return buildQuotaEqualityPlanner(common);
-  if (isComplexCivicPolicyText(params.text)) return buildComplexCivicPlanner(common);
-  if (isExplicitOfficeholderText(params.text)) return buildOfficeholderPlanner(common);
-  const communalFields = detectBroadCommunalTopicFields(params.text);
-  if (communalFields.length >= 4) return buildBroadCommunalPlanner(common);
-  return buildNeutralPlanner(common);
+    qualityOverride: {
+      status: "failed",
+      issues: ["technical_fallback_only"],
+    },
+    draft: {
+      plannerTopic: "Analyse noch nicht validiert",
+      plannerCore: "Es liegt noch kein validierter KI-Run vor.",
+      plannerScope: ["unclear"],
+      plannerStance: "unclear",
+      plannerClusters: [],
+      plannerOpenQuestions: [],
+      shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+      topicCandidates: [],
+      clusterCandidates: [],
+      scopeCandidates: ["unclear"],
+      stance: "unclear",
+      openQuestions: [],
+      graphSearchTerms: [],
+      materialSignals: [],
+      recommendedLane: "standard",
+    },
+  });
 }
 
 function normalizeOpenAiPlannerPayload(
@@ -1408,7 +1422,7 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
 
   return buildNeutralPlanner({
     text,
-    source: "heuristic_fallback",
+    source: "technical_fallback",
     plannerProvider: "local_fallback",
     plannerDegraded: true,
     degradedReason: "normalization_failed",

@@ -250,9 +250,10 @@ describe("create curated dialog workspace contract", () => {
     expect(contractSource).toContain("part06CategoryKeys");
     expect(contractSource).toContain("part06CategoryLabels");
     expect(contractSource).toContain("topicTags");
-    expect(contractSource).toContain("Wohnen und Genehmigungen");
-    expect(contractSource).toContain("Verkehr, Klima und Alltagstauglichkeit");
-    expect(contractSource).toContain("Bildung, Integration und Sicherheit");
+    expect(contractSource).not.toContain("Wohnen und Genehmigungen");
+    expect(contractSource).not.toContain("Verkehr, Klima und Alltagstauglichkeit");
+    expect(contractSource).not.toContain("Bildung, Integration und Sicherheit");
+    expect(contractSource).toContain("resolveSectionThemeLabel");
     expect(followupSource).toContain("<StructuredWorkstateBlock");
     expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).not.toContain("result.clarifications");

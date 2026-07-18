@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
+import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 import {
   getCreateSurfaceModeDefinitions,
@@ -47,6 +48,26 @@ const FOLLOWUP_RESULT = {
   ],
   sourceText: "Vor der Schule fehlen sichere Querungen und Tempo-30-Kontrollen.",
   generatedAt: "2026-05-08T12:00:00.000Z",
+  meta: {
+    researchUsed: "none" as const,
+    researchProvider: null,
+    deepSearchUsed: false,
+    analysis: {
+      state: "result_ready" as const,
+      analysisId: "analysis-schoolways",
+      sourceType: "text" as const,
+      sourceUrl: null,
+      sourceContentHash: "hash-schoolways",
+      analyzedAt: "2026-05-08T12:00:00.000Z",
+      orchestrationRunId: "orch-schoolways",
+      schemaVersion: "create_followup.v2",
+      validationStatus: "validated" as const,
+      evidenceReferences: [],
+      confidence: 0.84,
+      sourceLoaded: true,
+      userMessage: null,
+    },
+  },
 };
 
 const MULTI_BRANCH_FOLLOWUP_RESULT = {
@@ -58,10 +79,10 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
       { id: "hint", label: "Hinweis", confidence: "high" as const },
     ],
     topics: [
-      { id: "housing", label: "Wohnen", confidence: "low" as const },
-      { id: "traffic", label: "Verkehr", confidence: "high" as const },
-      { id: "education", label: "Bildung", confidence: "low" as const },
-      { id: "integration", label: "Migration/Integration", confidence: "low" as const },
+      { id: "topic-1", label: "ÖPNV und Mobilität", confidence: "high" as const },
+      { id: "topic-2", label: "Straßenraum und Radverkehr", confidence: "high" as const },
+      { id: "topic-3", label: "Parkraum und kommunale Planung", confidence: "high" as const },
+      { id: "topic-4", label: "Pendler- und Anschlussmobilität", confidence: "medium" as const },
     ],
     statements: [
       {
@@ -112,109 +133,37 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
   sourceText:
     "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
   generatedAt: "2026-05-09T12:00:00.000Z",
-};
-
-const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
-  understanding: {
-    summary:
-      "Dein Text bleibt als Entwurf erhalten, bis die GPT-Einordnung bestätigt oder manuell ergänzt wurde.",
-    categories: [{ id: "hint", label: "Entwurf", confidence: "low" as const }],
-    topics: [],
-    statements: [
-      {
-        id: "s1",
-        text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Grünflächen und Haushalt spielen ebenfalls mit hinein.",
-        kind: "hint" as const,
-        stance: "unclear" as const,
-        confidence: "low" as const,
-      },
-    ],
-    scopes: ["unclear" as const],
-    openQuestion: "Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen.",
-    confidence: "low" as const,
-  },
-  suggestions: [],
-  sourceText:
-    "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
-  generatedAt: "2026-05-15T12:00:00.000Z",
   meta: {
-    planner: {
-      source: "heuristic_fallback" as const,
-      plannerSource: "heuristic_fallback" as const,
-      plannerProvider: "openai" as const,
-      plannerRole: "planner_only" as const,
-      plannerTopic: "GPT-Einordnung nicht abgeschlossen",
-      plannerCore: "Die schnelle GPT-Einordnung konnte nicht abgeschlossen werden.",
-      plannerScope: ["unclear" as const],
-      plannerStance: "open" as const,
-      plannerClusters: [],
-      plannerOpenQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-      shortSummary:
-        "Dein Text bleibt als Entwurf erhalten. Du kannst die Einordnung erneut versuchen oder selbst ein Thema wählen.",
-      topicCandidates: [],
-      clusterCandidates: [],
-      scopeCandidates: ["unclear" as const],
-      stance: "open" as const,
-      openQuestions: ["Du kannst die GPT-Einordnung erneut versuchen oder selbst ein Thema wählen."],
-      graphSearchTerms: [],
-      materialSignals: [],
-      recommendedLane: "standard" as const,
-      providerPlan: {
-        lane: "standard" as const,
-        plannerProvider: "openai" as const,
-        plannerRole: "planner_only" as const,
-        structureProvider: "mistral" as const,
-        summaryProvider: "claude" as const,
-        researchUsed: "none" as const,
-        researchProvider: null,
-        deepSearchUsed: false,
-        graphMatch: "after_structure" as const,
-      },
-      permissions: {
-        nonMutative: true as const,
-        canPublish: false as const,
-        canSave: false as const,
-        canMerge: false as const,
-        canDeepSearch: false as const,
-      },
-      plannerDegraded: true,
-      degradedReason: "missing_provider_key" as const,
-      plannerDegradedReason: "missing_provider_key" as const,
-      qualityStatus: "failed" as const,
-      qualityIssues: ["technical_fallback_only"],
-      providerCallAttempted: false,
-      providerCallSucceeded: false,
-      plannerDebug: {
-        attemptedProvider: "openai" as const,
-        usedProvider: "none" as const,
-        providerAvailable: false,
-        providerErrorCode: null,
-        providerErrorMessage: "missing_openai_api_key",
-        errorMessage: "missing_openai_api_key",
-        rawPayloadValid: false,
-        rawTextValid: false,
-        normalizedPayloadValid: false,
-        qualityGatePassed: false,
-      },
-    },
-    graphMatch: {
-      stage: "after_structure" as const,
-      prepared: false,
-      requiresConfirmation: true,
-      searchTerms: [],
-      matches: [],
-      matchedTopics: [],
-      matchedDossiers: [],
-      matchedClaims: [],
-      matchedAnlassraeume: [],
-      matchedVotes: [],
-      shouldCreateNewTopic: false,
-    },
     researchUsed: "none" as const,
     researchProvider: null,
     deepSearchUsed: false,
+    analysis: {
+      state: "result_ready" as const,
+      analysisId: "analysis-bus-street",
+      sourceType: "text" as const,
+      sourceUrl: null,
+      sourceContentHash: "hash-bus-street",
+      analyzedAt: "2026-05-09T12:00:00.000Z",
+      orchestrationRunId: "orch-bus-street",
+      schemaVersion: "create_followup.v2",
+      validationStatus: "validated" as const,
+      evidenceReferences: [],
+      confidence: 0.88,
+      sourceLoaded: true,
+      userMessage: null,
+    },
   },
 };
+
+const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = buildCreateTechnicalFollowup({
+  text:
+    "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
+  analysisState: "ai_failed",
+  sourceType: "text",
+  sourceLoaded: true,
+  userMessage:
+    "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden keine Themen abgeleitet.",
+});
 
 const FOLLOWUP_ACTIONS = {
   onPrepareSubmission: () => {},
@@ -348,7 +297,8 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("keeps the pre-confirmation flow statement-first with one primary confirmation action", () => {
     const html = renderVisualFollowup();
 
-    expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
+    expect(html).toContain("Chat-Arbeitsstand für deinen Beitrag");
+    expect(html).toContain("1 · Beitrag aufgenommen");
     expect(html).toContain("Themenstruktur bestätigen");
     expect(html).toContain("Themen ändern");
     expect(html).not.toContain("Aussage schärfen");
@@ -387,19 +337,14 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("keeps the technical planner fallback in a clearly degraded clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
-    expect(html).toContain("Was du jetzt tun kannst");
-    expect(html).toContain("Ich habe diese Themen erkannt.");
-    expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
-    expect(html).toContain("Themen ändern");
+    expect(html).toContain("Analyse noch nicht abgeschlossen");
+    expect(html).toContain("Es wurden keine Themen abgeleitet.");
+    expect(html).toContain("Erneut versuchen");
+    expect(html).toContain("Eingabe speichern");
+    expect(html).not.toContain("Themenstruktur bestätigen");
     expect(html).not.toContain("Aussage schärfen");
     expect(html).not.toContain("Quelle vormerken");
     expect(html).not.toContain("Später weiterarbeiten");
-    expect(html).not.toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Verkehrssicherheit");
-    expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
-    expect(html).toContain("Stadtplanung &amp; Finanzierung");
-    expect(html).not.toContain("Einordnung erneut versuchen");
-    expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
   });
@@ -439,7 +384,7 @@ describe("create chat-first mobile dialog experience contract", () => {
       },
     });
 
-    expect(html).toContain("Ich habe 4 Themenbereiche");
+    expect(html).toContain("Ich habe 4 Themen erkannt. Drei zeige ich dir kompakt.");
     expect(html).toContain("Ein weiteres Thema wurde erkannt.");
     expect(html).toContain("Weiteres Thema anzeigen");
     expect(html).toContain("Nur mit diesen 3 weiterarbeiten");

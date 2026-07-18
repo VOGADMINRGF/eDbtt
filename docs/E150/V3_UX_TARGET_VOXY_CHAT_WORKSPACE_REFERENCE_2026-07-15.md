@@ -16,6 +16,12 @@ Wichtig: Das eDebatte-Maskottchen bleibt als visuelle Identität erhalten. Öffe
 
 Nicht überall `VOXY` als Überschrift verwenden.
 
+Public Research-/Provider-Wording folgt zusätzlich verbindlich:
+
+- `docs/E150/V3_AI_ORCHESTRATION_AND_RESEARCH_CREDIT_POLICY_2026-07-18.md`
+
+In `/create` keine Provider-Namen, keine `Deep Search`-Copy und keine Tool-Credit-Begriffe im sichtbaren Nutzerfluss.
+
 ---
 
 ## Zielbild A: `/create` als zentrale AI-Workspace-Maske
@@ -112,6 +118,7 @@ Sie soll stets Orientierung geben:
 ## Themenzweige müssen sofort sichtbar werden
 
 Wenn mehrere Themen erkannt wurden, darf nicht zuerst ein Fehler-/Retry-CTA erscheinen.
+Das gilt aber nur fuer validierte Analyseergebnisse auf real geladenem Inhalt. Solange ein Link oder Dokument noch nicht vollstaendig geladen und von der KI bestaetigt wurde, zeigt der Workspace keinen semantischen Themenbaum, sondern einen ehrlichen technischen Zwischenzustand mit genau einem naechsten Schritt.
 
 Zielbild:
 

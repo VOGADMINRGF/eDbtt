@@ -58,6 +58,7 @@ import {
   buildCreateStructureBranches,
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
+import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 import {
   buildCreateFollowupPrimaryCtaHref,
   buildCreateFollowupTargetHref,
@@ -1056,30 +1057,6 @@ export default function CreateClient({
       setFactcheckMessage(null);
       setShowFollowupCorrectionComposer(false);
 
-      if (linkDetection.hasLink && linkDetection.mostlyLinkOnly) {
-        setLinkClarificationState((current) => ({
-          detection: linkDetection,
-          selectedIntentId: current?.selectedIntentId ?? null,
-          additionalContext: current?.additionalContext ?? "",
-        }));
-        setFollowupSnapshot(null);
-        setIntelligentFollowup(null);
-        setUnderstandingConfirmed(false);
-        setActiveTopicLabel(null);
-        setSelectedPrimaryTopic(null);
-        setGroupedTopicLabels([]);
-        setDocumentTopicOverviewOpened(false);
-        setShowExpandedTopicPreview(false);
-        setTopicExpansionDecision("idle");
-        setParkedTopicLabels([]);
-        setWorkspaceActionMode("default");
-        setActionNotice(null);
-        setHasStarted(true);
-        setFollowupSurface("none");
-        setGuidedBridgeConfirmed(productMode !== "guided");
-        return;
-      }
-
       const snapshot = buildCreateLightweightFollowupSnapshot({
         intakeText: rawText,
         modeLabel: productModeConfig.label,
@@ -1105,23 +1082,37 @@ export default function CreateClient({
       setAnalysisSceneMode(null);
       setActionNotice(
         linkDetection.hasLink
-          ? buildCreateLinkSourceNotice({
-              locale: surfaceLocale,
-              selectedIntentId: linkClarificationState?.selectedIntentId,
-            })
+          ? null
           : null,
       );
       setIsStarting(true);
       setLinkClarificationState((current) =>
-        current && linkDetection.hasLink
+        linkDetection.hasLink
           ? {
-              ...current,
               detection: linkDetection,
+              selectedIntentId: current?.selectedIntentId ?? null,
+              additionalContext: current?.additionalContext ?? "",
             }
-          : linkDetection.hasLink
-            ? null
-            : null,
+          : null,
       );
+
+      if (linkDetection.hasLink && linkDetection.primaryUrl) {
+        setIntelligentFollowup(
+          buildCreateTechnicalFollowup({
+            text: normalizedText,
+            analysisState: "link_detected",
+            sourceType: "link",
+            sourceUrl: linkDetection.primaryUrl,
+            sourceLoaded: false,
+            userMessage:
+              "Ich muss den verlinkten Inhalt zuerst vollständig laden und mit dem KI-Orchester analysieren. Vorher leite ich keine Themen ab.",
+          }),
+        );
+        setPlannerTrace(null);
+        setAnalyzeTrace(null);
+        setIsStarting(false);
+        return;
+      }
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
@@ -1258,7 +1249,8 @@ export default function CreateClient({
   });
   const showLinkClarification =
     Boolean(linkClarificationState?.detection.hasLink) &&
-    Boolean(linkClarificationState?.detection.mostlyLinkOnly);
+    Boolean(linkClarificationState?.detection.mostlyLinkOnly) &&
+    !intelligentFollowup;
   const showIntelligentFollowup = shouldRenderCreateIntelligentFollowup({
     hasStarted,
     followup: intelligentFollowup,
@@ -2218,23 +2210,90 @@ export default function CreateClient({
     setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
   }, []);
 
-  const handlePrepareLinkReview = React.useCallback(() => {
-    if (!currentLinkDetection.hasLink) {
+  const handlePrepareLinkReview = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-link-analysis")) return;
+    if (!currentLinkDetection.hasLink || !currentLinkDetection.primaryUrl) {
       setActionNotice("Ich habe gerade keinen Link erkannt.");
       return;
     }
-    setDocumentTopicOverviewOpened(true);
-    setWorkspaceActionMode("source");
-    setChatContinuationText("");
-    setShowFollowupCorrectionComposer(true);
+    const currentState = intelligentFollowup?.meta?.analysis?.state ?? "link_detected";
+    if (currentState === "link_detected") {
+      setIntelligentFollowup(
+        buildCreateTechnicalFollowup({
+          text: normalizedIntakeText,
+          analysisState: "entitlement_required",
+          sourceType: "link",
+          sourceUrl: currentLinkDetection.primaryUrl,
+          sourceLoaded: false,
+          userMessage:
+            "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
+        }),
+      );
+      setActionNotice(null);
+      return;
+    }
+
+    if (isStarting) return;
+    setIsStarting(true);
+    setActionNotice(null);
+    setDocumentTopicOverviewOpened(false);
     setTopicExpansionDecision("link");
-    setLinkClarificationState((current) => ({
-      detection: current?.detection ?? currentLinkDetection,
-      selectedIntentId: "prepare_factcheck",
-      additionalContext: current?.additionalContext ?? "",
-    }));
-    setActionNotice("Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.");
-  }, [currentLinkDetection]);
+    setIntelligentFollowup(
+      buildCreateTechnicalFollowup({
+        text: normalizedIntakeText,
+        analysisState: "fetching",
+        sourceType: "link",
+        sourceUrl: currentLinkDetection.primaryUrl,
+        sourceLoaded: false,
+        userMessage:
+          "Ich lade den Linkinhalt und bereite die Analyse vor. Vorher leite ich keine Themen ab.",
+      }),
+    );
+
+    try {
+      const response = await fetch("/api/create/link-analysis", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: normalizedIntakeText,
+          url: currentLinkDetection.primaryUrl,
+          locale: surfaceLocale,
+          additionalContext: linkClarificationState?.additionalContext ?? "",
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || !body?.result) {
+        throw new Error("create_link_analysis_failed");
+      }
+      setIntelligentFollowup(body.result as CreateIntelligentFollowupResult);
+      setWorkspaceActionMode("default");
+      setChatContinuationText("");
+      setShowFollowupCorrectionComposer(false);
+      setDocumentTopicOverviewOpened(false);
+    } catch {
+      setIntelligentFollowup(
+        buildCreateTechnicalFollowup({
+          text: normalizedIntakeText,
+          analysisState: "ai_failed",
+          sourceType: "link",
+          sourceUrl: currentLinkDetection.primaryUrl,
+          sourceLoaded: false,
+          userMessage:
+            "Die KI-Analyse ist derzeit nicht verfügbar. Es wurden keine Themen oder Zusammenfassungen erzeugt.",
+        }),
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  }, [
+    currentLinkDetection,
+    intelligentFollowup?.meta?.analysis?.state,
+    isStarting,
+    linkClarificationState?.additionalContext,
+    normalizedIntakeText,
+    privacyGate,
+    surfaceLocale,
+  ]);
 
   const handleDeferExpandedReview = React.useCallback(() => {
     setShowExpandedTopicPreview(false);
