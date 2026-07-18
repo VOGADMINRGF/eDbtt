@@ -7,6 +7,7 @@ import {
   buildCreateStructureBranches,
   dedupeCreateFollowupSections,
   deriveDominantUnderstandingStance,
+  type DocumentAnalysisSummary,
   type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
   type CreateStructureBranch,
@@ -105,6 +106,7 @@ type CreateVisualFollowupProps = {
   linkDetection?: CreateLinkIntakeDetection | null;
   compactBranchLimit?: number;
   expandedBranchLimit?: number;
+  documentTopicOverviewOpened?: boolean;
   showExpandedTopicPreview?: boolean;
   topicExpansionDecision?: "idle" | "expanded" | "compact" | "link" | "later";
   expandedTopicAccess?: {
@@ -112,6 +114,7 @@ type CreateVisualFollowupProps = {
     isPrivilegedPreview: boolean;
     costState: "inactive" | "addon_required" | "uses_search_credit";
   };
+  onOpenDocumentTopicOverview?: () => void;
   onExpandTopicPreview?: () => void;
   onKeepCompactTopicPreview?: () => void;
   onPrepareLinkReview?: () => void;
@@ -1701,8 +1704,150 @@ function resolveTopicExpansionCostLabel(
   return "";
 }
 
+function resolveDocumentTypeLead(type: DocumentAnalysisSummary["documentType"]): string {
+  if (type === "party_program") return "Es handelt sich um ein Parteiprogramm.";
+  if (type === "law") return "Es handelt sich um einen Gesetzestext oder Entwurf.";
+  if (type === "study") return "Es handelt sich um eine Studie.";
+  if (type === "report") return "Es handelt sich um einen Bericht.";
+  if (type === "article") return "Es handelt sich um einen Artikel.";
+  return "Es handelt sich um ein Dokument.";
+}
+
+function resolveDocumentAnalysisLabel(
+  value:
+    | DocumentAnalysisSummary["subjectDepth"]
+    | DocumentAnalysisSummary["balanceAssessment"]
+    | DocumentAnalysisSummary["sourceSpecificity"]
+    | DocumentAnalysisSummary["sourceVerificationStatus"]
+    | DocumentAnalysisSummary["counterpositionCoverage"],
+): string {
+  if (value === "low") return "niedrig";
+  if (value === "medium") return "mittel";
+  if (value === "high") return "hoch";
+  if (value === "mixed") return "mittel bis hoch";
+  if (value === "balanced") return "ausgewogen";
+  if (value === "mostly_balanced") return "überwiegend ausgewogen";
+  if (value === "programmatic") return "überwiegend programmatisch";
+  if (value === "one_sided") return "überwiegend einseitig";
+  if (value === "specific") return "spezifisch";
+  if (value === "partly_specific") return "teilweise spezifisch";
+  if (value === "mostly_unspecific") return "häufig ohne direkte Primärquelle";
+  if (value === "none") return "keine direkten Quellenangaben";
+  if (value === "not_started") return "noch nicht erfolgt";
+  if (value === "prepared") return "vorbereitet";
+  if (value === "in_review") return "in Prüfung";
+  if (value === "completed") return "abgeschlossen";
+  if (value === "strong") return "stark vertreten";
+  if (value === "partial") return "teilweise enthalten";
+  if (value === "weak") return "schwach vertreten";
+  return "unklar";
+}
+
+function formatDocumentMetric(value: number, singular: string, plural: string): string {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function DocumentAnalysisBubble(props: {
+  analysis: DocumentAnalysisSummary;
+  onOpenTopics?: () => void;
+}) {
+  const metrics = [
+    props.analysis.pageCount !== null
+      ? formatDocumentMetric(props.analysis.pageCount, "Seite", "Seiten")
+      : null,
+    formatDocumentMetric(props.analysis.topicCount, "Thema", "Themen"),
+    formatDocumentMetric(props.analysis.subtopicCount, "Unterthema", "Unterthemen"),
+  ].filter(Boolean) as string[];
+
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-1 shrink-0">
+        <VoxyAvatar appearance="inline" variant="presenting" />
+      </div>
+      <div className="w-full max-w-[78%] min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            2 · Dokument analysiert
+          </p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
+            Assistent
+          </p>
+        </div>
+        <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
+          <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">Dokument erkannt</p>
+          <p className="mt-1.5 text-[1.35rem] font-semibold tracking-[-0.01em] text-cyan-950 md:text-[1.6rem] dark:text-cyan-50">
+            {props.analysis.documentTitle?.trim() || "Dokument"}
+          </p>
+          <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+            {resolveDocumentTypeLead(props.analysis.documentType)}
+          </p>
+          {metrics.length > 0 ? (
+            <p className="mt-2 text-[15px] leading-relaxed text-cyan-900/85 md:text-base dark:text-cyan-100/85">
+              {metrics.join(" · ")}
+            </p>
+          ) : null}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[24px] border border-cyan-200/45 bg-cyan-500/[0.07] px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Erkannt wurden</p>
+              <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">
+                <li>{formatDocumentMetric(props.analysis.topicCount, "Themenbereich", "Themenbereiche")}</li>
+                <li>{formatDocumentMetric(props.analysis.subtopicCount, "Unterthema", "Unterthemen")}</li>
+                <li>{formatDocumentMetric(props.analysis.keyStatementCount, "Kernaussage", "Kernaussagen")}</li>
+                <li>{formatDocumentMetric(props.analysis.verifiableClaimCount, "überprüfbare Tatsachenbehauptung", "überprüfbare Tatsachenbehauptungen")}</li>
+                <li>{formatDocumentMetric(props.analysis.policyProposalCount, "politisches Vorhaben", "politische Vorhaben")}</li>
+              </ul>
+            </div>
+            <div className="rounded-[24px] border border-slate-200/40 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Kurz eingeordnet</p>
+              <dl className="mt-3 space-y-1.5 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">
+                <div className="flex items-start justify-between gap-3">
+                  <dt>Fachliche Tiefe</dt>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.subjectDepth)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt>Ausgewogenheit</dt>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.balanceAssessment)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt>Quellenangaben</dt>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.sourceSpecificity)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt>Gegenpositionen</dt>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.counterpositionCoverage)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt>Quellenprüfung</dt>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.sourceVerificationStatus)}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+          <div className="mt-5 rounded-[24px] border border-slate-200/40 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Kurzfassung</p>
+            <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 dark:text-cyan-50">
+              {props.analysis.summary}
+            </p>
+          </div>
+          {props.onOpenTopics ? (
+            <div className="mt-5">
+              <button
+                type="button"
+                className="btn-primary min-h-[42px] px-4 py-2 text-sm"
+                onClick={props.onOpenTopics}
+              >
+                Themenübersicht öffnen
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TopicExpansionPrompt(props: {
-  hasLink: boolean;
+  showLinkReviewPrompt: boolean;
   totalTopicCount: number;
   totalSubtopicCount: number;
   visibleTopicCount: number;
@@ -1724,7 +1869,7 @@ function TopicExpansionPrompt(props: {
       ? props.totalSubtopicCount > 0
         ? `Ich habe ${props.totalTopicCount} Themenbereiche und ${props.totalSubtopicCount} Unterthemen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir als Einstieg.`
         : `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir kompakt.`
-      : "Ich habe einen Quellenhinweis erkannt.";
+      : "Link erkannt";
 
   return (
     <div className="create-chat-message flex gap-3">
@@ -1740,9 +1885,9 @@ function TopicExpansionPrompt(props: {
             {overflowNotice}
           </p>
         ) : null}
-        {props.hasLink ? (
+        {props.showLinkReviewPrompt ? (
           <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
-            Der Linkinhalt wurde noch nicht geladen. Du entscheidest bewusst, ob ich den Linkinhalt prüfen soll.
+            Ich habe den Inhalt noch nicht vollständig geladen. Für eine belastbare Dokumentanalyse muss der Linkinhalt zuerst geprüft werden.
           </p>
         ) : null}
         {props.costLabel ? (
@@ -1769,25 +1914,16 @@ function TopicExpansionPrompt(props: {
               {`Nur mit diesen ${props.visibleTopicCount} weiterarbeiten`}
             </button>
           ) : null}
-          {props.hasLink && !props.overflowCount ? (
+          {props.showLinkReviewPrompt && !props.overflowCount ? (
             <button
               type="button"
               className="btn-primary min-h-[42px] px-4 py-2 text-sm"
               onClick={props.onPrepareLinkReview}
             >
-              Linkinhalt prüfen
+              Dokument prüfen
             </button>
           ) : null}
           {props.overflowCount > 0 ? (
-            <button
-              type="button"
-              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
-              onClick={props.onDeferExpandedReview}
-            >
-              Später
-            </button>
-          ) : null}
-          {props.hasLink && !props.overflowCount ? (
             <button
               type="button"
               className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
@@ -3117,9 +3253,11 @@ export default function CreateVisualFollowup({
   linkDetection = null,
   compactBranchLimit: compactBranchLimitProp = 3,
   expandedBranchLimit: expandedBranchLimitProp = 3,
+  documentTopicOverviewOpened = false,
   showExpandedTopicPreview = false,
   topicExpansionDecision = "idle",
   expandedTopicAccess,
+  onOpenDocumentTopicOverview,
   onExpandTopicPreview,
   onKeepCompactTopicPreview,
   onPrepareLinkReview,
@@ -3204,6 +3342,8 @@ export default function CreateVisualFollowup({
   const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
+  const documentAnalysis = result.meta?.documentAnalysis ?? null;
+  const showDocumentTopicOverview = !documentAnalysis || documentTopicOverviewOpened;
   const fallbackBranches = React.useMemo(
     () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
     [plannerClarificationRequired, result],
@@ -3391,8 +3531,10 @@ export default function CreateVisualFollowup({
     ],
   );
   const inlineNextStepLabel = workspaceMetrics[3]?.value ?? "Themenstruktur bestätigen";
+  const showLinkReviewPrompt = Boolean(linkDetection?.hasLink) && !documentAnalysis;
   const showTopicExpansionPrompt =
-    (Boolean(linkDetection?.hasLink) || structureOverflowCount > 0) &&
+    showDocumentTopicOverview &&
+    (showLinkReviewPrompt || structureOverflowCount > 0) &&
     topicExpansionDecision === "idle";
   const topicExpansionCostLabel = resolveTopicExpansionCostLabel(expandedTopicAccess);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
@@ -3628,81 +3770,94 @@ export default function CreateVisualFollowup({
               className={`create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] ${embedInWorkspaceShell ? "" : "mt-5"}`}
             >
               <UserContributionBubble text={dedupedCopy.userBubbleText} />
-              <AssistantUnderstandingBubble
-                eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
-                stepLabel="2 · Themen erkannt"
-                headline={resolveFollowupChatHeadline({
-                  plannerClarificationRequired,
-                  branchCount: structureBranches.length,
-                })}
-                summary={plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
-                assistantLead={assistantLead}
-                coreClaim={dedupedCopy.prominentCoreClaim}
-                showCoreBlock={showCoreBlock && !plannerClarificationRequired}
-                showAssistantLead={showAssistantLeadText && !plannerClarificationRequired}
-                stanceLabel={resolveStanceLead(dominantStance)}
-                scopeLabel={resolveScopeLabel(scopeChip)}
-              >
-                {plannerUsesProvisionalStructure ? (
-                  <p className="mt-3 text-sm leading-relaxed text-amber-900 dark:text-amber-100">
-                    {plannerProvisionalNotice}
-                  </p>
-                ) : null}
-                <InlineStructureSummary
-                  visibleTopicCount={Math.max(1, displayedBranches.length)}
-                  hiddenTopicCount={structureOverflowCount}
-                  nextStepLabel={inlineNextStepLabel}
+              {documentAnalysis ? (
+                <DocumentAnalysisBubble
+                  analysis={documentAnalysis}
+                  onOpenTopics={
+                    showDocumentTopicOverview ? undefined : onOpenDocumentTopicOverview
+                  }
                 />
-                {plannerClarificationRequired ? (
-                  <div className="mt-4">
-                    <TopicBranchPreviewGrid
-                      rootTopic={rootTopic}
-                      branches={displayedBranches}
-                      totalTopicCount={Math.max(
-                        fullStructureBranches.length,
-                        displayedBranches.length,
-                      )}
-                      activeTopicLabel={activeTopicLabel}
-                      selectedPrimaryTopic={selectedPrimaryTopic}
-                      groupedTopicLabels={groupedTopicLabels}
-                      parkedTopicLabels={parkedTopicLabels}
-                      onFocusTopic={onFocusTopic}
-                      onSelectPrimaryTopic={onSelectPrimaryTopic}
-                      onGroupTopics={onGroupTopics}
-                      onSeparateTopics={onSeparateTopics}
-                      onParkTopic={onParkTopic}
-                    />
-                  </div>
-                ) : (
-                  <div className="mt-5">
-                    <TopicBranchPreviewGrid
-                      rootTopic={rootTopic}
-                      branches={displayedBranches}
-                      totalTopicCount={Math.max(
-                        fullStructureBranches.length,
-                        displayedBranches.length,
-                      )}
-                      activeTopicLabel={activeTopicLabel}
-                      selectedPrimaryTopic={selectedPrimaryTopic}
-                      groupedTopicLabels={groupedTopicLabels}
-                      parkedTopicLabels={parkedTopicLabels}
-                      onFocusTopic={onFocusTopic}
-                      onSelectPrimaryTopic={onSelectPrimaryTopic}
-                      onGroupTopics={onGroupTopics}
-                      onSeparateTopics={onSeparateTopics}
-                      onParkTopic={onParkTopic}
-                    />
-                  </div>
-                )}
-              </AssistantUnderstandingBubble>
+              ) : null}
+              {showDocumentTopicOverview ? (
+                <AssistantUnderstandingBubble
+                  eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
+                  stepLabel={documentAnalysis ? "3 · Themenübersicht" : "2 · Themen erkannt"}
+                  headline={resolveFollowupChatHeadline({
+                    plannerClarificationRequired,
+                    branchCount: structureBranches.length,
+                  })}
+                  summary={plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
+                  assistantLead={assistantLead}
+                  coreClaim={dedupedCopy.prominentCoreClaim}
+                  showCoreBlock={showCoreBlock && !plannerClarificationRequired}
+                  showAssistantLead={showAssistantLeadText && !plannerClarificationRequired}
+                  stanceLabel={resolveStanceLead(dominantStance)}
+                  scopeLabel={resolveScopeLabel(scopeChip)}
+                >
+                  {plannerUsesProvisionalStructure ? (
+                    <p className="mt-3 text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+                      {plannerProvisionalNotice}
+                    </p>
+                  ) : null}
+                  <InlineStructureSummary
+                    visibleTopicCount={Math.max(1, displayedBranches.length)}
+                    hiddenTopicCount={structureOverflowCount}
+                    nextStepLabel={inlineNextStepLabel}
+                  />
+                  {plannerClarificationRequired ? (
+                    <div className="mt-4">
+                      <TopicBranchPreviewGrid
+                        rootTopic={rootTopic}
+                        branches={displayedBranches}
+                        totalTopicCount={Math.max(
+                          fullStructureBranches.length,
+                          displayedBranches.length,
+                        )}
+                        activeTopicLabel={activeTopicLabel}
+                        selectedPrimaryTopic={selectedPrimaryTopic}
+                        groupedTopicLabels={groupedTopicLabels}
+                        parkedTopicLabels={parkedTopicLabels}
+                        onFocusTopic={onFocusTopic}
+                        onSelectPrimaryTopic={onSelectPrimaryTopic}
+                        onGroupTopics={onGroupTopics}
+                        onSeparateTopics={onSeparateTopics}
+                        onParkTopic={onParkTopic}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-5">
+                      <TopicBranchPreviewGrid
+                        rootTopic={rootTopic}
+                        branches={displayedBranches}
+                        totalTopicCount={Math.max(
+                          fullStructureBranches.length,
+                          displayedBranches.length,
+                        )}
+                        activeTopicLabel={activeTopicLabel}
+                        selectedPrimaryTopic={selectedPrimaryTopic}
+                        groupedTopicLabels={groupedTopicLabels}
+                        parkedTopicLabels={parkedTopicLabels}
+                        onFocusTopic={onFocusTopic}
+                        onSelectPrimaryTopic={onSelectPrimaryTopic}
+                        onGroupTopics={onGroupTopics}
+                        onSeparateTopics={onSeparateTopics}
+                        onParkTopic={onParkTopic}
+                      />
+                    </div>
+                  )}
+                </AssistantUnderstandingBubble>
+              ) : null}
               {showTopicExpansionPrompt ? (
                 <TopicExpansionPrompt
-                  hasLink={Boolean(linkDetection?.hasLink)}
-                  totalTopicCount={Math.max(displayedBranches.length + structureOverflowCount, displayedBranches.length)}
-                  totalSubtopicCount={fullStructureBranches.reduce(
-                    (sum, branch) => sum + branch.subtopics.length,
-                    0,
-                  )}
+                  showLinkReviewPrompt={showLinkReviewPrompt}
+                  totalTopicCount={
+                    documentAnalysis?.topicCount ??
+                    Math.max(displayedBranches.length + structureOverflowCount, displayedBranches.length)
+                  }
+                  totalSubtopicCount={
+                    documentAnalysis?.subtopicCount ??
+                    fullStructureBranches.reduce((sum, branch) => sum + branch.subtopics.length, 0)
+                  }
                   visibleTopicCount={Math.max(1, displayedBranches.length)}
                   overflowCount={structureOverflowCount}
                   costLabel={topicExpansionCostLabel}
@@ -3713,7 +3868,7 @@ export default function CreateVisualFollowup({
                 />
               ) : null}
               {actionNotice ? <WorkspaceActionEventBubble message={actionNotice} /> : null}
-              {!isConfirmed && !plannerClarificationRequired && activeBranch && activeTopicIndex > -1 ? (
+              {showDocumentTopicOverview && !isConfirmed && !plannerClarificationRequired && activeBranch && activeTopicIndex > -1 ? (
                 <TopicFocusPanel
                   activeBranch={activeBranch}
                   activeTopicIndex={activeTopicIndex}
@@ -3722,14 +3877,20 @@ export default function CreateVisualFollowup({
                   onParkTopic={onParkTopic}
                 />
               ) : null}
-              <WorkspaceActionThreadNote
-                mode={composerMode}
-                selectedPrimaryTopic={selectedPrimaryTopic}
-                factcheckMessage={factcheckMessage}
-              />
+              {showDocumentTopicOverview ? (
+                <WorkspaceActionThreadNote
+                  mode={composerMode}
+                  selectedPrimaryTopic={selectedPrimaryTopic}
+                  factcheckMessage={factcheckMessage}
+                />
+              ) : null}
             </div>
 
-            {!isConfirmed && !placeClarification && !plannerClarificationRequired && (!activeBranch || activeTopicIndex < 0) ? (
+            {showDocumentTopicOverview &&
+            !isConfirmed &&
+            !placeClarification &&
+            !plannerClarificationRequired &&
+            (!activeBranch || activeTopicIndex < 0) ? (
               <div className="mt-4">
                 <StructureProposalPanel
                   onConfirm={onConfirm}
@@ -3737,7 +3898,7 @@ export default function CreateVisualFollowup({
                 />
               </div>
             ) : null}
-            {!placeClarification && plannerClarificationRequired ? (
+            {showDocumentTopicOverview && !placeClarification && plannerClarificationRequired ? (
               <div className="mt-4">
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}

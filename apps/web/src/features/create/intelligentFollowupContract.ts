@@ -101,12 +101,44 @@ export type CreateFollowupGraphMatchPlan = {
 
 export type CreateGraphMatchResult = CreateFollowupGraphMatchPlan;
 
+export type DocumentTopic = {
+  id: string;
+  label: string;
+  subtopicCount?: number | null;
+  keyStatementCount?: number | null;
+  verifiableClaimCount?: number | null;
+  policyProposalCount?: number | null;
+  summary?: string | null;
+};
+
+export type DocumentAnalysisSummary = {
+  sourceUrl: string;
+  documentTitle: string | null;
+  documentType: "party_program" | "law" | "study" | "report" | "article" | "unknown";
+  pageCount: number | null;
+  wordCount: number | null;
+  topicCount: number;
+  subtopicCount: number;
+  keyStatementCount: number;
+  verifiableClaimCount: number;
+  policyProposalCount: number;
+  subjectBreadth: "narrow" | "medium" | "broad" | "very_broad";
+  subjectDepth: "low" | "medium" | "high" | "mixed";
+  balanceAssessment: "balanced" | "mostly_balanced" | "programmatic" | "one_sided" | "unclear";
+  sourceSpecificity: "specific" | "partly_specific" | "mostly_unspecific" | "none" | "unclear";
+  sourceVerificationStatus: "not_started" | "prepared" | "in_review" | "completed";
+  counterpositionCoverage: "strong" | "partial" | "weak" | "none" | "unclear";
+  summary: string;
+  topics: DocumentTopic[];
+};
+
 export type CreateIntelligentFollowupMeta = {
   planner: CreatePlannerResult;
   graphMatch: CreateFollowupGraphMatchPlan;
   researchUsed: "none";
   researchProvider: null;
   deepSearchUsed: false;
+  documentAnalysis?: DocumentAnalysisSummary | null;
 };
 
 export type CreateIntelligentFollowupResult = {

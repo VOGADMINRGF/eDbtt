@@ -320,6 +320,46 @@ function buildLongInventoryResult(): CreateIntelligentFollowupResult {
   };
 }
 
+function buildDocumentAnalysisResult(): CreateIntelligentFollowupResult {
+  const base = buildOverflowResult();
+  return {
+    ...base,
+    meta: {
+      planner: buildSpecificPlanner(),
+      graphMatch: buildGraphMatch(),
+      researchUsed: "none",
+      researchProvider: null,
+      deepSearchUsed: false,
+      documentAnalysis: {
+        sourceUrl: "https://example.com/fdp-programm.pdf",
+        documentTitle: "Grundsatzprogramm der FDP",
+        documentType: "party_program",
+        pageCount: 78,
+        wordCount: 18240,
+        topicCount: 4,
+        subtopicCount: 18,
+        keyStatementCount: 94,
+        verifiableClaimCount: 31,
+        policyProposalCount: 12,
+        subjectBreadth: "broad",
+        subjectDepth: "mixed",
+        balanceAssessment: "programmatic",
+        sourceSpecificity: "partly_specific",
+        sourceVerificationStatus: "not_started",
+        counterpositionCoverage: "weak",
+        summary:
+          "Das Programm verbindet wirtschaftliche Liberalisierung, Digitalisierung, Bürgerrechte und staatliche Modernisierung. Konkrete Vorhaben und überprüfbare Claims sind sichtbar, Gegenpositionen bleiben im Dokument aber nur begrenzt enthalten.",
+        topics: [
+          { id: "topic-1", label: "Wirtschaft & Steuern" },
+          { id: "topic-2", label: "Arbeit & Soziales" },
+          { id: "topic-3", label: "Bildung & Forschung" },
+          { id: "topic-4", label: "Staat & Verwaltung" },
+        ],
+      },
+    },
+  };
+}
+
 function buildDegradedResult(): CreateIntelligentFollowupResult {
   return {
     understanding: {
@@ -363,6 +403,7 @@ function Harness(props: {
   const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
   const [groupedTopicLabels, setGroupedTopicLabels] = React.useState<string[]>([]);
   const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
+  const [documentTopicOverviewOpened, setDocumentTopicOverviewOpened] = React.useState(false);
   const [showExpandedTopicPreview, setShowExpandedTopicPreview] = React.useState(false);
   const [topicExpansionDecision, setTopicExpansionDecision] = React.useState<
     "idle" | "expanded" | "compact" | "link" | "later"
@@ -433,12 +474,17 @@ function Harness(props: {
         linkDetection={linkDetection}
         compactBranchLimit={3}
         expandedBranchLimit={5}
+        documentTopicOverviewOpened={documentTopicOverviewOpened}
         showExpandedTopicPreview={showExpandedTopicPreview}
         topicExpansionDecision={topicExpansionDecision}
         expandedTopicAccess={{
           canPreviewAllTopics: props.previewAllTopics ?? false,
           isPrivilegedPreview: false,
           costState: props.previewAllTopics ? "uses_search_credit" : "addon_required",
+        }}
+        onOpenDocumentTopicOverview={() => {
+          setDocumentTopicOverviewOpened(true);
+          setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
         }}
         onConfirm={() => {
           setSelectedPrimaryTopic((current) => current ?? activeTopicLabel ?? "Verkehr");
@@ -543,6 +589,12 @@ function Harness(props: {
           setTopicExpansionDecision("later");
           setActionNotice("Vollständige Auswertung bleibt vorerst zurückgestellt.");
         }}
+        onPrepareLinkReview={() => {
+          setDocumentTopicOverviewOpened(true);
+          setComposerMode("source");
+          setTopicExpansionDecision("link");
+          setActionNotice("Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.");
+        }}
         onRetryPlanner={() => {}}
         onSaveOnly={() => {
           setSaveCount((count) => count + 1);
@@ -614,6 +666,49 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByText("Der Quellenhinweis wurde gespeichert.")).not.toBeNull();
     expect(screen.getByTestId("composer-mode").textContent).toBe("edit");
     expect(screen.getByTestId("source-count").textContent).toBe("1");
+  });
+
+  it("shows a real document diagnosis before opening the topic overview", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Harness result={buildDocumentAnalysisResult()} previewAllTopics />);
+
+    expect(screen.queryByText("Dokument erkannt")).not.toBeNull();
+    expect(screen.queryByText("Grundsatzprogramm der FDP")).not.toBeNull();
+    expect(screen.queryByText("78 Seiten · 4 Themen · 18 Unterthemen")).not.toBeNull();
+    expect(screen.queryByText("31 überprüfbare Tatsachenbehauptungen")).not.toBeNull();
+    expect(screen.queryByText("Quellenprüfung")).not.toBeNull();
+    expect(screen.queryByText("noch nicht erfolgt")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Themenübersicht öffnen" })).not.toBeNull();
+    expect(screen.queryByText("27 Unterthemen")).toBeNull();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Themenübersicht öffnen" }));
+
+    expect(screen.queryAllByText("Die Themenübersicht ist jetzt geöffnet.").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Ich habe 4 Themenbereiche und 18 Unterthemen erkannt/)).not.toBeNull();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).not.toBeNull();
+  });
+
+  it("keeps the unloaded-link fallback honest and action-driven", async () => {
+    const user = userEvent.setup();
+    render(<Harness result={buildStandardResult()} linkText="https://example.com/fundstelle.pdf" />);
+
+    expect(screen.queryByText("Link erkannt")).not.toBeNull();
+    expect(screen.queryByText(/Ich habe den Inhalt noch nicht vollständig geladen/)).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Dokument prüfen" })).not.toBeNull();
+    expect(screen.queryByText(/^78 Seiten$/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Später" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Dokument prüfen" }));
+
+    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("link");
+    expect(
+      screen.queryAllByText(
+        "Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.",
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("composer-mode").textContent).toBe("source");
   });
 
   it("surfaces link and topic-overflow decisions without auto-starting external search", async () => {

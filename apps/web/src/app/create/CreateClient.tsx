@@ -751,6 +751,7 @@ export default function CreateClient({
   const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
   const [groupedTopicLabels, setGroupedTopicLabels] = React.useState<string[]>([]);
   const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
+  const [documentTopicOverviewOpened, setDocumentTopicOverviewOpened] = React.useState(false);
   const [showExpandedTopicPreview, setShowExpandedTopicPreview] = React.useState(false);
   const [topicExpansionDecision, setTopicExpansionDecision] = React.useState<
     "idle" | "expanded" | "compact" | "link" | "later"
@@ -1067,6 +1068,7 @@ export default function CreateClient({
         setActiveTopicLabel(null);
         setSelectedPrimaryTopic(null);
         setGroupedTopicLabels([]);
+        setDocumentTopicOverviewOpened(false);
         setShowExpandedTopicPreview(false);
         setTopicExpansionDecision("idle");
         setParkedTopicLabels([]);
@@ -1092,6 +1094,7 @@ export default function CreateClient({
       setActiveTopicLabel(null);
       setSelectedPrimaryTopic(null);
       setGroupedTopicLabels([]);
+      setDocumentTopicOverviewOpened(false);
       setShowExpandedTopicPreview(false);
       setTopicExpansionDecision("idle");
       setParkedTopicLabels([]);
@@ -1147,7 +1150,9 @@ export default function CreateClient({
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
       setActiveTopicLabel(null);
+      setSelectedPrimaryTopic(null);
       setGroupedTopicLabels([]);
+      setDocumentTopicOverviewOpened(false);
       setShowExpandedTopicPreview(false);
       setTopicExpansionDecision("idle");
 
@@ -1205,6 +1210,7 @@ export default function CreateClient({
     setActiveTopicLabel(null);
     setSelectedPrimaryTopic(null);
     setGroupedTopicLabels([]);
+    setDocumentTopicOverviewOpened(false);
     setShowExpandedTopicPreview(false);
     setTopicExpansionDecision("idle");
     setParkedTopicLabels([]);
@@ -1223,6 +1229,7 @@ export default function CreateClient({
     setActiveTopicLabel(null);
     setSelectedPrimaryTopic(null);
     setGroupedTopicLabels([]);
+    setDocumentTopicOverviewOpened(false);
     setShowExpandedTopicPreview(false);
     setTopicExpansionDecision("idle");
     setParkedTopicLabels([]);
@@ -1565,6 +1572,7 @@ export default function CreateClient({
           linkDetection={currentLinkDetection}
           compactBranchLimit={3}
           expandedBranchLimit={Math.max(3, entitlements.maxVisibleAiProposals)}
+          documentTopicOverviewOpened={documentTopicOverviewOpened}
           showExpandedTopicPreview={showExpandedTopicPreview}
           topicExpansionDecision={topicExpansionDecision}
           expandedTopicAccess={{
@@ -1572,6 +1580,7 @@ export default function CreateClient({
             isPrivilegedPreview: hasPrivilegedTopicPreview,
             costState: expandedTopicCostState,
           }}
+          onOpenDocumentTopicOverview={handleOpenDocumentTopicOverview}
           onExpandTopicPreview={handleExpandTopicPreview}
           onKeepCompactTopicPreview={handleKeepCompactTopicPreview}
           onPrepareLinkReview={handlePrepareLinkReview}
@@ -2040,6 +2049,7 @@ export default function CreateClient({
       setActiveTopicLabel(null);
       setSelectedPrimaryTopic(null);
       setGroupedTopicLabels([]);
+      setDocumentTopicOverviewOpened(false);
       setShowExpandedTopicPreview(false);
       setTopicExpansionDecision("idle");
       setParkedTopicLabels([]);
@@ -2197,6 +2207,11 @@ export default function CreateClient({
     setActionNotice("Das weitere Thema wird jetzt angezeigt.");
   }, []);
 
+  const handleOpenDocumentTopicOverview = React.useCallback(() => {
+    setDocumentTopicOverviewOpened(true);
+    setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
+  }, []);
+
   const handleKeepCompactTopicPreview = React.useCallback(() => {
     setShowExpandedTopicPreview(false);
     setTopicExpansionDecision("compact");
@@ -2208,6 +2223,7 @@ export default function CreateClient({
       setActionNotice("Ich habe gerade keinen Link erkannt.");
       return;
     }
+    setDocumentTopicOverviewOpened(true);
     setWorkspaceActionMode("source");
     setChatContinuationText("");
     setShowFollowupCorrectionComposer(true);
@@ -2217,7 +2233,7 @@ export default function CreateClient({
       selectedIntentId: "prepare_factcheck",
       additionalContext: current?.additionalContext ?? "",
     }));
-    setActionNotice("Quellenprüfung vorbereitet. Sie startet erst nach Bestätigung.");
+    setActionNotice("Dokumentprüfung vorbereitet. Der Linkinhalt wird erst nach Bestätigung geladen.");
   }, [currentLinkDetection]);
 
   const handleDeferExpandedReview = React.useCallback(() => {
@@ -2605,6 +2621,7 @@ export default function CreateClient({
                   setActiveTopicLabel(null);
                   setSelectedPrimaryTopic(null);
                   setGroupedTopicLabels([]);
+                  setDocumentTopicOverviewOpened(false);
                   setShowExpandedTopicPreview(false);
                   setTopicExpansionDecision("idle");
                   setParkedTopicLabels([]);
@@ -2643,6 +2660,7 @@ export default function CreateClient({
                   setActiveTopicLabel(null);
                   setSelectedPrimaryTopic(null);
                   setGroupedTopicLabels([]);
+                  setDocumentTopicOverviewOpened(false);
                   setShowExpandedTopicPreview(false);
                   setTopicExpansionDecision("idle");
                   setParkedTopicLabels([]);
