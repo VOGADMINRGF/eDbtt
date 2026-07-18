@@ -138,8 +138,8 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
     expect(html).toContain("Stadtplanung &amp; Finanzierung");
     expect(html).not.toContain("Beitrag weiterentwickeln");
-    expect(html).not.toContain("Quellen ergänzen");
-    expect(html).not.toContain("Entwurf speichern");
+    expect(html).not.toContain("Quelle vormerken");
+    expect(html).not.toContain("Später weiterarbeiten");
     expect(html).not.toContain("Anlassraum vorbereiten");
     expect(html).not.toContain("Thema selbst wählen");
     expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");

@@ -167,6 +167,7 @@ export type SharedCreateComposerProps = {
   allowVoice?: boolean;
   onAttachmentsChange?: (files: File[]) => void;
   minRows?: number;
+  inputAutoFocus?: boolean;
   heroTone?: "calm" | "lively";
   heroHeadlineOverride?: CreateComposerHeadlineText;
   heroSublineOverride?: string;
@@ -207,6 +208,7 @@ export default function SharedCreateComposer({
   allowVoice = true,
   onAttachmentsChange,
   minRows = 9,
+  inputAutoFocus = false,
   heroTone = "calm",
   heroHeadlineOverride,
   heroSublineOverride,
@@ -227,6 +229,7 @@ export default function SharedCreateComposer({
   const [voiceError, setVoiceError] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<React.ElementRef<"input"> | null>(null);
+  const textareaRef = React.useRef<React.ElementRef<"textarea"> | null>(null);
   const speechRef = React.useRef<SpeechRecognitionLike | null>(null);
   const compactMetaMode = embeddedWorkspace && collapseModeSelector;
   const isMinimalCreate = experienceVariant === "create_minimal";
@@ -382,6 +385,11 @@ export default function SharedCreateComposer({
     };
   }, [stopVoice]);
 
+  React.useEffect(() => {
+    if (!inputAutoFocus) return;
+    textareaRef.current?.focus();
+  }, [inputAutoFocus]);
+
   const renderModeChip = React.useCallback(
     (modeOption: CreateProductMode) => {
       const modeConfig = modeDefinitions[modeOption];
@@ -423,10 +431,12 @@ export default function SharedCreateComposer({
           </label>
           <div className="rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_95%,white_5%)] shadow-[0_16px_36px_rgba(15,23,42,0.07)]">
             <textarea
+              ref={textareaRef}
               id={inputId}
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               rows={isWorkspaceContinuation ? 3 : Math.max(5, minRows - 2)}
+              autoFocus={inputAutoFocus}
               className={`w-full resize-none border-0 bg-transparent px-5 py-4 text-[15px] leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] md:px-6 md:text-base ${isWorkspaceContinuation ? "min-h-[96px]" : "min-h-[124px]"}`}
               placeholder={resolvedPlaceholder}
             />
@@ -622,10 +632,12 @@ export default function SharedCreateComposer({
                 <div className="px-4 pt-4 sm:px-5">
                   <div className="rounded-[24px] border border-[rgb(var(--focus-panel-border))] bg-[color-mix(in_oklab,rgb(var(--focus-panel-top))_82%,white_18%)]">
                     <textarea
+                      ref={textareaRef}
                       id={inputId}
                       value={inputValue}
                       onChange={(event) => onInputChange(event.target.value)}
                       rows={minRows}
+                      autoFocus={inputAutoFocus}
                       className="min-h-[168px] w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--focus-panel-fg))] outline-none placeholder:text-[rgb(var(--focus-panel-muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[192px] sm:px-5 sm:py-5"
                       placeholder={resolvedPlaceholder}
                     />
@@ -636,10 +648,12 @@ export default function SharedCreateComposer({
                 </div>
               ) : (
                 <textarea
+                  ref={textareaRef}
                   id={inputId}
                   value={inputValue}
                   onChange={(event) => onInputChange(event.target.value)}
                   rows={minRows}
+                  autoFocus={inputAutoFocus}
                   className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:px-5 sm:py-5 ${compactMetaMode ? "min-h-[148px] sm:min-h-[190px]" : "min-h-[170px] sm:min-h-[220px]"}`}
                   placeholder={resolvedPlaceholder}
                 />

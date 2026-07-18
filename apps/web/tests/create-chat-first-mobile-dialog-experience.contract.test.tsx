@@ -352,8 +352,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Themenstruktur bestätigen");
     expect(html).toContain("Themen ändern");
     expect(html).not.toContain("Aussage schärfen");
-    expect(html).not.toContain("Quelle ergänzen");
-    expect(html).not.toContain("Entwurf speichern");
+    expect(html).not.toContain("Quelle vormerken");
+    expect(html).not.toContain("Später weiterarbeiten");
     expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
@@ -392,8 +392,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
     expect(html).toContain("Themen ändern");
     expect(html).not.toContain("Aussage schärfen");
-    expect(html).not.toContain("Quelle ergänzen");
-    expect(html).not.toContain("Entwurf speichern");
+    expect(html).not.toContain("Quelle vormerken");
+    expect(html).not.toContain("Später weiterarbeiten");
     expect(html).not.toContain("Anlassraum vorbereiten");
     expect(html).toContain("Verkehrssicherheit");
     expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
@@ -419,9 +419,11 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("Was du jetzt tun kannst");
     expect(html).toContain("Aussage schärfen");
-    expect(html).toContain("Quelle ergänzen");
-    expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Frage vormerken");
+    expect(html).toContain("Thema vormerken");
+    expect(html).toContain("Quelle vormerken");
+    expect(html).toContain("Für Community vorbereiten");
+    expect(html).toContain("Später weiterarbeiten");
     expect(html).toContain("Kein Auto-Publish");
   });
 
@@ -437,11 +439,11 @@ describe("create chat-first mobile dialog experience contract", () => {
       },
     });
 
-    expect(html).toContain("Ich habe 4 Themen erkannt. 3 zeige ich dir kompakt.");
+    expect(html).toContain("Ich habe 4 Themenbereiche");
     expect(html).toContain("Ein weiteres Thema wurde erkannt.");
     expect(html).toContain("Weiteres Thema anzeigen");
     expect(html).toContain("Nur mit diesen 3 weiterarbeiten");
-    expect(html).toContain("Quellenmodus vorbereiten");
+    expect(html).toContain("Später");
     expect(html).toContain("Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.");
     expect(html).not.toContain("0 EUR");
   });

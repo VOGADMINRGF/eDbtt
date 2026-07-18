@@ -71,6 +71,9 @@ import {
   readAccountUserScopedRuntimeLinkageSlice,
   type AccountUserScopedRuntimeLinkageSlice,
 } from "@features/account/userScopedRuntimeLinkageTypes";
+import {
+  type AccountSavedWorkstateSlice,
+} from "@features/account/savedWorkstateTypes";
 
 // Shared button primitives for consistent contrast across light/dark.
 const primaryButtonClass =
@@ -273,7 +276,8 @@ export type AccountOverview = {
   AccountEditorialReviewSlice &
   AccountFactcheckJobSlice &
   AccountGraphMergeCandidateSlice &
-  AccountUserScopedRuntimeLinkageSlice;
+  AccountUserScopedRuntimeLinkageSlice &
+  AccountSavedWorkstateSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -331,6 +335,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <AccountCreateDraftSections
         entries={data.createContributionLedger ?? []}
+        savedWorkstates={data.savedWorkstates ?? []}
         manualAnlassraumServerDrafts={data.manualAnlassraumServerDrafts ?? []}
         roles={data.roles}
         runtimeLinkages={data.userScopedRuntimeLinkages ?? []}

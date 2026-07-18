@@ -91,6 +91,13 @@ type CreateVisualFollowupProps = {
   onDeepenAllTopics?: () => void;
   onDeepenTopic?: (topicLabel: string) => void;
   onContinueInAccount?: () => void;
+  onSaveQuestion?: () => void;
+  onSaveTopic?: () => void;
+  onSaveSource?: () => void;
+  onSaveInternal?: () => void;
+  onPrepareCommunity?: () => void;
+  onDeferWork?: () => void;
+  canCreateInternalWorkstate?: boolean;
   onRetryPlanner?: () => void;
   isRetryPlannerPending?: boolean;
   onSaveOnly?: () => void;
@@ -688,9 +695,18 @@ function buildDeterministicFallbackBranches(
   return buildDeterministicFallbackBranchDrafts(result).map((draft, index) => {
     return {
       id: `degraded-fallback-branch-${index}`,
+      topicId: `degraded-fallback-branch-${index}`,
       title: draft.title,
+      summary: draft.description,
       topics: [draft.title],
       topicTags: draft.referencePoints.length > 0 ? draft.referencePoints : [draft.title],
+      evidenceSnippets: [fallbackClaim],
+      subtopics: draft.referencePoints,
+      sourceSection: result.understanding.summary ?? null,
+      confidence: "low",
+      parentTopicId: null,
+      relatedTopicIds: [],
+      suggestedQuestions: [],
       part06CategoryKeys: [],
       part06CategoryLabels: [draft.title],
       need:
@@ -1141,7 +1157,7 @@ function AssistantUnderstandingBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-1 shrink-0">
-        <VoxyAvatar appearance="inline" variant="createGuideLight" />
+        <VoxyAvatar appearance="inline" variant="presenting" />
       </div>
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -1642,6 +1658,11 @@ function InlineStructureSummary(props: {
   hiddenTopicCount: number;
   nextStepLabel: string;
 }) {
+  const hiddenTopicLabel =
+    props.hiddenTopicCount === 1
+      ? "+1 weiteres Thema"
+      : `+${props.hiddenTopicCount} weitere Themen`;
+
   return (
     <section data-create-inline-structure-summary data-create-structure-rail className="mt-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1656,7 +1677,7 @@ function InlineStructureSummary(props: {
         </span>
         {props.hiddenTopicCount > 0 ? (
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[13px] text-[rgb(var(--fg))]">
-            +{props.hiddenTopicCount} weiteres Thema
+            {hiddenTopicLabel}
           </span>
         ) : null}
         <span className="rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] px-3 py-2 text-[13px] text-cyan-950 dark:text-cyan-100">
@@ -1683,18 +1704,26 @@ function resolveTopicExpansionCostLabel(
 function TopicExpansionPrompt(props: {
   hasLink: boolean;
   totalTopicCount: number;
+  totalSubtopicCount: number;
   visibleTopicCount: number;
   overflowCount: number;
-  canPreviewAllTopics: boolean;
   costLabel: string;
   onExpandTopicPreview?: () => void;
   onKeepCompactTopicPreview?: () => void;
-  onPrepareLinkReview?: () => void;
   onDeferExpandedReview?: () => void;
+  onPrepareLinkReview?: () => void;
 }) {
+  const expandButtonLabel =
+    props.overflowCount === 1 ? "Weiteres Thema anzeigen" : "Alle Themen öffnen";
+  const overflowNotice =
+    props.overflowCount === 1
+      ? "Ein weiteres Thema wurde erkannt."
+      : `${props.overflowCount} weitere Themen wurden erkannt.`;
   const intro =
     props.overflowCount > 0
-      ? `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount} zeige ich dir kompakt.`
+      ? props.totalSubtopicCount > 0
+        ? `Ich habe ${props.totalTopicCount} Themenbereiche und ${props.totalSubtopicCount} Unterthemen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir als Einstieg.`
+        : `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir kompakt.`
       : "Ich habe einen Quellenhinweis erkannt.";
 
   return (
@@ -1708,12 +1737,12 @@ function TopicExpansionPrompt(props: {
         <p className="mt-2 text-base font-semibold text-cyan-950 dark:text-cyan-50">{intro}</p>
         {props.overflowCount > 0 ? (
           <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
-            Ein weiteres Thema wurde erkannt.
+            {overflowNotice}
           </p>
         ) : null}
         {props.hasLink ? (
           <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
-            Wenn du den Link später prüfen willst, bereite ich dafür den Quellenmodus vor.
+            Der Linkinhalt wurde noch nicht geladen. Du entscheidest bewusst, ob ich den Linkinhalt prüfen soll.
           </p>
         ) : null}
         {props.costLabel ? (
@@ -1725,10 +1754,10 @@ function TopicExpansionPrompt(props: {
           {props.overflowCount > 0 ? (
             <button
               type="button"
-              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              className="btn-primary min-h-[42px] px-4 py-2 text-sm"
               onClick={props.onExpandTopicPreview}
             >
-              {props.overflowCount === 1 ? "Weiteres Thema anzeigen" : "Weitere Themen anzeigen"}
+              {expandButtonLabel}
             </button>
           ) : null}
           {props.overflowCount > 0 ? (
@@ -1740,13 +1769,22 @@ function TopicExpansionPrompt(props: {
               {`Nur mit diesen ${props.visibleTopicCount} weiterarbeiten`}
             </button>
           ) : null}
-          {props.hasLink ? (
+          {props.hasLink && !props.overflowCount ? (
+            <button
+              type="button"
+              className="btn-primary min-h-[42px] px-4 py-2 text-sm"
+              onClick={props.onPrepareLinkReview}
+            >
+              Linkinhalt prüfen
+            </button>
+          ) : null}
+          {props.overflowCount > 0 ? (
             <button
               type="button"
               className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
-              onClick={props.onPrepareLinkReview}
+              onClick={props.onDeferExpandedReview}
             >
-              Quellenmodus vorbereiten
+              Später
             </button>
           ) : null}
           {props.hasLink && !props.overflowCount ? (
@@ -2040,6 +2078,7 @@ function WorkspaceMetricRail(props: {
 function TopicBranchPreviewGrid(props: {
   rootTopic: string;
   branches: CreateStructureBranch[];
+  totalTopicCount: number;
   activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
   groupedTopicLabels?: string[];
@@ -2059,7 +2098,7 @@ function TopicBranchPreviewGrid(props: {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">3 · Themenstruktur</p>
           <p className="mt-1 text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
           <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Aus „{props.rootTopic}“ erkenne ich {props.branches.length} sichtbare Themen. Ein Klick öffnet den Fokus direkt im Chat.
+            Aus „{props.rootTopic}“ erkenne ich {props.totalTopicCount} Themen. {props.branches.length} davon sind gerade sichtbar. Ein Klick öffnet den Fokus direkt im Chat.
           </p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))]">
@@ -2153,6 +2192,9 @@ function TopicBranchPreviewGrid(props: {
                       Sichtbarer Fokus
                     </p>
                     <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">
+                      {branch.subtopics.length} Unterthemen · {branch.evidenceSnippets.length} Belegstellen
+                    </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
@@ -2927,22 +2969,14 @@ function ManualTopicChooser(props: {
 }
 
 function NextStepPanel(props: {
-  multiTopicActionTopics: string[];
-  showMultiTopicActionPanel: boolean;
-  onDeepenAllTopics: () => void;
-  onDeepenTopic: (topicLabel: string) => void;
-  onContinueInAccount: () => void;
-  selectedPrimaryTopic?: string | null;
-  onConfirm: () => void;
   onEdit: () => void;
-  onPrepareSubmission: () => void;
-  onPrepareAnlassraum: () => void;
-  onOpenDossierAppend: () => void;
-  onOpenDossierCreate: () => void;
-  onPrepareVote: () => void;
-  onRequestEditorialReview: () => void;
-  onStartOptionalService: () => void;
-  onSaveOnly: () => void;
+  onSaveQuestion?: () => void;
+  onSaveTopic?: () => void;
+  onSaveSource?: () => void;
+  onSaveInternal?: () => void;
+  onPrepareCommunity?: () => void;
+  onDeferWork?: () => void;
+  canCreateInternalWorkstate?: boolean;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
   factcheckMessage?: string | null;
@@ -2963,17 +2997,26 @@ function NextStepPanel(props: {
         <button
           type="button"
           className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-          onClick={props.onStartOptionalService}
-          aria-label="Quelle ergänzen"
-          title="Quelle ergänzen"
+          onClick={props.onSaveQuestion}
         >
-          Quelle ergänzen
+          Frage vormerken
         </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
-          Entwurf speichern
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveTopic}>
+          Thema vormerken
         </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
-          Anlassraum vorbereiten
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveSource}>
+          Quelle vormerken
+        </button>
+        {props.canCreateInternalWorkstate ? (
+          <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveInternal}>
+            Intern notieren
+          </button>
+        ) : null}
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareCommunity}>
+          Für Community vorbereiten
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onDeferWork}>
+          Später weiterarbeiten
         </button>
       </div>
       <p className="text-xs leading-relaxed text-slate-400">Kein Auto-Publish.</p>
@@ -3060,6 +3103,13 @@ export default function CreateVisualFollowup({
   onDeepenAllTopics = () => {},
   onDeepenTopic = () => {},
   onContinueInAccount = () => {},
+  onSaveQuestion = () => {},
+  onSaveTopic = () => {},
+  onSaveSource = () => {},
+  onSaveInternal = () => {},
+  onPrepareCommunity = () => {},
+  onDeferWork,
+  canCreateInternalWorkstate = false,
   onRetryPlanner,
   isRetryPlannerPending = false,
   onSaveOnly = () => {},
@@ -3542,7 +3592,7 @@ export default function CreateVisualFollowup({
               <>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <VoxyAvatar appearance="inline" variant="createGuideLight" />
+                    <VoxyAvatar appearance="inline" variant="presenting" />
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                         Dein KI-Assistent
@@ -3608,6 +3658,10 @@ export default function CreateVisualFollowup({
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
+                      totalTopicCount={Math.max(
+                        fullStructureBranches.length,
+                        displayedBranches.length,
+                      )}
                       activeTopicLabel={activeTopicLabel}
                       selectedPrimaryTopic={selectedPrimaryTopic}
                       groupedTopicLabels={groupedTopicLabels}
@@ -3624,6 +3678,10 @@ export default function CreateVisualFollowup({
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
+                      totalTopicCount={Math.max(
+                        fullStructureBranches.length,
+                        displayedBranches.length,
+                      )}
                       activeTopicLabel={activeTopicLabel}
                       selectedPrimaryTopic={selectedPrimaryTopic}
                       groupedTopicLabels={groupedTopicLabels}
@@ -3641,14 +3699,17 @@ export default function CreateVisualFollowup({
                 <TopicExpansionPrompt
                   hasLink={Boolean(linkDetection?.hasLink)}
                   totalTopicCount={Math.max(displayedBranches.length + structureOverflowCount, displayedBranches.length)}
+                  totalSubtopicCount={fullStructureBranches.reduce(
+                    (sum, branch) => sum + branch.subtopics.length,
+                    0,
+                  )}
                   visibleTopicCount={Math.max(1, displayedBranches.length)}
                   overflowCount={structureOverflowCount}
-                  canPreviewAllTopics={expandedTopicAccess?.canPreviewAllTopics ?? false}
                   costLabel={topicExpansionCostLabel}
                   onExpandTopicPreview={onExpandTopicPreview}
                   onKeepCompactTopicPreview={onKeepCompactTopicPreview}
-                  onPrepareLinkReview={onPrepareLinkReview}
                   onDeferExpandedReview={onDeferExpandedReview}
+                  onPrepareLinkReview={onPrepareLinkReview}
                 />
               ) : null}
               {actionNotice ? <WorkspaceActionEventBubble message={actionNotice} /> : null}
@@ -3702,22 +3763,14 @@ export default function CreateVisualFollowup({
 
           {isConfirmed && !plannerClarificationRequired ? (
             <NextStepPanel
-              multiTopicActionTopics={multiTopicActionTopics}
-              showMultiTopicActionPanel={showMultiTopicActionPanel}
-              onDeepenAllTopics={onDeepenAllTopics}
-              onDeepenTopic={onDeepenTopic}
-              onContinueInAccount={onContinueInAccount}
-              selectedPrimaryTopic={selectedPrimaryTopic}
-              onConfirm={onConfirm}
               onEdit={onEdit}
-              onPrepareSubmission={onPrepareSubmission}
-              onPrepareAnlassraum={onPrepareAnlassraum}
-              onOpenDossierAppend={onOpenDossierAppend}
-              onOpenDossierCreate={onOpenDossierCreate}
-              onPrepareVote={onPrepareVote}
-              onRequestEditorialReview={onRequestEditorialReview}
-              onStartOptionalService={onStartOptionalService}
-              onSaveOnly={onSaveOnly}
+              onSaveQuestion={onSaveQuestion}
+              onSaveTopic={onSaveTopic}
+              onSaveSource={onSaveSource}
+              onSaveInternal={onSaveInternal}
+              onPrepareCommunity={onPrepareCommunity}
+              onDeferWork={onDeferWork ?? onContinueInAccount}
+              canCreateInternalWorkstate={canCreateInternalWorkstate}
               reviewRequestState={reviewRequestState}
               reviewRequestMessage={reviewRequestMessage}
               factcheckMessage={factcheckMessage}

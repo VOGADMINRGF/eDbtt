@@ -2,10 +2,6 @@
 
 import * as React from "react";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
-import {
-  CreateStructureOverview,
-  type CreateStructureOverviewProps,
-} from "@/features/create/CreateVisualFollowup";
 
 export type CreateWorkspaceStageId =
   | "input"
@@ -29,10 +25,13 @@ type CreateWorkspaceShellProps = {
   chatThread: React.ReactNode;
   composer: React.ReactNode;
   footer?: React.ReactNode;
-  structureOverview: Pick<
-    CreateStructureOverviewProps,
-    "prioritiesCount" | "clustersCount" | "questionsCount" | "nextStepsCount" | "nextStepLabel"
-  >;
+  structureOverview?: {
+    prioritiesCount: number;
+    clustersCount: number;
+    questionsCount: number;
+    nextStepsCount: number;
+    nextStepLabel?: string;
+  };
 };
 
 type WorkspaceStageStatus = "done" | "active" | "planned";
@@ -57,24 +56,24 @@ function buildWorkspaceStages(params: {
   ];
   const labels: Record<CreateWorkspaceStageId, { title: string; lead: string }> = {
     input: {
-      title: "Eingabe",
-      lead: "Beitrag aufgenommen",
+      title: "1 · Beitrag aufgenommen",
+      lead: "Text liegt im Workspace.",
     },
     understanding: {
-      title: "Verstehen",
-      lead: params.isBusy ? "Ich ordne gerade." : "Kern erkannt",
+      title: "2 · Themen erkannt",
+      lead: params.isBusy ? "Einordnung läuft." : "Erste Themen sind sichtbar.",
     },
     topics: {
-      title: "Themen ordnen",
-      lead: "Themen sichtbar",
+      title: "3 · Entscheidung offen",
+      lead: "Du wählst Fokus oder Themenstruktur.",
     },
     sources: {
-      title: "Quellen prüfen",
-      lead: "Hinweise optional",
+      title: "4 · Quellen optional",
+      lead: "Quellenmodus bleibt bewusst optional.",
     },
     draft: {
-      title: "Entwurf",
-      lead: "Bewusst vorbereiten",
+      title: "5 · Entwurf",
+      lead: "Danach schärfen, speichern oder weiterführen.",
     },
   };
 
@@ -92,21 +91,21 @@ function WorkspaceHeader(props: { notice?: React.ReactNode; compact?: boolean })
     <div className={props.compact ? "space-y-2.5" : "space-y-3"}>
       <div className={`flex flex-wrap items-start justify-between ${props.compact ? "gap-2.5" : "gap-3"}`}>
         <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5">
-            <div className="w-9">
-              <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+          <div className="mt-0.5 overflow-hidden rounded-full">
+            <div className="origin-top-left scale-[0.82]">
+              <VoxyAvatar appearance="inline" compact variant="presenting" />
             </div>
           </div>
           <div className="min-w-0">
-            <p className="text-[1.35rem] font-semibold tracking-[-0.01em] text-[rgb(var(--fg))] md:text-[1.7rem]">
-              Ein Workspace für deinen Beitrag
+            <p className="text-[1.22rem] font-semibold tracking-[-0.01em] text-[rgb(var(--fg))] md:text-[1.45rem]">
+              Dein Beitrag im Workspace
             </p>
-            <p className={`max-w-4xl text-[15px] leading-relaxed text-[rgb(var(--muted))] md:text-base ${props.compact ? "mt-1" : "mt-1.5"}`}>
-              Ich halte Eingabe, Themen, Fragen, Quellen und nächste Schritte zusammen.
+            <p className={`max-w-4xl text-[14px] leading-relaxed text-[rgb(var(--muted))] md:text-[15px] ${props.compact ? "mt-1" : "mt-1.5"}`}>
+              Schreib los. Ich halte Themen, Entscheidungen und nächste Schritte kompakt zusammen.
             </p>
           </div>
         </div>
-        <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1.5 text-xs font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
+        <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
           Kein Auto-Publish
         </span>
       </div>
@@ -121,15 +120,14 @@ function WorkspaceHeader(props: { notice?: React.ReactNode; compact?: boolean })
 
 function ProgressPipeline(props: {
   stages: WorkspaceStage[];
-  compact?: boolean;
 }) {
   return (
     <div
       data-create-shell-pipeline
       data-create-pipeline-rail
-      className={`overflow-x-auto rounded-[2rem] border border-[rgb(var(--border))] bg-[linear-gradient(135deg,color-mix(in_oklab,rgb(var(--card))_97%,white_3%),color-mix(in_oklab,rgb(var(--card))_91%,rgb(var(--bg))_9%))] px-4 md:px-5 ${props.compact ? "py-3.5 md:py-4" : "py-4 md:py-5"}`}
+      className="overflow-x-auto rounded-[1.6rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-3 py-3 md:px-4"
     >
-      <div className="flex min-w-max items-stretch gap-3 lg:grid lg:min-w-0 lg:grid-cols-5">
+      <div className="flex min-w-max items-center gap-2.5">
         {props.stages.map((stage, index) => {
           const isActive = stage.status === "active";
           const isDone = stage.status === "done";
@@ -138,17 +136,17 @@ function ProgressPipeline(props: {
               <article
                 data-create-pipeline-stage={stage.id}
                 data-create-pipeline-state={stage.status}
-                className={`min-w-[14rem] rounded-[1.65rem] border px-4 py-4 transition md:min-w-[15rem] md:px-5 ${
+                className={`min-w-[10rem] rounded-full border px-3 py-2.5 transition ${
                   isActive
-                    ? "border-cyan-300/60 bg-cyan-500/[0.1] shadow-[0_18px_36px_rgba(8,145,178,0.12)]"
+                    ? "border-cyan-300/60 bg-cyan-500/[0.1]"
                     : isDone
                       ? "border-emerald-300/45 bg-emerald-500/[0.08]"
-                      : "border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_88%,white_12%)]"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
                 }`}
               >
-                <div className="flex items-start gap-3.5">
+                <div className="flex items-center gap-2.5">
                   <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold ${
+                    className={`flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold ${
                       isActive
                         ? "border-cyan-300/45 text-cyan-900 dark:text-cyan-100"
                         : isDone
@@ -156,17 +154,17 @@ function ProgressPipeline(props: {
                           : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
                     }`}
                   >
-                    {index + 1}
+                    {isDone ? "✓" : index + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-[rgb(var(--fg))] md:text-base">{stage.title}</p>
-                    <p className="mt-1.5 text-[14px] leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
+                    <p className="text-[13px] font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
                   </div>
                 </div>
               </article>
               {index < props.stages.length - 1 ? (
                 <span
-                  className="hidden h-px w-6 shrink-0 bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,rgb(var(--border))_72%,rgb(var(--muted))_28%),transparent)] lg:block"
+                  className="h-px w-4 shrink-0 bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,rgb(var(--border))_72%,rgb(var(--muted))_28%),transparent)]"
                   aria-hidden="true"
                 />
               ) : null}
@@ -179,7 +177,6 @@ function ProgressPipeline(props: {
 }
 
 export default function CreateWorkspaceShell({
-  locale,
   activeStage,
   phase = "initial",
   isBusy = false,
@@ -187,7 +184,6 @@ export default function CreateWorkspaceShell({
   chatThread,
   composer,
   footer,
-  structureOverview,
 }: CreateWorkspaceShellProps) {
   const stages = React.useMemo(
     () => buildWorkspaceStages({ activeStage, isBusy }),
@@ -196,7 +192,7 @@ export default function CreateWorkspaceShell({
   const isInitialPhase = phase === "initial";
   const isLoadingPhase = phase === "loading";
   const threadClassName = isInitialPhase
-    ? "flex min-h-[15rem] flex-none flex-col overflow-y-auto px-4 py-3.5 md:min-h-[18rem] md:px-6 md:py-4 xl:px-7"
+    ? "flex min-h-[13rem] flex-none flex-col overflow-y-auto px-4 py-3.5 md:min-h-[15rem] md:px-6 md:py-4 xl:px-7"
     : isLoadingPhase
       ? "flex min-h-[24rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[32rem] md:px-7 xl:px-8"
       : "flex min-h-[26rem] flex-1 flex-col overflow-y-auto px-5 py-5 md:min-h-[40rem] md:px-7 xl:px-8";
@@ -211,20 +207,7 @@ export default function CreateWorkspaceShell({
     >
       <div className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}>
         <WorkspaceHeader notice={notice} compact={isInitialPhase} />
-        <ProgressPipeline stages={stages} compact={isInitialPhase} />
-        <div
-          data-create-shell-structure-rail
-          className={`rounded-[1.9rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_92%,white_8%)] px-4 md:px-5 ${isInitialPhase ? "py-3 md:py-3.5" : "py-4 md:py-5"}`}
-        >
-          <CreateStructureOverview
-            locale={locale}
-            prioritiesCount={structureOverview.prioritiesCount}
-            clustersCount={structureOverview.clustersCount}
-            questionsCount={structureOverview.questionsCount}
-            nextStepsCount={structureOverview.nextStepsCount}
-            nextStepLabel={structureOverview.nextStepLabel}
-          />
-        </div>
+        {!isInitialPhase ? <ProgressPipeline stages={stages} /> : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread

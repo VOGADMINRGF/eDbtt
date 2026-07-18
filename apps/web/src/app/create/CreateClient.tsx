@@ -400,7 +400,7 @@ function CreateAssistantStatusBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-1 shrink-0">
-        <VoxyAvatar appearance="inline" compact variant="createGuideLight" />
+        <VoxyAvatar appearance="inline" compact variant="presenting" />
       </div>
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
@@ -923,6 +923,7 @@ export default function CreateClient({
     () => entitlements.roles.some((role) => ["admin", "superadmin", "staff"].includes(role)),
     [entitlements.roles],
   );
+  const canCreateInternalWorkstate = hasPrivilegedTopicPreview;
   const canPreviewAllDetectedTopics = React.useMemo(
     () =>
       hasPrivilegedTopicPreview ||
@@ -1525,6 +1526,15 @@ export default function CreateClient({
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
             setActionNotice(`${normalizedTopicLabel} wurde geparkt.`);
+            void persistSavedWorkstate({
+              type: "parked_topic",
+              visibility: "private",
+              status: "parked",
+              title: `Geparktes Thema: ${normalizedTopicLabel}`,
+              content: `Der Themenstrang „${normalizedTopicLabel}“ bleibt geparkt und kann später wieder aufgenommen werden.`,
+              topicLabel: normalizedTopicLabel,
+              successMessage: `${normalizedTopicLabel} wurde geparkt und in deinen Arbeitsständen gespeichert.`,
+            });
           }}
           onOpenManualTopicChooser={() => {
             setWorkspaceActionMode("manual_topic");
@@ -1541,6 +1551,13 @@ export default function CreateClient({
           onDeepenAllTopics={handleDeepenAllTopics}
           onDeepenTopic={handleDeepenSingleTopic}
           onContinueInAccount={handleContinueInAccount}
+          onSaveQuestion={handleSaveQuestion}
+          onSaveTopic={handleSaveTopic}
+          onSaveSource={handleSaveSource}
+          onSaveInternal={handleSaveInternal}
+          onPrepareCommunity={handlePrepareCommunity}
+          onDeferWork={handleDeferWork}
+          canCreateInternalWorkstate={canCreateInternalWorkstate}
           onRetryPlanner={handleRetryPlanner}
           isRetryPlannerPending={isRetryPlannerPending}
           onSaveOnly={handleSaveOnly}
@@ -1692,6 +1709,110 @@ export default function CreateClient({
     understandingConfirmed,
     workspaceActionMode,
   ]);
+
+  const persistSavedWorkstate = React.useCallback(
+    async (params: {
+      type:
+        | "topic_candidate"
+        | "question_candidate"
+        | "source_list"
+        | "internal_note"
+        | "community_candidate"
+        | "deferred_work"
+        | "parked_topic";
+      visibility:
+        | "private"
+        | "admin_internal"
+        | "organization_internal"
+        | "community_candidate";
+      status: "saved" | "parked" | "needs_review";
+      title: string;
+      content: string;
+      topicLabel?: string | null;
+      successMessage: string;
+      sourceUrl?: string | null;
+      metadata?: Record<string, unknown>;
+    }) => {
+      if (!intelligentFollowup) {
+        setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+        return false;
+      }
+
+      const branches = buildCreateStructureBranches(
+        intelligentFollowup,
+        Math.max(4, entitlements.maxVisibleAiProposals),
+      );
+      const resolvedTopicLabel =
+        params.topicLabel?.trim() ||
+        selectedPrimaryTopic ||
+        activeTopicLabel ||
+        branches[0]?.title ||
+        intelligentFollowup.understanding.dossierContext ||
+        intelligentFollowup.understanding.topics[0]?.label ||
+        null;
+      const activeBranch =
+        branches.find((branch) => branch.title === resolvedTopicLabel) ?? branches[0] ?? null;
+      const sourceUrl =
+        params.sourceUrl ??
+        currentLinkDetection.primaryUrl ??
+        currentMaterialRouting.sourceUrls[0] ??
+        null;
+
+      try {
+        const response = await fetch("/api/create/workstates", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            visibility: params.visibility,
+            type: params.type,
+            status: params.status,
+            sourceUrl,
+            sourceAnalysisId: intelligentFollowup.generatedAt,
+            parentTopicId: activeBranch?.topicId ?? null,
+            title: params.title,
+            content: params.content,
+            metadata: {
+              topicId: activeBranch?.topicId ?? null,
+              topicTitle: activeBranch?.title ?? resolvedTopicLabel,
+              summary: activeBranch?.summary ?? intelligentFollowup.understanding.summary,
+              evidenceSnippets: activeBranch?.evidenceSnippets ?? [],
+              subtopics: activeBranch?.subtopics ?? [],
+              suggestedQuestions:
+                activeBranch?.suggestedQuestions ?? activeBranch?.voteQuestions ?? [],
+              sourceSection: activeBranch?.sourceSection ?? intelligentFollowup.understanding.summary,
+              sourceLabel: sourceUrl ?? "aktueller Beitrag",
+              linkLoaded: false,
+              ...params.metadata,
+            },
+            resumeHref: "/create",
+          }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body?.ok) {
+          throw new Error(body?.error || "create_saved_workstate_failed");
+        }
+        setReviewRequestMessage(params.successMessage);
+        setActionNotice(params.successMessage);
+        return true;
+      } catch {
+        setReviewRequestMessage(
+          "Der Arbeitsstand konnte gerade nicht gespeichert werden. Bitte erneut versuchen.",
+        );
+        setActionNotice(
+          "Der Arbeitsstand konnte gerade nicht gespeichert werden. Bitte erneut versuchen.",
+        );
+        return false;
+      }
+    },
+    [
+      activeTopicLabel,
+      currentLinkDetection.primaryUrl,
+      currentMaterialRouting.sourceUrls,
+      entitlements.maxVisibleAiProposals,
+      intelligentFollowup,
+      selectedPrimaryTopic,
+    ],
+  );
 
   const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
@@ -2124,6 +2245,205 @@ export default function CreateClient({
     );
     router.push("/account");
   }, [intelligentFollowup, router]);
+
+  const handleSaveQuestion = React.useCallback(async () => {
+    const branches = intelligentFollowup
+      ? buildCreateStructureBranches(
+          intelligentFollowup,
+          Math.max(4, entitlements.maxVisibleAiProposals),
+        )
+      : [];
+    const activeBranch =
+      branches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      branches.find((branch) => branch.title === activeTopicLabel) ??
+      branches[0] ??
+      null;
+    const question =
+      activeBranch?.suggestedQuestions[0] ??
+      activeBranch?.voteQuestions[0] ??
+      "Welche Aussage oder Frage soll als Nächstes geklärt werden?";
+    await persistSavedWorkstate({
+      type: "question_candidate",
+      visibility: "private",
+      status: "saved",
+      title: activeBranch ? `Frage zu ${activeBranch.title}` : "Eigene Frage",
+      content: question,
+      topicLabel: activeBranch?.title ?? null,
+      successMessage: "Die Frage wurde gespeichert und erscheint jetzt in deinem Konto unter „Eigene Fragen“.",
+    });
+  }, [
+    activeTopicLabel,
+    entitlements.maxVisibleAiProposals,
+    intelligentFollowup,
+    persistSavedWorkstate,
+    selectedPrimaryTopic,
+  ]);
+
+  const handleSaveTopic = React.useCallback(async () => {
+    const branches = intelligentFollowup
+      ? buildCreateStructureBranches(
+          intelligentFollowup,
+          Math.max(4, entitlements.maxVisibleAiProposals),
+        )
+      : [];
+    const activeBranch =
+      branches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      branches.find((branch) => branch.title === activeTopicLabel) ??
+      branches[0] ??
+      null;
+    await persistSavedWorkstate({
+      type: "topic_candidate",
+      visibility: "private",
+      status: "saved",
+      title: activeBranch?.title ?? "Vorgemerktes Thema",
+      content:
+        activeBranch?.summary ??
+        intelligentFollowup?.understanding.summary ??
+        "Das Thema bleibt als persönlicher Arbeitsstand gespeichert.",
+      topicLabel: activeBranch?.title ?? null,
+      successMessage: "Das Thema wurde gespeichert und erscheint jetzt in deinem Konto unter „Vorgemerkte Themen“.",
+    });
+  }, [
+    activeTopicLabel,
+    entitlements.maxVisibleAiProposals,
+    intelligentFollowup,
+    persistSavedWorkstate,
+    selectedPrimaryTopic,
+  ]);
+
+  const handleSaveSource = React.useCallback(async () => {
+    const sourceUrl =
+      currentLinkDetection.primaryUrl ?? currentMaterialRouting.sourceUrls[0] ?? null;
+    await persistSavedWorkstate({
+      type: "source_list",
+      visibility: "private",
+      status: "saved",
+      title: sourceUrl ? "Vorgemerkte Quelle" : "Quellenhinweis",
+      content: sourceUrl
+        ? "Der Link wurde als Quellenhinweis gespeichert. Der Linkinhalt wurde noch nicht automatisch geladen."
+        : "Zum aktuellen Beitrag wurde ein Quellenhinweis ohne extern geladenen Link gespeichert.",
+      successMessage: "Der Quellenhinweis wurde gespeichert und erscheint jetzt in deinem Konto unter „Quellenlisten“.",
+      sourceUrl,
+    });
+  }, [
+    currentLinkDetection.primaryUrl,
+    currentMaterialRouting.sourceUrls,
+    persistSavedWorkstate,
+  ]);
+
+  const handleSaveInternal = React.useCallback(async () => {
+    if (!canCreateInternalWorkstate) {
+      setActionNotice("Interne Notizen sind nur im Admin-Kontext verfügbar.");
+      return;
+    }
+    const branches = intelligentFollowup
+      ? buildCreateStructureBranches(
+          intelligentFollowup,
+          Math.max(4, entitlements.maxVisibleAiProposals),
+        )
+      : [];
+    const activeBranch =
+      branches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      branches.find((branch) => branch.title === activeTopicLabel) ??
+      branches[0] ??
+      null;
+    await persistSavedWorkstate({
+      type: "internal_note",
+      visibility: "admin_internal",
+      status: "saved",
+      title: activeBranch ? `Interne Notiz zu ${activeBranch.title}` : "Interne Notiz",
+      content:
+        activeBranch?.summary ??
+        intelligentFollowup?.understanding.summary ??
+        "Interner Arbeitsstand ohne Veröffentlichung.",
+      topicLabel: activeBranch?.title ?? null,
+      successMessage: "Die interne Notiz wurde gespeichert und erscheint jetzt im Admin-Bereich deiner Arbeitsstände.",
+    });
+  }, [
+    activeTopicLabel,
+    canCreateInternalWorkstate,
+    entitlements.maxVisibleAiProposals,
+    intelligentFollowup,
+    persistSavedWorkstate,
+    selectedPrimaryTopic,
+  ]);
+
+  const handlePrepareCommunity = React.useCallback(async () => {
+    const branches = intelligentFollowup
+      ? buildCreateStructureBranches(
+          intelligentFollowup,
+          Math.max(4, entitlements.maxVisibleAiProposals),
+        )
+      : [];
+    const activeBranch =
+      branches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      branches.find((branch) => branch.title === activeTopicLabel) ??
+      branches[0] ??
+      null;
+    const question =
+      activeBranch?.suggestedQuestions[0] ??
+      activeBranch?.voteQuestions[0] ??
+      "Welche Leitfrage soll für die Community überprüfbar vorbereitet werden?";
+    const success = await persistSavedWorkstate({
+      type: "community_candidate",
+      visibility: "community_candidate",
+      status: "needs_review",
+      title: activeBranch
+        ? `Community-Kandidat: ${activeBranch.title}`
+        : "Community-Kandidat",
+      content: `Ich bereite daraus einen überprüfbaren Community-Beitrag vor. Leitfrage: ${question}`,
+      topicLabel: activeBranch?.title ?? null,
+      successMessage:
+        "Ich bereite daraus einen überprüfbaren Community-Beitrag vor. Er bleibt als Kandidat gespeichert und wird nicht automatisch veröffentlicht.",
+    });
+    if (success) {
+      setShowFollowupCorrectionComposer(true);
+      setWorkspaceActionMode("edit");
+    }
+  }, [
+    activeTopicLabel,
+    entitlements.maxVisibleAiProposals,
+    intelligentFollowup,
+    persistSavedWorkstate,
+    selectedPrimaryTopic,
+  ]);
+
+  const handleDeferWork = React.useCallback(async () => {
+    const branches = intelligentFollowup
+      ? buildCreateStructureBranches(
+          intelligentFollowup,
+          Math.max(4, entitlements.maxVisibleAiProposals),
+        )
+      : [];
+    const activeBranch =
+      branches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      branches.find((branch) => branch.title === activeTopicLabel) ??
+      branches[0] ??
+      null;
+    const success = await persistSavedWorkstate({
+      type: "deferred_work",
+      visibility: "private",
+      status: "saved",
+      title: activeBranch
+        ? `Später weiterarbeiten: ${activeBranch.title}`
+        : "Später weiterarbeiten",
+      content:
+        activeBranch?.summary ??
+        intelligentFollowup?.understanding.summary ??
+        "Dieser Arbeitsstand bleibt für später gespeichert.",
+      topicLabel: activeBranch?.title ?? null,
+      successMessage:
+        "Der Arbeitsstand wurde gespeichert und erscheint jetzt in deinem Konto unter „Noch nicht veröffentlichte Entwürfe“.",
+    });
+    if (success) router.push("/account");
+  }, [
+    activeTopicLabel,
+    entitlements.maxVisibleAiProposals,
+    intelligentFollowup,
+    persistSavedWorkstate,
+    router,
+    selectedPrimaryTopic,
+  ]);
 
   const confirmFactcheckServiceStart = React.useCallback(() => {
     setFactcheckMessage(

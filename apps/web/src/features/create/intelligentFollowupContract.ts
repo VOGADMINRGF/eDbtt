@@ -166,9 +166,18 @@ export type CreateVisualSection = {
  */
 export type CreateStructureBranch = {
   id: string;
+  topicId: string;
   title: string;
+  summary: string;
   topics: string[];
   topicTags: string[];
+  evidenceSnippets: string[];
+  subtopics: string[];
+  sourceSection: string | null;
+  confidence: FollowupConfidence;
+  parentTopicId?: string | null;
+  relatedTopicIds: string[];
+  suggestedQuestions: string[];
   part06CategoryKeys: Part06CategoryKey[];
   part06CategoryLabels: string[];
   need: string;
@@ -927,27 +936,48 @@ function buildCivicStreetSafetySmokeBranches(
           (definition.title.includes("Finanz") && /finanz/.test(normalizedLabel))
         );
       });
+    const topicTags = dedupeStrings([
+      ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
+      ...definition.topicTags,
+    ]).slice(0, 6);
+    const claims = dedupeStrings([
+      ...result.understanding.statements
+        .map((statement) => statement.text)
+        .filter((text) => {
+          const normalized = normalizeText(text);
+          return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
+        }),
+      definition.need,
+    ]).slice(0, 2);
 
     return {
       id: definition.id,
+      topicId: definition.id,
       title: definition.title,
+      summary: buildBranchSummary({
+        title: definition.title,
+        need: definition.need,
+        claims,
+      }),
       topics: matchingTopics.length > 0 ? matchingTopics : [definition.title],
-      topicTags: dedupeStrings([
-        ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
-        ...definition.topicTags,
-      ]).slice(0, 6),
+      topicTags,
+      evidenceSnippets: claims,
+      subtopics: buildBranchSubtopics({
+        topicTags,
+        openReviewPoints: [...definition.openReviewPoints],
+        voteQuestions: [definition.voteQuestion],
+      }),
+      sourceSection: result.understanding.summary ?? null,
+      confidence: result.understanding.confidence,
+      parentTopicId: null,
+      relatedTopicIds: result.understanding.topics
+        .filter((topic) => matchingTopics.includes(topic.label))
+        .map((topic) => topic.id),
+      suggestedQuestions: [definition.voteQuestion],
       part06CategoryKeys: [...definition.part06CategoryKeys],
       part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
       need: definition.need,
-      claims: dedupeStrings([
-        ...result.understanding.statements
-          .map((statement) => statement.text)
-          .filter((text) => {
-            const normalized = normalizeText(text);
-            return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
-          }),
-        definition.need,
-      ]).slice(0, 2),
+      claims,
       voteQuestions: [definition.voteQuestion],
       openReviewPoints: [...definition.openReviewPoints],
       positionClusters,
@@ -965,26 +995,45 @@ function buildTransitStreetPlanningBranches(
     maxBranches >= 4 ? TRANSIT_STREET_PLANNING_BRANCHES_FOUR : TRANSIT_STREET_PLANNING_BRANCHES_THREE;
 
   return definitions.slice(0, Math.max(1, maxBranches)).map((definition) => {
+    const topicTags = dedupeStrings([
+      ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
+      ...definition.topicTags,
+    ]).slice(0, 6);
+    const claims = dedupeStrings([
+      ...result.understanding.statements
+        .map((statement) => statement.text)
+        .filter((text) => {
+          const normalized = normalizeText(text);
+          return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
+        }),
+      definition.need,
+    ]).slice(0, 2);
     return {
       id: definition.id,
+      topicId: definition.id,
       title: definition.title,
+      summary: buildBranchSummary({
+        title: definition.title,
+        need: definition.need,
+        claims,
+      }),
       topics: [definition.title],
-      topicTags: dedupeStrings([
-        ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
-        ...definition.topicTags,
-      ]).slice(0, 6),
+      topicTags,
+      evidenceSnippets: claims,
+      subtopics: buildBranchSubtopics({
+        topicTags,
+        openReviewPoints: [...definition.openReviewPoints],
+        voteQuestions: [definition.voteQuestion],
+      }),
+      sourceSection: result.understanding.summary ?? null,
+      confidence: "high",
+      parentTopicId: null,
+      relatedTopicIds: result.understanding.topics.map((topic) => topic.id).slice(0, 4),
+      suggestedQuestions: [definition.voteQuestion],
       part06CategoryKeys: [...definition.part06CategoryKeys],
       part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
       need: definition.need,
-      claims: dedupeStrings([
-        ...result.understanding.statements
-          .map((statement) => statement.text)
-          .filter((text) => {
-            const normalized = normalizeText(text);
-            return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
-          }),
-        definition.need,
-      ]).slice(0, 2),
+      claims,
       voteQuestions: [definition.voteQuestion],
       openReviewPoints: [...definition.openReviewPoints],
       positionClusters,
@@ -1080,6 +1129,26 @@ function collectUnassignedCreateTopics(params: {
   return overflowTopics;
 }
 
+function buildBranchSummary(params: {
+  title: string;
+  need: string;
+  claims: string[];
+}): string {
+  return params.claims[0] ?? params.need ?? `${params.title} bleibt sichtbar.`;
+}
+
+function buildBranchSubtopics(params: {
+  topicTags: string[];
+  openReviewPoints: string[];
+  voteQuestions: string[];
+}): string[] {
+  return dedupeStrings([
+    ...params.topicTags,
+    ...params.openReviewPoints,
+    ...params.voteQuestions,
+  ]).slice(0, 8);
+}
+
 function buildPlannerStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number,
@@ -1105,22 +1174,45 @@ function buildPlannerStructureBranches(
       planner.plannerTopic,
       ...topicLabels.filter((topic) => normalizeText(topic).includes(normalizeText(cluster).split(" ")[0] ?? "")),
     ]);
+    const topicTags = dedupeStrings([...(definition?.topicTags ?? []), cluster, planner.plannerTopic]).slice(0, 6);
+    const claims = dedupeStrings([plannerClaim, result.understanding.statements[index]?.text]).slice(0, 2);
+    const openReviewPoints = dedupeStrings([
+      planner.plannerOpenQuestions[index] ?? planner.openQuestions[index] ?? "",
+      "Zuständigkeit klären",
+      "Kontroll- und Umsetzungslogik prüfen",
+    ]).slice(0, 3);
 
     return {
       id: definition?.id ?? `planner-branch-${index + 1}`,
+      topicId: definition?.id ?? `planner-branch-${index + 1}`,
       title: cluster,
+      summary: buildBranchSummary({
+        title: cluster,
+        need: definition?.defaultNeed ?? `${cluster} braucht eine konkretere Einordnung.`,
+        claims,
+      }),
       topics: relatedTopics.length > 0 ? relatedTopics : [cluster],
-      topicTags: dedupeStrings([...(definition?.topicTags ?? []), cluster, planner.plannerTopic]).slice(0, 6),
+      topicTags,
+      evidenceSnippets: claims,
+      subtopics: buildBranchSubtopics({
+        topicTags,
+        openReviewPoints,
+        voteQuestions: [voteQuestion],
+      }),
+      sourceSection: result.understanding.summary ?? null,
+      confidence:
+        result.understanding.topics[index]?.confidence ?? result.understanding.confidence,
+      parentTopicId: null,
+      relatedTopicIds: result.understanding.topics
+        .filter((topic) => relatedTopics.includes(topic.label))
+        .map((topic) => topic.id),
+      suggestedQuestions: [voteQuestion],
       part06CategoryKeys,
       part06CategoryLabels: resolvePart06CategoryLabels(part06CategoryKeys),
       need: definition?.defaultNeed ?? `${cluster} braucht eine konkretere Einordnung.`,
-      claims: dedupeStrings([plannerClaim, result.understanding.statements[index]?.text]).slice(0, 2),
+      claims,
       voteQuestions: [voteQuestion],
-      openReviewPoints: dedupeStrings([
-        planner.plannerOpenQuestions[index] ?? planner.openQuestions[index] ?? "",
-        "Zuständigkeit klären",
-        "Kontroll- und Umsetzungslogik prüfen",
-      ]).slice(0, 3),
+      openReviewPoints,
       positionClusters,
     };
   });
@@ -1161,16 +1253,43 @@ export function buildCreateStructureBranches(
     const matchedTopics = selectBranchTopics(result.understanding.topics, definition);
     const hasTextMatch = textMatchesBranch(sourceText, definition);
     if (matchedTopics.length === 0 && !hasTextMatch) continue;
+    const topicTags = selectBranchTopicTags(sourceText, result.understanding.topics, definition);
+    const claims = selectBranchClaims(result.understanding.statements, definition);
 
     branches.push({
       id: definition.id,
+      topicId: definition.id,
       title: definition.title,
+      summary: buildBranchSummary({
+        title: definition.title,
+        need: definition.defaultNeed,
+        claims,
+      }),
       topics: matchedTopics.length > 0 ? matchedTopics : [definition.title],
-      topicTags: selectBranchTopicTags(sourceText, result.understanding.topics, definition),
+      topicTags,
+      evidenceSnippets: claims,
+      subtopics: buildBranchSubtopics({
+        topicTags,
+        openReviewPoints: [
+          "Quellenlage prüfen",
+          "Zuständigkeit klären",
+          "Folgen und Zielkonflikte sauber abwägen",
+        ],
+        voteQuestions: [definition.defaultQuestion],
+      }),
+      sourceSection: result.understanding.summary ?? null,
+      confidence:
+        result.understanding.topics.find((topic) => matchedTopics.includes(topic.label))
+          ?.confidence ?? result.understanding.confidence,
+      parentTopicId: null,
+      relatedTopicIds: result.understanding.topics
+        .filter((topic) => matchedTopics.includes(topic.label))
+        .map((topic) => topic.id),
+      suggestedQuestions: [definition.defaultQuestion],
       part06CategoryKeys: [...definition.part06CategoryKeys],
       part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
       need: definition.defaultNeed,
-      claims: selectBranchClaims(result.understanding.statements, definition),
+      claims,
       voteQuestions: [definition.defaultQuestion],
       openReviewPoints: ["Quellenlage prüfen", "Zuständigkeit klären", "Folgen und Zielkonflikte sauber abwägen"],
       positionClusters,

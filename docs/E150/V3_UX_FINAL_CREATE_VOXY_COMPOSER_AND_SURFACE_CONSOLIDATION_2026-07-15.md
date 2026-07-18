@@ -191,6 +191,7 @@ Ergebnis:
 - der letzte UI-Pass haelt dieselben funktionalen Pfade bei, vergroessert aber Chat-Bubbles, Rail-Karten, BranchCards und Composer-Bedienelemente sichtbar und entschlackt die sichtbare Badge-/Pill-Dichte
 - Abschluss-Pass am 2026-07-17: initiale Assistant-Bubble und Pipeline sprechen oeffentlich neutraler (`createGuideLight`, `Assistenzpfad` statt `miniAvatar`/`Voxy Pilotpfad`), CTA-Copy bleibt entlang von UI und Tests konsistent bei `Themenstruktur bestätigen`, `Aussage schärfen` und `Quelle ergänzen`; zusaetzlich wurden Kontingentfrage und Quellenpruefungs-Wording auf die generische KI-Orchester-/Recherche-Kontingent-Sprache umgestellt
 - Abschluss-Pass am 2026-07-18: die Pipeline bleibt nach Submit genau einmal als kompakte Workspace-Leiste sichtbar und wird im Chat nicht dupliziert; der Bus-/Hauptstrasse-Smoke mappt jetzt stabil auf `ÖPNV und Mobilität`, `Straßenraum und Radverkehr`, `Parkraum und kommunale Planung` plus optional `Pendler- und Anschlussmobilität`; `4 erkannt / 3 kompakt sichtbar / 1 weiteres Thema` bleibt ueber Text, Karten und CTA konsistent; oeffentliche Provider-/Runtime-/Policy-Sprache verschwindet aus dem Hauptflow; vor der Themenbestaetigung bleibt `Themenstruktur bestätigen` der einzige primaere CTA; Composer-Placeholder und `Details & Transparenz` folgen sauber der Arbeitsphase
+- Follow-up am 2026-07-18 fuer denselben PR-391-Slice: die interne Themeninventur bleibt jetzt auch fuer laengere Texte und Links vollstaendig und wird nur in der UI auf drei Startkarten verdichtet; `+1` Ueberlauf nutzt explizit `Weiteres Thema anzeigen`, waehrend groessere Inventuren `Alle Themen öffnen` behalten. Persistente Arbeitsstaende (`topic_candidate`, `question_candidate`, `source_list`, `internal_note`, `community_candidate`, `deferred_work`, `parked_topic`) werden ueber `/api/create/workstates` gespeichert und im Account unter `Meine Arbeitsstände` in den Gruppen `Gespeicherte Beiträge`, `Vorgemerkte Themen`, `Eigene Fragen`, `Geparkte Themen`, `Quellenlisten`, `Noch nicht veröffentlichte Entwürfe` sowie admin-only `Interne Arbeitsstände` sichtbar. Fuer Linkanalyse bleibt `Linkinhalt prüfen` eine bewusste Nutzeraktion ohne Auto-Load; Header, Chat und Workspace nutzen in `/create` jetzt konsistent das hochaufgeloeste kanonische `presenting`-Asset statt hochskalierter `createGuideLight`-Thumbnails.
 - naechster operativer Schritt bleibt der reale manuelle Preview-Smoke auf den konsolidierten Surfaces
 
 ## Validierung
@@ -204,6 +205,7 @@ Ergebnis:
 Ergebnis dieser Remediation:
 
 - fokussierte Create-Contracts inkl. Workspace-Aktionen: `29/29` Tests gruen
+- fokussierte Create-/Account-/Auth-/Asset-Suite fuer den Follow-up-Slice: `57/57` Tests gruen
 - Lint: gruen
 - Typecheck: gruen
 - Build: gruen

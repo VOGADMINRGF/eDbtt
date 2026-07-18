@@ -6,7 +6,10 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
-import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import {
+  buildCreateStructureBranches,
+  type CreateIntelligentFollowupResult,
+} from "@/features/create/intelligentFollowupContract";
 import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 
 vi.mock("next/link", () => ({
@@ -270,6 +273,53 @@ function buildOverflowResult(): CreateIntelligentFollowupResult {
   };
 }
 
+function buildLongInventoryResult(): CreateIntelligentFollowupResult {
+  return {
+    understanding: {
+      summary:
+        "Der Beitrag verbindet sichere Querungen, Schulwege, Barrierefreiheit, Bauprojekte, Grünflächen und einen knappen Haushalt.",
+      dossierContext: "Quartier und sichere Wege",
+      categories: [{ id: "hint", label: "Hinweis", confidence: "high" }],
+      topics: [
+        { id: "verkehr", label: "Verkehr", confidence: "high" },
+        { id: "bildung", label: "Bildung", confidence: "medium" },
+        { id: "barrierefrei", label: "Barrierefreiheit", confidence: "medium" },
+        { id: "gruen", label: "Grünflächen", confidence: "medium" },
+        { id: "haushalt", label: "Kommunale Finanzen", confidence: "medium" },
+      ],
+      statements: [
+        {
+          id: "statement-1",
+          text: "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle.",
+          kind: "claim",
+          stance: "open",
+          confidence: "high",
+        },
+        {
+          id: "statement-2",
+          text: "Radfahrer, Familien und ältere Menschen kommen schlecht durch.",
+          kind: "claim",
+          stance: "open",
+          confidence: "high",
+        },
+        {
+          id: "statement-3",
+          text: "Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
+          kind: "claim",
+          stance: "open",
+          confidence: "high",
+        },
+      ],
+      scopes: ["district"],
+      confidence: "high",
+    },
+    suggestions: [],
+    sourceText:
+      "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer, Familien und ältere Menschen kommen schlecht durch. Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
+    generatedAt: "2026-07-15T10:10:00.000Z",
+  };
+}
+
 function buildDegradedResult(): CreateIntelligentFollowupResult {
   return {
     understanding: {
@@ -329,6 +379,12 @@ function Harness(props: {
     () => detectCreateLinkIntake(props.linkText ?? props.result.sourceText),
     [props.linkText, props.result.sourceText],
   );
+  const fullBranchCount = React.useMemo(
+    () => buildCreateStructureBranches(props.result, 5).length,
+    [props.result],
+  );
+  const visibleBranchCount = 3;
+  const overflowCount = Math.max(0, fullBranchCount - visibleBranchCount);
   const composerPlaceholder =
     composerMode === "source"
       ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
@@ -447,26 +503,40 @@ function Harness(props: {
         onOpenDossierCreate={() => {}}
         onPrepareVote={() => {}}
         onRequestEditorialReview={() => {}}
-        onStartOptionalService={() => {
-          setComposerMode("source");
+        onStartOptionalService={() => {}}
+        onSaveQuestion={() => {
+          setSaveCount((count) => count + 1);
+          setActionNotice("Die Frage wurde gespeichert.");
+        }}
+        onSaveTopic={() => {
+          setSaveCount((count) => count + 1);
+          setActionNotice("Das Thema wurde gespeichert.");
+        }}
+        onSaveSource={() => {
           setSourceCount((count) => count + 1);
-          setActionNotice("Quellenmodus geöffnet.");
+          setActionNotice("Der Quellenhinweis wurde gespeichert.");
+        }}
+        onPrepareCommunity={() => {
+          setSaveCount((count) => count + 1);
+          setActionNotice("Ich bereite daraus einen überprüfbaren Community-Beitrag vor.");
+        }}
+        onDeferWork={() => {
+          setSaveCount((count) => count + 1);
+          setActionNotice("Der Arbeitsstand wurde für später gespeichert.");
         }}
         onExpandTopicPreview={() => {
           setShowExpandedTopicPreview(true);
           setTopicExpansionDecision("expanded");
-          setActionNotice("Das weitere Thema wird jetzt angezeigt.");
+          setActionNotice(
+            overflowCount === 1
+              ? "Das weitere Thema wird jetzt angezeigt."
+              : "Alle Themen wurden geöffnet.",
+          );
         }}
         onKeepCompactTopicPreview={() => {
           setShowExpandedTopicPreview(false);
           setTopicExpansionDecision("compact");
           setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
-        }}
-        onPrepareLinkReview={() => {
-          setComposerMode("source");
-          setTopicExpansionDecision("link");
-          setSourceCount((count) => count + 1);
-          setActionNotice("Quellenprüfung vorbereitet. Sie startet erst nach Bestätigung.");
         }}
         onDeferExpandedReview={() => {
           setShowExpandedTopicPreview(false);
@@ -540,13 +610,10 @@ describe("create workspace actions interaction", () => {
     expect(screen.getByTestId("composer-placeholder").textContent).toBe("Welche Aussage möchtest du schärfen?");
     expect(document.activeElement).toBe(screen.getByTestId("composer-input"));
 
-    await user.click(screen.getAllByRole("button", { name: "Quelle ergänzen" })[0]!);
-    expect(screen.queryByText("Quellenmodus geöffnet")).not.toBeNull();
-    expect(screen.getByTestId("composer-mode").textContent).toBe("source");
-    expect(screen.getByTestId("composer-placeholder").textContent).toBe("Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …");
-    expect(screen.getByTestId("next-step-label").textContent).toBe("Quellen prüfen");
+    await user.click(screen.getAllByRole("button", { name: "Quelle vormerken" })[0]!);
+    expect(screen.queryByText("Der Quellenhinweis wurde gespeichert.")).not.toBeNull();
+    expect(screen.getByTestId("composer-mode").textContent).toBe("edit");
     expect(screen.getByTestId("source-count").textContent).toBe("1");
-    expect(document.activeElement).toBe(screen.getByTestId("composer-input"));
   });
 
   it("surfaces link and topic-overflow decisions without auto-starting external search", async () => {
@@ -560,10 +627,11 @@ describe("create workspace actions interaction", () => {
     );
 
     expect(container.querySelectorAll("[data-create-pipeline-rail]")).toHaveLength(1);
-    expect(screen.queryByText("Ich habe 4 Themen erkannt. 3 zeige ich dir kompakt.")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Details & Transparenz" })).toHaveLength(1);
+    expect(screen.queryByText(/Ich habe 4 Themenbereiche/)).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Nur mit diesen 3 weiterarbeiten" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Quellenmodus vorbereiten" })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Später" })).not.toBeNull();
     expect(container.textContent ?? "").toContain("ÖPNV und Mobilität");
     expect(container.textContent ?? "").toContain("Straßenraum und Radverkehr");
     expect(container.textContent ?? "").toContain("Parkraum und kommunale Planung");
@@ -571,11 +639,9 @@ describe("create workspace actions interaction", () => {
     expect(container.textContent ?? "").not.toContain("Bildung, Integration und Sicherheit");
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
 
-    await user.click(screen.getByRole("button", { name: "Quellenmodus vorbereiten" }));
-    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("link");
-    expect(screen.getByTestId("composer-mode").textContent).toBe("source");
-    expect(screen.getByTestId("source-count").textContent).toBe("1");
-    expect(screen.queryByText("Quellenprüfung vorbereitet. Sie startet erst nach Bestätigung.")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Später" }));
+    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("later");
+    expect(screen.queryByText("Vollständige Auswertung bleibt vorerst zurückgestellt.")).not.toBeNull();
 
     unmount();
 
@@ -592,6 +658,26 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByText("Das weitere Thema wird jetzt angezeigt.")).not.toBeNull();
     expect(expandedRender.container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
     expect(expandedRender.container.textContent ?? "").toContain("Pendler- und Anschlussmobilität");
+  });
+
+  it("keeps the full long-document inventory internally and opens all topics on demand", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Harness result={buildLongInventoryResult()} previewAllTopics />);
+
+    expect(screen.queryByText(/Ich habe 5 Themenbereiche/)).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Alle Themen öffnen" })).not.toBeNull();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
+
+    await user.click(screen.getByRole("button", { name: "Alle Themen öffnen" }));
+
+    expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("expanded");
+    expect(screen.queryByText("Alle Themen wurden geöffnet.")).not.toBeNull();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(5);
+    expect(container.textContent ?? "").toContain("Verkehrssicherheit");
+    expect(container.textContent ?? "").toContain("Kita- und Schulwege");
+    expect(container.textContent ?? "").toContain("Barrierefreiheit");
+    expect(container.textContent ?? "").toContain("Stadtplanung und Grünflächen");
+    expect(container.textContent ?? "").toContain("Kommunale Finanzierung");
   });
 
   it("keeps retry behind details and opens the manual topic chooser on demand", async () => {
@@ -646,7 +732,7 @@ describe("create workspace actions interaction", () => {
     expect(screen.queryByRole("button", { name: "Themenstruktur bestätigen" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Themen ändern" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quelle ergänzen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Quelle vormerken" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Entwurf speichern" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Einordnung erneut versuchen" })).toBeNull();
 
@@ -670,7 +756,7 @@ describe("create workspace actions interaction", () => {
     const primaryActions = screen.getAllByRole("button", { name: "Themenstruktur bestätigen" });
     expect(primaryActions).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quelle ergänzen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Quelle vormerken" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Entwurf speichern" })).toBeNull();
     expect(screen.getByTestId("composer-placeholder").textContent).toBe(
       "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?",
