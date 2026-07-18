@@ -188,7 +188,7 @@ function buildCreatePlannerFollowupPreview(params: {
       ? [
           `${params.topicLabel} im Entwurf vertiefen`,
           "Dossier vorbereiten",
-          "Factcheck / Quellenprüfung vorbereiten",
+          "Quellenprüfung vorbereiten",
         ]
       : [
           "Alle Themen im Entwurf vertiefen",
@@ -400,7 +400,7 @@ function CreateAssistantStatusBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-1 shrink-0">
-        <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+        <VoxyAvatar appearance="inline" compact variant="createGuideLight" />
       </div>
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
@@ -747,8 +747,14 @@ export default function CreateClient({
   const [guidedBridgeAnswer] = React.useState("");
   const [guidedBridgeConfirmed, setGuidedBridgeConfirmed] = React.useState(false);
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
+  const [activeTopicLabel, setActiveTopicLabel] = React.useState<string | null>(null);
   const [selectedPrimaryTopic, setSelectedPrimaryTopic] = React.useState<string | null>(null);
+  const [groupedTopicLabels, setGroupedTopicLabels] = React.useState<string[]>([]);
   const [parkedTopicLabels, setParkedTopicLabels] = React.useState<string[]>([]);
+  const [showExpandedTopicPreview, setShowExpandedTopicPreview] = React.useState(false);
+  const [topicExpansionDecision, setTopicExpansionDecision] = React.useState<
+    "idle" | "expanded" | "compact" | "link" | "later"
+  >("idle");
   const [workspaceActionMode, setWorkspaceActionMode] = React.useState<
     "default" | "edit" | "source" | "manual_topic"
   >("default");
@@ -913,6 +919,26 @@ export default function CreateClient({
   const intakeHelperText = activeContextAnchor?.helperText ?? productModeConfig.helperText;
   const intakePlaceholder = activeContextAnchor?.placeholder ?? productModeConfig.placeholder;
   const currentLinkDetection = React.useMemo(() => detectCreateLinkIntake(intakeText), [intakeText]);
+  const hasPrivilegedTopicPreview = React.useMemo(
+    () => entitlements.roles.some((role) => ["admin", "superadmin", "staff"].includes(role)),
+    [entitlements.roles],
+  );
+  const canPreviewAllDetectedTopics = React.useMemo(
+    () =>
+      hasPrivilegedTopicPreview ||
+      entitlements.canUseExternalExtraction ||
+      ["citizenPro", "citizenUltra", "institutionPremium"].includes(entitlements.tier) ||
+      ["pro", "mitgestaltend", "b2b_pro", "b2g_pro"].includes(entitlements.edebattePackage),
+    [
+      entitlements.canUseExternalExtraction,
+      entitlements.edebattePackage,
+      entitlements.tier,
+      hasPrivilegedTopicPreview,
+    ],
+  );
+  const expandedTopicCostState = canPreviewAllDetectedTopics
+    ? "inactive"
+    : "addon_required";
   const composerAttachmentMaterialItems = React.useMemo(
     () => buildCreateAttachmentMaterialItems(composerAttachments),
     [composerAttachments],
@@ -1037,7 +1063,11 @@ export default function CreateClient({
         setFollowupSnapshot(null);
         setIntelligentFollowup(null);
         setUnderstandingConfirmed(false);
+        setActiveTopicLabel(null);
         setSelectedPrimaryTopic(null);
+        setGroupedTopicLabels([]);
+        setShowExpandedTopicPreview(false);
+        setTopicExpansionDecision("idle");
         setParkedTopicLabels([]);
         setWorkspaceActionMode("default");
         setActionNotice(null);
@@ -1058,7 +1088,11 @@ export default function CreateClient({
       setPlannerTrace(null);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
+      setActiveTopicLabel(null);
       setSelectedPrimaryTopic(null);
+      setGroupedTopicLabels([]);
+      setShowExpandedTopicPreview(false);
+      setTopicExpansionDecision("idle");
       setParkedTopicLabels([]);
       setWorkspaceActionMode("default");
       setHasStarted(true);
@@ -1111,6 +1145,10 @@ export default function CreateClient({
       setPlannerTrace(nextPlannerTrace);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
+      setActiveTopicLabel(null);
+      setGroupedTopicLabels([]);
+      setShowExpandedTopicPreview(false);
+      setTopicExpansionDecision("idle");
 
       const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
       setFollowupSurface(nextFollowupSurface);
@@ -1122,7 +1160,7 @@ export default function CreateClient({
     } catch {
       setIsStarting(false);
       if (productMode === "analyze") {
-        setActionNotice("Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst den Beitrag weiterentwickeln oder Details später erneut prüfen.");
+        setActionNotice("Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst die Aussage schärfen oder Details später erneut prüfen.");
         setIntakeError("Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.");
       } else {
         setIntakeError(surfaceTexts.startFailedError);
@@ -1163,7 +1201,11 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setActiveTopicLabel(null);
     setSelectedPrimaryTopic(null);
+    setGroupedTopicLabels([]);
+    setShowExpandedTopicPreview(false);
+    setTopicExpansionDecision("idle");
     setParkedTopicLabels([]);
     setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
@@ -1177,7 +1219,11 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setActiveTopicLabel(null);
     setSelectedPrimaryTopic(null);
+    setGroupedTopicLabels([]);
+    setShowExpandedTopicPreview(false);
+    setTopicExpansionDecision("idle");
     setParkedTopicLabels([]);
     setWorkspaceActionMode("default");
     setShowFollowupCorrectionComposer(false);
@@ -1276,11 +1322,13 @@ export default function CreateClient({
         : showLinkClarification
           ? "understanding"
           : showIntelligentFollowup
-            ? workspaceActionMode === "source"
-              ? "sources"
-              : selectedPrimaryTopic || understandingConfirmed
-                ? "draft"
-                : "topics"
+            ? !understandingConfirmed
+              ? "topics"
+              : workspaceActionMode === "source"
+                ? "sources"
+                : workspaceActionMode === "edit"
+                  ? "draft"
+                  : "sources"
         : "draft";
   const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted
     ? "initial"
@@ -1289,16 +1337,22 @@ export default function CreateClient({
       : showIntelligentFollowup || showLinkClarification || showStartChatPreview
         ? "result"
         : "continuation";
-  const workspaceNotice = showTooShortHint ? productModeConfig.minimumInputHint : actionNotice;
+  const workspaceNotice = showTooShortHint
+    ? productModeConfig.minimumInputHint
+    : !hasStarted
+      ? actionNotice
+      : null;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
-    ? workspaceActionMode === "edit"
-      ? "Was möchtest du ergänzen oder schärfen?"
-      : workspaceActionMode === "source"
-        ? "Füge Quellen, Beschlüsse, Links oder Beispiele hinzu …"
-        : workspaceActionMode === "manual_topic"
-          ? "Welches Hauptthema möchtest du setzen?"
-          : "Schreib weiter oder ergänze, was wichtig ist …"
+    ? workspaceActionMode === "source"
+        ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
+        : !understandingConfirmed
+          ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
+          : workspaceActionMode === "edit"
+            ? "Welche Aussage möchtest du schärfen?"
+            : workspaceActionMode === "manual_topic"
+              ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
+              : "Welche Aussage möchtest du schärfen?"
     : intakePlaceholder;
   const workspaceComposerStartLabel = hasStarted
     ? "Weiter"
@@ -1368,7 +1422,9 @@ export default function CreateClient({
           actionNotice={actionNotice}
           isConfirmed={understandingConfirmed}
           embedInWorkspaceShell
+          activeTopicLabel={activeTopicLabel}
           selectedPrimaryTopic={selectedPrimaryTopic}
+          groupedTopicLabels={groupedTopicLabels}
           parkedTopicLabels={parkedTopicLabels}
           composerMode={workspaceActionMode}
           reviewRequestState={reviewRequestState}
@@ -1378,12 +1434,15 @@ export default function CreateClient({
           onConfirm={() => {
             const defaultPrimaryTopic =
               selectedPrimaryTopic ??
+              activeTopicLabel ??
               buildCreateStructureBranches(intelligentFollowup, 3)[0]?.title ??
               intelligentFollowup.understanding.dossierContext ??
               intelligentFollowup.understanding.topics[0]?.label ??
               null;
             if (defaultPrimaryTopic) {
+              setActiveTopicLabel(defaultPrimaryTopic);
               setSelectedPrimaryTopic(defaultPrimaryTopic);
+              setGroupedTopicLabels([]);
               setParkedTopicLabels((current) =>
                 current.filter((topicLabel) => topicLabel !== defaultPrimaryTopic),
               );
@@ -1394,27 +1453,56 @@ export default function CreateClient({
             setShowFollowupCorrectionComposer(false);
             setActionNotice(
               defaultPrimaryTopic
-                ? `Hauptthema „${defaultPrimaryTopic}“ gewählt. Du kannst den Beitrag jetzt gezielt weiterentwickeln.`
-                : "Hauptthema gewählt. Du kannst den Beitrag jetzt gezielt weiterentwickeln.",
+                ? `Themenstruktur bestätigt. ${defaultPrimaryTopic} bleibt als aktueller Fokus sichtbar.`
+                : "Themenstruktur bestätigt. Der nächste Schritt ist jetzt freigeschaltet.",
             );
           }}
           onEdit={() => {
             setWorkspaceActionMode("edit");
             setChatContinuationText("");
             setShowFollowupCorrectionComposer(true);
-            setActionNotice("Du kannst den Beitrag jetzt weiterentwickeln.");
+            setActionNotice("Aussage schärfen geöffnet.");
+          }}
+          onFocusTopic={(topicLabel) => {
+            const normalizedTopicLabel = topicLabel.trim();
+            if (!normalizedTopicLabel) return;
+            setActiveTopicLabel(normalizedTopicLabel);
+            setWorkspaceActionMode("default");
+            setShowFollowupCorrectionComposer(false);
+            setActionNotice(`${normalizedTopicLabel} wurde fokussiert.`);
           }}
           onSelectPrimaryTopic={(topicLabel) => {
             const normalizedTopicLabel = topicLabel.trim();
             if (!normalizedTopicLabel) return;
+            setActiveTopicLabel(normalizedTopicLabel);
             setSelectedPrimaryTopic(normalizedTopicLabel);
+            setGroupedTopicLabels([]);
             setParkedTopicLabels((current) =>
               current.filter((topicLabelEntry) => topicLabelEntry !== normalizedTopicLabel),
             );
             setUnderstandingConfirmed(true);
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
-            setActionNotice(`${normalizedTopicLabel} ist jetzt dein Hauptthema.`);
+            setActionNotice(`${normalizedTopicLabel} ist jetzt dein Fokus.`);
+          }}
+          onGroupTopics={(topicLabels) => {
+            const normalizedTopicLabels = Array.from(
+              new Set(topicLabels.map((topicLabel) => topicLabel.trim()).filter(Boolean)),
+            );
+            if (normalizedTopicLabels.length < 2) return;
+            setGroupedTopicLabels(normalizedTopicLabels);
+            setActiveTopicLabel(normalizedTopicLabels[0] ?? null);
+            setSelectedPrimaryTopic(null);
+            setUnderstandingConfirmed(false);
+            setWorkspaceActionMode("default");
+            setShowFollowupCorrectionComposer(false);
+            setActionNotice(`${normalizedTopicLabels.join(", ")} werden gemeinsam weitergeführt.`);
+          }}
+          onSeparateTopics={() => {
+            setGroupedTopicLabels([]);
+            setUnderstandingConfirmed(false);
+            setWorkspaceActionMode("default");
+            setActionNotice("Die Themen werden wieder getrennt weitergeführt.");
           }}
           onParkTopic={(topicLabel) => {
             const normalizedTopicLabel = topicLabel.trim();
@@ -1424,18 +1512,24 @@ export default function CreateClient({
                 ? current
                 : [...current, normalizedTopicLabel],
             );
+            setGroupedTopicLabels((current) =>
+              current.filter((topicLabelEntry) => topicLabelEntry !== normalizedTopicLabel),
+            );
+            setActiveTopicLabel((current) =>
+              current === normalizedTopicLabel ? null : current,
+            );
             setSelectedPrimaryTopic((current) =>
               current === normalizedTopicLabel ? null : current,
             );
             setUnderstandingConfirmed(false);
             setWorkspaceActionMode("default");
             setShowFollowupCorrectionComposer(false);
-            setActionNotice("Dieser Zweig bleibt sichtbar, wird aber nicht als Hauptthema weitergeführt.");
+            setActionNotice(`${normalizedTopicLabel} wurde geparkt.`);
           }}
           onOpenManualTopicChooser={() => {
             setWorkspaceActionMode("manual_topic");
             setChatContinuationText("");
-            setActionNotice("Themenwahl geöffnet. Du kannst einen sichtbaren Zweig übernehmen oder unten ein eigenes Hauptthema setzen.");
+            setActionNotice("Themen ändern geöffnet.");
           }}
           onPrepareSubmission={handlePrepareSubmission}
           onPrepareAnlassraum={handlePrepareAnlassraum}
@@ -1451,6 +1545,20 @@ export default function CreateClient({
           isRetryPlannerPending={isRetryPlannerPending}
           onSaveOnly={handleSaveOnly}
           onSkipPlaceClarification={handleSkipPlaceClarification}
+          linkDetection={currentLinkDetection}
+          compactBranchLimit={3}
+          expandedBranchLimit={Math.max(3, entitlements.maxVisibleAiProposals)}
+          showExpandedTopicPreview={showExpandedTopicPreview}
+          topicExpansionDecision={topicExpansionDecision}
+          expandedTopicAccess={{
+            canPreviewAllTopics: canPreviewAllDetectedTopics,
+            isPrivilegedPreview: hasPrivilegedTopicPreview,
+            costState: expandedTopicCostState,
+          }}
+          onExpandTopicPreview={handleExpandTopicPreview}
+          onKeepCompactTopicPreview={handleKeepCompactTopicPreview}
+          onPrepareLinkReview={handlePrepareLinkReview}
+          onDeferExpandedReview={handleDeferExpandedReview}
           continuationValue={chatContinuationText}
           onContinuationChange={setChatContinuationText}
           onContinueConversation={handleContinueConversation}
@@ -1565,16 +1673,25 @@ export default function CreateClient({
   );
   const workspaceNextStepLabel = React.useMemo(() => {
     if (!hasStarted) return "Beitrag prüfen";
-    if (workspaceActionMode === "source") return "Quellen ergänzen";
-    if (workspaceActionMode === "manual_topic") return "Hauptthema bestätigen";
-    if (selectedPrimaryTopic) return "Beitrag weiterentwickeln";
-    if (understandingConfirmed) return "Entwurf speichern";
+    if (!understandingConfirmed) return "Themenstruktur bestätigen";
+    if (workspaceActionMode === "source") return "Quellen prüfen";
+    if (workspaceActionMode === "manual_topic") return "Themen ändern";
+    if (workspaceActionMode === "edit") return "Aussage schärfen";
+    if (groupedTopicLabels.length > 1) return "Themen gemeinsam weiterführen";
+    if (selectedPrimaryTopic || understandingConfirmed) return "Aussage schärfen";
     if (intelligentFollowup) {
       const branchCount = buildCreateStructureBranches(intelligentFollowup, 3).length;
-      if (branchCount > 1) return "Hauptthema wählen";
+      if (branchCount > 1) return "Themenstruktur bestätigen";
     }
     return "Beitrag prüfen";
-  }, [hasStarted, intelligentFollowup, selectedPrimaryTopic, understandingConfirmed, workspaceActionMode]);
+  }, [
+    groupedTopicLabels.length,
+    hasStarted,
+    intelligentFollowup,
+    selectedPrimaryTopic,
+    understandingConfirmed,
+    workspaceActionMode,
+  ]);
 
   const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
@@ -1799,7 +1916,11 @@ export default function CreateClient({
       setIntelligentFollowup(nextFollowup);
       setPlannerTrace(body.trace ?? null);
       setUnderstandingConfirmed(false);
+      setActiveTopicLabel(null);
       setSelectedPrimaryTopic(null);
+      setGroupedTopicLabels([]);
+      setShowExpandedTopicPreview(false);
+      setTopicExpansionDecision("idle");
       setParkedTopicLabels([]);
       setWorkspaceActionMode("default");
       setShowFollowupCorrectionComposer(false);
@@ -1949,6 +2070,41 @@ export default function CreateClient({
     );
   }, [intelligentFollowup]);
 
+  const handleExpandTopicPreview = React.useCallback(() => {
+    setShowExpandedTopicPreview(true);
+    setTopicExpansionDecision("expanded");
+    setActionNotice("Das weitere Thema wird jetzt angezeigt.");
+  }, []);
+
+  const handleKeepCompactTopicPreview = React.useCallback(() => {
+    setShowExpandedTopicPreview(false);
+    setTopicExpansionDecision("compact");
+    setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
+  }, []);
+
+  const handlePrepareLinkReview = React.useCallback(() => {
+    if (!currentLinkDetection.hasLink) {
+      setActionNotice("Ich habe gerade keinen Link erkannt.");
+      return;
+    }
+    setWorkspaceActionMode("source");
+    setChatContinuationText("");
+    setShowFollowupCorrectionComposer(true);
+    setTopicExpansionDecision("link");
+    setLinkClarificationState((current) => ({
+      detection: current?.detection ?? currentLinkDetection,
+      selectedIntentId: "prepare_factcheck",
+      additionalContext: current?.additionalContext ?? "",
+    }));
+    setActionNotice("Quellenprüfung vorbereitet. Sie startet erst nach Bestätigung.");
+  }, [currentLinkDetection]);
+
+  const handleDeferExpandedReview = React.useCallback(() => {
+    setShowExpandedTopicPreview(false);
+    setTopicExpansionDecision("later");
+    setActionNotice("Vollständige Auswertung bleibt vorerst zurückgestellt.");
+  }, []);
+
   const handleContinueInAccount = React.useCallback(() => {
     if (!intelligentFollowup) {
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
@@ -1971,12 +2127,12 @@ export default function CreateClient({
 
   const confirmFactcheckServiceStart = React.useCallback(() => {
     setFactcheckMessage(
-      "Quellenmodus aktiv. Ergänze unten Hinweise, Links oder Dokumente. Eine externe Quellenprüfung startet erst nach deiner ausdrücklichen Bestätigung.",
+      "Quellenmodus aktiv. Ergänze unten Hinweise, Links oder Dokumente. Eine externe Quellenanalyse startet erst nach deiner ausdrücklichen Bestätigung.",
     );
     setWorkspaceActionMode("source");
     setChatContinuationText("");
     setShowFollowupCorrectionComposer(true);
-    setActionNotice("Quellenmodus aktiv. Du kannst jetzt Quellen ergänzen.");
+    setActionNotice("Quellenmodus geöffnet.");
   }, []);
 
   const handleSaveOnly = React.useCallback(async () => {
@@ -2126,7 +2282,11 @@ export default function CreateClient({
                   setActiveContextAnchorId(null);
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
+                  setActiveTopicLabel(null);
                   setSelectedPrimaryTopic(null);
+                  setGroupedTopicLabels([]);
+                  setShowExpandedTopicPreview(false);
+                  setTopicExpansionDecision("idle");
                   setParkedTopicLabels([]);
                   setWorkspaceActionMode("default");
                   setLinkClarificationState(null);
@@ -2148,6 +2308,7 @@ export default function CreateClient({
                 startDisabled={workspaceComposerStartDisabled}
                 startBusy={isStarting}
                 startBusyLabel={workspaceComposerStartBusyLabel}
+                inputAutoFocus={hasStarted && workspaceActionMode !== "default"}
                 secondaryAction={{
                   href: contextualReturnHref ?? "/account",
                   label: !hasStarted && contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
@@ -2159,7 +2320,11 @@ export default function CreateClient({
                   setActiveContextAnchorId(anchorId);
                   setIntelligentFollowup(null);
                   setUnderstandingConfirmed(false);
+                  setActiveTopicLabel(null);
                   setSelectedPrimaryTopic(null);
+                  setGroupedTopicLabels([]);
+                  setShowExpandedTopicPreview(false);
+                  setTopicExpansionDecision("idle");
                   setParkedTopicLabels([]);
                   setWorkspaceActionMode("default");
                   setLinkClarificationState(null);

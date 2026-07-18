@@ -154,21 +154,22 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Assistent");
     expect(followupSource).toContain("Ich sehe einen gemeinsamen Kern.");
     expect(followupSource).toContain("Dein KI-Assistent");
-    expect(followupSource).toContain("Details ansehen");
-    expect(followupSource).toContain("Hauptthema wählen");
-    expect(followupSource).toContain("Beitrag weiterentwickeln");
-    expect(followupSource).toContain("Quellen ergänzen");
+    expect(followupSource).toContain("Details & Transparenz");
+    expect(followupSource).toContain("Themenstruktur bestätigen");
+    expect(followupSource).toContain("Themen ändern");
+    expect(followupSource).toContain("Aussage schärfen");
+    expect(followupSource).toContain("Quelle ergänzen");
     expect(followupSource).toContain("Entwurf speichern");
     expect(followupSource).toContain("Ich sehe mehrere mögliche Themenstränge.");
-    expect(followupSource).toContain("Als Zweig parken");
-    expect(followupSource).toContain("Als Zweig geparkt");
+    expect(followupSource).toContain("Thema parken");
+    expect(followupSource).toContain("Geparkt");
     expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueRuntimeState");
     expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
     expect(followupSource).toContain("Keine automatische Stimme");
-    expect(followupSource).toContain("Keine automatische Veröffentlichung");
-    expect(followupSource).toContain("Keine automatische Kostenbuchung");
+    expect(followupSource).toContain("keine automatische Veröffentlichung");
+    expect(followupSource).toContain("keine automatische Kostenbuchung");
     expect(followupSource).toContain("setPreparedHandoffDraft");
     expect(followupSource).not.toContain("Dossier-Kontext");
     expect(followupSource).not.toContain("Mögliche Claims");
@@ -204,8 +205,8 @@ describe("create curated dialog workspace contract", () => {
     );
 
     const coreIndex = followupSource.indexOf("Ich sehe einen gemeinsamen Kern.");
-    const confirmIndex = followupSource.indexOf("Hauptthema wählen");
-    const detailsToggleIndex = followupSource.indexOf("Details ansehen");
+    const confirmIndex = followupSource.indexOf("Themenstruktur bestätigen");
+    const detailsToggleIndex = followupSource.indexOf("Details & Transparenz");
     const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
     const detailsIndex = followupSource.indexOf("<StructuredWorkstateBlock");
 
@@ -217,7 +218,7 @@ describe("create curated dialog workspace contract", () => {
     expect(coreIndex).toBeLessThan(confirmIndex);
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
-    expect(html).toContain("Details ansehen");
+    expect(html).toContain("Details &amp; Transparenz");
     expect(html).toContain("Erkannte Themen");
     expect(html).toContain("aus deinem Beitrag erkannt");
     expect(html).not.toContain("Einordnung erneut versuchen");

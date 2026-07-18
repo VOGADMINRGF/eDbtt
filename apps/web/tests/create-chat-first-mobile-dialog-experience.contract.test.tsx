@@ -1,3 +1,4 @@
+import type * as React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
@@ -50,39 +51,39 @@ const FOLLOWUP_RESULT = {
 
 const MULTI_BRANCH_FOLLOWUP_RESULT = {
   understanding: {
-    summary: "Du beschreibst mehrere kommunale Zielkonflikte rund um Wohnen, Verkehr und Schule.",
-    dossierContext: "Kommunale Prioritäten und Zielkonflikte",
+    summary:
+      "Du beschreibst mehrere Mobilitäts- und Planungsfragen rund um Abendtakt, S-Bahn-Anschluss, Straßenumbau und Parkraum.",
+    dossierContext: "Mobilität und Straßenumbau im Bezirk",
     categories: [
       { id: "hint", label: "Hinweis", confidence: "high" as const },
     ],
     topics: [
-      { id: "housing", label: "Wohnen", confidence: "high" as const },
+      { id: "housing", label: "Wohnen", confidence: "low" as const },
       { id: "traffic", label: "Verkehr", confidence: "high" as const },
-      { id: "education", label: "Bildung", confidence: "medium" as const },
-      { id: "integration", label: "Migration/Integration", confidence: "medium" as const },
-      { id: "safety", label: "Sicherheit/Rechtsstaat", confidence: "medium" as const },
+      { id: "education", label: "Bildung", confidence: "low" as const },
+      { id: "integration", label: "Migration/Integration", confidence: "low" as const },
     ],
     statements: [
       {
         id: "s1",
-        text: "Wohnungsbau und Genehmigungen dauern zu lange.",
-        kind: "demand" as const,
-        stance: "pro" as const,
+        text: "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten.",
+        kind: "claim" as const,
+        stance: "open" as const,
         confidence: "high" as const,
       },
       {
         id: "s2",
-        text: "Bus, Fahrrad und notwendige Autonutzung müssen im Alltag zusammen gedacht werden.",
-        kind: "argument" as const,
-        stance: "mixed" as const,
-        confidence: "medium" as const,
+        text: "Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn.",
+        kind: "claim" as const,
+        stance: "open" as const,
+        confidence: "high" as const,
       },
       {
         id: "s3",
-        text: "Schule, Sprachförderung und Sicherheit brauchen klare Prioritäten.",
+        text: "Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
         kind: "claim" as const,
-        stance: "pro" as const,
-        confidence: "medium" as const,
+        stance: "open" as const,
+        confidence: "high" as const,
       },
     ],
     scopes: ["municipal" as const],
@@ -109,7 +110,7 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
     },
   ],
   sourceText:
-    "Wohnungsbau und Genehmigungen dauern zu lange. Bus, Fahrrad und notwendige Autonutzung müssen im Alltag zusammen gedacht werden. Schule, Sprachförderung und Sicherheit brauchen klare Prioritäten.",
+    "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
   generatedAt: "2026-05-09T12:00:00.000Z",
 };
 
@@ -256,7 +257,10 @@ function renderVisualFollowupInEditMode() {
   );
 }
 
-function renderMultiBranchVisualFollowup(isConfirmed = false) {
+function renderMultiBranchVisualFollowup(
+  isConfirmed = false,
+  extraProps: Partial<React.ComponentProps<typeof CreateVisualFollowup>> = {},
+) {
   return renderToStaticMarkup(
     <CreateVisualFollowup
       result={MULTI_BRANCH_FOLLOWUP_RESULT}
@@ -268,6 +272,7 @@ function renderMultiBranchVisualFollowup(isConfirmed = false) {
       continuationValue=""
       onContinuationChange={() => {}}
       onContinueConversation={() => {}}
+      {...extraProps}
     />,
   );
 }
@@ -340,36 +345,41 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(texts.followupGuidedTitle).toContain("Ich baue daraus einen kompakten Arbeitsstand");
   });
 
-  it("keeps the pre-confirmation flow statement-first with two primary branches", () => {
+  it("keeps the pre-confirmation flow statement-first with one primary confirmation action", () => {
     const html = renderVisualFollowup();
 
     expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(html).toContain("Hauptthema wählen");
-    expect(html).toContain("Beitrag weiterentwickeln");
-    expect(html).toContain("Quellen ergänzen");
-    expect(html).toContain("Entwurf speichern");
-    expect((html.match(/btn-primary/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(html).toContain("Themenstruktur bestätigen");
+    expect(html).toContain("Themen ändern");
+    expect(html).not.toContain("Aussage schärfen");
+    expect(html).not.toContain("Quelle ergänzen");
+    expect(html).not.toContain("Entwurf speichern");
+    expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
 
   it("renders a compact understood state before details", () => {
     const html = renderMultiBranchVisualFollowup();
 
-    expect(html).toContain("Chat-Arbeitsstand für deinen Beitrag");
+    expect(html).toContain("Ich habe diese Themen erkannt.");
     expect(html).toContain("Erkannte Themen");
     expect(html).toContain("aus deinem Beitrag erkannt");
-    expect(html).toContain("Wohnen und Genehmigungen");
-    expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
+    expect(html).toContain("Deine Struktur");
+    expect(html).toContain("ÖPNV und Mobilität");
+    expect(html).toContain("Straßenraum und Radverkehr");
+    expect(html).toContain("Parkraum und kommunale Planung");
     expect(html).toContain("data-create-chat-thread");
     expect(html).toContain("data-create-structure-rail");
     expect(html).toContain("data-mobile-inline-create-actions");
     expect(html).toContain("data-create-pipeline-rail");
-    expect(html).toContain("data-create-workspace-kpis");
+    expect(html).toContain("data-create-inline-structure-summary");
     expect(html).toContain("data-create-topic-branches");
-    expect(html).toContain("Voxy Pilotpfad");
+    expect(html).toContain("1 · Beitrag aufgenommen");
+    expect(html).toContain("3 · Entscheidung offen");
     expect(html).toContain("Was du jetzt tun kannst");
+    expect(html).toContain("Themenstruktur bestätigen");
     expect(html).not.toContain("Themenzweig");
-    expect(html).toContain("Details ansehen");
+    expect(html).toContain("Details &amp; Transparenz");
     expect(html).not.toContain("Korrektur oder Ergänzung");
     expect(html).not.toContain("Original oben anzeigen");
   });
@@ -379,11 +389,12 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("Was du jetzt tun kannst");
     expect(html).toContain("Ich habe diese Themen erkannt.");
-    expect(html).toContain("Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen.");
-    expect(html).toContain("Beitrag weiterentwickeln");
-    expect(html).toContain("Quellen ergänzen");
-    expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
+    expect(html).toContain("Themen ändern");
+    expect(html).not.toContain("Aussage schärfen");
+    expect(html).not.toContain("Quelle ergänzen");
+    expect(html).not.toContain("Entwurf speichern");
+    expect(html).not.toContain("Anlassraum vorbereiten");
     expect(html).toContain("Verkehrssicherheit");
     expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
     expect(html).toContain("Stadtplanung &amp; Finanzierung");
@@ -403,17 +414,36 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(editHtml).toContain("Antwort fortsetzen");
   });
 
-  it("shows the next-step choices only after confirmation and keeps Deep Search secondary", () => {
+  it("shows the next-step choices only after confirmation and keeps external source analysis secondary", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
     expect(html).toContain("Was du jetzt tun kannst");
-    expect(html).toContain("Hauptthema wählen");
-    expect(html).toContain("Beitrag weiterentwickeln");
-    expect(html).toContain("Quellen ergänzen");
+    expect(html).toContain("Aussage schärfen");
+    expect(html).toContain("Quelle ergänzen");
     expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Als Zweig parken");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Kein Auto-Publish");
+  });
+
+  it("offers a compact link and overflow decision without auto-starting external search", () => {
+    const html = renderMultiBranchVisualFollowup(false, {
+      linkDetection: detectCreateLinkIntake("https://example.com/artikel Mehr Themen bitte prüfen"),
+      compactBranchLimit: 3,
+      expandedBranchLimit: 5,
+      expandedTopicAccess: {
+        canPreviewAllTopics: true,
+        isPrivilegedPreview: false,
+        costState: "uses_search_credit",
+      },
+    });
+
+    expect(html).toContain("Ich habe 4 Themen erkannt. 3 zeige ich dir kompakt.");
+    expect(html).toContain("Ein weiteres Thema wurde erkannt.");
+    expect(html).toContain("Weiteres Thema anzeigen");
+    expect(html).toContain("Nur mit diesen 3 weiterarbeiten");
+    expect(html).toContain("Quellenmodus vorbereiten");
+    expect(html).toContain("Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.");
+    expect(html).not.toContain("0 EUR");
   });
 
   it("surfaces the place clarification prominently for vague local references", () => {
@@ -510,7 +540,7 @@ describe("create chat-first mobile dialog experience contract", () => {
       "utf8",
     );
 
-    expect(followupSource).toContain("Details ansehen");
+    expect(followupSource).toContain("Details & Transparenz");
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
     expect(followupSource).toContain("NextStepPanel");

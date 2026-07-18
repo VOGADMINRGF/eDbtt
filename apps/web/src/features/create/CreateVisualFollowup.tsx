@@ -45,6 +45,7 @@ import {
   type DialogIntelligenceRuntimeResult,
   type DialogIntelligenceRuntimeSourceKind,
 } from "@/features/create/dialogIntelligenceRuntimeBridge";
+import type { CreateLinkIntakeDetection } from "@/features/create/linkIntake";
 import {
   buildTopicDeduplicationCandidates,
   canQueueTopicDeduplicationReview,
@@ -63,7 +64,9 @@ type CreateVisualFollowupProps = {
   actionNotice?: string | null;
   isConfirmed?: boolean;
   embedInWorkspaceShell?: boolean;
+  activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
+  groupedTopicLabels?: string[];
   parkedTopicLabels?: string[];
   composerMode?: "default" | "edit" | "source" | "manual_topic";
   reviewRequestState?: "idle" | "saving" | "saved" | "error";
@@ -72,7 +75,10 @@ type CreateVisualFollowupProps = {
   showCorrectionComposer?: boolean;
   onConfirm: () => void;
   onEdit: () => void;
+  onFocusTopic?: (topicLabel: string) => void;
   onSelectPrimaryTopic?: (topicLabel: string) => void;
+  onGroupTopics?: (topicLabels: string[]) => void;
+  onSeparateTopics?: () => void;
   onParkTopic?: (topicLabel: string) => void;
   onOpenManualTopicChooser?: () => void;
   onPrepareSubmission: () => void;
@@ -89,6 +95,20 @@ type CreateVisualFollowupProps = {
   isRetryPlannerPending?: boolean;
   onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
+  linkDetection?: CreateLinkIntakeDetection | null;
+  compactBranchLimit?: number;
+  expandedBranchLimit?: number;
+  showExpandedTopicPreview?: boolean;
+  topicExpansionDecision?: "idle" | "expanded" | "compact" | "link" | "later";
+  expandedTopicAccess?: {
+    canPreviewAllTopics: boolean;
+    isPrivilegedPreview: boolean;
+    costState: "inactive" | "addon_required" | "uses_search_credit";
+  };
+  onExpandTopicPreview?: () => void;
+  onKeepCompactTopicPreview?: () => void;
+  onPrepareLinkReview?: () => void;
+  onDeferExpandedReview?: () => void;
   continuationValue: string;
   onContinuationChange: (value: string) => void;
   onContinueConversation: () => void;
@@ -625,17 +645,17 @@ function buildDeterministicFallbackBranchDrafts(
       {
         title: "Verkehrssicherheit",
         description: "Sichere Querungen, Haltestellen und Radverkehr wirken hier wie der naheliegende erste Schwerpunkt.",
-        referencePoints: matchedReferencePoints(["traffic_safety"]),
+        referencePoints: ["Tempo", "sichere Querung", "Rad-/Fußverkehr"],
       },
       {
         title: "Kita-/Schulweg & Barrierefreiheit",
         description: "Wege zu Kita und Schule plus Barrieren im Alltag lassen sich als gemeinsamer Strang sichtbar halten.",
-        referencePoints: matchedReferencePoints(["school_routes", "accessibility"]),
+        referencePoints: ["Kinder", "ältere Menschen", "Haltestelle"],
       },
       {
         title: "Stadtplanung & Finanzierung",
         description: "Bauprojekte, Grünflächen und kommunale Finanzierung bilden hier einen zweiten planerischen Schwerpunkt.",
-        referencePoints: matchedReferencePoints(["planning_green", "municipal_finance"]),
+        referencePoints: ["Bauprojekte", "Grünflächen", "Haushalt"],
       },
     ];
   }
@@ -809,37 +829,51 @@ function buildNextStepChecklist(params: {
   ];
 }
 
-function buildWorkflowStages(params: { isConfirmed: boolean; hasSuggestions: boolean }): FollowupStage[] {
+function buildWorkflowStages(params: {
+  isConfirmed: boolean;
+  composerMode?: "default" | "edit" | "source" | "manual_topic";
+  activeTopicLabel?: string | null;
+  selectedPrimaryTopic?: string | null;
+  groupedTopicLabels?: string[];
+}): FollowupStage[] {
+  const sourceActive = params.composerMode === "source";
+  const draftActive =
+    params.composerMode === "edit" || Boolean(params.selectedPrimaryTopic) || params.isConfirmed;
+  const topicsChosen =
+    params.groupedTopicLabels && params.groupedTopicLabels.length > 1
+      ? true
+      : Boolean(params.activeTopicLabel || params.selectedPrimaryTopic);
+
   return [
     {
       id: "input",
-      title: "Eingabe",
-      lead: "Beitrag aufgenommen",
+      title: "1 · Beitrag aufgenommen",
+      lead: "Dein Beitrag liegt im Workspace.",
       status: "done",
     },
     {
       id: "understanding",
-      title: "Verstehen",
-      lead: "Kern erkannt",
+      title: "2 · Themen erkannt",
+      lead: "Die ersten Themen sind sichtbar.",
       status: "done",
     },
     {
       id: "topics",
-      title: "Themen ordnen",
-      lead: params.isConfirmed ? "Hauptthema gewählt" : "Hauptthema bestimmen",
-      status: params.isConfirmed ? "done" : "active",
+      title: "3 · Entscheidung offen",
+      lead: topicsChosen ? "Fokus oder Struktur ist gewählt." : "Du wählst Fokus oder Struktur.",
+      status: sourceActive || draftActive ? "done" : "active",
     },
     {
       id: "sources",
-      title: "Quellen prüfen",
-      lead: params.hasSuggestions ? "Hinweise sichtbar" : "Optional ergänzen",
-      status: params.isConfirmed ? "active" : "planned",
+      title: "4 · Quellen optional",
+      lead: sourceActive ? "Quellenmodus ist geöffnet." : "Quellen bleiben optional.",
+      status: sourceActive ? "active" : draftActive ? "done" : "planned",
     },
     {
       id: "draft",
-      title: "Entwurf vorbereiten",
-      lead: params.isConfirmed ? "Als Nächstes speichern" : "Danach speichern",
-      status: "planned",
+      title: "5 · Entwurf",
+      lead: draftActive ? "Entwurf kann weitergeführt werden." : "Danach schärfen oder speichern.",
+      status: draftActive ? "active" : "planned",
     },
   ];
 }
@@ -1079,7 +1113,10 @@ function UserContributionBubble(props: { text: string }) {
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="w-full max-w-[78%] min-w-0">
-        <p className="text-[14px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Du</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">1 · Beitrag aufgenommen</p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Du</p>
+        </div>
         <div className="mt-2 rounded-[1.5rem] rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-5 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-[15px] leading-relaxed text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
         </div>
@@ -1091,6 +1128,7 @@ function UserContributionBubble(props: { text: string }) {
 function AssistantUnderstandingBubble(props: {
   eyebrow: string;
   headline: string;
+  stepLabel: string;
   summary: string;
   assistantLead: string;
   coreClaim: string;
@@ -1103,10 +1141,13 @@ function AssistantUnderstandingBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-1 shrink-0">
-        <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+        <VoxyAvatar appearance="inline" variant="createGuideLight" />
       </div>
       <div className="w-full max-w-[78%] min-w-0 flex-1">
-        <p className="text-[14px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.stepLabel}</p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
+        </div>
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">{props.eyebrow}</p>
           <p className="mt-1.5 text-[1.35rem] font-semibold tracking-[-0.01em] text-cyan-950 md:text-[1.6rem] dark:text-cyan-50">{props.headline}</p>
@@ -1135,6 +1176,16 @@ function AssistantUnderstandingBubble(props: {
   );
 }
 
+function WorkspaceActionEventBubble(props: { message: string }) {
+  return (
+    <div className="create-chat-message flex justify-center">
+      <div className="max-w-3xl rounded-full border border-cyan-300/30 bg-cyan-500/[0.08] px-4 py-2 text-sm text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
+        {props.message}
+      </div>
+    </div>
+  );
+}
+
 function TopicFieldList(props: { labels: string[]; onPick: (label: string) => void }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
@@ -1157,10 +1208,10 @@ function resolveFollowupChatHeadline(params: {
   branchCount: number;
 }): string {
   if (params.plannerClarificationRequired) {
-    return CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification;
+    return "Ich habe diese Themen erkannt.";
   }
   if (params.branchCount > 1) {
-    return "Ich sehe mehrere mögliche Themenstränge.";
+    return "Ich habe diese Themen erkannt.";
   }
   return CREATE_VISUAL_FOLLOWUP_COPY.headline;
 }
@@ -1586,6 +1637,133 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   );
 }
 
+function InlineStructureSummary(props: {
+  visibleTopicCount: number;
+  hiddenTopicCount: number;
+  nextStepLabel: string;
+}) {
+  return (
+    <section data-create-inline-structure-summary data-create-structure-rail className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[1rem] font-semibold text-[rgb(var(--fg))]">Deine Struktur</p>
+        <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[12px] font-medium text-[rgb(var(--muted))]">
+          kompakt
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2.5">
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[13px] text-[rgb(var(--fg))]">
+          {props.visibleTopicCount} Themen sichtbar
+        </span>
+        {props.hiddenTopicCount > 0 ? (
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[13px] text-[rgb(var(--fg))]">
+            +{props.hiddenTopicCount} weiteres Thema
+          </span>
+        ) : null}
+        <span className="rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] px-3 py-2 text-[13px] text-cyan-950 dark:text-cyan-100">
+          Nächster Schritt: {props.nextStepLabel}
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function resolveTopicExpansionCostLabel(
+  access: NonNullable<CreateVisualFollowupProps["expandedTopicAccess"]> | undefined,
+): string {
+  if (!access) return "";
+  if (access.costState === "uses_search_credit") {
+    return "Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.";
+  }
+  if (access.costState === "addon_required") {
+    return "Für die vollständige Quellenprüfung ist ein Recherche-Kontingent erforderlich.";
+  }
+  return "";
+}
+
+function TopicExpansionPrompt(props: {
+  hasLink: boolean;
+  totalTopicCount: number;
+  visibleTopicCount: number;
+  overflowCount: number;
+  canPreviewAllTopics: boolean;
+  costLabel: string;
+  onExpandTopicPreview?: () => void;
+  onKeepCompactTopicPreview?: () => void;
+  onPrepareLinkReview?: () => void;
+  onDeferExpandedReview?: () => void;
+}) {
+  const intro =
+    props.overflowCount > 0
+      ? `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount} zeige ich dir kompakt.`
+      : "Ich habe einen Quellenhinweis erkannt.";
+
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-500 ring-4 ring-cyan-500/10" />
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-cyan-300/35 bg-cyan-500/[0.06] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.1]">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">3 · Entscheidung offen</p>
+          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Assistent</p>
+        </div>
+        <p className="mt-2 text-base font-semibold text-cyan-950 dark:text-cyan-50">{intro}</p>
+        {props.overflowCount > 0 ? (
+          <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
+            Ein weiteres Thema wurde erkannt.
+          </p>
+        ) : null}
+        {props.hasLink ? (
+          <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
+            Wenn du den Link später prüfen willst, bereite ich dafür den Quellenmodus vor.
+          </p>
+        ) : null}
+        {props.costLabel ? (
+          <p className="mt-2 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
+            {props.costLabel}
+          </p>
+        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          {props.overflowCount > 0 ? (
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={props.onExpandTopicPreview}
+            >
+              {props.overflowCount === 1 ? "Weiteres Thema anzeigen" : "Weitere Themen anzeigen"}
+            </button>
+          ) : null}
+          {props.overflowCount > 0 ? (
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={props.onKeepCompactTopicPreview}
+            >
+              {`Nur mit diesen ${props.visibleTopicCount} weiterarbeiten`}
+            </button>
+          ) : null}
+          {props.hasLink ? (
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={props.onPrepareLinkReview}
+            >
+              Quellenmodus vorbereiten
+            </button>
+          ) : null}
+          {props.hasLink && !props.overflowCount ? (
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={props.onDeferExpandedReview}
+            >
+              Später
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StructureOverviewRail(props: {
   cards: FocusOverviewCard[];
   activeCardId: FocusAreaId;
@@ -1786,7 +1964,7 @@ function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Voxy Pilotpfad</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistenzpfad</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Vom Eingang bis zur bewussten nächsten Aktion</p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
@@ -1862,9 +2040,14 @@ function WorkspaceMetricRail(props: {
 function TopicBranchPreviewGrid(props: {
   rootTopic: string;
   branches: CreateStructureBranch[];
+  activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
+  groupedTopicLabels?: string[];
   parkedTopicLabels?: string[];
+  onFocusTopic?: (topicLabel: string) => void;
   onSelectPrimaryTopic?: (topicLabel: string) => void;
+  onGroupTopics?: (topicLabels: string[]) => void;
+  onSeparateTopics?: () => void;
   onParkTopic?: (topicLabel: string) => void;
 }) {
   if (props.branches.length === 0) return null;
@@ -1873,9 +2056,10 @@ function TopicBranchPreviewGrid(props: {
     <div data-create-topic-branches className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">3 · Themenstruktur</p>
+          <p className="mt-1 text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
           <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Aus „{props.rootTopic}“ erkenne ich {props.branches.length} sichtbare Themen. Die Themenwahl passiert direkt auf den Karten.
+            Aus „{props.rootTopic}“ erkenne ich {props.branches.length} sichtbare Themen. Ein Klick öffnet den Fokus direkt im Chat.
           </p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))]">
@@ -1883,15 +2067,19 @@ function TopicBranchPreviewGrid(props: {
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-3">
-        {props.branches.slice(0, 3).map((branch, index) => (
+        {props.branches.map((branch, index) => (
           <article
             key={branch.id}
             data-create-topic-branch-card=""
+            data-active-topic={props.activeTopicLabel === branch.title ? "true" : undefined}
             data-selected-primary-topic={props.selectedPrimaryTopic === branch.title ? "true" : undefined}
+            data-grouped-topic={props.groupedTopicLabels?.includes(branch.title) ? "true" : undefined}
             data-parked-topic={props.parkedTopicLabels?.includes(branch.title) ? "true" : undefined}
             className={`rounded-[1.75rem] border px-5 py-5 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
-              props.selectedPrimaryTopic === branch.title
+              props.activeTopicLabel === branch.title || props.selectedPrimaryTopic === branch.title
                 ? "border-cyan-400/75 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--grad-from))_26%),color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%))] ring-2 ring-cyan-300/35 dark:border-cyan-300/55"
+                : props.groupedTopicLabels?.includes(branch.title)
+                  ? "border-emerald-300/65 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--grad-from))_18%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-emerald-300/35"
                 : props.parkedTopicLabels?.includes(branch.title)
                   ? "border-amber-300/65 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--grad-from))_18%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-amber-300/35"
                 : "border-cyan-200/45 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_86%,rgb(var(--grad-from))_14%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] dark:border-cyan-300/20"
@@ -1903,34 +2091,50 @@ function TopicBranchPreviewGrid(props: {
                 ...branch.topicTags,
               ]).slice(0, 4);
               const isSelected = props.selectedPrimaryTopic === branch.title;
+              const isActive = props.activeTopicLabel === branch.title;
+              const isGrouped = props.groupedTopicLabels?.includes(branch.title) ?? false;
               const isParked = props.parkedTopicLabels?.includes(branch.title) ?? false;
               const recommendedAction = isSelected
-                ? "Dieses Thema ist gerade als Hauptthema gewählt."
+                ? "Dieses Thema ist bestätigt und bleibt gerade dein Fokus."
+                : isActive
+                  ? "Dieses Thema ist geöffnet. Darunter siehst du Aussagen, Fragen und den nächsten Schritt."
+                  : isGrouped
+                    ? "Dieses Thema wird gemeinsam mit den anderen sichtbaren Themen weitergeführt."
                 : isParked
                   ? "Dieser Zweig bleibt sichtbar geparkt, bis du ihn wieder aufgreifen willst."
-                  : index === 0
-                    ? "Wenn das der Kern ist, wähle ihn direkt als Hauptthema."
-                    : "Wenn der Strang wichtig bleibt, parke ihn oder nimm ihn als Hauptthema.";
+                  : "Klicke auf die Karte, wenn du diesen Themenstamm direkt im Chat fokussieren willst.";
               return (
                 <>
-            <div className="flex flex-wrap items-center gap-2 text-[13px] text-cyan-900 dark:text-cyan-100">
-              <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
-                aus deinem Beitrag erkannt
-              </span>
+                  <div className="flex flex-wrap items-center gap-2 text-[13px] text-cyan-900 dark:text-cyan-100">
+                    <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]">
+                      Thema {index + 1}
+                    </span>
+                    {isGrouped ? (
+                      <span className="rounded-full border border-emerald-300/50 px-3 py-1 text-emerald-900 dark:text-emerald-100">
+                        Gemeinsam
+                      </span>
+                    ) : null}
                     {isParked ? (
                       <span className="rounded-full border border-amber-300/50 px-3 py-1 text-amber-900 dark:text-amber-100">
                         Geparkt
                       </span>
                     ) : null}
-            </div>
-            <p className="mt-3 text-[1.28rem] font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--fg))]">{branch.title}</p>
-            <p className="mt-2.5 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-              {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
-            </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-3 w-full text-left"
+                    onClick={() => props.onFocusTopic?.(branch.title)}
+                    aria-pressed={isActive}
+                  >
+                    <p className="text-[1.28rem] font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--fg))]">{branch.title}</p>
+                    <p className="mt-2.5 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
+                      {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
+                    </p>
+                  </button>
                   {referencePoints.length > 0 ? (
                     <div className="mt-4 space-y-2.5">
                       <p className="text-sm font-medium text-[rgb(var(--fg))]">
-                        Erkannte Bezugspunkte
+                        Äste / Bezugspunkte
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {referencePoints.map((topic) => (
@@ -1946,26 +2150,18 @@ function TopicBranchPreviewGrid(props: {
                   ) : null}
                   <div className="mt-4 space-y-2">
                     <p className="text-sm font-medium text-[rgb(var(--fg))]">
-                      Empfohlene Aktion
+                      Sichtbarer Fokus
                     </p>
                     <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
                       type="button"
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-4 py-1.5 text-sm font-semibold text-cyan-950 transition hover:bg-cyan-500/[0.13] dark:border-cyan-300/25 dark:bg-cyan-500/[0.14] dark:text-cyan-50"
-                      onClick={() => props.onSelectPrimaryTopic?.(branch.title)}
-                      aria-pressed={isSelected}
-                    >
-                      {isSelected ? "Gewählt als Hauptthema" : "Hauptthema wählen"}
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] transition hover:border-amber-300/55 hover:text-[rgb(var(--fg))]"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] transition hover:border-cyan-300/55 hover:text-[rgb(var(--fg))]"
                       onClick={() => props.onParkTopic?.(branch.title)}
                       aria-pressed={isParked}
                     >
-                      {isParked ? "Als Zweig geparkt" : "Als Zweig parken"}
+                      {isParked ? "Als Zweig geparkt" : "Thema parken"}
                     </button>
                   </div>
                 </>
@@ -1973,6 +2169,77 @@ function TopicBranchPreviewGrid(props: {
             })()}
           </article>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function TopicFocusPanel(props: {
+  activeBranch: CreateStructureBranch;
+  activeTopicIndex: number;
+  onConfirm: () => void;
+  onOpenManualTopicChooser: () => void;
+  onParkTopic?: (topicLabel: string) => void;
+}) {
+  const focusQuestions = props.activeBranch.openReviewPoints.slice(0, 3);
+  const focusClaims = props.activeBranch.claims.slice(0, 2);
+
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-500 ring-4 ring-cyan-500/10" />
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-cyan-300/35 bg-cyan-500/[0.06] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.1]">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">4 · Deine Entscheidung</p>
+          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Assistent</p>
+        </div>
+        <p className="mt-2 text-base font-semibold text-cyan-950 dark:text-cyan-50">
+          Du schaust Thema {props.activeTopicIndex + 1}: {props.activeBranch.title}.
+        </p>
+        {focusClaims.length > 0 ? (
+          <div className="mt-3 space-y-2">
+            <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">Erkannte Aussagen</p>
+            <ul className="space-y-2 text-sm leading-relaxed text-cyan-950 dark:text-cyan-100">
+              {focusClaims.map((claim) => (
+                <li key={`${props.activeBranch.id}-${claim}`} className="rounded-2xl border border-cyan-300/20 bg-white/60 px-3 py-2 dark:bg-slate-950/20">
+                  {claim}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {focusQuestions.length > 0 ? (
+          <div className="mt-3 space-y-2">
+            <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">Offene Fragen</p>
+            <ul className="space-y-2 text-sm leading-relaxed text-cyan-950 dark:text-cyan-100">
+              {focusQuestions.map((question) => (
+                <li key={`${props.activeBranch.id}-${question}`} className="rounded-2xl border border-cyan-300/20 bg-white/60 px-3 py-2 dark:bg-slate-950/20">
+                  {question}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div className="mt-3 space-y-2">
+          <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">Mögliche nächste Aktion</p>
+          <p className="text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
+            Bestätige dieses Thema oder ändere die Themenstruktur, bevor der nächste Arbeitsschritt freigeschaltet wird.
+          </p>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          <button type="button" className="btn-primary min-h-[44px] px-4 py-2 text-sm" onClick={props.onConfirm}>
+            Themenstruktur bestätigen
+          </button>
+          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onOpenManualTopicChooser}>
+            Themen ändern
+          </button>
+          <button
+            type="button"
+            className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+            onClick={() => props.onParkTopic?.(props.activeBranch.title)}
+          >
+            Thema parken
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2042,7 +2309,7 @@ function SourceHintsAndNextStepsGrid(props: {
             ))
           ) : (
             <li className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-              Hauptthema wählen und danach den Entwurf bewusst weiterführen.
+              Themenstruktur bestätigen und danach den Entwurf bewusst weiterführen.
             </li>
           )}
         </ol>
@@ -2295,9 +2562,8 @@ function StructuredWorkstateBlock(props: {
     () =>
       buildWorkflowStages({
         isConfirmed: props.isConfirmed,
-        hasSuggestions: props.sortedSuggestions.length > 0,
       }),
-    [props.isConfirmed, props.sortedSuggestions.length],
+    [props.isConfirmed],
   );
   const overviewCards = React.useMemo<FocusOverviewCard[]>(
     () => {
@@ -2499,46 +2765,28 @@ function PlaceClarificationPanel(props: {
 }
 
 function StructureProposalPanel(props: {
-  onEdit: () => void;
-  onStartOptionalService: () => void;
-  onPrepareAnlassraum: () => void;
-  onSaveOnly: () => void;
-  onRequestEditorialReview: () => void;
-  reviewRequestState: CreateReviewRequestState;
-  reviewRequestMessage?: string | null;
+  onConfirm: () => void;
+  onOpenManualTopicChooser: () => void;
 }) {
   return (
     <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
       <div className="space-y-3">
         <div className="max-w-2xl space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">4 · Deine Entscheidung</p>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">Was du jetzt tun kannst</p>
           <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Du entscheidest, wie wir mit dem erkannten Thema weiterarbeiten.
+            Bestätige zuerst die Themenstruktur. Alles Weitere bleibt bewusst nachgeordnet.
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 xl:max-w-3xl">
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
-              Beitrag weiterentwickeln
-            </button>
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onStartOptionalService}>
-              Quellen ergänzen
-            </button>
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
-              Entwurf speichern
-            </button>
-            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
-              Anlassraum vorbereiten
-            </button>
+        <div className="flex flex-wrap gap-2.5 xl:max-w-4xl">
+          <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
+            Themenstruktur bestätigen
+          </button>
+          <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenManualTopicChooser}>
+            Themen ändern
+          </button>
         </div>
       </div>
-      {props.reviewRequestMessage ? (
-        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
-          {props.reviewRequestMessage}
-        </p>
-      ) : null}
-      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
-      </p>
     </div>
   );
 }
@@ -2546,106 +2794,39 @@ function StructureProposalPanel(props: {
 function PlannerClarificationPanel(props: {
   reason: string;
   details?: string | null;
-  startPoints: string[];
-  technicalFallback?: boolean;
-  onRetryPlanner?: () => void;
-  isRetryPlannerPending?: boolean;
-  onEdit: () => void;
+  onConfirm: () => void;
   onOpenManualTopicChooser: () => void;
-  onStartOptionalService: () => void;
-  onPrepareSubmission: () => void;
-  onSaveOnly: () => void;
-  onPrepareAnlassraum: () => void;
-  reviewRequestState: CreateReviewRequestState;
-  reviewRequestMessage?: string | null;
 }) {
-  const [detailsOpen, setDetailsOpen] = React.useState(false);
-
   return (
     <div className="space-y-3 rounded-[28px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">4 · Deine Entscheidung</p>
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">
           Was du jetzt tun kannst
         </p>
         <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-          {props.technicalFallback
-            ? "Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen."
-            : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten."}
+          {props.reason}
         </p>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.onEdit}
-        >
-          Beitrag weiterentwickeln
-        </button>
-        <button
-          type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
-          onClick={props.onStartOptionalService}
-        >
-          Quellen ergänzen
-        </button>
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
-          Entwurf speichern
-        </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
-          Anlassraum vorbereiten
-        </button>
-      </div>
-      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 text-left text-sm font-medium text-[rgb(var(--fg))]"
-          aria-expanded={detailsOpen}
-          onClick={() => setDetailsOpen((current) => !current)}
-        >
-          <span>Details ansehen</span>
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 20 20"
-            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${detailsOpen ? "rotate-90" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          >
-            <path d="M7 4.5 13 10l-6 5.5" />
-          </svg>
-        </button>
-        {detailsOpen ? (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
-            onClick={props.onOpenManualTopicChooser}
-          >
-            Thema selbst wählen
-          </button>
-          <button
-            type="button"
-            className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={props.onRetryPlanner}
-            disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
-          aria-disabled={!props.onRetryPlanner || props.isRetryPlannerPending}
-          >
-            {props.isRetryPlannerPending
-              ? "Einordnung wird erneut versucht …"
-              : "Einordnung erneut versuchen"}
-          </button>
-          </div>
+        {props.details ? (
+          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{props.details}</p>
         ) : null}
       </div>
-      {props.reviewRequestMessage ? (
-        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
-          {props.reviewRequestMessage}
-        </p>
-      ) : null}
-      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
-      </p>
-      {props.details ? <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">{props.details}</p> : null}
+      <div className="flex flex-wrap gap-2.5">
+        <button
+          type="button"
+          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          onClick={props.onConfirm}
+        >
+          Themenstruktur bestätigen
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+          onClick={props.onOpenManualTopicChooser}
+        >
+          Themen ändern
+        </button>
+      </div>
     </div>
   );
 }
@@ -2660,12 +2841,12 @@ function WorkspaceActionThreadNote(props: {
   const copy =
     props.mode === "edit"
       ? {
-          title: "Weiterarbeit aktiv",
-          body: "Was möchtest du ergänzen oder schärfen?",
+          title: "Aussage schärfen aktiv",
+          body: "Welche Aussage möchtest du schärfen?",
         }
       : props.mode === "source"
         ? {
-            title: "Quellenmodus aktiv",
+            title: "Quellenmodus geöffnet",
             body:
               props.factcheckMessage ??
               "Ergänze unten Hinweise, Links oder Dokumente. Eine externe Quellenprüfung startet erst nach deiner ausdrücklichen Bestätigung.",
@@ -2682,7 +2863,7 @@ function WorkspaceActionThreadNote(props: {
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistent</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">5 · Nächster Schritt</p>
         <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{copy.title}</p>
         <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{copy.body}</p>
       </div>
@@ -2769,25 +2950,26 @@ function NextStepPanel(props: {
   return (
     <div className="space-y-3 rounded-[28px] border border-cyan-300/28 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(8,145,178,0.12)]">
       <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">5 · Nächster Schritt</p>
         <p className="text-sm font-semibold text-white">Was du jetzt tun kannst</p>
         <p className="text-[15px] leading-relaxed text-slate-300">
           Du entscheidest, wie wir mit dem gewählten Thema weiterarbeiten.
         </p>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="flex flex-wrap gap-2.5">
         <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
-          Beitrag weiterentwickeln
+          Aussage schärfen
         </button>
         <button
           type="button"
-          className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
           onClick={props.onStartOptionalService}
-          aria-label="Quellen ergänzen"
-          title="Quellen ergänzen"
+          aria-label="Quelle ergänzen"
+          title="Quelle ergänzen"
         >
-          Quellen ergänzen
+          Quelle ergänzen
         </button>
-        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onSaveOnly}>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
           Entwurf speichern
         </button>
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
@@ -2851,7 +3033,9 @@ export default function CreateVisualFollowup({
   actionNotice,
   isConfirmed = false,
   embedInWorkspaceShell = false,
+  activeTopicLabel = null,
   selectedPrimaryTopic = null,
+  groupedTopicLabels = [],
   parkedTopicLabels = [],
   composerMode = "default",
   reviewRequestState = "idle",
@@ -2860,7 +3044,10 @@ export default function CreateVisualFollowup({
   showCorrectionComposer = false,
   onConfirm,
   onEdit,
+  onFocusTopic,
   onSelectPrimaryTopic,
+  onGroupTopics = () => {},
+  onSeparateTopics = () => {},
   onParkTopic,
   onOpenManualTopicChooser = () => {},
   onPrepareSubmission,
@@ -2877,6 +3064,16 @@ export default function CreateVisualFollowup({
   isRetryPlannerPending = false,
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
+  linkDetection = null,
+  compactBranchLimit: compactBranchLimitProp = 3,
+  expandedBranchLimit: expandedBranchLimitProp = 3,
+  showExpandedTopicPreview = false,
+  topicExpansionDecision = "idle",
+  expandedTopicAccess,
+  onExpandTopicPreview,
+  onKeepCompactTopicPreview,
+  onPrepareLinkReview,
+  onDeferExpandedReview,
   continuationValue,
   onContinuationChange,
   onContinueConversation,
@@ -2911,7 +3108,24 @@ export default function CreateVisualFollowup({
   const sortedSuggestions = sortSuggestions(result.suggestions)
     .filter((suggestion) => suggestion.kind !== "topic")
     .slice(0, 4);
-  const structureBranches = React.useMemo(() => buildCreateStructureBranches(result, 3), [result]);
+  const compactBranchLimit = Math.max(1, compactBranchLimitProp ?? 3);
+  const expandedBranchLimit = Math.max(
+    compactBranchLimit,
+    expandedBranchLimitProp ?? compactBranchLimit,
+  );
+  const compactStructureBranches = React.useMemo(
+    () => buildCreateStructureBranches(result, compactBranchLimit),
+    [compactBranchLimit, result],
+  );
+  const fullStructureBranches = React.useMemo(
+    () => buildCreateStructureBranches(result, expandedBranchLimit),
+    [expandedBranchLimit, result],
+  );
+  const structureBranches = showExpandedTopicPreview ? fullStructureBranches : compactStructureBranches;
+  const semanticTopicLabels =
+    fullStructureBranches.length > 0
+      ? fullStructureBranches.map((branch) => branch.title)
+      : topicLabels;
   const multiTopicActionTopics = React.useMemo(() => buildMultiTopicActionTopics(result), [result]);
   const showMultiTopicActionPanel = shouldShowMultiTopicActionPanel(multiTopicActionTopics);
   const contentModules = React.useMemo(
@@ -2943,6 +3157,10 @@ export default function CreateVisualFollowup({
   const fallbackBranches = React.useMemo(
     () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
     [plannerClarificationRequired, result],
+  );
+  const structureOverflowCount = Math.max(
+    0,
+    fullStructureBranches.length - compactBranchLimit,
   );
   const displayedBranches =
     plannerClarificationRequired && (plannerTechnicalFallback || structureBranches.length === 0)
@@ -3013,7 +3231,7 @@ export default function CreateVisualFollowup({
     ? "Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen."
     : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
   const assistantLead = resolveAssistantLead({
-    topicLabels,
+    topicLabels: semanticTopicLabels,
     summary: result.understanding.summary,
     statementText: result.understanding.statements[0]?.text ?? "",
     dossierContext: result.understanding.dossierContext,
@@ -3021,7 +3239,7 @@ export default function CreateVisualFollowup({
   });
   const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
   const keyStatement = resolveCoreClaim({
-    topicLabels,
+    topicLabels: semanticTopicLabels,
     fallback: result.understanding.statements[0]?.text ?? result.understanding.summary,
     dossierContext: result.understanding.dossierContext,
     plannerCore: result.meta?.planner?.plannerCore ?? null,
@@ -3041,9 +3259,9 @@ export default function CreateVisualFollowup({
   const rootTopic = plannerClarificationRequired
     ? displayedBranches[0]?.title ??
       result.understanding.dossierContext ??
-      topicLabels.find((label) => !/Öffentliches Anliegen/i.test(label)) ??
+      semanticTopicLabels.find((label) => !/Öffentliches Anliegen/i.test(label)) ??
       "Öffentliches Thema"
-    : result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
+    : result.understanding.dossierContext ?? semanticTopicLabels[0] ?? "Öffentliches Thema";
   const openQuestion = result.understanding.openQuestion ?? null;
   const placeClarification = isPlaceClarificationQuestion(openQuestion)
     ? {
@@ -3055,13 +3273,26 @@ export default function CreateVisualFollowup({
       }
     : null;
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
+  const activeBranch = React.useMemo(
+    () =>
+      displayedBranches.find((branch) => branch.title === activeTopicLabel) ??
+      displayedBranches.find((branch) => branch.title === selectedPrimaryTopic) ??
+      null,
+    [activeTopicLabel, displayedBranches, selectedPrimaryTopic],
+  );
+  const activeTopicIndex = activeBranch
+    ? displayedBranches.findIndex((branch) => branch.title === activeBranch.title)
+    : -1;
   const followupStages = React.useMemo(
     () =>
       buildWorkflowStages({
         isConfirmed,
-        hasSuggestions: sortedSuggestions.length > 0,
+        composerMode,
+        activeTopicLabel,
+        selectedPrimaryTopic,
+        groupedTopicLabels,
       }),
-    [isConfirmed, sortedSuggestions.length],
+    [activeTopicLabel, composerMode, groupedTopicLabels, isConfirmed, selectedPrimaryTopic],
   );
   const workspaceMetrics = React.useMemo(
     () => [
@@ -3072,7 +3303,7 @@ export default function CreateVisualFollowup({
         },
         {
           label: "Themen",
-          value: String(Math.max(1, displayedBranches.length)),
+          value: String(Math.max(1, fullStructureBranches.length)),
           detail: "Sichtbar getrennte Schwerpunkte",
         },
       {
@@ -3080,23 +3311,28 @@ export default function CreateVisualFollowup({
         value: String(Math.max(1, voteQuestions.length)),
         detail: "Bleiben review-first sichtbar",
       },
-      {
-        label: "Nächster Schritt",
-        value: plannerClarificationRequired
-          ? "Thema selbst wählen"
-          : selectedPrimaryTopic
-            ? "Beitrag weiterentwickeln"
-            : showMultiTopicActionPanel
-            ? "Hauptthema wählen"
-            : isConfirmed
-              ? "Entwurf speichern"
-              : "Beitrag weiterentwickeln",
+        {
+          label: "Nächster Schritt",
+          value: plannerClarificationRequired
+            ? "Themenstruktur bestätigen"
+            : groupedTopicLabels.length > 1
+              ? "Gemeinsam weiterführen"
+              : selectedPrimaryTopic || isConfirmed
+                ? "Aussage schärfen"
+                : activeBranch
+                  ? "Themenstruktur bestätigen"
+                  : showMultiTopicActionPanel
+                    ? "Thema fokussieren"
+                    : "Themenstruktur bestätigen",
         detail: "Nur nach bewusster Entscheidung",
       },
     ],
     [
+      activeBranch,
       isConfirmed,
       displayedBranches.length,
+      fullStructureBranches.length,
+      groupedTopicLabels.length,
       plannerClarificationRequired,
       selectedPrimaryTopic,
       showMultiTopicActionPanel,
@@ -3104,6 +3340,11 @@ export default function CreateVisualFollowup({
       voteQuestions.length,
     ],
   );
+  const inlineNextStepLabel = workspaceMetrics[3]?.value ?? "Themenstruktur bestätigen";
+  const showTopicExpansionPrompt =
+    (Boolean(linkDetection?.hasLink) || structureOverflowCount > 0) &&
+    topicExpansionDecision === "idle";
+  const topicExpansionCostLabel = resolveTopicExpansionCostLabel(expandedTopicAccess);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [deepDiveOpen, setDeepDiveOpen] = React.useState(false);
   const [preparedHandoffDraft, setPreparedHandoffDraft] = React.useState<CreateHandoffDraft | null>(null);
@@ -3301,7 +3542,7 @@ export default function CreateVisualFollowup({
               <>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <VoxyAvatar appearance="inline" compact variant="miniAvatar" />
+                    <VoxyAvatar appearance="inline" variant="createGuideLight" />
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                         Dein KI-Assistent
@@ -3325,12 +3566,6 @@ export default function CreateVisualFollowup({
                   </span>
                 </div>
 
-                {actionNotice ? (
-                  <p className="mt-3 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-100">
-                    {actionNotice}
-                  </p>
-                ) : null}
-
                 <div className="mt-4 space-y-4">
                   <WorkspaceStageRail stages={followupStages} />
                   <WorkspaceMetricRail items={workspaceMetrics} />
@@ -3345,6 +3580,7 @@ export default function CreateVisualFollowup({
               <UserContributionBubble text={dedupedCopy.userBubbleText} />
               <AssistantUnderstandingBubble
                 eyebrow={plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
+                stepLabel="2 · Themen erkannt"
                 headline={resolveFollowupChatHeadline({
                   plannerClarificationRequired,
                   branchCount: structureBranches.length,
@@ -3362,14 +3598,24 @@ export default function CreateVisualFollowup({
                     {plannerProvisionalNotice}
                   </p>
                 ) : null}
+                <InlineStructureSummary
+                  visibleTopicCount={Math.max(1, displayedBranches.length)}
+                  hiddenTopicCount={structureOverflowCount}
+                  nextStepLabel={inlineNextStepLabel}
+                />
                 {plannerClarificationRequired ? (
                   <div className="mt-4">
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
+                      activeTopicLabel={activeTopicLabel}
                       selectedPrimaryTopic={selectedPrimaryTopic}
+                      groupedTopicLabels={groupedTopicLabels}
                       parkedTopicLabels={parkedTopicLabels}
+                      onFocusTopic={onFocusTopic}
                       onSelectPrimaryTopic={onSelectPrimaryTopic}
+                      onGroupTopics={onGroupTopics}
+                      onSeparateTopics={onSeparateTopics}
                       onParkTopic={onParkTopic}
                     />
                   </div>
@@ -3378,14 +3624,43 @@ export default function CreateVisualFollowup({
                     <TopicBranchPreviewGrid
                       rootTopic={rootTopic}
                       branches={displayedBranches}
+                      activeTopicLabel={activeTopicLabel}
                       selectedPrimaryTopic={selectedPrimaryTopic}
+                      groupedTopicLabels={groupedTopicLabels}
                       parkedTopicLabels={parkedTopicLabels}
+                      onFocusTopic={onFocusTopic}
                       onSelectPrimaryTopic={onSelectPrimaryTopic}
+                      onGroupTopics={onGroupTopics}
+                      onSeparateTopics={onSeparateTopics}
                       onParkTopic={onParkTopic}
                     />
                   </div>
                 )}
               </AssistantUnderstandingBubble>
+              {showTopicExpansionPrompt ? (
+                <TopicExpansionPrompt
+                  hasLink={Boolean(linkDetection?.hasLink)}
+                  totalTopicCount={Math.max(displayedBranches.length + structureOverflowCount, displayedBranches.length)}
+                  visibleTopicCount={Math.max(1, displayedBranches.length)}
+                  overflowCount={structureOverflowCount}
+                  canPreviewAllTopics={expandedTopicAccess?.canPreviewAllTopics ?? false}
+                  costLabel={topicExpansionCostLabel}
+                  onExpandTopicPreview={onExpandTopicPreview}
+                  onKeepCompactTopicPreview={onKeepCompactTopicPreview}
+                  onPrepareLinkReview={onPrepareLinkReview}
+                  onDeferExpandedReview={onDeferExpandedReview}
+                />
+              ) : null}
+              {actionNotice ? <WorkspaceActionEventBubble message={actionNotice} /> : null}
+              {!isConfirmed && !plannerClarificationRequired && activeBranch && activeTopicIndex > -1 ? (
+                <TopicFocusPanel
+                  activeBranch={activeBranch}
+                  activeTopicIndex={activeTopicIndex}
+                  onConfirm={onConfirm}
+                  onOpenManualTopicChooser={onOpenManualTopicChooser}
+                  onParkTopic={onParkTopic}
+                />
+              ) : null}
               <WorkspaceActionThreadNote
                 mode={composerMode}
                 selectedPrimaryTopic={selectedPrimaryTopic}
@@ -3393,16 +3668,11 @@ export default function CreateVisualFollowup({
               />
             </div>
 
-            {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
+            {!isConfirmed && !placeClarification && !plannerClarificationRequired && (!activeBranch || activeTopicIndex < 0) ? (
               <div className="mt-4">
                 <StructureProposalPanel
-                  onEdit={() => openCorrection("Thema")}
-                  onStartOptionalService={onStartOptionalService}
-                  onPrepareAnlassraum={onPrepareAnlassraum}
-                  onSaveOnly={onSaveOnly}
-                  onRequestEditorialReview={onRequestEditorialReview}
-                  reviewRequestState={reviewRequestState}
-                  reviewRequestMessage={reviewRequestMessage}
+                  onConfirm={onConfirm}
+                  onOpenManualTopicChooser={onOpenManualTopicChooser}
                 />
               </div>
             ) : null}
@@ -3411,18 +3681,8 @@ export default function CreateVisualFollowup({
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}
                   details={plannerClarificationDetails}
-                  startPoints={degradedStartPoints}
-                  technicalFallback={plannerTechnicalFallback}
-                  onRetryPlanner={onRetryPlanner}
-                  isRetryPlannerPending={isRetryPlannerPending}
-                  onEdit={() => openCorrection("Thema")}
+                  onConfirm={onConfirm}
                   onOpenManualTopicChooser={onOpenManualTopicChooser}
-                  onStartOptionalService={onStartOptionalService}
-                  onPrepareSubmission={onPrepareSubmission}
-                  onSaveOnly={onSaveOnly}
-                  onPrepareAnlassraum={onPrepareAnlassraum}
-                  reviewRequestState={reviewRequestState}
-                  reviewRequestMessage={reviewRequestMessage}
                 />
               </div>
             ) : null}
@@ -3481,14 +3741,15 @@ export default function CreateVisualFollowup({
             />
           ) : null}
 
-          <div className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+            {!embedInWorkspaceShell ? (
+              <div className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-[rgb(var(--fg))]"
               aria-expanded={detailsOpen}
               onClick={() => setDetailsOpen((current) => !current)}
             >
-              <span>Details ansehen</span>
+              <span>Details & Transparenz</span>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 20 20"
@@ -3506,26 +3767,26 @@ export default function CreateVisualFollowup({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                     Kompakte Einordnung
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
-                    {plannerClarificationRequired
-                      ? "Die tiefe Einordnung bleibt absichtlich zurückhaltend, bis das Thema belastbar genug gewählt ist."
-                      : `Der aktuelle Arbeitsstand bündelt ${Math.max(1, displayedBranches.length)} sichtbare Themen und ${Math.max(1, voteQuestions.length)} offene Fragen.`}
-                  </p>
-                  {plannerClarificationDetails ? (
-                    <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                      {plannerClarificationDetails}
-                    </p>
-                  ) : null}
-                  {degradedStartPoints.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {degradedStartPoints.map((label) => (
-                        <span
-                          key={`degraded-detail-start-${label}`}
-                          className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]"
-                        >
-                          {label}
-                        </span>
-                      ))}
+                  <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+                    <li>{Math.max(1, displayedBranches.length)} sichtbare Themen bleiben getrennt im Chat.</li>
+                    <li>{Math.max(1, voteQuestions.length)} offene Fragen bleiben review-first.</li>
+                    <li>Quellenprüfung startet erst nach deiner Bestätigung.</li>
+                    <li>Entwürfe bleiben unveröffentlicht und werden nicht automatisch übergeben.</li>
+                    {plannerClarificationDetails ? <li>{plannerClarificationDetails}</li> : null}
+                  </ul>
+                  {plannerClarificationRequired && onRetryPlanner ? (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={onRetryPlanner}
+                        disabled={isRetryPlannerPending}
+                        aria-disabled={isRetryPlannerPending}
+                      >
+                        {isRetryPlannerPending
+                          ? "Einordnung wird erneut versucht …"
+                          : "Einordnung erneut versuchen"}
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -3672,7 +3933,8 @@ export default function CreateVisualFollowup({
                 </div>
               </div>
             ) : null}
-          </div>
+              </div>
+            ) : null}
         </div>
       </div>
     </section>

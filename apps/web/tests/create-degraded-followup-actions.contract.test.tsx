@@ -129,18 +129,19 @@ describe("create degraded followup actions contract", () => {
     );
 
     expect(html).toContain("Ich habe diese Themen erkannt.");
-    expect(html).toContain("Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen.");
-    expect(html).toContain("Details ansehen");
-    expect(html).toContain("Hauptthema wählen");
-    expect(html).toContain("Beitrag weiterentwickeln");
-    expect(html).toContain("Quellen ergänzen");
-    expect(html).toContain("Entwurf speichern");
-    expect(html).toContain("Anlassraum vorbereiten");
-    expect(html).toContain("Thema selbst wählen");
+    expect(html).toContain("Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.");
+    expect(html).toContain("Details &amp; Transparenz");
+    expect(html).toContain("Themenstruktur bestätigen");
+    expect(html).toContain("Themen ändern");
     expect(html).toContain("Was du jetzt tun kannst");
     expect(html).toContain("Verkehrssicherheit");
     expect(html).toContain("Kita-/Schulweg &amp; Barrierefreiheit");
     expect(html).toContain("Stadtplanung &amp; Finanzierung");
+    expect(html).not.toContain("Beitrag weiterentwickeln");
+    expect(html).not.toContain("Quellen ergänzen");
+    expect(html).not.toContain("Entwurf speichern");
+    expect(html).not.toContain("Anlassraum vorbereiten");
+    expect(html).not.toContain("Thema selbst wählen");
     expect(html).not.toContain("Ich sehe einen gemeinsamen Kern.");
     expect(html).not.toContain("Einordnung erneut versuchen");
     expect(html).not.toContain("Öffentliches Anliegen</p>");
@@ -149,7 +150,7 @@ describe("create degraded followup actions contract", () => {
     expect(html).not.toContain("Faktencheck anfragen");
     expect(html).not.toContain("KI-Suche aktivieren");
     expect(html).not.toContain("Bericht an die Redaktion senden");
-    expect(html.indexOf("Hauptthema wählen")).toBeLessThan(html.indexOf("Details ansehen"));
+    expect(html.indexOf("Themenstruktur bestätigen")).toBeLessThan(html.indexOf("Details &amp; Transparenz"));
   });
 
   it("keeps retry secondary in details, shows a loading label, and keeps retry on the same planner_only route", () => {
@@ -268,7 +269,7 @@ describe("create degraded followup actions contract", () => {
       />,
     );
 
-    expect(html).toContain("Details ansehen");
+    expect(html).toContain("Details &amp; Transparenz");
     expect(html).not.toContain("Einordnung wird erneut versucht …");
 
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");

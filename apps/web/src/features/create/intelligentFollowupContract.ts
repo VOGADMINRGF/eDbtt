@@ -423,6 +423,26 @@ function resolveSectionThemeLabel(params: {
   );
 
   if (
+    /(bus|oepnv|öpnv|s-bahn|sbahn|anschluss|pendler|pendlerinnen|beschaeftigte|beschäftigte|mobilit)/.test(
+      haystack,
+    ) &&
+    /(hauptstra|hauptstrasse|hauptstraße|umbau|radweg|radverkehr|parkpla|parkplatz|parkraum|planung)/.test(
+      haystack,
+    )
+  ) {
+    if (/(s-bahn|sbahn|anschluss|pendler|beschaeftigte|beschäftigte)/.test(haystack)) {
+      return "Pendler- und Anschlussmobilität";
+    }
+    if (/(parkpla|parkplatz|parkraum|planung)/.test(haystack)) {
+      return "Parkraum und kommunale Planung";
+    }
+    if (/(hauptstra|hauptstrasse|hauptstraße|umbau|radweg|radverkehr)/.test(haystack)) {
+      return "Straßenraum und Radverkehr";
+    }
+    return "ÖPNV und Mobilität";
+  }
+
+  if (
     /(kita|schule|schulweg|hauptstra|hauptstrasse|hauptstraße|querung|haltestelle|radfahrer|gehweg|gruenflaeche|grünfläche|haushalt)/.test(
       haystack,
     ) &&
@@ -819,6 +839,51 @@ const CIVIC_SMOKE_BRANCHES_THREE: readonly CivicPriorityPreviewBranch[] = [
   },
 ] as const;
 
+const TRANSIT_STREET_PLANNING_BRANCHES_FOUR: readonly CivicPriorityPreviewBranch[] = [
+  {
+    id: "public-transit-mobility",
+    title: "ÖPNV und Mobilität",
+    topicTags: ["Bus", "ÖPNV", "Abendtakt", "Mobilität"],
+    part06CategoryKeys: ["mobility_urban", "local_community"],
+    need: "Bus-Takt, Verlässlichkeit und alltagstaugliche Mobilität bilden den ersten klaren Schwerpunkt.",
+    voteQuestion: "Welche Verbesserung im ÖPNV soll zuerst angegangen werden?",
+    openReviewPoints: ["Takt ausdünnung prüfen", "Betroffene Verbindungen benennen", "Erreichbarkeit am Abend klären"],
+  },
+  {
+    id: "street-space-cycling",
+    title: "Straßenraum und Radverkehr",
+    topicTags: ["Hauptstraße", "Umbau", "Radwege", "Straßenraum"],
+    part06CategoryKeys: ["mobility_urban", "local_community", "climate_environment"],
+    need: "Der Umbau der Hauptstraße und die Frage nach sicheren Radwegen brauchen einen eigenen Planungsstrang.",
+    voteQuestion: "Wie soll der Straßenraum beim Umbau der Hauptstraße priorisiert werden?",
+    openReviewPoints: ["Radwege konkretisieren", "Umbauziele sichtbar machen", "Sicherheitsfolgen prüfen"],
+  },
+  {
+    id: "parking-planning",
+    title: "Parkraum und kommunale Planung",
+    topicTags: ["Parkplätze", "Parkraum", "Umbau", "Planung"],
+    part06CategoryKeys: ["local_community", "budget_finance", "mobility_urban"],
+    need: "Parkplätze, Umbaufolgen und kommunale Abwägung zwischen Nutzungen müssen nachvollziehbar geplant werden.",
+    voteQuestion: "Wie soll die Kommune Parkraum und Umbauziele gegeneinander abwägen?",
+    openReviewPoints: ["Parkraumverlust prüfen", "Planungszuständigkeit klären", "Abwägung transparent machen"],
+  },
+  {
+    id: "commuter-connections",
+    title: "Pendler- und Anschlussmobilität",
+    topicTags: ["S-Bahn", "Anschluss", "Pendler", "Beschäftigte"],
+    part06CategoryKeys: ["mobility_urban", "work_economy", "local_community"],
+    need: "Anschlüsse am Abend und die Pendelrealität von Beschäftigten bleiben als eigener Mobilitätsstrang erkennbar.",
+    voteQuestion: "Wie sollen Anschlüsse für Pendlerinnen und Pendler am Abend verlässlicher werden?",
+    openReviewPoints: ["S-Bahn-Anschluss prüfen", "Arbeitswege sichtbar machen", "Anschlussverluste belegen"],
+  },
+] as const;
+
+const TRANSIT_STREET_PLANNING_BRANCHES_THREE: readonly CivicPriorityPreviewBranch[] = [
+  TRANSIT_STREET_PLANNING_BRANCHES_FOUR[0],
+  TRANSIT_STREET_PLANNING_BRANCHES_FOUR[1],
+  TRANSIT_STREET_PLANNING_BRANCHES_FOUR[2],
+] as const;
+
 function matchesCivicStreetSafetySmoke(text: string): boolean {
   const haystack = normalizeText(text);
   return (
@@ -826,6 +891,18 @@ function matchesCivicStreetSafetySmoke(text: string): boolean {
     /(hauptstra|hauptstrasse|hauptstraße|verkehr|auto|radfahrer|gehweg|querung|haltestelle)/.test(haystack) &&
     /(bauprojekt|gruenflaeche|grünfläche|gruen|grün)/.test(haystack) &&
     /(haushalt|finanz|knapp)/.test(haystack)
+  );
+}
+
+function matchesTransitStreetPlanningSmoke(text: string): boolean {
+  const haystack = normalizeText(text);
+  return (
+    /(bus|oepnv|öpnv|s-bahn|sbahn|anschluss|pendler|pendlerinnen|beschaeftigte|beschäftigte|mobilit)/.test(
+      haystack,
+    ) &&
+    /(hauptstra|hauptstrasse|hauptstraße|umbau|radweg|radverkehr|parkpla|parkplatz|parkraum|planung)/.test(
+      haystack,
+    )
   );
 }
 
@@ -855,6 +932,43 @@ function buildCivicStreetSafetySmokeBranches(
       id: definition.id,
       title: definition.title,
       topics: matchingTopics.length > 0 ? matchingTopics : [definition.title],
+      topicTags: dedupeStrings([
+        ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
+        ...definition.topicTags,
+      ]).slice(0, 6),
+      part06CategoryKeys: [...definition.part06CategoryKeys],
+      part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
+      need: definition.need,
+      claims: dedupeStrings([
+        ...result.understanding.statements
+          .map((statement) => statement.text)
+          .filter((text) => {
+            const normalized = normalizeText(text);
+            return definition.topicTags.some((tag) => normalized.includes(normalizeText(tag)));
+          }),
+        definition.need,
+      ]).slice(0, 2),
+      voteQuestions: [definition.voteQuestion],
+      openReviewPoints: [...definition.openReviewPoints],
+      positionClusters,
+    };
+  });
+}
+
+function buildTransitStreetPlanningBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number,
+): CreateStructureBranch[] {
+  const sourceText = normalizeText(result.sourceText);
+  const positionClusters = selectPositionClusters(result.understanding);
+  const definitions =
+    maxBranches >= 4 ? TRANSIT_STREET_PLANNING_BRANCHES_FOUR : TRANSIT_STREET_PLANNING_BRANCHES_THREE;
+
+  return definitions.slice(0, Math.max(1, maxBranches)).map((definition) => {
+    return {
+      id: definition.id,
+      title: definition.title,
+      topics: [definition.title],
       topicTags: dedupeStrings([
         ...definition.topicTags.filter((tag) => sourceText.includes(normalizeText(tag))),
         ...definition.topicTags,
@@ -1016,6 +1130,10 @@ export function buildCreateStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number = 3,
 ): CreateStructureBranch[] {
+  if (matchesTransitStreetPlanningSmoke(result.sourceText)) {
+    return buildTransitStreetPlanningBranches(result, maxBranches);
+  }
+
   const plannerBranches = buildPlannerStructureBranches(result, maxBranches);
   if (plannerBranches.length > 0) {
     const overflowTopics = collectUnassignedCreateTopics({
