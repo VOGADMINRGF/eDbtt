@@ -116,4 +116,35 @@ describe("VoxyGuide render contract", () => {
     expect(clientSource).not.toContain('variant="createGuideLight"');
     expect(followupSource).not.toContain('variant="createGuideLight"');
   });
+
+  it("keeps create avatars on the canonical high-resolution asset with contain sizing", () => {
+    const guideSource = readFileSync(resolve(process.cwd(), "src/components/voxy/VoxyGuide.tsx"), "utf8");
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const shellSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"),
+      "utf8",
+    );
+
+    expect(guideSource).toContain("object-contain");
+    expect(guideSource).toContain("sizes={");
+    expect(guideSource).not.toContain("object-cover");
+
+    expect(clientSource).toContain('variant="presenting"');
+    expect(shellSource).toContain('variant="presenting"');
+    expect(followupSource).toContain('variant="presenting"');
+
+    expect(clientSource).not.toContain('variant="miniAvatar"');
+    expect(shellSource).not.toContain('variant="miniAvatar"');
+    expect(followupSource).not.toContain('variant="miniAvatar"');
+    expect(clientSource).not.toContain('variant="createGuideDark"');
+    expect(shellSource).not.toContain('variant="createGuideDark"');
+    expect(followupSource).not.toContain('variant="createGuideDark"');
+  });
 });

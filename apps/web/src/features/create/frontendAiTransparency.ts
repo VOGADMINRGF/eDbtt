@@ -9,6 +9,7 @@ import {
   type CreateAnalyzeRuntimeTrace,
   type CreatePlannerRuntimeTrace,
 } from "@/features/create/aiOrchestrationProvenanceTrace";
+import type { CreateAnalysisState } from "@/features/create/intelligentFollowupContract";
 import type { CreateIntakeContext } from "@/features/create/intakeContext";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
@@ -66,6 +67,8 @@ export type CreateFrontendAiTransparencyInput = {
   plannerTrace?: CreatePlannerRuntimeTrace | null;
   analyzeTrace?: CreateAnalyzeRuntimeTrace | null;
   materialItems?: NormalizedMaterialItem[] | null;
+  analysisState?: CreateAnalysisState | null;
+  hasValidatedSemanticResult?: boolean;
   hasCandidatePreview?: boolean;
   hasCandidateReviewHandoff?: boolean;
   hasClaimToDossierPipeline?: boolean;
@@ -150,11 +153,18 @@ export function buildCreateFrontendAiTransparencyReadModel(
   input: CreateFrontendAiTransparencyInput,
 ): FrontendAiTransparencyReadModel {
   const plannerStatus: FrontendAiTransparencyStatus =
-    input.isStarting || input.isRetryPlannerPending
+    input.isStarting ||
+    input.isRetryPlannerPending ||
+    input.analysisState === "fetching" ||
+    input.analysisState === "ai_analyzing"
       ? "running"
-      : input.hasIntelligentFollowup
+      : input.hasValidatedSemanticResult
         ? "completed"
-        : "not_started";
+        : input.analysisState === "fetch_failed" || input.analysisState === "ai_failed"
+          ? "review_required"
+          : input.hasStarted
+            ? "planned_not_active"
+            : "not_started";
   const analyzeStatus: FrontendAiTransparencyStatus = input.showAnalyzeWorkspace
     ? "running"
     : "planned_not_active";
@@ -199,8 +209,12 @@ export function buildCreateFrontendAiTransparencyReadModel(
           plannerStatus === "running"
             ? `${input.startBusyStatusLabel} Ergebnis bleibt ein Entwurf und braucht weiter deine Bestätigung.`
             : plannerStatus === "completed"
-              ? "Die Einordnung und die nächsten Vorschläge wurden als Entwurf vorbereitet."
-              : "Startet erst, wenn du den KI-gestützten Schritt bewusst auslöst.",
+              ? "Die validierte Einordnung und die nächsten Vorschläge wurden als Entwurf vorbereitet."
+              : plannerStatus === "review_required"
+                ? "Die Analyse konnte noch nicht valide abgeschlossen werden. Es wurden keine semantischen Kandidaten oder Handoffs vorbereitet."
+                : input.hasStarted
+                  ? "Belastbare Themen, Handoffs und Folgepfade erscheinen erst nach einer validierten Analyse."
+                  : "Startet erst, wenn du den KI-gestützten Schritt bewusst auslöst.",
       },
       {
         id: "analyze_workspace",
@@ -236,7 +250,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
               : input.hasCandidateReviewHandoff
                 ? "Die review-first Kandidatenvorschau ist sichtbar und als typed Review-Handoff für den bestehenden Create-Handoff-Kontext vorbereitet. Es gibt dabei keine bestätigte Persistenz, keinen Auto-Publish und keinen Graph-Write."
                 : "Eine review-first Kandidatenvorschau ist sichtbar. Sie bleibt Preview-only, schreibt nichts automatisch und veröffentlicht nichts."
-            : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
+            : input.hasStarted
+              ? "Claims, Handoffs und Folgepfade bleiben gesperrt, bis ein validiertes KI-Ergebnis mit belastbarer Meta vorliegt."
+              : "Folgepfade wie Claims, Umfragen, Feed-Anreicherung, Social-Drafts oder Voxy-Briefings entstehen erst später über separate Review- und Runtime-Schritte.",
       },
       {
         id: "feed_enrichment_suggestions",
@@ -245,7 +261,9 @@ export function buildCreateFrontendAiTransparencyReadModel(
         detail:
           feedEnrichmentStatus === "review_required"
             ? "Vorhandene Quellen-, Feed-, Material- und Evidenzhinweise werden nur als review-first Vorschläge sichtbar. Es startet weder DeepSearch noch Faktencheck noch Veröffentlichung automatisch; fehlende Quellwahrheit bleibt explizit `missing_source_truth` oder `missing_runtime_truth`."
-            : "Quellen- und Feed-Anreicherung bleibt geplant, bis echte Runtime-Hinweise sichtbar vorliegen.",
+            : input.hasStarted
+              ? "Quellen- und Feed-Anreicherung bleibt gesperrt, bis ein validiertes Analyseergebnis echte Runtime-Hinweise freigibt."
+              : "Quellen- und Feed-Anreicherung bleibt geplant, bis echte Runtime-Hinweise sichtbar vorliegen.",
       },
     ],
     traceSteps: buildCreateAiOrchestrationProvenanceTrace({

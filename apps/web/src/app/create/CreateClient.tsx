@@ -46,7 +46,10 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import FrontendAiTransparencyPanel from "@/features/create/FrontendAiTransparencyPanel";
 import { buildCreateFrontendAiTransparencyReadModel } from "@/features/create/frontendAiTransparency";
-import { buildCreateCandidatePreviewReadModel } from "@/features/create/createCandidatePreview";
+import {
+  buildCreateCandidatePreviewReadModel,
+  hasValidatedCreateSemanticOutput,
+} from "@/features/create/createCandidatePreview";
 import CreateWorkspaceShell from "@/features/create/CreateWorkspaceShell";
 import type { CreateWorkspaceShellPhase } from "@/features/create/CreateWorkspaceShell";
 import type {
@@ -1648,6 +1651,9 @@ export default function CreateClient({
           plannerTrace,
           analyzeTrace,
           materialItems: currentMaterialRouting.materialItems,
+          analysisState: intelligentFollowup?.meta?.analysis?.state ?? null,
+          hasValidatedSemanticResult:
+            candidatePreview.availability.kind === "semantic_preview_ready",
           hasCandidatePreview: candidatePreview.hasPreview,
           hasCandidateReviewHandoff: candidatePreview.reviewHandoff.hasPreparedHandoff,
           hasClaimToDossierPipeline:
@@ -1906,7 +1912,7 @@ export default function CreateClient({
   const navigateWithCreateHandoff = React.useCallback(
     async (selectedAction: CreateHandoffAction, baseHref: string) => {
       if (!privacyGate.ensureActiveProcessingAllowed(`create-handoff:${selectedAction}`)) return;
-      if (!intelligentFollowup?.meta?.planner || !intelligentFollowup?.meta?.graphMatch) {
+      if (!hasValidatedCreateSemanticOutput(intelligentFollowup)) {
         setActionNotice("Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.");
         return;
       }
