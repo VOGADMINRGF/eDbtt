@@ -14,6 +14,7 @@ import {
   buildCreateVisualMap,
   buildCreateVisualSections,
 } from "@/features/create/intelligentFollowupContract";
+import { buildCreateValidatedDocumentFollowup } from "@/features/create/intelligentFollowupResults";
 
 describe("create intelligent follow-up contract", () => {
   beforeEach(() => {
@@ -207,5 +208,46 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions).toEqual([]);
     expect(result.meta?.graphMatch.prepared).toBe(false);
     expect(buildCreateStructureBranches(result, 3)).toEqual([]);
+  });
+
+  it("normalizes validated document analyses to the real topic objects", () => {
+    const result = buildCreateValidatedDocumentFollowup({
+      text: "https://example.com/grundsatzprogramm.pdf",
+      sourceUrl: "https://example.com/grundsatzprogramm.pdf",
+      documentAnalysis: {
+        sourceUrl: "https://example.com/grundsatzprogramm.pdf",
+        documentTitle: "Grundsatzprogramm",
+        documentType: "party_program",
+        pageCount: 78,
+        wordCount: 18000,
+        topicCount: 12,
+        subtopicCount: 18,
+        keyStatementCount: 24,
+        verifiableClaimCount: 6,
+        policyProposalCount: 4,
+        subjectBreadth: "broad",
+        subjectDepth: "mixed",
+        balanceAssessment: "programmatic",
+        sourceSpecificity: "partly_specific",
+        sourceVerificationStatus: "not_started",
+        counterpositionCoverage: "weak",
+        summary: "Die Analyse zeigt mehrere Themenstränge im Dokument.",
+        topics: [
+          { id: "topic-1", label: "ÖPNV und Mobilität", subtopicCount: 4, keyStatementCount: 8, summary: "ÖPNV im Fokus." },
+          { id: "topic-2", label: "Straßenraum und Radverkehr", subtopicCount: 3, keyStatementCount: 7, summary: "Straßenraum und Radwege." },
+          { id: "topic-3", label: "Parkraum und kommunale Planung", subtopicCount: 2, keyStatementCount: 5, summary: "Parken und Planung." },
+        ],
+      },
+      generatedAt: "2026-07-18T11:00:00.000Z",
+    });
+
+    expect(result.meta?.documentAnalysis?.topicCount).toBe(3);
+    expect(result.meta?.documentAnalysis?.topics).toHaveLength(3);
+    expect(result.understanding.topics.map((topic) => topic.label)).toEqual([
+      "ÖPNV und Mobilität",
+      "Straßenraum und Radverkehr",
+      "Parkraum und kommunale Planung",
+    ]);
+    expect(buildCreateStructureBranches(result, 12)).toHaveLength(3);
   });
 });

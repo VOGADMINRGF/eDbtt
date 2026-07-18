@@ -7,6 +7,7 @@ import type {
   DocumentAnalysisSummary,
   FollowupConfidence,
 } from "@/features/create/intelligentFollowupContract";
+import { normalizeDocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
 
 export type BuildCreateTechnicalFollowupInput = {
   text: string;
@@ -44,21 +45,22 @@ function buildSourceContentHash(text: string): string {
 function buildUnderstandingFromDocumentAnalysis(
   analysis: DocumentAnalysisSummary,
 ): CreateUnderstandingResult {
-  const topics = analysis.topics.slice(0, 12).map((topic, index) => ({
+  const normalizedAnalysis = normalizeDocumentAnalysisSummary(analysis);
+  const topics = normalizedAnalysis.topics.map((topic, index) => ({
     id: topic.id || `topic-${index + 1}`,
     label: topic.label,
     confidence: normalizeConfidence(index === 0 ? 0.88 : 0.6),
   }));
 
   return {
-    summary: analysis.summary,
+    summary: normalizedAnalysis.summary,
     categories: [],
     topics,
-    statements: analysis.summary.trim()
+    statements: normalizedAnalysis.summary.trim()
       ? [
           {
             id: "document-summary",
-            text: analysis.summary.trim(),
+            text: normalizedAnalysis.summary.trim(),
             kind: "claim",
             stance: "open",
             confidence: "medium",
@@ -155,6 +157,9 @@ export function buildCreateTechnicalFollowup(
 ): CreateIntelligentFollowupResult {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const planner = input.planner ?? null;
+  const documentAnalysis = input.documentAnalysis
+    ? normalizeDocumentAnalysisSummary(input.documentAnalysis)
+    : null;
 
   return {
     understanding: buildEmptyUnderstanding(input.userMessage),
@@ -187,7 +192,7 @@ export function buildCreateTechnicalFollowup(
         sourceLoaded: input.sourceLoaded,
         userMessage: input.userMessage,
       },
-      documentAnalysis: input.documentAnalysis ?? null,
+      documentAnalysis,
     },
     degraded:
       input.analysisState !== "analysis_validated" &&
@@ -205,7 +210,8 @@ export function buildCreateValidatedDocumentFollowup(
   input: BuildCreateValidatedDocumentFollowupInput,
 ): CreateIntelligentFollowupResult {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  const understanding = buildUnderstandingFromDocumentAnalysis(input.documentAnalysis);
+  const documentAnalysis = normalizeDocumentAnalysisSummary(input.documentAnalysis);
+  const understanding = buildUnderstandingFromDocumentAnalysis(documentAnalysis);
 
   return {
     understanding,
@@ -233,7 +239,7 @@ export function buildCreateValidatedDocumentFollowup(
         sourceLoaded: true,
         userMessage: null,
       },
-      documentAnalysis: input.documentAnalysis,
+      documentAnalysis,
     },
     degraded: false,
     degradedReason: null,

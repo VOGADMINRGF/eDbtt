@@ -7,6 +7,7 @@ import {
   buildCreateStructureBranches,
   dedupeCreateFollowupSections,
   deriveDominantUnderstandingStance,
+  normalizeDocumentAnalysisSummary,
   type DocumentAnalysisSummary,
   type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
@@ -1528,6 +1529,7 @@ function InlineStructureSummary(props: {
   visibleTopicCount: number;
   hiddenTopicCount: number;
   nextStepLabel: string;
+  modeLabel?: string;
 }) {
   const hiddenTopicLabel =
     props.hiddenTopicCount === 1
@@ -1539,7 +1541,7 @@ function InlineStructureSummary(props: {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[1rem] font-semibold text-[rgb(var(--fg))]">Deine Struktur</p>
         <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[12px] font-medium text-[rgb(var(--muted))]">
-          kompakt
+          {props.modeLabel ?? "kompakt"}
         </span>
       </div>
       <div className="flex flex-wrap gap-2.5">
@@ -1619,12 +1621,13 @@ function DocumentAnalysisBubble(props: {
   analysis: DocumentAnalysisSummary;
   onOpenTopics?: () => void;
 }) {
+  const analysis = normalizeDocumentAnalysisSummary(props.analysis);
   const metrics = [
-    props.analysis.pageCount !== null
-      ? formatDocumentMetric(props.analysis.pageCount, "Seite", "Seiten")
+    analysis.pageCount !== null
+      ? formatDocumentMetric(analysis.pageCount, "Seite", "Seiten")
       : null,
-    formatDocumentMetric(props.analysis.topicCount, "Thema", "Themen"),
-    formatDocumentMetric(props.analysis.subtopicCount, "Unterthema", "Unterthemen"),
+    formatDocumentMetric(analysis.topicCount, "Thema", "Themen"),
+    formatDocumentMetric(analysis.subtopicCount, "Unterthema", "Unterthemen"),
   ].filter(Boolean) as string[];
 
   return (
@@ -1644,10 +1647,10 @@ function DocumentAnalysisBubble(props: {
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">Dokument erkannt</p>
           <p className="mt-1.5 text-[1.35rem] font-semibold tracking-[-0.01em] text-cyan-950 md:text-[1.6rem] dark:text-cyan-50">
-            {props.analysis.documentTitle?.trim() || "Dokument"}
+            {analysis.documentTitle?.trim() || "Dokument"}
           </p>
           <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
-            {resolveDocumentTypeLead(props.analysis.documentType)}
+            {resolveDocumentTypeLead(analysis.documentType)}
           </p>
           {metrics.length > 0 ? (
             <p className="mt-2 text-[15px] leading-relaxed text-cyan-900/85 md:text-base dark:text-cyan-100/85">
@@ -1658,11 +1661,11 @@ function DocumentAnalysisBubble(props: {
             <div className="rounded-[24px] border border-cyan-200/45 bg-cyan-500/[0.07] px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Erkannt wurden</p>
               <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">
-                <li>{formatDocumentMetric(props.analysis.topicCount, "Themenbereich", "Themenbereiche")}</li>
-                <li>{formatDocumentMetric(props.analysis.subtopicCount, "Unterthema", "Unterthemen")}</li>
-                <li>{formatDocumentMetric(props.analysis.keyStatementCount, "Kernaussage", "Kernaussagen")}</li>
-                <li>{formatDocumentMetric(props.analysis.verifiableClaimCount, "überprüfbare Tatsachenbehauptung", "überprüfbare Tatsachenbehauptungen")}</li>
-                <li>{formatDocumentMetric(props.analysis.policyProposalCount, "politisches Vorhaben", "politische Vorhaben")}</li>
+                <li>{formatDocumentMetric(analysis.topicCount, "Themenbereich", "Themenbereiche")}</li>
+                <li>{formatDocumentMetric(analysis.subtopicCount, "Unterthema", "Unterthemen")}</li>
+                <li>{formatDocumentMetric(analysis.keyStatementCount, "Kernaussage", "Kernaussagen")}</li>
+                <li>{formatDocumentMetric(analysis.verifiableClaimCount, "überprüfbare Tatsachenbehauptung", "überprüfbare Tatsachenbehauptungen")}</li>
+                <li>{formatDocumentMetric(analysis.policyProposalCount, "politisches Vorhaben", "politische Vorhaben")}</li>
               </ul>
             </div>
             <div className="rounded-[24px] border border-slate-200/40 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
@@ -1670,23 +1673,23 @@ function DocumentAnalysisBubble(props: {
               <dl className="mt-3 space-y-1.5 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">
                 <div className="flex items-start justify-between gap-3">
                   <dt>Fachliche Tiefe</dt>
-                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.subjectDepth)}</dd>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(analysis.subjectDepth)}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <dt>Ausgewogenheit</dt>
-                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.balanceAssessment)}</dd>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(analysis.balanceAssessment)}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <dt>Quellenangaben</dt>
-                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.sourceSpecificity)}</dd>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(analysis.sourceSpecificity)}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <dt>Gegenpositionen</dt>
-                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.counterpositionCoverage)}</dd>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(analysis.counterpositionCoverage)}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <dt>Quellenprüfung</dt>
-                  <dd className="text-right">{resolveDocumentAnalysisLabel(props.analysis.sourceVerificationStatus)}</dd>
+                  <dd className="text-right">{resolveDocumentAnalysisLabel(analysis.sourceVerificationStatus)}</dd>
                 </div>
               </dl>
             </div>
@@ -1694,7 +1697,7 @@ function DocumentAnalysisBubble(props: {
           <div className="mt-5 rounded-[24px] border border-slate-200/40 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Kurzfassung</p>
             <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 dark:text-cyan-50">
-              {props.analysis.summary}
+              {analysis.summary}
             </p>
           </div>
           {props.onOpenTopics ? (
@@ -2155,6 +2158,7 @@ function TopicBranchPreviewGrid(props: {
   rootTopic: string;
   branches: CreateStructureBranch[];
   totalTopicCount: number;
+  sourceKind?: "contribution" | "document";
   activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
   groupedTopicLabels?: string[];
@@ -2166,22 +2170,35 @@ function TopicBranchPreviewGrid(props: {
   onParkTopic?: (topicLabel: string) => void;
 }) {
   if (props.branches.length === 0) return null;
+  const isDocumentSource = props.sourceKind === "document";
+  const showsAllTopics = props.branches.length >= props.totalTopicCount;
+  const leadText = isDocumentSource
+    ? `Die Analyse hat ${props.totalTopicCount} Themenbereiche erkannt. ${showsAllTopics ? `Alle ${props.totalTopicCount} Themen sind geöffnet.` : `${props.branches.length} von ${props.totalTopicCount} Themen sichtbar.`}`
+    : `Aus „${props.rootTopic}“ erkenne ich ${props.totalTopicCount} Themen. ${props.branches.length} davon sind gerade sichtbar. Ein Klick öffnet den Fokus direkt im Chat.`;
 
   return (
     <div data-create-topic-branches className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">3 · Themenstruktur</p>
-          <p className="mt-1 text-[1.02rem] font-semibold text-[rgb(var(--fg))]">Erkannte Themen</p>
+          <p className="mt-1 text-[1.02rem] font-semibold text-[rgb(var(--fg))]">
+            {isDocumentSource ? "Im Dokument erkannt" : "Erkannte Themen"}
+          </p>
           <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Aus „{props.rootTopic}“ erkenne ich {props.totalTopicCount} Themen. {props.branches.length} davon sind gerade sichtbar. Ein Klick öffnet den Fokus direkt im Chat.
+            {leadText}
           </p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))]">
-          aus deinem Beitrag erkannt
+          {isDocumentSource ? "im Dokument erkannt" : "aus deinem Beitrag erkannt"}
         </span>
       </div>
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div
+        data-create-topic-grid
+        data-grid-mobile-columns="1"
+        data-grid-tablet-columns="2"
+        data-grid-desktop-columns="3"
+        className="grid gap-3 md:grid-cols-2 lg:grid-cols-3"
+      >
         {props.branches.map((branch, index) => (
           <article
             key={branch.id}
@@ -2190,7 +2207,7 @@ function TopicBranchPreviewGrid(props: {
             data-selected-primary-topic={props.selectedPrimaryTopic === branch.title ? "true" : undefined}
             data-grouped-topic={props.groupedTopicLabels?.includes(branch.title) ? "true" : undefined}
             data-parked-topic={props.parkedTopicLabels?.includes(branch.title) ? "true" : undefined}
-            className={`rounded-[1.75rem] border px-5 py-5 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
+            className={`rounded-[1.6rem] border px-4 py-4 shadow-[0_18px_40px_rgba(8,145,178,0.08)] dark:bg-[linear-gradient(180deg,rgba(10,29,52,0.94),rgba(12,24,45,0.98))] ${
               props.activeTopicLabel === branch.title || props.selectedPrimaryTopic === branch.title
                 ? "border-cyan-400/75 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--grad-from))_26%),color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%))] ring-2 ring-cyan-300/35 dark:border-cyan-300/55"
                 : props.groupedTopicLabels?.includes(branch.title)
@@ -2201,14 +2218,14 @@ function TopicBranchPreviewGrid(props: {
             }`}
           >
             {(() => {
-              const referencePoints = dedupeLabelsCaseInsensitive([
-                ...branch.openReviewPoints,
-                ...branch.topicTags,
-              ]).slice(0, 4);
+              const referencePoints = dedupeLabelsCaseInsensitive(
+                isDocumentSource ? branch.topicTags : [...branch.openReviewPoints, ...branch.topicTags],
+              ).slice(0, 4);
               const isSelected = props.selectedPrimaryTopic === branch.title;
               const isActive = props.activeTopicLabel === branch.title;
               const isGrouped = props.groupedTopicLabels?.includes(branch.title) ?? false;
               const isParked = props.parkedTopicLabels?.includes(branch.title) ?? false;
+              const visibleMetrics = dedupeLabelsCaseInsensitive(branch.subtopics).slice(0, 2);
               const recommendedAction = isSelected
                 ? "Dieses Thema ist bestätigt und bleibt gerade dein Fokus."
                 : isActive
@@ -2240,8 +2257,9 @@ function TopicBranchPreviewGrid(props: {
                     className="mt-3 w-full text-left"
                     onClick={() => props.onFocusTopic?.(branch.title)}
                     aria-pressed={isActive}
+                    aria-label={`Thema ${branch.title} fokussieren`}
                   >
-                    <p className="text-[1.28rem] font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--fg))]">{branch.title}</p>
+                    <p className="text-[1.15rem] font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--fg))]">{branch.title}</p>
                     <p className="mt-2.5 text-[15px] leading-relaxed text-[rgb(var(--muted))]">
                       {branch.need || branch.claims[0] || "Dieses Thema bleibt als eigenständiger Arbeitsstrang sichtbar."}
                     </p>
@@ -2269,7 +2287,9 @@ function TopicBranchPreviewGrid(props: {
                     </p>
                     <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">{recommendedAction}</p>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {branch.subtopics.length} Unterthemen · {branch.evidenceSnippets.length} Belegstellen
+                      {visibleMetrics.length > 0
+                        ? visibleMetrics.join(" · ")
+                        : `${branch.evidenceSnippets.length} Belegstellen`}
                     </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2.5">
@@ -2278,6 +2298,7 @@ function TopicBranchPreviewGrid(props: {
                       className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] transition hover:border-cyan-300/55 hover:text-[rgb(var(--fg))]"
                       onClick={() => props.onParkTopic?.(branch.title)}
                       aria-pressed={isParked}
+                      aria-label={`Thema ${branch.title} als Zweig parken`}
                     >
                       {isParked ? "Als Zweig geparkt" : "Thema parken"}
                     </button>
@@ -3252,17 +3273,32 @@ export default function CreateVisualFollowup({
     compactBranchLimit,
     expandedBranchLimitProp ?? compactBranchLimit,
   );
+  const documentAnalysis = React.useMemo(
+    () => (result.meta?.documentAnalysis ? normalizeDocumentAnalysisSummary(result.meta.documentAnalysis) : null),
+    [result.meta?.documentAnalysis],
+  );
+  const documentTopicCount = documentAnalysis?.topicCount ?? 0;
   const compactStructureBranches = React.useMemo(
     () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, compactBranchLimit) : []),
     [compactBranchLimit, hasValidatedAnalysis, result],
   );
+  const fullStructureBranchLimit = documentAnalysis
+    ? Math.max(1, documentTopicCount)
+    : expandedBranchLimit;
   const fullStructureBranches = React.useMemo(
-    () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, expandedBranchLimit) : []),
-    [expandedBranchLimit, hasValidatedAnalysis, result],
+    () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, fullStructureBranchLimit) : []),
+    [fullStructureBranchLimit, hasValidatedAnalysis, result],
   );
-  const structureBranches = showExpandedTopicPreview ? fullStructureBranches : compactStructureBranches;
+  const structureBranches =
+    documentAnalysis && documentTopicOverviewOpened
+      ? fullStructureBranches
+      : showExpandedTopicPreview
+        ? fullStructureBranches
+        : compactStructureBranches;
   const semanticTopicLabels =
-    fullStructureBranches.length > 0
+    documentTopicCount > 0
+      ? documentAnalysis?.topics.map((topic) => topic.label) ?? topicLabels
+      : fullStructureBranches.length > 0
       ? fullStructureBranches.map((branch) => branch.title)
       : topicLabels;
   const multiTopicActionTopics = React.useMemo(() => buildMultiTopicActionTopics(result), [result]);
@@ -3295,16 +3331,18 @@ export default function CreateVisualFollowup({
   const plannerProvisionalNotice = hasValidatedAnalysis ? resolvePlannerProvisionalNotice(result) : null;
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const plannerTechnicalFallback = hasValidatedAnalysis ? isTechnicalPlannerFallback(result) : true;
-  const documentAnalysis = result.meta?.documentAnalysis ?? null;
   const showDocumentTopicOverview = hasValidatedAnalysis && (!documentAnalysis || documentTopicOverviewOpened);
   const fallbackBranches = React.useMemo(
     () => (plannerClarificationRequired ? buildDeterministicFallbackBranches(result) : []),
     [plannerClarificationRequired, result],
   );
-  const structureOverflowCount = Math.max(
-    0,
-    fullStructureBranches.length - compactBranchLimit,
-  );
+  const totalStructureTopicCount = documentAnalysis
+    ? documentTopicCount
+    : Math.max(fullStructureBranches.length, result.understanding.topics.length);
+  const structureOverflowCount =
+    plannerClarificationRequired && (plannerTechnicalFallback || structureBranches.length === 0)
+      ? 0
+      : Math.max(0, totalStructureTopicCount - structureBranches.length);
   const displayedBranches =
     plannerClarificationRequired && (plannerTechnicalFallback || structureBranches.length === 0)
       ? fallbackBranches
@@ -3444,17 +3482,23 @@ export default function CreateVisualFollowup({
     () => [
         {
           label: "Prioritäten",
-          value: String(hasValidatedAnalysis ? Math.max(1, Math.min(topicLabels.length, 3)) : 0),
+          value: String(
+            hasValidatedAnalysis
+              ? documentAnalysis
+                ? documentTopicCount
+                : Math.max(0, Math.min(topicLabels.length, 3))
+              : 0,
+          ),
           detail: "Was du zuerst schärfen solltest",
         },
         {
           label: "Themen",
-          value: String(hasValidatedAnalysis ? Math.max(1, fullStructureBranches.length) : 0),
+          value: String(hasValidatedAnalysis ? totalStructureTopicCount : 0),
           detail: "Sichtbar getrennte Schwerpunkte",
         },
       {
         label: "Offene Fragen",
-        value: String(hasValidatedAnalysis ? Math.max(1, voteQuestions.length) : 0),
+        value: String(hasValidatedAnalysis ? voteQuestions.length : 0),
         detail: "Bleiben review-first sichtbar",
       },
         {
@@ -3482,14 +3526,15 @@ export default function CreateVisualFollowup({
     [
       activeBranch,
       isConfirmed,
-      displayedBranches.length,
-      fullStructureBranches.length,
+      documentAnalysis,
+      documentTopicCount,
       groupedTopicLabels.length,
       plannerClarificationRequired,
       hasValidatedAnalysis,
       analysisState,
       selectedPrimaryTopic,
       showMultiTopicActionPanel,
+      totalStructureTopicCount,
       topicLabels.length,
       voteQuestions.length,
     ],
@@ -3500,6 +3545,7 @@ export default function CreateVisualFollowup({
     !hasValidatedAnalysis &&
     (analysisState === "link_detected" || analysisState === "entitlement_required");
   const showTopicExpansionPrompt =
+    !documentAnalysis &&
     showDocumentTopicOverview &&
     (showLinkReviewPrompt || structureOverflowCount > 0) &&
     topicExpansionDecision === "idle";
@@ -3779,16 +3825,21 @@ export default function CreateVisualFollowup({
                     visibleTopicCount={Math.max(1, displayedBranches.length)}
                     hiddenTopicCount={structureOverflowCount}
                     nextStepLabel={inlineNextStepLabel}
+                    modeLabel={
+                      documentAnalysis && showDocumentTopicOverview
+                        ? "vollständig"
+                        : showExpandedTopicPreview
+                          ? "erweitert"
+                          : "kompakt"
+                    }
                   />
                   {plannerClarificationRequired ? (
                     <div className="mt-4">
                       <TopicBranchPreviewGrid
                         rootTopic={rootTopic}
                         branches={displayedBranches}
-                        totalTopicCount={Math.max(
-                          fullStructureBranches.length,
-                          displayedBranches.length,
-                        )}
+                        totalTopicCount={Math.max(totalStructureTopicCount, displayedBranches.length)}
+                        sourceKind={documentAnalysis ? "document" : "contribution"}
                         activeTopicLabel={activeTopicLabel}
                         selectedPrimaryTopic={selectedPrimaryTopic}
                         groupedTopicLabels={groupedTopicLabels}
@@ -3805,10 +3856,8 @@ export default function CreateVisualFollowup({
                       <TopicBranchPreviewGrid
                         rootTopic={rootTopic}
                         branches={displayedBranches}
-                        totalTopicCount={Math.max(
-                          fullStructureBranches.length,
-                          displayedBranches.length,
-                        )}
+                        totalTopicCount={Math.max(totalStructureTopicCount, displayedBranches.length)}
+                        sourceKind={documentAnalysis ? "document" : "contribution"}
                         activeTopicLabel={activeTopicLabel}
                         selectedPrimaryTopic={selectedPrimaryTopic}
                         groupedTopicLabels={groupedTopicLabels}

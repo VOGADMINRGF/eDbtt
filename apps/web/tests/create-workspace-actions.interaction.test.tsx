@@ -197,7 +197,16 @@ function buildValidatedTopicResult(): CreateIntelligentFollowupResult {
   };
 }
 
-function buildDocumentAnalysis(): DocumentAnalysisSummary {
+function buildDocumentAnalysis(
+  overrides: Partial<DocumentAnalysisSummary> = {},
+): DocumentAnalysisSummary {
+  const baseTopics = [
+    { id: "topic-1", label: "Wirtschaft & Steuern", subtopicCount: 5, keyStatementCount: 20, verifiableClaimCount: 7, policyProposalCount: 3, summary: "Wirtschaftspolitische Leitlinien." },
+    { id: "topic-2", label: "Arbeit & Soziales", subtopicCount: 4, keyStatementCount: 18, verifiableClaimCount: 6, policyProposalCount: 2, summary: "Arbeitsmarkt und Sozialstaat." },
+    { id: "topic-3", label: "Bildung & Forschung", subtopicCount: 4, keyStatementCount: 16, verifiableClaimCount: 5, policyProposalCount: 3, summary: "Bildungspolitische Schwerpunkte." },
+    { id: "topic-4", label: "Staat & Verwaltung", subtopicCount: 5, keyStatementCount: 21, verifiableClaimCount: 13, policyProposalCount: 4, summary: "Verwaltungsmodernisierung." },
+  ];
+
   return {
     sourceUrl: "https://example.com/fdp-programm.pdf",
     documentTitle: "Grundsatzprogramm der FDP",
@@ -217,21 +226,38 @@ function buildDocumentAnalysis(): DocumentAnalysisSummary {
     counterpositionCoverage: "weak",
     summary:
       "Das Programm verbindet wirtschaftliche Liberalisierung, Digitalisierung, Bürgerrechte und staatliche Modernisierung.",
-    topics: [
-      { id: "topic-1", label: "Wirtschaft & Steuern", subtopicCount: 5, keyStatementCount: 20, verifiableClaimCount: 7, policyProposalCount: 3, summary: "Wirtschaftspolitische Leitlinien." },
-      { id: "topic-2", label: "Arbeit & Soziales", subtopicCount: 4, keyStatementCount: 18, verifiableClaimCount: 6, policyProposalCount: 2, summary: "Arbeitsmarkt und Sozialstaat." },
-      { id: "topic-3", label: "Bildung & Forschung", subtopicCount: 4, keyStatementCount: 16, verifiableClaimCount: 5, policyProposalCount: 3, summary: "Bildungspolitische Schwerpunkte." },
-      { id: "topic-4", label: "Staat & Verwaltung", subtopicCount: 5, keyStatementCount: 21, verifiableClaimCount: 13, policyProposalCount: 4, summary: "Verwaltungsmodernisierung." },
-    ],
+    topics: baseTopics,
+    ...overrides,
   };
 }
 
-function buildDocumentResult() {
+function buildDocumentResult(documentAnalysis: DocumentAnalysisSummary = buildDocumentAnalysis()) {
   return buildCreateValidatedDocumentFollowup({
     text: "https://example.com/fdp-programm.pdf",
     sourceUrl: "https://example.com/fdp-programm.pdf",
-    documentAnalysis: buildDocumentAnalysis(),
+    documentAnalysis,
     generatedAt: "2026-07-18T11:00:00.000Z",
+  });
+}
+
+function buildDocumentAnalysisWithTopicCount(topicCount: number): DocumentAnalysisSummary {
+  const topics = Array.from({ length: topicCount }, (_, index) => ({
+    id: `topic-${index + 1}`,
+    label: `Dokumentthema ${index + 1}`,
+    subtopicCount: index % 2 === 0 ? 2 : 1,
+    keyStatementCount: 3 + (index % 3),
+    verifiableClaimCount: index % 4,
+    policyProposalCount: index % 2,
+    summary: `Kurzfassung für Dokumentthema ${index + 1}.`,
+  }));
+
+  return buildDocumentAnalysis({
+    topicCount,
+    subtopicCount: topics.reduce((sum, topic) => sum + (topic.subtopicCount ?? 0), 0),
+    keyStatementCount: topics.reduce((sum, topic) => sum + (topic.keyStatementCount ?? 0), 0),
+    verifiableClaimCount: topics.reduce((sum, topic) => sum + (topic.verifiableClaimCount ?? 0), 0),
+    policyProposalCount: topics.reduce((sum, topic) => sum + (topic.policyProposalCount ?? 0), 0),
+    topics,
   });
 }
 
@@ -315,7 +341,9 @@ function Harness(props: {
         }}
         onOpenDocumentTopicOverview={() => {
           setDocumentTopicOverviewOpened(true);
-          setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
+          setShowExpandedTopicPreview(true);
+          setTopicExpansionDecision("expanded");
+          setActionNotice("Alle erkannten Themen sind jetzt geöffnet.");
         }}
         onPrepareLinkReview={() => {
           const state = result.meta?.analysis?.state;
@@ -436,9 +464,57 @@ describe("create workspace actions interaction", () => {
 
     await user.click(screen.getByRole("button", { name: "Themenübersicht öffnen" }));
 
-    expect(screen.getByText("Ich habe 4 Themenbereiche und 18 Unterthemen erkannt. Drei zeige ich dir als Einstieg.")).toBeTruthy();
+    expect(screen.getByText("Die Analyse hat 4 Themenbereiche erkannt. Alle 4 Themen sind geöffnet.")).toBeTruthy();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
+    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).toBeNull();
+    expect(container.textContent ?? "").not.toContain("3 davon sind gerade sichtbar");
+  });
+
+  it("opens all validated document topics and keeps diagnosis, rail and cards on the same count", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <Harness
+        initialResult={buildDocumentResult(buildDocumentAnalysisWithTopicCount(12))}
+        previewAllTopics
+      />,
+    );
+
+    expect(screen.getByText("78 Seiten · 12 Themen · 18 Unterthemen")).toBeTruthy();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(0);
+    expect(container.textContent ?? "").toMatch(/Themen\s*12/);
+
+    await user.click(screen.getByRole("button", { name: "Themenübersicht öffnen" }));
+
+    expect(screen.getByText("Die Analyse hat 12 Themenbereiche erkannt. Alle 12 Themen sind geöffnet.")).toBeTruthy();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(12);
+    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).toBeNull();
+    expect(container.textContent ?? "").not.toContain("3 davon sind gerade sichtbar");
+    expect(screen.getByRole("button", { name: "Thema Dokumentthema 1 fokussieren" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Thema Dokumentthema 1 als Zweig parken" })).toBeTruthy();
+    const topicGrid = container.querySelector("[data-create-topic-grid]");
+    expect(topicGrid?.getAttribute("data-grid-mobile-columns")).toBe("1");
+    expect(topicGrid?.getAttribute("data-grid-tablet-columns")).toBe("2");
+    expect(topicGrid?.getAttribute("data-grid-desktop-columns")).toBe("3");
+  });
+
+  it("normalizes inconsistent document topic counts to real topic objects", async () => {
+    const user = userEvent.setup();
+    const inconsistentAnalysis = buildDocumentAnalysis({
+      topicCount: 12,
+      topics: buildDocumentAnalysis().topics.slice(0, 3),
+    });
+    const { container } = render(
+      <Harness initialResult={buildDocumentResult(inconsistentAnalysis)} previewAllTopics />,
+    );
+
+    expect(screen.queryByText("78 Seiten · 12 Themen · 18 Unterthemen")).toBeNull();
+    expect(screen.getByText("78 Seiten · 3 Themen · 18 Unterthemen")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Themenübersicht öffnen" }));
+
+    expect(screen.getByText("Die Analyse hat 3 Themenbereiche erkannt. Alle 3 Themen sind geöffnet.")).toBeTruthy();
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "Weiteres Thema anzeigen" })).toBeTruthy();
+    expect(container.textContent ?? "").not.toContain("12 Themen");
   });
 
   it("keeps the bus and street-planning smoke topics consistent and removes wrong fallback topics", async () => {
@@ -478,7 +554,7 @@ describe("create workspace actions interaction", () => {
     );
     expect(screen.getByRole("button", { name: "Aussage schärfen" })).toBeTruthy();
 
-    await user.click(screen.getAllByRole("button", { name: "Thema parken" })[0]!);
+    await user.click(screen.getByRole("button", { name: "Thema ÖPNV und Mobilität als Zweig parken" }));
     expect(screen.getByTestId("parked-topics").textContent).not.toBe("");
   });
 

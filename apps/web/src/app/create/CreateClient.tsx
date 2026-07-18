@@ -2207,7 +2207,9 @@ export default function CreateClient({
 
   const handleOpenDocumentTopicOverview = React.useCallback(() => {
     setDocumentTopicOverviewOpened(true);
-    setActionNotice("Die Themenübersicht ist jetzt geöffnet.");
+    setShowExpandedTopicPreview(true);
+    setTopicExpansionDecision("expanded");
+    setActionNotice("Alle erkannten Themen sind jetzt geöffnet.");
   }, []);
 
   const handleKeepCompactTopicPreview = React.useCallback(() => {

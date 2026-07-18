@@ -132,6 +132,34 @@ export type DocumentAnalysisSummary = {
   topics: DocumentTopic[];
 };
 
+export function normalizeDocumentAnalysisSummary(
+  analysis: DocumentAnalysisSummary,
+): DocumentAnalysisSummary {
+  const seen = new Set<string>();
+  const topics = analysis.topics.reduce<DocumentTopic[]>((normalizedTopics, topic, index) => {
+      const label = topic.label.trim();
+      if (!label) return normalizedTopics;
+      const key = normalizeText(topic.id || label || `document-topic-${index + 1}`);
+      if (!key || seen.has(key)) return normalizedTopics;
+      seen.add(key);
+      normalizedTopics.push({
+        ...topic,
+        id: topic.id?.trim() || `document-topic-${index + 1}`,
+        label,
+        summary: topic.summary?.trim() || null,
+      });
+      return normalizedTopics;
+    }, []);
+
+  return {
+    ...analysis,
+    documentTitle: analysis.documentTitle?.trim() || null,
+    summary: analysis.summary.trim(),
+    topicCount: topics.length,
+    topics,
+  };
+}
+
 export type CreateAnalysisState =
   | "idle"
   | "input_ready"
@@ -718,7 +746,9 @@ function buildDocumentStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number,
 ): CreateStructureBranch[] {
-  const documentTopics = result.meta?.documentAnalysis?.topics ?? [];
+  const documentTopics = result.meta?.documentAnalysis
+    ? normalizeDocumentAnalysisSummary(result.meta.documentAnalysis).topics
+    : [];
   if (documentTopics.length === 0) return [];
   const positionClusters = selectPositionClusters(result.understanding);
   const branchLimit = Math.max(1, maxBranches);
@@ -728,16 +758,6 @@ function buildDocumentStructureBranches(
       topic.summary ?? "",
       result.understanding.summary,
     ]).slice(0, 2);
-    const openReviewPoints = [
-      topic.verifiableClaimCount !== null && topic.verifiableClaimCount !== undefined
-        ? `${topic.verifiableClaimCount} überprüfbare Claims`
-        : "Claims prüfen",
-      topic.policyProposalCount !== null && topic.policyProposalCount !== undefined
-        ? `${topic.policyProposalCount} politische Vorhaben`
-        : "Vorhaben prüfen",
-      "Quellenprüfung noch nicht durchgeführt",
-    ];
-
     return {
       id: topic.id || `document-topic-${index + 1}`,
       topicId: topic.id || `document-topic-${index + 1}`,
@@ -760,7 +780,7 @@ function buildDocumentStructureBranches(
       need: `${topic.label} ist im Dokument als eigener Themenbereich vorhanden.`,
       claims: evidenceSnippets,
       voteQuestions: [],
-      openReviewPoints,
+      openReviewPoints: [],
       positionClusters,
     };
   });
