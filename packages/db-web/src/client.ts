@@ -4,10 +4,30 @@ export type { Prisma } from "./generated";
 const g = globalThis as unknown as { __web?: PrismaClient };
 let clientSingleton: PrismaClient | undefined = g.__web;
 
+const WEB_DATABASE_ENV_KEYS = [
+  "WEB_DATABASE_URL",
+  "WEB_POSTGRES_URL",
+  "WEB_POSTGRES_URI",
+] as const;
+
+export function resolveWebDatabaseUrl(): string | null {
+  for (const key of WEB_DATABASE_ENV_KEYS) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+export function isWebDatabaseConfigured(): boolean {
+  return resolveWebDatabaseUrl() !== null;
+}
+
 function createClient() {
-  const url = process.env.WEB_DATABASE_URL;
+  const url = resolveWebDatabaseUrl();
   if (!url) {
-    throw new Error("WEB_DATABASE_URL missing");
+    throw new Error(
+      "Web database missing: configure WEB_DATABASE_URL (or WEB_POSTGRES_URL / WEB_POSTGRES_URI)",
+    );
   }
   return new PrismaClient({ datasources: { db: { url } } });
 }

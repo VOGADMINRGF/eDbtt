@@ -1,6 +1,6 @@
 // apps/web/src/app/api/topics/route.ts
 import { NextResponse } from "next/server";
-import { prisma as db } from "@/lib/dbWeb";
+import { isWebDatabaseConfigured, prisma as db } from "@/lib/dbWeb";
 import { isCoreLocale } from "@/config/locales";
 
 export async function GET(req: Request) {
@@ -10,10 +10,10 @@ export async function GET(req: Request) {
     const locale = localeParam && isCoreLocale(localeParam) ? localeParam : undefined;
 
     const now = new Date();
-    const hasWebDatabaseUrl = Boolean(process.env.WEB_DATABASE_URL || process.env.DATABASE_URL);
-
-    if (!hasWebDatabaseUrl) {
-      console.warn("GET /api/topics degraded: WEB_DATABASE_URL missing");
+    if (!isWebDatabaseConfigured()) {
+      console.warn(
+        "GET /api/topics degraded: web database missing (WEB_DATABASE_URL / WEB_POSTGRES_URL / WEB_POSTGRES_URI)",
+      );
       return NextResponse.json({
         topics: [],
         locale: locale ?? null,
