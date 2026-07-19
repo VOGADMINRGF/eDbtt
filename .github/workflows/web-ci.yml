@@ -13,7 +13,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -24,6 +24,12 @@ jobs:
           tests/admin-ai-orchestrator-smoke.route.test.ts
           tests/admin-ai-create-planner-smoke.route.test.ts
           tests/admin-ai-telemetry-ui.contract.test.ts
+          tests/provider-smoke-model-fallback.contract.test.ts
+          tests/topics.route.test.ts
+          tests/create-intelligent-followup.contract.test.ts
+          tests/create-workspace-actions.interaction.test.tsx
           tests/create-planner-debug-diagnostics.contract.test.ts
           tests/create-planner-timeout.contract.test.ts
           tests/openai-provider.reasoning.contract.test.ts
+
+      - run: pnpm -C apps/web build
