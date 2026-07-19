@@ -10,6 +10,28 @@ vi.mock("@features/ai", () => ({
 
 import { buildCreatePlanner } from "@/features/create/createPlanner";
 
+function plannerPayload(topics: string[], scope: "municipal" | "district" = "municipal") {
+  return {
+    text: JSON.stringify({
+      plannerTopic: "Kommunale Gesamtplanung",
+      plannerCore:
+        "Der Beitrag benennt mehrere eigenständige kommunale Handlungsfelder und möchte sie getrennt priorisieren.",
+      plannerScope: [scope],
+      plannerStance: "open",
+      plannerClusters: topics,
+      plannerOpenQuestions: ["Welches Thema soll zuerst vertieft werden?"],
+      shortSummary: "Mehrere kommunale Themen sollen getrennt strukturiert werden.",
+      topicCandidates: topics,
+      clusterCandidates: topics,
+      scopeCandidates: [scope],
+      openQuestions: ["Welches Thema soll zuerst vertieft werden?"],
+      graphSearchTerms: topics,
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    }),
+  };
+}
+
 describe("create planner debug diagnostics contract", () => {
   const originalOpenAiKey = process.env.OPENAI_API_KEY;
   const originalOpenAiModel = process.env.OPENAI_MODEL;
@@ -340,5 +362,69 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.plannerDebug.rawTextValid).toBe(true);
     expect(planner.plannerDebug.normalizedPayloadValid).toBe(true);
     expect(planner.plannerDebug.qualityGatePassed).toBe(true);
+  });
+
+  it("preserves exactly seven concrete topics and adds a mandatory municipal location question", async () => {
+    const topics = [
+      "Verkehr",
+      "Schulwegsicherheit",
+      "Wohnen",
+      "Grünflächen",
+      "Jugendtreff",
+      "Digitale Bürgerservices",
+      "Kommunale Finanzen",
+    ];
+    mocks.callOpenAIJson.mockResolvedValue(plannerPayload(topics));
+
+    const result = await buildCreatePlanner({
+      text:
+        "In unserer Kommune sollen Verkehr, Schulwegsicherheit, Wohnen, Grünflächen, Jugendtreff, digitale Bürgerservices und kommunale Finanzen getrennt beraten werden.",
+      locale: "de",
+    });
+
+    expect(result.source).toBe("openai");
+    expect(result.topicCandidates).toEqual(topics);
+    expect(result.topicCandidates).toHaveLength(7);
+    expect(result.topicCandidates).not.toContain("Kommunale Gesamtplanung");
+    expect(result.openQuestions).toContain(
+      "Auf welche Stadt, Gemeinde oder welchen Ortsteil bezieht sich dein Anliegen?",
+    );
+    expect(mocks.callOpenAIJson.mock.calls[0]?.[0]?.user).toContain(
+      "niemals auf drei Themen begrenzen",
+    );
+  });
+
+  it("preserves exactly fourteen topics without asking for a location already named in the text", async () => {
+    const topics = [
+      "Verkehr",
+      "Schulwegsicherheit",
+      "ÖPNV",
+      "Radwege",
+      "Wohnen",
+      "Grünflächen",
+      "Jugendtreff",
+      "Digitale Bürgerservices",
+      "Kommunale Finanzen",
+      "Bauplanung",
+      "Klimaanpassung",
+      "Pflege",
+      "Bildung",
+      "Bürgerbeteiligung",
+    ];
+    mocks.callOpenAIJson.mockResolvedValue(plannerPayload(topics));
+
+    const result = await buildCreatePlanner({
+      text:
+        "In Rahnsdorf sollen Verkehr, Schulwegsicherheit, ÖPNV, Radwege, Wohnen, Grünflächen, Jugendtreff, digitale Bürgerservices, kommunale Finanzen, Bauplanung, Klimaanpassung, Pflege, Bildung und Bürgerbeteiligung getrennt betrachtet werden.",
+      locale: "de",
+    });
+
+    expect(result.source).toBe("openai");
+    expect(result.topicCandidates).toEqual(topics);
+    expect(result.topicCandidates).toHaveLength(14);
+    expect(result.topicCandidates).not.toContain("Kommunale Gesamtplanung");
+    expect(result.openQuestions).not.toContain(
+      "Auf welche Stadt, Gemeinde oder welchen Ortsteil bezieht sich dein Anliegen?",
+    );
   });
 });

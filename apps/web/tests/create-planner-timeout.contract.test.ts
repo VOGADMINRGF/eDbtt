@@ -26,7 +26,7 @@ describe("create planner timeout contract", () => {
     process.env.OPENAI_API_KEY = "test-key";
     process.env.OPENAI_MODEL = "gpt-5";
     process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
-    process.env.CREATE_PLANNER_TIMEOUT_MS = "10000";
+    delete process.env.CREATE_PLANNER_TIMEOUT_MS;
   });
 
   afterEach(() => {
@@ -40,7 +40,7 @@ describe("create planner timeout contract", () => {
     else process.env.OPENAI_PLANNER_MODEL = originalOpenAiPlannerModel;
   });
 
-  it("uses the documented timeout above 6000ms and classifies provider aborts as TIMEOUT", async () => {
+  it("uses the 10000ms production default and classifies provider aborts as TIMEOUT", async () => {
     const timeoutError = Object.assign(new Error("The operation was aborted."), {
       name: "AbortError",
       meta: { code: "TIMEOUT" },

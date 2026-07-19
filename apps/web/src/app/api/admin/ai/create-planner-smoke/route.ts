@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildCreatePlanner } from "@/features/create/createPlanner";
+import {
+  buildCreatePlanner,
+  resolveCreatePlannerTimeoutMs,
+} from "@/features/create/createPlanner";
 
 const CREATE_PLANNER_SMOKE_TEXT = [
   "In Rahnsdorf sollen mehrere kommunale Themen gemeinsam eingeordnet werden.",
@@ -9,8 +12,6 @@ const CREATE_PLANNER_SMOKE_TEXT = [
   "und benenne die wichtigste offene Rückfrage.",
 ].join(" ");
 
-const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
-const MAX_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 
 function plannerModelCandidates(): string[] {
   return Array.from(
@@ -20,12 +21,6 @@ function plannerModelCandidates(): string[] {
         .filter((value): value is string => Boolean(value)),
     ),
   );
-}
-
-function plannerTimeoutMs(): number {
-  const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
-  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
-  return Math.min(MAX_CREATE_PLANNER_TIMEOUT_MS, Math.max(600, Math.floor(raw)));
 }
 
 function safeRootCause(result: Awaited<ReturnType<typeof buildCreatePlanner>>): string {
@@ -69,7 +64,7 @@ export async function POST(req: NextRequest) {
   const correlationId = runId;
   const startedAt = Date.now();
   const modelCandidates = plannerModelCandidates();
-  const timeoutMs = plannerTimeoutMs();
+  const timeoutMs = resolveCreatePlannerTimeoutMs();
 
   try {
     const planner = await buildCreatePlanner({

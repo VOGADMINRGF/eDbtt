@@ -156,7 +156,7 @@ type OpenAiPlannerPayload = {
   recommendedLane?: unknown;
 };
 
-const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
+const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 const MAX_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
@@ -370,7 +370,7 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-function resolveCreatePlannerTimeoutMs(): number {
+export function resolveCreatePlannerTimeoutMs(): number {
   const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
   if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
   return Math.min(MAX_CREATE_PLANNER_TIMEOUT_MS, Math.max(600, Math.floor(raw)));
@@ -420,6 +420,44 @@ function inferScopesFromText(text: string): CreatePlannerScope[] {
   if (/international|weltweit|global|import|export/i.test(text)) scopes.add("international");
   if (scopes.size === 0) scopes.add("unclear");
   return Array.from(scopes).slice(0, 4);
+}
+
+const NON_MUNICIPAL_LOCATION_TOKENS = new Set([
+  "deutschland",
+  "europa",
+  "zukunft",
+  "allgemein",
+  "bund",
+  "land",
+]);
+
+function hasExplicitMunicipalLocation(text: string): boolean {
+  if (/\b\d{5}\b/.test(text)) return true;
+  if (
+    /\b(?:Stadt|stadt|Gemeinde|gemeinde|Kommune|kommune|Bezirk|bezirk|Ortsteil|ortsteil|Landkreis|landkreis)\s+(?:von\s+)?[A-ZÄÖÜ][\p{L}ÄÖÜäöüß-]{2,}/u.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  const match = text.match(
+    /(?:^|[.!?]\s+|\s)(?:In|in|Aus|aus|Für|für|Bei|bei)\s+([A-ZÄÖÜ][\p{L}ÄÖÜäöüß-]{2,})/u,
+  );
+  if (!match?.[1]) return false;
+  return !NON_MUNICIPAL_LOCATION_TOKENS.has(match[1].toLowerCase());
+}
+
+function municipalLocationQuestion(locale: string): string {
+  return locale.toLowerCase().startsWith("de")
+    ? "Auf welche Stadt, Gemeinde oder welchen Ortsteil bezieht sich dein Anliegen?"
+    : "Which city, municipality or district does your contribution refer to?";
+}
+
+function needsMunicipalLocationQuestion(
+  text: string,
+  scopes: CreatePlannerScope[],
+): boolean {
+  return scopes.includes("municipal") && !hasExplicitMunicipalLocation(text);
 }
 
 function baseProviderPlan(
@@ -1126,6 +1164,7 @@ function normalizeOpenAiPlannerPayload(
   payload: OpenAiPlannerPayload,
   text: string,
   model: string,
+  locale: string,
   rawText?: string,
 ): PlannerAttempt {
   const normalizedRawText = normalizePlannerDebugRawText(rawText);
@@ -1154,15 +1193,34 @@ function normalizeOpenAiPlannerPayload(
   }
 
   const plannerScope = asStringArray(payload.plannerScope).filter(isPlannerScope);
+  const resolvedPlannerScope =
+    plannerScope.length > 0 ? plannerScope : inferScopesFromText(text);
   const plannerStanceRaw = String(payload.plannerStance ?? payload.stance ?? "").trim().toLowerCase();
   const plannerStance = isPlannerStance(plannerStanceRaw) ? plannerStanceRaw : "open";
   const recommendedLaneRaw = String(payload.recommendedLane ?? "").trim().toLowerCase();
   const recommendedLane = isRecommendedLane(recommendedLaneRaw) ? recommendedLaneRaw : "create_fast_followup";
   const plannerClusters = asStringArray(payload.plannerClusters);
-  const plannerOpenQuestions = dedupeStrings([...asStringArray(payload.plannerOpenQuestions), ...asStringArray(payload.openQuestions)]);
-  const topicCandidates = dedupeStrings([plannerTopic, ...asStringArray(payload.topicCandidates)]);
+  const providerTopicCandidates = dedupeStrings(asStringArray(payload.topicCandidates));
+  const topicCandidatesWithoutUmbrella =
+    providerTopicCandidates.length > 1
+      ? providerTopicCandidates.filter(
+          (candidate) => normalizeDenseText(candidate) !== normalizeDenseText(plannerTopic),
+        )
+      : providerTopicCandidates;
+  const topicCandidates =
+    topicCandidatesWithoutUmbrella.length > 0
+      ? topicCandidatesWithoutUmbrella
+      : [plannerTopic];
   const clusterCandidates = dedupeStrings([...plannerClusters, ...asStringArray(payload.clusterCandidates)]);
-  const scopeCandidates = dedupeStrings([...plannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const scopeCandidates = dedupeStrings([...resolvedPlannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const locationQuestion = needsMunicipalLocationQuestion(text, scopeCandidates)
+    ? municipalLocationQuestion(locale)
+    : null;
+  const plannerOpenQuestions = dedupeStrings([
+    ...asStringArray(payload.plannerOpenQuestions),
+    ...asStringArray(payload.openQuestions),
+    locationQuestion,
+  ]);
   const graphSearchTerms = dedupeStrings([
     ...asStringArray(payload.graphSearchTerms),
     ...plannerClusters,
@@ -1198,14 +1256,14 @@ function normalizeOpenAiPlannerPayload(
     draft: {
       plannerTopic,
       plannerCore,
-      plannerScope: plannerScope.length > 0 ? plannerScope : inferScopesFromText(text),
+      plannerScope: resolvedPlannerScope,
       plannerStance,
       plannerClusters,
       plannerOpenQuestions,
       shortSummary,
       topicCandidates,
       clusterCandidates,
-      scopeCandidates: scopeCandidates.length > 0 ? scopeCandidates : inferScopesFromText(text),
+      scopeCandidates,
       stance: plannerStance,
       openQuestions: plannerOpenQuestions,
       graphSearchTerms,
@@ -1284,6 +1342,9 @@ async function tryOpenAiPlannerWithModel(
     "- 'Öffentliches Anliegen' ist nur erlaubt, wenn absolut kein Thema erkennbar ist.",
     "- 'Aussage' ist nie ausreichend als plannerCore bei längeren politischen Texten.",
     "- Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
+    "- Erhalte jedes ausdrücklich genannte, fachlich eigenständige Thema als eigenen topicCandidate; niemals auf drei Themen begrenzen.",
+    "- plannerTopic ist das Oberthema und darf nicht zusätzlich in topicCandidates stehen, wenn mehrere konkrete Themen vorliegen.",
+    "- Bei kommunalem Scope ohne ausdrücklich benannte Stadt, Gemeinde oder Ortsteil muss plannerOpenQuestions eine Ortsrückfrage enthalten.",
     "- Formuliere die offene Rückfrage als Auswahlfrage, wenn mehrere Themen konkurrieren.",
     "",
     `Locale: ${input.locale}`,
@@ -1332,7 +1393,7 @@ async function tryOpenAiPlannerWithModel(
         }),
       };
     }
-    return normalizeOpenAiPlannerPayload(parsed, input.text, model, text);
+    return normalizeOpenAiPlannerPayload(parsed, input.text, model, input.locale, text);
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
