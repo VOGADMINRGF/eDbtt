@@ -52,3 +52,4 @@ jobs:
           ARANGO_USER: ci
           ARANGO_ROOT_PASSWORD: ci-build-only
           MEMGRAPH_URI: bolt://127.0.0.1:7688
+          MAIL_FROM: ci-build@example.invalid
