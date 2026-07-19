@@ -52,6 +52,7 @@ import {
 } from "@/features/create/createCandidatePreview";
 import CreateWorkspaceShell from "@/features/create/CreateWorkspaceShell";
 import type { CreateWorkspaceShellPhase } from "@/features/create/CreateWorkspaceShell";
+import { buildCreateWorkspaceStages } from "@/features/create/CreateWorkspaceShell";
 import type {
   CreateAnalyzeRuntimeTrace,
   CreatePlannerRuntimeTrace,
@@ -1317,6 +1318,11 @@ export default function CreateClient({
       : productMode === "media"
         ? productModeConfig.postStartLead
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
+  const analysisState = intelligentFollowup?.meta?.analysis?.state ?? null;
+  const analysisFailed = analysisState === "ai_failed" || analysisState === "fetch_failed";
+  const hasValidatedTopics =
+    hasValidatedCreateSemanticOutput(intelligentFollowup) &&
+    (intelligentFollowup?.understanding.topics.length ?? 0) > 0;
   const workspaceActiveStage =
     !hasStarted
       ? "input"
@@ -1324,6 +1330,8 @@ export default function CreateClient({
         ? "understanding"
         : showLinkClarification
           ? "understanding"
+          : analysisFailed
+            ? "understanding"
           : showIntelligentFollowup
             ? !understandingConfirmed
               ? "topics"
@@ -1333,6 +1341,16 @@ export default function CreateClient({
                   ? "draft"
                   : "sources"
         : "draft";
+  const workspaceStages = React.useMemo(
+    () =>
+      buildCreateWorkspaceStages({
+        activeStage: workspaceActiveStage,
+        isBusy: isStarting,
+        analysisState,
+        hasValidatedTopics,
+      }),
+    [analysisState, hasValidatedTopics, isStarting, workspaceActiveStage],
+  );
   const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted
     ? "initial"
     : isStarting
@@ -1347,15 +1365,17 @@ export default function CreateClient({
       : null;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
-    ? workspaceActionMode === "source"
+    ? analysisFailed
+      ? "Du kannst den Beitrag ergänzen oder später fortsetzen."
+      : workspaceActionMode === "source"
         ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
         : !understandingConfirmed
           ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
           : workspaceActionMode === "edit"
             ? "Welche Aussage möchtest du schärfen?"
             : workspaceActionMode === "manual_topic"
-              ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
-              : "Welche Aussage möchtest du schärfen?"
+            ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
+            : "Welche Aussage möchtest du schärfen?"
     : intakePlaceholder;
   const workspaceComposerStartLabel = hasStarted
     ? "Weiter"
@@ -2021,7 +2041,6 @@ export default function CreateClient({
     if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
 
     setIsRetryPlannerPending(true);
-    setActionNotice("Automatische Einordnung wird erneut versucht …");
     try {
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
@@ -2059,7 +2078,7 @@ export default function CreateClient({
           : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
       );
     } catch {
-      setActionNotice("Die automatische Einordnung konnte gerade nicht abgeschlossen werden. Du kannst trotzdem weitermachen.");
+      setActionNotice(null);
     } finally {
       setIsRetryPlannerPending(false);
     }
@@ -2578,6 +2597,7 @@ export default function CreateClient({
           <CreateWorkspaceShell
             locale={surfaceLocale === "en" ? "en" : "de"}
             activeStage={workspaceActiveStage}
+            stages={workspaceStages}
             phase={workspaceShellPhase}
             isBusy={isStarting}
             notice={workspaceNotice}

@@ -23,6 +23,7 @@ export type CreatePlannerSource = "openai" | "technical_fallback" | "heuristic_f
 export type CreatePlannerProviderName = "openai" | "anthropic" | "mistral" | "local_fallback" | "none";
 export type CreatePlannerDegradedReason =
   | "missing_provider_key"
+  | "model_not_found"
   | "provider_error"
   | "invalid_json"
   | "invalid_provider_payload"
@@ -34,6 +35,8 @@ export type CreatePlannerQualityStatus = "specific" | "generic" | "failed" | "ne
 export type CreatePlannerDebug = {
   attemptedProvider: "openai" | null;
   usedProvider: CreatePlannerProviderName;
+  attemptedModel?: string | null;
+  usedModel?: string | null;
   providerAvailable: boolean;
   providerErrorCode?: string | null;
   providerErrorMessage?: string | null;
@@ -154,7 +157,6 @@ type OpenAiPlannerPayload = {
 };
 
 const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
-const DEFAULT_OPENAI_PLANNER_MODEL = process.env.OPENAI_PLANNER_MODEL || "gpt-4.1-mini";
 const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
 const CREATE_PLANNER_JSON_SCHEMA = {
@@ -477,6 +479,40 @@ function normalizePlannerDebugRawText(rawText?: string | null): string | null {
   return rawText;
 }
 
+function dedupeModelCandidates(candidates: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const resolved: string[] = [];
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? "").trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    resolved.push(normalized);
+  }
+  return resolved;
+}
+
+export function resolveCreatePlannerModelCandidates(): string[] {
+  return dedupeModelCandidates([
+    process.env.OPENAI_PLANNER_MODEL,
+    process.env.OPENAI_MODEL,
+  ]);
+}
+
+function isModelNotFoundError(error: unknown): boolean {
+  const errorObject = error as {
+    status?: number;
+    message?: string;
+    meta?: { code?: string; status?: number };
+  } | null;
+  const message = error instanceof Error ? error.message : String(errorObject?.message ?? "");
+  return (
+    errorObject?.status === 404 ||
+    errorObject?.meta?.status === 404 ||
+    errorObject?.meta?.code === "MODEL_NOT_FOUND" ||
+    (/model/i.test(message) && /404|not found/i.test(message))
+  );
+}
+
 function estimateTopicSignalCount(text: string): number {
   const civic = detectComplexCivicClusters(text).length;
   const communal = detectBroadCommunalTopicFields(text).length;
@@ -493,6 +529,8 @@ function createPlannerDebug(overrides: Partial<CreatePlannerDebug>): CreatePlann
   return {
     attemptedProvider: overrides.attemptedProvider ?? null,
     usedProvider: overrides.usedProvider ?? "none",
+    attemptedModel: overrides.attemptedModel ?? null,
+    usedModel: overrides.usedModel ?? null,
     providerAvailable: overrides.providerAvailable ?? false,
     providerErrorCode: overrides.providerErrorCode ?? null,
     providerErrorMessage,
@@ -1080,6 +1118,7 @@ function buildHeuristicPlanner(params: {
 function normalizeOpenAiPlannerPayload(
   payload: OpenAiPlannerPayload,
   text: string,
+  model: string,
   rawText?: string,
 ): PlannerAttempt {
   const normalizedRawText = normalizePlannerDebugRawText(rawText);
@@ -1094,6 +1133,7 @@ function normalizeOpenAiPlannerPayload(
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1136,6 +1176,8 @@ function normalizeOpenAiPlannerPayload(
       ...createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "openai",
+        attemptedModel: model,
+        usedModel: model,
         providerAvailable: true,
         providerErrorMessage: null,
         errorMessage: null,
@@ -1173,6 +1215,7 @@ function normalizeOpenAiPlannerPayload(
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1192,7 +1235,10 @@ function normalizeOpenAiPlannerPayload(
   };
 }
 
-async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+async function tryOpenAiPlannerWithModel(
+  input: BuildCreatePlannerInput,
+  model: string,
+): Promise<PlannerAttempt> {
   if (!process.env.OPENAI_API_KEY) {
     const errorMessage = "OPENAI_API_KEY fehlt";
     return {
@@ -1201,6 +1247,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: false,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1243,7 +1290,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       callOpenAIJson({
         system,
         user,
-        model: DEFAULT_OPENAI_PLANNER_MODEL,
+        model,
         temperature: 0.2,
         max_tokens: 1200,
         response_format: {
@@ -1267,6 +1314,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
           providerErrorMessage: errorMessage,
           errorMessage,
@@ -1278,7 +1326,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         }),
       };
     }
-    return normalizeOpenAiPlannerPayload(parsed, input.text, text);
+    return normalizeOpenAiPlannerPayload(parsed, input.text, model, text);
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
@@ -1289,8 +1337,28 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
           providerErrorCode: errorObject?.meta?.code ?? null,
+          providerErrorMessage: message,
+          errorMessage: message,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+        }),
+      };
+    }
+    if (isModelNotFoundError(error)) {
+      return {
+        ok: false,
+        reason: "model_not_found",
+        debug: createPlannerDebug({
+          attemptedProvider: "openai",
+          usedProvider: "local_fallback",
+          attemptedModel: model,
+          providerAvailable: true,
+          providerErrorCode: "MODEL_NOT_FOUND",
           providerErrorMessage: message,
           errorMessage: message,
           rawPayloadValid: false,
@@ -1307,6 +1375,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
           providerErrorCode: errorObject?.meta?.code ?? "rate_limited",
           providerErrorMessage: message,
@@ -1324,6 +1393,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorCode: errorObject?.meta?.code ?? null,
         providerErrorMessage: message,
@@ -1337,6 +1407,55 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
   }
 }
 
+async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+  const models = resolveCreatePlannerModelCandidates();
+  if (models.length === 0) {
+    const errorMessage = "OPENAI_PLANNER_MODEL oder OPENAI_MODEL fehlt";
+    return {
+      ok: false,
+      reason: "provider_error",
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+        providerErrorMessage: errorMessage,
+        errorMessage,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
+
+  let lastAttempt: PlannerAttempt | null = null;
+  for (const [index, model] of models.entries()) {
+    const attempt = await tryOpenAiPlannerWithModel(input, model);
+    if (attempt.ok) return attempt;
+    const failedAttempt = attempt as Extract<PlannerAttempt, { ok: false }>;
+    lastAttempt = failedAttempt;
+    if (failedAttempt.reason !== "model_not_found" || index >= models.length - 1) {
+      return failedAttempt;
+    }
+  }
+
+  return lastAttempt ?? {
+    ok: false,
+    reason: "provider_error",
+    debug: createPlannerDebug({
+      attemptedProvider: "openai",
+      usedProvider: "local_fallback",
+      providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+      providerErrorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
+      errorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
+      rawPayloadValid: false,
+      rawTextValid: false,
+      normalizedPayloadValid: false,
+      qualityGatePassed: false,
+    }),
+  };
+}
+
 function mapPlannerAttemptToUsageOutcome(
   attempt: PlannerAttempt,
 ): { success: boolean; errorKind: AiErrorKind | null } {
@@ -1344,6 +1463,8 @@ function mapPlannerAttemptToUsageOutcome(
     switch (attempt.reason) {
       case "quality_gate_failed":
         return { success: true, errorKind: null };
+      case "model_not_found":
+        return { success: false, errorKind: "MODEL_NOT_FOUND" };
       case "invalid_json":
       case "invalid_provider_payload":
         return { success: false, errorKind: "BAD_JSON" };
@@ -1371,10 +1492,16 @@ async function recordCreatePlannerAiUsage(params: {
     return;
   }
   const outcome = mapPlannerAttemptToUsageOutcome(params.attempt);
+  const usageModel =
+    (params.attempt.ok
+      ? params.attempt.result.plannerDebug.usedModel
+      : params.attempt.debug.usedModel ?? params.attempt.debug.attemptedModel) ??
+    resolveCreatePlannerModelCandidates()[0] ??
+    "unknown";
   await logAiUsage({
     createdAt: new Date(),
     provider: "openai",
-    model: DEFAULT_OPENAI_PLANNER_MODEL,
+    model: usageModel,
     pipeline: CREATE_PLANNER_USAGE_PIPELINE,
     operationId: params.input.operationId ?? params.input.requestId ?? null,
     operationType: params.input.operationType ?? "create_intelligent_followup_planner",

@@ -358,7 +358,9 @@ describe("create planner routing contract", () => {
 
   it("builds a technical fallback planner when AI is unavailable", async () => {
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
+    const originalOpenAiModel = process.env.OPENAI_MODEL;
     delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_MODEL = "gpt-5";
 
     try {
       const { buildCreatePlanner } = await vi.importActual<typeof import("@/features/create/createPlanner")>(
@@ -391,6 +393,8 @@ describe("create planner routing contract", () => {
     } finally {
       if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
       else process.env.OPENAI_API_KEY = originalOpenAiKey;
+      if (originalOpenAiModel === undefined) delete process.env.OPENAI_MODEL;
+      else process.env.OPENAI_MODEL = originalOpenAiModel;
     }
   });
 });

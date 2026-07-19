@@ -5,6 +5,7 @@ import {
   buildCreateTechnicalFollowup,
   buildCreateValidatedDocumentFollowup,
 } from "@/features/create/intelligentFollowupResults";
+import { resolveCreatePlannerModelCandidates } from "@/features/create/createPlanner";
 import type { DocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
 
 export const runtime = "nodejs";
@@ -108,6 +109,21 @@ function inferDocumentTitle(url: string, html?: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isModelNotFoundError(error: unknown): boolean {
+  const errorObject = error as {
+    status?: number;
+    message?: string;
+    meta?: { code?: string; status?: number };
+  } | null;
+  const message = error instanceof Error ? error.message : String(errorObject?.message ?? "");
+  return (
+    errorObject?.status === 404 ||
+    errorObject?.meta?.status === 404 ||
+    errorObject?.meta?.code === "MODEL_NOT_FOUND" ||
+    (/model/i.test(message) && /404|not found/i.test(message))
+  );
 }
 
 async function fetchSource(url: string) {
@@ -246,19 +262,38 @@ async function runDocumentAnalysis(params: {
   ]
     .filter(Boolean)
     .join("\n");
+  const analysisModels = resolveCreatePlannerModelCandidates();
+  if (analysisModels.length === 0) {
+    throw new Error("create_link_analysis_model_missing");
+  }
 
-  const response = await callOpenAIJson({
-    system,
-    user,
-    model: process.env.OPENAI_PLANNER_MODEL || "gpt-4.1-mini",
-    temperature: 0.1,
-    max_tokens: 2_000,
-    response_format: {
-      name: "create_document_analysis",
-      schema,
-      strict: true,
-    },
-  });
+  let response: Awaited<ReturnType<typeof callOpenAIJson>> | null = null;
+  let lastError: unknown = null;
+  for (const analysisModel of analysisModels) {
+    try {
+      response = await callOpenAIJson({
+        system,
+        user,
+        model: analysisModel,
+        temperature: 0.1,
+        max_tokens: 2_000,
+        response_format: {
+          name: "create_document_analysis",
+          schema,
+          strict: true,
+        },
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      if (!isModelNotFoundError(error) || analysisModel === analysisModels[analysisModels.length - 1]) {
+        throw error;
+      }
+    }
+  }
+  if (!response) {
+    throw lastError instanceof Error ? lastError : new Error("create_link_analysis_failed");
+  }
 
   const parsed = DocumentAnalysisSchema.parse(JSON.parse(response.text));
   return {

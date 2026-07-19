@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
+import type { CreateAnalysisState } from "@/features/create/intelligentFollowupContract";
 
 export type CreateWorkspaceStageId =
   | "input"
@@ -19,6 +20,7 @@ export type CreateWorkspaceShellPhase =
 type CreateWorkspaceShellProps = {
   locale: "de" | "en";
   activeStage: CreateWorkspaceStageId;
+  stages?: CreateWorkspaceStage[];
   phase?: CreateWorkspaceShellPhase;
   isBusy?: boolean;
   notice?: React.ReactNode;
@@ -34,19 +36,21 @@ type CreateWorkspaceShellProps = {
   };
 };
 
-type WorkspaceStageStatus = "done" | "active" | "planned";
+export type CreateWorkspaceStageStatus = "done" | "active" | "planned" | "error" | "locked";
 
-type WorkspaceStage = {
+export type CreateWorkspaceStage = {
   id: CreateWorkspaceStageId;
   title: string;
   lead: string;
-  status: WorkspaceStageStatus;
+  status: CreateWorkspaceStageStatus;
 };
 
-function buildWorkspaceStages(params: {
+export function buildCreateWorkspaceStages(params: {
   activeStage: CreateWorkspaceStageId;
   isBusy: boolean;
-}): WorkspaceStage[] {
+  analysisState?: CreateAnalysisState | null;
+  hasValidatedTopics?: boolean;
+}): CreateWorkspaceStage[] {
   const stageOrder: CreateWorkspaceStageId[] = [
     "input",
     "understanding",
@@ -54,14 +58,54 @@ function buildWorkspaceStages(params: {
     "sources",
     "draft",
   ];
+  const analysisFailed =
+    params.analysisState === "ai_failed" || params.analysisState === "fetch_failed";
+  if (analysisFailed) {
+    return [
+      {
+        id: "input",
+        title: "1 · Beitrag aufgenommen",
+        lead: "Text liegt im Workspace.",
+        status: "done",
+      },
+      {
+        id: "understanding",
+        title: "2 · Analyse blockiert",
+        lead: "Es liegen noch keine validierten Themen vor.",
+        status: "error",
+      },
+      {
+        id: "topics",
+        title: "3 · Entscheidung offen",
+        lead: "Wird nach erfolgreicher Analyse freigeschaltet.",
+        status: "locked",
+      },
+      {
+        id: "sources",
+        title: "4 · Quellen optional",
+        lead: "Bleibt bis zur validierten Analyse gesperrt.",
+        status: "locked",
+      },
+      {
+        id: "draft",
+        title: "5 · Entwurf",
+        lead: "Wird erst nach erfolgreicher Analyse freigeschaltet.",
+        status: "locked",
+      },
+    ];
+  }
   const labels: Record<CreateWorkspaceStageId, { title: string; lead: string }> = {
     input: {
       title: "1 · Beitrag aufgenommen",
       lead: "Text liegt im Workspace.",
     },
     understanding: {
-      title: "2 · Themen erkannt",
-      lead: params.isBusy ? "Einordnung läuft." : "Erste Themen sind sichtbar.",
+      title: params.hasValidatedTopics ? "2 · Themen erkannt" : "2 · Analyse läuft",
+      lead: params.hasValidatedTopics
+        ? "Erste Themen sind sichtbar."
+        : params.isBusy
+          ? "Einordnung läuft."
+          : "Die Einordnung wird vorbereitet.",
     },
     topics: {
       title: "3 · Entscheidung offen",
@@ -119,7 +163,7 @@ function WorkspaceHeader(props: { notice?: React.ReactNode; compact?: boolean })
 }
 
 function ProgressPipeline(props: {
-  stages: WorkspaceStage[];
+  stages: CreateWorkspaceStage[];
 }) {
   return (
     <div
@@ -131,6 +175,8 @@ function ProgressPipeline(props: {
         {props.stages.map((stage, index) => {
           const isActive = stage.status === "active";
           const isDone = stage.status === "done";
+          const isError = stage.status === "error";
+          const isLocked = stage.status === "locked";
           return (
             <React.Fragment key={stage.id}>
               <article
@@ -141,7 +187,11 @@ function ProgressPipeline(props: {
                     ? "border-cyan-300/60 bg-cyan-500/[0.1]"
                     : isDone
                       ? "border-emerald-300/45 bg-emerald-500/[0.08]"
-                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+                      : isError
+                        ? "border-rose-300/45 bg-rose-500/[0.08]"
+                        : isLocked
+                          ? "border-slate-200/80 bg-slate-100/70 dark:border-[rgb(var(--border))] dark:bg-slate-900/20"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -151,10 +201,12 @@ function ProgressPipeline(props: {
                         ? "border-cyan-300/45 text-cyan-900 dark:text-cyan-100"
                         : isDone
                           ? "border-emerald-300/45 text-emerald-900 dark:text-emerald-100"
-                          : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
+                          : isError
+                            ? "border-rose-300/45 text-rose-900 dark:text-rose-100"
+                            : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
                     }`}
                   >
-                    {isDone ? "✓" : index + 1}
+                    {isDone ? "✓" : isError ? "!" : index + 1}
                   </span>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
@@ -178,6 +230,7 @@ function ProgressPipeline(props: {
 
 export default function CreateWorkspaceShell({
   activeStage,
+  stages,
   phase = "initial",
   isBusy = false,
   notice,
@@ -185,9 +238,9 @@ export default function CreateWorkspaceShell({
   composer,
   footer,
 }: CreateWorkspaceShellProps) {
-  const stages = React.useMemo(
-    () => buildWorkspaceStages({ activeStage, isBusy }),
-    [activeStage, isBusy],
+  const resolvedStages = React.useMemo(
+    () => stages ?? buildCreateWorkspaceStages({ activeStage, isBusy }),
+    [activeStage, isBusy, stages],
   );
   const isInitialPhase = phase === "initial";
   const isLoadingPhase = phase === "loading";
@@ -207,7 +260,7 @@ export default function CreateWorkspaceShell({
     >
       <div className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}>
         <WorkspaceHeader notice={notice} compact={isInitialPhase} />
-        {!isInitialPhase ? <ProgressPipeline stages={stages} /> : null}
+        {!isInitialPhase ? <ProgressPipeline stages={resolvedStages} /> : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div
             data-create-shell-thread

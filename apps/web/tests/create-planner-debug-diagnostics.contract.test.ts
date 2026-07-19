@@ -12,15 +12,79 @@ import { buildCreatePlanner } from "@/features/create/createPlanner";
 
 describe("create planner debug diagnostics contract", () => {
   const originalOpenAiKey = process.env.OPENAI_API_KEY;
+  const originalOpenAiModel = process.env.OPENAI_MODEL;
+  const originalOpenAiPlannerModel = process.env.OPENAI_PLANNER_MODEL;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = "test-key";
+    process.env.OPENAI_MODEL = "gpt-5";
+    delete process.env.OPENAI_PLANNER_MODEL;
   });
 
   afterEach(() => {
     if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = originalOpenAiKey;
+    if (originalOpenAiModel === undefined) delete process.env.OPENAI_MODEL;
+    else process.env.OPENAI_MODEL = originalOpenAiModel;
+    if (originalOpenAiPlannerModel === undefined) delete process.env.OPENAI_PLANNER_MODEL;
+    else process.env.OPENAI_PLANNER_MODEL = originalOpenAiPlannerModel;
+  });
+
+  it("falls back to OPENAI_MODEL when OPENAI_PLANNER_MODEL returns MODEL_NOT_FOUND", async () => {
+    process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
+    process.env.OPENAI_MODEL = "gpt-5";
+    mocks.callOpenAIJson
+      .mockRejectedValueOnce(new Error("404 model not found"))
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          plannerTopic: "ÖPNV und Mobilität",
+          plannerCore:
+            "Der Beitrag verbindet Bus-Takt, Anschlussmobilität, Straßenraum, Parkraum und Radwege.",
+          plannerScope: ["district"],
+          plannerStance: "open",
+          plannerClusters: [
+            "ÖPNV und Mobilität",
+            "Straßenraum und Radverkehr",
+            "Parkraum und kommunale Planung",
+            "Pendler- und Anschlussmobilität",
+          ],
+          plannerOpenQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
+          shortSummary:
+            "Der Beitrag verknüpft Bus-Takt, Anschlussmobilität, Straßenumbau, Parkraum und Radwege.",
+          topicCandidates: [
+            "ÖPNV und Mobilität",
+            "Straßenraum und Radverkehr",
+            "Parkraum und kommunale Planung",
+            "Pendler- und Anschlussmobilität",
+          ],
+          clusterCandidates: [
+            "ÖPNV und Mobilität",
+            "Straßenraum und Radverkehr",
+            "Parkraum und kommunale Planung",
+            "Pendler- und Anschlussmobilität",
+          ],
+          scopeCandidates: ["district"],
+          openQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
+          graphSearchTerms: ["Bus-Takt", "Anschlussmobilität", "Straßenraum", "Parkraum"],
+          materialSignals: [],
+          recommendedLane: "create_fast_followup",
+        }),
+      });
+
+    const planner = await buildCreatePlanner({
+      text:
+        "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.",
+      locale: "de",
+    });
+
+    expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(2);
+    expect(mocks.callOpenAIJson.mock.calls[0]?.[0]).toMatchObject({ model: "gpt-4.1-mini" });
+    expect(mocks.callOpenAIJson.mock.calls[1]?.[0]).toMatchObject({ model: "gpt-5" });
+    expect(planner.source).toBe("openai");
+    expect(planner.plannerDegraded).toBe(false);
+    expect(planner.degradedReason).toBeNull();
+    expect(planner.plannerDebug.usedModel).toBe("gpt-5");
   });
 
   it("surfaces provider_error when the OpenAI call throws", async () => {
@@ -31,8 +95,8 @@ describe("create planner debug diagnostics contract", () => {
       locale: "de",
     });
 
-    expect(planner.source).toBe("heuristic_fallback");
-    expect(planner.plannerSource).toBe("heuristic_fallback");
+    expect(planner.source).toBe("technical_fallback");
+    expect(planner.plannerSource).toBe("technical_fallback");
     expect(planner.plannerDegraded).toBe(true);
     expect(planner.degradedReason).toBe("provider_error");
     expect(planner.plannerDegradedReason).toBe("provider_error");

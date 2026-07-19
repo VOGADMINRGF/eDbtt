@@ -265,6 +265,7 @@ function Harness(props: {
   initialResult: CreateIntelligentFollowupResult;
   linkText?: string;
   previewAllTopics?: boolean;
+  retryResult?: CreateIntelligentFollowupResult | null;
 }) {
   const [result, setResult] = React.useState(props.initialResult);
   const [confirmed, setConfirmed] = React.useState(false);
@@ -284,9 +285,13 @@ function Harness(props: {
     () => detectCreateLinkIntake(props.linkText ?? result.sourceText),
     [props.linkText, result.sourceText],
   );
+  const analysisState = result.meta?.analysis?.state ?? null;
+  const analysisFailed = analysisState === "ai_failed" || analysisState === "fetch_failed";
 
   const composerPlaceholder =
-    composerMode === "source"
+    analysisFailed
+      ? "Du kannst den Beitrag ergänzen oder später fortsetzen."
+      : composerMode === "source"
       ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
       : !confirmed
         ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
@@ -365,6 +370,11 @@ function Harness(props: {
         }}
         onDeferExpandedReview={() => setTopicExpansionDecision("later")}
         onSaveOnly={() => setActionNotice("Entwurf gespeichert. Noch nicht veröffentlicht.")}
+        onRetryPlanner={() => {
+          if (!props.retryResult) return;
+          setResult(props.retryResult);
+          setActionNotice("Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen.");
+        }}
         onSaveQuestion={() => {}}
         onSaveTopic={() => {}}
         onSaveSource={() => {}}
@@ -448,6 +458,49 @@ describe("create workspace actions interaction", () => {
     ).toBeGreaterThan(0);
     expect(screen.queryByText("Parkraum und kommunale Planung")).toBeNull();
     expect(screen.queryByText("Wohnen und Genehmigungen")).toBeNull();
+  });
+
+  it("keeps failed analysis pipeline states blocked, preserves the original user text and avoids duplicate failure messages", () => {
+    const failedText =
+      "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn.";
+    const { container } = render(
+      <Harness
+        initialResult={buildCreateTechnicalFollowup({
+          text: failedText,
+          analysisState: "ai_failed",
+          sourceType: "text",
+          sourceLoaded: true,
+          userMessage:
+            "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden deshalb keine Themen abgeleitet.",
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText(failedText)).toHaveLength(1);
+    expect(screen.getAllByText("Analyse blockiert")).toHaveLength(1);
+    expect(screen.getAllByText(/Es wurden deshalb keine Themen abgeleitet/)).toHaveLength(1);
+    expect(screen.queryByText("2 · Themen erkannt")).toBeNull();
+    expect(screen.getByTestId("composer-placeholder").textContent).toBe(
+      "Du kannst den Beitrag ergänzen oder später fortsetzen.",
+    );
+    expect(
+      container.querySelector('[data-create-pipeline-stage="input"]')?.getAttribute("data-create-pipeline-state"),
+    ).toBe("done");
+    expect(
+      container
+        .querySelector('[data-create-pipeline-stage="understanding"]')
+        ?.getAttribute("data-create-pipeline-state"),
+    ).toBe("error");
+    expect(
+      container.querySelector('[data-create-pipeline-stage="topics"]')?.getAttribute("data-create-pipeline-state"),
+    ).toBe("locked");
+    expect(
+      container.querySelector('[data-create-pipeline-stage="sources"]')?.getAttribute("data-create-pipeline-state"),
+    ).toBe("locked");
+    expect(
+      container.querySelector('[data-create-pipeline-stage="draft"]')?.getAttribute("data-create-pipeline-state"),
+    ).toBe("locked");
+    expect(screen.queryByPlaceholderText("Ort, Bezirk oder Kommune ergänzen")).toBeNull();
   });
 
   it("renders the validated document diagnosis before the topic overview and uses result counts only", async () => {
@@ -539,6 +592,38 @@ describe("create workspace actions interaction", () => {
     expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("expanded");
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
     expect(container.textContent ?? "").toContain("Pendler- und Anschlussmobilität");
+  });
+
+  it("retries the saved input without duplicating the contribution and unlocks the validated flow", async () => {
+    const user = userEvent.setup();
+    const failedText =
+      "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn. Gleichzeitig soll die Hauptstraße umgebaut werden, aber niemand weiß, ob dabei Parkplätze wegfallen oder neue Radwege entstehen.";
+    const retryResult = buildValidatedTopicResult();
+    retryResult.sourceText = failedText;
+
+    const { container } = render(
+      <Harness
+        initialResult={buildCreateTechnicalFollowup({
+          text: failedText,
+          analysisState: "ai_failed",
+          sourceType: "text",
+          sourceLoaded: true,
+          userMessage:
+            "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden deshalb keine Themen abgeleitet.",
+        })}
+        retryResult={retryResult}
+        previewAllTopics
+      />,
+    );
+
+    expect(screen.getAllByText(failedText)).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Erneut versuchen" }));
+
+    expect(screen.getByTestId("analysis-state").textContent).toBe("result_ready");
+    expect(screen.queryByText("Analyse blockiert")).toBeNull();
+    expect(screen.getAllByText(failedText)).toHaveLength(1);
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Themenstruktur bestätigen" })).toBeTruthy();
   });
 
   it("keeps themes confirm-first and updates placeholder and topic state after visible actions", async () => {

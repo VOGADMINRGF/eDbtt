@@ -169,12 +169,13 @@ type NextStepChecklistItem = {
 };
 
 type FollowupStageId = "input" | "understanding" | "topics" | "sources" | "draft";
+type FollowupStageStatus = "done" | "active" | "planned" | "error" | "locked";
 
 type FollowupStage = {
   id: FollowupStageId;
   title: string;
   lead: string;
-  status: "done" | "active" | "planned";
+  status: FollowupStageStatus;
 };
 
 type ContentModuleTone = "source" | "vote" | "topic" | "context" | "stats";
@@ -751,11 +752,49 @@ function buildNextStepChecklist(params: {
 
 function buildWorkflowStages(params: {
   isConfirmed: boolean;
+  analysisState: NonNullable<CreateIntelligentFollowupResult["meta"]>["analysis"]["state"];
+  hasValidatedTopics: boolean;
   composerMode?: "default" | "edit" | "source" | "manual_topic";
   activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
   groupedTopicLabels?: string[];
 }): FollowupStage[] {
+  const analysisFailed =
+    params.analysisState === "fetch_failed" || params.analysisState === "ai_failed";
+  if (analysisFailed) {
+    return [
+      {
+        id: "input",
+        title: "1 · Beitrag aufgenommen",
+        lead: "Dein Beitrag liegt im Workspace.",
+        status: "done",
+      },
+      {
+        id: "understanding",
+        title: "2 · Analyse blockiert",
+        lead: "Es liegen noch keine validierten Themen vor.",
+        status: "error",
+      },
+      {
+        id: "topics",
+        title: "3 · Entscheidung offen",
+        lead: "Wird nach erfolgreicher Analyse freigeschaltet.",
+        status: "locked",
+      },
+      {
+        id: "sources",
+        title: "4 · Quellen optional",
+        lead: "Bleibt bis zur validierten Analyse gesperrt.",
+        status: "locked",
+      },
+      {
+        id: "draft",
+        title: "5 · Entwurf",
+        lead: "Wird erst nach erfolgreicher Analyse freigeschaltet.",
+        status: "locked",
+      },
+    ];
+  }
   const sourceActive = params.composerMode === "source";
   const draftActive =
     params.composerMode === "edit" || Boolean(params.selectedPrimaryTopic) || params.isConfirmed;
@@ -773,9 +812,9 @@ function buildWorkflowStages(params: {
     },
     {
       id: "understanding",
-      title: "2 · Themen erkannt",
-      lead: "Die ersten Themen sind sichtbar.",
-      status: "done",
+      title: params.hasValidatedTopics ? "2 · Themen erkannt" : "2 · Analyse läuft",
+      lead: params.hasValidatedTopics ? "Die ersten Themen sind sichtbar." : "Die Einordnung wird vorbereitet.",
+      status: params.hasValidatedTopics ? "done" : "active",
     },
     {
       id: "topics",
@@ -1741,7 +1780,9 @@ function AnalysisStateBubble(props: {
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            2 · Analyse offen
+            {props.state === "fetch_failed" || props.state === "ai_failed"
+              ? "2 · Analyse blockiert"
+              : "2 · Analyse offen"}
           </p>
           <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
             Assistent
@@ -1749,7 +1790,11 @@ function AnalysisStateBubble(props: {
         </div>
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">
-            {props.state === "link_detected" || props.state === "entitlement_required" ? "Link erkannt" : "Analyse noch nicht abgeschlossen"}
+            {props.state === "link_detected" || props.state === "entitlement_required"
+              ? "Link erkannt"
+              : props.state === "fetch_failed" || props.state === "ai_failed"
+                ? "Analyse blockiert"
+                : "Analyse noch nicht abgeschlossen"}
           </p>
           <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
             {props.message}
@@ -2037,6 +2082,7 @@ function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
         {props.stages.map((stage, index) => {
           const isActive = stage.status === "active";
           const isDone = stage.status === "done";
+          const isError = stage.status === "error";
           return (
             <div
               key={stage.id}
@@ -2045,7 +2091,9 @@ function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
                   ? "border-cyan-300/45 bg-cyan-500/[0.08]"
                   : isDone
                     ? "border-emerald-300/30 bg-emerald-500/[0.08]"
-                    : "border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+                    : isError
+                      ? "border-rose-300/35 bg-rose-500/[0.08]"
+                      : "border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -2055,10 +2103,12 @@ function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
                       ? "border-cyan-300/60 text-cyan-100"
                       : isDone
                         ? "border-emerald-300/60 text-emerald-100"
-                        : "border-slate-300/50 text-slate-300"
+                        : isError
+                          ? "border-rose-300/60 text-rose-100"
+                          : "border-slate-300/50 text-slate-300"
                   }`}
                 >
-                  {isDone ? "✓" : index + 1}
+                  {isDone ? "✓" : isError ? "!" : index + 1}
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
@@ -2095,13 +2145,27 @@ function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
               ? "border-emerald-300/35 bg-emerald-500/[0.08]"
               : stage.status === "active"
                 ? "border-cyan-300/45 bg-cyan-500/[0.08]"
-                : "border-slate-200/75 bg-[rgb(var(--bg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]";
+                : stage.status === "error"
+                  ? "border-rose-300/35 bg-rose-500/[0.08]"
+                  : stage.status === "locked"
+                    ? "border-slate-200/80 bg-slate-100/70 dark:border-[rgb(var(--border))] dark:bg-slate-900/20"
+                    : "border-slate-200/75 bg-[rgb(var(--bg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]";
           const badge =
-            stage.status === "done" ? "bereit" : stage.status === "active" ? "jetzt" : "danach";
+            stage.status === "done"
+              ? "bereit"
+              : stage.status === "active"
+                ? "jetzt"
+                : stage.status === "error"
+                  ? "blockiert"
+                  : stage.status === "locked"
+                    ? "gesperrt"
+                    : "danach";
 
           return (
             <article
               key={stage.id}
+              data-create-pipeline-stage={stage.id}
+              data-create-pipeline-state={stage.status}
               className={`min-w-[9.75rem] rounded-[20px] border px-3 py-3 transition-all duration-300 ease-out ${toneClass}`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -2701,8 +2765,10 @@ function StructuredWorkstateBlock(props: {
     () =>
       buildWorkflowStages({
         isConfirmed: props.isConfirmed,
+        analysisState: "result_ready",
+        hasValidatedTopics: props.topicLabels.length > 0,
       }),
-    [props.isConfirmed],
+    [props.isConfirmed, props.topicLabels.length],
   );
   const overviewCards = React.useMemo<FocusOverviewCard[]>(
     () => {
@@ -3256,6 +3322,7 @@ export default function CreateVisualFollowup({
   const analysisMessage = result.meta?.analysis?.userMessage ?? "";
   const hasValidatedAnalysis =
     analysisState === "analysis_validated" || analysisState === "result_ready";
+  const hasValidatedTopics = hasValidatedAnalysis && result.understanding.topics.length > 0;
   const broadTopicFields = React.useMemo(
     () => (hasValidatedAnalysis ? deriveBroadTopicFields(topicLabels) : []),
     [hasValidatedAnalysis, topicLabels],
@@ -3429,8 +3496,8 @@ export default function CreateVisualFollowup({
     plannerCore: result.meta?.planner?.plannerCore ?? null,
   });
   const dedupedCopy = dedupeCreateFollowupSections({
-    summary: hasValidatedAnalysis ? result.understanding.summary : analysisMessage,
-    coreClaim: keyStatement,
+    summary: hasValidatedAnalysis ? result.understanding.summary : result.sourceText,
+    coreClaim: hasValidatedAnalysis ? keyStatement : result.sourceText,
     sourceText: result.sourceText,
     statementText: result.understanding.statements[0]?.text ?? "",
   });
@@ -3447,7 +3514,7 @@ export default function CreateVisualFollowup({
       "Öffentliches Thema"
     : result.understanding.dossierContext ?? semanticTopicLabels[0] ?? "Öffentliches Thema";
   const openQuestion = result.understanding.openQuestion ?? null;
-  const placeClarification = isPlaceClarificationQuestion(openQuestion)
+  const placeClarification = hasValidatedAnalysis && isPlaceClarificationQuestion(openQuestion)
     ? {
         kind: "place" as const,
         question: openQuestion,
@@ -3471,12 +3538,14 @@ export default function CreateVisualFollowup({
     () =>
       buildWorkflowStages({
         isConfirmed: hasValidatedAnalysis && isConfirmed,
+        analysisState,
+        hasValidatedTopics,
         composerMode,
         activeTopicLabel: hasValidatedAnalysis ? activeTopicLabel : null,
         selectedPrimaryTopic: hasValidatedAnalysis ? selectedPrimaryTopic : null,
         groupedTopicLabels: hasValidatedAnalysis ? groupedTopicLabels : [],
       }),
-    [activeTopicLabel, composerMode, groupedTopicLabels, hasValidatedAnalysis, isConfirmed, selectedPrimaryTopic],
+    [activeTopicLabel, analysisState, composerMode, groupedTopicLabels, hasValidatedAnalysis, hasValidatedTopics, isConfirmed, selectedPrimaryTopic],
   );
   const workspaceMetrics = React.useMemo(
     () => [
@@ -3782,12 +3851,16 @@ export default function CreateVisualFollowup({
               data-create-chat-thread
               className={`create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] ${embedInWorkspaceShell ? "" : "mt-5"}`}
             >
-              <UserContributionBubble text={dedupedCopy.userBubbleText} />
+              <UserContributionBubble text={result.sourceText} />
               {!hasValidatedAnalysis ? (
                 <AnalysisStateBubble
                   state={analysisState}
                   message={analysisMessage}
-                  onPrimaryAction={onPrepareLinkReview}
+                  onPrimaryAction={
+                    analysisState === "fetch_failed" || analysisState === "ai_failed"
+                      ? onRetryPlanner
+                      : onPrepareLinkReview
+                  }
                   onSaveOnly={onSaveOnly}
                   onDeferWork={onDeferWork}
                 />

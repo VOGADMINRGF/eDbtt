@@ -39,7 +39,7 @@ describe("create planner degraded ui contract", () => {
       />,
     );
 
-    expect(html).toContain("Analyse noch nicht abgeschlossen");
+    expect(html).toContain("Analyse blockiert");
     expect(html).toContain("Es wurden keine Themen abgeleitet.");
     expect(html).toContain("Erneut versuchen");
     expect(html).toContain("Details &amp; Transparenz");
