@@ -13,7 +13,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -32,4 +32,4 @@ jobs:
           tests/create-planner-timeout.contract.test.ts
           tests/openai-provider.reasoning.contract.test.ts
 
-      - run: pnpm -C apps/web build
+      - run: pnpm build
