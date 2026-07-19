@@ -157,6 +157,7 @@ type OpenAiPlannerPayload = {
 };
 
 const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
+const MAX_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
 const CREATE_PLANNER_JSON_SCHEMA = {
@@ -372,23 +373,7 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
 function resolveCreatePlannerTimeoutMs(): number {
   const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
   if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
-  return Math.min(6_000, Math.max(600, Math.floor(raw)));
-}
-
-function withPlannerTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`create_planner_timeout_after_${timeoutMs}ms`)), timeoutMs);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+  return Math.min(MAX_CREATE_PLANNER_TIMEOUT_MS, Math.max(600, Math.floor(raw)));
 }
 
 function detectBroadCommunalTopicFields(text: string): string[] {
@@ -510,6 +495,28 @@ function isModelNotFoundError(error: unknown): boolean {
     errorObject?.meta?.status === 404 ||
     errorObject?.meta?.code === "MODEL_NOT_FOUND" ||
     (/model/i.test(message) && /404|not found/i.test(message))
+  );
+}
+
+function isPlannerTimeoutError(error: unknown): boolean {
+  const errorObject = error as {
+    name?: string;
+    message?: string;
+    code?: string;
+    cause?: { code?: string; name?: string; message?: string } | null;
+    meta?: { code?: string; status?: number; messageShort?: string } | null;
+  } | null;
+  const message = error instanceof Error ? error.message : String(errorObject?.message ?? "");
+  const causeMessage =
+    typeof errorObject?.cause?.message === "string" ? errorObject.cause.message : "";
+  const combined = `${message} ${causeMessage}`.toLowerCase();
+  return (
+    errorObject?.name === "AbortError" ||
+    errorObject?.code === "TIMEOUT" ||
+    errorObject?.cause?.code === "TIMEOUT" ||
+    errorObject?.meta?.code === "TIMEOUT" ||
+    errorObject?.cause?.name === "AbortError" ||
+    /abort|aborted|timeout/.test(combined)
   );
 }
 
@@ -1286,21 +1293,20 @@ async function tryOpenAiPlannerWithModel(
   ].join("\n");
 
   try {
-    const { text } = await withPlannerTimeout(
-      callOpenAIJson({
-        system,
-        user,
-        model,
-        temperature: 0.2,
-        max_tokens: 1200,
-        response_format: {
-          name: "create_planner_result",
-          schema: CREATE_PLANNER_JSON_SCHEMA,
-          strict: true,
-        },
-      }),
-      resolveCreatePlannerTimeoutMs(),
-    );
+    const timeoutMs = resolveCreatePlannerTimeoutMs();
+    const { text } = await callOpenAIJson({
+      system,
+      user,
+      model,
+      temperature: 0.2,
+      max_tokens: 1200,
+      timeoutMs,
+      response_format: {
+        name: "create_planner_result",
+        schema: CREATE_PLANNER_JSON_SCHEMA,
+        strict: true,
+      },
+    });
     let parsed: OpenAiPlannerPayload;
     try {
       parsed = JSON.parse(text) as OpenAiPlannerPayload;
@@ -1330,7 +1336,7 @@ async function tryOpenAiPlannerWithModel(
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
-    if (message.includes("create_planner_timeout_after_")) {
+    if (isPlannerTimeoutError(error)) {
       return {
         ok: false,
         reason: "timeout",
@@ -1339,7 +1345,7 @@ async function tryOpenAiPlannerWithModel(
           usedProvider: "local_fallback",
           attemptedModel: model,
           providerAvailable: true,
-          providerErrorCode: errorObject?.meta?.code ?? null,
+          providerErrorCode: errorObject?.meta?.code ?? "TIMEOUT",
           providerErrorMessage: message,
           errorMessage: message,
           rawPayloadValid: false,

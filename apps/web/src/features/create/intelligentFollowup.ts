@@ -31,6 +31,8 @@ type BuildCreateIntelligentFollowupInput = {
   maxSuggestions?: number;
 };
 
+const MAX_UNDERSTANDING_TOPICS = 14;
+
 function normalizeConfidence(score: number): FollowupConfidence {
   if (score >= 0.74) return "high";
   if (score >= 0.44) return "medium";
@@ -94,11 +96,17 @@ function dedupeLabels(labels: string[]): string[] {
 }
 
 function buildUnderstandingFromPlanner(planner: CreatePlannerResult): CreateUnderstandingResult {
-  const topicLabels = dedupeLabels([
-    planner.plannerTopic,
+  const detailedTopicLabels = dedupeLabels([
     ...planner.topicCandidates,
     ...planner.plannerClusters,
   ]);
+  const topicLabels =
+    detailedTopicLabels.length >= MAX_UNDERSTANDING_TOPICS
+      ? detailedTopicLabels
+      : dedupeLabels([
+          planner.plannerTopic,
+          ...detailedTopicLabels,
+        ]);
   const scopes = dedupeLabels([
     ...planner.plannerScope,
     ...planner.scopeCandidates,
@@ -132,7 +140,7 @@ function buildUnderstandingFromPlanner(planner: CreatePlannerResult): CreateUnde
         confidence: "high",
       },
     ],
-    topics: topicLabels.slice(0, 12).map((label, index) => ({
+    topics: topicLabels.slice(0, MAX_UNDERSTANDING_TOPICS).map((label, index) => ({
       id: `topic-${index + 1}`,
       label,
       confidence: index === 0 ? "high" : "medium",

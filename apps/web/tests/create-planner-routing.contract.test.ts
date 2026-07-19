@@ -397,4 +397,73 @@ describe("create planner routing contract", () => {
       else process.env.OPENAI_MODEL = originalOpenAiModel;
     }
   });
+
+  it("preserves up to 14 validated planner topics in the followup readmodel", async () => {
+    mocks.buildCreatePlanner.mockResolvedValue({
+      source: "openai",
+      plannerSource: "openai",
+      plannerProvider: "openai",
+      plannerRole: "planner_only",
+      plannerTopic: "Kommunale Mehrthemenlage",
+      plannerCore: "Der Beitrag bündelt viele kommunale Teilthemen in einem Paket.",
+      plannerScope: ["municipal"],
+      plannerStance: "open",
+      plannerClusters: Array.from({ length: 14 }, (_, index) => `Thema ${index + 1}`),
+      plannerOpenQuestions: ["Welche Leitfrage soll zuerst bearbeitet werden?"],
+      shortSummary: "Vierzehn kommunale Themen wurden getrennt erkannt.",
+      topicCandidates: Array.from({ length: 14 }, (_, index) => `Thema ${index + 1}`),
+      clusterCandidates: Array.from({ length: 14 }, (_, index) => `Thema ${index + 1}`),
+      scopeCandidates: ["municipal"],
+      stance: "open",
+      openQuestions: ["Welche Leitfrage soll zuerst bearbeitet werden?"],
+      graphSearchTerms: ["Thema 1", "Thema 2", "Thema 3"],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+      providerPlan: {
+        lane: "create_fast_followup",
+        plannerProvider: "openai",
+        plannerRole: "planner_only",
+        structureProvider: "mistral",
+        summaryProvider: "claude",
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+        graphMatch: "after_structure",
+      },
+      permissions: {
+        nonMutative: true,
+        canPublish: false,
+        canSave: false,
+        canMerge: false,
+        canDeepSearch: false,
+      },
+      plannerDegraded: false,
+      degradedReason: null,
+      plannerDegradedReason: null,
+      qualityStatus: "specific",
+      qualityIssues: [],
+      providerCallAttempted: true,
+      providerCallSucceeded: true,
+      plannerDebug: {
+        attemptedProvider: "openai",
+        usedProvider: "openai",
+        providerAvailable: true,
+        providerErrorCode: null,
+        providerErrorMessage: null,
+        errorMessage: null,
+        rawPayloadValid: true,
+        rawTextValid: true,
+        normalizedPayloadValid: true,
+        qualityGatePassed: true,
+      },
+    });
+
+    const result = await buildCreateIntelligentFollowup({
+      text: "Eine Kommune ringt gleichzeitig mit vierzehn Themenfeldern.",
+      locale: "de",
+    });
+
+    expect(result.understanding.topics).toHaveLength(14);
+    expect(result.understanding.topics[13]?.label).toBe("Thema 14");
+  });
 });

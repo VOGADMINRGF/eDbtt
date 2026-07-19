@@ -10,6 +10,18 @@ export async function GET(req: Request) {
     const locale = localeParam && isCoreLocale(localeParam) ? localeParam : undefined;
 
     const now = new Date();
+    const hasWebDatabaseUrl = Boolean(process.env.WEB_DATABASE_URL || process.env.DATABASE_URL);
+
+    if (!hasWebDatabaseUrl) {
+      console.warn("GET /api/topics degraded: WEB_DATABASE_URL missing");
+      return NextResponse.json({
+        topics: [],
+        locale: locale ?? null,
+        asOf: now.toISOString(),
+        degraded: true,
+        errorCode: "TOPICS_DB_UNAVAILABLE",
+      });
+    }
 
     const rawTopics = await db.topic.findMany({
       where: locale ? { locale } : undefined,

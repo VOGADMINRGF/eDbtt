@@ -48,6 +48,7 @@ describe("openai-provider.reasoning.contract", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("does not send reasoning.effort for gpt-4.1-mini while keeping json format", async () => {
@@ -79,5 +80,47 @@ describe("openai-provider.reasoning.contract", () => {
     expect(body.reasoning?.effort).toBe("minimal");
     expect(body.text?.format?.type).toBe("json_schema");
   });
-});
 
+  it("aborts the underlying fetch when timeoutMs is reached", async () => {
+    vi.useFakeTimers();
+    let aborted = false;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        requestBodies.push(JSON.parse(String(init?.body ?? "{}")));
+        return new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (signal?.aborted) {
+            aborted = true;
+            reject(Object.assign(new Error("This operation was aborted"), { name: "AbortError" }));
+            return;
+          }
+          signal?.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              reject(Object.assign(new Error("This operation was aborted"), { name: "AbortError" }));
+            },
+            { once: true },
+          );
+        });
+      }),
+    );
+
+    const promise = callOpenAI({
+      prompt: "return json",
+      asJson: true,
+      forceJsonFormat: true,
+      model: "gpt-4.1-mini",
+      timeoutMs: 9_500,
+    });
+    void promise.catch(() => undefined);
+
+    await vi.advanceTimersByTimeAsync(9_500);
+
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+    expect(aborted).toBe(true);
+    expect(requestBodies[0]?.model).toBe("gpt-4.1-mini");
+  });
+});

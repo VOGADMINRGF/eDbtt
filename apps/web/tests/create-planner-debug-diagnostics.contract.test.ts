@@ -14,11 +14,13 @@ describe("create planner debug diagnostics contract", () => {
   const originalOpenAiKey = process.env.OPENAI_API_KEY;
   const originalOpenAiModel = process.env.OPENAI_MODEL;
   const originalOpenAiPlannerModel = process.env.OPENAI_PLANNER_MODEL;
+  const originalPlannerTimeout = process.env.CREATE_PLANNER_TIMEOUT_MS;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = "test-key";
     process.env.OPENAI_MODEL = "gpt-5";
+    process.env.CREATE_PLANNER_TIMEOUT_MS = "10000";
     delete process.env.OPENAI_PLANNER_MODEL;
   });
 
@@ -29,6 +31,8 @@ describe("create planner debug diagnostics contract", () => {
     else process.env.OPENAI_MODEL = originalOpenAiModel;
     if (originalOpenAiPlannerModel === undefined) delete process.env.OPENAI_PLANNER_MODEL;
     else process.env.OPENAI_PLANNER_MODEL = originalOpenAiPlannerModel;
+    if (originalPlannerTimeout === undefined) delete process.env.CREATE_PLANNER_TIMEOUT_MS;
+    else process.env.CREATE_PLANNER_TIMEOUT_MS = originalPlannerTimeout;
   });
 
   it("falls back to OPENAI_MODEL when OPENAI_PLANNER_MODEL returns MODEL_NOT_FOUND", async () => {
@@ -87,6 +91,76 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.plannerDebug.usedModel).toBe("gpt-5");
   });
 
+  it("stops after the first successful candidate without running a duplicate provider call", async () => {
+    process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
+    process.env.OPENAI_MODEL = "gpt-5";
+    mocks.callOpenAIJson.mockResolvedValue({
+      text: JSON.stringify({
+        plannerTopic: "ÖPNV und Mobilität",
+        plannerCore: "Der Beitrag beschreibt einen konkreten Konflikt zwischen Bus-Takt und Anschlussmobilität.",
+        plannerScope: ["district"],
+        plannerStance: "open",
+        plannerClusters: [
+          "ÖPNV und Mobilität",
+          "Pendler- und Anschlussmobilität",
+          "Straßenraum und Radverkehr",
+        ],
+        plannerOpenQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
+        shortSummary: "Der Beitrag verbindet Bus-Takt, Anschlussmobilität und Straßenraum.",
+        topicCandidates: [
+          "ÖPNV und Mobilität",
+          "Pendler- und Anschlussmobilität",
+          "Straßenraum und Radverkehr",
+        ],
+        clusterCandidates: [
+          "ÖPNV und Mobilität",
+          "Pendler- und Anschlussmobilität",
+          "Straßenraum und Radverkehr",
+        ],
+        scopeCandidates: ["district"],
+        openQuestions: ["Welcher Themenstrang soll zuerst vertieft werden?"],
+        graphSearchTerms: ["Bus-Takt", "Anschlussmobilität", "Straßenraum"],
+        materialSignals: [],
+        recommendedLane: "create_fast_followup",
+      }),
+    });
+
+    const planner = await buildCreatePlanner({
+      text:
+        "Bei uns im Bezirk fährt der Bus abends nur noch alle 30 Minuten. Dadurch verpassen viele Beschäftigte den Anschluss an die S-Bahn.",
+      locale: "de",
+    });
+
+    expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
+    expect(mocks.callOpenAIJson.mock.calls[0]?.[0]).toMatchObject({ model: "gpt-4.1-mini" });
+    expect(planner.source).toBe("openai");
+    expect(planner.plannerDebug.usedModel).toBe("gpt-4.1-mini");
+  });
+
+  it("classifies reachable-model aborts as timeout and does not fall through to the next candidate", async () => {
+    process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
+    process.env.OPENAI_MODEL = "gpt-5";
+    mocks.callOpenAIJson.mockRejectedValue(
+      Object.assign(new Error("The operation was aborted."), {
+        name: "AbortError",
+        meta: { code: "TIMEOUT" },
+      }),
+    );
+
+    const planner = await buildCreatePlanner({
+      text: "Ein längerer politischer Beitrag mit mehreren Themen.",
+      locale: "de",
+    });
+
+    expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
+    expect(mocks.callOpenAIJson.mock.calls[0]?.[0]).toMatchObject({
+      model: "gpt-4.1-mini",
+      timeoutMs: 10_000,
+    });
+    expect(planner.degradedReason).toBe("timeout");
+    expect(planner.plannerDebug.providerErrorCode).toBe("TIMEOUT");
+  });
+
   it("surfaces provider_error when the OpenAI call throws", async () => {
     mocks.callOpenAIJson.mockRejectedValue(new Error("upstream exploded"));
 
@@ -133,6 +207,23 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.plannerDebug.rawPayloadValid).toBe(false);
     expect(planner.plannerDebug.rawTextValid).toBe(false);
     expect(planner.plannerDebug.rawText).toBe("kein json");
+    expect(planner.plannerDebug.attemptedModel).toBe("gpt-5");
+  });
+
+  it("does not misclassify unauthorized provider errors as MODEL_NOT_FOUND", async () => {
+    const unauthorized = Object.assign(new Error("OpenAI error 401: unauthorized"), {
+      status: 401,
+      meta: { code: "UNAUTHORIZED" },
+    });
+    mocks.callOpenAIJson.mockRejectedValue(unauthorized);
+
+    const planner = await buildCreatePlanner({
+      text: "Ein längerer politischer Beitrag mit mehreren Themen.",
+      locale: "de",
+    });
+
+    expect(planner.degradedReason).toBe("provider_error");
+    expect(planner.plannerDebug.providerErrorCode).toBe("UNAUTHORIZED");
   });
 
   it("surfaces invalid_provider_payload when plannerCore is missing", async () => {
