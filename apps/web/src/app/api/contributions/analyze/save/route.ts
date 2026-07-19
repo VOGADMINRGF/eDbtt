@@ -9,7 +9,13 @@ import {
 } from "@/features/ai/promptOutputEnvelope";
 
 /* ---- config ---- */
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY_MISSING");
+  }
+  return new OpenAI({ apiKey });
+}
 const MODEL = (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
 const ANALYZE_SAVE_PROMPT_VERSION = "contributions_analyze_save.prompt.v1";
 const ANALYZE_SAVE_OUTPUT_VERSION = "contributions_analyze_save.output.v1";
@@ -164,6 +170,7 @@ export async function POST(req: NextRequest) {
 
     if (!text.trim()) return fail("INVALID_INPUT", trace, 400);
 
+    const openai = getOpenAIClient();
     const resp = await openai.responses.create({
       model: MODEL,
       input: [
