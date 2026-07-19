@@ -2,19 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  buildAiTraceHiddenByPolicyLines,
-  formatAiTraceMissingRuntimeLine,
-  formatAiTraceTechnicalVisibility,
-  getAiTraceSurfaceScopeLine,
-} from "@/features/ai/aiTraceSurfaceTruth";
+import { formatAiTraceMissingRuntimeLine } from "@/features/ai/aiTraceSurfaceTruth";
 import {
   buildAdminOrchestratorAiProvenanceTraceStep,
   getAiOrchestrationPublishStateLabel,
   getAiOrchestrationReviewStateLabel,
 } from "@/features/create/aiOrchestrationProvenanceTrace";
 
-type SmokeMode = "provider_probe" | "runtime_smoke" | "full_contract";
+type SmokeMode = "create_planner" | "provider_probe" | "runtime_smoke" | "full_contract";
 
 type ProviderDiagnostic = {
   provider: string;
@@ -24,6 +19,27 @@ type ProviderDiagnostic = {
   status: "ok" | "skipped" | "failed" | "degraded" | "config_missing";
   rootCause: string;
   nextAction: string;
+  providerErrorCode?: string | null;
+  httpStatus?: number | null;
+  providerStatus?: "reachable" | "down" | "unknown";
+  adapterStatus?: "ok" | "failed" | "not_started";
+  parseStatus?: "ok" | "failed" | "not_started";
+  schemaStatus?: "ok" | "failed" | "not_started";
+  schemaPath?: string | null;
+  journeyDecision?: string | null;
+  strictStatus?: string | null;
+  finalContractStatus?: string | null;
+  durationMs?: number | null;
+  timeoutMs?: number | null;
+  maxOutputTokens?: number | null;
+  tokensIn?: number | null;
+  tokensOut?: number | null;
+  estimatedCostUsd?: number | null;
+  estimatedCostEur?: number | null;
+  costKnown?: boolean;
+  selectedSmokeModel?: string | null;
+  effectiveModel?: string | null;
+  openAiSmokeModelMismatch?: boolean | null;
 };
 
 type SmokeResponse = {
@@ -32,6 +48,7 @@ type SmokeResponse = {
   runId: string;
   correlationId: string;
   rows: ProviderDiagnostic[];
+  directContractRows?: ProviderDiagnostic[];
   operationalSummary?: {
     normalizedLaneLabel: string;
     normalizedLaneDescription: string;
@@ -45,8 +62,20 @@ type SmokeResponse = {
   createAnalyzeApi: {
     state: "ok" | "failed" | "skipped";
     ok: boolean;
+    durationMs?: number;
     reason: string | null;
     code: string | null;
+  };
+  plannerSmoke?: {
+    source: string;
+    qualityStatus: string;
+    degradedReason: string | null;
+    topicCount: number;
+    scopeCount: number;
+    providerCallAttempted: boolean;
+    providerCallSucceeded: boolean;
+    modelCandidates: string[];
+    timeoutMs: number;
   };
   error?: string;
 };
@@ -59,6 +88,12 @@ type ModeCard = {
 };
 
 const MODE_CARDS: ModeCard[] = [
+  {
+    mode: "create_planner",
+    title: "Create Planner Live Smoke",
+    subtitle: "Prüft exakt den Modell-, Fallback- und Timeout-Pfad, den /create für die Themenanalyse verwendet.",
+    action: "Create Planner prüfen",
+  },
   {
     mode: "provider_probe",
     title: "Direktprüfung Provider",
@@ -79,10 +114,11 @@ const MODE_CARDS: ModeCard[] = [
   },
 ];
 
-function modeToQuery(mode: SmokeMode): string {
-  if (mode === "provider_probe") return "?mode=probe";
-  if (mode === "full_contract") return "?mode=full";
-  return "";
+function modeEndpoint(mode: SmokeMode): string {
+  if (mode === "create_planner") return "/api/admin/ai/create-planner-smoke";
+  if (mode === "provider_probe") return "/api/admin/ai/orchestrator-smoke?mode=probe";
+  if (mode === "full_contract") return "/api/admin/ai/orchestrator-smoke?mode=full";
+  return "/api/admin/ai/orchestrator-smoke";
 }
 
 function countRows(rows: ProviderDiagnostic[]) {
@@ -185,9 +221,6 @@ export default function OrchestratorTelemetryPage() {
   const [loadingMode, setLoadingMode] = useState<SmokeMode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const traceScopeLine = getAiTraceSurfaceScopeLine("operator");
-  const hiddenByPolicy = buildAiTraceHiddenByPolicyLines("operator");
-
   const operationalSummary = useMemo(
     () =>
       dataByMode.full_contract?.operationalSummary ??
@@ -214,7 +247,7 @@ export default function OrchestratorTelemetryPage() {
     setLoadingMode(mode);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/ai/orchestrator-smoke${modeToQuery(mode)}`, {
+      const res = await fetch(modeEndpoint(mode), {
         method: "POST",
       });
       const body = (await res.json().catch(() => null)) as SmokeResponse | null;
@@ -235,8 +268,8 @@ export default function OrchestratorTelemetryPage() {
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Orchestrator-Übersicht</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Diese Oberfläche zeigt sichere Betriebs- und Review-Zusammenfassungen für den bestehenden
-          Orchestrierungsweg. Sie ist bewusst keine Debug-, Prompt- oder Providerdetail-Ansicht.
+          Diese Admin-Oberfläche verbindet sichere Betriebszusammenfassungen mit aufklappbaren
+          technischen Laufdetails. Prompts, Secrets und ungekürzte Providerantworten bleiben verborgen.
         </p>
         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
           Ergänzende Live-Übersicht:{" "}
@@ -257,11 +290,14 @@ export default function OrchestratorTelemetryPage() {
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Sichere Trace-Wahrheit</h2>
-        <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{traceScopeLine}</p>
+        <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+          Sichtbar bleiben Arbeitsstand, Review-Grenzen und sichere Betriebsdiagnostik. Technische
+          Kennungen sind nur innerhalb der geschützten Admin-Ansicht und standardmäßig eingeklappt sichtbar.
+        </p>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-[rgb(var(--muted))]">
-          {hiddenByPolicy.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
+          <li>Keine Prompts, Secrets oder ungekürzten Providerantworten in dieser Oberfläche.</li>
+          <li>Modell, Fehlercode, Timeout, Laufzeit und Vertragsstatus bleiben für die Störungsanalyse sichtbar.</li>
+          <li>Quellen-, Recherche- und Factcheck-Hinweise bleiben Prüfpfade, keine bestätigten Belege.</li>
         </ul>
       </section>
 
@@ -276,11 +312,7 @@ export default function OrchestratorTelemetryPage() {
             {getAiOrchestrationPublishStateLabel(operatorTrace.publishState)}.
           </p>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            {formatAiTraceTechnicalVisibility({
-              audience: "operator",
-              providerVisibility: operatorTrace.providerVisibility,
-              providerKnown: operatorTrace.providerKnown,
-            })}
+            Sichere Laufdetails stehen in den eingeklappten technischen Details des jeweiligen Diagnoselaufs.
           </p>
           {operatorTrace.missingRuntimeTruth ? (
             <p className="mt-2 text-xs text-amber-800">
@@ -391,11 +423,139 @@ export default function OrchestratorTelemetryPage() {
                   <p className="mt-1">{formatCreateAnalyzeState(data)}</p>
                 </div>
               ) : null}
+
+              {data ? <TechnicalDiagnostics data={data} /> : null}
             </article>
           );
         })}
       </section>
     </main>
+  );
+}
+
+function diagnosticValue(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "n/a";
+  if (typeof value === "boolean") return value ? "ja" : "nein";
+  return String(value);
+}
+
+function formatMilliseconds(value: number | null | undefined): string {
+  return typeof value === "number" ? `${value} ms` : "n/a";
+}
+
+function formatTokens(row: ProviderDiagnostic): string {
+  if (typeof row.tokensIn !== "number" && typeof row.tokensOut !== "number") return "n/a";
+  return `${row.tokensIn ?? 0} / ${row.tokensOut ?? 0}`;
+}
+
+function formatCost(row: ProviderDiagnostic): string {
+  if (row.costKnown !== true) return "n/a";
+  const eur = typeof row.estimatedCostEur === "number" ? `EUR ${row.estimatedCostEur.toFixed(6)}` : null;
+  const usd = typeof row.estimatedCostUsd === "number" ? `USD ${row.estimatedCostUsd.toFixed(6)}` : null;
+  return [eur, usd].filter(Boolean).join(" · ") || "n/a";
+}
+
+function TechnicalDiagnostics({ data }: { data: SmokeResponse }) {
+  const groups = [
+    { title: data.mode === "create_planner" ? "Create-Planner-Pfad" : "Orchestrator-/Journey-Pfad", rows: data.rows },
+    ...(data.directContractRows?.length
+      ? [{ title: "Direkter Analyze-Contract", rows: data.directContractRows }]
+      : []),
+  ];
+
+  return (
+    <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[rgb(var(--fg))]">
+        Technische Details
+      </summary>
+      <div className="border-t border-[rgb(var(--border))] px-4 py-4">
+        <div className="grid gap-2 text-xs text-[rgb(var(--muted))] md:grid-cols-2">
+          <DiagnosticField label="Run-ID" value={data.runId} />
+          <DiagnosticField label="Korrelations-ID" value={data.correlationId} />
+        </div>
+
+        {data.plannerSmoke ? (
+          <div className="mt-3 grid gap-2 rounded-xl border border-[rgb(var(--border))] p-3 text-xs md:grid-cols-3">
+            <DiagnosticField label="Planner-Quelle" value={data.plannerSmoke.source} />
+            <DiagnosticField label="Qualitätsstatus" value={data.plannerSmoke.qualityStatus} />
+            <DiagnosticField label="Degraded Reason" value={data.plannerSmoke.degradedReason} />
+            <DiagnosticField label="Erkannte Themen" value={data.plannerSmoke.topicCount} />
+            <DiagnosticField label="Erkannte Scopes" value={data.plannerSmoke.scopeCount} />
+            <DiagnosticField
+              label="Provider-Aufruf"
+              value={data.plannerSmoke.providerCallSucceeded ? "erfolgreich" : data.plannerSmoke.providerCallAttempted ? "fehlgeschlagen" : "nicht gestartet"}
+            />
+          </div>
+        ) : null}
+
+        {groups.map((group) => (
+          <section key={group.title} className="mt-4">
+            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{group.title}</h3>
+            <div className="mt-2 space-y-3">
+              {group.rows.map((row, index) => (
+                <article
+                  key={`${group.title}-${row.provider}-${index}`}
+                  className="rounded-xl border border-[rgb(var(--border))] p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                      {row.displayName || row.provider}
+                    </p>
+                    <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]">
+                      {row.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs md:grid-cols-2 xl:grid-cols-4">
+                    <DiagnosticField label="Modell" value={row.effectiveModel ?? row.model} />
+                    <DiagnosticField label="Konfiguriertes Modell" value={row.selectedSmokeModel} />
+                    <DiagnosticField label="Provider-Code" value={row.providerErrorCode} />
+                    <DiagnosticField label="HTTP" value={row.httpStatus} />
+                    <DiagnosticField label="Provider / Adapter" value={`${diagnosticValue(row.providerStatus)} / ${diagnosticValue(row.adapterStatus)}`} />
+                    <DiagnosticField label="Timeout" value={formatMilliseconds(row.timeoutMs)} />
+                    <DiagnosticField label="Dauer" value={formatMilliseconds(row.durationMs)} />
+                    <DiagnosticField label="Max. Output-Tokens" value={row.maxOutputTokens} />
+                    <DiagnosticField label="Parse / Schema" value={`${diagnosticValue(row.parseStatus)} / ${diagnosticValue(row.schemaStatus)}`} />
+                    <DiagnosticField label="Schema-Pfad" value={row.schemaPath} />
+                    <DiagnosticField label="Strict / Final" value={`${diagnosticValue(row.strictStatus)} / ${diagnosticValue(row.finalContractStatus)}`} />
+                    <DiagnosticField label="Journey-Entscheidung" value={row.journeyDecision} />
+                    <DiagnosticField label="Tokens in / out" value={formatTokens(row)} />
+                    <DiagnosticField label="Geschätzte Kosten" value={formatCost(row)} />
+                    <DiagnosticField label="Modellabweichung" value={row.openAiSmokeModelMismatch} />
+                  </div>
+                  <p className="mt-3 text-xs font-semibold text-[rgb(var(--fg))]">
+                    Root Cause: {diagnosticValue(row.rootCause)}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Next Action: {diagnosticValue(row.nextAction)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div className="mt-4 grid gap-2 rounded-xl border border-[rgb(var(--border))] p-3 text-xs md:grid-cols-3">
+          <DiagnosticField label="Analyze-State" value={data.createAnalyzeApi.state} />
+          <DiagnosticField label="Analyze-Code" value={data.createAnalyzeApi.code} />
+          <DiagnosticField label="Analyze-Dauer" value={formatMilliseconds(data.createAnalyzeApi.durationMs)} />
+        </div>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          Prompts, Secrets, Provider-Rohantworten und ungekürzte Fehlerpayloads werden hier nicht angezeigt.
+        </p>
+      </div>
+    </details>
+  );
+}
+
+function DiagnosticField(props: {
+  label: string;
+  value: string | number | boolean | null | undefined;
+}) {
+  return (
+    <div>
+      <p className="font-semibold text-[rgb(var(--muted))]">{props.label}</p>
+      <p className="break-words text-[rgb(var(--fg))]">{diagnosticValue(props.value)}</p>
+    </div>
   );
 }
 
