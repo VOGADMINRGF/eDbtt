@@ -394,6 +394,36 @@ describe("create planner debug diagnostics contract", () => {
     );
   });
 
+  it("keeps an explicitly named main topic even when it is also the planner topic", async () => {
+    const topics = ["Verkehr", "Wohnen", "Grünflächen"];
+    mocks.callOpenAIJson.mockResolvedValue({
+      text: JSON.stringify({
+        plannerTopic: "Verkehr",
+        plannerCore: "Der Beitrag nennt Verkehr, Wohnen und Grünflächen als eigenständige Themen.",
+        plannerScope: ["municipal"],
+        plannerStance: "open",
+        plannerClusters: topics,
+        plannerOpenQuestions: [],
+        shortSummary: "Drei konkrete Themen werden getrennt betrachtet.",
+        topicCandidates: topics,
+        clusterCandidates: topics,
+        scopeCandidates: ["municipal"],
+        openQuestions: [],
+        graphSearchTerms: topics,
+        materialSignals: [],
+        recommendedLane: "create_fast_followup",
+      }),
+    });
+
+    const result = await buildCreatePlanner({
+      text: "In Rahnsdorf sollen Verkehr, Wohnen und Grünflächen getrennt beraten werden.",
+      locale: "de",
+    });
+
+    expect(result.topicCandidates).toEqual(topics);
+    expect(result.topicCandidates).toContain("Verkehr");
+  });
+
   it("preserves exactly fourteen topics without asking for a location already named in the text", async () => {
     const topics = [
       "Verkehr",

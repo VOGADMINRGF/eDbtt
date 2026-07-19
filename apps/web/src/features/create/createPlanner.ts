@@ -1201,16 +1201,8 @@ function normalizeOpenAiPlannerPayload(
   const recommendedLane = isRecommendedLane(recommendedLaneRaw) ? recommendedLaneRaw : "create_fast_followup";
   const plannerClusters = asStringArray(payload.plannerClusters);
   const providerTopicCandidates = dedupeStrings(asStringArray(payload.topicCandidates));
-  const topicCandidatesWithoutUmbrella =
-    providerTopicCandidates.length > 1
-      ? providerTopicCandidates.filter(
-          (candidate) => normalizeDenseText(candidate) !== normalizeDenseText(plannerTopic),
-        )
-      : providerTopicCandidates;
   const topicCandidates =
-    topicCandidatesWithoutUmbrella.length > 0
-      ? topicCandidatesWithoutUmbrella
-      : [plannerTopic];
+    providerTopicCandidates.length > 0 ? providerTopicCandidates : [plannerTopic];
   const clusterCandidates = dedupeStrings([...plannerClusters, ...asStringArray(payload.clusterCandidates)]);
   const scopeCandidates = dedupeStrings([...resolvedPlannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
   const locationQuestion = needsMunicipalLocationQuestion(text, scopeCandidates)
@@ -1343,7 +1335,8 @@ async function tryOpenAiPlannerWithModel(
     "- 'Aussage' ist nie ausreichend als plannerCore bei längeren politischen Texten.",
     "- Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
     "- Erhalte jedes ausdrücklich genannte, fachlich eigenständige Thema als eigenen topicCandidate; niemals auf drei Themen begrenzen.",
-    "- plannerTopic ist das Oberthema und darf nicht zusätzlich in topicCandidates stehen, wenn mehrere konkrete Themen vorliegen.",
+    "- Ein nur von dir gebildeter Sammelbegriff oder ein synthetisches Oberthema darf die Zahl der topicCandidates nicht erhöhen.",
+    "- Wenn plannerTopic selbst ausdrücklich als eigenständiges Thema im Text vorkommt, bleibt es dagegen als topicCandidate erhalten.",
     "- Bei kommunalem Scope ohne ausdrücklich benannte Stadt, Gemeinde oder Ortsteil muss plannerOpenQuestions eine Ortsrückfrage enthalten.",
     "- Formuliere die offene Rückfrage als Auswahlfrage, wenn mehrere Themen konkurrieren.",
     "",
