@@ -12,6 +12,7 @@ vi.mock("@/lib/server/auth/admin", () => ({
 
 vi.mock("@/features/create/createPlanner", () => ({
   buildCreatePlanner: (...args: unknown[]) => mocks.buildCreatePlanner(...args),
+  resolveCreatePlannerTimeoutMs: () => 10_000,
 }));
 
 import { POST } from "@/app/api/admin/ai/create-planner-smoke/route";

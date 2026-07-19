@@ -1,4 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/dbWeb", () => ({
+  isWebDatabaseConfigured: () =>
+    Boolean(
+      process.env.WEB_DATABASE_URL ||
+        process.env.WEB_POSTGRES_URL ||
+        process.env.WEB_POSTGRES_URI,
+    ),
+  prisma: {
+    topic: {
+      findMany: vi.fn(),
+    },
+  },
+}));
+
 import { GET } from "@/app/api/topics/route";
 
 describe("/api/topics route", () => {
