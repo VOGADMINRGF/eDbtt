@@ -78,10 +78,7 @@ export async function POST(req: NextRequest) {
       requestId: runId,
       operationId: `admin-create-planner-smoke:${runId}`,
       operationType: "admin_create_planner_smoke",
-      userId:
-        typeof (gate as { userId?: unknown })?.userId === "string"
-          ? String((gate as { userId: string }).userId)
-          : null,
+      userId: gate._id ? String(gate._id) : null,
     });
     const durationMs = Date.now() - startedAt;
     const rootCause = safeRootCause(planner);
