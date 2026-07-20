@@ -951,8 +951,8 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
   const municipalAddOnCatalog =
     locale === "en"
       ? [
-          "Dossier Search / Search Credit",
-          "Deep Research Credit",
+          "Source verification / research quota",
+          "Premium research / extended external source analysis",
           "Fact-check quota",
           "Moderation & assistance",
           "Event support",
@@ -963,8 +963,8 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           "Procurement / service-description draft package",
         ]
       : [
-          "Dossier Search / Search Credit",
-          "Deep Research Credit",
+          "Quellenprüfung / Recherche-Kontingent",
+          "Premium-Recherche / vertiefte externe Quellenanalyse",
           "Faktencheck-Kontingent",
           "Moderation & Assistenz",
           "Event-Begleitung",

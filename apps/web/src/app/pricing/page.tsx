@@ -121,7 +121,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustTwo: "Counting and status display are transparent and traceable.",
           trustThree: "Cancellation, revocation and data protection are documented clearly.",
           trustFour: "No official election result unless explicitly configured as legally binding.",
-          trustFive: "No hidden AI costs. Extra research or review services stay opt-in.",
+          trustFive: "No hidden AI orchestration costs. Extra source verification or premium research stays opt-in.",
           membershipTitle: "Membership in the initiative",
           membershipIntro:
             "Membership remains optional and separate from package purchase.",
@@ -135,8 +135,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           addOnsTitle: "Optional add-ons",
           addOnsIntro: "Add-ons are optional and can be purchased individually as needed.",
           addOnsItems: [
-            "Search Credit / Dossier Search: around €10 per credit (single purchase)",
-            "Deep Research Credit: around €20 per credit (single purchase)",
+            "Source verification / research quota: around €10 per quota (single purchase)",
+            "Premium research / extended external source analysis: around €20 per activation (single purchase)",
             "Fact-check quota: from €290 / month",
             "Moderation and assistance: from €450 / month",
             "Event support: from €690 per engagement",
@@ -201,7 +201,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustFour:
             "Keine amtliche Wahl oder verbindliche Abstimmung, außer wenn ein rechtssicheres Verfahren ausdrücklich eingerichtet ist.",
           trustFive:
-            "Keine versteckten AI-Kosten. Zusätzliche Recherche- oder Prüfpfade werden nur bewusst aktiviert.",
+            "Keine versteckten KI-Orchester-Kosten. Zusätzliche Quellenprüfung oder Premium-Recherche wird nur bewusst aktiviert.",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro:
             "Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.",
@@ -215,8 +215,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           addOnsTitle: "Optionale Add-ons",
           addOnsIntro: "Add-ons sind optional und können bei Bedarf einzeln hinzugebucht werden.",
           addOnsItems: [
-            "Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)",
-            "Deep Research Credit: ca. 20 € je Credit (einzeln buchbar)",
+            "Quellenprüfung / Recherche-Kontingent: ca. 10 € je Kontingent (einzeln buchbar)",
+            "Premium-Recherche / vertiefte externe Quellenanalyse: ca. 20 € je Freigabe (einzeln buchbar)",
             "Faktencheck-Kontingent: ab 290 € / Monat",
             "Moderation und Assistenz: ab 450 € / Monat",
             "Event-Begleitung: ab 690 € je Einsatz",
@@ -313,8 +313,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
               {locale === "en"
-                ? "Voting and participation remain free. This path includes no external research credits and no paid drafting quota."
-                : "Abstimmung und Teilnahme bleiben kostenfrei. Dieser Weg enthält keine externen Recherche-Credits und kein bezahltes Entwurfskontingent."}
+                ? "Voting and participation remain free. This path includes no research quotas and no paid drafting quota."
+                : "Abstimmung und Teilnahme bleiben kostenfrei. Dieser Weg enthält keine Recherche-Kontingente und kein bezahltes Entwurfskontingent."}
             </p>
             <div className="mt-4">
               <Link href={withLocaleHref("/register", locale)} className="btn-secondary inline-flex">

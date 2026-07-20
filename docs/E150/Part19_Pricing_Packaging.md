@@ -56,24 +56,27 @@ Fuer die oeffentliche Produktdarstellung gilt verbindlich:
 
 ### 2.3 Research-Credit Alignment (Issue #64, 2026-04-29)
 
+Public wording folgt verbindlich:
+
+- `docs/E150/V3_AI_ORCHESTRATION_AND_RESEARCH_CREDIT_POLICY_2026-07-18.md`
+
 Verbindliche Privatpreis- und Credit-Zielwelt:
 
 - `0 EUR`:
   - Voting/Participation bleibt frei.
-  - Keine externen Research-Credits enthalten.
+  - Keine Recherche-Kontingente enthalten.
 - `3,99 EUR` (`eDebatte Interessiert`):
   - 1 Contribution pro Monat.
-  - Keine externen Search-/Deep-Research-Credits enthalten.
+  - Keine erweiterten Recherche-Kontingente enthalten.
 - `9,99 EUR` (`eDebatte Aktiv`):
   - 3 Contributions pro Monat.
   - 1 Anlassraum-Credit.
-  - Kein automatischer externer Search-Call.
+  - Keine automatische externe Quellenanalyse.
 - `29,99 EUR` (`eDebatte Mitgestaltend`):
   - 10 Contributions pro Monat.
   - 1 Anlassraum-Credit.
   - 1 Entwicklungsthema.
-  - Optional 1 Perplexity Search Credit, sobald Provider-/Kosten-Policy aktiv ist.
-  - Kein ARI Deep Research inklusive.
+  - Optional 1 Recherche-Kontingent, sobald die Kosten-/Provider-Policy aktiv ist.
 
 Segment-Kontingente (ohne automatische Membership-Rabattlogik):
 
@@ -85,18 +88,17 @@ Segment-Kontingente (ohne automatische Membership-Rabattlogik):
 
 Add-on-Rahmen (orientierend, explizit optional):
 
-- Search Credit / Dossier Search: rund `10 EUR`.
-- Deep Research Credit / Premium Research: rund `20 EUR`.
-- ARI Premium Deep Research bleibt optionales Premium-Add-on und wird erst nach Kostenvalidierung produktisch geschaltet.
+- Quellenprüfung / Recherche-Kontingent: rund `10 EUR`.
+- Premium-Recherche / vertiefte externe Quellenanalyse: rund `20 EUR`.
 
 Guardrails:
 
-- Contributions sind nicht gleich externer Search.
-- Anlassraum ist nicht gleich Deep Research.
-- Dossier ist nicht automatisch ARI.
+- Contributions sind nicht gleich externe Quellenanalyse.
+- Anlassraum ist nicht gleich Premium-Recherche.
+- Dossier ist kein automatischer externer Recherchelauf.
 - Keine unbegrenzte externe Research-Nutzung in günstigen Paketen.
 - Unbekannte Providerkosten bleiben `unknown`/`n/a` (`costKnown=false`) und werden nie als `0 EUR` dargestellt.
-- Standard Analyze bleibt ohne Perplexity und ohne ARI lauffähig.
+- Standard Analyze bleibt ohne automatische externe Recherche lauffähig.
 
 ### 2.4 Bestellbarkeit + interne Steuerbarkeit
 

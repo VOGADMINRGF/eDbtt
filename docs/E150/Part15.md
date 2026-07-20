@@ -540,7 +540,7 @@ Verification:
 - `pnpm -C apps/web exec vitest run tests/analyze-workbench-hidden-until-start.test.ts`
 - `pnpm -C apps/web exec vitest run tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`
 - `pnpm -C apps/web run typecheck`
-- Browser-Addendum: echter `/create`-Run mit kommunalem Beispieltext bestaetigt im Follow-up die Badge-Zeile `Deine Struktur auf einen Blick`, konkrete Bedarfspunkte statt generischem `Kern: Fragestellung` und nach `Faktencheck / Deep Search` den eingebetteten Analysekopf `Im selben Arbeitsraum` ohne zweiten Hero.
+- Browser-Addendum: echter `/create`-Run mit kommunalem Beispieltext bestaetigt im Follow-up die Badge-Zeile `Deine Struktur auf einen Blick`, konkrete Bedarfspunkte statt generischem `Kern: Fragestellung` und nach `Quellenpruefung vorbereiten` den eingebetteten Analysekopf `Im selben Arbeitsraum` ohne zweiten Hero.
 
 Next Steps:
 - Echter browsernaher Matrixlauf fuer `/create` bleibt offen: Link-/YouTube-/PDF-/Upload-, Save-/Finalize- und Rueckweg-Pfade aktiv im Browser pruefen.
