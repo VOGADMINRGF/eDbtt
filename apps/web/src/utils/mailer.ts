@@ -2,6 +2,10 @@
 // Robuster Mailversand: SMTP, sonst Console-Log-Fallback.
 
 import nodemailer from "nodemailer";
+import {
+  hasSmtpTransportConfig,
+  resolveMailFromForRuntime,
+} from "@/lib/server/webRuntimeEnv";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -13,12 +17,8 @@ export async function sendMail(opts: {
 }) {
   const { to, subject, html, text } = opts;
 
-  const from = process.env.MAIL_FROM || "no-reply@localhost";
-  const wantsSmtp = !!(
-    process.env.SMTP_URL ||
-    process.env.SMTP_HOST ||
-    process.env.SMTP_USER
-  );
+  const from = resolveMailFromForRuntime();
+  const wantsSmtp = hasSmtpTransportConfig();
 
   const logToConsole = (reason?: string) => {
     if (reason) console.warn("[mailer] SMTP-Fallback:", reason);

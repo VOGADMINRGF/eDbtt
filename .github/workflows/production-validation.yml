@@ -71,7 +71,8 @@ jobs:
       ${{
         vars.PRODUCTION_VALIDATION_ENABLED == '1' &&
         secrets.JWT_SECRET != '' &&
-        secrets.MAIL_FROM != '' &&
+        secrets.WEB_DATABASE_URL != '' &&
+        (secrets.MAIL_FROM != '' || secrets.SMTP_FROM != '') &&
         secrets.CORE_DB_NAME != '' &&
         secrets.CORE_MONGODB_URI != '' &&
         secrets.VOTES_DB_NAME != '' &&
@@ -91,7 +92,9 @@ jobs:
       }}
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}
       MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
       CORE_DB_NAME: ${{ secrets.CORE_DB_NAME }}
       CORE_MONGODB_URI: ${{ secrets.CORE_MONGODB_URI }}
       VOTES_DB_NAME: ${{ secrets.VOTES_DB_NAME }}
@@ -128,4 +131,5 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsx scripts/ci/validate-web-runtime-env.ts
       - run: pnpm run release:validate:production
