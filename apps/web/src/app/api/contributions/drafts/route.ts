@@ -1,12 +1,20 @@
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  // TODO: hier an DB hängen (Prisma/Mongo)
-  const body = await req.json().catch(() => ({}));
-  const text: string = String(body?.text || "");
-  console.log("[draft/save]", { len: text.length });
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const CANONICAL_ENDPOINT = "/api/contributions/save";
+
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "route_gone",
+      route: "/api/contributions/drafts",
+      canonicalEndpoint: CANONICAL_ENDPOINT,
+      message:
+        "Dieser Legacy-Endpunkt wurde entfernt. Nutze den kanonischen Beitragsspeicherpfad /api/contributions/save.",
+    },
+    { status: 410 },
+  );
 }
