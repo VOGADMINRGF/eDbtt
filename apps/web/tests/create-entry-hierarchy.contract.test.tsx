@@ -85,38 +85,84 @@ describe("create entry hierarchy contract", () => {
       resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
       "utf8",
     );
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
+    expect((html.match(/data-create-workspace-shell="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/data-create-composer-bar="true"/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
-    expect(html).toContain("Schreib auf, was dich");
-    expect(html).toContain("beschäftigt");
-    expect(html).toContain("Beitrag vorbereiten");
-    expect(html).toContain("Du musst es noch nicht perfekt formulieren.");
-    expect(html).toContain("Text sortieren lassen");
-    expect(html).toContain("Quelle/Datei prüfen");
-    expect(html).toContain("Zu Anlassraum hinzufügen");
+    expect(html).toContain("Dein Beitrag im Workspace");
+    expect(html).toContain("Schreib unten frei los.");
+    expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(html).toContain("Thema ordnen");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
-    expect(html).toContain("Deine Struktur auf einen Blick");
-    expect(html).toContain("Prioritäten");
-    expect(html).toContain("Was zählt zuerst?");
-    expect(html).toContain("Themen");
-    expect(html).toContain("Erkannte Schwerpunkte");
-    expect(html).toContain("Fragen");
-    expect(html).toContain("Offene Fragen");
-    expect(html).toContain("Nächster Schritt");
-    expect(html).toContain("Was als Nächstes folgt");
-    expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
-    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
+    expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-workspace-host="wide-screen"');
+    expect(html).toContain('data-create-shell-layout="wide"');
+    expect(html).toContain('data-create-workspace-size="wide-screen"');
+    expect(html).toContain('data-create-workspace-phase="initial"');
+    expect(html).not.toContain('data-create-shell-pipeline="true"');
+    expect(html).not.toContain('data-create-shell-structure-rail="true"');
+    expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-thread-phase="initial"');
+    expect(html).toContain('data-create-composer-bar="true"');
+    expect(html).toContain('data-create-shell-secondary-details="true"');
+    expect(html).not.toContain("1 · Beitrag aufgenommen");
+    expect(html).not.toContain("2 · Themen erkannt");
+    expect(html).not.toContain("3 · Entscheidung offen");
+    expect(html).not.toContain("4 · Quellen optional");
+    expect(html).not.toContain("5 · Entwurf");
+    expect(html).not.toContain("Deine Struktur");
+    expect(html).not.toContain("Prioritäten");
+    expect(html).not.toContain("Erkannte Schwerpunkte");
+    expect(html).not.toContain("Themenäste");
+    expect(html).not.toContain("Fragen");
+    expect(html).not.toContain("Offene Fragen");
+    expect(html).not.toContain("Nächster Schritt");
+    expect(html).not.toContain("Beitrag prüfen");
+    expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(0);
+    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-4\"");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
-    expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
-    expect(composerSource).toContain("text-lg font-semibold tracking-tight");
-    expect(composerSource).toContain("hideAlternateModeDisclosure");
+    expect(followupSource).toContain("data-create-structure-rail");
+    expect(followupSource).toContain("data-create-inline-structure-summary");
+    expect(followupSource).toContain("data-create-embedded-followup");
+    expect(composerSource).toContain("data-create-composer-bar");
+    expect(composerSource).toContain("experienceVariant === \"workspace_shell\"");
+    expect(composerSource).toContain("workspacePhase === \"continuation\"");
+    expect(composerSource).toContain("resize-none");
+    expect(clientSource).toContain("const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted");
+    expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
+    expect(clientSource).toContain("max-w-none");
+    expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
+    const workspaceShellSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"),
+      "utf8",
+    );
+    expect(workspaceShellSource).toContain("data-create-workspace-size=\"wide-screen\"");
+    expect(workspaceShellSource).toContain("data-create-workspace-phase={phase}");
+    expect(workspaceShellSource).toContain("max-w-[min(92vw,96rem)]");
+    expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
+    expect(workspaceShellSource).toContain("data-create-shell-pipeline");
+    expect(workspaceShellSource).toContain("data-create-thread-phase={phase}");
+    expect(workspaceShellSource).toContain("md:min-h-[15rem]");
+    expect(workspaceShellSource).not.toContain("md:min-h-[46rem]");
+    expect(clientSource).not.toContain("min-h-[30rem]");
+    expect(clientSource).not.toContain("md:min-h-[36rem]");
+    expect(workspaceShellSource).toContain("overflow-y-auto");
+    expect(workspaceShellSource).toContain("sticky bottom-0");
+    expect(workspaceShellSource).not.toContain("max-w-[82.5rem]");
     expect(html).not.toContain("Geführter Ablauf");
     expect(html).not.toContain("Signalbild");
     expect(html).not.toContain("Gelesene Sinnabschnitte");
@@ -127,10 +173,18 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Test stadt");
     expect(html).not.toContain("Checkliste");
     expect(html).not.toContain("Kontingente und Zugriff");
-    expect(html).not.toContain("Weitere Wege");
+    expect(html).not.toContain("Beitrag sortieren");
+    expect(html).not.toContain("Kurzer Einstieg");
+    expect(html).not.toContain("Beitrag einreichen");
+    expect(html).not.toContain("Composer</p>");
+    expect(html).not.toContain(">Beitragen<");
+    expect(html).not.toContain(">Entwerfen<");
+    expect(html).toMatch(/>Prüfen</);
+    expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
-    expect(html).not.toContain("Pipeline");
+    expect(clientSource).toContain('experienceVariant="workspace_shell"');
+    expect(clientSource).not.toContain('experienceVariant="create_minimal"');
   });
 });

@@ -60,7 +60,7 @@ describe("existing topic matches panel", () => {
       <ExistingTopicMatchesPanel model={EXISTING_TOPIC_MATCH_PANEL_PREVIEW_MODEL} />,
     );
 
-    expect(html).toContain("Dazu gibt es bereits ähnliche Themen");
+    expect(html).toContain("Anschluss prüfen");
     expect(html).toContain("topic");
     expect(html).toContain("branch");
     expect(html).toContain("participation_space");
@@ -148,10 +148,10 @@ describe("existing topic matches panel", () => {
       onPrepareReview,
     });
 
-    findButtonByLabel(element, "An bestehenden Zweig anknüpfen")?.props.onClick?.();
+    findButtonByLabel(element, "An Debatte anknüpfen")?.props.onClick?.();
     findButtonByLabel(element, "Als ähnliche Meinung zählen")?.props.onClick?.();
-    findButtonByLabel(element, "Für Redaktion vormerken")?.props.onClick?.();
-    findButtonByLabel(element, "Eigenen Zweig starten")?.props.onClick?.();
+    findButtonByLabel(element, "Quelle prüfen")?.props.onClick?.();
+    findButtonByLabel(element, "Eigenen Strang weiterführen")?.props.onClick?.();
 
     expect(onSelectMatch).toHaveBeenCalledWith("fixture-topic-weak");
     expect(onCountSimilarOpinion).toHaveBeenCalledWith("fixture-opinion-cluster");
@@ -164,8 +164,8 @@ describe("existing topic matches panel", () => {
       <ExistingTopicMatchesPanel model={EXISTING_TOPIC_MATCH_PANEL_PREVIEW_MODEL} />,
     );
 
-    expect(html).toContain("Dossier-Anknüpfung prüfen");
-    expect(html).toContain("Beteiligungsraum ansehen");
+    expect(html).toContain("Dossier prüfen");
+    expect(html).toContain("Beteiligung vorbereiten");
     expect(html).toContain(
       "Review-first: Dossier-, Anlass- und Beteiligungsanschlüsse bleiben vorbereitend und brauchen eine bewusste Prüfung.",
     );

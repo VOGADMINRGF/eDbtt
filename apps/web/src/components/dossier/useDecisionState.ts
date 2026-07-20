@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  type DossierVoteRuntimeMode,
+  persistDossierVoteSelection,
+  resolveDossierVoteRuntime,
+} from "./runtimeTruth";
 
 type DecisionState = {
   selectedOptionId: string | null;
@@ -9,6 +14,8 @@ type DecisionState = {
   setSelectedOptionId: (id: string | null) => void;
   saveSelection: () => Promise<void>;
   saveNotice: boolean;
+  saveError: string | null;
+  savePending: boolean;
 };
 
 type MajorityUpdatePayload = {
@@ -19,6 +26,7 @@ type MajorityUpdatePayload = {
 
 type DecisionStateOptions = {
   onMajorityUpdate?: (payload: MajorityUpdatePayload) => void;
+  runtimeMode?: DossierVoteRuntimeMode;
 };
 
 export function useDecisionState(dossierId: string, options?: DecisionStateOptions): DecisionState {
@@ -28,9 +36,15 @@ export function useDecisionState(dossierId: string, options?: DecisionStateOptio
   const [savedOptionId, setSavedOptionId] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savePending, setSavePending] = useState(false);
+  const runtime = useMemo(
+    () => resolveDossierVoteRuntime(dossierId, options?.runtimeMode),
+    [dossierId, options?.runtimeMode],
+  );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !runtime.usesLocalPersistence) return;
     const stored = window.localStorage.getItem(storageKey);
     const storedAt = window.localStorage.getItem(timeKey);
     if (stored) {
@@ -38,32 +52,48 @@ export function useDecisionState(dossierId: string, options?: DecisionStateOptio
       setSavedOptionId(stored);
     }
     if (storedAt) setSavedAt(storedAt);
-  }, [storageKey, timeKey]);
+  }, [runtime.usesLocalPersistence, storageKey, timeKey]);
 
   const saveSelection = async () => {
     if (!selectedOptionId || typeof window === "undefined") return;
-    window.localStorage.setItem(storageKey, selectedOptionId);
-    const timestamp = new Date().toISOString();
-    window.localStorage.setItem(timeKey, timestamp);
+    setSaveError(null);
+    setSaveNotice(false);
+    setSavePending(true);
+
+    const result = await persistDossierVoteSelection({
+      dossierId,
+      optionId: selectedOptionId,
+      runtime,
+      fetchImpl: fetch,
+      storage: runtime.usesLocalPersistence ? window.localStorage : null,
+      storageKey,
+      timeKey,
+    });
+
+    setSavePending(false);
+
+    if (result.ok === false) {
+      setSaveError(result.error);
+      return;
+    }
+
     setSavedOptionId(selectedOptionId);
-    setSavedAt(timestamp);
+    setSavedAt(result.savedAt);
     setSaveNotice(true);
     window.setTimeout(() => setSaveNotice(false), 2200);
-
-    try {
-      const response = await fetch("/api/demo/vote", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dossierId, optionId: selectedOptionId }),
-      });
-      const data = (await response.json()) as { ok?: boolean } & MajorityUpdatePayload;
-      if (data?.ok) options?.onMajorityUpdate?.(data);
-    } catch {
-      // Demo-only: silently ignore
-    }
+    options?.onMajorityUpdate?.(result.payload as MajorityUpdatePayload);
   };
 
-  return { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice };
+  return {
+    selectedOptionId,
+    savedOptionId,
+    savedAt,
+    setSelectedOptionId,
+    saveSelection,
+    saveNotice,
+    saveError,
+    savePending,
+  };
 }
 
 export default useDecisionState;

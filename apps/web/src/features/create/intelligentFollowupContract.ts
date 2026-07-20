@@ -101,12 +101,102 @@ export type CreateFollowupGraphMatchPlan = {
 
 export type CreateGraphMatchResult = CreateFollowupGraphMatchPlan;
 
+export type DocumentTopic = {
+  id: string;
+  label: string;
+  subtopicCount?: number | null;
+  keyStatementCount?: number | null;
+  verifiableClaimCount?: number | null;
+  policyProposalCount?: number | null;
+  summary?: string | null;
+};
+
+export type DocumentAnalysisSummary = {
+  sourceUrl: string;
+  documentTitle: string | null;
+  documentType: "party_program" | "law" | "study" | "report" | "article" | "unknown";
+  pageCount: number | null;
+  wordCount: number | null;
+  topicCount: number;
+  subtopicCount: number;
+  keyStatementCount: number;
+  verifiableClaimCount: number;
+  policyProposalCount: number;
+  subjectBreadth: "narrow" | "medium" | "broad" | "very_broad";
+  subjectDepth: "low" | "medium" | "high" | "mixed";
+  balanceAssessment: "balanced" | "mostly_balanced" | "programmatic" | "one_sided" | "unclear";
+  sourceSpecificity: "specific" | "partly_specific" | "mostly_unspecific" | "none" | "unclear";
+  sourceVerificationStatus: "not_started" | "prepared" | "in_review" | "completed";
+  counterpositionCoverage: "strong" | "partial" | "weak" | "none" | "unclear";
+  summary: string;
+  topics: DocumentTopic[];
+};
+
+export function normalizeDocumentAnalysisSummary(
+  analysis: DocumentAnalysisSummary,
+): DocumentAnalysisSummary {
+  const seen = new Set<string>();
+  const topics = analysis.topics.reduce<DocumentTopic[]>((normalizedTopics, topic, index) => {
+      const label = topic.label.trim();
+      if (!label) return normalizedTopics;
+      const key = normalizeText(topic.id || label || `document-topic-${index + 1}`);
+      if (!key || seen.has(key)) return normalizedTopics;
+      seen.add(key);
+      normalizedTopics.push({
+        ...topic,
+        id: topic.id?.trim() || `document-topic-${index + 1}`,
+        label,
+        summary: topic.summary?.trim() || null,
+      });
+      return normalizedTopics;
+    }, []);
+
+  return {
+    ...analysis,
+    documentTitle: analysis.documentTitle?.trim() || null,
+    summary: analysis.summary.trim(),
+    topicCount: topics.length,
+    topics,
+  };
+}
+
+export type CreateAnalysisState =
+  | "idle"
+  | "input_ready"
+  | "link_detected"
+  | "entitlement_required"
+  | "fetching"
+  | "fetch_failed"
+  | "content_loaded"
+  | "ai_analyzing"
+  | "ai_failed"
+  | "analysis_validated"
+  | "result_ready";
+
+export type CreateAnalysisRecord = {
+  state: CreateAnalysisState;
+  analysisId: string;
+  sourceType: "text" | "link" | "document";
+  sourceUrl?: string | null;
+  sourceContentHash: string;
+  analyzedAt: string;
+  orchestrationRunId: string;
+  schemaVersion: string;
+  validationStatus: "not_started" | "failed" | "validated";
+  evidenceReferences: string[];
+  confidence: number | null;
+  sourceLoaded: boolean;
+  userMessage?: string | null;
+};
+
 export type CreateIntelligentFollowupMeta = {
-  planner: CreatePlannerResult;
+  planner?: CreatePlannerResult | null;
   graphMatch: CreateFollowupGraphMatchPlan;
   researchUsed: "none";
   researchProvider: null;
   deepSearchUsed: false;
+  analysis?: CreateAnalysisRecord;
+  documentAnalysis?: DocumentAnalysisSummary | null;
 };
 
 export type CreateIntelligentFollowupResult = {
@@ -166,9 +256,18 @@ export type CreateVisualSection = {
  */
 export type CreateStructureBranch = {
   id: string;
+  topicId: string;
   title: string;
+  summary: string;
   topics: string[];
   topicTags: string[];
+  evidenceSnippets: string[];
+  subtopics: string[];
+  sourceSection: string | null;
+  confidence: FollowupConfidence;
+  parentTopicId?: string | null;
+  relatedTopicIds: string[];
+  suggestedQuestions: string[];
   part06CategoryKeys: Part06CategoryKey[];
   part06CategoryLabels: string[];
   need: string;
@@ -418,32 +517,11 @@ function resolveSectionThemeLabel(params: {
   topicLabel?: string;
   index: number;
 }): string {
-  const haystack = normalizeText(
-    `${params.sourceText} ${params.statementLabel ?? ""} ${params.topicLabel ?? ""}`,
-  );
-
-  if (/wohn|miete|genehmigung|bau|leerstand/.test(haystack)) return "Wohnen und Genehmigungen";
-  if (/verkehr|mobilit|auto|rad|bus|bahn|klima/.test(haystack)) {
-    return "Verkehr, Klima und Alltagstauglichkeit";
-  }
-  if (/bildung|schule|sprach|leistung|kita/.test(haystack)) {
-    return "Schule und Bildung";
-  }
-  if (/integration|migration|sicherheit|rechtsstaat|verwaltung|zust[aä]ndigkeit/.test(haystack)) {
-    return "Migration, Sicherheit und Verwaltung";
-  }
-  if (/gesundheit|pflege|versorgung/.test(haystack)) {
-    return "Gesundheit, Pflege und kommunale Zuständigkeit";
-  }
-  if (/finanz|haushalt|beteiligung|kommune/.test(haystack)) {
-    return "Finanzen, Beteiligung und Zuständigkeit";
-  }
-  if (/forderung|mindestanforder|soll|muss/.test(haystack)) return "Was du forderst";
-  if (/option|vorschlag|alternative/.test(haystack)) return "Welche Lösung du vorschlägst";
-  if (/frage|offen|unklar/.test(haystack)) return "Was noch offen ist";
   if (params.topicLabel?.trim()) return params.topicLabel.trim();
   if (params.statementLabel?.trim()) return params.statementLabel.trim().slice(0, 72);
-  return `Schwerpunkt ${params.index + 1}`;
+  const compactSource = params.sourceText.trim().replace(/\s+/g, " ");
+  if (compactSource) return compactSource.slice(0, 72);
+  return `Thema ${params.index + 1}`;
 }
 
 function dedupeSectionLabel(label: string, fallbackTopicLabel: string | undefined, usedLabels: Set<string>): string {
@@ -547,241 +625,10 @@ export function buildCreateVisualSections(
   });
 }
 
-type BranchDefinition = {
-  id: string;
-  title: string;
-  topicPatterns: RegExp[];
-  textPatterns: RegExp[];
-  topicTagRules: Array<{ label: string; pattern: RegExp }>;
-  defaultTopicTags: string[];
-  part06CategoryKeys: Part06CategoryKey[];
-  defaultNeed: string;
-  defaultQuestion: string;
-};
-
-type PlannerBranchDefinition = {
-  id: string;
-  part06CategoryKeys: Part06CategoryKey[];
-  defaultNeed: string;
-  defaultQuestion: string;
-  topicTags: string[];
-};
-
-// Heuristische UI-Grouping-Regeln fuer den Follow-up-Workspace.
-// Sie helfen nur beim Rendern lesbarer Strukturaste und sind kein kanonischer
-// E150-Contract und keine zweite Claim-/Fragen-Taxonomie.
-const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
-  {
-    id: "housing-permits",
-    title: "Wohnen und Genehmigungen",
-    topicPatterns: [/wohnen/i],
-    textPatterns: [/wohn|miete|genehmigung|bau|leerstand|zweckentfremdung|auflagen|invest/i],
-    topicTagRules: [
-      { label: "Wohnen", pattern: /wohn|miete|wohnungsbau|leerstand/i },
-      { label: "Genehmigungen", pattern: /genehmigung|auflagen/i },
-      { label: "Stadtentwicklung", pattern: /bau|neubau|invest|zweckentfremdung/i },
-    ],
-    defaultTopicTags: ["Wohnen", "Genehmigungen", "Stadtentwicklung"],
-    part06CategoryKeys: ["mobility_urban", "local_community"],
-    defaultNeed: "Wohnungsbau, Zweckentfremdung, Auflagen und Investitionen müssen gemeinsam abgewogen werden.",
-    defaultQuestion: "Soll kommunaler Wohnungsbau schneller genehmigt werden, auch wenn Auflagen vereinfacht werden?",
-  },
-  {
-    id: "traffic-climate-daily-life",
-    title: "Verkehr, Klima und Alltagstauglichkeit",
-    topicPatterns: [/verkehr/i, /klima/i],
-    textPatterns: [/verkehr|bus|bahn|radweg|auto|handwerker|pflege|familie|klima|mobilit/i],
-    topicTagRules: [
-      { label: "ÖPNV", pattern: /öpnv|bus|bahn/i },
-      { label: "Radwege", pattern: /radweg|radwege|fahrrad/i },
-      { label: "Auto", pattern: /auto|autonutzung|handwerker/i },
-      { label: "Klimaziele", pattern: /klima|klimaziel|emission/i },
-    ],
-    defaultTopicTags: ["ÖPNV", "Radwege", "Auto", "Klimaziele"],
-    part06CategoryKeys: ["mobility_urban", "climate_environment"],
-    defaultNeed: "Verkehrswende, Klimaziele und notwendige Autonutzung treffen im Alltag aufeinander.",
-    defaultQuestion: "Wie soll die Stadt zwischen Klimazielen und notwendiger Autonutzung abwägen?",
-  },
-  {
-    id: "education-integration-safety",
-    title: "Bildung, Integration und Sicherheit",
-    topicPatterns: [/bildung/i, /migration|integration/i, /sicherheit|rechtsstaat/i],
-    textPatterns: [/bildung|schule|digital|sprach|integration|migration|sicherheit|rechtsstaat|regelverst/i],
-    topicTagRules: [
-      { label: "Schule", pattern: /schule|schulen|bildung/i },
-      { label: "Sprachförderung", pattern: /sprachf[oö]rderung|sprach/i },
-      { label: "Integration", pattern: /integration|migration/i },
-      { label: "Regelverstöße", pattern: /regelverst|rechtsstaat|sicherheit/i },
-    ],
-    defaultTopicTags: ["Schule", "Sprachförderung", "Integration", "Regelverstöße"],
-    part06CategoryKeys: ["education_research", "migration_integration", "interior_security"],
-    defaultNeed: "Bildung, Sprachförderung, Integration und Sicherheit brauchen nachvollziehbare Prioritäten.",
-    defaultQuestion: "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
-  },
-  {
-    id: "health-care",
-    title: "Gesundheit und Pflege",
-    topicPatterns: [/gesundheit|pflege/i],
-    textPatterns: [/gesundheit|pflege|pflegedienst/i],
-    topicTagRules: [
-      { label: "Pflege", pattern: /pflege|pflegedienst/i },
-      { label: "Gesundheitsversorgung", pattern: /gesundheit|arzt|versorgung/i },
-    ],
-    defaultTopicTags: ["Pflege", "Gesundheitsversorgung"],
-    part06CategoryKeys: ["health_care"],
-    defaultNeed: "Gesundheit und Pflege sind als weiterer Prüfpunkt berührt.",
-    defaultQuestion: "Welche Pflege- und Gesundheitsmaßnahmen sind kurzfristig am dringendsten?",
-  },
-  {
-    id: "finance-participation",
-    title: "Finanzen und Beteiligung",
-    topicPatterns: [/finanzen|beteiligung/i],
-    textPatterns: [/kommunale finanz|haushalt|kosten|beteiligung|priorisieren|zust[aä]ndigkeit/i],
-    topicTagRules: [
-      { label: "Finanzen", pattern: /kommunale finanz|haushalt|kosten|finanzierung/i },
-      { label: "Bürgerbeteiligung", pattern: /b[uü]rgerbeteiligung|beteiligung|mitentscheiden|priorisieren/i },
-      { label: "Zuständigkeiten", pattern: /zust[aä]ndigkeit|kommune|verwaltung/i },
-    ],
-    defaultTopicTags: ["Finanzen", "Bürgerbeteiligung", "Zuständigkeiten"],
-    part06CategoryKeys: ["budget_finance", "democracy_elections", "local_community"],
-    defaultNeed: "Finanzierbarkeit, Zuständigkeit und Beteiligung müssen im weiteren Arbeitsstand geklärt werden.",
-    defaultQuestion: "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
-  },
-];
-
-const PLANNER_BRANCH_DEFINITIONS: Readonly<Record<string, PlannerBranchDefinition>> = {
-  gleichberechtigung: {
-    id: "quota-equality",
-    part06CategoryKeys: ["social_family", "justice_law", "democracy_elections"],
-    defaultNeed: "Gleichberechtigung soll gestärkt werden, ohne neue Ungleichbehandlung zu erzeugen.",
-    defaultQuestion: "Welche Form von Gleichberechtigung soll gestärkt werden, ohne starre Quotenlogik zu übernehmen?",
-    topicTags: ["Gleichberechtigung", "Gleichstellung", "Fairness"],
-  },
-  frauenquote: {
-    id: "quota-women",
-    part06CategoryKeys: ["social_family", "justice_law", "work_economy"],
-    defaultNeed: "Folgen und Fairness verbindlicher Frauenquoten sollen konkret geprüft werden.",
-    defaultQuestion: "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
-    topicTags: ["Frauenquote", "Quotenregelungen", "Unternehmenspraxis"],
-  },
-  minderheitenförderung: {
-    id: "quota-minorities",
-    part06CategoryKeys: ["social_family", "migration_integration", "justice_law"],
-    defaultNeed: "Vergleichbarkeit zwischen Frauenquote und Förderinstrumenten für andere Minderheiten braucht klare Kriterien.",
-    defaultQuestion: "Welche Minderheiten oder Gruppen sollen verglichen werden?",
-    topicTags: ["Minderheitenförderung", "Vergleich", "Antidiskriminierung"],
-  },
-  "wirtschaftliche auswirkungen für unternehmen": {
-    id: "quota-business-impact",
-    part06CategoryKeys: ["work_economy", "justice_law", "social_family"],
-    defaultNeed: "Wirtschaftliche Folgen und Umsetzbarkeit für Unternehmen sollen nachvollziehbar geprüft werden.",
-    defaultQuestion: "Welche wirtschaftlichen Folgen oder betrieblichen Zielkonflikte stehen im Vordergrund?",
-    topicTags: ["Unternehmen", "Wirtschaft", "Umsetzbarkeit"],
-  },
-  "tierwohl und haltungsstandards": {
-    id: "animal-welfare-standards",
-    part06CategoryKeys: ["climate_environment", "work_economy", "local_community"],
-    defaultNeed: "Tierwohl, Haltung und Mindeststandards sollen konkreter gefasst werden.",
-    defaultQuestion: "Welche Tierwohl- und Haltungsstandards sollen verbindlich werden?",
-    topicTags: ["Tierwohl", "Tierhaltung", "Mindeststandards"],
-  },
-  "import- und exportregeln": {
-    id: "animal-trade-rules",
-    part06CategoryKeys: ["europe_foreign", "work_economy", "justice_law"],
-    defaultNeed: "Import- und Exportregeln sollen an vergleichbare Tierwohlstandards gekoppelt werden.",
-    defaultQuestion: "Sollten importierte und exportierte Tierprodukte nur zugelassen werden, wenn vergleichbare Tierwohlstandards eingehalten werden?",
-    topicTags: ["Import", "Export", "Lieferketten"],
-  },
-  "eu-/internationale mindeststandards": {
-    id: "animal-eu-international-standards",
-    part06CategoryKeys: ["europe_foreign", "justice_law", "climate_environment"],
-    defaultNeed: "EU- und internationale Mindeststandards brauchen eine klarere Zuständigkeits- und Regelperspektive.",
-    defaultQuestion: "Welche Standards sollen auf EU- oder internationaler Ebene vereinheitlicht werden?",
-    topicTags: ["EU", "international", "Mindeststandards"],
-  },
-  "verbraucherinformation / kennzeichnung / bio-label / haltungsstufen": {
-    id: "animal-labeling-consumer-info",
-    part06CategoryKeys: ["work_economy", "justice_law", "local_community"],
-    defaultNeed: "Kennzeichnung, Bio-Label und Haltungsstufen sollen Verbraucherinformation verständlicher machen.",
-    defaultQuestion: "Welche Kennzeichnungs- und Kontrollpflichten sollen für Bio-Label und Haltungsstufen gelten?",
-    topicTags: ["Kennzeichnung", "Bio-Label", "Haltungsstufen"],
-  },
-  "ethische bewertung von tierhaltung": {
-    id: "animal-ethics",
-    part06CategoryKeys: ["climate_environment", "social_family", "justice_law"],
-    defaultNeed: "Die ethische Bewertung von Tierhaltung soll ausdrücklich mitgeführt werden.",
-    defaultQuestion: "Welche ethischen Grenzen oder Leitprinzipien sollen für Tierhaltung gelten?",
-    topicTags: ["Ethik", "Tierhaltung", "Bewertung"],
-  },
-};
-
-function topicMatchesBranch(topic: string, branch: BranchDefinition): boolean {
-  return branch.topicPatterns.some((pattern) => pattern.test(topic));
-}
-
-function textMatchesBranch(text: string, branch: BranchDefinition): boolean {
-  return branch.textPatterns.some((pattern) => pattern.test(text));
-}
-
-function statementMatchesBranch(statement: CreateUnderstandingResult["statements"][number], branch: BranchDefinition): boolean {
-  const combined = `${statement.text} ${statement.sourceExcerpt ?? ""}`;
-  return textMatchesBranch(combined, branch);
-}
-
-function selectBranchTopics(
-  topics: CreateUnderstandingResult["topics"],
-  branch: BranchDefinition,
-): string[] {
-  return topics
-    .map((topic) => topic.label)
-    .filter((label) => topicMatchesBranch(label, branch))
-    .filter((label, index, list) => list.indexOf(label) === index);
-}
-
-function selectBranchClaims(
-  statements: CreateUnderstandingResult["statements"],
-  branch: BranchDefinition,
-): string[] {
-  const claims = statements
-    .filter((statement) => statementMatchesBranch(statement, branch))
-    .map((statement) => statement.text)
-    .filter((text, index, list) => text.trim().length > 0 && list.indexOf(text) === index)
-    .slice(0, 2);
-  return claims.length > 0 ? claims : [branch.defaultNeed];
-}
-
 function selectPositionClusters(
   understanding: CreateUnderstandingResult,
 ): string[] {
   return understanding.positionClusters?.map((cluster) => cluster.label).slice(0, 3) ?? [];
-}
-
-function selectBranchTopicTags(
-  sourceText: string,
-  topics: CreateUnderstandingResult["topics"],
-  branch: BranchDefinition,
-): string[] {
-  const tags: string[] = [];
-  const pushTag = (value?: string | null) => {
-    const normalized = String(value ?? "").trim();
-    if (!normalized || normalized === "Kommunale Prioritäten und Zielkonflikte" || tags.includes(normalized)) return;
-    tags.push(normalized);
-  };
-
-  for (const topic of topics) {
-    if (!topicMatchesBranch(topic.label, branch)) continue;
-    pushTag(topic.label);
-  }
-
-  for (const rule of branch.topicTagRules) {
-    if (rule.pattern.test(sourceText)) pushTag(rule.label);
-  }
-
-  for (const tag of branch.defaultTopicTags) {
-    pushTag(tag);
-  }
-
-  return tags.slice(0, 6);
 }
 
 function collectUnassignedCreateTopics(params: {
@@ -803,22 +650,45 @@ function collectUnassignedCreateTopics(params: {
   return overflowTopics;
 }
 
+function buildBranchSummary(params: {
+  title: string;
+  need: string;
+  claims: string[];
+}): string {
+  return params.claims[0] ?? params.need ?? `${params.title} bleibt sichtbar.`;
+}
+
+function buildBranchSubtopics(params: {
+  topicTags: string[];
+  openReviewPoints: string[];
+  voteQuestions: string[];
+}): string[] {
+  return dedupeStrings([
+    ...params.topicTags,
+    ...params.openReviewPoints,
+    ...params.voteQuestions,
+  ]).slice(0, 8);
+}
+
 function buildPlannerStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number,
 ): CreateStructureBranch[] {
   const planner = result.meta?.planner;
-  if (!planner || planner.plannerClusters.length === 0) return [];
+  if (
+    !planner ||
+    planner.source !== "openai" ||
+    planner.qualityStatus !== "specific" ||
+    planner.plannerDegraded
+  ) {
+    return [];
+  }
   const positionClusters = selectPositionClusters(result.understanding);
   const topicLabels = result.understanding.topics.map((topic) => topic.label);
   const branchLimit = Math.max(1, maxBranches);
 
   return planner.plannerClusters.slice(0, branchLimit).map((cluster, index) => {
-    const key = normalizeText(cluster);
-    const definition = PLANNER_BRANCH_DEFINITIONS[key];
-    const part06CategoryKeys = definition?.part06CategoryKeys ?? ["local_community"];
     const voteQuestion =
-      definition?.defaultQuestion ??
       planner.plannerOpenQuestions[index] ??
       planner.openQuestions[index] ??
       "Welche Leitfrage soll zuerst geklärt werden?";
@@ -826,24 +696,132 @@ function buildPlannerStructureBranches(
     const relatedTopics = dedupeStrings([
       cluster,
       planner.plannerTopic,
-      ...topicLabels.filter((topic) => normalizeText(topic).includes(normalizeText(cluster).split(" ")[0] ?? "")),
+      ...topicLabels.filter((topic) => normalizeText(topic).includes(normalizeText(cluster))),
     ]);
+    const topicTags = dedupeStrings([cluster, ...relatedTopics]).slice(0, 6);
+    const claims = dedupeStrings([plannerClaim, result.understanding.statements[index]?.text]).slice(0, 2);
+    const openReviewPoints = dedupeStrings([
+      planner.plannerOpenQuestions[index] ?? planner.openQuestions[index] ?? "",
+      "Belege prüfen",
+      "Abgrenzung schärfen",
+    ]).slice(0, 3);
 
     return {
-      id: definition?.id ?? `planner-branch-${index + 1}`,
+      id: `planner-branch-${index + 1}`,
+      topicId: `planner-branch-${index + 1}`,
       title: cluster,
+      summary: buildBranchSummary({
+        title: cluster,
+        need: `${cluster} ist als eigener Themenstrang erkannt worden.`,
+        claims,
+      }),
       topics: relatedTopics.length > 0 ? relatedTopics : [cluster],
-      topicTags: dedupeStrings([...(definition?.topicTags ?? []), cluster, planner.plannerTopic]).slice(0, 6),
-      part06CategoryKeys,
-      part06CategoryLabels: resolvePart06CategoryLabels(part06CategoryKeys),
-      need: definition?.defaultNeed ?? `${cluster} braucht eine konkretere Einordnung.`,
-      claims: dedupeStrings([plannerClaim, result.understanding.statements[index]?.text]).slice(0, 2),
+      topicTags,
+      evidenceSnippets: claims,
+      subtopics: buildBranchSubtopics({
+        topicTags,
+        openReviewPoints,
+        voteQuestions: [voteQuestion],
+      }),
+      sourceSection: result.understanding.summary ?? null,
+      confidence:
+        result.understanding.topics[index]?.confidence ?? result.understanding.confidence,
+      parentTopicId: null,
+      relatedTopicIds: result.understanding.topics
+        .filter((topic) => relatedTopics.includes(topic.label))
+        .map((topic) => topic.id),
+      suggestedQuestions: [voteQuestion],
+      part06CategoryKeys: ["local_community"],
+      part06CategoryLabels: resolvePart06CategoryLabels(["local_community"]),
+      need: `${cluster} ist als eigener Themenstrang erkannt worden.`,
+      claims,
       voteQuestions: [voteQuestion],
-      openReviewPoints: dedupeStrings([
-        planner.plannerOpenQuestions[index] ?? planner.openQuestions[index] ?? "",
-        "Zuständigkeit klären",
-        "Kontroll- und Umsetzungslogik prüfen",
-      ]).slice(0, 3),
+      openReviewPoints,
+      positionClusters,
+    };
+  });
+}
+
+function buildDocumentStructureBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number,
+): CreateStructureBranch[] {
+  const documentTopics = result.meta?.documentAnalysis
+    ? normalizeDocumentAnalysisSummary(result.meta.documentAnalysis).topics
+    : [];
+  if (documentTopics.length === 0) return [];
+  const positionClusters = selectPositionClusters(result.understanding);
+  const branchLimit = Math.max(1, maxBranches);
+
+  return documentTopics.slice(0, branchLimit).map((topic, index) => {
+    const evidenceSnippets = dedupeStrings([
+      topic.summary ?? "",
+      result.understanding.summary,
+    ]).slice(0, 2);
+    return {
+      id: topic.id || `document-topic-${index + 1}`,
+      topicId: topic.id || `document-topic-${index + 1}`,
+      title: topic.label,
+      summary: topic.summary?.trim() || `${topic.label} wurde aus dem Dokument als Themenbereich erkannt.`,
+      topics: [topic.label],
+      topicTags: [topic.label],
+      evidenceSnippets,
+      subtopics: dedupeStrings([
+        topic.subtopicCount ? `${topic.subtopicCount} Unterthemen` : "",
+        topic.keyStatementCount ? `${topic.keyStatementCount} Kernaussagen` : "",
+      ]),
+      sourceSection: result.understanding.summary ?? null,
+      confidence: index === 0 ? "high" : "medium",
+      parentTopicId: null,
+      relatedTopicIds: [],
+      suggestedQuestions: [],
+      part06CategoryKeys: ["local_community"],
+      part06CategoryLabels: resolvePart06CategoryLabels(["local_community"]),
+      need: `${topic.label} ist im Dokument als eigener Themenbereich vorhanden.`,
+      claims: evidenceSnippets,
+      voteQuestions: [],
+      openReviewPoints: [],
+      positionClusters,
+    };
+  });
+}
+
+function buildUnderstandingTopicBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number,
+): CreateStructureBranch[] {
+  const topicLimit = Math.max(1, maxBranches);
+  const positionClusters = selectPositionClusters(result.understanding);
+
+  return result.understanding.topics.slice(0, topicLimit).map((topic, index) => {
+    const matchingStatement = result.understanding.statements[index] ?? result.understanding.statements[0];
+    const evidenceSnippets = dedupeStrings([
+      matchingStatement?.text ?? "",
+      result.understanding.summary,
+    ]).slice(0, 2);
+    const followupQuestion =
+      result.understanding.openQuestion ??
+      "Welche Aussage möchtest du in diesem Themenstrang als Nächstes schärfen?";
+    return {
+      id: topic.id,
+      topicId: topic.id,
+      title: topic.label,
+      summary: result.understanding.summary || `${topic.label} wurde als Thema erkannt.`,
+      topics: [topic.label],
+      topicTags: [topic.label],
+      evidenceSnippets,
+      subtopics: [],
+      sourceSection: result.understanding.summary ?? null,
+      confidence: topic.confidence,
+      parentTopicId: null,
+      relatedTopicIds: [],
+      suggestedQuestions: [followupQuestion],
+      part06CategoryKeys: ["local_community"],
+      part06CategoryLabels: resolvePart06CategoryLabels(["local_community"]),
+      need: `${topic.label} wurde als eigenständiger Themenstrang erkannt.`,
+      claims: evidenceSnippets,
+      voteQuestions: [followupQuestion],
+      openReviewPoints: ["Quellenprüfung noch nicht durchgeführt"],
       positionClusters,
     };
   });
@@ -853,6 +831,9 @@ export function buildCreateStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number = 3,
 ): CreateStructureBranch[] {
+  const documentBranches = buildDocumentStructureBranches(result, maxBranches);
+  if (documentBranches.length > 0) return documentBranches;
+
   const plannerBranches = buildPlannerStructureBranches(result, maxBranches);
   if (plannerBranches.length > 0) {
     const overflowTopics = collectUnassignedCreateTopics({
@@ -868,30 +849,7 @@ export function buildCreateStructureBranches(
     return plannerBranches;
   }
 
-  const sourceText = normalizeText(result.sourceText);
-  const positionClusters = selectPositionClusters(result.understanding);
-  const branches: CreateStructureBranch[] = [];
-
-  for (const definition of STRUCTURE_BRANCH_DEFINITIONS) {
-    const matchedTopics = selectBranchTopics(result.understanding.topics, definition);
-    const hasTextMatch = textMatchesBranch(sourceText, definition);
-    if (matchedTopics.length === 0 && !hasTextMatch) continue;
-
-    branches.push({
-      id: definition.id,
-      title: definition.title,
-      topics: matchedTopics.length > 0 ? matchedTopics : [definition.title],
-      topicTags: selectBranchTopicTags(sourceText, result.understanding.topics, definition),
-      part06CategoryKeys: [...definition.part06CategoryKeys],
-      part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
-      need: definition.defaultNeed,
-      claims: selectBranchClaims(result.understanding.statements, definition),
-      voteQuestions: [definition.defaultQuestion],
-      openReviewPoints: ["Quellenlage prüfen", "Zuständigkeit klären", "Folgen und Zielkonflikte sauber abwägen"],
-      positionClusters,
-    });
-  }
-
+  const branches = buildUnderstandingTopicBranches(result, maxBranches);
   if (branches.length === 0) return branches;
 
   const branchLimit = Math.max(1, maxBranches);

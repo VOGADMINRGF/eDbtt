@@ -37,14 +37,14 @@ describe("closed cosmos ux audit contract", () => {
     expect(createSource).toContain("Arbeitsstand gesichert. Noch nicht veröffentlicht.");
     expect(createSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
 
-    expect(themenSource).toContain("Wir suchen Themen, an die dein Beitrag anknüpfen könnte.");
-    expect(themenSource).toContain("Als neues Thema vorschlagen");
+    expect(themenSource).toContain("Wir prüfen, ob dein Entwurf an bestehende Debatten anschließt.");
+    expect(themenSource).toContain("Als eigenes Thema weiterführen");
 
     expect(rundenSource).toContain("Runde aus deinem Entwurf vorbereiten");
     expect(rundenSource).toContain("Dein lokal gesicherter Entwurf wurde wieder geöffnet.");
 
     expect(accountSource).toContain("Meine Arbeitsstände");
-    expect(accountSource).toContain("lokale und dauerhaft gesicherte Entwürfe");
+    expect(accountSource).toContain("lokale, servergesicherte und verknüpfte Review-/Runtime-Arbeitsstände");
     expect(accountSource).toContain("Lokaler Entwurf");
     expect(accountSource).toContain("Weiterarbeiten");
   });

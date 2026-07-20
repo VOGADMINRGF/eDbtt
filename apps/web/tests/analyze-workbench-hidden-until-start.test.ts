@@ -165,6 +165,19 @@ describe("analyze workbench progressive disclosure", () => {
     ).toBe(true);
   });
 
+  it("shows the loading thread immediately before waiting for intelligent follow-up", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+
+    expect(clientSource).toContain('data-create-loading-thread={isStarting ? "true" : undefined}');
+    expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource.indexOf("setFollowupSnapshot(snapshot);")).toBeLessThan(
+      clientSource.indexOf('await fetch("/api/create/intelligent-followup"'),
+    );
+  });
+
   it("maps mode-specific follow-up surfaces so Beitragen stays lightweight by default", () => {
     expect(resolveFollowupSurfaceOnStart("analyze")).toBe("lightweight");
     expect(resolveFollowupSurfaceOnStart("media")).toBe("analysis");
@@ -199,7 +212,6 @@ describe("analyze workbench progressive disclosure", () => {
     expect(
       shouldRenderCreateIntelligentFollowup({
         hasStarted: false,
-        productMode: "analyze",
         followup: null,
       }),
     ).toBe(false);
@@ -207,7 +219,6 @@ describe("analyze workbench progressive disclosure", () => {
     expect(
       shouldRenderCreateIntelligentFollowup({
         hasStarted: true,
-        productMode: "analyze",
         followup: {
           understanding: {
             summary: "Kurzfassung",
@@ -233,7 +244,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufig verstanden");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So könnte der Arbeitsstand aussehen");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Wie möchtest du weitergehen?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Wie willst du damit weitergehen?");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint).toContain("Schreib einfach weiter");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint).toContain("Nach deiner Bestätigung");
@@ -295,21 +306,20 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("create-chat-spine");
     expect(source).toContain("create-chat-message");
     expect(source).toContain("Du");
-    expect(source).toContain("eDebatte");
+    expect(source).toContain("Assistent");
     expect(source).toContain("Wie möchtest du tiefer ins Thema gehen?");
-    expect(source).toContain("Ja, so einreichen");
-    expect(source).toContain("Ich möchte tiefer ins Thema");
+    expect(source).toContain("Hauptthema wählen");
+    expect(source).toContain("Beitrag weiterentwickeln");
+    expect(source).toContain("Quellen ergänzen");
+    expect(source).toContain("Entwurf speichern");
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
     expect(source).toContain("data-structure-overview-grid");
-    expect(source).toContain("mt-4 grid gap-2 md:grid-cols-3");
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
-    expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
-    expect(source).toContain("Faktencheck / Deep Search");
+    expect(source).toContain("Erkannte Themen");
     expect(source).not.toContain("Details zum Originaltext");
     expect(source).toContain("Gelesene Sinnabschnitte");
-    expect(source).toContain("Original oben anzeigen");
     expect(source).not.toContain("Was ich nach deiner Bestätigung vorbereiten kann");
     expect(source).toContain("Keine automatische Stimme.");
     expect(source).toContain("Keine automatische Veröffentlichung.");
@@ -325,8 +335,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Antwort fortsetzen");
     expect(clientSource).toContain("setChatContinuationText");
     expect(clientSource).toContain("handleContinueConversation");
-    expect(clientSource).toContain("CreateInlineAnalysisScene");
-    expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(clientSource).not.toContain("CreateInlineAnalysisScene");
+    expect(clientSource).toContain("CreateWorkspaceShell");
     expect(workspaceSource).toContain("shouldRenderCompactEmbeddedWorkspaceHeader");
     expect(workspaceSource).toContain("shouldUseInlineCreateActionBar");
     expect(workspaceSource).toContain("Im selben Arbeitsraum");
@@ -377,7 +387,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("collapseModeSelector");
     expect(clientSource).toContain("create-dialog-workspace");
     expect(clientSource).toContain("embeddedWorkspace");
-    expect(clientSource).toContain("create-start-chat-preview");
+    expect(clientSource).toContain("CreateWorkspaceShell");
+    expect(clientSource).toContain("data-create-loading-thread");
     expect(composerSource).toContain("alternateModeLabel");
     expect(composerSource).toContain("attachmentsDisclosureLabel");
   });
@@ -387,7 +398,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("/api/create/save");
     expect(clientSource).toContain("manualReviewRequested");
     expect(clientSource).toContain("Arbeitsstand zur Prüfung vorgemerkt. Keine automatische Veröffentlichung.");
-    expect(clientSource).toContain("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
+    expect(clientSource).toContain("Quellenmodus aktiv.");
     expect(clientSource).toContain("setReviewRequestState(\"saving\")");
     expect(clientSource).toContain("setFactcheckMessage(");
   });

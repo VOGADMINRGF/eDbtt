@@ -3,6 +3,7 @@ import type { RegionPublicationVisibilityState } from "@features/region";
 import { buildB2GPublicReadingHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
 import { buildMunicipalHandoffTrialPublicReadingHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
 import { buildPublicReadingGuardrailLines } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
+import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import RundenPublicInputPanel from "./RundenPublicInputPanel";
 
@@ -177,7 +178,7 @@ export default function RundenPublicSharingGuide(props: {
               href={PUBLIC_CREATE_HREF}
               className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              Beitrag vorbereiten
+              Beitrag mit Assistenz vorbereiten
             </Link>
             <Link
               href="/runden/demo"
@@ -250,6 +251,20 @@ export default function RundenPublicSharingGuide(props: {
       <RundenPublicInputPanel
         anlassraumId={props.featuredAnlassraumId ?? null}
         anlassraumTitle={props.featuredAnlassraumTitle ?? null}
+      />
+
+      <VoxyFloatingDock
+        title="Mit Assistent chatten"
+        body="Fragen? Ich helfe gern."
+        primaryAction={{
+          href: PUBLIC_CREATE_HREF,
+          label: "Chat öffnen",
+        }}
+        secondaryAction={{
+          href: "/themen",
+          label: "Themen ansehen",
+        }}
+        chips={["review-first", "kein Auto-Publish"]}
       />
     </section>
   );

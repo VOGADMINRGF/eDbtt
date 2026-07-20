@@ -21,8 +21,9 @@ describe("faq product narrative contract", () => {
   it("anchors create as statement-first with a confirmation prompt", () => {
     const corpus = buildFaqCorpus().join("\n\n");
     expect(corpus).toContain("Was passiert zuerst in /create?");
-    expect(corpus).toContain("Haben wir dich richtig verstanden?");
-    expect(corpus).toContain("Einreichen, als Arbeitsstand speichern oder zur Prüfung vorbereiten");
+    expect(corpus).toContain("Voxy sortiert Thema, Kontext und nächste Schritte direkt im Composer");
+    expect(corpus).toContain("einem gemeinsamen Kern");
+    expect(corpus).toContain("Nichts wird automatisch veröffentlicht");
   });
 
   it("explains the production maturity path beyond a permanent pilot state", () => {

@@ -40,7 +40,7 @@ const PRIMARY_CARDS: readonly PrimaryCard[] = [
   {
     href: "/create",
     title: "Etwas beitragen",
-    text: "Beschreibe, was besser werden sollte. Voxy hilft beim Einordnen, Schärfen und Weiterdenken.",
+    text: "Schreib frei, was dich bewegt. Voxy ordnet Thema, Kontext und nächste Schritte, ohne etwas automatisch zu veröffentlichen.",
     cta: "Beitrag starten",
     eyebrow: "Beitrag einbringen",
     tone: "primary",
@@ -101,7 +101,7 @@ const HERO_STAGE_LINKS: readonly StageLink[] = [
 ] as const;
 
 const TRUST_LINE =
-  "Keine Schnellschüsse, keine automatische Veröffentlichung – Beiträge werden geordnet, geprüft und gemeinsam weiterentwickelt.";
+  "Nichts wird automatisch veröffentlicht. Beiträge werden geordnet, geprüft und erst dann bewusst weitergeführt.";
 
 const VOXY_LIGHT_HERO_ASSET = resolveVoxyAsset("createGuideLight");
 const VOXY_DARK_HERO_ASSET = resolveVoxyAsset("createGuideDark");
@@ -344,7 +344,7 @@ export default function HomeSplitVoxyLanding({
                 </h1>
                 <p className="mx-auto max-w-[35rem] text-base leading-8 text-[rgb(var(--fg))]/76 sm:text-lg lg:mx-0 lg:text-[1.08rem]">
                   {isUnknownVisitor
-                    ? "Bring ein Anliegen, eine Beobachtung oder eine Idee ein. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen gesellschaftlich brauchbaren Beitrag zu entwickeln."
+                    ? "Schreib frei, was dich bewegt. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen nachvollziehbaren nächsten Schritt zu machen."
                     : experience.description}
                 </p>
               </div>

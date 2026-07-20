@@ -5,16 +5,83 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  web-contracts:
+    name: Web contracts
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BROWSERSLIST_IGNORE_OLD_DATA: "1"
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20.19.0"
           cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: git diff --check
+      - run: pnpm -C apps/web run test:web-pr-critical-guardrails
+      - run: pnpm -C apps/web run test:production-guardrails
+      - run: node scripts/ci/check-web-critical-guardrails.mjs
+
+      - name: Focused Create runtime contracts
+        run: >-
+          pnpm -C apps/web exec vitest run
+          tests/admin-ai-orchestrator-smoke.route.test.ts
+          tests/admin-ai-create-planner-smoke.route.test.ts
+          tests/admin-ai-telemetry-ui.contract.test.ts
+          tests/provider-smoke-model-fallback.contract.test.ts
+          tests/topics.route.test.ts
+          tests/create-intelligent-followup.contract.test.ts
+          tests/create-workspace-actions.interaction.test.tsx
+          tests/create-planner-debug-diagnostics.contract.test.ts
+          tests/create-planner-timeout.contract.test.ts
+          tests/openai-provider.reasoning.contract.test.ts
+
+  web-quality:
+    name: Web quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BROWSERSLIST_IGNORE_OLD_DATA: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cp apps/web/.env.example apps/web/.env.local
       - run: pnpm lint
-      - run: pnpm -C apps/web typecheck
+      - run: pnpm -C apps/web run typecheck
+      - run: pnpm -C apps/web run build
+
+  web-security:
+    name: Web security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: node scripts/ci/check-web-critical-guardrails.mjs

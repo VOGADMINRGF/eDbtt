@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { VOXY_PUBLIC_ROUTE_ASSETS } from "@/features/voxy/voxyAssets";
+import {
+  VOXY_PUBLIC_ROUTE_ASSETS,
+  resolveVoxyAsset,
+  resolveVoxyPublicRouteVariant,
+} from "@/features/voxy/voxyAssets";
 
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
@@ -83,5 +87,64 @@ describe("VoxyGuide render contract", () => {
     expect(source).not.toContain("dark:bg-");
     expect(source).not.toContain("shadow-");
     expect(source).not.toContain("bg-white");
+  });
+
+  it("keeps the create workspace on the canonical presenting asset instead of thumbnail guides", () => {
+    const shellSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"),
+      "utf8",
+    );
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const presentingAsset = resolveVoxyAsset("presenting");
+
+    expect(resolveVoxyPublicRouteVariant("createLight")).toBe("presenting");
+    expect(presentingAsset.png).toBe("/brand/voxy/voxy-presenting.png");
+    expect(presentingAsset.webp).toBe("/brand/voxy/voxy-presenting.webp");
+
+    expect(shellSource).toContain('variant="presenting"');
+    expect(clientSource).toContain('variant="presenting"');
+    expect(followupSource).toContain('variant="presenting"');
+
+    expect(shellSource).not.toContain('variant="createGuideLight"');
+    expect(clientSource).not.toContain('variant="createGuideLight"');
+    expect(followupSource).not.toContain('variant="createGuideLight"');
+  });
+
+  it("keeps create avatars on the canonical high-resolution asset with contain sizing", () => {
+    const guideSource = readFileSync(resolve(process.cwd(), "src/components/voxy/VoxyGuide.tsx"), "utf8");
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const shellSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"),
+      "utf8",
+    );
+
+    expect(guideSource).toContain("object-contain");
+    expect(guideSource).toContain("sizes={");
+    expect(guideSource).not.toContain("object-cover");
+
+    expect(clientSource).toContain('variant="presenting"');
+    expect(shellSource).toContain('variant="presenting"');
+    expect(followupSource).toContain('variant="presenting"');
+
+    expect(clientSource).not.toContain('variant="miniAvatar"');
+    expect(shellSource).not.toContain('variant="miniAvatar"');
+    expect(followupSource).not.toContain('variant="miniAvatar"');
+    expect(clientSource).not.toContain('variant="createGuideDark"');
+    expect(shellSource).not.toContain('variant="createGuideDark"');
+    expect(followupSource).not.toContain('variant="createGuideDark"');
   });
 });

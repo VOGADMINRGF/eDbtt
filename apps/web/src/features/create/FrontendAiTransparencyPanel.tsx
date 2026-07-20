@@ -48,119 +48,133 @@ export default function FrontendAiTransparencyPanel({
 
   return (
     <section
-      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-4 text-sm text-[rgb(var(--fg))]"
+      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-sm text-[rgb(var(--fg))]"
       data-frontend-ai-transparency={model.surface}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-        KI-Transparenz
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{model.title}</h2>
-      <p className="mt-2 max-w-3xl leading-6 text-[rgb(var(--muted))]">{model.summary}</p>
-      <p className="mt-2 max-w-3xl text-xs leading-5 text-[rgb(var(--muted))]">
-        {traceTruthLine}
-      </p>
-
-      <div className="mt-4 space-y-3">
-        {model.steps.map((step) => (
-          <div
-            key={step.id}
-            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3"
-            data-frontend-ai-step={step.id}
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={step.status} />
-              <p className="font-semibold text-[rgb(var(--fg))]">{step.label}</p>
-            </div>
-            <p className="mt-2 leading-6 text-[rgb(var(--muted))]">{step.detail}</p>
+      <details className="group">
+        <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 marker:hidden">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+              Warum sehe ich das?
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              {model.title}
+            </h2>
           </div>
-        ))}
-      </div>
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] transition group-open:bg-[rgb(var(--card))]">
+            Was passiert im Hintergrund?
+          </span>
+        </summary>
 
-      {model.traceSteps.length ? (
-        <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            Nachvollziehbarkeit heute
+        <div className="border-t border-[rgb(var(--border))] px-4 pb-4 pt-3">
+          <p className="max-w-3xl leading-6 text-[rgb(var(--muted))]">{model.summary}</p>
+          <p className="mt-2 max-w-3xl text-xs leading-5 text-[rgb(var(--muted))]">
+            {traceTruthLine}
           </p>
-          <div className="mt-3 space-y-3">
-            {model.traceSteps.map((step) => (
+
+          <div className="mt-4 space-y-3">
+            {model.steps.map((step) => (
               <div
-                key={step.stepId}
-                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
-                data-ai-provenance-step={step.stepId}
+                key={step.id}
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3"
+                data-frontend-ai-step={step.id}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${
-                      step.aiActive
-                        ? "border-sky-300/60 bg-sky-50/80 text-sky-800"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
-                    }`}
-                  >
-                    {step.aiActive ? "KI aktiv" : "Keine KI aktiv"}
-                  </span>
-                  <p className="font-semibold text-[rgb(var(--fg))]">{step.userVisibleLabel}</p>
+                  <StatusBadge status={step.status} />
+                  <p className="font-semibold text-[rgb(var(--fg))]">{step.label}</p>
                 </div>
-                <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
-                  Input: {step.inputOrigin}. Ergebnis: {getAiOrchestrationOutputTypeLabel(step.outputType)}.
-                  Ziel: {getAiOrchestrationGraphTargetStateLabel(step.graphTargetState)}.
-                </p>
-                <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
-                  Review: {getAiOrchestrationReviewStateLabel(step.reviewState)}. Veröffentlichung:{" "}
-                  {getAiOrchestrationPublishStateLabel(step.publishState)}.
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
-                  {formatAiTraceTechnicalVisibility({
-                    audience: "user",
-                    providerVisibility: step.providerVisibility,
-                    providerKnown: step.providerKnown,
-                  })}
-                </p>
-                {step.missingRuntimeTruth ? (
-                  <p className="mt-2 text-xs leading-5 text-amber-700">
-                    {formatAiTraceMissingRuntimeLine(step.missingRuntimeTruthReasons, "user")}
-                  </p>
-                ) : null}
+                <p className="mt-2 leading-6 text-[rgb(var(--muted))]">{step.detail}</p>
               </div>
             ))}
           </div>
-        </div>
-      ) : null}
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            Sichtbar jetzt
-          </p>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
-            {model.visibleNow.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          {model.traceSteps.length ? (
+            <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Nachvollziehbarkeit heute
+              </p>
+              <div className="mt-3 space-y-3">
+                {model.traceSteps.map((step) => (
+                  <div
+                    key={step.stepId}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3"
+                    data-ai-provenance-step={step.stepId}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${
+                          step.aiActive
+                            ? "border-sky-300/60 bg-sky-50/80 text-sky-800"
+                            : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                        }`}
+                      >
+                        {step.aiActive ? "KI aktiv" : "Keine KI aktiv"}
+                      </span>
+                      <p className="font-semibold text-[rgb(var(--fg))]">{step.userVisibleLabel}</p>
+                    </div>
+                    <p className="mt-2 leading-6 text-[rgb(var(--muted))]">
+                      Input: {step.inputOrigin}. Ergebnis: {getAiOrchestrationOutputTypeLabel(step.outputType)}.
+                      Ziel: {getAiOrchestrationGraphTargetStateLabel(step.graphTargetState)}.
+                    </p>
+                    <p className="mt-1 leading-6 text-[rgb(var(--muted))]">
+                      Review: {getAiOrchestrationReviewStateLabel(step.reviewState)}. Veröffentlichung:{" "}
+                      {getAiOrchestrationPublishStateLabel(step.publishState)}.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+                      {formatAiTraceTechnicalVisibility({
+                        audience: "user",
+                        providerVisibility: step.providerVisibility,
+                        providerKnown: step.providerKnown,
+                      })}
+                    </p>
+                    {step.missingRuntimeTruth ? (
+                      <p className="mt-2 text-xs leading-5 text-amber-700">
+                        {formatAiTraceMissingRuntimeLine(step.missingRuntimeTruthReasons, "user")}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Sichtbar jetzt
+              </p>
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
+                {model.visibleNow.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Nicht sichtbar
+              </p>
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
+                {model.hiddenByPolicy.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+                {traceHiddenLines.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Später
+              </p>
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
+                {model.futurePathNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            Nicht sichtbar
-          </p>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
-            {model.hiddenByPolicy.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-            {traceHiddenLines.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            Später
-          </p>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[rgb(var(--muted))]">
-            {model.futurePathNotes.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      </details>
     </section>
   );
 }

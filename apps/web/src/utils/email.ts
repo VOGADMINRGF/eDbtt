@@ -1,5 +1,5 @@
-import { env } from "@/utils/env";
 import { BRAND } from "@/lib/brand";
+import { resolveMailFromForRuntime } from "@/lib/server/webRuntimeEnv";
 import { publicOrigin } from "@/utils/publicOrigin";
 import type { Transporter } from "nodemailer";
 import nodemailer from "nodemailer";
@@ -123,7 +123,7 @@ export async function sendMail({ to, subject, html, text }: Mail) {
 
   try {
     const info = await transporter.sendMail({
-      from: env.EMAIL_DEFAULT_FROM,
+      from: resolveMailFromForRuntime(),
       to: toList,
       subject,
       // Beides mitsenden – viele Clients bevorzugen text

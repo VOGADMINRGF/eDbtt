@@ -126,42 +126,54 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Schreib auf, was dich");
-    expect(html).toContain("beschäftigt");
-    expect(html).toContain(
-      "Du musst es noch nicht perfekt formulieren. eDebatte hilft dir, daraus ein Thema, eine Frage, einen Beitrag oder einen Anlassraum zu machen.",
-    );
-    expect(html).toContain("Beitrag vorbereiten");
-    expect(html).toContain("Text sortieren lassen");
-    expect(html).toContain("Quelle/Datei prüfen");
-    expect(html).toContain("Zu Anlassraum hinzufügen");
+    expect(html).toContain("Ein Workspace für deinen Beitrag");
+    expect(html).toContain("Schreib unten frei los.");
+    expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(html).toContain("Thema ordnen");
+    expect(html).toContain("Frage schärfen");
+    expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
+    expect(html).toContain("Details &amp; Transparenz");
     expect(html).toContain("create-primary-intake");
-    expect(html).toContain("KI-Transparenz");
-    expect(html).toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
-    expect(html).toContain("Nachvollziehbarkeit heute");
-    expect(html).toContain("Noch nicht gestartet");
-    expect(html).toContain("Bleibt im Review");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht");
+    expect(html).toContain('data-create-workspace-shell="true"');
+    expect(html).toContain('data-create-shell-layout="wide"');
+    expect(html).toContain('data-create-shell-pipeline="true"');
+    expect(html).toContain('data-create-shell-structure-rail="true"');
+    expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-composer-bar="true"');
+    expect(html).toContain("Eingabe");
+    expect(html).toContain("Verstehen");
+    expect(html).toContain("Themen ordnen");
+    expect(html).toContain("Quellen prüfen");
+    expect(html).toContain("Entwurf");
+    expect(html).toContain("Prüfen");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
     );
     expect(html).toContain(
       "Der Agentic Civic Pilot bleibt review-first: Beobachtung, Format, Claims, Dossier, Beteiligung und Handoff werden vorbereitet, aber nichts wird automatisch veröffentlicht oder extern benachrichtigt.",
     );
-    expect(html).toContain('data-frontend-ai-transparency="/create"');
-    expect(html).toContain('data-ai-provenance-step="create_planner_trace"');
-    expect(html).toContain('data-ai-provenance-step="create_analyze_trace"');
-    expect(html).toContain('data-create-focus-stage="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).not.toContain("Developer-Hinweis");
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("Provider");
-    expect(html).not.toContain("Pipeline");
     expect(html).not.toContain("Missing runtime truth");
     expect(html).not.toContain("runId");
-    expect(html).not.toContain("Weitere Wege");
+    expect(html).not.toContain("Beitrag einreichen");
+    expect(html).not.toContain("Beitrag sortieren");
+    expect(html).not.toContain("Warum sehe ich das?");
+    expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
+    expect(html).not.toContain('data-voxy-appearance="panel"');
+    expect(html).not.toContain("Kurzer Einstieg");
+    expect(html).not.toContain("create-start-chat-preview");
+
+    expect(html.indexOf('data-create-shell-pipeline="true"')).toBeLessThan(
+      html.indexOf('id="create-primary-intake"'),
+    );
+    expect(html.indexOf('data-create-shell-structure-rail="true"')).toBeLessThan(
+      html.indexOf('id="create-primary-intake"'),
+    );
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");
@@ -212,12 +224,15 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Der Rahmen steht. Als Nächstes kannst du Frage, Optionen oder Quellen weiter schärfen.");
-    expect(html).toContain("Ich helfe dir, den nächsten Schritt auszuarbeiten.");
-    expect(html).toContain('data-voxy-appearance="panel"');
-    expect(html).toContain('data-create-focus-stage="true"');
+    expect(html).toContain("Kein serverseitiger Entwurf angefordert");
+    expect(html).toContain(
+      "Für diesen Übergang wurde noch kein serverseitiger Entwurf übernommen. Analyse und Planner arbeiten dann nur mit dem aktuell sichtbaren Text.",
+    );
+    expect(html).toContain('data-create-runden-handoff-status="not_requested"');
+    expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).toContain("Aus laufendem Anlass gestartet");
+    expect(html).not.toContain('data-voxy-appearance="panel"');
     expect(html).not.toContain("autoAnalyze");
     expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
   });
@@ -254,9 +269,8 @@ describe("/create start surface", () => {
     );
     expect(html).toContain("Serverseitiger Anlassraum-Entwurf übernommen");
     expect(html).toContain("Der serverseitig gespeicherte Entwurf aus /runden/new wurde geladen.");
-    expect(html).toContain("Entwurf aus /runden/new übernehmen");
-    expect(html).toContain("Abgeschlossen");
     expect(html).toContain("Sichere Schulwege");
+    expect(html).toContain('data-create-runden-handoff-status="loaded"');
   });
 
   it("shows an honest warning when a manual /runden/new draft is missing", async () => {
@@ -272,7 +286,7 @@ describe("/create start surface", () => {
 
     expect(html).toContain("Serverseitiger Anlassraum-Entwurf wurde nicht gefunden");
     expect(html).toContain("Es gibt keine belastbare serverseitige Draft-Wahrheit");
-    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain('data-create-runden-handoff-status="missing"');
   });
 
   it("shows an honest warning for invalid manual round draft ids", async () => {
@@ -289,7 +303,7 @@ describe("/create start surface", () => {
     expect(mocks.readManualAnlassraumServerDraftForCurrentUser).toHaveBeenCalledWith("bad-draft-id");
     expect(html).toContain("Draft-ID ist ungültig");
     expect(html).toContain("Es wurde kein serverseitiger Entwurf übernommen.");
-    expect(html).toContain("Bleibt im Review");
+    expect(html).toContain('data-create-runden-handoff-status="invalid"');
   });
 
   it("shows the resolved organization scope when available", async () => {

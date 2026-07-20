@@ -9,6 +9,8 @@ type VotePanelProps = {
   onSelect: (optionId: string) => void;
   onSave: () => void;
   saveNotice: boolean;
+  saveError?: string | null;
+  savePending?: boolean;
   savedAt?: string | null;
   canVote?: boolean;
   roleLabel?: string;
@@ -31,6 +33,8 @@ export function VotePanel({
   onSelect,
   onSave,
   saveNotice,
+  saveError,
+  savePending = false,
   savedAt,
   canVote = true,
   roleLabel,
@@ -83,9 +87,15 @@ export function VotePanel({
         type="button"
         className="btn btn-primary w-full"
         onClick={onSave}
-        disabled={!canVote || !selectedOptionId || selectedOptionId === savedOptionId}
+        disabled={!canVote || !selectedOptionId || selectedOptionId === savedOptionId || savePending}
       >
-        {isSaved ? "✔ Stimme gespeichert" : "Stimme speichern"}
+        {savePending
+          ? "Stimme wird gespeichert…"
+          : saveError
+            ? "Erneut versuchen"
+            : isSaved
+              ? "✔ Stimme gespeichert"
+              : "Stimme speichern"}
       </button>
 
       {!canVote ? (
@@ -100,6 +110,11 @@ export function VotePanel({
           <span className="text-[rgb(var(--fg))]">✓</span>
           <span className="ml-1">Stimme gespeichert · Danke</span>
           {savedAt ? <span className="ml-1">({formatDateTime(savedAt)})</span> : null}
+        </div>
+      ) : null}
+      {saveError ? (
+        <div className="rounded-xl border border-rose-300/70 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-900">
+          {saveError}
         </div>
       ) : null}
       {isSaved ? (

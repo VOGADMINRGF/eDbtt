@@ -27,6 +27,7 @@ import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
 import { loadAccountEditorialReviewRequests } from "./loadAccountEditorialReviewRequests";
 import { loadAccountFactcheckJobs } from "./loadAccountFactcheckJobs";
 import { loadAccountManualAnlassraumServerDrafts } from "./loadAccountManualAnlassraumServerDrafts";
+import { loadAccountSavedWorkstates } from "./loadAccountSavedWorkstates";
 import { loadAccountUserScopedRuntimeLinkage } from "./loadAccountUserScopedRuntimeLinkage";
 
 const RESEARCH_XP_AWARD = 25;
@@ -220,6 +221,11 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
   const graphMergeCandidates = await graphMergeCandidatesPromise;
 
   const roles = deriveRoles(doc);
+  const savedWorkstatesPromise = loadAccountSavedWorkstates(
+    String(doc._id),
+    roles,
+    40,
+  );
   const accessTier = deriveTier(doc);
   const groups = deriveGroups(doc, accessTier, roles);
   const stats = deriveStats(doc);
@@ -335,6 +341,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     editorialReviewRequests,
     factcheckJobs,
     userScopedRuntimeLinkages,
+    savedWorkstates: await savedWorkstatesPromise,
   };
 }
 

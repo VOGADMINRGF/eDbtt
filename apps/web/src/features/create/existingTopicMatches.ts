@@ -301,15 +301,15 @@ export function getExistingTopicMatchCtaLabel(
     return "Als ähnliche Meinung zählen";
   }
   if (match.kind === "source_question") {
-    return "Für Redaktion vormerken";
+    return "Quelle prüfen";
   }
   if (match.kind === "dossier") {
-    return "Dossier-Anknüpfung prüfen";
+    return "Dossier prüfen";
   }
   if (match.kind === "participation_space") {
-    return "Beteiligungsraum ansehen";
+    return "Beteiligung vorbereiten";
   }
-  return "An bestehenden Zweig anknüpfen";
+  return "An Debatte anknüpfen";
 }
 
 export function getExistingTopicMatchGuardrailNote(

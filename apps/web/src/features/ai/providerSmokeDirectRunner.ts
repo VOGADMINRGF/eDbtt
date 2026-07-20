@@ -60,10 +60,47 @@ declare global {
   var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__: RouteFullInternal | undefined;
 }
 
-const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
+const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-5";
+
+function dedupeModelCandidates(values: Array<string | null | undefined>): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const model = String(value ?? "").trim();
+    if (!model || seen.has(model)) continue;
+    seen.add(model);
+    candidates.push(model);
+  }
+  return candidates;
+}
+
+function openAiSmokeModelCandidates(): string[] {
+  return dedupeModelCandidates([
+    process.env.OPENAI_SMOKE_MODEL,
+    process.env.OPENAI_MODEL,
+    OPENAI_SMOKE_DEFAULT_MODEL,
+  ]);
+}
 
 function openAiSmokeModel(): string {
-  return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
+  return openAiSmokeModelCandidates()[0] ?? OPENAI_SMOKE_DEFAULT_MODEL;
+}
+
+function isOpenAiModelNotFoundError(error: unknown): boolean {
+  const candidate = error as {
+    status?: number;
+    code?: string;
+    message?: string;
+    meta?: { status?: number; code?: string };
+  } | null;
+  const status = candidate?.status ?? candidate?.meta?.status ?? null;
+  const code = String(candidate?.meta?.code ?? candidate?.code ?? "").toUpperCase();
+  const message = error instanceof Error ? error.message : String(candidate?.message ?? "");
+  return (
+    status === 404 ||
+    code === "MODEL_NOT_FOUND" ||
+    (/model/i.test(message) && /404|not found|does not exist/i.test(message))
+  );
 }
 
 function openAiSmokeTimeoutMs(): number {
@@ -365,24 +402,37 @@ async function callProvider(params: {
   openaiErrorMessage: string | null;
 }> {
   if (params.provider === "openai") {
-    const result = await callOpenAI({
-      prompt: params.prompt,
-      asJson: true,
-      forceJsonFormat: true,
-      model: openAiSmokeModel(),
-      maxOutputTokens: params.maxOutputTokens,
-      timeoutMs: params.timeoutMs ?? openAiSmokeTimeoutMs(),
-    });
-    return {
-      text: result.text,
-      model: result.model ?? openAiSmokeModel(),
-      tokensIn: result.tokensIn ?? null,
-      tokensOut: result.tokensOut ?? null,
-      formatUsed: result.formatUsed ?? null,
-      didFallback: typeof result.didFallback === "boolean" ? result.didFallback : null,
-      openaiErrorCode: result.openaiErrorCode ?? null,
-      openaiErrorMessage: result.openaiErrorMessage ?? null,
-    };
+    const models = openAiSmokeModelCandidates();
+    let lastError: unknown = null;
+    for (const [index, model] of models.entries()) {
+      try {
+        const result = await callOpenAI({
+          prompt: params.prompt,
+          asJson: true,
+          forceJsonFormat: true,
+          model,
+          maxOutputTokens: params.maxOutputTokens,
+          timeoutMs: params.timeoutMs ?? openAiSmokeTimeoutMs(),
+        });
+        return {
+          text: result.text,
+          model: result.model ?? model,
+          tokensIn: result.tokensIn ?? null,
+          tokensOut: result.tokensOut ?? null,
+          formatUsed: result.formatUsed ?? null,
+          didFallback:
+            index > 0 || (typeof result.didFallback === "boolean" ? result.didFallback : false),
+          openaiErrorCode: result.openaiErrorCode ?? null,
+          openaiErrorMessage: result.openaiErrorMessage ?? null,
+        };
+      } catch (error) {
+        lastError = error;
+        if (!isOpenAiModelNotFoundError(error) || index === models.length - 1) {
+          throw error;
+        }
+      }
+    }
+    throw lastError ?? new Error("OPENAI_SMOKE_MODEL_CANDIDATES_EMPTY");
   }
   if (params.provider === "anthropic") {
     const result = await callAnthropic({

@@ -40,7 +40,12 @@ export function isRegionDraftDossierId(value: string | null | undefined): boolea
 
 export function isExplicitDemoDossierId(value: string | null | undefined): boolean {
   const normalized = String(value || "").trim().toLowerCase();
-  return normalized === "demo" || normalized === "demo-dossier" || normalized === "dossier_demo_mobility_berlin";
+  return (
+    normalized === "demo" ||
+    normalized === "demo-dossier" ||
+    normalized === "dossier_demo_mobility_berlin" ||
+    normalized === "demo-innencity-2026"
+  );
 }
 
 export function shouldAllowDemoDossierFallback(dossierId: string | null | undefined): boolean {

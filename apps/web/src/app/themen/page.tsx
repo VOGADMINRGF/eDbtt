@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
+import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRound";
 import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
 
@@ -134,11 +135,11 @@ export default function ThemenPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themensuche</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Finde, wo dein Beitrag anknüpft.</h1>
         <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
-          eDebatte sammelt Anliegen nicht als lose Kommentare. Die Themensuche zeigt, welche Debatten bereits sichtbar sind, wo Argumente und offene Fragen gesammelt werden und wo du aktiv dabei sein kannst.
+          eDebatte sammelt Anliegen nicht als lose Kommentare. Die Themensuche zeigt, wo dein Entwurf an bestehende Debatten anschließt, welche Themenstränge schon sichtbar sind und wo du review-first weiterarbeiten kannst.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/create?intent=issue_signal" className="btn-primary inline-flex">
-            Beitrag einordnen
+            Beitrag mit Assistenz einordnen
           </Link>
           <Link href="/runden" className="btn-secondary inline-flex">
             Aktiv dabei
@@ -177,6 +178,20 @@ export default function ThemenPage() {
           emptyText="Archivierte Themen erscheinen hier erst, wenn ein Mitmachschritt abgeschlossen oder eine Wirkung nachvollziehbar beobachtet wurde."
         />
       </div>
+
+      <VoxyFloatingDock
+        title="Mit Assistent chatten"
+        body="Fragen? Ich helfe gern."
+        primaryAction={{
+          href: "/create?intent=issue_signal",
+          label: "Chat öffnen",
+        }}
+        secondaryAction={{
+          href: "/runden",
+          label: "Aktiv dabei",
+        }}
+        chips={["Anschluss prüfen", "review-first"]}
+      />
     </ProductSurfaceShell>
   );
 }

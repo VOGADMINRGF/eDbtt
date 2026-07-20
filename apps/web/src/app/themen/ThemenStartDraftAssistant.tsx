@@ -53,15 +53,15 @@ export default function ThemenStartDraftAssistant(props: ThemenStartDraftAssista
         draft={draft}
         surface="themes"
         eyebrow="Aktiver Entwurf"
-        title="Aus Analyse-Entwurf übernommen."
-        body="Wir suchen Themen, an die dein Beitrag anknüpfen könnte. Nichts wird automatisch zusammengeführt."
+        title="Aus dem Voxy-Entwurf übernommen."
+        body="Wir prüfen, ob dein Entwurf an bestehende Debatten anschließt. Nichts wird automatisch zusammengeführt oder aufgeteilt."
         primaryAction={{
-          label: "Passende Themen anzeigen",
+          label: "Anschluss prüfen",
           tone: "secondary",
           href: "#themen-start-draft-suche",
         }}
         secondaryAction={{
-          label: "Als neues Thema vorschlagen",
+          label: "Als eigenes Thema weiterführen",
           tone: "secondary",
           href: noMatchHref,
         }}
@@ -180,7 +180,7 @@ export default function ThemenStartDraftAssistant(props: ThemenStartDraftAssista
             </p>
             <div className="mt-4">
               <a href={noMatchHref} className="vog-btn-secondary">
-                Als neues Thema vorschlagen
+                Als eigenes Thema weiterführen
               </a>
             </div>
           </div>

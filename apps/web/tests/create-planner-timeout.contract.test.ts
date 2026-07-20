@@ -18,28 +18,36 @@ import { buildCreatePlanner } from "@/features/create/createPlanner";
 describe("create planner timeout contract", () => {
   const originalOpenAiKey = process.env.OPENAI_API_KEY;
   const originalPlannerTimeout = process.env.CREATE_PLANNER_TIMEOUT_MS;
+  const originalOpenAiModel = process.env.OPENAI_MODEL;
+  const originalOpenAiPlannerModel = process.env.OPENAI_PLANNER_MODEL;
 
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = "test-key";
-    process.env.CREATE_PLANNER_TIMEOUT_MS = "25";
+    process.env.OPENAI_MODEL = "gpt-5";
+    process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
+    delete process.env.CREATE_PLANNER_TIMEOUT_MS;
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = originalOpenAiKey;
     if (originalPlannerTimeout === undefined) delete process.env.CREATE_PLANNER_TIMEOUT_MS;
     else process.env.CREATE_PLANNER_TIMEOUT_MS = originalPlannerTimeout;
+    if (originalOpenAiModel === undefined) delete process.env.OPENAI_MODEL;
+    else process.env.OPENAI_MODEL = originalOpenAiModel;
+    if (originalOpenAiPlannerModel === undefined) delete process.env.OPENAI_PLANNER_MODEL;
+    else process.env.OPENAI_PLANNER_MODEL = originalOpenAiPlannerModel;
   });
 
-  it("falls back quickly when planner_only openai call does not return", async () => {
-    mocks.callOpenAIJson.mockImplementation(
-      () => new Promise(() => undefined) as Promise<{ text: string }>,
-    );
+  it("uses the 10000ms production default and classifies provider aborts as TIMEOUT", async () => {
+    const timeoutError = Object.assign(new Error("The operation was aborted."), {
+      name: "AbortError",
+      meta: { code: "TIMEOUT" },
+    });
+    mocks.callOpenAIJson.mockRejectedValue(timeoutError);
 
-    const plannerPromise = buildCreatePlanner({
+    const planner = await buildCreatePlanner({
       text: "Ich bin für besseren Tierschutz und Tierhaltung in Europa und weltweit.",
       locale: "de",
       requestId: "request-timeout",
@@ -47,18 +55,24 @@ describe("create planner timeout contract", () => {
       dossierId: "dossier-timeout",
     });
 
-    await vi.advanceTimersByTimeAsync(1_000);
-    const planner = await plannerPromise;
-
     expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
-    expect(planner.source).toBe("heuristic_fallback");
-    expect(planner.recommendedLane).toBe("create_fast_followup");
+    expect(mocks.callOpenAIJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gpt-4.1-mini",
+        timeoutMs: 10_000,
+      }),
+    );
+    expect(planner.source).toBe("technical_fallback");
+    expect(planner.recommendedLane).toBe("standard");
     expect(planner.providerPlan.plannerProvider).toBe("local_fallback");
     expect(planner.plannerDegraded).toBe(true);
     expect(planner.degradedReason).toBe("timeout");
+    expect(planner.plannerTopic).toBe("Analyse noch nicht validiert");
+    expect(planner.topicCandidates).toEqual([]);
     expect(planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(planner.plannerDebug.providerAvailable).toBe(true);
-    expect(planner.plannerDebug.errorMessage).toContain("create_planner_timeout_after_");
+    expect(planner.plannerDebug.providerErrorCode).toBe("TIMEOUT");
+    expect(planner.plannerDebug.errorMessage).toContain("aborted");
     expect(planner.permissions.nonMutative).toBe(true);
     expect(planner.permissions.canDeepSearch).toBe(false);
     expect(mocks.logAiUsage).toHaveBeenCalledWith(

@@ -35,6 +35,7 @@ describe("voxy experience shell contract", () => {
     const contract = buildVoxyExperienceShellContract();
     const createSurface = contract.surfaces.find((surface) => surface.id === "create");
     const homeSurface = contract.surfaces.find((surface) => surface.id === "home");
+    const themenSurface = contract.surfaces.find((surface) => surface.id === "themen");
     const adminSystemSurface = contract.surfaces.find((surface) => surface.id === "admin_system");
 
     expect(contract.pageShellVisible).toBe(true);
@@ -44,6 +45,8 @@ describe("voxy experience shell contract", () => {
     expect(createSurface?.usesActionChips).toBe(true);
     expect(createSurface?.maxVisibleActionChips).toBe(4);
     expect(homeSurface?.pageShellRole).toBe("hero_guide_status");
+    expect(themenSurface?.route).toBe("/themen");
+    expect(themenSurface?.mobileShellPattern).toBe("assist_bar");
     expect(adminSystemSurface?.pageShellRole).toBe("operator_readiness_shell");
     expect(adminSystemSurface?.mayClaimRuntimeActive).toBe(false);
     expect(adminSystemSurface?.mayAutoPublish).toBe(false);
@@ -74,6 +77,7 @@ describe("voxy experience shell contract", () => {
       "Grenzen",
     ]);
     expect(buildVoxyExperienceShellHint("home")).toContain("Hero, Guide und Status-Schicht");
+    expect(buildVoxyExperienceShellHint("themen")).toContain("Andock-Schicht");
     expect(buildVoxyExperienceShellHint("dossier")).toContain("Status-Schicht");
   });
 });

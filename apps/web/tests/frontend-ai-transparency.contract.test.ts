@@ -72,6 +72,8 @@ describe("frontend AI transparency contract", () => {
       isRetryPlannerPending: false,
       fromManualAnlassraumContinueCreate: true,
       startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+      analysisState: "result_ready",
+      hasValidatedSemanticResult: true,
       hasCandidatePreview: true,
       hasCandidateReviewHandoff: true,
       hasClaimToDossierPipeline: true,
@@ -110,5 +112,46 @@ describe("frontend AI transparency contract", () => {
     expect(completed.traceSteps.find((step) => step.stepId === "claims_questions_review_handoff")).toMatchObject({
       outputType: "candidate_review_handoff",
     });
+  });
+
+  it("keeps degraded link and failure states technically honest", () => {
+    const linkDetected = buildCreateFrontendAiTransparencyReadModel({
+      hasStarted: true,
+      isStarting: false,
+      hasIntelligentFollowup: true,
+      showAnalyzeWorkspace: false,
+      isRetryPlannerPending: false,
+      fromManualAnlassraumContinueCreate: false,
+      startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+      analysisState: "link_detected",
+      hasValidatedSemanticResult: false,
+    });
+    const failed = buildCreateFrontendAiTransparencyReadModel({
+      hasStarted: true,
+      isStarting: false,
+      hasIntelligentFollowup: true,
+      showAnalyzeWorkspace: false,
+      isRetryPlannerPending: false,
+      fromManualAnlassraumContinueCreate: false,
+      startBusyStatusLabel: "Wir ordnen deinen Beitrag ein …",
+      analysisState: "ai_failed",
+      hasValidatedSemanticResult: false,
+    });
+
+    expect(linkDetected.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
+      status: "planned_not_active",
+    });
+    expect(linkDetected.steps.find((step) => step.id === "later_followups")?.detail).toContain(
+      "bis ein validiertes KI-Ergebnis mit belastbarer Meta vorliegt",
+    );
+    expect(failed.steps.find((step) => step.id === "planner_preparation")).toMatchObject({
+      status: "review_required",
+    });
+    expect(failed.steps.find((step) => step.id === "planner_preparation")?.detail).toContain(
+      "keine semantischen Kandidaten oder Handoffs vorbereitet",
+    );
+    expect(
+      failed.steps.find((step) => step.id === "feed_enrichment_suggestions")?.detail,
+    ).toContain("bis ein validiertes Analyseergebnis echte Runtime-Hinweise freigibt");
   });
 });

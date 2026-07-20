@@ -5,6 +5,12 @@ import Link from "next/link";
 import { FiCompass } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { CreateContributionLedgerEntry } from "@features/create/createContributionLedger";
+import {
+  createSavedWorkstateStatusLabel,
+  createSavedWorkstateTypeLabel,
+  createSavedWorkstateVisibilityLabel,
+  type CreateSavedWorkstateRecord,
+} from "@/features/create/createSavedWorkstateContract";
 import type { AccountUserScopedRuntimeLinkage } from "@features/account/userScopedRuntimeLinkageTypes";
 import type {
   AccountContributionHandoffCorrelation,
@@ -196,11 +202,134 @@ import { readStartDraftContext } from "@/features/start/startDraftContext";
 
 type AccountResumeWorkbenchSectionProps = {
   entries: CreateContributionLedgerEntry[];
+  savedWorkstates?: CreateSavedWorkstateRecord[];
   initialStartDraft?: StartDraftContext | null;
   manualAnlassraumServerDrafts?: ManualAnlassraumServerDraftSnapshot[];
   canDeepResearch?: boolean;
   runtimeLinkages?: AccountUserScopedRuntimeLinkage[];
+  canViewInternalSavedWorkstates?: boolean;
 };
+
+function formatWorkbenchDate(value: string) {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "ohne Datum";
+  return new Date(parsed).toISOString().slice(0, 10);
+}
+
+function buildSavedWorkstateGroups(
+  records: CreateSavedWorkstateRecord[],
+  canViewInternalSavedWorkstates: boolean,
+) {
+  const internalRecords = records.filter((record) =>
+    ["admin_internal", "organization_internal"].includes(record.visibility),
+  );
+  const publicRecords = records.filter(
+    (record) => !["admin_internal", "organization_internal"].includes(record.visibility),
+  );
+
+  const groups = [
+    {
+      title: "Gespeicherte Beiträge",
+      items: publicRecords.filter((record) => record.type === "saved_contribution"),
+    },
+    {
+      title: "Vorgemerkte Themen",
+      items: publicRecords.filter((record) => record.type === "topic_candidate"),
+    },
+    {
+      title: "Eigene Fragen",
+      items: publicRecords.filter((record) => record.type === "question_candidate"),
+    },
+    {
+      title: "Geparkte Themen",
+      items: publicRecords.filter((record) => record.type === "parked_topic"),
+    },
+    {
+      title: "Quellenlisten",
+      items: publicRecords.filter((record) => record.type === "source_list"),
+    },
+    {
+      title: "Noch nicht veröffentlichte Entwürfe",
+      items: publicRecords.filter((record) =>
+        ["community_candidate", "deferred_work"].includes(record.type),
+      ),
+    },
+  ].filter((group) => group.items.length > 0);
+
+  if (canViewInternalSavedWorkstates && internalRecords.length > 0) {
+    groups.push({
+      title: "Interne Arbeitsstände",
+      items: internalRecords,
+    });
+  }
+
+  return groups;
+}
+
+function SavedWorkstateGroups(props: {
+  records: CreateSavedWorkstateRecord[];
+  canViewInternalSavedWorkstates: boolean;
+}) {
+  const groups = buildSavedWorkstateGroups(
+    props.records,
+    props.canViewInternalSavedWorkstates,
+  );
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="mt-4 space-y-4">
+      {groups.map((group) => (
+        <section key={group.title} className="space-y-2">
+          <div>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{group.title}</p>
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Persistierte Arbeitsstände aus deinem Create-Flow.
+            </p>
+          </div>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {group.items.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-2xl border border-slate-200/80 bg-[rgb(var(--bg))] px-4 py-4 text-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {createSavedWorkstateTypeLabel(item.type)}
+                  </span>
+                  <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {createSavedWorkstateStatusLabel(item.status)}
+                  </span>
+                  <span className="rounded-full border border-slate-300/70 px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {createSavedWorkstateVisibilityLabel(item.visibility)}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                  <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{item.content}</p>
+                  <p className="text-xs text-[rgb(var(--muted))]">
+                    Quelle: {item.sourceUrl ?? item.metadata.sourceLabel ?? "aktueller Beitrag"}
+                  </p>
+                  <p className="text-xs text-[rgb(var(--muted))]">
+                    Zuletzt bearbeitet: {formatWorkbenchDate(item.updatedAt)}
+                  </p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={item.resumeHref}
+                    className="btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                  >
+                    Weiterarbeiten
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
 
 function sectionHeading(props: { id: string; title: string; description: string; icon: IconType }) {
   const Icon = props.icon;
@@ -1753,7 +1882,8 @@ export default function AccountResumeWorkbenchSection(
       startDraft,
     ],
   );
-  const hasAnyWorkState = unifiedItems.length > 0;
+  const hasAnyWorkState =
+    unifiedItems.length > 0 || (props.savedWorkstates?.length ?? 0) > 0;
 
   return (
     <section
@@ -1768,14 +1898,24 @@ export default function AccountResumeWorkbenchSection(
         icon: FiCompass,
       })}
       {hasAnyWorkState ? (
-        <div className="mt-4 grid gap-3 xl:grid-cols-2">
-          {unifiedItems.map((workItem) =>
-            renderUnifiedWorkItem(workItem, () => {
-              clearAccountLocalStartDraftArtifacts();
-              setStartDraft(null);
-            }),
-          )}
-        </div>
+        <>
+          <SavedWorkstateGroups
+            records={props.savedWorkstates ?? []}
+            canViewInternalSavedWorkstates={Boolean(
+              props.canViewInternalSavedWorkstates,
+            )}
+          />
+          {unifiedItems.length > 0 ? (
+            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+              {unifiedItems.map((workItem) =>
+                renderUnifiedWorkItem(workItem, () => {
+                  clearAccountLocalStartDraftArtifacts();
+                  setStartDraft(null);
+                }),
+              )}
+            </div>
+          ) : null}
+        </>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300/70 px-4 py-4 text-sm text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
           <p className="font-semibold text-[rgb(var(--fg))]">Noch keine offenen Arbeitsstände.</p>

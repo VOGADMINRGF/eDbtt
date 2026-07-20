@@ -12,6 +12,9 @@ describe("pricing-membership-block-clarity.contract", () => {
     expect(html).toContain("separat per E-Mail-Link final bestätigt");
     expect(html).toContain("zusätzliche Sicherheits- und Trennlogik ist bewusst möglich");
     expect(html).toContain("Add-ons sind optional und können bei Bedarf einzeln hinzugebucht werden.");
-    expect(html).toContain("Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)");
+    expect(html).toContain("Quellenprüfung / Recherche-Kontingent: ca. 10 € je Kontingent (einzeln buchbar)");
+    expect(html).not.toContain("Perplexity");
+    expect(html).not.toContain("ARI");
+    expect(html).not.toContain("Deep Search");
   });
 });

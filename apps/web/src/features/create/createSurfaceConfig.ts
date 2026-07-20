@@ -364,20 +364,20 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       startFailedError:
         "Dein Beitrag konnte gerade nicht aufgenommen werden. Bitte versuche es erneut.",
       followupContributeStatus: "Beitrag aufgenommen",
-      followupContributeTitle: "Haben wir dich richtig verstanden?",
+      followupContributeTitle: "Ich sehe einen gemeinsamen Kern.",
       followupContributeLead:
-        "Deine Aussage bleibt reviewpflichtig. Du kannst sie jetzt direkt einreichen oder tiefer ins Thema gehen.",
+        "Ich sortiere Thema, Kontext und nächste Schritte kompakt vor. Alles bleibt review-first.",
       followupOriginalTextLabel: "Dein Originaltext",
       followupUnderstandingLabel: "So haben wir es verstanden",
-      followupUnderstandingLine: (label) => `Ich ordne deinen Beitrag zuerst als ${label} ein.`,
+      followupUnderstandingLine: (label) => `Ich ordne den Einstieg zuerst als ${label} ein und halte die nächsten Schritte offen.`,
       followupNotPublishedLabel: "Noch nicht veröffentlicht.",
       followupNextStepLabel: "Nächster Schritt",
       followupNextStepLead:
         "Reiche die Aussage direkt ein oder öffne danach einen tieferen Themenpfad.",
       followupGuidedStatus: "Entwurf läuft",
-      followupGuidedTitle: "Verstanden. Ich bereite daraus einen gemeinsamen Arbeitsstand vor",
+      followupGuidedTitle: "Verstanden. Ich baue daraus einen kompakten Arbeitsstand",
       followupGuidedLead:
-        "Sag als Nächstes, ob du zuerst einen Beitrag, einen Fragenkatalog oder eine Beteiligungsrunde brauchst.",
+        "Sag als Nächstes, ob wir die Frage schärfen, den Entwurf vertiefen oder einen Anschluss prüfen sollen.",
       followupReviewFrameTitle: "Prüfmodus geöffnet",
       followupReviewFrameLead:
         "Hier werden Aussagen, Quellenhinweise und offene Prüfpunkte gesammelt. Nichts startet automatisch.",
@@ -611,19 +611,20 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       startBusyLead: "We are classifying your contribution …",
       startFailedError: "Your contribution could not be captured right now. Please try again.",
       followupContributeStatus: "Contribution received",
-      followupContributeTitle: "Did we understand you correctly?",
+      followupContributeTitle: "I see a shared core.",
       followupContributeLead:
-        "Your statement stays reviewable. You can submit it now or go deeper into the topic.",
+        "I keep topic, context and next steps compact and review-first.",
       followupOriginalTextLabel: "Your original text",
       followupUnderstandingLabel: "How we understood it",
-      followupUnderstandingLine: (label) => `I would first classify this as ${label}.`,
+      followupUnderstandingLine: (label) =>
+        `I would first classify the entry as ${label} and keep the next steps open.`,
       followupNotPublishedLabel: "Not published yet.",
       followupNextStepLabel: "Next step",
       followupNextStepLead: "Submit the statement now or open a deeper topic path next.",
       followupGuidedStatus: "Draft running",
-      followupGuidedTitle: "Understood. I am preparing a shared working state from this",
+      followupGuidedTitle: "Understood. I am preparing a compact working state from this",
       followupGuidedLead:
-        "Next, tell me whether you need a contribution, a question set, or a participation round first.",
+        "Next, tell me whether we should sharpen the question, deepen the draft or inspect a relevant connection.",
       followupReviewFrameTitle: "Review mode open",
       followupReviewFrameLead:
         "This area gathers statements, source hints and open review points. Nothing starts automatically.",

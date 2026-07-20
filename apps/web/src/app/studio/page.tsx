@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 
 const PRODUCT_AREAS = [
   {
-    href: "/dossier/demo",
+    href: buildCanonicalDossierHref(null, { allowIndexFallback: true }) ?? "/dossier",
     title: "Dossier",
     lead: "Akte, Evidenz, offene Fragen und Entscheidungsraum.",
   },

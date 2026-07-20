@@ -533,4 +533,95 @@ describe("account resume workbench contract", () => {
     expect(html).not.toContain("Weitergeführte Runtime");
     expect(html).not.toContain("Output-/Voxy-Readmodel");
   });
+
+  it("renders persisted saved workstates and keeps internal visibility scoped", () => {
+    const records = [
+      {
+        schemaVersion: "create_saved_workstate.v1" as const,
+        id: "workstate-topic-1",
+        ownerUserId: "user-1",
+        organizationId: null,
+        visibility: "private" as const,
+        type: "topic_candidate" as const,
+        status: "saved" as const,
+        sourceUrl: "https://example.com/bus",
+        sourceAnalysisId: "analysis-1",
+        parentTopicId: "public-transit-mobility",
+        title: "ÖPNV und Mobilität",
+        content: "Der Takt am Abend und die Verlässlichkeit des Busangebots sollen weiter geprüft werden.",
+        metadata: { sourceLabel: "Bus-Beitrag" },
+        resumeHref: "/create",
+        createdAt: "2026-07-18T08:00:00.000Z",
+        updatedAt: "2026-07-18T09:00:00.000Z",
+      },
+      {
+        schemaVersion: "create_saved_workstate.v1" as const,
+        id: "workstate-question-1",
+        ownerUserId: "user-1",
+        organizationId: null,
+        visibility: "private" as const,
+        type: "question_candidate" as const,
+        status: "saved" as const,
+        sourceUrl: null,
+        sourceAnalysisId: "analysis-2",
+        parentTopicId: "parking-planning",
+        title: "Frage zu Parkraum und Planung",
+        content: "Welche Parkplätze würden beim Umbau tatsächlich entfallen?",
+        metadata: { sourceLabel: "aktueller Beitrag" },
+        resumeHref: "/create",
+        createdAt: "2026-07-18T08:30:00.000Z",
+        updatedAt: "2026-07-18T09:30:00.000Z",
+      },
+      {
+        schemaVersion: "create_saved_workstate.v1" as const,
+        id: "workstate-internal-1",
+        ownerUserId: "user-1",
+        organizationId: "org-1",
+        visibility: "admin_internal" as const,
+        type: "internal_note" as const,
+        status: "saved" as const,
+        sourceUrl: null,
+        sourceAnalysisId: "analysis-3",
+        parentTopicId: "street-space-cycling",
+        title: "Interne Notiz zum Straßenumbau",
+        content: "Vor Review noch offene Abstimmung mit dem Fachamt.",
+        metadata: { sourceLabel: "interne Notiz" },
+        resumeHref: "/create",
+        createdAt: "2026-07-18T08:45:00.000Z",
+        updatedAt: "2026-07-18T09:45:00.000Z",
+      },
+    ];
+
+    const memberHtml = renderToStaticMarkup(
+      <AccountResumeWorkbenchSection
+        entries={[]}
+        initialStartDraft={null}
+        savedWorkstates={records}
+        canViewInternalSavedWorkstates={false}
+      />,
+    );
+
+    expect(memberHtml).toContain("Meine Arbeitsstände");
+    expect(memberHtml).toContain("Vorgemerkte Themen");
+    expect(memberHtml).toContain("Eigene Fragen");
+    expect(memberHtml).toContain("ÖPNV und Mobilität");
+    expect(memberHtml).toContain("Frage zu Parkraum und Planung");
+    expect(memberHtml).toContain("Privat");
+    expect(memberHtml).toContain("Weiterarbeiten");
+    expect(memberHtml).not.toContain("Interne Arbeitsstände");
+    expect(memberHtml).not.toContain("Interne Notiz zum Straßenumbau");
+
+    const adminHtml = renderToStaticMarkup(
+      <AccountResumeWorkbenchSection
+        entries={[]}
+        initialStartDraft={null}
+        savedWorkstates={records}
+        canViewInternalSavedWorkstates
+      />,
+    );
+
+    expect(adminHtml).toContain("Interne Arbeitsstände");
+    expect(adminHtml).toContain("Interne Notiz zum Straßenumbau");
+    expect(adminHtml).toContain("Nur Admin");
+  });
 });

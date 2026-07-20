@@ -17,6 +17,7 @@ import {
 import { classifyCreateHandoffDraft } from "@/features/create/inputClassification";
 import type { CreateIntakeContext } from "@/features/create/intakeContext";
 import type {
+  CreateAnalysisState,
   CreateGraphMatchRecord,
   CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
@@ -393,6 +394,22 @@ export type CreateFeedEnrichmentReviewSuggestionsReadModel = {
   items: CreateFeedEnrichmentReviewSuggestion[];
 };
 
+export type CreateCandidatePreviewAvailability =
+  | {
+      kind: "analysis_unavailable";
+      semanticOutputAvailable: false;
+      handoffAvailable: false;
+      reason: "validated_ai_result_required";
+      analysisState: CreateAnalysisState | null;
+    }
+  | {
+      kind: "semantic_preview_ready";
+      semanticOutputAvailable: true;
+      handoffAvailable: true;
+      reason: null;
+      analysisState: CreateAnalysisState;
+    };
+
 export type CreateCandidatePreviewReadModel = {
   title: string;
   summary: string;
@@ -409,6 +426,7 @@ export type CreateCandidatePreviewReadModel = {
   claimToDossierPipeline: CreateClaimToDossierPipelineReadModel;
   feedEnrichmentSuggestions: CreateFeedEnrichmentReviewSuggestionsReadModel;
   voxyCocreationDialog: V3VoxyCocreationDialogModel | null;
+  availability: CreateCandidatePreviewAvailability;
   totalCount: number;
   carriesPersistentWrite: false;
   persistentCarrierTruth: {
@@ -1298,10 +1316,57 @@ function resolveProviderContext(params: {
   };
 }
 
+function resolveCreateAnalysisState(
+  followup: CreateIntelligentFollowupResult | null,
+): CreateAnalysisState | null {
+  return followup?.meta?.analysis?.state ?? null;
+}
+
+export function hasValidatedCreateSemanticOutput(
+  followup: CreateIntelligentFollowupResult | null,
+): boolean {
+  const planner = followup?.meta?.planner ?? null;
+  const graphMatch = followup?.meta?.graphMatch ?? null;
+  const analysis = followup?.meta?.analysis ?? null;
+  if (!planner || !graphMatch || !analysis) return false;
+  const analysisValidated =
+    analysis.validationStatus === "validated" &&
+    (analysis.state === "analysis_validated" || analysis.state === "result_ready");
+  return (
+    analysisValidated &&
+    planner.source === "openai" &&
+    planner.qualityStatus === "specific" &&
+    planner.plannerDegraded === false
+  );
+}
+
+function buildCreateCandidatePreviewAvailability(
+  followup: CreateIntelligentFollowupResult | null,
+): CreateCandidatePreviewAvailability {
+  const analysisState = resolveCreateAnalysisState(followup);
+  if (!hasValidatedCreateSemanticOutput(followup)) {
+    return {
+      kind: "analysis_unavailable",
+      semanticOutputAvailable: false,
+      handoffAvailable: false,
+      reason: "validated_ai_result_required",
+      analysisState,
+    };
+  }
+
+  return {
+    kind: "semantic_preview_ready",
+    semanticOutputAvailable: true,
+    handoffAvailable: true,
+    reason: null,
+    analysisState: analysisState ?? "result_ready",
+  };
+}
+
 function buildFallbackHandoff(
   input: BuildCreateCandidatePreviewInput,
 ): CreateHandoffDraft | null {
-  if (!input.followup) return null;
+  if (!input.followup || !hasValidatedCreateSemanticOutput(input.followup)) return null;
   return buildCreateHandoffDraft({
     result: input.followup,
     selectedAction: "request_review",
@@ -1638,8 +1703,53 @@ export function buildCreateCandidatePreviewReadModel(
     createAnalyze: input.createAnalyze ?? null,
     runReceipt: input.runReceipt ?? null,
   });
+  const availability = buildCreateCandidatePreviewAvailability(input.followup);
   const inputRefs = buildInputRefs(input, handoff);
   const evidenceRefs = buildEvidenceRefs(input, inputRefs);
+
+  if (availability.kind === "analysis_unavailable") {
+    const sections: CreateCandidatePreviewSection[] = [];
+    const reviewHandoff = buildCandidateReviewHandoff(sections);
+    const feedEnrichmentSuggestions = buildFeedEnrichmentReviewSuggestions({
+      input,
+      handoff: null,
+      sections,
+      evidenceRefs,
+    });
+    const claimToDossierPipeline = buildClaimToDossierPipeline({
+      handoff: null,
+      reviewHandoff,
+      feedEnrichmentSuggestions,
+      persistedReviewRecord: input.persistedReviewRecord ?? null,
+      sourceDraftId: input.draftId ?? null,
+    });
+
+    return {
+      title: "Semantische Vorschau wartet auf validierte Analyse",
+      summary:
+        "Ohne validiertes KI-Ergebnis mit belastbarer Planner- und Graph-Meta bleibt dieser Schritt ein technischer Status. Es werden keine Claims, Handoffs oder Folgepfade vorbereitet.",
+      hasPreview: false,
+      persistence: "preview_only",
+      reviewState: "review_required",
+      publishState: "not_published",
+      graphTargetState: "candidate_only",
+      provider: providerContext.provider,
+      model: providerContext.model,
+      providerRuntimeTruth: providerContext.runtimeTruth,
+      sections,
+      reviewHandoff,
+      claimToDossierPipeline,
+      feedEnrichmentSuggestions,
+      voxyCocreationDialog: null,
+      availability,
+      totalCount: 0,
+      carriesPersistentWrite: false,
+      persistentCarrierTruth: {
+        claimsAndQuestions: "dossier_runtime_record",
+        polls: "participation_space_runtime_record",
+      },
+    };
+  }
 
   const sections: CreateCandidatePreviewSection[] = [
     {
@@ -1793,6 +1903,7 @@ export function buildCreateCandidatePreviewReadModel(
     claimToDossierPipeline,
     feedEnrichmentSuggestions,
     voxyCocreationDialog,
+    availability,
     totalCount,
     carriesPersistentWrite: false,
     persistentCarrierTruth: {

@@ -16,13 +16,20 @@ Production Validation ist in diesem Repo ein manueller Release- und Deployment-G
 
 ### Web CI
 
-`.github/workflows/web-ci.yml` bleibt der normale PR-/`main`-Check und deckt aktuell nur Folgendes ab:
+`.github/workflows/web-ci.yml` bleibt der normale PR-/`main`-Check und deckt jetzt gezielt schnelle Web- und Guardrail-Vertraege ab:
 
 - `pnpm install --frozen-lockfile`
+- `git diff --check`
+- `pnpm -C apps/web run test:web-pr-critical-guardrails`
+- `pnpm -C apps/web run test:production-guardrails`
+- `node scripts/ci/check-web-critical-guardrails.mjs`
 - `pnpm lint`
-- `pnpm -C apps/web typecheck`
+- `pnpm -C apps/web run typecheck`
+- `cp apps/web/.env.example apps/web/.env.local`
+- `pnpm -C apps/web run build`
+- gezielten Secret- und Pattern-Scan ueber `gitleaks`
 
-Das ist bewusst schneller PR-Feedback-CI und kein Production-Deployment-Gate.
+Das bleibt bewusst PR-Feedback-CI und kein Production-Deployment-Gate: Production-nahe Runtime-Validierung und Deploy-Freigabe bleiben manuell.
 
 ### Production Validation
 
@@ -55,6 +62,19 @@ Der manuelle Production-Validation-Contract besteht aus zwei immer laufenden Job
 - `pnpm run release:validate:production`
 
 Dieser dritte Lauf bleibt nur aktiv, wenn `PRODUCTION_VALIDATION_ENABLED=1` und die benoetigten Repo-Secrets gesetzt sind. Fehlen sie, bleibt der Job bewusst `skipped`; der Workflow als Ganzes hat trotzdem reale gelaufene Jobs und endet nicht als `0s / No jobs were run`.
+
+## 3a. Kritische Production-Variablen fuer die Web-Runtime
+
+Fuer die Web-Runtime gilt jetzt ein fail-closed Contract:
+
+- `WEB_DATABASE_URL` ist kanonisch.
+- eine fremde `DATABASE_URL` darf die Web-Runtime nicht stillschweigend uebernehmen.
+- `MAIL_FROM` ist kanonisch.
+- `SMTP_FROM` bleibt nur als rueckwaertskompatibler Alias erlaubt.
+- sind `MAIL_FROM` und `SMTP_FROM` gleichzeitig gesetzt, muessen sie denselben Wert tragen.
+- `JWT_SECRET`, `WEB_DATABASE_URL` und ein gueltiger Mail-Absender werden in produktionsnahen Runtime-Pfaden explizit validiert.
+
+Die Startup-Validierung laeuft nur fuer produktionsnahe Server-Starts und bleibt fuer `phase-production-build` bewusst ausgeschaltet, damit der Build-Job nicht an zur Laufzeit erwarteten Secrets scheitert.
 
 ## 4. Kritische Pfade
 

@@ -43,6 +43,10 @@ describe("start draft handoff targets contract", () => {
     );
     const themenSource = readFileSync(resolve(process.cwd(), "src/app/themen/ThemenStartDraftAssistant.tsx"), "utf8");
     const rundenSource = readFileSync(resolve(process.cwd(), "src/app/runden/new/AnlassraumSetupForm.tsx"), "utf8");
+    const rundenSetupSource = readFileSync(
+      resolve(process.cwd(), "src/features/surfaces/runden/manualAnlassraumSetup.ts"),
+      "utf8",
+    );
     const statusSource = readFileSync(resolve(process.cwd(), "src/features/start/GlobalDraftStatusBar.tsx"), "utf8");
     const statusHelperSource = readFileSync(resolve(process.cwd(), "src/features/start/startDraftContext.ts"), "utf8");
 
@@ -52,12 +56,12 @@ describe("start draft handoff targets contract", () => {
     expect(createHandoffSource).toContain("Aus deiner Startseiten-Eingabe übernommen.");
     expect(createHandoffSource).toContain("GlobalDraftStatusBar");
     expect(themenSource).toContain('getStartDraftForTarget("themes")');
-    expect(themenSource).toContain("Wir suchen Themen, an die dein Beitrag anknüpfen könnte.");
-    expect(themenSource).toContain("Als neues Thema vorschlagen");
-    expect(themenSource).toContain("Passende Themen anzeigen");
+    expect(themenSource).toContain("Wir prüfen, ob dein Entwurf an bestehende Debatten anschließt.");
+    expect(themenSource).toContain("Als eigenes Thema weiterführen");
+    expect(themenSource).toContain("Anschluss prüfen");
     expect(rundenSource).toContain('getStartDraftForTarget("rounds")');
     expect(rundenSource).toContain("Runde aus deinem Entwurf vorbereiten");
-    expect(rundenSource).toContain("Optionen ergänzen");
+    expect(rundenSetupSource).toContain("Optionen ergänzen");
     expect(statusSource).toContain("getStartDraftGuardrailSummary");
     expect(statusHelperSource).toContain("Noch nicht veröffentlicht");
     expect(statusHelperSource).toContain("Noch nicht zusammengeführt");

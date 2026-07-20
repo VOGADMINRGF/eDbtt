@@ -60,18 +60,38 @@ describe("create curated dialog workspace contract", () => {
     );
 
     expect(clientSource).toContain("SharedCreateComposer");
+    expect(clientSource).toContain("CreateWorkspaceShell");
     expect(clientSource).toContain("CreateVisualFollowup");
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("create-dialog-workspace");
-    expect(clientSource).toContain("create-start-chat-preview");
     expect(clientSource).toContain("CreateSubmittedContributionBubble");
     expect(clientSource).toContain("CreateAssistantStatusBubble");
-    expect(clientSource).toContain("CreateStructureOverview");
     expect(clientSource).toContain("deriveCreateStructureOverviewMetrics");
     expect(clientSource).toContain("embeddedWorkspace");
-    expect(clientSource).toContain("experienceVariant=\"create_minimal\"");
-    expect(clientSource).toContain("What is on your mind?");
-    expect(clientSource).toContain("create-public-shell create-dialog-workspace public-dialog-surface");
+    expect(clientSource).toContain("experienceVariant=\"workspace_shell\"");
+    expect(clientSource).toContain("renderWorkspaceThread");
+    expect(clientSource).toContain("workspaceActiveStage");
+    expect(clientSource).toContain("workspaceShellPhase");
+    expect(clientSource).toContain("workspaceComposerStartLabel");
+    expect(clientSource).toContain("workspaceComposerValue");
+    expect(clientSource).toContain("workspaceComposerPlaceholder");
+    expect(clientSource).toContain("workspaceComposerStartDisabled");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("data-create-thread-prompt-chip");
+    expect(clientSource).toContain("Schreib unten frei los.");
+    expect(clientSource).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(clientSource).toContain("selectedPrimaryTopic");
+    expect(clientSource).toContain("workspaceActionMode");
+    expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
+    expect(clientSource).toContain("create-public-shell create-dialog-workspace mx-auto w-full max-w-none overflow-visible");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
+    expect(clientSource).not.toContain("create-start-chat-preview");
+    expect(clientSource).not.toContain("experienceVariant=\"create_minimal\"");
+    expect(clientSource).not.toContain("<CreateInlineAnalysisScene");
+    expect(clientSource).not.toContain("showPostInputModules && !showIntelligentFollowup");
+    expect(clientSource).not.toContain("showFollowupQuestionCard && !showLinkClarification");
+    expect(clientSource).not.toContain("showPostInputModules && pickerEnabled");
+    expect(clientSource).not.toContain("showPostInputModules && workingState");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("CreateStructureOverviewCard");
     expect(followupSource).toContain("CreateStructureOverview");
@@ -83,16 +103,37 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("resolveExistingTopicMatchesFromRuntime");
     expect(followupSource).toContain("setExistingTopicMatchesRuntimeResult");
     expect(followupSource).toContain("CreateHandoffDraftSummary");
-    expect(followupSource).toContain("CompactPreviewCard");
+    expect(followupSource).toContain("OpenQuestionCards");
+    expect(followupSource).toContain("SourceHintsAndNextStepsGrid");
     expect(followupSource).toContain("PlaceClarificationPanel");
     expect(followupSource).toContain("StructureProposalPanel");
     expect(followupSource).toContain("NextStepPanel");
+    expect(followupSource).toContain("WorkspaceStageRail");
+    expect(followupSource).toContain("WorkspaceMetricRail");
+    expect(followupSource).toContain("TopicBranchPreviewGrid");
+    expect(followupSource).toContain("ManualTopicChooser");
+    expect(followupSource).toContain("WorkspaceActionThreadNote");
     expect(followupSource).toContain("StructuredWorkstateBlock");
-    expect(followupSource).toContain("data-mobile-compact-details");
+    expect(followupSource).toContain("data-create-chat-thread");
+    expect(followupSource).toContain("data-create-structure-rail");
+    expect(followupSource).toContain("embedInWorkspaceShell");
+    expect(followupSource).toContain("data-create-embedded-followup");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-structure-overview-grid");
-    expect(followupSource).toContain("flex flex-wrap items-center gap-2.5");
+    expect(followupSource).toContain("data-create-pipeline-rail");
+    expect(followupSource).toContain("data-create-workspace-kpis");
+    expect(followupSource).toContain("data-create-topic-branches");
+    expect(followupSource).toContain("data-create-topic-branch-card");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-shell-pipeline",
+    );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-shell-layout=\"wide\"",
+    );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-thread-phase={phase}",
+    );
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -110,26 +151,28 @@ describe("create curated dialog workspace contract", () => {
     );
 
     expect(followupSource).toContain("Du");
-    expect(followupSource).toContain("eDebatte");
-    expect(followupSource).toContain("Haben wir dich richtig verstanden?");
-    expect(followupSource).toContain("Kern");
-    expect(followupSource).toContain("Thema");
-    expect(followupSource).toContain("Noch offen");
-    expect(followupSource).toContain("Details ansehen");
-    expect(followupSource).toContain("Ja, so einreichen");
-    expect(followupSource).toContain("Ich möchte tiefer ins Thema");
-    expect(followupSource).toContain("Alle Themen vertiefen");
-    expect(followupSource).toContain("Später im Account weiterarbeiten");
-    expect(followupSource).toContain("Redaktionell prüfen lassen");
-    expect(followupSource).toContain("Factcheck / Quellenprüfung vorbereiten");
-    expect(followupSource).toContain("QR-/Live-Kontext vorbereiten");
+    expect(followupSource).toContain("Assistent");
+    expect(followupSource).toContain("Ich sehe einen gemeinsamen Kern.");
+    expect(followupSource).toContain("Dein KI-Assistent");
+    expect(followupSource).toContain("Details & Transparenz");
+    expect(followupSource).toContain("Themenstruktur bestätigen");
+    expect(followupSource).toContain("Themen ändern");
+    expect(followupSource).toContain("Aussage schärfen");
+    expect(followupSource).toContain("Frage vormerken");
+    expect(followupSource).toContain("Thema vormerken");
+    expect(followupSource).toContain("Quelle vormerken");
+    expect(followupSource).toContain("Für Community vorbereiten");
+    expect(followupSource).toContain("Später weiterarbeiten");
+    expect(followupSource).toContain("Ich sehe mehrere mögliche Themenstränge.");
+    expect(followupSource).toContain("Thema parken");
+    expect(followupSource).toContain("Geparkt");
+    expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).toContain("queuePreparedHandoffDraftForReview");
     expect(followupSource).toContain("reviewQueueRuntimeState");
     expect(followupSource).toContain("submitCreateHandoffReviewQueueItemToRuntime");
-    expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
-    expect(followupSource).toContain("Keine automatische Veröffentlichung");
-    expect(followupSource).toContain("Keine automatische Kostenbuchung");
+    expect(followupSource).toContain("keine automatische Veröffentlichung");
+    expect(followupSource).toContain("keine automatische Kostenbuchung");
     expect(followupSource).toContain("setPreparedHandoffDraft");
     expect(followupSource).not.toContain("Dossier-Kontext");
     expect(followupSource).not.toContain("Mögliche Claims");
@@ -164,9 +207,9 @@ describe("create curated dialog workspace contract", () => {
       />,
     );
 
-    const coreIndex = followupSource.indexOf("Haben wir dich richtig verstanden?");
-    const confirmIndex = followupSource.indexOf("Ja, so einreichen");
-    const detailsToggleIndex = followupSource.indexOf("Details ansehen");
+    const coreIndex = followupSource.indexOf("Ich sehe einen gemeinsamen Kern.");
+    const confirmIndex = followupSource.indexOf("Themenstruktur bestätigen");
+    const detailsToggleIndex = followupSource.indexOf("Details & Transparenz");
     const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
     const detailsIndex = followupSource.indexOf("<StructuredWorkstateBlock");
 
@@ -178,18 +221,15 @@ describe("create curated dialog workspace contract", () => {
     expect(coreIndex).toBeLessThan(confirmIndex);
     expect(detailsToggleIndex).toBeGreaterThan(confirmIndex);
     expect(detailsIndex).toBeGreaterThan(detailsToggleIndex);
-    expect(html).toContain("Details ansehen");
-    expect(html).toContain("Was eDebatte bisher aus deinem Beitrag erkennt");
-    expect(html).toContain("KI-Auswertung derzeit nicht verfügbar");
-    expect(html).toContain("Dazu gibt es bereits ähnliche Themen");
+    expect(html).toContain("Details &amp; Transparenz");
+    expect(html).toContain("Erkannte Themen");
+    expect(html).toContain("aus deinem Beitrag erkannt");
+    expect(html).not.toContain("Einordnung erneut versuchen");
+    expect(html).not.toContain("Erkannte Themenzweige");
     expect(html).not.toContain("Du/eDebatte-Protokoll");
     expect(html).not.toContain("Original oben anzeigen");
-    expect(html).not.toContain("Vorgeschlagener Arbeitsstand");
-    expect(html).not.toContain("Kompakte Details");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");
     expect(followupSource).toContain("{detailsOpen ? (");
-    expect(followupSource).toContain("lg:hidden");
-    expect(followupSource).toContain("hidden lg:block");
   });
 
   it("keeps the heavy structure explorer behind the explicit details toggle", () => {
@@ -210,11 +250,12 @@ describe("create curated dialog workspace contract", () => {
     expect(contractSource).toContain("part06CategoryKeys");
     expect(contractSource).toContain("part06CategoryLabels");
     expect(contractSource).toContain("topicTags");
-    expect(contractSource).toContain("Wohnen und Genehmigungen");
-    expect(contractSource).toContain("Verkehr, Klima und Alltagstauglichkeit");
-    expect(contractSource).toContain("Bildung, Integration und Sicherheit");
+    expect(contractSource).not.toContain("Wohnen und Genehmigungen");
+    expect(contractSource).not.toContain("Verkehr, Klima und Alltagstauglichkeit");
+    expect(contractSource).not.toContain("Bildung, Integration und Sicherheit");
+    expect(contractSource).toContain("resolveSectionThemeLabel");
     expect(followupSource).toContain("<StructuredWorkstateBlock");
-    expect(followupSource).toContain("data-mobile-compact-details");
+    expect(followupSource).toContain("Dialog Intelligence");
     expect(followupSource).not.toContain("result.clarifications");
     expect(followupSource).not.toContain("qualityGate");
     expect(followupSource).not.toContain("editorial_review_required");
@@ -226,6 +267,30 @@ describe("create curated dialog workspace contract", () => {
     expect(contractSource).not.toContain("CreateInputSafetyQualityGate");
     expect(followupSource).not.toContain("Dossier ansehen");
     expect(followupSource).not.toContain("Dossier ansehen pro Thema");
+  });
+
+  it("uses one workspace shell instead of separate top composer and lower followup blocks", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const composerSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
+      "utf8",
+    );
+
+    expect(clientSource).toContain("CreateWorkspaceShell");
+    expect(clientSource).toContain("chatThread={renderWorkspaceThread()}");
+    expect(clientSource).toContain("phase={workspaceShellPhase}");
+    expect(clientSource).toContain("composer={");
+    expect(clientSource).toContain("footer={");
+    expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("max-w-none");
+    expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
+    expect(clientSource).not.toContain("create-start-chat-preview");
+    expect(clientSource).not.toContain("public-dialog-area");
+    expect(composerSource).not.toContain(">Composer<");
+    expect(composerSource).toContain("resize-none");
   });
 
   it("keeps tab controls aligned with persistent tabpanels", () => {

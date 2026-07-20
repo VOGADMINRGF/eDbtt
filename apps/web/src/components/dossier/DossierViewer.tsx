@@ -430,7 +430,16 @@ export function DossierViewer({
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     presentationBundle;
-  const { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice } =
+  const {
+    selectedOptionId,
+    savedOptionId,
+    savedAt,
+    setSelectedOptionId,
+    saveSelection,
+    saveNotice,
+    saveError,
+    savePending,
+  } =
     useDecisionState(meta.id, {
       onMajorityUpdate: (payload) => {
         if (payload.majorityDemo?.length) setMajorityLive(payload.majorityDemo);
@@ -1587,6 +1596,8 @@ export function DossierViewer({
               void saveSelection();
             }}
             saveNotice={saveNotice}
+            saveError={saveError}
+            savePending={savePending}
             savedAt={savedAt}
             canVote={isCitizen}
             roleLabel={roleLabel}

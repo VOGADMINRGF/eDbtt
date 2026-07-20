@@ -42,7 +42,7 @@ jobs:
 
       - name: Env
         run: |
-          cp .env.example .env || true
+          cp apps/web/.env.example .env || true
           echo "MONGODB_URI=mongodb://localhost:27017" >> .env
           echo "MONGODB_DB=vog" >> .env
           echo "REDIS_URL=redis://localhost:6379" >> .env
@@ -95,7 +95,7 @@ jobs:
       # Optional: eigenes .env für den Web-Container, falls compose das liest
       - name: Prepare .env.ci
         run: |
-          cp .env.example .env.ci || true
+          cp apps/web/.env.example .env.ci || true
           echo "NODE_ENV=production" >> .env.ci
           echo "PORT=3000" >> .env.ci
           echo "MONGODB_URI=mongodb://localhost:27017" >> .env.ci

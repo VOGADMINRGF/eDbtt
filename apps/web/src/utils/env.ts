@@ -67,6 +67,15 @@ const BaseSchema = z
         path: ["MAIL_FROM"],
       });
     }
+
+    if (v.MAIL_FROM && v.SMTP_FROM && v.MAIL_FROM !== v.SMTP_FROM) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "MAIL_FROM und SMTP_FROM muessen identisch sein. MAIL_FROM ist kanonisch, SMTP_FROM nur Legacy-Alias.",
+        path: ["MAIL_FROM"],
+      });
+    }
   });
 
 const p = BaseSchema.parse({
@@ -126,7 +135,7 @@ export const env: Env & {
   ...p,
 
   // Kompatibilität: alter Code nutzt diese Felder
-  EMAIL_DEFAULT_FROM: p.SMTP_FROM ?? (p.MAIL_FROM as string),
+  EMAIL_DEFAULT_FROM: p.MAIL_FROM ?? (p.SMTP_FROM as string),
   MONGO_URI: p.MONGODB_URI ?? p.CORE_MONGODB_URI,
   MODEL: p.OPENAI_MODEL,
   TIMEOUT_MS: p.OPENAI_TIMEOUT_MS,

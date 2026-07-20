@@ -7,9 +7,11 @@ function read(rel: string) {
 }
 
 describe("admin ai telemetry ui contracts", () => {
-  it("orchestrator page separates Provider Probe, Runtime Smoke and Full Contract as safe operator summaries", () => {
+  it("orchestrator page separates Create Planner, Provider Probe, Runtime Smoke and Full Contract", () => {
     const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
     const diag = read("src/features/ai/adminTelemetryDiagnostics.ts");
+    expect(page).toContain("Create Planner Live Smoke");
+    expect(page).toContain("/api/admin/ai/create-planner-smoke");
     expect(page).toContain("Direktprüfung Provider");
     expect(page).toContain("Runtime Smoke");
     expect(page).toContain("Full Analyze Contract Test");
@@ -33,17 +35,24 @@ describe("admin ai telemetry ui contracts", () => {
     expect(dashboardPage).toContain("Provider-Details anzeigen");
   });
 
-  it("orchestrator diagnostics keep raw parse, schema, provider and token details out of the UI surface", () => {
+  it("restores safe admin diagnostics while keeping prompts and raw provider payloads hidden", () => {
     const page = read("src/app/admin/telemetry/ai/orchestrator/page.tsx");
     const diag = read("src/features/ai/adminTelemetryDiagnostics.ts");
 
-    expect(page).not.toContain("providerCode=");
-    expect(page).not.toContain("parseError=");
-    expect(page).not.toContain("schemaError=");
-    expect(page).not.toContain("schemaPath=");
+    expect(page).toContain("Technische Details");
+    expect(page).toContain("Run-ID");
+    expect(page).toContain("Korrelations-ID");
+    expect(page).toContain("Provider-Code");
+    expect(page).toContain("Konfiguriertes Modell");
+    expect(page).toContain("Timeout");
+    expect(page).toContain("Dauer");
+    expect(page).toContain("Parse / Schema");
+    expect(page).toContain("Schema-Pfad");
+    expect(page).toContain("Tokens in / out");
+    expect(page).toContain("Geschätzte Kosten");
     expect(page).not.toContain("rawExcerpt");
-    expect(page).not.toContain("Tokens in/out");
-    expect(page).not.toContain("estimatedCost");
+    expect(page).not.toContain("providerErrorMessage");
+    expect(page).not.toContain("bestRawText");
     expect(diag).toContain("Schema-Contract und Pflichtfelder pruefen.");
   });
 

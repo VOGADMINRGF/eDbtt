@@ -1,6 +1,6 @@
 // apps/web/src/app/api/topics/route.ts
 import { NextResponse } from "next/server";
-import { prisma as db } from "@/lib/dbWeb";
+import { isWebDatabaseConfigured, prisma as db } from "@/lib/dbWeb";
 import { isCoreLocale } from "@/config/locales";
 
 export async function GET(req: Request) {
@@ -10,6 +10,18 @@ export async function GET(req: Request) {
     const locale = localeParam && isCoreLocale(localeParam) ? localeParam : undefined;
 
     const now = new Date();
+    if (!isWebDatabaseConfigured()) {
+      console.warn(
+        "GET /api/topics degraded: web database missing (WEB_DATABASE_URL / WEB_POSTGRES_URL / WEB_POSTGRES_URI)",
+      );
+      return NextResponse.json({
+        topics: [],
+        locale: locale ?? null,
+        asOf: now.toISOString(),
+        degraded: true,
+        errorCode: "TOPICS_DB_UNAVAILABLE",
+      });
+    }
 
     const rawTopics = await db.topic.findMany({
       where: locale ? { locale } : undefined,

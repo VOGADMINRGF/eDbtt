@@ -1,6 +1,11 @@
 import Link from "next/link";
+import demoDossier from "@features/dossier/data/demoDossier";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 
 export default function StreamsIndexPage() {
+  const demoStreamsHref =
+    buildCanonicalDossierHref(demoDossier.meta.id, { anchor: "streams" }) ?? "/dossier";
+
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-12 text-[rgb(var(--fg))]">
       <div className="space-y-3">
@@ -13,7 +18,7 @@ export default function StreamsIndexPage() {
           Dossier verknüpft.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dossier/demo#streams" className="btn btn-ghost text-xs">
+          <Link href={demoStreamsHref} className="btn btn-ghost text-xs">
             Zum Demo-Dossier
           </Link>
         </div>

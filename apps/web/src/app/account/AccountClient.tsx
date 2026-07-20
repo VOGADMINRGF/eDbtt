@@ -19,6 +19,7 @@ import {
 import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import { buildCommunityHref } from "@/features/community/deepLinkContract";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
@@ -71,6 +72,9 @@ import {
   readAccountUserScopedRuntimeLinkageSlice,
   type AccountUserScopedRuntimeLinkageSlice,
 } from "@features/account/userScopedRuntimeLinkageTypes";
+import {
+  type AccountSavedWorkstateSlice,
+} from "@features/account/savedWorkstateTypes";
 
 // Shared button primitives for consistent contrast across light/dark.
 const primaryButtonClass =
@@ -273,7 +277,8 @@ export type AccountOverview = {
   AccountEditorialReviewSlice &
   AccountFactcheckJobSlice &
   AccountGraphMergeCandidateSlice &
-  AccountUserScopedRuntimeLinkageSlice;
+  AccountUserScopedRuntimeLinkageSlice &
+  AccountSavedWorkstateSlice;
 
 type NormalizedOverview = AccountOverview;
 
@@ -331,6 +336,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <AccountCreateDraftSections
         entries={data.createContributionLedger ?? []}
+        savedWorkstates={data.savedWorkstates ?? []}
         manualAnlassraumServerDrafts={data.manualAnlassraumServerDrafts ?? []}
         roles={data.roles}
         runtimeLinkages={data.userScopedRuntimeLinkages ?? []}
@@ -491,7 +497,12 @@ const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconTyp
 const MOBILE_CORE_ACTIONS: Array<{ key: "swipes" | "create" | "dossier" | "profile"; label: string; icon: IconType; href?: string }> = [
   { key: "swipes", label: "Swipes", icon: FiSliders, href: "/swipes" },
   { key: "create", label: "Anlass", icon: FiEdit2, href: "/create" },
-  { key: "dossier", label: "Dossier", icon: FiPackage, href: "/dossier/demo" },
+  {
+    key: "dossier",
+    label: "Dossier",
+    icon: FiPackage,
+    href: buildCanonicalDossierHref(null, { allowIndexFallback: true }) ?? "/dossier",
+  },
   { key: "profile", label: "Profil", icon: FiUser },
 ];
 
@@ -3071,7 +3082,11 @@ function CompactProfileHubSection({
                       Dossier öffnen
                     </Link>
                   ) : (
-                    <Link href="/dossier/demo" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                    <Link
+                      href={buildCanonicalDossierHref(null, { allowIndexFallback: true }) ?? "/dossier"}
+                      className={`${secondaryLightButtonClass} w-full`}
+                      onClick={() => setSocialDetail(null)}
+                    >
                       Dossier öffnen
                     </Link>
                   )}

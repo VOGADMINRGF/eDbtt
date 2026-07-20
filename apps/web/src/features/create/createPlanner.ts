@@ -19,10 +19,11 @@ export type CreatePlannerStance =
   | "reform_oriented"
   | "unclear";
 export type CreatePlannerRecommendedLane = "standard" | "create_fast_followup";
-export type CreatePlannerSource = "openai" | "heuristic_fallback";
+export type CreatePlannerSource = "openai" | "technical_fallback" | "heuristic_fallback";
 export type CreatePlannerProviderName = "openai" | "anthropic" | "mistral" | "local_fallback" | "none";
 export type CreatePlannerDegradedReason =
   | "missing_provider_key"
+  | "model_not_found"
   | "provider_error"
   | "invalid_json"
   | "invalid_provider_payload"
@@ -34,6 +35,8 @@ export type CreatePlannerQualityStatus = "specific" | "generic" | "failed" | "ne
 export type CreatePlannerDebug = {
   attemptedProvider: "openai" | null;
   usedProvider: CreatePlannerProviderName;
+  attemptedModel?: string | null;
+  usedModel?: string | null;
   providerAvailable: boolean;
   providerErrorCode?: string | null;
   providerErrorMessage?: string | null;
@@ -153,8 +156,8 @@ type OpenAiPlannerPayload = {
   recommendedLane?: unknown;
 };
 
-const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
-const DEFAULT_OPENAI_PLANNER_MODEL = process.env.OPENAI_PLANNER_MODEL || "gpt-4.1-mini";
+const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 10_000;
+const MAX_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
 const CREATE_PLANNER_JSON_SCHEMA = {
@@ -367,26 +370,10 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-function resolveCreatePlannerTimeoutMs(): number {
+export function resolveCreatePlannerTimeoutMs(): number {
   const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
   if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
-  return Math.min(6_000, Math.max(600, Math.floor(raw)));
-}
-
-function withPlannerTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`create_planner_timeout_after_${timeoutMs}ms`)), timeoutMs);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+  return Math.min(MAX_CREATE_PLANNER_TIMEOUT_MS, Math.max(600, Math.floor(raw)));
 }
 
 function detectBroadCommunalTopicFields(text: string): string[] {
@@ -435,6 +422,44 @@ function inferScopesFromText(text: string): CreatePlannerScope[] {
   return Array.from(scopes).slice(0, 4);
 }
 
+const NON_MUNICIPAL_LOCATION_TOKENS = new Set([
+  "deutschland",
+  "europa",
+  "zukunft",
+  "allgemein",
+  "bund",
+  "land",
+]);
+
+function hasExplicitMunicipalLocation(text: string): boolean {
+  if (/\b\d{5}\b/.test(text)) return true;
+  if (
+    /\b(?:Stadt|stadt|Gemeinde|gemeinde|Kommune|kommune|Bezirk|bezirk|Ortsteil|ortsteil|Landkreis|landkreis)\s+(?:von\s+)?[A-ZÄÖÜ][\p{L}ÄÖÜäöüß-]{2,}/u.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  const match = text.match(
+    /(?:^|[.!?]\s+|\s)(?:In|in|Aus|aus|Für|für|Bei|bei)\s+([A-ZÄÖÜ][\p{L}ÄÖÜäöüß-]{2,})/u,
+  );
+  if (!match?.[1]) return false;
+  return !NON_MUNICIPAL_LOCATION_TOKENS.has(match[1].toLowerCase());
+}
+
+function municipalLocationQuestion(locale: string): string {
+  return locale.toLowerCase().startsWith("de")
+    ? "Auf welche Stadt, Gemeinde oder welchen Ortsteil bezieht sich dein Anliegen?"
+    : "Which city, municipality or district does your contribution refer to?";
+}
+
+function needsMunicipalLocationQuestion(
+  text: string,
+  scopes: CreatePlannerScope[],
+): boolean {
+  return scopes.includes("municipal") && !hasExplicitMunicipalLocation(text);
+}
+
 function baseProviderPlan(
   plannerProvider: CreatePlannerProviderName,
   lane: CreatePlannerRecommendedLane,
@@ -477,6 +502,62 @@ function normalizePlannerDebugRawText(rawText?: string | null): string | null {
   return rawText;
 }
 
+function dedupeModelCandidates(candidates: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const resolved: string[] = [];
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? "").trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    resolved.push(normalized);
+  }
+  return resolved;
+}
+
+export function resolveCreatePlannerModelCandidates(): string[] {
+  return dedupeModelCandidates([
+    process.env.OPENAI_PLANNER_MODEL,
+    process.env.OPENAI_MODEL,
+  ]);
+}
+
+function isModelNotFoundError(error: unknown): boolean {
+  const errorObject = error as {
+    status?: number;
+    message?: string;
+    meta?: { code?: string; status?: number };
+  } | null;
+  const message = error instanceof Error ? error.message : String(errorObject?.message ?? "");
+  return (
+    errorObject?.status === 404 ||
+    errorObject?.meta?.status === 404 ||
+    errorObject?.meta?.code === "MODEL_NOT_FOUND" ||
+    (/model/i.test(message) && /404|not found/i.test(message))
+  );
+}
+
+function isPlannerTimeoutError(error: unknown): boolean {
+  const errorObject = error as {
+    name?: string;
+    message?: string;
+    code?: string;
+    cause?: { code?: string; name?: string; message?: string } | null;
+    meta?: { code?: string; status?: number; messageShort?: string } | null;
+  } | null;
+  const message = error instanceof Error ? error.message : String(errorObject?.message ?? "");
+  const causeMessage =
+    typeof errorObject?.cause?.message === "string" ? errorObject.cause.message : "";
+  const combined = `${message} ${causeMessage}`.toLowerCase();
+  return (
+    errorObject?.name === "AbortError" ||
+    errorObject?.code === "TIMEOUT" ||
+    errorObject?.cause?.code === "TIMEOUT" ||
+    errorObject?.meta?.code === "TIMEOUT" ||
+    errorObject?.cause?.name === "AbortError" ||
+    /abort|aborted|timeout/.test(combined)
+  );
+}
+
 function estimateTopicSignalCount(text: string): number {
   const civic = detectComplexCivicClusters(text).length;
   const communal = detectBroadCommunalTopicFields(text).length;
@@ -493,6 +574,8 @@ function createPlannerDebug(overrides: Partial<CreatePlannerDebug>): CreatePlann
   return {
     attemptedProvider: overrides.attemptedProvider ?? null,
     usedProvider: overrides.usedProvider ?? "none",
+    attemptedModel: overrides.attemptedModel ?? null,
+    usedModel: overrides.usedModel ?? null,
     providerAvailable: overrides.providerAvailable ?? false,
     providerErrorCode: overrides.providerErrorCode ?? null,
     providerErrorMessage,
@@ -802,8 +885,8 @@ function buildBroadCommunalPlanner(params: {
   plannerDebug: CreatePlannerDebug;
 }): CreatePlannerResult {
   const fields = detectBroadCommunalTopicFields(params.text);
-  const topic = "Kommunale Prioritäten und Zielkonflikte";
-  const core = "Mehrere kommunale Zielkonflikte priorisieren";
+  const topic = "Mehrere kommunale Themen";
+  const core = "Mehrere kommunale Themen gemeinsam strukturieren";
   const openQuestions = ["Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?"];
 
   return finalizePlannerResult({
@@ -1044,28 +1127,44 @@ function buildHeuristicPlanner(params: {
   providerCallSucceeded: boolean;
   plannerDebug: CreatePlannerDebug;
 }): CreatePlannerResult {
-  const common = {
+  return finalizePlannerResult({
     text: params.text,
-    source: "heuristic_fallback" as const,
+    source: "technical_fallback",
     plannerProvider: params.plannerProvider,
-    plannerDegraded: params.plannerDegraded,
+    plannerDegraded: true,
     degradedReason: params.degradedReason,
     providerCallAttempted: params.providerCallAttempted,
     providerCallSucceeded: params.providerCallSucceeded,
     plannerDebug: params.plannerDebug,
-  };
-  if (isAnimalWelfareText(params.text)) return buildAnimalWelfarePlanner(common);
-  if (isQuotaEqualityPolicyText(params.text)) return buildQuotaEqualityPlanner(common);
-  if (isComplexCivicPolicyText(params.text)) return buildComplexCivicPlanner(common);
-  if (isExplicitOfficeholderText(params.text)) return buildOfficeholderPlanner(common);
-  const communalFields = detectBroadCommunalTopicFields(params.text);
-  if (communalFields.length >= 4) return buildBroadCommunalPlanner(common);
-  return buildNeutralPlanner(common);
+    qualityOverride: {
+      status: "failed",
+      issues: ["technical_fallback_only"],
+    },
+    draft: {
+      plannerTopic: "Analyse noch nicht validiert",
+      plannerCore: "Es liegt noch kein validierter KI-Run vor.",
+      plannerScope: ["unclear"],
+      plannerStance: "unclear",
+      plannerClusters: [],
+      plannerOpenQuestions: [],
+      shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+      topicCandidates: [],
+      clusterCandidates: [],
+      scopeCandidates: ["unclear"],
+      stance: "unclear",
+      openQuestions: [],
+      graphSearchTerms: [],
+      materialSignals: [],
+      recommendedLane: "standard",
+    },
+  });
 }
 
 function normalizeOpenAiPlannerPayload(
   payload: OpenAiPlannerPayload,
   text: string,
+  model: string,
+  locale: string,
   rawText?: string,
 ): PlannerAttempt {
   const normalizedRawText = normalizePlannerDebugRawText(rawText);
@@ -1080,6 +1179,7 @@ function normalizeOpenAiPlannerPayload(
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1093,15 +1193,26 @@ function normalizeOpenAiPlannerPayload(
   }
 
   const plannerScope = asStringArray(payload.plannerScope).filter(isPlannerScope);
+  const resolvedPlannerScope =
+    plannerScope.length > 0 ? plannerScope : inferScopesFromText(text);
   const plannerStanceRaw = String(payload.plannerStance ?? payload.stance ?? "").trim().toLowerCase();
   const plannerStance = isPlannerStance(plannerStanceRaw) ? plannerStanceRaw : "open";
   const recommendedLaneRaw = String(payload.recommendedLane ?? "").trim().toLowerCase();
   const recommendedLane = isRecommendedLane(recommendedLaneRaw) ? recommendedLaneRaw : "create_fast_followup";
   const plannerClusters = asStringArray(payload.plannerClusters);
-  const plannerOpenQuestions = dedupeStrings([...asStringArray(payload.plannerOpenQuestions), ...asStringArray(payload.openQuestions)]);
-  const topicCandidates = dedupeStrings([plannerTopic, ...asStringArray(payload.topicCandidates)]);
+  const providerTopicCandidates = dedupeStrings(asStringArray(payload.topicCandidates));
+  const topicCandidates =
+    providerTopicCandidates.length > 0 ? providerTopicCandidates : [plannerTopic];
   const clusterCandidates = dedupeStrings([...plannerClusters, ...asStringArray(payload.clusterCandidates)]);
-  const scopeCandidates = dedupeStrings([...plannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const scopeCandidates = dedupeStrings([...resolvedPlannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const locationQuestion = needsMunicipalLocationQuestion(text, scopeCandidates)
+    ? municipalLocationQuestion(locale)
+    : null;
+  const plannerOpenQuestions = dedupeStrings([
+    ...asStringArray(payload.plannerOpenQuestions),
+    ...asStringArray(payload.openQuestions),
+    locationQuestion,
+  ]);
   const graphSearchTerms = dedupeStrings([
     ...asStringArray(payload.graphSearchTerms),
     ...plannerClusters,
@@ -1122,6 +1233,8 @@ function normalizeOpenAiPlannerPayload(
       ...createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "openai",
+        attemptedModel: model,
+        usedModel: model,
         providerAvailable: true,
         providerErrorMessage: null,
         errorMessage: null,
@@ -1135,14 +1248,14 @@ function normalizeOpenAiPlannerPayload(
     draft: {
       plannerTopic,
       plannerCore,
-      plannerScope: plannerScope.length > 0 ? plannerScope : inferScopesFromText(text),
+      plannerScope: resolvedPlannerScope,
       plannerStance,
       plannerClusters,
       plannerOpenQuestions,
       shortSummary,
       topicCandidates,
       clusterCandidates,
-      scopeCandidates: scopeCandidates.length > 0 ? scopeCandidates : inferScopesFromText(text),
+      scopeCandidates,
       stance: plannerStance,
       openQuestions: plannerOpenQuestions,
       graphSearchTerms,
@@ -1159,6 +1272,7 @@ function normalizeOpenAiPlannerPayload(
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1178,7 +1292,10 @@ function normalizeOpenAiPlannerPayload(
   };
 }
 
-async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+async function tryOpenAiPlannerWithModel(
+  input: BuildCreatePlannerInput,
+  model: string,
+): Promise<PlannerAttempt> {
   if (!process.env.OPENAI_API_KEY) {
     const errorMessage = "OPENAI_API_KEY fehlt";
     return {
@@ -1187,6 +1304,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: false,
         providerErrorMessage: errorMessage,
         errorMessage,
@@ -1216,6 +1334,10 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
     "- 'Öffentliches Anliegen' ist nur erlaubt, wenn absolut kein Thema erkennbar ist.",
     "- 'Aussage' ist nie ausreichend als plannerCore bei längeren politischen Texten.",
     "- Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
+    "- Erhalte jedes ausdrücklich genannte, fachlich eigenständige Thema als eigenen topicCandidate; niemals auf drei Themen begrenzen.",
+    "- Ein nur von dir gebildeter Sammelbegriff oder ein synthetisches Oberthema darf die Zahl der topicCandidates nicht erhöhen.",
+    "- Wenn plannerTopic selbst ausdrücklich als eigenständiges Thema im Text vorkommt, bleibt es dagegen als topicCandidate erhalten.",
+    "- Bei kommunalem Scope ohne ausdrücklich benannte Stadt, Gemeinde oder Ortsteil muss plannerOpenQuestions eine Ortsrückfrage enthalten.",
     "- Formuliere die offene Rückfrage als Auswahlfrage, wenn mehrere Themen konkurrieren.",
     "",
     `Locale: ${input.locale}`,
@@ -1225,21 +1347,20 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
   ].join("\n");
 
   try {
-    const { text } = await withPlannerTimeout(
-      callOpenAIJson({
-        system,
-        user,
-        model: DEFAULT_OPENAI_PLANNER_MODEL,
-        temperature: 0.2,
-        max_tokens: 1200,
-        response_format: {
-          name: "create_planner_result",
-          schema: CREATE_PLANNER_JSON_SCHEMA,
-          strict: true,
-        },
-      }),
-      resolveCreatePlannerTimeoutMs(),
-    );
+    const timeoutMs = resolveCreatePlannerTimeoutMs();
+    const { text } = await callOpenAIJson({
+      system,
+      user,
+      model,
+      temperature: 0.2,
+      max_tokens: 1200,
+      timeoutMs,
+      response_format: {
+        name: "create_planner_result",
+        schema: CREATE_PLANNER_JSON_SCHEMA,
+        strict: true,
+      },
+    });
     let parsed: OpenAiPlannerPayload;
     try {
       parsed = JSON.parse(text) as OpenAiPlannerPayload;
@@ -1253,6 +1374,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
           providerErrorMessage: errorMessage,
           errorMessage,
@@ -1264,19 +1386,39 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         }),
       };
     }
-    return normalizeOpenAiPlannerPayload(parsed, input.text, text);
+    return normalizeOpenAiPlannerPayload(parsed, input.text, model, input.locale, text);
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
-    if (message.includes("create_planner_timeout_after_")) {
+    if (isPlannerTimeoutError(error)) {
       return {
         ok: false,
         reason: "timeout",
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
-          providerErrorCode: errorObject?.meta?.code ?? null,
+          providerErrorCode: errorObject?.meta?.code ?? "TIMEOUT",
+          providerErrorMessage: message,
+          errorMessage: message,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+        }),
+      };
+    }
+    if (isModelNotFoundError(error)) {
+      return {
+        ok: false,
+        reason: "model_not_found",
+        debug: createPlannerDebug({
+          attemptedProvider: "openai",
+          usedProvider: "local_fallback",
+          attemptedModel: model,
+          providerAvailable: true,
+          providerErrorCode: "MODEL_NOT_FOUND",
           providerErrorMessage: message,
           errorMessage: message,
           rawPayloadValid: false,
@@ -1293,6 +1435,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
+          attemptedModel: model,
           providerAvailable: true,
           providerErrorCode: errorObject?.meta?.code ?? "rate_limited",
           providerErrorMessage: message,
@@ -1310,6 +1453,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: model,
         providerAvailable: true,
         providerErrorCode: errorObject?.meta?.code ?? null,
         providerErrorMessage: message,
@@ -1323,6 +1467,55 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
   }
 }
 
+async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+  const models = resolveCreatePlannerModelCandidates();
+  if (models.length === 0) {
+    const errorMessage = "OPENAI_PLANNER_MODEL oder OPENAI_MODEL fehlt";
+    return {
+      ok: false,
+      reason: "provider_error",
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+        providerErrorMessage: errorMessage,
+        errorMessage,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
+
+  let lastAttempt: PlannerAttempt | null = null;
+  for (const [index, model] of models.entries()) {
+    const attempt = await tryOpenAiPlannerWithModel(input, model);
+    if (attempt.ok) return attempt;
+    const failedAttempt = attempt as Extract<PlannerAttempt, { ok: false }>;
+    lastAttempt = failedAttempt;
+    if (failedAttempt.reason !== "model_not_found" || index >= models.length - 1) {
+      return failedAttempt;
+    }
+  }
+
+  return lastAttempt ?? {
+    ok: false,
+    reason: "provider_error",
+    debug: createPlannerDebug({
+      attemptedProvider: "openai",
+      usedProvider: "local_fallback",
+      providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+      providerErrorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
+      errorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
+      rawPayloadValid: false,
+      rawTextValid: false,
+      normalizedPayloadValid: false,
+      qualityGatePassed: false,
+    }),
+  };
+}
+
 function mapPlannerAttemptToUsageOutcome(
   attempt: PlannerAttempt,
 ): { success: boolean; errorKind: AiErrorKind | null } {
@@ -1330,6 +1523,8 @@ function mapPlannerAttemptToUsageOutcome(
     switch (attempt.reason) {
       case "quality_gate_failed":
         return { success: true, errorKind: null };
+      case "model_not_found":
+        return { success: false, errorKind: "MODEL_NOT_FOUND" };
       case "invalid_json":
       case "invalid_provider_payload":
         return { success: false, errorKind: "BAD_JSON" };
@@ -1357,10 +1552,16 @@ async function recordCreatePlannerAiUsage(params: {
     return;
   }
   const outcome = mapPlannerAttemptToUsageOutcome(params.attempt);
+  const usageModel =
+    (params.attempt.ok
+      ? params.attempt.result.plannerDebug.usedModel
+      : params.attempt.debug.usedModel ?? params.attempt.debug.attemptedModel) ??
+    resolveCreatePlannerModelCandidates()[0] ??
+    "unknown";
   await logAiUsage({
     createdAt: new Date(),
     provider: "openai",
-    model: DEFAULT_OPENAI_PLANNER_MODEL,
+    model: usageModel,
     pipeline: CREATE_PLANNER_USAGE_PIPELINE,
     operationId: params.input.operationId ?? params.input.requestId ?? null,
     operationType: params.input.operationType ?? "create_intelligent_followup_planner",
@@ -1408,7 +1609,7 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
 
   return buildNeutralPlanner({
     text,
-    source: "heuristic_fallback",
+    source: "technical_fallback",
     plannerProvider: "local_fallback",
     plannerDegraded: true,
     degradedReason: "normalization_failed",
