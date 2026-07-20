@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import demoDossier from "@features/dossier/data/demoDossier";
 import { getPresentation } from "@/components/dossier/presentation";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -14,6 +15,7 @@ export default async function StreamDetailPage({ params }: { params: Promise<{ i
   const { streams, traceability } = getPresentation(demoDossier);
   const stream = streams.find((entry) => entry.id === id);
   if (!stream) return notFound();
+  const dossierHref = buildCanonicalDossierHref(demoDossier.meta.id) ?? "/dossier";
 
   const statementTitleById = new Map(
     demoDossier.analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]),
@@ -23,7 +25,7 @@ export default async function StreamDetailPage({ params }: { params: Promise<{ i
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgb(248,250,252)_0%,rgb(241,245,249)_45%,rgb(226,232,240)_100%)] dark:bg-[radial-gradient(circle_at_top,rgb(15,23,42)_0%,rgb(2,6,23)_45%,rgb(2,6,23)_100%)]">
       <div className="mx-auto w-full max-w-3xl px-6 py-12">
-        <Link href="/dossier/demo" className="text-xs text-[rgb(var(--muted))] underline">
+        <Link href={dossierHref} className="text-xs text-[rgb(var(--muted))] underline">
           Zurück zum Dossier
         </Link>
         <div className="mt-6 space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
@@ -39,7 +41,11 @@ export default async function StreamDetailPage({ params }: { params: Promise<{ i
                 {statementIds.map((statementId) => (
                   <li key={statementId}>
                     <Link
-                      href={`/dossier/demo#stmt-${statementId}`}
+                      href={
+                        buildCanonicalDossierHref(demoDossier.meta.id, {
+                          anchor: `stmt-${statementId}`,
+                        }) ?? dossierHref
+                      }
                       className="text-[rgb(var(--fg))] underline"
                     >
                       {statementTitleById.get(statementId) ?? statementId}

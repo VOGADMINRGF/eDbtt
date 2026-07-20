@@ -11,6 +11,7 @@ describe("runtime data guardrails", () => {
   it("keeps demo fallback restricted to explicit demo dossier ids", () => {
     expect(isExplicitDemoDossierId("demo")).toBe(true);
     expect(isExplicitDemoDossierId("dossier_demo_mobility_berlin")).toBe(true);
+    expect(isExplicitDemoDossierId("demo-innencity-2026")).toBe(true);
     expect(shouldAllowDemoDossierFallback("dossier-draft-abc")).toBe(false);
     expect(shouldAllowDemoDossierFallback("berlin-reinickendorf-review")).toBe(false);
   });
