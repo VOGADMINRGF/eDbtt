@@ -1,19 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { z } from "zod";
-import { completeIdentityVerification } from "@core/auth/identityVerificationService";
+import { ObjectId } from "@core/db/triMongo";
+import {
+  IdentityVerificationError,
+  completeIdentityVerification,
+} from "@core/auth/identityVerificationService";
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
+import { readSession } from "@/utils/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
   sessionId: z.string().min(10),
+  providerProof: z
+    .object({
+      adapter: z.literal("test"),
+      verificationId: z.string().min(6),
+      verified: z.literal(true),
+      verifiedAt: z.string().optional(),
+    })
+    .optional(),
 });
 
+async function readAuthenticatedUserId() {
+  const session = await readSession().catch(() => null);
+  const userId = session?.uid ?? null;
+  if (!userId || !ObjectId.isValid(userId)) {
+    return null;
+  }
+  return new ObjectId(userId);
+}
+
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("u_id")?.value;
+  const userId = await readAuthenticatedUserId();
   if (!userId) {
     return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
   }
@@ -25,21 +45,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await completeIdentityVerification(parsed.data.sessionId);
-    if (String(result.session.userId) !== userId) {
-      return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
-    }
+    const result = await completeIdentityVerification({
+      sessionId: parsed.data.sessionId,
+      userId,
+      providerPayload: parsed.data.providerProof,
+    });
     const response = NextResponse.json({
       ok: true,
       level: result.verification.level,
       methods: result.verification.methods,
     });
     await logIdentityEvent("identity_otb_confirm", {
-      userId,
+      userId: userId.toHexString(),
       meta: { level: result.verification.level },
     });
     return response;
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message ?? "failed" }, { status: 400 });
+  } catch (error) {
+    if (error instanceof IdentityVerificationError) {
+      return NextResponse.json({ ok: false, error: error.code }, { status: error.status });
+    }
+    throw error;
   }
 }
