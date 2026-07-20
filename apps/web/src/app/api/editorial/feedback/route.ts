@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { insertEditorialFeedback, listEditorialFeedback } from "@/lib/db/editorialFeedbackRepo";
 import { z } from "zod";
 import { rateLimitFromRequest, rateLimitHeaders } from "@/utils/rateLimitHelpers";
+import { resolveEditorialFeedbackReviewStatus } from "@/lib/editorial/status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ const FEEDBACK_GET_RATE = { limit: 120, windowMs: 60_000 };
 
 const ShortText = z.string().trim().min(1).max(600);
 const ClaimText = z.string().trim().min(1).max(800);
+const MandateTitle = z.string().trim().min(1).max(120);
+const MandateDescription = z.string().trim().min(1).max(800);
 const FactVerdict = z.enum(["LIKELY_TRUE", "LIKELY_FALSE", "MIXED", "UNDETERMINED"]);
 const SourceUrl = z.string().trim().min(1).max(600);
 const FeedbackOrigin = z.enum(["community", "editorial", "user", "ai"]);
@@ -81,6 +84,38 @@ const FeedbackActionSchema = z.discriminatedUnion("type", [
       note: ShortText.optional(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("mandate_update_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_risk_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_responsibility_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_impact_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
 ]);
 
 const FeedbackSchema = z
@@ -137,11 +172,9 @@ export async function POST(req: NextRequest) {
     }
 
     const ts = parsed.data.ts ?? new Date().toISOString();
-    const reviewStatus =
-      parsed.data.action.type === "manual_factcheck_submit" ||
-      parsed.data.action.type === "manual_factcheck_update"
-        ? "pending"
-        : undefined;
+    const reviewStatus = resolveEditorialFeedbackReviewStatus(
+      parsed.data.action.type,
+    );
     const { id } = await insertEditorialFeedback({
       ts,
       context: parsed.data.context,
