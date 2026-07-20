@@ -5,16 +5,67 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  web-contracts:
+    name: Web contracts
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BROWSERSLIST_IGNORE_OLD_DATA: "1"
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20.19.0"
           cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: git diff --check
+      - run: pnpm -C apps/web run test:web-pr-critical-guardrails
+      - run: pnpm -C apps/web run test:production-guardrails
+      - run: node scripts/ci/check-web-critical-guardrails.mjs
+
+  web-quality:
+    name: Web quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BROWSERSLIST_IGNORE_OLD_DATA: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cp apps/web/.env.example apps/web/.env.local
       - run: pnpm lint
-      - run: pnpm -C apps/web typecheck
+      - run: pnpm -C apps/web run typecheck
+      - run: pnpm -C apps/web run build
+
+  web-security:
+    name: Web security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: node scripts/ci/check-web-critical-guardrails.mjs

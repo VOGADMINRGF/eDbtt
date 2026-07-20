@@ -27,13 +27,20 @@ Dieser Lauf deckt eine breitere Smoke-Matrix und den frischen `.next`-Build ab, 
 
 ## Was Web CI abdeckt
 
-`.github/workflows/web-ci.yml` bleibt unveraendert und deckt aktuell ab:
+`.github/workflows/web-ci.yml` bleibt der schnelle PR-/`main`-Check, ist aber nicht mehr auf nur drei Basisbefehle begrenzt. Der Workflow deckt jetzt ab:
 
 - `pnpm install --frozen-lockfile`
+- `git diff --check`
+- `pnpm -C apps/web run test:web-pr-critical-guardrails`
+- `pnpm -C apps/web run test:production-guardrails`
+- `node scripts/ci/check-web-critical-guardrails.mjs`
 - `pnpm lint`
-- `pnpm -C apps/web typecheck`
+- `pnpm -C apps/web run typecheck`
+- `cp apps/web/.env.example apps/web/.env.local`
+- `pnpm -C apps/web run build`
+- einen gezielten Secret- und Pattern-Scan ueber `gitleaks`
 
-Web CI ist damit bewusst schneller PR-Feedback-CI und kein Release-Gate.
+Web CI bleibt damit bewusst schneller PR-Feedback-CI und kein Release-Gate, enthaelt aber jetzt die kritischen Web- und Workflow-Guardrails als feste Vertragschecks.
 
 ## Was Production Validation jetzt abdeckt
 
@@ -51,7 +58,18 @@ Web CI ist damit bewusst schneller PR-Feedback-CI und kein Release-Gate.
 
 3. `release-runtime-gate`
    - bleibt an `PRODUCTION_VALIDATION_ENABLED=1` plus Repo-Secrets gebunden
-   - startet dann den bestehenden tieferen `pnpm run release:validate:production`-Lauf
+   - validiert zunaechst den produktionsnahen Web-Runtime-Contract
+   - startet erst danach den bestehenden tieferen `pnpm run release:validate:production`-Lauf
+
+## Kritische Web-Runtime-Variablen
+
+Der Slice fuehrt einen expliziten fail-closed Contract fuer die Web-Runtime ein:
+
+- `WEB_DATABASE_URL` ist der einzige kanonische Datenbankwert fuer Web-Runtime und Web-PR-Validierung.
+- `DATABASE_URL` darf nicht stillschweigend als Web-Fallback wirken.
+- `MAIL_FROM` ist kanonisch; `SMTP_FROM` bleibt nur als rueckwaertskompatibler Alias.
+- bei gesetzten `MAIL_FROM` und `SMTP_FROM` ist Wertgleichheit Pflicht.
+- `JWT_SECRET`, `WEB_DATABASE_URL` und ein gueltiger Mail-Absender werden in produktionsnahen Serverstarts explizit validiert.
 
 ## Warum `workflow_dispatch` korrekt bleibt
 
@@ -114,10 +132,26 @@ Diese Folgepfade bleiben offen:
 
 ## Geaenderte Dateien
 
+- `.github/workflows/web-ci.yml`
 - `.github/workflows/production-validation.yml`
+- `.github/workflows/e150-ci.yml`
+- `apps/web/.env.example`
 - `apps/web/package.json`
+- `apps/web/src/lib/server/webRuntimeEnv.ts`
+- `apps/web/src/instrumentation.ts`
+- `apps/web/src/utils/email.ts`
+- `apps/web/src/utils/env.ts`
+- `apps/web/src/utils/mailer.ts`
+- `apps/web/src/types/env.d.ts`
+- `packages/db-web/src/client.ts`
+- `core/db/prisma.ts`
+- `scripts/ci/check-web-critical-guardrails.mjs`
+- `scripts/ci/validate-web-runtime-env.ts`
+- `apps/web/tests/web-runtime-env.guardrails.test.ts`
+- `apps/web/tests/web-ci-critical-guardrails.contract.test.ts`
 - `docs/E150/PRODUCTION_DEPLOYMENT_VALIDATION_CONTRACT_2026-07-01.md`
 - `docs/E150/PRODUCTION-DEPLOYMENT-VALIDATION-CONTRACT-02_2026-07-01.md`
+- `docs/E150/CI_WEB_PR_CRITICAL_GUARDRAILS_2026-07-20.md`
 - `docs/E150/OpenTasks.md`
 - `docs/E150/ProductionReadinessMatrix.md`
 

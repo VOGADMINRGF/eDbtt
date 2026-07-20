@@ -5,9 +5,22 @@ const g = globalThis as unknown as { __web?: PrismaClient };
 let clientSingleton: PrismaClient | undefined = g.__web;
 
 function createClient() {
-  const url = process.env.WEB_DATABASE_URL;
+  const url = process.env.WEB_DATABASE_URL?.trim();
+  const shadowUrl = process.env.DATABASE_URL?.trim();
+
   if (!url) {
+    if (shadowUrl) {
+      throw new Error(
+        "WEB_DATABASE_URL missing; DATABASE_URL fallback is disabled for the web runtime.",
+      );
+    }
     throw new Error("WEB_DATABASE_URL missing");
+  }
+
+  if (shadowUrl && shadowUrl !== url) {
+    throw new Error(
+      "WEB_DATABASE_URL conflicts with DATABASE_URL; the web runtime only accepts WEB_DATABASE_URL.",
+    );
   }
   return new PrismaClient({ datasources: { db: { url } } });
 }
