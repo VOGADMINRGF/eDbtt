@@ -44,7 +44,7 @@ Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum
   - kein Auto-Publish
   - kein Silent-Merge
   - kein Auto-Attach
-  - Faktencheck / Deep Search bleibt optional und bestaetigungspflichtig
+  - Quellenpruefung / externe Quellenanalyse bleibt optional und bestaetigungspflichtig
 - Bewusst nicht automatisiert:
   - kein echter browsergesteuerter Matrixlauf fuer alle Link-/YouTube-/PDF-/Upload-Faelle
   - keine Screenshot-Automation fuer 390px/Desktop
@@ -61,8 +61,8 @@ Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum
 - Lokaler Chrome-Run auf `/create` mit echtem Login-Flow, kommunalem Beispieltext und echter Folgekette bis in den eingebetteten Pruefmodus.
 - Im Follow-up auf `/create` wird der breite kommunale Text nicht mehr generisch als `Kern: Fragestellung` gerahmt, sondern als konkreter Bedarf `Du benennst Handlungsbedarf zu verkehr.` mit sichtbarem Block `Erkannte Bedarfspunkte`.
 - `Deine Struktur auf einen Blick` steht im realen Browserlauf weiter ganz oben als kompakte Zaehlerzeile; fuer den Beispieltext wurden `Prioritaeten`, `Themencluster`, `Fragen & Abstimmung` und `Naechste Schritte` jeweils mit `NEU` und Zaehler `1` gezeigt.
-- Nach `So uebernehmen` erscheint der Messenger-nahe Naechster-Schritt-Block mit den CTA-Zielen `Beitrag einreichen`, `Dossier ergaenzen`, `Beteiligungsfrage vorbereiten`, `Redaktionelle Pruefung anfragen` und `Faktencheck / Deep Search`.
-- Nach `Faktencheck / Deep Search` oeffnet sich die eingebettete Analyse real im selben `/create`-Dokument: `Analyse-Szene` plus kompakter Header `Im selben Arbeitsraum`, kein zweiter grosser Hero, keine globale Mobile-Fixed-Bar ueber dem Inhalt.
+- Nach `So uebernehmen` erscheint der Messenger-nahe Naechster-Schritt-Block mit den CTA-Zielen `Beitrag einreichen`, `Dossier ergaenzen`, `Beteiligungsfrage vorbereiten`, `Redaktionelle Pruefung anfragen` und `Quellenpruefung vorbereiten`.
+- Nach `Quellenpruefung vorbereiten` oeffnet sich die eingebettete Analyse real im selben `/create`-Dokument: `Analyse-Szene` plus kompakter Header `Im selben Arbeitsraum`, kein zweiter grosser Hero, keine globale Mobile-Fixed-Bar ueber dem Inhalt.
 - Der eingebettete Analysebereich blieb sowohl in Desktop-Breite als auch in schmaler 390px-naher Fensterbreite erreichbar; die CTA-/Info-Fuehrung bleibt inline in derselben Scroll-Hierarchie statt als grosses Bottom-Overlay.
 
 ## Rest offen
@@ -204,7 +204,7 @@ Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum
 - kein Auto-Publish
 - kein automatisches `public_official`
 - Link-Intake bleibt Quellenhinweis und behauptet kein Scraping
-- Faktencheck / Deep Search bleibt bestaetigungspflichtig und ohne automatische Kostenbuchung
+- Quellenpruefung / externe Quellenanalyse bleibt bestaetigungspflichtig und ohne automatische Kostenbuchung
 - Mobile-CTA-Flow bleibt inline und ohne grosses Overlay
 
 ### Verifikation 2026-05-21

@@ -180,6 +180,7 @@ Kanonische Textstufen (DE/EN, semantisch deckungsgleich):
 Kanonische source of truth:
 
 - `features/pricing/domain/trustLoop.de.ts`
+- `docs/E150/V3_AI_ORCHESTRATION_AND_RESEARCH_CREDIT_POLICY_2026-07-18.md`
 
 Die produktnahe Nutzung umfasst:
 
@@ -193,15 +194,15 @@ Die produktnahe Nutzung umfasst:
 
 Privatmodell (verbindlich):
 
-- `0 EUR`: Voting/Participation frei, keine externen Research-Credits.
-- `3,99 EUR` (`Interessiert`): 1 Contribution/Monat, keine externen Search-/Deep-Research-Credits.
-- `9,99 EUR` (`Aktiv`): 3 Contributions/Monat, 1 Anlassraum-Credit, kein automatischer externer Search.
-- `29,99 EUR` (`Mitgestaltend`): 10 Contributions/Monat, 1 Anlassraum-Credit, 1 Entwicklungsthema; optional 1 Perplexity Search Credit bei aktivierter Provider-/Kosten-Policy; kein ARI Deep Research inklusive.
+- `0 EUR`: Voting/Participation frei, keine Recherche-Kontingente.
+- `3,99 EUR` (`Interessiert`): 1 Contribution/Monat, keine erweiterten Recherche-Kontingente.
+- `9,99 EUR` (`Aktiv`): 3 Contributions/Monat, 1 Anlassraum-Credit, keine automatische externe Quellenanalyse.
+- `29,99 EUR` (`Mitgestaltend`): 10 Contributions/Monat, 1 Anlassraum-Credit, 1 Entwicklungsthema; optional 1 Recherche-Kontingent bei aktivierter Kosten-/Provider-Policy.
 
 Add-ons (explizit optional):
 
-- Search Credit / Dossier Search: rund `10 EUR`.
-- Deep Research Credit / Premium Research: rund `20 EUR`.
+- Quellenprüfung / Recherche-Kontingent: rund `10 EUR`.
+- Premium-Recherche / vertiefte externe Quellenanalyse: rund `20 EUR`.
 
 Segment-Kontingente:
 
@@ -211,9 +212,9 @@ Segment-Kontingente:
 
 Architektur- und Produktgrenzen:
 
-- Standard Analyze läuft ohne Perplexity und ohne ARI.
-- Perplexity bleibt optionales Search-/Research-Discovery-Tool.
-- ARI bleibt optionales Premium-Deep-Research-Tool.
+- Öffentliches Wording folgt ausschließlich `docs/E150/V3_AI_ORCHESTRATION_AND_RESEARCH_CREDIT_POLICY_2026-07-18.md`.
+- Standard Analyze läuft ohne automatische externe Recherche.
+- Externe Quellenanalyse bleibt optional, explizit bestätigt und von der Kosten-/Provider-Policy abhängig.
 - Unbekannte Providerkosten werden nie als `0 EUR` angezeigt (`costKnown=false`, Darstellung `n/a`/`unknown`).
 
 ## 4. Institutionelles Hybrid-Pricing (`/pricing/institutionen`)

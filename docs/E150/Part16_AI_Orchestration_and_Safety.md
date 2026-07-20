@@ -18,6 +18,10 @@
 
 Dieses Part verankert das aktuelle Zielbild fuer KI-Orchestrierung, Social-Safety und Security/Privacy als verbindliche Produkt- und Architekturregeln.
 
+Public wording fuer Pricing, `/create` und sichtbare Produktcopy wird separat in
+`docs/E150/V3_AI_ORCHESTRATION_AND_RESEARCH_CREDIT_POLICY_2026-07-18.md` gefuehrt.
+Die folgenden Provider-Namen sind interne Policy-/Routing-Begriffe und keine Public-Produktbegriffe.
+
 Es gilt fuer:
 - `/create` und angrenzende Intake-Fluesse
 - Anlassraum/Dossier-uebergaenge
