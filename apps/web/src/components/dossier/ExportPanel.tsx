@@ -1,4 +1,5 @@
 import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
+import { buildCanonicalDossierEmbedSnippet } from "./runtimeTruth";
 
 type ExportPanelProps = {
   dossierId: string;
@@ -10,7 +11,8 @@ export function ExportPanel({ dossierId, exportBase }: ExportPanelProps) {
   const jsonHref = `${base}?format=json`;
   const csvHref = `${base}?format=csv`;
   const embedSnippet =
-    `<iframe src="/dossier/demo" title="Dossier Embed" style="width:100%;height:720px;border:0;"></iframe>`;
+    buildCanonicalDossierEmbedSnippet(dossierId) ??
+    "Einbettung ist erst verfügbar, sobald ein kanonisches Dossier bereitsteht.";
 
   return (
     <section className="vog-card p-5 space-y-3">

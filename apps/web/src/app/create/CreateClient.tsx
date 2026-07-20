@@ -90,6 +90,7 @@ import {
   type CreateLinkIntentOptionId,
   type CreateLinkIntakeDetection,
 } from "@/features/create/linkIntake";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 import {
   buildCreateAttachmentMaterialItems,
   resolveMaterialRouting,
@@ -2703,7 +2704,10 @@ export default function CreateClient({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/dossier/demo" className="btn-secondary text-xs">
+            <Link
+              href={buildCanonicalDossierHref(null, { allowIndexFallback: true }) ?? "/dossier"}
+              className="btn-secondary text-xs"
+            >
               Thema öffnen
             </Link>
             <Link href="/swipes" className="btn-secondary text-xs">
