@@ -86,6 +86,7 @@ import {
   type CreateLinkIntentOptionId,
   type CreateLinkIntakeDetection,
 } from "@/features/create/linkIntake";
+import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 import {
   buildCreateAttachmentMaterialItems,
   resolveMaterialRouting,
@@ -2133,17 +2134,24 @@ export default function CreateClient({
       return;
     }
     const baseHref = buildCreateFollowupPrimaryCtaHref({
-      ctaHref: "/dossier",
+      ctaHref:
+        buildCanonicalDossierHref(dossierId, {
+          allowIndexFallback: true,
+        }) ?? "/dossier",
       topics: intelligentFollowup.understanding.topics,
       statements: intelligentFollowup.understanding.statements,
       suggestions: intelligentFollowup.suggestions,
     });
     void navigateWithCreateHandoff("append_to_dossier", baseHref);
-  }, [intelligentFollowup, navigateWithCreateHandoff]);
+  }, [dossierId, intelligentFollowup, navigateWithCreateHandoff]);
 
   const handleOpenDossierCreate = React.useCallback(() => {
-    void navigateWithCreateHandoff("create_dossier", "/dossier");
-  }, [navigateWithCreateHandoff]);
+    const baseHref =
+      buildCanonicalDossierHref(dossierId, {
+        allowIndexFallback: true,
+      }) ?? "/dossier";
+    void navigateWithCreateHandoff("create_dossier", baseHref);
+  }, [dossierId, navigateWithCreateHandoff]);
 
   const handlePrepareVote = React.useCallback(() => {
     if (!intelligentFollowup) {
