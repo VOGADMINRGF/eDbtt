@@ -9,16 +9,33 @@ export type EditorialStatusInput = {
 
 const STATUS_LABELS: Record<EditorialStatus, string> = {
   pending: "offen",
-  approved: "geprueft",
+  approved: "geprüft",
   rejected: "abgelehnt",
   needs_review: "umstritten",
   unknown: "unbekannt",
 };
 
-const APPROVED = new Set(["approved", "geprueft", "freigegeben", "ok", "review_ok"]);
+const APPROVED = new Set(["approved", "geprueft", "geprüft", "freigegeben", "ok", "review_ok"]);
 const REJECTED = new Set(["rejected", "abgelehnt"]);
 const PENDING = new Set(["pending", "queued", "in-review", "review", "offen", "ausstehend", "unbestaetigt", "fehlt"]);
 const NEEDS_REVIEW = new Set(["umstritten", "needs_review"]);
+
+const REVIEW_REQUIRED_ACTION_TYPES = new Set([
+  "manual_factcheck_submit",
+  "manual_factcheck_update",
+  "mandate_update_submit",
+  "mandate_risk_submit",
+  "mandate_responsibility_submit",
+  "mandate_impact_submit",
+]);
+
+export function resolveEditorialFeedbackReviewStatus(
+  actionType: string,
+): "pending" | undefined {
+  const normalized = actionType.trim().toLowerCase();
+  return REVIEW_REQUIRED_ACTION_TYPES.has(normalized) ? "pending" : undefined;
+}
+
 
 export function resolveEditorialStatus(input: EditorialStatusInput): EditorialStatus {
   if (input.redaktionFreigabe === true) return "approved";
