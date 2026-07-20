@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
+    "prebuild": "pnpm --filter @vog/ui build && pnpm --filter @vog/tri-mongo build",
     "build": "BROWSERSLIST_IGNORE_OLD_DATA=1 node ../../scripts/check-page-contracts.mjs && NODE_OPTIONS='--max-old-space-size=4096 --require=../../scripts/suppress-baseline-browser-mapping-warning.cjs' BROWSERSLIST_IGNORE_OLD_DATA=1 next build --webpack",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",

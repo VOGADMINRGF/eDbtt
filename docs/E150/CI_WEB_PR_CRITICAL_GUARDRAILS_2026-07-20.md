@@ -89,9 +89,9 @@ Fuer PRs auf dem Web-Repo-Stand sollen die folgenden GitHub Checks als Required 
 - `Web quality`
   - Root-`lint`
   - Web-`typecheck`
-  - Web-`build`
+  - Web-`build` inklusive reproduzierbarem Vorab-Build von `@vog/ui` und `@vog/tri-mongo`
 - `Web security`
-  - `gitleaks`
+  - `gitleaks` mit vollstaendiger Git-Historie, damit PR-Head und Parent-Revision sicher aufloesbar sind
   - derselbe fokussierte Pattern-Check fuer gefaehrliche Muster
 
 ### `.github/workflows/production-validation.yml`
@@ -130,6 +130,7 @@ Fuer PRs auf dem Web-Repo-Stand sollen die folgenden GitHub Checks als Required 
 - `pnpm -C apps/web run typecheck`
 - `pnpm -C apps/web run build`
 - YAML-Parse fuer geaenderte Workflows
+- Remote-PR-CI fuer `Web contracts`, `Web quality` und `Web security`
 
 ## Ergebnis
 

@@ -28,6 +28,17 @@ describe("web ci critical guardrails contract", () => {
     expect(workflow).toContain("cp apps/web/.env.example apps/web/.env.local");
     expect(workflow).toContain("pnpm -C apps/web run build");
     expect(workflow).toContain("gitleaks/gitleaks-action@v2");
+    expect(workflow).toMatch(/web-security:[\s\S]*actions\/checkout@v4[\s\S]*fetch-depth: 0[\s\S]*gitleaks\/gitleaks-action@v2/);
+  });
+
+  it("builds workspace packages before the web production build", () => {
+    const packageJson = JSON.parse(readRoot("apps/web/package.json")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.prebuild).toBe(
+      "pnpm --filter @vog/ui build && pnpm --filter @vog/tri-mongo build",
+    );
   });
 
   it("keeps the manual production validation gate on WEB_DATABASE_URL and backward-compatible mail secrets", () => {
