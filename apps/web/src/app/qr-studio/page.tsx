@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { buildQrStudioRuntimeTargetHref, validateQrPublicEntryTarget } from "@features/qr";
 
 type SummaryResponse = {
   ok: boolean;
@@ -76,6 +78,7 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 }
 
 export default function QrStudioPage() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<"manual" | "research">("manual");
   const [title, setTitle] = useState("");
   const [sourceText, setSourceText] = useState("");
@@ -93,6 +96,7 @@ export default function QrStudioPage() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [directQrImage, setDirectQrImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -100,6 +104,37 @@ export default function QrStudioPage() {
       setTargetBase(window.location.origin);
     }
   }, []);
+
+  const rawEntryTarget = searchParams.get("target");
+  const invalidEntryTarget = searchParams.get("invalidTarget") === "1";
+  const validatedEntryTarget = useMemo(
+    () => validateQrPublicEntryTarget(rawEntryTarget),
+    [rawEntryTarget],
+  );
+  const directTargetHref = useMemo(() => {
+    if (!validatedEntryTarget) return null;
+    return buildQrStudioRuntimeTargetHref(validatedEntryTarget, origin);
+  }, [validatedEntryTarget, origin]);
+  const directTargetLabel =
+    validatedEntryTarget?.kind === "external_https" ? "HTTPS-Ziel" : "Interner Pfad";
+
+  useEffect(() => {
+    async function renderDirectQr() {
+      if (!directTargetHref) {
+        setDirectQrImage(null);
+        return;
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(directTargetHref, { width: 240, margin: 1 });
+        setDirectQrImage(dataUrl);
+      } catch {
+        setDirectQrImage(null);
+      }
+    }
+
+    void renderDirectQr();
+  }, [directTargetHref]);
 
   const options = useMemo(() => {
     if (customOptions.trim()) {
@@ -265,6 +300,88 @@ export default function QrStudioPage() {
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">Anonym &amp; ohne Login</span>
           </div>
         </header>
+
+        {validatedEntryTarget || invalidEntryTarget ? (
+          <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Öffentlicher QR-Einstieg
+              </p>
+              {validatedEntryTarget ? (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+                    Direkten QR-Code für dieses Ziel öffnen
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                    Das Ziel wurde validiert und direkt in den kanonischen QR-Studio-Flow übernommen.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+                      {directTargetLabel}
+                    </span>
+                    <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+                      Keine Drittanbieter-Weiterleitung
+                    </span>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      Ziel
+                    </p>
+                    <p className="mt-2 break-all font-mono text-sm text-[rgb(var(--fg))]">
+                      {directTargetHref ?? validatedEntryTarget.target}
+                    </p>
+                    {validatedEntryTarget.kind === "internal" ? (
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                        Interne Pfade werden für den QR-Code automatisch mit der aktiven Domain ergänzt.
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+                    Dieses QR-Ziel wurde blockiert
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                    Erlaubt sind interne Pfade und vollständige HTTPS-Ziele. Gefährliche oder
+                    unklare Schemas werden nicht übernommen.
+                  </p>
+                </>
+              )}
+            </article>
+
+            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">QR-Vorschau</h2>
+              {validatedEntryTarget ? (
+                <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                  {directQrImage ? (
+                    <img
+                      src={directQrImage}
+                      alt="QR-Code für den validierten Zielpfad"
+                      className="h-40 w-40 rounded-2xl border border-[rgb(var(--border))] bg-white p-2"
+                    />
+                  ) : (
+                    <div className="flex h-40 w-40 items-center justify-center rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 text-center text-xs text-[rgb(var(--muted))]">
+                      QR wird vorbereitet.
+                    </div>
+                  )}
+                  <div className="space-y-2 text-sm text-[rgb(var(--muted))]">
+                    <p>Der QR-Code zeigt direkt auf den validierten Zielpfad.</p>
+                    {directTargetHref ? (
+                      <a href={directTargetHref} className="font-semibold underline">
+                        Ziel öffnen
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-10 text-sm text-[rgb(var(--muted))]">
+                  Bitte ein erlaubtes internes Ziel oder eine vollständige HTTPS-Adresse verwenden.
+                </div>
+              )}
+            </article>
+          </section>
+        ) : null}
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">

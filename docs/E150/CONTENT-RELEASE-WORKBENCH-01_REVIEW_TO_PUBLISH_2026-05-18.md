@@ -46,7 +46,7 @@ Aus einem reviewpflichtigen `Source Result` soll ein berechtigter Nutzer bewusst
 - Dossier oeffentlich: `/dossier/[id]`
 - Anlassraum-Vorschau: `/runden?view=active&anlassraumId=...`
 - Anlassraum oeffentlich: `/anlassraum?anlassraumId=...`
-- QR-Link: `/qrcodegenerator?target=...`
+- QR-Link: `/qr-studio?target=...`
 
 Es wurde keine neue Parallelwelt fuer Preview oder Public Surface eingefuehrt.
 

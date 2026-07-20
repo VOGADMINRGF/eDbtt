@@ -62,6 +62,11 @@ describe("mobile entry routes contract", () => {
       bottomNavEnabled: true,
       reason: "core",
     });
+    expect(classifyMobileAppShellPath("/qr-studio?target=%2Ftopic%2Fverkehr")).toMatchObject({
+      shellEnabled: true,
+      bottomNavEnabled: true,
+      reason: "core",
+    });
     expect(classifyMobileAppShellPath("/qr/event-berlin")).toMatchObject({
       shellEnabled: true,
       bottomNavEnabled: true,

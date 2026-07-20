@@ -45,6 +45,7 @@ const CORE_EXACT_PATHS = new Set<InternalRedirectPath>([
   "/pricing",
   "/order",
   "/vormerken",
+  "/qr-studio",
   "/account",
   "/account/security",
   "/account/payment",

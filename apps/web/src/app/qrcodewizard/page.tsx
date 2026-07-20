@@ -1,10 +1,32 @@
-"use client";
-import QRCodeWizard from "@/components/QRCodeWizard";
-export default function Page() {
+import { redirect } from "next/navigation";
+import { buildQrStudioEntryHref, validateQrPublicEntryTarget } from "@features/qr";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function readStringParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: SearchParams | Promise<SearchParams>;
+}) {
+  const resolvedSearch = searchParams ? await searchParams : {};
+  const rawTarget = readStringParam(resolvedSearch.target);
+  const validatedTarget = validateQrPublicEntryTarget(rawTarget);
+
+  redirect(
+    buildQrStudioEntryHref({
+      target: validatedTarget?.target ?? undefined,
+      source: "qrcodewizard",
+      invalidTarget: Boolean(rawTarget) && !validatedTarget,
+    }),
+  );
+
   return (
-    <main style={{ padding: 16 }}>
-      <h1 className="sr-only">QR Code Wizard</h1>
-      <QRCodeWizard />
+    <main className="min-h-screen bg-[rgb(var(--bg))]">
+      <h1 className="sr-only">QR-Code Wizard</h1>
     </main>
   );
 }

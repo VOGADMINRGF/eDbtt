@@ -14,6 +14,7 @@ import {
   publicationVisibilityLabel,
   type RegionPublicationVisibilityState,
 } from "@features/region/publicationRiskLadder";
+import { buildQrStudioEntryHref } from "@features/qr";
 
 export type PublicTopicPageStatus = ContentPublishStatus;
 
@@ -204,7 +205,7 @@ async function buildPublicTopicPageFromRecord(
     links.push({ kind: "share", href: record.publicHref, label: "Share-Link" });
     links.push({
       kind: "qr",
-      href: `/qrcodegenerator?target=${encodeURIComponent(record.publicHref)}`,
+      href: buildQrStudioEntryHref({ target: record.publicHref }),
       label: "QR-Link",
     });
   }
