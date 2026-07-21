@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
+import { LEGACY_DIRECT_PROVIDER_ROUTES } from "@/features/ai/orchestrationRouteContract";
 
 describe("e150 route classification", () => {
   it("marks canonical analyze route as canonical", () => {
@@ -28,5 +29,17 @@ describe("e150 route classification", () => {
     expect(diag.canonical).toBe(false);
     expect(diag.routeProfile).toBe("diagnostic");
     expect(diag.directProviderPath).toBe(true);
+  });
+
+  it("keeps legacy direct-provider route catalog aligned with e150 route classification", () => {
+    for (const route of LEGACY_DIRECT_PROVIDER_ROUTES) {
+      const classification = resolveAiRouteClassification(route);
+      expect(classification.routePath).toBe(route);
+      expect(classification.canonical).toBe(false);
+      expect(classification.notCanonical).toBe(true);
+      expect(classification.legacyExceptionPath).toBe(true);
+      expect(classification.directProviderPath).toBe(true);
+      expect(classification.routeProfile).not.toBe("unknown");
+    }
   });
 });

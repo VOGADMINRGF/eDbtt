@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 // ——— Simple LRU mit TTL, um Tippen-Spitzen abzupuffern ————————————————
 type CacheRec = { value:any; exp:number };
@@ -71,14 +72,25 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req:NextRequest){
+  const routeClassification = resolveAiRouteClassification("/api/quality/clarify");
   const t0=Date.now();
   const b = await req.json().catch(()=> ({}));
   const text = String(b?.text ?? "").trim();
-  if(!text) return NextResponse.json({ ok:true, tookMs:0, hints:{} },{status:200});
+  if(!text) {
+    return NextResponse.json(
+      { ok:true, tookMs:0, hints:{}, meta: { routeClassification } },
+      {status:200},
+    );
+  }
 
   const ck = "clarify:"+text.slice(0,512);
   const cached = getK(ck);
-  if(cached) return NextResponse.json({ ok:true, cached:true, tookMs: 0, hints: cached }, {status:200});
+  if(cached) {
+    return NextResponse.json(
+      { ok:true, cached:true, tookMs: 0, hints: cached, meta: { routeClassification } },
+      {status:200},
+    );
+  }
 
   const base = heuristic(text);
 
@@ -91,5 +103,8 @@ export async function POST(req:NextRequest){
 
   const merged = { ...base, ...(refined||{}) };
   setK(ck, merged);
-  return NextResponse.json({ ok:true, tookMs: Date.now()-t0, hints: merged }, {status:200});
+  return NextResponse.json(
+    { ok:true, tookMs: Date.now()-t0, hints: merged, meta: { routeClassification } },
+    {status:200},
+  );
 }
