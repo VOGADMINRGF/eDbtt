@@ -1670,7 +1670,7 @@ function CompactProfileHubSection({
   };
 
   return (
-    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+5.2rem)] md:pb-4">
+    <section id="interessen" className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+5.2rem)] md:pb-4">
       <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3.5 shadow-[0_16px_48px_rgba(15,23,42,0.08)] sm:p-5">
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-3">

@@ -162,6 +162,13 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
       <p className="mt-1 text-center text-xs text-[rgb(var(--muted))]">
         {t("Wir routen dein Anliegen intern an die passende Stelle.", "lead")}
       </p>
+      <p className="mt-2 text-center text-xs text-[rgb(var(--muted))]">
+        Vertraulicher Hinweis? Nutze das{" "}
+        <Link href="/community/contributions" className="font-semibold text-[rgb(var(--fg))] underline underline-offset-4">
+          Hinweisformular
+        </Link>
+        . Hinweise werden intern geprüft und nicht automatisch an eine hostende Organisation weitergegeben.
+      </p>
       {sent && (
         <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
           {t(
@@ -219,7 +226,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             <option value="juristisch">{t("Juristische / rechtliche Anfrage", "category.legal")}</option>
             <option value="presse">{t("Presse- / Interviewanfrage", "category.press")}</option>
             <option value="medien">{t("Medien / Kooperation", "category.media")}</option>
-            <option value="partei">{t("Verantwortliche Person aus Fraktion/Mandat/Organisation", "category.party")}</option>
+            <option value="partei">{t("Verantwortliche Person aus Mandat/Organisation", "category.party")}</option>
             <option value="bewerbung">{t("Bewerbung / Mitarbeit", "category.apply")}</option>
             <option value="sonstiges">{t("Sonstiges Anliegen", "category.other")}</option>
           </select>
