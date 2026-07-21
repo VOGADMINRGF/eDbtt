@@ -7,6 +7,10 @@ import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckSta
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import { resolveRequestScopeContext } from "@/lib/server/auth/requestScope";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 const ParamsSchema = z.object({ contributionId: z.string().min(1) });
 
 async function resolveParams(p: any): Promise<{ contributionId: string }> {
@@ -27,7 +31,16 @@ export async function GET(
   const job = (await getFactcheckWorkflowRepo().listByContributionId(contributionId))[0] ?? null;
   if (!job) {
     return NextResponse.json(
-      { ok: false, reason: "No job found for contributionId", results: [] },
+      {
+        ok: false,
+        reason: "No job found for contributionId",
+        results: [],
+        meta: {
+          lane: "sealed_factcheck",
+          journeyProfile: "sealed_factcheck",
+          routeClassification,
+        },
+      },
       { status: 404 },
     );
   }

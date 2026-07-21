@@ -64,11 +64,23 @@ export function resolveAiRouteClassification(routePath: string): AiRouteClassifi
   if (normalized === "/api/contributions/refine") {
     return exception(normalized, "legacy_exception", "direct_provider_refine_path");
   }
+  if (normalized === "/api/contributions/analyze/save") {
+    return exception(normalized, "legacy_exception", "direct_provider_analyze_save_path");
+  }
   if (normalized === "/api/quality/polish") {
     return exception(normalized, "legacy_exception", "direct_provider_polish_path");
   }
+  if (normalized === "/api/quality/clarify") {
+    return exception(normalized, "legacy_exception", "direct_provider_clarify_path");
+  }
+  if (normalized === "/api/news/survey-topics") {
+    return exception(normalized, "legacy_exception", "direct_provider_news_survey_path");
+  }
   if (normalized === "/api/diag/gpt" || normalized === "/api/_diag/gpt") {
     return exception(normalized, "diagnostic", "diagnostic_direct_provider_path");
+  }
+  if (normalized === "/api/admin/ai/orchestrator-smoke") {
+    return exception(normalized, "diagnostic", "diagnostic_orchestrator_smoke_path");
   }
   return {
     routePath: normalized,
