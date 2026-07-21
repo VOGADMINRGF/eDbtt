@@ -1,3 +1,109 @@
+# E150 Open Tasks — Operativer Kopf 2026-07-21
+
+## Kanonischer Operativteil
+
+- Dieser Abschnitt ist die aktuelle operative Queue.
+- Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
+- Die historischen Abschnitte darunter bleiben als Evidenz und Archiv erhalten, sind aber nicht die aktuelle Tagesqueue.
+- Stand: `2026-07-21`
+- `main`: `cb0d0f87`
+
+## Operative Statuswerte
+
+Für diesen Kopf gelten ausschließlich:
+
+- `blocked`
+- `codex_ready`
+- `in_progress`
+- `review`
+- `manual_gate`
+- `done`
+
+Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
+
+## Aktueller Wahrheitsstand
+
+- PR `#400` integriert Create, Dossier-Runtime-Wahrheit und Production-Guardrails.
+- PR `#404` hat das Factcheck-Route-Hardening gemergt.
+- PR `#405` hat Account-/Kontakt-/Journey-Guardrails gemergt.
+- PR `#406` hat Review-first Save-Contracts gemergt.
+- PR `#397` und `#398` wurden durch `#400` ersetzt und geschlossen.
+- Historische Stashes und `backup/stash-*`-Branches sind vollständig entfernt.
+- Kein Auto-Publish ist aktiviert.
+- Production-ENV, Vercel-Projekt, Domain-Zuordnung, Rollback und echter Production-Smoke bleiben manuelle Gates.
+
+## Phase 0 — Produktionswahrheit
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| PROD-PR-CHAIN-01 | done | P0 | keine | PR `#400` sowie PR `#404` bis `#406` sind integriert; PR `#397`/`#398` sind ersetzt und geschlossen; keine Stashes oder `backup/stash-*`-Branches mehr | Merge-Kette ist auf `main` nachvollziehbar; ersetzte PRs sind geschlossen; keine historischen Stash-/Backup-Branches verbleiben |
+| PROD-RUNTIME-02 | manual_gate | P0 | PROD-PR-CHAIN-01 | Vercel-Projekt, `main` als Production Branch, Domains/Aliases, getrennte Production-/Preview-/Development-ENV, `JWT_SECRET`, `OPENAI_API_KEY`, `WEB_DATABASE_URL` sowie tatsächlich verwendete Mail-/Provider-/DB-Variablen, praktischer Rollback-Test; keine Secrets dokumentieren | Production deployt den erwarteten `main`-Commit; ENV-Guardrails laufen grün; fehlende Runtime zeigt ehrliche Fehler statt Demo-Erfolg; Secrets erscheinen nicht in Repo, Logs oder Browserantworten; Rollback ist praktisch geprüft |
+| PROD-E2E-SMOKE-03 | blocked | P0 | PROD-RUNTIME-02 | Desktop/Mobile, Login/Registrierung, `/create` mit Text/Link/Dokument, Themenläufe mit 2, 7, 14 und 12+ Themen, Dossier, Review, Beteiligung, Fehler- und Retry-Pfade | Keine Fake-Erfolge; Persistenz bleibt nach Reload erhalten; kein Auto-Publish; reproduzierbarer Smoke-Bericht mit Commit, Domain und Ergebnis liegt vor |
+
+## Phase 1 — Produktflächen
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| CREATE-VISUAL-PARITY-01 | review | P0 | aktueller `main`, PROD-RUNTIME-02 für echten Production-Smoke | Visueller und funktionaler Nachweis für `/create` auf Desktop und Mobile; Pipeline, Chat, Rail, Themeninventar, Orts- und Quellenlogik; alle herleitbaren Themen sichtbar, keine künstliche Begrenzung auf 3 | Screenshot- und Funktionsnachweis für Text-, Link- und Dokumentlauf; 2, 7, 14 und 12+ Themen verifiziert; keine semantischen Ergebnisse vor validiertem AI-Lauf; kein dominanter Retry-CTA bei erfolgreichem Ergebnis |
+| CREATE-PARTICIPATION-HANDOFF-02 | blocked | P0 | CREATE-VISUAL-PARITY-01, PROD-E2E-SMOKE-03 | Idempotenter reviewpflichtiger Beteiligungsentwurf aus bestätigten Themen; Nutzer bestätigt Zweige, Format und Ortsbezug; Übergang zu `/runden` oder Dossier | Reload-sichere Draft-Persistenz; keine Duplikate bei Retry; kein Auto-Dossier, Auto-Anlassraum oder Auto-Publish |
+| RUNDEN-PARTICIPATION-WORKSPACE-01 | codex_ready | P0 | Datenvertrag aus CREATE-PARTICIPATION-HANDOFF-02; UX-/Contract-Arbeit darf getrennt vorbereitet werden | Eigenes `/runden`-Zielbild mit Status, Rollen, Beteiligungsformat, Moderation und Persistenz; nachvollziehbarer Übergang aus Create-Drafts; kein Demo-Vote | Status und nächster Schritt sind verständlich; Mobile-/Desktop-Contracts liegen vor; persistierte Runden laden nach Reload; kein Demo-Vote |
+| DOSSIER-RUNTIME-TRUTH-00 | done | P0 | PR `#400` | Reale Dossier-Pfade sind von Demo-Pfaden getrennt; ehrliche Fehler bei fehlender Vote-Runtime; kanonische Dossier-Links statt `/dossier/demo`-Fallbacks | Evidenz aus PR `#400` ist nachvollziehbar; echte und Demo-Pfade sind getrennt; keine lokale Fake-Vote-Bestätigung |
+| DOSSIER-WORKSPACE-01 | codex_ready | P0 | DOSSIER-RUNTIME-TRUTH-00, PROD-E2E-SMOKE-03 | Eigenes Dossier-Zielbild mit echter persistenter Dossier-/Vote-Runtime, Quellen, Claims, Positionen, offenen Fragen, Beteiligungsständen und Reviewstatus | Echte Dossier-ID und Persistenz; keine lokale Fake-Vote-Bestätigung; Quellen-/Claim-Lücken bleiben sichtbar; Mobile-/Desktop-Smoke vorhanden |
+| DOSSIER-CONTENT-VOXY-BRIDGE-02 | blocked | P0 | DOSSIER-WORKSPACE-01 | Strukturiertes Content-Paket aus dem Dossier mit These, fairer Gegenposition, Quellenstand, Risiken und CTA; reviewpflichtiger Handoff in den Voxy-Flow | Paket ist strukturiert und reviewfähig; Risiken und Quellenstand sind explizit; kein Rendering oder Publishing ohne Review |
+
+## Phase 2 — Live-Vertrag
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| LIVE-PRODUCT-CONTRACT-01 | codex_ready | P0 | keine | Abgrenzung von `/live`, `/stream`, `/runden` und Dossier; Rollen, Sessionstatus und kanonischer Datenfluss; kein paralleles Beteiligungssystem | Produktvertrag ist dokumentiert; Rollen und Datenfluss sind eindeutig; kein zweites Beteiligungssystem wird eingeführt |
+| LIVE-SESSION-RUNTIME-02 | blocked | P0 | LIVE-PRODUCT-CONTRACT-01, PROD-RUNTIME-02 | Persistente Live-Sessions mit Start/Stop, Join/Leave, Reconnect, Sessionende und Realtime-Adapter hinter eigener Schnittstelle | Session-Runtime ist persistent und reconnect-sicher; Adapter bleibt austauschbar; kein Demo-Verhalten im Produktpfad |
+| LIVE-MODERATION-SOURCES-03 | blocked | P0 | LIVE-SESSION-RUNTIME-02 | Moderation, Quellenhinweise, Claim-Markierung, Missbrauchsschutz und Audit Trail | Moderations- und Quellenpfade sind nachvollziehbar; Audit Trail ist vorhanden; Missbrauchsschutz greift im Produktpfad |
+| LIVE-VOXY-BRIEFING-04 | blocked | P1 | LIVE-MODERATION-SOURCES-03, DOSSIER-CONTENT-VOXY-BRIDGE-02 | Reviewfähige Zwischen- und Abschlusszusammenfassungen für Live-Kontexte | Keine automatische öffentliche Aussage ohne Freigabe; Zusammenfassungen sind reviewfähig und nachvollziehbar |
+| LIVE-PUBLIC-SURFACE-05 | blocked | P1 | LIVE-SESSION-RUNTIME-02 | Öffentliche Live-Ansicht, Mobile, Share/QR und Beteiligungs-CTA | Public Surface ist mobilfähig; Beteiligungs-CTA passt zum Live-Vertrag; keine Fake-Erfolge |
+| LIVE-PRODUCTION-SMOKE-06 | blocked | P0 | LIVE-PUBLIC-SURFACE-05, LIVE-MODERATION-SOURCES-03 | Realer Live-Smoke mit Moderator plus zwei Teilnehmern, Join/Reconnect, Beitrag, Moderationsentscheidung, Quelle, Sessionende und Dossier-Handoff | Smoke dokumentiert Erfolgs- und Fehlerpfade; Rollback ist testbar; kein Auto-Publish und keine Demo-Runtime |
+
+## Phase 3 — Issue #310 / Voxy / Publishing
+
+Verbindliche Reihenfolge:
+
+`PROD-RUNTIME-02` → `PROD-E2E-SMOKE-03` → `DOSSIER-WORKSPACE-01` → `DOSSIER-CONTENT-VOXY-BRIDGE-02` → `VOXY-BRIEFING-RUNTIME-01` → `VOXY-SCRIPT-REVIEW-02` → `VOXY-RENDER-JOB-03` → `VOXY-PUBLISH-QUEUE-04` → `SOCIAL-CONNECTOR-05A` bis `SOCIAL-CONNECTOR-05E`
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| VOXY-BRIEFING-RUNTIME-01 | blocked | P0 | DOSSIER-CONTENT-VOXY-BRIDGE-02 | Vorhandene Contracts in echte persistente, idempotente Briefing-Jobs überführen; provider-neutral; keine Veröffentlichung | Briefing-Jobs sind persistent und idempotent; kein Publishing; Provider bleibt austauschbarer Adapter |
+| VOXY-SCRIPT-REVIEW-02 | blocked | P0 | VOXY-BRIEFING-RUNTIME-01 | Scriptvarianten, Sprachen, Quellen- und Rechtsprüfung mit Audit Trail und expliziter Freigabe | Review- und Freigabezustand ist nachvollziehbar; keine ungeprüften Skripte gehen weiter |
+| VOXY-RENDER-JOB-03 | blocked | P0 | VOXY-SCRIPT-REVIEW-02 | Persistente Render-Queue für `9:16`, `1:1` und `16:9` mit Untertiteln, Quellenleiste, CTA, Thumbnail und Retry ohne doppelte Jobs oder Kosten | Render-Jobs sind persistent, dedupliziert und retry-sicher; keine Doppeljobs; kein Auto-Publish |
+| VOXY-PUBLISH-QUEUE-04 | blocked | P0 | VOXY-RENDER-JOB-03 | Website- und Plattform-Drafts, Upload, Scheduling und Post nur nach Freigabe, Kill Switch, Retry und Statusrückmeldung | Publishing bleibt reviewpflichtig; Kill Switch und Retry funktionieren; keine direkte Veröffentlichung ohne Freigabe |
+| SOCIAL-CONNECTOR-05A | manual_gate | P1 | VOXY-PUBLISH-QUEUE-04 | Facebook-Adapter mit manuell bestätigten Rollen/Zugriffen; zunächst Profil, Titelbild und Publishing-Drafts | Plattformzugriff und Freigabestatus sind manuell bestätigt; keine Einladungen, Boosts oder Auto-Posts |
+| SOCIAL-CONNECTOR-05B | blocked | P1 | SOCIAL-CONNECTOR-05A | Instagram-Adapter mit plattformspezifischen Formaten | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
+| SOCIAL-CONNECTOR-05C | blocked | P1 | SOCIAL-CONNECTOR-05B | TikTok-Adapter mit plattformspezifischen Formaten | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
+| SOCIAL-CONNECTOR-05D | blocked | P1 | SOCIAL-CONNECTOR-05C | LinkedIn-Adapter für Organisations- und Executive-Kommunikation | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
+| SOCIAL-CONNECTOR-05E | blocked | P1 | SOCIAL-CONNECTOR-05D | YouTube-Adapter für Shorts und längere Briefings | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
+
+## Sichere Parallelisierung
+
+- Nur getrennte Dateien, Datenmodelle und Runtime-Pfade parallel bearbeiten.
+- Kein paralleler Eingriff in dieselben Create-, Dossier- oder Review-Contracts.
+- Maximal ein PR besitzt gleichzeitig einen Kernvertrag.
+- Abhängigkeits-PRs nicht blind übereinander mergen.
+- Nach `PROD-PR-CHAIN-01` dürfen nur voneinander isolierte Slices parallel vorbereitet werden, etwa `PROD-RUNTIME-02`, `CREATE-VISUAL-PARITY-01`, `RUNDEN-PARTICIPATION-WORKSPACE-01` oder `LIVE-PRODUCT-CONTRACT-01`.
+
+## Guardrails
+
+- Kein Auto-Merge.
+- Kein Auto-Publish.
+- Keine Provider- oder Kostenaktivierung ohne expliziten manuellen Schritt.
+- Keine Secrets in Repo, Logs, Kalendern oder Prompts.
+- Keine behauptete Produktionsreife ohne ENV- und Production-Smoke.
+- Externe Dienste nur als austauschbare Adapter.
+- Review vor Rendering und Publishing.
+
+## Historischer Katalog und Evidenz
+
+Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.
+
+---
+
 # E150 Open Tasks (Single Source of Truth)
 
 ## Zweck

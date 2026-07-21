@@ -290,6 +290,7 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgend
 ## VOXY-SCRIPT-REVIEW-02
 
 **Status:** `blocked`
+**Abhängigkeiten:** VOXY-BRIEFING-RUNTIME-01
 
 - Scriptvarianten, Sprachen, Quellen- und Rechtsprüfung
 - Audit Trail und explizite Freigabe
@@ -297,6 +298,7 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgend
 ## VOXY-RENDER-JOB-03
 
 **Status:** `blocked`
+**Abhängigkeiten:** VOXY-SCRIPT-REVIEW-02
 
 - persistente Render-Queue
 - 9:16, 1:1 und 16:9
@@ -306,6 +308,7 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgend
 ## VOXY-PUBLISH-QUEUE-04
 
 **Status:** `blocked`
+**Abhängigkeiten:** VOXY-RENDER-JOB-03
 
 - Website- und Plattform-Drafts
 - Upload, Scheduling und Post nur nach Freigabe
@@ -314,6 +317,7 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgend
 ## SOCIAL-CONNECTOR-05A — Facebook
 
 **Status:** `manual_gate`
+**Abhängigkeiten:** VOXY-PUBLISH-QUEUE-04
 
 - Facebook-Seite, Rollen und Zugriff manuell bestätigen
 - zunächst Profil, Titelbild und Publishing-Drafts
@@ -322,24 +326,28 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgend
 ## SOCIAL-CONNECTOR-05B — Instagram
 
 **Status:** `blocked`
+**Abhängigkeiten:** SOCIAL-CONNECTOR-05A
 
 - eigener Adapter und plattformspezifische Formate
 
 ## SOCIAL-CONNECTOR-05C — TikTok
 
 **Status:** `blocked`
+**Abhängigkeiten:** SOCIAL-CONNECTOR-05B
 
 - eigener Adapter und plattformspezifische Formate
 
 ## SOCIAL-CONNECTOR-05D — LinkedIn
 
 **Status:** `blocked`
+**Abhängigkeiten:** SOCIAL-CONNECTOR-05C
 
 - eigener Adapter für Organisations- und Executive-Kommunikation
 
 ## SOCIAL-CONNECTOR-05E — YouTube
 
 **Status:** `blocked`
+**Abhängigkeiten:** SOCIAL-CONNECTOR-05D
 
 - eigener Adapter für Shorts und längere Briefings
 
