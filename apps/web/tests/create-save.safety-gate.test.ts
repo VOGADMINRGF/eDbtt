@@ -7,11 +7,13 @@ const mocks = vi.hoisted(() => {
   type AnyDoc = Record<string, any>;
   let userId: string | null = "user-1";
   const docs: AnyDoc[] = [];
+  const reviewRequests: AnyDoc[] = [];
 
   return {
     reset() {
       userId = "user-1";
       docs.length = 0;
+      reviewRequests.length = 0;
     },
     setUser(next: string | null) {
       userId = next;
@@ -19,12 +21,33 @@ const mocks = vi.hoisted(() => {
     readAll() {
       return docs.map((doc) => ({ ...doc }));
     },
+    readReviewRequests() {
+      return reviewRequests.map((entry) => ({ ...entry }));
+    },
+    createEditorialReviewRequest: vi.fn(async (input: AnyDoc) => {
+      const reviewRequest = {
+        id: `review-${reviewRequests.length + 1}`,
+        status: "submitted",
+        ...input,
+      };
+      reviewRequests.push(reviewRequest);
+      return { reviewRequest };
+    }),
     cookies: vi.fn(async () => ({
       get(name: string) {
         if (name !== "u_id" || !userId) return undefined;
         return { value: userId };
       },
     })),
+    getSessionUser: vi.fn(async () =>
+      userId
+        ? {
+            _id: { toHexString: () => userId },
+            roles: ["user"],
+            sessionValid: true,
+          }
+        : null,
+    ),
     getCol: vi.fn(async () => ({
       async insertOne(doc: AnyDoc) {
         const next = { ...doc, _id: new ObjectId() };
@@ -49,6 +72,15 @@ vi.mock("@core/db/triMongo", async () => {
     getCol: (...args: unknown[]) => mocks.getCol(...args),
   };
 });
+
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
+}));
+
+vi.mock("@features/editorialReviewQueue", () => ({
+  createEditorialReviewRequest: (...args: unknown[]) =>
+    mocks.createEditorialReviewRequest(...args),
+}));
 
 import { POST } from "@/app/api/contributions/save/route";
 
@@ -152,4 +184,75 @@ describe("create save safety gate", () => {
     );
     expect(JSON.stringify(saved[0].analysis?.safety?.reviewItems ?? [])).not.toContain("9999999");
   });
+
+  it("preserves supplied quality clarifications in a review-first draft", async () => {
+    const qualityClarifications = [
+      {
+        question: "Welcher konkrete Schulweg ist betroffen?",
+        answer: "Der Übergang an der Hauptstraße.",
+      },
+    ];
+
+    const res = await POST(
+      req({
+        textPrepared:
+          "Bitte strukturiert unseren Hinweis zum Schulweg in unserer Stadt.",
+        createMode: "source",
+        analysis: {
+          qualityClarifications,
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.safety.noAutoPublish).toBe(true);
+    expect(body.safety.noSilentMerge).toBe(true);
+
+    const saved = mocks.readAll();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].status).toBe("draft");
+    expect(saved[0].analysis?.qualityClarifications).toEqual(
+      qualityClarifications,
+    );
+    expect(saved[0].analysis?.safety?.noAutoPublish).toBe(true);
+    expect(saved[0]).not.toHaveProperty("publishedAt");
+  });
+
+  it("creates an explicit mobile review handoff without auto publish", async () => {
+    const res = await POST(
+      req({
+        textPrepared:
+          "Bitte strukturiert unseren Hinweis zum Schulweg in unserer Stadt.",
+        createMode: "source",
+        manualReviewRequested: true,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.safety.noAutoPublish).toBe(true);
+    expect(body.reviewRequest).toBeTruthy();
+
+    const saved = mocks.readAll();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].status).toBe("draft");
+    expect(saved[0].analysis?.safety?.noAutoPublish).toBe(true);
+    expect(saved[0]).not.toHaveProperty("publishedAt");
+
+    const reviewRequests = mocks.readReviewRequests();
+    expect(reviewRequests).toHaveLength(1);
+    expect(reviewRequests[0]).toMatchObject({
+      sourceType: "create_analysis",
+      sourceId: body.draftId,
+      userId: "user-1",
+      originalText:
+        "Bitte strukturiert unseren Hinweis zum Schulweg in unserer Stadt.",
+    });
+  });
+
 });
