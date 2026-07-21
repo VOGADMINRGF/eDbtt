@@ -1,10 +1,22 @@
-# V3 Final Operating Plan — 2026-07-20
+# V3 Final Operating Plan — aktualisiert 2026-07-21
 
 ## Zweck
 
-Dieses Dokument verbindet Kalender, `docs/E150/OpenTasks.md`, Issue #310 und die aktuelle PR-Kette zu einer direkt fortsetzbaren Ausführungsreihenfolge.
+Dieses Dokument verbindet den aktuellen `main`-Stand, `docs/E150/OpenTasks.md`, Issue #310, Google Kalender und die verbleibenden manuellen Gates zu einer direkt fortsetzbaren Ausführungsreihenfolge.
 
-Es beschreibt **nicht** bereits erreichte Produktionsreife. Ein Block gilt erst als abgeschlossen, wenn Code, Tests, Preview-/Production-Smoke und SSOT-Nachzug vollständig sind.
+Es beschreibt keine bereits erreichte Produktionsreife. Ein Block gilt erst als abgeschlossen, wenn Code, Tests, Preview-/Production-Smoke und SSOT-Nachzug vollständig sind.
+
+## Aktueller Wahrheitsstand
+
+- `main`: `cb0d0f87`
+- PR #400: Create, Dossier-Runtime-Wahrheit und Production-Guardrails integriert
+- PR #404: Factcheck-Route-Hardening gemergt
+- PR #405: Account-/Kontakt-/Journey-Guardrails gemergt
+- PR #406: Review-first Save-Contracts gemergt
+- PR #397 und #398: durch #400 ersetzt und geschlossen
+- historische Stashes und `backup/stash-*`-Branches: vollständig bereinigt
+- kein Auto-Publish aktiviert
+- Production-ENV, Domain-Zuordnung und praktischer Production-Smoke: noch manuell zu bestätigen
 
 ## Verbindliche Regeln
 
@@ -14,20 +26,12 @@ Es beschreibt **nicht** bereits erreichte Produktionsreife. Ein Block gilt erst 
 - Externe Dienste nur als austauschbare Provider-Adapter.
 - Jeder Slice hat genau einen fachlichen Schwerpunkt und einen klaren Datei-/Runtime-Scope.
 - Parallelisierung nur bei getrennten Dateien, Datenmodellen und PR-Abhängigkeiten.
-- `/create`, `/runden`, `/dossier` und `/live` sind getrennte Produktflächen, aber Teil derselben kanonischen Datenkette.
+- `/create`, `/runden`, `/dossier` und `/live` bleiben getrennte Produktflächen innerhalb derselben kanonischen Datenkette.
+- Keine Secrets in GitHub, Codex-Prompts, Kalenderbeschreibungen oder Logs.
 
-## Definitionen
+## Statuswerte
 
-Statuswerte: `blocked`, `codex_ready`, `in_progress`, `review`, `manual_gate`, `done`.
-
-Ein Slice benötigt:
-
-- ID, Status, Priorität und Abhängigkeiten
-- Scope und Non-Goals
-- Akzeptanzkriterien
-- automatisierte Tests
-- manuellen Smoke
-- SSOT-/Dokumentationsnachzug
+`blocked`, `codex_ready`, `in_progress`, `review`, `manual_gate`, `done`
 
 ---
 
@@ -35,47 +39,45 @@ Ein Slice benötigt:
 
 ## PROD-PR-CHAIN-01
 
-**Status:** `in_progress`  
+**Status:** `done`  
 **Priorität:** P0  
 **Abhängigkeiten:** keine
 
-**Scope**
+**Ergebnis**
 
-- offene PRs #391–#398 fachlich und technisch isolieren
-- Merge-Reihenfolge festlegen
-- gestapelte oder veraltete Branch-Basen erkennen
-- keine breite Sammel-Merge-Kette
+- PR #400 hat Create, Dossier-Runtime-Wahrheit und Production-Guardrails integriert.
+- PR #404–#406 haben die noch sinnvollen Stash-Reste auf aktuelle Contracts übertragen.
+- PR #397 und #398 wurden als vollständig ersetzt geschlossen.
+- Der Worktree ist sauber; Stashes und Backup-Branches sind entfernt.
 
-**Akzeptanzkriterien**
+**Evidenz**
 
-- für jeden PR: behalten, neu basieren, aufteilen oder schließen
-- alle Pflichtchecks grün
-- keine offenen Review-Threads
-- dokumentierte Merge-Reihenfolge
-
-**Non-Goals**
-
-- keine neue Produktfunktion
-- kein Auto-Merge
+- `2623f043` — Integrate Create, dossier runtime truth and production guardrails (#400)
+- `72835a52` — Factcheck route classification hardening (#404)
+- `032aea47` — Account/contact journey guardrails (#405)
+- `cb0d0f87` — Review-first save contracts (#406)
 
 ## PROD-RUNTIME-02
 
-**Status:** `blocked`  
+**Status:** `manual_gate`  
 **Priorität:** P0  
 **Abhängigkeiten:** PROD-PR-CHAIN-01
 
 **Scope**
 
-- Vercel-Projekt, Production Branch und Domains bestätigen
-- Preview/Production ENV trennen
-- echte Web-Postgres-Verbindung und Provider-Konfiguration setzen
-- Rollback nachweisen
+- richtiges Vercel-Projekt für `edebatte.org` bestätigen
+- `main` als Production Branch bestätigen
+- Produktivdomain und Redirect-/Alias-Domains bestätigen
+- Preview-, Development- und Production-ENV trennen
+- `JWT_SECRET`, `OPENAI_API_KEY`, `WEB_DATABASE_URL` und alle tatsächlich verwendeten Provider-/Mail-/DB-Variablen setzen
+- Rollback auf das vorherige Deployment praktisch prüfen
 
 **Akzeptanzkriterien**
 
-- Production verwendet den erwarteten `main`-Stand
+- Production deployt den erwarteten `main`-Commit
 - ENV-Guardrails laufen grün
-- fehlende Runtime zeigt ehrlichen Fehler
+- fehlende Runtime zeigt ehrliche Fehler statt Demo-Erfolg
+- Secrets erscheinen nicht in Logs oder Browserantworten
 - Rollback ist praktisch möglich
 
 ## PROD-E2E-SMOKE-03
@@ -87,65 +89,72 @@ Ein Slice benötigt:
 **Scope**
 
 - Desktop und Mobile
-- Registrierung/Login, `/create`, Dossier-Aufruf, Beteiligung, Review, Fehler/Retry
+- Registrierung/Login
+- `/create` mit Text, Link und Dokument
+- Themenanzahl 2, 7, 14 und 12+
+- Dossier-Aufruf, Review, Beteiligung, Fehler und Retry
 - Admin-Telemetrie ohne Secrets oder Rohprompts
 
 **Akzeptanzkriterien**
 
 - keine Demo-/Fake-Erfolge
-- persistierte Daten nach Reload vorhanden
-- reproduzierbarer Smoke-Bericht
+- persistierte Daten bleiben nach Reload erhalten
+- keine stillen Auto-Handoffs oder Veröffentlichungen
+- reproduzierbarer Smoke-Bericht mit Commit und Domain
 
 ---
 
-# Phase 1 — Produktflächen parallelisieren
+# Phase 1 — Produktflächen
 
 ## CREATE-VISUAL-PARITY-01
 
-**Status:** `blocked`  
+**Status:** `review`  
 **Priorität:** P0  
-**Abhängigkeiten:** Merge und Smoke von PR #391
+**Abhängigkeiten:** aktueller `main`, PROD-RUNTIME-02 für echten Production-Smoke
+
+**Stand**
+
+- Create-Chat-Workspace, Themeninventar, Planner-Härtung und Dossier-Links wurden über #400 integriert.
+- Offen bleibt der visuelle und fachliche Nachweis gegen die verbindlichen Desktop-/Mobile-Zielbilder.
 
 **Scope**
 
-- `/create` gegen das verbindliche Zielbild angleichen
-- Chat-Workspace, Pipeline, Structure Rail und Themenzweige
-- Desktop-/Mobile-Screenshot-Akzeptanz
+- `/create` gegen das Zielbild prüfen
+- Pipeline, Structure Rail, Chat-Thread und Themenzweige bewerten
+- keine semantischen Ergebnisse vor validiertem AI-Lauf
+- alle tatsächlich herleitbaren Themen zeigen, nicht künstlich auf 3 begrenzen
 
-**Non-Goals**
+**Akzeptanzkriterien**
 
-- kein `/runden`- oder Dossier-Komplettumbau
-- keine Provider-Aktivierung
-
-**Tests/Smoke**
-
-- fokussierte UI-Contracts
 - Screenshotvergleich Desktop/Mobile
-- 2, 7, 14 und 12+ Dokumentthemen
+- Text-, Link- und Dokumentlauf
+- 2, 7, 14 und 12+ Themen
+- nachvollziehbare Orts- und Quellenlogik
+- kein dominanter Retry-CTA bei erfolgreichem Ergebnis
 
 ## CREATE-PARTICIPATION-HANDOFF-02
 
 **Status:** `blocked`  
 **Priorität:** P0  
-**Abhängigkeiten:** CREATE-VISUAL-PARITY-01
+**Abhängigkeiten:** CREATE-VISUAL-PARITY-01, PROD-E2E-SMOKE-03
 
 **Scope**
 
 - ausgewählte Themen idempotent als reviewpflichtigen Beteiligungsentwurf persistieren
 - Nutzer bestätigt Zweige, Format und Ortsbezug
-- keine automatische Veröffentlichung
+- klarer Übergang zu `/runden` oder Dossier
 
 **Akzeptanzkriterien**
 
 - Reload-sichere Draft-Persistenz
 - keine Duplikate bei Retry
-- klarer Übergang zu `/runden` oder Dossier
+- kein Auto-Dossier, Auto-Anlassraum oder Auto-Publish
 
 ## RUNDEN-PARTICIPATION-WORKSPACE-01
 
 **Status:** `codex_ready` nach Scope-Lock  
 **Priorität:** P0  
-**Abhängigkeiten:** Datenvertrag aus CREATE-PARTICIPATION-HANDOFF-02; UX-Arbeit darf vorher separat vorbereitet werden
+**Abhängigkeiten:** Datenvertrag aus CREATE-PARTICIPATION-HANDOFF-02; UX-/Contract-Arbeit darf getrennt vorbereitet werden
 
 **Scope**
 
@@ -157,26 +166,31 @@ Ein Slice benötigt:
 **Akzeptanzkriterien**
 
 - keine Demo-Abstimmung
-- Status und nächster Schritt sind verständlich
+- Status und nächster Schritt verständlich
 - Mobile-/Desktop-Contracts
 - persistierte Runden laden nach Reload
 
-**Non-Goals**
+## DOSSIER-RUNTIME-TRUTH-00
 
-- kein Dossier-Redesign
-- kein `/live`-Realtime
+**Status:** `done`  
+**Priorität:** P0  
+**Evidenz:** PR #400; ersetzter PR #397
+
+- Demo-Vote-Route und reale Dossier-Pfade sind getrennt.
+- reale Dossiers zeigen bei fehlender Vote-Runtime einen ehrlichen Fehler.
+- kanonische Dossier-Links ersetzen betroffene `/dossier/demo`-Fallbacks.
 
 ## DOSSIER-WORKSPACE-01
 
-**Status:** `blocked`  
+**Status:** `codex_ready` nach Production-Smoke  
 **Priorität:** P0  
-**Abhängigkeiten:** Merge/Entscheidung PR #397
+**Abhängigkeiten:** DOSSIER-RUNTIME-TRUTH-00, PROD-E2E-SMOKE-03
 
 **Scope**
 
 - eigenes Dossier-Zielbild und Informationsarchitektur
 - Quellen, Claims, Positionen, offene Fragen, Beteiligungsstände und Reviewstatus
-- kanonische Links statt `/dossier/demo`
+- echte persistente Dossier- und Vote-Runtime statt Demo-Simulation
 
 **Akzeptanzkriterien**
 
@@ -191,15 +205,13 @@ Ein Slice benötigt:
 **Priorität:** P0  
 **Abhängigkeiten:** DOSSIER-WORKSPACE-01
 
-**Scope**
-
-- Dossier erzeugt strukturiertes Master-Content-Paket
-- These, Gegenposition, Quellenstand, CTA und offene Risiken
-- Übergabe an Voxy-Video-Flow
+- Dossier erzeugt ein strukturiertes Master-Content-Paket.
+- Paket enthält These, faire Gegenposition, Quellenstand, CTA und offene Risiken.
+- Übergabe an den Voxy-Video-Flow bleibt reviewpflichtig.
 
 ---
 
-# Phase 2 — `/live` vollständig ergänzen
+# Phase 2 — `/live`
 
 ## LIVE-PRODUCT-CONTRACT-01
 
@@ -207,17 +219,10 @@ Ein Slice benötigt:
 **Priorität:** P0  
 **Abhängigkeiten:** keine Runtime-Abhängigkeit; Architektur-Slice
 
-**Scope**
-
 - Zweck und Abgrenzung von `/live`, `/stream`, `/runden` und Dossier
 - Rollen: öffentlich, Teilnehmer, Moderator, Admin
 - Sessionstatus und kanonischer Datenfluss
-
-**Akzeptanzkriterien**
-
-- dokumentierter State- und Rollenvertrag
 - kein zweites paralleles Beteiligungssystem
-- klare Datenschutz-/Moderationsgrenzen
 
 ## LIVE-SESSION-RUNTIME-02
 
@@ -225,25 +230,15 @@ Ein Slice benötigt:
 **Priorität:** P0  
 **Abhängigkeiten:** LIVE-PRODUCT-CONTRACT-01, PROD-RUNTIME-02
 
-**Scope**
-
 - persistente Live-Sessions
 - Start/Stop, Join/Leave, Reconnect und Sessionende
 - Realtime-Adapter hinter eigener Schnittstelle
-
-**Akzeptanzkriterien**
-
-- zwei Browser können denselben Zustand sehen
-- Reconnect verliert keinen bestätigten Beitrag
-- keine Admin-only-Skeletonseite als Produktionsclaim
 
 ## LIVE-MODERATION-SOURCES-03
 
 **Status:** `blocked`  
 **Priorität:** P0  
 **Abhängigkeiten:** LIVE-SESSION-RUNTIME-02
-
-**Scope**
 
 - Moderation, Quellenhinweise, Claim-Markierung, Missbrauchsschutz und Audit Trail
 
@@ -252,8 +247,6 @@ Ein Slice benötigt:
 **Status:** `blocked`  
 **Priorität:** P1  
 **Abhängigkeiten:** LIVE-MODERATION-SOURCES-03, DOSSIER-CONTENT-VOXY-BRIDGE-02
-
-**Scope**
 
 - reviewfähige Zwischen- und Abschlusszusammenfassungen
 - keine automatische öffentliche Aussage ohne Freigabe
@@ -264,8 +257,6 @@ Ein Slice benötigt:
 **Priorität:** P1  
 **Abhängigkeiten:** LIVE-SESSION-RUNTIME-02
 
-**Scope**
-
 - öffentliche Live-Ansicht, Mobile, Share/QR und Beteiligungs-CTA
 
 ## LIVE-PRODUCTION-SMOKE-06
@@ -274,11 +265,9 @@ Ein Slice benötigt:
 **Priorität:** P0  
 **Abhängigkeiten:** LIVE-PUBLIC-SURFACE-05, LIVE-MODERATION-SOURCES-03
 
-**Smoke-Matrix**
-
-- Moderator + zwei Teilnehmer
+- Moderator plus zwei Teilnehmer
 - Join/Reconnect
-- Beitrag, Moderationsentscheidung, Quelle
+- Beitrag, Moderationsentscheidung und Quelle
 - Sessionende und Dossier-Handoff
 - Fehlerfall und Rollback
 
@@ -286,7 +275,7 @@ Ein Slice benötigt:
 
 # Phase 3 — Voxy, Rendering und Publishing
 
-Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird in folgende PR-fähige Slices zerlegt.
+Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird auf folgende PR-fähige Slices gemappt.
 
 ## VOXY-BRIEFING-RUNTIME-01
 
@@ -294,8 +283,9 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird in folgende
 **Priorität:** P0  
 **Abhängigkeiten:** DOSSIER-CONTENT-VOXY-BRIDGE-02
 
-- deaktivierte Contracts in echte persistente, idempotente Briefing-Jobs überführen
-- Provider neutral; keine Veröffentlichung
+- vorhandene Contracts in echte persistente, idempotente Briefing-Jobs überführen
+- Provider neutral
+- keine Veröffentlichung
 
 ## VOXY-SCRIPT-REVIEW-02
 
@@ -309,8 +299,8 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird in folgende
 **Status:** `blocked`
 
 - persistente Render-Queue
-- 9:16, 1:1, 16:9
-- Untertitel, Quellenleiste, CTA, Thumbnail
+- 9:16, 1:1 und 16:9
+- Untertitel, Quellenleiste, CTA und Thumbnail
 - Retry ohne doppelte Kosten oder Jobs
 
 ## VOXY-PUBLISH-QUEUE-04
@@ -318,40 +308,66 @@ Issue #310 bleibt der fachliche Master. Die operative Umsetzung wird in folgende
 **Status:** `blocked`
 
 - Website- und Plattform-Drafts
-- Upload/Scheduling/Post nur nach Freigabe
+- Upload, Scheduling und Post nur nach Freigabe
 - Kill Switch, Retry und Statusrückmeldung
 
-## SOCIAL-CONNECTOR-05A/05B/05C
+## SOCIAL-CONNECTOR-05A — Facebook
+
+**Status:** `manual_gate`
+
+- Facebook-Seite, Rollen und Zugriff manuell bestätigen
+- zunächst Profil, Titelbild und Publishing-Drafts
+- keine Einladungen, Boosts oder automatischen Posts vor Production-Smoke
+
+## SOCIAL-CONNECTOR-05B — Instagram
 
 **Status:** `blocked`
 
-- je Plattform ein eigener Adapter-Slice
-- keine Zugangsdaten im Repo
-- Plattformzugriff und Freigabestatus als manueller Gate
+- eigener Adapter und plattformspezifische Formate
+
+## SOCIAL-CONNECTOR-05C — TikTok
+
+**Status:** `blocked`
+
+- eigener Adapter und plattformspezifische Formate
+
+## SOCIAL-CONNECTOR-05D — LinkedIn
+
+**Status:** `blocked`
+
+- eigener Adapter für Organisations- und Executive-Kommunikation
+
+## SOCIAL-CONNECTOR-05E — YouTube
+
+**Status:** `blocked`
+
+- eigener Adapter für Shorts und längere Briefings
+
+Für alle Connectoren gilt: keine Zugangsdaten im Repo, kein Auto-Publish, Plattformzugriff und Freigabestatus als manueller Gate.
 
 ---
 
 # Phase 4 — konkrete Marketingkampagnen
 
-Jede Kampagne ist ein persistentes Paket und kein loses Kalenderereignis.
+## CAMPAIGN-REFERENCE-01 — erstes Referenzthema
 
-## CAMPAIGN-REFERENCE-01 — Erstes Referenzthema
-
-**Ziel:** vollständigen eDebatte-Produktfluss öffentlich beweisen.
+**Status:** `blocked`  
+**Abhängigkeiten:** PROD-E2E-SMOKE-03, DOSSIER-CONTENT-VOXY-BRIDGE-02
 
 **Pflichtfelder**
 
 - Kampagnen-ID, Dossier-ID und Zielgruppe
 - Hauptthese, faire Gegenposition und Quellenpaket
-- Master Content
-- 3 Hooks
+- Master Content und drei Hooks
 - Video 30–60 Sekunden
 - Website-Beitrag
-- TikTok-, Instagram- und LinkedIn-Ableitungen
-- CTA zurück zu Dossier/Beteiligung
-- KPI: Reichweite, Watchtime, Klicks, Beteiligungsstarts, qualifizierte Beiträge
+- Facebook-, Instagram-, TikTok-, LinkedIn- und YouTube-Ableitungen
+- CTA zurück zu Dossier oder Beteiligung
+- KPI: Reichweite, Watchtime, Klicks, Beteiligungsstarts und qualifizierte Beiträge
 
-## CAMPAIGN-SERIES-02 — Wiederholbare Themenserie
+## CAMPAIGN-SERIES-02
+
+**Status:** `blocked`
 
 - mindestens drei Themenpakete
 - einheitliche Brandvorlage
@@ -360,9 +376,11 @@ Jede Kampagne ist ein persistentes Paket und kein loses Kalenderereignis.
 
 ## CAMPAIGN-FEEDBACK-03
 
+**Status:** `blocked`
+
 - Kommentare und Plattformmetriken zurück in das Dossier
 - keine automatische Übernahme als verifizierte Aussage
-- neue Fragen/Claims als Review-Kandidaten
+- neue Fragen und Claims nur als Review-Kandidaten
 
 ---
 
@@ -372,9 +390,7 @@ Jede Kampagne ist ein persistentes Paket und kein loses Kalenderereignis.
 
 **Status:** `blocked`  
 **Priorität:** P1  
-**Abhängigkeiten:** erste reale Render-/Publishing-Daten
-
-**Scope**
+**Abhängigkeiten:** erste reale Analyse-, Render- und Publishing-Daten
 
 - Kosten je Analyse, Dossier, Render, Speicher, Veröffentlichung und Monitoring
 - B2C, B2B und B2G getrennt
@@ -397,20 +413,38 @@ Jede Kampagne ist ein persistentes Paket und kein loses Kalenderereignis.
 
 ---
 
-# Parallele Codex-Spuren
+# Sichere Parallelisierung
 
-Nach Abschluss von PROD-PR-CHAIN-01 dürfen maximal folgende getrennte Spuren parallel laufen:
+Nach PROD-PR-CHAIN-01 dürfen getrennt vorbereitet werden:
 
-1. **Create:** CREATE-VISUAL-PARITY-01
-2. **Runden UX/Contract:** RUNDEN-PARTICIPATION-WORKSPACE-01 ohne Persistenzänderung bis Create-Handoff-Vertrag steht
-3. **Dossier:** DOSSIER-WORKSPACE-01 nach #397
+1. **Production manuell:** PROD-RUNTIME-02
+2. **Create Review:** CREATE-VISUAL-PARITY-01 ohne neue Runtime
+3. **Runden UX/Contract:** RUNDEN-PARTICIPATION-WORKSPACE-01 ohne Persistenzänderung
 4. **Live Architektur:** LIVE-PRODUCT-CONTRACT-01
-5. **Voxy Architektur:** nur dokumentarische/contract-basierte Vorbereitung; keine Runtime-Claims
-6. **Marketing:** Kampagneninhalte und Quellenpakete, ohne Veröffentlichung
+5. **Voxy Architektur:** contract- und dokumentationsbasiert, keine Runtime-Claims
+6. **Marketing:** Quellen- und Kampagnenpakete ohne Veröffentlichung
+7. **Facebook:** Profil-/Seiteneinrichtung ohne Einladungen, Boosts oder Posts
 
-Keine parallelen Änderungen an denselben Kernverträgen, Migrationsdateien oder SSOT-Abschnitten.
+Nicht parallel verändern:
+
+- dieselben Kernverträge
+- Migrationsdateien
+- `OpenTasks.md`-Kopf
+- Production-ENV
+- Publishing- und Review-Statusmodelle
 
 ---
+
+# Nächste verbindliche Reihenfolge
+
+1. `PROD-RUNTIME-02` manuell abschließen.
+2. `PROD-E2E-SMOKE-03` auf Desktop und Mobile durchführen.
+3. `CREATE-VISUAL-PARITY-01` anhand echter Smoke-Ergebnisse schließen oder fokussiert nacharbeiten.
+4. `DOSSIER-WORKSPACE-01` und `RUNDEN-PARTICIPATION-WORKSPACE-01` auf getrennten Branches starten.
+5. `LIVE-PRODUCT-CONTRACT-01` parallel als Architektur-Slice ausarbeiten.
+6. Erstes Quellen- und Kampagnenpaket vorbereiten.
+7. Facebook-Seite und übrige Profile veröffentlichungsbereit machen, aber noch nicht posten.
+8. Voxy-Briefing-Runtime erst nach Dossier-Master-Content-Vertrag aktivieren.
 
 # Endgültige Definition of Done
 
@@ -419,9 +453,9 @@ Der Plan gilt erst als vollständig umgesetzt, wenn:
 - Production und Rollback praktisch geprüft sind
 - `/create`, `/runden`, `/dossier` und `/live` mit echten persistenten Daten laufen
 - Create → Beteiligung → Dossier → Master Content → Voxy → Review → Render → Publishing → Analytics/Feedback durchgängig funktioniert
-- mindestens ein Website- und ein direkt veröffentlichter Social-Beitrag aus derselben kanonischen Kette stammen
+- mindestens ein Website- und ein freigegebener Social-Beitrag aus derselben kanonischen Kette stammen
 - kein Pflichtschritt Canva, CapCut, HeyGen oder ein anderes manuelles Inseltool voraussetzt
 - externe Provider austauschbar bleiben
 - Scheduling, Retry, Monitoring, Rollback und Kill Switch getestet sind
-- Pricing auf realen Kosten-/Nutzungsdaten beruht
+- Pricing auf realen Kosten- und Nutzungsdaten beruht
 - OpenTasks, Issue #310, Kalender und PR-Status denselben Wahrheitsstand zeigen
