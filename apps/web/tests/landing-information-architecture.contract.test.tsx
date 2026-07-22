@@ -35,7 +35,7 @@ describe("landing information architecture contract", () => {
     expect(html).toContain("Für Bürger:innen");
     expect(html).toContain("Für Organisationen, Medien &amp; Kultur");
     expect(html).toContain("Für Verwaltung &amp; Behörden");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht.");
+    expect(html).toContain("eDebatte veröffentlicht nichts automatisch.");
     expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
     expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
     expect(html).toContain('href="/create"');
