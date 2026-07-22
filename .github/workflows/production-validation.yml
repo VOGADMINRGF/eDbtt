@@ -33,6 +33,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
+      - run: cp apps/web/.env.example apps/web/.env.local
       - run: git diff --check
       - run: pnpm -C apps/web run typecheck
       - run: pnpm -C apps/web run lint

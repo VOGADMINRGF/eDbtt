@@ -44,6 +44,9 @@ describe("web ci critical guardrails contract", () => {
   it("keeps production secrets in the runtime gate instead of the job condition", () => {
     const workflow = readRoot(".github/workflows/production-validation.yml");
 
+    expect(workflow).toMatch(
+      /production-contract:[\s\S]*cp apps\/web\/\.env\.example apps\/web\/\.env\.local[\s\S]*pnpm -C apps\/web run build/,
+    );
     expect(workflow).toContain(
       "if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}",
     );
