@@ -8,7 +8,7 @@ import { readSession } from "@/utils/session";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 import { LocaleProvider } from "@/context/LocaleContext";
-import { DEFAULT_LOCALE, type SupportedLocale, isSupportedLocale } from "@/config/locales";
+import { DEFAULT_LOCALE, getDir, type SupportedLocale, isSupportedLocale } from "@/config/locales";
 import { SiteHeader } from "./(components)/SiteHeader";
 import { PrivacyGateProvider } from "@/components/privacy/PrivacyGateProvider";
 import { AnalyticsTracker } from "@/components/privacy/AnalyticsTracker";
@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialUser = await loadServerUser(cookieStore);
 
   return (
-    <html lang={initialLocale} className="h-full" suppressHydrationWarning>
+    <html lang={initialLocale} dir={getDir(initialLocale)} className="h-full" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <ReadingModeProvider>
