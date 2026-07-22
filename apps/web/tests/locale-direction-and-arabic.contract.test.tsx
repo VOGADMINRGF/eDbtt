@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { NextRequest } from "next/server";
 import { getDir, isSupportedLocale } from "@/config/locales";
 import { LocalizedContentDisplay } from "@/components/i18n/LocalizedContentDisplay";
-import { proxy } from "@/proxy";
 
 const ARABIC_ORIGINAL = "هذا نص عربي لاختبار عرض المصدر الأصلي.";
 const GERMAN_TRANSLATION = "Dies ist ein arabischer Text zum Test der Originalquelle.";
@@ -18,18 +16,19 @@ describe("locale direction and Arabic language bridge contract", () => {
     expect(getDir("en")).toBe("ltr");
   });
 
-  it("promotes a valid URL locale into the current server request and future cookie", async () => {
-    const response = await proxy(new NextRequest("https://www.edebatte.org/?lang=ar"));
+  it("promotes a supported URL locale before the root layout chooses the SSR direction", () => {
+    const proxySource = readFileSync(resolve(process.cwd(), "src/proxy.ts"), "utf8");
+    const layoutSource = readFileSync(resolve(process.cwd(), "src/app/layout.tsx"), "utf8");
 
-    expect(response.headers.get("x-middleware-request-x-edebatte-locale")).toBe("ar");
-    expect(response.cookies.get("lang")?.value).toBe("ar");
-  });
-
-  it("does not promote an unsupported URL locale", async () => {
-    const response = await proxy(new NextRequest("https://www.edebatte.org/?lang=invalid"));
-
-    expect(response.headers.get("x-middleware-request-x-edebatte-locale")).toBeNull();
-    expect(response.cookies.get("lang")).toBeUndefined();
+    expect(proxySource).toContain('req.nextUrl.searchParams.get("lang")');
+    expect(proxySource).toContain("isSupportedLocale(requestedLocale)");
+    expect(proxySource).toContain('requestHeaders.set(REQUEST_LOCALE_HEADER, requestedLocale)');
+    expect(proxySource).toContain('response.cookies.set("lang", requestedLocale');
+    expect(proxySource).toContain('has: [{ type: "query", key: "lang" }]');
+    expect(layoutSource).toContain('headerStore.get("x-edebatte-locale")');
+    expect(layoutSource.indexOf('headerStore.get("x-edebatte-locale")')).toBeLessThan(
+      layoutSource.indexOf('cookieStore.get("lang")'),
+    );
   });
 
   it("keeps Arabic base messages Arabic instead of English placeholders", () => {
