@@ -1,3 +1,4 @@
+import { getDir, isSupportedLocale } from "@/config/locales";
 import {
   getContentRenderUiText,
   resolveLocalizedContentForReader,
@@ -26,6 +27,10 @@ type LocalizedContentDisplayProps = {
 function truncateText(value: string, maxLength?: number): string {
   if (!maxLength || maxLength < 1 || value.length <= maxLength) return value;
   return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function resolveTextDirection(locale: string | null | undefined): "ltr" | "rtl" | "auto" {
+  return isSupportedLocale(locale) ? getDir(locale) : "auto";
 }
 
 export function LocalizedContentDisplay({
@@ -75,10 +80,14 @@ export function LocalizedContentDisplay({
     showLanguageBridgeMeta &&
     (resolved.state !== "original" ||
       Boolean(resolved.originalLanguage && resolved.originalLanguage !== resolved.preferredLocale));
+  const readingDir = resolveTextDirection(readingLanguage);
+  const originalDir = resolveTextDirection(resolved.originalLanguage);
 
   return (
     <div className={className}>
-      <p className={textClassName}>{displayText}</p>
+      <p className={textClassName} lang={readingLanguage ?? undefined} dir={readingDir}>
+        {displayText}
+      </p>
       {showLanguageBridgeMeta ? (
         <p className={metaClassName}>{languageBridgeLine}</p>
       ) : null}
@@ -89,7 +98,13 @@ export function LocalizedContentDisplay({
           {resolved.showOriginalDisclosure ? (
             <details className={metaClassName}>
               <summary>{ui.showOriginal}</summary>
-              <p className={originalTextClassName}>{originalText}</p>
+              <p
+                className={originalTextClassName}
+                lang={resolved.originalLanguage ?? undefined}
+                dir={originalDir}
+              >
+                {originalText}
+              </p>
             </details>
           ) : null}
         </>
