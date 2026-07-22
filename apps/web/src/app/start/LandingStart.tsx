@@ -9,21 +9,21 @@ type LandingStartProps = {
 
 const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
   familiarity: "unknown_visitor",
-  eyebrow: "Klarer Einstieg",
-  title: "Was bewegt dich?",
+  eyebrow: "Aktuelle Themen · Quellen · Beteiligung",
+  title: "Verstehen, was sich verändert. Mitreden, wo es zählt.",
   description:
-    "Schreib frei, was dich bewegt. Voxy hilft beim Sortieren, Schärfen und Weiterführen, ohne dir Veröffentlichung oder Entscheidung abzunehmen.",
-  helperText: "Beitrag einbringen, mitmachen oder vorhandene Themen öffnen.",
+    "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten zu nachvollziehbaren Themenständen – von deiner Region bis zur Welt.",
+  helperText: "Entwicklungen entdecken, mitwirken oder einen eigenen Beitrag prüfen lassen.",
   trustText:
-    "Nichts wird automatisch veröffentlicht. Voxy hilft beim Sortieren, du entscheidest den nächsten Schritt.",
+    "Nichts wird automatisch veröffentlicht. Quellen, Prüfstatus und Beteiligung bleiben nachvollziehbar.",
   showExtendedOrientation: false,
   workspaceHref: null,
   workspaceLabel: null,
   quickActionCenter: {
     eyebrow: "Neu hier?",
-    title: "Starte mit einem Beitrag oder mach direkt mit.",
+    title: "Entdecke, was sich verändert und wo du mitwirken kannst.",
     description:
-      "Die Startseite führt direkt in die produktiven Einstiege für Beitrag und Beteiligung.",
+      "Die Startseite führt direkt zu aktuellen Entwicklungen, Dossiers, Beteiligung und deinem eigenen Beitrag.",
     primaryActions: [],
     secondaryActions: [],
   },

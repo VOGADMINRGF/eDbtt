@@ -31,14 +31,14 @@ describe("/start create light entry", () => {
     "utf8",
   );
 
-  it("keeps the homepage on the split Voxy landing instead of the create-light form", () => {
+  it("keeps the homepage on the product landing instead of the create-light form", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Was bewegt dich?");
-    expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
+    expect(html).toContain("Aktuelle Entwicklungen entdecken");
+    expect(html).toContain("Beitrag prüfen");
     expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitwirken");
+    expect(html).toContain("Offene Beteiligung ansehen");
     expect(html).not.toContain('data-testid="start-create-light-entry"');
     expect(html).not.toContain("Beitrag eingeben");
   });

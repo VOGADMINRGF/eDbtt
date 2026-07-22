@@ -32,13 +32,13 @@ function buildAnonymousExperience(): StartExperienceModel {
   });
   return {
     familiarity: "unknown_visitor",
-    eyebrow: "Klarer Einstieg",
-    title: "Was bewegt dich?",
+    eyebrow: "Aktuelle Themen · Quellen · Beteiligung",
+    title: "Verstehen, was sich verändert. Mitreden, wo es zählt.",
     description:
-      "Bring ein Thema ein oder stimme ab, wo deine Sicht gebraucht wird. Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
-    helperText: "Beitrag einbringen, mitmachen oder vorhandene Themen öffnen.",
+      "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten zu nachvollziehbaren Themenständen – von deiner Region bis zur Welt.",
+    helperText: "Entwicklungen entdecken, mitwirken oder einen eigenen Beitrag prüfen lassen.",
     trustText:
-      "Voxy hilft beim Sortieren. Veröffentlicht wird nichts ohne Prüfung.",
+      "Nichts wird automatisch veröffentlicht. Quellen, Prüfstatus und Beteiligung bleiben nachvollziehbar.",
     showExtendedOrientation: false,
     workspaceHref: null,
     workspaceLabel: null,
@@ -64,16 +64,17 @@ export async function buildStartExperienceModel(input: {
     });
     return {
       familiarity: "operator",
-      eyebrow: "Schon dabei?",
-      title: "Bereite Beteiligung nachvollziehbar vor.",
+      eyebrow: "Betreiberübersicht",
+      title: "Beteiligung steuern und Wirkung sichtbar machen.",
       description:
-        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
-      helperText: "Du kannst Beiträge prüfen, Entwürfe weiterführen oder eine Organisation ansehen.",
+        "Prüfe neue Signale, Quellen, Entwürfe und Freigaben. Öffentliche Schritte bleiben bewusst von interner Bearbeitung getrennt.",
+      helperText:
+        "Öffne die Betreiberübersicht, priorisiere neue Entwicklungen und führe freigegebene Themen nachvollziehbar weiter.",
       trustText:
         "Nichts wird automatisch veröffentlicht. Prüf- und Verwaltungsrechte bleiben nachvollziehbar.",
       showExtendedOrientation: false,
       workspaceHref: "/account/organization/dashboard",
-      workspaceLabel: "Organisation prüfen",
+      workspaceLabel: "Betreiberübersicht öffnen",
       quickActionCenter,
     };
   }
@@ -127,16 +128,17 @@ export async function buildStartExperienceModel(input: {
   if (familiarity === "organization_verified") {
     return {
       familiarity,
-      eyebrow: "Schon dabei?",
-      title: "Bereite Beteiligung nachvollziehbar vor.",
+      eyebrow: "Organisation",
+      title: "Themen, Beteiligung und Ergebnisse im Blick.",
       description:
-        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
-      helperText: "Du kannst Entwürfe weiterführen, Themen ansehen oder einen Anlassraum vorbereiten.",
+        "Verbinde neue Signale, Quellen, Veranstaltungen und Rückmeldungen mit bestehenden Dossiers und Beteiligungsräumen.",
+      helperText:
+        "Öffne deinen Arbeitsbereich, prüfe neue Entwicklungen und führe laufende Beteiligungen oder Ergebnisse weiter.",
       trustText:
         "Nichts wird automatisch veröffentlicht. Prüfung und Sichtbarkeit bleiben getrennte Schritte.",
       showExtendedOrientation: false,
       workspaceHref,
-      workspaceLabel: "Organisation prüfen",
+      workspaceLabel: "Organisationsbereich öffnen",
       quickActionCenter,
     };
   }
@@ -144,11 +146,12 @@ export async function buildStartExperienceModel(input: {
   if (familiarity === "organization_blocked") {
     return {
       familiarity,
-      eyebrow: "Schon dabei?",
-      title: "Bereite Beteiligung nachvollziehbar vor.",
+      eyebrow: "Organisation",
+      title: "Zugang und nächsten sicheren Schritt prüfen.",
       description:
-        "Sammle Hinweise, kläre offene Fragen und prüfe zuerst den sicheren nächsten Schritt für deine Organisation.",
-      helperText: "Du kannst deinen Status prüfen und Entwürfe sicher weiterführen.",
+        "Dein Organisationszugang ist derzeit eingeschränkt. Persönliche Beiträge und öffentliche Themen bleiben davon getrennt nutzbar.",
+      helperText:
+        "Prüfe den Status deiner Organisation oder arbeite an persönlichen Entwürfen und öffentlichen Themen weiter.",
       trustText:
         "Nichts wird automatisch veröffentlicht. Gesperrte Zugänge werden nicht als aktiv dargestellt.",
       showExtendedOrientation: false,
@@ -161,11 +164,12 @@ export async function buildStartExperienceModel(input: {
   if (familiarity === "organization_pending") {
     return {
       familiarity,
-      eyebrow: "Schon dabei?",
-      title: "Bereite Beteiligung nachvollziehbar vor.",
+      eyebrow: "Organisation",
+      title: "Antrag läuft – Themen können weiter vorbereitet werden.",
       description:
-        "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
-      helperText: "Du kannst deine Organisation prüfen, Entwürfe weiterführen oder Themen ansehen.",
+        "Während dein Organisationszugang geprüft wird, kannst du Quellen, Beiträge und Beteiligungsideen vorbereiten, ohne öffentliche Rechte vorwegzunehmen.",
+      helperText:
+        "Prüfe Antrag und Status oder arbeite an persönlichen Entwürfen und öffentlichen Themen weiter.",
       trustText:
         "Nichts wird automatisch veröffentlicht. Organisationsrechte und Sichtbarkeit bleiben getrennte Schritte.",
       showExtendedOrientation: false,
@@ -177,16 +181,17 @@ export async function buildStartExperienceModel(input: {
 
   return {
     familiarity,
-    eyebrow: "Schon dabei?",
-    title: "Mach mit deinem Anliegen weiter.",
+    eyebrow: "Neu für dich",
+    title: "Seit deinem letzten Besuch.",
     description:
-      "Du kannst deinen Entwurf prüfen, ein Thema ansehen oder einen Anlassraum vorbereiten. Nichts wird automatisch veröffentlicht.",
-    helperText: "Mach dort weiter, wo dein Anliegen gerade steht.",
+      "Entdecke neue Quellen, Positionen, Beteiligungsmöglichkeiten und Ergebnisse. eDebatte zeigt dir, was sich wesentlich verändert hat – nicht nur, was neu veröffentlicht wurde.",
+    helperText:
+      "Öffne neue Entwicklungen, folge Themen oder führe einen eigenen Beitrag dort weiter, wo du aufgehört hast.",
     trustText:
-      "Nichts wird automatisch veröffentlicht. Du entscheidest, wann dein Beitrag weitergeht.",
+      "Nichts wird automatisch veröffentlicht. Du entscheidest, welchen nächsten Schritt du gehst.",
     showExtendedOrientation: false,
     workspaceHref,
-    workspaceLabel: "Organisation prüfen",
+    workspaceLabel: "Konto und Organisation",
     quickActionCenter,
   };
 }
