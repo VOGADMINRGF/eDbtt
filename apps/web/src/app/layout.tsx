@@ -95,10 +95,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 }
 
 async function detectInitialLocale(cookieStore: Awaited<ReturnType<typeof cookies>>): Promise<SupportedLocale> {
+  const headerStore = await headers();
+  const requestLocale = headerStore.get("x-edebatte-locale");
+  if (isSupportedLocale(requestLocale)) return requestLocale;
+
   const cookieLocale = cookieStore.get("lang")?.value;
   if (isSupportedLocale(cookieLocale)) return cookieLocale;
 
-  const headerStore = await headers();
   const acceptLanguage = headerStore.get("accept-language");
   if (acceptLanguage) {
     const primary = acceptLanguage.split(",")[0]?.split(";")[0]?.trim();
