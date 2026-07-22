@@ -41,32 +41,35 @@ describe("web ci critical guardrails contract", () => {
     );
   });
 
-  it("keeps production secrets in the runtime gate instead of the job condition", () => {
+  it("keeps the production validation workflow on contract, guardrail smoke and no-secret live smoke", () => {
     const workflow = readRoot(".github/workflows/production-validation.yml");
+    const liveSmokeScript = readRoot("scripts/ci/check-production-public-runtime.mjs");
 
     expect(workflow).toMatch(
       /production-contract:[\s\S]*cp apps\/web\/\.env\.example apps\/web\/\.env\.local[\s\S]*pnpm -C apps\/web run build/,
     );
-    expect(workflow).toContain(
-      "if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}",
-    );
-    expect(workflow).toContain(
-      "WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}",
-    );
-    expect(workflow).toContain("MAIL_FROM: ${{ secrets.MAIL_FROM }}");
-    expect(workflow).toContain("SMTP_FROM: ${{ secrets.SMTP_FROM }}");
-    expect(workflow).toMatch(
-      /required=\([\s\S]*\bWEB_DATABASE_URL\b[\s\S]*\)/,
-    );
-    expect(workflow).toContain(
-      'if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then',
-    );
-    expect(workflow).not.toContain("secrets.WEB_DATABASE_URL != ''");
-    expect(workflow).not.toContain(
-      "(secrets.MAIL_FROM != '' || secrets.SMTP_FROM != '')",
-    );
-    expect(workflow).toContain(
-      "pnpm exec tsx scripts/ci/validate-web-runtime-env.ts",
-    );
+    expect(workflow).toContain("name: Guardrail smoke");
+    expect(workflow).toContain("name: Release live smoke");
+    expect(workflow).toContain("node scripts/ci/check-production-public-runtime.mjs");
+    expect(workflow).not.toContain("secrets.");
+    expect(workflow).not.toContain("PRODUCTION_VALIDATION_ENABLED");
+    expect(workflow).not.toContain("validate-web-runtime-env.ts");
+    expect(workflow).not.toContain("release:validate:production");
+    expect(workflow).not.toContain("WEB_DATABASE_URL:");
+    expect(workflow).not.toContain("OPENAI_API_KEY");
+    expect(workflow).not.toContain("MAIL_FROM");
+    expect(workflow).not.toContain("SMTP_FROM");
+    expect(liveSmokeScript).toContain('const BASE_URL = "https://www.edebatte.org";');
+    expect(liveSmokeScript).toContain('"/"');
+    expect(liveSmokeScript).toContain('"/themen"');
+    expect(liveSmokeScript).toContain('"/dossier"');
+    expect(liveSmokeScript).toContain('"/create"');
+    expect(liveSmokeScript).toContain('"/pricing/institutionen"');
+    expect(liveSmokeScript).toContain('"/order"');
+    expect(liveSmokeScript).toContain('"CriticalProductionWebRuntimeEnvError"');
+    expect(liveSmokeScript).toContain('"web_database_url_missing"');
+    expect(liveSmokeScript).toContain("MAX_RETRIES = 3");
+    expect(liveSmokeScript).toContain("CONNECT_TIMEOUT_MS = 5_000");
+    expect(liveSmokeScript).toContain("TOTAL_TIMEOUT_MS = 15_000");
   });
 });

@@ -63,98 +63,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -C apps/web run test:production-guardrails
 
-  release-runtime-gate:
-    name: Release runtime gate
+  release-live-smoke:
+    name: Release live smoke
     needs: [production-contract, guardrail-smoke]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}
-    env:
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}
-      MAIL_FROM: ${{ secrets.MAIL_FROM }}
-      SMTP_FROM: ${{ secrets.SMTP_FROM }}
-      CORE_DB_NAME: ${{ secrets.CORE_DB_NAME }}
-      CORE_MONGODB_URI: ${{ secrets.CORE_MONGODB_URI }}
-      VOTES_DB_NAME: ${{ secrets.VOTES_DB_NAME }}
-      VOTES_MONGODB_URI: ${{ secrets.VOTES_MONGODB_URI }}
-      PII_DB_NAME: ${{ secrets.PII_DB_NAME }}
-      PII_MONGODB_URI: ${{ secrets.PII_MONGODB_URI }}
-      AI_CORE_READER_DB_NAME: ${{ secrets.AI_CORE_READER_DB_NAME }}
-      AI_CORE_READER_MONGODB_URI: ${{ secrets.AI_CORE_READER_MONGODB_URI }}
-      NEO4J_URI: ${{ secrets.NEO4J_URI }}
-      NEO4J_USER: ${{ secrets.NEO4J_USER }}
-      NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
-      ARANGO_URL: ${{ secrets.ARANGO_URL }}
-      ARANGO_DB: ${{ secrets.ARANGO_DB }}
-      ARANGO_USER: ${{ secrets.ARANGO_USER }}
-      ARANGO_ROOT_PASSWORD: ${{ secrets.ARANGO_ROOT_PASSWORD }}
-      MEMGRAPH_URI: ${{ secrets.MEMGRAPH_URI }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
-      OPENAI_TIMEOUT_MS: ${{ secrets.OPENAI_TIMEOUT_MS }}
-      OPENAI_URL: ${{ secrets.OPENAI_URL }}
-      BROWSERSLIST_IGNORE_OLD_DATA: "1"
+    timeout-minutes: 15
     steps:
-      - name: Validate required runtime secrets
-        shell: bash
-        run: |
-          set -eo pipefail
-
-          required=(
-            JWT_SECRET
-            WEB_DATABASE_URL
-            CORE_DB_NAME
-            CORE_MONGODB_URI
-            VOTES_DB_NAME
-            VOTES_MONGODB_URI
-            PII_DB_NAME
-            PII_MONGODB_URI
-            AI_CORE_READER_DB_NAME
-            AI_CORE_READER_MONGODB_URI
-            NEO4J_URI
-            NEO4J_USER
-            NEO4J_PASSWORD
-            ARANGO_URL
-            ARANGO_DB
-            ARANGO_USER
-            ARANGO_ROOT_PASSWORD
-            MEMGRAPH_URI
-          )
-
-          missing=()
-
-          for key in "${required[@]}"; do
-            if [[ -z "${!key}" ]]; then
-              missing+=("$key")
-            fi
-          done
-
-          if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then
-            missing+=("MAIL_FROM_or_SMTP_FROM")
-          fi
-
-          if (( ${#missing[@]} > 0 )); then
-            echo "Missing required GitHub Actions secrets:"
-            printf ' - %s\n' "${missing[@]}"
-            exit 1
-          fi
-
-          echo "Required runtime secret names are configured."
-
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
-          run_install: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20.19.0"
-          cache: "pnpm"
-          cache-dependency-path: pnpm-lock.yaml
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsx scripts/ci/validate-web-runtime-env.ts
-      - run: pnpm run release:validate:production
+      - run: node scripts/ci/check-production-public-runtime.mjs

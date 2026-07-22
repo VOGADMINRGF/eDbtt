@@ -3,6 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
+const productionValidationWorkflow = fs.readFileSync(
+  path.join(ROOT, ".github/workflows/production-validation.yml"),
+  "utf8",
+);
+const productionPublicRuntimeScript = fs.readFileSync(
+  path.join(ROOT, "scripts/ci/check-production-public-runtime.mjs"),
+  "utf8",
+);
 
 const checks = [
   {
@@ -71,22 +79,39 @@ const checks = [
   {
     file: ".github/workflows/production-validation.yml",
     description:
-      "manual production validation checks WEB_DATABASE_URL inside the runtime gate",
-    validate(source) {
+      "manual production validation keeps contract, guardrail smoke and no-secret live smoke",
+    validate() {
       return (
-        source.includes(
-          "if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}",
+        productionValidationWorkflow.includes("name: Production contract") &&
+        productionValidationWorkflow.includes("name: Guardrail smoke") &&
+        productionValidationWorkflow.includes("name: Release live smoke") &&
+        productionValidationWorkflow.includes(
+          "node scripts/ci/check-production-public-runtime.mjs",
         ) &&
-        source.includes(
-          "WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}",
+        !productionValidationWorkflow.includes("secrets.") &&
+        !productionValidationWorkflow.includes("PRODUCTION_VALIDATION_ENABLED") &&
+        !productionValidationWorkflow.includes("validate-web-runtime-env.ts") &&
+        !productionValidationWorkflow.includes("release:validate:production") &&
+        !productionValidationWorkflow.includes("WEB_DATABASE_URL:") &&
+        !productionValidationWorkflow.includes("OPENAI_API_KEY") &&
+        !productionValidationWorkflow.includes("MAIL_FROM") &&
+        !productionValidationWorkflow.includes("SMTP_FROM") &&
+        productionPublicRuntimeScript.includes('const BASE_URL = "https://www.edebatte.org";') &&
+        productionPublicRuntimeScript.includes('"/"') &&
+        productionPublicRuntimeScript.includes('"/themen"') &&
+        productionPublicRuntimeScript.includes('"/dossier"') &&
+        productionPublicRuntimeScript.includes('"/create"') &&
+        productionPublicRuntimeScript.includes('"/pricing/institutionen"') &&
+        productionPublicRuntimeScript.includes('"/order"') &&
+        productionPublicRuntimeScript.includes(
+          '"CriticalProductionWebRuntimeEnvError"',
         ) &&
-        /required=\([\s\S]*\bWEB_DATABASE_URL\b[\s\S]*\)/.test(
-          source,
-        ) &&
-        source.includes(
-          'if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then',
-        ) &&
-        !source.includes("secrets.WEB_DATABASE_URL != ''")
+        productionPublicRuntimeScript.includes('"web_database_url_missing"') &&
+        productionPublicRuntimeScript.includes("MAX_RETRIES = 3") &&
+        productionPublicRuntimeScript.includes("CONNECT_TIMEOUT_MS = 5_000") &&
+        productionPublicRuntimeScript.includes("TOTAL_TIMEOUT_MS = 15_000") &&
+        productionPublicRuntimeScript.includes('import http from "node:http"') &&
+        productionPublicRuntimeScript.includes('import https from "node:https"')
       );
     },
   },
