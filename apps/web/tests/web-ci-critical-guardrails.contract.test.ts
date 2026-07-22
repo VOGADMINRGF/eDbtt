@@ -41,13 +41,29 @@ describe("web ci critical guardrails contract", () => {
     );
   });
 
-  it("keeps the manual production validation gate on WEB_DATABASE_URL and backward-compatible mail secrets", () => {
+  it("keeps production secrets in the runtime gate instead of the job condition", () => {
     const workflow = readRoot(".github/workflows/production-validation.yml");
 
-    expect(workflow).toContain("secrets.WEB_DATABASE_URL != ''");
-    expect(workflow).toContain("(secrets.MAIL_FROM != '' || secrets.SMTP_FROM != '')");
-    expect(workflow).toContain("WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}");
+    expect(workflow).toContain(
+      "if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}",
+    );
+    expect(workflow).toContain(
+      "WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}",
+    );
+    expect(workflow).toContain("MAIL_FROM: ${{ secrets.MAIL_FROM }}");
     expect(workflow).toContain("SMTP_FROM: ${{ secrets.SMTP_FROM }}");
-    expect(workflow).toContain("pnpm exec tsx scripts/ci/validate-web-runtime-env.ts");
+    expect(workflow).toMatch(
+      /required=\([\s\S]*\bWEB_DATABASE_URL\b[\s\S]*\)/,
+    );
+    expect(workflow).toContain(
+      'if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then',
+    );
+    expect(workflow).not.toContain("secrets.WEB_DATABASE_URL != ''");
+    expect(workflow).not.toContain(
+      "(secrets.MAIL_FROM != '' || secrets.SMTP_FROM != '')",
+    );
+    expect(workflow).toContain(
+      "pnpm exec tsx scripts/ci/validate-web-runtime-env.ts",
+    );
   });
 });

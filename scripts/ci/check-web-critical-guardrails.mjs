@@ -70,9 +70,24 @@ const checks = [
   },
   {
     file: ".github/workflows/production-validation.yml",
-    description: "manual production validation requires WEB_DATABASE_URL",
+    description:
+      "manual production validation checks WEB_DATABASE_URL inside the runtime gate",
     validate(source) {
-      return source.includes("secrets.WEB_DATABASE_URL != ''");
+      return (
+        source.includes(
+          "if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}",
+        ) &&
+        source.includes(
+          "WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}",
+        ) &&
+        /required=\([\s\S]*\bWEB_DATABASE_URL\b[\s\S]*\)/.test(
+          source,
+        ) &&
+        source.includes(
+          'if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then',
+        ) &&
+        !source.includes("secrets.WEB_DATABASE_URL != ''")
+      );
     },
   },
 ];
