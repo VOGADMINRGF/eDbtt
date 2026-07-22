@@ -67,29 +67,7 @@ jobs:
     needs: [production-contract, guardrail-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: >-
-      ${{
-        vars.PRODUCTION_VALIDATION_ENABLED == '1' &&
-        secrets.JWT_SECRET != '' &&
-        secrets.WEB_DATABASE_URL != '' &&
-        (secrets.MAIL_FROM != '' || secrets.SMTP_FROM != '') &&
-        secrets.CORE_DB_NAME != '' &&
-        secrets.CORE_MONGODB_URI != '' &&
-        secrets.VOTES_DB_NAME != '' &&
-        secrets.VOTES_MONGODB_URI != '' &&
-        secrets.PII_DB_NAME != '' &&
-        secrets.PII_MONGODB_URI != '' &&
-        secrets.AI_CORE_READER_DB_NAME != '' &&
-        secrets.AI_CORE_READER_MONGODB_URI != '' &&
-        secrets.NEO4J_URI != '' &&
-        secrets.NEO4J_USER != '' &&
-        secrets.NEO4J_PASSWORD != '' &&
-        secrets.ARANGO_URL != '' &&
-        secrets.ARANGO_DB != '' &&
-        secrets.ARANGO_USER != '' &&
-        secrets.ARANGO_ROOT_PASSWORD != '' &&
-        secrets.MEMGRAPH_URI != ''
-      }}
+    if: ${{ vars.PRODUCTION_VALIDATION_ENABLED == '1' }}
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       WEB_DATABASE_URL: ${{ secrets.WEB_DATABASE_URL }}
@@ -117,6 +95,52 @@ jobs:
       OPENAI_URL: ${{ secrets.OPENAI_URL }}
       BROWSERSLIST_IGNORE_OLD_DATA: "1"
     steps:
+      - name: Validate required runtime secrets
+        shell: bash
+        run: |
+          set -eo pipefail
+
+          required=(
+            JWT_SECRET
+            WEB_DATABASE_URL
+            CORE_DB_NAME
+            CORE_MONGODB_URI
+            VOTES_DB_NAME
+            VOTES_MONGODB_URI
+            PII_DB_NAME
+            PII_MONGODB_URI
+            AI_CORE_READER_DB_NAME
+            AI_CORE_READER_MONGODB_URI
+            NEO4J_URI
+            NEO4J_USER
+            NEO4J_PASSWORD
+            ARANGO_URL
+            ARANGO_DB
+            ARANGO_USER
+            ARANGO_ROOT_PASSWORD
+            MEMGRAPH_URI
+          )
+
+          missing=()
+
+          for key in "${required[@]}"; do
+            if [[ -z "${!key}" ]]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [[ -z "${MAIL_FROM}" && -z "${SMTP_FROM}" ]]; then
+            missing+=("MAIL_FROM_or_SMTP_FROM")
+          fi
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "Missing required GitHub Actions secrets:"
+            printf ' - %s\n' "${missing[@]}"
+            exit 1
+          fi
+
+          echo "Required runtime secret names are configured."
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
