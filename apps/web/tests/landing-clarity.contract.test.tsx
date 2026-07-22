@@ -20,38 +20,37 @@ vi.mock("next/image", () => ({
 }));
 
 describe("landing clarity contract", () => {
-  it("renders the split Voxy landing with two direct public entry points", () => {
+  it("explains eDebatte as a development, evidence and participation system", () => {
     const html = renderToStaticMarkup(<LandingStart />);
     const headings = [...html.matchAll(/<h1([^>]*)>/g)];
 
     expect(headings).toHaveLength(1);
     expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
 
-    expect(html).toContain("Was bewegt dich?");
+    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
     expect(html).toContain(
-      "Schreib frei, was dich bewegt. Voxy hilft dabei, Gedanken zu ordnen, Fragen zu schärfen und daraus einen nachvollziehbaren nächsten Schritt zu machen.",
+      "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten",
     );
-    expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Mitentwickeln");
-    expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitwirken");
+    expect(html).toContain("Nicht nur die nächste Schlagzeile.");
+    expect(html).toContain("Was ist neu?");
+    expect(html).toContain("Was ist belegt?");
+    expect(html).toContain("Was bleibt offen?");
+    expect(html).toContain("Wo kannst du mitwirken?");
+    expect(html).toContain("Aktuelle Entwicklungen entdecken");
+    expect(html).toContain("Beitrag prüfen");
+    expect(html).toContain("Mitwirken, wo deine Sicht gebraucht wird");
+    expect(html).toContain("Dossiers verstehen");
+    expect(html).toContain("Für Organisationen, Medien &amp; Kultur");
+    expect(html).toContain("Für Verwaltung &amp; Behörden");
     expect(html).toContain("Mit Voxy");
     expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
     expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
-    expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Debatte &amp; Argumente");
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect(html).toContain('href="/themen"');
-    expect(html).toContain("href=\"/dossier\"");
-    expect(html).toContain("Voxy ist hier Hero, Guide und Status-Schicht");
-    expect(html).toContain("ordnet Thema, Kontext und nächste Schritte");
-    expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
+    expect(html).toContain('href="/dossier"');
+    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
 
-    expect(html).not.toContain("Runtime");
-    expect(html).not.toContain("Debug");
-    expect(html).not.toContain("Review Queue");
-    expect(html).not.toContain("Contract");
     expect(html).not.toContain("500K");
     expect(html).not.toContain("250 Partner");
     expect(html).not.toContain("35 Länder");
