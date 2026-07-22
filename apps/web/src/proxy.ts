@@ -80,7 +80,7 @@ function allowNext(req: NextRequest) {
     request: {
       headers: requestHeaders,
     },
-  }) as NextResponse;
+  });
   response.cookies.set("lang", requestedLocale, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
