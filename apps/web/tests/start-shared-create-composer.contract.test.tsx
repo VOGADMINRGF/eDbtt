@@ -30,7 +30,7 @@ describe("/start shared create composer contract", () => {
     expect(html).toContain("Aktuelle Entwicklungen entdecken");
     expect(html).toContain("Beitrag prüfen");
     expect(html).toContain("Offene Beteiligung ansehen");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht.");
+    expect(html).toContain("eDebatte veröffentlicht nichts automatisch.");
     expect(html).toContain("/create");
     expect(html).toContain("/swipes");
     expect(html).toContain("/themen");
