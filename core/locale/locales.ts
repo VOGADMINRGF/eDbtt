@@ -25,12 +25,12 @@ export const SUPPORTED_LOCALES = [...CORE_LOCALES, ...EXTENDED_LOCALES] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: SupportedLocale = CORE_LOCALES[0];
 
+const RTL_LOCALES = new Set<SupportedLocale>(["ar"]);
+
 export function isSupportedLocale(v: string | null | undefined): v is SupportedLocale {
   return !!v && (SUPPORTED_LOCALES as readonly string[]).includes(v);
 }
 
-// Für spätere RTL-Sprachen erweiterbar
 export function getDir(locale: SupportedLocale): "ltr" | "rtl" {
-  // if (locale === "ar" || locale === "he") return "rtl";
-  return "ltr";
+  return RTL_LOCALES.has(locale) ? "rtl" : "ltr";
 }

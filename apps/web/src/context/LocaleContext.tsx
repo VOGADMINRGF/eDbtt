@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import {
   DEFAULT_LOCALE,
+  getDir,
   type SupportedLocale,
   isSupportedLocale,
 } from "@/config/locales";
@@ -33,7 +34,6 @@ export function LocaleProvider({
 }: ProviderProps) {
   const [locale, setLocaleState] = useState<SupportedLocale>(initialLocale);
 
-  // Hydrate from localStorage/query once on mount
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
@@ -123,7 +123,7 @@ function updateHtmlAttrs(locale: SupportedLocale) {
   if (typeof document === "undefined") return;
   try {
     document.documentElement.lang = locale;
-    document.documentElement.dir = "ltr";
+    document.documentElement.dir = getDir(locale);
   } catch {
     /* ignore */
   }
