@@ -16,7 +16,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("/start shared create composer contract", () => {
-  it("uses the split Voxy landing instead of a composer-heavy start flow", () => {
+  it("uses the product landing instead of a composer-heavy start flow", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart />
@@ -26,16 +26,16 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("Kanonischer Einstieg");
     expect(html).not.toContain("Anhang");
     expect(html).not.toContain("Beitrag eingeben");
-    expect(html).toContain("Was bewegt dich?");
-    expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitwirken");
-    expect(html).toContain("Mitentwickeln");
+    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
+    expect(html).toContain("Aktuelle Entwicklungen entdecken");
+    expect(html).toContain("Beitrag prüfen");
+    expect(html).toContain("Offene Beteiligung ansehen");
     expect(html).toContain("Nichts wird automatisch veröffentlicht.");
     expect(html).toContain("/create");
     expect(html).toContain("/swipes");
     expect(html).toContain("/themen");
     expect(html).toContain("/dossier");
-    expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
+    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
   });
 
   it("keeps a compact workspace entry for signed-in or returning context", () => {
@@ -44,16 +44,16 @@ describe("/start shared create composer contract", () => {
         <LandingStart
           experience={{
             familiarity: "organization_verified",
-            eyebrow: "Schon dabei?",
-            title: "Bereite Beteiligung nachvollziehbar vor.",
+            eyebrow: "Organisation",
+            title: "Themen, Beteiligung und Ergebnisse im Blick.",
             description:
-              "Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.",
+              "Verbinde neue Signale, Quellen, Veranstaltungen und Rückmeldungen mit bestehenden Dossiers und Beteiligungsräumen.",
             helperText: "Du siehst immer, was als nächstes passiert.",
             trustText:
               "Wir veröffentlichen nichts automatisch. Sichtbarkeit und Prüfung bleiben getrennte Schritte.",
             showExtendedOrientation: false,
             workspaceHref: "/account/organization/dashboard",
-            workspaceLabel: "Organisation prüfen",
+            workspaceLabel: "Organisationsbereich öffnen",
             quickActionCenter: buildPublicTaskFirstQuickActionCenter({
               context: "organization_verified",
               workspaceHref: "/account/organization/dashboard",
@@ -63,16 +63,18 @@ describe("/start shared create composer contract", () => {
       </LocaleProvider>,
     );
 
-    expect(html).toContain("Schon dabei?");
-    expect(html).toContain("Bereite Beteiligung nachvollziehbar vor.");
-    expect(html).toContain("Organisation prüfen");
-    expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Mitentwickeln");
-    expect(html).toContain("Mitwirken");
-    expect(html).toContain("Sammle Hinweise, kläre Fragen und starte einen Anlassraum erst dann, wenn der nächste Schritt geprüft ist.");
+    expect(html).toContain("Organisation");
+    expect(html).toContain("Themen, Beteiligung und Ergebnisse im Blick.");
+    expect(html).toContain("Organisationsbereich öffnen");
+    expect(html).toContain("Verstehen, was sich verändert");
+    expect(html).toContain("Beitrag prüfen und strukturieren");
+    expect(html).toContain("Offene Beteiligung ansehen");
+    expect(html).toContain(
+      "Verbinde neue Signale, Quellen, Veranstaltungen und Rückmeldungen mit bestehenden Dossiers und Beteiligungsräumen.",
+    );
     expect(html).toContain('href="/account/organization/dashboard"');
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
-    expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
+    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
   });
 });
