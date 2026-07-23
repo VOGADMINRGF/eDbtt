@@ -18,35 +18,38 @@ vi.mock("next/image", () => ({
 }));
 
 describe("landing information architecture contract", () => {
-  it("keeps the homepage above the fold focused on headline, Voxy and two primary actions", () => {
+  it("keeps the homepage focused on developments, participation and Voxy guidance", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Was bewegt dich?");
-    expect(html).toContain("Etwas beitragen");
-    expect(html).toContain("Mitentwickeln");
-    expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Mitwirken");
+    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
+    expect(html).toContain("Aktuelle Entwicklungen entdecken");
+    expect(html).toContain("Beitrag prüfen");
     expect(html).toContain("Mit Voxy");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht. Beiträge werden geordnet, geprüft und erst dann bewusst weitergeführt.");
-    expect(html).toContain("Schreib frei, was dich bewegt.");
+    expect(html).toContain("Nicht nur die nächste Schlagzeile.");
+    expect(html).toContain("Was ist neu?");
+    expect(html).toContain("Was ist belegt?");
+    expect(html).toContain("Was bleibt offen?");
+    expect(html).toContain("Wo kannst du mitwirken?");
+    expect(html).toContain("Dossiers verstehen");
+    expect(html).toContain("Ein System, unterschiedliche Aufgaben");
+    expect(html).toContain("Für Bürger:innen");
+    expect(html).toContain("Für Organisationen, Medien &amp; Kultur");
+    expect(html).toContain("Für Verwaltung &amp; Behörden");
+    expect(html).toContain("eDebatte veröffentlicht nichts automatisch.");
     expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
     expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect(html).toContain('href="/themen"');
-    expect(html).toContain("href=\"/dossier\"");
-    expect(html).toContain("Voxy ist hier Hero, Guide und Status-Schicht");
+    expect(html).toContain('href="/dossier"');
 
-    const contributeIndex = html.indexOf("Beitrag starten");
-    const participateIndex = html.indexOf("Mitwirken");
-    expect(contributeIndex).toBeGreaterThan(-1);
-    expect(participateIndex).toBeGreaterThan(contributeIndex);
+    const developmentsIndex = html.indexOf("Aktuelle Entwicklungen entdecken");
+    const contributionIndex = html.indexOf("Beitrag prüfen");
+    expect(developmentsIndex).toBeGreaterThan(-1);
+    expect(contributionIndex).toBeGreaterThan(developmentsIndex);
 
-    expect(html).not.toContain("Ein Anlassraum hält ein gemeinsames Thema");
-    expect(html).not.toContain("Was ist belegt?");
-    expect(html).not.toContain("Kostenlos mitmachen. Themen gemeinsam weiterentwickeln.");
     expect(html).not.toContain("Review Queue");
-    expect(html).not.toContain("Runtime");
+    expect(html).not.toContain("Runtime-basiert");
     expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 });

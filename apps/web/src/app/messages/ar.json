@@ -1,12 +1,12 @@
 {
   "navigation": {
-    "streams": "Streams",
-    "support": "Support",
-    "privacy": "Privacy",
-    "imprint": "Imprint"
+    "streams": "البث المباشر",
+    "support": "الدعم",
+    "privacy": "الخصوصية",
+    "imprint": "البيانات القانونية"
   },
   "cta": {
-    "join": "Join now",
-    "contribute": "Contribute"
+    "join": "انضم الآن",
+    "contribute": "شارك برأيك"
   }
 }

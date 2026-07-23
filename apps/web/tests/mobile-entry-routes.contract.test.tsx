@@ -92,8 +92,8 @@ describe("mobile entry routes contract", () => {
   it("keeps /start as a mobile-first citizen entry without demo dossier fallback", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
 
-    expect(html).toContain("Was bewegt dich?");
-    expect((html.match(/data-testid="home-split-primary-card"/g) ?? []).length).toBe(2);
+    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
+    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
     expect(html).toContain("Beitrag starten");
     expect(html).toContain('href="/dossier"');
     expect(html).not.toContain('href="/dossier/demo"');

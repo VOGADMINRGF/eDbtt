@@ -8,7 +8,7 @@ import { readSession } from "@/utils/session";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 import { LocaleProvider } from "@/context/LocaleContext";
-import { DEFAULT_LOCALE, type SupportedLocale, isSupportedLocale } from "@/config/locales";
+import { DEFAULT_LOCALE, getDir, type SupportedLocale, isSupportedLocale } from "@/config/locales";
 import { SiteHeader } from "./(components)/SiteHeader";
 import { PrivacyGateProvider } from "@/components/privacy/PrivacyGateProvider";
 import { AnalyticsTracker } from "@/components/privacy/AnalyticsTracker";
@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialUser = await loadServerUser(cookieStore);
 
   return (
-    <html lang={initialLocale} className="h-full" suppressHydrationWarning>
+    <html lang={initialLocale} dir={getDir(initialLocale)} className="h-full" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <ReadingModeProvider>
@@ -95,10 +95,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 }
 
 async function detectInitialLocale(cookieStore: Awaited<ReturnType<typeof cookies>>): Promise<SupportedLocale> {
+  const headerStore = await headers();
+  const requestLocale = headerStore.get("x-edebatte-locale");
+  if (isSupportedLocale(requestLocale)) return requestLocale;
+
   const cookieLocale = cookieStore.get("lang")?.value;
   if (isSupportedLocale(cookieLocale)) return cookieLocale;
 
-  const headerStore = await headers();
   const acceptLanguage = headerStore.get("accept-language");
   if (acceptLanguage) {
     const primary = acceptLanguage.split(",")[0]?.split(";")[0]?.trim();

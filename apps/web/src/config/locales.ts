@@ -4,6 +4,7 @@ import {
   EXTENDED_LOCALES as EXTENDED_LOCALES_BASE,
   SUPPORTED_LOCALES as SUPPORTED_LOCALES_BASE,
   DEFAULT_LOCALE as DEFAULT_LOCALE_BASE,
+  getDir as getCoreLocaleDir,
   isSupportedLocale as isCoreSupportedLocale,
 } from "@core/locale/locales";
 
@@ -23,6 +24,7 @@ export const EXTENDED_LOCALES = EXTENDED_LOCALES_BASE;
 export const SUPPORTED_LOCALES = SUPPORTED_LOCALES_BASE;
 export const DEFAULT_LOCALE = DEFAULT_LOCALE_BASE;
 export const isSupportedLocale = isCoreSupportedLocale;
+export const getDir = getCoreLocaleDir;
 
 export const LOCALE_CONFIG: LocaleConfig[] = [
   { code: "de", label: "Deutsch", flagEmoji: "🇩🇪", defaultRegion: "DE" },

@@ -13,7 +13,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("start CTA immediate navigation contract", () => {
-  it("renders visible start CTAs as direct links instead of pending buttons", () => {
+  it("renders visible start CTAs as direct links with one clear participation entry", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart />
@@ -21,7 +21,7 @@ describe("start CTA immediate navigation contract", () => {
     );
 
     expect((html.match(/href="\/create"/g) ?? []).length).toBeGreaterThan(1);
-    expect((html.match(/href="\/swipes"/g) ?? []).length).toBeGreaterThan(1);
+    expect((html.match(/href="\/swipes"/g) ?? []).length).toBe(1);
     expect((html.match(/href="\/themen"/g) ?? []).length).toBeGreaterThan(0);
     expect((html.match(/href="\/dossier"/g) ?? []).length).toBeGreaterThan(0);
     expect(html).not.toContain("<button");
