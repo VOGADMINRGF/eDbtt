@@ -68,3 +68,8 @@ packages/**/src/generated/
 
 # Codex (generierte Reports)
 .codex/
+
+# Playwright local artifacts
+apps/web/.playwright/
+apps/web/playwright-report/
+apps/web/test-results/
