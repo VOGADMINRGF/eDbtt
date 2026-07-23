@@ -144,20 +144,20 @@ export async function loginThroughVisibleUi(page: Page, params: {
   password: string;
   expectedRedirect?: string;
 }) {
-  const responsePromise = page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return url.pathname === "/api/auth/login" && response.request().method() === "POST";
-  });
-
   await page.goto(`/login?next=${encodeURIComponent(params.expectedRedirect ?? "/account")}`, {
     waitUntil: "domcontentloaded",
   });
   await assertSafePage(page, "/login");
   await page.getByLabel("E-Mail oder Nickname").fill(params.email);
-  await page.getByLabel("Passwort").fill(params.password);
-  await page.getByRole("button", { name: "Einloggen" }).click();
+  await page.locator("#password").fill(params.password);
 
-  const response = await responsePromise;
+  const [response] = await Promise.all([
+    page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/auth/login" && response.request().method() === "POST";
+    }),
+    page.getByRole("button", { name: "Einloggen", exact: true }).click(),
+  ]);
   const status = response.status();
   const payload = await response.json().catch(() => ({}));
 
