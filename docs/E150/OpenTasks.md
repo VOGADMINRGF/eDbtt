@@ -1,12 +1,13 @@
-# E150 Open Tasks — Operativer Kopf 2026-07-21
+# E150 Open Tasks — Operativer Kopf 2026-07-23
 
 ## Kanonischer Operativteil
 
 - Dieser Abschnitt ist die aktuelle operative Queue.
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
-- Die historischen Abschnitte darunter bleiben als Evidenz und Archiv erhalten, sind aber nicht die aktuelle Tagesqueue.
-- Stand: `2026-07-21`
-- `main`: `cb0d0f87`
+- Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
+- Stand: `2026-07-23`
+- Basis-Commit dieses Sync-Slices vor Merge von PR `#415`: `origin/main@163e66a3`
+- PR `#415` (`docs/opentasks-head-sync-2026-07-23`) ist am 2026-07-23 noch offen und bleibt bis zum tatsächlichen Merge `in_progress`.
 
 ## Operative Statuswerte
 
@@ -23,80 +24,97 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 
 ## Aktueller Wahrheitsstand
 
-- PR `#400` integriert Create, Dossier-Runtime-Wahrheit und Production-Guardrails.
-- PR `#404` hat das Factcheck-Route-Hardening gemergt.
-- PR `#405` hat Account-/Kontakt-/Journey-Guardrails gemergt.
-- PR `#406` hat Review-first Save-Contracts gemergt.
-- PR `#397` und `#398` wurden durch `#400` ersetzt und geschlossen.
-- Historische Stashes und `backup/stash-*`-Branches sind vollständig entfernt.
-- Kein Auto-Publish ist aktiviert.
-- Production-ENV, Vercel-Projekt, Domain-Zuordnung, Rollback und echter Production-Smoke bleiben manuelle Gates.
+- PR `#400`, `#404`, `#405` und `#406` bleiben die integrierte Basis für Create, Dossier-Runtime-Wahrheit und Review-first-Guardrails.
+- PR `#409` wurde am 2026-07-22 gemergt und zählt als erledigter öffentlicher Production-Live-Smoke.
+- PR `#410` wurde am 2026-07-22 gemergt und liefert die produktive `/robots.txt`.
+- PR `#411` wurde am 2026-07-22 gemergt; die `/create`-Debattenstand-Sidecar-Spezifikation und ihre Produktentscheidungen sind verbindlich, die technische Umsetzung bleibt offen.
+- PR `#412` wurde am 2026-07-22 gemergt; Startseitenbotschaft, Canonical und Produktpositionierung sind erledigt.
+- PR `#413` wurde am 2026-07-22 gemergt; Arabisch-/RTL-Basis, SSR-/Client-Richtung, getrenntes `lang`/`dir` pro Textblock und der systemweite Reality-Audit zählen als erledigte Grundlage.
+- PR `#414` wurde am 2026-07-23 gemergt; der sichere Production-E2E-Harness ist erledigt, aber kein Beleg für einen real ausgeführten authentifizierten Production-Smoke.
+- Im Ist-Stand von PR `#414` sind `public-read`, Registration-Form-Smoke, fail-closed für `POST /api/auth/register` und fail-closed für den Mutation-Contract erledigt; offen bleiben dediziertes Production-Testkonto, real ausgeführter authenticated-read und vollständiger manueller Desktop-/Mobile-Produkt-Smoke.
+- Kalendertermine sind Ausführungsplanung und kein Erledigungsbeweis.
+- `ProductionReadinessMatrix.md`, Release-Runbooks und ältere Launch-Dokumente bleiben Guardrails und Belegdokumente, ersetzen aber weder echte Vercel-/ENV-Prüfung noch Testkonto noch echten Production-Smoke.
 
-## Phase 0 — Produktionswahrheit
-
-| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
-| --- | --- | --- | --- | --- | --- |
-| PROD-PR-CHAIN-01 | done | P0 | keine | PR `#400` sowie PR `#404` bis `#406` sind integriert; PR `#397`/`#398` sind ersetzt und geschlossen; keine Stashes oder `backup/stash-*`-Branches mehr | Merge-Kette ist auf `main` nachvollziehbar; ersetzte PRs sind geschlossen; keine historischen Stash-/Backup-Branches verbleiben |
-| PROD-RUNTIME-02 | manual_gate | P0 | PROD-PR-CHAIN-01 | Vercel-Projekt, `main` als Production Branch, Domains/Aliases, getrennte Production-/Preview-/Development-ENV, `JWT_SECRET`, `OPENAI_API_KEY`, `WEB_DATABASE_URL` sowie tatsächlich verwendete Mail-/Provider-/DB-Variablen, praktischer Rollback-Test; keine Secrets dokumentieren | Production deployt den erwarteten `main`-Commit; ENV-Guardrails laufen grün; fehlende Runtime zeigt ehrliche Fehler statt Demo-Erfolg; Secrets erscheinen nicht in Repo, Logs oder Browserantworten; Rollback ist praktisch geprüft |
-| PROD-E2E-SMOKE-03 | blocked | P0 | PROD-RUNTIME-02 | Desktop/Mobile, Login/Registrierung, `/create` mit Text/Link/Dokument, Themenläufe mit 2, 7, 14 und 12+ Themen, Dossier, Review, Beteiligung, Fehler- und Retry-Pfade | Keine Fake-Erfolge; Persistenz bleibt nach Reload erhalten; kein Auto-Publish; reproduzierbarer Smoke-Bericht mit Commit, Domain und Ergebnis liegt vor |
-
-## Phase 1 — Produktflächen
+## Phase 0 — Governance und Production Gates
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
-| CREATE-VISUAL-PARITY-01 | review | P0 | aktueller `main`, PROD-RUNTIME-02 für echten Production-Smoke | Visueller und funktionaler Nachweis für `/create` auf Desktop und Mobile; Pipeline, Chat, Rail, Themeninventar, Orts- und Quellenlogik; alle herleitbaren Themen sichtbar, keine künstliche Begrenzung auf 3 | Screenshot- und Funktionsnachweis für Text-, Link- und Dokumentlauf; 2, 7, 14 und 12+ Themen verifiziert; keine semantischen Ergebnisse vor validiertem AI-Lauf; kein dominanter Retry-CTA bei erfolgreichem Ergebnis |
-| CREATE-PARTICIPATION-HANDOFF-02 | blocked | P0 | CREATE-VISUAL-PARITY-01, PROD-E2E-SMOKE-03 | Idempotenter reviewpflichtiger Beteiligungsentwurf aus bestätigten Themen; Nutzer bestätigt Zweige, Format und Ortsbezug; Übergang zu `/runden` oder Dossier | Reload-sichere Draft-Persistenz; keine Duplikate bei Retry; kein Auto-Dossier, Auto-Anlassraum oder Auto-Publish |
-| RUNDEN-PARTICIPATION-WORKSPACE-01 | codex_ready | P0 | Datenvertrag aus CREATE-PARTICIPATION-HANDOFF-02; UX-/Contract-Arbeit darf getrennt vorbereitet werden | Eigenes `/runden`-Zielbild mit Status, Rollen, Beteiligungsformat, Moderation und Persistenz; nachvollziehbarer Übergang aus Create-Drafts; kein Demo-Vote | Status und nächster Schritt sind verständlich; Mobile-/Desktop-Contracts liegen vor; persistierte Runden laden nach Reload; kein Demo-Vote |
-| DOSSIER-RUNTIME-TRUTH-00 | done | P0 | PR `#400` | Reale Dossier-Pfade sind von Demo-Pfaden getrennt; ehrliche Fehler bei fehlender Vote-Runtime; kanonische Dossier-Links statt `/dossier/demo`-Fallbacks | Evidenz aus PR `#400` ist nachvollziehbar; echte und Demo-Pfade sind getrennt; keine lokale Fake-Vote-Bestätigung |
-| DOSSIER-WORKSPACE-01 | codex_ready | P0 | DOSSIER-RUNTIME-TRUTH-00, PROD-E2E-SMOKE-03 | Eigenes Dossier-Zielbild mit echter persistenter Dossier-/Vote-Runtime, Quellen, Claims, Positionen, offenen Fragen, Beteiligungsständen und Reviewstatus | Echte Dossier-ID und Persistenz; keine lokale Fake-Vote-Bestätigung; Quellen-/Claim-Lücken bleiben sichtbar; Mobile-/Desktop-Smoke vorhanden |
-| DOSSIER-CONTENT-VOXY-BRIDGE-02 | blocked | P0 | DOSSIER-WORKSPACE-01 | Strukturiertes Content-Paket aus dem Dossier mit These, fairer Gegenposition, Quellenstand, Risiken und CTA; reviewpflichtiger Handoff in den Voxy-Flow | Paket ist strukturiert und reviewfähig; Risiken und Quellenstand sind explizit; kein Rendering oder Publishing ohne Review |
+| GOVERNANCE-SSOT-SYNC-04 | in_progress | P0 | PR `#415`, `origin/main@163e66a3`, PR `#409` bis `#414` | Operativen Kopf von `OpenTasks.md` auf aktuellen Repo-, PR- und Kalenderstand ziehen, ohne historische Evidenz zu verändern oder PR `#415` als erledigt darzustellen | Kopf nennt `origin/main@163e66a3`, ordnet PR `#409` bis `#414` korrekt ein, trennt Harness und echten authenticated Production-Smoke sauber und lässt PR `#415` bis zum Merge `in_progress` |
+| PROD-PR-CHAIN-01 | done | P0 | keine | PR `#400`, `#404`, `#405`, `#406`, `#409`, `#410`, `#411`, `#412`, `#413` und `#414` sind auf `main` nachvollziehbar; PR `#397` und `#398` bleiben ersetzt und geschlossen | Merge-Kette ist gegen GitHub und `origin/main` verifiziert; keine alte Stash-/Backup-Lesart wird wieder geöffnet |
+| PROD-RUNTIME-02 | manual_gate | P0 | PROD-PR-CHAIN-01 | Vercel-Projekt, `main` als Production-Branch, Domain-/Alias-Zuordnung, saubere Trennung von Preview, Development und Production sowie alle relevanten Secrets und Rollback-Anker praktisch prüfen | Production deployt den erwarteten Commit; ENV-Guardrails laufen grün; Secrets erscheinen nicht in Repo, Logs oder Browserantworten; Rollback ist praktisch bestätigt |
+| AI-RUNTIME-POLICY-01 | manual_gate | P0 | PROD-RUNTIME-02 | Tatsächlich verfügbare Modelle, Planner- und Smoke-Modell, Timeouts, Output-Limits, Budgets, Rate Limits, Logging, Datenverarbeitung, Aufbewahrung und Löschung festlegen; keine Prompts, Secrets oder personenbezogenen Inhalte in Logs | Modelle und Grenzen sind in den jeweiligen ENV-Umgebungen bewusst gesetzt; Preview-Smoke ist grün; Kosten- und Datenschutzgrenzen sind dokumentiert |
+| PROD-PUBLIC-LIVE-SMOKE-02A | done | P0 | keine | Öffentlicher Production-Live-Smoke aus PR `#409` für reale Public-Read-Pfade, ohne mutierende Freigaben oder Testkonto-Annahme | Öffentliche Live-/Read-Pfade wurden produktionsnah geprüft; keine Mutation wurde freigegeben; die Erledigung wird nicht als authenticated Production-Smoke fehlgelesen |
+| PROD-E2E-HARNESS-03A | done | P0 | PROD-PUBLIC-LIVE-SMOKE-02A | Sicherer Harness aus PR `#414` für `public-read`, `authenticated-read`, `registration-form` und fail-closed Mutationstests, ohne Production-Credentials oder freigegebene Mutationen | Harness ist im Repo und in CI integriert; `public-read` und Registration-Form-Smoke sind belegt; `POST /api/auth/register` und Mutation-Contract blockieren fail-closed; keine Production-Mutation ist freigegeben |
+| PROD-TEST-ACCOUNT-03B | manual_gate | P0 | PROD-RUNTIME-02 | Dediziertes Production-Testkonto für sichere authentifizierte Read-Smokes ohne stillen 2FA-Bypass oder produktive Mutation | Testkonto ist getrennt, dokumentiert und für kontrollierte Read-Smokes nutzbar; keine Mutation oder verdeckte Ausnahmefreigabe entsteht |
+| PROD-AUTHENTICATED-SMOKE-03C | blocked | P0 | PROD-RUNTIME-02, PROD-TEST-ACCOUNT-03B, PROD-E2E-HARNESS-03A | Realer authenticated-read plus vollständiger manueller Desktop-/Mobile-Production-Smoke über `/create`, Dossier, Beteiligung, Fehler- und Reload-Pfade | Reproduzierbarer Bericht mit Commit, Domain, Gerätetyp und Ergebnis liegt vor; Persistenz hält nach Reload; kein Auto-Publish, keine Fake-Runtime und keine freigegebene Mutation |
 
-## Phase 2 — Live-Vertrag
-
-| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
-| --- | --- | --- | --- | --- | --- |
-| LIVE-PRODUCT-CONTRACT-01 | codex_ready | P0 | keine | Abgrenzung von `/live`, `/stream`, `/runden` und Dossier; Rollen, Sessionstatus und kanonischer Datenfluss; kein paralleles Beteiligungssystem | Produktvertrag ist dokumentiert; Rollen und Datenfluss sind eindeutig; kein zweites Beteiligungssystem wird eingeführt |
-| LIVE-SESSION-RUNTIME-02 | blocked | P0 | LIVE-PRODUCT-CONTRACT-01, PROD-RUNTIME-02 | Persistente Live-Sessions mit Start/Stop, Join/Leave, Reconnect, Sessionende und Realtime-Adapter hinter eigener Schnittstelle | Session-Runtime ist persistent und reconnect-sicher; Adapter bleibt austauschbar; kein Demo-Verhalten im Produktpfad |
-| LIVE-MODERATION-SOURCES-03 | blocked | P0 | LIVE-SESSION-RUNTIME-02 | Moderation, Quellenhinweise, Claim-Markierung, Missbrauchsschutz und Audit Trail | Moderations- und Quellenpfade sind nachvollziehbar; Audit Trail ist vorhanden; Missbrauchsschutz greift im Produktpfad |
-| LIVE-VOXY-BRIEFING-04 | blocked | P1 | LIVE-MODERATION-SOURCES-03, DOSSIER-CONTENT-VOXY-BRIDGE-02 | Reviewfähige Zwischen- und Abschlusszusammenfassungen für Live-Kontexte | Keine automatische öffentliche Aussage ohne Freigabe; Zusammenfassungen sind reviewfähig und nachvollziehbar |
-| LIVE-PUBLIC-SURFACE-05 | blocked | P1 | LIVE-SESSION-RUNTIME-02 | Öffentliche Live-Ansicht, Mobile, Share/QR und Beteiligungs-CTA | Public Surface ist mobilfähig; Beteiligungs-CTA passt zum Live-Vertrag; keine Fake-Erfolge |
-| LIVE-PRODUCTION-SMOKE-06 | blocked | P0 | LIVE-PUBLIC-SURFACE-05, LIVE-MODERATION-SOURCES-03 | Realer Live-Smoke mit Moderator plus zwei Teilnehmern, Join/Reconnect, Beitrag, Moderationsentscheidung, Quelle, Sessionende und Dossier-Handoff | Smoke dokumentiert Erfolgs- und Fehlerpfade; Rollback ist testbar; kein Auto-Publish und keine Demo-Runtime |
-
-## Phase 3 — Issue #310 / Voxy / Publishing
-
-Verbindliche Reihenfolge:
-
-`PROD-RUNTIME-02` → `PROD-E2E-SMOKE-03` → `DOSSIER-WORKSPACE-01` → `DOSSIER-CONTENT-VOXY-BRIDGE-02` → `VOXY-BRIEFING-RUNTIME-01` → `VOXY-SCRIPT-REVIEW-02` → `VOXY-RENDER-JOB-03` → `VOXY-PUBLISH-QUEUE-04` → `SOCIAL-CONNECTOR-05A` bis `SOCIAL-CONNECTOR-05E`
+## Phase 1 — Öffentliche Flächen, Sprache und Rückkehrlogik
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
-| VOXY-BRIEFING-RUNTIME-01 | blocked | P0 | DOSSIER-CONTENT-VOXY-BRIDGE-02 | Vorhandene Contracts in echte persistente, idempotente Briefing-Jobs überführen; provider-neutral; keine Veröffentlichung | Briefing-Jobs sind persistent und idempotent; kein Publishing; Provider bleibt austauschbarer Adapter |
-| VOXY-SCRIPT-REVIEW-02 | blocked | P0 | VOXY-BRIEFING-RUNTIME-01 | Scriptvarianten, Sprachen, Quellen- und Rechtsprüfung mit Audit Trail und expliziter Freigabe | Review- und Freigabezustand ist nachvollziehbar; keine ungeprüften Skripte gehen weiter |
-| VOXY-RENDER-JOB-03 | blocked | P0 | VOXY-SCRIPT-REVIEW-02 | Persistente Render-Queue für `9:16`, `1:1` und `16:9` mit Untertiteln, Quellenleiste, CTA, Thumbnail und Retry ohne doppelte Jobs oder Kosten | Render-Jobs sind persistent, dedupliziert und retry-sicher; keine Doppeljobs; kein Auto-Publish |
-| VOXY-PUBLISH-QUEUE-04 | blocked | P0 | VOXY-RENDER-JOB-03 | Website- und Plattform-Drafts, Upload, Scheduling und Post nur nach Freigabe, Kill Switch, Retry und Statusrückmeldung | Publishing bleibt reviewpflichtig; Kill Switch und Retry funktionieren; keine direkte Veröffentlichung ohne Freigabe |
-| SOCIAL-CONNECTOR-05A | manual_gate | P1 | VOXY-PUBLISH-QUEUE-04 | Facebook-Adapter mit manuell bestätigten Rollen/Zugriffen; zunächst Profil, Titelbild und Publishing-Drafts | Plattformzugriff und Freigabestatus sind manuell bestätigt; keine Einladungen, Boosts oder Auto-Posts |
-| SOCIAL-CONNECTOR-05B | blocked | P1 | SOCIAL-CONNECTOR-05A | Instagram-Adapter mit plattformspezifischen Formaten | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
-| SOCIAL-CONNECTOR-05C | blocked | P1 | SOCIAL-CONNECTOR-05B | TikTok-Adapter mit plattformspezifischen Formaten | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
-| SOCIAL-CONNECTOR-05D | blocked | P1 | SOCIAL-CONNECTOR-05C | LinkedIn-Adapter für Organisations- und Executive-Kommunikation | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
-| SOCIAL-CONNECTOR-05E | blocked | P1 | SOCIAL-CONNECTOR-05D | YouTube-Adapter für Shorts und längere Briefings | Adapter ist getrennt und austauschbar; keine Secrets im Repo; kein Auto-Publish |
+| HOME-PRODUCT-MESSAGE-01 | done | P0 | keine | Startseite erklärt Entwicklungen, Quellen, Beteiligung und Wirkung statt nur Eingabe oder Voxy | PR `#412` ist gegen `main` verifiziert; Produktpositionierung und Canonical sind nicht mehr als offen dargestellt |
+| LEGAL-PUBLIC-PAGES-01 | manual_gate | P0 | verifizierter Rechtsträger und fachliche Rechts-/Datenschutzfreigabe | Impressum, Datenschutz, AGB, Widerruf, Kündigung, Widerspruch, Footer, Registrierung, Pricing, Order, Account und feste geprüfte Sprachfassungen | Keine Platzhalter, keine toten Rechtslinks, keine ungeprüften automatischen Rechtsübersetzungen und keine kostenpflichtige Funktion ohne passende Rechtsgrundlage |
+| PRIVACY-SNIPPET-02 | codex_ready | P0 | HOME-PRODUCT-MESSAGE-01 | Mobiler Consent-Dialog, verständliche Aktionen, `data-nosnippet`, `/settings` noindex und saubere Snippet-/Indexierungsgrenzen | Privacy-Dialog, Snippet-Grenzen und Indexierungsregeln sind technisch geschlossen und widersprechen weder SEO noch Datenschutz |
+| SEO-PUBLIC-DISCOVERY-03 | codex_ready | P1 | PRIVACY-SNIPPET-02 | Sitemap/Indexierungsmatrix, OG-/Sharing-Bild, strukturierte Daten, PWA-Startadresse, Sprach-SEO und öffentliche Auffindbarkeit | Öffentliche Discovery-Regeln sind dokumentiert und technisch konsistent; keine Teilübersetzungs- oder Snippet-Drift bleibt offen |
+| I18N-FOUNDATION-01 | done | P0 | keine | RTL-Basis, SSR-/Client-Richtung, per-Textblock `lang`/`dir`, arabische Basis-Messages und Reality-Audit | PR `#413` und der Audit-Stand sind verifiziert; die Grundlage wird nicht als vollständige Systemlokalisierung überhöht |
+| I18N-SURFACE-COVERAGE-02 | codex_ready | P0 | I18N-FOUNDATION-01 | Alle öffentlichen, Konto-, Review-, Organisations- und Behördenflächen inventarisieren; Inline-Copy und Fallbacks erfassen | Surface-Matrix erfasst Vollständigkeit, Fallbacks, RTL und Mobile je Fläche; keine falsche Vollständigkeitsbehauptung bleibt stehen |
+| I18N-PREFERENCE-SEPARATION-03 | blocked | P0 | I18N-SURFACE-COVERAGE-02 | `uiLocale`, `readingLocale`, Originalsprache, Arbeitssprache und Ausgabepräferenzen technisch trennen | Kernflächen nutzen einen gemeinsamen Sprachvertrag; UI- und Lesesprache sind nicht länger derselbe technische Zustand |
+| I18N-CROSS-LINGUAL-RUNTIME-04 | blocked | P0 | I18N-PREFERENCE-SEPARATION-03, PROD-RUNTIME-02, DRAFTS-LEGACY-SSOT-ALIGN-01 | Sprachübergreifende Eingabe, Übersetzung, Originalerhalt, Sprachstatus, Persistenz, Retry/Kosten/Audit und Reload auch ohne Feed; sprachübergreifende Vorschläge bleiben review-first | Arabisch↔Deutsch E2E funktioniert mit Originalerhalt, gekennzeichneter Übersetzung, Persistenz und ehrlichen Fehlerzuständen; kein ungeprüftes Cross-lingual Merge |
+| FEED-DEVELOPMENT-NEWS-01 | blocked | P0 | PROD-RUNTIME-02, REVIEW-QUEUE-OPERATIONS-01 | RSS/Suche/Medien-/Behördenquellen bis zur reviewfähigen Entwicklungslogik automatisieren, ohne kopierten Newsfeed oder Auto-Publish | Feed erzeugt reviewfähige Entwicklungseinheiten mit Quellen- und Statusklarheit; kein Auto-Publish und keine Nachrichtenkopie entstehen |
+| RETURN-DIGEST-02 | blocked | P1 | FEED-DEVELOPMENT-NEWS-01, I18N-CROSS-LINGUAL-RUNTIME-04 | Reale Karten „Seit deinem letzten Besuch“, täglicher/wöchentlicher Digest, neue Quellen, Antworten, Fristen und Beteiligungsmöglichkeiten | Rückkehrlogik basiert auf realen Entwicklungen und Sprachpräferenzen statt Demo-Daten oder stiller Profilbildung |
+| CIVIC-EVENT-RADAR-03 | blocked | P1 | FEED-DEVELOPMENT-NEWS-01, PRIVACY-SNIPPET-02 | Lokale Veranstaltungen, Anhörungen, Streams und Beteiligungsfristen finden, Themen zuordnen und in `/live`, Runden oder Dossier führen | Event-Hinweise bleiben review-first, datensparsam und nachvollziehbar; keine ungeprüfte öffentliche Empfehlung entsteht |
+| QR-PUBLIC-ENTRY-02 | codex_ready | P0 | GOVERNANCE-SSOT-SYNC-04 | `/qr-studio` als kanonischer Einstieg, kontrollierte Weiterleitung alter QR-Routen, sichere interne und erlaubte HTTPS-Ziele, kein Open Redirect, keine `javascript:`- oder `data:`-Ziele, Caller-Inventar sowie Mobile-, Share- und Druck-Contracts | Genau ein kanonischer QR-Einstieg; ungültige Ziele fail-closed; keine sensiblen Daten im QR-Code |
+| AGENT-ORCHESTRATION-01 | blocked | P1 | FEED-DEVELOPMENT-NEWS-01, CREATE-DEBATTENSTAND-01, DOSSIER-WORKSPACE-01, RUNDEN-PARTICIPATION-WORKSPACE-01, LIVE-SESSION-RUNTIME-02 | Die sieben bestehenden Rollen als ein auditierbares System verankern, ohne eine siebte Oberfläche oder parallele Agentenplattform zu bauen | Rollen, Reviewgrenzen, Audit und Kill-Switch sind definiert; keine neue Agentenarchitektur wird erfunden |
+| PERSONAL-VOXY-PROFILE-01 | blocked | P1 | PRIVACY-SNIPPET-02, RETURN-DIGEST-02, CIVIC-EVENT-RADAR-03 | Widerrufbares persönliches Profil für Region, Interessen, Sprache, Begleitmodus und Benachrichtigungen | Profil ist explizit opt-in, widerrufbar und nicht mit stillen Datenquellen vermischt |
+| PERSONAL-CONNECTORS-DEFERRED-02 | blocked | P2 | PERSONAL-VOXY-PROFILE-01 | Optionale Mail-/Kalender-Connectoren als getrennte persönliche Vollmacht; zuerst nur Event-Erinnerung und „zum Kalender hinzufügen“ | Kein Standardzugriff für Bürger; Connectoren bleiben nachrangig, optional und getrennt vom Kernprodukt |
+| HOME-TODAY-01 | blocked | P1 | RETURN-DIGEST-02, veröffentlichte reale Dossiers oder Entwicklungen | Zwei bis drei echte Entwicklungskarten „Heute bei eDebatte“ auf der Startseite, ohne Demo- oder Newsfeed-Drift | Nur reale veröffentlichte Entwicklungen erscheinen; keine Kopie externer Nachrichten und keine Demo-Karten |
 
-## Sichere Parallelisierung
+## Phase 2 — Kernproduktkette und spätere Content-Brücken
 
-- Nur getrennte Dateien, Datenmodelle und Runtime-Pfade parallel bearbeiten.
-- Kein paralleler Eingriff in dieselben Create-, Dossier- oder Review-Contracts.
-- Maximal ein PR besitzt gleichzeitig einen Kernvertrag.
-- Abhängigkeits-PRs nicht blind übereinander mergen.
-- Nach `PROD-PR-CHAIN-01` dürfen nur voneinander isolierte Slices parallel vorbereitet werden, etwa `PROD-RUNTIME-02`, `CREATE-VISUAL-PARITY-01`, `RUNDEN-PARTICIPATION-WORKSPACE-01` oder `LIVE-PRODUCT-CONTRACT-01`.
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| DRAFTS-LEGACY-SSOT-ALIGN-01 | codex_ready | P0 | bestehende `/api/drafts/save`-Wahrheit, aktuelle Resume-/Readmodel-Harmonisierung | Contribution-Write-SSOT schließen und Legacy-Draft-Pfade auf dieselbe serverseitige Draft-Wahrheit ziehen | Eine kanonische Write-Wahrheit für Save, Resume und Draft-ID/Schema ist dokumentiert und technisch durchgezogen; keine zweite Persistenzwelt bleibt aktiv |
+| CAMPAIGN-REFERENCE-01 | blocked | P0 | DRAFTS-LEGACY-SSOT-ALIGN-01, PROD-AUTHENTICATED-SMOKE-03C | Erstes persistentes Referenzthema mit Dossier-ID, Zielgruppe, Quellenpaket, Master-Content und CTA auf echter Runtime-Basis vorbereiten | Kein persistentes Referenzthema vor Write-SSOT und echtem authenticated Production-Smoke; keine Voxy-/Social-Ausgabe aus parallelen Chat- oder Dokumentdaten |
+| DOSSIER-WORKSPACE-01 | blocked | P0 | CAMPAIGN-REFERENCE-01, PROD-AUTHENTICATED-SMOKE-03C | Persistente Dossier-Kette mit Quellen, Claims, Positionen, offenen Fragen, Reviewstatus und echter Reload-Stabilität schließen | Echte Dossier-ID, Persistenz und ehrliche Lückenanzeige sind belegt; keine Demo-Vote- oder Fake-Dossier-Bestätigung bleibt im Pfad |
+| DOSSIER-CONTENT-VOXY-BRIDGE-02 | blocked | P0 | DOSSIER-WORKSPACE-01 | Strukturiertes Content-Paket mit These, Gegenposition, Quellenstand, Risiken und CTA als reviewpflichtiger Handoff | Content-Bridge bleibt reviewfähig und nicht produktiv; kein Rendering, Auto-Publish oder bezahlte Kampagne vor den Production-Gates |
+| LIVE-PRODUCT-CONTRACT-01 | codex_ready | P0 | GOVERNANCE-SSOT-SYNC-04 | Produkt- und Datenvertrag für `/live`, `/stream`, `/runden` und Dossier unabhängig vorbereiten; Rollen, Sessionstatus und kanonischen Datenfluss klären, ohne Runtime vorwegzunehmen | Live-Vertrag ist dokumentiert, ohne zweites Beteiligungssystem oder stille Produktverschiebung einzuführen; spätere Live-Runtime bleibt separat von Production-, Dossier- und Sprach-Runtime abhängig |
+| LIVE-SESSION-RUNTIME-02 | blocked | P0 | LIVE-PRODUCT-CONTRACT-01, PROD-RUNTIME-02 | Persistente Sessions, Start/Stop, Join/Leave, Reconnect, Sessionende und austauschbarer Realtime-Adapter | Session-Runtime ist persistent, reconnect-sicher und nicht demohaft |
+| CREATE-DEBATTENSTAND-01 | codex_ready | P0 | PR `#411`, GOVERNANCE-SSOT-SYNC-04 | Sidecar, abgeleiteten Selector-Layer, vollständigen Themenvertrag, Desktop, Mobile Bottom Sheet, Accessibility und das Entfernen technischer Innensprache unabhängig umsetzen; persistentes Save-/Resume-/Downstream-Handoff-Wiring bleibt getrennt | Gesamtzahl der Themen bleibt sichtbar; initial vier Karten plus `Alle N Themen anzeigen`; kein zweiter persistierter Status und keine parallele Write-Runtime; Mobile nutzt kompakte Statusleiste plus Bottom Sheet; Save-/Resume-/Handoff-Wiring bleibt getrennt von diesem Slice |
+| RUNDEN-PARTICIPATION-WORKSPACE-01 | blocked | P0 | CREATE-DEBATTENSTAND-01, DOSSIER-WORKSPACE-01 | `/runden`-Produktlogik mit Status, Rollen, Beteiligungsformat, Moderation, Persistenz und nachvollziehbarem Übergang aus Create-Drafts finalisieren | Kein Demo-Vote; Status und nächster Schritt sind verständlich; Mobile-/Desktop-Contracts und Reload-Verhalten sind belegt |
 
-## Guardrails
+## Verbindliche Reihenfolge
 
-- Kein Auto-Merge.
-- Kein Auto-Publish.
-- Keine Provider- oder Kostenaktivierung ohne expliziten manuellen Schritt.
-- Keine Secrets in Repo, Logs, Kalendern oder Prompts.
-- Keine behauptete Produktionsreife ohne ENV- und Production-Smoke.
-- Externe Dienste nur als austauschbare Adapter.
-- Review vor Rendering und Publishing.
+1. `GOVERNANCE-SSOT-SYNC-04` beziehungsweise PR `#415` abschließen.
+2. `PROD-RUNTIME-02` schließen.
+3. `PROD-TEST-ACCOUNT-03B` schließen.
+4. `PROD-AUTHENTICATED-SMOKE-03C` real ausführen.
+5. `DRAFTS-LEGACY-SSOT-ALIGN-01` als Contribution-Write-SSOT schließen.
+6. `CAMPAIGN-REFERENCE-01` erst danach persistent anlegen.
+7. `DOSSIER-WORKSPACE-01` als persistente Dossier-Kette schließen.
+8. Persistente sprachübergreifende Runtime-Abnahme über `I18N-CROSS-LINGUAL-RUNTIME-04` schließen.
+9. Weitere produktive Runtime-Slices darauf aufbauend schließen.
+
+## Offene Betreiber- und Launch-Gates
+
+- Production-ENV und Secrets in Vercel prüfen.
+- Preview, Development und Production sauber trennen.
+- Modelle, Timeouts, Budgets, Rate Limits, Logging sowie Datenverarbeitung, Aufbewahrung und Löschung über `AI-RUNTIME-POLICY-01` festlegen.
+- Rechtsseiten, Datenschutztexte und feste Sprachfassungen über `LEGAL-PUBLIC-PAGES-01` fachlich freigeben.
+- Privacy-Dialog sowie Snippet-/Indexierungsgrenzen schließen.
+- Dediziertes Production-Testkonto bereitstellen.
+- Authenticated Production-Smoke real ausführen.
+
+## Guardrails und Parallelisierung
+
+- Kein Auto-Merge, kein Auto-Publish, keine Fake-Runtime und keine Secrets im Repo, in Logs, Kalendern oder Prompts.
+- Content- und Social-Vorbereitung darf review-ready parallel laufen, aber nicht als produktiv, freigegeben oder kampagnenbereit dargestellt werden.
+- Keine bezahlten Kampagnen und keine persistente Referenzthemen-/Voxy-/Social-Ausgabe vor Write-SSOT und Production-Gates.
+- Parallel nach `GOVERNANCE-SSOT-SYNC-04` vorbereitbar sind `LIVE-PRODUCT-CONTRACT-01`, `CREATE-DEBATTENSTAND-01` ohne Write-/Handoff-Wiring, `PRIVACY-SNIPPET-02`, `I18N-SURFACE-COVERAGE-02`, `QR-PUBLIC-ENTRY-02` sowie review-ready Content- und Social-Vorbereitung.
+- Parallel vorbereitbar bedeutet nicht automatisch parallel mergebar, falls dieselben Dateien, Kernverträge oder dieselbe Persistenzwahrheit berührt werden.
+- Die verbindlichen Entscheidungen aus PR `#411` sind nicht mehr als offen zu führen: vollständige Themenmenge, sichtbare Gesamtzahl, initial vier Karten, `Alle N Themen anzeigen`, kein Analyse- oder Speicherlimit 7/14, keine Doppelzählung von Oberthemen, Mobile Bottom Sheet, in `/create` deaktivierte Szenen-Rail und abgeleiteter Debattenstand ohne zweiten Persistenzstatus.
+- Die I18N-Grundlage aus PR `#413` ist erledigt, aber vollständige Systemlokalisierung, Präferenztrennung und sprachübergreifendes E2E bleiben offen.
+- Der reale Kamera-Smoke für QR bleibt von einem freigegebenen persistenten Referenzthema abhängig; `QR-PUBLIC-ENTRY-02` deckt vorab nur kanonischen Einstieg, Redirect-Grenzen und Contracts ab.
+- Die sieben bestehenden Agentenrollen und die bestehenden Personal-Voxy-IDs bleiben maßgeblich; keine neue Agentenarchitektur erfinden.
 
 ## Historischer Katalog und Evidenz
 
