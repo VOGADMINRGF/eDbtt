@@ -16,7 +16,8 @@ Sie ist ein konfliktfreier Zwischenstand, solange PR `#414` dieselbe Datei `docs
 
 ## Aktuelle Repository-Wahrheit
 
-- `main`: `66c40c466eb83e0d8a8923290107b0eaddde85cf`
+- Ausgangs-`main` dieses Abgleichs: `66c40c466eb83e0d8a8923290107b0eaddde85cf`.
+- Diese Alignment-Datei ist additiv und verändert keine Produkt-, Datenbank- oder Publishing-Runtime.
 - PR `#410`: produktive `robots.txt`-Route gemergt.
 - PR `#411`: `/create`-Debattenstand-Sidecar-Spezifikation gemergt.
 - PR `#412`: neue Startseitenbotschaft, kanonische `www`-Metadaten und Startseiten-Contracts gemergt.
@@ -55,14 +56,14 @@ Getrennt zu behandeln sind UI-Sprache, Lesesprache, Originalsprache, Arbeitsspra
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Kalender |
 | --- | --- | --- | --- | --- | --- |
-| GOVERNANCE-SSOT-SYNC-04 | in_progress | P0 | PR `#414` | `OpenTasks.md`, Kalender, Operating Plan, Issues und aktueller `main` müssen dieselben IDs, Stati und Abhängigkeiten führen | 23.07.; finaler OpenTasks-Folge-Sync direkt nach PR `#414` |
+| GOVERNANCE-SSOT-SYNC-04 | in_progress | P0 | PR `#414` | `OpenTasks.md`, Kalender, Operating Plan, Issues und aktueller `main` müssen dieselben IDs, Stati und Abhängigkeiten führen | Governance-Abgleich 23.07. 11:00; finaler OpenTasks-Kopf 23.07. 12:00 nach PR `#414` |
 | HOME-PRODUCT-MESSAGE-01 | done | P0 | keine | Startseite erklärt Entwicklungen, Quellen, Beteiligung und Wirkung statt nur Eingabe/Voxy | PR `#412` |
 | PRIVACY-SNIPPET-02 | codex_ready | P0 | HOME-PRODUCT-MESSAGE-01 | mobiler Consent-Dialog, verständliche Aktionen, `data-nosnippet`, `/settings` noindex und sichere Snippet-Grenzen | 23.07. 14:30 |
 | SEO-PUBLIC-DISCOVERY-03 | codex_ready | P1 | PRIVACY-SNIPPET-02 | Sitemap/Indexierungsmatrix, OG-/Sharing-Bild, strukturierte Daten, PWA-Startadresse, Barrierefreiheit und Sprach-SEO | 30.07. 12:00 |
 | I18N-FOUNDATION-01 | done | P0 | keine | RTL, SSR/Client-Richtung, URL-Locale-Handoff, arabische Basisnachrichten, per-Textblock `lang`/`dir`, kritischer Guardrail | PR `#413` |
-| I18N-SURFACE-COVERAGE-02 | codex_ready | P0 | I18N-FOUNDATION-01 | alle öffentlichen, Konto-, Review-, Organisations- und Behördenflächen inventarisieren; Inline-Copy und Fallbacks erfassen | 27.07. 10:15 |
-| I18N-PREFERENCE-SEPARATION-03 | blocked | P0 | I18N-SURFACE-COVERAGE-02 | `uiLocale`, `readingLocale`, Ausgabepräferenzen und Originalanzeige technisch trennen; Kernflächen auf gemeinsamen Message-/Content-Vertrag migrieren | 12.08. 13:00 |
-| I18N-CROSS-LINGUAL-RUNTIME-04 | blocked | P0 | I18N-PREFERENCE-SEPARATION-03, Feed-Grundlage | generische Quellenübersetzung, Originalerhalt, Sprachstatus, Retry/Kosten/Audit und cross-lingual Match-Vorschläge | 11.08. 13:00 als Runtime-Abnahme; Reihenfolge beim OpenTasks-Sync auflösen |
+| I18N-SURFACE-COVERAGE-02 | codex_ready | P0 | I18N-FOUNDATION-01 | alle öffentlichen, Konto-, Review-, Organisations- und Behördenflächen inventarisieren; Inline-Copy und Fallbacks erfassen | Reality-Audit 23.07. 16:15; Coverage 27.07. 10:15 |
+| I18N-PREFERENCE-SEPARATION-03 | blocked | P0 | I18N-SURFACE-COVERAGE-02 | `uiLocale`, `readingLocale`, Ausgabepräferenzen und Originalanzeige technisch trennen; Kernflächen auf gemeinsamen Message-/Content-Vertrag migrieren | 11.08. 13:00 |
+| I18N-CROSS-LINGUAL-RUNTIME-04 | blocked | P0 | I18N-PREFERENCE-SEPARATION-03, Feed-Grundlage | generische Quellenübersetzung, Originalerhalt, Sprachstatus, Retry/Kosten/Audit und cross-lingual Match-Vorschläge | 12.08. 13:00 |
 | CREATE-DEBATTENSTAND-01 | codex_ready | P0 | PR `#411`, aktueller `main` | vier Slices: Workspace-State-SSOT, vollständiger Themenvertrag, Sidecar/Bottom-Sheet, Downstream-Handoffs | 25.07. und Folgeblöcke |
 | RUNDEN-PARTICIPATION-WORKSPACE-01 | codex_ready | P0 | Create-Datenvertrag | verständlicher Beteiligungs-Workspace mit Persistenz, Rollen, Moderation und Status | 27.07. 13:00 |
 | DOSSIER-WORKSPACE-01 | codex_ready | P0 | Dossier-Runtime-Wahrheit, Production-Smoke | echtes Dossier mit Quellen, Claims, Positionen, offenen Fragen, Beteiligungs- und Reviewstatus | 28.07. 13:00 |
@@ -71,9 +72,9 @@ Getrennt zu behandeln sind UI-Sprache, Lesesprache, Originalsprache, Arbeitsspra
 | CIVIC-EVENT-RADAR-03 | blocked | P1 | FEED-DEVELOPMENT-NEWS-01, Region-/Consent-Vertrag | lokale Veranstaltungen, Kultur, Anhörungen, Streams und Beteiligungsfristen finden, einem Thema zuordnen und zu `/live`/Runden/Dossier führen | 13.08. 13:00 |
 | LIVE-PRODUCT-CONTRACT-01 | codex_ready | P0 | keine | bestehender OpenTasks-Vertrag; `/live`, `/stream`, Runden und Dossier abgrenzen | 24.07. 13:00 |
 | LIVE-SESSION-RUNTIME-02 | blocked | P0 | LIVE-PRODUCT-CONTRACT-01, Production-Runtime | persistente Sessions, Reconnect, Rollen und Adapter | 17.08. 13:00 |
-| AGENT-ORCHESTRATION-01 | blocked | P1 | stabile Feed-, Create-, Dossier-, Runden- und Live-Contracts | sieben Rollen als ein orchestriertes, auditierbares System verankern; keine siebte Oberfläche und keine parallele Agentenplattform | 24.08. 15:15 |
+| AGENT-ORCHESTRATION-01 | blocked | P1 | stabile Feed-, Create-, Dossier-, Runden- und Live-Contracts | sieben Rollen als ein orchestriertes, auditierbares System verankern; keine siebte Oberfläche und keine parallele Agentenplattform | 24.08. 15:15; Audit 25.08. 09:00 |
 | PERSONAL-VOXY-PROFILE-01 | blocked | P1 | Consent, RETURN-DIGEST-02, CIVIC-EVENT-RADAR-03 | widerrufbares Profil für Region, Interessen, Sprache, Begleitmodus und Benachrichtigungen | Entscheidungen 02./07.09.; Runtime 08./09.09. |
-| PERSONAL-CONNECTORS-DEFERRED-02 | blocked | P2 | PERSONAL-VOXY-PROFILE-01, öffentliche Beta | optionale Mail-/Kalender-Connectoren als getrennte persönliche Vollmacht; kein Standardzugriff für Bürger; Event-Erinnerung und „zum Kalender hinzufügen“ zuerst | Entscheidung nach kontrollierter Beta |
+| PERSONAL-CONNECTORS-DEFERRED-02 | blocked | P2 | PERSONAL-VOXY-PROFILE-01, öffentliche Beta | optionale Mail-/Kalender-Connectoren als getrennte persönliche Vollmacht; kein Standardzugriff für Bürger; Event-Erinnerung und „zum Kalender hinzufügen“ zuerst | Go/No-Go 20.10. 13:00 |
 | HOME-TODAY-01 | blocked | P1 | veröffentlichte reale Dossiers/Entwicklungen | zwei bis drei echte Entwicklungskarten „Heute bei eDebatte“; keine Demo und kein kopierter Newsfeed | 07.10. 10:00 |
 
 ## Bereinigte Abhängigkeitsreihenfolge
@@ -90,19 +91,17 @@ Getrennt zu behandeln sind UI-Sprache, Lesesprache, Originalsprache, Arbeitsspra
 
 `I18N-FOUNDATION-01` → `I18N-SURFACE-COVERAGE-02` → `I18N-PREFERENCE-SEPARATION-03` → `I18N-CROSS-LINGUAL-RUNTIME-04`
 
-Die Kalenderreihenfolge 11./12.08. muss beim finalen OpenTasks-Sync korrigiert werden: technische Präferenztrennung vor vollständiger Runtime-Abnahme oder als klar getrennte parallele Contracts ohne Überschneidung.
-
 ### Aktuelle Entwicklungen und Rückkehr
 
 `FEED-DEVELOPMENT-NEWS-01` → `RETURN-DIGEST-02` und `CIVIC-EVENT-RADAR-03` → `PERSONAL-VOXY-PROFILE-01`
 
 ### Agentensystem
 
-Stabile Fachverträge → `AGENT-ORCHESTRATION-01` → Autonomie-/Qualitätsaudit → keine Freigabe höherer Autonomie ohne Audit, Kill Switch und Reviewgrenzen.
+Stabile Fachverträge → `AGENT-ORCHESTRATION-01` → Agenten-/Autonomie-/Qualitätsaudit → keine Freigabe höherer Autonomie ohne Audit, Kill Switch und Reviewgrenzen.
 
 ### Spätere Excellence
 
-Reale veröffentlichte Inhalte → `HOME-TODAY-01` → kontrollierter Pilot → öffentliche Beta → kommerzieller/institutioneller Betrieb.
+Reale veröffentlichte Inhalte → `HOME-TODAY-01` → kontrollierter Pilot → öffentliche Beta → optionaler Connector-Go/No-Go → kommerzieller/institutioneller Betrieb.
 
 ## Kalenderregeln
 
