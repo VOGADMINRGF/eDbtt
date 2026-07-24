@@ -77,6 +77,12 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("workspaceComposerPlaceholder");
     expect(clientSource).toContain("workspaceComposerStartDisabled");
     expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("CreateDebattenstandSidecar");
+    expect(clientSource).toContain("CreateDebattenstandStatusBar");
+    expect(clientSource).toContain("deriveCreateDebattenstandModel");
+    expect(clientSource).toContain("renderSidecar");
+    expect(clientSource).toContain("renderMobileSidecarSummary");
+    expect(clientSource).toContain("showSceneRail={false}");
     expect(clientSource).toContain("data-create-thread-prompt-chip");
     expect(clientSource).toContain("Schreib unten frei los.");
     expect(clientSource).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
@@ -134,6 +140,12 @@ describe("create curated dialog workspace contract", () => {
     expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
       "data-create-thread-phase={phase}",
     );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-shell-sidecar",
+    );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateWorkspaceShell.tsx"), "utf8")).toContain(
+      "data-create-debattenstand-sheet",
+    );
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -174,6 +186,12 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("keine automatische Veröffentlichung");
     expect(followupSource).toContain("keine automatische Kostenbuchung");
     expect(followupSource).toContain("setPreparedHandoffDraft");
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateDebattenstandSidecar.tsx"), "utf8")).toContain(
+      "Debattenstand",
+    );
+    expect(readFileSync(resolve(process.cwd(), "src/features/create/CreateDebattenstandSidecar.tsx"), "utf8")).toContain(
+      "data-create-debattenstand-statusbar",
+    );
     expect(followupSource).not.toContain("Dossier-Kontext");
     expect(followupSource).not.toContain("Mögliche Claims");
     expect(followupSource).not.toContain("Arbeitsstand speichern");
