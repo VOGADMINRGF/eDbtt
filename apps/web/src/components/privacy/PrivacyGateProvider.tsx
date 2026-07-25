@@ -209,9 +209,9 @@ export function PrivacyGateProvider(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [gateOpen, optionsOpen]);
 
-  const openGate = React.useCallback((_mode: "notice" | "options" = "notice") => {
+  const openGate = React.useCallback((mode: "notice" | "options" = "notice") => {
     setGateOpen(true);
-    setOptionsOpen(false);
+    setOptionsOpen(mode === "options");
   }, []);
 
   React.useEffect(() => {

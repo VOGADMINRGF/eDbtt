@@ -15,11 +15,27 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-import { PrivacyGateProvider } from "@/components/privacy/PrivacyGateProvider";
+import { PrivacyGateProvider, usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
+
+function PrivacyGateTestConsumer() {
+  const privacyGate = usePrivacyGate();
+
+  return (
+    <>
+      <button type="button" onClick={() => privacyGate.openGate("notice")}>
+        Notice-Gate öffnen
+      </button>
+      <button type="button" onClick={() => privacyGate.openGate("options")}>
+        Options-Gate öffnen
+      </button>
+    </>
+  );
+}
 
 describe("privacy gate dialog contract", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
     Object.defineProperty(window, "localStorage", {
       configurable: true,
       value: {
@@ -35,6 +51,7 @@ describe("privacy gate dialog contract", () => {
     cleanup();
     vi.runOnlyPendingTimers();
     vi.useRealTimers();
+    delete globalThis.IS_REACT_ACT_ENVIRONMENT;
   });
 
   it("renders an accessible dialog with clear primary actions and unchecked optional consent", async () => {
@@ -116,5 +133,59 @@ describe("privacy gate dialog contract", () => {
 
     expect(screen.getByRole("button", { name: "Hintergrund-CTA" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens optional consent directly for options mode but not for notice mode", () => {
+    const noticeRender = render(
+      <PrivacyGateProvider initialConsent={null}>
+        <PrivacyGateTestConsumer />
+      </PrivacyGateProvider>,
+    );
+
+    act(() => {
+      screen.getByRole("button", { name: "Notice-Gate öffnen" }).click();
+      vi.runAllTimers();
+    });
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "Bevor du startest: Datenschutz verständlich erklärt",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("checkbox", {
+        name: "Komfortfunktionen erlauben",
+      }),
+    ).toBeNull();
+    noticeRender.unmount();
+
+    render(
+      <PrivacyGateProvider initialConsent={null}>
+        <PrivacyGateTestConsumer />
+      </PrivacyGateProvider>,
+    );
+
+    act(() => {
+      screen.getByRole("button", { name: "Options-Gate öffnen" }).click();
+      vi.runAllTimers();
+    });
+
+    const comfort = screen.getByRole("checkbox", {
+      name: "Komfortfunktionen erlauben",
+    }) as HTMLInputElement;
+    const analytics = screen.getByRole("checkbox", {
+      name: "Anonyme Nutzungsstatistik erlauben",
+    }) as HTMLInputElement;
+    const externalMedia = screen.getByRole("checkbox", {
+      name: "Externe Medien erst nach Freigabe laden",
+    }) as HTMLInputElement;
+    const productImprovement = screen.getByRole("checkbox", {
+      name: "Produktverbesserung mit anonymisierten Signalen erlauben",
+    }) as HTMLInputElement;
+
+    expect(comfort.checked).toBe(false);
+    expect(analytics.checked).toBe(false);
+    expect(externalMedia.checked).toBe(false);
+    expect(productImprovement.checked).toBe(false);
   });
 });
