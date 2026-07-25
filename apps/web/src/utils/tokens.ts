@@ -4,6 +4,17 @@ import { piiCol } from "@core/db/triMongo";
 
 type TokenType = "verify" | "reset";
 
+type StoredTokenDoc = {
+  userId: string;
+  type: TokenType;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt?: Date | null;
+  invalidatedAt?: Date | null;
+  invalidationReason?: string | null;
+  createdAt: Date;
+};
+
 function sha256(s: string) {
   return crypto.createHash("sha256").update(s).digest("hex");
 }
@@ -15,8 +26,9 @@ export async function createToken(
 ) {
   const raw = crypto.randomBytes(24).toString("hex");
   const tokenHash = sha256(raw);
-  const col = await piiCol("tokens");
+  const col = await piiCol<StoredTokenDoc>("tokens");
   const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
+  const now = new Date();
   try {
     await col.createIndex(
       { expiresAt: 1 },
@@ -29,27 +41,49 @@ export async function createToken(
       throw err;
     }
   }
+  await col.updateMany(
+    {
+      userId,
+      type,
+      usedAt: null,
+      $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
+      expiresAt: { $gt: now },
+    },
+    {
+      $set: {
+        invalidatedAt: now,
+        invalidationReason: "rotated",
+      },
+    },
+  );
   await col.insertOne({
     userId,
     type,
     tokenHash,
     expiresAt,
     usedAt: null,
-    createdAt: new Date(),
+    invalidatedAt: null,
+    invalidationReason: null,
+    createdAt: now,
   });
   return raw;
 }
 
 export async function consumeToken(raw: string, type: TokenType) {
-  const col = await piiCol("tokens");
+  const col = await piiCol<StoredTokenDoc>("tokens");
   const tokenHash = sha256(raw);
-  const doc = await col.findOne({
-    tokenHash,
-    type,
-    usedAt: null,
-    expiresAt: { $gt: new Date() },
-  });
+  const now = new Date();
+  const doc = await col.findOneAndUpdate(
+    {
+      tokenHash,
+      type,
+      usedAt: null,
+      $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
+      expiresAt: { $gt: now },
+    },
+    { $set: { usedAt: now } },
+    { returnDocument: "before" },
+  );
   if (!doc) return null;
-  await col.updateOne({ _id: doc._id }, { $set: { usedAt: new Date() } });
   return doc.userId as string;
 }

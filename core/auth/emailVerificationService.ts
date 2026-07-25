@@ -16,6 +16,21 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
   const now = new Date();
   const expiresAt = new Date(now.getTime() + TOKEN_TTL_HOURS * 3600 * 1000);
 
+  await Tokens.updateMany(
+    {
+      userId,
+      usedAt: null,
+      $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
+      expiresAt: { $gt: now },
+    },
+    {
+      $set: {
+        invalidatedAt: now,
+        invalidationReason: "rotated",
+      },
+    },
+  );
+
   await Tokens.insertOne({
     userId,
     email,
@@ -23,6 +38,8 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
     createdAt: now,
     expiresAt,
     usedAt: null,
+    invalidatedAt: null,
+    invalidationReason: null,
   } as EmailVerificationTokenDoc);
 
   return { rawToken, expiresAt };
@@ -31,15 +48,18 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
 export async function consumeEmailVerificationToken(rawToken: string) {
   const hash = tokenHash(rawToken);
   const Tokens = await getCol<EmailVerificationTokenDoc>(TOKEN_COLLECTION);
-  const tokenDoc = await Tokens.findOne({ tokenHash: hash });
-  if (!tokenDoc) return null;
-
   const now = new Date();
-  if (tokenDoc.usedAt || tokenDoc.expiresAt < now) {
-    return null;
-  }
-
-  await Tokens.updateOne({ _id: tokenDoc._id }, { $set: { usedAt: now } });
+  const tokenDoc = await Tokens.findOneAndUpdate(
+    {
+      tokenHash: hash,
+      usedAt: null,
+      $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
+      expiresAt: { $gt: now },
+    },
+    { $set: { usedAt: now } },
+    { returnDocument: "before" },
+  );
+  if (!tokenDoc) return null;
 
   const Users = await getCol("users");
   const user = await Users.findOne({ _id: tokenDoc.userId }, { projection: { verification: 1 } });

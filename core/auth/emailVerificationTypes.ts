@@ -8,4 +8,6 @@ export type EmailVerificationTokenDoc = {
   createdAt: Date;
   expiresAt: Date;
   usedAt?: Date | null;
+  invalidatedAt?: Date | null;
+  invalidationReason?: string | null;
 };
