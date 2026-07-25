@@ -4,6 +4,20 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
+if [[ "${CODEX_PREFLIGHT_PASSED:-}" != "I18N-SURFACE-COVERAGE-02" ]]; then
+  cat <<'EOF'
+Refusing to run implementation verification.
+
+This pilot task is already documented as done on current main.
+Run Prompt 0 first. Only a future, explicitly restored codex_ready state may set:
+
+  CODEX_PREFLIGHT_PASSED=I18N-SURFACE-COVERAGE-02
+
+No tests were run.
+EOF
+  exit 2
+fi
+
 echo "== Repository status =="
 git status --short
 
@@ -40,20 +54,11 @@ run_if_present test
 
 echo "== Run focused I18N contract test when a supported runner is available =="
 if [[ "$PM" == "pnpm" ]]; then
-  pnpm exec vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts || {
-    echo "Focused Vitest command failed or is not the repository's canonical runner. Use the closest existing test script and document the exact command."
-    exit 1
-  }
+  pnpm exec vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts
 elif [[ "$PM" == "yarn" ]]; then
-  yarn vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts || {
-    echo "Focused Vitest command failed or is not the repository's canonical runner. Use the closest existing test script and document the exact command."
-    exit 1
-  }
+  yarn vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts
 else
-  npx vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts || {
-    echo "Focused Vitest command failed or is not the repository's canonical runner. Use the closest existing test script and document the exact command."
-    exit 1
-  }
+  npx vitest run apps/web/tests/i18n-surface-coverage.contract.test.ts
 fi
 
 echo "== Final status =="
