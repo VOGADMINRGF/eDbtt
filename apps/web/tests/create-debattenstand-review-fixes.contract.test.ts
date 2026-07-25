@@ -52,12 +52,17 @@ describe("create debattenstand review fixes", () => {
       "utf8",
     );
 
-    const taskStart = openTasks.indexOf("CREATE-DEBATTENSTAND-01");
-    expect(taskStart).toBeGreaterThanOrEqual(0);
+    const taskRow = openTasks
+      .split("\n")
+      .find((line) => line.startsWith("| CREATE-DEBATTENSTAND-01 |"));
+    const draftsRow = openTasks
+      .split("\n")
+      .find((line) => line.startsWith("| DRAFTS-LEGACY-SSOT-ALIGN-01 |"));
 
-    const taskWindow = openTasks.slice(taskStart, taskStart + 2500);
-    expect(taskWindow).toContain("in_review");
-    expect(taskWindow).not.toContain("codex_ready");
-    expect(taskWindow).toContain("PR #417");
+    expect(taskRow).toBeDefined();
+    expect(taskRow).toContain("| review |");
+    expect(taskRow).not.toContain("| codex_ready |");
+    expect(draftsRow).toContain("| codex_ready |");
+    expect(openTasks).toContain("CREATE-DEBATTENSTAND-01 evidence: PR #417");
   });
 });
