@@ -27,7 +27,7 @@ Dieses Dokument führt keine neue Runtime ein, wählt keinen Realtime-Provider u
 - kein Join-/Voting-/Realtime-Code
 - keine neue Datenbank-Collection
 - keine Entscheidung für Provider, Socket-Stack oder Streaming-Infrastruktur
-- keine Produktcode- oder `OpenTasks.md`-Änderung in diesem Slice
+- keine Runtime-, Persistenz-, API- oder Publish-Änderung; `OpenTasks.md` wird ausschließlich mit Status und PR-Evidenz synchronisiert
 
 ## Evidenzbasis
 
