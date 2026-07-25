@@ -104,6 +104,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Thema ordnen");
     expect(html).toContain("Frage schärfen");
     expect(html).toContain("Quellen prüfen");
+    expect(html).toContain("Debattenstand");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain('data-create-workspace-shell="true"');
@@ -117,6 +118,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain('data-create-thread-phase="initial"');
     expect(html).toContain('data-create-composer-bar="true"');
     expect(html).toContain('data-create-shell-secondary-details="true"');
+    expect(html).toContain('data-create-debattenstand-statusbar');
     expect(html).not.toContain("1 · Beitrag aufgenommen");
     expect(html).not.toContain("2 · Themen erkannt");
     expect(html).not.toContain("3 · Entscheidung offen");
@@ -128,8 +130,6 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Themenäste");
     expect(html).not.toContain("Fragen");
     expect(html).not.toContain("Offene Fragen");
-    expect(html).not.toContain("Nächster Schritt");
-    expect(html).not.toContain("Beitrag prüfen");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(0);
     expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-start gap-4\"");
     expect(followupSource).toContain("data-structure-overview-grid");
@@ -143,6 +143,8 @@ describe("create entry hierarchy contract", () => {
     expect(clientSource).toContain("const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted");
     expect(clientSource).toContain("workspacePhase={hasStarted ? \"continuation\" : \"initial\"}");
     expect(clientSource).toContain("data-create-shell-secondary-details");
+    expect(clientSource).toContain("renderSidecar");
+    expect(clientSource).toContain("renderMobileSidecarSummary");
     expect(clientSource).toContain("data-create-workspace-host=\"wide-screen\"");
     expect(clientSource).toContain("max-w-none");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
@@ -156,6 +158,8 @@ describe("create entry hierarchy contract", () => {
     expect(workspaceShellSource).toContain("min-h-[calc(100vh-7.5rem)]");
     expect(workspaceShellSource).toContain("data-create-shell-pipeline");
     expect(workspaceShellSource).toContain("data-create-thread-phase={phase}");
+    expect(workspaceShellSource).toContain("data-create-shell-sidecar");
+    expect(workspaceShellSource).toContain("data-create-debattenstand-sheet");
     expect(workspaceShellSource).toContain("md:min-h-[15rem]");
     expect(workspaceShellSource).not.toContain("md:min-h-[46rem]");
     expect(clientSource).not.toContain("min-h-[30rem]");
@@ -186,5 +190,6 @@ describe("create entry hierarchy contract", () => {
     expect(html).not.toContain("Provider");
     expect(clientSource).toContain('experienceVariant="workspace_shell"');
     expect(clientSource).not.toContain('experienceVariant="create_minimal"');
+    expect(clientSource).toContain("showSceneRail={false}");
   });
 });

@@ -138,6 +138,7 @@ describe("/create start surface", () => {
     expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-shell-layout="wide"');
     expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-debattenstand-statusbar="true"');
     expect(html).toContain('data-create-composer-bar="true"');
     expect(html).toContain("Prüfen");
     expect(html).toContain(
