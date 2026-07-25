@@ -1765,10 +1765,7 @@ export default function CreateClient({
       intelligentFollowup,
       Math.max(compactTopicPreviewCount, semanticTopicCount),
     ).map((branch) => branch.title);
-    return dedupeCreatePlannerTopicLabels([
-      ...fullBranchLabels,
-      ...intelligentFollowup.understanding.topics.map((topic) => topic.label),
-    ]);
+    return dedupeCreatePlannerTopicLabels(fullBranchLabels);
   }, [intelligentFollowup]);
   const visibleDebattenstandTopicLabels = React.useMemo(() => {
     if (documentTopicOverviewOpened || showExpandedTopicPreview) {
@@ -1791,9 +1788,11 @@ export default function CreateClient({
           analysisState ??
           (showLinkClarification
             ? "link_detected"
-            : hasStarted
+            : intelligentFollowup
               ? "result_ready"
-              : "idle"),
+              : hasStarted
+                ? "ai_failed"
+                : "idle"),
         sourceKind: intelligentFollowup?.meta?.documentAnalysis
           ? "document"
           : currentLinkDetection.hasLink
@@ -1823,6 +1822,7 @@ export default function CreateClient({
       factcheckMessage,
       groupedTopicLabels,
       hasStarted,
+      intelligentFollowup,
       intelligentFollowup?.meta?.documentAnalysis,
       isStarting,
       parkedTopicLabels,

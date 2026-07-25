@@ -60,7 +60,7 @@ export function CreateDebattenstandStatusBar(props: {
   return (
     <div
       data-create-debattenstand-statusbar
-      className="md:hidden rounded-[1.35rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3"
+      className="xl:hidden rounded-[1.35rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

@@ -255,6 +255,20 @@ export default function CreateWorkspaceShell({
   const [mobileSidecarMode, setMobileSidecarMode] =
     React.useState<MobileSidecarMode>("compact");
   const mobileDialogCloseRef = React.useRef<React.ElementRef<"button"> | null>(null);
+  const mobileDialogRef = React.useRef<HTMLDivElement | null>(null);
+  const mobileDialogTriggerRef = React.useRef<HTMLElement | null>(null);
+  const workspaceContentRef = React.useRef<HTMLDivElement | null>(null);
+
+  const openMobileSidecar = React.useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      mobileDialogTriggerRef.current = document.activeElement;
+    }
+    setMobileSidecarOpen(true);
+  }, []);
+
+  const closeMobileSidecar = React.useCallback(() => {
+    setMobileSidecarOpen(false);
+  }, []);
   const isInitialPhase = phase === "initial";
   const isLoadingPhase = phase === "loading";
   const threadClassName = isInitialPhase
@@ -266,24 +280,75 @@ export default function CreateWorkspaceShell({
 
   React.useEffect(() => {
     if (!mobileSidecarOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    mobileDialogCloseRef.current?.focus();
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mobileSidecarOpen]);
 
-  React.useEffect(() => {
-    if (!mobileSidecarOpen) return undefined;
-    const handleEscape = (event: globalThis.KeyboardEvent) => {
+    const previousOverflow = document.body.style.overflow;
+    const workspaceContent = workspaceContentRef.current;
+
+    document.body.style.overflow = "hidden";
+    workspaceContent?.setAttribute("inert", "");
+    workspaceContent?.setAttribute("aria-hidden", "true");
+    mobileDialogCloseRef.current?.focus();
+
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        setMobileSidecarOpen(false);
+        event.preventDefault();
+        closeMobileSidecar();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const dialog = mobileDialogRef.current;
+      if (!dialog) return;
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (element) =>
+          element.getAttribute("aria-hidden") !== "true" &&
+          !element.hasAttribute("disabled"),
+      );
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (!activeElement || !dialog.contains(activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? lastElement : firstElement).focus();
+        return;
+      }
+
+      if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+      }
+
+      if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [mobileSidecarOpen]);
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      workspaceContent?.removeAttribute("inert");
+      workspaceContent?.removeAttribute("aria-hidden");
+      mobileDialogTriggerRef.current?.focus();
+    };
+  }, [closeMobileSidecar, mobileSidecarOpen]);
 
   return (
     <section
@@ -293,10 +358,15 @@ export default function CreateWorkspaceShell({
       data-create-workspace-phase={phase}
       className="mx-auto flex min-h-[calc(100vh-7.5rem)] w-full max-w-[min(92vw,96rem)] flex-col rounded-[2.4rem] border border-[rgb(var(--border))] bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_96%,white_4%),color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%))] px-3 py-3 shadow-[0_36px_96px_rgba(2,6,23,0.18)] sm:px-4 md:min-h-[calc(100vh-6rem)] md:px-5 md:py-5 xl:px-7"
     >
-      <div className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}>
+      <div
+        ref={workspaceContentRef}
+        className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}
+      >
         <WorkspaceHeader notice={notice} compact={isInitialPhase} />
         {!isInitialPhase ? <ProgressPipeline stages={resolvedStages} /> : null}
-        {renderMobileSidecarSummary ? renderMobileSidecarSummary(() => setMobileSidecarOpen(true)) : null}
+        {renderMobileSidecarSummary
+          ? renderMobileSidecarSummary(openMobileSidecar)
+          : null}
         <div className={`flex min-h-0 flex-1 gap-4 ${showDesktopSidecar ? "xl:grid xl:grid-cols-[minmax(0,1fr)_clamp(18rem,24vw,24rem)]" : ""}`}>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
             <div
@@ -392,18 +462,20 @@ export default function CreateWorkspaceShell({
       </div>
       {renderSidecar && mobileSidecarOpen ? (
         <div
-          className="fixed inset-0 z-40 md:hidden"
+          className="fixed inset-0 z-40 xl:hidden"
           aria-hidden={false}
         >
           <button
             type="button"
             className="absolute inset-0 bg-slate-950/35"
             aria-label="Debattenstand schließen"
-            onClick={() => setMobileSidecarOpen(false)}
+            onClick={closeMobileSidecar}
           />
           <div
+            ref={mobileDialogRef}
             id="create-debattenstand-sheet"
             role="dialog"
+            tabIndex={-1}"
             aria-modal="true"
             aria-labelledby="create-debattenstand-sheet-title"
             data-create-debattenstand-sheet
@@ -438,7 +510,7 @@ export default function CreateWorkspaceShell({
                   ref={mobileDialogCloseRef}
                   type="button"
                   className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[11px] font-medium text-[rgb(var(--muted))]"
-                  onClick={() => setMobileSidecarOpen(false)}
+                  onClick={closeMobileSidecar}
                 >
                   Schließen
                 </button>
