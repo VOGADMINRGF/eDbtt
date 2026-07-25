@@ -57,6 +57,10 @@ Grund: <done|blocked|needs_decision|research_only|missing|already_on_main|run_pa
 Branch-Erstellung erfolgt: nein
 ```
 
+## Pilot-Evidenz
+
+Der erste Lauf des Piloten `I18N-SURFACE-COVERAGE-02` hat den Task auf aktuellem `main` als bereits `done` erkannt. Ein zunächst zu früh erstellter lokaler Branch wurde ohne Änderungen entfernt. Dieses Ergebnis begründet die harte Regel, dass Branch-Erstellung erst nach bestandenem Preflight zulässig ist.
+
 ## Mindestinhalt
 
 Jedes Run Pack enthält:
