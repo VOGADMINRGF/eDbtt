@@ -155,6 +155,53 @@ describe("mailer security", () => {
     warnSpy.mockRestore();
   });
 
+  it.each([
+    "user@sub.example.org",
+    "user@mail.example.com",
+    "user@qa.example.net",
+  ])("blocks reserved placeholder subdomains: %s", async (recipient) => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    process.env.NODE_ENV = "production";
+    const { sendMail } = await loadMailer();
+
+    const result = await sendMail({
+      to: recipient,
+      subject: "verify",
+      html: "<p>verify</p>",
+      tag: "resend_verification",
+    });
+
+    expect(result).toMatchObject({ ok: false, code: "mail_transport_unavailable" });
+    expect(mocks.createTransport).not.toHaveBeenCalled();
+    expect(mocks.transportSendMail).not.toHaveBeenCalled();
+    const output = JSON.stringify(warnSpy.mock.calls);
+    expect(output).not.toContain(recipient);
+    warnSpy.mockRestore();
+  });
+
+  it.each([
+    "user@example-company.de",
+    "user@myexample.org.de",
+  ])("allows legitimate domains containing example: %s", async (recipient) => {
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    mocks.transportSendMail.mockResolvedValueOnce({ messageId: `msg:${recipient}` });
+    process.env.NODE_ENV = "production";
+    const { sendMail } = await loadMailer();
+
+    const result = await sendMail({
+      to: recipient,
+      subject: "verify",
+      html: "<p>verify</p>",
+      tag: "resend_verification",
+    });
+
+    expect(result).toMatchObject({ ok: true, messageId: `msg:${recipient}` });
+    expect(mocks.transportSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: recipient }),
+    );
+  });
+
   it("blocks edebatte.test in production and does not invoke the transport", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     mocks.hasSmtpTransportConfig.mockReturnValue(true);

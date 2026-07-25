@@ -155,7 +155,7 @@ function evaluateRecipientPolicy(
     return { allowed: false, category: "recipient_invalid" };
   }
 
-  if (RESERVED_PLACEHOLDER_DOMAINS.has(domain) || domain.endsWith(".invalid")) {
+  if (isReservedPlaceholderDomain(domain) || domain.endsWith(".invalid")) {
     return { allowed: false, category: "recipient_placeholder_domain" };
   }
 
@@ -169,6 +169,15 @@ function evaluateRecipientPolicy(
   }
 
   return { allowed: true };
+}
+
+function isReservedPlaceholderDomain(domain: string) {
+  for (const reserved of RESERVED_PLACEHOLDER_DOMAINS) {
+    if (domain === reserved || domain.endsWith(`.${reserved}`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isBlockedTestDomain(domain: string, env: NodeJS.ProcessEnv) {
