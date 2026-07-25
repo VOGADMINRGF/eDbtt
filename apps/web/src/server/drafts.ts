@@ -1,29 +1,11 @@
-// apps/web/src/server/drafts.ts
-import { ObjectId } from "@core/db/triMongo";
 import "server-only";
-/* @ts-nocheck */
-import { coreCol } from "@core/db/db/triMongo";
 
+const RETIRED_WRITER_ERROR = "draft_writer_retired_use_saveUserScopedServerDraft";
 
-export async function createDraft(data: any) {
-  const col = await coreCol("drafts");
-  const now = new Date();
-  const doc = { ...data, createdAt: data?.createdAt ?? now, updatedAt: now };
-  const res = await col.insertOne(doc as any);
-  return { id: res.insertedId.toString(), ...doc };
+export async function createDraft(_data: unknown) {
+  throw new Error(RETIRED_WRITER_ERROR);
 }
 
-export async function patchDraft(id: string, patch: any) {
-  const col = await coreCol("drafts");
-  const now = new Date();
-  await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...patch, updatedAt: now } });
-  const doc = await col.findOne({ _id: new ObjectId(id) });
-  if (!doc) throw new Error("not_found");
-  return { id, ...doc };
-}
-
-export async function getDraft(id: string) {
-  const col = await coreCol("drafts");
-  const doc = await col.findOne({ _id: new ObjectId(id) });
-  return doc ? { id: doc._id.toString(), ...doc } : null;
+export async function patchDraft(_id: string, _patch: unknown) {
+  throw new Error(RETIRED_WRITER_ERROR);
 }

@@ -143,7 +143,7 @@ export function ContributionNewClient({ initialOverview, dossierId }: Contributi
         defaultLevel={1}
         storageKey="vog_contribution_draft_v2"
         analyzeEndpoint="/api/contributions/analyze"
-        saveEndpoint="/api/contributions/save"
+        saveEndpoint="/api/create/save"
         finalizeEndpoint="/api/contributions/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
         dossierId={dossierId ?? undefined}

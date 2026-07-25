@@ -136,7 +136,7 @@ const ENTRIES: ContentZoneEntry[] = [
   {
     id: "create_save_surface",
     label: "Create Save Draft",
-    surface: "/api/contributions/save",
+    surface: "/api/create/save",
     surfaceType: "api_route",
     piiZone: "pii_possible",
     contentZones: ["organization_private", "review_only", "source_material"],
@@ -165,7 +165,7 @@ const ENTRIES: ContentZoneEntry[] = [
       "Gespeicherte Drafts bleiben privat bzw. review-only, hängen Scope nur als Kontext an und veröffentlichen weder PII noch Material automatisch.",
     sourceAnchors: [
       {
-        file: "apps/web/src/app/api/contributions/save/route.ts",
+        file: "apps/web/src/app/api/create/save/route.ts",
         contains: [
           "const sessionUser = await getSessionUser(req);",
           'error: "create_input_blocked"',

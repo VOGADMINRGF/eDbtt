@@ -5,8 +5,15 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
-import { ObjectId, coreCol } from "@core/db/triMongo";
+import { ObjectId } from "@core/db/triMongo";
+import { stableHash } from "@core/utils/hash";
 import { readSession } from "@/utils/session";
+import {
+  GENERIC_SERVER_DRAFT_KIND,
+  MANUAL_ANLASSRAUM_DRAFT_KIND,
+  MANUAL_ANLASSRAUM_SERVER_DRAFT_SOURCE,
+  saveUserScopedServerDraft,
+} from "@/server/serverDrafts";
 
 const DEV_DISABLE_CSRF = process.env.DEV_DISABLE_CSRF === "1";
 
@@ -40,21 +47,6 @@ const SaveDraftSchema = z.object({
   analysis: z.any().optional(),
 });
 
-type DraftDoc = {
-  _id: ObjectId;
-  userId: string;
-  locale?: string;
-  source?: string;
-  text: string;
-  textOriginal?: string;
-  textPrepared?: string;
-  evidenceInput?: string;
-  analysis?: any;
-  status: "draft" | "finalized";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export async function POST(req: NextRequest) {
   try {
     if (!(await isCsrfValid(req))) return csrfForbidden();
@@ -66,56 +58,55 @@ export async function POST(req: NextRequest) {
     }
 
     const body = SaveDraftSchema.parse(await req.json().catch(() => ({})));
-    const col = await coreCol<DraftDoc>("drafts");
-    const now = new Date();
+    const normalizedSource = typeof body.source === "string" ? body.source.trim() : undefined;
+    const kind =
+      normalizedSource === MANUAL_ANLASSRAUM_SERVER_DRAFT_SOURCE
+        ? MANUAL_ANLASSRAUM_DRAFT_KIND
+        : GENERIC_SERVER_DRAFT_KIND;
+    const idempotencyKey = stableHash({
+      userId,
+      kind,
+      source: normalizedSource ?? null,
+      locale: body.locale ?? null,
+      text: body.text.trim(),
+      textOriginal: body.textOriginal ?? null,
+      textPrepared: body.textPrepared ?? null,
+      evidenceInput: body.evidenceInput ?? null,
+      analysis: body.analysis ?? null,
+    });
 
-    if (body.draftId && ObjectId.isValid(body.draftId)) {
-      const _id = new ObjectId(body.draftId);
-      const update: Partial<DraftDoc> = {
-        text: body.text,
-        updatedAt: now,
-      };
-      if (body.locale !== undefined) update.locale = body.locale;
-      if (body.source !== undefined) update.source = body.source;
-      if (body.textOriginal !== undefined) update.textOriginal = body.textOriginal;
-      if (body.textPrepared !== undefined) update.textPrepared = body.textPrepared;
-      if (body.evidenceInput !== undefined) update.evidenceInput = body.evidenceInput;
-      if (body.analysis !== undefined) update.analysis = body.analysis;
+    const saved = await saveUserScopedServerDraft({
+      userId,
+      route: "/api/drafts/save",
+      kind,
+      draftId: body.draftId ?? undefined,
+      locale: body.locale ?? null,
+      source: normalizedSource ?? null,
+      text: body.text.trim(),
+      textOriginal: body.textOriginal ?? null,
+      textPrepared: body.textPrepared ?? null,
+      evidenceInput: body.evidenceInput ?? null,
+      analysis: body.analysis,
+      idempotencyKey,
+    });
 
-      const res = await col.updateOne({ _id, userId }, { $set: update });
-      if (!res.matchedCount) {
+    if (saved.ok === false) {
+      if (saved.error === "draft_not_found") {
         return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
       }
-
-      return NextResponse.json({
-        ok: true,
-        draftId: String(_id),
-        updatedAt: now.toISOString(),
-      });
+      if (saved.error === "draft_finalized") {
+        return NextResponse.json({ ok: false, error: "draft_finalized" }, { status: 409 });
+      }
+      if (saved.error === "idempotency_conflict") {
+        return NextResponse.json({ ok: false, error: "idempotency_conflict" }, { status: 409 });
+      }
+      return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
     }
-
-    const _id = new ObjectId();
-    const doc: DraftDoc = {
-      _id,
-      userId,
-      locale: body.locale,
-      source: body.source,
-      text: body.text,
-      textOriginal: body.textOriginal,
-      textPrepared: body.textPrepared,
-      evidenceInput: body.evidenceInput,
-      analysis: body.analysis,
-      status: "draft",
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await col.insertOne(doc);
 
     return NextResponse.json({
       ok: true,
-      draftId: String(_id),
-      updatedAt: now.toISOString(),
+      draftId: saved.draftId,
+      updatedAt: saved.updatedAt.toISOString(),
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
