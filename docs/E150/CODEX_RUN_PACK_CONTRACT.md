@@ -13,6 +13,50 @@ Ein Codex Run Pack übersetzt einen bestehenden `codex_ready`-Task aus `docs/E15
 
 Kalenderdaten dürfen die Reihenfolge und den Zeitpunkt bestätigen, aber nicht den fachlichen Status in OpenTasks überschreiben.
 
+## Zwingender Preflight vor Branch-Erstellung
+
+Vor jeder Branch-Erstellung, Codeänderung oder Testausführung muss Codex den aktuellen Repository-Stand prüfen.
+
+Der Preflight muss mindestens bestätigen:
+
+1. Der Task existiert in `docs/E150/OpenTasks.md`.
+2. Der aktuelle Status ist weiterhin exakt `codex_ready`.
+3. Alle dokumentierten Abhängigkeiten sind erfüllt.
+4. Referenzierte Evidenz oder ein zugehöriger PR ist nicht bereits auf `main` enthalten.
+5. Das Run Pack und seine referenzierten Dateien existieren im tatsächlich ausgecheckten Commit oder werden ausdrücklich als externer Prompt bereitgestellt.
+6. Der Worktree ist sauber oder vorhandene Änderungen wurden eindeutig als zulässiger Ausgangszustand bestätigt.
+
+### Harte Abbruchregeln
+
+- `done`: Lauf ohne Implementierung beenden.
+- `blocked`: Blocker berichten und Lauf beenden.
+- `needs_decision`: genau eine entscheidbare Rückfrage stellen und keine Branch-Erstellung durchführen.
+- `research_only`: keine Implementierung und keinen Implementierungsbranch anlegen.
+- Task fehlt oder Status ist widersprüchlich: Lauf beenden und den Konflikt benennen.
+- Evidenz ist bereits auf `main`: Lauf als bereits erledigt beenden.
+- Run Pack fehlt im aktuellen Tree: nicht behaupten, es gelesen zu haben; Quelle klären oder Lauf beenden.
+
+Ein Branch darf erst nach bestandenem Preflight erstellt werden.
+
+Das Preflight-Ergebnis lautet entweder:
+
+```text
+PREFLIGHT BESTANDEN
+Task: <ID>
+Status: codex_ready
+Basis: <commit>
+Branch-Erstellung erlaubt: ja
+```
+
+oder:
+
+```text
+PREFLIGHT ABBRUCH
+Task: <ID>
+Grund: <done|blocked|needs_decision|research_only|missing|already_on_main|run_pack_missing|dirty_worktree|conflict>
+Branch-Erstellung erfolgt: nein
+```
+
 ## Mindestinhalt
 
 Jedes Run Pack enthält:
@@ -76,6 +120,7 @@ Das Rückfrageformat lautet:
 
 ## Standardsequenz
 
+0. Preflight
 1. Inspect
 2. Implement
 3. Verify
@@ -83,7 +128,7 @@ Das Rückfrageformat lautet:
 5. Fix, nur falls erforderlich
 6. Close
 
-Kleine, klar abgegrenzte Tasks dürfen Schritte zusammenfassen. Kein Run Pack darf mehr als sechs Prompts verlangen.
+Kleine, klar abgegrenzte Tasks dürfen Schritte zusammenfassen. Kein Run Pack darf mehr als sechs Implementierungs- und Review-Prompts verlangen; der Preflight ist davon ausgenommen.
 
 ## Abschlussanforderungen
 
@@ -96,6 +141,15 @@ Der letzte Codex-Schritt berichtet:
 5. offene Risiken oder Folgeaufgaben
 6. Status der OpenTasks-Aktualisierung
 7. PR-Titel und PR-Beschreibung
+
+Bei einem Preflight-Abbruch berichtet Codex stattdessen nur:
+
+1. Task-ID
+2. festgestellter Status
+3. Abbruchgrund
+4. aktueller Branch und Basis-Commit
+5. Worktree-Status
+6. Bestätigung, dass kein Implementierungsbranch angelegt und keine Datei verändert wurde
 
 ## Qualitätsregel
 
