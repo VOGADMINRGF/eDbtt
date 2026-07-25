@@ -532,7 +532,7 @@ describe("content release workbench", () => {
     });
     expect(
       visibleTargets.find((target) => target.targetType === "dossier")?.qrHref,
-    ).toContain("/qrcodegenerator?target=");
+    ).toContain("/qr-studio?caller=content_release_workbench&target=");
     expect(
       visibleTargets.find((target) => target.targetType === "dossier")?.publicLink,
     ).toMatchObject({

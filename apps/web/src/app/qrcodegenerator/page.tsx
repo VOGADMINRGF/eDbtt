@@ -1,12 +1,22 @@
-"use client";
-import React from "react";
-import QRCodeGenerator from "@/components/QRCodeGenerator";
+import { redirect } from "next/navigation";
+import { buildQrStudioHref } from "@features/qr";
 
-export default function Page() {
-  return (
-    <main style={{ padding: 16 }}>
-      <h1>QR Code Generator</h1>
-      <QRCodeGenerator />
-    </main>
+type PageProps = {
+  searchParams: Promise<{
+    target?: string | string[];
+    caller?: string | string[];
+  }>;
+};
+
+export default async function QrCodeGeneratorRedirectPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const target = typeof params.target === "string" ? params.target : null;
+  const caller = typeof params.caller === "string" ? params.caller : "legacy_qrcodegenerator";
+
+  redirect(
+    buildQrStudioHref({
+      target,
+      caller,
+    }),
   );
 }

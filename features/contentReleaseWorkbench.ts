@@ -14,6 +14,7 @@ import {
   publicationVisibilityLabel,
   type RegionPublicationVisibilityState,
 } from "@features/region/publicationRiskLadder";
+import { buildQrStudioHref } from "@features/qr";
 import type { RegionSourcePossibleClaim, RegionSourceTestResult } from "@features/region/sourceConnections";
 import { getRegionSourceTestResultById } from "@features/region/server/sourceConnectionRuntime";
 import { createManualAnlassraum } from "@features/anlassraum/service";
@@ -406,7 +407,10 @@ function publicHrefFor(targetType: ContentReleaseTargetType, targetId: string) {
 
 function qrHrefFor(publicHref: string | null, visibilityState: RegionPublicationVisibilityState) {
   if (!publicHref || !isPublicVisibilityState(visibilityState)) return null;
-  return `/qrcodegenerator?target=${encodeURIComponent(publicHref)}`;
+  return buildQrStudioHref({
+    target: publicHref,
+    caller: "content_release_workbench",
+  });
 }
 
 function publicContentLinkFor(
