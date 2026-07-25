@@ -255,9 +255,9 @@ export default function CreateWorkspaceShell({
   const [mobileSidecarMode, setMobileSidecarMode] =
     React.useState<MobileSidecarMode>("compact");
   const mobileDialogCloseRef = React.useRef<React.ElementRef<"button"> | null>(null);
-  const mobileDialogRef = React.useRef<HTMLDivElement | null>(null);
+  const mobileDialogRef = React.useRef<React.ElementRef<"div"> | null>(null);
   const mobileDialogTriggerRef = React.useRef<HTMLElement | null>(null);
-  const workspaceContentRef = React.useRef<HTMLDivElement | null>(null);
+  const workspaceContentRef = React.useRef<React.ElementRef<"div"> | null>(null);
 
   const openMobileSidecar = React.useCallback(() => {
     if (document.activeElement instanceof HTMLElement) {
@@ -475,7 +475,7 @@ export default function CreateWorkspaceShell({
             ref={mobileDialogRef}
             id="create-debattenstand-sheet"
             role="dialog"
-            tabIndex={-1}"
+            tabIndex={-1}
             aria-modal="true"
             aria-labelledby="create-debattenstand-sheet-title"
             data-create-debattenstand-sheet
