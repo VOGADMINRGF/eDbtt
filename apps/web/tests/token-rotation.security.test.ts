@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => {
     return crypto.createHash("sha256").update(raw).digest("hex");
   }
 
+  function clone<T>(value: T): T {
+    return value == null ? value : JSON.parse(JSON.stringify(value));
+  }
+
   function matches(doc: Record<string, any>, filter: Record<string, any>) {
     return Object.entries(filter).every(([key, value]) => {
       if (key === "$or" && Array.isArray(value)) {
@@ -25,66 +29,70 @@ const mocks = vi.hoisted(() => {
     });
   }
 
-  return {
-    piiCol: vi.fn(async () => ({
-      createIndex: vi.fn(async () => "expires_ttl"),
+  function collectionFor(docs: Record<string, any>[]) {
+    return {
+      createIndex: vi.fn(async () => "ok"),
+      insertOne: vi.fn(async (doc: Record<string, any>) => {
+        docs.push(clone({ _id: `doc-${docs.length + 1}`, ...doc }));
+        return { acknowledged: true };
+      }),
       updateMany: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-        for (const doc of resetTokens) {
+        for (const doc of docs) {
           if (matches(doc, filter)) Object.assign(doc, update.$set ?? {});
         }
         return { acknowledged: true };
       }),
-      insertOne: vi.fn(async (doc: Record<string, any>) => {
-        resetTokens.push({ _id: `reset-${resetTokens.length + 1}`, ...doc });
-        return { acknowledged: true };
-      }),
       findOne: vi.fn(async (filter: Record<string, any>) =>
-        resetTokens.find((doc) => matches(doc, filter)) ?? null,
+        clone(docs.find((doc) => matches(doc, filter)) ?? null),
       ),
-      findOneAndUpdate: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-        const hit = resetTokens.find((doc) => matches(doc, filter)) ?? null;
-        if (!hit) return null;
-        Object.assign(hit, update.$set ?? {});
-        return hit;
-      }),
+      findOneAndUpdate: vi.fn(
+        async (
+          filter: Record<string, any>,
+          update: Record<string, any>,
+          options?: { upsert?: boolean; returnDocument?: "before" | "after" },
+        ) => {
+          const existing = docs.find((doc) => matches(doc, filter)) ?? null;
+          if (!existing && !options?.upsert) return null;
+
+          const target =
+            existing ??
+            (() => {
+              const created = {
+                _id: `doc-${docs.length + 1}`,
+                ...(update.$setOnInsert ?? {}),
+              };
+              docs.push(created);
+              return created;
+            })();
+
+          const before = clone(target);
+          Object.assign(target, update.$set ?? {});
+          if (!existing) {
+            Object.assign(target, update.$setOnInsert ?? {});
+          }
+
+          return options?.returnDocument === "after" ? clone(target) : before;
+        },
+      ),
       updateOne: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-        const hit = resetTokens.find((doc) => matches(doc, filter));
+        const hit = docs.find((doc) => matches(doc, filter));
         if (hit) Object.assign(hit, update.$set ?? {});
         return { acknowledged: true };
       }),
-    })),
+    };
+  }
+
+  return {
+    users,
+    resetTokens,
+    verificationTokens,
+    piiCol: vi.fn(async () => collectionFor(resetTokens)),
     getCol: vi.fn(async (name: string) => {
       if (name === "email_verification_tokens") {
-        return {
-          updateMany: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-            for (const doc of verificationTokens) {
-              if (matches(doc, filter)) Object.assign(doc, update.$set ?? {});
-            }
-            return { acknowledged: true };
-          }),
-          insertOne: vi.fn(async (doc: Record<string, any>) => {
-            verificationTokens.push({ _id: `verify-${verificationTokens.length + 1}`, ...doc });
-            return { acknowledged: true };
-          }),
-          findOne: vi.fn(async (filter: Record<string, any>) =>
-            verificationTokens.find((doc) => matches(doc, filter)) ?? null,
-          ),
-          findOneAndUpdate: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-            const hit = verificationTokens.find((doc) => matches(doc, filter)) ?? null;
-            if (!hit) return null;
-            Object.assign(hit, update.$set ?? {});
-            return hit;
-          }),
-          updateOne: vi.fn(async (filter: Record<string, any>, update: Record<string, any>) => {
-            const hit = verificationTokens.find((doc) => matches(doc, filter));
-            if (hit) Object.assign(hit, update.$set ?? {});
-            return { acknowledged: true };
-          }),
-        };
+        return collectionFor(verificationTokens);
       }
-
       return {
-        findOne: vi.fn(async (query: Record<string, any>) => users.get(String(query?._id)) ?? null),
+        findOne: vi.fn(async (query: Record<string, any>) => clone(users.get(String(query?._id)) ?? null)),
         updateOne: vi.fn(async (query: Record<string, any>, update: Record<string, any>) => {
           const hit = users.get(String(query?._id));
           if (hit) Object.assign(hit, update.$set ?? {});
@@ -92,16 +100,13 @@ const mocks = vi.hoisted(() => {
         }),
       };
     }),
-    users,
-    resetTokens,
-    verificationTokens,
+    hash,
     reset() {
       resetTokens.length = 0;
       verificationTokens.length = 0;
       users.clear();
       vi.clearAllMocks();
     },
-    hash,
   };
 });
 
@@ -119,7 +124,7 @@ describe("token rotation security", () => {
     mocks.reset();
   });
 
-  it("rotates older unused reset tokens so only the latest remains valid", async () => {
+  it("keeps only the latest sequential reset token valid and enforces single use", async () => {
     const { createToken, consumeToken } = await import("@/utils/tokens");
 
     const first = await createToken("user-1", "reset", 60);
@@ -128,12 +133,24 @@ describe("token rotation security", () => {
     expect(await consumeToken(first, "reset")).toBeNull();
     expect(await consumeToken(second, "reset")).toBe("user-1");
     expect(await consumeToken(second, "reset")).toBeNull();
-    expect(mocks.resetTokens).toHaveLength(2);
-    expect(mocks.resetTokens[0]?.invalidatedAt).toBeTruthy();
-    expect(mocks.resetTokens[1]?.usedAt).toBeTruthy();
+    expect(mocks.resetTokens.filter((doc) => doc.slotKey)).toHaveLength(1);
   });
 
-  it("rotates older unused verification tokens so only the latest remains valid", async () => {
+  it("keeps only the final current reset token valid across parallel issuance", async () => {
+    const { createToken, consumeToken } = await import("@/utils/tokens");
+
+    const [first, second] = await Promise.all([
+      createToken("user-2", "reset", 60),
+      createToken("user-2", "reset", 60),
+    ]);
+
+    expect(await consumeToken(first, "reset")).toBeNull();
+    expect(await consumeToken(second, "reset")).toBe("user-2");
+    expect(await consumeToken(second, "reset")).toBeNull();
+    expect(mocks.resetTokens.filter((doc) => doc.slotKey)).toHaveLength(1);
+  });
+
+  it("keeps only the latest sequential verification token valid", async () => {
     const { ObjectId } = await import("@core/db/triMongo");
     const { createEmailVerificationToken, consumeEmailVerificationToken } = await import("@core/auth/emailVerificationService");
 
@@ -149,11 +166,35 @@ describe("token rotation security", () => {
     const second = await createEmailVerificationToken(userId, "member@edebatte.org");
 
     expect(await consumeEmailVerificationToken(first.rawToken)).toBeNull();
-    const consumed = await consumeEmailVerificationToken(second.rawToken);
-    expect(consumed).toMatchObject({ email: "member@edebatte.org" });
+    expect(await consumeEmailVerificationToken(second.rawToken)).toMatchObject({
+      email: "member@edebatte.org",
+    });
     expect(await consumeEmailVerificationToken(second.rawToken)).toBeNull();
-    expect(mocks.verificationTokens).toHaveLength(2);
-    expect(mocks.verificationTokens[0]?.invalidatedAt).toBeTruthy();
-    expect(mocks.verificationTokens[1]?.usedAt).toBeTruthy();
+    expect(mocks.verificationTokens.filter((doc) => doc.slotKey)).toHaveLength(1);
+  });
+
+  it("keeps only the final current verification token valid across parallel issuance", async () => {
+    const { ObjectId } = await import("@core/db/triMongo");
+    const { createEmailVerificationToken, consumeEmailVerificationToken } = await import("@core/auth/emailVerificationService");
+
+    const userId = new ObjectId("507f1f77bcf86cd799439012");
+    mocks.users.set(String(userId), {
+      _id: userId,
+      verification: { level: "none", methods: [] },
+      verifiedEmail: false,
+      emailVerified: false,
+    });
+
+    const [first, second] = await Promise.all([
+      createEmailVerificationToken(userId, "member@edebatte.org"),
+      createEmailVerificationToken(userId, "member@edebatte.org"),
+    ]);
+
+    expect(await consumeEmailVerificationToken(first.rawToken)).toBeNull();
+    expect(await consumeEmailVerificationToken(second.rawToken)).toMatchObject({
+      email: "member@edebatte.org",
+    });
+    expect(await consumeEmailVerificationToken(second.rawToken)).toBeNull();
+    expect(mocks.verificationTokens.filter((doc) => doc.slotKey)).toHaveLength(1);
   });
 });

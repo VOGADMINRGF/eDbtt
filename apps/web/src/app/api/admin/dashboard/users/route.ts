@@ -38,7 +38,7 @@ const createSchema = z.object({
       const trimmed = value.trim();
       return trimmed.length > 0 ? trimmed : undefined;
     },
-    z.string().optional(),
+    z.string().min(12).optional(),
   ),
   roles: z.array(z.string()).optional(),
   accessTier: z.string().optional(),
@@ -285,7 +285,15 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: "invalid_input" }, { status: 400 });
+    const passwordTooShort = parsed.error.issues.some(
+      (issue) =>
+        issue.path.join(".") === "password" &&
+        issue.code === "too_small",
+    );
+    return NextResponse.json(
+      { ok: false, error: passwordTooShort ? "weak_password" : "invalid_input" },
+      { status: 400 },
+    );
   }
 
   const body = parsed.data;

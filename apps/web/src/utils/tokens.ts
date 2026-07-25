@@ -5,6 +5,8 @@ import { piiCol } from "@core/db/triMongo";
 type TokenType = "verify" | "reset";
 
 type StoredTokenDoc = {
+  _id?: unknown;
+  slotKey?: string | null;
   userId: string;
   type: TokenType;
   tokenHash: string;
@@ -13,10 +15,47 @@ type StoredTokenDoc = {
   invalidatedAt?: Date | null;
   invalidationReason?: string | null;
   createdAt: Date;
+  updatedAt?: Date | null;
 };
 
-function sha256(s: string) {
-  return crypto.createHash("sha256").update(s).digest("hex");
+let indexesEnsured = false;
+
+function sha256(value: string) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function tokenSlotKey(userId: string, type: TokenType) {
+  return `slot:${type}:${userId}`;
+}
+
+async function ensureTokenIndexes(col: Awaited<ReturnType<typeof piiCol<StoredTokenDoc>>>) {
+  if (indexesEnsured) return;
+
+  try {
+    await col.createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0, name: "expires_ttl" },
+    );
+  } catch (error: any) {
+    const code = error?.code ?? error?.codeName;
+    if (!(code === 85 || code === "IndexOptionsConflict")) {
+      throw error;
+    }
+  }
+
+  try {
+    await col.createIndex(
+      { slotKey: 1 },
+      { unique: true, sparse: true, name: "token_slot_unique" },
+    );
+  } catch (error: any) {
+    const code = error?.code ?? error?.codeName;
+    if (!(code === 85 || code === "IndexOptionsConflict")) {
+      throw error;
+    }
+  }
+
+  indexesEnsured = true;
 }
 
 export async function createToken(
@@ -26,23 +65,37 @@ export async function createToken(
 ) {
   const raw = crypto.randomBytes(24).toString("hex");
   const tokenHash = sha256(raw);
+  const slotKey = tokenSlotKey(userId, type);
   const col = await piiCol<StoredTokenDoc>("tokens");
-  const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
   const now = new Date();
-  try {
-    await col.createIndex(
-      { expiresAt: 1 },
-      { expireAfterSeconds: 0, name: "expires_ttl" },
-    );
-  } catch (err: any) {
-    // Ignore when the TTL index already exists under a different name/options.
-    const code = err?.code ?? err?.codeName;
-    if (!(code === 85 || code === "IndexOptionsConflict")) {
-      throw err;
-    }
-  }
+  const expiresAt = new Date(now.getTime() + ttlMinutes * 60_000);
+
+  await ensureTokenIndexes(col);
+
+  await col.findOneAndUpdate(
+    { slotKey },
+    {
+      $set: {
+        userId,
+        type,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+        invalidatedAt: null,
+        invalidationReason: null,
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        slotKey,
+        createdAt: now,
+      },
+    },
+    { upsert: true, returnDocument: "before" },
+  );
+
   await col.updateMany(
     {
+      slotKey: { $exists: false },
       userId,
       type,
       usedAt: null,
@@ -53,19 +106,11 @@ export async function createToken(
       $set: {
         invalidatedAt: now,
         invalidationReason: "rotated",
+        updatedAt: now,
       },
     },
   );
-  await col.insertOne({
-    userId,
-    type,
-    tokenHash,
-    expiresAt,
-    usedAt: null,
-    invalidatedAt: null,
-    invalidationReason: null,
-    createdAt: now,
-  });
+
   return raw;
 }
 
@@ -73,17 +118,52 @@ export async function consumeToken(raw: string, type: TokenType) {
   const col = await piiCol<StoredTokenDoc>("tokens");
   const tokenHash = sha256(raw);
   const now = new Date();
-  const doc = await col.findOneAndUpdate(
+
+  const currentSlot = await col.findOneAndUpdate(
     {
+      slotKey: { $exists: true },
+      type,
+      tokenHash,
+      usedAt: null,
+      $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
+      expiresAt: { $gt: now },
+    },
+    {
+      $set: {
+        usedAt: now,
+        invalidatedAt: now,
+        invalidationReason: "consumed",
+        updatedAt: now,
+      },
+    },
+    { returnDocument: "before" },
+  );
+  if (currentSlot) {
+    return currentSlot.userId as string;
+  }
+
+  const legacyDoc = await col.findOneAndUpdate(
+    {
+      slotKey: { $exists: false },
       tokenHash,
       type,
       usedAt: null,
       $or: [{ invalidatedAt: null }, { invalidatedAt: { $exists: false } }],
       expiresAt: { $gt: now },
     },
-    { $set: { usedAt: now } },
+    {
+      $set: {
+        usedAt: now,
+        invalidatedAt: now,
+        invalidationReason: "consumed",
+        updatedAt: now,
+      },
+    },
     { returnDocument: "before" },
   );
-  if (!doc) return null;
-  return doc.userId as string;
+  if (legacyDoc) {
+    return legacyDoc.userId as string;
+  }
+
+  return null;
 }
