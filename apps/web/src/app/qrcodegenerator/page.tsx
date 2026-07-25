@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { buildQrStudioHref } from "@features/qr";
 
+/* page-contract: delegated-h1 legacy redirect only */
+
 type PageProps = {
   searchParams: Promise<{
     target?: string | string[];
