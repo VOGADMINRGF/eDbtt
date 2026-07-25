@@ -140,7 +140,10 @@ export default function SettingsPage() {
         <p className="text-gray-700">Hier kannst du Sprache, Benachrichtigungen und Datenschutz verwalten.</p>
       </header>
 
-      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <section
+        data-nosnippet="true"
+        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"
+      >
         <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Datenschutz & Verarbeitung</h2>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           eDebatte trennt die notwendige Verarbeitung für den gewünschten Dienst von freiwilligen Zusatzfreigaben. Die
@@ -212,7 +215,7 @@ export default function SettingsPage() {
             }}
             disabled={loading || saving}
           >
-            Ohne freiwillige Optionen speichern
+            Nur notwendige Funktionen
           </button>
         </div>
 

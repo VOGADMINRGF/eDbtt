@@ -93,6 +93,17 @@ function DialogShield() {
   );
 }
 
+const DIALOG_VIEWPORT_STYLE = {
+  paddingTop: "max(env(safe-area-inset-top, 0px), 0.75rem)",
+  paddingRight: "max(env(safe-area-inset-right, 0px), 0.75rem)",
+  paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.75rem)",
+  paddingLeft: "max(env(safe-area-inset-left, 0px), 0.75rem)",
+} satisfies React.CSSProperties;
+
+const DIALOG_PANEL_STYLE = {
+  maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+} satisfies React.CSSProperties;
+
 export function PrivacyGateProvider(props: {
   initialConsent?: Consent | null;
   initiallyOpen?: boolean;
@@ -115,6 +126,7 @@ export function PrivacyGateProvider(props: {
   const shellRef = React.useRef<HTMLDivElement | null>(null);
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const primaryCheckboxRef = React.useRef<HTMLInputElement | null>(null);
+  const restoreFocusRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     const browserConsent = readConsentFromBrowser();
@@ -139,12 +151,16 @@ export function PrivacyGateProvider(props: {
   React.useEffect(() => {
     if (!gateOpen) return;
     const previousOverflow = document.body.style.overflow;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => {
       primaryCheckboxRef.current?.focus();
     }, 0);
     return () => {
       document.body.style.overflow = previousOverflow;
+      if (restoreFocusRef.current?.isConnected) {
+        restoreFocusRef.current.focus();
+      }
     };
   }, [gateOpen]);
 
@@ -193,9 +209,9 @@ export function PrivacyGateProvider(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [gateOpen, optionsOpen]);
 
-  const openGate = React.useCallback((mode: "notice" | "options" = "notice") => {
+  const openGate = React.useCallback((_mode: "notice" | "options" = "notice") => {
     setGateOpen(true);
-    setOptionsOpen(mode === "options");
+    setOptionsOpen(false);
   }, []);
 
   React.useEffect(() => {
@@ -275,148 +291,161 @@ export function PrivacyGateProvider(props: {
       {gateOpen ? (
         <div className="fixed inset-0 z-[120]">
           <DialogShield />
-          <div className="absolute inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <div
+            className="absolute inset-0 flex items-end justify-center sm:items-center"
+            style={DIALOG_VIEWPORT_STYLE}
+          >
             <div
               ref={dialogRef}
               role="dialog"
               aria-modal="true"
               aria-labelledby="privacy-gate-title"
               aria-describedby="privacy-gate-description"
-              className="relative w-full max-w-3xl overflow-hidden rounded-t-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] shadow-[0_28px_80px_rgba(2,6,23,0.48)] sm:rounded-[2rem]"
+              style={DIALOG_PANEL_STYLE}
+              className="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] shadow-[0_28px_80px_rgba(2,6,23,0.48)]"
             >
               <div className="h-1.5 bg-[linear-gradient(90deg,rgba(34,211,238,0.86),rgba(16,185,129,0.78))]" />
-              <div className="space-y-6 p-5 sm:p-7">
-                <header className="space-y-3">
+              <div data-nosnippet="true" className="flex min-h-0 flex-1 flex-col">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  <div className="space-y-6 p-5 pb-28 sm:p-7 sm:pb-32">
+                    <header className="space-y-3">
                   <div className="inline-flex items-center rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200 dark:text-cyan-100">
                     Datenschutz-Checkpoint
                   </div>
                   <div className="space-y-2">
-                    <h2 id="privacy-gate-title" className="text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-[2rem]">
+                    <h2
+                      id="privacy-gate-title"
+                      className="text-2xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-[2rem]"
+                    >
                       Bevor du startest: Datenschutz verständlich erklärt
                     </h2>
-                    <p id="privacy-gate-description" className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
+                    <p
+                      id="privacy-gate-description"
+                      className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base"
+                    >
                       eDebatte verarbeitet deine Eingabe, damit daraus Themen, Fragen, Quellenhinweise, mögliche Argumente oder Beteiligungsoptionen entstehen können. Dafür sind einige technische und sicherheitsbezogene Daten notwendig. Alles Weitere bleibt freiwillig.
                     </p>
                     <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">
                       Wir nutzen keinen Datenschutz-Dialog, der dich zu unnötiger Zustimmung drängt. Du kannst eDebatte mit den notwendigen Funktionen nutzen und optionale Dinge getrennt entscheiden.
                     </p>
                   </div>
-                </header>
+                    </header>
 
-                <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-                  <div className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                        Notwendige Verarbeitung
+                    <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                      <div className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                            Notwendige Verarbeitung
+                          </p>
+                          <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
+                            <li>Eingabe verarbeiten und in den gewünschten Arbeitsfluss überführen</li>
+                            <li>Analyse, Dossier-, Faktencheck- oder Beteiligungsschritte technisch ausführen</li>
+                            <li>Sitzung, Missbrauchsschutz und Sicherheitsereignisse verwalten</li>
+                            <li>Arbeitsstände speichern, wenn du das ausdrücklich auslöst</li>
+                          </ul>
+                        </div>
+
+                        <label className="flex items-start gap-3 rounded-[1.25rem] border border-cyan-300/25 bg-cyan-500/8 px-4 py-3">
+                          <input
+                            ref={primaryCheckboxRef}
+                            type="checkbox"
+                            checked={requiredChecked}
+                            onChange={(event) => setRequiredChecked(event.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-[rgb(var(--border))] bg-[rgb(var(--card))] text-cyan-500 focus:ring-cyan-300"
+                          />
+                          <span className="text-sm leading-relaxed text-[rgb(var(--fg))]">
+                            Ich habe verstanden, wie eDebatte meine Eingabe für den gewünschten Dienst verarbeitet.
+                          </span>
+                        </label>
+
+                        <p className="text-xs text-[rgb(var(--muted))]">
+                          Mehr dazu im Datenschutz-Dossier: Wie eDebatte mit Eingaben, KI und Beteiligung umgeht.
+                        </p>
+                      </div>
+
+                      <aside className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                            Optionale Verarbeitung
+                          </p>
+                          <p className="text-sm text-[rgb(var(--muted))]">
+                            Komfort, Statistik, externe Medien und Produktverbesserung bleiben freiwillig und sind standardmäßig deaktiviert.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" className="btn btn-ghost text-sm" onClick={openPrivacyDossier}>
+                            Datenschutz-Dossier öffnen
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost text-sm"
+                            onClick={() => {
+                              setOptionsOpen((current) => !current);
+                              setFormNotice(null);
+                            }}
+                          >
+                            {optionsOpen ? "Optionen ausblenden" : "Freiwillige Optionen"}
+                          </button>
+                        </div>
+                      </aside>
+                    </section>
+
+                    <section className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                          Freiwillige Optionen
+                        </p>
+                        <p className="text-sm text-[rgb(var(--muted))]">
+                          Nichts davon ist nötig, um eDebatte zu nutzen.
+                        </p>
+                      </div>
+
+                      {optionsOpen ? (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <OptionalToggle
+                            label="Komfortfunktionen erlauben"
+                            checked={optionalDraft.comfort}
+                            onChange={(checked) => setOptionalDraft((current) => ({ ...current, comfort: checked }))}
+                          />
+                          <OptionalToggle
+                            label="Anonyme Nutzungsstatistik erlauben"
+                            checked={optionalDraft.analytics}
+                            onChange={(checked) => setOptionalDraft((current) => ({ ...current, analytics: checked }))}
+                          />
+                          <OptionalToggle
+                            label="Externe Medien erst nach Freigabe laden"
+                            checked={optionalDraft.externalMedia}
+                            onChange={(checked) =>
+                              setOptionalDraft((current) => ({ ...current, externalMedia: checked }))
+                            }
+                          />
+                          <OptionalToggle
+                            label="Produktverbesserung mit anonymisierten Signalen erlauben"
+                            checked={optionalDraft.productImprovement}
+                            onChange={(checked) =>
+                              setOptionalDraft((current) => ({ ...current, productImprovement: checked }))
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-[1.15rem] border border-dashed border-[rgb(var(--border))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+                          Optionales bleibt ausgeschaltet, bis du es hier bewusst aktivierst.
+                        </p>
+                      )}
+                    </section>
+
+                    {formNotice ? (
+                      <p className="rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                        {formNotice}
                       </p>
-                      <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
-                        <li>Eingabe verarbeiten und in den gewünschten Arbeitsfluss überführen</li>
-                        <li>Analyse, Dossier-, Faktencheck- oder Beteiligungsschritte technisch ausführen</li>
-                        <li>Sitzung, Missbrauchsschutz und Sicherheitsereignisse verwalten</li>
-                        <li>Arbeitsstände speichern, wenn du das ausdrücklich auslöst</li>
-                      </ul>
-                    </div>
-
-                    <label className="flex items-start gap-3 rounded-[1.25rem] border border-cyan-300/25 bg-cyan-500/8 px-4 py-3">
-                      <input
-                        ref={primaryCheckboxRef}
-                        type="checkbox"
-                        checked={requiredChecked}
-                        onChange={(event) => setRequiredChecked(event.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-[rgb(var(--border))] bg-[rgb(var(--card))] text-cyan-500 focus:ring-cyan-300"
-                      />
-                      <span className="text-sm leading-relaxed text-[rgb(var(--fg))]">
-                        Ich habe verstanden, wie eDebatte meine Eingabe für den gewünschten Dienst verarbeitet.
-                      </span>
-                    </label>
-
-                    <p className="text-xs text-[rgb(var(--muted))]">
-                      Mehr dazu im Datenschutz-Dossier: Wie eDebatte mit Eingaben, KI und Beteiligung umgeht.
-                    </p>
+                    ) : null}
                   </div>
+                </div>
 
-                  <aside className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                        Optionale Verarbeitung
-                      </p>
-                      <p className="text-sm text-[rgb(var(--muted))]">
-                        Komfort, Statistik, externe Medien und Produktverbesserung bleiben freiwillig und sind standardmäßig deaktiviert.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-ghost text-sm"
-                        onClick={() => {
-                          setOptionsOpen((current) => !current);
-                          setFormNotice(null);
-                        }}
-                      >
-                        Freiwillige Optionen
-                      </button>
-                      <button type="button" className="btn btn-ghost text-sm" onClick={openPrivacyDossier}>
-                        Datenschutz-Dossier öffnen
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary text-sm"
-                        onClick={() => {
-                          if (!canContinue) {
-                            setFormNotice("Bitte bestätige zuerst die notwendige Datenschutz-Kenntnisnahme.");
-                            return;
-                          }
-                          void commitConsent({
-                            requiredNoticeAcknowledged: true,
-                            optional: optionalDraft,
-                            source: "privacy-gate",
-                          });
-                        }}
-                      >
-                        Notwendiges verstanden – weiter
-                      </button>
-                    </div>
-                  </aside>
-                </section>
-
-                {optionsOpen ? (
-                  <section className="space-y-4 rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                        Optionen
-                      </p>
-                      <p className="text-sm text-[rgb(var(--muted))]">
-                        Nichts davon ist nötig, um eDebatte zu nutzen.
-                      </p>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <OptionalToggle
-                        label="Komfortfunktionen erlauben"
-                        checked={optionalDraft.comfort}
-                        onChange={(checked) => setOptionalDraft((current) => ({ ...current, comfort: checked }))}
-                      />
-                      <OptionalToggle
-                        label="Anonyme Nutzungsstatistik erlauben"
-                        checked={optionalDraft.analytics}
-                        onChange={(checked) => setOptionalDraft((current) => ({ ...current, analytics: checked }))}
-                      />
-                      <OptionalToggle
-                        label="Externe Medien erst nach Freigabe laden"
-                        checked={optionalDraft.externalMedia}
-                        onChange={(checked) => setOptionalDraft((current) => ({ ...current, externalMedia: checked }))}
-                      />
-                      <OptionalToggle
-                        label="Produktverbesserung mit anonymisierten Signalen erlauben"
-                        checked={optionalDraft.productImprovement}
-                        onChange={(checked) =>
-                          setOptionalDraft((current) => ({ ...current, productImprovement: checked }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
+                <div className="sticky bottom-0 shrink-0 border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] px-5 py-4 shadow-[0_-16px_32px_rgba(2,6,23,0.18)] backdrop-blur supports-[backdrop-filter]:bg-[color-mix(in_oklab,rgb(var(--card))_88%,transparent)] sm:px-7">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       <button
                         type="button"
                         className="btn btn-ghost text-sm"
@@ -434,11 +463,11 @@ export function PrivacyGateProvider(props: {
                           });
                         }}
                       >
-                        Ohne freiwillige Optionen speichern
+                        Nur notwendige Funktionen
                       </button>
                       <button
                         type="button"
-                        className="btn btn-ghost text-sm"
+                        className="btn btn-primary text-sm"
                         onClick={() => {
                           if (!canContinue) {
                             setFormNotice("Bitte bestätige zuerst die notwendige Datenschutz-Kenntnisnahme.");
@@ -451,41 +480,35 @@ export function PrivacyGateProvider(props: {
                           });
                         }}
                       >
-                        Freiwillige Optionen speichern
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost text-sm"
-                        onClick={() => {
-                          const nextOptional = {
-                            comfort: true,
-                            analytics: true,
-                            externalMedia: true,
-                            productImprovement: true,
-                          } satisfies PrivacyOptionalConsent;
-                          setOptionalDraft(nextOptional);
-                          if (!canContinue) {
-                            setFormNotice("Bitte bestätige zuerst die notwendige Datenschutz-Kenntnisnahme.");
-                            return;
-                          }
-                          void commitConsent({
-                            requiredNoticeAcknowledged: true,
-                            optional: nextOptional,
-                            source: "privacy-gate-all-optional",
-                          });
-                        }}
-                      >
-                        Optionale Funktionen erlauben
+                        Auswahl speichern
                       </button>
                     </div>
-                  </section>
-                ) : null}
-
-                {formNotice ? (
-                  <p className="rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                    {formNotice}
-                  </p>
-                ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-ghost text-sm"
+                      onClick={() => {
+                        const nextOptional = {
+                          comfort: true,
+                          analytics: true,
+                          externalMedia: true,
+                          productImprovement: true,
+                        } satisfies PrivacyOptionalConsent;
+                        setOptionalDraft(nextOptional);
+                        if (!canContinue) {
+                          setFormNotice("Bitte bestätige zuerst die notwendige Datenschutz-Kenntnisnahme.");
+                          return;
+                        }
+                        void commitConsent({
+                          requiredNoticeAcknowledged: true,
+                          optional: nextOptional,
+                          source: "privacy-gate-all-optional",
+                        });
+                      }}
+                    >
+                      Optionale Funktionen erlauben
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -510,7 +533,7 @@ function OptionalToggle(props: {
           onChange={(event) => props.onChange(event.target.checked)}
           className="peer sr-only"
         />
-        <span className="h-6 w-11 rounded-full bg-[rgb(var(--border))] transition peer-checked:bg-[linear-gradient(90deg,rgba(34,211,238,0.86),rgba(16,185,129,0.78))]" />
+        <span className="h-6 w-11 rounded-full bg-[rgb(var(--border))] transition peer-focus-visible:ring-2 peer-focus-visible:ring-sky-200 peer-checked:bg-[linear-gradient(90deg,rgba(34,211,238,0.86),rgba(16,185,129,0.78))]" />
         <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-[rgb(var(--card))] shadow-sm transition peer-checked:translate-x-5" />
       </span>
     </label>
