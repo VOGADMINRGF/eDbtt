@@ -146,4 +146,58 @@ describe("i18n surface coverage contract", () => {
     expect(audit.publicAutoTranslateLocales).toEqual(["it", "ru", "zh", "fr", "es", "pl"]);
     expect(audit.coverageStatus).toBe("partial");
   });
+
+  it("keeps the complete public inventory, index truth, and task state explicit", () => {
+    const matrix = readFileSync(
+      resolve(
+        process.cwd(),
+        "../../docs/E150/V3_I18N_SURFACE_COVERAGE_MATRIX_2026-07-23.md",
+      ),
+      "utf8",
+    );
+    const openTasks = readFileSync(
+      resolve(process.cwd(), "../../docs/E150/OpenTasks.md"),
+      "utf8",
+    );
+
+    for (const route of [
+      "/faq",
+      "/kontakt",
+      "/ueber-uns",
+      "/transparenzbericht",
+      "/verhaltenskodex",
+      "/mitglied-werden",
+      "/howtoworks/*",
+    ]) {
+      expect(matrix).toContain(`\`${route}\``);
+    }
+
+    expect(matrix).toContain("| Login | `/login`");
+    expect(matrix).toContain("indexierbar (keine robots-Meta)");
+    expect(matrix).toContain("| Live-Root | `/live`");
+    expect(matrix).toContain(
+      "| Live-Campaign-Entry | `/live/[campaignId]`",
+    );
+
+    const i18nTaskRow = openTasks
+      .split("\n")
+      .find((line) => line.startsWith("| I18N-SURFACE-COVERAGE-02 |"));
+    const preferenceTaskRow = openTasks
+      .split("\n")
+      .find((line) => line.startsWith("| I18N-PREFERENCE-SEPARATION-03 |"));
+    const liveTaskRow = openTasks
+      .split("\n")
+      .find((line) => line.startsWith("| LIVE-PRODUCT-CONTRACT-01 |"));
+
+    expect(i18nTaskRow).toContain("| done |");
+    expect(preferenceTaskRow).toContain("| codex_ready |");
+    expect(liveTaskRow).toContain("| done |");
+    expect(openTasks).toContain(
+      "I18N-SURFACE-COVERAGE-02 evidence: PR #420",
+    );
+    expect(openTasks).toContain(
+      "LIVE-PRODUCT-CONTRACT-01 evidence: PR #419 gemergt",
+    );
+  });
+
 });
