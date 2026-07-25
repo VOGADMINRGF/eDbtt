@@ -19,6 +19,7 @@ import {
   type CreateClaimSafetyResult,
 } from "@/features/create/safety/createClaimSafety";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { readCreateContributionDraftById, updateStoredCreateContributionDraft } from "@/server/serverDrafts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -194,7 +195,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = FinalizeSchema.parse(await req.json());
-    const Drafts = await getCol<DraftDoc>("contribution_drafts");
     const Proposals = await getCol<ProposalDoc>("statement_proposals");
 
     let draftOid: ObjectId;
@@ -204,9 +204,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
     }
 
-    const draft = await Drafts.findOne({ _id: draftOid, authorId: userId });
-    if (!draft) {
+    const draft = await readCreateContributionDraftById(body.draftId);
+    if (!draft || draft.userId !== userId) {
       return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
+    }
+    if (draft.storage !== "drafts") {
+      return NextResponse.json({ ok: false, error: "legacy_draft_read_only" }, { status: 409 });
     }
 
     const draftSafety = readDraftSafety(draft.analysis);
@@ -233,7 +236,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(response);
     }
 
-    const claims = Array.isArray(draft.analysis?.claims) ? draft.analysis.claims : [];
+    const analysisRecord =
+      draft.analysis && typeof draft.analysis === "object" && !Array.isArray(draft.analysis)
+        ? (draft.analysis as Record<string, unknown>)
+        : null;
+    const claims = Array.isArray(analysisRecord?.claims) ? analysisRecord.claims : [];
     const selectedSet = new Set(body.selectedClaimIds);
     const selectedClaims = claims.filter((claim: any) => selectedSet.has(String(claim?.id)));
 
@@ -294,7 +301,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const insertDocs: ProposalDoc[] = selectedClaims.map((claim: any, index: number) => ({
       draftId: draftOid,
-      authorId: draft.authorId,
+      authorId: draft.userId,
       authorName: draft.authorName ?? null,
       useCase: draft.useCase ?? null,
       createMode: resolvedCreateMode,
@@ -326,18 +333,14 @@ export async function POST(req: NextRequest) {
     const insert = await Proposals.insertMany(insertDocs);
     const proposalIds = Object.values(insert.insertedIds).map((id) => String(id));
 
-    await Drafts.updateOne(
-      { _id: draftOid },
-      {
-        $set: {
-          status: "finalized",
-          finalizedAt: now,
-          proposalIds,
-          createMode: resolvedCreateMode,
-          anlassraumId: resolvedAnlassraumId,
-        },
-      },
-    );
+    await updateStoredCreateContributionDraft(draft, {
+      status: "finalized",
+      finalizedAt: now,
+      proposalIds,
+      createMode: resolvedCreateMode,
+      anlassraumId: resolvedAnlassraumId,
+      updatedAt: now,
+    });
 
     if (body.dossierId) {
       const dossierId = body.dossierId;

@@ -121,6 +121,23 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   );
 }
 
+function normalizeHistoricalLedgerBranchArrays(
+  branch: CreateBranchLedgerItem & {
+    evidenceCandidates?: readonly unknown[] | null;
+    questionCandidates?: readonly unknown[] | null;
+    perspectiveCandidates?: readonly unknown[] | null;
+  },
+) {
+  return {
+    claimCandidates: Array.isArray(branch.claimCandidates) ? branch.claimCandidates : [],
+    placeCandidates: Array.isArray(branch.placeCandidates) ? branch.placeCandidates : [],
+    localIssueCandidates: Array.isArray(branch.localIssueCandidates) ? branch.localIssueCandidates : [],
+    evidenceCandidates: Array.isArray(branch.evidenceCandidates) ? branch.evidenceCandidates : [],
+    questionCandidates: Array.isArray(branch.questionCandidates) ? branch.questionCandidates : [],
+    perspectiveCandidates: Array.isArray(branch.perspectiveCandidates) ? branch.perspectiveCandidates : [],
+  };
+}
+
 export function clearAccountLocalStartDraftArtifacts() {
   clearStartDraftContext();
   removeSessionItem(LANDING_START_CREATE_LIGHT_STORAGE_KEY);
@@ -457,6 +474,7 @@ function buildResumeItemFromBranch(
   branch: CreateBranchLedgerItem,
   canDeepResearch: boolean,
 ): ResumeWorkbenchItem {
+  const branchArrays = normalizeHistoricalLedgerBranchArrays(branch);
   const handoff = resolveBranchHandoffTarget({
     packageId: entry.packageId,
     ledgerId: entry.ledgerId,
@@ -509,9 +527,9 @@ function buildResumeItemFromBranch(
       branch.needsPlaceClarification ? "scope_open" : null,
       branch.placeClarificationStatus !== "answered" ? "context_missing" : null,
     ]),
-    missingPerspectiveCount: branch.localIssueCandidates.length,
-    counterPositionCount: branch.claimCandidates.length > 1 ? 1 : 0,
-    claimCount: branch.claimCandidates.length,
+    missingPerspectiveCount: branchArrays.localIssueCandidates.length,
+    counterPositionCount: branchArrays.claimCandidates.length > 1 ? 1 : 0,
+    claimCount: branchArrays.claimCandidates.length,
     scopeHint:
       branch.targetReference?.type === "dossier"
         ? "lokal"

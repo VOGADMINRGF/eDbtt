@@ -1,15 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ObjectId, getCol } from "@core/db/triMongo";
+import { ObjectId } from "@core/db/triMongo";
 import { seedTasksFromAnalysis } from "@core/research";
 import { AnalyzeResultSchema } from "@features/analyze/schemas";
 import { logger } from "@/utils/logger";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { z } from "zod";
+import { readCreateContributionDraftById } from "@/server/serverDrafts";
 
-type ContributionDraftDoc = {
-  _id?: ObjectId;
-  analysis?: unknown;
-};
 
 const SeedSchema = z.object({
   draftId: z.string().optional(),
@@ -40,8 +37,7 @@ export async function POST(req: NextRequest) {
       if (!ObjectId.isValid(draftId)) {
         return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
       }
-      const Drafts = await getCol<ContributionDraftDoc>("contribution_drafts");
-      const draft = await Drafts.findOne({ _id: new ObjectId(draftId) });
+      const draft = await readCreateContributionDraftById(draftId);
       if (!draft?.analysis) {
         return NextResponse.json({ ok: false, error: "draft_analysis_missing" }, { status: 404 });
       }

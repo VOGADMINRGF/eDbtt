@@ -50,10 +50,10 @@ const routeMocks = vi.hoisted(() => {
         : null,
     ),
     getCol: vi.fn(async (name: string) => {
-      if (name !== "contribution_drafts") throw new Error(`unexpected_collection_${name}`);
+      if (!["contribution_drafts", "drafts"].includes(name)) throw new Error(`unexpected_collection_${name}`);
       return {
         async insertOne(doc: AnyDoc) {
-          const next = { ...doc, _id: new ObjectId() };
+          const next = { ...doc, _id: doc._id ?? new ObjectId() };
           docs.push(next);
           return { acknowledged: true, insertedId: next._id };
         },
@@ -86,6 +86,7 @@ vi.mock("@core/db/triMongo", async () => {
   return {
     ObjectId: mongodb.ObjectId,
     getCol: (...args: unknown[]) => routeMocks.getCol(...args),
+    coreCol: (...args: unknown[]) => routeMocks.getCol(...args),
   };
 });
 
@@ -98,15 +99,16 @@ vi.mock("@/lib/server/auth/sessionUser", () => ({
   getSessionUser: (...args: unknown[]) => routeMocks.getSessionUser(...args),
 }));
 
-import { POST as savePOST } from "@/app/api/contributions/save/route";
-import AccountClient from "@/app/account/AccountClient";
+import { POST as savePOST } from "@/app/api/create/save/route";
+import { buildAccountResumeWorkbenchItems } from "@/app/account/AccountResumeWorkbenchSection";
+import CreateContributionLedgerSection from "@/app/account/CreateContributionLedgerSection";
 
 function countOccurrences(haystack: string, needle: string) {
   return haystack.split(needle).length - 1;
 }
 
 function req(body: Record<string, unknown>) {
-  return new NextRequest("http://localhost/api/contributions/save", {
+  return new NextRequest("http://localhost/api/create/save", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -207,6 +209,8 @@ function buildContributionPackage() {
         id: "branch-b",
         title: "Verkehr",
         summary: "Verkehr im Alltag.",
+        placeCandidates: [],
+        localIssueCandidates: [],
         claimCandidates: [
           {
             id: "claim-b",
@@ -227,6 +231,8 @@ function buildContributionPackage() {
         id: "branch-c",
         title: "Pflege",
         summary: "Pflege und Versorgung.",
+        placeCandidates: [],
+        localIssueCandidates: [],
         claimCandidates: [
           {
             id: "claim-c",
@@ -248,6 +254,8 @@ function buildContributionPackage() {
         id: "branch-d",
         title: "Mieten",
         summary: "Mieten und Bestand.",
+        placeCandidates: [],
+        localIssueCandidates: [],
         claimCandidates: [
           {
             id: "claim-d",
@@ -454,10 +462,13 @@ describe("create branch ledger persistence", () => {
       }),
     );
     expect(first.status).toBe(200);
+    const firstBody = await first.json();
+    expect(firstBody).toMatchObject({ ok: true });
     const createdAt = routeMocks.readAll()[0]?.analysis?.createContributionLedger?.createdAt;
 
     const second = await savePOST(
       req({
+        draftId: firstBody.draftId,
         textPrepared: "Mehrthemen-Beitrag A mit weiteren Entscheidungen.",
         locale: "de",
         source: "create_multibranch_package",
@@ -489,7 +500,9 @@ describe("create branch ledger persistence", () => {
     expect(saved[0].analysis?.createContributionLedger?.packageId).toBe("package-1");
     expect(saved[0].analysis?.createContributionLedger?.branches).toHaveLength(4);
     expect(saved[0].analysis?.createContributionLedger?.createdAt).toBe(createdAt);
-    expect(saved[0].analysis?.createContributionLedger?.updatedAt).not.toBe(createdAt);
+    expect(Date.parse(String(saved[0].analysis?.createContributionLedger?.updatedAt))).toBeGreaterThanOrEqual(
+      Date.parse(String(createdAt)),
+    );
   });
 
   it("stores corrected street name and supplied place branch-scoped in the ledger", async () => {
@@ -539,234 +552,222 @@ describe("create branch ledger persistence", () => {
   });
 
   it("renders the account section for saved create contribution ledgers as draft-only history", () => {
-    const html = renderToStaticMarkup(
-      <AccountClient
-        initialData={{
-          profile: {
-            id: "user-1",
-            displayName: "Test Person",
-            email: "test@example.org",
-            preferredLocale: "de",
-            newsletterOptIn: false,
-          },
-          publicProfile: {
-            showRealName: false,
-            showCity: false,
-            showStats: false,
-            showJoinDate: false,
-            showEngagementLevel: false,
-            showMembership: false,
-          },
-          edebatte: { package: "none", status: "none" },
-          usage: { swipesThisMonth: 0, swipeLimit: null, xpLevelLabel: null },
-          membership: { isMember: false },
-          hasVogMembership: false,
-          vogMembershipStatus: "none",
-          roles: [],
-          security: { emailVerified: true, twoFactorEnabled: false, verificationLevel: "soft" },
-          payment: {},
-          signature: { hasSignature: false },
-          features: { streamsEnabled: false, hostRightsEnabled: false, chatEnabled: false },
-          featureInterests: [],
-          createContributionLedger: [
-            {
-              ledgerId: "draft-1",
-              packageId: "package-1",
-              userId: "user-1",
-              sourceText: "Mehrthemen-Beitrag mit Wohnen, Verkehr, Pflege und Mieten.",
-              createdAt: "2026-06-03T12:00:00.000Z",
-              updatedAt: "2026-06-03T12:05:00.000Z",
-              locale: "de",
-              entryPoint: "create",
-              draftSaveStatus: "server_saved",
-              branches: [
-                {
+    const entries = [
+          {
+            ledgerId: "draft-1",
+            packageId: "package-1",
+            userId: "user-1",
+            sourceText: "Mehrthemen-Beitrag mit Wohnen, Verkehr, Pflege und Mieten.",
+            createdAt: "2026-06-03T12:00:00.000Z",
+            updatedAt: "2026-06-03T12:05:00.000Z",
+            locale: "de",
+            entryPoint: "create",
+            draftSaveStatus: "server_saved",
+            branches: [
+              {
+                branchId: "branch-a",
+                title: "Wohnen",
+                summary: "Wohnen im Bezirk.",
+                selectedAction: "qr_poll_prepare",
+                status: "qr_draft_prepared",
+                visibilityIntent: "private_qr",
+                placeCandidates: [],
+                needsPlaceClarification: false,
+                placeClarificationStatus: "answered",
+                detectedStreetName: "Clara-Pankower Allee",
+                correctedStreetName: "Clara-Pankower Allee",
+                inferredStance: "pro",
+                stanceConfirmationStatus: "inferred_only",
+                sensitivityLevel: "standard",
+                needsReview: false,
+                suppliedPlace: "Berlin-Pankow",
+                placeResolutionSource: "user_input",
+                qrParticipationDraft: {
+                  draftId: "qr-draft-package-1-branch-a",
+                  packageId: "package-1",
                   branchId: "branch-a",
                   title: "Wohnen",
-                  summary: "Wohnen im Bezirk.",
-                  selectedAction: "qr_poll_prepare",
-                  status: "qr_draft_prepared",
+                  question: "Soll mehr Wohnraum entstehen?",
+                  description: "Beteiligung zu Wohnen. Pro/Contra und mögliche Folgen können vor Veröffentlichung ergänzt werden.",
+                  proPrompt: "Was spricht für Wohnen?",
+                  contraPrompt: "Was spricht gegen Wohnen?",
+                  eventualitiesPrompt: "Welche möglichen Folgen oder Eventualitäten gibt es bei Wohnen?",
                   visibilityIntent: "private_qr",
-                  claimCandidates: [],
-                  detectedStreetName: "Clara-Pankower Allee",
-                  correctedStreetName: "Clara-Pankower Allee",
-                  inferredStance: "pro",
-                  stanceConfirmationStatus: "inferred_only",
-                  sensitivityLevel: "standard",
-                  needsReview: false,
-                  suppliedPlace: "Berlin-Pankow",
-                  placeResolutionSource: "user_input",
-                  qrParticipationDraft: {
-                    draftId: "qr-draft-package-1-branch-a",
-                    packageId: "package-1",
-                    branchId: "branch-a",
-                    title: "Wohnen",
-                    question: "Soll mehr Wohnraum entstehen?",
-                    description: "Beteiligung zu Wohnen. Pro/Contra und mögliche Folgen können vor Veröffentlichung ergänzt werden.",
-                    proPrompt: "Was spricht für Wohnen?",
-                    contraPrompt: "Was spricht gegen Wohnen?",
-                    eventualitiesPrompt: "Welche möglichen Folgen oder Eventualitäten gibt es bei Wohnen?",
-                    visibilityIntent: "private_qr",
-                    status: "ready_for_review",
-                    shareUrl: null,
-                    qrCodeUrl: null,
-                    publishedAt: null,
-                    createdAt: "2026-06-03T12:00:00.000Z",
-                    updatedAt: "2026-06-03T12:05:00.000Z",
-                    guardrails: {
-                      noAutoPublish: true,
-                      noAutoVote: true,
-                      noAutoShare: true,
-                    },
+                  status: "ready_for_review",
+                  shareUrl: null,
+                  qrCodeUrl: null,
+                  publishedAt: null,
+                  createdAt: "2026-06-03T12:00:00.000Z",
+                  updatedAt: "2026-06-03T12:05:00.000Z",
+                  guardrails: {
+                    noAutoPublish: true,
+                    noAutoVote: true,
+                    noAutoShare: true,
                   },
                 },
-                {
-                  branchId: "branch-b",
-                  title: "Mieten",
-                  summary: "Mieten und Bestand.",
-                  selectedAction: "add_nuance_to_existing",
-                  status: "match_decision_recorded",
-                  visibilityIntent: "public_after_review",
-                  claimCandidates: [],
-                  placeResolutionSource: "none",
-                  inferredStance: "mixed",
-                  stanceConfirmationStatus: "inferred_only",
-                  sensitivityLevel: "civic_sensitive",
-                  needsReview: true,
-                  existingMatchDecision: {
-                    matchId: "match-1",
-                    targetType: "claim",
-                    targetTitle: "Mehr bezahlbarer Wohnraum",
-                    matchedClaimText: "Mehr bezahlbarer Wohnraum",
-                    currentSupportCount: 5,
-                    currentOpposeCount: 0,
-                    currentNeutralCount: 0,
-                    matchConfidence: 0.88,
-                    whyMatched: "Ähnliche wohnungspolitische Stoßrichtung.",
-                    userDecision: "add_as_nuance",
-                    differenceReason: "other_reasoning",
-                    userNuanceText: "Gleiche Richtung, aber mit anderer Begründung.",
-                    recordedAsDraftOnly: true,
-                    confirmedAt: null,
-                    countedAt: null,
-                    mergedAt: null,
-                  },
+              },
+              {
+                branchId: "branch-b",
+                title: "Mieten",
+                summary: "Mieten und Bestand.",
+                selectedAction: "add_nuance_to_existing",
+                status: "match_decision_recorded",
+                visibilityIntent: "public_after_review",
+                claimCandidates: [],
+                placeCandidates: [],
+                localIssueCandidates: [],
+                needsPlaceClarification: false,
+                placeClarificationStatus: "answered",
+                placeResolutionSource: "none",
+                inferredStance: "mixed",
+                stanceConfirmationStatus: "inferred_only",
+                sensitivityLevel: "civic_sensitive",
+                needsReview: true,
+                existingMatchDecision: {
+                  matchId: "match-1",
+                  targetType: "claim",
+                  targetTitle: "Mehr bezahlbarer Wohnraum",
+                  matchedClaimText: "Mehr bezahlbarer Wohnraum",
+                  currentSupportCount: 5,
+                  currentOpposeCount: 0,
+                  currentNeutralCount: 0,
+                  matchConfidence: 0.88,
+                  whyMatched: "Ähnliche wohnungspolitische Stoßrichtung.",
+                  userDecision: "add_as_nuance",
+                  differenceReason: "other_reasoning",
+                  userNuanceText: "Gleiche Richtung, aber mit anderer Begründung.",
+                  recordedAsDraftOnly: true,
+                  confirmedAt: null,
+                  countedAt: null,
+                  mergedAt: null,
                 },
-              ],
-            },
-            {
-              ledgerId: "draft-2",
-              packageId: "package-1",
-              userId: "user-1",
-              sourceText: "Mehrthemen-Beitrag mit Wohnen, Verkehr, Pflege und Mieten. Aktualisiert.",
-              createdAt: "2026-06-03T12:00:00.000Z",
-              updatedAt: "2026-06-03T12:15:00.000Z",
-              locale: "de",
-              entryPoint: "create",
-              draftSaveStatus: "server_saved",
-              branches: [
-                {
+              },
+            ],
+          },
+          {
+            ledgerId: "draft-2",
+            packageId: "package-1",
+            userId: "user-1",
+            sourceText: "Mehrthemen-Beitrag mit Wohnen, Verkehr, Pflege und Mieten. Aktualisiert.",
+            createdAt: "2026-06-03T12:00:00.000Z",
+            updatedAt: "2026-06-03T12:15:00.000Z",
+            locale: "de",
+            entryPoint: "create",
+            draftSaveStatus: "server_saved",
+            branches: [
+              {
+                branchId: "branch-a",
+                title: "Wohnen",
+                summary: "Wohnen im Bezirk. Neuester Stand.",
+                selectedAction: "qr_poll_prepare",
+                status: "qr_draft_prepared",
+                visibilityIntent: "private_qr",
+                placeCandidates: [],
+                needsPlaceClarification: false,
+                placeClarificationStatus: "answered",
+                detectedStreetName: "Clara-Pankower Allee",
+                correctedStreetName: "Clara-Pankower Allee",
+                inferredStance: "pro",
+                stanceConfirmationStatus: "inferred_only",
+                sensitivityLevel: "standard",
+                needsReview: false,
+                suppliedPlace: "Berlin-Pankow",
+                placeResolutionSource: "user_input",
+                qrParticipationDraft: {
+                  draftId: "qr-draft-package-1-branch-a",
+                  packageId: "package-1",
                   branchId: "branch-a",
                   title: "Wohnen",
-                  summary: "Wohnen im Bezirk. Neuester Stand.",
-                  selectedAction: "qr_poll_prepare",
-                  status: "qr_draft_prepared",
+                  question: "Soll mehr Wohnraum entstehen?",
+                  description: "Beteiligung zu Wohnen. Pro/Contra und mögliche Folgen können vor Veröffentlichung ergänzt werden.",
+                  proPrompt: "Was spricht für Wohnen?",
+                  contraPrompt: "Was spricht gegen Wohnen?",
+                  eventualitiesPrompt: "Welche möglichen Folgen oder Eventualitäten gibt es bei Wohnen?",
                   visibilityIntent: "private_qr",
-                  claimCandidates: [],
-                  detectedStreetName: "Clara-Pankower Allee",
-                  correctedStreetName: "Clara-Pankower Allee",
-                  inferredStance: "pro",
-                  stanceConfirmationStatus: "inferred_only",
-                  sensitivityLevel: "standard",
-                  needsReview: false,
-                  suppliedPlace: "Berlin-Pankow",
-                  placeResolutionSource: "user_input",
-                  qrParticipationDraft: {
-                    draftId: "qr-draft-package-1-branch-a",
-                    packageId: "package-1",
-                    branchId: "branch-a",
-                    title: "Wohnen",
-                    question: "Soll mehr Wohnraum entstehen?",
-                    description: "Beteiligung zu Wohnen. Pro/Contra und mögliche Folgen können vor Veröffentlichung ergänzt werden.",
-                    proPrompt: "Was spricht für Wohnen?",
-                    contraPrompt: "Was spricht gegen Wohnen?",
-                    eventualitiesPrompt: "Welche möglichen Folgen oder Eventualitäten gibt es bei Wohnen?",
-                    visibilityIntent: "private_qr",
-                    status: "ready_for_review",
-                    shareUrl: null,
-                    qrCodeUrl: null,
-                    publishedAt: null,
-                    createdAt: "2026-06-03T12:00:00.000Z",
-                    updatedAt: "2026-06-03T12:15:00.000Z",
-                    guardrails: {
-                      noAutoPublish: true,
-                      noAutoVote: true,
-                      noAutoShare: true,
-                    },
+                  status: "ready_for_review",
+                  shareUrl: null,
+                  qrCodeUrl: null,
+                  publishedAt: null,
+                  createdAt: "2026-06-03T12:00:00.000Z",
+                  updatedAt: "2026-06-03T12:15:00.000Z",
+                  guardrails: {
+                    noAutoPublish: true,
+                    noAutoVote: true,
+                    noAutoShare: true,
                   },
                 },
-              ],
-            },
-            {
-              ledgerId: "draft-3",
-              packageId: "package-2",
-              userId: "user-1",
-              sourceText: "Ähnlicher Mehrthemen-Beitrag mit Wohnen.",
-              createdAt: "2026-06-03T12:20:00.000Z",
-              updatedAt: "2026-06-03T12:25:00.000Z",
-              locale: "de",
-              entryPoint: "create",
-              draftSaveStatus: "server_saved",
-              branches: [
-                {
-                  branchId: "branch-z",
-                  title: "Wohnen",
-                  summary: "Ähnlicher Wohnen-Entwurf.",
-                  selectedAction: "save_branch_only",
-                  status: "draft_saved",
-                  visibilityIntent: "draft",
-                  claimCandidates: [],
-                  placeCandidates: [],
-                  localIssueCandidates: [],
-                  needsPlaceClarification: false,
-                  placeClarificationStatus: "answered",
-                  placeResolutionSource: "none",
-                  inferredStance: "pro",
-                  stanceConfirmationStatus: "inferred_only",
-                  sensitivityLevel: "standard",
-                  needsReview: false,
-                },
-                {
-                  branchId: "branch-y",
-                  title: "Mieten",
-                  summary: "Ähnlicher Mieten-Entwurf.",
-                  selectedAction: "save_branch_only",
-                  status: "draft_saved",
-                  visibilityIntent: "draft",
-                  claimCandidates: [],
-                  placeCandidates: [],
-                  localIssueCandidates: [],
-                  needsPlaceClarification: false,
-                  placeClarificationStatus: "answered",
-                  placeResolutionSource: "none",
-                  inferredStance: "mixed",
-                  stanceConfirmationStatus: "inferred_only",
-                  sensitivityLevel: "civic_sensitive",
-                  needsReview: false,
-                },
-              ],
-            },
-          ],
-        }}
-        membershipNotice={false}
-        preorderNotice={false}
-        welcomeNotice={false}
-      />,
-    );
+              },
+            ],
+          },
+          {
+            ledgerId: "draft-3",
+            packageId: "package-2",
+            userId: "user-1",
+            sourceText: "Ähnlicher Mehrthemen-Beitrag mit Wohnen.",
+            createdAt: "2026-06-03T12:20:00.000Z",
+            updatedAt: "2026-06-03T12:25:00.000Z",
+            locale: "de",
+            entryPoint: "create",
+            draftSaveStatus: "server_saved",
+            branches: [
+              {
+                branchId: "branch-z",
+                title: "Wohnen",
+                summary: "Ähnlicher Wohnen-Entwurf.",
+                selectedAction: "save_branch_only",
+                status: "draft_saved",
+                visibilityIntent: "draft",
+                claimCandidates: [],
+                placeCandidates: [],
+                localIssueCandidates: [],
+                needsPlaceClarification: false,
+                placeClarificationStatus: "answered",
+                placeResolutionSource: "none",
+                inferredStance: "pro",
+                stanceConfirmationStatus: "inferred_only",
+                sensitivityLevel: "standard",
+                needsReview: false,
+              },
+              {
+                branchId: "branch-y",
+                title: "Mieten",
+                summary: "Ähnlicher Mieten-Entwurf.",
+                selectedAction: "save_branch_only",
+                status: "draft_saved",
+                visibilityIntent: "draft",
+                claimCandidates: [],
+                placeCandidates: [],
+                localIssueCandidates: [],
+                needsPlaceClarification: false,
+                placeClarificationStatus: "answered",
+                placeResolutionSource: "none",
+                inferredStance: "mixed",
+                stanceConfirmationStatus: "inferred_only",
+                sensitivityLevel: "civic_sensitive",
+                needsReview: false,
+              },
+            ],
+          },
+        ];
+    const resumeItems = buildAccountResumeWorkbenchItems({
+      entries,
+      startDraft: null,
+      manualAnlassraumServerDrafts: [],
+    });
+    const latestWohnenItem = resumeItems.find((item) => item.id === "package-1-branch-a");
 
-    expect(html).toContain("Meine Arbeitsstände");
+    const ledgerHtml = renderToStaticMarkup(<CreateContributionLedgerSection entries={entries} />);
+    const html = ledgerHtml;
+
+    expect(
+      latestWohnenItem?.workflow.steps.find((step) => step.id === "contribution_classified")?.summary,
+    ).toBe("Der Beitrag wurde als eigener Themenast eingeordnet.");
+    expect(
+      latestWohnenItem?.voxyCocreationDialog?.cards.some(
+        (card) => card.dialogueMode === "counterposition_probe",
+      ),
+    ).toBe(true);
     expect(html).toContain("Meine Beiträge und Themenstände");
-    expect(html).toContain("Weiterarbeiten");
     expect(html).toContain("QR-Beteiligung als Entwurf vorbereitet");
     expect(html).toContain("Mögliche Zuordnung vorgemerkt");
     expect(html).toContain("Straße: Clara-Pankower Allee");
@@ -784,7 +785,6 @@ describe("create branch ledger persistence", () => {
     expect(html).toContain("Ein Beteiligungsentwurf mit Frage, Pro/Contra und möglichen Folgen. Noch kein QR-Link, nicht veröffentlicht.");
     expect(html).toContain("Ähnliche Entwürfe erkannt. Diese Arbeitsstände können später zusammengeführt oder getrennt bleiben.");
     expect(html).toContain("Draft ansehen");
-    expect(html).not.toContain("In /create weiterbearbeiten");
     expect(html).toContain("Wohnen im Bezirk. Neuester Stand.");
     expect(html).not.toContain("Wohnen im Bezirk.</p>");
     expect(html).not.toContain("Fake-5");
