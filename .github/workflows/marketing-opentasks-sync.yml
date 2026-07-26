@@ -6,12 +6,20 @@ on:
       - docs/marketing-growth-os-foundation-01
     paths:
       - .github/workflows/marketing-opentasks-sync.yml
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
 
 jobs:
   sync-opentasks:
+    if: github.event_name == 'push' || github.event.pull_request.head.ref == 'docs/marketing-growth-os-foundation-01'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout marketing branch
