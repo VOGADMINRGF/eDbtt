@@ -38,6 +38,7 @@
   "namingPattern": "<brand>-<campaign>-<asset-type>-<audience>-<locale>-<format>-v<version>.<ext>",
   "collections": [],
   "notes": [
+    "No production marketing exports are registered in this foundation slice.",
     "Collections are added only when approved assets exist.",
     "Working files, campaign briefs, schemas and scripts stay under docs/marketing.",
     "Approved does not mean published; real distribution is tracked separately.",
