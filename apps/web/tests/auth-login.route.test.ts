@@ -355,6 +355,53 @@ describe("auth login route regressions", () => {
     expect(mocks.applySessionCookies).not.toHaveBeenCalled();
   });
 
+  it("blocks disabled accounts with a neutral login error and allows login again after reactivation", async () => {
+    mocks.seedUser({
+      _id: "user-disabled",
+      email: "disabled@edebatte.org",
+      passwordHash: "disabled-hash",
+      suspended: true,
+    });
+    mocks.seedCredentials({
+      _id: "cred-disabled",
+      coreUserId: "user-disabled",
+      email: "disabled@edebatte.org",
+      passwordHash: "disabled-hash",
+    });
+    mocks.allowPassword("correct-pass", "disabled-hash");
+
+    const blocked = await POST(
+      loginReq({
+        identifier: "disabled@edebatte.org",
+        password: "correct-pass",
+      }),
+    );
+
+    expect(blocked.status).toBe(401);
+    await expect(blocked.json()).resolves.toMatchObject({ error: "invalid_credentials" });
+    expect(mocks.applySessionCookies).not.toHaveBeenCalled();
+
+    mocks.seedUser({
+      _id: "user-disabled",
+      email: "disabled@edebatte.org",
+      passwordHash: "disabled-hash",
+      suspended: false,
+      suspendedAt: null,
+      disabledAt: null,
+    });
+
+    const reactivated = await POST(
+      loginReq({
+        identifier: "disabled@edebatte.org",
+        password: "correct-pass",
+      }),
+    );
+
+    expect(reactivated.status).toBe(200);
+    await expect(reactivated.json()).resolves.toMatchObject({ ok: true, require2fa: false });
+    expect(mocks.applySessionCookies).toHaveBeenCalledTimes(1);
+  });
+
   it("auth fallback: 2FA flow remains enforced", async () => {
     mocks.seedUser({
       _id: "user-4",

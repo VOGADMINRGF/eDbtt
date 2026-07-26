@@ -217,7 +217,7 @@ function currentStatusForLedgerBranch(
   if (branch.targetReference?.type === "dossier") {
     return "Dossier-Anschluss erkannt";
   }
-  if (branch.existingMatchDecision || branch.localIssueCandidates.length > 0) {
+  if (branch.existingMatchDecision || (branch.localIssueCandidates?.length ?? 0) > 0) {
     return "Themenanschluss erkannt";
   }
   return "Beitrag klassifiziert";
@@ -303,6 +303,7 @@ export function buildV3AccountResumeWorkflowFromLedgerBranch(params: {
   handoff: CreateBranchHandoffTarget;
 }): V3AccountResumeWorkflowModel {
   const { branch, draftSaveStatus, handoff } = params;
+  const claimCandidatesLength = branch.claimCandidates?.length ?? 0;
   const reviewStatus: V3RuntimeWorkflowStageStatus =
     branch.needsPlaceClarification && branch.placeClarificationStatus !== "answered"
       ? "operational_basic"
@@ -347,8 +348,8 @@ export function buildV3AccountResumeWorkflowFromLedgerBranch(params: {
         "contribution_classified",
         "Beitrag klassifiziert",
         "operational_basic",
-        branch.claimCandidates.length > 0
-          ? `${branch.claimCandidates.length} Claim-, Frage- oder Positionssignale wurden erkannt.`
+        claimCandidatesLength > 0
+          ? `${claimCandidatesLength} Claim-, Frage- oder Positionssignale wurden erkannt.`
           : "Der Beitrag wurde als eigener Themenast eingeordnet.",
       ),
       buildStep(

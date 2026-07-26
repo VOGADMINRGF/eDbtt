@@ -4,14 +4,6 @@ type DraftPayload = {
   analysis?: Record<string, unknown>;
 };
 
-function safeJsonParse(input: string) {
-  try {
-    return JSON.parse(input);
-  } catch {
-    return null;
-  }
-}
-
 function buildUrl(path: string, params: Record<string, string>) {
   const [pathAndQuery, hash = ""] = path.split("#");
   const [base, query = ""] = pathAndQuery.split("?");
@@ -62,19 +54,8 @@ export function getLastDraft(): LastDraft | null {
 }
 
 export async function createDraft(payload: DraftPayload): Promise<string | null> {
-  try {
-    const res = await fetch("/api/drafts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return null;
-    const raw = await res.text();
-    const data = safeJsonParse(raw);
-    return typeof data?.id === "string" ? data.id : null;
-  } catch {
-    return null;
-  }
+  void payload;
+  return null;
 }
 
 export async function createDraftAndNavigate({

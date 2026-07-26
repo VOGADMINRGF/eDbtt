@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { locales } from "../../../i18n";
-import { LocaleProvider } from "@/context/LocaleContext";
 
 export default async function LocaleLayout({
   children,
@@ -12,9 +11,9 @@ export default async function LocaleLayout({
   const { locale } = await params;
   const localeValue = typeof locale === "string" ? locale : Array.isArray(locale) ? locale[0] : undefined;
 
-  if (!localeValue || !locales.includes(localeValue as any)) notFound();
+  if (!localeValue || !locales.includes(localeValue as (typeof locales)[number])) notFound();
 
-  // Root layout already renders html/body/theme/providers/header/footer.
-  // Locale layout only scopes the locale context to the URL segment.
-  return <LocaleProvider initialLocale={localeValue as any}>{children}</LocaleProvider>;
+  // Root layout already renders the shared locale provider.
+  // The provider now resolves locale-prefixed paths directly to avoid a second truth source.
+  return children;
 }

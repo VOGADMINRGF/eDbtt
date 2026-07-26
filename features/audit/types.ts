@@ -28,6 +28,7 @@ export type AuditEventDoc = {
   scope: AuditScope;
   action: string;
   target: AuditTarget;
+  result?: string | null;
   before?: unknown;
   after?: unknown;
   reason?: string | null;

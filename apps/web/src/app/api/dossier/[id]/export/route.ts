@@ -188,7 +188,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (contributionIds.length) {
         const { objectIds, stringIds } = splitObjectIds(contributionIds);
         const contribCol = await coreCol<any>("contributions");
-        const draftsCol = await coreCol<any>("contribution_drafts");
 
         if (objectIds.length) {
           const docs = await contribCol.find({ _id: { $in: objectIds } }).toArray();
@@ -199,12 +198,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             pushId(contributionMap, doc.id ?? String(doc._id), { title, excerpt, source });
             pushId(contributionMap, String(doc._id), { title, excerpt, source });
           }
-          const drafts = await draftsCol.find({ _id: { $in: objectIds } }).toArray();
-          for (const doc of drafts) {
-            const title = doc.title ?? "Beitrag (Entwurf)";
-            const excerpt = extractSnippet(doc.text ?? doc.analysis?.summary ?? "");
-            const source = "contribution_drafts";
-            pushId(contributionMap, String(doc._id), { title, excerpt, source });
+          const { readCreateContributionDraftById } = await import("@/server/serverDrafts");
+          const drafts = await Promise.all(
+            objectIds.map((objectId) => readCreateContributionDraftById(objectId.toHexString())),
+          );
+          for (const draft of drafts) {
+            if (!draft) continue;
+            const title = "Beitrag (Entwurf)";
+            const excerpt = extractSnippet(draft.text ?? (draft.analysis as any)?.summary ?? "");
+            const source = draft.storage === "drafts" ? "drafts" : "contribution_drafts";
+            pushId(contributionMap, draft.id, { title, excerpt, source });
           }
         }
         if (stringIds.length) {

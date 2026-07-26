@@ -119,7 +119,7 @@ const ENTRIES: RouteSecurityEntry[] = [
   {
     id: "authenticated_contribution_save",
     label: "Create / Save Draft",
-    path: "/api/contributions/save",
+    path: "/api/create/save",
     surfaceType: "api_route",
     primaryClassification: "authenticated",
     effectiveAccessClasses: ["authenticated"],
@@ -149,7 +149,7 @@ const ENTRIES: RouteSecurityEntry[] = [
       "Speichern verlangt jetzt eine valide Session statt bloß `u_id` und hängt vorhandenen Org-/Regionscope nur als Kontextzusammenfassung an den Draft.",
     sourceAnchors: [
       {
-        file: "apps/web/src/app/api/contributions/save/route.ts",
+        file: "apps/web/src/app/api/create/save/route.ts",
         contains: [
           "const sessionUser = await getSessionUser(req);",
           "if (!sessionUser || !sessionUser.sessionValid || !userId)",

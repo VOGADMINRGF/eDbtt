@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { LanguageCode } from "@features/i18n/languages";
 import { FALLBACK_LANG } from "@features/i18n/languages";
+import { useOptionalLanguagePreferences } from "@/context/LocaleContext";
 
 const KEY = "vog_content_lang";
 
@@ -66,6 +67,15 @@ function subscribe(cb: () => void) {
 }
 
 export function useContentLang() {
-  const lang = React.useSyncExternalStore<LanguageCode>(subscribe, getSnapshot, () => "de");
-  return { lang, setLang: setContentLang };
+  const preferences = useOptionalLanguagePreferences();
+  const fallbackLang = React.useSyncExternalStore<LanguageCode>(subscribe, getSnapshot, () => "de");
+  if (preferences) {
+    return {
+      lang: preferences.readingLocale as LanguageCode,
+      setLang: (next: LanguageCode) =>
+        preferences.setReadingLocale(next as Parameters<typeof preferences.setReadingLocale>[0]),
+    };
+  }
+
+  return { lang: fallbackLang, setLang: setContentLang };
 }

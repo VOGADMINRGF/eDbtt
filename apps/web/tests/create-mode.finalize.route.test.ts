@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => {
 
   let userId: string | null = "user-1";
   const drafts = new Map<string, AnyDoc>();
+  const legacyDrafts = new Map<string, AnyDoc>();
   const proposals: AnyDoc[] = [];
   const auditEvents: AnyDoc[] = [];
   const materialLinks: AnyDoc[] = [];
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => {
     reset() {
       userId = "user-1";
       drafts.clear();
+      legacyDrafts.clear();
       proposals.length = 0;
       auditEvents.length = 0;
       materialLinks.length = 0;
@@ -34,6 +36,9 @@ const mocks = vi.hoisted(() => {
     },
     seedDraft(doc: AnyDoc) {
       drafts.set(toKey(doc._id), { ...doc });
+    },
+    seedLegacyDraft(doc: AnyDoc) {
+      legacyDrafts.set(toKey(doc._id), { ...doc });
     },
     readDraft(id: string) {
       const found = drafts.get(id);
@@ -59,17 +64,17 @@ const mocks = vi.hoisted(() => {
       if (name === "contribution_drafts") {
         return {
           async findOne(filter: AnyDoc) {
-            const draft = drafts.get(toKey(filter?._id));
+            const draft = legacyDrafts.get(toKey(filter?._id));
             if (!draft) return null;
-            if (String(draft.authorId) !== String(filter?.authorId)) return null;
+            if (filter?.authorId && String(draft.authorId) !== String(filter.authorId)) return null;
             return { ...draft };
           },
           async updateOne(filter: AnyDoc, update: AnyDoc) {
             const key = toKey(filter?._id);
-            const draft = drafts.get(key);
+            const draft = legacyDrafts.get(key);
             if (!draft) return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
             const nextSet = update?.$set && typeof update.$set === "object" ? update.$set : {};
-            drafts.set(key, { ...draft, ...nextSet });
+            legacyDrafts.set(key, { ...draft, ...nextSet });
             return { acknowledged: true, matchedCount: 1, modifiedCount: 1 };
           },
         };
@@ -89,7 +94,28 @@ const mocks = vi.hoisted(() => {
       }
       throw new Error(`unexpected_collection_${name}`);
     }),
-    coreCol: vi.fn(async () => {
+    coreCol: vi.fn(async (name?: string) => {
+      if (name === "drafts") {
+        return {
+          async findOne(filter: AnyDoc) {
+            const draft = drafts.get(toKey(filter?._id));
+            if (!draft) return null;
+            if (filter?.userId && String(draft.userId) !== String(filter.userId)) return null;
+            return { ...draft };
+          },
+          async updateOne(filter: AnyDoc, update: AnyDoc) {
+            const key = toKey(filter?._id);
+            const draft = drafts.get(key);
+            if (!draft) return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+            if (filter?.userId && String(draft.userId) !== String(filter.userId)) {
+              return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+            }
+            const nextSet = update?.$set && typeof update.$set === "object" ? update.$set : {};
+            drafts.set(key, { ...draft, ...nextSet });
+            return { acknowledged: true, matchedCount: 1, modifiedCount: 1 };
+          },
+        };
+      }
       return {
         find(filter: AnyDoc) {
           const entries = auditEvents.filter((evt) => String(evt?.dossierId) === String(filter?.dossierId));
@@ -168,7 +194,7 @@ function seedDraft() {
   const draftId = new ObjectId();
   mocks.seedDraft({
     _id: draftId,
-    authorId: "user-1",
+    userId: "user-1",
     status: "draft",
     analysis: {
       claims: [
@@ -184,10 +210,23 @@ function seedDraftWithoutClaims() {
   const draftId = new ObjectId();
   mocks.seedDraft({
     _id: draftId,
-    authorId: "user-1",
+    userId: "user-1",
     status: "draft",
     analysis: {
       claims: [],
+    },
+  });
+  return draftId.toHexString();
+}
+
+function seedLegacyDraft() {
+  const draftId = new ObjectId();
+  mocks.seedLegacyDraft({
+    _id: draftId,
+    authorId: "user-1",
+    status: "draft",
+    analysis: {
+      claims: [{ id: "c1", text: "Legacy Claim 1" }],
     },
   });
   return draftId.toHexString();
@@ -436,11 +475,12 @@ describe("create mode split - finalize route", () => {
     expect(body).toMatchObject({ ok: true });
 
     const colCalls = mocks.getColCalls();
-    expect(colCalls).toContain("contribution_drafts");
     expect(colCalls).toContain("statement_proposals");
+    expect(colCalls).not.toContain("contribution_drafts");
     expect(colCalls).not.toContain("output_seed");
     expect(colCalls).not.toContain("anlassraum");
-    expect(mocks.coreCol).not.toHaveBeenCalled();
+    expect(colCalls).not.toContain("dossier_audit_chain");
+    expect(colCalls).not.toContain("dossier_material_links");
   });
 
   it("rejects finalize when no analyzed claims are available", async () => {
@@ -477,5 +517,25 @@ describe("create mode split - finalize route", () => {
       ok: false,
       error: "not_authenticated",
     });
+  });
+
+  it("fails closed when finalize is attempted on a legacy contribution_drafts record", async () => {
+    const draftId = seedLegacyDraft();
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "legacy_draft_read_only",
+    });
+    expect(mocks.readProposals()).toHaveLength(0);
   });
 });

@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useLocale } from "@/context/LocaleContext";
-import { useContentLang } from "@/lib/i18n/contentLanguage";
+import { useLanguagePreferences } from "@/context/LocaleContext";
 import {
   AUTO_TRANSLATE_LOCALES,
   isPublicPathname,
@@ -12,7 +11,7 @@ import {
   useAutoTranslateText,
 } from "@/lib/i18n/autoTranslate";
 import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
-import { getLocaleConfig, isCoreLocale, type SupportedLocale } from "@/config/locales";
+import { getLocaleConfig, isCoreLocale, isSupportedLocale } from "@/config/locales";
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -65,8 +64,7 @@ function isActiveNavHref(pathname: string | null, href: string) {
 }
 
 export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
-  const { locale, setLocale } = useLocale();
-  const { lang: contentLang, setLang: setContentLang } = useContentLang();
+  const { uiLocale, setUiLocale, readingLocale } = useLanguagePreferences();
   const { user } = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [localeOpen, setLocaleOpen] = useState(false);
@@ -81,39 +79,41 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const headerRef = useRef<HTMLElement | null>(null);
   const localePanelRef = useRef<HTMLDivElement | null>(null);
 
-  const activeLang = contentLang || locale || "de";
   const activeLocaleConfig = useMemo(
-    () => getLocaleConfig(activeLang as SupportedLocale),
-    [activeLang],
+    () => getLocaleConfig(uiLocale),
+    [uiLocale],
   );
   const localeLabel = useMemo(
-    () => activeLang.toUpperCase(),
-    [activeLang],
+    () => uiLocale.toUpperCase(),
+    [uiLocale],
   );
   const translationPending =
-    isPublicPathname(pathname) && AUTO_TRANSLATE_LOCALES.includes(activeLang as SupportedLocale);
+    isPublicPathname(pathname) && AUTO_TRANSLATE_LOCALES.includes(uiLocale);
   const t = useAutoTranslateText({
-    locale: activeLang as SupportedLocale,
+    locale: uiLocale,
     namespace: "site-header",
   });
   const navLinks = useMemo(() => {
     const baseLinks = buildPrimaryNav(user ?? null);
-    if (activeLang === "de") return baseLinks;
+    if (uiLocale === "de") return baseLinks;
     return baseLinks.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" }));
-  }, [activeLang, t, user]);
+  }, [uiLocale, t, user]);
 
   const resolveHref = (href: string) => {
-    if (href === "/referenzarchitektur") return `/${activeLang}${href}`;
+    if (href === "/referenzarchitektur") return `/${uiLocale}${href}`;
     return href;
   };
   const statusLabel = t("Auto-Übersetzung", "status.auto");
-  const localeOptions = UI_LANGS.filter((lang) => isCoreLocale(lang.code)).map((lang) => {
-    const cfg = getLocaleConfig(lang.code as SupportedLocale);
-    return {
-      code: lang.code,
-      label: cfg.label || lang.label,
-      flag: cfg.flagEmoji || "🏳️",
-    };
+  const localeOptions = UI_LANGS.flatMap((lang) => {
+    if (!isCoreLocale(lang.code)) return [];
+    const cfg = getLocaleConfig(lang.code);
+    return [
+      {
+        code: lang.code,
+        label: cfg.label || lang.label,
+        flag: cfg.flagEmoji || "🏳️",
+      },
+    ];
   });
 
   useEffect(() => {
@@ -155,8 +155,8 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   }, [localeOpen, mobileOpen]);
 
   const handleLocaleSelect = (next: LanguageCode) => {
-    setContentLang(next);
-    setLocale(next as SupportedLocale);
+    if (!isSupportedLocale(next)) return;
+    setUiLocale(next);
     setLocaleOpen(false);
     router.refresh();
   };
@@ -223,7 +223,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label={t(`Sprache wählen (aktuell ${activeLocaleConfig.label})`, "aria.locale")}
+                aria-label={t(`UI-Sprache wählen (aktuell ${activeLocaleConfig.label})`, "aria.locale")}
                 aria-expanded={localeOpen}
                 onClick={() => setLocaleOpen((v) => !v)}
                 className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
@@ -233,6 +233,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 </span>
                 <span>{localeLabel}</span>
               </button>
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                Lesen {readingLocale.toUpperCase()}
+              </span>
               {translationPending && (
                 <span className="rounded-full border border-amber-300/60 bg-amber-200/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700">
                   {statusLabel}
