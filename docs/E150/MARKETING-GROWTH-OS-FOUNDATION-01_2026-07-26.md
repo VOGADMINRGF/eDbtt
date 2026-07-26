@@ -10,9 +10,9 @@ Typ: `docs_only / no_product_implementation`
 
 Eine versionierte, repo-basierte und anbieterneutrale Arbeitsgrundlage für eDebatte-Marketing, Vertrieb, Social Media, Video, VoiceOpenGov-Membership, Partnerschaften, White-Label-Ausgaben und spätere Admin-Steuerung schaffen, ohne eine neue CI, zweite Voxy, neue Runtime oder ungeklärte Produkt- und Governanceentscheidungen einzuführen.
 
-## Repo-Prüfung
+## Kanonische Grundlagen
 
-Geprüfte Grundlagen:
+Geprüft und referenziert:
 
 - `AGENTS.md`
 - `apps/web/public/brand/README.md`
@@ -24,21 +24,50 @@ Geprüfte Grundlagen:
 - `docs/E150/UX-VOXY-MOTION-GUIDE-01_2026-05-29.md`
 - `docs/E150/V3_VOXY_SELF_RENDER_AND_MARKETING_PILOT_ROADMAP_2026-07-13.md`
 - `docs/E150/VOG-MISSION-LAYER-01_2026-07-26.md`
+- `docs/E150/VOG-MISSION-LAYER-01_DECISIONS_2026-07-26.md`
+- PR `#430`
 - `docs/E150/Part12_Campaigns_Admin_Telemetry.md`
 - `docs/E150/PR-THEMENRADAR-02_PERSISTENCE_AUDIT_HARDENING_2026-04-19.md`
 - `docs/E150/OpenTasks.md`
 
-## Befund
+## Repo-Befund
 
 - Ein kanonisches Voxy-Asset-Pack und klare Nutzungsregeln bestehen bereits.
-- Eine umfangreiche Voxy-Video- und Marketing-Pilotroadmap besteht bereits und wird referenziert statt dupliziert.
-- `VOG-MISSION-LAYER-01` ist als `manual_gate / needs_decision` in OpenTasks und Decision-Contract verankert.
-- Produkt-Tokens für Light, Dark und Editorial bestehen in `globals.css` und können als reale Marketingbasis genutzt werden.
-- `BRAND` enthält kanonischen Namen, Domain, Kontaktwege und die zentrale Produktbotschaft.
+- Eine umfangreiche Voxy-Video- und Marketing-Pilotroadmap besteht und wird referenziert statt dupliziert.
+- Produkt-Tokens für Light, Dark und Editorial bestehen in `globals.css` und bilden die reale Marketingbasis.
+- `BRAND` enthält kanonischen Namen, Domain, Kontaktwege und Produktbotschaft.
 - `/admin/themenradar`, Audit-Lifecycle, Share-ready-Guardrails und aggregierte Metriken `clicks`, `leads`, `memberships` bestehen bereits.
 - `/admin/campaigns` bezeichnet Beteiligungskampagnen und darf nicht mit MarketingCampaigns überladen werden.
-- Ein zusammenhängender Marketing-/Sales-Einstieg mit Zielgruppen-Kits, Kampagnenportfolio, White-Label-Vertrag, Admin-Control-Plane, Schemas, Vorlagen und `public`-Asset-Registry bestand noch nicht.
-- Die bisher generierten generischen Sci-Fi-/Government-Tech-Bilder entsprechen nicht der repo-basierten eDebatte-Designsprache und werden nicht übernommen.
+- Vor diesem Slice fehlte ein zusammenhängender Marketing-/Sales-Einstieg mit Zielgruppen-Kits, Kampagnenportfolio, White-Label-Vertrag, Admin-Control-Plane, Schemas, Vorlagen und `public`-Asset-Registry.
+- Generische Sci-Fi-, Government-Tech- oder fremde KI-Bildwelten entsprechen nicht der repo-basierten eDebatte-Designsprache und werden nicht übernommen.
+
+## Neue VoiceOpenGov-Wahrheit aus PR #430
+
+PR `#430` hat wesentliche Mission-, Membership-, Pricing-, Partner-, Domain-, Sprach- und Datenschutzgrundsätze menschlich bestätigt.
+
+Damit sind für Marketing kanonisch:
+
+- eDebatte bleibt neutrale Infrastruktur; VoiceOpenGov bleibt Mission, persönliche Mitgliedschaft, Partnernetzwerk, dynamisches Programm und Positionsprozess.
+- VoiceOpenGov-Mitgliedschaft steht ausschließlich natürlichen Personen offen.
+- Institutionen können Kunden, Veranstalter, Partner oder Förderer sein, aber keine stimmberechtigten VOG-Mitglieder.
+- Mitgliedschaft, Partnerstatus, Produktpaket, operative Rolle, Stimmrecht und Repräsentationsmandat bleiben getrennt.
+- `eDebatte Interessiert` kostet für bestätigte VoiceOpenGov-Mitglieder `0 €`, regulär `3,99 €`.
+- Produktentgelte an eDebatte und Spenden/Förderung an VoiceOpenGov bleiben rechtlich, buchhalterisch und öffentlich getrennt.
+- Partnerkategorien sind Community, Kommunen, Medien, Wissenschaft, Technologie, Bildung und Förderung.
+- Partner erhalten keine automatischen Stimm-, Review-, Ranking-, Moderations-, Publikations- oder Mandatsrechte.
+- `voiceopengov.org` trägt Mission, Mitgliedschaft, Partner, Förderung, Programm, Mandate und offizielle Positionen; `edebatte.org` bleibt die neutrale Plattform.
+- zentrale Inhalte erscheinen mindestens auf Deutsch und Englisch; Governance- und Positionsübersetzungen bleiben human-review-first.
+- persönliche Mitglieds-, Stimm-, Kontakt- und Schutzdaten sind nicht öffentlich.
+
+Weiterhin `manual_gate` bleiben:
+
+- endgültige VOG-Quorumformel,
+- Transparenzschwellen und Offenlegungstiefen,
+- Repräsentanten-Auswahlmechanismus,
+- gemeinsames Konto-, Shell- und Routingmodell,
+- konkrete Register-, Seiten- und Surface-Ausprägungen,
+- rechtliche und buchhalterische Operationalisierung der Zahlungsströme,
+- konkrete Membership- und Partnerprozesse, Verträge, Leistungen und Gegenleistungen.
 
 ## Angelegte Struktur
 
@@ -79,7 +108,7 @@ apps/web/public/marketing/
 └── manifest.json
 ```
 
-## Admin- und BI-Zielbild
+## Admin-, BI- und CRM-light-Zielbild
 
 Markdown bleibt fachliche Quelle und Evidence. Eine spätere Admin-Fläche unter `/admin/marketing` soll operativ steuern:
 
@@ -92,19 +121,21 @@ Markdown bleibt fachliche Quelle und Evidence. Eine spätere Admin-Fläche unter
 - aggregierte Insights,
 - CRM-light für qualifizierte institutionelle Beziehungen.
 
-Wichtig:
+Verbindliche Grenzen:
 
 - Beteiligungskampagnen bleiben unter `/admin/campaigns` und im bestehenden `Campaign`-Modell.
-- Marketingkommunikation nutzt `MarketingCampaign` und `/admin/marketing/campaigns`.
+- Marketingkommunikation nutzt `MarketingCampaign` und den Zielpfad `/admin/marketing/campaigns`.
 - Themenradar-Lifecycle, Audit und `autoPostEligible=false` bleiben unangetastet.
-- Ein Merge erzeugt nicht automatisch Marketingfreigabe.
-- `approved` ist nicht `published`; reale Streuung braucht ein DistributionRecord.
+- Ein Merge erzeugt keine automatische Marketingfreigabe.
+- `approved` ist nicht `published`; reale Streuung benötigt ein `DistributionRecord`.
+- BI bleibt aggregiert und erzeugt keine individuellen Click-Profile.
+- CRM-light ersetzt kein externes Voll-CRM und speichert keine Kontakte ohne geklärte Rechtsgrundlage, Rollen, Retention und Löschung.
 
 ## White-Label-Zielbild
 
 White-Label ist als konfigurierbares Brandprofil modelliert, nicht als Kopie einzelner Dateien.
 
-Veränderbar nach Freigabe:
+Nach Freigabe veränderbar:
 
 - Absendername,
 - Logos,
@@ -126,7 +157,7 @@ Nicht veränderbar:
 
 Dateinamen und Datenmodelle sind anbieterneutral. Namen von KI-, Design-, Video-, Präsentations- oder Office-Werkzeugen werden nicht als dauerhafte Assetidentität verwendet.
 
-Die angelegten Light- und Dark-Brandprofile sind `review_ready`, nicht `approved`. Sie sind aus realen Produkt-Tokens abgeleitet, benötigen aber vor Produktions- oder White-Label-Export eine explizite Brandfreigabe und reale Rechts-/Kontaktziele.
+Die angelegten Light- und Dark-Brandprofile sind `review_ready`, nicht `approved`. Sie basieren auf realen Produkt-Tokens, benötigen aber vor Produktions- oder White-Label-Export eine explizite Brandfreigabe und reale Rechts-/Kontaktziele.
 
 ## Abgrenzung
 
@@ -139,28 +170,31 @@ Dieser Slice:
 - definiert White-Label- und Co-Branding-Grenzen,
 - definiert ein Admin-/BI-/CRM-light-Zielbild,
 - legt maschinenlesbare Ziel-Shapes an,
+- richtet VoiceOpenGov-Marketing an PR `#430` aus,
 - legt noch keine finalen PDF-, PPTX-, Video- oder Social-Exporte ab.
 
 Dieser Slice verändert nicht:
 
 - Produktrouten,
 - Rollen und Rechte,
-- Membership oder Pricing,
+- Membership- oder Pricing-Runtime,
 - Partneraufnahme oder Vertragslogik,
 - Voxy-Assets oder Motion-Runtime,
 - Website oder Publishing,
 - Themenradar-, Campaign- oder Telemetrie-Runtime,
 - OpenTasks-Status bestehender Produktinitiativen.
 
-## Offene Entscheidungen
+## Verbleibende Entscheidungen
 
-### VoiceOpenGov
+### VoiceOpenGov Surfaces und Operations
 
-- Membership-Arten, Beiträge, Rechte und Pflichten,
+- finale Seiten, Navigation, Register und Routing,
+- Konto- und Shell-Modell zwischen den Domains,
+- Transparenzschwellen und Offenlegungstiefen,
+- konkrete Membership- und Partnerprozesse,
 - Partnerleistungen, Gegenleistungen, Aufnahme und Laufzeit,
-- Default-Seiten, Navigation und Routing,
-- Funding- und Transparenzdarstellung,
-- konkrete CTA- und Kontaktwege.
+- rechtliche und buchhalterische Zahlungsabwicklung,
+- finale CTA- und Kontaktwege.
 
 ### eDebatte Sales und White-Label
 
@@ -172,7 +206,7 @@ Dieser Slice verändert nicht:
 - Support, SLA und Rechtsverantwortung,
 - freigegebene Referenzen, Screens und Kennzahlen.
 
-### Admin Control Plane
+### Marketing Control Plane
 
 - endgültige Route und Navigation,
 - Permission-Matrix,
@@ -194,6 +228,7 @@ Dieser Slice verändert nicht:
 
 - Marketing läuft der Produktreife voraus.
 - Partner- oder Membership-Copy erzeugt unbeabsichtigt Rechteversprechen.
+- Pricing-Grundsätze werden als bereits technisch und rechtlich produktiv dargestellt.
 - generische KI-Visuals verwässern die eDebatte-CI.
 - White-Labeling entfernt notwendige Transparenz.
 - Arbeitsdateien gelangen ungeprüft in `public`.
@@ -210,6 +245,7 @@ Dieser Slice verändert nicht:
 - [x] Kampagnen besitzen Ziel, Zielgruppe, CTA, Lifecycle und separate Readiness-Grenze.
 - [x] Onepager-, Pitchdeck-, Kampagnen-, Feature-Intake-, Distribution- und Relationship-Vorlagen sind vorhanden.
 - [x] Social- und Videosystem nutzt wiederholbare Content-Serien.
+- [x] VoiceOpenGov-Marketing ist an PR `#430` ausgerichtet.
 - [x] VoiceOpenGov-Marketing trennt Partner, Mitgliedschaft, Plattformrolle, Stimmrecht und Repräsentationsmandat.
 - [x] White-Label- und Co-Branding-Regeln trennen veränderbare Gestaltung von unveränderlicher Produktwahrheit.
 - [x] Light- und Dark-Brandprofile basieren auf realen Produkt-Tokens und bleiben bis zur Freigabe `review_ready`.
@@ -224,7 +260,7 @@ Dieser Slice verändert nicht:
 ### Foundation-Slice
 
 ```text
-| MARKETING-GROWTH-OS-FOUNDATION-01 | review | P1 | VOG-MISSION-LAYER-01, bestehendes Brand-/Voxy-Pack, Voxy-Marketing-Pilotroadmap, Part12, Themenradar | Repo-basiertes, anbieterneutrales Marketing-, Sales-, Social-, Video-, White-Label- und Partner-Operating-System mit Zielgruppen-Kits, Kampagnenplan, Brandprofilen, Vorlagen, Admin-Zielbild, Schemas und freigegebener public-Assetstruktur anlegen, ohne Produkt- oder Governanceentscheidungen vorwegzunehmen | docs/marketing ist als SSOT-Einstieg vorhanden; vorhandene CI und Tokens werden referenziert; White-Label trennt Gestaltung und unveränderliche Wahrheit; MarketingCampaign bleibt von Campaign getrennt; public enthält nur freigegebene Assets; keine offene VOG-, Pricing-, Routing-, Rollen-, Privacy- oder CRM-Entscheidung wird als umgesetzt dargestellt |
+| MARKETING-GROWTH-OS-FOUNDATION-01 | review | P1 | VOG-MISSION-LAYER-01, PR #430, bestehendes Brand-/Voxy-Pack, Voxy-Marketing-Pilotroadmap, Part12, Themenradar | Repo-basiertes, anbieterneutrales Marketing-, Sales-, Social-, Video-, White-Label- und Partner-Operating-System mit Zielgruppen-Kits, Kampagnenplan, Brandprofilen, Vorlagen, Admin-Zielbild, Schemas und freigegebener public-Assetstruktur anlegen, ohne Produkt- oder Governanceentscheidungen vorwegzunehmen | `docs/marketing` ist als SSOT-Einstieg vorhanden; bestätigte VOG-Entscheidungen aus PR #430 sind übernommen; vorhandene CI und Tokens werden referenziert; White-Label trennt Gestaltung und unveränderliche Wahrheit; MarketingCampaign bleibt von Campaign getrennt; public enthält nur freigegebene Assets |
 ```
 
 ### Admin-/BI-/CRM-Decision-Epic
@@ -242,7 +278,7 @@ Dieser Slice verändert nicht:
 ## Empfehlung
 
 - Foundation: `review`
-- Admin Control Plane: `needs_decision` / operativ `manual_gate`
+- Marketing Control Plane: fachlich `needs_decision`, operativ `manual_gate`
 - technischer Registry-Slice: `blocked` bis zum Decision-Contract
 
 ## Validierung
@@ -252,6 +288,7 @@ Da ausschließlich Markdown- und JSON-Dokumentation angelegt oder geändert wird
 - JSON-Dateien syntaktisch prüfen,
 - Brandprofile gegen die dokumentierten Produkt-Tokens prüfen,
 - interne Pfade und kanonische Referenzen prüfen,
+- VoiceOpenGov-Aussagen gegen PR `#430` prüfen,
 - Dateinamen auf Anbieterneutralität prüfen,
 - Diff auf Produkt-, Runtime-, Route-, Rollen- und Assetänderungen prüfen,
 - keine App-Tests erforderlich.
