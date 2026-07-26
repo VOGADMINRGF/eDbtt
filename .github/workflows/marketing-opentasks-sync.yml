@@ -1,0 +1,65 @@
+name: One-shot marketing OpenTasks sync
+
+on:
+  push:
+    branches:
+      - docs/marketing-growth-os-foundation-01
+    paths:
+      - .github/workflows/marketing-opentasks-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync-opentasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout marketing branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/marketing-growth-os-foundation-01
+          fetch-depth: 0
+
+      - name: Register marketing tasks in canonical OpenTasks head
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/E150/OpenTasks.md")
+          text = path.read_text(encoding="utf-8")
+
+          task_ids = (
+              "MARKETING-GROWTH-OS-FOUNDATION-01",
+              "MARKETING-CONTROL-PLANE-01",
+              "MARKETING-REGISTRY-READMODEL-01",
+          )
+          if all(task_id in text for task_id in task_ids):
+              raise SystemExit(0)
+
+          marker = "| PROD-PUBLIC-LIVE-SMOKE-02A |"
+          if marker not in text:
+              raise SystemExit("OpenTasks insertion marker not found")
+
+          block = """| MARKETING-GROWTH-OS-FOUNDATION-01 | review | P1 | VOG-MISSION-LAYER-01, bestehendes Brand-/Voxy-Pack, Voxy-Marketing-Pilotroadmap | Repo-basiertes, anbieterneutrales Marketing-, Sales-, Social-, Video-, Partner- und White-Label-Operating-System mit Zielgruppen-Kits, Kampagnenplan, Vorlagen, Agentenregeln, Brandprofilen, Control-Plane-Schema und freigegebener Public-Assetstruktur anlegen, ohne Produkt- oder Governanceentscheidungen vorwegzunehmen | `docs/marketing` ist als SSOT-Einstieg vorhanden; bestehende CI und reale Produkttokens werden referenziert; White-Label- und Marketing-Control-Plane-Verträge sind reviewbar; `public` enthält nur freigegebene Assets; keine offene VOG-, Pricing-, Routing-, Rollen- oder Privacyentscheidung wird als umgesetzt dargestellt |
+| MARKETING-CONTROL-PLANE-01 | manual_gate | P1 | MARKETING-GROWTH-OS-FOUNDATION-01, VOG-MISSION-LAYER-01, Rollen-/Permission-Modell, Privacy/Retention, Organisations- und Kontaktmodell | Marketing Control Plane für Opportunities, MarketingCampaigns, Assets, Distribution, aggregierte Insights, CRM-light-Beziehungen und Brandprofile kanonisieren; Beteiligungskampagnen unter `/admin/campaigns` bleiben getrennt, `/admin/themenradar` und bestehende Audit-/Share-ready-Verträge werden referenziert statt dupliziert | Verbindlicher Decision-Contract klärt Routen, Fähigkeiten, Datenhaltung, Retention, Kontakt-/Consent-Grenzen, Distribution-Credentials, Attributionsregeln und White-Label-Freigaben; kein Auto-Publish, keine personenbezogenen Click-Profile und kein paralleles Voll-CRM werden eingeführt |
+<!-- MARKETING-CONTROL-PLANE-01: fachliche Klassifikation `needs_decision`; operativer Status im aktuellen OpenTasks-Vokabular `manual_gate`. Zielvertrag: `docs/marketing/admin/marketing-control-plane.md`. -->
+| MARKETING-REGISTRY-READMODEL-01 | blocked | P1 | MARKETING-CONTROL-PLANE-01 | Nach freigegebenem Decision-Contract eine serverseitige Marketing-Registry und eine read-only Admin-Übersicht für Opportunities, Kampagnen, Assets, Blocker und Brandprofile implementieren; bestehende Themenradar-, Campaign-, Review- und Evidence-Referenzen wiederverwenden | `/admin/marketing` zeigt ein belastbares, rollen- und 2FA-gebundenes Readmodel ohne Distribution- oder CRM-Schreibpfad; Schema und Runtime-Contracts stimmen überein; keine zweite Campaign-, Telemetrie-, Organisationen- oder Audit-Wahrheit entsteht |
+"""
+
+          text = text.replace(marker, block + marker, 1)
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Remove one-shot workflow and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/marketing-opentasks-sync.yml
+          git config user.name "eDebatte Repo Automation"
+          git config user.email "team@edebatte.org"
+          git add docs/E150/OpenTasks.md .github/workflows/marketing-opentasks-sync.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "docs: register marketing control plane in OpenTasks"
+          git push origin HEAD:docs/marketing-growth-os-foundation-01
