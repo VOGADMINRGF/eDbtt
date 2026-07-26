@@ -180,6 +180,7 @@ export type SharedCreateComposerProps = {
   minimalLead?: string;
   hideAlternateModeDisclosure?: boolean;
   locale?: "de" | "en";
+  showSceneRail?: boolean;
 };
 
 export default function SharedCreateComposer({
@@ -221,6 +222,7 @@ export default function SharedCreateComposer({
   minimalLead,
   hideAlternateModeDisclosure = false,
   locale = "de",
+  showSceneRail = true,
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -556,7 +558,7 @@ export default function SharedCreateComposer({
               headingTag="h2"
             />
 
-            <CreateComposerSceneRail />
+            {showSceneRail ? <CreateComposerSceneRail /> : null}
 
             <div className="public-flow-line space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4">
               <div className="space-y-2">

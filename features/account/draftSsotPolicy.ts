@@ -81,7 +81,7 @@ const ACCOUNT_DRAFT_SSOT_POLICY_MAP = {
     source: "legacy_draft_store",
     label: "Legacy Draft-Store",
     summary:
-      "Älterer `/api/drafts`-Pfad mit abweichender ID-/Schema-Logik. Nur als Resume-Fallback, nicht als kanonische Account-Wahrheit.",
+      "Älterer `/api/drafts`-Pfad mit abweichender ID-/Schema-Logik. Nur für alte String-IDs, nicht als kanonische Account-Wahrheit.",
     truthBand: "legacy_resume_only",
     precedence: 20,
     accountVisible: false,
@@ -91,7 +91,7 @@ const ACCOUNT_DRAFT_SSOT_POLICY_MAP = {
     source: "create_contribution_draft_resume",
     label: "Create-Draft-Resume",
     summary:
-      "User-gebundener Resume-Lookup aus `contribution_drafts` für `/create?draftId=...`, ohne zweite Persistenzwelt zu bauen.",
+      "User-gebundener Resume-Lookup aus der kanonischen `drafts`-Wahrheit mit normalisiertem Legacy-Fallback für alte `contribution_drafts`-Records.",
     truthBand: "server_user_scoped",
     precedence: 30,
     accountVisible: false,
@@ -135,7 +135,7 @@ export function buildCreateDraftResumeLookupOrder(params: {
     ordered.push("manual_anlassraum_server_draft");
   }
   if (params.isObjectIdLike) {
-    ordered.push("create_contribution_draft_resume", "legacy_draft_store");
+    ordered.push("create_contribution_draft_resume");
     return ordered;
   }
   ordered.push("legacy_draft_store");

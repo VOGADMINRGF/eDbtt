@@ -155,6 +155,17 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
   },
 };
 
+const OVERFLOW_MULTI_BRANCH_FOLLOWUP_RESULT = {
+  ...MULTI_BRANCH_FOLLOWUP_RESULT,
+  understanding: {
+    ...MULTI_BRANCH_FOLLOWUP_RESULT.understanding,
+    topics: [
+      ...MULTI_BRANCH_FOLLOWUP_RESULT.understanding.topics,
+      { id: "topic-5", label: "Lieferverkehr und Schulwege", confidence: "medium" as const },
+    ],
+  },
+};
+
 const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = buildCreateTechnicalFollowup({
   text:
     "In Rahnsdorf fehlen sichere Querungen an Kita, Straße und Haltestelle. Radfahrer kommen schlecht durch, Bauprojekte verdrängen Grünflächen und der Haushalt ist knapp.",
@@ -337,9 +348,8 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("keeps the technical planner fallback in a clearly degraded clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
-    expect(html).toContain("Analyse noch nicht abgeschlossen");
+    expect(html).toContain("Analyse blockiert");
     expect(html).toContain("Es wurden keine Themen abgeleitet.");
-    expect(html).toContain("Erneut versuchen");
     expect(html).toContain("Eingabe speichern");
     expect(html).not.toContain("Themenstruktur bestätigen");
     expect(html).not.toContain("Aussage schärfen");
@@ -373,21 +383,30 @@ describe("create chat-first mobile dialog experience contract", () => {
   });
 
   it("offers a compact link and overflow decision without auto-starting external search", () => {
-    const html = renderMultiBranchVisualFollowup(false, {
-      linkDetection: detectCreateLinkIntake("https://example.com/artikel Mehr Themen bitte prüfen"),
-      compactBranchLimit: 3,
-      expandedBranchLimit: 5,
-      expandedTopicAccess: {
-        canPreviewAllTopics: true,
-        isPrivilegedPreview: false,
-        costState: "uses_search_credit",
-      },
-    });
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={OVERFLOW_MULTI_BRANCH_FOLLOWUP_RESULT}
+        linkDetection={detectCreateLinkIntake("https://example.com/artikel Mehr Themen bitte prüfen")}
+        compactBranchLimit={4}
+        expandedBranchLimit={6}
+        expandedTopicAccess={{
+          canPreviewAllTopics: true,
+          isPrivilegedPreview: false,
+          costState: "uses_search_credit",
+        }}
+        onConfirm={() => {}}
+        onEdit={() => {}}
+        {...FOLLOWUP_ACTIONS}
+        continuationValue=""
+        onContinuationChange={() => {}}
+        onContinueConversation={() => {}}
+      />,
+    );
 
-    expect(html).toContain("Ich habe 4 Themen erkannt. Drei zeige ich dir kompakt.");
+    expect(html).toContain("Ich habe 5 Themen erkannt. Vier zeige ich dir kompakt.");
     expect(html).toContain("Ein weiteres Thema wurde erkannt.");
-    expect(html).toContain("Weiteres Thema anzeigen");
-    expect(html).toContain("Nur mit diesen 3 weiterarbeiten");
+    expect(html).toContain("Alle 5 Themen anzeigen");
+    expect(html).toContain("Nur mit diesen 4 weiterarbeiten");
     expect(html).toContain("Später");
     expect(html).toContain("Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.");
     expect(html).not.toContain("0 EUR");

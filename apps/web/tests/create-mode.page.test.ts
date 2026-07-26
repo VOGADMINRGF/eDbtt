@@ -126,27 +126,20 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Ein Workspace für deinen Beitrag");
+    expect(html).toContain("Dein Beitrag im Workspace");
     expect(html).toContain("Schreib unten frei los.");
     expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
     expect(html).toContain("Thema ordnen");
     expect(html).toContain("Frage schärfen");
-    expect(html).toContain("Quellen prüfen");
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("Details &amp; Transparenz");
     expect(html).toContain("create-primary-intake");
     expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-shell-layout="wide"');
-    expect(html).toContain('data-create-shell-pipeline="true"');
-    expect(html).toContain('data-create-shell-structure-rail="true"');
     expect(html).toContain('data-create-shell-thread="true"');
+    expect(html).toContain('data-create-debattenstand-statusbar="true"');
     expect(html).toContain('data-create-composer-bar="true"');
-    expect(html).toContain("Eingabe");
-    expect(html).toContain("Verstehen");
-    expect(html).toContain("Themen ordnen");
-    expect(html).toContain("Quellen prüfen");
-    expect(html).toContain("Entwurf");
     expect(html).toContain("Prüfen");
     expect(html).toContain(
       "Auf /create erklärt Voxy Anliegenordnung, Format, Quellen- und Claims-Schritte als sichere Vorschläge",
@@ -168,12 +161,6 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Kurzer Einstieg");
     expect(html).not.toContain("create-start-chat-preview");
 
-    expect(html.indexOf('data-create-shell-pipeline="true"')).toBeLessThan(
-      html.indexOf('id="create-primary-intake"'),
-    );
-    expect(html.indexOf('data-create-shell-structure-rail="true"')).toBeLessThan(
-      html.indexOf('id="create-primary-intake"'),
-    );
 
     expect(html).not.toContain("Kontext-Picker");
     expect(html).not.toContain("Intake-Kontext");

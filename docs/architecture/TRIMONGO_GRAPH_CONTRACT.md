@@ -55,5 +55,5 @@ Prisma darf **nicht** notwendig sein, um MVP-Flows laufen zu lassen.
 
 ## 6) CI/Preflight
 
-Vor jedem Patch muss `scripts/codex-preflight.mjs` laufen.  
-Bei Verstoessen (Strict Mode) darf Codex keinen Patch anwenden.
+Der verbindliche Task- und Branch-Preflight ist in `docs/E150/CODEX_RUN_PACK_CONTRACT.md` beschrieben.
+Das technische Repository-Audit bleibt unter `scripts/codex-preflight.mjs` erhalten.

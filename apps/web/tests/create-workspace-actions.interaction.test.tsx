@@ -197,6 +197,34 @@ function buildValidatedTopicResult(): CreateIntelligentFollowupResult {
   };
 }
 
+function buildValidatedOverflowTopicResult(): CreateIntelligentFollowupResult {
+  const result = buildValidatedTopicResult();
+  result.understanding.topics.push({
+    id: "topic-5",
+    label: "Lieferverkehr und Schulwege",
+    confidence: "medium",
+  });
+  if (result.meta?.planner) {
+    result.meta.planner.plannerClusters = [
+      ...result.meta.planner.plannerClusters,
+      "Lieferverkehr und Schulwege",
+    ];
+    result.meta.planner.topicCandidates = [
+      ...(result.meta.planner.topicCandidates ?? []),
+      "Lieferverkehr und Schulwege",
+    ];
+    result.meta.planner.clusterCandidates = [
+      ...(result.meta.planner.clusterCandidates ?? []),
+      "Lieferverkehr und Schulwege",
+    ];
+    result.meta.planner.graphSearchTerms = [
+      ...(result.meta.planner.graphSearchTerms ?? []),
+      "lieferverkehr",
+    ];
+  }
+  return result;
+}
+
 function buildDocumentAnalysis(
   overrides: Partial<DocumentAnalysisSummary> = {},
 ): DocumentAnalysisSummary {
@@ -307,8 +335,8 @@ function Harness(props: {
         parkedTopicLabels={parkedTopicLabels}
         composerMode={composerMode}
         linkDetection={linkDetection}
-        compactBranchLimit={3}
-        expandedBranchLimit={4}
+        compactBranchLimit={4}
+        expandedBranchLimit={5}
         documentTopicOverviewOpened={documentTopicOverviewOpened}
         showExpandedTopicPreview={showExpandedTopicPreview}
         topicExpansionDecision={topicExpansionDecision}
@@ -320,7 +348,7 @@ function Harness(props: {
         onConfirm={() => {
           setConfirmed(true);
           setComposerMode("default");
-          setSelectedPrimaryTopic((current) => current ?? buildCreateStructureBranches(result, 3)[0]?.title ?? null);
+          setSelectedPrimaryTopic((current) => current ?? buildCreateStructureBranches(result, 4)[0]?.title ?? null);
           setActionNotice("Themenstruktur bestätigt.");
         }}
         onEdit={() => setComposerMode("edit")}
@@ -342,7 +370,7 @@ function Harness(props: {
         onKeepCompactTopicPreview={() => {
           setShowExpandedTopicPreview(false);
           setTopicExpansionDecision("compact");
-          setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
+          setActionNotice("Du arbeitest zunächst mit der kompakten Themenansicht weiter.");
         }}
         onOpenDocumentTopicOverview={() => {
           setDocumentTopicOverviewOpened(true);
@@ -519,7 +547,7 @@ describe("create workspace actions interaction", () => {
 
     expect(screen.getByText("Die Analyse hat 4 Themenbereiche erkannt. Alle 4 Themen sind geöffnet.")).toBeTruthy();
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
-    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Alle 4 Themen anzeigen" })).toBeNull();
     expect(container.textContent ?? "").not.toContain("3 davon sind gerade sichtbar");
   });
 
@@ -540,7 +568,7 @@ describe("create workspace actions interaction", () => {
 
     expect(screen.getByText("Die Analyse hat 12 Themenbereiche erkannt. Alle 12 Themen sind geöffnet.")).toBeTruthy();
     expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(12);
-    expect(screen.queryByRole("button", { name: "Weiteres Thema anzeigen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Alle 12 Themen anzeigen" })).toBeNull();
     expect(container.textContent ?? "").not.toContain("3 davon sind gerade sichtbar");
     expect(screen.getByRole("button", { name: "Thema Dokumentthema 1 fokussieren" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Thema Dokumentthema 1 als Zweig parken" })).toBeTruthy();
@@ -572,7 +600,7 @@ describe("create workspace actions interaction", () => {
 
   it("keeps the bus and street-planning smoke topics consistent and removes wrong fallback topics", async () => {
     const user = userEvent.setup();
-    const { container } = render(<Harness initialResult={buildValidatedTopicResult()} previewAllTopics />);
+    const { container } = render(<Harness initialResult={buildValidatedOverflowTopicResult()} previewAllTopics />);
 
     expect(container.querySelectorAll("[data-create-pipeline-rail]")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Details & Transparenz" })).toHaveLength(1);
@@ -581,17 +609,18 @@ describe("create workspace actions interaction", () => {
     expect(screen.getAllByText("Parkraum und kommunale Planung").length).toBeGreaterThan(0);
     expect(container.textContent ?? "").not.toContain("Wohnen und Genehmigungen");
     expect(container.textContent ?? "").not.toContain("Bildung, Integration und Sicherheit");
-    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "Weiteres Thema anzeigen" })).toBeTruthy();
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "Alle 5 Themen anzeigen" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Aussage schärfen" })).toBeNull();
     expect(screen.getByTestId("composer-placeholder").textContent).toBe(
       "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?",
     );
 
-    await user.click(screen.getByRole("button", { name: "Weiteres Thema anzeigen" }));
+    await user.click(screen.getByRole("button", { name: "Alle 5 Themen anzeigen" }));
     expect(screen.getByTestId("topic-expansion-decision").textContent).toBe("expanded");
-    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(5);
     expect(container.textContent ?? "").toContain("Pendler- und Anschlussmobilität");
+    expect(container.textContent ?? "").toContain("Lieferverkehr und Schulwege");
   });
 
   it("retries the saved input without duplicating the contribution and unlocks the validated flow", async () => {
@@ -622,7 +651,7 @@ describe("create workspace actions interaction", () => {
     expect(screen.getByTestId("analysis-state").textContent).toBe("result_ready");
     expect(screen.queryByText("Analyse blockiert")).toBeNull();
     expect(screen.getAllByText(failedText)).toHaveLength(1);
-    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-create-topic-branch-card]")).toHaveLength(4);
     expect(screen.getByRole("button", { name: "Themenstruktur bestätigen" })).toBeTruthy();
   });
 
