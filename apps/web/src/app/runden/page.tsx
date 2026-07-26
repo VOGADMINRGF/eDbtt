@@ -27,12 +27,13 @@ import {
 import MotionReveal from "@/components/motion/MotionReveal";
 import VoxyGuide from "@/components/voxy/VoxyGuide";
 import { RUNDEN_VOXY_COPY } from "@/features/voxy/rundenVoxyCopy";
+import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
+  path: "/runden",
   title: "Anlassraum - eDebatte",
-  description:
-    "Ein Anlassraum sammelt Hinweise, Fragen, Quellen und Optionen an einem Ort.",
-};
+  description: "Ein Anlassraum sammelt Hinweise, Fragen, Quellen und Optionen an einem Ort.",
+});
 
 type RoundEntryView = "active" | "mine" | "results";
 

@@ -1,0 +1,1379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edebatte.org/schemas/regional-civic-opportunity-run.schema.json",
+  "title": "Regional Civic Opportunity Run",
+  "description": "Vendor-neutral contract for regional multilingual discovery, participation suitability, campaign recommendations and scoped publication approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "run",
+    "regionProfile",
+    "sourcePacks",
+    "topicCandidates",
+    "participationAssessments",
+    "recommendations",
+    "campaignDrafts",
+    "publishApprovals",
+    "trace"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "run": {
+      "$ref": "#/$defs/regionalOpportunityRun"
+    },
+    "regionProfile": {
+      "$ref": "#/$defs/regionProfile"
+    },
+    "sourcePacks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourcePack"
+      }
+    },
+    "topicCandidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/regionalTopicCandidate"
+      }
+    },
+    "participationAssessments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/participationAssessment"
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/agentRecommendation"
+      }
+    },
+    "campaignDrafts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/campaignDraft"
+      }
+    },
+    "publishApprovals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/publishApproval"
+      }
+    },
+    "trace": {
+      "$ref": "#/$defs/agentRunTrace"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]*$"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35
+    },
+    "stringOrNull": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "idOrNull": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "urlOrNull": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "languageContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interfaceLanguage",
+        "readingLanguage",
+        "outputLanguages",
+        "sourceLanguages",
+        "preserveOriginal"
+      ],
+      "properties": {
+        "interfaceLanguage": {
+          "$ref": "#/$defs/locale"
+        },
+        "readingLanguage": {
+          "$ref": "#/$defs/locale"
+        },
+        "outputLanguages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locale"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sourceLanguages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locale"
+          },
+          "uniqueItems": true
+        },
+        "preserveOriginal": {
+          "const": true
+        },
+        "translationPolicy": {
+          "enum": [
+            "machine_reading_support",
+            "human_review_required",
+            "approved_localization_required"
+          ]
+        }
+      }
+    },
+    "regionalOpportunityRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "operatorProfileVersion",
+        "purpose",
+        "status",
+        "requestedBy",
+        "brandProfileId",
+        "jurisdictionLevels",
+        "timeWindowStart",
+        "timeWindowEnd",
+        "languageContext",
+        "reviewRequired",
+        "autoPublishEligible",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "operatorProfileVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "purpose": {
+          "enum": [
+            "discover_civic_topics",
+            "evaluate_existing_opportunities",
+            "prepare_participation_candidates",
+            "prepare_campaign_candidates",
+            "analyze_campaign_performance",
+            "refresh_region_briefing"
+          ]
+        },
+        "status": {
+          "enum": [
+            "configured",
+            "source_planning",
+            "researching",
+            "evaluating",
+            "review_ready",
+            "blocked",
+            "completed",
+            "cancelled",
+            "failed"
+          ]
+        },
+        "requestedBy": {
+          "$ref": "#/$defs/id"
+        },
+        "brandProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "regionProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "jurisdictionLevels": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "international",
+              "eu",
+              "federal",
+              "state_region",
+              "county",
+              "municipality",
+              "district",
+              "neighborhood",
+              "mixed"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "timeWindowStart": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "timeWindowEnd": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "freshnessPolicy": {
+          "enum": [
+            "strict_current",
+            "current_with_historical_context",
+            "historical_research"
+          ]
+        },
+        "topicKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "excludedTopicKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "audienceKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "languageContext": {
+          "$ref": "#/$defs/languageContext"
+        },
+        "reviewRequired": {
+          "const": true
+        },
+        "autoPublishEligible": {
+          "const": false
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "regionProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "displayName",
+        "countryCode",
+        "timezone",
+        "jurisdictionLevels",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "subdivisionCode": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "municipalityCode": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "districtCode": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "jurisdictionLevels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "officialLanguageCodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locale"
+          },
+          "uniqueItems": true
+        },
+        "regionalNameVariants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "uniqueItems": true
+        },
+        "authorityRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "review_ready",
+            "approved",
+            "retired"
+          ]
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "sourceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceClass",
+        "title",
+        "issuer",
+        "originalLanguage",
+        "jurisdictionScope",
+        "retrievedAt",
+        "evidenceStatus",
+        "freshnessStatus",
+        "translationStatus"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceClass": {
+          "enum": [
+            "official_primary",
+            "scientific_primary",
+            "professional_context",
+            "journalistic_context",
+            "civil_society_context",
+            "community_signal"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "url": {
+          "$ref": "#/$defs/urlOrNull"
+        },
+        "stableRef": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "publishedAt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/isoDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retrievedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "originalLanguage": {
+          "$ref": "#/$defs/locale"
+        },
+        "jurisdictionScope": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "evidenceStatus": {
+          "enum": [
+            "unverified",
+            "verified",
+            "qualified",
+            "contradicted",
+            "rejected"
+          ]
+        },
+        "freshnessStatus": {
+          "enum": [
+            "current",
+            "aging",
+            "stale",
+            "historical_context",
+            "unknown"
+          ]
+        },
+        "translationStatus": {
+          "enum": [
+            "original",
+            "machine_reading_support",
+            "human_reviewed",
+            "approved_localization"
+          ]
+        },
+        "supportsClaimIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "contradictsClaimIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "qualifiesClaimIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "sourcePack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "runId",
+        "regionProfileId",
+        "sourceIds",
+        "coverageStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "runId": {
+          "$ref": "#/$defs/id"
+        },
+        "regionProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceEvidence"
+          }
+        },
+        "coverageStatus": {
+          "enum": [
+            "sufficient",
+            "partial",
+            "language_gap",
+            "jurisdiction_gap",
+            "source_diversity_gap",
+            "stale",
+            "rejected"
+          ]
+        },
+        "missingSourceClasses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "uniqueItems": true
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "claimRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "claimType",
+        "confidence",
+        "reviewState"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "claimType": {
+          "enum": [
+            "fact",
+            "interpretation",
+            "prediction",
+            "value_judgment",
+            "proposal",
+            "question"
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "reviewState": {
+          "enum": [
+            "unreviewed",
+            "needs_factcheck",
+            "review_ready",
+            "verified",
+            "disputed",
+            "rejected"
+          ]
+        }
+      }
+    },
+    "regionalTopicCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "runId",
+        "title",
+        "summary",
+        "regionProfileId",
+        "jurisdictionLevels",
+        "sourcePackId",
+        "claims",
+        "affectedGroupKeys",
+        "responsibleActorRefs",
+        "urgency",
+        "everydayRelevance",
+        "evidenceStrength",
+        "controversy",
+        "sensitivityRisk",
+        "reviewState",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "runId": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 220
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "regionProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "jurisdictionLevels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sourcePackId": {
+          "$ref": "#/$defs/id"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claimRef"
+          }
+        },
+        "counterpositionSummaries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        },
+        "affectedGroupKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "missingVoiceKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "responsibleActorRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "themenradarItemId": {
+          "$ref": "#/$defs/idOrNull"
+        },
+        "linkedDossierId": {
+          "$ref": "#/$defs/idOrNull"
+        },
+        "urgency": {
+          "$ref": "#/$defs/score"
+        },
+        "everydayRelevance": {
+          "$ref": "#/$defs/score"
+        },
+        "evidenceStrength": {
+          "$ref": "#/$defs/score"
+        },
+        "controversy": {
+          "$ref": "#/$defs/score"
+        },
+        "sensitivityRisk": {
+          "$ref": "#/$defs/score"
+        },
+        "reviewState": {
+          "enum": [
+            "unreviewed",
+            "research_gap",
+            "review_ready",
+            "accepted",
+            "deferred",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "participationAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "topicCandidateId",
+        "participationSuitability",
+        "recommendedFormat",
+        "rationale",
+        "factVoteProhibited",
+        "rightsVoteProhibited",
+        "reviewRequired",
+        "reviewState"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "topicCandidateId": {
+          "$ref": "#/$defs/id"
+        },
+        "participationSuitability": {
+          "enum": [
+            "suitable",
+            "suitable_after_dossier",
+            "suitable_after_factcheck",
+            "limited",
+            "not_suitable"
+          ]
+        },
+        "recommendedFormat": {
+          "enum": [
+            "information_only",
+            "dossier_first",
+            "claim_factcheck",
+            "open_debate",
+            "structured_round",
+            "survey",
+            "preference_poll",
+            "proposal_collection",
+            "prioritization",
+            "consultation",
+            "co_creation",
+            "not_suitable"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "questionDraft": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "optionDrafts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "decisionScope": {
+          "$ref": "#/$defs/stringOrNull"
+        },
+        "legalOrGovernanceConstraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1500
+          }
+        },
+        "missingEvidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1500
+          }
+        },
+        "missingVoices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "uniqueItems": true
+        },
+        "factVoteProhibited": {
+          "const": true
+        },
+        "rightsVoteProhibited": {
+          "const": true
+        },
+        "reviewRequired": {
+          "const": true
+        },
+        "reviewState": {
+          "enum": [
+            "unreviewed",
+            "review_ready",
+            "approved",
+            "rejected"
+          ]
+        }
+      }
+    },
+    "agentRecommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "runId",
+        "recommendationType",
+        "summary",
+        "rationale",
+        "evidenceRefs",
+        "confidence",
+        "dataQuality",
+        "requiredHumanDecision",
+        "suggestedNextAction",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "runId": {
+          "$ref": "#/$defs/id"
+        },
+        "recommendationType": {
+          "enum": [
+            "research_more",
+            "create_or_update_dossier",
+            "prepare_participation",
+            "defer_opportunity",
+            "prepare_campaign",
+            "revise_asset",
+            "add_language",
+            "add_region",
+            "prioritize_channel",
+            "keep",
+            "improve",
+            "scale",
+            "pause",
+            "stop",
+            "refresh_evidence",
+            "insufficient_evidence"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "dataQuality": {
+          "enum": [
+            "verified",
+            "partial",
+            "estimated",
+            "stale",
+            "missing",
+            "rejected"
+          ]
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        },
+        "missingEvidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        },
+        "requiredHumanDecision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "suggestedNextAction": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "expiresAt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/isoDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "campaignDraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "marketingCampaignId",
+        "opportunityId",
+        "regionProfileId",
+        "brandProfileId",
+        "status",
+        "objective",
+        "primaryKpiKey",
+        "primaryMessage",
+        "primaryCta",
+        "outputLanguages",
+        "reviewRequired",
+        "autoPublishEligible",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "marketingCampaignId": {
+          "$ref": "#/$defs/id"
+        },
+        "opportunityId": {
+          "$ref": "#/$defs/id"
+        },
+        "regionProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "brandProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "review_ready",
+            "approved",
+            "superseded",
+            "retired"
+          ]
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "primaryKpiKey": {
+          "$ref": "#/$defs/key"
+        },
+        "secondaryKpiKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key"
+          },
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "primaryMessage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "claimIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "primaryCta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "status"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "url": {
+              "$ref": "#/$defs/urlOrNull"
+            },
+            "status": {
+              "enum": [
+                "needs_routing_decision",
+                "verified",
+                "retired"
+              ]
+            }
+          }
+        },
+        "outputLanguages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locale"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "assetVersionIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "reviewRequired": {
+          "const": true
+        },
+        "autoPublishEligible": {
+          "const": false
+        },
+        "createdAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "publishApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "campaignId",
+        "assetVersionIds",
+        "locales",
+        "regionProfileIds",
+        "channels",
+        "publisherRefs",
+        "contentHash",
+        "approvedBy",
+        "approvedAt",
+        "expiresAt",
+        "executionLimit",
+        "executionCount",
+        "revoked",
+        "reviewComplete",
+        "preflightRequired"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "campaignId": {
+          "$ref": "#/$defs/id"
+        },
+        "assetVersionIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "locales": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locale"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "regionProfileIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "website",
+              "linkedin",
+              "instagram",
+              "tiktok",
+              "facebook",
+              "youtube",
+              "newsletter",
+              "press",
+              "partner_channel",
+              "event",
+              "other"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "publisherRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "targetUrls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "uniqueItems": true
+        },
+        "contentHash": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256
+        },
+        "approvedBy": {
+          "$ref": "#/$defs/id"
+        },
+        "approvedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "notBefore": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/isoDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/isoDateTime"
+        },
+        "scheduledAt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/isoDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executionLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "executionCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "revokedAt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/isoDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewComplete": {
+          "const": true
+        },
+        "preflightRequired": {
+          "const": true
+        }
+      }
+    },
+    "traceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "stepType",
+        "status",
+        "summary",
+        "at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "stepType": {
+          "enum": [
+            "configuration",
+            "region_resolution",
+            "source_plan",
+            "research",
+            "translation",
+            "claim_analysis",
+            "participation_assessment",
+            "opportunity_evaluation",
+            "campaign_preparation",
+            "review",
+            "approval",
+            "distribution_preflight",
+            "distribution",
+            "analytics",
+            "recommendation",
+            "blocked"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "completed",
+            "blocked",
+            "failed",
+            "skipped"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "artifactRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "at": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    },
+    "agentRunTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runId",
+        "roleIds",
+        "steps",
+        "safeForUser",
+        "containsPrivateChainOfThought",
+        "containsSecrets",
+        "updatedAt"
+      ],
+      "properties": {
+        "runId": {
+          "$ref": "#/$defs/id"
+        },
+        "roleIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traceStep"
+          }
+        },
+        "safeForUser": {
+          "const": true
+        },
+        "containsPrivateChainOfThought": {
+          "const": false
+        },
+        "containsSecrets": {
+          "const": false
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/isoDateTime"
+        }
+      }
+    }
+  }
+}
