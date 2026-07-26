@@ -363,3 +363,9 @@ Status: `needs_decision`
 - Beteiligungskampagnen und MarketingCampaigns bleiben getrennte Modelle,
 - Themenradar- und Share-ready-Guardrails bleiben unverändert wirksam,
 - White-Labeling verändert Gestaltung und Absender, aber niemals Quellen-, Review-, Audit-, Privacy- oder Governance-Wahrheit.
+
+## Statusentscheidung
+
+- Dokumentations-Foundation: `review`
+- Control-Plane-Implementierung: `needs_decision` / operativ `manual_gate`
+- Registry-Readmodel: `blocked` bis zur Entscheidung
