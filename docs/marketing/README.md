@@ -116,6 +116,12 @@ Das Admin Board übernimmt später:
 
 Damit wird die Dokumentation nicht abgeschafft, sondern operativ nutzbar gemacht.
 
+## Statusentscheidung
+
+- Dokumentations-Foundation: `review`
+- Marketing Control Plane: `needs_decision` / operativ `manual_gate`
+- technisches Registry-Readmodel: `blocked` bis zum Decision-Contract
+
 ## Nicht-Ziele dieses Foundations-Slices
 
 - keine Website-, Routing- oder Rollenimplementierung
