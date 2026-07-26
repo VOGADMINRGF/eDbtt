@@ -3,7 +3,8 @@ import {
   AiRuntimePolicyError,
   getAiRuntimePolicyFromEnv,
   resolveAiRuntimeProviderMissingReason,
-} from "@/features/ai/aiRuntimePolicy";
+  resolveAiRuntimeModeFromEnv,
+} from "@features/ai/aiRuntimePolicy";
 
 describe("ai runtime policy contract", () => {
   it("normalizes the shared runtime policy without exposing secrets", () => {
@@ -111,5 +112,42 @@ describe("ai runtime policy contract", () => {
     expect(policy.social.autoPublishEnabled).toBe(false);
     expect(policy.social.realtimePublishEnabled).toBe(false);
     expect(policy.social.requireReview).toBe(true);
+  });
+
+  it("fails closed for invalid boolean env values", () => {
+    try {
+      getAiRuntimePolicyFromEnv({
+        GEMINI_DISABLED: "sometimes",
+      });
+      throw new Error("expected AiRuntimePolicyError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AiRuntimePolicyError);
+      expect((error as AiRuntimePolicyError).code).toBe("INVALID_BOOLEAN");
+      expect((error as AiRuntimePolicyError).envVar).toBe("GEMINI_DISABLED");
+    }
+  });
+
+  it("treats placeholder credentials as missing across providers", () => {
+    const policy = getAiRuntimePolicyFromEnv({
+      AI_PROVIDER_ORDER: "openai,anthropic,gemini",
+      OPENAI_API_KEY: "__set_in_secret_manager__",
+      ANTHROPIC_API_KEY: "replace_me",
+      GOOGLE_API_KEY: "changeme",
+    });
+
+    expect(policy.enabledProviders).toEqual([]);
+    expect(resolveAiRuntimeProviderMissingReason("openai", policy)).toBe("missing OPENAI_API_KEY");
+    expect(resolveAiRuntimeProviderMissingReason("anthropic", policy)).toBe("missing ANTHROPIC_API_KEY");
+    expect(resolveAiRuntimeProviderMissingReason("gemini", policy)).toBe(
+      "missing GEMINI_API_KEY / GOOGLE_API_KEY",
+    );
+  });
+
+  it("resolves runtime modes honestly for development, preview and production", () => {
+    expect(resolveAiRuntimeModeFromEnv({})).toBe("development");
+    expect(resolveAiRuntimeModeFromEnv({ NODE_ENV: "production", VERCEL_ENV: "preview" })).toBe("preview");
+    expect(resolveAiRuntimeModeFromEnv({ NODE_ENV: "production", VERCEL_ENV: "production" })).toBe(
+      "production",
+    );
   });
 });

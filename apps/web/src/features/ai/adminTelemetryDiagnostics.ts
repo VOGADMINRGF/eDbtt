@@ -1,7 +1,7 @@
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { sanitizeAiLogText } from "@core/telemetry/aiLogSanitization";
 import type { E150ProviderName, ProviderMatrixEntry } from "@features/ai/orchestratorE150";
-import { tryGetAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { tryGetAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export const PROVIDER_ORDER: readonly E150ProviderName[] = [
   "openai",
@@ -367,8 +367,43 @@ function normalizeMessage(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+export function sanitizeDiagnosticText(value: unknown): string | null {
+  const message = normalizeMessage(value);
+  if (!message) return null;
+  if (/^[A-Za-z0-9_.-]{2,120}$/.test(message)) return message;
+  const lowered = message.toLowerCase();
+  if (lowered.includes("openai_empty_output")) return "OPENAI_EMPTY_OUTPUT";
+  if (lowered.includes("model") && lowered.includes("not found")) return "MODEL_NOT_FOUND";
+  if (lowered.includes("timeout") || lowered.includes("timed out") || lowered.includes("aborted")) return "TIMEOUT";
+  if (lowered.includes("rate limit") || lowered.includes("429")) return "RATE_LIMIT";
+  if (lowered.includes("unauthorized") || lowered.includes("forbidden") || lowered.includes("401") || lowered.includes("403")) {
+    return "UNAUTHORIZED";
+  }
+  if (lowered.includes("payment required") || lowered.includes("402")) return "PAYMENT_REQUIRED";
+  if (lowered.includes("invalid api key") || lowered.includes("api key fehlt") || lowered.includes("missing api key")) {
+    return "INVALID_API_KEY";
+  }
+  if (lowered.includes("schema")) return "SCHEMA_INVALID";
+  if (lowered.includes("json") || lowered.includes("parse")) return "BAD_JSON";
+  if (
+    lowered.includes("missing ") &&
+    (lowered.includes("api_key") ||
+      lowered.includes("base_url") ||
+      lowered.includes("api_url") ||
+      lowered.includes("ari_url"))
+  ) {
+    return "CONFIG_MISSING";
+  }
+  if (lowered.includes("config")) return "CONFIG_MISSING";
+  if (lowered.includes("resource_exhausted")) return "RESOURCE_EXHAUSTED";
+  if (lowered.includes("unavailable")) return "UNAVAILABLE";
+  return "provider_error";
+}
+
 export function sanitizeRawExcerpt(value: unknown, max = 500): string | null {
-  return sanitizeAiLogText(value, max);
+  void value;
+  void max;
+  return null;
 }
 
 export function extractProviderErrorCode(error: unknown): string | null {

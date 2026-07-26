@@ -60,6 +60,7 @@ export interface AiUsageEvent {
   durationMs: number;
   success: boolean;
   errorKind?: AiErrorKind | null;
+  providerErrorCode?: string | null;
   strictJson?: boolean;
   promptSnippet?: string | null;
   responseSnippet?: string | null;

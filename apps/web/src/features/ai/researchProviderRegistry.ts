@@ -1,4 +1,4 @@
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export type ResearchProviderId =
   | "ari"

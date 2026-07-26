@@ -28,6 +28,7 @@ import {
   looksConfigMissing,
   providerDisplayName,
   resolveJourneyDecision,
+  sanitizeDiagnosticText,
   sanitizeRawExcerpt,
   sortProviderDiagnostics,
   type ProviderDiagnostic,
@@ -45,7 +46,11 @@ import {
   type OperationalProviderRoutingSummary,
   type OrchestrationLane,
 } from "@/features/ai/providerRoleRouting";
-import { getAiRuntimePolicy, resolveAiRuntimeProviderMissingReason } from "@/features/ai/aiRuntimePolicy";
+import {
+  getAiRuntimePolicy,
+  getAiRuntimeProfile,
+  resolveAiRuntimeProviderMissingReason,
+} from "@features/ai/aiRuntimePolicy";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 export const runtime = "nodejs";
@@ -267,11 +272,25 @@ const FULL_CONTRACT_SYSTEM_PROMPT = [
   FULL_CONTRACT_EXAMPLE_JSON,
 ].join(" ");
 
-const FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
-const FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS = 1_200;
-const FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS = 2_300;
-const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
-const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
+function fullContractMaxOutputTokens(): number {
+  return getAiRuntimeProfile("fullContract").maxOutputTokens ?? 2_600;
+}
+
+function fullContractLiteMaxOutputTokens(): number {
+  return getAiRuntimeProfile("fullContractLite").maxOutputTokens ?? 1_200;
+}
+
+function fullContractRepairMaxOutputTokens(): number {
+  return getAiRuntimeProfile("fullContractRepair").maxOutputTokens ?? 2_300;
+}
+
+function providerProbeMaxOutputTokens(): number {
+  return getAiRuntimeProfile("providerProbe").maxOutputTokens ?? 96;
+}
+
+function runtimeProbeMaxOutputTokens(): number {
+  return getAiRuntimeProfile("runtimeProbe").maxOutputTokens ?? 192;
+}
 
 export type DirectFullContractMode = "full" | "full-lite";
 export type DirectFullContractRunOptions = {
@@ -301,9 +320,9 @@ function resolveDirectFullContractOptions(
     provider === "openai"
       ? openAiSmokeMaxOutputTokens()
       : mode === "full-lite"
-        ? FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS
-        : FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS;
-  const maxOutputTokens = overrideMax ?? (mode === "full-lite" ? Math.min(baseMax, FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS) : baseMax);
+        ? fullContractLiteMaxOutputTokens()
+        : fullContractMaxOutputTokens();
+  const maxOutputTokens = overrideMax ?? (mode === "full-lite" ? Math.min(baseMax, fullContractLiteMaxOutputTokens()) : baseMax);
   return {
     mode,
     maxOutputTokens,
@@ -322,7 +341,7 @@ function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "OPENAI_MODEL" | "defa
 }
 
 function openAiSmokeTimeoutMs(): number {
-  return getAiRuntimePolicy().smokeTimeoutMs;
+  return getAiRuntimeProfile("smoke").timeoutMs;
 }
 
 function openAiSmokeTimeoutSource(): "OPENAI_SMOKE_TIMEOUT_MS" | "default_30000" {
@@ -331,7 +350,7 @@ function openAiSmokeTimeoutSource(): "OPENAI_SMOKE_TIMEOUT_MS" | "default_30000"
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  return getAiRuntimePolicy().smokeMaxOutputTokens;
+  return getAiRuntimeProfile("smoke").maxOutputTokens ?? getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function openAiSmokeMaxOutputTokensSource(): "OPENAI_SMOKE_MAX_OUTPUT_TOKENS" | "default_2200" {
@@ -568,8 +587,8 @@ function baseDiagnostic(params: {
     errorKind: params.errorKind ?? null,
     providerErrorCode: params.providerErrorCode ?? null,
     httpStatus: typeof params.httpStatus === "number" ? params.httpStatus : null,
-    errorMessage: params.errorMessage ?? null,
-    reason: params.reason ?? null,
+    errorMessage: sanitizeDiagnosticText(params.errorMessage ?? params.providerErrorCode ?? params.errorKind) ?? null,
+    reason: sanitizeDiagnosticText(params.reason ?? params.providerErrorCode ?? params.errorKind) ?? null,
     validationMode: params.validationMode,
     providerStatus:
       params.providerStatus ?? deriveProviderStatus(params.errorKind ?? null, params.status),
@@ -592,7 +611,7 @@ function baseDiagnostic(params: {
     smokeMode: params.smokeMode ?? defaultSmokeMode,
     budgetProfile: params.budgetProfile ?? defaultBudgetProfile,
     fallbackUsed: typeof params.fallbackUsed === "boolean" ? params.fallbackUsed : null,
-    fallbackReason: params.fallbackReason ?? null,
+    fallbackReason: sanitizeDiagnosticText(params.fallbackReason ?? params.providerErrorCode) ?? null,
     journeyDecision: params.journeyDecision ?? "selected",
     strictStatus:
       params.strictStatus ??
@@ -603,7 +622,7 @@ function baseDiagnostic(params: {
     repairStatus: params.repairStatus ?? "not_attempted",
     repairProviderErrorCode: params.repairProviderErrorCode ?? null,
     repairSchemaPath: params.repairSchemaPath ?? null,
-    repairReason: params.repairReason ?? null,
+    repairReason: sanitizeDiagnosticText(params.repairReason ?? params.repairProviderErrorCode) ?? null,
     repairUsed: typeof params.repairUsed === "boolean" ? params.repairUsed : false,
     directStrictStatus:
       params.directStrictStatus ??
@@ -649,7 +668,7 @@ function baseDiagnostic(params: {
     timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : null,
     maxOutputTokens: typeof params.maxOutputTokens === "number" ? params.maxOutputTokens : null,
     openaiErrorCode: params.openaiErrorCode ?? null,
-    openaiErrorMessage: params.openaiErrorMessage ?? null,
+    openaiErrorMessage: sanitizeDiagnosticText(params.openaiErrorMessage ?? params.openaiErrorCode) ?? null,
     selectedSmokeModel: params.selectedSmokeModel ?? null,
     smokeModelEnvPresent:
       typeof params.smokeModelEnvPresent === "boolean" ? params.smokeModelEnvPresent : null,
@@ -906,7 +925,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       durationMs: 0,
       journeyDecision: "config_missing",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: providerProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
       effectiveModel: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : null,
@@ -928,7 +947,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         forceJsonFormat: true,
         model: selectedSmokeModel ?? openAiSmokeModel(),
         timeoutMs: probeTimeoutMs ?? openAiSmokeTimeoutMs(),
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -937,7 +956,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "anthropic") {
       const res = await callAnthropic({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "anthropic"),
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -946,7 +965,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "mistral") {
       const res = await callMistral({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "mistral"),
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -955,14 +974,14 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "gemini") {
       let res = await callGemini({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
         expectJson: true,
       });
       let payload = validateProbePayload(res.text ?? "");
       if (!payload.ok) {
         res = await callGemini({
           prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
-          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: runtimeProbeMaxOutputTokens(),
           expectJson: false,
         });
         payload = validateProbePayload(res.text ?? "");
@@ -1025,7 +1044,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       const res = await callAriLLM({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "ari"),
         asJson: true,
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -1069,7 +1088,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         tokensOut,
         journeyDecision: "selected",
         timeoutMs: probeTimeoutMs,
-        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: providerProbeMaxOutputTokens(),
         selectedSmokeModel,
         smokeModelEnvPresent,
         effectiveModel,
@@ -1100,7 +1119,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       tokensOut,
       journeyDecision: "selected",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: providerProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
       effectiveModel,
@@ -1146,7 +1165,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       durationMs: Date.now() - started,
       journeyDecision: looksConfigMissing(error?.message) ? "config_missing" : "selected",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: providerProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
       effectiveModel,
@@ -1196,7 +1215,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
         forceJsonFormat: true,
         model: openAiSmokeModel(),
         timeoutMs: openAiSmokeTimeoutMs(),
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: runtimeProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -1205,7 +1224,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "anthropic") {
       const res = await callAnthropic({
         prompt: runtimePrompt,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: runtimeProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -1214,7 +1233,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "mistral") {
       const res = await callMistral({
         prompt: runtimePrompt,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: runtimeProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -1223,7 +1242,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "gemini") {
       const res = await callGemini({
         prompt: runtimePrompt,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: runtimeProbeMaxOutputTokens(),
         expectJson: true,
       });
       text = res.text;
@@ -1234,7 +1253,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
       const res = await callAriLLM({
         prompt: runtimePrompt,
         asJson: true,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: runtimeProbeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
@@ -2583,8 +2602,8 @@ async function executeDirectFullContractCall(params: {
       maxOutputTokens:
         params.maxOutputTokens ??
         (params.repairAttempt
-          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
-          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
+          ? Math.min(params.profileMaxOutputTokens ?? fullContractRepairMaxOutputTokens(), fullContractRepairMaxOutputTokens())
+          : params.profileMaxOutputTokens ?? fullContractMaxOutputTokens()),
     });
     return {
       text: res.text,
@@ -2605,8 +2624,8 @@ async function executeDirectFullContractCall(params: {
       maxOutputTokens:
         params.maxOutputTokens ??
         (params.repairAttempt
-          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
-          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
+          ? Math.min(params.profileMaxOutputTokens ?? fullContractRepairMaxOutputTokens(), fullContractRepairMaxOutputTokens())
+          : params.profileMaxOutputTokens ?? fullContractMaxOutputTokens()),
     });
     return {
       text: res.text,
@@ -2627,8 +2646,8 @@ async function executeDirectFullContractCall(params: {
       maxOutputTokens:
         params.maxOutputTokens ??
         (params.repairAttempt
-          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
-          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
+          ? Math.min(params.profileMaxOutputTokens ?? fullContractRepairMaxOutputTokens(), fullContractRepairMaxOutputTokens())
+          : params.profileMaxOutputTokens ?? fullContractMaxOutputTokens()),
       expectJson: true,
     });
     return {
@@ -2651,8 +2670,8 @@ async function executeDirectFullContractCall(params: {
     maxOutputTokens:
       params.maxOutputTokens ??
       (params.repairAttempt
-        ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
-        : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
+        ? Math.min(params.profileMaxOutputTokens ?? fullContractRepairMaxOutputTokens(), fullContractRepairMaxOutputTokens())
+        : params.profileMaxOutputTokens ?? fullContractMaxOutputTokens()),
   });
   return {
     text: res.text,
@@ -3231,7 +3250,7 @@ async function runDirectFullContractProvider(
           timeoutMs: Math.min(openAiTimeoutMs ?? openAiSmokeTimeoutMs(), 12_000),
           maxOutputTokens: Math.min(
             openAiMaxOutputTokens ?? resolvedOptions.maxOutputTokens,
-            FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
+            fullContractLiteMaxOutputTokens(),
           ),
         });
         const fallbackValidation = validateFullContractPayload(fallbackCall.text ?? "");

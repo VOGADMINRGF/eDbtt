@@ -37,6 +37,30 @@ describe("ai runtime logging contract", () => {
 
     expect(event.promptSnippet).toBeNull();
     expect(event.responseSnippet).toBeNull();
-    expect(event.rawError).toContain("Authorization: [redacted]");
+    expect(event.rawError).toBeNull();
+  });
+
+  it("survives circular and non-serializable log payloads", () => {
+    const payload: {
+      self?: unknown;
+      count: bigint;
+      fn: () => string;
+      marker: symbol;
+      auth: string;
+    } = {
+      count: 12n,
+      fn: () => "ok",
+      marker: Symbol("demo"),
+      auth: "Bearer sk-ant-123456789012345678901234",
+    };
+    payload.self = payload;
+
+    const text = sanitizeAiLogText(payload);
+
+    expect(text).toContain("\"count\":\"12\"");
+    expect(text).toContain("\"fn\":\"[function]\"");
+    expect(text).toContain("\"marker\":\"Symbol(demo)\"");
+    expect(text).toContain("\"self\":\"[circular]\"");
+    expect(text).toContain("Bearer [redacted]");
   });
 });

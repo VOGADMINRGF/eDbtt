@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy, getAiRuntimeProfile } from "@features/ai/aiRuntimePolicy";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 // ——— Simple LRU mit TTL, um Tippen-Spitzen abzupuffern ————————————————
-type CacheRec = { value:any; exp:number };
+type ClarifyReason =
+  | "MISSING_PROVIDER_KEY"
+  | "PROVIDER_TIMEOUT"
+  | "PROVIDER_ERROR"
+  | "BAD_JSON";
+type ClarifySource = "llm" | "heuristic";
+type ClarifyResponsePayload = {
+  ok: true;
+  cached?: boolean;
+  tookMs: number;
+  hints: any;
+  source: ClarifySource;
+  degraded: boolean;
+  reason: ClarifyReason | null;
+  providerAttempted: boolean;
+  providerSucceeded: boolean;
+  meta: { routeClassification: ReturnType<typeof resolveAiRouteClassification> };
+};
+type LlmRefineResult =
+  | { ok: true; hints: any }
+  | { ok: false; reason: ClarifyReason; attempted: boolean };
+
+type CacheRec = { value:ClarifyResponsePayload; exp:number };
 const LRU = new Map<string,CacheRec>();
 const MAX=200, TTL=5*60*1000;
 function getK(k:string){ const r = LRU.get(k); if(!r) return null; if(Date.now()>r.exp){ LRU.delete(k); return null; } return r.value; }
-function setK(k:string,v:any){ if(LRU.size>MAX){ const first = LRU.keys().next().value; if(first) LRU.delete(first); } LRU.set(k,{value:v,exp:Date.now()+TTL}); }
+function setK(k:string,v:ClarifyResponsePayload){ if(LRU.size>MAX){ const first = LRU.keys().next().value; if(first) LRU.delete(first); } LRU.set(k,{value:v,exp:Date.now()+TTL}); }
 
 // ——— Heuristiken: schneller, deterministischer „First Guess“ ————————————
 function heuristic(text:string){
@@ -45,29 +67,58 @@ function heuristic(text:string){
 }
 
 // ——— Mini-LLM (OpenAI) mit kurzer Deadline ————————————
-async function llmRefine(text:string){
+async function llmRefine(text:string): Promise<LlmRefineResult> {
   const policy = getAiRuntimePolicy();
-  const key = process.env.OPENAI_API_KEY;
+  const profile = getAiRuntimeProfile("qualityClarify", policy);
+  const key = process.env.OPENAI_API_KEY?.trim() ?? "";
   const model = policy.openai.fastModel;
-  if(!key) return null;
+  if(!policy.openai.apiKeyPresent || !key) {
+    return { ok: false, reason: "MISSING_PROVIDER_KEY", attempted: false };
+  }
 
   const sys = [
     "Analysiere sehr schnell und antworte NUR als kompaktes JSON.",
     `Schema: {"hints":{"level":"eu|bund|land|kommune|unsicher","region":string|null,"timeframe":"aktuell|letzte_12m|letzte_5y|seit_1990|unsicher","audience":"jugend|unternehmen|staat|senioren|unsicher","stance":"pro|contra|neutral|unsicher"}}`
   ].join("\n");
-  const body:any = { model, input: `Text:\n"""${text.slice(0,2000)}"""\nNur JSON.`, instructions: sys, text:{format:{type:"json_object"}} };
+  const body:any = {
+    model,
+    input: `Text:\n"""${text.slice(0,2000)}"""\nNur JSON.`,
+    instructions: sys,
+    max_output_tokens: profile.maxOutputTokens ?? policy.qualityClarifyMaxOutputTokens,
+    text:{format:{type:"json_object"}},
+  };
 
-  const ctrl = AbortSignal.timeout(1500); // harte 1.5s
-  const r = await fetch("https://api.openai.com/v1/responses",{
-    method:"POST", headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},
-    body: JSON.stringify(body), signal: ctrl
-  });
-  if(!r.ok) return null;
-  const j = await r.json().catch(()=> ({}));
-  try{
-    const parsed = JSON.parse(j?.text ?? j?.output_text ?? "{}");
-    return parsed?.hints || null;
-  }catch{ return null; }
+  const ctrl = AbortSignal.timeout(profile.timeoutMs);
+  try {
+    const r = await fetch("https://api.openai.com/v1/responses",{
+      method:"POST", headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},
+      body: JSON.stringify(body), signal: ctrl
+    });
+    if(!r.ok) {
+      return {
+        ok: false,
+        reason: r.status === 408 || r.status === 504 || r.status === 524 ? "PROVIDER_TIMEOUT" : "PROVIDER_ERROR",
+        attempted: true,
+      };
+    }
+    const j = await r.json().catch(()=> ({}));
+    try{
+      const parsed = JSON.parse(j?.text ?? j?.output_text ?? "{}");
+      if (parsed?.hints && typeof parsed.hints === "object") {
+        return { ok: true, hints: parsed.hints };
+      }
+      return { ok: false, reason: "BAD_JSON", attempted: true };
+    }catch{
+      return { ok: false, reason: "BAD_JSON", attempted: true };
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    return {
+      ok: false,
+      reason: /timeout|abort/.test(message) ? "PROVIDER_TIMEOUT" : "PROVIDER_ERROR",
+      attempted: true,
+    };
+  }
 }
 
 export const runtime = "nodejs";
@@ -80,7 +131,17 @@ export async function POST(req:NextRequest){
   const text = String(b?.text ?? "").trim();
   if(!text) {
     return NextResponse.json(
-      { ok:true, tookMs:0, hints:{}, meta: { routeClassification } },
+      {
+        ok: true,
+        tookMs: 0,
+        hints: {},
+        source: "heuristic",
+        degraded: false,
+        reason: null,
+        providerAttempted: false,
+        providerSucceeded: false,
+        meta: { routeClassification },
+      },
       {status:200},
     );
   }
@@ -89,24 +150,40 @@ export async function POST(req:NextRequest){
   const cached = getK(ck);
   if(cached) {
     return NextResponse.json(
-      { ok:true, cached:true, tookMs: 0, hints: cached, meta: { routeClassification } },
+      { ...cached, cached:true, tookMs: 0, meta: { routeClassification } },
       {status:200},
     );
   }
 
   const base = heuristic(text);
-
-  // LLM parallel, aber capped via Promise.race gegen 1.6s Timer
-  let refined:any = null;
-  try { refined = await Promise.race([
-    llmRefine(text),
-    new Promise(res=> setTimeout(()=>res(null), 1600))
-  ]);}catch{}
-
-  const merged = { ...base, ...(refined||{}) };
-  setK(ck, merged);
-  return NextResponse.json(
-    { ok:true, tookMs: Date.now()-t0, hints: merged, meta: { routeClassification } },
-    {status:200},
-  );
+  const refined = await llmRefine(text);
+  let payload: ClarifyResponsePayload;
+  if (refined.ok) {
+    payload = {
+      ok: true,
+      tookMs: Date.now() - t0,
+      hints: { ...base, ...refined.hints },
+      source: "llm",
+      degraded: false,
+      reason: null,
+      providerAttempted: true,
+      providerSucceeded: true,
+      meta: { routeClassification },
+    };
+  } else {
+    const failed = refined as Extract<LlmRefineResult, { ok: false }>;
+    payload = {
+      ok: true,
+      tookMs: Date.now() - t0,
+      hints: base,
+      source: "heuristic",
+      degraded: failed.reason !== null,
+      reason: failed.reason,
+      providerAttempted: failed.attempted,
+      providerSucceeded: false,
+      meta: { routeClassification },
+    };
+  }
+  setK(ck, payload);
+  return NextResponse.json(payload, {status:200});
 }

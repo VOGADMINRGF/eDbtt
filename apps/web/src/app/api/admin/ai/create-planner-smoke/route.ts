@@ -3,7 +3,7 @@ import {
   buildCreatePlanner,
   resolveCreatePlannerTimeoutMs,
 } from "@/features/create/createPlanner";
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 const CREATE_PLANNER_SMOKE_TEXT = [
   "In Rahnsdorf sollen mehrere kommunale Themen gemeinsam eingeordnet werden.",

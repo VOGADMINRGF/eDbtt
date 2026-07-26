@@ -1,7 +1,7 @@
 import { callOpenAIJson } from "@features/ai";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export type CreatePlannerScope =
   | "local"

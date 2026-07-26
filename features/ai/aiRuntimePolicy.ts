@@ -1,4 +1,16 @@
 export type AiCoreProviderName = "openai" | "anthropic" | "mistral" | "gemini";
+export type AiRuntimeProviderName = AiCoreProviderName | "ari";
+export type AiRuntimeMode = "test" | "development" | "preview" | "production";
+export type AiRuntimeProfileName =
+  | "planner"
+  | "smoke"
+  | "providerProbe"
+  | "runtimeProbe"
+  | "fullContract"
+  | "fullContractLite"
+  | "fullContractRepair"
+  | "contributionTrace"
+  | "qualityClarify";
 
 type EnvMap = Record<string, string | undefined>;
 
@@ -8,13 +20,29 @@ const OPENAI_DEFAULT_MODEL = "gpt-5";
 const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const MISTRAL_DEFAULT_MODEL = "mistral-large-latest";
 const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+const ARI_DEFAULT_MODEL = "ari-main";
 const OPENAI_TRACE_DEFAULT_MODEL = "gpt-4o-mini";
 const OPENAI_FAST_DEFAULT_MODEL = "gpt-4o-mini";
 const CREATE_PLANNER_MAX_OUTPUT_TOKENS = 1_200;
 const FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS = 1_200;
+const FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS = 2_300;
 const DIRECT_PROBE_MAX_OUTPUT_TOKENS = 96;
 const DIRECT_RUNTIME_MAX_OUTPUT_TOKENS = 192;
+const CONTRIBUTION_TRACE_MAX_OUTPUT_TOKENS = 1_200;
+const QUALITY_CLARIFY_MAX_OUTPUT_TOKENS = 250;
+
+const PLACEHOLDER_CREDENTIAL_VALUES = new Set([
+  "__set_in_secret_manager__",
+  "__optional__",
+  "__optional_token__",
+  "__set_for_production__",
+  "changeme",
+  "replace_me",
+  "replace-me",
+  "your_api_key",
+  "your-api-key",
+]);
 
 export class AiRuntimePolicyError extends Error {
   constructor(
@@ -24,6 +52,7 @@ export class AiRuntimePolicyError extends Error {
       | "EMPTY_PROVIDER_ORDER"
       | "INVALID_INTEGER"
       | "INVALID_NUMBER"
+      | "INVALID_BOOLEAN"
       | "OUT_OF_RANGE",
     readonly envVar?: string,
   ) {
@@ -32,23 +61,35 @@ export class AiRuntimePolicyError extends Error {
   }
 }
 
+export type AiRuntimeProfile = {
+  timeoutMs: number;
+  maxOutputTokens?: number;
+};
+
 export type AiRuntimePolicy = {
+  runtimeMode: AiRuntimeMode;
   providerOrder: AiCoreProviderName[];
   maxProviders: number;
   enabledProviders: AiCoreProviderName[];
+  enabledRuntimeProviders: AiRuntimeProviderName[];
   defaultTimeoutMs: number;
-  providerTimeoutsMs: Record<AiCoreProviderName, number>;
+  providerTimeoutsMs: Record<AiRuntimeProviderName, number>;
   plannerTimeoutMs: number;
   plannerMaxOutputTokens: number;
   smokeTimeoutMs: number;
   smokeMaxOutputTokens: number;
   fullContractDefaultMaxOutputTokens: number;
   fullContractLiteMaxOutputTokens: number;
+  fullContractRepairMaxOutputTokens: number;
   directProbeMaxOutputTokens: number;
   directRuntimeMaxOutputTokens: number;
+  contributionTraceMaxOutputTokens: number;
+  qualityClarifyMaxOutputTokens: number;
   maxOutputTokens: number;
   budgetMs: number;
+  orchestratorBudgetMs: number;
   telemetryBufferMax: number;
+  profiles: Record<AiRuntimeProfileName, AiRuntimeProfile>;
   circuitBreaker: {
     minRequests: number;
     failRateThreshold: number;
@@ -68,6 +109,7 @@ export type AiRuntimePolicy = {
   anthropic: {
     apiKeyPresent: boolean;
     model: string;
+    disabledExplicitly: boolean;
   };
   mistral: {
     apiKeyPresent: boolean;
@@ -76,6 +118,14 @@ export type AiRuntimePolicy = {
   gemini: {
     apiKeyPresent: boolean;
     model: string;
+    disabledExplicitly: boolean;
+  };
+  ari: {
+    apiKeyPresent: boolean;
+    baseUrl: string | null;
+    model: string;
+    disabledExplicitly: boolean;
+    enabled: boolean;
   };
   research: {
     searchCreditAvailable: boolean;
@@ -105,22 +155,41 @@ function readEnv(env: EnvMap, key: string): string | undefined {
   return value;
 }
 
-function hasValue(value: string | undefined): boolean {
+function hasText(value: string | undefined): boolean {
   return typeof value === "string" && value.trim().length > 0;
 }
 
 function readTrimmed(env: EnvMap, key: string): string | undefined {
   const value = readEnv(env, key);
-  if (!hasValue(value)) return undefined;
+  if (!hasText(value)) return undefined;
   return value?.trim();
 }
 
-function parseBooleanish(value: string | undefined, fallback: boolean): boolean {
-  if (!hasValue(value)) return fallback;
+function isPlaceholderCredentialValue(value: string | undefined): boolean {
+  if (!hasText(value)) return false;
   const normalized = value!.trim().toLowerCase();
+  if (PLACEHOLDER_CREDENTIAL_VALUES.has(normalized)) return true;
+  if (normalized.includes("set_in_secret_manager")) return true;
+  if (normalized.includes("set_for_production")) return true;
+  if (normalized === "__optional__" || normalized === "__optional_token__") return true;
+  return false;
+}
+
+export function hasConfiguredCredential(value: string | undefined): boolean {
+  return hasText(value) && !isPlaceholderCredentialValue(value);
+}
+
+function parseBooleanishEnv(
+  env: EnvMap,
+  key: string,
+  fallback: boolean,
+): boolean {
+  const raw = readEnv(env, key);
+  if (!hasText(raw)) return fallback;
+  const normalized = raw!.trim().toLowerCase();
   if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
   if (normalized === "0" || normalized === "false" || normalized === "no") return false;
-  return fallback;
+  throw new AiRuntimePolicyError(`${key} must be a boolean`, "INVALID_BOOLEAN", key);
 }
 
 function readPositiveInteger(
@@ -210,42 +279,123 @@ function normalizeProviderOrder(env: EnvMap, maxProviders: number): AiCoreProvid
   return out.slice(0, maxProviders);
 }
 
-function hasProviderKey(env: EnvMap, provider: AiCoreProviderName): boolean {
+export function resolveAiRuntimeModeFromEnv(env: EnvMap = process.env): AiRuntimeMode {
+  const nodeEnv = readTrimmed(env, "NODE_ENV")?.toLowerCase() ?? "development";
+  const vercelEnv = readTrimmed(env, "VERCEL_ENV")?.toLowerCase() ?? null;
+
+  if (nodeEnv === "test") return "test";
+  if (vercelEnv === "preview") return "preview";
+  if (vercelEnv === "production") return "production";
+  if (nodeEnv === "production") return "production";
+  return "development";
+}
+
+function hasProviderCredential(env: EnvMap, provider: AiRuntimeProviderName): boolean {
   switch (provider) {
     case "openai":
-      return hasValue(readEnv(env, "OPENAI_API_KEY"));
+      return hasConfiguredCredential(readEnv(env, "OPENAI_API_KEY"));
     case "anthropic":
-      return hasValue(readEnv(env, "ANTHROPIC_API_KEY"));
+      return hasConfiguredCredential(readEnv(env, "ANTHROPIC_API_KEY"));
     case "mistral":
-      return hasValue(readEnv(env, "MISTRAL_API_KEY"));
+      return hasConfiguredCredential(readEnv(env, "MISTRAL_API_KEY"));
     case "gemini":
-      return hasValue(readEnv(env, "GEMINI_API_KEY")) || hasValue(readEnv(env, "GOOGLE_API_KEY"));
+      return (
+        hasConfiguredCredential(readEnv(env, "GEMINI_API_KEY")) ||
+        hasConfiguredCredential(readEnv(env, "GOOGLE_API_KEY"))
+      );
+    case "ari":
+      return (
+        hasConfiguredCredential(readEnv(env, "ARI_API_KEY")) ||
+        hasConfiguredCredential(readEnv(env, "YOUCOM_ARI_API_KEY"))
+      );
+    default:
+      return false;
+  }
+}
+
+function isProviderExplicitlyDisabled(env: EnvMap, provider: AiRuntimeProviderName): boolean {
+  switch (provider) {
+    case "anthropic":
+      return parseBooleanishEnv(env, "ANTHROPIC_DISABLED", false);
+    case "gemini":
+      return parseBooleanishEnv(env, "GEMINI_DISABLED", false);
+    case "ari":
+      return parseBooleanishEnv(env, "ARI_DISABLED", false);
     default:
       return false;
   }
 }
 
 function enabledProviders(providerOrder: AiCoreProviderName[], env: EnvMap): AiCoreProviderName[] {
-  return providerOrder.filter((provider) => hasProviderKey(env, provider));
+  return providerOrder.filter(
+    (provider) => hasProviderCredential(env, provider) && !isProviderExplicitlyDisabled(env, provider),
+  );
 }
 
-export function resolveAiRuntimeProviderMissingReason(
-  provider: AiCoreProviderName,
-  policy = getAiRuntimePolicy(),
-): string | null {
-  if (policy.enabledProviders.includes(provider)) return null;
-  switch (provider) {
-    case "openai":
-      return "missing OPENAI_API_KEY";
-    case "anthropic":
-      return "missing ANTHROPIC_API_KEY";
-    case "mistral":
-      return "missing MISTRAL_API_KEY";
-    case "gemini":
-      return "missing GEMINI_API_KEY / GOOGLE_API_KEY";
-    default:
-      return "unsupported provider";
-  }
+function enabledRuntimeProviders(policy: AiRuntimePolicy): AiRuntimeProviderName[] {
+  const runtimeProviders: AiRuntimeProviderName[] = [...policy.enabledProviders];
+  if (policy.ari.enabled) runtimeProviders.push("ari");
+  return runtimeProviders;
+}
+
+function resolveAriBaseUrl(env: EnvMap): string | null {
+  return (
+    readTrimmed(env, "ARI_BASE_URL") ??
+    readTrimmed(env, "ARI_URL") ??
+    readTrimmed(env, "ARI_API_URL") ??
+    readTrimmed(env, "YOUCOM_ARI_API_URL") ??
+    null
+  );
+}
+
+function buildProfiles(params: {
+  plannerTimeoutMs: number;
+  plannerMaxOutputTokens: number;
+  smokeTimeoutMs: number;
+  smokeMaxOutputTokens: number;
+  contributionTraceTimeoutMs: number;
+  contributionTraceMaxOutputTokens: number;
+  qualityClarifyTimeoutMs: number;
+  qualityClarifyMaxOutputTokens: number;
+}): Record<AiRuntimeProfileName, AiRuntimeProfile> {
+  return {
+    planner: {
+      timeoutMs: params.plannerTimeoutMs,
+      maxOutputTokens: params.plannerMaxOutputTokens,
+    },
+    smoke: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: params.smokeMaxOutputTokens,
+    },
+    providerProbe: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: DIRECT_PROBE_MAX_OUTPUT_TOKENS,
+    },
+    runtimeProbe: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: DIRECT_RUNTIME_MAX_OUTPUT_TOKENS,
+    },
+    fullContract: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS,
+    },
+    fullContractLite: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
+    },
+    fullContractRepair: {
+      timeoutMs: params.smokeTimeoutMs,
+      maxOutputTokens: FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS,
+    },
+    contributionTrace: {
+      timeoutMs: params.contributionTraceTimeoutMs,
+      maxOutputTokens: params.contributionTraceMaxOutputTokens,
+    },
+    qualityClarify: {
+      timeoutMs: params.qualityClarifyTimeoutMs,
+      maxOutputTokens: params.qualityClarifyMaxOutputTokens,
+    },
+  };
 }
 
 export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimePolicy {
@@ -259,6 +409,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
   const anthropicModel = readTrimmed(env, "ANTHROPIC_MODEL") ?? ANTHROPIC_DEFAULT_MODEL;
   const mistralModel = readTrimmed(env, "MISTRAL_MODEL") ?? MISTRAL_DEFAULT_MODEL;
   const geminiModel = readTrimmed(env, "GEMINI_MODEL") ?? GEMINI_DEFAULT_MODEL;
+  const ariModel = readTrimmed(env, "ARI_MODEL") ?? ARI_DEFAULT_MODEL;
   const defaultTimeoutMs = readPositiveInteger(env, "OPENAI_TIMEOUT_MS", {
     defaultValue: 18_000,
     min: 600,
@@ -281,6 +432,11 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
   });
   const budgetMs = readPositiveInteger(env, "AI_BUDGET_MS_DEFAULT", {
     defaultValue: 35_000,
+    min: 1_000,
+    max: 120_000,
+  });
+  const orchestratorBudgetMs = readPositiveInteger(env, "E150_ANALYZE_BUDGET_MS", {
+    defaultValue: budgetMs,
     min: 1_000,
     max: 120_000,
   });
@@ -314,18 +470,12 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     min: 0.01,
     max: 1,
   });
-  const researchGateEnabled = parseBooleanish(
-    readEnv(env, "E150_DEEPSEARCH_ENABLED") ?? readEnv(env, "OPENAI_DEEP_RESEARCH_ENABLED"),
-    false,
-  );
-  const deepResearchCreditAvailable = parseBooleanish(
-    readEnv(env, "DEEP_RESEARCH_CREDIT_AVAILABLE"),
-    false,
-  );
-  const premiumResearchOverride = parseBooleanish(
-    readEnv(env, "PREMIUM_RESEARCH_OVERRIDE"),
-    false,
-  );
+
+  const researchGateEnabled =
+    parseBooleanishEnv(env, "E150_DEEPSEARCH_ENABLED", false) ||
+    parseBooleanishEnv(env, "OPENAI_DEEP_RESEARCH_ENABLED", false);
+  const deepResearchCreditAvailable = parseBooleanishEnv(env, "DEEP_RESEARCH_CREDIT_AVAILABLE", false);
+  const premiumResearchOverride = parseBooleanishEnv(env, "PREMIUM_RESEARCH_OVERRIDE", false);
   const requestedDeepResearchModel =
     readTrimmed(env, "OPENAI_DEEPSEARCH_MODEL") ?? readTrimmed(env, "OPENAI_DEEP_RESEARCH_MODEL") ?? null;
   const researchTimeoutMs = readPositiveInteger(env, "OPENAI_DEEP_RESEARCH_TIMEOUT_MS", {
@@ -333,10 +483,33 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     min: 1_000,
     max: 60_000,
   });
+  const contributionTraceTimeoutMs = readPositiveInteger(env, "CONTRIBUTION_TRACE_TIMEOUT_MS", {
+    defaultValue: 20_000,
+    min: 600,
+    max: 60_000,
+  });
+  const qualityClarifyTimeoutMs = readPositiveInteger(env, "QUALITY_CLARIFY_TIMEOUT_MS", {
+    defaultValue: 1_500,
+    min: 250,
+    max: 10_000,
+  });
+  const profiles = buildProfiles({
+    plannerTimeoutMs,
+    plannerMaxOutputTokens: CREATE_PLANNER_MAX_OUTPUT_TOKENS,
+    smokeTimeoutMs,
+    smokeMaxOutputTokens,
+    contributionTraceTimeoutMs,
+    contributionTraceMaxOutputTokens: CONTRIBUTION_TRACE_MAX_OUTPUT_TOKENS,
+    qualityClarifyTimeoutMs,
+    qualityClarifyMaxOutputTokens: QUALITY_CLARIFY_MAX_OUTPUT_TOKENS,
+  });
+
   const policy: AiRuntimePolicy = {
+    runtimeMode: resolveAiRuntimeModeFromEnv(env),
     providerOrder,
     maxProviders,
     enabledProviders: enabledProviders(providerOrder, env),
+    enabledRuntimeProviders: [],
     defaultTimeoutMs,
     providerTimeoutsMs: {
       openai: defaultTimeoutMs,
@@ -355,6 +528,11 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
         min: 600,
         max: 60_000,
       }),
+      ari: readPositiveInteger(env, "ARI_TIMEOUT_MS", {
+        defaultValue: 25_000,
+        min: 600,
+        max: 60_000,
+      }),
     },
     plannerTimeoutMs,
     plannerMaxOutputTokens: CREATE_PLANNER_MAX_OUTPUT_TOKENS,
@@ -362,11 +540,16 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     smokeMaxOutputTokens,
     fullContractDefaultMaxOutputTokens: FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS,
     fullContractLiteMaxOutputTokens: FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
+    fullContractRepairMaxOutputTokens: FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS,
     directProbeMaxOutputTokens: DIRECT_PROBE_MAX_OUTPUT_TOKENS,
     directRuntimeMaxOutputTokens: DIRECT_RUNTIME_MAX_OUTPUT_TOKENS,
+    contributionTraceMaxOutputTokens: CONTRIBUTION_TRACE_MAX_OUTPUT_TOKENS,
+    qualityClarifyMaxOutputTokens: QUALITY_CLARIFY_MAX_OUTPUT_TOKENS,
     maxOutputTokens: FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS,
     budgetMs,
+    orchestratorBudgetMs,
     telemetryBufferMax,
+    profiles,
     circuitBreaker: {
       minRequests: circuitMinRequests,
       failRateThreshold: circuitFailRateThreshold,
@@ -375,7 +558,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
       halfOpenMs: circuitHalfOpenMs,
     },
     openai: {
-      apiKeyPresent: hasValue(readEnv(env, "OPENAI_API_KEY")),
+      apiKeyPresent: hasProviderCredential(env, "openai"),
       baseUrl: readTrimmed(env, "OPENAI_BASE_URL") ?? null,
       model: openaiModel,
       plannerModelCandidates: dedupe([readTrimmed(env, "OPENAI_PLANNER_MODEL"), openaiModel]),
@@ -384,42 +567,51 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
       fastModel: readTrimmed(env, "OPENAI_FAST_MODEL") ?? openaiModel ?? OPENAI_FAST_DEFAULT_MODEL,
     },
     anthropic: {
-      apiKeyPresent: hasValue(readEnv(env, "ANTHROPIC_API_KEY")),
+      apiKeyPresent: hasProviderCredential(env, "anthropic"),
       model: anthropicModel,
+      disabledExplicitly: isProviderExplicitlyDisabled(env, "anthropic"),
     },
     mistral: {
-      apiKeyPresent: hasValue(readEnv(env, "MISTRAL_API_KEY")),
+      apiKeyPresent: hasProviderCredential(env, "mistral"),
       model: mistralModel,
     },
     gemini: {
-      apiKeyPresent: hasProviderKey(env, "gemini"),
+      apiKeyPresent: hasProviderCredential(env, "gemini"),
       model: geminiModel,
+      disabledExplicitly: isProviderExplicitlyDisabled(env, "gemini"),
+    },
+    ari: {
+      apiKeyPresent: hasProviderCredential(env, "ari"),
+      baseUrl: resolveAriBaseUrl(env),
+      model: ariModel,
+      disabledExplicitly: isProviderExplicitlyDisabled(env, "ari"),
+      enabled: false,
     },
     research: {
-      searchCreditAvailable: parseBooleanish(readEnv(env, "SEARCH_CREDIT_AVAILABLE"), false),
+      searchCreditAvailable: parseBooleanishEnv(env, "SEARCH_CREDIT_AVAILABLE", false),
       deepResearchCreditAvailable,
-      dossierBoostAvailable: parseBooleanish(readEnv(env, "DOSSIER_BOOST_AVAILABLE"), false),
+      dossierBoostAvailable: parseBooleanishEnv(env, "DOSSIER_BOOST_AVAILABLE", false),
       premiumResearchOverride,
       gateEnabled: researchGateEnabled,
-      requiresConfirmation: parseBooleanish(readEnv(env, "E150_DEEPSEARCH_REQUIRE_CONFIRMATION"), true),
+      requiresConfirmation: parseBooleanishEnv(env, "E150_DEEPSEARCH_REQUIRE_CONFIRMATION", true),
       requestedModel: requestedDeepResearchModel,
       effectiveModel:
-        researchGateEnabled && hasValue(readEnv(env, "OPENAI_API_KEY")) && requestedDeepResearchModel
+        researchGateEnabled && hasProviderCredential(env, "openai") && requestedDeepResearchModel
           ? requestedDeepResearchModel
           : null,
       timeoutMs: researchTimeoutMs,
       deepResearchEnabled:
         researchGateEnabled &&
-        hasValue(readEnv(env, "OPENAI_API_KEY")) &&
+        hasProviderCredential(env, "openai") &&
         Boolean(requestedDeepResearchModel) &&
         (deepResearchCreditAvailable || premiumResearchOverride),
     },
     social: {
-      distributionEnabled: parseBooleanish(readEnv(env, "SOCIAL_DISTRIBUTION_ENABLED"), false),
+      distributionEnabled: parseBooleanishEnv(env, "SOCIAL_DISTRIBUTION_ENABLED", false),
       autoPublishEnabled: false,
       realtimePublishEnabled: false,
       requireReview: true,
-      scheduleEnabled: parseBooleanish(readEnv(env, "SOCIAL_SCHEDULE_ENABLED"), true),
+      scheduleEnabled: parseBooleanishEnv(env, "SOCIAL_SCHEDULE_ENABLED", true),
     },
     loggingMode: "metadata_only",
   };
@@ -431,11 +623,55 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     policy.openai.smokeModelCandidates.push(OPENAI_DEFAULT_MODEL);
   }
 
+  policy.ari.enabled =
+    !policy.ari.disabledExplicitly &&
+    policy.ari.apiKeyPresent &&
+    Boolean(policy.ari.baseUrl);
+  policy.enabledRuntimeProviders = enabledRuntimeProviders(policy);
+
   return policy;
 }
 
 export function getAiRuntimePolicy(): AiRuntimePolicy {
   return getAiRuntimePolicyFromEnv(process.env);
+}
+
+export function getAiRuntimeProfile(
+  profileName: AiRuntimeProfileName,
+  policy = getAiRuntimePolicy(),
+): AiRuntimeProfile {
+  return policy.profiles[profileName];
+}
+
+export function isAiRuntimeProviderEnabled(
+  provider: AiRuntimeProviderName,
+  policy = getAiRuntimePolicy(),
+): boolean {
+  return policy.enabledRuntimeProviders.includes(provider);
+}
+
+export function resolveAiRuntimeProviderMissingReason(
+  provider: AiRuntimeProviderName,
+  policy = getAiRuntimePolicy(),
+): string | null {
+  if (isAiRuntimeProviderEnabled(provider, policy)) return null;
+  switch (provider) {
+    case "openai":
+      return "missing OPENAI_API_KEY";
+    case "anthropic":
+      return policy.anthropic.disabledExplicitly ? "ANTHROPIC_DISABLED=1" : "missing ANTHROPIC_API_KEY";
+    case "mistral":
+      return "missing MISTRAL_API_KEY";
+    case "gemini":
+      return policy.gemini.disabledExplicitly ? "GEMINI_DISABLED=1" : "missing GEMINI_API_KEY / GOOGLE_API_KEY";
+    case "ari":
+      if (policy.ari.disabledExplicitly) return "ARI_DISABLED=1";
+      if (!policy.ari.baseUrl) return "missing ARI_BASE_URL / ARI_URL / ARI_API_URL / YOUCOM_ARI_API_URL";
+      if (!policy.ari.apiKeyPresent) return "missing ARI_API_KEY / YOUCOM_ARI_API_KEY";
+      return "ari unavailable";
+    default:
+      return "unsupported provider";
+  }
 }
 
 export function tryGetAiRuntimePolicyFromEnv(

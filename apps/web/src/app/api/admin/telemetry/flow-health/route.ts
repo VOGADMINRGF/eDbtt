@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { coreCol } from "@core/db/triMongo";
 import { statementCandidatesCol, voteDraftsCol, feedStatementsCol } from "@features/feeds/db";
-import { tryGetAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { tryGetAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

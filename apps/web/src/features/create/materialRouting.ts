@@ -1,4 +1,4 @@
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 
 export type MaterialResearchMode = "none" | "gemini" | "gpt_deepsearch" | "auto";

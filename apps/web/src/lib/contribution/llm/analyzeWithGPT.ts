@@ -1,6 +1,6 @@
 // apps/web/src/lib/contribution/llm/analyzeWithGPT.ts
 import { callOpenAI } from "@features/ai/providers/openai";
-import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 import { LLMAnalysisZ, type LLMAnalysis } from "@/lib/contribution/schema";
 
 function withTimeout<T>(p: Promise<T>, ms: number) {

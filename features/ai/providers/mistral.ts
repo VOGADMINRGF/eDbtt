@@ -9,6 +9,7 @@ const MODEL = process.env.MISTRAL_MODEL || "mistral-large-latest";
 
 export type AskArgs = {
   prompt: string;
+  model?: string;
   maxOutputTokens?: number;
   signal?: AbortSignal;
 };
@@ -72,13 +73,14 @@ async function post(body: Record<string, unknown>, signal?: AbortSignal) {
 
 async function askMistral({
   prompt,
+  model,
   maxOutputTokens = 2_000,
   signal,
 }: AskArgs): Promise<AskResult> {
   if (!prompt) throw new Error("prompt darf nicht leer sein");
 
   const body = {
-    model: MODEL,
+    model: model ?? MODEL,
     max_tokens: maxOutputTokens,
     temperature: 0.2,
     response_format: { type: "json_object" },

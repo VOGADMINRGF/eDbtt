@@ -211,7 +211,16 @@ describe("ai provider smoke cli helpers", () => {
       startedAt: 1,
       finishedAt: 2,
       durationMs: 1,
-      rows: [buildRow({ rawExcerpt: "contains sk-test-secret-token" })],
+      rows: [
+        buildRow({
+          rawExcerpt: "contains sk-test-secret-token",
+          errorMessage: "provider said sk-test-secret-token in free text",
+          reason: "free-form provider failure",
+          openaiErrorMessage: "raw upstream message",
+          fallbackReason: "verbatim fallback detail",
+          repairReason: "verbatim repair detail",
+        }),
+      ],
       totals: {
         totalEstimatedCostUsd: 0.000036,
         totalEstimatedCostEur: 0.00003312,
@@ -253,8 +262,17 @@ describe("ai provider smoke cli helpers", () => {
     });
 
     const body = await readFile(outputPath, "utf8");
+    const json = JSON.parse(body) as { rows: Array<Record<string, unknown>> };
     expect(path.basename(outputPath)).toBe("20260429-101112-full.json");
     expect(body).not.toContain("sk-test-secret-token");
+    expect(body).not.toContain("free-form provider failure");
+    expect(body).not.toContain("raw upstream message");
+    expect(json.rows[0]).not.toHaveProperty("rawExcerpt");
+    expect(json.rows[0]).not.toHaveProperty("errorMessage");
+    expect(json.rows[0]).not.toHaveProperty("reason");
+    expect(json.rows[0]).not.toHaveProperty("openaiErrorMessage");
+    expect(json.rows[0]).not.toHaveProperty("fallbackReason");
+    expect(json.rows[0]).not.toHaveProperty("repairReason");
     vi.unstubAllEnvs();
   });
 

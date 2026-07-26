@@ -9,6 +9,7 @@ const FALLBACK_MODEL =
 
 export type AskArgs = {
   prompt: string;
+  model?: string;
   maxOutputTokens?: number;
   signal?: AbortSignal;
   expectJson?: boolean;
@@ -86,6 +87,7 @@ async function post(
 
 async function askGemini({
   prompt,
+  model,
   maxOutputTokens = 2_000,
   signal,
   expectJson = true,
@@ -133,7 +135,7 @@ async function askGemini({
     }
   };
 
-  let selectedModel = MODEL;
+  let selectedModel = model ?? MODEL;
   let data;
   try {
     data = await requestModel(selectedModel);

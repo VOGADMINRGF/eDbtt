@@ -18,10 +18,15 @@ import {
   mapErrorToKind,
   providerDisplayName,
   sanitizeRawExcerpt,
+  sanitizeDiagnosticText,
   type ProviderDiagnostic,
 } from "@/features/ai/adminTelemetryDiagnostics";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
-import { getAiRuntimePolicy, resolveAiRuntimeProviderMissingReason } from "@/features/ai/aiRuntimePolicy";
+import {
+  getAiRuntimePolicy,
+  getAiRuntimeProfile,
+  resolveAiRuntimeProviderMissingReason,
+} from "@features/ai/aiRuntimePolicy";
 
 const FULL_SAMPLE_TEXT =
   "In unserer Stadt soll ein autofreier Sonntag pro Monat eingefuehrt werden, um die Luftqualitaet zu verbessern und den OePNV zu staerken.";
@@ -33,11 +38,11 @@ const DIRECT_PROBE_PROMPT =
   "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
 
 function directProbeMaxOutputTokens(): number {
-  return getAiRuntimePolicy().directProbeMaxOutputTokens;
+  return getAiRuntimeProfile("providerProbe").maxOutputTokens ?? getAiRuntimePolicy().directProbeMaxOutputTokens;
 }
 
 function directRuntimeMaxOutputTokens(): number {
-  return getAiRuntimePolicy().directRuntimeMaxOutputTokens;
+  return getAiRuntimeProfile("runtimeProbe").maxOutputTokens ?? getAiRuntimePolicy().directRuntimeMaxOutputTokens;
 }
 const FULL_CONTRACT_PROMPT = [
   "Return exactly one top-level AnalyzeResult JSON object (RFC8259).",
@@ -92,11 +97,11 @@ function isOpenAiModelNotFoundError(error: unknown): boolean {
 }
 
 function openAiSmokeTimeoutMs(): number {
-  return getAiRuntimePolicy().smokeTimeoutMs;
+  return getAiRuntimeProfile("smoke").timeoutMs;
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  return getAiRuntimePolicy().smokeMaxOutputTokens;
+  return getAiRuntimeProfile("smoke").maxOutputTokens ?? getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function configMissingReason(provider: E150ProviderName): string | null {
@@ -137,8 +142,8 @@ function buildRow(
     errorKind: partial.errorKind ?? null,
     providerErrorCode: partial.providerErrorCode ?? null,
     httpStatus: partial.httpStatus ?? null,
-    errorMessage: partial.errorMessage ?? null,
-    reason: partial.reason ?? null,
+    errorMessage: sanitizeDiagnosticText(partial.errorMessage ?? partial.providerErrorCode ?? partial.errorKind) ?? null,
+    reason: sanitizeDiagnosticText(partial.reason ?? partial.providerErrorCode ?? partial.errorKind) ?? null,
     validationMode: partial.validationMode ?? "none",
     providerStatus: partial.providerStatus ?? deriveProviderStatus(partial.errorKind ?? null, partial.status ?? "failed"),
     adapterStatus: partial.adapterStatus ?? "not_started",
@@ -160,7 +165,7 @@ function buildRow(
     smokeMode,
     budgetProfile,
     fallbackUsed: partial.fallbackUsed ?? null,
-    fallbackReason: partial.fallbackReason ?? null,
+    fallbackReason: sanitizeDiagnosticText(partial.fallbackReason ?? partial.providerErrorCode) ?? null,
     journeyDecision: partial.journeyDecision ?? "selected",
     strictStatus: partial.strictStatus ?? "not_started",
     strictProviderErrorCode: partial.strictProviderErrorCode ?? null,
@@ -169,7 +174,7 @@ function buildRow(
     repairStatus: partial.repairStatus ?? "not_attempted",
     repairProviderErrorCode: partial.repairProviderErrorCode ?? null,
     repairSchemaPath: partial.repairSchemaPath ?? null,
-    repairReason: partial.repairReason ?? null,
+    repairReason: sanitizeDiagnosticText(partial.repairReason ?? partial.repairProviderErrorCode) ?? null,
     repairUsed: partial.repairUsed ?? false,
     directStrictStatus: partial.directStrictStatus ?? "not_started",
     draftStatus: partial.draftStatus ?? "not_attempted",
@@ -198,7 +203,7 @@ function buildRow(
     timeoutMs: partial.timeoutMs ?? null,
     maxOutputTokens: partial.maxOutputTokens ?? null,
     openaiErrorCode: partial.openaiErrorCode ?? null,
-    openaiErrorMessage: partial.openaiErrorMessage ?? null,
+    openaiErrorMessage: sanitizeDiagnosticText(partial.openaiErrorMessage ?? partial.openaiErrorCode) ?? null,
     selectedSmokeModel: partial.selectedSmokeModel ?? null,
     smokeModelEnvPresent: partial.smokeModelEnvPresent ?? null,
     effectiveModel: partial.effectiveModel ?? null,
