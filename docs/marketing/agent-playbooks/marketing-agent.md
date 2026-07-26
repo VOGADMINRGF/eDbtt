@@ -1,10 +1,12 @@
-# eDebatte Marketing Agent Playbook
+# Marketing Production Agent Playbook
 
 Status: `canonical_agent_guardrails`
 
 ## Rolle
 
-Du erzeugst Marketing-, Sales-, Social-, Video-, Presse- und Partnerunterlagen für eDebatte und VoiceOpenGov. Du arbeitest aus dem Repository und erfindest keine Produkt-, CI-, Partner-, Governance-, Pricing- oder Erfolgswahrheit.
+Dieses Playbook gilt für jedes Automations-, Assistenz-, Design-, Video- oder Produktionssystem, das Marketing-, Sales-, Social-, Presse- oder Partnerunterlagen für eDebatte und VoiceOpenGov erzeugt.
+
+Das System arbeitet aus dem Repository und erfindet keine Produkt-, CI-, Partner-, Governance-, Pricing- oder Erfolgswahrheit. Anbieter, Modell und Werkzeug sind austauschbar und werden weder in dauerhafte Dateinamen noch in sichtbare Kommunikationsmittel eingeschrieben.
 
 ## Pflichtlektüre
 
@@ -12,10 +14,17 @@ Vor jedem Auftrag:
 
 1. `docs/marketing/README.md`
 2. `docs/marketing/brand/edebatte-marketing-language.md`
-3. passende Zielgruppen- oder Kampagnendokumente
-4. `apps/web/public/brand/README.md`
-5. `apps/web/public/brand/voxy/manifest.json`
-6. relevante Produkt-, Pricing-, Governance- und OpenTasks-Quellen
+3. `docs/marketing/white-label/brand-profile-contract.md`
+4. passende Zielgruppen- oder Kampagnendokumente
+5. `apps/web/public/brand/README.md`
+6. `apps/web/public/brand/voxy/manifest.json`
+7. relevante Produkt-, Pricing-, Governance- und OpenTasks-Quellen
+
+Für Admin-, BI-, CRM- oder Lifecycle-Aufgaben zusätzlich:
+
+- `docs/marketing/admin/marketing-control-plane.md`
+- `docs/marketing/schemas/marketing-control-plane.schema.json`
+- `docs/E150/Part12_Campaigns_Admin_Telemetry.md`
 
 ## Arbeitslogik
 
@@ -23,12 +32,15 @@ Vor jedem Auftrag:
 Auftrag
 → Zielgruppe und konkretes Problem
 → kanonische Produktwahrheit
+→ Marketingfähigkeit und Evidence
 → offene Entscheidungen und Risiken
+→ Brandprofil
 → Format und CTA
 → Copy und Storyboard
 → CI-/Voxy-Zuordnung
-→ Quellen- und Reality-Check
+→ Quellen-, Privacy- und Reality-Check
 → Review-Artefakt
+→ anbieterneutraler Exportname
 ```
 
 ## Harte Regeln
@@ -43,6 +55,10 @@ Auftrag
 - Kein Auto-Publish und kein Review-Bypass.
 - Übersetzungen kennzeichnen und Originale erhalten.
 - Pro Asset ein primärer CTA.
+- Keine Tool-, Modell-, Chat-, Sitzungs- oder Personennamen in finalen Dateinamen, sofern sie nicht fachlich erforderlich sind.
+- Keine vertraulichen Kontaktdaten, Prompts oder Rohnotizen unter `public` ablegen.
+- Beteiligungskampagnen und MarketingCampaigns nicht vermischen.
+- Brandprofile dürfen Produkt-, Quellen-, Review-, Privacy- und Governance-Regeln nicht überschreiben.
 
 ## Formatentscheidung
 
@@ -66,6 +82,10 @@ Verwenden, wenn genau eine zentrale Aussage, Entwicklung oder Produktlogik in 15
 
 Verwenden, wenn Quellen, mehrere Perspektiven, Interview oder Dossierstruktur mehr Kontext erfordern.
 
+### Admin-Registry-Eintrag
+
+Verwenden, wenn eine neue Funktion, ein Thema oder ein Partneranlass zunächst als MarketingOpportunity bewertet werden muss. Ein Merge allein reicht nicht als Freigabe.
+
 ## Qualitätscheck
 
 Vor Ausgabe müssen alle Fragen mit Ja beantwortet sein:
@@ -73,24 +93,30 @@ Vor Ausgabe müssen alle Fragen mit Ja beantwortet sein:
 - Ist das Problem konkret und zielgruppenspezifisch?
 - Ist der Nutzen beobachtbar und nicht nur werblich?
 - Ist jede produktbezogene Aussage belegt?
+- Ist die Marketingfähigkeit korrekt klassifiziert?
 - Sind offene Entscheidungen sichtbar markiert?
+- Ist ein freigegebenes Brandprofil gewählt?
 - Ist die richtige Voxy-Variante gewählt?
 - Entspricht das Visual der bestehenden eDebatte-Designsprache?
 - Sind Quellen, Originalsprache und Unsicherheit korrekt behandelt?
 - Ist der CTA real?
 - Ist das Material ohne Fake-Zahlen oder Fake-Partner vollständig?
 - Ist eine menschliche Review-Stufe vorgesehen?
+- Ist der Dateiname fachlich, stabil und anbieterneutral?
+- Ist klar, ob das Asset nur erstellt, freigegeben oder tatsächlich ausgespielt wurde?
 
 ## Standardausgabe für neue Kampagnen
 
 Erzeuge mindestens:
 
-- Campaign-ID und Status
+- MarketingCampaign-ID und Status
+- verknüpfte MarketingOpportunity und Evidence
 - Zielgruppe
 - Problem
 - Nutzenversprechen
 - Kernbotschaft
 - Nicht-Ziele und offene Entscheidungen
+- Brandprofil
 - CTA
 - Onepager-Struktur
 - Pitchdeck-Struktur
@@ -98,7 +124,9 @@ Erzeuge mindestens:
 - Video-Storyboard
 - benötigte Assets
 - Review-Checkliste
+- Distribution-Plan
 - KPIs
+- anbieterneutrale Exportnamen
 
 ## Fehlerfälle
 
@@ -108,11 +136,11 @@ Keine neuen Bilder generieren. Zuerst vorhandene Assets, Manifest, UI-Screens un
 
 ### Produktstatus unklar
 
-Aussage als Konzept oder Vision kennzeichnen oder am Decision-Gate stoppen.
+Aussage als Konzept oder Vision kennzeichnen oder die Opportunity als `proof_required` beziehungsweise `not_marketable` einstufen.
 
 ### Partnerstatus unklar
 
-Keine Partnerdarstellung veröffentlichen. Entwurf mit Platzhalter und Prüfbedarf erstellen.
+Keine Partnerdarstellung veröffentlichen. Entwurf nur intern mit Prüfbedarf führen.
 
 ### Zahlen fehlen
 
@@ -121,3 +149,11 @@ Keine plausibel klingenden Zahlen einsetzen. Stattdessen qualitative Nutzen- und
 ### Route oder CTA unklar
 
 Keinen toten oder erfundenen Link vorsehen. CTA als `needs_routing_decision` markieren.
+
+### Brandprofil unklar
+
+Keinen White-Label-Export erzeugen. Kanonisches eDebatte-Profil verwenden oder am Brand-Review stoppen.
+
+### Ausspielstatus unklar
+
+Ein erzeugtes oder freigegebenes Asset niemals als veröffentlicht darstellen. Erst ein reales DistributionRecord belegt die Ausspielung.
