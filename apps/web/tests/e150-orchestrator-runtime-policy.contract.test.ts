@@ -110,6 +110,7 @@ describe("e150 orchestrator runtime policy contract", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("applies provider order and maxProviders to the productive orchestrator", async () => {
@@ -202,5 +203,62 @@ describe("e150 orchestrator runtime policy contract", () => {
         }),
       ).rejects.toBeInstanceOf(OrchestratorNoProviderError);
     }
+  });
+
+  it("keeps provider failures and telemetry logs free of raw upstream text", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "anthropic-live-key");
+    vi.stubEnv("OPENAI_API_KEY", "openai-live-key");
+    vi.stubEnv("AI_PROVIDER_ORDER", "anthropic,openai");
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    providerMocks.callAnthropic.mockRejectedValue(
+      Object.assign(
+        new Error(
+          "Alice alice@example.org Prompt: Bitte pruefe das Thema. Response: Volltext Bearer sk-secret",
+        ),
+        {
+          code: "unsafe provider code with spaces",
+          status: 500,
+        },
+      ),
+    );
+    providerMocks.callOpenAI.mockResolvedValue({
+      text: VALID_ANALYZE_JSON,
+      model: "gpt-5",
+      tokensIn: 9,
+      tokensOut: 18,
+    });
+
+    const result = await callE150Orchestrator({
+      systemPrompt: "system",
+      userPrompt: "user",
+      journeyProfile: ANTHROPIC_ONLY_JOURNEY,
+    });
+
+    expect(result.best.provider).toBe("openai");
+    expect(result.meta.failedProviders).toContainEqual(
+      expect.objectContaining({
+        provider: "anthropic",
+        error: "provider_failed",
+        providerErrorCode: null,
+        errorMessageShort: undefined,
+      }),
+    );
+    expect(result.meta.providerMatrix).toContainEqual(
+      expect.objectContaining({
+        provider: "anthropic",
+        state: "failed",
+        reason: "provider_failed",
+        errorMessage: null,
+        rawExcerpt: null,
+        openaiErrorMessage: null,
+      }),
+    );
+
+    const consoleDump = JSON.stringify(consoleLogSpy.mock.calls);
+    expect(consoleDump).not.toContain("alice@example.org");
+    expect(consoleDump).not.toContain("Prompt:");
+    expect(consoleDump).not.toContain("Response:");
+    expect(consoleDump).not.toContain("sk-secret");
   });
 });

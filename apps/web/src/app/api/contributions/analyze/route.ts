@@ -56,6 +56,11 @@ import {
 } from "@/features/create/materialRouting";
 import { buildMaterialIntakeAnalyzeManifest } from "@/features/material/materialIntakeContract";
 import { resolveAnalyzeResearchGateBlock } from "./researchEntitlementGate";
+import {
+  resolveAiRuntimeModeFromEnv,
+  tryGetAiRuntimePolicy,
+  type AiRuntimeMode,
+} from "@features/ai/aiRuntimePolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,6 +121,21 @@ function logErrorSafe(payload: Record<string, unknown>) {
   } catch {
     // ignore logging failures
   }
+}
+
+function safeIdentifier(value: unknown, max = 120): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[A-Za-z0-9_.:-]{1,120}$/.test(trimmed)) return null;
+  return trimmed.slice(0, max);
+}
+
+function safeNumeric(value: unknown, min: number, max: number): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const rounded = Math.floor(value);
+  if (rounded < min || rounded > max) return null;
+  return rounded;
 }
 
 type AnalyzeJobInput = {
@@ -190,6 +210,36 @@ function attachSafetyToCreateAnalyze(
     requiresHumanReview: createAnalyze.requiresHumanReview || safety.requiresHumanReview,
     noAutoPublish: true as const,
     noSilentMerge: true as const,
+  };
+}
+
+function resolveAnalyzeRuntimeMode(): AiRuntimeMode {
+  const policyResult = tryGetAiRuntimePolicy();
+  if (policyResult.ok) return policyResult.policy.runtimeMode;
+  return resolveAiRuntimeModeFromEnv();
+}
+
+function isNonProductionRuntimeMode(runtimeMode: AiRuntimeMode): boolean {
+  return runtimeMode === "development" || runtimeMode === "test";
+}
+
+function buildSafeErrorLogMeta(error: unknown): Record<string, unknown> {
+  const candidate = error as {
+    code?: unknown;
+    errorCode?: unknown;
+    name?: unknown;
+    status?: unknown;
+    errorKind?: unknown;
+    providerErrorCode?: unknown;
+  } | null;
+  return {
+    errorCode:
+      safeIdentifier(candidate?.errorCode) ??
+      safeIdentifier(candidate?.code),
+    errorKind: asAiErrorKind(candidate?.errorKind),
+    providerErrorCode: safeIdentifier(candidate?.providerErrorCode),
+    status: safeNumeric(candidate?.status, 100, 599),
+    name: safeIdentifier(candidate?.name),
   };
 }
 
@@ -524,6 +574,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     sourceGrounding,
     userId,
   };
+  const runtimeMode = resolveAnalyzeRuntimeMode();
 
   const safety = evaluateCreateInputSafety({
     text,
@@ -774,15 +825,21 @@ export async function POST(req: NextRequest): Promise<Response> {
       { status: 200 },
     );
   } catch (error) {
-    console.error("[contributions/analyze] failed", error);
+    const normalized = normalizeAnalyzerError(error);
+    console.error("[contributions/analyze] failed", {
+      contributionId,
+      code: normalized.code,
+      status: normalized.status ?? null,
+    });
     logErrorSafe({
       msg: "analyze.route.error",
       contributionId,
       userId: maskUserId(userId),
-      err: error instanceof Error ? error.message : String(error),
+      ...buildSafeErrorLogMeta(error),
+      errorCode: normalized.code,
+      status: normalized.status ?? null,
     });
-    const normalized = normalizeAnalyzerError(error);
-    if (shouldUseFallback(normalized)) {
+    if (allowHeuristicAnalyzeFallback(runtimeMode, normalized.code) && shouldUseFallback(normalized)) {
       const fallback = buildHeuristicAnalyzeResult({ text, locale });
       const sourceGroundingAudit = finalizeSourceGroundingAudit({
         context: analyzeInput.sourceGrounding,
@@ -842,6 +899,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       return NextResponse.json({
         ok: true,
         fallback: true,
+        degraded: true,
+        realProviderSuccess: false,
         errorCode: normalized.code,
         message: normalized.message,
         result: truthEnvelope.result,
@@ -882,7 +941,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         },
       });
     }
-    if (normalized.code === "BAD_JSON" || normalized.code === "ANALYZE_PROVIDER_FAILED") {
+    if (allowDegradedAnalyzeResult(runtimeMode, normalized.code)) {
       const meta = (error as any)?.meta ?? {};
 
       const providerMatrix = buildProviderMatrixResponse(
@@ -987,6 +1046,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         {
           ok: true,
           degraded: true,
+          realProviderSuccess: false,
           warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
           result: truthEnvelope.result,
           safety,
@@ -1032,6 +1092,22 @@ export async function POST(req: NextRequest): Promise<Response> {
         },
         { status: 200 },
       );
+    }
+    if (shouldFailClosedAnalyze(runtimeMode, normalized.code)) {
+      const meta = (error as any)?.meta ?? {};
+      const providerMatrix = buildProviderMatrixResponse(
+        error,
+        meta?.providerMatrix ?? meta?.provider_matrix ?? null,
+        meta,
+      );
+      return err(normalized.code, normalized.message, normalized.status ?? 502, {
+        degraded: false,
+        realProviderSuccess: false,
+        meta: {
+          providerMatrix,
+          routeClassification,
+        },
+      });
     }
     return formatErrorResponse(normalized, normalized.status ?? 502);
   }
@@ -1106,13 +1182,15 @@ function startAnalyzeSseStream(input: AnalyzeJobInput): Response {
         sendProgress("complete", 100);
         controller.close();
       } catch (error) {
+        const normalized = normalizeAnalyzerError(error);
         logErrorSafe({
           msg: "analyze.route.sse_error",
           contributionId: input.contributionId,
           userId: maskUserId(input.userId ?? null),
-          err: error instanceof Error ? error.message : String(error),
+          ...buildSafeErrorLogMeta(error),
+          errorCode: normalized.code,
+          status: normalized.status ?? null,
         });
-        const normalized = normalizeAnalyzerError(error);
         sendEvent("error", { code: normalized.code, reason: normalized.message });
         controller.close();
       }
@@ -1189,7 +1267,7 @@ async function finalizeResultPayload(
     logErrorSafe({
       msg: "analyze.route.eventuality_persist_failed",
       contributionId: input.contributionId,
-      err: err instanceof Error ? err.message : String(err),
+      ...buildSafeErrorLogMeta(err),
     });
     return null;
   });
@@ -1211,7 +1289,7 @@ async function finalizeResultPayload(
       logErrorSafe({
         msg: "analyze.route.runreceipt_persist_failed",
         contributionId: input.contributionId,
-        err: err instanceof Error ? err.message : String(err),
+        ...buildSafeErrorLogMeta(err),
       });
     });
   }
@@ -1306,8 +1384,7 @@ function normalizeAnalyzerError(error: unknown): NormalizedAnalyzerError {
   if (code === "NO_ANALYZE_PROVIDER" || (message.includes("Orchestrator") && message.includes("Kein aktiver Provider"))) {
     return {
       code: "NO_ANALYZE_PROVIDER",
-      message:
-        "AnalyzeContribution: Kein KI-Provider konfiguriert. Bitte wende dich an das eDebatte-Team.",
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
       status: 503,
     };
   }
@@ -1315,45 +1392,42 @@ function normalizeAnalyzerError(error: unknown): NormalizedAnalyzerError {
   if (/OPENAI_API_KEY fehlt/i.test(message) || /API_KEY fehlt/i.test(message)) {
     return {
       code: "MISSING_ENV",
-      message:
-        "AnalyzeContribution: Ein notwendiger API-Schlüssel fehlt auf dem Server.",
-      status: 500,
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
+      status: 503,
     };
   }
 
   if (message.includes("KI-Antwort war kein gültiges JSON")) {
     return {
       code: "INVALID_AI_RESPONSE",
-      message:
-        "AnalyzeContribution: KI-Antwort war kein gültiges JSON. Bitte später erneut versuchen.",
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
       status: 502,
     };
   }
   if (code === "BAD_JSON") {
     return {
       code: "BAD_JSON",
-      message: "KI-Antwort war nicht valide. Bitte erneut versuchen.",
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
       status: 502,
     };
   }
   if (code === "ANALYZE_PROVIDER_FAILED") {
     return {
       code: "ANALYZE_PROVIDER_FAILED",
-      message: "KI-Dienst temporär nicht erreichbar. Bitte erneut versuchen.",
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
       status: 502,
     };
   }
   if (code === "ANALYZE_TIMEOUT" || message === "analyze_timeout") {
     return {
       code: "ANALYZE_TIMEOUT",
-      message: "Analyse hat das Zeitlimit erreicht. Es wird ein vereinfachter Fallback verwendet.",
+      message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
       status: 504,
     };
   }
   return {
     code: "ANALYZE_FAILED",
-    message:
-      "AnalyzeContribution: Fehler im Analyzer. Bitte später erneut versuchen.",
+    message: "Analyze ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
     status: 502,
   };
 }
@@ -1371,6 +1445,31 @@ function shouldUseFallback(err: unknown) {
   const anyErr = err as { errorCode?: string; code?: string };
   const code = anyErr.errorCode ?? anyErr.code;
   return typeof code === "string" && FALLBACK_ELIGIBLE_CODES.has(code);
+}
+
+const FAIL_CLOSED_ANALYZE_CODES = new Set([
+  "NO_ANALYZE_PROVIDER",
+  "MISSING_ENV",
+  "ANALYZE_TIMEOUT",
+  "ANALYZE_FAILED",
+  "ANALYZE_PROVIDER_FAILED",
+  "BAD_JSON",
+  "INVALID_AI_RESPONSE",
+]);
+
+function allowHeuristicAnalyzeFallback(runtimeMode: AiRuntimeMode, code: string): boolean {
+  return isNonProductionRuntimeMode(runtimeMode) && FALLBACK_ELIGIBLE_CODES.has(code);
+}
+
+function allowDegradedAnalyzeResult(runtimeMode: AiRuntimeMode, code: string): boolean {
+  return (
+    isNonProductionRuntimeMode(runtimeMode) &&
+    (code === "BAD_JSON" || code === "ANALYZE_PROVIDER_FAILED")
+  );
+}
+
+function shouldFailClosedAnalyze(runtimeMode: AiRuntimeMode, code: string): boolean {
+  return !isNonProductionRuntimeMode(runtimeMode) && FAIL_CLOSED_ANALYZE_CODES.has(code);
 }
 
 async function resolveCreateMatchesSafe(input: {
@@ -1440,12 +1539,110 @@ function asAiErrorKind(value: unknown): AiErrorKind | null {
   return AI_ERROR_KINDS.has(value as AiErrorKind) ? (value as AiErrorKind) : null;
 }
 
+type PublicProviderMatrixEntry = Pick<
+  ProviderMatrixEntry,
+  "provider" | "state" | "attempt" | "errorKind" | "status" | "durationMs" | "model" | "reason"
+>;
+
+function normalizePublicProviderReason(value: unknown, fallbackState?: unknown): string {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const normalized = raw.toLowerCase();
+  if (normalized === "missing_credentials") return "missing_credentials";
+  if (
+    normalized.includes("missing ") &&
+    (normalized.includes("api_key") ||
+      normalized.includes("base_url") ||
+      normalized.includes("api_url") ||
+      normalized.includes("ari_url"))
+  ) {
+    return "missing_credentials";
+  }
+  if (normalized === "provider_disabled" || normalized.includes("disabled")) return "provider_disabled";
+  if (normalized === "blocked_by_runtime_policy") return "blocked_by_runtime_policy";
+  if (normalized === "not_in_journey_plan") return "not_in_journey_plan";
+  if (normalized === "fallback_not_needed") return "fallback_not_needed";
+  if (normalized === "budget_abort" || normalized.includes("cancelled (budget)")) return "budget_abort";
+  if (normalized === "timeout" || normalized.includes("timeout") || normalized.includes("timed out")) return "timeout";
+  if (normalized === "rate_limit" || normalized.includes("rate limit") || normalized.includes("429")) return "rate_limit";
+  if (
+    normalized === "unauthorized" ||
+    normalized === "invalid_api_key" ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("invalid api key") ||
+    normalized.includes("401") ||
+    normalized.includes("403")
+  ) {
+    return "unauthorized";
+  }
+  if (
+    normalized === "model_not_found" ||
+    normalized.includes("model_not_found") ||
+    normalized.includes("modell nicht gefunden") ||
+    (normalized.includes("model") && normalized.includes("not found"))
+  ) {
+    return "model_not_found";
+  }
+  if (
+    normalized === "invalid_response" ||
+    normalized === "bad_json" ||
+    normalized === "schema_invalid" ||
+    normalized.includes("bad_json") ||
+    normalized.includes("schema") ||
+    normalized.includes("parse") ||
+    normalized.includes("invalid_response")
+  ) {
+    return "invalid_response";
+  }
+  if (normalized === "provider_failed" || normalized.includes("provider_failed") || normalized.includes("probe failed")) {
+    return "provider_failed";
+  }
+  const state = typeof fallbackState === "string" ? fallbackState : "";
+  if (state === "disabled") return "provider_disabled";
+  if (state === "skipped") return "not_in_journey_plan";
+  return "provider_failed";
+}
+
+function normalizePublicProviderMatrixEntry(entry: Record<string, unknown>): PublicProviderMatrixEntry {
+  return {
+    provider: entry.provider as ProviderMatrixEntry["provider"],
+    state:
+      entry.state === "running" ||
+      entry.state === "ok" ||
+      entry.state === "failed" ||
+      entry.state === "cancelled" ||
+      entry.state === "skipped" ||
+      entry.state === "disabled"
+        ? (entry.state as ProviderMatrixEntry["state"])
+        : "failed",
+    attempt: safeNumeric(entry.attempt, 1, 9),
+    errorKind: asAiErrorKind(entry.errorKind),
+    status: safeNumeric(entry.status, 100, 599),
+    durationMs: safeNumeric(entry.durationMs, 0, 600_000),
+    model: safeIdentifier(entry.model),
+    reason: normalizePublicProviderReason(
+      entry.reason ??
+        entry.errorMessage ??
+        entry.errorMessageShort ??
+        entry.openaiErrorMessage ??
+        entry.providerErrorCode,
+      entry.state,
+    ),
+  };
+}
+
 function buildProviderMatrixResponse(
   source: any,
   existing: ProviderMatrixEntry[] | undefined | null,
   meta?: any,
-): ProviderMatrixEntry[] {
-  if (Array.isArray(existing) && existing.length) return existing;
+): PublicProviderMatrixEntry[] {
+  if (Array.isArray(existing) && existing.length) {
+    return existing
+      .filter((entry): entry is ProviderMatrixEntry => Boolean(entry?.provider))
+      .map((entry) =>
+        normalizePublicProviderMatrixEntry(entry as unknown as Record<string, unknown>),
+      );
+  }
   const m = meta ?? source?.meta ?? {};
   const disabled: { provider: string; reason?: string }[] =
     m.disabledProviders ?? m.disabled ?? [];
@@ -1464,7 +1661,7 @@ function buildProviderMatrixResponse(
   return PROVIDER_LIST.map((provider) => {
     const disabledEntry = disabled.find((d) => d.provider === provider);
     if (disabledEntry) {
-      return {
+      return normalizePublicProviderMatrixEntry({
         provider,
         state: "disabled",
         errorKind: null,
@@ -1472,11 +1669,11 @@ function buildProviderMatrixResponse(
         durationMs: timings[provider] ?? null,
         model: null,
         reason: disabledEntry.reason ?? null,
-      };
+      });
     }
     const skippedEntry = skipped.find((s) => s.provider === provider);
     if (skippedEntry) {
-      return {
+      return normalizePublicProviderMatrixEntry({
         provider,
         state: "skipped",
         errorKind: null,
@@ -1484,12 +1681,12 @@ function buildProviderMatrixResponse(
         durationMs: timings[provider] ?? null,
         model: null,
         reason: skippedEntry.reason ?? null,
-      };
+      });
     }
     const failedEntry = failed.find((f) => f.provider === provider);
     if (failedEntry) {
       const errorKind = asAiErrorKind(failedEntry.errorKind);
-      return {
+      return normalizePublicProviderMatrixEntry({
         provider,
         state: "failed",
         attempt: null,
@@ -1497,11 +1694,11 @@ function buildProviderMatrixResponse(
         status: (failedEntry as any)?.httpStatus ?? null,
         durationMs: timings[provider] ?? null,
         model: null,
-        reason: failedEntry.errorMessageShort ?? failedEntry.error ?? null,
-      };
+        reason: failedEntry.error ?? failedEntry.errorMessageShort ?? null,
+      });
     }
     if (successProviders.includes(provider)) {
-      return {
+      return normalizePublicProviderMatrixEntry({
         provider,
         state: "ok",
         attempt: 1,
@@ -1510,17 +1707,17 @@ function buildProviderMatrixResponse(
         durationMs: timings[provider] ?? null,
         model: null,
         reason: null,
-      };
+      });
     }
-    return {
+    return normalizePublicProviderMatrixEntry({
       provider,
       state: "failed",
       errorKind: null,
       status: null,
       durationMs: null,
       model: null,
-      reason: "KI temporär nicht erreichbar",
-    };
+      reason: "provider_failed",
+    });
   });
 }
 

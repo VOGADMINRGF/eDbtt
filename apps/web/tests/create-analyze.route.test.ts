@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
@@ -76,6 +76,18 @@ function req(body: Record<string, unknown>) {
   });
 }
 
+function sseReq(body: Record<string, unknown>) {
+  return new NextRequest("http://localhost/api/contributions/analyze", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "text/event-stream",
+      "x-forwarded-for": "127.0.0.1",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 function buildAnalyzeResult(params?: { claims?: Array<Record<string, unknown>> }) {
   return {
     mode: "E150",
@@ -113,6 +125,8 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.ANALYZE_ENABLED = "true";
+    process.env.NODE_ENV = "test";
+    delete process.env.VERCEL_ENV;
     delete process.env.E150_PRESENTATION_PASS_DEFAULT;
 
     mocks.rateLimitOrThrow.mockResolvedValue({ ok: true, retryIn: 0 });
@@ -152,6 +166,12 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
       sourceState: "ok",
       sourceErrors: [],
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("returns typed createAnalyze payload using productive same_anlassraum match", async () => {
@@ -745,5 +765,269 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.meta?.verificationLabel).toBe(body.verificationLabel);
     expect(body.meta?.truthStatus).toBe(body.truthStatus);
     expect(body.meta?.sourceSupport).toBe(body.sourceSupport);
+  });
+
+  it("keeps development/test no-provider responses explicitly degraded with heuristic fallback", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL_ENV", "");
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(new Error("no provider"), { code: "NO_ANALYZE_PROVIDER" }),
+    );
+    mocks.buildHeuristicAnalyzeResult.mockReturnValue(
+      buildAnalyzeResult({ claims: [{ id: "c-dev", text: "Fallback-Claim" }] }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Development-Fallback.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.fallback).toBe(true);
+    expect(body.degraded).toBe(true);
+    expect(body.realProviderSuccess).toBe(false);
+    expect(body.errorCode).toBe("NO_ANALYZE_PROVIDER");
+    expect(body.result?.claims?.[0]?.text).toBe("Fallback-Claim");
+  });
+
+  it("fails closed in preview without providers", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(new Error("no provider"), { code: "NO_ANALYZE_PROVIDER" }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Preview-No-Provider-Fall.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe("NO_ANALYZE_PROVIDER");
+    expect(body.result).toBeUndefined();
+  });
+
+  it("fails closed in production without providers", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(new Error("no provider"), { code: "NO_ANALYZE_PROVIDER" }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Production-No-Provider-Fall.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe("NO_ANALYZE_PROVIDER");
+    expect(body.result).toBeUndefined();
+  });
+
+  it("fails closed in preview and production for provider failures and invalid responses", async () => {
+    for (const runtimeEnv of ["preview", "production"] as const) {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("VERCEL_ENV", runtimeEnv);
+
+      mocks.analyzeContribution.mockRejectedValueOnce(
+        Object.assign(new Error("provider failed"), { code: "ANALYZE_PROVIDER_FAILED" }),
+      );
+      let res = await analyzePOST(
+        req({
+          text: `Ausreichend langer Text fuer ${runtimeEnv} provider failure.`,
+          locale: "de-DE",
+        }),
+      );
+      expect(res.status).toBe(502);
+      let body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.errorCode).toBe("ANALYZE_PROVIDER_FAILED");
+      expect(body.result).toBeUndefined();
+
+      mocks.analyzeContribution.mockRejectedValueOnce(
+        Object.assign(new Error("bad json"), { code: "BAD_JSON" }),
+      );
+      res = await analyzePOST(
+        req({
+          text: `Ausreichend langer Text fuer ${runtimeEnv} bad json.`,
+          locale: "de-DE",
+        }),
+      );
+      expect(res.status).toBe(502);
+      body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.errorCode).toBe("BAD_JSON");
+      expect(body.result).toBeUndefined();
+    }
+  });
+
+  it("keeps timeouts degraded only in development and fail-closed in production", async () => {
+    const timeoutError = Object.assign(new Error("analyze_timeout"), { code: "ANALYZE_TIMEOUT" });
+
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL_ENV", "");
+    mocks.analyzeContribution.mockRejectedValueOnce(timeoutError);
+    mocks.buildHeuristicAnalyzeResult.mockReturnValueOnce(
+      buildAnalyzeResult({ claims: [{ id: "c-timeout-dev", text: "Timeout-Fallback" }] }),
+    );
+
+    let res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Development-Timeout-Fall.",
+        locale: "de-DE",
+      }),
+    );
+    expect(res.status).toBe(200);
+    let body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.fallback).toBe(true);
+    expect(body.degraded).toBe(true);
+    expect(body.realProviderSuccess).toBe(false);
+
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.analyzeContribution.mockRejectedValueOnce(timeoutError);
+
+    res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Production-Timeout-Fall.",
+        locale: "de-DE",
+      }),
+    );
+    expect(res.status).toBe(504);
+    body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe("ANALYZE_TIMEOUT");
+    expect(body.result).toBeUndefined();
+  });
+
+  it("emits only an error event for production SSE runtime failures", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(new Error("no provider"), { code: "NO_ANALYZE_PROVIDER" }),
+    );
+
+    const res = await analyzePOST(
+      sseReq({
+        text: "Ausreichend langer Text fuer den SSE-Production-Fehler.",
+        locale: "de-DE",
+        stream: true,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain("event: error");
+    expect(text).not.toContain("event: result");
+    expect(text).toContain("\"code\":\"NO_ANALYZE_PROVIDER\"");
+  });
+
+  it("strips provider, prompt, response, pii and token text from the public provider matrix", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(new Error("provider failed"), {
+        code: "ANALYZE_PROVIDER_FAILED",
+        meta: {
+          providerMatrix: [
+            {
+              provider: "openai",
+              state: "failed",
+              attempt: 1,
+              errorKind: "BAD_JSON",
+              status: 502,
+              durationMs: 123,
+              model: "gpt-5",
+              reason:
+                "Alice alice@example.org Prompt: Bitte prüfe das Thema. Response: Volltext https://api.example.org?token=abc Bearer sk-secret",
+              errorMessage: "freie Providerantwort",
+              rawExcerpt: "freie Providerantwort",
+              openaiErrorMessage: "schema fallback",
+              providerErrorCode: "BAD_JSON",
+            },
+          ],
+        },
+      }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer die Provider-Matrix-Haertung.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    const row = body.meta?.providerMatrix?.[0];
+    const serialized = JSON.stringify(body);
+
+    expect(body.ok).toBe(false);
+    expect(row).toEqual({
+      provider: "openai",
+      state: "failed",
+      attempt: 1,
+      errorKind: "BAD_JSON",
+      status: 502,
+      durationMs: 123,
+      model: "gpt-5",
+      reason: "provider_failed",
+    });
+    expect(serialized).not.toContain("alice@example.org");
+    expect(serialized).not.toContain("Alice");
+    expect(serialized).not.toContain("Prompt:");
+    expect(serialized).not.toContain("Response:");
+    expect(serialized).not.toContain("Bearer sk-secret");
+    expect(serialized).not.toContain("token=abc");
+    expect(serialized).not.toContain("freie Providerantwort");
+    expect(serialized).not.toContain("schema fallback");
+  });
+
+  it("logs analyze failures without prompt, provider response, pii or tokens", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.analyzeContribution.mockRejectedValue(
+      Object.assign(
+        new Error(
+          "Alice alice@example.org Prompt: Bitte prüfe das Thema. Response: Volltext Bearer sk-secret",
+        ),
+        { code: "ANALYZE_PROVIDER_FAILED" },
+      ),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Ausreichend langer Text fuer den Logging-Haertungsfall.",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(502);
+    const consoleDump = JSON.stringify(consoleErrorSpy.mock.calls);
+    const loggerDump = JSON.stringify(mocks.loggerError.mock.calls);
+
+    expect(consoleDump).not.toContain("alice@example.org");
+    expect(consoleDump).not.toContain("Prompt:");
+    expect(consoleDump).not.toContain("Response:");
+    expect(consoleDump).not.toContain("sk-secret");
+    expect(loggerDump).not.toContain("alice@example.org");
+    expect(loggerDump).not.toContain("Prompt:");
+    expect(loggerDump).not.toContain("Response:");
+    expect(loggerDump).not.toContain("sk-secret");
+    expect(loggerDump).toContain("ANALYZE_PROVIDER_FAILED");
   });
 });
