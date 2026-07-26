@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ObjectId, getCol } from "@core/db/triMongo";
+import { ObjectId, getCol, getDb } from "@core/db/triMongo";
 import { requireAdminOrResponse, userIsSuperadmin } from "@/lib/server/auth/admin";
 import type { UserRole } from "@/types/user";
 import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
@@ -17,92 +17,41 @@ import { logIdentityEvent } from "@core/telemetry/identityEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
-
-type UserDoc = {
-  _id: ObjectId;
-  email: string;
-  email_lc?: string | null;
-  name?: string | null;
-  roles?: UserRole[];
-  role?: UserRole | null;
-  createdAt?: Date;
-  lastLoginAt?: Date;
-  accessTier?: string | null;
-  b2cPlanId?: string | null;
-  tier?: string | null;
-  stats?: { lastSeenAt?: Date };
-  membership?: any;
-  settings?: { newsletterOptIn?: boolean | null };
-  newsletterOptIn?: boolean | null;
-};
-
-const MANAGED_USER_ROLES: UserRole[] = [
-  "guest",
-  "user",
-  "verified",
-  "editor",
-  "journalist",
-  "redaktion",
-  "moderator",
-  "staff",
-  "admin",
-  "ngo",
-  "politics",
-  "legitimized",
-  "owner",
-  "premium",
-  "superadmin",
-  "kurator",
-  "creator",
-];
+import {
+  activeAccountFilter,
+  adminAccessFilter,
+  isAccountDisabled,
+  mapAdminDashboardUser,
+  normalizeManagedRoles,
+  resolveUserRoles,
+  superadminAccessFilter,
+  type AdminDashboardCredentialDoc,
+  type AdminDashboardUserDoc,
+} from "./shared";
 
 const createSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2).max(120),
-  password: z.string().min(12).optional(),
+  password: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    },
+    z.string().min(12).optional(),
+  ),
   roles: z.array(z.string()).optional(),
   accessTier: z.string().optional(),
   newsletterOptIn: z.boolean().optional(),
   sendVerification: z.boolean().optional(),
   sendPasswordLink: z.boolean().optional(),
-}).refine((data) => Boolean(data.password || data.sendPasswordLink), {
-  message: "missing_password",
-  path: ["password"],
 });
-
-function mapUser(doc: UserDoc) {
-  const roles = Array.isArray(doc.roles)
-    ? doc.roles
-    : doc.role
-    ? [doc.role]
-    : [];
-  const pkg = doc.membership?.edebatte?.planKey ?? null;
-  const membershipStatus = doc.membership?.status ?? null;
-  const lastSeen = doc.stats?.lastSeenAt ?? doc.lastLoginAt ?? null;
-  const newsletterOptIn = Boolean(doc.settings?.newsletterOptIn ?? doc.newsletterOptIn);
-  const planCode = doc.membership?.planCode ?? null;
-  const accessTier = doc.accessTier ?? doc.b2cPlanId ?? doc.tier ?? null;
-
-  return {
-    id: String(doc._id),
-    email: doc.email,
-    name: doc.name ?? null,
-    roles,
-    packageCode: pkg,
-    membershipStatus,
-    newsletterOptIn,
-    accessTier,
-    planCode,
-    createdAt: doc.createdAt ? doc.createdAt.toISOString() : null,
-    lastSeenAt: lastSeen ? new Date(lastSeen).toISOString() : null,
-  };
-}
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
 
-  const users = await getCol<UserDoc>("users");
+  const users = await getCol<AdminDashboardUserDoc>("users");
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q")?.trim();
   const role = searchParams.get("role");
@@ -159,9 +108,28 @@ export async function GET(req: NextRequest) {
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .toArray();
+  const credentialIds = docs.map((doc) => doc._id).filter(Boolean);
+  const Credentials = await piiCol<AdminDashboardCredentialDoc>(CREDENTIAL_COLLECTION);
+  const credentialDocs = credentialIds.length
+    ? await Credentials.find(
+        { coreUserId: { $in: credentialIds } } as any,
+        {
+          projection: {
+            coreUserId: 1,
+            passwordHash: 1,
+            twoFactorEnabled: 1,
+            otpSecret: 1,
+            twoFactorMethod: 1,
+          },
+        },
+      ).toArray()
+    : [];
+  const credentialsByUserId = new Map(
+    credentialDocs.map((doc) => [String(doc.coreUserId), doc]),
+  );
 
   return NextResponse.json({
-    items: docs.map(mapUser),
+    items: docs.map((doc) => mapAdminDashboardUser(doc, credentialsByUserId.get(String(doc._id)) ?? null)),
     total,
     page,
     pageSize,
@@ -186,40 +154,29 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "missing_user" }, { status: 400 });
   }
 
-  const users = await getCol<UserDoc>("users");
-  const target = await users.findOne({ _id: new ObjectId(body.userId) }, { projection: { roles: 1, role: 1 } });
+  const users = await getCol<AdminDashboardUserDoc>("users");
+  const target = await users.findOne(
+    { _id: new ObjectId(body.userId) },
+    { projection: { roles: 1, role: 1, suspended: 1, suspendedAt: 1, disabledAt: 1 } },
+  );
   if (!target) return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
 
   // safety: only superadmin can edit superadmin roles
   const actorIsSuper = userIsSuperadmin(actor as any);
-  const targetRoles = Array.isArray(target.roles)
-    ? target.roles
-    : target.role
-    ? [target.role]
-    : [];
+  const targetRoles = resolveUserRoles(target);
 
   if (targetRoles.includes("superadmin") && !actorIsSuper) {
     return NextResponse.json({ ok: false, error: "forbidden_superadmin" }, { status: 403 });
   }
 
   const update: any = {};
+  const normalizedRoles = Array.isArray(body.roles) ? normalizeManagedRoles(body.roles) : null;
   if (Array.isArray(body.roles)) {
-    const normalizedRoles = normalizeManagedRoles(body.roles);
     if (!normalizedRoles.length) {
       return NextResponse.json({ ok: false, error: "invalid_roles" }, { status: 422 });
     }
     if (normalizedRoles.includes("superadmin") && !actorIsSuper) {
       return NextResponse.json({ ok: false, error: "forbidden_superadmin" }, { status: 403 });
-    }
-    const wouldKeepAdminAccess = normalizedRoles.includes("admin") || normalizedRoles.includes("superadmin");
-    const currentlyHasAdminAccess = targetRoles.includes("admin") || targetRoles.includes("superadmin");
-    if (currentlyHasAdminAccess && !wouldKeepAdminAccess) {
-      const adminCount = await users.countDocuments({
-        $or: [{ roles: { $in: ["admin", "superadmin"] } }, { role: { $in: ["admin", "superadmin"] } }],
-      });
-      if (adminCount <= 1) {
-        return NextResponse.json({ ok: false, error: "last_admin_required" }, { status: 422 });
-      }
     }
     update.roles = normalizedRoles;
     update.role = normalizedRoles[0];
@@ -252,9 +209,73 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "nothing_to_update" }, { status: 400 });
   }
 
-  await users.updateOne({ _id: new ObjectId(body.userId) }, { $set: update, $currentDate: { updatedAt: true } });
-  const updated = await users.findOne({ _id: new ObjectId(body.userId) });
-  return NextResponse.json({ ok: true, user: updated ? mapUser(updated as UserDoc) : null });
+  const roleProtectionError = normalizedRoles
+    ? await getRoleMutationProtection(users, target, normalizedRoles)
+    : null;
+  if (roleProtectionError) {
+    return NextResponse.json({ ok: false, error: roleProtectionError }, { status: 422 });
+  }
+
+  const db = await getDb("core");
+  const client = (db as any)?.client;
+  const targetId = new ObjectId(body.userId);
+  if (client?.startSession) {
+    const mongoSession = client.startSession();
+    try {
+      let updated: AdminDashboardUserDoc | null = null;
+      await mongoSession.withTransaction(async () => {
+        if (normalizedRoles) {
+          const latest = await users.findOne(
+            { _id: targetId },
+            {
+              projection: { roles: 1, role: 1, suspended: 1, suspendedAt: 1, disabledAt: 1 },
+              session: mongoSession,
+            } as any,
+          );
+          if (!latest) {
+            throw new RoleMutationGuardError("user_not_found", 404);
+          }
+          const latestProtectionError = await getRoleMutationProtection(users, latest, normalizedRoles, mongoSession);
+          if (latestProtectionError) {
+            throw new RoleMutationGuardError(latestProtectionError, 422);
+          }
+        }
+
+        await users.updateOne(
+          { _id: targetId },
+          { $set: update, $currentDate: { updatedAt: true } },
+          { session: mongoSession } as any,
+        );
+        updated = await users.findOne({ _id: targetId }, { session: mongoSession } as any);
+      });
+      return NextResponse.json({ ok: true, user: updated ? mapAdminDashboardUser(updated) : null });
+    } catch (error) {
+      if (error instanceof RoleMutationGuardError) {
+        return NextResponse.json({ ok: false, error: error.code }, { status: error.status });
+      }
+      return NextResponse.json({ ok: false, error: "status_change_unavailable" }, { status: 500 });
+    } finally {
+      await mongoSession.endSession();
+    }
+  }
+
+  if (normalizedRoles) {
+    const latest = await users.findOne(
+      { _id: targetId },
+      { projection: { roles: 1, role: 1, suspended: 1, suspendedAt: 1, disabledAt: 1 } },
+    );
+    if (!latest) {
+      return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
+    }
+    const latestProtectionError = await getRoleMutationProtection(users, latest, normalizedRoles);
+    if (latestProtectionError) {
+      return NextResponse.json({ ok: false, error: latestProtectionError }, { status: 422 });
+    }
+  }
+
+  await users.updateOne({ _id: targetId }, { $set: update, $currentDate: { updatedAt: true } });
+  const updated = await users.findOne({ _id: targetId });
+  return NextResponse.json({ ok: true, user: updated ? mapAdminDashboardUser(updated as AdminDashboardUserDoc) : null });
 }
 
 export async function POST(req: NextRequest) {
@@ -264,7 +285,15 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: "invalid_input" }, { status: 400 });
+    const passwordTooShort = parsed.error.issues.some(
+      (issue) =>
+        issue.path.join(".") === "password" &&
+        issue.code === "too_small",
+    );
+    return NextResponse.json(
+      { ok: false, error: passwordTooShort ? "weak_password" : "invalid_input" },
+      { status: 400 },
+    );
   }
 
   const body = parsed.data;
@@ -282,7 +311,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "forbidden_superadmin" }, { status: 403 });
   }
 
-  const users = await getCol<UserDoc>("users");
+  const users = await getCol<AdminDashboardUserDoc>("users");
   const existing = await users.findOne(
     { $or: [{ email }, { email_lc }] },
     { projection: { _id: 1, verifiedEmail: 1, createdAt: 1 } },
@@ -293,7 +322,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sendPasswordLink = body.sendPasswordLink ?? false;
-  let finalPassword = body.password?.trim() ?? "";
+  let finalPassword = body.password ?? "";
   if (!finalPassword && sendPasswordLink) {
     finalPassword = generatePassword(18);
   }
@@ -372,11 +401,11 @@ export async function POST(req: NextRequest) {
     { upsert: true },
   );
 
-  let verifyUrl: string | null = null;
+  let verificationMailQueued = false;
   if (body.sendVerification ?? true) {
     const { rawToken } = await createEmailVerificationToken(userId, email);
     const origin = publicOrigin();
-    verifyUrl = `${origin.replace(/\/$/, "")}/register/verify-email?token=${encodeURIComponent(
+    const verifyUrl = `${origin.replace(/\/$/, "")}/register/verify-email?token=${encodeURIComponent(
       rawToken,
     )}&email=${encodeURIComponent(email)}`;
 
@@ -385,25 +414,53 @@ export async function POST(req: NextRequest) {
       displayName: name,
     });
 
-    await sendMail({
+    const mailResult = await sendMail({
       to: email,
       subject: mail.subject,
       html: mail.html,
       text: mail.text,
+      tag: "admin_create_verification",
     });
+    if (!mailResult.ok) {
+      const updated = await users.findOne({ _id: userId });
+      return NextResponse.json({
+        ok: false,
+        error: mapMailFailureToError(mailResult as Extract<Awaited<ReturnType<typeof sendMail>>, { ok: false }>),
+        partial: true,
+        userCreated: true,
+        user: updated ? mapAdminDashboardUser(updated as AdminDashboardUserDoc) : null,
+        verificationMailQueued: false,
+        passwordMailQueued: false,
+      }, { status: 502 });
+    }
+    verificationMailQueued = true;
   }
 
-  let resetUrl: string | null = null;
+  let passwordMailQueued = false;
   if (sendPasswordLink) {
     const rawToken = await createToken(String(userId), "reset", 60);
-    resetUrl = resetEmailLink(rawToken);
+    const resetUrl = resetEmailLink(rawToken);
     const mail = buildSetPasswordMail({ resetUrl, displayName: name });
-    await sendMail({
+    const mailResult = await sendMail({
       to: email,
       subject: mail.subject,
       html: mail.html,
       text: mail.text,
+      tag: "admin_create_password_link",
     });
+    if (!mailResult.ok) {
+      const updated = await users.findOne({ _id: userId });
+      return NextResponse.json({
+        ok: false,
+        error: mapMailFailureToError(mailResult as Extract<Awaited<ReturnType<typeof sendMail>>, { ok: false }>),
+        partial: true,
+        userCreated: true,
+        user: updated ? mapAdminDashboardUser(updated as AdminDashboardUserDoc) : null,
+        verificationMailQueued,
+        passwordMailQueued: false,
+      }, { status: 502 });
+    }
+    passwordMailQueued = true;
   }
 
   try {
@@ -427,9 +484,9 @@ export async function POST(req: NextRequest) {
   const updated = await users.findOne({ _id: userId });
   return NextResponse.json({
     ok: true,
-    user: updated ? mapUser(updated as UserDoc) : null,
-    verifyUrl,
-    resetUrl,
+    user: updated ? mapAdminDashboardUser(updated as AdminDashboardUserDoc) : null,
+    verificationMailQueued,
+    passwordMailQueued,
   });
 }
 
@@ -447,13 +504,58 @@ function generatePassword(length = 16) {
   return `${core.slice(0, length - 3)}${digits[0]}${symbols[0]}${letters[0]}`;
 }
 
-function normalizeManagedRoles(input: string[]): UserRole[] {
-  const deduped = new Set<UserRole>();
-  for (const raw of input) {
-    const value = String(raw || "").trim() as UserRole;
-    if (MANAGED_USER_ROLES.includes(value)) {
-      deduped.add(value);
+class RoleMutationGuardError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+  ) {
+    super(code);
+    this.name = "RoleMutationGuardError";
+  }
+}
+
+async function getRoleMutationProtection(
+  users: Awaited<ReturnType<typeof getCol<AdminDashboardUserDoc>>>,
+  target: Pick<AdminDashboardUserDoc, "_id" | "roles" | "role" | "suspended" | "suspendedAt" | "disabledAt">,
+  nextRoles: UserRole[],
+  mongoSession?: any,
+) {
+  if (isAccountDisabled(target)) return null;
+
+  const targetRoles = resolveUserRoles(target);
+  const wouldKeepAdminAccess = nextRoles.includes("admin") || nextRoles.includes("superadmin");
+  const currentlyHasAdminAccess = targetRoles.includes("admin") || targetRoles.includes("superadmin");
+  if (currentlyHasAdminAccess && !wouldKeepAdminAccess) {
+    const adminCount = await users.countDocuments(
+      {
+        _id: { $ne: target._id },
+        ...activeAccountFilter(),
+        ...adminAccessFilter(),
+      } as any,
+      mongoSession ? ({ session: mongoSession } as any) : undefined,
+    );
+    if (adminCount <= 0) {
+      return "last_admin_required";
     }
   }
-  return Array.from(deduped);
+
+  if (targetRoles.includes("superadmin") && !nextRoles.includes("superadmin")) {
+    const superadminCount = await users.countDocuments(
+      {
+        _id: { $ne: target._id },
+        ...activeAccountFilter(),
+        ...superadminAccessFilter(),
+      } as any,
+      mongoSession ? ({ session: mongoSession } as any) : undefined,
+    );
+    if (superadminCount <= 0) {
+      return "last_superadmin_required";
+    }
+  }
+
+  return null;
+}
+
+function mapMailFailureToError(result: Extract<Awaited<ReturnType<typeof sendMail>>, { ok: false }>) {
+  return result.code === "mail_transport_unavailable" ? "mail_delivery_unavailable" : "mail_delivery_failed";
 }

@@ -15,6 +15,10 @@ export type SessionUser = {
   accessTier?: string | null;
   b2cPlanId?: string | null;
   verification?: any;
+  suspended?: boolean | null;
+  suspendedAt?: Date | null;
+  disabledAt?: Date | null;
+  sessionRevokedAt?: Date | null;
   sessionTwoFactorAuthenticated?: boolean;
   sessionTwoFactorFallbackMode?: "setup" | "recovery" | null;
   sessionValid?: boolean;
@@ -32,9 +36,7 @@ function splitRoleTokens(value: unknown): string[] {
 export async function getSessionUser(req?: NextRequest): Promise<SessionUser | null> {
   const session = await readSessionPayload(req);
   const sessionUid = session?.uid && ObjectId.isValid(session.uid) ? session.uid : null;
-  const cookieUid = req ? req.cookies.get("u_id")?.value : await readCookie("u_id");
-  const uid = sessionUid ?? (cookieUid && ObjectId.isValid(cookieUid) ? cookieUid : null);
-  if (!uid) return null;
+  if (!sessionUid) return null;
 
   const payloadRoles =
     session && Array.isArray(session.roles) && session.roles.length > 0
@@ -45,7 +47,7 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
 
   const users = await getCol<SessionUser>("users");
   const user = await users.findOne(
-    { _id: new ObjectId(uid) },
+    { _id: new ObjectId(sessionUid) },
     {
       projection: {
         roles: 1,
@@ -55,10 +57,16 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
         accessTier: 1,
         b2cPlanId: 1,
         verification: 1,
+        suspended: 1,
+        suspendedAt: 1,
+        disabledAt: 1,
+        sessionRevokedAt: 1,
       },
     },
   );
   if (!user) return null;
+  if ((user as any).suspended || (user as any).suspendedAt || (user as any).disabledAt) return null;
+  if (isSessionRevoked(session?.iat ?? null, (user as any).sessionRevokedAt ?? null)) return null;
 
   const cookieTwoFactor =
     (req ? req.cookies.get("u_2fa")?.value : await readCookie("u_2fa")) ?? undefined;
@@ -89,7 +97,7 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
     verification,
     sessionTwoFactorAuthenticated,
     sessionTwoFactorFallbackMode,
-    sessionValid: Boolean(sessionUid),
+    sessionValid: true,
   };
 }
 
@@ -100,6 +108,11 @@ async function readSessionPayload(req?: NextRequest): Promise<SessionPayload | n
     return verifySessionToken(token);
   }
   return readSession();
+}
+
+function isSessionRevoked(sessionIssuedAt: number | null, sessionRevokedAt: Date | null) {
+  if (!sessionIssuedAt || !sessionRevokedAt) return false;
+  return sessionIssuedAt <= sessionRevokedAt.getTime();
 }
 
 async function readCookie(name: string): Promise<string | null> {

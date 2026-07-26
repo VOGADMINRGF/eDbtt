@@ -35,6 +35,10 @@ function errorResponse(error: string, status: number) {
   return NextResponse.json({ error, message: error }, { status });
 }
 
+function isAccountDisabled(user: Record<string, unknown>) {
+  return Boolean((user as any).suspended || (user as any).suspendedAt || (user as any).disabledAt);
+}
+
 function maybeBackfillCredentials(
   user: LoginUser,
   credentials: PiiUserCredentials | null,
@@ -129,6 +133,13 @@ export async function POST(req: NextRequest) {
   if (!user || !(credentials?.passwordHash || user.passwordHash)) {
     await logAuthEvent("auth.login.failed", {
       meta: { reason: "not_found", ipHash: sha256(ip), userHash: credentials?.coreUserId ? sha256(String(credentials.coreUserId)) : null },
+    });
+    return errorResponse("invalid_credentials", 401);
+  }
+
+  if (isAccountDisabled(user as any)) {
+    await logAuthEvent("auth.login.failed", {
+      meta: { reason: "disabled", ipHash: sha256(ip), userHash: sha256(String(user._id)) },
     });
     return errorResponse("invalid_credentials", 401);
   }

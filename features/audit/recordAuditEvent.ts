@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import type { AuditEventDoc, AuditScope, AuditTarget } from "./types";
+import type { ClientSession } from "mongodb";
 
 const AUDIT_COLLECTION = "audit_events";
 
@@ -22,12 +23,18 @@ type RecordArgs = {
   actorUserId?: string | null;
   actorIp?: string | null;
   target: AuditTarget;
+  result?: string | null;
   before?: unknown;
   after?: unknown;
   reason?: string | null;
 };
 
-export async function recordAuditEvent(args: RecordArgs) {
+type RecordAuditOptions = {
+  at?: Date;
+  mongoSession?: ClientSession | null;
+};
+
+export async function recordAuditEvent(args: RecordArgs, options?: RecordAuditOptions) {
   const col = await auditCol();
   const actorUserId = args.actorUserId && ObjectId.isValid(args.actorUserId)
     ? new ObjectId(args.actorUserId)
@@ -39,17 +46,18 @@ export async function recordAuditEvent(args: RecordArgs) {
   };
 
   const doc: AuditEventDoc = {
-    at: new Date(),
+    at: options?.at ?? new Date(),
     actor,
     scope: args.scope,
     action: args.action,
     target: args.target,
+    result: args.result ?? null,
     before: sanitizeAuditPayload(args.before),
     after: sanitizeAuditPayload(args.after),
     reason: args.reason ?? null,
   };
 
-  await col.insertOne(doc);
+  await col.insertOne(doc, options?.mongoSession ? { session: options.mongoSession } : undefined);
 }
 
 function sha256(input: string) {
@@ -69,6 +77,7 @@ function sanitizeAuditPayload(value: unknown, depth = 0): unknown {
   if (depth > 4) return null;
 
   if (typeof value === "string") {
+    if (/^https?:\/\//i.test(value)) return "[redacted-url]";
     return value.includes("@") ? maskEmail(value) : value;
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
@@ -90,7 +99,7 @@ function sanitizeAuditPayload(value: unknown, depth = 0): unknown {
     const out: Record<string, unknown> = {};
     const keys = Object.keys(obj).slice(0, 50);
     for (const key of keys) {
-      if (/password|token|secret/i.test(key)) {
+      if (/password|token|secret|cookie|session|authorization|url/i.test(key)) {
         out[key] = "[redacted]";
         continue;
       }
