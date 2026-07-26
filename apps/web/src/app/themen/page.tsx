@@ -4,11 +4,13 @@ import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import VoxyFloatingDock from "@/components/voxy/VoxyFloatingDock";
 import { listRoundsByTopicSlug, listTopics, type Topic } from "@features/topicRound";
 import ThemenStartDraftAssistant from "./ThemenStartDraftAssistant";
+import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
+  path: "/themen",
   title: "Themensuche · eDebatte",
   description: "Finde Themen, Debatten und Beteiligungsmöglichkeiten mit klaren Anschlusswegen.",
-};
+});
 
 type ThemenStage = "aktuell" | "geplant" | "archiv";
 

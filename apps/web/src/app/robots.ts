@@ -1,3 +1,5 @@
+import { BRAND } from "@/lib/brand";
+
 export default function robots() {
   return {
     rules: [
@@ -6,6 +8,7 @@ export default function robots() {
         allow: "/",
       },
     ],
-    host: "https://www.edebatte.org",
+    host: BRAND.baseUrl,
+    sitemap: `${BRAND.baseUrl}/sitemap.xml`,
   };
 }

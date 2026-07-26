@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
+import { resolveSeoImageUrl } from "@/lib/seo/publicDiscovery";
 import type { ShareObjectType } from "@features/share/socialOutputContract";
 
 type BuildShareMetadataInput = {
@@ -60,7 +61,7 @@ export function buildShareMetadata(input: BuildShareMetadataInput): Metadata {
     toClean(input.description, 220) || DESCRIPTION_FALLBACK[input.objectType];
   const canonicalPath = toCanonicalPath(input.pathOrUrl);
   const absoluteUrl = toAbsolute(input.pathOrUrl);
-  const imageUrl = toClean(input.imageUrl, 600) || null;
+  const imageUrl = toClean(input.imageUrl, 600) || resolveSeoImageUrl();
   const ogType = input.ogType ?? "article";
 
   return {
@@ -75,13 +76,14 @@ export function buildShareMetadata(input: BuildShareMetadataInput): Metadata {
       url: absoluteUrl,
       siteName: BRAND.name,
       type: ogType,
-      images: imageUrl ? [{ url: imageUrl }] : undefined,
+      locale: "de_DE",
+      images: [{ url: imageUrl }],
     },
     twitter: {
-      card: imageUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: imageUrl ? [imageUrl] : undefined,
+      images: [imageUrl],
     },
   };
 }

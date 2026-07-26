@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import PackagesGrid from "@/components/pricing/PackagesGrid";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
+import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 import {
   ORDER_SEGMENT_ORDER,
   PRICING_PATH_CONTRACT,
@@ -10,6 +12,13 @@ import {
   type PricingSegmentId,
   type PricingLocale,
 } from "@features/pricing";
+
+export const metadata: Metadata = buildPublicPageMetadata({
+  path: "/pricing",
+  title: "Pakete & Preise · eDebatte",
+  description:
+    "Öffentliche Preisübersicht für Einzelpersonen, Journalismus und institutionelle Nutzung mit klaren Review-first-Grenzen.",
+});
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;

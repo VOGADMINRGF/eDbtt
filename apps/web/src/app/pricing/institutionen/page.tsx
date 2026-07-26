@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
+import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 import {
   getPricingEntryTrustCopy,
   formatPackageBillingModeLabel,
@@ -20,6 +22,13 @@ import {
 const SALES_EMAIL = "sales@edebatte.org";
 const DE_TRUST = getPricingEntryTrustCopy("de");
 const EN_TRUST = getPricingEntryTrustCopy("en");
+
+export const metadata: Metadata = buildPublicPageMetadata({
+  path: "/pricing/institutionen",
+  title: "Institutionelle Konditionen · eDebatte",
+  description:
+    "Vergabefähige B2B- und B2G-Konditionen mit klarer Trennung von Aktivierung, Betrieb und optionalen Erweiterungen.",
+});
 
 const PAGE_COPY = {
   de: {

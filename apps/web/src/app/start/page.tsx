@@ -3,6 +3,7 @@ import LandingStart from "./LandingStart";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { buildStartExperienceModel } from "@/features/start/startExperience";
+import { buildHomeStructuredData, buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 
 /* page-contract: delegated-h1 */
 
@@ -10,24 +11,16 @@ const HOME_TITLE = "eDebatte – Verstehen, was sich verändert. Mitreden, wo es
 const HOME_DESCRIPTION =
   "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten zu nachvollziehbaren Themenständen – von deiner Region bis zur Welt.";
 
+const HOME_STRUCTURED_DATA = JSON.stringify(buildHomeStructuredData());
+
 export const metadata: Metadata = {
+  ...buildPublicPageMetadata({
+    path: "/",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    ogType: "website",
+  }),
   title: { absolute: HOME_TITLE },
-  description: HOME_DESCRIPTION,
-  alternates: {
-    canonical: "https://www.edebatte.org/",
-  },
-  openGraph: {
-    type: "website",
-    title: HOME_TITLE,
-    description: HOME_DESCRIPTION,
-    url: "https://www.edebatte.org/",
-    siteName: "eDebatte",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: HOME_TITLE,
-    description: HOME_DESCRIPTION,
-  },
 };
 
 export default async function StartPage() {
@@ -36,8 +29,15 @@ export default async function StartPage() {
   const experience = await buildStartExperienceModel({ user, isAdmin });
 
   return (
-    <main className="min-h-[100svh]">
-      <LandingStart experience={experience} />
-    </main>
+    <>
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: HOME_STRUCTURED_DATA }}
+      />
+      <main className="min-h-[100svh]">
+        <LandingStart experience={experience} />
+      </main>
+    </>
   );
 }
