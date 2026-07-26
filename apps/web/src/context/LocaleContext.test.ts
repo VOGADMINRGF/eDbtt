@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeStoredLocaleList, sanitizeLocaleList } from "./LocaleContext";
+import { normalizeStoredLocaleList, readPathLocale, sanitizeLocaleList } from "./LocaleContext";
 
 describe("LocaleContext language preference helpers", () => {
   it("keeps only supported locales and deduplicates output preferences", () => {
@@ -13,5 +13,10 @@ describe("LocaleContext language preference helpers", () => {
   it("parses stored locale lists and falls back on malformed storage", () => {
     expect(normalizeStoredLocaleList('["en","ar","en"]', "de")).toEqual(["en", "ar"]);
     expect(normalizeStoredLocaleList("not-json", "de")).toEqual(["de"]);
+  });
+
+  it("derives a ui locale from the first locale-prefixed path segment", () => {
+    expect(readPathLocale("/ar/referenzarchitektur")).toBe("ar");
+    expect(readPathLocale("/themen")).toBeNull();
   });
 });

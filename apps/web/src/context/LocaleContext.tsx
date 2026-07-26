@@ -66,10 +66,15 @@ export function LocaleProvider({
     let nextPreferredOutputLocales: SupportedLocale[] = [initialLocale];
     let nextShowOriginalByDefault = false;
 
+    const pathLocale = readPathLocale(window.location.pathname);
+    if (pathLocale) {
+      nextUiLocale = pathLocale;
+    }
+
     try {
       const url = new URL(window.location.href);
       const urlLocale = url.searchParams.get("lang");
-      if (isSupportedLocale(urlLocale)) {
+      if (!pathLocale && isSupportedLocale(urlLocale)) {
         nextUiLocale = urlLocale;
         persistUiLocale(urlLocale);
       }
@@ -253,6 +258,12 @@ function updateHtmlAttrs(locale: SupportedLocale) {
 function normalizeBrowserLocale(value: string | null | undefined): SupportedLocale | null {
   const short = value?.slice(0, 2).toLowerCase();
   return isSupportedLocale(short) ? short : null;
+}
+
+export function readPathLocale(pathname: string | null | undefined): SupportedLocale | null {
+  if (!pathname) return null;
+  const [segment] = pathname.split("/").filter(Boolean);
+  return isSupportedLocale(segment) ? segment : null;
 }
 
 export function sanitizeLocaleList(

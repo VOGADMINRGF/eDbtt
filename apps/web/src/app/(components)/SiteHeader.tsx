@@ -11,7 +11,7 @@ import {
   useAutoTranslateText,
 } from "@/lib/i18n/autoTranslate";
 import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
-import { getLocaleConfig, isCoreLocale, type SupportedLocale } from "@/config/locales";
+import { getLocaleConfig, isCoreLocale, isSupportedLocale } from "@/config/locales";
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -80,7 +80,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const localePanelRef = useRef<HTMLDivElement | null>(null);
 
   const activeLocaleConfig = useMemo(
-    () => getLocaleConfig(uiLocale as SupportedLocale),
+    () => getLocaleConfig(uiLocale),
     [uiLocale],
   );
   const localeLabel = useMemo(
@@ -88,9 +88,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     [uiLocale],
   );
   const translationPending =
-    isPublicPathname(pathname) && AUTO_TRANSLATE_LOCALES.includes(uiLocale as SupportedLocale);
+    isPublicPathname(pathname) && AUTO_TRANSLATE_LOCALES.includes(uiLocale);
   const t = useAutoTranslateText({
-    locale: uiLocale as SupportedLocale,
+    locale: uiLocale,
     namespace: "site-header",
   });
   const navLinks = useMemo(() => {
@@ -104,13 +104,16 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     return href;
   };
   const statusLabel = t("Auto-Übersetzung", "status.auto");
-  const localeOptions = UI_LANGS.filter((lang) => isCoreLocale(lang.code)).map((lang) => {
-    const cfg = getLocaleConfig(lang.code as SupportedLocale);
-    return {
-      code: lang.code,
-      label: cfg.label || lang.label,
-      flag: cfg.flagEmoji || "🏳️",
-    };
+  const localeOptions = UI_LANGS.flatMap((lang) => {
+    if (!isCoreLocale(lang.code)) return [];
+    const cfg = getLocaleConfig(lang.code);
+    return [
+      {
+        code: lang.code,
+        label: cfg.label || lang.label,
+        flag: cfg.flagEmoji || "🏳️",
+      },
+    ];
   });
 
   useEffect(() => {
@@ -152,7 +155,8 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   }, [localeOpen, mobileOpen]);
 
   const handleLocaleSelect = (next: LanguageCode) => {
-    setUiLocale(next as SupportedLocale);
+    if (!isSupportedLocale(next)) return;
+    setUiLocale(next);
     setLocaleOpen(false);
     router.refresh();
   };
