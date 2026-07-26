@@ -12,7 +12,7 @@ White-Label bedeutet hier:
 - zentrale Brandprofile statt hart codierter Logos und Namen,
 - konsistente Exporte über mehrere Formate,
 - klare Trennung von veränderbarer Gestaltung und unveränderlicher Produktwahrheit,
-- keine Abhängigkeit von ChatGPT, Codex, Canva, Adobe, HeyGen oder einem anderen einzelnen Anbieter.
+- keine Abhängigkeit von einem einzelnen KI-, Design-, Video-, Präsentations- oder Office-Anbieter.
 
 ## Brandprofile
 
@@ -65,10 +65,10 @@ Nach Freigabe konfigurierbar:
 - Logo und Logo-Varianten,
 - Akzentfarben innerhalb definierter Kontrastgrenzen,
 - Primär- und Sekundärschrift aus freigegebenen Font-Stacks,
-- Kontakt- und Rechtsangaben,
-- Website- und CTA-Ziele,
+- Website- und geprüfte Rechtsziele,
+- CTA-Ziele auf Asset- oder Kampagnenebene,
 - Cover- und Endframe-Anordnung,
-- Co-Branding-Reihenfolge,
+- Co-Branding-Reihenfolge auf Asset-Ebene,
 - zulässige Bildmotive,
 - Standardformate,
 - Export-Metadaten,
@@ -95,7 +95,11 @@ Nicht erlaubt:
 
 Ein echtes kundenindividuelles Maskottchen wäre eine neue Brandentscheidung und gehört nicht in das White-Label-Profil.
 
-## Empfohlenes BrandProfile-Modell
+## Kanonisches BrandProfile-Modell v1
+
+Die maschinenlesbare Shape liegt in:
+
+- `docs/marketing/schemas/marketing-control-plane.schema.json`
 
 ```ts
 type BrandProfile = {
@@ -121,45 +125,36 @@ type BrandProfile = {
     accent: string;
     accentForeground: string;
     border: string;
-    success?: string | null;
-    warning?: string | null;
-    danger?: string | null;
   };
   typography: {
     displayStack: string[];
     bodyStack: string[];
     monoStack?: string[];
   };
-  shape: {
-    radiusSmall: number;
-    radiusMedium: number;
-    radiusLarge: number;
-    borderWidth: number;
-  };
-  contact: {
-    website?: string | null;
-    email?: string | null;
-    phone?: string | null;
-  };
-  legal: {
-    imprintUrl?: string | null;
-    privacyUrl?: string | null;
-    termsUrl?: string | null;
-  };
   voxyMode: "canonical" | "vog_context" | "co_branded" | "hidden";
-  coBranding?: {
-    partnerName: string;
-    partnerLogo: AssetRef;
-    order: "host_first" | "edebatte_first" | "equal";
-    disclosure: string;
-  } | null;
+  website?: string | null;
+  imprintUrl?: string | null;
+  privacyUrl?: string | null;
   approvedBy?: string | null;
   approvedAt?: string | null;
   version: number;
+  createdAt: string;
+  updatedAt: string;
 };
 ```
 
 `AssetRef` verweist auf freigegebene Assets. Keine Base64-Dateien, lokalen Nutzerpfade oder Toolnamen im Profil.
+
+Kontakt, zusätzliche Rechtsziele, Shape-Tokens und Co-Branding-Kompositionen werden im ersten Runtime-Slice nicht frei in das Profil geschrieben. Sie gehören zunächst in geprüfte Kampagnen-, Asset- oder Organisationsverträge. Eine spätere Schemaerweiterung benötigt Versionierung und Migration.
+
+## Kanonische eDebatte-Profile
+
+Repo-abgeleitet vorhanden:
+
+- `profiles/edebatte-light.brand-profile.json`
+- `profiles/edebatte-dark.brand-profile.json`
+
+Sie verwenden reale Tokens aus `apps/web/src/app/globals.css` und die kanonische Brand-Metadatenbasis aus `apps/web/src/lib/brand.ts`.
 
 ## Dateinamen
 
@@ -182,12 +177,9 @@ stadt-beispiel-edebatte-participation-report-public-de-de-a4-v1.pdf
 
 Nicht verwenden:
 
-- `chatgpt-*`
-- `codex-*`
-- `final-final-*`
-- `neu-*`
-- `test123-*`
-- Tool-, Prompt- oder Sitzungsnamen,
+- Namen von KI-, Design-, Video-, Präsentations- oder Office-Werkzeugen,
+- Chat-, Prompt- oder Sitzungsnamen,
+- `final-final`, `neu`, `kopie`, `test123` oder ähnliche nicht versionierbare Zusätze,
 - personenbezogene Namen ohne fachlichen Grund,
 - Leerzeichen oder uneinheitliche Sonderzeichen.
 
@@ -261,6 +253,7 @@ Kein Slot darf unbelegt mit einem Toolnamen oder technischen Platzhalter exporti
 - Förderer, Partner, Kunden und redaktionelle Quellen dürfen visuell und sprachlich nicht gleichgesetzt werden.
 - Co-Branding erzeugt keine Review-, Ranking-, Fakten- oder Publikationsrechte.
 - Bei institutionellen Materialien ist erkennbar, wer Absender, Betreiber und fachlich Verantwortlicher ist.
+- Co-Branding-Komposition und Disclosure werden pro Asset oder Kampagne geprüft und versioniert.
 
 ## White-Label-Regeln
 
@@ -269,6 +262,7 @@ Kein Slot darf unbelegt mit einem Toolnamen oder technischen Platzhalter exporti
 - Produktclaims richten sich nach real freigegebenen Funktionen des jeweiligen Tenants oder Projekts.
 - Mandanten- oder kundenspezifische Features dürfen nicht als allgemeine eDebatte-Funktion beworben werden.
 - Ein White-Label-Export erhält eine eigene BrandProfile-ID und Versionsnummer.
+- Kontakt- und Rechtsangaben müssen vor Export real geprüft sein; Nullwerte im Basisprofil sind keine Freigabe für Veröffentlichung.
 
 ## Sprachlogik
 
@@ -306,5 +300,6 @@ Vor Freigabe:
 - Dateinamen und Metadaten sind anbieterneutral,
 - eDebatte, VoiceOpenGov, Co-Branding und White-Label bleiben unterscheidbar,
 - Voxy wird nur in erlaubten Modi eingesetzt,
+- Vertrag und maschinenlesbares Schema verwenden dieselben v1-Felder,
 - unveränderliche Produkt-, Quellen-, Review-, Privacy- und Governance-Regeln können nicht durch ein Brandprofil überschrieben werden,
 - jeder Export ist über BrandProfile-ID, Kampagne, Asset-Version und Manifest nachvollziehbar.
