@@ -13,8 +13,14 @@
     "schema": "/docs/marketing/schemas/marketing-control-plane.schema.json"
   },
   "brandProfileSources": [
-    "/docs/marketing/white-label/profiles/edebatte-light.brand-profile.json",
-    "/docs/marketing/white-label/profiles/edebatte-dark.brand-profile.json"
+    {
+      "path": "/docs/marketing/white-label/profiles/edebatte-light.brand-profile.json",
+      "status": "review_ready"
+    },
+    {
+      "path": "/docs/marketing/white-label/profiles/edebatte-dark.brand-profile.json",
+      "status": "review_ready"
+    }
   ],
   "rules": {
     "approvedAssetsOnly": true,
