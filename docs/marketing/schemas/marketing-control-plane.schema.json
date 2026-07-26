@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edebatte.org/schemas/marketing-control-plane.schema.json",
+  "title": "eDebatte Marketing Control Plane",
+  "description": "Vendor-neutral registry contract for marketing opportunities, campaigns, assets, distribution, aggregate metrics, relationships and brand profiles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "opportunities",
+    "campaigns",
+    "assets",
+    "distributionRecords",
+    "metricSnapshots",
+    "relationships",
+    "brandProfiles"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "opportunities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marketingOpportunity" }
+    },
+    "campaigns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marketingCampaign" }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marketingAsset" }
+    },
+    "distributionRecords": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/distributionRecord" }
+    },
+    "metricSnapshots": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marketingMetricSnapshot" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marketingRelationship" }
+    },
+    "brandProfiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/brandProfile" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]*$"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35
+    },
+    "urlOrNull": {
+      "oneOf": [
+        { "type": "string", "format": "uri", "maxLength": 2048 },
+        { "type": "null" }
+      ]
+    },
+    "stringOrNull": {
+      "oneOf": [
+        { "type": "string", "maxLength": 1000 },
+        { "type": "null" }
+      ]
+    },
+    "actorRef": {
+      "oneOf": [
+        { "$ref": "#/$defs/id" },
+        { "type": "null" }
+      ]
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "ref", "status"],
+      "properties": {
+        "type": {
+          "enum": [
+            "repository_file",
+            "pull_request",
+            "commit",
+            "route",
+            "test",
+            "production_smoke",
+            "dossier",
+            "themenradar_item",
+            "participation_campaign",
+            "decision_contract",
+            "manual_evidence"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "status": {
+          "enum": ["unverified", "verified", "stale", "rejected"]
+        },
+        "verifiedAt": {
+          "oneOf": [
+            { "$ref": "#/$defs/isoDateTime" },
+            { "type": "null" }
+          ]
+        },
+        "verifiedBy": { "$ref": "#/$defs/actorRef" },
+        "note": { "$ref": "#/$defs/stringOrNull" }
+      }
+    },
+    "marketingOpportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "sourceType",
+        "marketability",
+        "status",
+        "audienceKeys",
+        "evidence",
+        "reviewRequired",
+        "autoPublishEligible",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "summary": { "type": "string", "maxLength": 4000 },
+        "sourceType": {
+          "enum": [
+            "feature",
+            "product_release",
+            "themenradar",
+            "dossier",
+            "content_development",
+            "participation_campaign",
+            "partner",
+            "membership",
+            "manual"
+          ]
+        },
+        "sourceRef": { "$ref": "#/$defs/stringOrNull" },
+        "themenradarItemId": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "featureRef": { "$ref": "#/$defs/stringOrNull" },
+        "marketability": {
+          "enum": [
+            "not_marketable",
+            "concept_only",
+            "preview_only",
+            "proof_required",
+            "review_ready",
+            "publicly_marketable",
+            "retired"
+          ]
+        },
+        "status": {
+          "enum": ["new", "qualified", "accepted", "deferred", "rejected", "retired"]
+        },
+        "audienceKeys": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/key" },
+          "uniqueItems": true
+        },
+        "messageAngles": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 500 },
+          "maxItems": 20
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidenceRef" },
+          "minItems": 1
+        },
+        "blockerKeys": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/key" },
+          "uniqueItems": true
+        },
+        "ownerId": { "$ref": "#/$defs/actorRef" },
+        "reviewRequired": { "const": true },
+        "autoPublishEligible": { "const": false },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "marketingCampaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "title",
+        "status",
+        "brandProfileId",
+        "audienceKeys",
+        "primaryCta",
+        "reviewRequired",
+        "autoPublishEligible",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "status": {
+          "enum": [
+            "idea",
+            "qualified",
+            "planned",
+            "in_production",
+            "review_ready",
+            "approved",
+            "scheduled",
+            "active",
+            "paused",
+            "blocked",
+            "completed",
+            "retired",
+            "cancelled"
+          ]
+        },
+        "opportunityIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        },
+        "sourceCampaignId": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "themenradarCampaignKey": {
+          "oneOf": [{ "$ref": "#/$defs/key" }, { "type": "null" }]
+        },
+        "brandProfileId": { "$ref": "#/$defs/id" },
+        "audienceKeys": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/key" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "primaryCta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "status"],
+          "properties": {
+            "label": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "url": { "$ref": "#/$defs/urlOrNull" },
+            "status": { "enum": ["needs_routing_decision", "verified", "retired"] }
+          }
+        },
+        "ownerId": { "$ref": "#/$defs/actorRef" },
+        "reviewerIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        },
+        "blockerKeys": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/key" },
+          "uniqueItems": true
+        },
+        "startsAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "endsAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "reviewRequired": { "const": true },
+        "autoPublishEligible": { "const": false },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "marketingAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "campaignId",
+        "brandProfileId",
+        "assetType",
+        "title",
+        "status",
+        "locale",
+        "version",
+        "sourcePath",
+        "reviewRequired",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "campaignId": { "$ref": "#/$defs/id" },
+        "brandProfileId": { "$ref": "#/$defs/id" },
+        "assetType": {
+          "enum": [
+            "onepager",
+            "pitchdeck",
+            "landing_copy",
+            "carousel",
+            "social_image",
+            "story",
+            "reel_cover",
+            "video_script",
+            "video_master",
+            "video_variant",
+            "press_copy",
+            "partner_kit",
+            "newsletter",
+            "report",
+            "other"
+          ]
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "status": {
+          "enum": ["draft", "review_ready", "approved", "published", "retired"]
+        },
+        "locale": { "$ref": "#/$defs/locale" },
+        "originalLocale": { "$ref": "#/$defs/locale" },
+        "translationStatus": {
+          "enum": ["original", "machine_draft", "human_reviewed", "approved"]
+        },
+        "version": { "type": "integer", "minimum": 1 },
+        "sourcePath": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "exportPath": { "$ref": "#/$defs/stringOrNull" },
+        "fileName": { "$ref": "#/$defs/stringOrNull" },
+        "format": { "$ref": "#/$defs/stringOrNull" },
+        "supersedesAssetId": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "approvedBy": { "$ref": "#/$defs/actorRef" },
+        "approvedAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "reviewRequired": { "const": true },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "distributionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "campaignId",
+        "assetId",
+        "channel",
+        "status",
+        "reviewed",
+        "autoPublished",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "campaignId": { "$ref": "#/$defs/id" },
+        "assetId": { "$ref": "#/$defs/id" },
+        "channel": {
+          "enum": [
+            "website",
+            "linkedin",
+            "instagram",
+            "tiktok",
+            "facebook",
+            "youtube",
+            "newsletter",
+            "press",
+            "email_direct",
+            "event",
+            "partner_channel",
+            "other"
+          ]
+        },
+        "publisherRef": { "$ref": "#/$defs/stringOrNull" },
+        "status": {
+          "enum": ["planned", "approved", "scheduled", "published", "failed", "cancelled", "removed"]
+        },
+        "plannedAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "publishedAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "externalId": { "$ref": "#/$defs/stringOrNull" },
+        "externalUrl": { "$ref": "#/$defs/urlOrNull" },
+        "targetUrl": { "$ref": "#/$defs/urlOrNull" },
+        "campaignTrackingKey": {
+          "oneOf": [{ "$ref": "#/$defs/key" }, { "type": "null" }]
+        },
+        "reviewed": { "const": true },
+        "reviewedBy": { "$ref": "#/$defs/actorRef" },
+        "autoPublished": { "const": false },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "marketingMetricSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "scopeType",
+        "scopeId",
+        "periodStart",
+        "periodEnd",
+        "values",
+        "aggregationOnly",
+        "capturedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "scopeType": { "enum": ["campaign", "asset", "distribution", "channel", "audience"] },
+        "scopeId": { "$ref": "#/$defs/id" },
+        "periodStart": { "$ref": "#/$defs/isoDateTime" },
+        "periodEnd": { "$ref": "#/$defs/isoDateTime" },
+        "values": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0 }
+        },
+        "source": { "type": "string", "maxLength": 120 },
+        "aggregationOnly": { "const": true },
+        "capturedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "marketingRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "audienceKey",
+        "stage",
+        "privacyStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "organizationId": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "contactRef": { "$ref": "#/$defs/stringOrNull" },
+        "audienceKey": { "$ref": "#/$defs/key" },
+        "stage": {
+          "enum": [
+            "discovered",
+            "qualified",
+            "contact_ready",
+            "contacted",
+            "conversation",
+            "proposal",
+            "decision",
+            "active_relationship",
+            "waiting",
+            "not_now",
+            "closed_lost",
+            "inactive"
+          ]
+        },
+        "ownerId": { "$ref": "#/$defs/actorRef" },
+        "nextAction": { "$ref": "#/$defs/stringOrNull" },
+        "nextActionAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "lastInteractionAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "privacyStatus": {
+          "enum": ["reference_only", "consent_verified", "contractual", "review_required", "delete_required"]
+        },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    },
+    "assetRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "status": { "enum": ["draft", "review_ready", "approved", "retired"] },
+        "alt": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "brandProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "mode",
+        "status",
+        "displayName",
+        "localeDefault",
+        "locales",
+        "logoSet",
+        "colors",
+        "typography",
+        "voxyMode",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "key": { "$ref": "#/$defs/key" },
+        "mode": { "enum": ["edebatte", "voiceopengov", "co_branded", "white_label"] },
+        "status": { "enum": ["draft", "review_ready", "approved", "retired"] },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "shortName": { "$ref": "#/$defs/stringOrNull" },
+        "localeDefault": { "$ref": "#/$defs/locale" },
+        "locales": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/locale" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "logoSet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary"],
+          "properties": {
+            "primary": { "$ref": "#/$defs/assetRef" },
+            "inverse": {
+              "oneOf": [{ "$ref": "#/$defs/assetRef" }, { "type": "null" }]
+            },
+            "compact": {
+              "oneOf": [{ "$ref": "#/$defs/assetRef" }, { "type": "null" }]
+            },
+            "monochrome": {
+              "oneOf": [{ "$ref": "#/$defs/assetRef" }, { "type": "null" }]
+            }
+          }
+        },
+        "colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["canvas", "surface", "foreground", "mutedForeground", "accent", "accentForeground", "border"],
+          "properties": {
+            "canvas": { "type": "string", "maxLength": 80 },
+            "surface": { "type": "string", "maxLength": 80 },
+            "foreground": { "type": "string", "maxLength": 80 },
+            "mutedForeground": { "type": "string", "maxLength": 80 },
+            "accent": { "type": "string", "maxLength": 80 },
+            "accentForeground": { "type": "string", "maxLength": 80 },
+            "border": { "type": "string", "maxLength": 80 }
+          }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["displayStack", "bodyStack"],
+          "properties": {
+            "displayStack": { "type": "array", "items": { "type": "string", "maxLength": 120 }, "minItems": 1 },
+            "bodyStack": { "type": "array", "items": { "type": "string", "maxLength": 120 }, "minItems": 1 },
+            "monoStack": { "type": "array", "items": { "type": "string", "maxLength": 120 } }
+          }
+        },
+        "voxyMode": { "enum": ["canonical", "vog_context", "co_branded", "hidden"] },
+        "website": { "$ref": "#/$defs/urlOrNull" },
+        "imprintUrl": { "$ref": "#/$defs/urlOrNull" },
+        "privacyUrl": { "$ref": "#/$defs/urlOrNull" },
+        "approvedBy": { "$ref": "#/$defs/actorRef" },
+        "approvedAt": {
+          "oneOf": [{ "$ref": "#/$defs/isoDateTime" }, { "type": "null" }]
+        },
+        "version": { "type": "integer", "minimum": 1 },
+        "createdAt": { "$ref": "#/$defs/isoDateTime" },
+        "updatedAt": { "$ref": "#/$defs/isoDateTime" }
+      }
+    }
+  }
+}

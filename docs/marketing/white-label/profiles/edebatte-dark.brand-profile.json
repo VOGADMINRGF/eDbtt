@@ -1,0 +1,43 @@
+{
+  "id": "brand-edebatte-dark",
+  "key": "edebatte-dark",
+  "mode": "edebatte",
+  "status": "review_ready",
+  "displayName": "eDebatte",
+  "shortName": "eDebatte",
+  "localeDefault": "de-DE",
+  "locales": ["de-DE", "en-GB"],
+  "logoSet": {
+    "primary": {
+      "path": "/brand/voxy/overlays/edebatte-gradient.svg",
+      "status": "approved",
+      "alt": "eDebatte"
+    },
+    "inverse": null,
+    "compact": null,
+    "monochrome": null
+  },
+  "colors": {
+    "canvas": "rgb(2 6 23)",
+    "surface": "rgb(15 23 42)",
+    "foreground": "rgb(248 250 252)",
+    "mutedForeground": "rgb(188 201 221)",
+    "accent": "#18cfc8",
+    "accentForeground": "rgb(7 23 39)",
+    "border": "rgb(51 65 85)"
+  },
+  "typography": {
+    "displayStack": ["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+    "bodyStack": ["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+    "monoStack": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"]
+  },
+  "voxyMode": "canonical",
+  "website": "https://www.edebatte.org",
+  "imprintUrl": null,
+  "privacyUrl": null,
+  "approvedBy": null,
+  "approvedAt": null,
+  "version": 1,
+  "createdAt": "2026-07-26T00:00:00+02:00",
+  "updatedAt": "2026-07-26T16:20:00+02:00"
+}
