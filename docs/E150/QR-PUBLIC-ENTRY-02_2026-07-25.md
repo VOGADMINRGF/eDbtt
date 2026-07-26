@@ -1,8 +1,9 @@
 # QR-PUBLIC-ENTRY-02
 
 Datum: 2026-07-25
-OpenTasks-Status: in_progress
-PR-Phase: Draft
+OpenTasks-Status: done
+PR-Phase: Merged
+Evidence: PR #425
 
 ## Ziel
 
