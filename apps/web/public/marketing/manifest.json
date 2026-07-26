@@ -1,0 +1,23 @@
+{
+  "name": "eDebatte Marketing Asset Registry",
+  "version": "1.0.0",
+  "status": "foundation_only",
+  "canonical_sources": {
+    "marketing": "/docs/marketing/README.md",
+    "brand": "/apps/web/public/brand/README.md",
+    "voxy": "/apps/web/public/brand/voxy/manifest.json"
+  },
+  "rules": {
+    "approved_assets_only": true,
+    "no_fake_partners": true,
+    "no_fake_metrics": true,
+    "no_auto_publish": true,
+    "preserve_original_language": true,
+    "use_canonical_voxy_assets": true
+  },
+  "collections": [],
+  "notes": [
+    "Collections are added only when approved assets exist.",
+    "Working files, campaign briefs and scripts stay under docs/marketing."
+  ]
+}
