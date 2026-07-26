@@ -26,6 +26,13 @@ Für Admin-, BI-, CRM- oder Lifecycle-Aufgaben zusätzlich:
 - `docs/marketing/schemas/marketing-control-plane.schema.json`
 - `docs/E150/Part12_Campaigns_Admin_Telemetry.md`
 
+Für regionale Recherche, Themenbewertung, Beteiligungseignung, mehrsprachige Kampagnen oder delegierte Distribution zusätzlich:
+
+- `docs/E150/MARKETING-REGIONAL-CIVIC-OPPORTUNITY-AGENT-01_DECISIONS_2026-07-26.md`
+- `docs/marketing/agent-playbooks/regional-civic-campaign-operator.md`
+- `docs/marketing/schemas/regional-civic-opportunity-run.schema.json`
+- relevante Language-, Themenradar-, Dossier-, Participation-, Review- und Agentic-Runtime-Contracts
+
 ## Arbeitslogik
 
 ```text
@@ -43,6 +50,20 @@ Auftrag
 → anbieterneutraler Exportname
 ```
 
+Bei regionalen und mehrsprachigen Läufen zusätzlich:
+
+```text
+Region und Jurisdiktion
+→ Original-, Lese-, Bedien- und Ausgabesprachen
+→ aktuelle Originalquellen und Provenienz
+→ Claims, Gegenpositionen und fehlende Stimmen
+→ Beteiligungseignung
+→ Opportunity und Campaign Draft
+→ menschliche Review
+→ optionale konkrete PublishApproval
+→ delegierte technische Distribution
+```
+
 ## Harte Regeln
 
 - Keine zweite Voxy, KI, Runtime oder Wissensbasis erfinden.
@@ -53,12 +74,16 @@ Auftrag
 - Keine Mehrheit als objektive Wahrheit bezeichnen.
 - eDebatte, Stakeholderposition, Community-Ergebnis und offizielle VoiceOpenGov-Position klar trennen.
 - Kein Auto-Publish und kein Review-Bypass.
+- Eine delegierte Distribution ist nur mit konkreter, versionierter, widerrufbarer und gültiger `PublishApproval` zulässig; sie ist keine autonome Publikationsentscheidung.
 - Übersetzungen kennzeichnen und Originale erhalten.
+- Original-, Lese-, Bedien- und Ausgabesprachen nicht vermischen.
 - Pro Asset ein primärer CTA.
 - Keine Tool-, Modell-, Chat-, Sitzungs- oder Personennamen in finalen Dateinamen, sofern sie nicht fachlich erforderlich sind.
 - Keine vertraulichen Kontaktdaten, Prompts oder Rohnotizen unter `public` ablegen.
 - Beteiligungskampagnen und MarketingCampaigns nicht vermischen.
 - Brandprofile dürfen Produkt-, Quellen-, Review-, Privacy- und Governance-Regeln nicht überschreiben.
+- Tatsachen, Grundrechte oder rechtlich nicht disponible Ansprüche nicht als Mehrheitsabstimmung behandeln.
+- Regionale Zuständigkeit, Aktualität oder Quellautorität nicht aus Popularität oder Freitext ableiten.
 
 ## Formatentscheidung
 
@@ -86,6 +111,10 @@ Verwenden, wenn Quellen, mehrere Perspektiven, Interview oder Dossierstruktur me
 
 Verwenden, wenn eine neue Funktion, ein Thema oder ein Partneranlass zunächst als MarketingOpportunity bewertet werden muss. Ein Merge allein reicht nicht als Freigabe.
 
+### Regional Opportunity Run
+
+Verwenden, wenn eine Region, Jurisdiktion, Zeitspanne und Sprachlogik ausgewählt werden und aktuelle Themen, Beteiligungsoptionen oder Kampagnenchancen evidenzbasiert bewertet werden sollen.
+
 ## Qualitätscheck
 
 Vor Ausgabe müssen alle Fragen mit Ja beantwortet sein:
@@ -99,11 +128,14 @@ Vor Ausgabe müssen alle Fragen mit Ja beantwortet sein:
 - Ist die richtige Voxy-Variante gewählt?
 - Entspricht das Visual der bestehenden eDebatte-Designsprache?
 - Sind Quellen, Originalsprache und Unsicherheit korrekt behandelt?
+- Sind Region, Jurisdiktion und Aktualitätsfenster nachvollziehbar?
+- Ist die Beteiligungseignung geprüft und werden Tatsachen nicht zur Abstimmung gestellt?
 - Ist der CTA real?
 - Ist das Material ohne Fake-Zahlen oder Fake-Partner vollständig?
 - Ist eine menschliche Review-Stufe vorgesehen?
 - Ist der Dateiname fachlich, stabil und anbieterneutral?
 - Ist klar, ob das Asset nur erstellt, freigegeben oder tatsächlich ausgespielt wurde?
+- Ist bei delegierter Distribution eine konkrete PublishApproval vorhanden und unverändert gültig?
 
 ## Standardausgabe für neue Kampagnen
 
@@ -111,6 +143,8 @@ Erzeuge mindestens:
 
 - MarketingCampaign-ID und Status
 - verknüpfte MarketingOpportunity und Evidence
+- Region und Jurisdiktion, soweit relevant
+- Original-, Lese- und Ausgabesprachen, soweit relevant
 - Zielgruppe
 - Problem
 - Nutzenversprechen
@@ -154,6 +188,22 @@ Keinen toten oder erfundenen Link vorsehen. CTA als `needs_routing_decision` mar
 
 Keinen White-Label-Export erzeugen. Kanonisches eDebatte-Profil verwenden oder am Brand-Review stoppen.
 
+### Region oder Zuständigkeit unklar
+
+Keine lokale Autorität, offizielle Beteiligung oder regionale Relevanz behaupten. Run mit `jurisdiction_gap` beziehungsweise `region_resolution_required` stoppen.
+
+### Sprache oder Übersetzung unklar
+
+Original erhalten, Lücke sichtbar machen und keine ungeprüfte Lokalisierung als freigegeben behandeln.
+
+### Beteiligungseignung unklar
+
+Zuerst Dossier, Factcheck oder offene Debatte empfehlen. Keine Abstimmung erzeugen.
+
 ### Ausspielstatus unklar
 
 Ein erzeugtes oder freigegebenes Asset niemals als veröffentlicht darstellen. Erst ein reales DistributionRecord belegt die Ausspielung.
+
+### PublishApproval unklar
+
+Nicht veröffentlichen. Freigabe, Asset-Version, Content Hash, Region, Locale, Kanal, Account und Zeitfenster müssen eindeutig und gültig sein.
