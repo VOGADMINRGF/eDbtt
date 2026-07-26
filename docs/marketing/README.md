@@ -52,6 +52,9 @@ Vor jeder Kampagne oder Zielgruppenunterlage sind mindestens zu prüfen:
 - Admin-Steuerung: `admin/marketing-control-plane.md`
 - White-Labeling: `white-label/brand-profile-contract.md`
 - Maschinenlesbares Zielmodell: `schemas/marketing-control-plane.schema.json`
+- Light- und Dark-Brandprofile: `white-label/profiles/*.brand-profile.json`
+
+Die angelegten eDebatte-Brandprofile stehen im Status `review_ready`. Sie sind aus realen Repo-Tokens abgeleitet, gelten aber erst nach expliziter Marketing-/Brandfreigabe als produktionsfreigegeben.
 
 ## Qualitätsregeln
 
