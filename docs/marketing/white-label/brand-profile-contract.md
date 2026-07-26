@@ -156,6 +156,8 @@ Repo-abgeleitet vorhanden:
 
 Sie verwenden reale Tokens aus `apps/web/src/app/globals.css` und die kanonische Brand-Metadatenbasis aus `apps/web/src/lib/brand.ts`.
 
+Beide Profile stehen zunächst auf `review_ready`. Sie dürfen erst nach expliziter Brandfreigabe auf `approved` gesetzt und für produktive Exporte verwendet werden. Nullwerte bei `imprintUrl`, `privacyUrl`, `approvedBy` oder `approvedAt` sind sichtbare Freigabegates und keine Produktionsdefaults.
+
 ## Dateinamen
 
 Dateinamen sind fachlich, stabil und anbieterneutral.
