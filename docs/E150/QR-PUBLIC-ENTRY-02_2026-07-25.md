@@ -1,7 +1,8 @@
 # QR-PUBLIC-ENTRY-02
 
 Datum: 2026-07-25
-Status: review
+OpenTasks-Status: in_progress
+PR-Phase: Draft
 
 ## Ziel
 
