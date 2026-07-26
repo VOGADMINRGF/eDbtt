@@ -20,6 +20,19 @@ const schema = z.object({
       z.null(),
     ])
     .optional(),
+  uiLocale: z
+    .string()
+    .refine((val) => isSupportedLocale(val), { message: "locale_invalid" })
+    .optional(),
+  readingLocale: z
+    .string()
+    .refine((val) => isSupportedLocale(val), { message: "locale_invalid" })
+    .optional(),
+  preferredOutputLocales: z
+    .array(z.string().refine((val) => isSupportedLocale(val), { message: "locale_invalid" }))
+    .max(5)
+    .optional(),
+  showOriginalByDefault: z.boolean().optional(),
   preferredLocale: z
     .string()
     .refine((val) => isSupportedLocale(val), { message: "locale_invalid" })
@@ -50,6 +63,19 @@ export async function PATCH(req: NextRequest) {
   const payload: AccountSettingsUpdate = {
     displayName:
       parsed.data.displayName !== undefined ? parsed.data.displayName : undefined,
+    uiLocale:
+      parsed.data.uiLocale !== undefined
+        ? (parsed.data.uiLocale as AccountSettingsUpdate["uiLocale"])
+        : undefined,
+    readingLocale:
+      parsed.data.readingLocale !== undefined
+        ? (parsed.data.readingLocale as AccountSettingsUpdate["readingLocale"])
+        : undefined,
+    preferredOutputLocales:
+      parsed.data.preferredOutputLocales !== undefined
+        ? (parsed.data.preferredOutputLocales as AccountSettingsUpdate["preferredOutputLocales"])
+        : undefined,
+    showOriginalByDefault: parsed.data.showOriginalByDefault,
     preferredLocale:
       parsed.data.preferredLocale !== undefined
         ? (parsed.data.preferredLocale as AccountSettingsUpdate["preferredLocale"])

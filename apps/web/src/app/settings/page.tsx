@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CORE_LOCALES, SUPPORTED_LOCALES, getLocaleConfig, type SupportedLocale } from "@/config/locales";
+import { useLanguagePreferences } from "@/context/LocaleContext";
 import {
   CONSENT_COOKIE_NAME,
   CONSENT_LOCALSTORAGE_KEY,
@@ -50,6 +52,16 @@ function persistConsent(consent: Consent) {
 }
 
 export default function SettingsPage() {
+  const {
+    uiLocale,
+    setUiLocale,
+    readingLocale,
+    setReadingLocale,
+    preferredOutputLocales,
+    setPreferredOutputLocales,
+    showOriginalByDefault,
+    setShowOriginalByDefault,
+  } = useLanguagePreferences();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -132,13 +144,59 @@ export default function SettingsPage() {
     const activeOptional = Object.values(optional).filter(Boolean).length;
     return activeOptional > 0 ? `${activeOptional} optionale Freigaben aktiv` : "Nur notwendige Verarbeitung aktiv";
   }, [optional, requiredAcknowledged]);
+  const uiLocaleOptions = CORE_LOCALES.map((code) => getLocaleConfig(code));
+  const readingLocaleOptions = SUPPORTED_LOCALES.map((code) => getLocaleConfig(code));
+  const preferredOutputLocale = preferredOutputLocales[0] ?? readingLocale;
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-16">
       <header className="space-y-2 text-center">
         <h1 className="text-3xl font-bold text-coral">Einstellungen</h1>
-        <p className="text-gray-700">Hier kannst du Sprache, Benachrichtigungen und Datenschutz verwalten.</p>
+        <p className="text-gray-700">Hier kannst du Sprach- und Datenschutz-Einstellungen verwalten.</p>
       </header>
+
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Sprache & Darstellung</h2>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          UI-Sprache, Lesesprache und Anzeigepräferenzen sind getrennt und werden direkt auf diesem Gerät gespeichert.
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <PreferenceSelect
+            id="settings-ui-locale"
+            label="UI-Sprache"
+            value={uiLocale}
+            options={uiLocaleOptions}
+            onChange={(value) => setUiLocale(value)}
+          />
+          <PreferenceSelect
+            id="settings-reading-locale"
+            label="Lesesprache"
+            value={readingLocale}
+            options={readingLocaleOptions}
+            onChange={(value) => setReadingLocale(value)}
+          />
+          <PreferenceSelect
+            id="settings-output-locale"
+            label="Bevorzugte Ausgabesprache"
+            value={preferredOutputLocale}
+            options={readingLocaleOptions}
+            onChange={(value) => setPreferredOutputLocales([value])}
+          />
+        </div>
+
+        <label className="mt-4 flex items-start gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+          <input
+            type="checkbox"
+            checked={showOriginalByDefault}
+            onChange={(event) => setShowOriginalByDefault(event.target.checked)}
+            className="mt-1"
+          />
+          <span className="text-sm text-[rgb(var(--fg))]">
+            Originalsprache standardmäßig anzeigen, wenn eine Übersetzung oder Lesefassung verfügbar ist.
+          </span>
+        </label>
+      </section>
 
       <section
         data-nosnippet="true"
@@ -235,6 +293,32 @@ function ToggleRow(props: {
     <label className="flex items-center justify-between gap-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
       <span className="text-sm text-[rgb(var(--fg))]">{props.label}</span>
       <input type="checkbox" checked={props.checked} onChange={(event) => props.onChange(event.target.checked)} />
+    </label>
+  );
+}
+
+function PreferenceSelect(props: {
+  id: string;
+  label: string;
+  value: SupportedLocale;
+  options: Array<{ code: SupportedLocale; label: string }>;
+  onChange: (value: SupportedLocale) => void;
+}) {
+  return (
+    <label className="space-y-1">
+      <span className="text-xs font-medium text-[rgb(var(--muted))]">{props.label}</span>
+      <select
+        id={props.id}
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value as SupportedLocale)}
+        className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
+      >
+        {props.options.map((option) => (
+          <option key={option.code} value={option.code}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
