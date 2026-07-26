@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 // ——— Simple LRU mit TTL, um Tippen-Spitzen abzupuffern ————————————————
@@ -45,8 +46,9 @@ function heuristic(text:string){
 
 // ——— Mini-LLM (OpenAI) mit kurzer Deadline ————————————
 async function llmRefine(text:string){
+  const policy = getAiRuntimePolicy();
   const key = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_FAST_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = policy.openai.fastModel;
   if(!key) return null;
 
   const sys = [

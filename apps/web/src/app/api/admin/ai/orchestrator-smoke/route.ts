@@ -45,6 +45,7 @@ import {
   type OperationalProviderRoutingSummary,
   type OrchestrationLane,
 } from "@/features/ai/providerRoleRouting";
+import { getAiRuntimePolicy, resolveAiRuntimeProviderMissingReason } from "@/features/ai/aiRuntimePolicy";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 export const runtime = "nodejs";
@@ -266,7 +267,6 @@ const FULL_CONTRACT_SYSTEM_PROMPT = [
   FULL_CONTRACT_EXAMPLE_JSON,
 ].join(" ");
 
-const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
 const FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS = 1_200;
 const FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS = 2_300;
@@ -312,17 +312,17 @@ function resolveDirectFullContractOptions(
 }
 
 function openAiSmokeModel(): string {
-  return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
+  return getAiRuntimePolicy().openai.smokeModelCandidates[0] ?? getAiRuntimePolicy().openai.model;
 }
 
-function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "default_gpt-4.1-mini" {
+function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "OPENAI_MODEL" | "default_openai_model" {
   if (process.env.OPENAI_SMOKE_MODEL) return "OPENAI_SMOKE_MODEL";
-  return "default_gpt-4.1-mini";
+  if (process.env.OPENAI_MODEL) return "OPENAI_MODEL";
+  return "default_openai_model";
 }
 
 function openAiSmokeTimeoutMs(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
-  return Number.isFinite(raw) && raw > 0 ? raw : 30_000;
+  return getAiRuntimePolicy().smokeTimeoutMs;
 }
 
 function openAiSmokeTimeoutSource(): "OPENAI_SMOKE_TIMEOUT_MS" | "default_30000" {
@@ -331,8 +331,7 @@ function openAiSmokeTimeoutSource(): "OPENAI_SMOKE_TIMEOUT_MS" | "default_30000"
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
-  return Number.isFinite(raw) && raw > 0 ? raw : 2_200;
+  return getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function openAiSmokeMaxOutputTokensSource(): "OPENAI_SMOKE_MAX_OUTPUT_TOKENS" | "default_2200" {
@@ -868,15 +867,10 @@ function ariConfigMissingReason(): string | null {
 function configMissingReason(provider: E150ProviderName): string | null {
   switch (provider) {
     case "openai":
-      return process.env.OPENAI_API_KEY ? null : "missing OPENAI_API_KEY";
     case "anthropic":
-      return process.env.ANTHROPIC_API_KEY ? null : "missing ANTHROPIC_API_KEY";
     case "mistral":
-      return process.env.MISTRAL_API_KEY ? null : "missing MISTRAL_API_KEY";
     case "gemini":
-      return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
-        ? null
-        : "missing GEMINI_API_KEY / GOOGLE_API_KEY";
+      return resolveAiRuntimeProviderMissingReason(provider);
     case "ari":
       return ariConfigMissingReason();
     default:
@@ -896,7 +890,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       mode: "provider_probe",
       stage: "provider_probe",
       pipeline: "provider_probe",
-      model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
+      model: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider),
       status: "config_missing",
       errorKind: "INVALID_API_KEY",
       providerErrorCode: "CONFIG_MISSING",
@@ -915,7 +909,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       selectedSmokeModel,
       smokeModelEnvPresent,
-      effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+      effectiveModel: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : null,
       openAiSmokeModelMismatch: false,
     });
   }
@@ -1040,7 +1034,8 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     }
 
     const payload = validateProbePayload(text ?? "");
-    const effectiveModel = model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const effectiveModel =
+      model ?? (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
     const openAiSmokeModelMismatch =
       isOpenAi &&
       isOpenAiSmokeModelMismatch({
@@ -1122,7 +1117,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     const status = typeof error?.status === "number" ? error.status : null;
     const effectiveModel =
       (error as any)?.meta?.model ??
-      (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+      (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
     const openAiSmokeModelMismatch =
       isOpenAi &&
       isOpenAiSmokeModelMismatch({
@@ -2864,7 +2859,8 @@ async function runDirectFullContractProvider(
   const openAiMaxOutputTokens = isOpenAi ? resolvedOptions.maxOutputTokens : null;
   const openAiProfileNote = isOpenAi ? openAiSmokeConfigDiagnosticNote() : null;
   if (missingReason) {
-    const missingModel = isOpenAi ? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider);
+    const missingModel =
+      isOpenAi ? openAiSelectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider);
     return baseDiagnostic({
       provider,
       mode: "full_contract",
@@ -3219,7 +3215,7 @@ async function runDirectFullContractProvider(
     const blocked = isBlockedContractError(providerCode);
     const finalContractStatus: ProviderDiagnostic["finalContractStatus"] = blocked ? "blocked" : "failed";
     const effectiveModel = isOpenAi
-      ? error?.meta?.model ?? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL
+      ? error?.meta?.model ?? openAiSelectedSmokeModel ?? getAiRuntimePolicy().openai.model
       : error?.meta?.model ?? defaultModelForProvider(provider);
     const openAiSmokeModelMismatch =
       isOpenAi &&
@@ -3239,7 +3235,8 @@ async function runDirectFullContractProvider(
           ),
         });
         const fallbackValidation = validateFullContractPayload(fallbackCall.text ?? "");
-        const fallbackEffectiveModel = fallbackCall.model ?? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL;
+        const fallbackEffectiveModel =
+          fallbackCall.model ?? openAiSelectedSmokeModel ?? getAiRuntimePolicy().openai.model;
         const fallbackMismatch = isOpenAiSmokeModelMismatch({
           selectedSmokeModel: openAiSelectedSmokeModel,
           effectiveModel: fallbackEffectiveModel,

@@ -11,6 +11,7 @@ import {
   PROMPT_OUTPUT_CONTRACT_VERSION,
   type PromptOutputMeta,
 } from "@/features/ai/promptOutputEnvelope";
+import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
 import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 const TraceSchema = z.object({
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
   const prompt = buildPrompt(body.data);
   const guidanceOnly = (body.data.statements?.length ?? 0) === 0;
 
-  const model = process.env.OPENAI_TRACE_MODEL || "gpt-4o-mini";
+  const model = getAiRuntimePolicy().openai.traceModel;
   const { text } = await callOpenAI({
     prompt,
     asJson: true,

@@ -1,6 +1,7 @@
 import { callOpenAIJson } from "@features/ai";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
+import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
 
 export type CreatePlannerScope =
   | "local"
@@ -156,8 +157,6 @@ type OpenAiPlannerPayload = {
   recommendedLane?: unknown;
 };
 
-const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 10_000;
-const MAX_CREATE_PLANNER_TIMEOUT_MS = 10_000;
 const CREATE_PLANNER_USAGE_PIPELINE: AiPipelineName = "other";
 
 const CREATE_PLANNER_JSON_SCHEMA = {
@@ -371,9 +370,7 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
 }
 
 export function resolveCreatePlannerTimeoutMs(): number {
-  const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
-  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
-  return Math.min(MAX_CREATE_PLANNER_TIMEOUT_MS, Math.max(600, Math.floor(raw)));
+  return getAiRuntimePolicy().plannerTimeoutMs;
 }
 
 function detectBroadCommunalTopicFields(text: string): string[] {
@@ -515,10 +512,7 @@ function dedupeModelCandidates(candidates: Array<string | null | undefined>): st
 }
 
 export function resolveCreatePlannerModelCandidates(): string[] {
-  return dedupeModelCandidates([
-    process.env.OPENAI_PLANNER_MODEL,
-    process.env.OPENAI_MODEL,
-  ]);
+  return dedupeModelCandidates(getAiRuntimePolicy().openai.plannerModelCandidates);
 }
 
 function isModelNotFoundError(error: unknown): boolean {
@@ -1296,7 +1290,8 @@ async function tryOpenAiPlannerWithModel(
   input: BuildCreatePlannerInput,
   model: string,
 ): Promise<PlannerAttempt> {
-  if (!process.env.OPENAI_API_KEY) {
+  const policy = getAiRuntimePolicy();
+  if (!policy.openai.apiKeyPresent) {
     const errorMessage = "OPENAI_API_KEY fehlt";
     return {
       ok: false,
@@ -1353,7 +1348,7 @@ async function tryOpenAiPlannerWithModel(
       user,
       model,
       temperature: 0.2,
-      max_tokens: 1200,
+      max_tokens: getAiRuntimePolicy().plannerMaxOutputTokens,
       timeoutMs,
       response_format: {
         name: "create_planner_result",
@@ -1477,7 +1472,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
-        providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+        providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
         providerErrorMessage: errorMessage,
         errorMessage,
         rawPayloadValid: false,
@@ -1505,7 +1500,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
     debug: createPlannerDebug({
       attemptedProvider: "openai",
       usedProvider: "local_fallback",
-      providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+      providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
       providerErrorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
       errorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
       rawPayloadValid: false,
@@ -1619,7 +1614,7 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
       ...createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
-        providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+        providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
         providerErrorMessage: "planner_attempt_unreachable_state",
         errorMessage: "planner_attempt_unreachable_state",
         rawPayloadValid: false,

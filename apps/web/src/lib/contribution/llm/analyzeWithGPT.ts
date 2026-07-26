@@ -1,8 +1,7 @@
 // apps/web/src/lib/contribution/llm/analyzeWithGPT.ts
 import { callOpenAI } from "@features/ai/providers/openai";
+import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
 import { LLMAnalysisZ, type LLMAnalysis } from "@/lib/contribution/schema";
-
-const TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS ?? 18000);
 
 function withTimeout<T>(p: Promise<T>, ms: number) {
   let t: NodeJS.Timeout;
@@ -18,7 +17,8 @@ export async function analyzeWithGPT(input: {
   userInterests?: string[];
   userRoles?: string[];
 }): Promise<LLMAnalysis> {
-  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
+  const policy = getAiRuntimePolicy();
+  if (!policy.openai.apiKeyPresent) throw new Error("OPENAI_API_KEY missing");
 
   // Kurze Instruktion + Schema (DE-Schlüssel)
   const systemHint =
@@ -42,7 +42,7 @@ export async function analyzeWithGPT(input: {
 
   const { text } = await withTimeout(
     callOpenAI({ prompt, asJson: true }),
-    TIMEOUT_MS,
+    policy.defaultTimeoutMs,
   );
 
   let parsed: unknown;

@@ -3,6 +3,7 @@ import path from "node:path";
 import type { ProviderDiagnostic } from "@/features/ai/adminTelemetryDiagnostics";
 import { defaultModelForProvider } from "@/features/ai/adminTelemetryDiagnostics";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
+import { getAiRuntimePolicy } from "@/features/ai/aiRuntimePolicy";
 import {
   type DirectFullContractRunOptions,
   runDirectFullContractDiagnostic,
@@ -20,7 +21,6 @@ export type ProviderSmokeCliMode = "probe" | "runtime" | "full" | "full-lite";
 const ALLOWED_PROVIDER_VALUES = [...CLI_PROVIDER_ORDER, "all-primary", "all-optional"] as const;
 const FULL_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_LITE_MAX_OUTPUT_TOKENS = 1_200;
-const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
 const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
 const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
 const PROBE_TINY_ESTIMATED_TOKENS_IN = 60;
@@ -612,17 +612,15 @@ function sortRowsByPrimaryOrder(rows: ProviderDiagnostic[]): ProviderDiagnostic[
 }
 
 function openAiSmokeModel(): string {
-  return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
+  return getAiRuntimePolicy().openai.smokeModelCandidates[0] ?? getAiRuntimePolicy().openai.model;
 }
 
 function openAiSmokeTimeoutMs(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 30_000;
+  return getAiRuntimePolicy().smokeTimeoutMs;
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 2_200;
+  return getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function resolveFullModeMaxOutputTokens(args: ProviderSmokeCliArgs, provider: SmokeCliProvider): number {

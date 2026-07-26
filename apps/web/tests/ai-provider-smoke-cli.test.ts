@@ -547,6 +547,7 @@ describe("ai provider smoke cli helpers", () => {
   });
 
   it("dry-run does not call providers and returns a budget plan", async () => {
+    vi.stubEnv("OPENAI_SMOKE_MODEL", "gpt-4.1-mini");
     const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-dry-run-"));
     const result = await runProviderSmokeCli({
       mode: "full-lite",
