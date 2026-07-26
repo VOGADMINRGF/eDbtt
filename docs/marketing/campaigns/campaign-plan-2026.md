@@ -13,7 +13,7 @@ Dieses Dokument ist die fachliche Kampagnenquelle. Die spätere operative Steuer
 1. Produkt und Nutzen verständlich machen.
 2. Wiederkehrende Content-Formate etablieren.
 3. Zielgruppen mit konkreten Problemen und Arbeitsabläufen ansprechen.
-4. VoiceOpenGov-Membership und Partnerschaften erst innerhalb der freigegebenen Governance- und Angebotsgrenzen vermarkten.
+4. VoiceOpenGov-Membership und Partnerschaften nur innerhalb der bestätigten Decisions aus PR `#430` und der weiterhin offenen Angebots-, Rechts- und Routing-Gates vermarkten.
 5. Erfolgreiche Formate in wiederverwendbare Templates und später in die Render-Runtime überführen.
 6. Jede neue Funktion zuerst als MarketingOpportunity prüfen, nicht automatisch bewerben.
 7. Jede reale Ausspielung separat als DistributionRecord dokumentieren.
@@ -70,8 +70,8 @@ Ein Asset kann produziert werden, obwohl die Kampagne noch nicht öffentlich aus
 | CAM-TECH-08 | Technologiepartner werden | Infrastruktur-, Open-Source- und KI-Partner | technische Unterstützung ohne Einflussrechte anbieten | Technologiepartnerschaft prüfen | `qualified` | `offer_decision_required` |
 | CAM-MUNI-09 | Beteiligung nachvollziehbar organisieren | Kommunen und Verwaltung | strukturierte Beteiligung, Dossiers und Review zeigen | Anwendungsfall besprechen | `blocked` | `product_proof_required` |
 | CAM-COMMUNITY-10 | Macht euer Anliegen anschlussfähig | Initiativen, Vereine, NGOs | Anliegen strukturieren und anschlussfähig machen | Anliegen vorbereiten | `idea` | `product_proof_required` |
-| CAM-VOG-11 | VoiceOpenGov Mitglied werden | mission-orientierte Einzelpersonen | Mitwirkung und Verantwortung erklären | Mitgliedschaft kennenlernen | `blocked` | `governance_decision_required` |
-| CAM-VOG-PARTNER-12 | Partner für transparente Debatten | Organisationen | Partnerkategorien und Einflussgrenzen erklären | Partnergespräch anfragen | `blocked` | `governance_decision_required` |
+| CAM-VOG-11 | VoiceOpenGov-Mitgliedschaft verstehen | mission-orientierte natürliche Personen | persönliche Mitgliedschaft, Mitwirkung und Verantwortung erklären | Membership-Modell kennenlernen | `qualified` | `offer_decision_required` |
+| CAM-VOG-PARTNER-12 | Partner für transparente Debatten | Organisationen | Partnerkategorien und Einflussgrenzen erklären | Partnerkategorien kennenlernen | `qualified` | `offer_decision_required` |
 | CAM-WHITE-LABEL-13 | Beteiligung im eigenen Auftritt | Kommunen, Verbände, Organisationen | kontrollierte Co-Branding- und White-Label-Ausgaben erklären | White-Label-Anwendungsfall prüfen | `idea` | `offer_decision_required` |
 
 ## MarketingOpportunity aus neuen Funktionen
@@ -160,40 +160,82 @@ Keine tägliche Aktivierungsaufforderung zu beliebigen lokalen Themen. Relevanz 
 
 ## Kampagnen CAM-MEDIA-06 bis CAM-TECH-08 — Partnerprogramm
 
-Gemeinsame Partnerbotschaft:
+Kanonische Partnerbotschaft:
 
-> Diese Partner unterstützen einen offenen, transparenten und nachvollziehbaren Debattenprozess.
+> Diese Partner unterstützen offene, transparente und nachvollziehbare Debatten- und Beteiligungsprozesse – ohne inhaltliche Sonderrechte.
+
+Bestätigte Kategorien:
+
+- Community
+- Kommunen
+- Medien
+- Wissenschaft
+- Technologie
+- Bildung
+- Förderung
 
 Verbindliche Ausschlüsse:
 
 - keine inhaltlichen Sonderrechte,
 - kein Faktenstatus durch Partnerschaft,
 - keine algorithmische Bevorzugung,
-- kein automatisches Stimm- oder Repräsentationsrecht,
-- keine ungekennzeichnete Einflussnahme.
+- kein automatisches Stimm-, Review-, Publikations- oder Repräsentationsrecht,
+- keine ungekennzeichnete Einflussnahme,
+- keine automatische Vertretung von eDebatte oder VoiceOpenGov.
 
-Benötigte Entscheidungen vor Veröffentlichung:
+Benötigte Entscheidungen vor externer Conversion-Kampagne:
 
 - konkretes Leistungs- und Gegenleistungsmodell,
 - Bewerbungs- oder Aufnahmeprozess,
-- Prüfung und Laufzeit,
-- öffentliche Darstellung,
-- Pricing, Förderung oder Sachleistung,
-- Vertrags-, Datenschutz- und Transparenztexte.
+- Prüfung, Laufzeit, Kündigung und Ausschluss,
+- öffentliche Darstellung und Transparenzschwellen,
+- Förderung, Sachleistung oder Produktbezug,
+- Vertrags-, Datenschutz- und Transparenztexte,
+- reale Kontakt- und CTA-Wege.
 
-## Kampagne CAM-VOG-11 — Mitgliedschaft
+## Kampagne CAM-VOG-11 — persönliche Mitgliedschaft
 
-Zulässige Richtung:
+### Kanonisch zulässige Richtung
 
-> Nicht nur zuschauen. Einen transparenten Prozess mittragen und nach seinen Regeln mitgestalten.
+> Nicht eine fertige Meinung abonnieren. Einen transparenten Prozess mittragen und nach seinen Regeln mitgestalten.
 
-Noch nicht zulässig ohne Entscheidung:
+Belastbare Aussagen aus PR `#430`:
 
-- konkrete Stimmrechte,
-- konkrete Preise oder Pakete,
+- Mitgliedschaft steht ausschließlich natürlichen Personen offen.
+- Institutionen können keine stimmberechtigten VOG-Mitglieder sein.
+- Mitgliedschaft, Partnerstatus, Produktpaket, operative Rolle, Stimmrecht und Mandat bleiben getrennt.
+- interne VOG-Verfahren folgen dem Grundsatz: eine berechtigte natürliche Person, eine Stimme.
+- `eDebatte Interessiert` ist für bestätigte VOG-Mitglieder mit `0 €` und regulär mit `3,99 €` als Pricing-Grundsatz harmonisiert.
+- für interne Mitgliederverfahren entsteht keine zusätzliche Abstimmungsgebühr.
+
+Nur als Grundsatz kommunizieren, solange technische, rechtliche und buchhalterische Umsetzung nicht belegt ist.
+
+Noch nicht öffentlich als fertiger Prozess bewerben:
+
+- Anmeldung, Bestätigung und Konto-/Shell-Ablauf,
+- Aufnahme, Kündigung und Ausschluss,
+- konkrete Verfahrensberechtigungen und Quoren,
+- endgültige Routing- und Surface-Struktur,
+- rechtlich operative Zahlung, Widerruf und Vertragsgrundlage,
 - garantierter Einfluss auf Positionen,
-- automatische Partner- oder Plattformrollen,
+- automatische Partner-, Plattform- oder Repräsentationsrollen,
 - Zugriff auf nicht freigegebene Daten oder Prozesse.
+
+## Kampagne CAM-VOG-PARTNER-12 — Partnernetzwerk
+
+### Zulässige Richtung
+
+> Partner tragen Infrastruktur, Expertise, Reichweite oder Verfahren bei. Sie kaufen weder Faktenstatus noch Stimmen, Sichtbarkeit, Reviews oder Mandate.
+
+Bis zur Freigabe des Angebotsmodells bleibt der CTA informativ:
+
+- „Partnerkategorien kennenlernen.“
+- „Kooperationsrahmen vormerken.“
+- „Transparenzregeln ansehen.“
+
+Nicht verwenden:
+
+- „Jetzt Partner werden“, solange Aufnahmeprozess, Vertrag, Leistungen und Kontaktweg nicht freigegeben sind.
 
 ## Kampagne CAM-WHITE-LABEL-13 — Beteiligung im eigenen Auftritt
 
