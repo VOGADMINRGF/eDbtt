@@ -187,6 +187,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["themenradar", "operator", "review-first", "campaign"],
       },
       {
+        href: "/admin/marketing",
+        label: "Marketing Registry",
+        description: "Opportunities, Kampagnen, Assets und Brands",
+        keywords: ["marketing", "campaign", "assets", "brands", "growth", "read-only"],
+      },
+      {
         href: "/admin/anlassraeume",
         label: "Anlassraum Operations",
         description: "Read-only Operations-Surface für Anlassräume",
