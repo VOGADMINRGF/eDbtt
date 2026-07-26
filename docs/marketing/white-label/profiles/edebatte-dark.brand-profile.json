@@ -2,7 +2,7 @@
   "id": "brand-edebatte-dark",
   "key": "edebatte-dark",
   "mode": "edebatte",
-  "status": "approved",
+  "status": "review_ready",
   "displayName": "eDebatte",
   "shortName": "eDebatte",
   "localeDefault": "de-DE",
@@ -36,7 +36,7 @@
   "imprintUrl": null,
   "privacyUrl": null,
   "approvedBy": null,
-  "approvedAt": "2026-07-26T00:00:00+02:00",
+  "approvedAt": null,
   "version": 1,
   "createdAt": "2026-07-26T00:00:00+02:00",
   "updatedAt": "2026-07-26T00:00:00+02:00"
