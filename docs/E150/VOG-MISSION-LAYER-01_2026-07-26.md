@@ -9,6 +9,28 @@ Metadaten:
 - Typ: Produktinitiative / Decision Epic
 - Implementierung freigegeben: nein
 
+## Decision Closure 2026-07-26
+
+Die erste menschlich bestätigte Decision-Closure für diesen Epic ist in
+`docs/E150/VOG-MISSION-LAYER-01_DECISIONS_2026-07-26.md` dokumentiert.
+
+Dadurch fachlich bestätigt sind jetzt:
+- die kanonische Selbstbeschreibung von VoiceOpenGov
+- die Grenze zwischen eDebatte und VoiceOpenGov
+- das personengebundene Membership-Modell
+- die Trennung zwischen allgemeinen eDebatte-Verfahren und internen
+  VoiceOpenGov-Mitgliederverfahren
+- die Pricing-Harmonisierung für `eDebatte Interessiert`
+- die Mindestgrenzen für Partner, Förderung, Repräsentation, Voxy,
+  Domains, Mehrsprachigkeit und Datenschutz
+
+Weiterhin offen und nicht implementierungsfreigegeben bleiben:
+- die endgültige VOG-Quorumformel
+- absolute und proportionale Schwellen je politischer Ebene
+- der verbindliche Repräsentanten-Auswahlmechanismus
+- genaue Transparenzschwellen und Registerausprägungen
+- das finale öffentliche Shell-, Routing- und Kontomodell
+
 ## Kanonischer Grundsatz
 
 VoiceOpenGov ist die unabhängige Mission-, Träger-,
@@ -235,6 +257,28 @@ Voxy darf nicht:
 - Partnerinteressen bevorzugen
 - politische Empfehlungen aus Partnerstatus oder Membership ableiten
 
+## Repo-verifizierte Abstimmungsgrundlagen
+
+Im aktuellen Repo-Stand bereits vorhanden:
+- `simple-majority`
+- `absolute-majority`
+- `two-thirds`
+- `unanimity`
+- `custom`
+- `minQuorum`
+- Ergebnislogik für Mindestquorum, einfache Mehrheit und 2/3
+- FAQ-Grundsatz „eine Person, eine Stimme“
+- Offenlegung der Regel vor der Abstimmung
+
+Wichtig:
+- Die vorhandenen generischen Typen `weighted` und `payroll-weighted`
+  sind keine Freigabe für allgemeine demokratische oder
+  VoiceOpenGov-Abstimmungen.
+- Für allgemeine demokratische und VOG-interne Verfahren gilt:
+  eine berechtigte natürliche Person, eine Stimme.
+- Eine endgültige VOG-spezifische Quorumformel ist noch nicht kanonisch
+  festgelegt und bleibt eigener `manual_gate`-Entscheidungsblock.
+
 ## Zu entscheidende Informationsarchitektur
 
 Noch keine Route oder Seite implementieren.
@@ -257,40 +301,45 @@ Zu entscheiden sind:
 ## Offene Entscheidungen
 
 Produkt:
-- Welche Inhalte gehören institutionell zu VoiceOpenGov?
-- Welche Inhalte bleiben ausschließlich eDebatte?
+- Welche konkreten Inhalte erscheinen zuerst auf `voiceopengov.org`
+  und welche ausschließlich auf `edebatte.org`?
 - Ist „Mission Layer“ nur ein interner Begriff?
-- Welche öffentliche Selbstbezeichnung ist kanonisch?
+- Wie wird der öffentliche Kontextwechsel zwischen Plattform,
+  Gemeinschaft, Mandat und Position sichtbar gemacht?
 
 Governance:
+- Wie genau wird die formale Zulässigkeitsprüfung für
+  Programmvorschläge operationalisiert?
 - Wer darf einen Positionsprozess eröffnen?
-- Wer ist teilnahme- und stimmberechtigt?
 - Welche Quoren und Verfahren gelten?
 - Wie bleiben Minderheiten sichtbar?
 - Wann verfällt oder öffnet sich eine Position erneut?
 
 Membership:
-- Was bedeutet Mitgliedschaft fachlich?
-- Welche Verantwortlichkeiten entstehen?
-- Ist Membership individuell, institutionell oder beides?
+- Welche Verantwortlichkeiten entstehen aus persönlicher
+  VoiceOpenGov-Mitgliedschaft konkret?
 - Welche Rechte sind ausdrücklich nicht enthalten?
+- Wie werden Mitgliedschaftsbestätigung, Statuswechsel und Widerruf
+  fachlich geführt?
 
 Partner:
-- Welche Kategorien sind verbindlich?
 - Welche Verifizierungs- und Offenlegungspflichten gelten?
 - Wie werden Interessenkonflikte dargestellt?
 - Wann endet oder pausiert ein Partnerstatus?
 
 Routing und Branding:
-- gemeinsame oder getrennte Domains?
 - gemeinsame Shell oder klar getrennte öffentliche Kontexte?
 - welche Default-Seiten und Navigationen gelten?
 - wie wird der aktuelle Kontext eindeutig gekennzeichnet?
+- wie wird ein möglichst gemeinsames Konto technisch und öffentlich
+  verständlich geführt?
 
 Privacy:
 - welche Partner- und Mitgliedsdaten sind öffentlich?
 - welche Daten bleiben intern?
 - welche Zustimmung und Widerrufsmöglichkeiten sind nötig?
+- welche Transparenzschwellen gelten für Förderhöhe und
+  Interessenkonflikte?
 
 ## Nicht-Ziele
 
@@ -344,6 +393,8 @@ werden:
   Transparenzflächen für offizielle VOG-Positionen festlegen
 - `VOG-MISSION-LAYER-01G`: Voxy-Kontextdarstellung und Labeling an den
   finalen Governance-Contract anbinden
+- `VOG-GOV-QUORUM-01`: verbindliche Legitimations- und Quorumregeln
+  für VoiceOpenGov-Positionen separat schließen
 
 Keiner dieser Folgeslices ist vor Abschluss der offenen Entscheidungen
 `codex_ready`.
