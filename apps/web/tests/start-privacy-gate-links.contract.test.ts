@@ -18,7 +18,7 @@ describe("start privacy gate link contract", () => {
   it("marks active create and participation ctas as privacy-gated triggers", () => {
     const html = renderToStaticMarkup(createElement(LandingStart));
 
-    expect((html.match(/data-requires-privacy-gate="true"/g) ?? []).length).toBe(2);
+    expect((html.match(/data-requires-privacy-gate="true"/g) ?? []).length).toBe(3);
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect(html).not.toContain('href="/runden/new"');
