@@ -15,6 +15,19 @@ Es entsteht keine zweite Kampagnen-, Content-, CRM- oder Telemetrie-Wahrheit. Be
 - Organisationen, Accounts und Rollen,
 - `docs/marketing/**` als Messaging-, Vorlagen- und Kampagnenquelle.
 
+## Empfehlung
+
+Die Idee wird **nicht verworfen**. Sie ist die richtige operative Ergänzung zum dokumentationsstarken Ansatz, sollte aber als kontrollierte Erweiterung der vorhandenen Admin- und Themenradar-Architektur umgesetzt werden.
+
+Empfohlen wird:
+
+- ein gemeinsames Marketing Board,
+- eine kleine aggregierte BI-Schicht,
+- CRM-light für institutionelle Beziehungen,
+- keine zweite allgemeine CRM-Plattform,
+- keine neue Trackingwelt,
+- keine automatische Veröffentlichung.
+
 ## Wichtige Begriffstrennung
 
 `Campaign` bezeichnet im bestehenden Produkt Beteiligungskampagnen. Marketingkampagnen dürfen dieses Modell, seine Routen oder Semantik nicht überladen.
@@ -123,7 +136,7 @@ Dokumentiert, was tatsächlich ausgespielt wurde:
 - externer Post-/Publikations-Identifier,
 - Ziel-URL und UTM-/Kampagnenreferenz,
 - Status,
-- Freigebende Person,
+- freigebende Person,
 - Ergebnis-Snapshot.
 
 Es gibt keinen Auto-Publish-Bypass. Externe Veröffentlichung bleibt review- und rechtegebunden.
@@ -300,7 +313,7 @@ Diese Fähigkeiten sind keine neuen globalen Rollen. Sie sollen in das vorhanden
 
 ### Slice A – Registry und Readmodel
 
-Status: `codex_ready_after_opentasks_sync`
+Status: `blocked_by_decision_contract`
 
 - serverseitige Marketing-Registry,
 - Zod-/TypeScript-Contracts aus dem Schema,
