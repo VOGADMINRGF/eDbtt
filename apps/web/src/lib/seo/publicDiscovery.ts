@@ -1,4 +1,4 @@
-import type { Metadata, MetadataRoute } from "next";
+import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 
 export const DEFAULT_OPENGRAPH_IMAGE_PATH = "/opengraph-image";
@@ -27,6 +27,12 @@ type BuildPublicPageMetadataInput = {
   title: string;
   description: string;
   ogType?: "website" | "article";
+};
+
+type SitemapEntry = {
+  url: string;
+  changeFrequency: "daily" | "weekly";
+  priority: number;
 };
 
 function normalizePath(path: string): string {
@@ -66,7 +72,7 @@ export function buildPublicPageMetadata(input: BuildPublicPageMetadataInput): Me
   };
 }
 
-export function buildPublicDiscoverySitemap(): MetadataRoute.Sitemap {
+export function buildPublicDiscoverySitemap(): SitemapEntry[] {
   return PUBLIC_DISCOVERY_PATHS.map((path) => ({
     url: new URL(path, BRAND.baseUrl).toString(),
     changeFrequency: path === "/" ? "daily" : "weekly",
