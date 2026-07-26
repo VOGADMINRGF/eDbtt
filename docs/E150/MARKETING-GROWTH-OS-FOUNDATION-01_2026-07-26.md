@@ -8,7 +8,7 @@ Typ: `docs_only / no_product_implementation`
 
 ## Ziel
 
-Eine versionierte, repo-basierte Arbeitsgrundlage für eDebatte-Marketing, Vertrieb, Social Media, Video, VoiceOpenGov-Membership und Partnerschaften schaffen, ohne eine neue CI, zweite Voxy, neue Runtime oder ungeklärte Produkt- und Governanceentscheidungen einzuführen.
+Eine versionierte, repo-basierte und anbieterneutrale Arbeitsgrundlage für eDebatte-Marketing, Vertrieb, Social Media, Video, VoiceOpenGov-Membership, Partnerschaften, White-Label-Ausgaben und spätere Admin-Steuerung schaffen, ohne eine neue CI, zweite Voxy, neue Runtime oder ungeklärte Produkt- und Governanceentscheidungen einzuführen.
 
 ## Repo-Prüfung
 
@@ -18,17 +18,26 @@ Geprüfte Grundlagen:
 - `apps/web/public/brand/README.md`
 - `apps/web/public/brand/voxy/manifest.json`
 - `apps/web/src/features/voxy/voxyAssets.ts`
+- `apps/web/src/app/globals.css`
+- `apps/web/src/lib/brand.ts`
+- `features/themenradar/contracts.ts`
 - `docs/E150/UX-VOXY-MOTION-GUIDE-01_2026-05-29.md`
 - `docs/E150/V3_VOXY_SELF_RENDER_AND_MARKETING_PILOT_ROADMAP_2026-07-13.md`
 - `docs/E150/VOG-MISSION-LAYER-01_2026-07-26.md`
+- `docs/E150/Part12_Campaigns_Admin_Telemetry.md`
+- `docs/E150/PR-THEMENRADAR-02_PERSISTENCE_AUDIT_HARDENING_2026-04-19.md`
 - `docs/E150/OpenTasks.md`
 
 ## Befund
 
 - Ein kanonisches Voxy-Asset-Pack und klare Nutzungsregeln bestehen bereits.
-- Eine umfangreiche Voxy-Video- und Marketing-Pilotroadmap besteht bereits und darf nicht dupliziert werden.
+- Eine umfangreiche Voxy-Video- und Marketing-Pilotroadmap besteht bereits und wird referenziert statt dupliziert.
 - `VOG-MISSION-LAYER-01` ist als `manual_gate / needs_decision` in OpenTasks und Decision-Contract verankert.
-- Ein zusammenhängender Marketing-/Sales-Einstieg mit Zielgruppen-Kits, Kampagnenportfolio, Vorlagen, Agentenregeln und `public`-Asset-Registry bestand noch nicht.
+- Produkt-Tokens für Light, Dark und Editorial bestehen in `globals.css` und können als reale Marketingbasis genutzt werden.
+- `BRAND` enthält kanonischen Namen, Domain, Kontaktwege und die zentrale Produktbotschaft.
+- `/admin/themenradar`, Audit-Lifecycle, Share-ready-Guardrails und aggregierte Metriken `clicks`, `leads`, `memberships` bestehen bereits.
+- `/admin/campaigns` bezeichnet Beteiligungskampagnen und darf nicht mit MarketingCampaigns überladen werden.
+- Ein zusammenhängender Marketing-/Sales-Einstieg mit Zielgruppen-Kits, Kampagnenportfolio, White-Label-Vertrag, Admin-Control-Plane, Schemas, Vorlagen und `public`-Asset-Registry bestand noch nicht.
 - Die bisher generierten generischen Sci-Fi-/Government-Tech-Bilder entsprechen nicht der repo-basierten eDebatte-Designsprache und werden nicht übernommen.
 
 ## Angelegte Struktur
@@ -38,6 +47,15 @@ docs/marketing/
 ├── README.md
 ├── brand/
 │   └── edebatte-marketing-language.md
+├── white-label/
+│   ├── brand-profile-contract.md
+│   └── profiles/
+│       ├── edebatte-light.brand-profile.json
+│       └── edebatte-dark.brand-profile.json
+├── admin/
+│   └── marketing-control-plane.md
+├── schemas/
+│   └── marketing-control-plane.schema.json
 ├── campaigns/
 │   └── campaign-plan-2026.md
 ├── sales/
@@ -49,7 +67,10 @@ docs/marketing/
 ├── templates/
 │   ├── campaign-brief-template.md
 │   ├── onepager-template.md
-│   └── pitchdeck-template.md
+│   ├── pitchdeck-template.md
+│   ├── feature-marketing-intake-template.md
+│   ├── distribution-and-learning-template.md
+│   └── relationship-pipeline-template.md
 └── agent-playbooks/
     └── marketing-agent.md
 
@@ -58,83 +79,177 @@ apps/web/public/marketing/
 └── manifest.json
 ```
 
+## Admin- und BI-Zielbild
+
+Markdown bleibt fachliche Quelle und Evidence. Eine spätere Admin-Fläche unter `/admin/marketing` soll operativ steuern:
+
+- MarketingOpportunities aus neuen Funktionen, Themen, Dossiers und Produktbelegen,
+- getrennte MarketingCampaigns,
+- Asset- und Versionsstatus,
+- Brandprofile und White-Label-Ausgaben,
+- Review und Freigabe,
+- reale DistributionRecords,
+- aggregierte Insights,
+- CRM-light für qualifizierte institutionelle Beziehungen.
+
+Wichtig:
+
+- Beteiligungskampagnen bleiben unter `/admin/campaigns` und im bestehenden `Campaign`-Modell.
+- Marketingkommunikation nutzt `MarketingCampaign` und `/admin/marketing/campaigns`.
+- Themenradar-Lifecycle, Audit und `autoPostEligible=false` bleiben unangetastet.
+- Ein Merge erzeugt nicht automatisch Marketingfreigabe.
+- `approved` ist nicht `published`; reale Streuung braucht ein DistributionRecord.
+
+## White-Label-Zielbild
+
+White-Label ist als konfigurierbares Brandprofil modelliert, nicht als Kopie einzelner Dateien.
+
+Veränderbar nach Freigabe:
+
+- Absendername,
+- Logos,
+- Akzentfarben innerhalb definierter Kontrastgrenzen,
+- Kontakt- und Rechtsangaben,
+- CTA-Ziele,
+- Cover-, Endframe- und Exportvarianten,
+- Co-Branding und Sprache.
+
+Nicht veränderbar:
+
+- Quellenstatus,
+- Original- und Übersetzungskennzeichnung,
+- Gegenpositionen und offene Fragen,
+- Review, Audit und Privacy,
+- kein Auto-Publish,
+- keine Fake-Partner oder Fake-Zahlen,
+- Trennung von eDebatte, Stakeholderposition, Community-Ergebnis und offizieller VoiceOpenGov-Position.
+
+Dateinamen und Datenmodelle sind anbieterneutral. Namen von KI-, Design-, Video- oder Office-Werkzeugen werden nicht als dauerhafte Assetidentität verwendet.
+
 ## Abgrenzung
 
 Dieser Slice:
 
-- definiert Arbeits- und Freigaberegeln
-- bündelt vorhandene Repo-Wahrheiten
-- erstellt konkrete Zielgruppenbotschaften und Formatvorlagen
-- plant Kampagnen mit Status- und Entscheidungsgrenzen
-- legt noch keine finalen PDF-, PPTX-, Video- oder Social-Exporte ab
+- definiert Arbeits- und Freigaberegeln,
+- bündelt vorhandene Repo-Wahrheiten,
+- erstellt konkrete Zielgruppenbotschaften und Formatvorlagen,
+- plant Kampagnen mit Lifecycle und separater Readiness,
+- definiert White-Label- und Co-Branding-Grenzen,
+- definiert ein Admin-/BI-/CRM-light-Zielbild,
+- legt maschinenlesbare Ziel-Shapes an,
+- legt noch keine finalen PDF-, PPTX-, Video- oder Social-Exporte ab.
 
 Dieser Slice verändert nicht:
 
-- Produktrouten
-- Rollen und Rechte
-- Membership oder Pricing
-- Partneraufnahme oder Vertragslogik
-- Voxy-Assets oder Motion-Runtime
-- Website oder Publishing
-- OpenTasks-Status bestehender Produktinitiativen
+- Produktrouten,
+- Rollen und Rechte,
+- Membership oder Pricing,
+- Partneraufnahme oder Vertragslogik,
+- Voxy-Assets oder Motion-Runtime,
+- Website oder Publishing,
+- Themenradar-, Campaign- oder Telemetrie-Runtime,
+- OpenTasks-Status bestehender Produktinitiativen.
 
 ## Offene Entscheidungen
 
 ### VoiceOpenGov
 
-- Membership-Arten, Beiträge, Rechte und Pflichten
-- Partnerleistungen, Gegenleistungen, Aufnahme und Laufzeit
-- Default-Seiten, Navigation und Routing
-- Funding- und Transparenzdarstellung
-- konkrete CTA- und Kontaktwege
+- Membership-Arten, Beiträge, Rechte und Pflichten,
+- Partnerleistungen, Gegenleistungen, Aufnahme und Laufzeit,
+- Default-Seiten, Navigation und Routing,
+- Funding- und Transparenzdarstellung,
+- konkrete CTA- und Kontaktwege.
 
-### eDebatte Sales
+### eDebatte Sales und White-Label
 
-- Pilot- und Angebotsmodell je Zielgruppe
-- Pricing und Vertragsgrundlage
-- reale Produktreife je Use Case
-- freigegebene Referenzen, Screens und Kennzahlen
+- Pilot- und Angebotsmodell je Zielgruppe,
+- Pricing und Vertragsgrundlage,
+- reale Produktreife je Use Case,
+- Betreiber-, Domain- und Tenantmodell,
+- Umfang zulässiger Markenanpassung,
+- Support, SLA und Rechtsverantwortung,
+- freigegebene Referenzen, Screens und Kennzahlen.
+
+### Admin Control Plane
+
+- endgültige Route und Navigation,
+- Permission-Matrix,
+- Registry-Persistenz und Ownership,
+- automatische oder manuelle Feature-Evidence-Übernahme,
+- erlaubte Distribution-Kanäle und Credentials,
+- Attributions- und Retention-Regeln,
+- CRM-light-Datenscope und Abgrenzung zu externem CRM,
+- Export-, Lösch- und Auditregeln.
 
 ### Produktion
 
-- finaler Caption-, Source-Card-, Lower-Third- und CTA-Stil
-- verbindliche Voice-Richtung
-- Tool-/Adapterwahl für Pilotproduktion
-- Review- und Asset-Freigabeverantwortliche
+- finaler Caption-, Source-Card-, Lower-Third- und CTA-Stil,
+- verbindliche Voice-Richtung,
+- Tool-/Adapterwahl für Pilotproduktion,
+- Review- und Asset-Freigabeverantwortliche.
 
 ## Risiken
 
 - Marketing läuft der Produktreife voraus.
 - Partner- oder Membership-Copy erzeugt unbeabsichtigt Rechteversprechen.
 - generische KI-Visuals verwässern die eDebatte-CI.
+- White-Labeling entfernt notwendige Transparenz.
 - Arbeitsdateien gelangen ungeprüft in `public`.
 - Kampagnen behaupten Reichweite, Partner oder Live-Daten ohne Evidenz.
+- MarketingCampaign dupliziert oder überlädt das bestehende Campaign-Modell.
+- CRM-light entwickelt sich ohne klare Grenze zu einem unsicheren Parallel-CRM.
+- `approved` wird fälschlich als tatsächlich ausgespielt dargestellt.
 
 ## Acceptance Criteria
 
 - [x] `docs/marketing` besitzt einen kanonischen Einstieg und klare SSOT-Grenzen.
-- [x] bestehende Brand-/Voxy-Assets und Motion-Guardrails werden referenziert statt ersetzt.
+- [x] bestehende Brand-/Voxy-Assets, Produkt-Tokens und Motion-Guardrails werden referenziert statt ersetzt.
 - [x] Zielgruppen-Kits für Medien, Wissenschaft, Technologie, Kommunen, Initiativen, Parteien, Bildung, Unternehmen, Mitglieder und Partner sind angelegt.
-- [x] Kampagnen besitzen Ziel, Zielgruppe, CTA, Status und Decision-Grenze.
-- [x] Onepager-, Pitchdeck- und Kampagnenbrief-Vorlagen sind vorhanden.
+- [x] Kampagnen besitzen Ziel, Zielgruppe, CTA, Lifecycle und separate Readiness-Grenze.
+- [x] Onepager-, Pitchdeck-, Kampagnen-, Feature-Intake-, Distribution- und Relationship-Vorlagen sind vorhanden.
 - [x] Social- und Videosystem nutzt wiederholbare Content-Serien.
 - [x] VoiceOpenGov-Marketing trennt Partner, Mitgliedschaft, Plattformrolle, Stimmrecht und Repräsentationsmandat.
+- [x] White-Label- und Co-Branding-Regeln trennen veränderbare Gestaltung von unveränderlicher Produktwahrheit.
+- [x] Light- und Dark-Brandprofile basieren auf realen Produkt-Tokens.
+- [x] Dateinamen und Datenverträge sind anbieterneutral.
+- [x] Marketing Control Plane trennt MarketingCampaign von bestehender Campaign-Semantik.
+- [x] Admin-, BI- und CRM-light-Zielbild nutzt vorhandene Themenradar-, Audit- und Telemetriegrundlagen.
 - [x] `apps/web/public/marketing` enthält nur Asset-Regeln und ein leeres Freigabemanifest, keine ungeprüften Bilder.
 - [x] keine Produkt-, Routing-, Rollen- oder Runtime-Implementierung wurde vorgenommen.
 
-## Vorgeschlagener OpenTasks-Eintrag
+## Vorgeschlagene OpenTasks-Einträge
 
-Der operative Kopf sollte vor Merge oder in einem unmittelbar folgenden SSOT-Sync um folgende Zeile ergänzt werden:
+### Foundation-Slice
 
 ```text
-| MARKETING-GROWTH-OS-FOUNDATION-01 | review | P1 | VOG-MISSION-LAYER-01, bestehendes Brand-/Voxy-Pack, Voxy-Marketing-Pilotroadmap | Repo-basiertes Marketing-, Sales-, Social-, Video- und Partner-Operating-System mit Zielgruppen-Kits, Kampagnenplan, Vorlagen, Agentenregeln und freigegebener public-Assetstruktur anlegen, ohne Produkt- oder Governanceentscheidungen vorwegzunehmen | docs/marketing ist als SSOT-Einstieg vorhanden; vorhandene CI wird referenziert; Zielgruppen- und Kampagnenvorlagen sind reviewbar; public enthält nur freigegebene Assets; keine offene VOG-, Pricing-, Routing- oder Rollenentscheidung wird als umgesetzt dargestellt |
+| MARKETING-GROWTH-OS-FOUNDATION-01 | review | P1 | VOG-MISSION-LAYER-01, bestehendes Brand-/Voxy-Pack, Voxy-Marketing-Pilotroadmap, Part12, Themenradar | Repo-basiertes, anbieterneutrales Marketing-, Sales-, Social-, Video-, White-Label- und Partner-Operating-System mit Zielgruppen-Kits, Kampagnenplan, Brandprofilen, Vorlagen, Admin-Zielbild, Schemas und freigegebener public-Assetstruktur anlegen, ohne Produkt- oder Governanceentscheidungen vorwegzunehmen | docs/marketing ist als SSOT-Einstieg vorhanden; vorhandene CI und Tokens werden referenziert; White-Label trennt Gestaltung und unveränderliche Wahrheit; MarketingCampaign bleibt von Campaign getrennt; public enthält nur freigegebene Assets; keine offene VOG-, Pricing-, Routing-, Rollen-, Privacy- oder CRM-Entscheidung wird als umgesetzt dargestellt |
 ```
+
+### Admin-/BI-/CRM-Decision-Epic
+
+```text
+| MARKETING-CONTROL-PLANE-01 | manual_gate | P1 | MARKETING-GROWTH-OS-FOUNDATION-01, Part12, Themenradar, Organisations-/Rollenmodell, Privacy, VOG-MISSION-LAYER-01 | `/admin/marketing` als gemeinsame Steuerfläche für MarketingOpportunities, MarketingCampaigns, Assets, Brandprofile, Distribution, aggregierte Insights und CRM-light entscheiden; bestehende Campaign-, Themenradar-, Audit- und Telemetrie-Wahrheit wiederverwenden | Route und IA, Permission-Matrix, Datenownership, Marketingfähigkeit, Lifecycle, Distribution-/Credential-Grenzen, BI-Attribution, CRM-light-Scope, Retention, Löschung und White-Label-Verantwortung liegen als verbindlicher Decision-Contract vor; keine zweite Campaign-, CRM- oder Trackingwelt entsteht |
+```
+
+### Erster technischer Folge-Slice
+
+```text
+| MARKETING-REGISTRY-READMODEL-01 | blocked | P1 | MARKETING-CONTROL-PLANE-01 | Nach Entscheidung eine serverseitige Marketing-Registry und eine read-only `/admin/marketing`-Übersicht aufbauen, die Feature-/PR-/Themenradar-Evidence, Opportunities, Kampagnen, Assets, Blocker und Freigabestatus zeigt, ohne Distribution- oder CRM-Schreiblogik | Zod-/TypeScript-Contracts sind aus dem kanonischen Schema abgeleitet; bestehende Campaign- und Themenradar-Modelle werden nur referenziert; Admin-/2FA-Gates gelten; keine personenbezogene Telemetrie, kein Auto-Publish und kein paralleles CRM entstehen |
+```
+
+## Empfehlung
+
+- Foundation: `review`
+- Admin Control Plane: `needs_decision` / operativ `manual_gate`
+- technischer Registry-Slice: `blocked` bis zum Decision-Contract
 
 ## Validierung
 
-Da ausschließlich Markdown- und JSON-Dokumentation angelegt wird:
+Da ausschließlich Markdown- und JSON-Dokumentation angelegt oder geändert wird:
 
-- JSON-Manifest syntaktisch prüfen
-- interne Pfade und kanonische Referenzen prüfen
-- Diff auf Produkt-, Runtime- und Assetänderungen prüfen
-- keine App-Tests erforderlich
+- JSON-Dateien syntaktisch prüfen,
+- Brandprofile gegen die dokumentierten Produkt-Tokens prüfen,
+- interne Pfade und kanonische Referenzen prüfen,
+- Dateinamen auf Anbieterneutralität prüfen,
+- Diff auf Produkt-, Runtime-, Route-, Rollen- und Assetänderungen prüfen,
+- keine App-Tests erforderlich.
