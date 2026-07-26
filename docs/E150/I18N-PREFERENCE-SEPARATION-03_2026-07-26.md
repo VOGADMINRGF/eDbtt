@@ -3,7 +3,7 @@
 Datum: 2026-07-26
 OpenTasks-Status: review
 PR-Phase: Draft
-Evidence: PR pending
+Evidence: PR #427
 
 ## Ziel
 
