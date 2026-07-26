@@ -51,6 +51,19 @@ Fachliche Klassifikation: needs_decision.
 Operativer Status im aktuellen OpenTasks-Vokabular: manual_gate.
 Contract:
 docs/E150/VOG-MISSION-LAYER-01_2026-07-26.md
+Decision Closure:
+docs/E150/VOG-MISSION-LAYER-01_DECISIONS_2026-07-26.md
+Bleibt manual_gate; keine Folgearbeit auf codex_ready.
+-->
+| VOG-GOV-QUORUM-01 | manual_gate | P1 | VOG-MISSION-LAYER-01 | Verbindliche Legitimations- und Quorumregeln für VOG-Positionen festlegen: Teilnahmeberechtigung, absolutes und proportionales Quorum, politische Ebene, Bevölkerungsgröße, geografische Verteilung, Mehrheitsschwelle, Grundsatzfragen, Statusübergänge, Manipulationsschutz und Revisionsregeln | klare Trennung von Teilnahmequorum und Entscheidungsschwelle; Regel für kleine und große Kommunen; Regel für Landes- und Bundesverfahren; Bewertung der Schwellen 1.000/10.000/100.000; einfache Mehrheit versus 2/3 bei Grundsatzfragen; eine natürliche Person, eine Stimme; keine institutionellen oder finanziell gewichteten Stimmen; Minderheitenbericht verbindlich; jede Regel vor Abstimmungsbeginn unveränderlich veröffentlicht; keine Produktimplementierung vor menschlicher Freigabe |
+<!--
+VOG-GOV-QUORUM-01 bleibt ein separater P1-Decision-Task.
+Die generischen Typen `weighted` und `payroll-weighted` im Repo sind keine
+Freigabe für allgemeine demokratische oder VOG-interne Abstimmungen.
+Für diese Verfahren gilt: eine berechtigte natürliche Person, eine Stimme.
+Eine endgültige VOG-spezifische Quorumformel ist noch offen.
+-->
+<!--
 Keine Implementierung freigegeben.
 -->
 | PROD-PUBLIC-LIVE-SMOKE-02A | done | P0 | keine | Öffentlicher Production-Live-Smoke aus PR `#409` für reale Public-Read-Pfade, ohne mutierende Freigaben oder Testkonto-Annahme | Öffentliche Live-/Read-Pfade wurden produktionsnah geprüft; keine Mutation wurde freigegeben; die Erledigung wird nicht als authenticated Production-Smoke fehlgelesen |
