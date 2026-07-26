@@ -104,7 +104,7 @@ describe("runtime mongo error classification", () => {
     await expect(mongoPing("core")).rejects.toThrow("[srv]");
   });
 
-  it("uses shared classification in draftStore runtime errors", async () => {
+  it("uses shared classification in legacy draftStore read runtime errors", async () => {
     vi.stubEnv("CORE_MONGODB_URI", "mongodb://localhost:27017/core");
     vi.stubEnv("CORE_DB_NAME", "core");
     vi.doMock("mongodb", () => ({
@@ -119,15 +119,13 @@ describe("runtime mongo error classification", () => {
         db() {
           return {
             collection() {
-              return { insertOne: async () => ({ acknowledged: true }) };
+              return { findOne: async () => null };
             },
           };
         }
       },
     }));
-    const { createDraft } = await import("@/server/draftStore");
-    await expect(
-      createDraft({ kind: "contribution", text: "test" }),
-    ).rejects.toThrow("[conn_refused]");
+    const { getDraft } = await import("@/server/draftStore");
+    await expect(getDraft("legacy-id")).rejects.toThrow("[conn_refused]");
   });
 });

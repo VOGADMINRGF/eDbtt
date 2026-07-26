@@ -60,6 +60,7 @@ import type {
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
   buildCreateStructureBranches,
+  normalizeDocumentAnalysisSummary,
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
@@ -70,6 +71,10 @@ import {
 import CreateVisualFollowup, {
   deriveCreateStructureOverviewMetrics,
 } from "@/features/create/CreateVisualFollowup";
+import CreateDebattenstandSidecar, {
+  CreateDebattenstandStatusBar,
+} from "@/features/create/CreateDebattenstandSidecar";
+import { deriveCreateDebattenstandModel } from "@/features/create/createDebattenstandSelector";
 import {
   buildCreateHandoffDraft,
   buildCreateHandoffTargetHref,
@@ -1586,8 +1591,12 @@ export default function CreateClient({
           onSaveOnly={handleSaveOnly}
           onSkipPlaceClarification={handleSkipPlaceClarification}
           linkDetection={currentLinkDetection}
-          compactBranchLimit={3}
-          expandedBranchLimit={Math.max(3, entitlements.maxVisibleAiProposals)}
+          compactBranchLimit={compactTopicPreviewCount}
+          expandedBranchLimit={Math.max(
+            compactTopicPreviewCount,
+            entitlements.maxVisibleAiProposals,
+            debattenstandTopicLabels.length,
+          )}
           documentTopicOverviewOpened={documentTopicOverviewOpened}
           showExpandedTopicPreview={showExpandedTopicPreview}
           topicExpansionDecision={topicExpansionDecision}
@@ -1737,6 +1746,93 @@ export default function CreateClient({
     understandingConfirmed,
     workspaceActionMode,
   ]);
+  const compactTopicPreviewCount = 4;
+  const debattenstandTopicLabels = React.useMemo(() => {
+    if (!intelligentFollowup) return [];
+    const documentTopicLabels = intelligentFollowup.meta?.documentAnalysis
+      ? normalizeDocumentAnalysisSummary(intelligentFollowup.meta.documentAnalysis).topics.map(
+          (topic) => topic.label,
+        )
+      : [];
+    if (documentTopicLabels.length > 0) {
+      return dedupeCreatePlannerTopicLabels(documentTopicLabels);
+    }
+    const semanticTopicCount = Math.max(
+      intelligentFollowup.understanding.topics.length,
+      intelligentFollowup.meta?.planner?.plannerClusters.length ?? 0,
+    );
+    const fullBranchLabels = buildCreateStructureBranches(
+      intelligentFollowup,
+      Math.max(compactTopicPreviewCount, semanticTopicCount),
+    ).map((branch) => branch.title);
+    return dedupeCreatePlannerTopicLabels(fullBranchLabels);
+  }, [intelligentFollowup]);
+  const visibleDebattenstandTopicLabels = React.useMemo(() => {
+    if (documentTopicOverviewOpened || showExpandedTopicPreview) {
+      return debattenstandTopicLabels;
+    }
+    return debattenstandTopicLabels.slice(0, compactTopicPreviewCount);
+  }, [
+    debattenstandTopicLabels,
+    documentTopicOverviewOpened,
+    showExpandedTopicPreview,
+  ]);
+  const debattenstandModel = React.useMemo(
+    () =>
+      deriveCreateDebattenstandModel({
+        hasStarted,
+        isStarting,
+        understandingConfirmed,
+        workspaceActionMode,
+        analysisState:
+          analysisState ??
+          (showLinkClarification
+            ? "link_detected"
+            : intelligentFollowup
+              ? "result_ready"
+              : hasStarted
+                ? "ai_failed"
+                : "idle"),
+        sourceKind: intelligentFollowup?.meta?.documentAnalysis
+          ? "document"
+          : currentLinkDetection.hasLink
+            ? "link"
+            : "text",
+        hasSourceMaterial:
+          currentLinkDetection.hasLink ||
+          currentMaterialRouting.sourceUrls.length > 0 ||
+          currentMaterialRouting.materialItems.length > 0,
+        requestedSourceReview:
+          workspaceActionMode === "source" || Boolean(factcheckMessage),
+        activeTopicLabel,
+        selectedPrimaryTopic,
+        groupedTopicLabels,
+        parkedTopicLabels,
+        allTopicLabels: debattenstandTopicLabels,
+        visibleTopicLabels: visibleDebattenstandTopicLabels,
+        compactTopicCount: compactTopicPreviewCount,
+      }),
+    [
+      activeTopicLabel,
+      analysisState,
+      currentLinkDetection.hasLink,
+      currentMaterialRouting.materialItems.length,
+      currentMaterialRouting.sourceUrls.length,
+      debattenstandTopicLabels,
+      factcheckMessage,
+      groupedTopicLabels,
+      hasStarted,
+      intelligentFollowup,
+      intelligentFollowup?.meta?.documentAnalysis,
+      isStarting,
+      parkedTopicLabels,
+      selectedPrimaryTopic,
+      showLinkClarification,
+      understandingConfirmed,
+      visibleDebattenstandTopicLabels,
+      workspaceActionMode,
+    ],
+  );
 
   const persistSavedWorkstate = React.useCallback(
     async (params: {
@@ -2242,7 +2338,7 @@ export default function CreateClient({
   const handleKeepCompactTopicPreview = React.useCallback(() => {
     setShowExpandedTopicPreview(false);
     setTopicExpansionDecision("compact");
-    setActionNotice("Du arbeitest zunächst nur mit diesen drei Themen weiter.");
+    setActionNotice("Du arbeitest zunächst mit der kompakten Themenansicht weiter.");
   }, []);
 
   const handlePrepareLinkReview = React.useCallback(async () => {
@@ -2644,6 +2740,20 @@ export default function CreateClient({
                 ) : null}
               </div>
             }
+            renderSidecar={(density) => (
+              <CreateDebattenstandSidecar
+                model={debattenstandModel}
+                density={density}
+                onExpandTopics={
+                  debattenstandModel.hiddenTopicCount > 0
+                    ? handleOpenDocumentTopicOverview
+                    : undefined
+                }
+              />
+            )}
+            renderMobileSidecarSummary={(onOpen) => (
+              <CreateDebattenstandStatusBar model={debattenstandModel} onOpen={onOpen} />
+            )}
             composer={
               <SharedCreateComposer
                 badge={surfaceTexts.badgeCanonical}
@@ -2787,6 +2897,7 @@ export default function CreateClient({
                 minRows={7}
                 collapseModeSelector
                 embeddedWorkspace
+                showSceneRail={false}
                 experienceVariant="workspace_shell"
                 workspacePhase={hasStarted ? "continuation" : "initial"}
                 hideAlternateModeDisclosure

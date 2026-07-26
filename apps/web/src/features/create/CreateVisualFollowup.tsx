@@ -1846,8 +1846,7 @@ function TopicExpansionPrompt(props: {
   onDeferExpandedReview?: () => void;
   onPrepareLinkReview?: () => void;
 }) {
-  const expandButtonLabel =
-    props.overflowCount === 1 ? "Weiteres Thema anzeigen" : "Alle Themen öffnen";
+  const expandButtonLabel = `Alle ${props.totalTopicCount} Themen anzeigen`;
   const overflowNotice =
     props.overflowCount === 1
       ? "Ein weiteres Thema wurde erkannt."
@@ -1855,8 +1854,8 @@ function TopicExpansionPrompt(props: {
   const intro =
     props.overflowCount > 0
       ? props.totalSubtopicCount > 0
-        ? `Ich habe ${props.totalTopicCount} Themenbereiche und ${props.totalSubtopicCount} Unterthemen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir als Einstieg.`
-        : `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount === 3 ? "Drei" : props.visibleTopicCount} zeige ich dir kompakt.`
+        ? `Ich habe ${props.totalTopicCount} Themenbereiche und ${props.totalSubtopicCount} Unterthemen erkannt. ${props.visibleTopicCount === 4 ? "Vier" : props.visibleTopicCount} zeige ich dir als Einstieg.`
+        : `Ich habe ${props.totalTopicCount} Themen erkannt. ${props.visibleTopicCount === 4 ? "Vier" : props.visibleTopicCount} zeige ich dir kompakt.`
       : "Link erkannt";
 
   return (
@@ -3278,8 +3277,8 @@ export default function CreateVisualFollowup({
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   linkDetection = null,
-  compactBranchLimit: compactBranchLimitProp = 3,
-  expandedBranchLimit: expandedBranchLimitProp = 3,
+  compactBranchLimit: compactBranchLimitProp = 4,
+  expandedBranchLimit: expandedBranchLimitProp = 4,
   documentTopicOverviewOpened = false,
   showExpandedTopicPreview = false,
   topicExpansionDecision = "idle",
@@ -3349,9 +3348,13 @@ export default function CreateVisualFollowup({
     () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, compactBranchLimit) : []),
     [compactBranchLimit, hasValidatedAnalysis, result],
   );
+  const semanticTopicCount = Math.max(
+    result.understanding.topics.length,
+    result.meta?.planner?.plannerClusters.length ?? 0,
+  );
   const fullStructureBranchLimit = documentAnalysis
     ? Math.max(1, documentTopicCount)
-    : expandedBranchLimit;
+    : Math.max(expandedBranchLimit, semanticTopicCount);
   const fullStructureBranches = React.useMemo(
     () => (hasValidatedAnalysis ? buildCreateStructureBranches(result, fullStructureBranchLimit) : []),
     [fullStructureBranchLimit, hasValidatedAnalysis, result],

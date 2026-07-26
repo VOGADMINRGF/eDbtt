@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {
+  QR_STUDIO_CALLER_INVENTORY,
+  getQrStudioCallerLabel,
+  resolveQrStudioTarget,
+} from "@features/qr";
 
 type SummaryResponse = {
   ok: boolean;
@@ -76,6 +82,7 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 }
 
 export default function QrStudioPage() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<"manual" | "research">("manual");
   const [title, setTitle] = useState("");
   const [sourceText, setSourceText] = useState("");
@@ -86,6 +93,7 @@ export default function QrStudioPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
+  const [targetQrImage, setTargetQrImage] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [targetBase, setTargetBase] = useState("");
 
@@ -136,6 +144,23 @@ export default function QrStudioPage() {
     }
   }, [origin, targetBase]);
 
+  const studioTarget = useMemo(
+    () =>
+      resolveQrStudioTarget({
+        target: searchParams.get("target"),
+        caller: searchParams.get("caller"),
+        publicOrigin: origin || undefined,
+      }),
+    [origin, searchParams],
+  );
+
+  const studioTargetBlocked =
+    studioTarget.status === "blocked" ||
+    (studioTarget.status === "empty" && searchParams.get("targetState") === "blocked");
+
+  const studioCallerLabel = getQrStudioCallerLabel(searchParams.get("caller"));
+  const studioCallerInventory = Object.values(QR_STUDIO_CALLER_INVENTORY).join(" · ");
+
   useEffect(() => {
     async function renderQr() {
       if (!createdCode || !effectiveBase) {
@@ -152,6 +177,26 @@ export default function QrStudioPage() {
     }
     void renderQr();
   }, [createdCode, effectiveBase]);
+
+  useEffect(() => {
+    async function renderTargetQr() {
+      if (studioTarget.status !== "ready") {
+        setTargetQrImage(null);
+        return;
+      }
+      try {
+        const dataUrl = await QRCode.toDataURL(studioTarget.absoluteHref, {
+          width: 240,
+          margin: 1,
+        });
+        setTargetQrImage(dataUrl);
+      } catch {
+        setTargetQrImage(null);
+      }
+    }
+
+    void renderTargetQr();
+  }, [studioTarget]);
 
   const adoptFromSource = () => {
     const candidates = extractCandidates(sourceText).slice(0, MAX_QUESTIONS);
@@ -428,6 +473,75 @@ export default function QrStudioPage() {
           </div>
 
           <div className="space-y-4">
+            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Kanonischer Public-QR</h3>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Alte Share-, Druck- und Review-Links laufen kontrolliert hier zusammen. Erlaubt
+                sind interne Pfade und freigegebene HTTPS-Ziele.
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+                <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
+                  Aufrufer: {studioCallerLabel}
+                </span>
+                {studioTarget.status === "ready" ? (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
+                    {studioTarget.targetKind === "internal" ? "Interner Pfad" : "Freigegebenes HTTPS-Ziel"}
+                  </span>
+                ) : null}
+                {studioTargetBlocked ? (
+                  <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">
+                    Ziel blockiert
+                  </span>
+                ) : null}
+              </div>
+
+              {studioTarget.status === "ready" ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    {targetQrImage ? (
+                      <img
+                        src={targetQrImage}
+                        alt="QR-Code für das kanonische Ziel"
+                        className="h-28 w-28 rounded-xl border border-[rgb(var(--border))]"
+                      />
+                    ) : (
+                      <div className="h-28 w-28 rounded-xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))]" />
+                    )}
+                    <div className="text-xs text-[rgb(var(--muted))]">
+                      <p className="font-semibold text-[rgb(var(--fg))]">Ziel</p>
+                      <a
+                        className="break-all underline"
+                        href={studioTarget.absoluteHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {studioTarget.displayHref}
+                      </a>
+                      <p className="mt-2">
+                        Dieser QR bleibt guardrailed: kein Open Redirect, kein `javascript:` und
+                        kein `data:`-Ziel.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : studioTargetBlocked ? (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-xs text-rose-800">
+                  Das übergebene Ziel wurde fail-closed blockiert. Erlaubt sind nur interne Pfade
+                  oder freigegebene HTTPS-Ziele unter der bekannten eDebatte-Domain.
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 text-xs text-[rgb(var(--muted))]">
+                  Wenn ein sichtbarer Public-Link aus Review, Themenseite oder Organisationskontext
+                  kommt, erscheint das kanonische Ziel hier.
+                </div>
+              )}
+
+              <p className="mt-3 text-[11px] text-[rgb(var(--muted))]">
+                Caller-Inventar: {studioCallerInventory}
+              </p>
+            </div>
+
             <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Dein QR-Code</h3>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">

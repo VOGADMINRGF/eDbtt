@@ -35,7 +35,8 @@ const mocks = vi.hoisted(() => {
         return {
           async findOne(filter: AnyDoc) {
             const found = drafts.get(toKey(filter._id));
-            if (!found || String(found.authorId) !== String(filter.authorId)) return null;
+            if (!found) return null;
+            if (filter.authorId && String(found.authorId) !== String(filter.authorId)) return null;
             return { ...found };
           },
           async updateOne() {
@@ -52,30 +53,56 @@ const mocks = vi.hoisted(() => {
       }
       throw new Error(`unexpected_collection_${name}`);
     }),
-    coreCol: vi.fn(async () => ({
-      find() {
+    coreCol: vi.fn(async (name?: string) => {
+      if (name === "drafts") {
         return {
-          sort() {
-            return {
-              limit() {
-                return { async next() { return null; } };
-              },
-            };
+          async findOne(filter: AnyDoc) {
+            const found = drafts.get(toKey(filter?._id));
+            if (!found) return null;
+            if (filter?.userId && String(found.userId) !== String(filter.userId)) return null;
+            return { ...found };
+          },
+          async updateOne(filter: AnyDoc, update: AnyDoc) {
+            const found = drafts.get(toKey(filter?._id));
+            if (!found) return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+            if (filter?.userId && String(found.userId) !== String(filter.userId)) {
+              return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+            }
+            const nextSet = update?.$set && typeof update.$set === "object" ? update.$set : {};
+            drafts.set(toKey(filter._id), { ...found, ...nextSet });
+            return { acknowledged: true, matchedCount: 1, modifiedCount: 1 };
           },
         };
-      },
-      async insertOne() {
-        return { acknowledged: true };
-      },
-      async updateOne() {
-        return { acknowledged: true };
-      },
-    })),
+      }
+      return {
+        find() {
+          return {
+            sort() {
+              return {
+                limit() {
+                  return { async next() { return null; } };
+                },
+              };
+            },
+          };
+        },
+        async insertOne() {
+          return { acknowledged: true };
+        },
+        async updateOne() {
+          return { acknowledged: true };
+        },
+      };
+    }),
   };
 });
 
-vi.mock("next/headers", () => ({
-  cookies: () => mocks.cookies(),
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: vi.fn(async () => ({
+    _id: { toHexString: () => "user-1" },
+    roles: ["user"],
+    sessionValid: true,
+  })),
 }));
 
 vi.mock("@core/db/triMongo", async () => {
@@ -104,7 +131,7 @@ function seedDraft(params: {
   const id = new ObjectId();
   mocks.seedDraft({
     _id: id,
-    authorId: "user-1",
+    userId: "user-1",
     status: "draft",
     analysis: {
       safety: {

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { patchDraft, getDraft } from "@/server/draftStore";
+import { getDraft } from "@/server/draftStore";
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -9,8 +9,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;        // <- Next verlangt await
-  const body = await req.json();
-  const res = await patchDraft(id, body);
-  return NextResponse.json(res);
+  await ctx.params;
+  await req.json().catch(() => null);
+  return NextResponse.json(
+    { ok: false, error: "legacy_draft_write_retired" },
+    { status: 410 },
+  );
 }
