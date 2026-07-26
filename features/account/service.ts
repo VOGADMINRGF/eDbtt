@@ -88,6 +88,10 @@ type UserDoc = {
   publicFlags?: ProfilePublicFlags;
   settings?: {
     preferredLocale?: string | null;
+    uiLocale?: string | null;
+    readingLocale?: string | null;
+    preferredOutputLocales?: string[] | null;
+    showOriginalByDefault?: boolean;
     newsletterOptIn?: boolean;
     featureInterests?: string[];
   };
@@ -181,7 +185,18 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
 
   if (!doc) return null;
 
-  const preferredLocale = normalizeLocale(doc.settings?.preferredLocale ?? doc.profile?.locale);
+  const uiLocale = normalizeLocale(
+    doc.settings?.uiLocale ?? doc.settings?.preferredLocale ?? doc.profile?.locale,
+  );
+  const readingLocale = normalizeLocale(
+    doc.settings?.readingLocale ?? doc.settings?.preferredLocale ?? doc.profile?.locale ?? uiLocale,
+  );
+  const preferredOutputLocales = normalizeLocaleList(
+    doc.settings?.preferredOutputLocales,
+    readingLocale,
+  );
+  const showOriginalByDefault = Boolean(doc.settings?.showOriginalByDefault);
+  const preferredLocale = readingLocale;
   const graphMergeCandidatesPromise = import("./loadAccountGraphMergeCandidates").then(
     ({ loadAccountGraphMergeCandidates }) =>
       loadAccountGraphMergeCandidates(String(doc._id), 8),
@@ -312,6 +327,10 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     verification,
     pricingTier: derivePricingTier(doc, accessTier),
     stats,
+    uiLocale,
+    readingLocale,
+    preferredOutputLocales,
+    showOriginalByDefault,
     preferredLocale,
     newsletterOptIn: doc.settings?.newsletterOptIn ?? false,
     featureInterests: sanitizeFeatureInterests(doc.settings?.featureInterests ?? []),
@@ -357,8 +376,29 @@ export async function updateAccountSettings(
     const value = patch.displayName?.trim() || null;
     setOps["profile.displayName"] = value;
   }
+  if (patch.uiLocale !== undefined) {
+    if (isSupportedLocale(patch.uiLocale)) {
+      setOps["settings.uiLocale"] = patch.uiLocale;
+    }
+  }
+  if (patch.readingLocale !== undefined) {
+    if (isSupportedLocale(patch.readingLocale)) {
+      setOps["settings.readingLocale"] = patch.readingLocale;
+      setOps["settings.preferredLocale"] = patch.readingLocale;
+    }
+  }
+  if (patch.preferredOutputLocales !== undefined) {
+    setOps["settings.preferredOutputLocales"] = normalizeLocaleList(
+      patch.preferredOutputLocales,
+      patch.readingLocale ?? patch.preferredLocale ?? DEFAULT_LOCALE,
+    );
+  }
+  if (typeof patch.showOriginalByDefault === "boolean") {
+    setOps["settings.showOriginalByDefault"] = patch.showOriginalByDefault;
+  }
   if (patch.preferredLocale !== undefined) {
     if (isSupportedLocale(patch.preferredLocale)) {
+      setOps["settings.readingLocale"] = patch.preferredLocale;
       setOps["settings.preferredLocale"] = patch.preferredLocale;
     }
   }
@@ -739,6 +779,17 @@ function deriveStats(doc: UserDoc): AccountStats {
 function normalizeLocale(value?: string | null) {
   if (typeof value === "string" && isSupportedLocale(value)) return value;
   return DEFAULT_LOCALE;
+}
+
+function normalizeLocaleList(
+  input: readonly string[] | null | undefined,
+  fallback: typeof DEFAULT_LOCALE,
+) {
+  const locales = Array.isArray(input)
+    ? input.filter((value): value is typeof DEFAULT_LOCALE => isSupportedLocale(value))
+    : [];
+  const unique = Array.from(new Set(locales));
+  return unique.length > 0 ? unique : [fallback];
 }
 
 function sanitizeFeatureInterests(
