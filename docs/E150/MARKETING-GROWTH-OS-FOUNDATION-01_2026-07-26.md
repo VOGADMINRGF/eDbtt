@@ -109,7 +109,7 @@ Veränderbar nach Freigabe:
 - Absendername,
 - Logos,
 - Akzentfarben innerhalb definierter Kontrastgrenzen,
-- Kontakt- und Rechtsangaben,
+- geprüfte Kontakt- und Rechtsziele,
 - CTA-Ziele,
 - Cover-, Endframe- und Exportvarianten,
 - Co-Branding und Sprache.
@@ -124,7 +124,9 @@ Nicht veränderbar:
 - keine Fake-Partner oder Fake-Zahlen,
 - Trennung von eDebatte, Stakeholderposition, Community-Ergebnis und offizieller VoiceOpenGov-Position.
 
-Dateinamen und Datenmodelle sind anbieterneutral. Namen von KI-, Design-, Video- oder Office-Werkzeugen werden nicht als dauerhafte Assetidentität verwendet.
+Dateinamen und Datenmodelle sind anbieterneutral. Namen von KI-, Design-, Video-, Präsentations- oder Office-Werkzeugen werden nicht als dauerhafte Assetidentität verwendet.
+
+Die angelegten Light- und Dark-Brandprofile sind `review_ready`, nicht `approved`. Sie sind aus realen Produkt-Tokens abgeleitet, benötigen aber vor Produktions- oder White-Label-Export eine explizite Brandfreigabe und reale Rechts-/Kontaktziele.
 
 ## Abgrenzung
 
@@ -210,7 +212,7 @@ Dieser Slice verändert nicht:
 - [x] Social- und Videosystem nutzt wiederholbare Content-Serien.
 - [x] VoiceOpenGov-Marketing trennt Partner, Mitgliedschaft, Plattformrolle, Stimmrecht und Repräsentationsmandat.
 - [x] White-Label- und Co-Branding-Regeln trennen veränderbare Gestaltung von unveränderlicher Produktwahrheit.
-- [x] Light- und Dark-Brandprofile basieren auf realen Produkt-Tokens.
+- [x] Light- und Dark-Brandprofile basieren auf realen Produkt-Tokens und bleiben bis zur Freigabe `review_ready`.
 - [x] Dateinamen und Datenverträge sind anbieterneutral.
 - [x] Marketing Control Plane trennt MarketingCampaign von bestehender Campaign-Semantik.
 - [x] Admin-, BI- und CRM-light-Zielbild nutzt vorhandene Themenradar-, Audit- und Telemetriegrundlagen.
