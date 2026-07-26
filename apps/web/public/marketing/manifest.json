@@ -1,23 +1,40 @@
 {
   "name": "eDebatte Marketing Asset Registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "foundation_only",
-  "canonical_sources": {
+  "canonicalSources": {
     "marketing": "/docs/marketing/README.md",
     "brand": "/apps/web/public/brand/README.md",
-    "voxy": "/apps/web/public/brand/voxy/manifest.json"
+    "voxy": "/apps/web/public/brand/voxy/manifest.json",
+    "designTokens": "/apps/web/src/app/globals.css",
+    "brandMetadata": "/apps/web/src/lib/brand.ts",
+    "controlPlane": "/docs/marketing/admin/marketing-control-plane.md",
+    "whiteLabel": "/docs/marketing/white-label/brand-profile-contract.md",
+    "schema": "/docs/marketing/schemas/marketing-control-plane.schema.json"
   },
+  "brandProfileSources": [
+    "/docs/marketing/white-label/profiles/edebatte-light.brand-profile.json",
+    "/docs/marketing/white-label/profiles/edebatte-dark.brand-profile.json"
+  ],
   "rules": {
-    "approved_assets_only": true,
-    "no_fake_partners": true,
-    "no_fake_metrics": true,
-    "no_auto_publish": true,
-    "preserve_original_language": true,
-    "use_canonical_voxy_assets": true
+    "approvedAssetsOnly": true,
+    "separateApprovalAndPublication": true,
+    "vendorNeutralFileNames": true,
+    "noFakePartners": true,
+    "noFakeMetrics": true,
+    "noAutoPublish": true,
+    "preserveOriginalLanguage": true,
+    "useCanonicalVoxyAssets": true,
+    "requireBrandProfile": true,
+    "requireDistributionRecordForPublishedClaim": true,
+    "noPersonalData": true
   },
+  "namingPattern": "<brand>-<campaign>-<asset-type>-<audience>-<locale>-<format>-v<version>.<ext>",
   "collections": [],
   "notes": [
     "Collections are added only when approved assets exist.",
-    "Working files, campaign briefs and scripts stay under docs/marketing."
+    "Working files, campaign briefs, schemas and scripts stay under docs/marketing.",
+    "Approved does not mean published; real distribution is tracked separately.",
+    "Tool, model, chat and session names must not become permanent asset names."
   ]
 }
