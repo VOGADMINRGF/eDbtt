@@ -191,6 +191,10 @@ export type AccountOverview = {
   edebatte?: AccountEdebateInfo;
   pricingTier: PricingTier;
   stats: AccountStats;
+  uiLocale: SupportedLocale;
+  readingLocale: SupportedLocale;
+  preferredOutputLocales: SupportedLocale[];
+  showOriginalByDefault: boolean;
   preferredLocale: SupportedLocale;
   newsletterOptIn: boolean;
   emailVerified: boolean;
@@ -207,6 +211,10 @@ export type AccountOverview = {
 
 export type AccountSettingsUpdate = {
   displayName?: string | null;
+  uiLocale?: SupportedLocale;
+  readingLocale?: SupportedLocale;
+  preferredOutputLocales?: SupportedLocale[];
+  showOriginalByDefault?: boolean;
   preferredLocale?: SupportedLocale;
   newsletterOptIn?: boolean;
   featureInterests?: AccountFeatureInterestKey[];

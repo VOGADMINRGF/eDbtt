@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { SUPPORTED_LOCALES, getLocaleConfig } from "@/config/locales";
+import { useLanguagePreferences } from "@/context/LocaleContext";
 import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
@@ -89,6 +91,11 @@ const secondaryLightButtonClass =
 const ghostDarkButtonClass =
   "btn-ghost inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold";
 
+const LANGUAGE_OPTIONS = SUPPORTED_LOCALES.map((code) => ({
+  value: code,
+  label: getLocaleConfig(code).label,
+}));
+
 const selectedSurfaceClass =
   "border-sky-300/60 bg-sky-100 text-sky-900 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:border-sky-400/40 dark:bg-sky-500/18 dark:text-sky-100";
 
@@ -119,6 +126,10 @@ export type ProfileData = {
   id: string;
   displayName: string;
   email: string;
+  uiLocale: string;
+  readingLocale: string;
+  preferredOutputLocale: string;
+  showOriginalByDefault: boolean;
   preferredLocale: string;
   newsletterOptIn: boolean;
   avatarUrl?: string | null;
@@ -862,7 +873,7 @@ function CompactProfileHubSection({
   const selectedTopicSignature = selectedTopics.join("|");
   const hasLocationContext = locationTerms.length > 0;
   const locationContextLabel = hasLocationContext ? locationTerms.join(" · ") : null;
-  const preferredReaderLocale = profile.preferredLocale || "de";
+  const preferredReaderLocale = profile.readingLocale || profile.preferredLocale || "de";
 
   const displayNamePreview = displayName.trim() || "Dein Anzeigename";
   const taglinePreview = tagline.trim() || "Kurzprofil hinzufügen";
@@ -3325,6 +3336,17 @@ function normalizeOverview(src: any): AccountOverview {
     id: src?.profile?.id ?? src?.id ?? "",
     displayName: src?.profile?.displayName ?? src?.displayName ?? "Dein Anzeigename",
     email: src?.profile?.email ?? src?.email ?? "",
+    uiLocale: src?.profile?.uiLocale ?? src?.uiLocale ?? src?.preferredLocale ?? "de",
+    readingLocale: src?.profile?.readingLocale ?? src?.readingLocale ?? src?.preferredLocale ?? "de",
+    preferredOutputLocale:
+      src?.profile?.preferredOutputLocale ??
+      src?.preferredOutputLocales?.[0] ??
+      src?.readingLocale ??
+      src?.preferredLocale ??
+      "de",
+    showOriginalByDefault: Boolean(
+      src?.profile?.showOriginalByDefault ?? src?.showOriginalByDefault,
+    ),
     preferredLocale: src?.profile?.preferredLocale ?? src?.preferredLocale ?? "de",
     newsletterOptIn: Boolean(src?.profile?.newsletterOptIn ?? src?.newsletterOptIn),
     avatarUrl: src?.profile?.avatarUrl ?? null,
@@ -3586,6 +3608,12 @@ type ProfileCardProps = {
 };
 
 function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
+  const {
+    setUiLocale,
+    setReadingLocale,
+    setPreferredOutputLocales,
+    setShowOriginalByDefault,
+  } = useLanguagePreferences();
   const [draft, setDraft] = useState<ProfileData>(profile);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -3607,6 +3635,10 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
 
   const hasChanges =
     draft.displayName !== profile.displayName ||
+    draft.uiLocale !== profile.uiLocale ||
+    draft.readingLocale !== profile.readingLocale ||
+    draft.preferredOutputLocale !== profile.preferredOutputLocale ||
+    draft.showOriginalByDefault !== profile.showOriginalByDefault ||
     draft.preferredLocale !== profile.preferredLocale ||
     draft.newsletterOptIn !== profile.newsletterOptIn;
 
@@ -3690,12 +3722,22 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         displayName: draft.displayName,
+        uiLocale: draft.uiLocale,
+        readingLocale: draft.readingLocale,
+        preferredOutputLocales: [draft.preferredOutputLocale],
+        showOriginalByDefault: draft.showOriginalByDefault,
         preferredLocale: draft.preferredLocale,
         newsletterOptIn: draft.newsletterOptIn,
       }),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Speichern fehlgeschlagen");
+        setUiLocale(draft.uiLocale as Parameters<typeof setUiLocale>[0]);
+        setReadingLocale(draft.readingLocale as Parameters<typeof setReadingLocale>[0]);
+        setPreferredOutputLocales([
+          draft.preferredOutputLocale as Parameters<typeof setPreferredOutputLocales>[0][number],
+        ]);
+        setShowOriginalByDefault(draft.showOriginalByDefault);
         setSaveMsg("Gespeichert");
         onRefresh();
       })
@@ -3787,21 +3829,79 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="preferredLocale" className="text-xs font-medium text-[rgb(var(--muted))]">
-                Bevorzugte Sprache
+              <label htmlFor="uiLocale" className="text-xs font-medium text-[rgb(var(--muted))]">
+                UI-Sprache
               </label>
               <select
-                id="preferredLocale"
-                name="preferredLocale"
+                id="uiLocale"
+                name="uiLocale"
                 className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
-                value={draft.preferredLocale}
-                onChange={(event) => handleFieldChange({ preferredLocale: event.target.value })}
+                value={draft.uiLocale}
+                onChange={(event) => handleFieldChange({ uiLocale: event.target.value })}
               >
-                <option value="de">Deutsch</option>
-                <option value="en">English</option>
+                {LANGUAGE_OPTIONS.filter((option) => option.value === "de" || option.value === "en").map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label htmlFor="readingLocale" className="text-xs font-medium text-[rgb(var(--muted))]">
+                Lesesprache
+              </label>
+              <select
+                id="readingLocale"
+                name="readingLocale"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
+                value={draft.readingLocale}
+                onChange={(event) =>
+                  handleFieldChange({
+                    readingLocale: event.target.value,
+                    preferredLocale: event.target.value,
+                  })
+                }
+              >
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="preferredOutputLocale" className="text-xs font-medium text-[rgb(var(--muted))]">
+                Bevorzugte Ausgabesprache
+              </label>
+              <select
+                id="preferredOutputLocale"
+                name="preferredOutputLocale"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
+                value={draft.preferredOutputLocale}
+                onChange={(event) => handleFieldChange({ preferredOutputLocale: event.target.value })}
+              >
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <label className="inline-flex items-start gap-2 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+            <input
+              type="checkbox"
+              className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500 dark:focus:ring-sky-500/30"
+              checked={draft.showOriginalByDefault}
+              onChange={(event) => handleFieldChange({ showOriginalByDefault: event.target.checked })}
+            />
+            <span>Originalsprache standardmäßig anzeigen, wenn eine Übersetzung verfügbar ist.</span>
+          </label>
 
           <label className="inline-flex items-start gap-2 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
             <input

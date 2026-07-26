@@ -36,6 +36,10 @@ export type CoreUserProfile = {
 
 export type CoreUserSettings = {
   preferredLocale?: string | null;
+  uiLocale?: string | null;
+  readingLocale?: string | null;
+  preferredOutputLocales?: string[] | null;
+  showOriginalByDefault?: boolean;
   newsletterOptIn?: boolean;
 };
 
