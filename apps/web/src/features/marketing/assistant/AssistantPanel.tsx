@@ -14,26 +14,50 @@ const COPY = {
   de: {
     eyebrow: "Marketing-Assistent",
     mode: "Nur Empfehlungen",
-    dataQuality: "Datenlage",
-    confidence: "Sicherheit der Einordnung",
+    inventory: "Bestandsdaten",
+    inventoryValue: "Verifiziert",
+    recommendationConfidence: "Empfehlungssicherheit",
     why: "Grundlage und Grenzen anzeigen",
     evidence: "Berücksichtigte Belege",
     missing: "Noch fehlende Grundlage",
     nextActions: "Empfohlene nächste Schritte",
     noActions: "Aktuell ist keine zusätzliche Aktion erforderlich.",
     noAutomation: "Der Assistent verändert, terminiert oder veröffentlicht nichts selbstständig.",
+    open: "Öffnen",
+    confidence: {
+      high: "Hoch",
+      medium: "Mittel",
+      low: "Niedrig",
+    },
+    confidenceReason: {
+      high: "Die Empfehlung stützt sich auf aktuelle, verifizierte Leistungsdaten.",
+      medium: "Die Datenbasis ist teilweise verfügbar oder noch nicht vollständig aktuell.",
+      low: "Bestandszahlen sind sicher, für Wirkungs- oder Plattformempfehlungen fehlen jedoch Leistungsdaten.",
+    },
   },
   en: {
     eyebrow: "Marketing assistant",
     mode: "Recommendations only",
-    dataQuality: "Data quality",
-    confidence: "Assessment confidence",
+    inventory: "Inventory data",
+    inventoryValue: "Verified",
+    recommendationConfidence: "Recommendation confidence",
     why: "Show evidence and limitations",
     evidence: "Evidence considered",
     missing: "Still missing",
     nextActions: "Recommended next steps",
     noActions: "No additional action is required right now.",
     noAutomation: "The assistant does not change, schedule or publish anything autonomously.",
+    open: "Open",
+    confidence: {
+      high: "High",
+      medium: "Medium",
+      low: "Low",
+    },
+    confidenceReason: {
+      high: "The recommendation is supported by current, verified performance data.",
+      medium: "The data basis is partial or not fully current yet.",
+      low: "Inventory counts are reliable, but performance data for impact or platform recommendations is missing.",
+    },
   },
 } as const;
 
@@ -42,6 +66,7 @@ export function MarketingAssistantPanel({ model, locale, id = "assistant" }: Pro
   const headline = locale === "de" ? model.headlineDe : model.headlineEn;
   const body = locale === "de" ? model.bodyDe : model.bodyEn;
   const missing = locale === "de" ? model.missingDataDe : model.missingDataEn;
+  const confidence = recommendationConfidence(model.dataQuality, model.confidence);
 
   return (
     <section
@@ -52,22 +77,20 @@ export function MarketingAssistantPanel({ model, locale, id = "assistant" }: Pro
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-4xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-700 dark:text-violet-300">
-            {copy.eyebrow}
-          </p>
-          <h2 id={`${id}-heading`} className="mt-1 text-xl font-bold text-[rgb(var(--fg))] sm:text-2xl">
-            {headline}
-          </h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-700 dark:text-violet-300">{copy.eyebrow}</p>
+          <h2 id={`${id}-heading`} className="mt-1 text-xl font-bold text-[rgb(var(--fg))] sm:text-2xl">{headline}</h2>
           <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{body}</p>
         </div>
-        <span className="rounded-full border border-violet-300 bg-white/70 px-3 py-1 text-xs font-semibold text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">
-          {copy.mode}
-        </span>
+        <span className="rounded-full border border-violet-300 bg-white/70 px-3 py-1 text-xs font-semibold text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">{copy.mode}</span>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <InfoCard label={copy.dataQuality} value={qualityLabel(model.dataQuality, locale)} />
-        <InfoCard label={copy.confidence} value={formatConfidence(model.confidence, locale)} />
+        <InfoCard label={copy.inventory} value={copy.inventoryValue} />
+        <InfoCard
+          label={copy.recommendationConfidence}
+          value={copy.confidence[confidence]}
+          note={copy.confidenceReason[confidence]}
+        />
       </div>
 
       <details className="mt-4 rounded-2xl border border-violet-200 bg-white/60 p-4 dark:border-violet-400/30 dark:bg-violet-950/20">
@@ -105,17 +128,14 @@ export function MarketingAssistantPanel({ model, locale, id = "assistant" }: Pro
               <Link
                 key={action.id}
                 href={withLocale(action.href, locale)}
-                className="rounded-2xl border border-violet-200 bg-white/70 p-4 transition hover:border-violet-400 dark:border-violet-400/30 dark:bg-violet-950/20"
+                className="group flex min-h-48 flex-col rounded-2xl border border-violet-200 bg-white/80 p-4 transition hover:border-violet-500 hover:shadow-sm dark:border-violet-400/30 dark:bg-violet-950/20"
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-violet-700 dark:text-violet-300">
                   {locale === "de" ? `Schritt ${action.priority}` : `Step ${action.priority}`}
                 </p>
-                <p className="mt-1 font-semibold text-[rgb(var(--fg))]">
-                  {locale === "de" ? action.titleDe : action.titleEn}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                  {locale === "de" ? action.rationaleDe : action.rationaleEn}
-                </p>
+                <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{locale === "de" ? action.titleDe : action.titleEn}</p>
+                <p className="mt-2 flex-1 text-sm leading-6 text-[rgb(var(--muted))]">{locale === "de" ? action.rationaleDe : action.rationaleEn}</p>
+                <span className="mt-4 inline-flex font-semibold text-violet-800 group-hover:underline dark:text-violet-200">{copy.open} →</span>
               </Link>
             ))}
           </div>
@@ -129,42 +149,20 @@ export function MarketingAssistantPanel({ model, locale, id = "assistant" }: Pro
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="rounded-2xl border border-violet-200 bg-white/60 p-4 dark:border-violet-400/30 dark:bg-violet-950/20">
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</p>
       <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{value}</p>
+      {note ? <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{note}</p> : null}
     </div>
   );
 }
 
-function qualityLabel(value: MarketingDataQuality, locale: UiLocale) {
-  const labels = {
-    de: {
-      verified: "Aktuell und verifiziert",
-      partial: "Teilweise verfügbar",
-      estimated: "Geschätzt",
-      stale: "Veraltet",
-      missing: "Noch nicht verbunden",
-      rejected: "Nicht verwendbar",
-    },
-    en: {
-      verified: "Current and verified",
-      partial: "Partially available",
-      estimated: "Estimated",
-      stale: "Stale",
-      missing: "Not connected yet",
-      rejected: "Not usable",
-    },
-  } as const;
-  return labels[locale][value];
-}
-
-function formatConfidence(value: number, locale: UiLocale) {
-  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
-    style: "percent",
-    maximumFractionDigits: 0,
-  }).format(value);
+function recommendationConfidence(quality: MarketingDataQuality, confidence: number): "low" | "medium" | "high" {
+  if (quality === "verified" && confidence >= 0.8) return "high";
+  if ((quality === "partial" || quality === "estimated") && confidence >= 0.5) return "medium";
+  return "low";
 }
 
 function withLocale(href: string, locale: UiLocale) {
