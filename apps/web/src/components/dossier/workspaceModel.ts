@@ -100,12 +100,15 @@ export type DossierWorkspaceMetrics = {
   };
   perspectives: {
     missingCount: number;
+    linkedMissingCount: number;
     coverageAvailable: false;
   };
   questions: DossierWorkspaceCount[];
   sourceTypes: DossierWorkspaceCount[];
   decisions: {
     optionCount: number;
+    linkedOptionCount: number;
+    questionedOptionCount: number;
     conflictCount: number;
   };
 };
@@ -479,10 +482,7 @@ export function buildDossierWorkspaceModel(
         relationLabel: relationLabel(relation),
       });
     }
-    const optionIds = uniqueIds([
-      ...(question.optionIds ?? []),
-      ...directClaimIds.flatMap((claimId) => optionIdsByClaim.get(claimId) ?? []),
-    ]).filter((id) => optionsById.has(id));
+    const optionIds = uniqueIds(question.optionIds ?? []).filter((id) => optionsById.has(id));
     const status = normalizeQuestionStatus(question.status);
     const answer = clean(question.resolution);
     const answerCandidates = unique([
@@ -751,12 +751,20 @@ export function buildDossierWorkspaceModel(
       },
       perspectives: {
         missingCount: perspectives.length,
+        linkedMissingCount: perspectives.filter((perspective) => perspective.claimIds.length > 0)
+          .length,
         coverageAvailable: false,
       },
       questions: questionMetrics,
       sourceTypes: sourceTypeMetrics,
       decisions: {
         optionCount: optionsById.size,
+        linkedOptionCount: Array.from(optionsById.values()).filter(
+          (option) => option.claimIds.length > 0,
+        ).length,
+        questionedOptionCount: Array.from(optionsById.values()).filter((option) =>
+          questions.some((question) => question.optionIds.includes(option.id)),
+        ).length,
         conflictCount: analyze.report.keyConflicts?.length ?? 0,
       },
     },

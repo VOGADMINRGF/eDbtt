@@ -278,13 +278,23 @@ function DossierMetrics({
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
         <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Perspektiven</h3>
-        <p className="mt-2 text-2xl font-bold text-[rgb(var(--fg))]">
-          {model.metrics.perspectives.missingCount}
-        </p>
-        <p className="text-xs text-[rgb(var(--muted))]">als fehlend dokumentiert</p>
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-xl bg-[rgb(var(--card))] p-3">
+            <dt className="text-xs text-[rgb(var(--muted))]">Fehlend dokumentiert</dt>
+            <dd className="mt-1 text-xl font-bold text-[rgb(var(--fg))]">
+              {model.metrics.perspectives.missingCount}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-[rgb(var(--card))] p-3">
+            <dt className="text-xs text-[rgb(var(--muted))]">Aussagen zugeordnet</dt>
+            <dd className="mt-1 text-xl font-bold text-[rgb(var(--fg))]">
+              {model.metrics.perspectives.linkedMissingCount}
+            </dd>
+          </div>
+        </dl>
         <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
-          Gesamtabdeckung: nicht verfügbar. Auch 0 dokumentierte Lücken belegt keine vollständige
-          Abdeckung.
+          Eine Abdeckungsquote ist nicht verfügbar. Auch 0 dokumentierte Lücken belegt keine
+          vollständige Abdeckung.
         </p>
         {model.perspectives[0] ? (
           <button
@@ -318,7 +328,10 @@ function DossierMetrics({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellenarten</h3>
+        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellenstatus und -arten</h3>
+        <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
+          {model.sourceTrustLabel}
+        </p>
         {model.metrics.sourceTypes.length ? (
           <div className="mt-3">
             <CountBars
@@ -338,12 +351,26 @@ function DossierMetrics({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Optionen und Zielkonflikte</h3>
+        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+          Optionen und Abhängigkeiten
+        </h3>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-[rgb(var(--card))] p-3">
             <dt className="text-xs text-[rgb(var(--muted))]">Optionen</dt>
             <dd className="mt-1 text-xl font-bold text-[rgb(var(--fg))]">
               {model.metrics.decisions.optionCount}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-[rgb(var(--card))] p-3">
+            <dt className="text-xs text-[rgb(var(--muted))]">Mit Aussagen verknüpft</dt>
+            <dd className="mt-1 text-xl font-bold text-[rgb(var(--fg))]">
+              {model.metrics.decisions.linkedOptionCount}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-[rgb(var(--card))] p-3">
+            <dt className="text-xs text-[rgb(var(--muted))]">Von Fragen betroffen</dt>
+            <dd className="mt-1 text-xl font-bold text-[rgb(var(--fg))]">
+              {model.metrics.decisions.questionedOptionCount}
             </dd>
           </div>
           <div className="rounded-xl bg-[rgb(var(--card))] p-3">

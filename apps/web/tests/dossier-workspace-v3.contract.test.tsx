@@ -105,8 +105,10 @@ describe("DOSSIER-WORKSPACE-02", () => {
 
     expect(screen.getByRole("heading", { name: "Zusammenhänge" })).toBeTruthy();
     expect(screen.getByRole("img", { name: /Mit stützender Quelle:/ })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Quellenarten" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Optionen und Zielkonflikte" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Quellenstatus und -arten" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Optionen und Abhängigkeiten" })).toBeTruthy();
+    expect(screen.getByText("Eine Abdeckungsquote ist nicht verfügbar.", { exact: false })).toBeTruthy();
+    expect(screen.getByText("Von Fragen betroffen")).toBeTruthy();
     expect(container.textContent).not.toContain("stmt-");
     expect(container.textContent).not.toContain("evidenceGraph");
   });
@@ -114,11 +116,18 @@ describe("DOSSIER-WORKSPACE-02", () => {
   it("navigates a real claim-to-question-to-source-and-option trace", () => {
     render(<DossierWorkspace dossier={dossierWithLinkedQuestion()} demo />);
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Internationale Beispiele berichten positive Effekte/,
-      }),
-    );
+    const claimSelector = screen.getByRole("button", {
+      name: /Internationale Beispiele berichten positive Effekte/,
+    });
+    fireEvent.click(claimSelector);
+
+    expect(claimSelector.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("heading", { name: "Quellen zur Aussage" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Fragen aus dieser Aussage" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Betroffene Entscheidungsoptionen" }),
+    ).toBeTruthy();
+    expect(screen.getByText(/Betrifft: Pilotgebiet mit enger Evaluation/)).toBeTruthy();
     fireEvent.click(
       screen.getByRole("button", {
         name: /Welche lokale Messung bestätigt die Übertragbarkeit/,
@@ -164,6 +173,37 @@ describe("DOSSIER-WORKSPACE-02", () => {
         "Die Frage wurde an die bestehende redaktionelle Prüfung übergeben.",
       ),
     ).toBeTruthy();
+  });
+
+  it("keeps answers unverified and failed or demo review paths read-only", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ ok: false }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const runtime = render(<DossierWorkspace dossier={demoDossier} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Offene Fragen" }));
+    expect(
+      screen.getByText(
+        "Antwort ist dokumentiert; sie gilt nicht automatisch als fachlich geprüft.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: /Prüfung anfragen/i })[0]);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Die Prüfanfrage ist derzeit nicht verfügbar.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Prüfung angefragt" })).toBeNull();
+
+    runtime.unmount();
+    render(<DossierWorkspace dossier={demoDossier} demo />);
+    fireEvent.click(screen.getByRole("tab", { name: "Offene Fragen" }));
+    const demoActions = screen.getAllByRole("button", {
+      name: "Prüfanfrage hier nicht verfügbar",
+    });
+    expect(demoActions).toHaveLength(3);
+    expect(demoActions.every((button) => button.hasAttribute("disabled"))).toBe(true);
   });
 
   it("keeps an honest empty relationship state without generated demo links", () => {
