@@ -1,0 +1,128 @@
+name: One-time Marketing Assistant OpenTasks Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/opentasks-marketing-assistant-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch canonical operational head
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          path = Path('docs/E150/OpenTasks.md')
+          text = path.read_text(encoding='utf-8')
+          marker = '## Historischer Katalog und Evidenz'
+          if marker not in text:
+              raise SystemExit('historical marker missing')
+
+          head, archive = text.split(marker, 1)
+          archive_hash = hashlib.sha256(archive.encode('utf-8')).hexdigest()
+          lines = head.splitlines()
+
+          def row_indexes(task_id):
+              return [i for i, line in enumerate(lines) if line.startswith(f'| {task_id} |')]
+
+          ingestion = row_indexes('MARKETING-PERFORMANCE-INGESTION-02')
+          if len(ingestion) != 1:
+              raise SystemExit(f'ingestion row count unexpected: {len(ingestion)}')
+
+          connection_line = (
+              '| MARKETING-CONNECTIONS-CONTROL-PLANE-03 | manual_gate | P1 | '
+              'MARKETING-PERFORMANCE-INGESTION-02, reale Provider-/CSV-Freigabe, Secret Store | '
+              'Issue `#474`: providerneutrale Betreiberfläche `/admin/marketing/connections` als „Konten & Datenquellen“ für eDebatte, Social, E-Mail, Web, Downloads und Ads; keine leere Social-Media-Demo | '
+              'Mindestens eine reale Datenquelle oder ein fachlich nutzbarer CSV-Weg ist end-to-end freigegeben; Verbindungen, Scopes, Sync, Datenqualität und Importverlauf sind 2FA-geschützt und auditierbar; keine Secrets im Repo oder Browser |'
+          )
+          assistant_line = (
+              '| MARKETING-CONTEXTUAL-ASSISTANT-01 | codex_ready | P1 | '
+              'MARKETING-CAMPAIGN-ANALYTICS-01, MARKETING-CONTENT-OPERATIONS-READMODEL-02 | '
+              'Issue `#475`: kontextbezogenen read-only Marketing-Assistenten direkt im Cockpit und in Kampagnen-/Insights-Kontexten ergänzen; Kampagnenstand verständlich zusammenfassen, Datenlücken erkennen und maximal drei evidenzgebundene nächste Schritte in reale Arbeitswege anbieten | '
+              'Keine Mutation, Terminierung oder Veröffentlichung; Empfehlungen zeigen Evidenz, Datenqualität, Confidence und fehlende Daten; keine technische Registry-Sprache, Fantasiewerte, neue Queue oder parallele Agentenwelt; fokussierte Contract-, Readmodel- und UI-Tests grün |'
+          )
+          automation_line = (
+              '| MARKETING-ASSISTANT-AUTOMATION-02 | blocked | P1 | '
+              'MARKETING-CONTEXTUAL-ASSISTANT-01, MARKETING-PUBLISH-APPROVAL-06, MARKETING-CONNECTIONS-CONTROL-PLANE-03 | '
+              'Issue `#476`: nach expliziter Freigabe Aufgaben, Freigabepakete, Terminierung, Synchronisation und delegierte Distribution auditierbar ausführen | '
+              'Kein Start vor echten Aufgaben-/Reviewwegen, PublishApproval und Provideradaptern; jede Freigabe ist an Campaign, Version/Hash, Sprache, Region, Kanal, Konto, CTA, Zeitfenster und Ausführungslimit gebunden; Änderungen invalidieren die Freigabe |'
+          )
+
+          for task_id, row in [
+              ('MARKETING-CONNECTIONS-CONTROL-PLANE-03', connection_line),
+              ('MARKETING-CONTEXTUAL-ASSISTANT-01', assistant_line),
+              ('MARKETING-ASSISTANT-AUTOMATION-02', automation_line),
+          ]:
+              matches = row_indexes(task_id)
+              if len(matches) > 1:
+                  raise SystemExit(f'duplicate {task_id}')
+              if matches:
+                  lines[matches[0]] = row
+
+          insert_at = ingestion[0] + 1
+          for task_id, row in [
+              ('MARKETING-CONNECTIONS-CONTROL-PLANE-03', connection_line),
+              ('MARKETING-CONTEXTUAL-ASSISTANT-01', assistant_line),
+              ('MARKETING-ASSISTANT-AUTOMATION-02', automation_line),
+          ]:
+              if not row_indexes(task_id):
+                  lines.insert(insert_at, row)
+                  insert_at += 1
+
+          old_queue = '- Issue `#445` ist der einzige aktuell ausführbare Marketing-Slice; `MARKETING-CAMPAIGN-ANALYTICS-01` steht nach PR `#472` auf `review`, und `MARKETING-PERFORMANCE-INGESTION-02` / Issue `#471` bleibt bis zu Provider-, Credential-, Privacy-, Retention-, Geografie- und Attributionsentscheidungen `manual_gate`.'
+          new_queue = '- Issue `#445` und Issue `#475` sind die aktuell ausführbaren, voneinander getrennten Marketing-Slices; `MARKETING-CAMPAIGN-ANALYTICS-01` bleibt nach PR `#472` auf `review`, während Performance-Ingestion und Konten & Datenquellen bis zu realen Provider-, CSV-, Secret-Store- und Datenschutzfreigaben `manual_gate` bleiben.'
+          if old_queue in lines:
+              lines[lines.index(old_queue)] = new_queue
+          elif new_queue not in lines:
+              raise SystemExit('expected marketing queue bullet missing')
+
+          pr472_prefix = '- PR `#472` wurde als Merge `a6291c9dce64d27a6700f32cc4fc5ba897087781` integriert;'
+          architecture_line = '- Issues `#474`, `#475` und `#476` präzisieren die Marketing-Arbeitsarchitektur: tägliches Cockpit, nachgelagerte Konten-&-Datenquellen-Fläche, kontextbezogener read-only Assistent und separat geschützte spätere Automation.'
+          if architecture_line not in lines:
+              positions = [i for i, line in enumerate(lines) if line.startswith(pr472_prefix)]
+              if len(positions) != 1:
+                  raise SystemExit('PR #472 truth bullet missing or duplicated')
+              lines.insert(positions[0] + 1, architecture_line)
+
+          sync_prefix = '- Letzter gezielter Kopf-Sync:'
+          sync_positions = [i for i, line in enumerate(lines) if line.startswith(sync_prefix)]
+          if len(sync_positions) != 1:
+              raise SystemExit('head sync metadata line missing or duplicated')
+          lines[sync_positions[0]] = '- Letzter gezielter Kopf-Sync: Marketing Connections, contextual Assistant und freigabepflichtige Automation aus Issues `#474` bis `#476`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.'
+
+          new_head = '\n'.join(lines)
+          if head.endswith('\n'):
+              new_head += '\n'
+          if hashlib.sha256(archive.encode('utf-8')).hexdigest() != archive_hash:
+              raise SystemExit('historical archive changed unexpectedly')
+          path.write_text(new_head + marker + archive, encoding='utf-8')
+          PY
+
+      - name: Commit, preflight and self-remove
+        shell: bash
+        run: |
+          grep -F '| MARKETING-CONNECTIONS-CONTROL-PLANE-03 | manual_gate |' docs/E150/OpenTasks.md
+          grep -F '| MARKETING-CONTEXTUAL-ASSISTANT-01 | codex_ready |' docs/E150/OpenTasks.md
+          grep -F '| MARKETING-ASSISTANT-AUTOMATION-02 | blocked |' docs/E150/OpenTasks.md
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/opentasks-marketing-assistant-sync.yml
+          git add docs/E150/OpenTasks.md
+          git commit -m 'docs(e150): queue marketing assistant and connections architecture'
+          node scripts/codex-task-preflight.mjs MARKETING-CONTEXTUAL-ASSISTANT-01
+          git push origin HEAD:main
