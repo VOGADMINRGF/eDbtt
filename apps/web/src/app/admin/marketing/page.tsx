@@ -1,14 +1,5 @@
 import Link from "next/link";
-import MarketingDelegateControl from "./MarketingDelegateControl";
 import { buildMarketingRegistryReadModel } from "@/features/marketing/registry/readModel";
-import {
-  getMarketingDelegationPersistenceState,
-  listMarketingDelegations,
-} from "@/features/marketing/delegations/repository";
-import type {
-  MarketingDelegationRecord,
-  MarketingDelegationStatus,
-} from "@/features/marketing/delegations/contracts";
 import type {
   MarketingCampaign,
   MarketingOpportunity,
@@ -19,7 +10,7 @@ export const metadata = {
 };
 
 type UiLocale = "de" | "en";
-type MarketingView = "all" | "ready" | "decision" | "proof" | "blocked" | "published" | "delegated";
+type MarketingView = "all" | "ready" | "decision" | "proof" | "blocked" | "published";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -35,19 +26,18 @@ const COPY = {
     eyebrow: "Admin · Marketing",
     title: "Marketing-Zentrale",
     intro:
-      "Hier siehst du, was als Nächstes sinnvoll ist, welche Entscheidungen fehlen, was bereits delegiert wurde und welche Kampagnen echte Ergebnisse liefern.",
+      "Hier siehst du, was als Nächstes sinnvoll ist, welche Entscheidungen fehlen und welche Kampagnen bereits echte Ergebnisse liefern.",
     guardrail: "Veröffentlichungen und Budgets bleiben immer freigabepflichtig.",
     overview: "Übersicht",
     campaigns: "Kampagnen",
     opportunities: "Chancen",
     results: "Ergebnisse",
-    delegations: "Delegationen",
     ready: "Bereit zur Umsetzung",
     readyNote: "Kampagnen mit geklärtem Ziel und CTA",
     decisions: "Deine Entscheidung nötig",
     decisionsNote: "Angebot, Zielseite, Recht oder Governance",
-    delegated: "Aktiv delegiert",
-    delegatedNote: "Aufträge in der Marketing-Queue",
+    proof: "Beleg fehlt",
+    proofNote: "Produkt-, Laufzeit- oder Quellenbeleg offen",
     published: "Veröffentlicht",
     publishedNote: "Nur real belegte Ausspielungen",
     today: "Heute wichtig",
@@ -58,10 +48,8 @@ const COPY = {
     campaignOverview: "Kampagnenübersicht",
     campaignIntro: "Filtere über die Kennzahlen oben oder öffne eine Kampagne für die Details.",
     all: "Alle",
-    proof: "Beleg fehlt",
     blocked: "Blockiert",
     publishedFilter: "Veröffentlicht",
-    delegatedFilter: "Delegiert",
     nextStep: "Nächster sinnvoller Schritt",
     audience: "Zielgruppe",
     materials: "Materialien",
@@ -75,19 +63,18 @@ const COPY = {
     availableAssets: "Vorhandene Materialien",
     noAssets: "Noch keine Materialien angelegt.",
     publicTarget: "Zielseite öffnen",
-    opportunityIntro: "Chancen werden nach Nutzen und Umsetzbarkeit erklärt – ohne technische Statuscodes als Hauptinformation.",
+    opportunityIntro:
+      "Chancen werden nach Nutzen und Umsetzbarkeit erklärt – technische Statuscodes bleiben nachrangig.",
     recommendedAction: "Empfohlene Aktion",
     linkedCampaigns: "Verknüpfte Kampagnen",
+    handoff: "Weitergeben",
     resultIntro: "Hier erscheinen ausschließlich reale Ausspielungen und später deren belegte Kennzahlen.",
     noResultsTitle: "Noch keine Kampagne veröffentlicht",
     noResults:
-      "Es werden bewusst keine Demo-Zahlen gezeigt. Sobald eine Kampagne real ausgespielt wurde, erscheinen hier Kanal, Link, Zeitpunkt und anschließend die belastbaren Ergebnisse.",
+      "Es werden bewusst keine Demo-Zahlen gezeigt. Sobald eine Kampagne real ausgespielt wurde, erscheinen hier Kanal, Link, Zeitpunkt und anschließend belastbare Ergebnisse.",
     channel: "Kanal",
     publishedAt: "Veröffentlicht am",
     openResult: "Ergebnis öffnen",
-    delegationIntro: "Delegationen sind echte, serverseitig gespeicherte Arbeitsaufträge. Sie lösen weder automatische Veröffentlichung noch Budgetänderungen aus.",
-    noDelegations: "Noch nichts delegiert.",
-    queueWarning: "Delegationen werden in dieser Umgebung nur bis zum nächsten Neustart gespeichert.",
     technicalDetails: "Fach- und Technikdetails",
     technicalIntro: "IDs, Dateipfade, Brandprofile und Evidence für Audit und Fachprüfung.",
     assets: "Assets",
@@ -100,26 +87,23 @@ const COPY = {
     toCampaigns: "Beteiligungskampagnen",
     german: "Deutsch",
     english: "English",
-    status: "Status",
-    assignedTo: "Delegiert an",
   },
   en: {
     eyebrow: "Admin · Marketing",
     title: "Marketing centre",
     intro:
-      "See what matters next, which decisions are missing, what has been delegated and which campaigns produce verified results.",
+      "See what matters next, which decisions are missing and which campaigns already produce verified results.",
     guardrail: "Publishing and budgets always require explicit approval.",
     overview: "Overview",
     campaigns: "Campaigns",
     opportunities: "Opportunities",
     results: "Results",
-    delegations: "Delegations",
     ready: "Ready to execute",
     readyNote: "Campaigns with a clear goal and CTA",
     decisions: "Your decision required",
     decisionsNote: "Offer, route, legal or governance",
-    delegated: "Actively delegated",
-    delegatedNote: "Tasks in the marketing queue",
+    proof: "Proof missing",
+    proofNote: "Product, runtime or source proof is open",
     published: "Published",
     publishedNote: "Verified distributions only",
     today: "Important today",
@@ -130,10 +114,8 @@ const COPY = {
     campaignOverview: "Campaign overview",
     campaignIntro: "Use the metrics above as filters or open a campaign for details.",
     all: "All",
-    proof: "Proof missing",
     blocked: "Blocked",
     publishedFilter: "Published",
-    delegatedFilter: "Delegated",
     nextStep: "Next meaningful step",
     audience: "Audience",
     materials: "Materials",
@@ -147,9 +129,11 @@ const COPY = {
     availableAssets: "Available materials",
     noAssets: "No materials have been created yet.",
     publicTarget: "Open target page",
-    opportunityIntro: "Opportunities are explained by value and feasibility, not by technical status codes.",
+    opportunityIntro:
+      "Opportunities are explained by value and feasibility while technical status codes remain secondary.",
     recommendedAction: "Recommended action",
     linkedCampaigns: "Linked campaigns",
+    handoff: "Hand off",
     resultIntro: "Only real distributions and later their verified metrics appear here.",
     noResultsTitle: "No campaign has been published yet",
     noResults:
@@ -157,9 +141,6 @@ const COPY = {
     channel: "Channel",
     publishedAt: "Published at",
     openResult: "Open result",
-    delegationIntro: "Delegations are real server-side work orders. They never trigger automatic publishing or budget changes.",
-    noDelegations: "Nothing has been delegated yet.",
-    queueWarning: "Delegations in this environment are stored only until the next restart.",
     technicalDetails: "Professional and technical details",
     technicalIntro: "IDs, file paths, brand profiles and evidence for audit and expert review.",
     assets: "Assets",
@@ -172,8 +153,6 @@ const COPY = {
     toCampaigns: "Participation campaigns",
     german: "Deutsch",
     english: "English",
-    status: "Status",
-    assignedTo: "Assigned to",
   },
 } as const;
 
@@ -186,11 +165,6 @@ const DECISION_READINESS = new Set([
 ]);
 
 const PROOF_READINESS = new Set(["product_proof_required", "runtime_proof_required"]);
-const ACTIVE_DELEGATION_STATUSES = new Set<MarketingDelegationStatus>([
-  "queued",
-  "in_progress",
-  "review_required",
-]);
 
 export default async function MarketingAdminPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -200,12 +174,6 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
   const selectedCampaignId = first(params?.campaign);
   const selectedOpportunityId = first(params?.opportunity);
   const readModel = buildMarketingRegistryReadModel();
-  const delegations = await listMarketingDelegations().catch(() => [] as MarketingDelegationRecord[]);
-  const delegationPersistence = getMarketingDelegationPersistenceState();
-  const activeDelegations = delegations.filter((item) => ACTIVE_DELEGATION_STATUSES.has(item.status));
-  const delegationMap = new Map(
-    activeDelegations.map((item) => [`${item.itemType}:${item.itemId}`, item] as const),
-  );
   const publishedCampaignIds = new Set(
     readModel.distributionRecords
       .filter((record) => record.status === "published")
@@ -215,11 +183,11 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
   const decisionCampaigns = readModel.campaigns.filter(requiresDecision);
   const proofCampaigns = readModel.campaigns.filter(requiresProof);
   const filteredCampaigns = readModel.campaigns.filter((campaign) =>
-    campaignMatchesView(campaign, view, publishedCampaignIds, delegationMap),
+    campaignMatchesView(campaign, view, publishedCampaignIds),
   );
   const selectedCampaign = readModel.campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
   const selectedOpportunity = readModel.opportunities.find((opportunity) => opportunity.id === selectedOpportunityId) ?? null;
-  const priorityCampaigns = buildPriorityCampaigns(readModel.campaigns, delegationMap).slice(0, 5);
+  const priorityCampaigns = buildPriorityCampaigns(readModel.campaigns).slice(0, 5);
   const dateLocale = locale === "en" ? "en-GB" : "de-DE";
 
   return (
@@ -233,7 +201,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
             <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100">{copy.guardrail}</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <Link href={hrefFor(locale, view)} className={languageLinkClass(locale === "de")} aria-current={locale === "de" ? "page" : undefined}>{copy.german}</Link>
+            <Link href={hrefFor("de", view)} className={languageLinkClass(locale === "de")} aria-current={locale === "de" ? "page" : undefined}>{copy.german}</Link>
             <Link href={hrefFor("en", view)} className={languageLinkClass(locale === "en")} aria-current={locale === "en" ? "page" : undefined}>{copy.english}</Link>
           </div>
         </div>
@@ -242,45 +210,16 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
           <AnchorLink href="#campaigns" label={copy.campaigns} />
           <AnchorLink href="#opportunities" label={copy.opportunities} />
           <AnchorLink href="#results" label={copy.results} />
-          <AnchorLink href="#delegations" label={copy.delegations} />
         </nav>
       </header>
 
       <section id="overview" className="scroll-mt-6 space-y-5" aria-labelledby="overview-heading">
         <SectionHeading id="overview-heading" title={copy.overview} />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricLink
-            href={`${hrefFor(locale, "ready")}#campaigns`}
-            label={copy.ready}
-            value={readyCampaigns.length}
-            note={copy.readyNote}
-            active={view === "ready"}
-            tone="emerald"
-          />
-          <MetricLink
-            href={`${hrefFor(locale, "decision")}#campaigns`}
-            label={copy.decisions}
-            value={decisionCampaigns.length}
-            note={copy.decisionsNote}
-            active={view === "decision"}
-            tone="amber"
-          />
-          <MetricLink
-            href={`${hrefFor(locale, "delegated")}#delegations`}
-            label={copy.delegated}
-            value={activeDelegations.length}
-            note={copy.delegatedNote}
-            active={view === "delegated"}
-            tone="sky"
-          />
-          <MetricLink
-            href={`${hrefFor(locale, "published")}#results`}
-            label={copy.published}
-            value={publishedCampaignIds.size}
-            note={copy.publishedNote}
-            active={view === "published"}
-            tone="violet"
-          />
+          <MetricLink href={`${hrefFor(locale, "ready")}#campaigns`} label={copy.ready} value={readyCampaigns.length} note={copy.readyNote} active={view === "ready"} tone="emerald" />
+          <MetricLink href={`${hrefFor(locale, "decision")}#campaigns`} label={copy.decisions} value={decisionCampaigns.length} note={copy.decisionsNote} active={view === "decision"} tone="amber" />
+          <MetricLink href={`${hrefFor(locale, "proof")}#campaigns`} label={copy.proof} value={proofCampaigns.length} note={copy.proofNote} active={view === "proof"} tone="rose" />
+          <MetricLink href={`${hrefFor(locale, "published")}#results`} label={copy.published} value={publishedCampaignIds.size} note={copy.publishedNote} active={view === "published"} tone="violet" />
         </div>
       </section>
 
@@ -295,7 +234,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         {priorityCampaigns.length ? (
           <div className="grid gap-3">
             {priorityCampaigns.map((campaign) => {
-              const delegation = delegationMap.get(`campaign:${campaign.id}`) ?? null;
+              const action = actionForCampaign(campaign, locale);
               return (
                 <article key={campaign.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -306,24 +245,16 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
                       </div>
                       <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{nextActionForCampaign(campaign, locale)}</p>
                     </div>
-                    <Link href={`${hrefFor(locale, view, { campaign: campaign.id })}#campaign-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.open}</Link>
-                  </div>
-                  <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
-                    <MarketingDelegateControl
-                      itemType="campaign"
-                      itemId={campaign.id}
-                      locale={locale}
-                      existingRole={delegation?.agentRole}
-                      existingStatus={delegation?.status}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`${hrefFor(locale, view, { campaign: campaign.id })}#campaign-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.open}</Link>
+                      <ActionLink href={action.href} label={action.label} />
+                    </div>
                   </div>
                 </article>
               );
             })}
           </div>
-        ) : (
-          <EmptyState title={copy.noPriority} body="" />
-        )}
+        ) : <EmptyState title={copy.noPriority} body="" />}
       </section>
 
       <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">
@@ -337,13 +268,12 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
           <FilterLink locale={locale} value="decision" current={view} label={copy.decisions} count={decisionCampaigns.length} />
           <FilterLink locale={locale} value="proof" current={view} label={copy.proof} count={proofCampaigns.length} />
           <FilterLink locale={locale} value="blocked" current={view} label={copy.blocked} count={readModel.campaigns.filter((item) => item.status === "blocked").length} />
-          <FilterLink locale={locale} value="delegated" current={view} label={copy.delegatedFilter} count={activeDelegations.filter((item) => item.itemType === "campaign").length} />
           <FilterLink locale={locale} value="published" current={view} label={copy.publishedFilter} count={publishedCampaignIds.size} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           {filteredCampaigns.map((campaign) => {
-            const delegation = delegationMap.get(`campaign:${campaign.id}`) ?? null;
+            const action = actionForCampaign(campaign, locale);
             return (
               <article key={campaign.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -356,24 +286,12 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
                 <dl className="mt-4 grid gap-3 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm sm:grid-cols-2">
                   <Definition label={copy.nextStep} value={nextActionForCampaign(campaign, locale)} humanizeValue={false} />
                   <Definition label={copy.audience} value={campaign.audienceKeys.map((item) => audienceLabel(item, locale)).join(", ")} humanizeValue={false} />
-                  <Definition
-                    label={copy.materials}
-                    value={campaign.assetIds.length ? `${campaign.assetIds.length} ${copy.materialCount}` : copy.noMaterial}
-                    humanizeValue={false}
-                  />
+                  <Definition label={copy.materials} value={campaign.assetIds.length ? `${campaign.assetIds.length} ${copy.materialCount}` : copy.noMaterial} humanizeValue={false} />
                   <Definition label={copy.primaryCta} value={campaign.primaryCta.label} humanizeValue={false} />
                 </dl>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`${hrefFor(locale, view, { campaign: campaign.id })}#campaign-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.details}</Link>
-                </div>
-                <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
-                  <MarketingDelegateControl
-                    itemType="campaign"
-                    itemId={campaign.id}
-                    locale={locale}
-                    existingRole={delegation?.agentRole}
-                    existingStatus={delegation?.status}
-                  />
+                  <ActionLink href={action.href} label={action.label} />
                 </div>
               </article>
             );
@@ -396,9 +314,10 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
             <DetailPanel title={copy.primaryCta} body={selectedCampaign.primaryCta.label} />
             <DetailPanel title={copy.audience} body={selectedCampaign.audienceKeys.map((item) => audienceLabel(item, locale)).join(", ")} />
           </div>
-          {selectedCampaign.primaryCta.url && (
-            <a href={selectedCampaign.primaryCta.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">{copy.publicTarget}</a>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <ActionLink href={actionForCampaign(selectedCampaign, locale).href} label={actionForCampaign(selectedCampaign, locale).label} />
+            {selectedCampaign.primaryCta.url && <a href={selectedCampaign.primaryCta.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-sky-300 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50 dark:text-sky-200">{copy.publicTarget}</a>}
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
               <h3 className="font-semibold text-[rgb(var(--fg))]">{copy.blockers}</h3>
@@ -432,7 +351,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {readModel.opportunities.map((opportunity) => {
-            const delegation = delegationMap.get(`opportunity:${opportunity.id}`) ?? null;
+            const action = actionForOpportunity(opportunity, locale);
             return (
               <article key={opportunity.id} className={`rounded-3xl border bg-[rgb(var(--card))] p-5 ${selectedOpportunity?.id === opportunity.id ? "border-sky-400 ring-2 ring-sky-200" : "border-[rgb(var(--border))]"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -449,15 +368,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`${hrefFor(locale, view, { opportunity: opportunity.id })}#opportunities`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.details}</Link>
-                </div>
-                <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
-                  <MarketingDelegateControl
-                    itemType="opportunity"
-                    itemId={opportunity.id}
-                    locale={locale}
-                    existingRole={delegation?.agentRole}
-                    existingStatus={delegation?.status}
-                  />
+                  <ActionLink href={action.href} label={action.label} />
                 </div>
                 {selectedOpportunity?.id === opportunity.id && (
                   <details open className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm">
@@ -501,34 +412,6 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         ) : <EmptyState title={copy.noResultsTitle} body={copy.noResults} />}
       </section>
 
-      <section id="delegations" className="scroll-mt-6 space-y-4" aria-labelledby="delegations-heading">
-        <div>
-          <SectionHeading id="delegations-heading" title={copy.delegations} />
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.delegationIntro}</p>
-        </div>
-        {!delegationPersistence.productionTruth && (
-          <aside className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-400/10 dark:text-amber-100">{copy.queueWarning}</aside>
-        )}
-        {delegations.length ? (
-          <div className="grid gap-3">
-            {delegations.map((delegation) => (
-              <Link
-                key={delegation.id}
-                href={`${hrefFor(locale, view, delegation.itemType === "campaign" ? { campaign: delegation.itemId } : { opportunity: delegation.itemId })}#${delegation.itemType === "campaign" ? "campaign-detail" : "opportunities"}`}
-                className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 transition hover:border-sky-400 sm:grid-cols-[1fr_auto]"
-              >
-                <div>
-                  <p className="font-semibold text-[rgb(var(--fg))]">{delegation.itemTitle}</p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{roleLabel(delegation.agentRole, locale)} · {delegationStatusLabel(delegation.status, locale)}</p>
-                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[rgb(var(--muted))]">{delegation.goal}</p>
-                </div>
-                <p className="text-xs text-[rgb(var(--muted))]">{formatDate(delegation.updatedAt, dateLocale)}</p>
-              </Link>
-            ))}
-          </div>
-        ) : <EmptyState title={copy.noDelegations} body="" />}
-      </section>
-
       <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
         <summary className="cursor-pointer text-lg font-semibold text-[rgb(var(--fg))]">{copy.technicalDetails}</summary>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">{copy.technicalIntro}</p>
@@ -560,7 +443,7 @@ function normalizeLocale(value: string | string[] | undefined): UiLocale {
 
 function normalizeView(value: string | string[] | undefined): MarketingView {
   const candidate = first(value);
-  return ["all", "ready", "decision", "proof", "blocked", "published", "delegated"].includes(candidate ?? "")
+  return ["all", "ready", "decision", "proof", "blocked", "published"].includes(candidate ?? "")
     ? candidate as MarketingView
     : "all";
 }
@@ -584,35 +467,25 @@ function requiresProof(campaign: MarketingCampaign) {
   return PROOF_READINESS.has(campaign.readiness);
 }
 
-function campaignMatchesView(
-  campaign: MarketingCampaign,
-  view: MarketingView,
-  publishedCampaignIds: Set<string>,
-  delegationMap: Map<string, MarketingDelegationRecord>,
-) {
+function campaignMatchesView(campaign: MarketingCampaign, view: MarketingView, publishedCampaignIds: Set<string>) {
   switch (view) {
     case "ready": return isReadyCampaign(campaign);
     case "decision": return requiresDecision(campaign);
     case "proof": return requiresProof(campaign);
     case "blocked": return campaign.status === "blocked";
     case "published": return publishedCampaignIds.has(campaign.id);
-    case "delegated": return delegationMap.has(`campaign:${campaign.id}`);
     case "all":
     default: return true;
   }
 }
 
-function buildPriorityCampaigns(
-  campaigns: MarketingCampaign[],
-  delegationMap: Map<string, MarketingDelegationRecord>,
-) {
+function buildPriorityCampaigns(campaigns: MarketingCampaign[]) {
   return [...campaigns]
     .filter((campaign) => !["completed", "retired", "cancelled"].includes(campaign.status))
-    .sort((left, right) => priorityScore(right, delegationMap) - priorityScore(left, delegationMap) || left.title.localeCompare(right.title));
+    .sort((left, right) => priorityScore(right) - priorityScore(left) || left.title.localeCompare(right.title));
 }
 
-function priorityScore(campaign: MarketingCampaign, delegationMap: Map<string, MarketingDelegationRecord>) {
-  if (delegationMap.has(`campaign:${campaign.id}`)) return 35;
+function priorityScore(campaign: MarketingCampaign) {
   if (isReadyCampaign(campaign)) return 100;
   if (requiresDecision(campaign)) return 85;
   if (requiresProof(campaign)) return 70;
@@ -646,19 +519,25 @@ function nextActionForCampaign(campaign: MarketingCampaign, locale: UiLocale) {
 }
 
 function nextActionForOpportunity(opportunity: MarketingOpportunity, locale: UiLocale) {
-  if (opportunity.marketability === "review_ready") {
-    return locale === "de" ? "Kampagnenbrief erstellen und zur fachlichen Prüfung vorlegen." : "Create a campaign brief and submit it for professional review.";
-  }
-  if (opportunity.marketability === "proof_required") {
-    return locale === "de" ? "Realen Produktbeleg und verwendbare Screens oder Beispiele ergänzen." : "Add real product proof and usable screens or examples.";
-  }
-  if (opportunity.marketability === "concept_only" || opportunity.marketability === "preview_only") {
-    return locale === "de" ? "Nutzen, Zielgruppe und Produktreife weiter klären; noch nicht öffentlich bewerben." : "Clarify value, audience and product maturity; do not market publicly yet.";
-  }
-  if (opportunity.marketability === "publicly_marketable") {
-    return locale === "de" ? "Passende Kampagne auswählen und konkrete Ausspielung vorbereiten." : "Select a suitable campaign and prepare a concrete distribution.";
-  }
+  if (opportunity.marketability === "review_ready") return locale === "de" ? "Kampagnenbrief erstellen und zur fachlichen Prüfung vorlegen." : "Create a campaign brief and submit it for professional review.";
+  if (opportunity.marketability === "proof_required") return locale === "de" ? "Realen Produktbeleg und verwendbare Screens oder Beispiele ergänzen." : "Add real product proof and usable screens or examples.";
+  if (opportunity.marketability === "concept_only" || opportunity.marketability === "preview_only") return locale === "de" ? "Nutzen, Zielgruppe und Produktreife weiter klären; noch nicht öffentlich bewerben." : "Clarify value, audience and product maturity; do not market publicly yet.";
+  if (opportunity.marketability === "publicly_marketable") return locale === "de" ? "Passende Kampagne auswählen und konkrete Ausspielung vorbereiten." : "Select a suitable campaign and prepare a concrete distribution.";
   return locale === "de" ? "Erst nach Evidenz- und Produktprüfung weiterbearbeiten." : "Continue only after evidence and product review.";
+}
+
+function actionForCampaign(campaign: MarketingCampaign, locale: UiLocale) {
+  if (campaign.readiness === "ready") return { href: "/admin/editorial/queue", label: locale === "de" ? "Zur Prüfung weitergeben" : "Hand off for review" };
+  if (requiresProof(campaign)) return { href: "/admin/evidence/items", label: locale === "de" ? "An Evidence weitergeben" : "Hand off to evidence" };
+  if (campaign.readiness === "translation_review_required") return { href: "/admin/review", label: locale === "de" ? "Zur Sprachprüfung" : "Open language review" };
+  if (campaign.status === "idea" || campaign.status === "qualified") return { href: "/admin/research/tasks", label: locale === "de" ? "An Recherche weitergeben" : "Hand off to research" };
+  return { href: "/admin/review", label: locale === "de" ? "Im Review klären" : "Clarify in review" };
+}
+
+function actionForOpportunity(opportunity: MarketingOpportunity, locale: UiLocale) {
+  if (opportunity.marketability === "proof_required") return { href: "/admin/evidence/items", label: locale === "de" ? "An Evidence weitergeben" : "Hand off to evidence" };
+  if (opportunity.marketability === "review_ready" || opportunity.marketability === "publicly_marketable") return { href: "/admin/editorial/queue", label: locale === "de" ? "Zur Inhaltsprüfung" : "Open content review" };
+  return { href: "/admin/research/tasks", label: locale === "de" ? "An Recherche weitergeben" : "Hand off to research" };
 }
 
 function campaignStatusLabel(campaign: MarketingCampaign, locale: UiLocale) {
@@ -740,22 +619,6 @@ function assetStatusLabel(status: string, locale: UiLocale) {
   return labels[locale][status] ?? humanize(status);
 }
 
-function roleLabel(role: string, locale: UiLocale) {
-  const labels: Record<UiLocale, Record<string, string>> = {
-    de: { marketing_operator: "Marketing-Agent", research_operator: "Recherche-Agent", content_operator: "Content-Agent", analytics_operator: "Analyse-Agent" },
-    en: { marketing_operator: "Marketing operator", research_operator: "Research operator", content_operator: "Content operator", analytics_operator: "Analytics operator" },
-  };
-  return labels[locale][role] ?? humanize(role);
-}
-
-function delegationStatusLabel(status: string, locale: UiLocale) {
-  const labels: Record<UiLocale, Record<string, string>> = {
-    de: { queued: "Delegiert", in_progress: "In Bearbeitung", review_required: "Zur Prüfung", completed: "Abgeschlossen", cancelled: "Abgebrochen" },
-    en: { queued: "Delegated", in_progress: "In progress", review_required: "Ready for review", completed: "Completed", cancelled: "Cancelled" },
-  };
-  return labels[locale][status] ?? humanize(status);
-}
-
 function campaignAssets(campaign: MarketingCampaign, assets: ReturnType<typeof buildMarketingRegistryReadModel>["assets"]) {
   return assets.filter((asset) => campaign.assetIds.includes(asset.id));
 }
@@ -803,6 +666,10 @@ function MetricLink({ href, label, value, note, active, tone }: { href: string; 
 function FilterLink({ locale, value, current, label, count }: { locale: UiLocale; value: MarketingView; current: MarketingView; label: string; count: number }) {
   const active = value === current;
   return <Link href={`${hrefFor(locale, value)}#campaigns`} aria-current={active ? "page" : undefined} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active ? "border-sky-500 bg-sky-100 text-sky-950 dark:bg-sky-400/20 dark:text-sky-50" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-400"}`}>{label} <span className="ml-1 opacity-70">{count}</span></Link>;
+}
+
+function ActionLink({ href, label }: { href: string; label: string }) {
+  return <Link href={href} className="rounded-xl bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">{label}</Link>;
 }
 
 function PlainStatusBadge({ label, tone }: { label: string; tone: Tone }) {
