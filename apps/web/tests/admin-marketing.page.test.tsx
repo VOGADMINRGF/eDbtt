@@ -4,7 +4,7 @@ import MarketingAdminPage from "@/app/admin/marketing/page";
 import { flattenNavItems } from "@/app/admin/adminNav";
 
 describe("admin marketing campaign control system", () => {
-  it("centres campaigns, target markets, distribution and performance", async () => {
+  it("centres campaigns, distribution, data coverage and the contextual assistant", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de" }) }),
     );
@@ -16,24 +16,20 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Kampagnenportfolio");
     expect(html).toContain("Gestreute Beiträge und Varianten");
     expect(html).toContain("Messdaten und Datenquellen");
+    expect(html).toContain("Marketing-Assistent");
+    expect(html).toContain("Nur Empfehlungen");
+    expect(html).toContain("2 Inhalte warten auf Prüfung");
+    expect(html).toContain("Messplan und Datenlage prüfen");
     expect(html).toContain("Debattenstand der Woche");
     expect(html).toContain("Voxy erklärt");
-    expect(html).toContain("eDebatte intern");
-    expect(html).toContain("Social Media organisch");
-    expect(html).toContain("Bezahlte Werbung");
     expect(html).toContain("Nicht verbunden / keine verifizierten Daten");
-    expect(html).toContain("Keine Fantasiezahlen");
     expect(html).not.toContain("Weitere Marketingmaterialien");
-    expect(html).not.toContain("Warum eDebatte? · Onepager");
-    expect(html).not.toContain("Produktbeleg");
     expect(html).not.toContain("docs/marketing/");
   });
 
   it("filters the portfolio by B2G without mixing unrelated B2C content", async () => {
     const html = renderToStaticMarkup(
-      await MarketingAdminPage({
-        searchParams: Promise.resolve({ lang: "de", segment: "b2g" }),
-      }),
+      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de", segment: "b2g" }) }),
     );
 
     expect(html).toContain("Beteiligung nachvollziehbar organisieren");
@@ -41,7 +37,7 @@ describe("admin marketing campaign control system", () => {
     expect(html).not.toContain("Voxy erklärt · Was ist ein Debattenstand?");
   });
 
-  it("renders selected campaign details and links to evidence-based insights", async () => {
+  it("uses selected campaign context and real review links", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({
         searchParams: Promise.resolve({ lang: "de", campaign: "CAM-CONTENT-02" }),
@@ -52,8 +48,10 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Den Debattenstand als wiederkehrendes");
     expect(html).toContain("Begonnene Produktaktionen");
     expect(html).toContain("Instagram, LinkedIn, Facebook, Newsletter, Meta Ads");
-    expect(html).toContain("/admin/marketing/insights?lang=de&amp;campaign=CAM-CONTENT-02");
+    expect(html).toContain("1 Inhalte dieser Kampagne warten auf Prüfung");
+    expect(html).toContain("Kampagneninhalte prüfen");
     expect(html).toContain("/admin/editorial/queue");
+    expect(html).toContain("/admin/marketing/insights?lang=de&amp;campaign=CAM-CONTENT-02");
   });
 
   it("keeps missing measurements honest instead of rendering zero performance", async () => {
@@ -62,13 +60,14 @@ describe("admin marketing campaign control system", () => {
     );
 
     expect(html).toContain("Noch keine verifizierten Leistungsdaten");
-    expect(html).toContain("Noch ist keine belastbare Plattform- oder Reichweitenempfehlung möglich");
+    expect(html).toContain("Noch keine Performance-Datenquelle ist verbunden.");
+    expect(html).toContain("Der Assistent verändert, terminiert oder veröffentlicht nichts selbstständig.");
     expect(html).not.toContain("0 Likes");
     expect(html).not.toContain("0 Shares");
     expect(html).not.toContain("ROI");
   });
 
-  it("renders the English operator view", async () => {
+  it("renders the English operator and assistant view", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "en" }) }),
     );
@@ -77,6 +76,8 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Campaign portfolio");
     expect(html).toContain("Distributed content and variants");
     expect(html).toContain("Measurement data and sources");
+    expect(html).toContain("Marketing assistant");
+    expect(html).toContain("Recommendations only");
     expect(html).toContain("Not connected / no verified data");
   });
 
