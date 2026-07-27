@@ -188,9 +188,9 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         href: "/admin/marketing",
-        label: "Marketing Registry",
-        description: "Opportunities, Kampagnen, Assets und Brands",
-        keywords: ["marketing", "campaign", "assets", "brands", "growth", "read-only"],
+        label: "Marketing-Zentrale",
+        description: "Kampagnen steuern, Ergebnisse prüfen, Arbeit delegieren",
+        keywords: ["marketing", "campaign", "results", "delegation", "growth"],
       },
       {
         href: "/admin/anlassraeume",
