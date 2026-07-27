@@ -1,5 +1,7 @@
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
+import { sanitizeAiLogText } from "@core/telemetry/aiLogSanitization";
 import type { E150ProviderName, ProviderMatrixEntry } from "@features/ai/orchestratorE150";
+import { tryGetAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export const PROVIDER_ORDER: readonly E150ProviderName[] = [
   "openai",
@@ -335,15 +337,17 @@ export function providerDisplayName(provider: E150ProviderName): string {
 }
 
 export function defaultModelForProvider(provider: E150ProviderName): string {
+  const policyResult = tryGetAiRuntimePolicy();
+  const policy = policyResult.ok ? policyResult.policy : null;
   switch (provider) {
     case "openai":
-      return process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+      return policy?.openai.model ?? "gpt-5";
     case "anthropic":
-      return process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";
+      return policy?.anthropic.model ?? "claude-sonnet-4-20250514";
     case "mistral":
-      return process.env.MISTRAL_MODEL ?? "mistral-large-latest";
+      return policy?.mistral.model ?? "mistral-large-latest";
     case "gemini":
-      return process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+      return policy?.gemini.model ?? "gemini-2.5-flash";
     case "ari":
       return process.env.ARI_MODEL ?? "ari-main";
     default:
@@ -363,18 +367,43 @@ function normalizeMessage(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+export function sanitizeDiagnosticText(value: unknown): string | null {
+  const message = normalizeMessage(value);
+  if (!message) return null;
+  if (/^[A-Za-z0-9_.-]{2,120}$/.test(message)) return message;
+  const lowered = message.toLowerCase();
+  if (lowered.includes("openai_empty_output")) return "OPENAI_EMPTY_OUTPUT";
+  if (lowered.includes("model") && lowered.includes("not found")) return "MODEL_NOT_FOUND";
+  if (lowered.includes("timeout") || lowered.includes("timed out") || lowered.includes("aborted")) return "TIMEOUT";
+  if (lowered.includes("rate limit") || lowered.includes("429")) return "RATE_LIMIT";
+  if (lowered.includes("unauthorized") || lowered.includes("forbidden") || lowered.includes("401") || lowered.includes("403")) {
+    return "UNAUTHORIZED";
+  }
+  if (lowered.includes("payment required") || lowered.includes("402")) return "PAYMENT_REQUIRED";
+  if (lowered.includes("invalid api key") || lowered.includes("api key fehlt") || lowered.includes("missing api key")) {
+    return "INVALID_API_KEY";
+  }
+  if (lowered.includes("schema")) return "SCHEMA_INVALID";
+  if (lowered.includes("json") || lowered.includes("parse")) return "BAD_JSON";
+  if (
+    lowered.includes("missing ") &&
+    (lowered.includes("api_key") ||
+      lowered.includes("base_url") ||
+      lowered.includes("api_url") ||
+      lowered.includes("ari_url"))
+  ) {
+    return "CONFIG_MISSING";
+  }
+  if (lowered.includes("config")) return "CONFIG_MISSING";
+  if (lowered.includes("resource_exhausted")) return "RESOURCE_EXHAUSTED";
+  if (lowered.includes("unavailable")) return "UNAVAILABLE";
+  return "provider_error";
+}
+
 export function sanitizeRawExcerpt(value: unknown, max = 500): string | null {
-  if (value === null || value === undefined) return null;
-  const base = typeof value === "string" ? value : JSON.stringify(value);
-  if (!base) return null;
-  let text = base;
-
-  text = text.replace(/Bearer\s+[A-Za-z0-9._-]{10,}/gi, "Bearer [redacted]");
-  text = text.replace(/sk-[A-Za-z0-9_-]{20,}/g, "sk-[redacted]");
-  text = text.replace(/(api[_-]?key\s*[=:]\s*)([^\s,;]+)/gi, "$1[redacted]");
-
-  if (text.length > max) return `${text.slice(0, max)}...`;
-  return text;
+  void value;
+  void max;
+  return null;
 }
 
 export function extractProviderErrorCode(error: unknown): string | null {

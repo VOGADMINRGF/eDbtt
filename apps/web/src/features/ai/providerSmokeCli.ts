@@ -3,6 +3,7 @@ import path from "node:path";
 import type { ProviderDiagnostic } from "@/features/ai/adminTelemetryDiagnostics";
 import { defaultModelForProvider } from "@/features/ai/adminTelemetryDiagnostics";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
+import { getAiRuntimePolicy, getAiRuntimeProfile } from "@features/ai/aiRuntimePolicy";
 import {
   type DirectFullContractRunOptions,
   runDirectFullContractDiagnostic,
@@ -18,11 +19,6 @@ const CLI_PROVIDER_ORDER = [...PRIMARY_PROVIDER_ORDER, ...OPTIONAL_PROVIDER_ORDE
 export type SmokeCliProvider = (typeof CLI_PROVIDER_ORDER)[number];
 export type ProviderSmokeCliMode = "probe" | "runtime" | "full" | "full-lite";
 const ALLOWED_PROVIDER_VALUES = [...CLI_PROVIDER_ORDER, "all-primary", "all-optional"] as const;
-const FULL_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
-const FULL_LITE_MAX_OUTPUT_TOKENS = 1_200;
-const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
-const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
-const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
 const PROBE_TINY_ESTIMATED_TOKENS_IN = 60;
 const RUNTIME_TINY_ESTIMATED_TOKENS_IN = 120;
 const FULL_ESTIMATED_TOKENS_IN = 900;
@@ -593,7 +589,64 @@ export async function writeProviderSmokeJsonLog(
     totals: result.totals,
     dryRunPlan: result.dryRunPlan,
     summary: result.summary,
-    rows: result.rows,
+    rows: result.rows.map((row) => ({
+      provider: row.provider,
+      model: row.model ?? null,
+      status: row.status,
+      errorKind: row.errorKind ?? null,
+      providerErrorCode: row.providerErrorCode ?? null,
+      httpStatus: row.httpStatus ?? null,
+      validationMode: row.validationMode,
+      providerStatus: row.providerStatus,
+      adapterStatus: row.adapterStatus,
+      parseStatus: row.parseStatus,
+      schemaStatus: row.schemaStatus,
+      durationMs: row.durationMs,
+      tokensIn: row.tokensIn,
+      tokensOut: row.tokensOut,
+      estimatedCostUsd: row.estimatedCostUsd ?? null,
+      estimatedCostEur: row.estimatedCostEur ?? null,
+      costKnown: row.costKnown ?? false,
+      pricingSource: row.pricingSource ?? null,
+      costReason: row.costReason ?? null,
+      runCostGroup: row.runCostGroup ?? null,
+      smokeMode: row.smokeMode ?? null,
+      budgetProfile: row.budgetProfile ?? null,
+      fallbackUsed: row.fallbackUsed ?? null,
+      journeyDecision: row.journeyDecision,
+      strictStatus: row.strictStatus,
+      strictProviderErrorCode: row.strictProviderErrorCode ?? null,
+      repairAttempted: row.repairAttempted,
+      repairStatus: row.repairStatus,
+      repairProviderErrorCode: row.repairProviderErrorCode ?? null,
+      repairUsed: row.repairUsed,
+      directStrictStatus: row.directStrictStatus,
+      draftStatus: row.draftStatus,
+      envelopeBuildStatus: row.envelopeBuildStatus,
+      finalSchemaStatus: row.finalSchemaStatus,
+      finalContractStatus: row.finalContractStatus,
+      nativeStrategy: row.nativeStrategy,
+      preferredContractStrategy: row.preferredContractStrategy,
+      fallbackStrategy: row.fallbackStrategy,
+      supportsStrictJsonSchema: row.supportsStrictJsonSchema,
+      supportsJsonObjectMode: row.supportsJsonObjectMode,
+      supportsPromptEnvelope: row.supportsPromptEnvelope,
+      supportsRepairAttempt: row.supportsRepairAttempt,
+      canBeUsedAsRepairProvider: row.canBeUsedAsRepairProvider,
+      knownBlockers: row.knownBlockers,
+      nonRepairableErrorCodes: row.nonRepairableErrorCodes,
+      formatUsed: row.formatUsed ?? null,
+      didFallback: row.didFallback ?? null,
+      timeoutMs: row.timeoutMs ?? null,
+      maxOutputTokens: row.maxOutputTokens ?? null,
+      openaiErrorCode: row.openaiErrorCode ?? null,
+      selectedSmokeModel: row.selectedSmokeModel ?? null,
+      smokeModelEnvPresent: row.smokeModelEnvPresent ?? null,
+      effectiveModel: row.effectiveModel ?? null,
+      openAiSmokeModelMismatch: row.openAiSmokeModelMismatch ?? null,
+      rootCause: row.rootCause,
+      nextAction: row.nextAction,
+    })),
   });
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   return filePath;
@@ -612,17 +665,15 @@ function sortRowsByPrimaryOrder(rows: ProviderDiagnostic[]): ProviderDiagnostic[
 }
 
 function openAiSmokeModel(): string {
-  return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
+  return getAiRuntimePolicy().openai.smokeModelCandidates[0] ?? getAiRuntimePolicy().openai.model;
 }
 
 function openAiSmokeTimeoutMs(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 30_000;
+  return getAiRuntimeProfile("smoke").timeoutMs;
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 2_200;
+  return getAiRuntimeProfile("smoke").maxOutputTokens ?? getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function resolveFullModeMaxOutputTokens(args: ProviderSmokeCliArgs, provider: SmokeCliProvider): number {
@@ -631,9 +682,13 @@ function resolveFullModeMaxOutputTokens(args: ProviderSmokeCliArgs, provider: Sm
   }
   if (provider === "openai") {
     const openAiMax = openAiSmokeMaxOutputTokens();
-    return args.mode === "full-lite" ? Math.min(openAiMax, FULL_LITE_MAX_OUTPUT_TOKENS) : openAiMax;
+    return args.mode === "full-lite"
+      ? Math.min(openAiMax, getAiRuntimeProfile("fullContractLite").maxOutputTokens ?? openAiMax)
+      : openAiMax;
   }
-  return args.mode === "full-lite" ? FULL_LITE_MAX_OUTPUT_TOKENS : FULL_DEFAULT_MAX_OUTPUT_TOKENS;
+  return args.mode === "full-lite"
+    ? (getAiRuntimeProfile("fullContractLite").maxOutputTokens ?? 1_200)
+    : (getAiRuntimeProfile("fullContract").maxOutputTokens ?? 2_600);
 }
 
 function resolveRepairPolicy(args: ProviderSmokeCliArgs): "enabled" | "disabled" {
@@ -659,8 +714,8 @@ function buildDryRunPlan(args: ProviderSmokeCliArgs): ProviderSmokeDryRunPlanRow
     const maxOutputTokens = fullLike
       ? resolveFullModeMaxOutputTokens(args, provider)
       : args.mode === "probe"
-        ? PROBE_TINY_MAX_OUTPUT_TOKENS
-        : RUNTIME_TINY_MAX_OUTPUT_TOKENS;
+        ? (getAiRuntimeProfile("providerProbe").maxOutputTokens ?? 96)
+        : (getAiRuntimeProfile("runtimeProbe").maxOutputTokens ?? 192);
     const timeoutMs = provider === "openai" ? openAiSmokeTimeoutMs() : null;
     const runCostGroup: ProviderSmokeDryRunPlanRow["runCostGroup"] =
       args.mode === "probe" || args.mode === "runtime"

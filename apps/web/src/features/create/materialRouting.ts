@@ -1,3 +1,4 @@
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 
 export type MaterialResearchMode = "none" | "gemini" | "gpt_deepsearch" | "auto";
@@ -345,14 +346,11 @@ function hasClarificationOnlyLocation(text: string): boolean {
 }
 
 function resolveDeepSearchEnabled(): boolean {
-  return parseBool(
-    process.env.E150_DEEPSEARCH_ENABLED ?? process.env.OPENAI_DEEP_RESEARCH_ENABLED ?? "false",
-    false,
-  );
+  return getAiRuntimePolicy().research.deepResearchEnabled;
 }
 
 function resolveDeepSearchRequiresConfirmation(): boolean {
-  return parseBool(process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION ?? "true", true);
+  return getAiRuntimePolicy().research.requiresConfirmation;
 }
 
 export function resolveMaterialRouting(input: ResolveMaterialRoutingInput): MaterialRoutingResult {

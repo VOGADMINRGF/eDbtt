@@ -1,5 +1,6 @@
 // core/telemetry/aiUsage.ts
 import { coreCol } from "../db/triMongo";
+import { sanitizeAiUsageEvent } from "./aiLogSanitization";
 import type { AiUsageEvent, AiUsageDailyRow } from "./aiUsageTypes";
 
 const COLLECTION_USAGE = "ai_usage";
@@ -7,9 +8,10 @@ const COLLECTION_DAILY = "ai_usage_daily";
 
 export async function logAiUsage(event: AiUsageEvent): Promise<void> {
   const col = await coreCol<AiUsageEvent>(COLLECTION_USAGE);
+  const sanitized = sanitizeAiUsageEvent(event);
   await col.insertOne({
-    ...event,
-    createdAt: event.createdAt ?? new Date(),
+    ...sanitized,
+    createdAt: sanitized.createdAt ?? new Date(),
   });
 }
 

@@ -18,9 +18,15 @@ import {
   mapErrorToKind,
   providerDisplayName,
   sanitizeRawExcerpt,
+  sanitizeDiagnosticText,
   type ProviderDiagnostic,
 } from "@/features/ai/adminTelemetryDiagnostics";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
+import {
+  getAiRuntimePolicy,
+  getAiRuntimeProfile,
+  resolveAiRuntimeProviderMissingReason,
+} from "@features/ai/aiRuntimePolicy";
 
 const FULL_SAMPLE_TEXT =
   "In unserer Stadt soll ein autofreier Sonntag pro Monat eingefuehrt werden, um die Luftqualitaet zu verbessern und den OePNV zu staerken.";
@@ -30,9 +36,14 @@ const RUNTIME_USER_PROMPT =
   "Runtime probe for admin orchestrator smoke. Respond only with the required JSON object.";
 const DIRECT_PROBE_PROMPT =
   "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
-const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
-const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
 
+function directProbeMaxOutputTokens(): number {
+  return getAiRuntimeProfile("providerProbe").maxOutputTokens ?? getAiRuntimePolicy().directProbeMaxOutputTokens;
+}
+
+function directRuntimeMaxOutputTokens(): number {
+  return getAiRuntimeProfile("runtimeProbe").maxOutputTokens ?? getAiRuntimePolicy().directRuntimeMaxOutputTokens;
+}
 const FULL_CONTRACT_PROMPT = [
   "Return exactly one top-level AnalyzeResult JSON object (RFC8259).",
   "Never return an array as top-level value.",
@@ -60,30 +71,12 @@ declare global {
   var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__: RouteFullInternal | undefined;
 }
 
-const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-5";
-
-function dedupeModelCandidates(values: Array<string | null | undefined>): string[] {
-  const candidates: string[] = [];
-  const seen = new Set<string>();
-  for (const value of values) {
-    const model = String(value ?? "").trim();
-    if (!model || seen.has(model)) continue;
-    seen.add(model);
-    candidates.push(model);
-  }
-  return candidates;
-}
-
 function openAiSmokeModelCandidates(): string[] {
-  return dedupeModelCandidates([
-    process.env.OPENAI_SMOKE_MODEL,
-    process.env.OPENAI_MODEL,
-    OPENAI_SMOKE_DEFAULT_MODEL,
-  ]);
+  return [...getAiRuntimePolicy().openai.smokeModelCandidates];
 }
 
 function openAiSmokeModel(): string {
-  return openAiSmokeModelCandidates()[0] ?? OPENAI_SMOKE_DEFAULT_MODEL;
+  return openAiSmokeModelCandidates()[0] ?? getAiRuntimePolicy().openai.model;
 }
 
 function isOpenAiModelNotFoundError(error: unknown): boolean {
@@ -104,30 +97,16 @@ function isOpenAiModelNotFoundError(error: unknown): boolean {
 }
 
 function openAiSmokeTimeoutMs(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
-  return Number.isFinite(raw) && raw > 0 ? raw : 30_000;
+  return getAiRuntimeProfile("smoke").timeoutMs;
 }
 
 function openAiSmokeMaxOutputTokens(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
-  return Number.isFinite(raw) && raw > 0 ? raw : 2_200;
+  return getAiRuntimeProfile("smoke").maxOutputTokens ?? getAiRuntimePolicy().smokeMaxOutputTokens;
 }
 
 function configMissingReason(provider: E150ProviderName): string | null {
-  switch (provider) {
-    case "openai":
-      return process.env.OPENAI_API_KEY ? null : "missing OPENAI_API_KEY";
-    case "anthropic":
-      return process.env.ANTHROPIC_API_KEY ? null : "missing ANTHROPIC_API_KEY";
-    case "mistral":
-      return process.env.MISTRAL_API_KEY ? null : "missing MISTRAL_API_KEY";
-    case "gemini":
-      return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
-        ? null
-        : "missing GEMINI_API_KEY / GOOGLE_API_KEY";
-    default:
-      return "unsupported provider";
-  }
+  if (provider === "ari") return "unsupported provider";
+  return resolveAiRuntimeProviderMissingReason(provider);
 }
 
 function buildRow(
@@ -163,8 +142,8 @@ function buildRow(
     errorKind: partial.errorKind ?? null,
     providerErrorCode: partial.providerErrorCode ?? null,
     httpStatus: partial.httpStatus ?? null,
-    errorMessage: partial.errorMessage ?? null,
-    reason: partial.reason ?? null,
+    errorMessage: sanitizeDiagnosticText(partial.errorMessage ?? partial.providerErrorCode ?? partial.errorKind) ?? null,
+    reason: sanitizeDiagnosticText(partial.reason ?? partial.providerErrorCode ?? partial.errorKind) ?? null,
     validationMode: partial.validationMode ?? "none",
     providerStatus: partial.providerStatus ?? deriveProviderStatus(partial.errorKind ?? null, partial.status ?? "failed"),
     adapterStatus: partial.adapterStatus ?? "not_started",
@@ -186,7 +165,7 @@ function buildRow(
     smokeMode,
     budgetProfile,
     fallbackUsed: partial.fallbackUsed ?? null,
-    fallbackReason: partial.fallbackReason ?? null,
+    fallbackReason: sanitizeDiagnosticText(partial.fallbackReason ?? partial.providerErrorCode) ?? null,
     journeyDecision: partial.journeyDecision ?? "selected",
     strictStatus: partial.strictStatus ?? "not_started",
     strictProviderErrorCode: partial.strictProviderErrorCode ?? null,
@@ -195,7 +174,7 @@ function buildRow(
     repairStatus: partial.repairStatus ?? "not_attempted",
     repairProviderErrorCode: partial.repairProviderErrorCode ?? null,
     repairSchemaPath: partial.repairSchemaPath ?? null,
-    repairReason: partial.repairReason ?? null,
+    repairReason: sanitizeDiagnosticText(partial.repairReason ?? partial.repairProviderErrorCode) ?? null,
     repairUsed: partial.repairUsed ?? false,
     directStrictStatus: partial.directStrictStatus ?? "not_started",
     draftStatus: partial.draftStatus ?? "not_attempted",
@@ -224,7 +203,7 @@ function buildRow(
     timeoutMs: partial.timeoutMs ?? null,
     maxOutputTokens: partial.maxOutputTokens ?? null,
     openaiErrorCode: partial.openaiErrorCode ?? null,
-    openaiErrorMessage: partial.openaiErrorMessage ?? null,
+    openaiErrorMessage: sanitizeDiagnosticText(partial.openaiErrorMessage ?? partial.openaiErrorCode) ?? null,
     selectedSmokeModel: partial.selectedSmokeModel ?? null,
     smokeModelEnvPresent: partial.smokeModelEnvPresent ?? null,
     effectiveModel: partial.effectiveModel ?? null,
@@ -491,7 +470,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
   const missing = configMissingReason(provider);
   if (missing) {
     return buildRow(provider, "provider_probe", "provider_probe", {
-      model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
+      model: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider),
       status: "config_missing",
       errorKind: "INVALID_API_KEY",
       providerErrorCode: "CONFIG_MISSING",
@@ -505,10 +484,10 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       directStrictStatus: "blocked",
       finalContractStatus: "blocked",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: directProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
-      effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+      effectiveModel: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : null,
       openAiSmokeModelMismatch: false,
     });
   }
@@ -518,7 +497,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
     let result = await callProvider({
       provider,
       prompt: DIRECT_PROBE_PROMPT.replace("<name>", provider),
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: directProbeMaxOutputTokens(),
       timeoutMs: probeTimeoutMs ?? undefined,
       expectJson: provider === "gemini" ? true : undefined,
     });
@@ -527,12 +506,13 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       result = await callProvider({
         provider,
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", provider),
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: directRuntimeMaxOutputTokens(),
         expectJson: false,
       });
       validated = validateProbePayload(result.text);
     }
-    const effectiveModel = result.model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+    const effectiveModel =
+      result.model ?? (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
     const openAiSmokeModelMismatch =
       isOpenAi &&
       isOpenAiSmokeModelMismatch({
@@ -558,7 +538,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
         tokensIn: result.tokensIn,
         tokensOut: result.tokensOut,
         timeoutMs: probeTimeoutMs,
-        maxOutputTokens: provider === "gemini" ? RUNTIME_TINY_MAX_OUTPUT_TOKENS : PROBE_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: provider === "gemini" ? directRuntimeMaxOutputTokens() : directProbeMaxOutputTokens(),
         selectedSmokeModel,
         smokeModelEnvPresent,
         effectiveModel,
@@ -581,7 +561,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       finalSchemaStatus: "ok",
       finalContractStatus: "strict_ok",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: provider === "gemini" ? RUNTIME_TINY_MAX_OUTPUT_TOKENS : PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: provider === "gemini" ? directRuntimeMaxOutputTokens() : directProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
       effectiveModel,
@@ -596,7 +576,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
     });
     const effectiveModel =
       error?.meta?.model ??
-      (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+      (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
     const openAiSmokeModelMismatch =
       isOpenAi &&
       isOpenAiSmokeModelMismatch({
@@ -621,7 +601,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
       directStrictStatus: "failed",
       finalContractStatus: isAccountBlockedErrorCode(providerErrorCode) ? "blocked" : "failed",
       timeoutMs: probeTimeoutMs,
-      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: directProbeMaxOutputTokens(),
       selectedSmokeModel,
       smokeModelEnvPresent,
       effectiveModel,
@@ -649,7 +629,7 @@ function runDirectProbeDiagnosticWithPrompt(
     const missing = configMissingReason(provider);
     if (missing) {
       return buildRow(provider, mode, stage, {
-        model: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider),
+        model: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider),
         status: "config_missing",
         errorKind: "INVALID_API_KEY",
         providerErrorCode: "CONFIG_MISSING",
@@ -663,10 +643,10 @@ function runDirectProbeDiagnosticWithPrompt(
         directStrictStatus: "blocked",
         finalContractStatus: "blocked",
         timeoutMs: probeTimeoutMs,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: directRuntimeMaxOutputTokens(),
         selectedSmokeModel,
         smokeModelEnvPresent,
-        effectiveModel: isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : null,
+        effectiveModel: isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : null,
         openAiSmokeModelMismatch: false,
       });
     }
@@ -676,7 +656,7 @@ function runDirectProbeDiagnosticWithPrompt(
       let result = await callProvider({
         provider,
         prompt,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: directRuntimeMaxOutputTokens(),
         timeoutMs: probeTimeoutMs ?? undefined,
         expectJson: provider === "gemini" ? true : undefined,
       });
@@ -685,12 +665,13 @@ function runDirectProbeDiagnosticWithPrompt(
         result = await callProvider({
           provider,
           prompt,
-          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: directRuntimeMaxOutputTokens(),
           expectJson: false,
         });
         validated = validateProbePayload(result.text);
       }
-      const effectiveModel = result.model ?? (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+      const effectiveModel =
+        result.model ?? (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
       const openAiSmokeModelMismatch =
         isOpenAi &&
         isOpenAiSmokeModelMismatch({
@@ -720,7 +701,7 @@ function runDirectProbeDiagnosticWithPrompt(
           directStrictStatus: "failed",
           finalContractStatus: "failed",
           timeoutMs: probeTimeoutMs,
-          maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: directRuntimeMaxOutputTokens(),
           selectedSmokeModel,
           smokeModelEnvPresent,
           effectiveModel,
@@ -744,7 +725,7 @@ function runDirectProbeDiagnosticWithPrompt(
         finalSchemaStatus: "ok",
         finalContractStatus: "strict_ok",
         timeoutMs: probeTimeoutMs,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: directRuntimeMaxOutputTokens(),
         selectedSmokeModel,
         smokeModelEnvPresent,
         effectiveModel,
@@ -759,7 +740,7 @@ function runDirectProbeDiagnosticWithPrompt(
       });
       const effectiveModel =
         error?.meta?.model ??
-        (isOpenAi ? selectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider));
+        (isOpenAi ? selectedSmokeModel ?? getAiRuntimePolicy().openai.model : defaultModelForProvider(provider));
       const openAiSmokeModelMismatch =
         isOpenAi &&
         isOpenAiSmokeModelMismatch({
@@ -784,7 +765,7 @@ function runDirectProbeDiagnosticWithPrompt(
         directStrictStatus: "failed",
         finalContractStatus: isAccountBlockedErrorCode(providerErrorCode) ? "blocked" : "failed",
         timeoutMs: probeTimeoutMs,
-        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: directRuntimeMaxOutputTokens(),
         selectedSmokeModel,
         smokeModelEnvPresent,
         effectiveModel,

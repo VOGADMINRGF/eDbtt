@@ -3,6 +3,7 @@ import {
   buildCreatePlanner,
   resolveCreatePlannerTimeoutMs,
 } from "@/features/create/createPlanner";
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 const CREATE_PLANNER_SMOKE_TEXT = [
   "In Rahnsdorf sollen mehrere kommunale Themen gemeinsam eingeordnet werden.",
@@ -14,13 +15,7 @@ const CREATE_PLANNER_SMOKE_TEXT = [
 
 
 function plannerModelCandidates(): string[] {
-  return Array.from(
-    new Set(
-      [process.env.OPENAI_PLANNER_MODEL, process.env.OPENAI_MODEL]
-        .map((value) => value?.trim())
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
+  return [...getAiRuntimePolicy().openai.plannerModelCandidates];
 }
 
 function safeRootCause(result: Awaited<ReturnType<typeof buildCreatePlanner>>): string {
@@ -102,7 +97,7 @@ export async function POST(req: NextRequest) {
       finalContractStatus: ok ? "strict_ok" : "blocked",
       durationMs,
       timeoutMs,
-      maxOutputTokens: 1200,
+      maxOutputTokens: getAiRuntimePolicy().plannerMaxOutputTokens,
       tokensIn: null,
       tokensOut: null,
       estimatedCostUsd: null,
@@ -181,7 +176,7 @@ export async function POST(req: NextRequest) {
           finalContractStatus: "blocked",
           durationMs,
           timeoutMs,
-          maxOutputTokens: 1200,
+          maxOutputTokens: getAiRuntimePolicy().plannerMaxOutputTokens,
           tokensIn: null,
           tokensOut: null,
           estimatedCostUsd: null,

@@ -311,7 +311,7 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(ari).toBeTruthy();
     expect(ari.status).toBe("config_missing");
     expect(ari.journeyDecision).toBe("config_missing");
-    expect(ari.reason).toContain("missing ARI_BASE_URL / ARI_API_KEY");
+    expect(ari.reason).toBe("CONFIG_MISSING");
 
     vi.unstubAllEnvs();
   });
@@ -526,7 +526,7 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(openai.parseStatus).toBe("ok");
   });
 
-  it("reports BAD_JSON with parseError and rawExcerpt for malformed JSON", async () => {
+  it("reports BAD_JSON with parseError and keeps raw excerpts out of metadata-only diagnostics", async () => {
     mockFullOrchestrator("```json\n{\"mode\":\"E150\", bad}\n```");
     mocks.analyzeContribution.mockResolvedValue({
       claims: [],
@@ -544,7 +544,7 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(openai.errorKind).toBe("BAD_JSON");
     expect(openai.providerErrorCode).toBe("BAD_JSON");
     expect(openai.parseError).toBeTruthy();
-    expect(openai.rawExcerpt).toBeTruthy();
+    expect(openai.rawExcerpt).toBeNull();
   });
 
   it("reports SCHEMA_INVALID with schemaPath for valid JSON missing required fields", async () => {
@@ -626,7 +626,7 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(openaiDirect.formatUsed).toBe("json_object");
     expect(openaiDirect.didFallback).toBe(true);
     expect(openaiDirect.openaiErrorCode).toBe("json_schema_not_supported");
-    expect(openaiDirect.openaiErrorMessage).toBe("schema fallback");
+    expect(openaiDirect.openaiErrorMessage).toBe("SCHEMA_INVALID");
     expect(openaiDirect.timeoutMs).toBe(17000);
     expect(openaiDirect.maxOutputTokens).toBe(1337);
     expect(openaiDirect.finalContractStatus).toBe("strict_ok");

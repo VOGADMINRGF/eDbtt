@@ -1,3 +1,5 @@
+import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
+
 export type ResearchProviderId =
   | "ari"
   | "perplexity"
@@ -240,15 +242,10 @@ function resolveAriStatus(): ResearchProviderStatus {
 }
 
 function resolveOpenAiDeepResearchStatus(): ResearchProviderStatus {
-  const enabled = parseBool(
-    process.env.E150_DEEPSEARCH_ENABLED ?? process.env.OPENAI_DEEP_RESEARCH_ENABLED,
-    false,
-  );
-  const model =
-    process.env.OPENAI_DEEPSEARCH_MODEL?.trim() ??
-    process.env.OPENAI_DEEP_RESEARCH_MODEL?.trim() ??
-    "";
-  const hasApiKey = hasValue(process.env.OPENAI_API_KEY);
+  const policy = getAiRuntimePolicy();
+  const enabled = policy.research.gateEnabled;
+  const model = policy.research.requestedModel ?? "";
+  const hasApiKey = policy.openai.apiKeyPresent;
 
   if (!enabled) {
     return {
@@ -324,11 +321,12 @@ function resolveOfflineFutureProvider(
 }
 
 export function resolveResearchEntitlements(): ResearchEntitlements {
+  const policy = getAiRuntimePolicy();
   return {
-    searchCredit: parseBool(process.env.SEARCH_CREDIT_AVAILABLE, false),
-    deepResearchCredit: parseBool(process.env.DEEP_RESEARCH_CREDIT_AVAILABLE, false),
-    dossierBoost: parseBool(process.env.DOSSIER_BOOST_AVAILABLE, false),
-    premiumResearchOverride: parseBool(process.env.PREMIUM_RESEARCH_OVERRIDE, false),
+    searchCredit: policy.research.searchCreditAvailable,
+    deepResearchCredit: policy.research.deepResearchCreditAvailable,
+    dossierBoost: policy.research.dossierBoostAvailable,
+    premiumResearchOverride: policy.research.premiumResearchOverride,
   };
 }
 

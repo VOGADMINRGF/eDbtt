@@ -14,6 +14,7 @@ export type AriCallArgs = {
   prompt: string;
   signal?: AbortSignal;
   maxOutputTokens?: number;
+  model?: string;
   /**
    * If true, we *ask* the agent to output strict JSON.
    * Note: agents are not guaranteed to comply -> caller should still validate.
@@ -116,7 +117,7 @@ export async function callAriLLM(args: AriCallArgs): Promise<AriCallResult> {
 
   return {
     text,
-    model: payload?.agent ?? agent,
+    model: args.model ?? payload?.agent ?? agent,
     tokensIn: undefined,
     tokensOut: undefined,
     costEur: undefined,

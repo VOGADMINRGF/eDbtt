@@ -43,6 +43,12 @@ import type {
 } from "./e150/verificationContract";
 import { AnalyzeResultSchema, type AnalyzeResult } from "@features/analyze/schemas";
 import { extractJsonCandidate, parseJsonLoose } from "@features/analyze/llmJson";
+import {
+  getAiRuntimePolicy,
+  getAiRuntimeProfile,
+  resolveAiRuntimeProviderMissingReason,
+  type AiRuntimeProviderName,
+} from "@features/ai/aiRuntimePolicy";
 
 /* ------------------------------------------------------------------------- */
 /* Typen                                                                     */
@@ -358,252 +364,315 @@ function extractProviderErrorCode(error: unknown): string | null {
   return null;
 }
 
-const OPENAI_TIMEOUT_DEFAULT = Number(process.env.OPENAI_TIMEOUT_MS ?? 45_000);
-const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
-const OPENAI_BASE_FOR_PROBE = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(
-  /\/+$/,
-  "",
-);
-const ORCHESTRATOR_BUDGET_MS = Number(process.env.E150_ANALYZE_BUDGET_MS ?? 25_000);
-const PROVIDER_PROBE_TTL_MS = Number(process.env.PROVIDER_PROBE_TTL_MS ?? 60_000);
-const PROVIDER_PROBE_DISABLE_SHORT_MS = 60_000;
-const PROVIDER_PROBE_DISABLE_LONG_MS = 10 * 60_000;
-const DEFAULT_ANTHROPIC_MODEL =
-  process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest";
-
-function isLikelyValidKey(provider: E150ProviderName, key: string | undefined | null): boolean {
-  if (!key) return false;
-  switch (provider) {
-    case "anthropic":
-      return /^sk-ant-/.test(key) && key.length > 40;
-    case "openai":
-      return /^sk-/.test(key) && key.length > 40;
-    case "mistral":
-      return key.length > 20;
-    case "ari":
-      return key.length > 20;
-    case "gemini":
-      return key.length > 20;
-    default:
-      return Boolean(key);
-  }
+function safeProviderErrorCode(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[A-Za-z0-9_.-]{2,80}$/.test(trimmed)) return null;
+  return trimmed;
 }
 
-const PROVIDERS: ProviderProfile[] = [
-  {
-    name: "openai",
-    label: "OpenAI (E150 contrib analyzer)",
-    role: "mixed",
-    weight: 1,
-    maxTokens: 2_600,
-    timeoutMs: OPENAI_TIMEOUT_DEFAULT,
-    metricId: "openai",
-    strictJson: true,
-    promptHint:
-      "Deliver a balanced mix of claims, context notes, questions, and knots while keeping everything grounded in the source text.",
-    enabled: () => isLikelyValidKey("openai", process.env.OPENAI_API_KEY),
-    disabledReason: () => (!isLikelyValidKey("openai", process.env.OPENAI_API_KEY) ? "API key fehlt/ungültig" : null),
-    capabilities: [...(PROVIDER_CAPABILITIES.openai ?? [])],
-    probe: async () => probeOpenAI(),
-    call: async ({ prompt, signal, maxTokens }) => {
-      const { text, model } = await askOpenAI({
-        prompt,
-        asJson: true,
-        forceJsonFormat: true,
-        model: DEFAULT_OPENAI_MODEL,
-        maxOutputTokens: maxTokens,
-        signal,
-      });
-      return {
-        text,
-        modelName: model ?? DEFAULT_OPENAI_MODEL,
-        strictJson: true,
-      };
+function safeTelemetryLabel(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[A-Za-z0-9_.:-]{1,120}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+function normalizeProviderBoundaryReason(params: {
+  reason?: unknown;
+  errorKind?: AiErrorKind | null;
+  cancelReason?: CancelReason | null;
+  providerErrorCode?: string | null;
+}): string {
+  const rawReason = typeof params.reason === "string" ? params.reason.trim().toLowerCase() : "";
+  if (params.cancelReason === "budget_abort" || rawReason === "budget_abort") return "budget_abort";
+  if (rawReason === "blocked_by_runtime_policy") return "blocked_by_runtime_policy";
+  if (rawReason === "not_in_journey_plan") return "not_in_journey_plan";
+  if (rawReason === "fallback_not_needed") return "fallback_not_needed";
+  if (
+    rawReason.includes("missing ") &&
+    (rawReason.includes("api_key") ||
+      rawReason.includes("base_url") ||
+      rawReason.includes("api_url") ||
+      rawReason.includes("ari_url"))
+  ) {
+    return "missing_credentials";
+  }
+  if (rawReason === "provider_disabled" || rawReason.includes("disabled")) return "provider_disabled";
+
+  switch (params.errorKind) {
+    case "TIMEOUT":
+      return "timeout";
+    case "RATE_LIMIT":
+      return "rate_limit";
+    case "UNAUTHORIZED":
+    case "INVALID_API_KEY":
+      return "unauthorized";
+    case "MODEL_NOT_FOUND":
+      return "model_not_found";
+    case "BAD_JSON":
+      return "invalid_response";
+    default:
+      break;
+  }
+
+  const code = safeProviderErrorCode(params.providerErrorCode);
+  if (code === "BAD_JSON" || code === "SCHEMA_INVALID" || code === "INVALID_AI_RESPONSE") {
+    return "invalid_response";
+  }
+  if (code === "MODEL_NOT_FOUND") return "model_not_found";
+  if (code === "INVALID_API_KEY") return "unauthorized";
+
+  if (rawReason.includes("timeout") || rawReason.includes("timed out")) return "timeout";
+  if (rawReason.includes("rate limit") || rawReason.includes("429")) return "rate_limit";
+  if (
+    rawReason.includes("unauthorized") ||
+    rawReason.includes("forbidden") ||
+    rawReason.includes("401") ||
+    rawReason.includes("403") ||
+    rawReason.includes("invalid api key")
+  ) {
+    return "unauthorized";
+  }
+  if (
+    rawReason.includes("model_not_found") ||
+    rawReason.includes("modell nicht gefunden") ||
+    (rawReason.includes("model") && rawReason.includes("not found"))
+  ) {
+    return "model_not_found";
+  }
+  if (
+    rawReason.includes("bad_json") ||
+    rawReason.includes("schema") ||
+    rawReason.includes("parse") ||
+    rawReason.includes("invalid_response")
+  ) {
+    return "invalid_response";
+  }
+  return "provider_failed";
+}
+
+function providerProbeTtlMs(): number {
+  const raw = Number(process.env.PROVIDER_PROBE_TTL_MS ?? 60_000);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 60_000;
+}
+
+const PROVIDER_PROBE_DISABLE_SHORT_MS = 60_000;
+const PROVIDER_PROBE_DISABLE_LONG_MS = 10 * 60_000;
+
+function openAiProbeBaseUrl(policy = getAiRuntimePolicy()): string {
+  return (policy.openai.baseUrl ?? "https://api.openai.com/v1").replace(/\/+$/, "");
+}
+
+function getProviderProfiles(policy = getAiRuntimePolicy()): ProviderProfile[] {
+  const fullContractProfile = getAiRuntimeProfile("fullContract", policy);
+
+  return [
+    {
+      name: "openai",
+      label: "OpenAI (E150 contrib analyzer)",
+      role: "mixed",
+      weight: 1,
+      maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
+      timeoutMs: policy.providerTimeoutsMs.openai,
+      metricId: "openai",
+      strictJson: true,
+      promptHint:
+        "Deliver a balanced mix of claims, context notes, questions, and knots while keeping everything grounded in the source text.",
+      enabled: () => policy.openai.apiKeyPresent,
+      disabledReason: () => resolveAiRuntimeProviderMissingReason("openai", policy),
+      capabilities: [...(PROVIDER_CAPABILITIES.openai ?? [])],
+      probe: async () => probeOpenAI(policy),
+      call: async ({ prompt, signal, maxTokens }) => {
+        const { text, model, tokensIn, tokensOut, formatUsed, didFallback, openaiErrorCode } = await askOpenAI({
+          prompt,
+          asJson: true,
+          forceJsonFormat: true,
+          model: policy.openai.model,
+          maxOutputTokens: maxTokens,
+          timeoutMs: policy.providerTimeoutsMs.openai,
+          signal,
+        });
+        return {
+          text,
+          modelName: model ?? policy.openai.model,
+          tokensIn,
+          tokensOut,
+          strictJson: true,
+          formatUsed,
+          didFallback,
+          openaiErrorCode: openaiErrorCode ?? null,
+          openaiErrorMessage: null,
+        };
+      },
     },
-  },
-  {
-    name: "anthropic",
-    label: "Anthropic Claude",
-    role: "context",
-    weight: 0.9,
-    maxTokens: 2_400,
-    timeoutMs: Number(process.env.ANTHROPIC_TIMEOUT_MS ?? 12_000),
-    metricId: "anthropic",
-    strictJson: true,
-    promptHint:
-      "Extract rich background/context sections (facts, stakeholders, assumptions). Prioritize clarity and neutrality.",
-    enabled: () =>
-      process.env.ANTHROPIC_DISABLED !== "1" && isLikelyValidKey("anthropic", process.env.ANTHROPIC_API_KEY),
-    disabledReason: () => {
-      if (process.env.ANTHROPIC_DISABLED === "1") return "deaktiviert (ANTHROPIC_DISABLED=1)";
-      if (!isLikelyValidKey("anthropic", process.env.ANTHROPIC_API_KEY)) return "API key fehlt/ungültig";
-      return null;
+    {
+      name: "anthropic",
+      label: "Anthropic Claude",
+      role: "context",
+      weight: 0.9,
+      maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
+      timeoutMs: policy.providerTimeoutsMs.anthropic,
+      metricId: "anthropic",
+      strictJson: true,
+      promptHint:
+        "Extract rich background/context sections (facts, stakeholders, assumptions). Prioritize clarity and neutrality.",
+      enabled: () => policy.anthropic.apiKeyPresent && !policy.anthropic.disabledExplicitly,
+      disabledReason: () => resolveAiRuntimeProviderMissingReason("anthropic", policy),
+      capabilities: [...(PROVIDER_CAPABILITIES.anthropic ?? [])],
+      call: async ({ prompt, signal, maxTokens }) => {
+        const { text, model, tokensIn, tokensOut } = await askAnthropic({
+          prompt,
+          model: policy.anthropic.model,
+          maxOutputTokens: maxTokens,
+          signal,
+        });
+        return {
+          text,
+          modelName: model ?? policy.anthropic.model,
+          tokensIn,
+          tokensOut,
+          strictJson: true,
+        };
+      },
     },
-    capabilities: [...(PROVIDER_CAPABILITIES.anthropic ?? [])],
-    call: async ({ prompt, signal, maxTokens }) => {
-      const { text, model, tokensIn, tokensOut } = await askAnthropic({
-        prompt,
-        maxOutputTokens: maxTokens,
-        signal,
-      });
-      return {
-        text,
-        modelName: model ?? DEFAULT_ANTHROPIC_MODEL,
-        tokensIn,
-        tokensOut,
-        strictJson: true,
-      };
+    {
+      name: "mistral",
+      label: "Mistral Large",
+      role: "structure",
+      weight: 0.8,
+      maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
+      timeoutMs: policy.providerTimeoutsMs.mistral,
+      metricId: "mistral",
+      promptHint:
+        "Split the text into concise, testable claims (max one assertion per claim). Highlight responsibilities/topics clearly.",
+      enabled: () => policy.mistral.apiKeyPresent,
+      disabledReason: () => resolveAiRuntimeProviderMissingReason("mistral", policy),
+      capabilities: [...(PROVIDER_CAPABILITIES.mistral ?? [])],
+      probe: async () =>
+        probeHttp("mistral", "https://api.mistral.ai/v1/models", {
+          headers: { authorization: `Bearer ${process.env.MISTRAL_API_KEY ?? ""}` },
+        }),
+      call: async ({ prompt, signal, maxTokens }) => {
+        const { text, model, tokensIn, tokensOut } = await askMistral({
+          prompt,
+          model: policy.mistral.model,
+          maxOutputTokens: maxTokens,
+          signal,
+        });
+        return {
+          text,
+          modelName: model ?? policy.mistral.model,
+          tokensIn,
+          tokensOut,
+        };
+      },
     },
-  },
-  {
-    name: "mistral",
-    label: "Mistral Large",
-    role: "structure",
-    weight: 0.8,
-    maxTokens: 2_000,
-    timeoutMs: Number(process.env.MISTRAL_TIMEOUT_MS ?? 35_000),
-    metricId: "mistral",
-    promptHint:
-      "Split the text into concise, testable claims (max one assertion per claim). Highlight responsibilities/topics clearly.",
-    enabled: () => Boolean(process.env.MISTRAL_API_KEY),
-    disabledReason: () => (!isLikelyValidKey("mistral", process.env.MISTRAL_API_KEY) ? "API key fehlt/ungültig" : null),
-    capabilities: [...(PROVIDER_CAPABILITIES.mistral ?? [])],
-    probe: async () => probeHttp("mistral", "https://api.mistral.ai/v1/models", {
-      headers: { authorization: `Bearer ${process.env.MISTRAL_API_KEY ?? ""}` },
-    }),
-    call: async ({ prompt, signal, maxTokens }) => {
-      const { text, model, tokensIn, tokensOut } = await askMistral({
-        prompt,
-        maxOutputTokens: maxTokens,
-        signal,
-      });
-      return {
-        text,
-        modelName: model ?? process.env.MISTRAL_MODEL ?? "mistral-large-latest",
-        tokensIn,
-        tokensOut,
-      };
+    {
+      name: "gemini",
+      label: "Gemini Pro",
+      role: "questions",
+      weight: 0.75,
+      maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
+      timeoutMs: policy.providerTimeoutsMs.gemini,
+      metricId: "gemini",
+      promptHint:
+        "Focus on investigative, critical questions (finance, legal, impact). Each question must be grounded in the provided text.",
+      enabled: () => policy.gemini.apiKeyPresent && !policy.gemini.disabledExplicitly,
+      disabledReason: () => resolveAiRuntimeProviderMissingReason("gemini", policy),
+      capabilities: [...(PROVIDER_CAPABILITIES.gemini ?? [])],
+      probe: async () => probeGeminiNow(),
+      call: async ({ prompt, signal, maxTokens }) => {
+        const { text, model, tokensIn, tokensOut } = await askGemini({
+          prompt,
+          model: policy.gemini.model,
+          maxOutputTokens: maxTokens,
+          signal,
+        });
+        return {
+          text,
+          modelName: model ?? policy.gemini.model,
+          tokensIn,
+          tokensOut,
+        };
+      },
     },
-  },
-  {
-    name: "gemini",
-    label: "Gemini Pro",
-    role: "questions",
-    weight: 0.75,
-    maxTokens: 2_200,
-    timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS ?? 18_000),
-    metricId: "gemini",
-    promptHint:
-      "Focus on investigative, critical questions (finance, legal, impact). Each question must be grounded in the provided text.",
-    enabled: () => {
-      if (process.env.GEMINI_DISABLED === "1") return false;
-      const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
-      const hasKey = isLikelyValidKey("gemini", key);
-      if (!process.env.VERCEL && !hasKey) return false;
-      return hasKey;
+    {
+      name: "ari",
+      label: "ARI",
+      role: "mixed",
+      weight: 0.85,
+      maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
+      timeoutMs: policy.providerTimeoutsMs.ari,
+      metricId: "ari",
+      strictJson: true,
+      promptHint:
+        "Return concise, strictly grounded analysis with clear claims, impacts, and responsibilities in JSON.",
+      enabled: () => policy.ari.enabled,
+      disabledReason: () => resolveAiRuntimeProviderMissingReason("ari", policy),
+      capabilities: [...(PROVIDER_CAPABILITIES.ari ?? [])],
+      call: async ({ prompt, signal, maxTokens }) => {
+        const { text, model, tokensIn, tokensOut } = await askAri({
+          prompt,
+          asJson: true,
+          model: policy.ari.model,
+          maxOutputTokens: maxTokens,
+          signal,
+        });
+        return {
+          text,
+          modelName: model ?? policy.ari.model,
+          tokensIn,
+          tokensOut,
+          strictJson: true,
+        };
+      },
     },
-    disabledReason: () => {
-      if (process.env.GEMINI_DISABLED === "1") return "deaktiviert (GEMINI_DISABLED=1)";
-      const hasKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
-      if (!process.env.VERCEL && !hasKey) return "deaktiviert (lokal)";
-      if (!hasKey) return "API key fehlt";
-      return null;
-    },
-    capabilities: [...(PROVIDER_CAPABILITIES.gemini ?? [])],
-    probe: async () => probeGeminiNow(),
-    call: async ({ prompt, signal, maxTokens }) => {
-      const { text, model, tokensIn, tokensOut } = await askGemini({
-        prompt,
-        maxOutputTokens: maxTokens,
-        signal,
-      });
-      return {
-        text,
-        modelName: model ?? process.env.GEMINI_MODEL ?? "gemini-1.5-pro",
-        tokensIn,
-        tokensOut,
-      };
-    },
-  },
-  {
-    name: "ari",
-    label: "ARI",
-    role: "mixed",
-    weight: 0.85,
-    maxTokens: 2_300,
-    timeoutMs: Number(process.env.ARI_TIMEOUT_MS ?? 25_000),
-    metricId: "ari",
-    strictJson: true,
-    promptHint:
-      "Return concise, strictly grounded analysis with clear claims, impacts, and responsibilities in JSON.",
-    enabled: () => {
-      if (process.env.ARI_DISABLED === "1") return false;
-      const base = process.env.ARI_BASE_URL || process.env.ARI_URL || process.env.ARI_API_URL || process.env.YOUCOM_ARI_API_URL;
-      const key = process.env.ARI_API_KEY || process.env.YOUCOM_ARI_API_KEY;
-      return Boolean(base && key);
-    },
-    disabledReason: () =>
-      process.env.ARI_DISABLED === "1"
-        ? "deaktiviert (ARI_DISABLED=1)"
-        : !(process.env.ARI_BASE_URL || process.env.ARI_URL || process.env.ARI_API_URL || process.env.YOUCOM_ARI_API_URL)
-          ? "Basis-URL fehlt"
-          : !isLikelyValidKey("ari", (process.env.ARI_API_KEY || process.env.YOUCOM_ARI_API_KEY) ?? "")
-            ? "API key fehlt/ungültig"
-            : null,
-    capabilities: [...(PROVIDER_CAPABILITIES.ari ?? [])],
-    call: async ({ prompt, signal, maxTokens }) => {
-      const { text, model, tokensIn, tokensOut } = await askAri({
-        prompt,
-        asJson: true,
-        maxOutputTokens: maxTokens,
-        signal,
-      });
-      return {
-        text,
-        modelName: model ?? process.env.ARI_MODEL ?? "ari-main",
-        tokensIn,
-        tokensOut,
-        strictJson: true,
-      };
-    },
-  },
-];
+  ];
+}
 
 function resolveProviderPool(
   requiredCapability: ProviderProfile["capabilities"][number] = "core_analysis",
 ): {
+  catalog: ProviderProfile[];
   active: ProviderProfile[];
   disabled: { provider: E150ProviderName; reason: string }[];
   skipped: { provider: E150ProviderName; reason: string }[];
   probes: ProbeResult[];
 } {
+  const policy = getAiRuntimePolicy();
+  const catalog = getProviderProfiles(policy);
   const disabled: { provider: E150ProviderName; reason: string }[] = [];
   const skipped: { provider: E150ProviderName; reason: string }[] = [];
   const probes: ProbeResult[] = [];
 
-  const active = PROVIDERS.filter((profile) => {
+  const active = catalog.filter((profile) => {
     try {
       const enabled = profile.enabled();
       if (!enabled) {
-        const reason = profile.disabledReason?.() ?? "disabled";
+        const reason = normalizeProviderBoundaryReason({
+          reason: profile.disabledReason?.() ?? "disabled",
+        });
         disabled.push({ provider: profile.name, reason });
         return false;
       }
       if (!providerSupports(profile.name, requiredCapability)) {
         skipped.push({
           provider: profile.name,
-          reason: `missing capability ${requiredCapability}`,
+          reason: "not_in_journey_plan",
         });
         return false;
       }
       return true;
     } catch {
-      disabled.push({ provider: profile.name, reason: "disabled" });
+      disabled.push({ provider: profile.name, reason: "provider_disabled" });
       return false;
     }
   });
 
-  return { active, disabled, skipped, probes };
+  return { catalog, active, disabled, skipped, probes };
 }
 
 /* ------------------------------------------------------------------------- */
@@ -611,6 +680,7 @@ function resolveProviderPool(
 /* ------------------------------------------------------------------------- */
 
 function buildProviderMatrix(
+  catalog: ProviderProfile[],
   outcomes: ProviderResult[],
   disabled: { provider: E150ProviderName; reason: string }[],
   skipped: { provider: E150ProviderName; reason: string }[],
@@ -620,7 +690,7 @@ function buildProviderMatrix(
   const skippedSet = new Set(skipped.map((s) => s.provider));
   const probeMap = new Map(probes.map((p) => [p.provider, p]));
 
-  return PROVIDERS.map((p) => {
+  return catalog.map((p) => {
     const outcome = outcomes.find((o) => o.provider === p.name);
     const probe = probeMap.get(p.name);
     if (outcome && outcome.ok) {
@@ -639,7 +709,7 @@ function buildProviderMatrix(
         formatUsed: o.formatUsed ?? null,
         didFallback: o.didFallback ?? null,
         openaiErrorCode: o.openaiErrorCode ?? null,
-        openaiErrorMessage: o.openaiErrorMessage ?? null,
+        openaiErrorMessage: null,
         parseError: null,
         schemaError: null,
         schemaPath: null,
@@ -657,17 +727,22 @@ function buildProviderMatrix(
           status: o.httpStatus ?? null,
           durationMs: o.durationMs,
           model: o.modelName ?? null,
-          reason: o.cancelReason ?? o.error ?? null,
-          errorMessage: o.errorMessageShort ?? o.error ?? null,
-          providerErrorCode: o.providerErrorCode ?? null,
+          reason: normalizeProviderBoundaryReason({
+            reason: o.cancelReason ?? o.error ?? null,
+            errorKind: o.errorKind,
+            cancelReason: o.cancelReason ?? null,
+            providerErrorCode: o.providerErrorCode ?? null,
+          }),
+          errorMessage: null,
+          providerErrorCode: safeProviderErrorCode(o.providerErrorCode),
           formatUsed: o.formatUsed ?? null,
           didFallback: o.didFallback ?? null,
-          openaiErrorCode: o.openaiErrorCode ?? null,
-          openaiErrorMessage: o.openaiErrorMessage ?? null,
+          openaiErrorCode: safeProviderErrorCode(o.openaiErrorCode),
+          openaiErrorMessage: null,
           parseError: o.parseError ?? null,
           schemaError: o.schemaError ?? null,
           schemaPath: o.schemaPath ?? null,
-          rawExcerpt: o.rawExcerpt ?? null,
+          rawExcerpt: null,
         };
       }
     }
@@ -681,17 +756,22 @@ function buildProviderMatrix(
         status: o.httpStatus ?? null,
         durationMs: o.durationMs,
         model: o.modelName ?? null,
-        reason: o.cancelReason ?? o.error ?? null,
-        errorMessage: o.errorMessageShort ?? o.error ?? null,
-        providerErrorCode: o.providerErrorCode ?? null,
+        reason: normalizeProviderBoundaryReason({
+          reason: o.cancelReason ?? o.error ?? null,
+          errorKind: o.errorKind,
+          cancelReason: o.cancelReason ?? null,
+          providerErrorCode: o.providerErrorCode ?? null,
+        }),
+        errorMessage: null,
+        providerErrorCode: safeProviderErrorCode(o.providerErrorCode),
         formatUsed: o.formatUsed ?? null,
         didFallback: o.didFallback ?? null,
-        openaiErrorCode: o.openaiErrorCode ?? null,
-        openaiErrorMessage: o.openaiErrorMessage ?? null,
+        openaiErrorCode: safeProviderErrorCode(o.openaiErrorCode),
+        openaiErrorMessage: null,
         parseError: o.parseError ?? null,
         schemaError: o.schemaError ?? null,
         schemaPath: o.schemaPath ?? null,
-        rawExcerpt: o.rawExcerpt ?? null,
+        rawExcerpt: null,
       };
     }
     if (disabledSet.has(p.name)) {
@@ -701,8 +781,11 @@ function buildProviderMatrix(
         errorKind: probe?.errorKind ?? null,
         status: probe?.status ?? null,
         model: null,
-        reason: disabled.find((d) => d.provider === p.name)?.reason ?? null,
-        errorMessage: disabled.find((d) => d.provider === p.name)?.reason ?? null,
+        reason: normalizeProviderBoundaryReason({
+          reason: disabled.find((d) => d.provider === p.name)?.reason ?? null,
+          errorKind: probe?.errorKind ?? null,
+        }),
+        errorMessage: null,
         providerErrorCode: null,
         parseError: null,
         schemaError: null,
@@ -717,8 +800,11 @@ function buildProviderMatrix(
         errorKind: probe?.errorKind ?? null,
         status: probe?.status ?? null,
         model: null,
-        reason: skipped.find((s) => s.provider === p.name)?.reason ?? null,
-        errorMessage: skipped.find((s) => s.provider === p.name)?.reason ?? null,
+        reason: normalizeProviderBoundaryReason({
+          reason: skipped.find((s) => s.provider === p.name)?.reason ?? null,
+          errorKind: probe?.errorKind ?? null,
+        }),
+        errorMessage: null,
         providerErrorCode: null,
         parseError: null,
         schemaError: null,
@@ -935,10 +1021,11 @@ async function probeGeminiNow(): Promise<ProbeResult> {
     clearTimeout(timeout);
   }
 }
-async function probeOpenAI(): Promise<ProbeResult> {
+async function probeOpenAI(policy = getAiRuntimePolicy()): Promise<ProbeResult> {
   const mode = (process.env.PROVIDER_PROBE_MODE ?? "light").toLowerCase();
+  const baseUrl = openAiProbeBaseUrl(policy);
   if (mode !== "deep") {
-    const res = await probeHttp("openai", `${OPENAI_BASE_FOR_PROBE}/models`, {
+    const res = await probeHttp("openai", `${baseUrl}/models`, {
       headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}` },
     });
     return { ...res, provider: "openai" };
@@ -948,14 +1035,14 @@ async function probeOpenAI(): Promise<ProbeResult> {
   const timeout = setTimeout(() => controller.abort(), 2_000);
   const started = Date.now();
   try {
-    const res = await fetch(`${OPENAI_BASE_FOR_PROBE}/responses`, {
+    const res = await fetch(`${baseUrl}/responses`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}`,
       },
       body: JSON.stringify({
-        model: DEFAULT_OPENAI_MODEL,
+        model: policy.openai.model,
         max_output_tokens: 1,
         input: [{ role: "user", content: "ping" }],
         text: { format: { type: "json_object" } },
@@ -987,7 +1074,7 @@ async function runProviderProbeCached(
   if (!profile.probe) return null;
   const cached = probeCache.get(profile.name);
   const now = Date.now();
-  if (cached && cached.result.checkedAt + PROVIDER_PROBE_TTL_MS > now) {
+  if (cached && cached.result.checkedAt + providerProbeTtlMs() > now) {
     if (cached.disabledUntil && cached.disabledUntil > now) {
       return cached.result;
     }
@@ -1195,25 +1282,22 @@ async function runProvider(
       if (shouldRetry) continue;
 
       const durationMs = Date.now() - started;
-      const message =
-        abortReason === "budget_abort"
-          ? `${profile.label} cancelled (budget)`
-          : abortReason
-              ? `${profile.label} cancelled (${abortReason})`
-              : err?.name === "AbortError"
-                ? `${profile.label} timed out nach ${timeoutMs}ms`
-                : typeof err?.message === "string"
-                  ? err.message
-                  : `Unbekannter Fehler bei ${profile.label}`;
+      const providerErrorCode = safeProviderErrorCode(extractProviderErrorCode(err));
+      const reasonCode = normalizeProviderBoundaryReason({
+        reason: abortReason ?? err?.message ?? null,
+        errorKind: lastKind,
+        cancelReason: abortReason,
+        providerErrorCode,
+      });
       return {
         ok: false,
         provider: profile.name,
-        error: message,
+        error: reasonCode,
         durationMs,
         errorKind: lastKind,
         httpStatus: typeof err?.status === "number" ? err.status : null,
-        errorMessageShort: typeof err?.message === "string" ? err.message.slice(0, 200) : undefined,
-        providerErrorCode: extractProviderErrorCode(err),
+        errorMessageShort: undefined,
+        providerErrorCode,
         attempt: (attempt + 1) as 1 | 2,
         modelName: (err as any)?.meta?.model ?? undefined,
         cancelReason: abortReason,
@@ -1222,16 +1306,20 @@ async function runProvider(
   }
 
   const durationMs = Date.now() - started;
+  const providerErrorCode = safeProviderErrorCode(extractProviderErrorCode(lastError));
   return {
     ok: false,
     provider: profile.name,
-    error: lastError?.message ?? `Unbekannter Fehler bei ${profile.label}`,
+    error: normalizeProviderBoundaryReason({
+      reason: lastError?.message ?? null,
+      errorKind: lastKind,
+      providerErrorCode,
+    }),
     durationMs,
     errorKind: lastKind,
     httpStatus: typeof lastError?.status === "number" ? lastError.status : null,
-    errorMessageShort:
-      typeof lastError?.message === "string" ? lastError.message.slice(0, 200) : undefined,
-    providerErrorCode: extractProviderErrorCode(lastError),
+    errorMessageShort: undefined,
+    providerErrorCode,
     attempt: 2,
   };
 }
@@ -1628,9 +1716,23 @@ async function runProviderProbe(
 function logProviderTelemetry(matrix: ProviderMatrixEntry[]) {
   matrix.forEach((entry) => {
     // eslint-disable-next-line no-console
-    console.log(
-      `[analyze][telemetry] ${entry.provider} state=${entry.state} attempt=${entry.attempt ?? "null"} errorKind=${entry.errorKind ?? "null"} status=${entry.status ?? "null"} durationMs=${entry.durationMs ?? "null"} model=${entry.model ?? "null"} reason=${entry.reason ?? "null"}`,
-    );
+    console.log("[analyze][telemetry]", {
+      provider: entry.provider,
+      state: entry.state,
+      attempt: entry.attempt ?? null,
+      errorKind: entry.errorKind ?? null,
+      status: entry.status ?? null,
+      durationMs: entry.durationMs ?? null,
+      model: safeTelemetryLabel(entry.model) ?? null,
+      reason:
+        entry.reason !== null && entry.reason !== undefined
+          ? normalizeProviderBoundaryReason({
+              reason: entry.reason,
+              errorKind: entry.errorKind ?? null,
+              providerErrorCode: entry.providerErrorCode ?? null,
+            })
+          : null,
+    });
   });
 }
 
@@ -1644,8 +1746,9 @@ export async function callE150Orchestrator(
   args: E150OrchestratorArgs,
 ): Promise<E150OrchestratorResult> {
   const capability = args.requiredCapability ?? "core_analysis";
+  const policy = getAiRuntimePolicy();
   const journeyProfile = args.journeyProfile ?? getJourneyProfile(args.journey ?? "analyze");
-  const { active: poolProfiles, disabled, skipped } = resolveProviderPool(capability);
+  const { catalog, active: poolProfiles, disabled, skipped } = resolveProviderPool(capability);
   if (!poolProfiles.length) {
     const reason =
       disabled[0]?.reason || skipped[0]?.reason || "Kein aktiver Provider konfiguriert";
@@ -1683,7 +1786,10 @@ export async function callE150Orchestrator(
           : "probe failed";
       disabled.push({
         provider: profile.name,
-        reason: probe.errorKind ? `${reasonPrefix} (${probe.errorKind})` : reasonPrefix,
+        reason: normalizeProviderBoundaryReason({
+          reason: probe.errorKind ? `${reasonPrefix} (${probe.errorKind})` : reasonPrefix,
+          errorKind: probe.errorKind ?? null,
+        }),
       });
       return;
     }
@@ -1692,6 +1798,10 @@ export async function callE150Orchestrator(
   });
 
   const profiles = keptProfiles;
+  const runtimeExecutionOrder = policy.enabledRuntimeProviders.filter((provider): provider is E150ProviderName =>
+    profiles.some((profile) => profile.name === provider),
+  );
+  const runtimeAllowedSet = new Set<E150ProviderName>(runtimeExecutionOrder);
   const activeByName = new Map(profiles.map((profile) => [profile.name, profile]));
 
   const primaryProviderNames = flattenRoleProviders(journeyProfile.primaryRoles);
@@ -1707,6 +1817,8 @@ export async function callE150Orchestrator(
 
   const toProfiles = (providers: E150ProviderName[]): ProviderProfile[] =>
     providers
+      .filter((provider) => runtimeAllowedSet.has(provider))
+      .sort((left, right) => runtimeExecutionOrder.indexOf(left) - runtimeExecutionOrder.indexOf(right))
       .map((provider) => activeByName.get(provider))
       .filter((profile): profile is ProviderProfile => Boolean(profile));
 
@@ -1722,6 +1834,13 @@ export async function callE150Orchestrator(
   const dynamicSkipped: { provider: E150ProviderName; reason: string }[] = [];
 
   profiles.forEach((profile) => {
+    if (!runtimeAllowedSet.has(profile.name)) {
+      dynamicSkipped.push({
+        provider: profile.name,
+        reason: "blocked_by_runtime_policy",
+      });
+      return;
+    }
     if (plannedProviders.has(profile.name)) return;
     dynamicSkipped.push({
       provider: profile.name,
@@ -1729,10 +1848,14 @@ export async function callE150Orchestrator(
     });
   });
 
+  const runtimeAllowedProfiles = runtimeExecutionOrder
+    .map((provider) => activeByName.get(provider))
+    .filter((profile): profile is ProviderProfile => Boolean(profile));
+
   const executionPrimary =
     primaryProfiles.length > 0
       ? primaryProfiles
-      : profiles.filter((profile) => !fallbackProviderNames.includes(profile.name));
+      : runtimeAllowedProfiles.filter((profile) => !fallbackProviderNames.includes(profile.name));
   const executionFallback = fallbackProfiles;
 
   if (executionPrimary.length === 0 && executionFallback.length === 0) {
@@ -1750,14 +1873,14 @@ export async function callE150Orchestrator(
   const budgetController = new AbortController();
   const budgetTimer = setTimeout(
     () => budgetController.abort("budget_abort"),
-    ORCHESTRATOR_BUDGET_MS,
+    policy.orchestratorBudgetMs,
   );
   const mergedAbort = mergeAbortSignals([args.outerSignal, budgetController.signal]);
 
   const candidates: E150OrchestratorCandidate[] = [];
   const providerOutcomes: ProviderResult[] = [];
   const timings = Object.fromEntries(
-    PROVIDERS.map((p) => [p.name, null]),
+    catalog.map((p) => [p.name, null]),
   ) as Record<E150ProviderName, number | null>;
 
   const failedProviders: E150OrchestratorMeta["failedProviders"] = [];
@@ -1768,15 +1891,20 @@ export async function callE150Orchestrator(
     providerOutcomes.push(failure);
     timings[failure.provider] = failure.durationMs ?? timings[failure.provider];
     if (failure.errorKind === "MODEL_NOT_FOUND") {
-      dynamicDisabled.push({ provider: failure.provider, reason: "Modell nicht gefunden" });
+      dynamicDisabled.push({ provider: failure.provider, reason: "model_not_found" });
     } else {
       failedProviders.push({
         provider: failure.provider,
-        error: failure.error,
+        error: normalizeProviderBoundaryReason({
+          reason: failure.error,
+          errorKind: failure.errorKind,
+          cancelReason: failure.cancelReason ?? null,
+          providerErrorCode: failure.providerErrorCode ?? null,
+        }),
         errorKind: failure.errorKind,
         httpStatus: failure.httpStatus ?? null,
-        errorMessageShort: failure.errorMessageShort,
-        providerErrorCode: failure.providerErrorCode ?? null,
+        errorMessageShort: undefined,
+        providerErrorCode: safeProviderErrorCode(failure.providerErrorCode),
       });
     }
   };
@@ -1800,20 +1928,24 @@ export async function callE150Orchestrator(
       const failure: ProviderFailure = {
         ok: false,
         provider: current.provider,
-        error: validation.errorMessage,
+        error: normalizeProviderBoundaryReason({
+          reason: validation.reason ?? validation.errorMessage,
+          errorKind: validation.errorKind,
+          providerErrorCode: validation.providerErrorCode,
+        }),
         durationMs: current.durationMs,
         errorKind: validation.errorKind,
         attempt: current.attempt,
-        errorMessageShort: validation.errorMessage.slice(0, 200),
-        providerErrorCode: validation.providerErrorCode,
+        errorMessageShort: undefined,
+        providerErrorCode: safeProviderErrorCode(validation.providerErrorCode),
         formatUsed: current.formatUsed,
         didFallback: current.didFallback,
         openaiErrorCode: current.openaiErrorCode,
-        openaiErrorMessage: current.openaiErrorMessage,
+        openaiErrorMessage: null,
         parseError: validation.parseError ?? null,
         schemaError: validation.schemaError ?? null,
         schemaPath: validation.schemaPath ?? null,
-        rawExcerpt: validation.rawExcerpt ?? null,
+        rawExcerpt: null,
       };
       return Promise.resolve({ outcome: failure });
     }
@@ -1919,13 +2051,19 @@ export async function callE150Orchestrator(
       errorKind: failure?.errorKind ?? null,
       strictJson: success?.strictJson ?? profile?.strictJson ?? false,
     }).catch((err) => {
-      console.error("[E150] logAiUsage (provider outcome) failed", err);
+      // eslint-disable-next-line no-console
+      console.error("[E150] logAiUsage (provider outcome) failed", {
+        code: safeProviderErrorCode((err as any)?.code) ?? null,
+        status: typeof (err as any)?.status === "number" ? (err as any).status : null,
+        name: safeTelemetryLabel((err as any)?.name) ?? null,
+      });
     });
   });
 
   await Promise.all(usageLogs);
 
   const providerMatrix = buildProviderMatrix(
+    catalog,
     providerOutcomes,
     [...disabled, ...dynamicDisabled],
     [...skipped, ...dynamicSkipped],
@@ -1935,7 +2073,7 @@ export async function callE150Orchestrator(
   if (!candidates.length) {
     const msg =
       budgetController.signal.aborted
-        ? `E150-Orchestrator: Budget ${ORCHESTRATOR_BUDGET_MS}ms erreicht.`
+        ? `E150-Orchestrator: Budget ${policy.orchestratorBudgetMs}ms erreicht.`
         : failedProviders.length === 1
           ? `E150-Orchestrator: Provider ${failedProviders[0].provider} fehlgeschlagen.`
           : "E150-Orchestrator: Alle Provider fehlgeschlagen.";

@@ -13,6 +13,7 @@ const VERSION = process.env.ANTHROPIC_VERSION || "2023-06-01";
 
 export type AskArgs = {
   prompt: string;
+  model?: string;
   maxOutputTokens?: number;
   signal?: AbortSignal;
 };
@@ -72,6 +73,7 @@ async function post(body: Record<string, unknown>, signal?: AbortSignal) {
 
 async function askAnthropic({
   prompt,
+  model,
   maxOutputTokens = 2_200,
   signal,
 }: AskArgs): Promise<AskResult> {
@@ -90,7 +92,7 @@ async function askAnthropic({
     ],
   });
 
-  let selectedModel = MODEL;
+  let selectedModel = model ?? MODEL;
   let data;
   try {
     data = await post(buildBody(selectedModel), signal);

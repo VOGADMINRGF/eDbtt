@@ -166,4 +166,39 @@ describe("/api/admin/ai/create-planner-smoke", () => {
     expect(serialized).not.toContain("sensitive upstream detail");
     expect(serialized).not.toContain("sensitive provider response");
   });
+
+  it("reports the canonical planner default even when no planner model env is set", async () => {
+    vi.unstubAllEnvs();
+    mocks.requireAdminOrResponse.mockResolvedValue({ userId: "admin-1" });
+    mocks.buildCreatePlanner.mockResolvedValue(
+      plannerResult({
+        plannerDebug: {
+          attemptedProvider: "openai",
+          usedProvider: "openai",
+          attemptedModel: "gpt-5",
+          usedModel: "gpt-5",
+          providerAvailable: true,
+          providerErrorCode: null,
+          providerErrorMessage: null,
+          errorMessage: null,
+          rawPayloadValid: true,
+          rawTextValid: true,
+          normalizedPayloadValid: true,
+          qualityGatePassed: true,
+          rawText: null,
+        },
+      }),
+    );
+
+    const response = await POST(request());
+    const body = await response.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.rows[0]).toMatchObject({
+      selectedSmokeModel: "gpt-5",
+      effectiveModel: "gpt-5",
+      openAiSmokeModelMismatch: false,
+    });
+    expect(body.plannerSmoke.modelCandidates).toEqual(["gpt-5"]);
+  });
 });

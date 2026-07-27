@@ -792,7 +792,6 @@ export async function analyzeContribution(
       locale: language,
       audienceRole: input.audienceRole ?? "citizen",
       maxClaims,
-      maxTokens: 2600,
       validateRaw: (rawText: string) => validateAnalyzeRaw(rawText, sourceText),
       telemetry: {
         pipeline: input.pipeline ?? "contribution_analyze",

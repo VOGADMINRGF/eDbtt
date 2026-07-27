@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { coreCol } from "@core/db/triMongo";
 import { statementCandidatesCol, voteDraftsCol, feedStatementsCol } from "@features/feeds/db";
+import { tryGetAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,39 @@ export async function GET(req: NextRequest) {
   if (gate instanceof Response) return gate;
 
   const now = new Date().toISOString();
+  const policyResult = tryGetAiRuntimePolicy();
+  const aiPolicy = policyResult.ok ? policyResult.policy : null;
+  const policyError = "error" in policyResult ? policyResult.error : null;
+  let aiRuntimePolicyStatus:
+    | {
+        providerOrder: string[];
+        maxProviders: number;
+        smokeTimeoutMs: number;
+        smokeMaxOutputTokens: number;
+        plannerTimeoutMs: number;
+        deepResearchEnabled: boolean;
+        loggingMode: "metadata_only" | "disabled";
+      }
+    | {
+        error: string;
+        envVar: string | null;
+      };
+  if (policyResult.ok) {
+    aiRuntimePolicyStatus = {
+      providerOrder: policyResult.policy.providerOrder,
+      maxProviders: policyResult.policy.maxProviders,
+      smokeTimeoutMs: policyResult.policy.smokeTimeoutMs,
+      smokeMaxOutputTokens: policyResult.policy.smokeMaxOutputTokens,
+      plannerTimeoutMs: policyResult.policy.plannerTimeoutMs,
+      deepResearchEnabled: policyResult.policy.research.deepResearchEnabled,
+      loggingMode: policyResult.policy.loggingMode,
+    };
+  } else {
+    aiRuntimePolicyStatus = {
+      error: policyError?.message ?? "AI runtime policy invalid",
+      envVar: policyError?.envVar ?? null,
+    };
+  }
 
   // ENV sanity (no secrets here)
   const env = {
@@ -43,15 +77,16 @@ export async function GET(req: NextRequest) {
         bool(process.env.AI_CORE_READER_MONGODB_URI) && bool(process.env.AI_CORE_READER_DB_NAME),
     },
     openai: {
-      key: bool(process.env.OPENAI_API_KEY),
-      model: process.env.OPENAI_MODEL ?? null,
+      key: aiPolicy?.openai.apiKeyPresent ?? bool(process.env.OPENAI_API_KEY),
+      model: aiPolicy?.openai.model ?? process.env.OPENAI_MODEL ?? null,
     },
     ari: {
       key: bool(process.env.ARI_API_KEY || process.env.YOUCOM_ARI_API_KEY),
       baseUrl: bool(process.env.ARI_BASE_URL),
       mode: process.env.ARI_MODE ?? null,
     },
-    gemini: { key: bool(process.env.GEMINI_API_KEY) },
+    gemini: { key: aiPolicy?.gemini.apiKeyPresent ?? bool(process.env.GEMINI_API_KEY) },
+    aiRuntimePolicy: aiRuntimePolicyStatus,
   };
 
   // Feeds pipeline

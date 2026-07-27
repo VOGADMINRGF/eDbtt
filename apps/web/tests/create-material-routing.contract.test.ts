@@ -67,8 +67,11 @@ describe("create material routing contract", () => {
   });
 
   it("uses openai deep search only as gated fallback when explicitly enabled and confirmed", () => {
+    process.env.OPENAI_API_KEY = "test-openai";
     process.env.E150_DEEPSEARCH_ENABLED = "true";
     process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION = "true";
+    process.env.OPENAI_DEEP_RESEARCH_MODEL = "o4-deep-research-preview";
+    process.env.DEEP_RESEARCH_CREDIT_AVAILABLE = "1";
 
     try {
       const result = resolveMaterialRouting({
@@ -83,8 +86,11 @@ describe("create material routing contract", () => {
       expect(result.researchProvider).toBe("openai_deep_research");
       expect(result.fallbackUsed).toBe(true);
     } finally {
+      delete process.env.OPENAI_API_KEY;
       delete process.env.E150_DEEPSEARCH_ENABLED;
       delete process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION;
+      delete process.env.OPENAI_DEEP_RESEARCH_MODEL;
+      delete process.env.DEEP_RESEARCH_CREDIT_AVAILABLE;
     }
   });
 
