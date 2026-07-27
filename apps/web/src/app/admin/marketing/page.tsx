@@ -1,353 +1,545 @@
 import Link from "next/link";
+import MarketingDelegateControl from "./MarketingDelegateControl";
 import { buildMarketingRegistryReadModel } from "@/features/marketing/registry/readModel";
+import {
+  getMarketingDelegationPersistenceState,
+  listMarketingDelegations,
+} from "@/features/marketing/delegations/repository";
+import type {
+  MarketingDelegationRecord,
+  MarketingDelegationStatus,
+} from "@/features/marketing/delegations/contracts";
+import type {
+  MarketingCampaign,
+  MarketingOpportunity,
+} from "@/features/marketing/registry/contracts";
 
 export const metadata = {
-  title: "Marketing Registry · Admin · eDebatte",
-};
-
-type PageProps = {
-  searchParams?: Promise<{ lang?: string | string[] }>;
+  title: "Marketing · Admin · eDebatte",
 };
 
 type UiLocale = "de" | "en";
+type MarketingView = "all" | "ready" | "decision" | "proof" | "blocked" | "published" | "delegated";
+
+type PageProps = {
+  searchParams?: Promise<{
+    lang?: string | string[];
+    view?: string | string[];
+    campaign?: string | string[];
+    opportunity?: string | string[];
+  }>;
+};
 
 const COPY = {
   de: {
-    eyebrow: "Admin · Marketing Control Plane",
-    title: "Marketing Registry",
+    eyebrow: "Admin · Marketing",
+    title: "Marketing-Zentrale",
     intro:
-      "Zentrale, ausschließlich lesende Sicht auf Marketingchancen, Kampagnen, Assets, Evidenz und Brandprofile. Beteiligungskampagnen bleiben unter /admin/campaigns getrennt.",
-    readOnly: "read_only · keine Freigabe-, Upload- oder Publishing-Aktion",
+      "Hier siehst du, was als Nächstes sinnvoll ist, welche Entscheidungen fehlen, was bereits delegiert wurde und welche Kampagnen echte Ergebnisse liefern.",
+    guardrail: "Veröffentlichungen und Budgets bleiben immer freigabepflichtig.",
     overview: "Übersicht",
-    opportunities: "Opportunities",
-    campaigns: "Marketingkampagnen",
+    campaigns: "Kampagnen",
+    opportunities: "Chancen",
+    results: "Ergebnisse",
+    delegations: "Delegationen",
+    ready: "Bereit zur Umsetzung",
+    readyNote: "Kampagnen mit geklärtem Ziel und CTA",
+    decisions: "Deine Entscheidung nötig",
+    decisionsNote: "Angebot, Zielseite, Recht oder Governance",
+    delegated: "Aktiv delegiert",
+    delegatedNote: "Aufträge in der Marketing-Queue",
+    published: "Veröffentlicht",
+    publishedNote: "Nur real belegte Ausspielungen",
+    today: "Heute wichtig",
+    todayIntro: "Die wichtigsten nächsten Schritte – nicht die gesamte technische Registry.",
+    open: "Öffnen",
+    showAll: "Alle Kampagnen",
+    noPriority: "Aktuell gibt es keinen dringenden Marketingpunkt.",
+    campaignOverview: "Kampagnenübersicht",
+    campaignIntro: "Filtere über die Kennzahlen oben oder öffne eine Kampagne für die Details.",
+    all: "Alle",
+    proof: "Beleg fehlt",
+    blocked: "Blockiert",
+    publishedFilter: "Veröffentlicht",
+    delegatedFilter: "Delegiert",
+    nextStep: "Nächster sinnvoller Schritt",
+    audience: "Zielgruppe",
+    materials: "Materialien",
+    materialCount: "vorhanden",
+    noMaterial: "noch keine Materialien",
+    details: "Details ansehen",
+    selectedCampaign: "Kampagnendetails",
+    primaryCta: "Zielaktion",
+    blockers: "Was noch fehlt",
+    noBlockers: "Keine offenen Blocker",
+    availableAssets: "Vorhandene Materialien",
+    noAssets: "Noch keine Materialien angelegt.",
+    publicTarget: "Zielseite öffnen",
+    opportunityIntro: "Chancen werden nach Nutzen und Umsetzbarkeit erklärt – ohne technische Statuscodes als Hauptinformation.",
+    recommendedAction: "Empfohlene Aktion",
+    linkedCampaigns: "Verknüpfte Kampagnen",
+    resultIntro: "Hier erscheinen ausschließlich reale Ausspielungen und später deren belegte Kennzahlen.",
+    noResultsTitle: "Noch keine Kampagne veröffentlicht",
+    noResults:
+      "Es werden bewusst keine Demo-Zahlen gezeigt. Sobald eine Kampagne real ausgespielt wurde, erscheinen hier Kanal, Link, Zeitpunkt und anschließend die belastbaren Ergebnisse.",
+    channel: "Kanal",
+    publishedAt: "Veröffentlicht am",
+    openResult: "Ergebnis öffnen",
+    delegationIntro: "Delegationen sind echte, serverseitig gespeicherte Arbeitsaufträge. Sie lösen weder automatische Veröffentlichung noch Budgetänderungen aus.",
+    noDelegations: "Noch nichts delegiert.",
+    queueWarning: "Delegationen werden in dieser Umgebung nur bis zum nächsten Neustart gespeichert.",
+    technicalDetails: "Fach- und Technikdetails",
+    technicalIntro: "IDs, Dateipfade, Brandprofile und Evidence für Audit und Fachprüfung.",
     assets: "Assets",
     brands: "Brandprofile",
-    evidence: "Aktuelle Evidenz",
-    blockers: "Blocker",
+    evidence: "Evidence",
     sources: "Registry-Quellen",
-    totalOpportunities: "Opportunities",
-    totalCampaigns: "Marketingkampagnen",
-    totalAssets: "Assets",
-    totalBrands: "Brandprofile",
-    distributions: "Belegte Ausspielungen",
-    approvedUndistributed: "Freigegeben, nicht verteilt",
-    marketability: "Marketingfähigkeit",
-    lifecycle: "Lifecycle",
-    approval: "Freigabestatus",
-    targetGroups: "Zielgruppen",
-    productProof: "Produktbeleg",
-    route: "Route",
-    cta: "CTA",
-    linkedCampaigns: "Kampagnen",
-    linkedAssets: "Assets",
-    readiness: "Readiness",
-    primaryCta: "Primärer CTA",
-    brand: "Brandprofil",
-    locale: "Sprache",
-    version: "Version",
-    source: "Quelle",
-    publicPath: "Public-Pfad",
-    noPublicPath: "kein realer Export/Public-Pfad",
-    logo: "Logo",
-    tokens: "Tokens",
-    legalTargets: "Rechtsziele",
-    voxy: "Voxy",
-    lastVerified: "Verifiziert",
-    noDistribution:
-      "Es bestehen noch keine belegten DistributionRecords. Erstellte oder freigegebene Assets werden deshalb nicht als veröffentlicht dargestellt.",
-    backAdmin: "Admin Dashboard",
-    toRadar: "VOG Themenradar",
+    lastUpdated: "Stand",
+    backAdmin: "Admin-Übersicht",
+    toRadar: "Themenradar",
     toCampaigns: "Beteiligungskampagnen",
-    english: "English",
     german: "Deutsch",
+    english: "English",
+    status: "Status",
+    assignedTo: "Delegiert an",
   },
   en: {
-    eyebrow: "Admin · Marketing Control Plane",
-    title: "Marketing Registry",
+    eyebrow: "Admin · Marketing",
+    title: "Marketing centre",
     intro:
-      "Central read-only view of marketing opportunities, campaigns, assets, evidence and brand profiles. Participation campaigns remain separate under /admin/campaigns.",
-    readOnly: "read_only · no approval, upload or publishing action",
+      "See what matters next, which decisions are missing, what has been delegated and which campaigns produce verified results.",
+    guardrail: "Publishing and budgets always require explicit approval.",
     overview: "Overview",
+    campaigns: "Campaigns",
     opportunities: "Opportunities",
-    campaigns: "Marketing campaigns",
+    results: "Results",
+    delegations: "Delegations",
+    ready: "Ready to execute",
+    readyNote: "Campaigns with a clear goal and CTA",
+    decisions: "Your decision required",
+    decisionsNote: "Offer, route, legal or governance",
+    delegated: "Actively delegated",
+    delegatedNote: "Tasks in the marketing queue",
+    published: "Published",
+    publishedNote: "Verified distributions only",
+    today: "Important today",
+    todayIntro: "The most relevant next steps, not the entire technical registry.",
+    open: "Open",
+    showAll: "All campaigns",
+    noPriority: "There is no urgent marketing item at the moment.",
+    campaignOverview: "Campaign overview",
+    campaignIntro: "Use the metrics above as filters or open a campaign for details.",
+    all: "All",
+    proof: "Proof missing",
+    blocked: "Blocked",
+    publishedFilter: "Published",
+    delegatedFilter: "Delegated",
+    nextStep: "Next meaningful step",
+    audience: "Audience",
+    materials: "Materials",
+    materialCount: "available",
+    noMaterial: "no materials yet",
+    details: "View details",
+    selectedCampaign: "Campaign details",
+    primaryCta: "Target action",
+    blockers: "What is missing",
+    noBlockers: "No open blockers",
+    availableAssets: "Available materials",
+    noAssets: "No materials have been created yet.",
+    publicTarget: "Open target page",
+    opportunityIntro: "Opportunities are explained by value and feasibility, not by technical status codes.",
+    recommendedAction: "Recommended action",
+    linkedCampaigns: "Linked campaigns",
+    resultIntro: "Only real distributions and later their verified metrics appear here.",
+    noResultsTitle: "No campaign has been published yet",
+    noResults:
+      "No demo metrics are shown. Once a campaign is actually distributed, channel, link and time appear here, followed by verified results.",
+    channel: "Channel",
+    publishedAt: "Published at",
+    openResult: "Open result",
+    delegationIntro: "Delegations are real server-side work orders. They never trigger automatic publishing or budget changes.",
+    noDelegations: "Nothing has been delegated yet.",
+    queueWarning: "Delegations in this environment are stored only until the next restart.",
+    technicalDetails: "Professional and technical details",
+    technicalIntro: "IDs, file paths, brand profiles and evidence for audit and expert review.",
     assets: "Assets",
     brands: "Brand profiles",
-    evidence: "Recent evidence",
-    blockers: "Blockers",
+    evidence: "Evidence",
     sources: "Registry sources",
-    totalOpportunities: "Opportunities",
-    totalCampaigns: "Marketing campaigns",
-    totalAssets: "Assets",
-    totalBrands: "Brand profiles",
-    distributions: "Verified distributions",
-    approvedUndistributed: "Approved, not distributed",
-    marketability: "Marketability",
-    lifecycle: "Lifecycle",
-    approval: "Approval status",
-    targetGroups: "Audiences",
-    productProof: "Product proof",
-    route: "Route",
-    cta: "CTA",
-    linkedCampaigns: "Campaigns",
-    linkedAssets: "Assets",
-    readiness: "Readiness",
-    primaryCta: "Primary CTA",
-    brand: "Brand profile",
-    locale: "Locale",
-    version: "Version",
-    source: "Source",
-    publicPath: "Public path",
-    noPublicPath: "no real export/public path",
-    logo: "Logo",
-    tokens: "Tokens",
-    legalTargets: "Legal targets",
-    voxy: "Voxy",
-    lastVerified: "Verified",
-    noDistribution:
-      "There are no verified DistributionRecords yet. Created or approved assets are therefore not presented as published.",
-    backAdmin: "Admin dashboard",
-    toRadar: "VOG topic radar",
+    lastUpdated: "Updated",
+    backAdmin: "Admin overview",
+    toRadar: "Topic radar",
     toCampaigns: "Participation campaigns",
-    english: "English",
     german: "Deutsch",
+    english: "English",
+    status: "Status",
+    assignedTo: "Assigned to",
   },
 } as const;
 
+const DECISION_READINESS = new Set([
+  "governance_decision_required",
+  "offer_decision_required",
+  "routing_decision_required",
+  "legal_review_required",
+  "translation_review_required",
+]);
+
+const PROOF_READINESS = new Set(["product_proof_required", "runtime_proof_required"]);
+const ACTIVE_DELEGATION_STATUSES = new Set<MarketingDelegationStatus>([
+  "queued",
+  "in_progress",
+  "review_required",
+]);
+
 export default async function MarketingAdminPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const locale: UiLocale = normalizeLocale(params?.lang);
+  const locale = normalizeLocale(params?.lang);
   const copy = COPY[locale];
+  const view = normalizeView(params?.view);
+  const selectedCampaignId = first(params?.campaign);
+  const selectedOpportunityId = first(params?.opportunity);
   const readModel = buildMarketingRegistryReadModel();
+  const delegations = await listMarketingDelegations().catch(() => [] as MarketingDelegationRecord[]);
+  const delegationPersistence = getMarketingDelegationPersistenceState();
+  const activeDelegations = delegations.filter((item) => ACTIVE_DELEGATION_STATUSES.has(item.status));
+  const delegationMap = new Map(
+    activeDelegations.map((item) => [`${item.itemType}:${item.itemId}`, item] as const),
+  );
+  const publishedCampaignIds = new Set(
+    readModel.distributionRecords
+      .filter((record) => record.status === "published")
+      .map((record) => record.campaignId),
+  );
+  const readyCampaigns = readModel.campaigns.filter(isReadyCampaign);
+  const decisionCampaigns = readModel.campaigns.filter(requiresDecision);
+  const proofCampaigns = readModel.campaigns.filter(requiresProof);
+  const filteredCampaigns = readModel.campaigns.filter((campaign) =>
+    campaignMatchesView(campaign, view, publishedCampaignIds, delegationMap),
+  );
+  const selectedCampaign = readModel.campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
+  const selectedOpportunity = readModel.opportunities.find((opportunity) => opportunity.id === selectedOpportunityId) ?? null;
+  const priorityCampaigns = buildPriorityCampaigns(readModel.campaigns, delegationMap).slice(0, 5);
   const dateLocale = locale === "en" ? "en-GB" : "de-DE";
 
   return (
-    <main className="space-y-6 pb-10" data-testid="admin-marketing-registry" data-mode={readModel.mode}>
+    <main className="space-y-8 pb-12" data-testid="admin-marketing-dashboard">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-4xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">
-              {copy.eyebrow}
-            </p>
-            <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{copy.title}</h1>
-            <p className="text-sm leading-6 text-[rgb(var(--muted))]">{copy.intro}</p>
-            <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 dark:border-amber-300/40 dark:bg-amber-400/10 dark:text-amber-100">
-              {copy.readOnly}
-            </span>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">{copy.eyebrow}</p>
+            <h1 className="text-3xl font-bold text-[rgb(var(--fg))] sm:text-4xl">{copy.title}</h1>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">{copy.intro}</p>
+            <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100">{copy.guardrail}</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <Link
-              href="/admin/marketing?lang=de"
-              className={languageLinkClass(locale === "de")}
-              aria-current={locale === "de" ? "page" : undefined}
-            >
-              {copy.german}
-            </Link>
-            <Link
-              href="/admin/marketing?lang=en"
-              className={languageLinkClass(locale === "en")}
-              aria-current={locale === "en" ? "page" : undefined}
-            >
-              {copy.english}
-            </Link>
+            <Link href={hrefFor(locale, view)} className={languageLinkClass(locale === "de")} aria-current={locale === "de" ? "page" : undefined}>{copy.german}</Link>
+            <Link href={hrefFor("en", view)} className={languageLinkClass(locale === "en")} aria-current={locale === "en" ? "page" : undefined}>{copy.english}</Link>
           </div>
         </div>
-
-        <nav className="mt-5 flex flex-wrap gap-2" aria-label="Marketing Registry navigation">
-          {[
-            ["#overview", copy.overview],
-            ["#opportunities", copy.opportunities],
-            ["#campaigns", copy.campaigns],
-            ["#assets", copy.assets],
-            ["#brands", copy.brands],
-          ].map(([href, label]) => (
-            <Link key={href} href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
-              {label}
-            </Link>
-          ))}
+        <nav className="mt-6 flex flex-wrap gap-2" aria-label="Marketing navigation">
+          <AnchorLink href="#overview" label={copy.overview} />
+          <AnchorLink href="#campaigns" label={copy.campaigns} />
+          <AnchorLink href="#opportunities" label={copy.opportunities} />
+          <AnchorLink href="#results" label={copy.results} />
+          <AnchorLink href="#delegations" label={copy.delegations} />
         </nav>
       </header>
 
-      <section id="overview" className="scroll-mt-6 space-y-4" aria-labelledby="overview-heading">
+      <section id="overview" className="scroll-mt-6 space-y-5" aria-labelledby="overview-heading">
         <SectionHeading id="overview-heading" title={copy.overview} />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          <MetricCard label={copy.totalOpportunities} value={readModel.summary.totalOpportunities} />
-          <MetricCard label={copy.totalCampaigns} value={readModel.summary.totalCampaigns} />
-          <MetricCard label={copy.totalAssets} value={readModel.summary.totalAssets} />
-          <MetricCard label={copy.totalBrands} value={readModel.summary.totalBrands} />
-          <MetricCard label={copy.distributions} value={readModel.summary.distributionRecords} />
-          <MetricCard label={copy.approvedUndistributed} value={readModel.summary.approvedButUndistributedAssets} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricLink
+            href={`${hrefFor(locale, "ready")}#campaigns`}
+            label={copy.ready}
+            value={readyCampaigns.length}
+            note={copy.readyNote}
+            active={view === "ready"}
+            tone="emerald"
+          />
+          <MetricLink
+            href={`${hrefFor(locale, "decision")}#campaigns`}
+            label={copy.decisions}
+            value={decisionCampaigns.length}
+            note={copy.decisionsNote}
+            active={view === "decision"}
+            tone="amber"
+          />
+          <MetricLink
+            href={`${hrefFor(locale, "delegated")}#delegations`}
+            label={copy.delegated}
+            value={activeDelegations.length}
+            note={copy.delegatedNote}
+            active={view === "delegated"}
+            tone="sky"
+          />
+          <MetricLink
+            href={`${hrefFor(locale, "published")}#results`}
+            label={copy.published}
+            value={publishedCampaignIds.size}
+            note={copy.publishedNote}
+            active={view === "published"}
+            tone="violet"
+          />
         </div>
+      </section>
 
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-          <CountPanel title={copy.marketability} rows={readModel.summary.opportunitiesByMarketability} />
-          <CountPanel title={copy.lifecycle} rows={readModel.summary.campaignsByStatus} />
-          <CountPanel title={copy.approval} rows={readModel.summary.assetsByStatus} />
-          <CountPanel title={copy.blockers} rows={readModel.summary.blockersByKey} emptyLabel="—" />
+      <section className="space-y-4" aria-labelledby="today-heading">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <SectionHeading id="today-heading" title={copy.today} />
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.todayIntro}</p>
+          </div>
+          <Link href={`${hrefFor(locale, "all")}#campaigns`} className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-300">{copy.showAll}</Link>
         </div>
-
-        {readModel.summary.distributionRecords === 0 && (
-          <aside className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950 dark:border-sky-300/30 dark:bg-sky-400/10 dark:text-sky-100">
-            {copy.noDistribution}
-          </aside>
+        {priorityCampaigns.length ? (
+          <div className="grid gap-3">
+            {priorityCampaigns.map((campaign) => {
+              const delegation = delegationMap.get(`campaign:${campaign.id}`) ?? null;
+              return (
+                <article key={campaign.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="max-w-3xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-[rgb(var(--fg))]">{campaign.title}</h3>
+                        <PlainStatusBadge label={campaignStatusLabel(campaign, locale)} tone={campaignTone(campaign)} />
+                      </div>
+                      <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{nextActionForCampaign(campaign, locale)}</p>
+                    </div>
+                    <Link href={`${hrefFor(locale, view, { campaign: campaign.id })}#campaign-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.open}</Link>
+                  </div>
+                  <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
+                    <MarketingDelegateControl
+                      itemType="campaign"
+                      itemId={campaign.id}
+                      locale={locale}
+                      existingRole={delegation?.agentRole}
+                      existingStatus={delegation?.status}
+                    />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title={copy.noPriority} body="" />
         )}
       </section>
 
-      <section id="opportunities" className="scroll-mt-6 space-y-4" aria-labelledby="opportunities-heading">
-        <SectionHeading id="opportunities-heading" title={copy.opportunities} />
-        <div className="grid gap-4 xl:grid-cols-2">
-          {readModel.opportunities.map((opportunity) => (
-            <article key={opportunity.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{opportunity.id}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{opportunity.title}</h3>
-                </div>
-                <StatusBadge value={opportunity.marketability} />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{opportunity.summary}</p>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                <Definition label={copy.productProof} value={opportunity.productProofStatus} />
-                <Definition label={copy.route} value={opportunity.routeStatus} />
-                <Definition label={copy.cta} value={opportunity.ctaStatus} />
-              </dl>
-              <TagBlock label={copy.targetGroups} values={opportunity.audienceKeys} />
-              <TagBlock label={copy.blockers} values={opportunity.blockerKeys} empty="—" />
-              <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
-                <ReferenceList label={copy.linkedCampaigns} values={opportunity.campaignIds} />
-                <ReferenceList label={copy.linkedAssets} values={opportunity.assetIds} />
-              </div>
-            </article>
-          ))}
+      <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">
+        <div>
+          <SectionHeading id="campaigns-heading" title={copy.campaignOverview} />
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.campaignIntro}</p>
         </div>
-      </section>
-
-      <section id="campaigns" className="scroll-mt-6 space-y-4" aria-labelledby="campaigns-heading">
-        <SectionHeading id="campaigns-heading" title={copy.campaigns} />
-        <div className="overflow-x-auto rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
-          <table className="min-w-[980px] w-full text-left text-sm">
-            <thead className="border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-              <tr>
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">{copy.campaigns}</th>
-                <th className="px-4 py-3">{copy.lifecycle}</th>
-                <th className="px-4 py-3">{copy.readiness}</th>
-                <th className="px-4 py-3">{copy.primaryCta}</th>
-                <th className="px-4 py-3">{copy.assets}</th>
-                <th className="px-4 py-3">{copy.blockers}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {readModel.campaigns.map((campaign) => (
-                <tr key={campaign.id} className="border-b border-[rgb(var(--border))] last:border-0 align-top">
-                  <td className="px-4 py-4 font-mono text-xs text-[rgb(var(--muted))]">{campaign.id}</td>
-                  <td className="px-4 py-4">
-                    <p className="font-semibold text-[rgb(var(--fg))]">{campaign.title}</p>
-                    <p className="mt-1 max-w-md text-xs leading-5 text-[rgb(var(--muted))]">{campaign.description}</p>
-                  </td>
-                  <td className="px-4 py-4"><StatusBadge value={campaign.status} /></td>
-                  <td className="px-4 py-4"><StatusBadge value={campaign.readiness} /></td>
-                  <td className="px-4 py-4">
-                    <p className="font-medium text-[rgb(var(--fg))]">{campaign.primaryCta.label}</p>
-                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">{humanize(campaign.primaryCta.status)}</p>
-                  </td>
-                  <td className="px-4 py-4 text-xs text-[rgb(var(--fg))]">{campaign.assetIds.length ? campaign.assetIds.join(", ") : "—"}</td>
-                  <td className="px-4 py-4 text-xs text-[rgb(var(--muted))]">{campaign.blockerKeys.length ? campaign.blockerKeys.join(", ") : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-wrap gap-2" aria-label="Campaign filters">
+          <FilterLink locale={locale} value="all" current={view} label={copy.all} count={readModel.campaigns.length} />
+          <FilterLink locale={locale} value="ready" current={view} label={copy.ready} count={readyCampaigns.length} />
+          <FilterLink locale={locale} value="decision" current={view} label={copy.decisions} count={decisionCampaigns.length} />
+          <FilterLink locale={locale} value="proof" current={view} label={copy.proof} count={proofCampaigns.length} />
+          <FilterLink locale={locale} value="blocked" current={view} label={copy.blocked} count={readModel.campaigns.filter((item) => item.status === "blocked").length} />
+          <FilterLink locale={locale} value="delegated" current={view} label={copy.delegatedFilter} count={activeDelegations.filter((item) => item.itemType === "campaign").length} />
+          <FilterLink locale={locale} value="published" current={view} label={copy.publishedFilter} count={publishedCampaignIds.size} />
         </div>
-      </section>
 
-      <section id="assets" className="scroll-mt-6 space-y-4" aria-labelledby="assets-heading">
-        <SectionHeading id="assets-heading" title={copy.assets} />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {readModel.assets.map((asset) => (
-            <article key={asset.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-xs text-[rgb(var(--muted))]">{asset.id}</p>
-                  <h3 className="mt-1 font-semibold text-[rgb(var(--fg))]">{asset.title}</h3>
-                </div>
-                <StatusBadge value={asset.status} />
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <Definition label={copy.locale} value={asset.locale} />
-                <Definition label={copy.version} value={`v${asset.version}`} />
-                <Definition label={copy.brand} value={asset.brandProfileId} />
-                <Definition label={copy.lifecycle} value={asset.assetType} />
-              </dl>
-              <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs leading-5">
-                <p className="font-semibold text-[rgb(var(--fg))]">{copy.source}</p>
-                <p className="mt-1 break-all text-[rgb(var(--muted))]">{asset.sourcePath}</p>
-                <p className="mt-3 font-semibold text-[rgb(var(--fg))]">{copy.publicPath}</p>
-                <p className="mt-1 break-all text-[rgb(var(--muted))]">{asset.publicPath ?? copy.noPublicPath}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="brands" className="scroll-mt-6 space-y-4" aria-labelledby="brands-heading">
-        <SectionHeading id="brands-heading" title={copy.brands} />
         <div className="grid gap-4 lg:grid-cols-2">
-          {readModel.brandProfiles.map((brand) => (
-            <article key={brand.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-xs text-[rgb(var(--muted))]">{brand.id}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{brand.displayName}</h3>
+          {filteredCampaigns.map((campaign) => {
+            const delegation = delegationMap.get(`campaign:${campaign.id}`) ?? null;
+            return (
+              <article key={campaign.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="max-w-xl">
+                    <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{campaign.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{campaign.description}</p>
+                  </div>
+                  <PlainStatusBadge label={campaignStatusLabel(campaign, locale)} tone={campaignTone(campaign)} />
                 </div>
-                <StatusBadge value={brand.status} />
-              </div>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                <Definition label={copy.logo} value={brand.logoStatus} />
-                <Definition label={copy.tokens} value={brand.tokenStatus} />
-                <Definition label={copy.legalTargets} value={brand.legalTargetStatus} />
-                <Definition label={copy.voxy} value={brand.voxyMode} />
-                <Definition label={copy.locale} value={brand.locales.join(", ")} />
-                <Definition label={copy.version} value={`v${brand.version}`} />
-              </dl>
-              <p className="mt-4 break-all text-xs text-[rgb(var(--muted))]">{brand.sourcePath}</p>
-            </article>
-          ))}
+                <dl className="mt-4 grid gap-3 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm sm:grid-cols-2">
+                  <Definition label={copy.nextStep} value={nextActionForCampaign(campaign, locale)} humanizeValue={false} />
+                  <Definition label={copy.audience} value={campaign.audienceKeys.map((item) => audienceLabel(item, locale)).join(", ")} humanizeValue={false} />
+                  <Definition
+                    label={copy.materials}
+                    value={campaign.assetIds.length ? `${campaign.assetIds.length} ${copy.materialCount}` : copy.noMaterial}
+                    humanizeValue={false}
+                  />
+                  <Definition label={copy.primaryCta} value={campaign.primaryCta.label} humanizeValue={false} />
+                </dl>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <Link href={`${hrefFor(locale, view, { campaign: campaign.id })}#campaign-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.details}</Link>
+                </div>
+                <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
+                  <MarketingDelegateControl
+                    itemType="campaign"
+                    itemId={campaign.id}
+                    locale={locale}
+                    existingRole={delegation?.agentRole}
+                    existingStatus={delegation?.status}
+                  />
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <div className="space-y-3">
-          <SectionHeading id="evidence-heading" title={copy.evidence} />
-          <div className="space-y-3">
-            {readModel.recentEvidence.map((row) => (
-              <article key={`${row.opportunityId}:${row.ref}`} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-[rgb(var(--fg))]">{row.opportunityTitle}</p>
-                  <StatusBadge value={row.status} />
+      {selectedCampaign && (
+        <section id="campaign-detail" className="scroll-mt-6 space-y-4 rounded-3xl border-2 border-sky-300 bg-sky-50/70 p-5 dark:border-sky-400/40 dark:bg-sky-400/10" aria-labelledby="campaign-detail-heading">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">{copy.selectedCampaign}</p>
+              <h2 id="campaign-detail-heading" className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">{selectedCampaign.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">{selectedCampaign.description}</p>
+            </div>
+            <PlainStatusBadge label={campaignStatusLabel(selectedCampaign, locale)} tone={campaignTone(selectedCampaign)} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <DetailPanel title={copy.nextStep} body={nextActionForCampaign(selectedCampaign, locale)} />
+            <DetailPanel title={copy.primaryCta} body={selectedCampaign.primaryCta.label} />
+            <DetailPanel title={copy.audience} body={selectedCampaign.audienceKeys.map((item) => audienceLabel(item, locale)).join(", ")} />
+          </div>
+          {selectedCampaign.primaryCta.url && (
+            <a href={selectedCampaign.primaryCta.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">{copy.publicTarget}</a>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+              <h3 className="font-semibold text-[rgb(var(--fg))]">{copy.blockers}</h3>
+              {selectedCampaign.blockerKeys.length ? (
+                <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
+                  {selectedCampaign.blockerKeys.map((blocker) => <li key={blocker}>• {blockerLabel(blocker, locale)}</li>)}
+                </ul>
+              ) : <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-200">{copy.noBlockers}</p>}
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+              <h3 className="font-semibold text-[rgb(var(--fg))]">{copy.availableAssets}</h3>
+              {campaignAssets(selectedCampaign, readModel.assets).length ? (
+                <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
+                  {campaignAssets(selectedCampaign, readModel.assets).map((asset) => (
+                    <li key={asset.id} className="flex items-center justify-between gap-3">
+                      <span>{asset.title}</span>
+                      <PlainStatusBadge label={assetStatusLabel(asset.status, locale)} tone={asset.status === "approved" || asset.status === "published" ? "emerald" : asset.status === "review_ready" ? "sky" : "slate"} />
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="mt-3 text-sm text-[rgb(var(--muted))]">{copy.noAssets}</p>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section id="opportunities" className="scroll-mt-6 space-y-5" aria-labelledby="opportunities-heading">
+        <div>
+          <SectionHeading id="opportunities-heading" title={copy.opportunities} />
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.opportunityIntro}</p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {readModel.opportunities.map((opportunity) => {
+            const delegation = delegationMap.get(`opportunity:${opportunity.id}`) ?? null;
+            return (
+              <article key={opportunity.id} className={`rounded-3xl border bg-[rgb(var(--card))] p-5 ${selectedOpportunity?.id === opportunity.id ? "border-sky-400 ring-2 ring-sky-200" : "border-[rgb(var(--border))]"}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="max-w-xl">
+                    <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{opportunity.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{opportunity.summary}</p>
+                  </div>
+                  <PlainStatusBadge label={opportunityStatusLabel(opportunity, locale)} tone={opportunityTone(opportunity)} />
                 </div>
-                <p className="mt-2 break-all font-mono text-xs text-[rgb(var(--muted))]">{row.ref}</p>
-                {row.note && <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{row.note}</p>}
-                <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-                  {copy.lastVerified}: {row.verifiedAt ? new Intl.DateTimeFormat(dateLocale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.verifiedAt)) : "—"}
-                </p>
+                <div className="mt-4 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{copy.recommendedAction}</p>
+                  <p className="mt-1 font-medium leading-6 text-[rgb(var(--fg))]">{nextActionForOpportunity(opportunity, locale)}</p>
+                  <p className="mt-3 text-xs text-[rgb(var(--muted))]">{copy.linkedCampaigns}: {opportunity.campaignIds.length}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`${hrefFor(locale, view, { opportunity: opportunity.id })}#opportunities`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">{copy.details}</Link>
+                </div>
+                <div className="mt-4 border-t border-[rgb(var(--border))] pt-4">
+                  <MarketingDelegateControl
+                    itemType="opportunity"
+                    itemId={opportunity.id}
+                    locale={locale}
+                    existingRole={delegation?.agentRole}
+                    existingStatus={delegation?.status}
+                  />
+                </div>
+                {selectedOpportunity?.id === opportunity.id && (
+                  <details open className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm">
+                    <summary className="cursor-pointer font-semibold text-[rgb(var(--fg))]">{copy.blockers}</summary>
+                    <ul className="mt-3 space-y-2 text-[rgb(var(--muted))]">
+                      {opportunity.blockerKeys.length
+                        ? opportunity.blockerKeys.map((blocker) => <li key={blocker}>• {blockerLabel(blocker, locale)}</li>)
+                        : <li>{copy.noBlockers}</li>}
+                    </ul>
+                  </details>
+                )}
               </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="results" className="scroll-mt-6 space-y-4" aria-labelledby="results-heading">
+        <div>
+          <SectionHeading id="results-heading" title={copy.results} />
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.resultIntro}</p>
+        </div>
+        {readModel.distributionRecords.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {readModel.distributionRecords.map((record) => {
+              const campaign = readModel.campaigns.find((item) => item.id === record.campaignId);
+              const asset = readModel.assets.find((item) => item.id === record.assetId);
+              return (
+                <article key={record.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+                  <h3 className="font-semibold text-[rgb(var(--fg))]">{campaign?.title ?? record.campaignId}</h3>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{asset?.title ?? record.assetId}</p>
+                  <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                    <Definition label={copy.channel} value={record.channel} />
+                    <Definition label={copy.publishedAt} value={record.publishedAt ? formatDate(record.publishedAt, dateLocale) : "—"} humanizeValue={false} />
+                  </dl>
+                  {record.publicUrl && <a href={record.publicUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-xl border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50 dark:text-sky-200">{copy.openResult}</a>}
+                </article>
+              );
+            })}
+          </div>
+        ) : <EmptyState title={copy.noResultsTitle} body={copy.noResults} />}
+      </section>
+
+      <section id="delegations" className="scroll-mt-6 space-y-4" aria-labelledby="delegations-heading">
+        <div>
+          <SectionHeading id="delegations-heading" title={copy.delegations} />
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{copy.delegationIntro}</p>
+        </div>
+        {!delegationPersistence.productionTruth && (
+          <aside className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-400/10 dark:text-amber-100">{copy.queueWarning}</aside>
+        )}
+        {delegations.length ? (
+          <div className="grid gap-3">
+            {delegations.map((delegation) => (
+              <Link
+                key={delegation.id}
+                href={`${hrefFor(locale, view, delegation.itemType === "campaign" ? { campaign: delegation.itemId } : { opportunity: delegation.itemId })}#${delegation.itemType === "campaign" ? "campaign-detail" : "opportunities"}`}
+                className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 transition hover:border-sky-400 sm:grid-cols-[1fr_auto]"
+              >
+                <div>
+                  <p className="font-semibold text-[rgb(var(--fg))]">{delegation.itemTitle}</p>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{roleLabel(delegation.agentRole, locale)} · {delegationStatusLabel(delegation.status, locale)}</p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[rgb(var(--muted))]">{delegation.goal}</p>
+                </div>
+                <p className="text-xs text-[rgb(var(--muted))]">{formatDate(delegation.updatedAt, dateLocale)}</p>
+              </Link>
             ))}
           </div>
-        </div>
-
-        <div className="space-y-3">
-          <SectionHeading id="sources-heading" title={copy.sources} />
-          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-            <ul className="space-y-2 text-xs text-[rgb(var(--muted))]">
-              {readModel.sourcePaths.map((source) => (
-                <li key={source} className="break-all rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 font-mono">
-                  {source}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        ) : <EmptyState title={copy.noDelegations} body="" />}
       </section>
+
+      <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <summary className="cursor-pointer text-lg font-semibold text-[rgb(var(--fg))]">{copy.technicalDetails}</summary>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{copy.technicalIntro}</p>
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          <TechnicalList title={copy.assets} rows={readModel.assets.map((asset) => `${asset.id} · ${asset.title} · ${assetStatusLabel(asset.status, locale)} · ${asset.sourcePath}`)} />
+          <TechnicalList title={copy.brands} rows={readModel.brandProfiles.map((brand) => `${brand.id} · ${brand.displayName} · ${brand.status} · ${brand.sourcePath}`)} />
+          <TechnicalList title={copy.evidence} rows={readModel.recentEvidence.map((item) => `${item.opportunityTitle} · ${item.status} · ${item.ref}`)} />
+          <TechnicalList title={copy.sources} rows={readModel.sourcePaths} />
+        </div>
+        <p className="mt-5 text-xs text-[rgb(var(--muted))]">{copy.lastUpdated}: {formatDate(readModel.generatedAt, dateLocale)}</p>
+      </details>
 
       <footer className="flex flex-wrap gap-2 border-t border-[rgb(var(--border))] pt-5">
         <AdminLink href="/admin" label={copy.backAdmin} />
@@ -358,86 +550,279 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
   );
 }
 
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function normalizeLocale(value: string | string[] | undefined): UiLocale {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate?.toLowerCase().startsWith("en") ? "en" : "de";
+  return first(value)?.toLowerCase().startsWith("en") ? "en" : "de";
+}
+
+function normalizeView(value: string | string[] | undefined): MarketingView {
+  const candidate = first(value);
+  return ["all", "ready", "decision", "proof", "blocked", "published", "delegated"].includes(candidate ?? "")
+    ? candidate as MarketingView
+    : "all";
+}
+
+function hrefFor(locale: UiLocale, view: MarketingView, selection?: { campaign?: string; opportunity?: string }) {
+  const params = new URLSearchParams({ lang: locale, view });
+  if (selection?.campaign) params.set("campaign", selection.campaign);
+  if (selection?.opportunity) params.set("opportunity", selection.opportunity);
+  return `/admin/marketing?${params.toString()}`;
+}
+
+function isReadyCampaign(campaign: MarketingCampaign) {
+  return campaign.readiness === "ready" && !["completed", "retired", "cancelled"].includes(campaign.status);
+}
+
+function requiresDecision(campaign: MarketingCampaign) {
+  return DECISION_READINESS.has(campaign.readiness);
+}
+
+function requiresProof(campaign: MarketingCampaign) {
+  return PROOF_READINESS.has(campaign.readiness);
+}
+
+function campaignMatchesView(
+  campaign: MarketingCampaign,
+  view: MarketingView,
+  publishedCampaignIds: Set<string>,
+  delegationMap: Map<string, MarketingDelegationRecord>,
+) {
+  switch (view) {
+    case "ready": return isReadyCampaign(campaign);
+    case "decision": return requiresDecision(campaign);
+    case "proof": return requiresProof(campaign);
+    case "blocked": return campaign.status === "blocked";
+    case "published": return publishedCampaignIds.has(campaign.id);
+    case "delegated": return delegationMap.has(`campaign:${campaign.id}`);
+    case "all":
+    default: return true;
+  }
+}
+
+function buildPriorityCampaigns(
+  campaigns: MarketingCampaign[],
+  delegationMap: Map<string, MarketingDelegationRecord>,
+) {
+  return [...campaigns]
+    .filter((campaign) => !["completed", "retired", "cancelled"].includes(campaign.status))
+    .sort((left, right) => priorityScore(right, delegationMap) - priorityScore(left, delegationMap) || left.title.localeCompare(right.title));
+}
+
+function priorityScore(campaign: MarketingCampaign, delegationMap: Map<string, MarketingDelegationRecord>) {
+  if (delegationMap.has(`campaign:${campaign.id}`)) return 35;
+  if (isReadyCampaign(campaign)) return 100;
+  if (requiresDecision(campaign)) return 85;
+  if (requiresProof(campaign)) return 70;
+  if (campaign.status === "blocked") return 55;
+  if (campaign.status === "planned" || campaign.status === "qualified") return 45;
+  return 20;
+}
+
+function nextActionForCampaign(campaign: MarketingCampaign, locale: UiLocale) {
+  const de: Record<string, string> = {
+    ready: "Kampagnenbrief finalisieren, Materialien prüfen und zur Freigabe vorlegen.",
+    product_proof_required: "Reale Produktansicht oder belastbaren Produktbeleg ergänzen.",
+    runtime_proof_required: "Funktion erst praktisch belegen, bevor sie vermarktet wird.",
+    governance_decision_required: "Grundsatzentscheidung treffen und dokumentieren.",
+    offer_decision_required: "Leistungspaket, Zielgruppe und Angebot verbindlich festlegen.",
+    routing_decision_required: "Zielseite und konkrete Zielaktion festlegen.",
+    legal_review_required: "Rechtliche Aussagen und Zielseiten prüfen lassen.",
+    translation_review_required: "Sprachvarianten fachlich und sprachlich prüfen.",
+  };
+  const en: Record<string, string> = {
+    ready: "Finalise the campaign brief, review materials and submit for approval.",
+    product_proof_required: "Add a real product surface or reliable product proof.",
+    runtime_proof_required: "Prove the feature in practice before marketing it.",
+    governance_decision_required: "Make and document the governance decision.",
+    offer_decision_required: "Define the offer, audience and service package.",
+    routing_decision_required: "Define the target page and concrete action.",
+    legal_review_required: "Review legal claims and target pages.",
+    translation_review_required: "Review language variants professionally.",
+  };
+  return (locale === "de" ? de : en)[campaign.readiness] ?? humanize(campaign.readiness);
+}
+
+function nextActionForOpportunity(opportunity: MarketingOpportunity, locale: UiLocale) {
+  if (opportunity.marketability === "review_ready") {
+    return locale === "de" ? "Kampagnenbrief erstellen und zur fachlichen Prüfung vorlegen." : "Create a campaign brief and submit it for professional review.";
+  }
+  if (opportunity.marketability === "proof_required") {
+    return locale === "de" ? "Realen Produktbeleg und verwendbare Screens oder Beispiele ergänzen." : "Add real product proof and usable screens or examples.";
+  }
+  if (opportunity.marketability === "concept_only" || opportunity.marketability === "preview_only") {
+    return locale === "de" ? "Nutzen, Zielgruppe und Produktreife weiter klären; noch nicht öffentlich bewerben." : "Clarify value, audience and product maturity; do not market publicly yet.";
+  }
+  if (opportunity.marketability === "publicly_marketable") {
+    return locale === "de" ? "Passende Kampagne auswählen und konkrete Ausspielung vorbereiten." : "Select a suitable campaign and prepare a concrete distribution.";
+  }
+  return locale === "de" ? "Erst nach Evidenz- und Produktprüfung weiterbearbeiten." : "Continue only after evidence and product review.";
+}
+
+function campaignStatusLabel(campaign: MarketingCampaign, locale: UiLocale) {
+  if (campaign.readiness === "ready") return locale === "de" ? "Bereit zur Umsetzung" : "Ready to execute";
+  if (requiresDecision(campaign)) return locale === "de" ? "Entscheidung nötig" : "Decision required";
+  if (requiresProof(campaign)) return locale === "de" ? "Beleg fehlt" : "Proof missing";
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: { idea: "Idee", qualified: "Vorbereitet", planned: "Geplant", in_production: "In Erstellung", review_ready: "Zur Prüfung", approved: "Freigegeben", scheduled: "Eingeplant", active: "Aktiv", paused: "Pausiert", blocked: "Blockiert", completed: "Abgeschlossen", retired: "Beendet", cancelled: "Abgebrochen" },
+    en: { idea: "Idea", qualified: "Qualified", planned: "Planned", in_production: "In production", review_ready: "Ready for review", approved: "Approved", scheduled: "Scheduled", active: "Active", paused: "Paused", blocked: "Blocked", completed: "Completed", retired: "Retired", cancelled: "Cancelled" },
+  };
+  return labels[locale][campaign.status] ?? humanize(campaign.status);
+}
+
+function campaignTone(campaign: MarketingCampaign): Tone {
+  if (campaign.readiness === "ready") return "emerald";
+  if (requiresDecision(campaign)) return "amber";
+  if (campaign.status === "blocked" || requiresProof(campaign)) return "rose";
+  return "sky";
+}
+
+function opportunityStatusLabel(opportunity: MarketingOpportunity, locale: UiLocale) {
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: { publicly_marketable: "Öffentlich nutzbar", review_ready: "Zur Prüfung bereit", proof_required: "Beleg fehlt", preview_only: "Nur Vorschau", concept_only: "Konzept", not_marketable: "Nicht vermarktbar", retired: "Beendet" },
+    en: { publicly_marketable: "Publicly marketable", review_ready: "Ready for review", proof_required: "Proof missing", preview_only: "Preview only", concept_only: "Concept", not_marketable: "Not marketable", retired: "Retired" },
+  };
+  return labels[locale][opportunity.marketability] ?? humanize(opportunity.marketability);
+}
+
+function opportunityTone(opportunity: MarketingOpportunity): Tone {
+  if (opportunity.marketability === "publicly_marketable" || opportunity.marketability === "review_ready") return "emerald";
+  if (opportunity.marketability === "proof_required") return "amber";
+  if (opportunity.marketability === "not_marketable") return "rose";
+  return "sky";
+}
+
+function blockerLabel(blocker: string, locale: UiLocale) {
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: {
+      "real-product-screens-required": "Reale Produktscreenshots oder Produktbelege fehlen",
+      "runtime-proof-required": "Die Funktion muss praktisch belegt werden",
+      "translation-review-required": "Sprachvarianten müssen geprüft werden",
+      "offer-decision-required": "Angebot und Leistungspaket müssen entschieden werden",
+      "legal-review-required": "Rechtliche Prüfung fehlt",
+      "routing-decision-required": "Zielseite und Zielaktion fehlen",
+      "tenant-model-required": "Mandanten- und White-Label-Modell ist offen",
+      "product-proof-required": "Produktbeleg fehlt",
+      "real-source-surface-required": "Eine reale Quellenansicht fehlt",
+      "registry-readmodel-required": "Die operative Marketing-Grundlage muss geprüft werden",
+      "source-provider-decision-required": "Quellen- und Providerregeln müssen entschieden werden",
+    },
+    en: {
+      "real-product-screens-required": "Real product screens or product proof are missing",
+      "runtime-proof-required": "The feature must be proven in practice",
+      "translation-review-required": "Language variants require review",
+      "offer-decision-required": "Offer and service package require a decision",
+      "legal-review-required": "Legal review is missing",
+      "routing-decision-required": "Target page and action are missing",
+      "tenant-model-required": "Tenant and white-label model are open",
+      "product-proof-required": "Product proof is missing",
+      "real-source-surface-required": "A real source surface is missing",
+      "registry-readmodel-required": "The operating marketing foundation requires review",
+      "source-provider-decision-required": "Source and provider rules require a decision",
+    },
+  };
+  return labels[locale][blocker] ?? humanize(blocker);
+}
+
+function audienceLabel(audience: string, locale: UiLocale) {
+  const de: Record<string, string> = {
+    citizens: "Bürgerinnen und Bürger", public: "Öffentlichkeit", community: "Community", "editorial-teams": "Redaktionen", initiatives: "Initiativen", "social-audiences": "Social-Media-Zielgruppen", media: "Medien", science: "Wissenschaft", municipalities: "Kommunen", "public-administration": "Verwaltungen", associations: "Verbände und Vereine", ngos: "NGOs", organizations: "Organisationen", partners: "Partner", "individual-members": "Einzelmitglieder", "mission-supporters": "Unterstützende", "multilingual-users": "Mehrsprachige Nutzer", "international-communities": "Internationale Communities", operators: "Betreiber", "technology-partners": "Technologiepartner", "open-source-partners": "Open-Source-Partner", "research-institutes": "Forschungseinrichtungen" };
+  return locale === "de" ? (de[audience] ?? humanize(audience)) : humanize(audience);
+}
+
+function assetStatusLabel(status: string, locale: UiLocale) {
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: { draft: "Entwurf", review_ready: "Zur Prüfung", approved: "Freigegeben", published: "Veröffentlicht", retired: "Beendet" },
+    en: { draft: "Draft", review_ready: "Ready for review", approved: "Approved", published: "Published", retired: "Retired" },
+  };
+  return labels[locale][status] ?? humanize(status);
+}
+
+function roleLabel(role: string, locale: UiLocale) {
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: { marketing_operator: "Marketing-Agent", research_operator: "Recherche-Agent", content_operator: "Content-Agent", analytics_operator: "Analyse-Agent" },
+    en: { marketing_operator: "Marketing operator", research_operator: "Research operator", content_operator: "Content operator", analytics_operator: "Analytics operator" },
+  };
+  return labels[locale][role] ?? humanize(role);
+}
+
+function delegationStatusLabel(status: string, locale: UiLocale) {
+  const labels: Record<UiLocale, Record<string, string>> = {
+    de: { queued: "Delegiert", in_progress: "In Bearbeitung", review_required: "Zur Prüfung", completed: "Abgeschlossen", cancelled: "Abgebrochen" },
+    en: { queued: "Delegated", in_progress: "In progress", review_required: "Ready for review", completed: "Completed", cancelled: "Cancelled" },
+  };
+  return labels[locale][status] ?? humanize(status);
+}
+
+function campaignAssets(campaign: MarketingCampaign, assets: ReturnType<typeof buildMarketingRegistryReadModel>["assets"]) {
+  return assets.filter((asset) => campaign.assetIds.includes(asset.id));
+}
+
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function languageLinkClass(active: boolean) {
-  return `rounded-full border px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
-    active
-      ? "border-sky-400 bg-sky-100 text-sky-950 dark:bg-sky-400/20 dark:text-sky-50"
-      : "border-[rgb(var(--border))] text-[rgb(var(--fg))] hover:border-sky-400"
-  }`;
+  return `rounded-full border px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${active ? "border-sky-400 bg-sky-100 text-sky-950 dark:bg-sky-400/20 dark:text-sky-50" : "border-[rgb(var(--border))] text-[rgb(var(--fg))] hover:border-sky-400"}`;
+}
+
+type Tone = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
+
+function toneClass(tone: Tone) {
+  const tones: Record<Tone, string> = {
+    emerald: "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100",
+    amber: "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-300/40 dark:bg-amber-400/10 dark:text-amber-100",
+    sky: "border-sky-300 bg-sky-50 text-sky-950 dark:border-sky-300/40 dark:bg-sky-400/10 dark:text-sky-100",
+    rose: "border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-300/40 dark:bg-rose-400/10 dark:text-rose-100",
+    violet: "border-violet-300 bg-violet-50 text-violet-950 dark:border-violet-300/40 dark:bg-violet-400/10 dark:text-violet-100",
+    slate: "border-slate-300 bg-slate-50 text-slate-900 dark:border-slate-500 dark:bg-slate-700/30 dark:text-slate-100",
+  };
+  return tones[tone];
 }
 
 function SectionHeading({ id, title }: { id: string; title: string }) {
-  return <h2 id={id} className="text-xl font-bold text-[rgb(var(--fg))]">{title}</h2>;
+  return <h2 id={id} className="text-xl font-bold text-[rgb(var(--fg))] sm:text-2xl">{title}</h2>;
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function AnchorLink({ href, label }: { href: string; label: string }) {
+  return <Link href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">{label}</Link>;
+}
+
+function MetricLink({ href, label, value, note, active, tone }: { href: string; label: string; value: number; note: string; active: boolean; tone: Tone }) {
   return (
-    <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-[rgb(var(--fg))]">{value}</p>
-    </article>
+    <Link href={href} className={`rounded-3xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${active ? toneClass(tone) : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"}`}>
+      <p className="text-sm font-semibold">{label}</p>
+      <p className="mt-3 text-4xl font-bold">{value}</p>
+      <p className={`mt-2 text-xs leading-5 ${active ? "opacity-80" : "text-[rgb(var(--muted))]"}`}>{note}</p>
+    </Link>
   );
 }
 
-function CountPanel({ title, rows, emptyLabel = "0" }: { title: string; rows: Array<{ key: string; count: number }>; emptyLabel?: string }) {
-  return (
-    <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-      <h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3>
-      <dl className="mt-3 space-y-2 text-sm">
-        {rows.length ? rows.map((row) => (
-          <div key={row.key} className="flex items-center justify-between gap-3">
-            <dt className="text-[rgb(var(--muted))]">{humanize(row.key)}</dt>
-            <dd className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 font-semibold text-[rgb(var(--fg))]">{row.count}</dd>
-          </div>
-        )) : <p className="text-[rgb(var(--muted))]">{emptyLabel}</p>}
-      </dl>
-    </article>
-  );
+function FilterLink({ locale, value, current, label, count }: { locale: UiLocale; value: MarketingView; current: MarketingView; label: string; count: number }) {
+  const active = value === current;
+  return <Link href={`${hrefFor(locale, value)}#campaigns`} aria-current={active ? "page" : undefined} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active ? "border-sky-500 bg-sky-100 text-sky-950 dark:bg-sky-400/20 dark:text-sky-50" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-400"}`}>{label} <span className="ml-1 opacity-70">{count}</span></Link>;
 }
 
-function StatusBadge({ value }: { value: string }) {
-  const tone = value.includes("required") || value === "blocked" || value === "missing" || value === "stale"
-    ? "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"
-    : value === "approved" || value === "verified" || value === "ready" || value === "publicly_marketable" || value === "complete"
-      ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-100"
-      : "border-sky-300 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100";
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${tone}`}>{humanize(value)}</span>;
+function PlainStatusBadge({ label, tone }: { label: string; tone: Tone }) {
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass(tone)}`}>{label}</span>;
 }
 
-function Definition({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{label}</dt>
-      <dd className="mt-1 break-words font-medium text-[rgb(var(--fg))]">{humanize(value)}</dd>
-    </div>
-  );
+function Definition({ label, value, humanizeValue = true }: { label: string; value: string; humanizeValue?: boolean }) {
+  return <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{label}</dt><dd className="mt-1 break-words font-medium leading-6 text-[rgb(var(--fg))]">{humanizeValue ? humanize(value) : value}</dd></div>;
 }
 
-function TagBlock({ label, values, empty = "—" }: { label: string; values: string[]; empty?: string }) {
-  return (
-    <div className="mt-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{label}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {values.length ? values.map((value) => (
-          <span key={value} className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 text-xs text-[rgb(var(--fg))]">{humanize(value)}</span>
-        )) : <span className="text-xs text-[rgb(var(--muted))]">{empty}</span>}
-      </div>
-    </div>
-  );
+function DetailPanel({ title, body }: { title: string; body: string }) {
+  return <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{title}</p><p className="mt-2 text-sm font-medium leading-6 text-[rgb(var(--fg))]">{body}</p></article>;
 }
 
-function ReferenceList({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-      <p className="font-semibold text-[rgb(var(--fg))]">{label}</p>
-      <p className="mt-1 break-words text-[rgb(var(--muted))]">{values.length ? values.join(", ") : "—"}</p>
-    </div>
-  );
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center"><h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3>{body && <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">{body}</p>}</div>;
+}
+
+function TechnicalList({ title, rows }: { title: string; rows: string[] }) {
+  return <div><h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3><ul className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">{rows.map((row) => <li key={row} className="break-all rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 font-mono">{row}</li>)}</ul></div>;
 }
 
 function AdminLink({ href, label }: { href: string; label: string }) {
