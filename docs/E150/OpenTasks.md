@@ -220,13 +220,13 @@ Marketing Growth OS evidence:
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
-| V3-WORKSPACE-CONTRACT-01 | codex_ready | P0 | PR `#411`, bestehende `/create`-UX- und Workspace-Entscheidungen | `/create` als verbindliche V3-Workspace-Referenz für `/dossier` und `/runden` kanonisieren; Produktrollen, Seitenrahmen, progressive Offenlegung, Navigation sowie Interaktions-, Mobile-, RTL- und Tastaturvertrag festlegen, ohne neue Runtime oder Parallelarchitektur | Repo-naher Decision-/UX-Contract liegt vor; Ist-Flächen und Zielbild sind abgeglichen; Dossier- und Runden-Folgeslices besitzen klare Scope- und Dateigrenzen; genau eine primäre nächste Aktion und keine Kollision mit `/admin/marketing` |
-| DOSSIER-WORKSPACE-02 | blocked | P0 | V3-WORKSPACE-CONTRACT-01 | `/dossier` als verständliche Übersicht und die kanonische Dossier-Detailfläche als fokussierten Debattenstand-Arbeitsraum umsetzen; fachliche Substanz aus `/dossier/demo` progressiv und priorisiert zugänglich machen | Kanonische Dossier-Pfade funktionieren; Debattenstand erscheint vor Detailvollausgabe; Quellen, Positionen, offene Fragen und Beteiligung sind fokussierbar; keine Demo-Daten in Production; Reload, Mobile, RTL und Tastatur sind belegt |
+| V3-WORKSPACE-CONTRACT-01 | done | P0 | PR `#411`, bestehende `/create`-UX- und Workspace-Entscheidungen | `/create` als verbindliche V3-Workspace-Referenz für `/dossier` und `/runden` kanonisieren; Produktrollen, Seitenrahmen, progressive Offenlegung, Navigation sowie Interaktions-, Mobile-, RTL- und Tastaturvertrag festlegen, ohne neue Runtime oder Parallelarchitektur | Repo-naher Decision-/UX-Contract liegt vor; Ist-Flächen und Zielbild sind abgeglichen; Dossier- und Runden-Folgeslices besitzen klare Scope- und Dateigrenzen; genau eine primäre nächste Aktion und keine Kollision mit `/admin/marketing` |
+| DOSSIER-WORKSPACE-02 | codex_ready | P0 | V3-WORKSPACE-CONTRACT-01 | `/dossier` als verständliche Übersicht und die kanonische Dossier-Detailfläche als fokussierten Debattenstand-Arbeitsraum umsetzen; fachliche Substanz aus `/dossier/demo` progressiv und priorisiert zugänglich machen | Kanonische Dossier-Pfade funktionieren; Debattenstand erscheint vor Detailvollausgabe; Quellen, Positionen, offene Fragen und Beteiligung sind fokussierbar; keine Demo-Daten in Production; Reload, Mobile, RTL und Tastatur sind belegt |
 | RUNDEN-WORKSPACE-03 | blocked | P0 | V3-WORKSPACE-CONTRACT-01, DOSSIER-WORKSPACE-02 | `/runden` als Übersicht und aktive Runden-Detailfläche als Beteiligungsworkspace umsetzen; Debattenstand, Beiträge, Optionen, Quellen und Ergebnis getrennt, aber verbunden darstellen | Frage, Status und nächste Beteiligungsaktion sind sofort sichtbar; genau ein primärer CTA je Phase; kein zweiter `/create`-Chat; Beteiligungszahlen nur mit realer Datenbasis; eigener Arbeitsstand hält nach Reload; Mobile, RTL und Tastatur sind belegt |
 
 <!--
 V3 Workspace evidence:
-- Issue #461 / V3-WORKSPACE-CONTRACT-01
+- Issue #461 / V3-WORKSPACE-CONTRACT-01 / Contract: `docs/E150/V3_WORKSPACE_CONTRACT_01_2026-07-27.md`
 - Issue #462 / DOSSIER-WORKSPACE-02
 - Issue #463 / RUNDEN-WORKSPACE-03
 - `/create` bleibt UX-Referenz.
