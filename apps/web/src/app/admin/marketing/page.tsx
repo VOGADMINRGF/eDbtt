@@ -67,7 +67,6 @@ const COPY = {
       "Chancen werden nach Nutzen und Umsetzbarkeit erklärt – technische Statuscodes bleiben nachrangig.",
     recommendedAction: "Empfohlene Aktion",
     linkedCampaigns: "Verknüpfte Kampagnen",
-    handoff: "Weitergeben",
     resultIntro: "Hier erscheinen ausschließlich reale Ausspielungen und später deren belegte Kennzahlen.",
     noResultsTitle: "Noch keine Kampagne veröffentlicht",
     noResults:
@@ -75,13 +74,6 @@ const COPY = {
     channel: "Kanal",
     publishedAt: "Veröffentlicht am",
     openResult: "Ergebnis öffnen",
-    technicalDetails: "Fach- und Technikdetails",
-    technicalIntro: "IDs, Dateipfade, Brandprofile und Evidence für Audit und Fachprüfung.",
-    assets: "Assets",
-    brands: "Brandprofile",
-    evidence: "Evidence",
-    sources: "Registry-Quellen",
-    lastUpdated: "Stand",
     backAdmin: "Admin-Übersicht",
     toRadar: "Themenradar",
     toCampaigns: "Beteiligungskampagnen",
@@ -133,7 +125,6 @@ const COPY = {
       "Opportunities are explained by value and feasibility while technical status codes remain secondary.",
     recommendedAction: "Recommended action",
     linkedCampaigns: "Linked campaigns",
-    handoff: "Hand off",
     resultIntro: "Only real distributions and later their verified metrics appear here.",
     noResultsTitle: "No campaign has been published yet",
     noResults:
@@ -141,13 +132,6 @@ const COPY = {
     channel: "Channel",
     publishedAt: "Published at",
     openResult: "Open result",
-    technicalDetails: "Professional and technical details",
-    technicalIntro: "IDs, file paths, brand profiles and evidence for audit and expert review.",
-    assets: "Assets",
-    brands: "Brand profiles",
-    evidence: "Evidence",
-    sources: "Registry sources",
-    lastUpdated: "Updated",
     backAdmin: "Admin overview",
     toRadar: "Topic radar",
     toCampaigns: "Participation campaigns",
@@ -412,18 +396,6 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         ) : <EmptyState title={copy.noResultsTitle} body={copy.noResults} />}
       </section>
 
-      <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-        <summary className="cursor-pointer text-lg font-semibold text-[rgb(var(--fg))]">{copy.technicalDetails}</summary>
-        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{copy.technicalIntro}</p>
-        <div className="mt-5 grid gap-5 xl:grid-cols-2">
-          <TechnicalList title={copy.assets} rows={readModel.assets.map((asset) => `${asset.id} · ${asset.title} · ${assetStatusLabel(asset.status, locale)} · ${asset.sourcePath}`)} />
-          <TechnicalList title={copy.brands} rows={readModel.brandProfiles.map((brand) => `${brand.id} · ${brand.displayName} · ${brand.status} · ${brand.sourcePath}`)} />
-          <TechnicalList title={copy.evidence} rows={readModel.recentEvidence.map((item) => `${item.opportunityTitle} · ${item.status} · ${item.ref}`)} />
-          <TechnicalList title={copy.sources} rows={readModel.sourcePaths} />
-        </div>
-        <p className="mt-5 text-xs text-[rgb(var(--muted))]">{copy.lastUpdated}: {formatDate(readModel.generatedAt, dateLocale)}</p>
-      </details>
-
       <footer className="flex flex-wrap gap-2 border-t border-[rgb(var(--border))] pt-5">
         <AdminLink href="/admin" label={copy.backAdmin} />
         <AdminLink href="/admin/themenradar" label={copy.toRadar} />
@@ -686,10 +658,6 @@ function DetailPanel({ title, body }: { title: string; body: string }) {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center"><h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3>{body && <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">{body}</p>}</div>;
-}
-
-function TechnicalList({ title, rows }: { title: string; rows: string[] }) {
-  return <div><h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3><ul className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">{rows.map((row) => <li key={row} className="break-all rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 font-mono">{row}</li>)}</ul></div>;
 }
 
 function AdminLink({ href, label }: { href: string; label: string }) {
