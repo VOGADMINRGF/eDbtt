@@ -1,4 +1,5 @@
 name: One-time Marketing Assistant UX Fix Sync
+# pull-request trigger for canonical queue sync
 
 on:
   pull_request:
