@@ -95,6 +95,7 @@ const COPY = {
     sourceTitle: "Messdaten und Datenquellen",
     sourceIntro: "eDebatte, Social Media, E-Mail, Downloads und Werbung werden getrennt betrachtet. Nicht verbundene Daten sind kein Null-Ergebnis.",
     sourceSummary: "Datenquellen verbunden",
+    sourceJoin: "von",
     sourceDetails: "Einzelne Datenquellen anzeigen",
     snapshots: "Snapshots",
     latest: "Letzte Erfassung",
@@ -165,6 +166,7 @@ const COPY = {
     sourceTitle: "Measurement data and sources",
     sourceIntro: "eDebatte, social media, email, downloads and advertising are considered separately. Unconnected data is not a zero result.",
     sourceSummary: "Data sources connected",
+    sourceJoin: "of",
     sourceDetails: "Show individual data sources",
     snapshots: "Snapshots",
     latest: "Latest capture",
@@ -287,7 +289,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
           <dl className="mt-5 grid gap-x-6 gap-y-4 rounded-2xl bg-white/70 p-4 text-sm dark:bg-slate-950/20 sm:grid-cols-2 lg:grid-cols-3">
             <Definition label={copy.primaryMarket} value={selectedCampaign.profile.primarySegment.toUpperCase()} />
             <Definition label={copy.reach} value={selectedCampaign.profile.reachScopes.map((value) => reachLabel(value, locale)).join(", ")} />
-            <Definition label={copy.regions} value={selectedCampaign.profile.regionLabels.join(", ")} />
+            <Definition label={copy.regions} value={selectedCampaign.profile.regionKeys.join(", ")} />
             <Definition label={copy.languages} value={selectedCampaign.profile.locales.join(", ")} />
             <Definition label={copy.primaryKpi} value={metricLabel(selectedCampaign.profile.primaryKpi, locale)} />
             <Definition label={copy.channels} value={selectedCampaign.profile.plannedChannels.map((value) => channelLabel(value, locale)).join(", ")} />
@@ -346,7 +348,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
           <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.sourceIntro}</p>
         </div>
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connectedSources} von {model.sourceStates.length} {copy.sourceSummary}</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connectedSources} {copy.sourceJoin} {model.sourceStates.length} {copy.sourceSummary}</p>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">{connectedSources ? qualityLabel("partial", locale) : copy.notConnected}</p>
           <details className="mt-4">
             <summary className="cursor-pointer text-sm font-semibold text-sky-700 dark:text-sky-300">{copy.sourceDetails}</summary>
