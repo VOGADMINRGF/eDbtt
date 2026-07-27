@@ -77,4 +77,18 @@ describe("runden entry canon contract", () => {
     expect(carriers.social_output_drafts?.canonicalCarrier).toBe("dossier_studio_workspace");
     expect(carriers.voxy_video_briefing?.canonicalCarrier).toBe("missing_runtime_truth");
   });
+
+  it("describes legacy drafts as read-only resume compatibility instead of an active write world", () => {
+    const model = readRundenEntryCanonReadModel();
+
+    expect(model.driftWarnings).toContain(
+      "Legacy-Drafts mit alten String-IDs bleiben ausschließlich als Read-only-Resume-Fallback erhalten; aktive Writes nutzen die kanonische user-scoped ObjectId-/Schema-Wahrheit.",
+    );
+    expect(model.driftWarnings).toContain(
+      "/create und /runden/new nutzen unterschiedliche API-Einstiege, schreiben aber in dieselbe kanonische serverseitige Draft-Wahrheit.",
+    );
+    expect(model.driftWarnings).not.toContain(
+      "Legacy draftStore-/api/drafts-Pfade und der neuere /api/drafts/save-Pfad verwenden weiterhin unterschiedliche ID-/Schema-Wahrheiten.",
+    );
+  });
 });

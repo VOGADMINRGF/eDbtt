@@ -55,14 +55,9 @@ describe("create debattenstand review fixes", () => {
     const taskRow = openTasks
       .split("\n")
       .find((line) => line.startsWith("| CREATE-DEBATTENSTAND-01 |"));
-    const draftsRow = openTasks
-      .split("\n")
-      .find((line) => line.startsWith("| DRAFTS-LEGACY-SSOT-ALIGN-01 |"));
-
     expect(taskRow).toBeDefined();
     expect(taskRow).toContain("| review |");
     expect(taskRow).not.toContain("| codex_ready |");
-    expect(draftsRow).toContain("| codex_ready |");
     expect(openTasks).toContain("CREATE-DEBATTENSTAND-01 evidence: PR #417");
   });
 });
