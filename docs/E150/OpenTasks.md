@@ -43,6 +43,9 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 - Kalendertermine sind Ausführungsplanung und kein Erledigungsbeweis.
 - `ProductionReadinessMatrix.md`, Release-Runbooks und ältere Launch-Dokumente bleiben Guardrails und Belegdokumente, ersetzen aber weder echte Vercel-/ENV-Prüfung noch Testkonto noch echten Production-Smoke.
 
+- PR `#468` wurde gemergt und ersetzt die strategische Entwicklungsansicht von `/admin/marketing` durch konkrete Beiträge, Videos, Freigaben, Termine und belegte Veröffentlichungen; die Nutzerabnahme ist erfolgt.
+- Issue `#467` ist als `MARKETING-CONTENT-OPERATIONS-READMODEL-02` `codex_ready`; Auto-Publish und Provider-Anbindung bleiben ausgeschlossen.
+
 ## Phase 0 — Governance und Production Gates
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
@@ -204,6 +207,14 @@ Marketing Growth OS evidence:
 - Issues #440, #442, #445
 - Source Discovery und Publish Approval bleiben echte Manual Gates.
 -->
+
+
+## Phase Marketing Content Operations — operative Beiträge und Videos
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| ADMIN-MARKETING-CONTENT-OPERATIONS-04 | done | P1 | ADMIN-MARKETING-OPERATING-DASHBOARD-02, PR `#468` | `/admin/marketing` priorisiert konkrete Beiträge, Videos, Freigaben, Termine, Veröffentlichungen und echte Ergebnisse statt Produktentwicklung, Evidence- oder Programmieraufgaben | PR `#468` ist gemergt; UI-, Guardrail-, Lint-, Typecheck- und Build-Prüfungen sind grün; Nutzerfreigabe vom 2026-07-27 liegt vor |
+| MARKETING-CONTENT-OPERATIONS-READMODEL-02 | codex_ready | P1 | ADMIN-MARKETING-CONTENT-OPERATIONS-04, Issue `#467` | Typisiertes repo-backed Readmodel für konkrete Posts, Videos und Kanalvarianten mit Caption/Script, Locale, Zielkanälen, Status, Termin, Verantwortlichkeit, CTA, Review- und Distribution-Verknüpfung; bestehende Campaign-, Asset- und Distribution-Wahrheit referenzieren statt duplizieren | `/admin/marketing` verwendet explizite Content-Operations-Daten; fehlende Termine und Veröffentlichungen bleiben ehrlich leer; kein Auto-Publish, keine Provider-Credentials, keine personenbezogenen Marketingprofile; fokussierte Contract- und UI-Tests sowie E150-Evidenz sind grün |
 
 ## Historischer Katalog und Evidenz
 
