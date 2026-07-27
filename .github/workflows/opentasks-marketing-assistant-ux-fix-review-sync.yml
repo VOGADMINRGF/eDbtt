@@ -1,0 +1,96 @@
+name: One-time Marketing Assistant UX Fix Review Sync
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/opentasks-marketing-assistant-ux-fix-review-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.ref == 'docs/run-marketing-assistant-ux-fix-review-sync'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Move canonical task to review
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          path = Path('docs/E150/OpenTasks.md')
+          text = path.read_text(encoding='utf-8')
+          marker = '## Historischer Katalog und Evidenz'
+          if marker not in text:
+              raise SystemExit('historical marker missing')
+          head, archive = text.split(marker, 1)
+          archive_hash = hashlib.sha256(archive.encode('utf-8')).hexdigest()
+          lines = head.splitlines()
+
+          indexes = [i for i, line in enumerate(lines) if line.startswith('| MARKETING-CONTEXTUAL-ASSISTANT-UX-FIX-01 |')]
+          if len(indexes) != 1:
+              raise SystemExit(f'UX fix row count unexpected: {len(indexes)}')
+          index = indexes[0]
+          cells = [cell.strip() for cell in lines[index].split('|')[1:-1]]
+          if len(cells) != 6:
+              raise SystemExit(f'unexpected UX fix row shape: {cells}')
+          if cells[1] not in {'codex_ready', 'review'}:
+              raise SystemExit(f'unexpected UX fix status: {cells[1]}')
+          cells[1] = 'review'
+          cells[4] = 'Issue `#490` / PR `#493`: wahren Marketing-Reviewweg, content-first Handlungshierarchie, getrennte Bestands-/Empfehlungssicherheit und kompakte Operatoransichten bereitstellen'
+          cells[5] = 'Merge `6dd113f7f65b4d2f1656ed4dfed01ed4310af876` und vollständige Web-CI sind grün; `/admin/marketing/review` zeigt exakt die zwei realen Inhalte; erneute Desktop-/Mobile-Produktabnahme steht vor `done` aus'
+          lines[index] = '| ' + ' | '.join(cells) + ' |'
+
+          queue_old = '- Issues `#445` und `#490` sind die aktuell ausführbaren, voneinander getrennten Marketing-Slices; `MARKETING-CONTEXTUAL-ASSISTANT-01` bleibt nach PR `#478` auf `review`, während Performance-Ingestion und Konten & Datenquellen bis zu realen Provider-, CSV-, Secret-Store- und Datenschutzfreigaben `manual_gate` bleiben.'
+          queue_new = '- Issue `#445` ist der einzige aktuell unmittelbar ausführbare Marketing-Slice; `MARKETING-CONTEXTUAL-ASSISTANT-01` und sein UX-Fix `#490` stehen auf `review`, während Performance-Ingestion und Konten & Datenquellen bis zu realen Provider-, CSV-, Secret-Store- und Datenschutzfreigaben `manual_gate` bleiben.'
+          if queue_old in lines:
+              lines[lines.index(queue_old)] = queue_new
+          elif queue_new not in lines:
+              raise SystemExit('marketing queue truth missing')
+
+          truth_anchor = '- Die Videoabnahme von PR `#478` hat Issue `#490` / `MARKETING-CONTEXTUAL-ASSISTANT-UX-FIX-01` freigegeben: Der Review-Link muss die zwei Marketinginhalte wirklich zeigen, die Handlungshierarchie und Sicherheitsdarstellung werden operator-tauglich korrigiert.'
+          truth_line = '- PR `#493` wurde als Merge `6dd113f7f65b4d2f1656ed4dfed01ed4310af876` integriert; `/admin/marketing/review` zeigt die zwei realen Marketinginhalte, content-first Handlungshierarchie und qualitative Empfehlungssicherheit sind umgesetzt, erneute Produktabnahme steht aus.'
+          if truth_line not in lines:
+              positions = [i for i, line in enumerate(lines) if line == truth_anchor]
+              if len(positions) != 1:
+                  raise SystemExit('UX fix truth anchor missing or duplicated')
+              lines.insert(positions[0] + 1, truth_line)
+
+          sync_positions = [i for i, line in enumerate(lines) if line.startswith('- Letzter gezielter Kopf-Sync:')]
+          if len(sync_positions) != 1:
+              raise SystemExit('head sync metadata missing or duplicated')
+          lines[sync_positions[0]] = '- Letzter gezielter Kopf-Sync: Marketing Assistant UX Fix nach PR `#493`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.'
+
+          new_head = '\n'.join(lines)
+          if head.endswith('\n'):
+              new_head += '\n'
+          if hashlib.sha256(archive.encode('utf-8')).hexdigest() != archive_hash:
+              raise SystemExit('historical archive changed unexpectedly')
+          path.write_text(new_head + marker + archive, encoding='utf-8')
+          PY
+
+      - name: Commit review status
+        shell: bash
+        run: |
+          grep -F '| MARKETING-CONTEXTUAL-ASSISTANT-UX-FIX-01 | review |' docs/E150/OpenTasks.md
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/E150/OpenTasks.md
+          git commit -m 'docs(e150): move marketing assistant UX fix to review'
+
+      - name: Self-remove and push canonical update
+        shell: bash
+        run: |
+          git rm .github/workflows/opentasks-marketing-assistant-ux-fix-review-sync.yml
+          git commit -m 'chore: remove marketing assistant UX review sync workflow'
+          git push origin HEAD:main
