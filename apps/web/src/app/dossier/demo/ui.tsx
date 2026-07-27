@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import demoFallback from "@features/dossier/data/demoDossier";
-import { DossierViewer } from "@/components/dossier/DossierViewer";
+import DossierWorkspace from "@/components/dossier/DossierWorkspace";
 
 type ApiResponse =
   | { ok: true; serverTimestamp: string; dossier: Dossier }
@@ -36,8 +36,8 @@ export default function DossierDemoClient() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-18 lg:px-10">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[rgb(var(--muted))]">
+    <div>
+      <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-2 px-4 pt-6 text-[11px] text-[rgb(var(--muted))] sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
             Demo-Backend
@@ -58,7 +58,7 @@ export default function DossierDemoClient() {
           </div>
         ) : null}
       </div>
-      <DossierViewer dossier={dossier} />
+      <DossierWorkspace dossier={dossier} demo sourceStatusLabel="Demodaten, kein produktiver Prüfstatus" />
     </div>
   );
 }

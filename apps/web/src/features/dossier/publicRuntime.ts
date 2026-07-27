@@ -11,13 +11,17 @@ import {
   stripDossierInternalFieldsForPublic,
   type DossierPublicationRecord,
 } from "@/features/create/dossierPublishWorkflow";
+import { getDossierRuntimeSourceStatusLabel } from "@/features/create/dossierRuntime";
 import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 
 export type PublicDossierRuntimeItem = {
   id: string;
   slug: string;
   title: string;
+  coreQuestion: string | null;
   summary: string;
+  statusLabel: string;
+  sourceStatusLabel: string;
   updatedAt: string;
   source: "runtime";
 };
@@ -28,6 +32,7 @@ export type PublicDossierRuntimeDetail = {
   dossier: Dossier;
   updateContext: DossierPublicUpdateContext | null;
   materialLinks: [];
+  sourceStatusLabel: string;
   source: "runtime";
 };
 
@@ -73,6 +78,27 @@ function mapQuestion(question: OpenQuestionDoc): AnalyzeQuestion {
     id: question.questionId,
     text: question.text,
     dimension: question.responsibility?.label ?? null,
+  };
+}
+
+function normalizeStandpoint(value: string, index: number): AnalyzeClaim {
+  const stance = /^\s*pro\s*:/i.test(value)
+    ? "pro"
+    : /^\s*(contra|gegen)\s*:/i.test(value)
+      ? "contra"
+      : "neutral";
+  const text = value.replace(/^\s*(pro|contra|gegen)\s*:\s*/i, "").trim() || value;
+  return {
+    id: `published-standpoint-${index + 1}`,
+    text,
+    title: text,
+    topic: null,
+    domain: null,
+    domains: null,
+    responsibility: null,
+    importance: null,
+    stance,
+    statementType: "interpretation",
   };
 }
 
@@ -135,9 +161,86 @@ export function mapDossierToPublicDossier(input: {
   findings: DossierFindingDoc[];
   openQuestions: OpenQuestionDoc[];
 }): Dossier {
-  const claims = input.claims.map(mapClaim);
-  const openQuestions = input.openQuestions.map(mapQuestion);
+  const persistedClaims = input.claims.map(mapClaim);
+  const knownClaims = new Set(persistedClaims.map((claim) => claim.text.trim().toLowerCase()));
+  const publishedStandpoints = input.publication.recognizedStandpoints
+    .map(normalizeStandpoint)
+    .filter((claim) => {
+      const key = claim.text.trim().toLowerCase();
+      if (!key || knownClaims.has(key)) return false;
+      knownClaims.add(key);
+      return true;
+    });
+  const claims = [...persistedClaims, ...publishedStandpoints];
+  const persistedQuestions = input.openQuestions.map(mapQuestion);
+  const knownQuestions = new Set(
+    persistedQuestions.map((question) => question.text.trim().toLowerCase()),
+  );
+  const publicationQuestions = input.publication.openQuestions
+    .map((text, index): AnalyzeQuestion => ({
+      id: `published-question-${index + 1}`,
+      text,
+      dimension: null,
+    }))
+    .filter((question) => {
+      const key = question.text.trim().toLowerCase();
+      if (!key || knownQuestions.has(key)) return false;
+      knownQuestions.add(key);
+      return true;
+    });
+  const openQuestions = [...persistedQuestions, ...publicationQuestions];
   const findings = input.findings.map(mapFinding);
+  const sourceNodes = input.sources.map((source) => ({
+    id: source.sourceId,
+    type: "evidence" as const,
+    label: source.title,
+    url: source.url,
+    publisher: source.publisher,
+    sourceClass: source.type,
+  }));
+  const claimNodes = claims.map((claim) => ({
+    id: claim.id,
+    type: "claim" as const,
+    label: claim.title ?? claim.text,
+  }));
+  const evidenceEdges = findings
+    .filter((finding) => finding.sourceId !== "unknown-source")
+    .map((finding) => ({
+      from: finding.claimId,
+      to: finding.sourceId,
+      kind:
+        finding.finding === "contradicts"
+          ? ("refutes" as const)
+          : finding.finding === "supports"
+            ? ("supports" as const)
+            : ("mentions" as const),
+      weight: finding.finding === "unclear" ? 0.4 : 0.7,
+    }));
+  const linkedClaims = new Set(evidenceEdges.map((edge) => edge.from));
+  const findingDocById = new Map(input.findings.map((finding) => [finding.findingId, finding]));
+  const presentationOpenQuestions = [
+    ...input.openQuestions.map((question) => {
+      const linkedFindingIds = question.links?.findingIds ?? [];
+      return {
+        id: question.questionId,
+        text: question.text,
+        status: question.status,
+        responsible: question.responsibility?.label,
+        lastUpdate: question.updatedAt?.toISOString(),
+        claimIds: question.links?.claimIds ?? [],
+        sourceIds: question.links?.sourceIds ?? [],
+        findingIds: linkedFindingIds,
+        answerCandidates: linkedFindingIds.flatMap(
+          (findingId) => findingDocById.get(findingId)?.rationale ?? [],
+        ),
+      };
+    }),
+    ...publicationQuestions.map((question) => ({
+      id: question.id,
+      text: question.text,
+      status: "open" as const,
+    })),
+  ];
   const dossier: Dossier = {
     meta: {
       id: String(input.publication.dossierId),
@@ -155,6 +258,16 @@ export function mapDossierToPublicDossier(input: {
       claims,
       findings,
       notes: [
+        {
+          id: `note-workspace-${input.publication.sourceHandoffId}`,
+          kind: "presentation",
+          text: JSON.stringify({
+            topic: {
+              label: input.publication.originQuestion ?? input.publication.title,
+            },
+            openQuestions: presentationOpenQuestions,
+          }),
+        },
         {
           id: `note-publication-${input.publication.sourceHandoffId}`,
           kind: "context",
@@ -190,6 +303,16 @@ export function mapDossierToPublicDossier(input: {
         responsibleActors: [],
       },
       participationCandidates: [],
+      evidenceGraph: {
+        nodes: [...claimNodes, ...sourceNodes],
+        edges: evidenceEdges,
+        summary: {
+          claimCount: claims.length,
+          evidenceCount: sourceNodes.length,
+          linkedClaimCount: linkedClaims.size,
+          unlinkedClaimCount: Math.max(0, claims.length - linkedClaims.size),
+        },
+      },
       report: {
         summary: input.publication.summary,
         keyConflicts: input.publication.argumentLines.slice(0, 4),
@@ -219,7 +342,10 @@ export async function listPublishedDossiers(limit = 40) {
     id: String(record.dossierId),
     slug: String(record.dossierId),
     title: record.title,
+    coreQuestion: record.originQuestion,
     summary: record.summary,
+    statusLabel: "Veröffentlicht",
+    sourceStatusLabel: getDossierRuntimeSourceStatusLabel(record.sourceStatus),
     updatedAt: record.updatedAt,
     source: "runtime",
   }));
@@ -276,6 +402,7 @@ export async function getPublishedDossierBySlugOrId(slugOrId: string) {
       dossier,
       updateContext: updateReadModelResult?.publicContext ?? null,
       materialLinks: [],
+      sourceStatusLabel: getDossierRuntimeSourceStatusLabel(publication.sourceStatus),
       source: "runtime" as const,
     },
     record: publication,

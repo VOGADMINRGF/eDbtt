@@ -145,7 +145,10 @@ describe("dossier public route runtime", () => {
     expect(dossier.meta.status).toBe("published");
     expect(dossier.meta.title).toBe("Dossier Sichere Schulwege");
     expect(dossier.analyze.claims[0]?.text).toContain("Querungen");
+    expect(dossier.analyze.claims.some((claim) => claim.stance === "pro")).toBe(true);
     expect(dossier.analyze.questions[0]?.text).toContain("Schulen");
+    expect(dossier.analyze.evidenceGraph?.summary.linkedClaimCount).toBe(1);
+    expect(dossier.analyze.evidenceGraph?.nodes.some((node) => node.id === "source-1")).toBe(true);
     expect(dossier.analyze.notes.map((entry) => entry.text).join(" ")).toContain(
       "nicht Wahrheitszertifikat",
     );

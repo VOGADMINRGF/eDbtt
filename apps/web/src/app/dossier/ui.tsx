@@ -1,176 +1,113 @@
-"use client";
-
-import * as React from "react";
 import Link from "next/link";
-import VoxyGuide from "@/components/voxy/VoxyGuide";
+import type { PublicDossierRuntimeItem } from "@/features/dossier/publicRuntime";
 
-const DOSSIER_VOXY_COPY =
-  "Ich zeige dir, was aus deinem Beitrag schon verständlich wird, welche Fragen offen bleiben und was vor einer Veröffentlichung geprüft werden muss.";
-
-const HANDOFF_STORAGE_KEY = "edb_create_handoff_drafts_v1";
-
-type DossierHandoffPreview = {
-  id: string;
-  sourceText?: string;
-  resumeHref?: string;
-  plannerResult?: {
-    plannerTopic?: string;
-    plannerCore?: string;
-  };
-  openQuestions?: Array<{ id?: string; question?: string }>;
-  claims?: Array<{ id?: string; text?: string }>;
-};
-
-function readableNextStepLabel(action?: string | null): string {
-  switch (action) {
-    case "append_to_dossier":
-      return "Debatte & Argumente ergänzen";
-    case "create_dossier":
-      return "Neue Debatte & Argumente vorbereiten";
-    case "request_factcheck":
-      return "Prüfung vorbereiten";
-    default:
-      return "Nächsten Schritt auswählen";
-  }
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
-function readPreviewFromStorage(handoffId: string | null | undefined): DossierHandoffPreview | null {
-  if (typeof window === "undefined") return null;
-  const normalized = String(handoffId ?? "").trim();
-  if (!normalized) return null;
-  try {
-    const raw = window.sessionStorage.getItem(HANDOFF_STORAGE_KEY);
-    if (!raw) return null;
-    const store = JSON.parse(raw) as Record<string, DossierHandoffPreview>;
-    const preview = store?.[normalized];
-    return preview && typeof preview === "object" ? preview : null;
-  } catch {
-    return null;
-  }
-}
-
-function DossierHandoffPreviewCard({ preview }: { preview: DossierHandoffPreview }) {
-  const title = preview.plannerResult?.plannerCore?.trim() || preview.plannerResult?.plannerTopic?.trim() || "Aus deinem Beitrag vorbereitet";
-  const topic = preview.plannerResult?.plannerTopic?.trim();
-  const questions = (preview.openQuestions ?? []).filter((item) => item.question?.trim()).slice(0, 3);
-  const claims = (preview.claims ?? []).filter((item) => item.text?.trim()).slice(0, 3);
-
-  return (
-    <section className="rounded-3xl border border-cyan-200/70 bg-[rgb(var(--card))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-cyan-300/20">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Aus deinem Beitrag vorbereitet</p>
-      <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{title}</h2>
-      {topic ? <p className="mt-1 text-sm text-[rgb(var(--muted))]">Thema: {topic}</p> : null}
-      {preview.sourceText ? (
-        <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]">{preview.sourceText}</p>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Kernaussagen</p>
-          {claims.length > 0 ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--fg))]">
-              {claims.map((claim, index) => <li key={claim.id ?? index}>{claim.text}</li>)}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine Kernaussagen übernommen.</p>
-          )}
-        </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Fragen</p>
-          {questions.length > 0 ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--fg))]">
-              {questions.map((question, index) => <li key={question.id ?? index}>{question.question}</li>)}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine offenen Fragen übernommen.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {preview.resumeHref ? (
-          <Link href={preview.resumeHref} className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
-            Beitrag weiter bearbeiten
-          </Link>
-        ) : null}
-        <Link href="/community/contributions" className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
-          Zur Prüfung
-        </Link>
-      </div>
-    </section>
-  );
-}
-
-export default function DossierIndexClient(props: {
+export default function DossierIndex({
+  items = [],
+  loadFailed = false,
+}: {
+  items?: PublicDossierRuntimeItem[];
+  loadFailed?: boolean;
   handoffId?: string | null;
   createAction?: string | null;
   seedTopic?: string | null;
 }) {
-  const [preview, setPreview] = React.useState<DossierHandoffPreview | null>(null);
-
-  React.useEffect(() => {
-    setPreview(readPreviewFromStorage(props.handoffId));
-  }, [props.handoffId]);
-
   return (
-    <div className="public-shell mx-auto w-full px-4 py-8 sm:px-6 sm:py-10">
-      <div className="public-reader-grid">
-        <aside className="public-voxy-rail">
-          <VoxyGuide appearance="compact" title="Voxy als Prüfhinweis" variant="hint">
-            {DOSSIER_VOXY_COPY}
-          </VoxyGuide>
-        </aside>
+    <div className="public-shell mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+      <header className="max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+          Dossiers
+        </p>
+        <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight text-[rgb(var(--fg))] sm:text-5xl">
+          Debattenstände verstehen und weiterprüfen
+        </h1>
+        <p className="mt-4 text-base leading-7 text-[rgb(var(--muted))]">
+          Dossiers bündeln Kernaussagen, Positionen, Quellen und offene Fragen. Sie zeigen den
+          aktuellen veröffentlichten Arbeitsstand, nicht automatisch eine amtliche oder endgültige
+          Wahrheit.
+        </p>
+      </header>
 
-        <div className="public-dialog-area">
-          <div className="public-section space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Debatte &amp; Argumente</p>
-            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Aus deinem Beitrag entsteht ein verständlicher Debattenstand.</h1>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              Debatte &amp; Argumente bündelt Anliegen, prüfbare Aussagen, Quellenfragen, Gegenpositionen, Zuständigkeit und offene Punkte. Nichts wird automatisch veröffentlicht oder irgendwo angehängt.
-            </p>
-          </div>
-
-          {preview ? (
-            <div className="public-proof-zone mt-5 space-y-3">
-              <DossierHandoffPreviewCard preview={preview} />
+      {loadFailed ? (
+        <section className="mt-8 rounded-3xl border border-rose-300/60 bg-rose-500/10 p-5">
+          <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
+            Dossiers konnten nicht geladen werden
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Die veröffentlichten Laufzeitdaten sind derzeit nicht erreichbar. Es werden keine
+            Beispieldossiers als Ersatz angezeigt.
+          </p>
+        </section>
+      ) : items.length === 0 ? (
+        <section className="mt-8 rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
+          <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
+            Noch keine veröffentlichten Dossiers
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            Sobald ein geprüfter Dossierstand ausdrücklich veröffentlicht wurde, erscheint er hier.
+            Entwürfe und Demo-Daten werden in dieser Übersicht nicht eingeblendet.
+          </p>
+        </section>
+      ) : (
+        <section className="mt-8" aria-labelledby="published-dossiers-heading">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 id="published-dossiers-heading" className="text-xl font-semibold text-[rgb(var(--fg))]">
+                Veröffentlichte Dossiers
+              </h2>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                {items.length} {items.length === 1 ? "Dossier" : "Dossiers"}
+              </p>
             </div>
-          ) : (
-            <div className="public-dialog-surface mt-5 space-y-4 px-4 py-5">
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  Noch keine Debatte &amp; Argumente geöffnet.
-                </p>
-                <p className="text-sm leading-6 text-[rgb(var(--muted))]">
-                  Starte mit einem kurzen Beitrag. eDebatte kann daraus eine erste Struktur vorbereiten: Was ist die Kernfrage, welche Aussagen sind prüfbar, welche Belege fehlen und welche Gegenpositionen sollten sichtbar werden?
-                  {props.seedTopic ? ` Themenhinweis: ${props.seedTopic}.` : ""}
-                </p>
-              </div>
-              <div className="grid gap-2 text-sm text-[rgb(var(--muted))] sm:grid-cols-2">
-                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
-                  <strong className="block text-[rgb(var(--fg))]">Was entsteht?</strong>
-                  Beitrag, Kernaussagen, Quellenfragen, offene Punkte und nächster Prüfschritt.
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
-                  <strong className="block text-[rgb(var(--fg))]">Was passiert nicht?</strong>
-                  Keine automatische Veröffentlichung, keine automatische Verknüpfung, keine Entscheidung ohne Prüfung.
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/create?intent=create_dossier" className="btn-primary min-h-[42px] px-3 py-2 text-sm">
-                  Debatte &amp; Argumente vorbereiten
-                </Link>
-                <Link href="/themen" className="btn-secondary min-h-[42px] px-3 py-2 text-sm">
-                  Themensuche öffnen
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className="public-flow-line mt-5 px-0 pt-4 text-sm text-[rgb(var(--muted))]">
-            Nächster Schritt: {readableNextStepLabel(props.createAction)} · Veröffentlichung oder Verknüpfung erfolgt erst nach bewusster Bestätigung.
           </div>
-        </div>
-      </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {items.map((item) => (
+              <article
+                key={item.id}
+                className="flex h-full flex-col rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_18px_42px_rgba(2,6,23,0.05)]"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 font-semibold text-[rgb(var(--fg))]">
+                    {item.statusLabel}
+                  </span>
+                  <span className="text-[rgb(var(--muted))]">Stand: {formatDate(item.updatedAt)}</span>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold leading-7 text-[rgb(var(--fg))]">
+                  {item.title}
+                </h3>
+                {item.coreQuestion ? (
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[rgb(var(--fg))]">
+                    {item.coreQuestion}
+                  </p>
+                ) : null}
+                <p className="mt-3 line-clamp-4 text-sm leading-6 text-[rgb(var(--muted))]">
+                  {item.summary}
+                </p>
+                <p className="mt-4 text-xs leading-5 text-[rgb(var(--muted))]">
+                  Quellenstatus: {item.sourceStatusLabel}
+                </p>
+                <div className="mt-auto pt-5">
+                  <Link
+                    href={`/dossier/${encodeURIComponent(item.slug)}`}
+                    className="btn-primary inline-flex min-h-11 items-center px-4 py-2 text-sm"
+                  >
+                    Debattenstand öffnen
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
