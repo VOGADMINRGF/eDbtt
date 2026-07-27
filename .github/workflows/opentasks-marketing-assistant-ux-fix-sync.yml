@@ -1,4 +1,5 @@
 name: One-time Marketing Assistant UX Fix Sync
+# trigger: workflow already present on main
 
 on:
   push:
