@@ -132,17 +132,25 @@ export async function listMarketingDelegations() {
 export async function createMarketingDelegation(
   input: MarketingDelegationRequest & { requestedByUserId: string },
 ) {
-  const request = MarketingDelegationRequestSchema.parse(input);
+  const request = MarketingDelegationRequestSchema.parse({
+    itemType: input.itemType,
+    itemId: input.itemId,
+    agentRole: input.agentRole,
+  });
   const requestedByUserId = String(input.requestedByUserId ?? "").trim();
   if (!requestedByUserId) throw new Error("marketing_delegation_actor_required");
 
   const registry = getMarketingRegistry();
-  const item =
-    request.itemType === "campaign"
-      ? registry.campaigns.find((campaign) => campaign.id === request.itemId)
-      : registry.opportunities.find((opportunity) => opportunity.id === request.itemId);
+  const campaign = request.itemType === "campaign"
+    ? registry.campaigns.find((item) => item.id === request.itemId)
+    : null;
+  const opportunity = request.itemType === "opportunity"
+    ? registry.opportunities.find((item) => item.id === request.itemId)
+    : null;
+  const itemTitle = campaign?.title ?? opportunity?.title;
+  const itemSummary = campaign?.description ?? opportunity?.summary;
 
-  if (!item) throw new Error("marketing_delegation_item_not_found");
+  if (!itemTitle || !itemSummary) throw new Error("marketing_delegation_item_not_found");
 
   const id = `marketing-delegation-${stableHash(
     `${request.itemType}:${request.itemId}:${request.agentRole}`,
@@ -152,10 +160,10 @@ export async function createMarketingDelegation(
     id,
     itemType: request.itemType,
     itemId: request.itemId,
-    itemTitle: item.title,
+    itemTitle,
     agentRole: request.agentRole,
     status: "queued",
-    goal: buildGoal(request.itemType, item.title, item.summary ?? item.description),
+    goal: buildGoal(request.itemType, itemTitle, itemSummary),
     expectedOutputs: expectedOutputsFor(request.agentRole),
     requestedByUserId,
     requestedAt: timestamp,
