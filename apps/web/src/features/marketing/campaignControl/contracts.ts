@@ -152,7 +152,7 @@ export const MarketingMetricSnapshotSchema = z
     capturedAt: isoDateSchema,
     attribution: z.enum(["direct", "platform_reported", "campaign_link", "directional", "none"]),
     confidence: z.number().min(0).max(1),
-    values: z.record(z.enum(MARKETING_METRIC_KEY_VALUES), z.number().nonnegative()),
+    values: z.partialRecord(z.enum(MARKETING_METRIC_KEY_VALUES), z.number().nonnegative()),
   })
   .strict()
   .superRefine((snapshot, context) => {
