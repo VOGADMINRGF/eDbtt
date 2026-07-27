@@ -3,7 +3,9 @@ name: Temporary OpenTasks sync runner
 on:
   pull_request:
     types: [synchronize, reopened]
-    branches: [main]
+    branches:
+      - main
+      - docs/i18n-go-program-2026-07-27
 
 permissions:
   contents: write
@@ -23,8 +25,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge --no-edit origin/main
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          git merge --no-edit "origin/${{ github.event.pull_request.base.ref }}"
           python scripts/opentasks-marketing-sync.py
           rm -f \
             .github/workflows/opentasks-sync-runner.yml \
@@ -33,5 +35,5 @@ jobs:
             scripts/opentasks-marketing-sync.py
           git add -A
           git diff --cached --check
-          git commit -m "docs(e150): sync Marketing Growth OS in OpenTasks head"
+          git commit -m "docs(e150): sync Marketing Growth OS and admin IA in OpenTasks head"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
