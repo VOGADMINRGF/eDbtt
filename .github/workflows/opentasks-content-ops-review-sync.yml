@@ -1,0 +1,51 @@
+name: OpenTasks Content Operations Review Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/opentasks-content-ops-review-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Update canonical OpenTasks status
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/E150/OpenTasks.md')
+          text = path.read_text(encoding='utf-8')
+          old = '| MARKETING-CONTENT-OPERATIONS-READMODEL-02 | codex_ready |'
+          new = '| MARKETING-CONTENT-OPERATIONS-READMODEL-02 | review |'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one executable row, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          anchor = '- Issue `#467` ist als `MARKETING-CONTENT-OPERATIONS-READMODEL-02` `codex_ready`; Auto-Publish und Provider-Anbindung bleiben ausgeschlossen.'
+          replacement = '- PR `#469` wurde als Merge `e047f82bb96b5a2b03fa49f833acd59ab52070a1` integriert; `MARKETING-CONTENT-OPERATIONS-READMODEL-02` ist technisch abgeschlossen und wartet im Status `review` auf die Produkt-Sichtprüfung. Auto-Publish und Provider-Anbindung bleiben ausgeschlossen.'
+          if text.count(anchor) != 1:
+              raise SystemExit(f'expected exactly one truth anchor, found {text.count(anchor)}')
+          text = text.replace(anchor, replacement, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit OpenTasks review state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/E150/OpenTasks.md
+          git commit -m "docs(e150): move marketing content operations to review"
+          git push origin HEAD:main
+      - name: Remove one-time workflow
+        run: |
+          git rm .github/workflows/opentasks-content-ops-review-sync.yml
+          git commit -m "chore: remove content operations review sync"
+          git push origin HEAD:main
