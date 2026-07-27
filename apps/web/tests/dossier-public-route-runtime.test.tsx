@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mapDossierToPublicDossier,
 } from "@/features/dossier/publicRuntime";
+import { buildDossierWorkspaceModel } from "@/components/dossier/workspaceModel";
 import type { DossierPublicationRecord } from "@/features/create/dossierPublishWorkflow";
 import type {
   DossierClaimDoc,
@@ -156,5 +157,93 @@ describe("dossier public route runtime", () => {
     expect(JSON.stringify(dossier)).not.toContain("admin-1");
     expect(JSON.stringify(dossier)).not.toContain("trust");
     expect(JSON.stringify(dossier)).not.toContain("moderation");
+  });
+
+  it("fans one finding out to every unique citation and keeps question relations concrete", () => {
+    const sources = ["source-1", "source-2"].map(
+      (sourceId, index) =>
+        ({
+          sourceId,
+          dossierId: "dossier-sichere-schulwege",
+          canonicalUrlHash: `citation-hash-${index + 1}`,
+          url: `https://example.org/quelle-${index + 1}`,
+          title: `Quelle ${index + 1}`,
+          publisher: "Bezirk",
+          type: "official",
+        }) satisfies DossierSourceDoc,
+    );
+    const dossier = mapDossierToPublicDossier({
+      publication: buildPublicationRecord(),
+      dossierDoc: null,
+      claims: [
+        {
+          claimId: "claim-1",
+          dossierId: "dossier-sichere-schulwege",
+          text: "Vor Schulen fehlen sichere Querungen.",
+          kind: "fact",
+          status: "open",
+          createdByRole: "admin",
+        } satisfies DossierClaimDoc,
+      ],
+      sources,
+      findings: [
+        {
+          findingId: "finding-multiple-citations",
+          dossierId: "dossier-sichere-schulwege",
+          claimId: "claim-1",
+          verdict: "supports",
+          rationale: ["Beide Quellen stützen den Claim."],
+          citations: [
+            { sourceId: "source-1", locator: "S. 1" },
+            { sourceId: "source-2", locator: "S. 2" },
+            { sourceId: "source-1", locator: "S. 3" },
+          ],
+          producedBy: "editor",
+        } satisfies DossierFindingDoc,
+      ],
+      openQuestions: [
+        {
+          questionId: "question-1",
+          dossierId: "dossier-sichere-schulwege",
+          text: "Welche Schulen sind besonders betroffen?",
+          status: "open",
+          links: {
+            sourceIds: ["source-1"],
+            claimIds: ["claim-1"],
+            findingIds: ["finding-multiple-citations"],
+          },
+        } satisfies OpenQuestionDoc,
+      ],
+    });
+
+    expect(
+      dossier.analyze.evidenceGraph?.edges.map((edge) => ({
+        from: edge.from,
+        to: edge.to,
+        kind: edge.kind,
+      })),
+    ).toEqual([
+      { from: "claim-1", to: "source-1", kind: "supports" },
+      { from: "claim-1", to: "source-2", kind: "supports" },
+    ]);
+    expect(dossier.analyze.findings.map((finding) => finding.sourceId)).toEqual([
+      "source-1",
+      "source-2",
+    ]);
+
+    const workspace = buildDossierWorkspaceModel(dossier);
+    const question = workspace.questions.find((item) => item.id === "question-1");
+    expect(question?.sourceLinks).toEqual([
+      expect.objectContaining({ sourceId: "source-1", relation: "supports" }),
+      expect.objectContaining({ sourceId: "source-2", relation: "supports" }),
+    ]);
+    expect(
+      question?.sourceLinks.some((link) => link.relation === "unclear"),
+    ).toBe(false);
+    expect(
+      workspace.claims
+        .find((claim) => claim.id === "claim-1")
+        ?.sourceLinks.map((link) => link.sourceId),
+    ).toEqual(["source-1", "source-2"]);
   });
 });

@@ -20,7 +20,7 @@ export type DossierWorkspaceClaim = {
   title: string;
   stance: "pro" | "neutral" | "contra" | null;
   evidenceLabel: string;
-  evidenceTone: "positive" | "warning" | "neutral";
+  evidenceTone: "positive" | "warning" | "danger" | "neutral";
   provenance: string | null;
   uncertainty: string | null;
   sourceLinks: DossierWorkspaceSourceLink[];
@@ -63,6 +63,15 @@ export type DossierWorkspaceSource = {
   language: string;
   dir: "ltr" | "rtl";
   groupLabel: string;
+  evidenceStatus: string | null;
+  reviewState: "reviewed" | "unreviewed" | "unknown";
+  hasContradiction: boolean;
+  claimLinks: Array<{
+    claimId: string;
+    claimTitle: string;
+    relation: DossierWorkspaceRelationKind;
+    relationLabel: string;
+  }>;
   details: string[];
 };
 
@@ -90,6 +99,7 @@ export type DossierWorkspaceCount = {
   label: string;
   count: number;
   targetId: string | null;
+  tone?: "positive" | "warning" | "danger" | "info" | "question" | "participation" | "neutral";
 };
 
 export type DossierWorkspaceMetrics = {
@@ -294,6 +304,30 @@ function relationLabel(value: DossierWorkspaceRelationKind) {
   return "bleibt ungeklärt";
 }
 
+function sourceReviewState(
+  value: string | null | undefined,
+): DossierWorkspaceSource["reviewState"] {
+  const normalized = normalizeToken(value);
+  if (!normalized) return "unknown";
+  if (
+    normalized.includes("offen") ||
+    normalized.includes("ungeprüft") ||
+    normalized.includes("ungeprueft") ||
+    normalized.includes("unklar") ||
+    normalized.includes("plausibel")
+  ) {
+    return "unreviewed";
+  }
+  if (
+    normalized.includes("belegt") ||
+    normalized.includes("geprüft") ||
+    normalized.includes("geprueft")
+  ) {
+    return "reviewed";
+  }
+  return "unknown";
+}
+
 function addToMap(map: Map<string, string[]>, key: string, value: string) {
   map.set(key, uniqueIds([...(map.get(key) ?? []), value]));
 }
@@ -332,6 +366,10 @@ export function buildDossierWorkspaceModel(
       language,
       dir: getContentDirection(language),
       groupLabel: SOURCE_CLUSTER_LABELS[groupKey] ?? sourceTypeLabel(source),
+      evidenceStatus: clean(matrixEntry?.evidenceStatus),
+      reviewState: sourceReviewState(matrixEntry?.evidenceStatus),
+      hasContradiction: false,
+      claimLinks: [],
       details: unique([
         matrixEntry?.takeaway ? `Mitnahme: ${matrixEntry.takeaway}` : null,
         matrixEntry?.notAutomatic
@@ -365,6 +403,10 @@ export function buildDossierWorkspaceModel(
       language,
       dir: getContentDirection(language),
       groupLabel: SOURCE_LABELS[sourceClass] ?? sourceClass,
+      evidenceStatus: null,
+      reviewState: "unknown",
+      hasContradiction: false,
+      claimLinks: [],
       details: [],
     });
   }
@@ -458,29 +500,53 @@ export function buildDossierWorkspaceModel(
     const linkedFindings = uniqueIds(question.findingIds ?? [])
       .map((id) => findingById.get(id))
       .filter((finding): finding is NonNullable<typeof finding> => Boolean(finding));
+    const directSourceIdSet = new Set(directSourceIds);
+    const findingSourceLinks = linkedFindings
+      .filter((finding) => sourceIds.has(finding.sourceId))
+      .map((finding) => {
+        const relation = normalizeRelation(finding.finding);
+        return {
+          sourceId: finding.sourceId,
+          relation,
+          relationLabel: relationLabel(relation),
+        } satisfies DossierWorkspaceSourceLink;
+      });
+    const sourcesWithConcreteFinding = new Set(
+      findingSourceLinks
+        .filter(
+          (link) =>
+            link.relation === "supports" || link.relation === "contradicts",
+        )
+        .map((link) => link.sourceId),
+    );
     const questionSourceLinks: DossierWorkspaceSourceLink[] = [];
     for (const sourceId of directSourceIds) {
+      if (sourcesWithConcreteFinding.has(sourceId)) continue;
       questionSourceLinks.push({
         sourceId,
         relation: "unclear",
         relationLabel: "zur Prüfung zugeordnet",
       });
     }
-    for (const finding of linkedFindings) {
-      if (!sourceIds.has(finding.sourceId)) continue;
-      const relation = normalizeRelation(finding.finding);
+    for (const link of findingSourceLinks) {
+      const isConcrete =
+        link.relation === "supports" || link.relation === "contradicts";
+      if (sourcesWithConcreteFinding.has(link.sourceId) && !isConcrete) continue;
+      if (
+        directSourceIdSet.has(link.sourceId) &&
+        !sourcesWithConcreteFinding.has(link.sourceId)
+      ) {
+        continue;
+      }
       if (
         questionSourceLinks.some(
-          (item) => item.sourceId === finding.sourceId && item.relation === relation,
+          (item) =>
+            item.sourceId === link.sourceId && item.relation === link.relation,
         )
       ) {
         continue;
       }
-      questionSourceLinks.push({
-        sourceId: finding.sourceId,
-        relation,
-        relationLabel: relationLabel(relation),
-      });
+      questionSourceLinks.push(link);
     }
     const optionIds = uniqueIds(question.optionIds ?? []).filter((id) => optionsById.has(id));
     const status = normalizeQuestionStatus(question.status);
@@ -583,7 +649,13 @@ export function buildDossierWorkspaceModel(
       title: clean(claim.title) ?? claim.text,
       stance: claim.stance ?? null,
       evidenceLabel,
-      evidenceTone: hasContradiction || hasUnclear ? "warning" : hasSupport ? "positive" : "neutral",
+      evidenceTone: hasContradiction
+        ? "danger"
+        : hasUnclear
+          ? "warning"
+          : hasSupport
+            ? "positive"
+            : "neutral",
       provenance: sourceLabels.length ? sourceLabels.join(", ") : null,
       uncertainty: rationale.length ? rationale.join(" ") : null,
       sourceLinks,
@@ -602,6 +674,22 @@ export function buildDossierWorkspaceModel(
       if (!candidate.optionIds.some((id) => sharedOptionIds.has(id))) continue;
       claim.opposingClaimIds = uniqueIds([...claim.opposingClaimIds, candidate.id]);
     }
+  }
+
+  for (const source of sources) {
+    source.claimLinks = claims.flatMap((claim) =>
+      claim.sourceLinks
+        .filter((link) => link.sourceId === source.id)
+        .map((link) => ({
+          claimId: claim.id,
+          claimTitle: claim.title,
+          relation: link.relation,
+          relationLabel: link.relationLabel,
+        })),
+    );
+    source.hasContradiction = source.claimLinks.some(
+      (link) => link.relation === "contradicts",
+    );
   }
 
   const sourceGroups = Array.from(
@@ -659,6 +747,7 @@ export function buildDossierWorkspaceModel(
           key: "supported",
           label: "Mit stützender Quelle",
           count: securedCount ?? 0,
+          tone: "positive",
           targetId:
             claims.find((claim) =>
               claim.sourceLinks.some((link) => link.relation === "supports"),
@@ -668,6 +757,7 @@ export function buildDossierWorkspaceModel(
           key: "disputed",
           label: "Widersprochen oder ungeklärt",
           count: disputedCount ?? 0,
+          tone: "danger",
           targetId:
             claims.find((claim) =>
               claim.sourceLinks.some(
@@ -679,6 +769,7 @@ export function buildDossierWorkspaceModel(
           key: "unlinked",
           label: "Ohne Quellenbezug",
           count: claims.filter((claim) => claim.sourceLinks.length === 0).length,
+          tone: "neutral",
           targetId: claims.find((claim) => claim.sourceLinks.length === 0)?.id ?? null,
         },
       ]
@@ -695,6 +786,16 @@ export function buildDossierWorkspaceModel(
       key: status,
       label: QUESTION_STATUS_LABELS[status],
       count: questions.filter((question) => question.status === status).length,
+      tone:
+        status === "closed"
+          ? ("positive" as const)
+          : status === "answered"
+            ? ("info" as const)
+          : status === "in_review"
+            ? ("warning" as const)
+            : status === "open"
+              ? ("question" as const)
+              : ("neutral" as const),
       targetId: questions.find((question) => question.status === status)?.id ?? null,
     }))
     .filter((item) => item.count > 0);
@@ -710,6 +811,7 @@ export function buildDossierWorkspaceModel(
     label,
     count: value.count,
     targetId: value.targetId,
+    tone: "info" as const,
   }));
   const coreQuestion =
     clean(presentation.presentation.topic?.label) ??

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import demoDossier from "@features/dossier/data/demoDossier";
 import DossierWorkspace from "@/components/dossier/DossierWorkspace";
+import { buildDossierWorkspaceModel } from "@/components/dossier/workspaceModel";
 
 afterEach(() => {
   cleanup();
@@ -39,6 +40,73 @@ function dossierWithLinkedQuestion() {
       ],
     },
   };
+}
+
+function dossierWithUnreviewedSource() {
+  return {
+    ...demoDossier,
+    analyze: {
+      ...demoDossier.analyze,
+      notes: demoDossier.analyze.notes.map((note) => {
+        if (note.id !== "note-source-matrix") return note;
+        const matrix = JSON.parse(note.text) as {
+          entries: Array<Record<string, unknown>>;
+        };
+        return {
+          ...note,
+          text: JSON.stringify({
+            ...matrix,
+            entries: matrix.entries.map((entry, index) =>
+              index === 0 ? { ...entry, evidenceStatus: "offen" } : entry,
+            ),
+          }),
+        };
+      }),
+    },
+  };
+}
+
+function dossierWithDirectQuestionSource(includeConcreteFinding: boolean) {
+  const finding = demoDossier.analyze.findings.find(
+    (item) => item.finding === "supports" || item.finding === "contradicts",
+  );
+  if (!finding) throw new Error("Konkretes Demo-Finding fehlt");
+  return {
+    dossier: {
+      ...demoDossier,
+      analyze: {
+        ...demoDossier.analyze,
+        notes: [
+          ...demoDossier.analyze.notes,
+          {
+            id: `workspace-direct-source-${includeConcreteFinding}`,
+            kind: "presentation" as const,
+            text: JSON.stringify({
+              openQuestions: [
+                {
+                  id: "q-source-priority",
+                  text: "Wie ist diese Quelle für die Frage einzuordnen?",
+                  status: "open",
+                  claimIds: [finding.claimId],
+                  sourceIds: [finding.sourceId],
+                  findingIds: includeConcreteFinding ? [finding.id] : [],
+                },
+              ],
+            }),
+          },
+        ],
+      },
+    },
+    finding,
+  };
+}
+
+function claimSelector(name: RegExp) {
+  const button = screen
+    .getAllByRole("button", { name })
+    .find((item) => item.hasAttribute("aria-pressed"));
+  if (!button) throw new Error("Aussageauswahl nicht gefunden");
+  return button;
 }
 
 describe("DOSSIER-WORKSPACE-02", () => {
@@ -87,6 +155,40 @@ describe("DOSSIER-WORKSPACE-02", () => {
     expect(screen.getByRole("tab", { name: "Überblick" }).getAttribute("aria-selected")).toBe("true");
   });
 
+  it("keeps the compact workspace navigation sticky and horizontally reachable", () => {
+    const previousScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    const { container } = render(<DossierWorkspace dossier={demoDossier} demo />);
+    const navigation = container.querySelector(
+      '[data-sticky-workspace-navigation="true"]',
+    );
+    const tablist = screen.getByRole("tablist", { name: "Dossier-Bereiche" });
+
+    expect(navigation?.className).toContain("sticky");
+    expect(navigation?.className).toContain("top-16");
+    expect(navigation?.className).toContain("overflow-x-auto");
+    expect(tablist.className).toContain("min-w-max");
+    expect(screen.getByRole("tab", { name: "Überblick" }).className).toContain(
+      "focus-visible:ring-2",
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Beteiligung" }));
+    expect(screen.getByRole("tab", { name: "Beteiligung" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(scrollIntoView).toHaveBeenLastCalledWith(
+      expect.objectContaining({ block: "nearest", inline: "center" }),
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: previousScrollIntoView,
+    });
+  });
+
   it("sets RTL direction from the dossier content language", () => {
     const arabicDossier = {
       ...demoDossier,
@@ -113,15 +215,33 @@ describe("DOSSIER-WORKSPACE-02", () => {
     expect(container.textContent).not.toContain("evidenceGraph");
   });
 
+  it("uses labeled semantic states with local dark-mode and reduced-motion contracts", () => {
+    const { container } = render(<DossierWorkspace dossier={demoDossier} demo />);
+    const semanticStates = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-semantic-tone]"),
+    );
+
+    expect(semanticStates.length).toBeGreaterThan(0);
+    expect(semanticStates.some((item) => item.textContent?.includes("Beleglage"))).toBe(true);
+    expect(semanticStates.some((item) => item.className.includes("dark:"))).toBe(true);
+    expect(container.innerHTML).toContain("motion-reduce:transition-none");
+    expect(container.textContent).toContain("Eine Abdeckungsquote ist nicht verfügbar.");
+    expect(
+      screen
+        .getAllByRole("img")
+        .every((item) => !(item.getAttribute("aria-label") ?? "").includes("%")),
+    ).toBe(true);
+  });
+
   it("navigates a real claim-to-question-to-source-and-option trace", () => {
     render(<DossierWorkspace dossier={dossierWithLinkedQuestion()} demo />);
 
-    const claimSelector = screen.getByRole("button", {
-      name: /Internationale Beispiele berichten positive Effekte/,
-    });
-    fireEvent.click(claimSelector);
+    const selectedClaim = claimSelector(
+      /Internationale Beispiele berichten positive Effekte/,
+    );
+    fireEvent.click(selectedClaim);
 
-    expect(claimSelector.getAttribute("aria-pressed")).toBe("true");
+    expect(selectedClaim.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("heading", { name: "Quellen zur Aussage" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Fragen aus dieser Aussage" })).toBeTruthy();
     expect(
@@ -149,6 +269,89 @@ describe("DOSSIER-WORKSPACE-02", () => {
     );
     expect(screen.getByRole("heading", { name: "Zusammenhänge" })).toBeTruthy();
     expect(document.activeElement?.textContent).toContain("Pilotgebiet mit enger Evaluation");
+  });
+
+  it("highlights related objects, retains the claim selection and announces it", () => {
+    const { container } = render(<DossierWorkspace dossier={dossierWithLinkedQuestion()} demo />);
+    const selectedClaim = claimSelector(
+      /Internationale Beispiele berichten positive Effekte/,
+    );
+    fireEvent.click(selectedClaim);
+
+    expect(selectedClaim.getAttribute("data-related")).toBe("selected");
+    expect(container.querySelector('[data-related="unrelated"]')).toBeTruthy();
+    const sourceLane = screen
+      .getByRole("heading", { name: "Quellen zur Aussage" })
+      .closest("section");
+    expect(sourceLane?.querySelector('[data-related="related"]')).toBeTruthy();
+    expect(sourceLane?.querySelector('[data-related="unrelated"]')).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("Aussage ausgewählt");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Quellen" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Überblick" }));
+
+    expect(
+      claimSelector(
+        /Internationale Beispiele berichten positive Effekte/,
+      ).getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("filters sources only by real status and relation data", () => {
+    render(<DossierWorkspace dossier={dossierWithUnreviewedSource()} demo />);
+    fireEvent.click(screen.getByRole("tab", { name: "Quellen" }));
+
+    const unreviewed = screen.getByRole("button", { name: /Ungeprüft \(/ });
+    expect(unreviewed.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(unreviewed);
+
+    expect(unreviewed.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getAllByText(/Quellenstatus:/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("group", { name: "Quellen filtern" })).toBeTruthy();
+  });
+
+  it("prefers a concrete finding over a generic question-source link", () => {
+    const concrete = dossierWithDirectQuestionSource(true);
+    const concreteQuestion = buildDossierWorkspaceModel(concrete.dossier).questions.find(
+      (question) => question.id === "q-source-priority",
+    );
+    const concreteLinks = concreteQuestion?.sourceLinks.filter(
+      (link) => link.sourceId === concrete.finding.sourceId,
+    );
+
+    expect(concreteLinks).toEqual([
+      expect.objectContaining({
+        relation:
+          concrete.finding.finding === "supports" ? "supports" : "contradicts",
+      }),
+    ]);
+
+    const generic = dossierWithDirectQuestionSource(false);
+    const genericQuestion = buildDossierWorkspaceModel(generic.dossier).questions.find(
+      (question) => question.id === "q-source-priority",
+    );
+    expect(
+      genericQuestion?.sourceLinks.filter(
+        (link) => link.sourceId === generic.finding.sourceId,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        relation: "unclear",
+        relationLabel: "zur Prüfung zugeordnet",
+      }),
+    ]);
+  });
+
+  it("keeps participation productive and read-only without inventing a round", () => {
+    render(<DossierWorkspace dossier={demoDossier} demo />);
+    fireEvent.click(screen.getByRole("tab", { name: "Beteiligung" }));
+
+    expect(screen.getByRole("heading", { name: /Kein realer Beteiligungspfad/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Dokumentierte betroffene Gruppen/ })).toBeTruthy();
+    expect(screen.getByText(/Menschen mit Mobilitätseinschränkungen/)).toBeTruthy();
+    expect(screen.getByText(/Freigabe- oder Bereitschaftsstatus: nicht verfügbar/)).toBeTruthy();
+    expect(screen.getByText(/Keine automatische Übergabe/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Offene Fragen prüfen" })).toBeTruthy();
   });
 
   it("uses the existing clarification endpoint as the single review action per question", async () => {

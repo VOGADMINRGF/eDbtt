@@ -102,11 +102,24 @@ function normalizeStandpoint(value: string, index: number): AnalyzeClaim {
   };
 }
 
-function mapFinding(finding: DossierFindingDoc): AnalyzeFinding {
+function uniqueFindingCitations(finding: DossierFindingDoc) {
+  const seenSourceIds = new Set<string>();
+  return finding.citations.filter((citation) => {
+    if (seenSourceIds.has(citation.sourceId)) return false;
+    seenSourceIds.add(citation.sourceId);
+    return true;
+  });
+}
+
+function mapFinding(
+  finding: DossierFindingDoc,
+  citation: DossierFindingDoc["citations"][number] | null,
+  id = finding.findingId,
+): AnalyzeFinding {
   return {
-    id: finding.findingId,
+    id,
     claimId: finding.claimId,
-    sourceId: finding.citations[0]?.sourceId ?? "unknown-source",
+    sourceId: citation?.sourceId ?? "unknown-source",
     finding:
       finding.verdict === "supports"
         ? "supports"
@@ -114,8 +127,7 @@ function mapFinding(finding: DossierFindingDoc): AnalyzeFinding {
           ? "contradicts"
           : "unclear",
     rationale: finding.rationale.join(" "),
-    excerptRef:
-      finding.citations[0]?.locator ?? finding.citations[0]?.quote ?? undefined,
+    excerptRef: citation?.locator ?? citation?.quote ?? undefined,
   };
 }
 
@@ -189,7 +201,24 @@ export function mapDossierToPublicDossier(input: {
       return true;
     });
   const openQuestions = [...persistedQuestions, ...publicationQuestions];
-  const findings = input.findings.map(mapFinding);
+  const findingIdsByDocumentId = new Map<string, string[]>();
+  const findings = input.findings.flatMap((finding) => {
+    const citations = uniqueFindingCitations(finding);
+    const mappedFindings = citations.length
+      ? citations.map((citation, index) =>
+          mapFinding(
+            finding,
+            citation,
+            index === 0 ? finding.findingId : `${finding.findingId}:citation:${index + 1}`,
+          ),
+        )
+      : [mapFinding(finding, null)];
+    findingIdsByDocumentId.set(
+      finding.findingId,
+      mappedFindings.map((mappedFinding) => mappedFinding.id),
+    );
+    return mappedFindings;
+  });
   const sourceNodes = input.sources.map((source) => ({
     id: source.sourceId,
     type: "evidence" as const,
@@ -203,24 +232,35 @@ export function mapDossierToPublicDossier(input: {
     type: "claim" as const,
     label: claim.title ?? claim.text,
   }));
-  const evidenceEdges = findings
-    .filter((finding) => finding.sourceId !== "unknown-source")
-    .map((finding) => ({
-      from: finding.claimId,
-      to: finding.sourceId,
-      kind:
-        finding.finding === "contradicts"
-          ? ("refutes" as const)
-          : finding.finding === "supports"
-            ? ("supports" as const)
-            : ("mentions" as const),
-      weight: finding.finding === "unclear" ? 0.4 : 0.7,
-    }));
+  const evidenceEdgeKeys = new Set<string>();
+  const evidenceEdges = findings.flatMap((finding) => {
+    if (finding.sourceId === "unknown-source") return [];
+    const kind =
+      finding.finding === "contradicts"
+        ? ("refutes" as const)
+        : finding.finding === "supports"
+          ? ("supports" as const)
+          : ("mentions" as const);
+    const key = `${finding.claimId}:${finding.sourceId}:${kind}`;
+    if (evidenceEdgeKeys.has(key)) return [];
+    evidenceEdgeKeys.add(key);
+    return [
+      {
+        from: finding.claimId,
+        to: finding.sourceId,
+        kind,
+        weight: finding.finding === "unclear" ? 0.4 : 0.7,
+      },
+    ];
+  });
   const linkedClaims = new Set(evidenceEdges.map((edge) => edge.from));
   const findingDocById = new Map(input.findings.map((finding) => [finding.findingId, finding]));
   const presentationOpenQuestions = [
     ...input.openQuestions.map((question) => {
-      const linkedFindingIds = question.links?.findingIds ?? [];
+      const linkedFindingDocumentIds = question.links?.findingIds ?? [];
+      const linkedFindingIds = linkedFindingDocumentIds.flatMap(
+        (findingId) => findingIdsByDocumentId.get(findingId) ?? [findingId],
+      );
       return {
         id: question.questionId,
         text: question.text,
@@ -230,7 +270,7 @@ export function mapDossierToPublicDossier(input: {
         claimIds: question.links?.claimIds ?? [],
         sourceIds: question.links?.sourceIds ?? [],
         findingIds: linkedFindingIds,
-        answerCandidates: linkedFindingIds.flatMap(
+        answerCandidates: linkedFindingDocumentIds.flatMap(
           (findingId) => findingDocById.get(findingId)?.rationale ?? [],
         ),
       };
