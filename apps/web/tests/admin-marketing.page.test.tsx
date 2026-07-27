@@ -59,7 +59,9 @@ describe("admin marketing content operations dashboard", () => {
 
   it("renders English content operations copy", async () => {
     const html = renderToStaticMarkup(
-      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "en" }) }),
+      await MarketingAdminPage({
+        searchParams: Promise.resolve({ lang: "en", item: "MCO-CONTENT-02-DE-01" }),
+      }),
     );
 
     expect(html).toContain("Marketing centre");
