@@ -1,5 +1,6 @@
 name: One-time Marketing Assistant UX Fix Sync
 # trigger: workflow already present on main
+# merge-trigger: canonical queue sync and preflight
 
 on:
   push:
