@@ -105,6 +105,14 @@ type PresentationOpenQuestion = {
   lastUpdate?: string;
   resolution?: string;
   sourceNote?: string;
+  answeredByName?: string;
+  answeredByRole?: string;
+  answeredByKind?: string;
+  claimIds?: string[];
+  sourceIds?: string[];
+  findingIds?: string[];
+  optionIds?: string[];
+  answerCandidates?: string[];
 };
 
 type PresentationInboxItem = {

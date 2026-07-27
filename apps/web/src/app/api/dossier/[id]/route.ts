@@ -32,6 +32,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
           dossier: publishedRuntime.detail.dossier,
           materialLinks: publishedRuntime.detail.materialLinks,
           updateContext: publishedRuntime.detail.updateContext,
+          sourceStatusLabel: publishedRuntime.detail.sourceStatusLabel,
           updateSummary: null,
         },
         { status: 200 },
