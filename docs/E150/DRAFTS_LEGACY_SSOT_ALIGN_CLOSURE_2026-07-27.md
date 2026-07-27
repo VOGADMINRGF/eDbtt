@@ -4,6 +4,28 @@ Datum: 2026-07-27
 
 Status: `done`
 
+## Run-Pack-Nachweis
+
+- Task-ID: `DRAFTS-LEGACY-SSOT-ALIGN-01`
+- Ursprünglicher operativer Status: `codex_ready`
+- Ausgangspunkt: sauberer Branch `main` auf `origin/main@4004332e`
+- Vor der Branch-Erstellung ausgeführt:
+
+```text
+node scripts/codex-task-preflight.mjs DRAFTS-LEGACY-SSOT-ALIGN-01
+```
+
+```json
+{
+  "taskId": "DRAFTS-LEGACY-SSOT-ALIGN-01",
+  "status": "codex_ready",
+  "executable": true,
+  "branchCreationAllowed": true
+}
+```
+
+Der Arbeitsbranch wurde erst nach diesem erfolgreichen Preflight erstellt.
+
 ## Ergebnis
 
 Die aktive Contribution-Write-Wahrheit ist geschlossen:
@@ -46,13 +68,46 @@ Dieser Abschluss:
 - erzeugt keine neue Route oder Persistenzschicht,
 - erlaubt kein Auto-Publish und keinen stillen Merge.
 
+Die kanonische `/api/drafts/save`-Write-Wahrheit war bereits im operativen
+OpenTasks-Kopf und durch PR `#418` festgelegt. Dieser Closure-Slice trifft
+keine neue Produkt-, Routing-, Rollen-, Sichtbarkeits-, Governance- oder
+Architekturentscheidung.
+
 Eine spätere physische Bereinigung historischer Records wäre ein eigener
 Operator-/Migration-Slice und ist keine Voraussetzung für die geschlossene
 Write-SSOT.
 
+## Geänderte Dateien
+
+- `apps/web/src/features/surfaces/runden/rundenEntryCanon.ts`
+- `apps/web/tests/create-debattenstand-review-fixes.contract.test.ts`
+- `apps/web/tests/runden-entry-canon.contract.test.ts`
+- `docs/E150/DRAFTS_LEGACY_SSOT_ALIGN_CLOSURE_2026-07-27.md`
+- `docs/E150/OpenTasks.md`
+
 ## Verifikation
 
-Fokussierte Contracts decken ab:
+Ausgeführt:
+
+```text
+pnpm -C apps/web exec vitest run \
+  tests/contribution-save.retirement.contract.test.ts \
+  tests/server-drafts.idempotency.contract.test.ts \
+  tests/create-mode.save.route.test.ts \
+  tests/create-mode.finalize.route.test.ts \
+  tests/create-debattenstand-review-fixes.contract.test.ts \
+  tests/runden-entry-canon.contract.test.ts
+```
+
+Ergebnis: sechs Testdateien und `56/56` Tests grün.
+
+Zusätzlich grün:
+
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `git diff --check`
+
+Die fokussierten Contracts decken ab:
 
 - Legacy-Routen und Writer bleiben fail-closed.
 - Aktive Contribution-Writes nutzen die kanonische Collection.
