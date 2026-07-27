@@ -3,6 +3,7 @@ import type {
   MarketingAsset,
   MarketingBrandProfile,
   MarketingCampaign,
+  MarketingDistributionRecord,
   MarketingEvidenceRef,
   MarketingOpportunity,
   MarketingRegistry,
@@ -39,6 +40,7 @@ export type MarketingRegistryReadModel = {
   campaigns: MarketingCampaign[];
   assets: MarketingAsset[];
   brandProfiles: MarketingBrandProfile[];
+  distributionRecords: MarketingDistributionRecord[];
   recentEvidence: MarketingRegistryEvidenceRow[];
 };
 
@@ -96,6 +98,7 @@ export function buildMarketingRegistryReadModel(
     campaigns: [...registry.campaigns].sort(sortByUpdatedAtThenId),
     assets: [...registry.assets].sort(sortByUpdatedAtThenId),
     brandProfiles: [...registry.brandProfiles].sort(sortByUpdatedAtThenId),
+    distributionRecords: [...registry.distributionRecords].sort(sortByUpdatedAtThenId),
     recentEvidence,
   };
 }
