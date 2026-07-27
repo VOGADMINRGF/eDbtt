@@ -216,6 +216,24 @@ Marketing Growth OS evidence:
 | ADMIN-MARKETING-CONTENT-OPERATIONS-04 | done | P1 | ADMIN-MARKETING-OPERATING-DASHBOARD-02, PR `#468` | `/admin/marketing` priorisiert konkrete Beiträge, Videos, Freigaben, Termine, Veröffentlichungen und echte Ergebnisse statt Produktentwicklung, Evidence- oder Programmieraufgaben | PR `#468` ist gemergt; UI-, Guardrail-, Lint-, Typecheck- und Build-Prüfungen sind grün; Nutzerfreigabe vom 2026-07-27 liegt vor |
 | MARKETING-CONTENT-OPERATIONS-READMODEL-02 | review | P1 | ADMIN-MARKETING-CONTENT-OPERATIONS-04, Issue `#467` | Typisiertes repo-backed Readmodel für konkrete Posts, Videos und Kanalvarianten mit Caption/Script, Locale, Zielkanälen, Status, Termin, Verantwortlichkeit, CTA, Review- und Distribution-Verknüpfung; bestehende Campaign-, Asset- und Distribution-Wahrheit referenzieren statt duplizieren | `/admin/marketing` verwendet explizite Content-Operations-Daten; fehlende Termine und Veröffentlichungen bleiben ehrlich leer; kein Auto-Publish, keine Provider-Credentials, keine personenbezogenen Marketingprofile; fokussierte Contract- und UI-Tests sowie E150-Evidenz sind grün |
 
+## V3 Workspace-Harmonisierung — Operative Queue
+
+| ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
+| --- | --- | --- | --- | --- | --- |
+| V3-WORKSPACE-CONTRACT-01 | codex_ready | P0 | PR `#411`, bestehende `/create`-UX- und Workspace-Entscheidungen | `/create` als verbindliche V3-Workspace-Referenz für `/dossier` und `/runden` kanonisieren; Produktrollen, Seitenrahmen, progressive Offenlegung, Navigation sowie Interaktions-, Mobile-, RTL- und Tastaturvertrag festlegen, ohne neue Runtime oder Parallelarchitektur | Repo-naher Decision-/UX-Contract liegt vor; Ist-Flächen und Zielbild sind abgeglichen; Dossier- und Runden-Folgeslices besitzen klare Scope- und Dateigrenzen; genau eine primäre nächste Aktion und keine Kollision mit `/admin/marketing` |
+| DOSSIER-WORKSPACE-02 | blocked | P0 | V3-WORKSPACE-CONTRACT-01 | `/dossier` als verständliche Übersicht und die kanonische Dossier-Detailfläche als fokussierten Debattenstand-Arbeitsraum umsetzen; fachliche Substanz aus `/dossier/demo` progressiv und priorisiert zugänglich machen | Kanonische Dossier-Pfade funktionieren; Debattenstand erscheint vor Detailvollausgabe; Quellen, Positionen, offene Fragen und Beteiligung sind fokussierbar; keine Demo-Daten in Production; Reload, Mobile, RTL und Tastatur sind belegt |
+| RUNDEN-WORKSPACE-03 | blocked | P0 | V3-WORKSPACE-CONTRACT-01, DOSSIER-WORKSPACE-02 | `/runden` als Übersicht und aktive Runden-Detailfläche als Beteiligungsworkspace umsetzen; Debattenstand, Beiträge, Optionen, Quellen und Ergebnis getrennt, aber verbunden darstellen | Frage, Status und nächste Beteiligungsaktion sind sofort sichtbar; genau ein primärer CTA je Phase; kein zweiter `/create`-Chat; Beteiligungszahlen nur mit realer Datenbasis; eigener Arbeitsstand hält nach Reload; Mobile, RTL und Tastatur sind belegt |
+
+<!--
+V3 Workspace evidence:
+- Issue #461 / V3-WORKSPACE-CONTRACT-01
+- Issue #462 / DOSSIER-WORKSPACE-02
+- Issue #463 / RUNDEN-WORKSPACE-03
+- `/create` bleibt UX-Referenz.
+- `/admin/marketing` bleibt getrennte Betreiberoberfläche und kein Design-SSOT.
+- Kein Auto-Publish, Auto-Handoff, Auto-Dossier oder Auto-Runde.
+-->
+
 ## Historischer Katalog und Evidenz
 
 Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.
