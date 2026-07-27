@@ -1,1 +1,1 @@
-Trigger the one-shot OpenTasks marketing sync workflow on pull_request synchronize.
+Trigger the one-shot OpenTasks marketing and admin IA sync after the temporary runner was merged.
