@@ -34,15 +34,18 @@ describe("admin marketing content board", () => {
     expect(html).not.toContain("docs/marketing/");
   });
 
-  it("does not invent publications or schedules", async () => {
-    const html = renderToStaticMarkup(
+  it("shows honest empty schedule and publication states", async () => {
+    const defaultHtml = renderToStaticMarkup(
+      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de" }) }),
+    );
+    const publishedHtml = renderToStaticMarkup(
       await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de", view: "published" }) }),
     );
 
-    expect(html).toContain("Noch nichts veröffentlicht");
-    expect(html).toContain("Aktuell existiert noch kein belegter veröffentlichter Beitrag");
-    expect(html).toContain("Noch nicht terminiert");
-    expect(html).not.toContain("Jetzt veröffentlichen");
+    expect(defaultHtml).toContain("Noch nicht terminiert");
+    expect(publishedHtml).toContain("Noch nichts veröffentlicht");
+    expect(publishedHtml).toContain("Aktuell existiert noch kein belegter veröffentlichter Beitrag");
+    expect(publishedHtml).not.toContain("Jetzt veröffentlichen");
   });
 
   it("renders a selected content item with channel, CTA and next step", async () => {
