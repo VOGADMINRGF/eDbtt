@@ -188,9 +188,9 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         href: "/admin/marketing",
-        label: "Marketing Registry",
-        description: "Opportunities, Kampagnen, Assets und Brands",
-        keywords: ["marketing", "campaign", "assets", "brands", "growth", "read-only"],
+        label: "Marketing-Zentrale",
+        description: "Kampagnen steuern, Ergebnisse prüfen, Arbeit delegieren",
+        keywords: ["marketing", "campaign", "results", "delegation", "growth"],
       },
       {
         href: "/admin/anlassraeume",
@@ -298,76 +298,17 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "AI Overview",
         description: "Kosten, Tokens, Errors",
         keywords: ["ai", "usage", "cost"],
-        match: "exact",
       },
       {
-        href: "/admin/telemetry/ai/usage",
-        label: "AI Usage",
-        description: "Provider- und Pipeline-Usage",
-        keywords: ["usage", "providers"],
-      },
-      {
-        href: "/admin/telemetry/ai/dashboard",
-        label: "AI Live Log",
-        description: "Letzte Aufrufe & Fehler",
-        keywords: ["live", "events", "errors"],
-      },
-      {
-        href: "/admin/telemetry/ai/orchestrator",
-        label: "AI Orchestrator",
-        description: "Smoke-Test je Provider",
-        keywords: ["smoke", "orchestrator", "probe"],
-      },
-      {
-        href: "/admin/telemetry/ai/flow",
-        label: "AI Flow Health",
-        description: "Feeds -> Analyze -> Drafts",
-        keywords: ["flow", "pipeline"],
-      },
-      {
-        href: "/admin/telemetry/identity",
-        label: "Identity Telemetry",
-        description: "Legitimation & Status",
-        keywords: ["identity", "telemetry"],
-      },
-    ],
-  },
-  {
-    title: "System & Config",
-    items: [
-      {
-        href: "/admin/errors",
-        label: "Error Logs",
-        description: "Systemfehler & Trace IDs",
-        keywords: ["errors", "logs", "trace"],
-      },
-      {
-        href: "/admin/audit",
-        label: "Audit Logs",
-        description: "Mutationen & Nachvollziehbarkeit",
-        keywords: ["audit", "trail", "events"],
-      },
-      {
-        href: "/admin/settings",
-        label: "Admin Settings",
-        description: "Pricing & Konfiguration",
-        keywords: ["settings", "pricing"],
-      },
-      {
-        href: "/admin/analytics",
-        label: "Analytics (Legacy)",
-        description: "Legacy KPI-Sicht",
-        keywords: ["analytics", "legacy"],
+        href: "/admin/telemetry/system",
+        label: "System Telemetry",
+        description: "Health & Logs",
+        keywords: ["system", "health", "logs"],
       },
     ],
   },
 ];
 
-export const TOTAL_NAV_ITEMS = NAV_SECTIONS.reduce(
-  (sum, section) => sum + section.items.length,
-  0,
-);
-
-export function flattenNavItems(sections: NavSection[] = NAV_SECTIONS): NavItem[] {
-  return sections.flatMap((section) => section.items);
+export function flattenNavItems() {
+  return NAV_SECTIONS.flatMap((section) => section.items);
 }
