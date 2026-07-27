@@ -3,74 +3,81 @@ import { renderToStaticMarkup } from "react-dom/server";
 import MarketingAdminPage from "@/app/admin/marketing/page";
 import { flattenNavItems } from "@/app/admin/adminNav";
 
-describe("admin marketing content operations dashboard", () => {
-  it("shows concrete posts and videos with explicit operational data", async () => {
+describe("admin marketing campaign control system", () => {
+  it("centres campaigns, target markets, distribution and performance", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de" }) }),
     );
 
-    expect(html).toContain("Marketing-Zentrale");
-    expect(html).toContain("Nächste Beiträge &amp; Videos");
-    expect(html).toContain("Debattenstand der Woche · Carousel");
-    expect(html).toContain("Voxy erklärt · Was ist ein Debattenstand?");
-    expect(html).toContain("Was hat sich in dieser Debatte wirklich verändert?");
-    expect(html).toContain("Instagram, LinkedIn, Facebook");
-    expect(html).toContain("TikTok, Instagram Reels, YouTube Shorts");
-    expect(html).toContain("Inhalt und Quellenbezug prüfen");
-    expect(html).toContain("Script, Visual und Untertitel prüfen");
-    expect(html).toContain("Noch nicht terminiert");
-    expect(html).toContain("view=review_ready");
-    expect(html).toContain("view=approved");
-    expect(html).toContain("view=scheduled");
-    expect(html).toContain("view=published");
-
-    expect(html).not.toContain("Deine Entscheidung nötig");
+    expect(html).toContain("Kampagnen- &amp; Posting-Steuerung");
+    expect(html).toContain("B2C");
+    expect(html).toContain("B2B");
+    expect(html).toContain("B2G");
+    expect(html).toContain("Kampagnenportfolio");
+    expect(html).toContain("Gestreute Beiträge und Varianten");
+    expect(html).toContain("Messdaten und Datenquellen");
+    expect(html).toContain("Debattenstand der Woche");
+    expect(html).toContain("Voxy erklärt");
+    expect(html).toContain("eDebatte intern");
+    expect(html).toContain("Social Media organisch");
+    expect(html).toContain("Bezahlte Werbung");
+    expect(html).toContain("Nicht verbunden / keine verifizierten Daten");
+    expect(html).toContain("Keine Fantasiezahlen");
+    expect(html).not.toContain("Weitere Marketingmaterialien");
+    expect(html).not.toContain("Warum eDebatte? · Onepager");
     expect(html).not.toContain("Produktbeleg");
-    expect(html).not.toContain("An Recherche weitergeben");
-    expect(html).not.toContain("Evidence");
     expect(html).not.toContain("docs/marketing/");
   });
 
-  it("does not invent publications", async () => {
-    const html = renderToStaticMarkup(
-      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de", view: "published" }) }),
-    );
-
-    expect(html).toContain("Noch nichts veröffentlicht");
-    expect(html).toContain("Aktuell existiert noch kein belegter veröffentlichter Beitrag");
-    expect(html).not.toContain("Jetzt veröffentlichen");
-  });
-
-  it("renders a selected content item with full copy, ownership and next action", async () => {
+  it("filters the portfolio by B2G without mixing unrelated B2C content", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({
-        searchParams: Promise.resolve({ lang: "de", item: "MCO-CONTENT-02-DE-01" }),
+        searchParams: Promise.resolve({ lang: "de", segment: "b2g" }),
       }),
     );
 
-    expect(html).toContain("Beitragsdetails");
-    expect(html).toContain("Caption-Entwurf");
-    expect(html).toContain("Was hat sich in dieser Debatte wirklich verändert?");
-    expect(html).toContain("Inhalt und Quellenbezug prüfen");
-    expect(html).toContain("Debattenstand ansehen");
-    expect(html).toContain("Text, Visual, Quellenbezug und CTA prüfen und anschließend freigeben.");
+    expect(html).toContain("Beteiligung nachvollziehbar organisieren");
+    expect(html).toContain("Kommunen");
+    expect(html).not.toContain("Voxy erklärt · Was ist ein Debattenstand?");
+  });
+
+  it("renders selected campaign details and links to evidence-based insights", async () => {
+    const html = renderToStaticMarkup(
+      await MarketingAdminPage({
+        searchParams: Promise.resolve({ lang: "de", campaign: "CAM-CONTENT-02" }),
+      }),
+    );
+
+    expect(html).toContain("Kampagnendetails");
+    expect(html).toContain("Den Debattenstand als wiederkehrendes");
+    expect(html).toContain("Begonnene Produktaktionen");
+    expect(html).toContain("Instagram, LinkedIn, Facebook, Newsletter, Meta Ads");
+    expect(html).toContain("/admin/marketing/insights?lang=de&amp;campaign=CAM-CONTENT-02");
     expect(html).toContain("/admin/editorial/queue");
   });
 
-  it("renders English content operations copy", async () => {
+  it("keeps missing measurements honest instead of rendering zero performance", async () => {
     const html = renderToStaticMarkup(
-      await MarketingAdminPage({
-        searchParams: Promise.resolve({ lang: "en", item: "MCO-CONTENT-02-DE-01" }),
-      }),
+      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "de" }) }),
     );
 
-    expect(html).toContain("Marketing centre");
-    expect(html).toContain("Next posts &amp; videos");
-    expect(html).toContain("Caption draft");
-    expect(html).toContain("Ready for review");
-    expect(html).toContain("Nothing published yet");
-    expect(html).not.toContain("Your decision required");
-    expect(html).not.toContain("Proof missing");
+    expect(html).toContain("Noch keine verifizierten Leistungsdaten");
+    expect(html).toContain("Noch ist keine belastbare Plattform- oder Reichweitenempfehlung möglich");
+    expect(html).not.toContain("0 Likes");
+    expect(html).not.toContain("0 Shares");
+    expect(html).not.toContain("ROI");
+  });
+
+  it("renders the English operator view", async () => {
+    const html = renderToStaticMarkup(
+      await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "en" }) }),
+    );
+
+    expect(html).toContain("Campaign &amp; posting control");
+    expect(html).toContain("Campaign portfolio");
+    expect(html).toContain("Distributed content and variants");
+    expect(html).toContain("Measurement data and sources");
+    expect(html).toContain("Not connected / no verified data");
   });
 
   it("remains discoverable in the existing admin navigation", () => {
