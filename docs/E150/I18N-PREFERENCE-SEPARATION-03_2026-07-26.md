@@ -2,8 +2,9 @@
 
 Datum: 2026-07-26
 OpenTasks-Status: review
-PR-Phase: Draft
+PR-Phase: Merged
 Evidence: PR #427
+Merge: 2026-07-26, `15b1c806170619bd36e4e2a48d49096e5c3c64f5`
 
 ## Ziel
 
@@ -38,6 +39,16 @@ Evidence: PR #427
   - `preferredLocale` bleibt als Legacy-Mirror der Lesesprache erhalten
 - `apps/web/src/app/account/AccountClient.tsx` bearbeitet diese Sprachpräferenzen explizit statt nur ein einziges Feld "Bevorzugte Sprache".
 
+## Verbleibende Review-Abnahme
+
+Der technische Merge allein setzt den OpenTasks-Status nicht automatisch auf `done`. Für die Review-Closure bleiben:
+
+- manueller Desktop-/Mobile-Smoke in Header, Settings und Account
+- Reload-/Persistenzprüfung für `uiLocale`, `readingLocale`, `preferredOutputLocales` und `showOriginalByDefault`
+- Nachweis, dass eine Änderung der UI-Sprache die Lesesprache nicht mehr überschreibt
+- Nachweis, dass Originalanzeige und Ausgabepräferenzen nicht still auf die UI-Sprache zurückfallen
+- Synchronisierung des Ergebnisses im kanonischen operativen Kopf von `docs/E150/OpenTasks.md`
+
 ## Guardrails
 
 - keine Produkt- oder Routing-Neudefinition
@@ -52,4 +63,8 @@ Evidence: PR #427
 
 ## Bekannte Grenze
 
-- `pnpm check:web` ist im aktuellen Repo-Stand nicht grün, scheitert aber weiterhin an vorbestehenden TypeScript-/Alias-Problemen außerhalb dieses Slices, unter anderem in `next/navigation`-Typen und `@features/*`-Auflösungen.
+- `pnpm check:web` war im damaligen Slice-Stand nicht grün und scheiterte an vorbestehenden TypeScript-/Alias-Problemen außerhalb dieses Slices, unter anderem in `next/navigation`-Typen und `@features/*`-Auflösungen. Eine spätere repo-weite CI-Verbesserung ersetzt nicht den noch offenen manuellen Review-Smoke dieses Tasks.
+
+## Folgeprogramm
+
+Die vollständige Systemlokalisierung wird in `docs/E150/I18N_GO_PROGRAM_2026-07-27.md` in getrennte, preflight-pflichtige Slices zerlegt. `I18N-PREFERENCE-SEPARATION-03` bleibt die Voraussetzung für das kanonische Message-SSOT und darf nicht mit der flächigen UI-Migration gleichgesetzt werden.
