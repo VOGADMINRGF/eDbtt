@@ -1,4 +1,5 @@
 name: One-time Marketing Assistant UX Fix Review Sync
+# pull-request trigger for canonical review status sync
 
 on:
   pull_request:
