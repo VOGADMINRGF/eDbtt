@@ -20,7 +20,6 @@ describe("admin marketing operating dashboard", () => {
     expect(html).toContain("/admin/evidence/items");
     expect(html).toContain("/admin/editorial/queue");
     expect(html).toContain("/admin/research/tasks");
-    expect(html).toContain("Fach- und Technikdetails");
     expect(html).toContain("view=ready");
     expect(html).toContain("view=decision");
     expect(html).toContain("view=proof");
@@ -29,9 +28,12 @@ describe("admin marketing operating dashboard", () => {
     expect(html).not.toContain("Marketing Registry</h1>");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Marketing-Queue");
+    expect(html).not.toContain("Fach- und Technikdetails");
+    expect(html).not.toContain("Registry-Quellen");
+    expect(html).not.toContain("docs/marketing/");
   });
 
-  it("renders English operator copy without inventing results", async () => {
+  it("renders English operator copy without inventing results or exposing technical inventory", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({ searchParams: Promise.resolve({ lang: "en" }) }),
     );
@@ -41,7 +43,8 @@ describe("admin marketing operating dashboard", () => {
     expect(html).toContain("Your decision required");
     expect(html).toContain("No demo metrics are shown");
     expect(html).toContain("Hand off");
-    expect(html).toContain("Professional and technical details");
+    expect(html).not.toContain("Professional and technical details");
+    expect(html).not.toContain("Registry sources");
   });
 
   it("renders a selected campaign with understandable blockers and materials", async () => {

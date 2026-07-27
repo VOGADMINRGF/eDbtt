@@ -29,7 +29,7 @@ Dieser Slice ist ausschließlich eine fokussierte Informationsarchitektur- und B
 - Zahlen und Erkenntnisse anklickbar machen,
 - daraus nächste Aktionen ableiten,
 - Übergaben an bereits bestehende Arbeitsbereiche ermöglichen,
-- technische Detailkarten, Demos und programmierungsorientierte Informationen aus der Hauptsicht entfernen,
+- technische Detailkarten, Demos und programmierungsorientierte Informationen aus der Betreiberseite entfernen,
 - `/create` als bestehende UX-Referenz respektieren.
 
 ### Nicht enthalten
@@ -90,7 +90,7 @@ Die Marketing-Seite erzeugt dabei keine neue Queue, keine neue Persistenz und ke
 
 ### Technische Details
 
-Assets, Brandprofile, Evidence, Registry-Quellen, IDs und Dateipfade bleiben für Audit und Fachprüfung vorhanden, erscheinen aber nur noch in einem aufklappbaren Fach- und Technikbereich.
+Assets, Brandprofile, Evidence, Registry-Quellen, IDs und Dateipfade werden auf `/admin/marketing` nicht mehr ausgegeben – auch nicht in einem aufklappbaren Bereich. Die kanonische technische Wahrheit bleibt unverändert im Registry-Readmodel, in der geschützten Read-only-API, in den Contracts, im Repository und in den Tests verfügbar. Die Betreiberansicht bleibt dadurch konsequent auf Ergebnisse, Entscheidungen und nächste Aktionen begrenzt.
 
 ## Dateien
 
