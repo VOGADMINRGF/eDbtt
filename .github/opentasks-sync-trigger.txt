@@ -1,1 +1,0 @@
-Trigger the dependent OpenTasks marketing and admin IA sync after the verified runner was present on the base branch.
