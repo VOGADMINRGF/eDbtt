@@ -1,4 +1,5 @@
 name: One-time Marketing Assistant Branch Patch
+# trigger: workflow already present on main
 
 on:
   push:
