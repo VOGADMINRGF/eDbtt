@@ -29,18 +29,18 @@ Zweck:
 - keine externe Übersetzungsruntime, Credentials oder Provider aktivieren
 - bei offenen Blockern Status `blocked` beibehalten
 
-## Folgeblöcke nach SSOT-Sync
+## Angelegte Folgeblöcke
 
-Die folgenden Blöcke dürfen erst als Implementierungsblöcke gelten, wenn die jeweilige ID im kanonischen operativen Kopf von `docs/E150/OpenTasks.md` vorhanden ist und der Preflight auf sauberem `main` erfolgreich war.
+Die folgenden Termine sind als blockierte Planung angelegt. Sie werden erst zu Implementierungsblöcken, wenn die jeweilige ID im kanonischen operativen Kopf von `docs/E150/OpenTasks.md` vorhanden ist und der Preflight auf sauberem `main` erfolgreich war.
 
-| Reihenfolge | Task | Zweck | Startbedingung |
+| Datum | Task | Zweck | Startbedingung |
 | --- | --- | --- | --- |
-| 1 | `I18N-MESSAGE-SSOT-05` | Capability-Registry, Message-Loader, Fallback- und CI-Vertrag | `I18N-PREFERENCE-SEPARATION-03` done |
-| 2a | `I18N-PUBLIC-CORE-MIGRATION-06` | öffentliche Kernflächen migrieren | `I18N-MESSAGE-SSOT-05` done |
-| 2b | `I18N-AUTH-ACCOUNT-ADMIN-07` | private und operative Kernflächen migrieren | `I18N-MESSAGE-SSOT-05` done |
-| 2c | `I18N-LEGAL-LONGFORM-08` | geprüfte Rechts- und Longform-Fassungen | Message-SSOT done und Legal-Gate erfüllt |
-| 3 | `I18N-RTL-MOBILE-A11Y-09` | RTL, Mobile, Tastatur, Screenreader, Locale-Formate | Migrationen 06–08 ausreichend geschlossen |
-| 4 | `I18N-GO-CERTIFICATION-10` | produktive Systemabnahme und Capability-Freigabe | alle I18N- und Production-Gates erfüllt |
+| 2026-08-19, 13:00–15:00 | `I18N-MESSAGE-SSOT-05` | Capability-Registry, Message-Loader, Fallback- und CI-Vertrag | `I18N-PREFERENCE-SEPARATION-03` done |
+| 2026-08-20, 13:00–15:00 | `I18N-PUBLIC-CORE-MIGRATION-06` | öffentliche Kernflächen migrieren | `I18N-MESSAGE-SSOT-05` done |
+| 2026-08-21, 13:00–15:00 | `I18N-AUTH-ACCOUNT-ADMIN-07` | private und operative Kernflächen migrieren | `I18N-MESSAGE-SSOT-05` done |
+| 2026-08-25, 13:00–15:00 | `I18N-LEGAL-LONGFORM-08` | geprüfte Rechts- und Longform-Fassungen | Message-SSOT done und Legal-Gate erfüllt |
+| 2026-08-26, 13:00–15:00 | `I18N-RTL-MOBILE-A11Y-09` | RTL, Mobile, Tastatur, Screenreader, Locale-Formate | Migrationen 06–08 ausreichend geschlossen |
+| 2026-09-04, 13:00–15:00 | `I18N-GO-CERTIFICATION-10` | produktive Systemabnahme und Capability-Freigabe | alle I18N- und Production-Gates erfüllt |
 
 ## Parallelitätsregel
 
