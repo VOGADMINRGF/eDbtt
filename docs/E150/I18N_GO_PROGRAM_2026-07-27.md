@@ -4,6 +4,10 @@ Datum: 2026-07-27
 
 Status: verbindlicher Ziel- und Zerlegungscontract; noch keine Runtime-Freigabe
 
+GitHub-Intake: Issue `#456`
+
+Docs-Slice: Draft-PR `#457`
+
 ## Ziel
 
 eDebatte muss systemweit sprachunabhängig funktionieren. Das Ziel ist nicht nur eine technische I18N-Grundlage, sondern ein objektiv prüfbares **I18N Go** für öffentliche, private und operative Kernflächen sowie für sprachübergreifende Inhalte.
@@ -14,7 +18,7 @@ Ein I18N Go darf erst ausgesprochen werden, wenn:
 - alle aktiv beworbenen UI-Sprachen die definierten Kernflächen vollständig und konsistent bedienen,
 - Inhalte unabhängig von ihrer Originalsprache nachvollziehbar gelesen, bearbeitet, geprüft und ausgegeben werden können,
 - RTL, nichtlateinische Schriften, Mobile und Accessibility objektiv abgenommen sind,
-- kritische Rechts-, Consent-, Pricing- und Account-Texte feste geprüfte Sprachfassungen verwenden,
+- kritische Rechts-, Consent-, Pricing-, Payment-, Security- und Account-Texte feste geprüfte Sprachfassungen verwenden,
 - keine Oberfläche eine größere Sprachabdeckung behauptet als technisch und fachlich belegt ist.
 
 Der heutige No-Go-Befund ist damit ausschließlich der Ausgangspunkt. Er ist kein akzeptierter Zielzustand.
@@ -48,12 +52,15 @@ Technisch gemergt über PR `#427`:
 - `showOriginalByDefault`
 - `preferredLocale` nur noch als Legacy-Mirror der Lesesprache
 
+Die Evidence-Drift `PR-Phase: Draft` wird in PR `#457` auf `Merged` korrigiert.
+
 Offen bis `done`:
 
 - manueller Desktop-/Mobile-Smoke für Header, Settings und Account
 - Reload-/Persistenzprüfung
 - Beleg, dass UI- und Lesesprache sich nicht mehr gegenseitig überschreiben
-- Evidence-Drift `PR-Phase: Draft` auf `Merged` korrigieren
+- Beleg, dass Originalanzeige und Ausgabepräferenzen nicht still auf die UI-Sprache zurückfallen
+- Ergebnis im kanonischen operativen Kopf von `docs/E150/OpenTasks.md` synchronisieren
 
 ### `I18N-CROSS-LINGUAL-RUNTIME-04` — blocked
 
@@ -343,9 +350,16 @@ Public Core, Auth/Account/Admin und Legal/Longform dürfen nach abgeschlossenem 
 
 ## Kalenderbezug
 
-- 2026-08-11, 13:00–15:00: `I18N-PREFERENCE-SEPARATION-03` nicht erneut implementieren, sondern Review schließen und `I18N-MESSAGE-SSOT-05` preflight-fähig machen.
-- 2026-08-12, 13:00–15:00: `I18N-CROSS-LINGUAL-RUNTIME-04` ausschließlich als Readiness-/Gate-Review; keine externe Runtime-Aktivierung bei offenen Blockern.
-- Folgeblöcke werden nach dem OpenTasks-SSOT-Sync den IDs `05` bis `10` zugeordnet.
+| Datum | Task | Zweck |
+| --- | --- | --- |
+| 2026-08-11, 13:00–15:00 | `I18N-PREFERENCE-SEPARATION-03` | Review schließen; keine erneute Implementierung |
+| 2026-08-12, 13:00–15:00 | `I18N-CROSS-LINGUAL-RUNTIME-04` | Readiness-/Gate-Review; keine externe Runtime-Aktivierung bei offenen Blockern |
+| 2026-08-19, 13:00–15:00 | `I18N-MESSAGE-SSOT-05` | Message-SSOT und Capability Registry, nur nach SSOT-Sync und Preflight |
+| 2026-08-20, 13:00–15:00 | `I18N-PUBLIC-CORE-MIGRATION-06` | Public Core, nur nach abgeschlossenem Message-SSOT |
+| 2026-08-21, 13:00–15:00 | `I18N-AUTH-ACCOUNT-ADMIN-07` | private und operative Flächen, nur nach abgeschlossenem Message-SSOT |
+| 2026-08-25, 13:00–15:00 | `I18N-LEGAL-LONGFORM-08` | Recht/Longform, bei offenem Legal-Gate nur Review |
+| 2026-08-26, 13:00–15:00 | `I18N-RTL-MOBILE-A11Y-09` | RTL-, Mobile- und Accessibility-Härtung nach Migrationen |
+| 2026-09-04, 13:00–15:00 | `I18N-GO-CERTIFICATION-10` | Go/No-Go nur bei vollständig grünen Abhängigkeiten |
 
 ## Guardrails
 
