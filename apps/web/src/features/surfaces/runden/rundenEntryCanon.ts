@@ -237,9 +237,9 @@ const RUNDEN_ENTRY_CANON_READ_MODEL: RundenEntryCanonReadModel = {
   ],
   driftWarnings: [
     "/runden/new spricht fachlich ueber Anlassraum, erzeugt heute aber zuerst nur einen Draft-Record.",
-    "/create und /runden/new teilen sich denselben StartDraft-Handoff, aber nicht denselben ersten serverseitigen Persistenzpfad.",
+    "/create und /runden/new nutzen unterschiedliche API-Einstiege, schreiben aber in dieselbe kanonische serverseitige Draft-Wahrheit.",
     "Anlassraum-, Dossier- und Participation-Space-Runtimes sind review-first Folgesysteme und keine stillen Seiteneffekte des manuellen Runden-Einstiegs.",
-    "Legacy draftStore-/api/drafts-Pfade und der neuere /api/drafts/save-Pfad verwenden weiterhin unterschiedliche ID-/Schema-Wahrheiten.",
+    "Legacy-Drafts mit alten String-IDs bleiben ausschließlich als Read-only-Resume-Fallback erhalten; aktive Writes nutzen die kanonische user-scoped ObjectId-/Schema-Wahrheit.",
   ],
   reusableSummary: {
     whatRundenNewIs:
