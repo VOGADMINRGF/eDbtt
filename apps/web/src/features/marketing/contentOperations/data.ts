@@ -31,14 +31,14 @@ const CONTENT_OPERATIONS: MarketingContentOperation[] = [
     review: {
       required: true,
       status: "pending",
-      ref: "/admin/editorial/queue",
+      ref: "/admin/marketing/review",
     },
     distributionRecordIds: [],
     nextAction: {
       key: "review_content",
       labelDe: "Text, Visual, Quellenbezug und CTA prüfen und anschließend freigeben.",
       labelEn: "Review copy, visual, source reference and CTA, then approve.",
-      href: "/admin/editorial/queue",
+      href: "/admin/marketing/review",
     },
     autoPublishEligible: false,
     createdAt: CREATED_AT,
@@ -69,14 +69,14 @@ const CONTENT_OPERATIONS: MarketingContentOperation[] = [
     review: {
       required: true,
       status: "pending",
-      ref: "/admin/editorial/queue",
+      ref: "/admin/marketing/review",
     },
     distributionRecordIds: [],
     nextAction: {
       key: "review_content",
       labelDe: "Script, Szenenfolge, Untertitel, Quellenbezug und CTA prüfen und anschließend freigeben.",
       labelEn: "Review script, scenes, captions, source reference and CTA, then approve.",
-      href: "/admin/editorial/queue",
+      href: "/admin/marketing/review",
     },
     autoPublishEligible: false,
     createdAt: CREATED_AT,

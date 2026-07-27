@@ -14,6 +14,12 @@ describe("marketing contextual assistant", () => {
     expect(model.actions.length).toBeLessThanOrEqual(3);
     expect(model.actions.every((action) => action.href.startsWith("/admin/"))).toBe(true);
     expect(model.actions.some((action) => action.href.includes("/connections"))).toBe(false);
+    expect(model.actions.some((action) => action.href.startsWith("/admin/editorial/queue"))).toBe(false);
+    expect(model.actions[0]).toMatchObject({
+      kind: "review_content",
+      href: "/admin/marketing/review",
+      priority: 1,
+    });
     expect(model.missingDataDe).toContain("Noch keine Performance-Datenquelle ist verbunden.");
   });
 
@@ -30,11 +36,32 @@ describe("marketing contextual assistant", () => {
     expect(model.missingDataDe).toContain("Es fehlen verifizierte Performance-Snapshots mit Quelle und Zeitraum.");
     expect(model.actions[0]).toMatchObject({
       kind: "review_content",
-      href: "/admin/editorial/queue",
+      href: "/admin/marketing/review?campaign=CAM-CONTENT-02",
       priority: 1,
     });
+    expect(model.actions.some((action) => action.href.startsWith("/admin/editorial/queue"))).toBe(false);
     expect(model.bodyDe).not.toContain("0 Likes");
     expect(model.bodyDe).not.toContain("ROI");
+  });
+
+  it("prioritizes content and briefing before scheduling when a campaign has no content", () => {
+    const control = buildMarketingCampaignControlReadModel();
+    const emptyCampaign = control.campaigns.find((row) => row.plannedContentCount === 0);
+    expect(emptyCampaign).toBeDefined();
+
+    const model = buildMarketingAssistantReadModel(control, {
+      campaignId: emptyCampaign!.campaign.id,
+      surface: "cockpit",
+    });
+
+    expect(model.headlineDe).toContain("noch ohne konkrete Inhalte");
+    expect(model.actions[0]).toMatchObject({
+      kind: "inspect_campaign",
+      priority: 1,
+      titleDe: "Inhalt und Briefing vorbereiten",
+    });
+    expect(model.actions[0].href).toContain(`campaign=${emptyCampaign!.campaign.id}`);
+    expect(model.actions.some((action) => action.kind === "inspect_distribution")).toBe(false);
   });
 
   it("creates an insights-specific explanation when measurements are missing", () => {

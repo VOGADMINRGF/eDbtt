@@ -19,10 +19,17 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Marketing-Assistent");
     expect(html).toContain("Nur Empfehlungen");
     expect(html).toContain("2 Inhalte warten auf Prüfung");
-    expect(html).toContain("Messplan und Datenlage prüfen");
+    expect(html).toContain("Marketing-Inhalte prüfen");
+    expect(html).toContain("Bestandsdaten");
+    expect(html).toContain("Empfehlungssicherheit");
+    expect(html).toContain("Niedrig");
+    expect(html).toContain("0 von 6 Datenquellen verbunden");
     expect(html).toContain("Debattenstand der Woche");
     expect(html).toContain("Voxy erklärt");
-    expect(html).toContain("Nicht verbunden / keine verifizierten Daten");
+    expect(html).toContain("/admin/marketing/review?lang=de");
+    expect(html).not.toContain("/admin/editorial/queue");
+    expect(html).not.toContain("25 %");
+    expect(html).not.toContain("Sicherheit der Einordnung");
     expect(html).not.toContain("Weitere Marketingmaterialien");
     expect(html).not.toContain("docs/marketing/");
   });
@@ -37,7 +44,7 @@ describe("admin marketing campaign control system", () => {
     expect(html).not.toContain("Voxy erklärt · Was ist ein Debattenstand?");
   });
 
-  it("uses selected campaign context and real review links", async () => {
+  it("uses selected campaign context and a real marketing review link", async () => {
     const html = renderToStaticMarkup(
       await MarketingAdminPage({
         searchParams: Promise.resolve({ lang: "de", campaign: "CAM-CONTENT-02" }),
@@ -50,8 +57,22 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Instagram, LinkedIn, Facebook, Newsletter, Meta Ads");
     expect(html).toContain("1 Inhalte dieser Kampagne warten auf Prüfung");
     expect(html).toContain("Kampagneninhalte prüfen");
-    expect(html).toContain("/admin/editorial/queue");
+    expect(html).toContain("/admin/marketing/review?campaign=CAM-CONTENT-02&amp;lang=de");
+    expect(html).not.toContain("/admin/editorial/queue");
     expect(html).toContain("/admin/marketing/insights?lang=de&amp;campaign=CAM-CONTENT-02");
+  });
+
+  it("shows only the two review-ready contents when the review filter is active", async () => {
+    const html = renderToStaticMarkup(
+      await MarketingAdminPage({
+        searchParams: Promise.resolve({ lang: "de", contentStatus: "review_ready" }),
+      }),
+    );
+
+    expect(html).toContain("Es werden ausschließlich Marketinginhalte angezeigt, die auf Prüfung warten.");
+    expect(html).toContain("Debattenstand der Woche · Carousel");
+    expect(html).toContain("Voxy erklärt · Was ist ein Debattenstand?");
+    expect((html.match(/Marketing-Inhalte prüfen/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
   it("keeps missing measurements honest instead of rendering zero performance", async () => {
@@ -78,7 +99,10 @@ describe("admin marketing campaign control system", () => {
     expect(html).toContain("Measurement data and sources");
     expect(html).toContain("Marketing assistant");
     expect(html).toContain("Recommendations only");
-    expect(html).toContain("Not connected / no verified data");
+    expect(html).toContain("Inventory data");
+    expect(html).toContain("Recommendation confidence");
+    expect(html).toContain("Low");
+    expect(html).toContain("0 of 6 Data sources connected");
   });
 
   it("remains discoverable in the existing admin navigation", () => {

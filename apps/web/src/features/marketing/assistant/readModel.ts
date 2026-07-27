@@ -69,27 +69,13 @@ function buildPortfolioAssistant(
       "review-ready-content",
       "review_content",
       1,
-      "Inhalte prüfen",
-      "Review content",
-      `${reviewReady} konkrete Inhalte sind fachlich oder visuell noch nicht freigegeben.`,
-      `${reviewReady} concrete content items still need professional or visual approval.`,
-      "/admin/editorial/queue",
+      "Marketing-Inhalte prüfen",
+      "Review marketing content",
+      `${reviewReady} konkrete Marketinginhalte sind fachlich oder visuell noch nicht freigegeben.`,
+      `${reviewReady} concrete marketing content items still need professional or visual approval.`,
+      "/admin/marketing/review",
       "verified",
       0.98,
-    ));
-  }
-  if (connectedSources === 0 || withPerformance === 0) {
-    actions.push(action(
-      "inspect-measurement-basis",
-      "improve_data_basis",
-      actions.length + 1,
-      "Messplan und Datenlage prüfen",
-      "Review measurement plan and data coverage",
-      "Ohne verifizierte Messdaten ist noch keine Plattform- oder Reichweitenempfehlung belastbar.",
-      "Without verified measurements, platform and reach recommendations are not reliable yet.",
-      "/admin/marketing/insights",
-      "missing",
-      0.99,
     ));
   }
   if (scheduled === 0) {
@@ -104,6 +90,20 @@ function buildPortfolioAssistant(
       "/admin/marketing#distribution",
       "verified",
       0.96,
+    ));
+  }
+  if (connectedSources === 0 || withPerformance === 0) {
+    actions.push(action(
+      "inspect-measurement-basis",
+      "improve_data_basis",
+      actions.length + 1,
+      "Messplan und Datenlage prüfen",
+      "Review measurement plan and data coverage",
+      "Ohne verifizierte Messdaten ist noch keine Plattform- oder Reichweitenempfehlung belastbar.",
+      "Without verified measurements, platform and reach recommendations are not reliable yet.",
+      "/admin/marketing/insights",
+      "missing",
+      0.99,
     ));
   }
 
@@ -140,6 +140,7 @@ function buildCampaignAssistant(
   const scheduled = row.scheduledContentCount;
   const published = row.publishedContentCount;
   const snapshots = row.metricSnapshots.length;
+  const hasContent = row.plannedContentCount > 0;
 
   const headlineDe = reviewReady
     ? `${reviewReady} Inhalte dieser Kampagne warten auf Prüfung.`
@@ -147,7 +148,7 @@ function buildCampaignAssistant(
       ? `${scheduled} Inhalte sind für diese Kampagne eingeplant.`
       : published && snapshots === 0
         ? "Die Kampagne wurde ausgespielt, aber die Wirkung ist noch nicht messbar verbunden."
-        : row.plannedContentCount === 0
+        : !hasContent
           ? "Die Kampagne ist definiert, aber noch ohne konkrete Inhalte."
           : "Die Kampagne ist vorbereitet; der nächste Ausführungsschritt ist noch offen.";
   const headlineEn = reviewReady
@@ -156,47 +157,61 @@ function buildCampaignAssistant(
       ? `${scheduled} content items are scheduled for this campaign.`
       : published && snapshots === 0
         ? "The campaign was distributed, but its impact is not connected to measurements yet."
-        : row.plannedContentCount === 0
+        : !hasContent
           ? "The campaign is defined but has no concrete content yet."
           : "The campaign is prepared; its next execution step is still open.";
 
   const missingDataDe = [
-    ...(row.plannedContentCount === 0 ? ["Es fehlen konkrete Posts, Videos oder andere Ausspielvarianten."] : []),
-    ...(scheduled === 0 ? ["Es fehlt ein bestätigter Veröffentlichungstermin."] : []),
+    ...(!hasContent ? ["Es fehlen konkrete Posts, Videos oder andere Ausspielvarianten."] : []),
+    ...(hasContent && scheduled === 0 ? ["Es fehlt ein bestätigter Veröffentlichungstermin."] : []),
     ...(published === 0 ? ["Es fehlt ein belegter Veröffentlichungseintrag."] : []),
     ...(snapshots === 0 ? ["Es fehlen verifizierte Performance-Snapshots mit Quelle und Zeitraum."] : []),
   ];
   const missingDataEn = [
-    ...(row.plannedContentCount === 0 ? ["Concrete posts, videos or other distribution variants are missing."] : []),
-    ...(scheduled === 0 ? ["A confirmed publishing time is missing."] : []),
+    ...(!hasContent ? ["Concrete posts, videos or other distribution variants are missing."] : []),
+    ...(hasContent && scheduled === 0 ? ["A confirmed publishing time is missing."] : []),
     ...(published === 0 ? ["A verified publication record is missing."] : []),
     ...(snapshots === 0 ? ["Verified performance snapshots with source and period are missing."] : []),
   ];
 
   const actions: MarketingAssistantAction[] = [];
-  if (reviewReady > 0) {
+  if (!hasContent) {
     actions.push(action(
-      `review-${row.campaign.id}`,
-      "review_content",
+      `briefing-${row.campaign.id}`,
+      "inspect_campaign",
       1,
-      "Kampagneninhalte prüfen",
-      "Review campaign content",
-      "Die ausstehenden Inhalte müssen vor Terminierung oder Veröffentlichung freigegeben werden.",
-      "Pending content must be approved before scheduling or publishing.",
-      "/admin/editorial/queue",
+      "Inhalt und Briefing vorbereiten",
+      "Prepare content and briefing",
+      "Vor Kanal- oder Terminplanung braucht die Kampagne mindestens einen konkreten Post, ein Video oder ein abgestimmtes Briefing.",
+      "Before channel or scheduling work, the campaign needs at least one concrete post, video or agreed briefing.",
+      `/admin/marketing?campaign=${encodeURIComponent(row.campaign.id)}#campaign-detail`,
       "verified",
       0.99,
     ));
   }
-  if (scheduled === 0) {
+  if (reviewReady > 0) {
+    actions.push(action(
+      `review-${row.campaign.id}`,
+      "review_content",
+      actions.length + 1,
+      "Kampagneninhalte prüfen",
+      "Review campaign content",
+      "Die ausstehenden Marketinginhalte müssen vor Terminierung oder Veröffentlichung freigegeben werden.",
+      "Pending marketing content must be approved before scheduling or publishing.",
+      `/admin/marketing/review?campaign=${encodeURIComponent(row.campaign.id)}`,
+      "verified",
+      0.99,
+    ));
+  }
+  if (hasContent && scheduled === 0) {
     actions.push(action(
       `distribution-${row.campaign.id}`,
       "inspect_distribution",
       actions.length + 1,
       "Kanal- und Terminplanung prüfen",
       "Review channels and scheduling",
-      "Die Kampagne besitzt noch keinen bestätigten Ausspieltermin.",
-      "The campaign does not have a confirmed distribution time yet.",
+      "Die Kampagne besitzt konkrete Inhalte, aber noch keinen bestätigten Ausspieltermin.",
+      "The campaign has concrete content but no confirmed distribution time yet.",
       `/admin/marketing?campaign=${encodeURIComponent(row.campaign.id)}#distribution`,
       "verified",
       0.97,
