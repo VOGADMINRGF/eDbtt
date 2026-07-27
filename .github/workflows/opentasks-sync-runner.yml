@@ -1,0 +1,39 @@
+name: Temporary OpenTasks sync runner
+
+on:
+  pull_request:
+    types: [synchronize, reopened]
+    branches:
+      - main
+      - docs/i18n-go-program-2026-07-27
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.ref == 'docs/opentasks-marketing-sync-01'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply and clean one-shot OpenTasks sync
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          git merge --no-edit "origin/${{ github.event.pull_request.base.ref }}"
+          python scripts/opentasks-marketing-sync.py
+          rm -f \
+            .github/workflows/opentasks-sync-runner.yml \
+            .github/workflows/opentasks-marketing-sync.yml \
+            .github/opentasks-sync-trigger.txt \
+            scripts/opentasks-marketing-sync.py
+          git add -A
+          git diff --cached --check
+          git commit -m "docs(e150): sync Marketing Growth OS and admin IA in OpenTasks head"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
