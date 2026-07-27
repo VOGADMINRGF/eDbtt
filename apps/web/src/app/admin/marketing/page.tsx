@@ -1,150 +1,180 @@
 import Link from "next/link";
-import { buildMarketingContentOperationsReadModel } from "@/features/marketing/contentOperations/readModel";
+import type { MarketingContentStatus } from "@/features/marketing/contentOperations/contracts";
+import { buildMarketingCampaignControlReadModel } from "@/features/marketing/campaignControl/readModel";
 import type {
-  MarketingContentChannel,
-  MarketingContentKind,
-  MarketingContentStatus,
-} from "@/features/marketing/contentOperations/contracts";
-import type { MarketingContentOperationsRow } from "@/features/marketing/contentOperations/readModel";
-import { buildMarketingRegistryReadModel } from "@/features/marketing/registry/readModel";
-import type { MarketingAsset } from "@/features/marketing/registry/contracts";
+  MarketingCampaignControlRow,
+  MarketingPerformanceSourceState,
+} from "@/features/marketing/campaignControl/readModel";
+import type {
+  MarketingControlChannel,
+  MarketingDataQuality,
+  MarketingMetricKey,
+  MarketingPromotion,
+  MarketingReachScope,
+  MarketingSegment,
+} from "@/features/marketing/campaignControl/contracts";
 
 export const metadata = {
   title: "Marketing · Admin · eDebatte",
 };
 
 type UiLocale = "de" | "en";
-type ContentView = "all" | MarketingContentStatus;
-type Tone = "sky" | "amber" | "emerald" | "violet" | "slate";
+type SegmentFilter = "all" | MarketingSegment;
+type ReachFilter = "all" | MarketingReachScope;
 
 type PageProps = {
   searchParams?: Promise<{
     lang?: string | string[];
-    view?: string | string[];
-    item?: string | string[];
+    segment?: string | string[];
+    reach?: string | string[];
+    campaign?: string | string[];
   }>;
 };
 
 const COPY = {
   de: {
     eyebrow: "Admin · Marketing",
-    title: "Marketing-Zentrale",
+    title: "Kampagnen- & Posting-Steuerung",
     intro:
-      "Hier steuerst du konkrete Posts, Videos, Freigaben und Veröffentlichungen. Jeder Inhalt zeigt Text, Kanäle, Verantwortlichkeit und den nächsten Schritt.",
-    guardrail: "Veröffentlichungen bleiben immer freigabepflichtig.",
-    overview: "Übersicht",
-    content: "Beiträge & Videos",
-    published: "Veröffentlicht",
-    materials: "Weitere Materialien",
-    draft: "In Arbeit",
-    draftNote: "Entwürfe, die noch fertiggestellt werden",
-    review: "Zur Freigabe",
-    reviewNote: "Inhalte mit ausstehender fachlicher oder visueller Prüfung",
-    approved: "Freigegeben",
-    approvedNote: "Geprüfte Inhalte, für die noch Kanal oder Termin fehlt",
+      "Hier siehst du, welche Maßnahmen für B2C, B2B und B2G geplant sind, wo Beiträge ausgespielt werden und welche Wirkung tatsächlich belegt ist.",
+    guardrail: "Keine Fantasiezahlen: Ergebnisse erscheinen nur mit verifizierter Quelle und Zeitraum.",
+    campaigns: "Kampagnen",
+    distribution: "Beiträge & Ausspielungen",
+    performance: "Performance",
+    recommendations: "Empfehlungen",
+    allSegments: "Alle Zielmärkte",
+    allReach: "Alle Reichweiten",
+    plannedCampaigns: "Kampagnen",
+    plannedCampaignsNote: "im gewählten Betrachtungsrahmen",
+    contentItems: "Beiträge & Videos",
+    contentItemsNote: "konkrete Content-Varianten",
     scheduled: "Eingeplant",
-    scheduledNote: "Inhalte mit bestätigtem Veröffentlichungstermin",
-    publishedNote: "Tatsächlich veröffentlichte Beiträge mit öffentlichem Link",
-    contentTitle: "Nächste Beiträge & Videos",
+    scheduledNote: "mit bestätigtem Termin",
+    published: "Veröffentlicht",
+    publishedNote: "mit realem Ausspielbeleg",
+    performanceCoverage: "Mit Messdaten",
+    performanceCoverageNote: "Kampagnen mit verifizierten oder gekennzeichneten Snapshots",
+    portfolioTitle: "Kampagnenportfolio",
+    portfolioIntro:
+      "Kampagnen werden nach Zielmarkt, Zielgruppe, Region, Reichweite, Sprache, Kanälen und Hauptziel gesteuert. Materialien sind nur Unterelemente der jeweiligen Kampagne.",
+    noCampaigns: "Für diese Filterkombination gibt es keine Kampagne.",
+    primaryAudience: "Hauptzielmarkt",
+    audiences: "Zielgruppen",
+    reach: "Reichweite",
+    regions: "Regionen",
+    languages: "Sprachen",
+    promotion: "Ausspielung",
+    channels: "Geplante Kanäle",
+    objective: "Kampagnenziel",
+    primaryKpi: "Hauptkennzahl",
+    contentCount: "Inhalte",
+    publishedCount: "veröffentlicht",
+    dataQuality: "Datenlage",
+    openCampaign: "Kampagne öffnen",
+    openInsights: "Ergebnisse ansehen",
+    campaignDetail: "Kampagnendetails",
+    contentTitle: "Gestreute Beiträge und Varianten",
     contentIntro:
-      "Die Einträge sind konkrete Content-Entwürfe. Kanäle, Texte und Zuständigkeiten stammen aus dem Content-Operations-Readmodel und werden nicht aus technischen Asset-Typen geraten.",
-    all: "Alle",
-    format: "Format",
-    channels: "Kanäle",
-    status: "Status",
-    locale: "Sprache",
+      "Hier werden interne und externe Varianten derselben Kampagne zusammengeführt. Organische und bezahlte Ausspielung bleiben getrennt.",
+    contentStatus: "Status",
+    surface: "Bereich",
+    internal: "Intern",
+    external: "Extern",
+    mixed: "Intern & extern",
     schedule: "Termin",
     notScheduled: "Noch nicht terminiert",
-    campaign: "Serie / Kampagne",
-    responsibility: "Verantwortlich",
-    cta: "Zielaktion",
-    caption: "Caption-Entwurf",
-    script: "Script-Entwurf",
-    nextStep: "Nächster Schritt",
-    open: "Beitrag öffnen",
-    noContentTitle: "Für diesen Filter gibt es noch keine Beiträge",
-    noContentBody:
-      "Sobald ein realer Post, ein Video oder eine Kanalvariante diesen Status erreicht, erscheint sie hier.",
-    selected: "Beitragsdetails",
-    reviewState: "Freigabestand",
-    publicTarget: "Zielseite öffnen",
-    publicationsTitle: "Veröffentlichungen",
-    publicationsIntro:
-      "Hier stehen nur Beiträge, die über einen realen Kanal ausgespielt und mit öffentlichem Link sowie Veröffentlichungszeit belegt wurden.",
-    noPublishedTitle: "Noch nichts veröffentlicht",
-    noPublishedBody:
-      "Aktuell existiert noch kein belegter veröffentlichter Beitrag. Entwürfe, Freigaben und eingeplante Inhalte werden nicht als veröffentlicht gezählt.",
-    channel: "Kanal",
-    publishedAt: "Veröffentlicht am",
-    openPublished: "Beitrag ansehen",
-    materialsTitle: "Weitere Marketingmaterialien",
-    materialsIntro:
-      "Onepager, Präsentationen, Partner- und Landingpage-Texte bleiben getrennt von der operativen Post- und Videoplanung.",
-    materialType: "Material",
-    materialStatus: "Bearbeitungsstand",
+    result: "Ergebnis",
+    noMetrics: "Noch keine verifizierten Leistungsdaten",
+    openContent: "Beitrag öffnen",
+    noContent: "Für die gewählten Filter sind noch keine konkreten Beiträge angelegt.",
+    sourceTitle: "Messdaten und Datenquellen",
+    sourceIntro:
+      "Interne Nutzung, Social Media, E-Mail, Downloads und Werbung werden getrennt erfasst. Fehlende Verbindungen gelten nicht als Null-Performance.",
+    snapshots: "Snapshots",
+    latest: "Letzte Erfassung",
+    notConnected: "Nicht verbunden / keine verifizierten Daten",
+    recommendationTitle: "Aktuelle Empfehlung",
+    recommendationBody:
+      "Noch ist keine belastbare Plattform- oder Reichweitenempfehlung möglich. Zuerst müssen Beiträge veröffentlicht und interne beziehungsweise externe Messdaten mit Kampagne, Zielgruppe, Region und Zeitraum verbunden werden.",
+    recommendationNext:
+      "Nächster sinnvoller Schritt: die zwei reviewfähigen Inhalte freigeben, terminieren und anschließend reale Ausspiel- und Performancebelege erfassen.",
+    toReview: "Zur Inhaltsprüfung",
+    toInsights: "Performance-Ansicht öffnen",
     backAdmin: "Admin-Übersicht",
-    toCampaigns: "Beteiligungskampagnen",
+    participationCampaigns: "Beteiligungskampagnen",
     german: "Deutsch",
     english: "English",
   },
   en: {
     eyebrow: "Admin · Marketing",
-    title: "Marketing centre",
+    title: "Campaign & posting control",
     intro:
-      "Manage concrete posts, videos, approvals and publications here. Every item shows copy, channels, ownership and its next action.",
-    guardrail: "Publishing always requires explicit approval.",
-    overview: "Overview",
-    content: "Posts & videos",
-    published: "Published",
-    materials: "Other materials",
-    draft: "In progress",
-    draftNote: "Drafts that still need to be completed",
-    review: "Ready for review",
-    reviewNote: "Content awaiting professional or visual review",
-    approved: "Approved",
-    approvedNote: "Reviewed content still missing channel or schedule",
+      "See which B2C, B2B and B2G measures are planned, where content is distributed and which outcomes are actually evidenced.",
+    guardrail: "No invented numbers: results appear only with a verified source and reporting period.",
+    campaigns: "Campaigns",
+    distribution: "Content & distribution",
+    performance: "Performance",
+    recommendations: "Recommendations",
+    allSegments: "All market segments",
+    allReach: "All reach scopes",
+    plannedCampaigns: "Campaigns",
+    plannedCampaignsNote: "in the selected scope",
+    contentItems: "Posts & videos",
+    contentItemsNote: "concrete content variants",
     scheduled: "Scheduled",
-    scheduledNote: "Content with a confirmed publishing time",
-    publishedNote: "Actually published content with a public link",
-    contentTitle: "Next posts & videos",
+    scheduledNote: "with a confirmed time",
+    published: "Published",
+    publishedNote: "with verified distribution evidence",
+    performanceCoverage: "With performance data",
+    performanceCoverageNote: "campaigns with verified or explicitly qualified snapshots",
+    portfolioTitle: "Campaign portfolio",
+    portfolioIntro:
+      "Campaigns are controlled by market segment, audience, region, reach, language, channels and primary outcome. Materials are subordinate campaign elements.",
+    noCampaigns: "No campaign matches this filter combination.",
+    primaryAudience: "Primary market",
+    audiences: "Audiences",
+    reach: "Reach",
+    regions: "Regions",
+    languages: "Languages",
+    promotion: "Distribution type",
+    channels: "Planned channels",
+    objective: "Campaign objective",
+    primaryKpi: "Primary KPI",
+    contentCount: "Content",
+    publishedCount: "published",
+    dataQuality: "Data quality",
+    openCampaign: "Open campaign",
+    openInsights: "Open results",
+    campaignDetail: "Campaign details",
+    contentTitle: "Distributed content and variants",
     contentIntro:
-      "These are concrete content drafts. Channels, copy and ownership come from the content operations readmodel and are not guessed from technical asset types.",
-    all: "All",
-    format: "Format",
-    channels: "Channels",
-    status: "Status",
-    locale: "Language",
+      "Internal and external variants of the same campaign are connected here. Organic and paid distribution remain separate.",
+    contentStatus: "Status",
+    surface: "Surface",
+    internal: "Internal",
+    external: "External",
+    mixed: "Internal & external",
     schedule: "Schedule",
     notScheduled: "Not scheduled yet",
-    campaign: "Series / campaign",
-    responsibility: "Owner",
-    cta: "Target action",
-    caption: "Caption draft",
-    script: "Script draft",
-    nextStep: "Next step",
-    open: "Open content",
-    noContentTitle: "No content for this filter",
-    noContentBody:
-      "A real post, video or channel variant will appear here once it reaches this status.",
-    selected: "Content details",
-    reviewState: "Approval state",
-    publicTarget: "Open target page",
-    publicationsTitle: "Publications",
-    publicationsIntro:
-      "Only content distributed through a real channel and backed by a public link and publishing time appears here.",
-    noPublishedTitle: "Nothing published yet",
-    noPublishedBody:
-      "There is currently no verified published content. Drafts, approvals and scheduled items are not counted as published.",
-    channel: "Channel",
-    publishedAt: "Published at",
-    openPublished: "Open post",
-    materialsTitle: "Other marketing materials",
-    materialsIntro:
-      "Onepagers, presentations, partner kits and landing copy remain separate from operational post and video planning.",
-    materialType: "Material",
-    materialStatus: "Status",
+    result: "Result",
+    noMetrics: "No verified performance data yet",
+    openContent: "Open content",
+    noContent: "No concrete content exists for the selected filters yet.",
+    sourceTitle: "Measurement data and sources",
+    sourceIntro:
+      "Internal usage, social media, email, downloads and advertising are measured separately. Missing connections are not interpreted as zero performance.",
+    snapshots: "Snapshots",
+    latest: "Latest capture",
+    notConnected: "Not connected / no verified data",
+    recommendationTitle: "Current recommendation",
+    recommendationBody:
+      "No reliable platform or reach recommendation is possible yet. Content must first be published and internal and external measurements must be linked to campaign, audience, region and reporting period.",
+    recommendationNext:
+      "Next useful step: approve and schedule the two review-ready items, then capture real distribution and performance evidence.",
+    toReview: "Open content review",
+    toInsights: "Open performance view",
     backAdmin: "Admin overview",
-    toCampaigns: "Participation campaigns",
+    participationCampaigns: "Participation campaigns",
     german: "Deutsch",
     english: "English",
   },
@@ -154,280 +184,272 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const locale = normalizeLocale(params?.lang);
   const copy = COPY[locale];
-  const view = normalizeView(params?.view);
-  const selectedItemId = first(params?.item);
-  const contentModel = buildMarketingContentOperationsReadModel();
-  const registryModel = buildMarketingRegistryReadModel();
-  const dateLocale = locale === "en" ? "en-GB" : "de-DE";
-
-  const filteredItems = contentModel.items.filter((item) => contentMatchesView(item, view));
-  const selectedItem = contentModel.items.find((item) => item.content.id === selectedItemId) ?? null;
-  const usedAssetIds = new Set(contentModel.items.map((item) => item.asset.id));
-  const materialAssets = registryModel.assets.filter((asset) => !usedAssetIds.has(asset.id));
+  const segment = normalizeSegment(params?.segment);
+  const reach = normalizeReach(params?.reach);
+  const selectedCampaignId = first(params?.campaign);
+  const model = buildMarketingCampaignControlReadModel();
+  const campaigns = model.campaigns.filter(
+    (row) =>
+      (segment === "all" || row.profile.segments.includes(segment)) &&
+      (reach === "all" || row.profile.reachScopes.includes(reach)),
+  );
+  const campaignIds = new Set(campaigns.map((row) => row.campaign.id));
+  const contentItems = model.contentItems.filter((row) => campaignIds.has(row.campaign.id));
+  const selectedCampaign = campaigns.find((row) => row.campaign.id === selectedCampaignId) ?? null;
+  const summary = {
+    campaigns: campaigns.length,
+    contentItems: contentItems.length,
+    scheduled: campaigns.reduce((sum, row) => sum + row.scheduledContentCount, 0),
+    published: campaigns.reduce((sum, row) => sum + row.publishedContentCount, 0),
+    withPerformance: campaigns.filter((row) => row.hasPerformanceData).length,
+  };
 
   return (
-    <main className="space-y-8 pb-12" data-testid="admin-marketing-content-board">
-      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-7">
+    <main className="space-y-8 pb-12" data-testid="admin-marketing-control-system">
+      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-4xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">
               {copy.eyebrow}
             </p>
             <h1 className="text-3xl font-bold text-[rgb(var(--fg))] sm:text-4xl">{copy.title}</h1>
-            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">
-              {copy.intro}
-            </p>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">{copy.intro}</p>
             <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100">
               {copy.guardrail}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <Link href={hrefFor("de", view)} className={languageLinkClass(locale === "de")}>
-              {copy.german}
-            </Link>
-            <Link href={hrefFor("en", view)} className={languageLinkClass(locale === "en")}>
-              {copy.english}
-            </Link>
+            <Link href={pageHref("de", segment, reach)} className={languageLinkClass(locale === "de")}>{copy.german}</Link>
+            <Link href={pageHref("en", segment, reach)} className={languageLinkClass(locale === "en")}>{copy.english}</Link>
           </div>
         </div>
         <nav className="mt-6 flex flex-wrap gap-2" aria-label="Marketing navigation">
-          <AnchorLink href="#overview" label={copy.overview} />
-          <AnchorLink href="#content" label={copy.content} />
-          <AnchorLink href="#published" label={copy.published} />
-          <AnchorLink href="#materials" label={copy.materials} />
+          <AnchorLink href="#campaigns" label={copy.campaigns} />
+          <AnchorLink href="#distribution" label={copy.distribution} />
+          <AnchorLink href="#performance" label={copy.performance} />
+          <AnchorLink href="#recommendations" label={copy.recommendations} />
         </nav>
       </header>
 
-      <section id="overview" className="scroll-mt-6 space-y-5" aria-labelledby="overview-heading">
-        <SectionHeading id="overview-heading" title={copy.overview} />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <MetricLink href={`${hrefFor(locale, "draft")}#content`} label={copy.draft} value={contentModel.summary.draft} note={copy.draftNote} active={view === "draft"} tone="amber" />
-          <MetricLink href={`${hrefFor(locale, "review_ready")}#content`} label={copy.review} value={contentModel.summary.reviewReady} note={copy.reviewNote} active={view === "review_ready"} tone="sky" />
-          <MetricLink href={`${hrefFor(locale, "approved")}#content`} label={copy.approved} value={contentModel.summary.approved} note={copy.approvedNote} active={view === "approved"} tone="emerald" />
-          <MetricLink href={`${hrefFor(locale, "scheduled")}#content`} label={copy.scheduled} value={contentModel.summary.scheduled} note={copy.scheduledNote} active={view === "scheduled"} tone="violet" />
-          <MetricLink href={`${hrefFor(locale, "published")}#published`} label={copy.published} value={contentModel.summary.published} note={copy.publishedNote} active={view === "published"} tone="emerald" />
+      <section className="space-y-4" aria-label="Marketing filters">
+        <div className="flex flex-wrap gap-2">
+          <FilterLink href={pageHref(locale, "all", reach)} active={segment === "all"} label={copy.allSegments} />
+          {(["b2c", "b2b", "b2g"] as const).map((value) => (
+            <FilterLink key={value} href={pageHref(locale, value, reach)} active={segment === value} label={value.toUpperCase()} />
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <FilterLink href={pageHref(locale, segment, "all")} active={reach === "all"} label={copy.allReach} />
+          {(["local", "regional", "national", "international"] as const).map((value) => (
+            <FilterLink key={value} href={pageHref(locale, segment, value)} active={reach === value} label={reachLabel(value, locale)} />
+          ))}
         </div>
       </section>
 
-      <section id="content" className="scroll-mt-6 space-y-5" aria-labelledby="content-heading">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Marketing summary">
+        <MetricCard label={copy.plannedCampaigns} value={summary.campaigns} note={copy.plannedCampaignsNote} />
+        <MetricCard label={copy.contentItems} value={summary.contentItems} note={copy.contentItemsNote} />
+        <MetricCard label={copy.scheduled} value={summary.scheduled} note={copy.scheduledNote} />
+        <MetricCard label={copy.published} value={summary.published} note={copy.publishedNote} />
+        <MetricCard label={copy.performanceCoverage} value={summary.withPerformance} note={copy.performanceCoverageNote} />
+      </section>
+
+      <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">
         <div>
-          <SectionHeading id="content-heading" title={copy.contentTitle} />
-          <p className="mt-1 max-w-4xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.contentIntro}</p>
+          <SectionHeading id="campaigns-heading" title={copy.portfolioTitle} />
+          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.portfolioIntro}</p>
         </div>
-
-        <div className="flex flex-wrap gap-2" aria-label="Content filters">
-          <FilterLink locale={locale} value="all" current={view} label={copy.all} count={contentModel.summary.total} />
-          <FilterLink locale={locale} value="draft" current={view} label={copy.draft} count={contentModel.summary.draft} />
-          <FilterLink locale={locale} value="review_ready" current={view} label={copy.review} count={contentModel.summary.reviewReady} />
-          <FilterLink locale={locale} value="approved" current={view} label={copy.approved} count={contentModel.summary.approved} />
-          <FilterLink locale={locale} value="scheduled" current={view} label={copy.scheduled} count={contentModel.summary.scheduled} />
-          <FilterLink locale={locale} value="published" current={view} label={copy.published} count={contentModel.summary.published} />
-        </div>
-
-        {filteredItems.length ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {filteredItems.map((item) => (
-              <ContentCard key={item.content.id} item={item} locale={locale} copy={copy} view={view} />
+        {campaigns.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {campaigns.map((row) => (
+              <CampaignCard key={row.campaign.id} row={row} locale={locale} copy={copy} segment={segment} reach={reach} />
             ))}
           </div>
         ) : (
-          <EmptyState title={copy.noContentTitle} body={copy.noContentBody} />
+          <EmptyState title={copy.noCampaigns} />
         )}
       </section>
 
-      {selectedItem && (
-        <section id="content-detail" className="scroll-mt-6 space-y-5 rounded-3xl border-2 border-sky-300 bg-sky-50/70 p-5 dark:border-sky-400/40 dark:bg-sky-400/10" aria-labelledby="content-detail-heading">
+      {selectedCampaign && (
+        <section id="campaign-detail" className="scroll-mt-6 space-y-5 rounded-3xl border-2 border-sky-300 bg-sky-50/70 p-5 dark:border-sky-400/40 dark:bg-sky-400/10" aria-labelledby="campaign-detail-heading">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">{copy.selected}</p>
-              <h2 id="content-detail-heading" className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">{selectedItem.content.title}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">{selectedItem.campaign.description}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">{copy.campaignDetail}</p>
+              <h2 id="campaign-detail-heading" className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">{selectedCampaign.campaign.title}</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-[rgb(var(--muted))]">{selectedCampaign.profile.objective}</p>
             </div>
-            <StatusBadge label={statusLabel(selectedItem.effectiveStatus, locale)} tone={statusTone(selectedItem.effectiveStatus)} />
+            <StatusBadge label={campaignStatusLabel(selectedCampaign.campaign.status, locale)} />
           </div>
-
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <DetailPanel title={copy.format} body={kindLabel(selectedItem.content.kind, locale)} />
-            <DetailPanel title={copy.channels} body={selectedItem.content.channels.map((channel) => channelLabel(channel, locale)).join(", ")} />
-            <DetailPanel title={copy.schedule} body={scheduleLabel(selectedItem, locale, dateLocale)} />
-            <DetailPanel title={copy.responsibility} body={selectedItem.content.responsibleLabel} />
+            <DetailPanel title={copy.primaryAudience} body={selectedCampaign.profile.primarySegment.toUpperCase()} />
+            <DetailPanel title={copy.reach} body={selectedCampaign.profile.reachScopes.map((value) => reachLabel(value, locale)).join(", ")} />
+            <DetailPanel title={copy.primaryKpi} body={metricLabel(selectedCampaign.profile.primaryKpi, locale)} />
+            <DetailPanel title={copy.dataQuality} body={dataQualityLabel(selectedCampaign.dataQuality, locale)} />
           </div>
-
-          {selectedItem.content.captionDraft && <CopyPanel title={copy.caption} body={selectedItem.content.captionDraft} />}
-          {selectedItem.content.scriptDraft && <CopyPanel title={copy.script} body={selectedItem.content.scriptDraft} />}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <DetailPanel title={copy.cta} body={selectedItem.content.cta.label} />
-            <DetailPanel title={copy.reviewState} body={reviewLabel(selectedItem.content.review.status, locale)} />
-          </div>
-
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{copy.nextStep}</p>
-            <p className="mt-2 text-sm font-medium leading-6 text-[rgb(var(--fg))]">{nextActionLabel(selectedItem, locale)}</p>
-          </div>
-
+          <DetailPanel title={copy.channels} body={selectedCampaign.profile.plannedChannels.map((value) => channelLabel(value, locale)).join(", ")} />
           <div className="flex flex-wrap gap-2">
-            <ActionLink href={selectedItem.content.nextAction.href} label={nextActionLabel(selectedItem, locale)} />
-            {selectedItem.content.cta.url && (
-              <a href={selectedItem.content.cta.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-sky-300 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50 dark:text-sky-200">
-                {copy.publicTarget}
-              </a>
-            )}
+            {selectedCampaign.contentItems.some((item) => item.status === "review_ready") && <ActionLink href="/admin/editorial/queue" label={copy.toReview} />}
+            <ActionLink href={`/admin/marketing/insights?lang=${locale}&campaign=${selectedCampaign.campaign.id}`} label={copy.openInsights} secondary />
           </div>
         </section>
       )}
 
-      <section id="published" className="scroll-mt-6 space-y-4" aria-labelledby="published-heading">
+      <section id="distribution" className="scroll-mt-6 space-y-5" aria-labelledby="distribution-heading">
         <div>
-          <SectionHeading id="published-heading" title={copy.publicationsTitle} />
-          <p className="mt-1 max-w-4xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.publicationsIntro}</p>
+          <SectionHeading id="distribution-heading" title={copy.contentTitle} />
+          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.contentIntro}</p>
         </div>
-        {contentModel.publications.length ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {contentModel.publications.map(({ content, record }) => (
-              <article key={record.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-                <h3 className="font-semibold text-[rgb(var(--fg))]">{content.title}</h3>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                  <Definition label={copy.channel} value={channelLabel(record.channel as MarketingContentChannel, locale)} />
-                  <Definition label={copy.publishedAt} value={record.publishedAt ? formatDate(record.publishedAt, dateLocale) : "—"} />
+        {contentItems.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {contentItems.map((row) => (
+              <article key={row.content.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">{row.profile.primarySegment.toUpperCase()} · {promotionLabel(row.profile.promotion, locale)}</p>
+                    <h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{row.content.title}</h3>
+                    <p className="mt-1 text-sm text-[rgb(var(--muted))]">{row.campaign.title}</p>
+                  </div>
+                  <StatusBadge label={contentStatusLabel(row.content.status, locale)} />
+                </div>
+                <dl className="mt-4 grid gap-3 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm sm:grid-cols-2">
+                  <Definition label={copy.channels} value={row.content.channels.map((value) => channelLabel(value as MarketingControlChannel, locale)).join(", ")} />
+                  <Definition label={copy.surface} value={scopeLabel(row.internalExternal, copy)} />
+                  <Definition label={copy.schedule} value={row.content.scheduledAt ? formatDate(row.content.scheduledAt, locale) : copy.notScheduled} />
+                  <Definition label={copy.result} value={row.metricSnapshots.length ? formatPrimaryResult(row.metricSnapshots, row.profile.primaryKpi, locale) : copy.noMetrics} />
                 </dl>
-                {record.publicUrl && (
-                  <a href={record.publicUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-xl border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50 dark:text-sky-200">
-                    {copy.openPublished}
-                  </a>
-                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <ActionLink href={`/admin/marketing?lang=${locale}&segment=${segment}&reach=${reach}&campaign=${row.campaign.id}#campaign-detail`} label={copy.openContent} secondary />
+                  {row.content.status === "review_ready" && <ActionLink href="/admin/editorial/queue" label={copy.toReview} />}
+                </div>
               </article>
             ))}
           </div>
         ) : (
-          <EmptyState title={copy.noPublishedTitle} body={copy.noPublishedBody} />
+          <EmptyState title={copy.noContent} />
         )}
       </section>
 
-      <section id="materials" className="scroll-mt-6 space-y-4" aria-labelledby="materials-heading">
+      <section id="performance" className="scroll-mt-6 space-y-5" aria-labelledby="performance-heading">
         <div>
-          <SectionHeading id="materials-heading" title={copy.materialsTitle} />
-          <p className="mt-1 max-w-4xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.materialsIntro}</p>
+          <SectionHeading id="performance-heading" title={copy.sourceTitle} />
+          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.sourceIntro}</p>
         </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {materialAssets.map((asset) => (
-            <article key={asset.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-              <h3 className="font-semibold text-[rgb(var(--fg))]">{asset.title}</h3>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                <Definition label={copy.materialType} value={assetTypeLabel(asset.assetType, locale)} />
-                <Definition label={copy.materialStatus} value={assetStatusLabel(asset.status, locale)} />
-              </dl>
-            </article>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {model.sourceStates.map((source) => (
+            <SourceCard key={source.sourceKind} source={source} locale={locale} copy={copy} />
           ))}
+        </div>
+      </section>
+
+      <section id="recommendations" className="scroll-mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-6" aria-labelledby="recommendations-heading">
+        <SectionHeading id="recommendations-heading" title={copy.recommendationTitle} />
+        <p className="mt-3 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.recommendationBody}</p>
+        <p className="mt-3 max-w-5xl text-sm font-medium leading-6 text-[rgb(var(--fg))]">{copy.recommendationNext}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <ActionLink href="/admin/editorial/queue" label={copy.toReview} />
+          <ActionLink href={`/admin/marketing/insights?lang=${locale}`} label={copy.toInsights} secondary />
         </div>
       </section>
 
       <footer className="flex flex-wrap gap-2 border-t border-[rgb(var(--border))] pt-5">
         <AdminLink href="/admin" label={copy.backAdmin} />
-        <AdminLink href="/admin/campaigns" label={copy.toCampaigns} />
+        <AdminLink href="/admin/campaigns" label={copy.participationCampaigns} />
       </footer>
     </main>
   );
 }
 
-function ContentCard({ item, locale, copy, view }: { item: MarketingContentOperationsRow; locale: UiLocale; copy: (typeof COPY)[UiLocale]; view: ContentView }) {
-  const preview = item.content.captionDraft ?? item.content.scriptDraft ?? "—";
+function CampaignCard({ row, locale, copy, segment, reach }: { row: MarketingCampaignControlRow; locale: UiLocale; copy: (typeof COPY)[UiLocale]; segment: SegmentFilter; reach: ReachFilter }) {
   return (
     <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">{kindLabel(item.content.kind, locale)}</p>
-          <h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{item.content.title}</h3>
-          <p className="mt-2 line-clamp-4 text-sm leading-6 text-[rgb(var(--muted))]">{preview}</p>
+        <div className="max-w-2xl">
+          <div className="flex flex-wrap gap-2">
+            {row.profile.segments.map((value) => <span key={value} className="rounded-full border border-sky-300 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:text-sky-200">{value.toUpperCase()}</span>)}
+            <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))]">{promotionLabel(row.profile.promotion, locale)}</span>
+          </div>
+          <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{row.campaign.title}</h3>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{row.profile.objective}</p>
         </div>
-        <StatusBadge label={statusLabel(item.effectiveStatus, locale)} tone={statusTone(item.effectiveStatus)} />
+        <StatusBadge label={campaignStatusLabel(row.campaign.status, locale)} />
       </div>
       <dl className="mt-4 grid gap-3 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm sm:grid-cols-2">
-        <Definition label={copy.channels} value={item.content.channels.map((channel) => channelLabel(channel, locale)).join(", ")} />
-        <Definition label={copy.schedule} value={scheduleLabel(item, locale, locale === "en" ? "en-GB" : "de-DE")} />
-        <Definition label={copy.responsibility} value={item.content.responsibleLabel} />
-        <Definition label={copy.campaign} value={item.campaign.title} />
+        <Definition label={copy.audiences} value={row.profile.audienceLabels.join(", ")} />
+        <Definition label={copy.reach} value={row.profile.reachScopes.map((value) => reachLabel(value, locale)).join(", ")} />
+        <Definition label={copy.channels} value={row.profile.plannedChannels.slice(0, 5).map((value) => channelLabel(value, locale)).join(", ") + (row.profile.plannedChannels.length > 5 ? " …" : "")} />
+        <Definition label={copy.primaryKpi} value={metricLabel(row.profile.primaryKpi, locale)} />
+        <Definition label={copy.contentCount} value={`${row.plannedContentCount} · ${row.publishedContentCount} ${copy.publishedCount}`} />
+        <Definition label={copy.dataQuality} value={dataQualityLabel(row.dataQuality, locale)} />
       </dl>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href={`${hrefFor(locale, view, item.content.id)}#content-detail`} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-400">
-          {copy.open}
-        </Link>
-        <ActionLink href={item.content.nextAction.href} label={nextActionLabel(item, locale)} />
+        <ActionLink href={`/admin/marketing?lang=${locale}&segment=${segment}&reach=${reach}&campaign=${row.campaign.id}#campaign-detail`} label={copy.openCampaign} secondary />
+        <ActionLink href={`/admin/marketing/insights?lang=${locale}&campaign=${row.campaign.id}`} label={copy.openInsights} />
       </div>
     </article>
   );
+}
+
+function SourceCard({ source, locale, copy }: { source: MarketingPerformanceSourceState; locale: UiLocale; copy: (typeof COPY)[UiLocale] }) {
+  return (
+    <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-semibold text-[rgb(var(--fg))]">{sourceLabel(source.sourceKind, locale)}</h3>
+        <StatusBadge label={dataQualityLabel(source.quality, locale)} />
+      </div>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <Definition label={copy.snapshots} value={String(source.snapshotCount)} />
+        <Definition label={copy.latest} value={source.latestCapturedAt ? formatDate(source.latestCapturedAt, locale) : copy.notConnected} />
+      </dl>
+    </article>
+  );
+}
+
+function normalizeLocale(value: string | string[] | undefined): UiLocale {
+  return first(value) === "en" ? "en" : "de";
+}
+
+function normalizeSegment(value: string | string[] | undefined): SegmentFilter {
+  const candidate = first(value);
+  return candidate === "b2c" || candidate === "b2b" || candidate === "b2g" ? candidate : "all";
+}
+
+function normalizeReach(value: string | string[] | undefined): ReachFilter {
+  const candidate = first(value);
+  return candidate === "local" || candidate === "regional" || candidate === "national" || candidate === "international" ? candidate : "all";
 }
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function normalizeLocale(value: string | string[] | undefined): UiLocale {
-  return first(value)?.toLowerCase().startsWith("en") ? "en" : "de";
-}
-
-function normalizeView(value: string | string[] | undefined): ContentView {
-  const candidate = first(value);
-  return ["all", "draft", "review_ready", "approved", "scheduled", "published", "paused", "archived"].includes(candidate ?? "")
-    ? (candidate as ContentView)
-    : "all";
-}
-
-function hrefFor(locale: UiLocale, view: ContentView, itemId?: string) {
-  const params = new URLSearchParams({ lang: locale, view });
-  if (itemId) params.set("item", itemId);
+function pageHref(locale: UiLocale, segment: SegmentFilter, reach: ReachFilter) {
+  const params = new URLSearchParams({ lang: locale, segment, reach });
   return `/admin/marketing?${params.toString()}`;
 }
 
-function contentMatchesView(item: MarketingContentOperationsRow, view: ContentView) {
-  return view === "all" || item.effectiveStatus === view;
-}
-
-function nextActionLabel(item: MarketingContentOperationsRow, locale: UiLocale) {
-  return locale === "de" ? item.content.nextAction.labelDe : item.content.nextAction.labelEn;
-}
-
-function scheduleLabel(item: MarketingContentOperationsRow, locale: UiLocale, dateLocale: string) {
-  const publication = item.distributionRecords.find((record) => record.status === "published" && record.publishedAt);
-  if (publication?.publishedAt) return formatDate(publication.publishedAt, dateLocale);
-  if (item.content.scheduledAt) return formatDate(item.content.scheduledAt, dateLocale);
-  return locale === "de" ? "Noch nicht terminiert" : "Not scheduled yet";
-}
-
-function statusLabel(status: MarketingContentStatus, locale: UiLocale) {
-  const labels: Record<UiLocale, Record<MarketingContentStatus, string>> = {
-    de: { draft: "In Arbeit", review_ready: "Zur Freigabe", approved: "Freigegeben", scheduled: "Eingeplant", published: "Veröffentlicht", paused: "Pausiert", archived: "Archiviert" },
-    en: { draft: "In progress", review_ready: "Ready for review", approved: "Approved", scheduled: "Scheduled", published: "Published", paused: "Paused", archived: "Archived" },
-  };
-  return labels[locale][status];
-}
-
-function statusTone(status: MarketingContentStatus): Tone {
-  if (status === "published" || status === "approved") return "emerald";
-  if (status === "scheduled") return "violet";
-  if (status === "review_ready") return "sky";
-  if (status === "draft") return "amber";
-  return "slate";
-}
-
-function reviewLabel(status: MarketingContentOperationsRow["content"]["review"]["status"], locale: UiLocale) {
+function reachLabel(value: MarketingReachScope, locale: UiLocale) {
   const labels = {
-    de: { pending: "Prüfung offen", changes_requested: "Änderungen angefordert", approved: "Freigegeben" },
-    en: { pending: "Review pending", changes_requested: "Changes requested", approved: "Approved" },
+    de: { local: "Lokal", regional: "Regional", national: "National", international: "International" },
+    en: { local: "Local", regional: "Regional", national: "National", international: "International" },
   } as const;
-  return labels[locale][status];
+  return labels[locale][value];
 }
 
-function kindLabel(kind: MarketingContentKind, locale: UiLocale) {
-  const labels: Record<UiLocale, Record<MarketingContentKind, string>> = {
-    de: { social_post: "Social-Post", carousel: "Carousel-Post", story: "Story", short_video: "Kurzvideo", video: "Video", press_post: "Presse-/LinkedIn-Beitrag", newsletter: "Newsletter" },
-    en: { social_post: "Social post", carousel: "Carousel post", story: "Story", short_video: "Short video", video: "Video", press_post: "Press / LinkedIn post", newsletter: "Newsletter" },
-  };
-  return labels[locale][kind];
+function promotionLabel(value: MarketingPromotion, locale: UiLocale) {
+  const labels = {
+    de: { organic: "Organisch", paid: "Bezahlt", mixed: "Organisch & bezahlt" },
+    en: { organic: "Organic", paid: "Paid", mixed: "Organic & paid" },
+  } as const;
+  return labels[locale][value];
 }
 
-function channelLabel(channel: MarketingContentChannel, locale: UiLocale) {
-  const labels: Record<MarketingContentChannel, string> = {
+function channelLabel(value: MarketingControlChannel, locale: UiLocale) {
+  const labels: Record<MarketingControlChannel, string> = {
+    edebatte: "eDebatte",
+    website: "Website",
+    download: locale === "de" ? "Download" : "Download",
+    email: "E-Mail",
+    newsletter: "Newsletter",
     instagram: "Instagram",
     instagram_reels: "Instagram Reels",
     instagram_story: "Instagram Story",
@@ -437,52 +459,135 @@ function channelLabel(channel: MarketingContentChannel, locale: UiLocale) {
     tiktok: "TikTok",
     youtube_shorts: "YouTube Shorts",
     youtube: "YouTube",
-    newsletter: "Newsletter",
     press: locale === "de" ? "Presse" : "Press",
+    meta_ads: "Meta Ads",
+    linkedin_ads: "LinkedIn Ads",
+    google_ads: "Google Ads",
   };
-  return labels[channel];
+  return labels[value];
 }
 
-function assetTypeLabel(type: MarketingAsset["assetType"], locale: UiLocale) {
-  const labels: Record<UiLocale, Record<MarketingAsset["assetType"], string>> = {
-    de: { onepager: "Onepager", pitchdeck: "Präsentation", landing_copy: "Landingpage-Text", carousel: "Carousel", social_image: "Social-Bild", story: "Story", reel_cover: "Reel-Cover", video_script: "Video-Script", video_master: "Video-Master", video_variant: "Video-Variante", press_copy: "Pressetext", partner_kit: "Partner-Kit", newsletter: "Newsletter", report: "Bericht", other: "Sonstiges" },
-    en: { onepager: "Onepager", pitchdeck: "Presentation", landing_copy: "Landing page copy", carousel: "Carousel", social_image: "Social image", story: "Story", reel_cover: "Reel cover", video_script: "Video script", video_master: "Video master", video_variant: "Video variant", press_copy: "Press copy", partner_kit: "Partner kit", newsletter: "Newsletter", report: "Report", other: "Other" },
+function metricLabel(value: MarketingMetricKey, locale: UiLocale) {
+  const de: Partial<Record<MarketingMetricKey, string>> = {
+    reach: "Qualifizierte Reichweite",
+    impressions: "Impressionen",
+    views: "Aufrufe",
+    completion_rate: "Video-Abschlussrate",
+    shares: "Geteilte Beiträge",
+    saves: "Gespeicherte Beiträge",
+    link_clicks: "Link-Klicks",
+    downloads: "Downloads",
+    product_actions_started: "Begonnene Produktaktionen",
+    product_actions_completed: "Abgeschlossene Produktaktionen",
+    qualified_inquiries: "Qualifizierte Anfragen",
+    email_replies: "E-Mail-Antworten",
+    landing_page_views: "Landingpage-Aufrufe",
   };
-  return labels[locale][type];
+  const en: Partial<Record<MarketingMetricKey, string>> = {
+    reach: "Qualified reach",
+    impressions: "Impressions",
+    views: "Views",
+    completion_rate: "Video completion rate",
+    shares: "Shares",
+    saves: "Saves",
+    link_clicks: "Link clicks",
+    downloads: "Downloads",
+    product_actions_started: "Product actions started",
+    product_actions_completed: "Product actions completed",
+    qualified_inquiries: "Qualified inquiries",
+    email_replies: "Email replies",
+    landing_page_views: "Landing page views",
+  };
+  return (locale === "de" ? de[value] : en[value]) ?? value.replaceAll("_", " ");
 }
 
-function assetStatusLabel(status: MarketingAsset["status"], locale: UiLocale) {
+function dataQualityLabel(value: MarketingDataQuality, locale: UiLocale) {
   const labels = {
-    de: { draft: "In Arbeit", review_ready: "Zur Freigabe", approved: "Freigegeben", published: "Veröffentlicht", retired: "Archiviert" },
-    en: { draft: "In progress", review_ready: "Ready for review", approved: "Approved", published: "Published", retired: "Archived" },
+    de: { verified: "Verifiziert", partial: "Teilweise", estimated: "Geschätzt", stale: "Veraltet", missing: "Keine Daten", rejected: "Verworfen" },
+    en: { verified: "Verified", partial: "Partial", estimated: "Estimated", stale: "Stale", missing: "No data", rejected: "Rejected" },
   } as const;
-  return labels[locale][status];
+  return labels[locale][value];
 }
 
-function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+function sourceLabel(value: MarketingPerformanceSourceState["sourceKind"], locale: UiLocale) {
+  const labels = {
+    de: { internal: "eDebatte intern", social: "Social Media organisch", email: "E-Mail & Newsletter", download: "Downloads", ads: "Bezahlte Werbung", manual: "Manuell verifiziert" },
+    en: { internal: "eDebatte internal", social: "Organic social media", email: "Email & newsletter", download: "Downloads", ads: "Paid advertising", manual: "Manually verified" },
+  } as const;
+  return labels[locale][value];
 }
 
-function MetricLink({ href, label, value, note, active, tone }: { href: string; label: string; value: number; note: string; active: boolean; tone: Tone }) {
-  const toneClass = { sky: "border-sky-300 bg-sky-50 dark:bg-sky-400/10", amber: "border-amber-300 bg-amber-50 dark:bg-amber-400/10", emerald: "border-emerald-300 bg-emerald-50 dark:bg-emerald-400/10", violet: "border-violet-300 bg-violet-50 dark:bg-violet-400/10", slate: "border-[rgb(var(--border))] bg-[rgb(var(--card))]" }[tone];
-  return <Link href={href} className={`rounded-3xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${active ? toneClass : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}><span className="text-sm font-semibold text-[rgb(var(--fg))]">{label}</span><strong className="mt-3 block text-3xl text-[rgb(var(--fg))]">{value}</strong><span className="mt-2 block text-xs leading-5 text-[rgb(var(--muted))]">{note}</span></Link>;
+function campaignStatusLabel(value: MarketingCampaignControlRow["campaign"]["status"], locale: UiLocale) {
+  const de: Record<MarketingCampaignControlRow["campaign"]["status"], string> = {
+    idea: "Idee", qualified: "Qualifiziert", planned: "Geplant", in_production: "In Produktion", review_ready: "Zur Freigabe", approved: "Freigegeben", scheduled: "Eingeplant", active: "Aktiv", paused: "Pausiert", blocked: "Blockiert", completed: "Abgeschlossen", retired: "Archiviert", cancelled: "Abgebrochen",
+  };
+  const en: Record<MarketingCampaignControlRow["campaign"]["status"], string> = {
+    idea: "Idea", qualified: "Qualified", planned: "Planned", in_production: "In production", review_ready: "Ready for review", approved: "Approved", scheduled: "Scheduled", active: "Active", paused: "Paused", blocked: "Blocked", completed: "Completed", retired: "Archived", cancelled: "Cancelled",
+  };
+  return (locale === "de" ? de : en)[value];
 }
 
-function FilterLink({ locale, value, current, label, count }: { locale: UiLocale; value: ContentView; current: ContentView; label: string; count: number }) {
-  return <Link href={`${hrefFor(locale, value)}#content`} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${current === value ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-sky-300"}`}>{label} {count}</Link>;
+function contentStatusLabel(value: MarketingContentStatus, locale: UiLocale) {
+  const labels = {
+    de: { draft: "In Arbeit", review_ready: "Zur Freigabe", approved: "Freigegeben", scheduled: "Eingeplant", published: "Veröffentlicht", paused: "Pausiert", archived: "Archiviert" },
+    en: { draft: "In progress", review_ready: "Ready for review", approved: "Approved", scheduled: "Scheduled", published: "Published", paused: "Paused", archived: "Archived" },
+  } as const;
+  return labels[locale][value];
 }
 
-function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
-  const classes = { sky: "border-sky-300 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200", amber: "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100", emerald: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-100", violet: "border-violet-300 bg-violet-50 text-violet-900 dark:bg-violet-400/10 dark:text-violet-100", slate: "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]" }[tone];
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${classes}`}>{label}</span>;
+function scopeLabel(value: "internal" | "external" | "mixed", copy: (typeof COPY)[UiLocale]) {
+  return value === "internal" ? copy.internal : value === "external" ? copy.external : copy.mixed;
 }
 
-function SectionHeading({ id, title }: { id: string; title: string }) { return <h2 id={id} className="text-xl font-bold text-[rgb(var(--fg))]">{title}</h2>; }
-function Definition({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</dt><dd className="mt-1 font-medium text-[rgb(var(--fg))]">{value}</dd></div>; }
-function DetailPanel({ title, body }: { title: string; body: string }) { return <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{title}</p><p className="mt-2 text-sm font-medium leading-6 text-[rgb(var(--fg))]">{body}</p></div>; }
-function CopyPanel({ title, body }: { title: string; body: string }) { return <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{title}</p><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[rgb(var(--fg))]">{body}</p></div>; }
-function EmptyState({ title, body }: { title: string; body: string }) { return <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6"><h3 className="font-semibold text-[rgb(var(--fg))]">{title}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">{body}</p></div>; }
-function AnchorLink({ href, label }: { href: string; label: string }) { return <a href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</a>; }
-function ActionLink({ href, label }: { href: string; label: string }) { return <Link href={href} className="inline-flex rounded-xl bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">{label}</Link>; }
-function AdminLink({ href, label }: { href: string; label: string }) { return <Link href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</Link>; }
-function languageLinkClass(active: boolean) { return `rounded-full border px-3 py-1.5 ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`; }
+function formatPrimaryResult(snapshots: Array<{ values: Partial<Record<MarketingMetricKey, number>> }>, primaryKpi: MarketingMetricKey, locale: UiLocale) {
+  const value = snapshots.reduce((sum, snapshot) => sum + (snapshot.values[primaryKpi] ?? 0), 0);
+  return `${new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB").format(value)} · ${metricLabel(primaryKpi, locale)}`;
+}
+
+function formatDate(value: string, locale: UiLocale) {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function languageLinkClass(active: boolean) {
+  return `rounded-full border px-3 py-1.5 ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`;
+}
+
+function MetricCard({ label, value, note }: { label: string; value: number; note: string }) {
+  return <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"><p className="text-sm font-semibold text-[rgb(var(--fg))]">{label}</p><strong className="mt-3 block text-3xl text-[rgb(var(--fg))]">{value}</strong><p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{note}</p></article>;
+}
+
+function FilterLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+  return <Link href={href} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-300"}`}>{label}</Link>;
+}
+
+function StatusBadge({ label }: { label: string }) {
+  return <span className="rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-400/10 dark:text-sky-200">{label}</span>;
+}
+
+function Definition({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</dt><dd className="mt-1 break-words font-medium leading-6 text-[rgb(var(--fg))]">{value}</dd></div>;
+}
+
+function DetailPanel({ title, body }: { title: string; body: string }) {
+  return <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{title}</p><p className="mt-2 text-sm font-medium leading-6 text-[rgb(var(--fg))]">{body}</p></div>;
+}
+
+function SectionHeading({ id, title }: { id: string; title: string }) {
+  return <h2 id={id} className="text-xl font-bold text-[rgb(var(--fg))] sm:text-2xl">{title}</h2>;
+}
+
+function EmptyState({ title }: { title: string }) {
+  return <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center text-sm text-[rgb(var(--muted))]">{title}</div>;
+}
+
+function AnchorLink({ href, label }: { href: string; label: string }) {
+  return <a href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</a>;
+}
+
+function ActionLink({ href, label, secondary = false }: { href: string; label: string; secondary?: boolean }) {
+  return <Link href={href} className={secondary ? "inline-flex rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300" : "inline-flex rounded-xl bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"}>{label}</Link>;
+}
+
+function AdminLink({ href, label }: { href: string; label: string }) {
+  return <Link href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</Link>;
+}
