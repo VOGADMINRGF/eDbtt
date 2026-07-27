@@ -1,0 +1,154 @@
+name: One-time Marketing Assistant Branch Patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/patch-marketing-assistant-branch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pr/marketing-contextual-assistant-01
+          fetch-depth: 0
+
+      - name: Patch marketing surfaces and tests
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str):
+              text = path.read_text(encoding='utf-8')
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected one occurrence, found {text.count(old)} for {old[:80]!r}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          page = Path('apps/web/src/app/admin/marketing/page.tsx')
+          replace_once(
+              page,
+              'import { buildMarketingCampaignControlReadModel } from "@/features/marketing/campaignControl/readModel";\n',
+              'import { buildMarketingCampaignControlReadModel } from "@/features/marketing/campaignControl/readModel";\nimport { buildMarketingAssistantReadModel } from "@/features/marketing/assistant/readModel";\nimport { MarketingAssistantPanel } from "@/features/marketing/assistant/AssistantPanel";\n',
+          )
+          replace_once(page, '    recommendations: "Empfehlungen",\n', '    assistant: "Assistent",\n')
+          replace_once(page, '    recommendations: "Recommendations",\n', '    assistant: "Assistant",\n')
+          replace_once(
+              page,
+              '  const selectedCampaign = campaigns.find((row) => row.campaign.id === selectedCampaignId) ?? null;\n  const summary = {\n',
+              '  const selectedCampaign = campaigns.find((row) => row.campaign.id === selectedCampaignId) ?? null;\n  const assistantModel = buildMarketingAssistantReadModel(model, {\n    campaignId: selectedCampaign?.campaign.id ?? null,\n    surface: "cockpit",\n  });\n  const summary = {\n',
+          )
+          replace_once(
+              page,
+              '          <AnchorLink href="#recommendations" label={copy.recommendations} />\n',
+              '          <AnchorLink href="#assistant" label={copy.assistant} />\n',
+          )
+          replace_once(
+              page,
+              '      </section>\n\n      <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">\n',
+              '      </section>\n\n      <MarketingAssistantPanel model={assistantModel} locale={locale} />\n\n      <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">\n',
+          )
+          old_recommendation = '''      <section id="recommendations" className="scroll-mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-6" aria-labelledby="recommendations-heading">
+        <SectionHeading id="recommendations-heading" title={copy.recommendationTitle} />
+        <p className="mt-3 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.recommendationBody}</p>
+        <p className="mt-3 max-w-5xl text-sm font-medium leading-6 text-[rgb(var(--fg))]">{copy.recommendationNext}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <ActionLink href="/admin/editorial/queue" label={copy.toReview} />
+          <ActionLink href={`/admin/marketing/insights?lang=${locale}`} label={copy.toInsights} secondary />
+        </div>
+      </section>
+
+'''
+          replace_once(page, old_recommendation, '')
+
+          insights = Path('apps/web/src/app/admin/marketing/insights/page.tsx')
+          replace_once(
+              insights,
+              'import { buildMarketingCampaignControlReadModel } from "@/features/marketing/campaignControl/readModel";\n',
+              'import { buildMarketingCampaignControlReadModel } from "@/features/marketing/campaignControl/readModel";\nimport { buildMarketingAssistantReadModel } from "@/features/marketing/assistant/readModel";\nimport { MarketingAssistantPanel } from "@/features/marketing/assistant/AssistantPanel";\n',
+          )
+          replace_once(
+              insights,
+              '  const snapshotCount = campaigns.reduce((sum, row) => sum + row.metricSnapshots.length, 0);\n\n  return (\n',
+              '  const snapshotCount = campaigns.reduce((sum, row) => sum + row.metricSnapshots.length, 0);\n  const assistantModel = buildMarketingAssistantReadModel(model, {\n    campaignId: campaigns.length === 1 ? campaigns[0].campaign.id : null,\n    surface: "insights",\n  });\n\n  return (\n',
+          )
+          replace_once(
+              insights,
+              '      </section>\n\n      <section className="space-y-5" aria-labelledby="sources-heading">\n',
+              '      </section>\n\n      <MarketingAssistantPanel model={assistantModel} locale={locale} id="insights-assistant" />\n\n      <section className="space-y-5" aria-labelledby="sources-heading">\n',
+          )
+
+          package = Path('apps/web/package.json')
+          replace_once(
+              package,
+              'tests/marketing-campaign-control.contract.test.ts tests/admin-marketing-insights.page.test.tsx',
+              'tests/marketing-campaign-control.contract.test.ts tests/marketing-contextual-assistant.contract.test.ts tests/admin-marketing-insights.page.test.tsx',
+          )
+
+          page_test = Path('apps/web/tests/admin-marketing.page.test.tsx')
+          replace_once(
+              page_test,
+              '    expect(html).toContain("Messdaten und Datenquellen");\n',
+              '    expect(html).toContain("Messdaten und Datenquellen");\n    expect(html).toContain("Marketing-Assistent");\n    expect(html).toContain("Nur Empfehlungen");\n',
+          )
+          replace_once(
+              page_test,
+              '    expect(html).toContain("Noch ist keine belastbare Plattform- oder Reichweitenempfehlung möglich");\n',
+              '    expect(html).toContain("Noch keine Performance-Datenquelle ist verbunden.");\n    expect(html).toContain("Messplan und Datenlage prüfen");\n',
+          )
+          replace_once(
+              page_test,
+              '    expect(html).toContain("/admin/editorial/queue");\n',
+              '    expect(html).toContain("/admin/editorial/queue");\n    expect(html).toContain("Kampagneninhalte prüfen");\n',
+          )
+          replace_once(
+              page_test,
+              '    expect(html).toContain("Not connected / no verified data");\n',
+              '    expect(html).toContain("Not connected / no verified data");\n    expect(html).toContain("Marketing assistant");\n    expect(html).toContain("Recommendations only");\n',
+          )
+
+          insights_test = Path('apps/web/tests/admin-marketing-insights.page.test.tsx')
+          replace_once(
+              insights_test,
+              '    expect(html).toContain("Plattform- &amp; Reichweitenintelligenz");\n',
+              '    expect(html).toContain("Plattform- &amp; Reichweitenintelligenz");\n    expect(html).toContain("Marketing-Assistent");\n    expect(html).toContain("Messplan und Datenlage prüfen");\n',
+          )
+          replace_once(
+              insights_test,
+              '    expect(html).toContain("Qualifizierte Anfragen");\n',
+              '    expect(html).toContain("Qualifizierte Anfragen");\n    expect(html).toContain("Messplan und Datenlage öffnen");\n',
+          )
+          replace_once(
+              insights_test,
+              '    expect(html).toContain("No verified data yet");\n',
+              '    expect(html).toContain("No verified data yet");\n    expect(html).toContain("Marketing assistant");\n',
+          )
+          PY
+
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/src/app/admin/marketing/page.tsx \
+                  apps/web/src/app/admin/marketing/insights/page.tsx \
+                  apps/web/package.json \
+                  apps/web/tests/admin-marketing.page.test.tsx \
+                  apps/web/tests/admin-marketing-insights.page.test.tsx
+          git commit -m 'feat(marketing): integrate contextual assistant into cockpit'
+          git push origin HEAD:pr/marketing-contextual-assistant-01
+
+      - name: Remove one-time workflow from main
+        shell: bash
+        run: |
+          git fetch origin main
+          git switch -C main origin/main
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/patch-marketing-assistant-branch.yml
+          git commit -m 'chore: remove marketing assistant branch patch'
+          git push origin HEAD:main
