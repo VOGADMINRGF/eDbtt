@@ -10,7 +10,7 @@ import MarketingWorkspaceLayout from "@/app/admin/marketing/layout";
 import MarketingLoading from "@/app/admin/marketing/loading";
 
 describe("admin marketing workspace shell", () => {
-  it("keeps the real review route permanently visible with its current count", () => {
+  it("keeps review, results and source decisions permanently visible", () => {
     const html = renderToStaticMarkup(
       <MarketingWorkspaceLayout>
         <div>Workspace content</div>
@@ -23,7 +23,9 @@ describe("admin marketing workspace shell", () => {
     expect(html).toContain("Inhalte &amp; Freigaben");
     expect(html).toContain(">2<");
     expect(html).toContain("Ergebnisse");
+    expect(html).toContain("Quellen &amp; Themen");
     expect(html).toContain("/admin/marketing/review?lang=de");
+    expect(html).toContain("/admin/marketing/sources?lang=de");
     expect(html).toContain('aria-current="page"');
     expect(html).not.toContain("/admin/marketing/topics");
     expect(html).not.toContain("/admin/marketing/connections");
