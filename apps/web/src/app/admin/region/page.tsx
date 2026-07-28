@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { RegionAllowedAction, RegionalAdminCockpitReadModel } from "@features/region";
+import type { RegionalAdminCockpitReadModel } from "@features/region";
 import {
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
@@ -8,20 +8,25 @@ import {
   regionEntitlementReasonLabel,
   regionEntitlementStatusLabel,
   regionFeedSignalOriginLabel,
-  regionGuardrailLabel,
-  regionOpenReviewOriginLabel,
   regionReviewStatusLabel,
-  regionVisibilityStateLabel,
-  resolveFeedVisibilityState,
 } from "@features/region";
-import { buildB2GFirstLoginAdminHint } from "@/features/agenticRuntime/b2gFirstLoginJurisdictionCockpitHints";
-import { buildMunicipalHandoffTrialRegionHint } from "@/features/agenticRuntime/municipalHandoffThreeAdoptionTrialContract";
-import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
   | Record<string, string | string[] | undefined>;
+
+const WORKSPACE_VIEWS = [
+  { id: "lagebild", label: "Lagebild" },
+  { id: "quellen", label: "Quellen & Feeds" },
+  { id: "recherche", label: "Recherche" },
+  { id: "claims", label: "Claims & Dossiers" },
+  { id: "beitraege", label: "Beiträge & Veröffentlichung" },
+  { id: "kampagnen", label: "Regionale Kampagnen" },
+  { id: "einstellungen", label: "Einstellungen & Zugriff" },
+] as const;
+
+type WorkspaceView = (typeof WORKSPACE_VIEWS)[number]["id"];
 
 function toArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
@@ -33,21 +38,61 @@ function firstParam(value?: string | string[]) {
   return null;
 }
 
-function suggestedActionLabel(action: string) {
-  switch (action) {
-    case "create_anlassraum":
-      return "Anlassraum-Vorschlag";
-    case "attach_to_anlassraum":
-      return "An bestehenden Anlassraum anhängen";
-    case "create_dossier":
-      return "Dossier-Draft vorbereiten";
-    case "attach_source_to_dossier":
-      return "Quelle prüfen";
-    case "ask_clarifying_question":
-      return "Offene Frage markieren";
-    default:
-      return "Ignorieren";
-  }
+function resolveView(value: string | null): WorkspaceView {
+  return WORKSPACE_VIEWS.some((entry) => entry.id === value)
+    ? (value as WorkspaceView)
+    : "lagebild";
+}
+
+function withQuery(path: string, values: Record<string, string | null | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => {
+    if (value) query.set(key, value);
+  });
+  return `${path}?${query.toString()}`;
+}
+
+function workspaceHref(region: string, view: WorkspaceView) {
+  return withQuery("/admin/region", { regionId: region, view });
+}
+
+function researchHref(region: string, topic?: string | null, source?: string | null) {
+  return withQuery("/admin/research/tasks", {
+    regionId: region,
+    topic,
+    source,
+    origin: "admin-region",
+  });
+}
+
+function createHref(
+  region: string,
+  params: { signalTitle?: string | null; topic?: string | null; reason: string },
+) {
+  return withQuery("/create", {
+    source: "admin_region",
+    signalTitle: params.signalTitle,
+    region,
+    scope: "regional",
+    clusterHint: params.topic,
+    reviewState: "needs_review",
+    reason: params.reason,
+  });
+}
+
+function marketingHref(region: string, topic?: string | null) {
+  return withQuery("/admin/marketing", {
+    lang: "de",
+    segment: "b2g",
+    reach: "regional",
+    region,
+    topic,
+    origin: "admin-region",
+  });
+}
+
+function reviewHref(region: string) {
+  return withQuery("/admin/review", { regionId: region, origin: "admin-region" });
 }
 
 function sourceTypeLabel(value: string) {
@@ -57,9 +102,9 @@ function sourceTypeLabel(value: string) {
     case "official_update":
       return "Verwaltungshinweis";
     case "community_signal":
-      return "Bürgerhinweis";
+      return "Community-Hinweis";
     case "feed_draft":
-      return "Feed-Draft";
+      return "Feed-Entwurf";
     case "public_claim":
       return "Öffentliche Aussage";
     case "public_contribution":
@@ -68,135 +113,84 @@ function sourceTypeLabel(value: string) {
       return "Öffentliche Frage";
     case "public_source_hint":
       return "Öffentlicher Quellenhinweis";
-    case "swipe_interest":
-      return "Aggregiertes Swipe-Interesse";
-    case "swipe_counterpoint":
-      return "Aggregierte Gegenposition";
-    case "saved_topic":
-      return "Gespeichertes Thema";
-    case "support_signal":
-      return "Unterstütztes Thema";
     default:
-      return "Manuelle Notiz";
+      return "Manueller Hinweis";
   }
 }
 
-function authoritySourceLabel(value: RegionalAdminCockpitReadModel["accessSummary"]["authoritySource"]) {
+function suggestedActionLabel(value: string) {
+  switch (value) {
+    case "create_anlassraum":
+      return "Anlassraum-Vorschlag prüfen";
+    case "attach_to_anlassraum":
+      return "Anlassraum-Zuordnung prüfen";
+    case "create_dossier":
+      return "Dossier-Vorschlag prüfen";
+    case "attach_source_to_dossier":
+      return "Quelle einem Dossier zuordnen";
+    case "ask_clarifying_question":
+      return "Offene Frage klären";
+    default:
+      return "Im Review einordnen";
+  }
+}
+
+function authoritySourceLabel(
+  value: RegionalAdminCockpitReadModel["accessSummary"]["authoritySource"],
+) {
   switch (value) {
     case "admin_fallback":
-      return "Admin-Fallback";
+      return "Globale Adminsicht";
     case "verified_membership":
       return "Verifizierte Behördenzuordnung";
     default:
-      return "Unverifizierter Region-Hinweis";
+      return "Unverifizierter Regionshinweis";
   }
 }
 
-function allowedActionLabel(action: RegionAllowedAction) {
-  switch (action) {
-    case "read_region_dashboard":
-      return "Region-Dashboard lesen";
-    case "review_region_signal":
-      return "Signale reviewen";
-    case "create_region_draft":
-      return "Region-Draft vorbereiten";
-    case "attach_signal_to_dossier":
-      return "Signal an Dossier anhängen";
-    case "create_dossier_draft":
-      return "Dossier-Draft vorbereiten";
-    case "create_anlassraum_draft":
-      return "Anlassraum-Draft vorbereiten";
-    case "submit_for_review":
-      return "Für Review einreichen";
-    case "approve_publication":
-      return "Publikation freigeben";
-    default:
-      return "Mitglieder verwalten";
-  }
+function Card(props: {
+  eyebrow?: string;
+  title: string;
+  body?: string;
+  children?: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <article
+      data-testid={props.testId}
+      className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+    >
+      {props.eyebrow ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+          {props.eyebrow}
+        </p>
+      ) : null}
+      <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{props.title}</h2>
+      {props.body ? <p className="mt-2 text-sm text-[rgb(var(--muted))]">{props.body}</p> : null}
+      {props.children}
+    </article>
+  );
 }
 
-function accessHint(cockpit: RegionalAdminCockpitReadModel) {
-  if (cockpit.accessSummary.adminFallback) {
-    return "Zugriff über adminFallback. Das ist eine globale Adminsicht und noch keine verifizierte Behördenfreischaltung oder bezahlte Freischaltung.";
-  }
-  if (cockpit.accessSummary.paidDashboardEntitlement !== "granted") {
-    return "Verifizierte Membership allein reicht nicht. Für dieses RegionDashboard ist zusätzlich eine aktive oder testweise Freischaltung erforderlich.";
-  }
-  if (cockpit.accessSummary.verificationStatus === "publication_approved") {
-    return "Publikationsfreigabe ist als expliziter menschlicher Freigabeschritt möglich. `public_official` wird nie automatisch vergeben.";
-  }
-  if (cockpit.accessSummary.verificationStatus === "unit_verified") {
-    return "Unit-verifizierte Rollen dürfen Draft- und Review-Aktionen vorbereiten. Veröffentlichung bleibt separat gesperrt.";
-  }
-  if (cockpit.accessSummary.verificationStatus === "organization_verified") {
-    return "Organisations-verifizierte Rollen bleiben read-only für die eigene Region. Draft-Aktionen folgen erst mit zusätzlicher Unit-Verifizierung.";
-  }
-  return "Selbstauskunft, In-Prüfung-Status oder unverifizierte Zuordnungen sind keine Behördenrechte. Standorte wie Rathaus, Geschäftsstelle oder Redaktionsbüro bleiben optionale Kontextangaben.";
-}
-
-function actionStateLabel(cockpit: RegionalAdminCockpitReadModel) {
-  if (cockpit.accessSummary.canCreateDossierDraft || cockpit.accessSummary.canCreateAnlassraumDraft) {
-    return "Aktion vorbereitet, aber noch nicht ausführbar";
-  }
-  return "Berechtigung oder CUT-03 erforderlich";
-}
-
-function renderEmptyState(label: string) {
-  return <p className="text-sm text-[rgb(var(--muted))]">Noch keine {label} sichtbar.</p>;
-}
-
-function guidelineLabel(value: string) {
-  switch (value) {
-    case "fruehzeitigkeit":
-      return "Frühzeitigkeit";
-    case "transparenz":
-      return "Transparenz";
-    case "rueckmeldung":
-      return "Rückmeldung";
-    case "zielgruppenansprache":
-      return "Zielgruppenansprache";
-    case "barrierefreiheit":
-      return "Barrierefreiheit";
-    case "dokumentation":
-      return "Dokumentation";
-    default:
-      return "Nachvollziehbarkeit";
-  }
-}
-
-function aggregationModeLabel(value: string) {
-  switch (value) {
-    case "anonymized_count":
-      return "anonymisiert/aggregiert";
-    case "aggregate_only":
-      return "aggregiert";
-    default:
-      return "einzelner Review-Hinweis";
-  }
-}
-
-function privacyModeLabel(value: string) {
-  switch (value) {
-    case "anonymized":
-      return "anonymisiert";
-    case "review_restricted":
-      return "reviewbeschränkt";
-    default:
-      return "ohne Personendaten";
-  }
-}
-
-function intelligenceSuggestionLabel(value: string) {
-  switch (value) {
-    case "topic_cluster":
-      return "Themencluster";
-    case "dossier_suggestion":
-      return "Dossier-Vorschlag";
-    case "anlassraum_suggestion":
-      return "Anlassraum-Vorschlag";
-    default:
-      return "Review-Vorschlag";
-  }
+function ActionLink(props: {
+  href: string;
+  children: React.ReactNode;
+  primary?: boolean;
+  testId?: string;
+}) {
+  return (
+    <Link
+      data-testid={props.testId}
+      href={props.href}
+      className={
+        props.primary
+          ? "inline-flex items-center justify-center rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white"
+          : "inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+      }
+    >
+      {props.children}
+    </Link>
+  );
 }
 
 export default async function AdminRegionPage({
@@ -206,796 +200,555 @@ export default async function AdminRegionPage({
 }) {
   const resolved = searchParams ? await searchParams : {};
   const selectedRegionId = firstParam(resolved.regionId);
-  if (!selectedRegionId) {
-    redirect("/admin/regions");
-  }
-  const region = selectedRegionId ? await getOperationalRegionById(selectedRegionId) : null;
-  if (!region) {
-    redirect("/admin/regions");
-  }
+  if (!selectedRegionId) redirect("/admin/regions");
+
+  const region = await getOperationalRegionById(selectedRegionId);
+  if (!region) redirect("/admin/regions");
+
+  const view = resolveView(firstParam(resolved.view));
   const cockpit = await getRegionalAdminCockpitReadModel(region.id);
-  const openReviewItems = toArray(cockpit.openReviewItems);
+  const regionContext = cockpit.region.slug || selectedRegionId;
   const feedSignals = toArray(cockpit.feedSignals);
   const topicClusters = toArray(cockpit.topicClusters);
-  const participationSignals = toArray(cockpit.participationSignals);
-  const needsRegionReviewSignals = toArray(cockpit.needsRegionReviewSignals);
-  const communitySourceHints = toArray(cockpit.communitySourceHints);
-  const reviewItemsFromPublicInput = toArray(cockpit.reviewItemsFromPublicInput);
-  const suggestedAnlassraeume = toArray(cockpit.suggestedAnlassraeume);
-  const suggestedDossiers = toArray(cockpit.suggestedDossiers);
-  const intelligenceSources = toArray(cockpit.intelligenceSources);
-  const intelligenceReviewSuggestions = toArray(cockpit.intelligenceReviewSuggestions);
+  const openReviewItems = toArray(cockpit.openReviewItems);
   const sourceConnections = toArray(cockpit.sourceConnections);
   const sourceTestResults = toArray(cockpit.sourceTestResults);
-  const allowedActions = toArray(cockpit.accessSummary.allowedActions);
-  const guidelineCriteria = cockpit.guidelineMatrix ? toArray(cockpit.guidelineMatrix.criteria) : [];
-  const cockpitModules = Object.entries(cockpit.cockpit?.modules ?? {});
+  const communitySourceHints = toArray(cockpit.communitySourceHints);
+  const suggestedDossiers = toArray(cockpit.suggestedDossiers);
+  const suggestedAnlassraeume = toArray(cockpit.suggestedAnlassraeume);
+  const activeSources = sourceConnections.filter((connection) => connection.enabled);
+  const fixtureSignals = feedSignals.filter((signal) => signal.provenance.isFixture);
+  const topSignal = feedSignals[0] ?? null;
+  const topTopic = topSignal?.detectedTopics?.[0] ?? topicClusters[0]?.label ?? null;
+  const claimRows = sourceTestResults.flatMap((result) =>
+    result.possibleClaims.map((claim) => ({ claim, result })),
+  );
+  const nextAction =
+    openReviewItems.length > 0
+      ? {
+          label: `${openReviewItems.length} offene Hinweise prüfen`,
+          href: reviewHref(regionContext),
+          body: "Prüfe zuerst Herkunft, Regionbezug und Quellenlage. Erst danach wird bewusst weitergegeben.",
+        }
+      : {
+          label: "Quellenbasis ergänzen",
+          href: workspaceHref(regionContext, "quellen"),
+          body: "Es gibt aktuell keine offene Review-Liste. Ergänze oder teste eine nachvollziehbare Quelle.",
+        };
 
   return (
     <main
       data-testid="admin-region-page"
-      className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6"
+      className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8"
     >
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-          Regionales Lagebild
-        </p>
-        <div
-          data-testid="admin-region-context"
-          className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]"
-        >
-          <Link href="/admin/regions" className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
-            Zur Regionen-Übersicht
-          </Link>
-          {selectedRegionId ? (
+      <header data-testid="admin-region-context" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+            <Link
+              href="/admin/regions"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
+            >
+              Region wechseln
+            </Link>
             <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
-              Arbeitsansicht: {selectedRegionId}
+              {cockpit.region.administrativeUnitType ?? cockpit.region.type}
             </span>
-          ) : null}
-          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
-            Detailroute: `/admin/region?regionId=...`
-          </span>
+            {fixtureSignals.length > 0 ? (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-amber-900">
+                Pilot-/Fixture-Daten enthalten
+              </span>
+            ) : null}
+          </div>
         </div>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Verwaltung, Akteure und Signale</h1>
-        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          `/admin/region` bleibt die Detail- und Arbeitsansicht für eine ausgewählte Region. Die Surface verbindet
-          regionale Signale, Feed-Vorschläge und reviewpflichtige Dossier- oder Anlassraum-Hinweise. Keine
-          automatische Veröffentlichung, keine automatische Dossier-Erstellung, kein Vergabe- oder
-          Procurement-Monitoring.
-        </p>
-        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildB2GFirstLoginAdminHint()}</p>
-        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{buildMunicipalHandoffTrialRegionHint()}</p>
-        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          {buildVoxyExperienceShellHint("admin_region")}
-        </p>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            Regionaler Arbeitsraum
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))] sm:text-4xl">
+            {cockpit.region.name}
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+            Von regionalen Signalen und Quellen über bewusste Recherche bis zu reviewpflichtigen
+            Beiträgen, Dossiers und Kampagnenübergaben.
+          </p>
+        </div>
       </header>
 
       <section
         data-testid="admin-region-journey"
-        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+        className="grid gap-4 rounded-3xl border border-cyan-300/70 bg-cyan-50/50 p-5 lg:grid-cols-[1.2fr_0.8fr]"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-          Nächster Schritt
-        </p>
-        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
-          Quelle oder Snapshot prüfen, dann bewusst in Review und Sichtbarkeit gehen
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Hier entstehen reviewpflichtige Signals, Claims, Themencluster sowie Dossier- und
-          Anlassraum-Vorschläge. Noch nichts ist sichtbar oder automatisch amtlich.
-        </p>
-        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Der nächste operative Schritt liegt in der Review Queue: dort wird aus dem Review-Item
-          eine Vorschau, danach eine bewusste Sichtbarkeit und erst dann Public URL, QR oder
-          Share. Sichtbarkeit kann anschließend wieder zurückgenommen oder archiviert werden.
-        </p>
-        <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Jurisdiktions-Match, reviewed topic candidate und vorgeschlagene Beteiligung bleiben getrennt von offizieller Behördenzuständigkeit oder gestartetem Verfahren.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            href="/admin/review"
-            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
-          >
-            Review-Queue öffnen
-          </Link>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-900">
+            Jetzt relevant
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">
+            {topSignal?.title ?? "Noch kein regionales Signal priorisiert"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+            {topSignal?.summary ??
+              "Baue zuerst eine nachvollziehbare Quellenbasis auf oder prüfe bestehende Hinweise."}
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-[rgb(var(--muted))]">Quellenbasis</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {activeSources.length} aktiv · {sourceTestResults.length} geprüft
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-[rgb(var(--muted))]">Themenlage</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {feedSignals.length} Signale · {topicClusters.length} Cluster
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-[rgb(var(--muted))]">Braucht Prüfung</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                {openReviewItems.length} offene Hinweise
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-cyan-200 bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-900">
+            Nächste sinnvolle Aktion
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{nextAction.body}</p>
+          <div className="mt-4">
+            <ActionLink href={nextAction.href} primary testId="admin-region-primary-action">
+              {nextAction.label}
+            </ActionLink>
+          </div>
         </div>
       </section>
 
-      {cockpit ? (
-        <>
-          <section data-testid="admin-region-summary" className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Region</p>
-              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{cockpit.region.name}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">
-                {cockpit.region.type}
-                {cockpit.region.administrativeUnitType ? ` · ${cockpit.region.administrativeUnitType}` : ""}
-              </p>
-            </div>
-            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Akteure</p>
-              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{cockpit.actorCount}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">
-                {cockpit.verifiedActorCount} verifiziert · {cockpit.officialDirectoryActorCount} amtlich
-              </p>
-            </div>
-            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Review-Items</p>
-              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{openReviewItems.length}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">Review-gated, keine automatische Weiterverarbeitung</p>
-            </div>
-            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Authority</p>
-              <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                {authoritySourceLabel(cockpit.accessSummary.authoritySource)}
-              </p>
-              <p className="text-sm text-[rgb(var(--muted))]">
-                {organizationVerificationStatusLabel(cockpit.accessSummary.verificationStatus)}
-              </p>
-            </div>
-          </section>
-
-          <section data-testid="admin-region-access-summary" className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Access Summary</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Zugriff und Verifizierungsstatus</h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Authority Source</p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {authoritySourceLabel(cockpit.accessSummary.authoritySource)}
-                  </p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    Admin-Fallback: {cockpit.accessSummary.adminFallback ? "ja" : "nein"}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Verification</p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {organizationVerificationStatusLabel(cockpit.accessSummary.verificationStatus)}
-                  </p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    In Prüfung hat keine Behördenrechte. Publikationsfreigabe bleibt gesondert erforderlich.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Freischaltung</p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.accessSummary.entitlementStatus
-                      ? regionEntitlementStatusLabel(cockpit.accessSummary.entitlementStatus)
-                      : "Keine Freischaltung"}
-                  </p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    {regionEntitlementReasonLabel(cockpit.accessSummary.entitlementReason)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Plan</p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.accessSummary.entitlementPlanLabel ?? "Kein Plan"}
-                  </p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                    {cockpit.accessSummary.entitlementSource === "admin_grant"
-                      ? "Admin-Freischaltung, ohne Checkout"
-                      : cockpit.accessSummary.entitlementSource === "pilot_grant"
-                        ? "Pilot-Freischaltung, ohne Abrechnung"
-                        : cockpit.accessSummary.entitlementSource === "manual_contract"
-                          ? "Manueller Vertrag, ohne automatische Abbuchung"
-                          : cockpit.accessSummary.entitlementSource === "admin_fallback"
-                            ? "Admin-Fallback"
-                            : cockpit.accessSummary.entitlementSource === "not_checked"
-                              ? "Noch nicht geprüft"
-                              : cockpit.accessSummary.entitlementSource ?? "Unbekannt"}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-4 text-sm text-[rgb(var(--muted))]">{accessHint(cockpit)}</p>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Limits/Usage: Regionen {cockpit.accessSummary.entitlementUsage?.regionsUsed ?? 0}
-                {cockpit.accessSummary.entitlementLimits?.maxRegions != null
-                  ? ` / ${cockpit.accessSummary.entitlementLimits.maxRegions}`
-                  : " / offen"}
-                {" · "}Drafts {cockpit.accessSummary.entitlementUsage?.draftsThisMonth ?? 0}
-                {cockpit.accessSummary.entitlementLimits?.maxDraftsPerMonth != null
-                  ? ` / ${cockpit.accessSummary.entitlementLimits.maxDraftsPerMonth}`
-                  : " / offen"}
-              </p>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Selbstauskunft ist nicht verifiziert. In Prüfung hat keine Behördenrechte. Eine
-                Publikationsfreigabe ist gesondert erforderlich. Standortangaben wie Rathaus,
-                Geschäftsstelle oder Redaktionsbüro bleiben optional.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {allowedActions.length > 0 ? (
-                  allowedActions.map((action) => (
-                    <span
-                      key={action}
-                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
-                    >
-                      {allowedActionLabel(action)}
-                    </span>
-                  ))
-                ) : (
-                  <span className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs text-amber-900">
-                    Keine offiziellen Behördenaktionen aktiv
-                  </span>
-                )}
-              </div>
-            </article>
-
-            <article
-              data-testid="admin-region-guardrails"
-              className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
-            >
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Startlage</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                Aktuelle Themenlage {cockpit.region.name}
-              </h2>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Kuratierte Startlage und Pilotvorschau für die Themenlage. Sichtbar heißt nicht automatisch geprüft
-                oder amtlich. Keine Live-Crawler-Behauptung, kein Scraping, keine DeepSearch-Automatikkosten und
-                kein Procurement- oder Vergabe-Radar.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("reviewRequired")}
-                </span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("noAutoPublish")}
-                </span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("noAutoDossierCreation")}
-                </span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("noAutoAnlassraumCreation")}
-                </span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("noTenderMonitoring")}
-                </span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
-                  {regionGuardrailLabel("noProcurementMonitoring")}
-                </span>
-              </div>
-              <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Produktive Quellen
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus?.productiveLabel ??
-                      "Noch keine produktive Quelle verbunden"}
-                  </p>
-                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                    Kein produktiver Regionaladapter ist verbunden, solange keine echte Quelle angebunden ist.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Kuratierte Quellen
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus?.curatedLabel ??
-                      "Noch keine kuratierte Quelle verbunden"}
-                  </p>
-                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                    Kuration bleibt reviewpflichtig und ist keine automatische amtliche Bewertung.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Manuelle Quellen
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.intelligenceSourceStatus?.manualLabel ??
-                      "Noch keine manuellen Quellen verbunden"}
-                  </p>
-                  <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                    Öffentliche und manuelle Hinweise laufen nur über bestehende Review-Pfade ein.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                  Quellengewichtung und Adapter
-                </p>
-                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                  {cockpit.intelligenceWeighting?.label ?? "Gewichtung vorbereitet"}
-                </p>
-                <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                  {intelligenceSources.map((source) => (
-                    <div key={source.adapterId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{source.label}</p>
-                      <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                        {source.category} · {source.status} · Gewicht {source.weight.toFixed(2)}
-                      </p>
-                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">{source.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section data-testid="admin-region-feed-signals" className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Feed- und Signal-Hinweise</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                Aktuelle Themenlage {cockpit.region.name}
-              </h2>
-              <div className="mt-4 space-y-3">
-                {feedSignals.length > 0 ? (
-                  feedSignals.slice(0, 6).map((signal) => (
-                    <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{sourceTypeLabel(signal.sourceType)}</span>
-                        <span>·</span>
-                        <span>{regionReviewStatusLabel(signal.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{regionVisibilityStateLabel(resolveFeedVisibilityState({
-                          reviewStatus: signal.reviewStatus,
-                          sourceType: signal.sourceType,
-                        }))}</span>
-                        <span>·</span>
-                        <span>Confidence {signal.confidence.toFixed(2)}</span>
-                        <span>·</span>
-                        <span>
-                          {regionFeedSignalOriginLabel(signal.provenance.dataOrigin)}
-                        </span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {toArray(signal.detectedTopics).map((topic) => (
-                          <span
-                            key={topic}
-                            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                        Orte: {toArray(signal.detectedPlaces).join(", ") || "nicht erkannt"}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-cyan-900">{suggestedActionLabel(signal.suggestedAction)}</p>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Signale")
-                )}
-              </div>
-            </article>
-
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themencluster</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Reviewpflichtige Verdichtungen</h2>
-              <div className="mt-4 space-y-3">
-                {topicClusters.length > 0 ? (
-                  topicClusters.slice(0, 5).map((cluster) => (
-                    <div key={cluster.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{regionReviewStatusLabel(cluster.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{toArray(cluster.signalIds).length} Signale</span>
-                        <span>·</span>
-                        <span>Review-Hinweis aktiv</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{cluster.label}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{cluster.summary}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {toArray(cluster.detectedTopics).map((topic) => (
-                          <span
-                            key={topic}
-                            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Themencluster")
-                )}
-              </div>
-            </article>
-          </section>
-
-          {cockpit.guidelineMatrix ? (
-            <section
-              data-testid="admin-region-guidelines"
-              className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
-            >
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Leitlinienmatrix</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                {cockpit.guidelineMatrix.title}
-              </h2>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Arbeits- und Transparenzmatrix für {cockpit.region.name}. Keine Rechtsberatung, keine automatische
-                Leitlinien-Erfüllung und keine automatische Veröffentlichung.
-              </p>
-              <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {guidelineCriteria.map((criterion) => (
-                  <article key={criterion.key} className="rounded-2xl border border-[rgb(var(--border))] p-4">
-                    <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                      {guidelineLabel(criterion.key)}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{criterion.workingRule}</p>
-                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                      Prüffrage: {criterion.reviewQuestion}
-                    </p>
-                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                      Dokumentationshinweis: {criterion.evidenceHint}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section
-            data-testid="admin-region-participation-signals"
-            className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]"
+      <section data-testid="admin-region-quick-actions">
+        <h2 className="sr-only">Schnellaktionen</h2>
+        <div className="flex flex-wrap gap-2">
+          <ActionLink href={workspaceHref(regionContext, "quellen")}>Quellen sammeln</ActionLink>
+          <ActionLink href={researchHref(regionContext, topTopic, topSignal?.title)}>
+            Recherche vertiefen
+          </ActionLink>
+          <ActionLink
+            href={createHref(regionContext, {
+              signalTitle: topSignal?.title,
+              topic: topTopic,
+              reason: "Internen regionalen Beitrag vorbereiten",
+            })}
           >
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Öffentliche Beteiligungssignale
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                Ungeprüft, nicht amtlich, reviewpflichtig
-              </h2>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Öffentliche Aussagen, Beiträge, Fragen, Quellenhinweise und Swipe-Signale erscheinen hier nur
-                anonymisiert oder aggregiert. Keine Personenprofile, keine Repräsentativitätsbehauptung und
-                keine automatische amtliche Übernahme.
-              </p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Aussagen aus der Öffentlichkeit
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.publicClaimsSummary.total}
-                  </p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    {cockpit.publicClaimsSummary.reviewPending} reviewpflichtig · nicht repräsentativ
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Fragen aus der Öffentlichkeit
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.publicQuestionsSummary.total}
-                  </p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    {cockpit.publicQuestionsSummary.reviewPending} reviewpflichtig · nicht amtlich
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Swipe-/Interesse-Signale aggregiert
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.swipeInterestSummary.totalSignals}
-                  </p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    anonymisiert/aggregiert · keine Personendaten
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Gegenpositionen / andere Sichtweisen
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
-                    {cockpit.counterpointSummary.totalSignals}
-                  </p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    anonymisiert/aggregiert · nicht repräsentativ
-                  </p>
-                </div>
-              </div>
-              {needsRegionReviewSignals.length > 0 ? (
-                <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-amber-900">
-                    Regionzuordnung offen
-                  </p>
-                  <p className="mt-2 text-sm text-amber-950">
-                    {needsRegionReviewSignals.length} öffentliche Signale bleiben bis zur bestätigten
-                    Regionzuordnung außerhalb der aktiven Themenlage.
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    {needsRegionReviewSignals.slice(0, 4).map((signal) => (
-                      <div key={signal.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2">
-                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</p>
-                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          {regionReviewStatusLabel(signal.reviewStatus)} · {privacyModeLabel(signal.privacyMode)}
-                        </p>
-                      </div>
-                    ))}
+            Beitrag erstellen
+          </ActionLink>
+          <ActionLink
+            href={createHref(regionContext, {
+              signalTitle: topSignal?.title,
+              topic: topTopic,
+              reason: "Dossier-Vorschlag bewusst vorbereiten",
+            })}
+          >
+            Dossier vorbereiten
+          </ActionLink>
+          <ActionLink href={marketingHref(regionContext, topTopic)}>Kampagne planen</ActionLink>
+        </div>
+      </section>
+
+      <nav
+        data-testid="admin-region-workspace-navigation"
+        aria-label="Arbeitsbereiche der Region"
+        className="sticky top-0 z-10 -mx-4 overflow-x-auto border-y border-[rgb(var(--border))] bg-[rgb(var(--bg))]/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border"
+      >
+        <div className="flex min-w-max gap-2">
+          {WORKSPACE_VIEWS.map((entry) => (
+            <Link
+              key={entry.id}
+              href={workspaceHref(regionContext, entry.id)}
+              aria-current={view === entry.id ? "page" : undefined}
+              className={
+                view === entry.id
+                  ? "rounded-full bg-[rgb(var(--fg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--bg))]"
+                  : "rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+              }
+            >
+              {entry.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {view === "lagebild" ? (
+        <section data-testid="admin-region-lagebild" className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+          <Card
+            eyebrow="Lagebild"
+            title="Regionale Signale"
+            body="Signale bleiben nach Herkunft, Prüfstatus und Pilotwahrheit unterscheidbar."
+          >
+            <div className="mt-4 space-y-3">
+              {feedSignals.length > 0 ? (
+                feedSignals.slice(0, 6).map((signal) => (
+                  <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                    <div className="flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+                      <span>{sourceTypeLabel(signal.sourceType)}</span>
+                      <span>·</span>
+                      <span>{regionFeedSignalOriginLabel(signal.provenance.dataOrigin)}</span>
+                      <span>·</span>
+                      <span>{regionReviewStatusLabel(signal.reviewStatus)}</span>
+                    </div>
+                    <h3 className="mt-2 font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
+                    <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
+                    <p className="mt-2 text-xs font-medium text-cyan-900">
+                      {suggestedActionLabel(signal.suggestedAction)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ActionLink
+                        href={researchHref(
+                          regionContext,
+                          signal.detectedTopics[0],
+                          signal.title,
+                        )}
+                      >
+                        Recherche vorbereiten
+                      </ActionLink>
+                      <ActionLink href={reviewHref(regionContext)}>Im Review prüfen</ActionLink>
+                    </div>
                   </div>
-                </div>
-              ) : null}
-              <div className="mt-4 space-y-3">
-                {participationSignals.length > 0 ? (
-                  participationSignals.slice(0, 6).map((signal) => (
-                    <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{sourceTypeLabel(signal.sourceType)}</span>
-                        <span>·</span>
-                        <span>{regionReviewStatusLabel(signal.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{regionVisibilityStateLabel(signal.visibilityState)}</span>
-                        <span>·</span>
-                        <span>{aggregationModeLabel(signal.aggregationMode)}</span>
-                        <span>·</span>
-                        <span>{privacyModeLabel(signal.privacyMode)}</span>
-                        <span>·</span>
-                        <span>nicht amtlich</span>
-                        <span>·</span>
-                        <span>nicht repräsentativ</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {toArray(signal.detectedTopics).map((topic) => (
-                          <span
-                            key={topic}
-                            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                        Orte: {toArray(signal.detectedPlaces).join(", ") || "nicht sicher zugeordnet"}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("öffentliche Beteiligungssignale")
-                )}
-              </div>
-            </article>
+                ))
+              ) : (
+                <p className="text-sm text-[rgb(var(--muted))]">
+                  Noch keine regionalen Signale im bestehenden Readmodel.
+                </p>
+              )}
+            </div>
+          </Card>
 
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Review für Beteiligungssignale
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                Quellenhinweise, Aggregation und Datenschutz
-              </h2>
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Quellenhinweise aus der Community
-                  </p>
-                  {communitySourceHints.length > 0 ? (
-                    communitySourceHints.slice(0, 3).map((signal) => (
-                      <p key={signal.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
-                        {signal.title}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine Hinweise sichtbar.</p>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Swipe-Signale
-                  </p>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                    Nur anonymisiert/aggregiert, keine Nutzerlisten, keine politischen Profile, keine
-                    Verwaltungssicht auf individuelle Präferenzen.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                    Review-Items aus öffentlichem Input
-                  </p>
-                  {reviewItemsFromPublicInput.length > 0 ? (
-                    reviewItemsFromPublicInput.slice(0, 4).map((item) => (
-                      <div key={item.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
-                        {item.title} · {privacyModeLabel(item.privacyMode)} · {aggregationModeLabel(item.aggregationMode)}
-                        {" "}· {regionVisibilityStateLabel(item.visibilityState)}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine Review-Items sichtbar.</p>
-                  )}
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section data-testid="admin-region-suggestions" className="grid gap-4 lg:grid-cols-2">
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene Anlassräume</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Nur Vorschläge, kein automatischer Anlassraum</h2>
-              <div className="mt-4 space-y-3">
-                {suggestedAnlassraeume.length > 0 ? (
-                  suggestedAnlassraeume.slice(0, 4).map((suggestion) => (
-                    <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
-                        <span>·</span>
-                        <span>{toArray(suggestion.relatedSignalIds).length} relatedSignals</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Anlassraum-Vorschläge")
-                )}
-              </div>
-            </article>
-
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Vorgeschlagene Dossiers</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Nur Vorschläge, kein automatisches Dossier</h2>
-              <div className="mt-4 space-y-3">
-                {suggestedDossiers.length > 0 ? (
-                  suggestedDossiers.slice(0, 4).map((suggestion) => (
-                    <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{suggestedActionLabel(suggestion.suggestedAction)}</span>
-                        <span>·</span>
-                        <span>{toArray(suggestion.relatedSignalIds).length} relatedSignals</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
-                      {toArray(suggestion.openQuestions).length > 0 ? (
-                        <div className="mt-3 space-y-1">
-                          {toArray(suggestion.openQuestions).map((question) => (
-                            <p key={question} className="text-xs text-[rgb(var(--muted))]">
-                              Offene Frage: {question}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Dossier-Vorschläge")
-                )}
-              </div>
-            </article>
-          </section>
-
-          <section
-            id="intelligence-review-suggestions"
-            data-testid="admin-region-open-review"
-            className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]"
-          >
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Open Review Items</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Review-gated Arbeitsliste</h2>
-              <div className="mt-4 space-y-3">
-                {openReviewItems.length > 0 ? (
-                  openReviewItems.slice(0, 6).map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{sourceTypeLabel(item.sourceType)}</span>
-                        <span>·</span>
-                        <span>{regionReviewStatusLabel(item.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{regionVisibilityStateLabel(item.visibilityState)}</span>
-                        <span>·</span>
-                        <span>{regionOpenReviewOriginLabel(item.isFixture)}</span>
-                        <span>·</span>
-                        <span>Confidence {item.confidence.toFixed(2)}</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                        Aktion bleibt review-gated. Nichts wird automatisch sichtbar gemacht, veröffentlicht oder erstellt.
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Review-Items")
-                )}
-              </div>
-            </article>
-
-            <article
-              data-testid="admin-region-prepare-actions"
-              className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+          <div className="grid content-start gap-4">
+            <Card
+              eyebrow="Quellenlage"
+              title={`${activeSources.length} aktive Quellen`}
+              body={`${sourceTestResults.length} Prüfergebnisse · ${communitySourceHints.length} Community-Hinweise. Fehlende Verbindungen werden nicht als Live-Daten dargestellt.`}
             >
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Prepare-only Aktionen</p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">CUT-03 baut die echten Draft-Routen</h2>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Diese Aktionen bleiben bewusst non-mutating. Keine automatische Veröffentlichung, keine automatische
-                Erstellung, Review und Berechtigung bleiben erforderlich.
-              </p>
-              <div className="mt-4 grid gap-3">
-                {[
-                  "Dossier-Draft vorbereiten",
-                  "Anlassraum-Draft vorbereiten",
-                  "Quelle prüfen",
-                  "Offene Frage markieren",
-                ].map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    disabled
-                    className="rounded-2xl border border-[rgb(var(--border))] px-4 py-3 text-left text-sm text-[rgb(var(--muted))] opacity-70"
-                  >
-                    <span className="block font-semibold text-[rgb(var(--fg))]">{label}</span>
-                    <span className="mt-1 block text-xs text-[rgb(var(--muted))]">
-                      {actionStateLabel(cockpit)} · Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale. Diese Oberfläche bleibt bewusst prepare-only.
-                    </span>
-                  </button>
+              <div className="mt-4">
+                <ActionLink href={workspaceHref(regionContext, "quellen")}>
+                  Quellenbasis öffnen
+                </ActionLink>
+              </div>
+            </Card>
+            <Card
+              eyebrow="Themen"
+              title={`${topicClusters.length} reviewpflichtige Cluster`}
+              body={`${cockpit.publicQuestionsSummary.reviewPending} öffentliche Fragen und ${cockpit.publicClaimsSummary.reviewPending} Aussagen warten auf Prüfung.`}
+            >
+              <div className="mt-4 space-y-2">
+                {topicClusters.slice(0, 4).map((cluster) => (
+                  <div key={cluster.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{cluster.label}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">{cluster.summary}</p>
+                  </div>
                 ))}
               </div>
-            </article>
-          </section>
+            </Card>
+          </div>
+        </section>
+      ) : null}
 
-          <section data-testid="admin-region-intelligence-review-suggestions" className="grid gap-4 lg:grid-cols-2">
-            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Intelligence-Vorschläge
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                Reviewpflichtige Startlage-Vorschläge
-              </h2>
-              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                Intelligence-Ergebnisse bleiben reviewpflichtige Vorschläge. Nichts wird automatisch veröffentlicht,
-                nichts wird automatisch amtlich und `public_official` wird hier nie automatisch vergeben.
-              </p>
-              <div className="mt-4 space-y-3">
-                {intelligenceReviewSuggestions.length > 0 ? (
-                  intelligenceReviewSuggestions.slice(0, 6).map((suggestion) => (
-                    <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>{intelligenceSuggestionLabel(suggestion.suggestionType)}</span>
-                        <span>·</span>
-                        <span>{regionReviewStatusLabel(suggestion.reviewStatus)}</span>
-                        <span>·</span>
-                        <span>{regionVisibilityStateLabel(suggestion.visibilityState)}</span>
-                        <span>·</span>
-                        <span>Confidence {suggestion.confidence.toFixed(2)}</span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</h3>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{suggestion.summary}</p>
-                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                        {suggestion.sourceStatusLabel}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  renderEmptyState("Intelligence-Vorschläge")
-                )}
-              </div>
-            </article>
-          </section>
-
-          <section data-testid="admin-region-modules" className="grid gap-4 lg:grid-cols-2">
-            {cockpitModules.map(([key, module]) => (
-              <article key={key} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-                <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{key}</p>
-                <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{module.headline}</h2>
-                <p className="mt-2 text-sm text-[rgb(var(--muted))]">{module.summary}</p>
-              </article>
-            ))}
-          </section>
-
+      {view === "quellen" ? (
+        <section data-testid="admin-region-quellen" className="space-y-4">
+          <Card
+            eyebrow="Quellen & Feeds"
+            title="Quellen nachvollziehbar ergänzen und prüfen"
+            body="Verwende die bestehenden Quellenverbindungen und kontrollierten Tests. Es startet keine allgemeine Websuche und nichts wird veröffentlicht."
+          />
           <RegionSourceConnectionsPanel
             regionId={cockpit.region.id}
             connections={sourceConnections}
             results={sourceTestResults}
           />
-        </>
-      ) : (
-        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-          Noch keine Region gefunden.
         </section>
-      )}
+      ) : null}
+
+      {view === "recherche" ? (
+        <section data-testid="admin-region-recherche" className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+          <Card
+            eyebrow="Bewusste Recherche"
+            title="Fragestellung und Scope zuerst festlegen"
+            body="Deep Search ist hier nur eine vorbereitete, reviewpflichtige Übergabe. Es startet kein Provideraufruf, Crawling oder Scraping."
+          >
+            <div className="mt-4">
+              <ActionLink
+                href={researchHref(regionContext, topTopic, topSignal?.title)}
+                primary
+                testId="admin-region-research-handoff"
+              >
+                Recherche-Aufgabe öffnen
+              </ActionLink>
+            </div>
+          </Card>
+          <Card
+            eyebrow="Vorhandene Prüfergebnisse"
+            title={`${sourceTestResults.length} Quellenprüfungen als Ausgangspunkt`}
+          >
+            <div className="mt-4 space-y-3">
+              {sourceTestResults.length > 0 ? (
+                sourceTestResults.map((result) => (
+                  <div key={result.id} className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                    <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{result.title}</h3>
+                    <p className="mt-1 text-sm text-[rgb(var(--muted))]">{result.summary}</p>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      {result.openQuestions.length} offene Fragen · {result.evidenceReferences.length} Belege ·
+                      Confidence {result.confidence.toFixed(2)}
+                    </p>
+                    <div className="mt-3">
+                      <ActionLink
+                        href={researchHref(
+                          regionContext,
+                          result.detectedTopics[0],
+                          result.connectionLabel,
+                        )}
+                      >
+                        Mit Kontext vertiefen
+                      </ActionLink>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[rgb(var(--muted))]">
+                  Noch keine geprüften Quellen. Wähle zuerst eine Quelle im Bereich Quellen & Feeds.
+                </p>
+              )}
+            </div>
+          </Card>
+        </section>
+      ) : null}
+
+      {view === "claims" ? (
+        <section data-testid="admin-region-claims" className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <Card
+            eyebrow="Claims & Evidenz"
+            title={`${claimRows.length} Aussagekandidaten aus geprüften Quellen`}
+            body="Aussagen bleiben Kandidaten. Übersetzung ist keine Evidenz, und ein offizielles Urteil erfordert menschliches Review."
+          >
+            <div className="mt-4 space-y-3">
+              {claimRows.length > 0 ? (
+                claimRows.map(({ claim, result }, index) => (
+                  <div
+                    key={`${result.id}-${index}`}
+                    className="rounded-2xl border border-[rgb(var(--border))] p-4"
+                  >
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.text}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      {claim.basisLabel} · Confidence {claim.confidence.toFixed(2)} ·{" "}
+                      {result.evidenceReferences.length} Belege
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ActionLink href={reviewHref(regionContext)}>Claim prüfen</ActionLink>
+                      <ActionLink
+                        href={createHref(regionContext, {
+                          signalTitle: claim.text,
+                          topic: result.detectedTopics[0],
+                          reason: "Dossier aus geprüftem Claim-Kontext vorbereiten",
+                        })}
+                      >
+                        Dossier-Draft vorbereiten
+                      </ActionLink>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[rgb(var(--muted))]">
+                  Noch keine Aussagekandidaten aus geprüften Quellen.
+                </p>
+              )}
+            </div>
+          </Card>
+          <div className="grid content-start gap-4">
+            <Card
+              eyebrow="Dossier-Vorschläge"
+              title={`${suggestedDossiers.length} Vorschläge`}
+              body="Kein Vorschlag erzeugt automatisch ein Dossier."
+            >
+              <div className="mt-4 space-y-2">
+                {suggestedDossiers.slice(0, 4).map((suggestion) => (
+                  <div key={suggestion.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">{suggestion.summary}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card
+              eyebrow="Anlassraum-Vorschläge"
+              title={`${suggestedAnlassraeume.length} Vorschläge`}
+              body="Ein Anlassraum wird erst nach bewusster Vorbereitung und Review angelegt."
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {view === "beitraege" ? (
+        <section data-testid="admin-region-beitraege" className="grid gap-4 lg:grid-cols-2">
+          <Card
+            eyebrow="Interner Beitrag"
+            title="Regionalen eDebatte-Beitrag vorbereiten"
+            body="Der regionale Quellen- und Themenkontext wird an den bestehenden Create-Flow übergeben. Es entsteht kein automatischer Draft."
+          >
+            <div className="mt-4">
+              <ActionLink
+                href={createHref(regionContext, {
+                  signalTitle: topSignal?.title,
+                  topic: topTopic,
+                  reason: "Internen regionalen Beitrag vorbereiten",
+                })}
+                primary
+                testId="admin-region-create-handoff"
+              >
+                Internen Beitrag beginnen
+              </ActionLink>
+            </div>
+          </Card>
+          <Card
+            eyebrow="Externe Veröffentlichung"
+            title="Social-/Web-Beitrag getrennt reviewen"
+            body="Für diese Region liegen in diesem Readmodel keine belegten externen Veröffentlichungsstände vor. Externe Varianten bleiben in der bestehenden Marketing-Review- und Publishing-Kette."
+          >
+            <div className="mt-4 flex flex-wrap gap-2">
+              <ActionLink href={withQuery("/admin/marketing/review", { lang: "de", region: regionContext })}>
+                Externe Inhalte prüfen
+              </ActionLink>
+              <ActionLink href={reviewHref(regionContext)}>Freigaben öffnen</ActionLink>
+            </div>
+          </Card>
+          <Card
+            eyebrow="Statuswahrheit"
+            title="Intern und extern bleiben verbunden, aber getrennt"
+            body="Draft, Review, geplant, veröffentlicht oder archiviert wird erst angezeigt, wenn der jeweilige bestehende Flow diesen Status belegt."
+          />
+        </section>
+      ) : null}
+
+      {view === "kampagnen" ? (
+        <section data-testid="admin-region-kampagnen" className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card
+            eyebrow="Regionale Kampagnen"
+            title={`Kampagnenkontext für ${cockpit.region.name} übergeben`}
+            body="Region, Thema, B2G-Zielgruppe und regionaler Reichweitenraum werden an die vorhandene Marketing-Control-Plane übergeben. Hier entsteht keine zweite Kampagne."
+          >
+            <div className="mt-4">
+              <ActionLink
+                href={marketingHref(regionContext, topTopic)}
+                primary
+                testId="admin-region-marketing-handoff"
+              >
+                In Marketing planen
+              </ActionLink>
+            </div>
+          </Card>
+          <Card
+            eyebrow="Wirkung"
+            title="Interne Wirkung und Plattform-Performance getrennt lesen"
+            body="Das Region-Readmodel enthält keine verifizierten Kampagnen- oder Performancewerte. Geplante, laufende und gemessene Inhalte bleiben in Marketing und Insights nachvollziehbar."
+          >
+            <div className="mt-4 flex flex-wrap gap-2">
+              <ActionLink href={withQuery("/admin/marketing/insights", { lang: "de", region: regionContext })}>
+                Ergebnisse öffnen
+              </ActionLink>
+            </div>
+          </Card>
+        </section>
+      ) : null}
+
+      {view === "einstellungen" ? (
+        <section data-testid="admin-region-einstellungen" className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card
+              eyebrow="Zugriff"
+              title="Verifizierung und Freischaltung"
+              testId="admin-region-access-summary"
+            >
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <dt className="text-xs text-[rgb(var(--muted))]">Zuordnung</dt>
+                  <dd className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {authoritySourceLabel(cockpit.accessSummary.authoritySource)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <dt className="text-xs text-[rgb(var(--muted))]">Verifizierung</dt>
+                  <dd className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {organizationVerificationStatusLabel(cockpit.accessSummary.verificationStatus)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <dt className="text-xs text-[rgb(var(--muted))]">Freischaltung</dt>
+                  <dd className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.accessSummary.entitlementStatus
+                      ? regionEntitlementStatusLabel(cockpit.accessSummary.entitlementStatus)
+                      : "Keine Freischaltung"}
+                  </dd>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {regionEntitlementReasonLabel(cockpit.accessSummary.entitlementReason)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <dt className="text-xs text-[rgb(var(--muted))]">Plan</dt>
+                  <dd className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.accessSummary.entitlementPlanLabel ?? "Kein Plan"}
+                  </dd>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {cockpit.accessSummary.entitlementSource === "not_checked"
+                      ? "Noch nicht geprüft"
+                      : "Bestehende Freischaltungsquelle"}
+                  </p>
+                </div>
+              </dl>
+              <p className="mt-4 text-sm text-[rgb(var(--muted))]">
+                Verifizierte Membership allein reicht nicht. Selbstauskunft ist nicht verifiziert.
+                Publikationsfreigaben bleiben ein gesonderter menschlicher Schritt.
+              </p>
+            </Card>
+            <Card
+              eyebrow="Leitplanken"
+              title="Review-first und fail-closed"
+              testId="admin-region-guardrails"
+              body="Keine automatische Recherche, kein Auto-Publish, kein Auto-Dossier und kein Auto-Anlassraum. Externe Sichtbarkeit erfordert weiterhin die bestehende Freigabe."
+            >
+              <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                  Diagnose und Limits anzeigen
+                </summary>
+                <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+                  Regionen: {cockpit.accessSummary.entitlementUsage?.regionsUsed ?? 0}
+                  {cockpit.accessSummary.entitlementLimits?.maxRegions != null
+                    ? ` / ${cockpit.accessSummary.entitlementLimits.maxRegions}`
+                    : " / offen"}
+                  {" · "}Drafts: {cockpit.accessSummary.entitlementUsage?.draftsThisMonth ?? 0}
+                  {cockpit.accessSummary.entitlementLimits?.maxDraftsPerMonth != null
+                    ? ` / ${cockpit.accessSummary.entitlementLimits.maxDraftsPerMonth}`
+                    : " / offen"}
+                </p>
+              </details>
+            </Card>
+          </div>
+          {cockpit.guidelineMatrix ? (
+            <Card
+              eyebrow="Leitlinien"
+              title={cockpit.guidelineMatrix.title}
+              body="Die Leitlinien unterstützen die Prüfung, ersetzen aber weder Rechtsberatung noch menschliche Freigabe."
+            >
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {cockpit.guidelineMatrix.criteria.map((criterion) => (
+                  <div key={criterion.key} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                      {criterion.workingRule}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Prüffrage: {criterion.reviewQuestion}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
+        </section>
+      ) : null}
     </main>
   );
 }

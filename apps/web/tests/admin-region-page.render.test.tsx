@@ -33,7 +33,7 @@ describe("admin-region-page.render", () => {
     navigationMocks.redirect.mockClear();
   });
 
-  it("renders the regional review surface with access, guardrails and prepare-only actions", async () => {
+  it("renders a connected regional operator workspace with contextual handoffs", async () => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setParticipationSignalReviewRuntimeRepoForTests(
       createInMemoryParticipationSignalReviewRuntimeRepo(),
@@ -213,95 +213,100 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-page"');
     expect(html).toContain('data-testid="admin-region-context"');
     expect(html).toContain('data-testid="admin-region-journey"');
-    expect(html).toContain("Authority First Login, Jurisdiktions-Match, Freischaltung, Entitlement und externe Benachrichtigung bleiben getrennte Review-Schritte.");
+    expect(html).toContain('data-testid="admin-region-workspace-navigation"');
+    expect(html).toContain('data-testid="admin-region-lagebild"');
+    expect(html).toContain("Regionaler Arbeitsraum");
+    expect(html).toContain("Berlin Reinickendorf");
+    expect(html).toContain("Jetzt relevant");
+    expect(html).toContain("Schulwege im Bezirk");
+    expect(html).toContain("1 aktiv · 1 geprüft");
+    expect(html).toContain("Pilot-/Fixture-Daten enthalten");
+    expect(html).toContain("Nächste sinnvolle Aktion");
+    expect(html).toContain("Quellen sammeln");
+    expect(html).toContain("Recherche vertiefen");
+    expect(html).toContain("Beitrag erstellen");
+    expect(html).toContain("Dossier vorbereiten");
+    expect(html).toContain("Kampagne planen");
+    expect(html).toContain("Lagebild");
+    expect(html).toContain("Quellen &amp; Feeds");
+    expect(html).toContain("Recherche");
+    expect(html).toContain("Claims &amp; Dossiers");
+    expect(html).toContain("Beiträge &amp; Veröffentlichung");
+    expect(html).toContain("Regionale Kampagnen");
+    expect(html).toContain("Einstellungen &amp; Zugriff");
     expect(html).toContain(
-      "Authority Continuation bleibt ein Kandidat mit System-Thema, Jurisdiktions-Plausibilität und Machbarkeitsnotiz",
+      "/admin/research/tasks?regionId=berlin-reinickendorf&amp;topic=Schule",
     );
-    expect(html).toContain("Jurisdiktions-Match, reviewed topic candidate und vorgeschlagene Beteiligung bleiben getrennt");
-    expect(html).toContain(
-      "In der Regionssicht erklärt Voxy Quellenprüfung, reviewed topic candidates, Beteiligungsoptionen und Handoff-Status",
+    expect(html).toContain("/create?source=admin_region");
+    expect(html).toContain("region=berlin-reinickendorf");
+    expect(html).toContain("/admin/marketing?lang=de");
+    expect(html).toContain("reach=regional");
+    expect(html).not.toContain("Detailroute");
+    expect(html).not.toContain("regionId=...");
+    expect(html).not.toContain("Contract");
+    expect(html).not.toContain("Auto-Publish aktiv");
+
+    const sourcesHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "quellen" },
+      }),
     );
-    expect(html).toContain('data-testid="admin-region-summary"');
-    expect(html).toContain('data-testid="admin-region-access-summary"');
-    expect(html).toContain('data-testid="admin-region-guardrails"');
-    expect(html).toContain('data-testid="admin-region-feed-signals"');
-    expect(html).toContain('data-testid="admin-region-guidelines"');
-    expect(html).toContain('data-testid="admin-region-participation-signals"');
-    expect(html).toContain('data-testid="admin-region-suggestions"');
-    expect(html).toContain('data-testid="admin-region-open-review"');
-    expect(html).toContain('data-testid="admin-region-prepare-actions"');
-    expect(html).toContain('data-testid="admin-region-modules"');
-    expect(html).toContain('data-testid="admin-region-source-connections"');
-    expect(html).toContain("Verwaltung, Akteure und Signale");
-    expect(html).toContain("Quelle oder Snapshot prüfen, dann bewusst in Review und Sichtbarkeit gehen");
-    expect(html).toContain("Hier entstehen reviewpflichtige Signals, Claims, Themencluster sowie Dossier- und Anlassraum-Vorschläge.");
-    expect(html).toContain("Sichtbarkeit kann anschließend wieder zurückgenommen oder archiviert werden.");
-    expect(html).toContain("Zur Regionen-Übersicht");
-    expect(html).toContain("Arbeitsansicht: berlin-reinickendorf");
-    expect(html).toContain("Detailroute: `/admin/region?regionId=...`");
-    expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
-    expect(html).toContain("Kuratierte Startlage und Pilotvorschau für die Themenlage");
-    expect(html).toContain("Keine Live-Crawler-Behauptung");
-    expect(html).toContain("Produktive Quellen");
-    expect(html).toContain("1 produktive Quelle verbunden");
-    expect(html).toContain("Kuratierte Quellen");
-    expect(html).toContain("Manuelle Quellen");
-    expect(html).toContain("Quellengewichtung und Adapter");
-    expect(html).toContain("Gewichtung vorbereitet");
-    expect(html).toContain("Pilotvorschau · kuratierte Startlage · keine Produktionsdaten");
-    expect(html).toContain("Review erforderlich");
-    expect(html).toContain("Kein Auto-Publish");
-    expect(html).toContain("Kein Auto-Dossier");
-    expect(html).toContain("Kein Auto-Anlassraum");
-    expect(html).toContain("Kein Tender-Monitoring");
-    expect(html).toContain("Kein Procurement-Monitoring");
-    expect(html).toContain("Feed- und Signal-Hinweise");
-    expect(html).toContain("Leitlinienmatrix Berlin / Bürgerbeteiligung");
-    expect(html).toContain("Keine Rechtsberatung");
-    expect(html).toContain("Frühzeitigkeit");
-    expect(html).toContain("Transparenz");
-    expect(html).toContain("Rückmeldung");
-    expect(html).toContain("Zielgruppenansprache");
-    expect(html).toContain("Barrierefreiheit");
-    expect(html).toContain("Dokumentation");
-    expect(html).toContain("Nachvollziehbarkeit");
-    expect(html).toContain("Öffentliche Beteiligungssignale");
-    expect(html).toContain("Regionzuordnung offen");
-    expect(html).toContain("Aussagen aus der Öffentlichkeit");
-    expect(html).toContain("Fragen aus der Öffentlichkeit");
-    expect(html).toContain("Swipe-/Interesse-Signale aggregiert");
-    expect(html).toContain("Gegenpositionen / andere Sichtweisen");
-    expect(html).toContain("Quellenhinweise aus der Community");
-    expect(html).toContain("anonymisiert/aggregiert");
-    expect(html).toContain("nicht amtlich");
-    expect(html).toContain("nicht repräsentativ");
-    expect(html).toContain("Reviewpflichtige Verdichtungen");
-    expect(html).toContain("Nur Vorschläge, kein automatischer Anlassraum");
-    expect(html).toContain("Nur Vorschläge, kein automatisches Dossier");
-    expect(html).toContain("Reviewpflichtige Startlage-Vorschläge");
-    expect(html).toContain("Nichts wird automatisch veröffentlicht");
-    expect(html).toContain("Review aus aktiver Quelle");
-    expect(html).toContain("Quelle auswerten");
-    expect(html).toContain("Explizite URL kontrolliert und reviewpflichtig auswerten");
-    expect(html).toContain("Kanonischer Review-first Pfad");
-    expect(html).toContain("Review-first Quellenpfad");
-    expect(html).toContain("Source Connection");
-    expect(html).toContain("Snapshot");
-    expect(html).toContain("Beispiel-Snapshot");
-    expect(html).toContain("Beispiel-Seed");
-    expect(html).toContain("Demo-/Pilotstand reproduzierbar");
-    expect(html).toContain("Dossier-Draft vorbereiten");
-    expect(html).toContain("Anlassraum-Draft vorbereiten");
-    expect(html).toContain("Quelle prüfen");
-    expect(html).toContain("Offene Frage markieren");
-    expect(html).toContain("Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale.");
-    expect(html).toContain("Selbstauskunft ist nicht verifiziert.");
-    expect(html).toContain("In Prüfung hat keine Behördenrechte.");
-    expect(html).toContain(
-      "Standortangaben wie Rathaus, Geschäftsstelle oder Redaktionsbüro bleiben optional.",
+    expect(sourcesHtml).toContain('data-testid="admin-region-quellen"');
+    expect(sourcesHtml).toContain('data-testid="admin-region-source-connections"');
+    expect(sourcesHtml).toContain("Eine konkrete regionale Quelle aufnehmen");
+    expect(sourcesHtml).toContain("Quelle hinzufügen");
+    expect(sourcesHtml).toContain("Quelle testen");
+    expect(sourcesHtml).toContain("Claims, Themen und Übergaben prüfen");
+    expect(sourcesHtml).toContain("Pilot-Snapshot und Grenzen");
+
+    const researchHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "recherche" },
+      }),
     );
-    expect(html).not.toContain("userId");
-    expect(html).not.toContain("Standort ist Pflicht");
+    expect(researchHtml).toContain('data-testid="admin-region-recherche"');
+    expect(researchHtml).toContain('data-testid="admin-region-research-handoff"');
+    expect(researchHtml).toContain("Es startet kein Provideraufruf, Crawling oder Scraping.");
+
+    const claimsHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "claims" },
+      }),
+    );
+    expect(claimsHtml).toContain('data-testid="admin-region-claims"');
+    expect(claimsHtml).toContain("Schulsanierung in Reinickendorf");
+    expect(claimsHtml).toContain("Übersetzung ist keine Evidenz");
+    expect(claimsHtml).toContain("Kein Vorschlag erzeugt automatisch ein Dossier.");
+
+    const contributionsHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "beitraege" },
+      }),
+    );
+    expect(contributionsHtml).toContain('data-testid="admin-region-beitraege"');
+    expect(contributionsHtml).toContain('data-testid="admin-region-create-handoff"');
+    expect(contributionsHtml).toContain("Interner Beitrag");
+    expect(contributionsHtml).toContain("Externe Veröffentlichung");
+
+    const campaignsHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "kampagnen" },
+      }),
+    );
+    expect(campaignsHtml).toContain('data-testid="admin-region-kampagnen"');
+    expect(campaignsHtml).toContain('data-testid="admin-region-marketing-handoff"');
+    expect(campaignsHtml).toContain("keine verifizierten Kampagnen- oder Performancewerte");
+
+    const settingsHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionId: "berlin-reinickendorf", view: "einstellungen" },
+      }),
+    );
+    expect(settingsHtml).toContain('data-testid="admin-region-einstellungen"');
+    expect(settingsHtml).toContain('data-testid="admin-region-access-summary"');
+    expect(settingsHtml).toContain('data-testid="admin-region-guardrails"');
+    expect(settingsHtml).toContain("Keine automatische Recherche");
+    expect(settingsHtml).toContain("Leitlinienmatrix Berlin / Bürgerbeteiligung");
   });
 
   it("redirects cleanly when the selected region is not available from the registry or manual fixtures", async () => {
