@@ -30,6 +30,25 @@ sichtbar und idempotent abgeschlossen.
 - TOTP und E-Mail-OTP bleiben getrennte Methoden
 - Authenticator-Texte zeigen keine irreführende Challenge-Minutenlaufzeit
 
+## Ausführungsreihenfolge
+
+Dieser Slice ist eine ausdrücklich begrenzte Reparatur des bestehenden
+Login-/2FA-Pfads.
+
+Er darf vor `PROD-RUNTIME-02`, `PROD-TEST-ACCOUNT-03B` und
+`PROD-AUTHENTICATED-SMOKE-03C` technisch umgesetzt werden, weil ein
+zuverlässiger Login Voraussetzung für diese späteren manuellen Gates ist.
+
+Diese Freigabe bedeutet ausdrücklich nicht:
+
+- Aktivierung oder Bestätigung einer Production-Runtime
+- Bereitstellung eines Production-Testkontos
+- Nachweis eines authentifizierten Production-Smokes
+- Freigabe von Production-Mutationen
+
+Die technische Umsetzung setzt den Task ausschließlich auf `review`.
+`done` bleibt bis zum dokumentierten manuellen Smoke ausgeschlossen.
+
 ## Harte Grenzen
 
 - keine `.env`-, Secret-, MongoDB-, SMTP- oder Provideränderung

@@ -88,6 +88,25 @@ Keine Implementierung freigegeben.
 | PROD-AUTHENTICATED-SMOKE-03C | blocked | P0 | PROD-RUNTIME-02, PROD-TEST-ACCOUNT-03B, PROD-E2E-HARNESS-03A | Realer authenticated-read plus vollständiger manueller Desktop-/Mobile-Production-Smoke über `/create`, Dossier, Beteiligung, Fehler- und Reload-Pfade | Reproduzierbarer Bericht mit Commit, Domain, Gerätetyp und Ergebnis liegt vor; Persistenz hält nach Reload; kein Auto-Publish, keine Fake-Runtime und keine freigegebene Mutation |
 | AUTH-2FA-REDIRECT-IDEMPOTENCY-01 | codex_ready | P0 | PROD-E2E-HARNESS-03A, Issue `#477` | Den erfolgreichen Login-/2FA-Abschluss idempotent und sichtbar abschließen: Nach genau einem gültigen Code sofort zum sicher bereinigten Ziel weiterleiten, das Formular nach Erfolg gesperrt halten, Wiederholungen bei bereits gültiger Session ohne irreführenden Challenge-Fehler behandeln und optionale Telemetrie vom Sessionabschluss entkoppeln; kein Bypass und keine Rollen-, Credential- oder ENV-Änderung | Ein gültiger TOTP- oder E-Mail-Code genügt mit einem Submit; `next` bleibt erhalten und erzeugt keine Login-Schleife; schneller Doppelklick erzeugt keine zweite Verifizierung; Replay ist nur bei nachgewiesener gültiger Session erfolgreich; ungültige, abgelaufene und methodenfremde Codes bleiben fail-closed; Authenticator-Texte zeigen keine falsche Minuten-Gültigkeit; fokussierte Route-, Hook-, UI- und Regressions-Tests sind grün; manueller Smoke bleibt vor `done` erforderlich |
 
+### Ausführungsreihenfolge-Ausnahme: AUTH-2FA-REDIRECT-IDEMPOTENCY-01
+
+Dieser eng begrenzte Auth-Hardening-Slice darf technisch vor
+`PROD-RUNTIME-02`, `PROD-TEST-ACCOUNT-03B` und
+`PROD-AUTHENTICATED-SMOKE-03C` umgesetzt werden.
+
+Begründung: Er repariert den bestehenden Login-/2FA-Pfad, der für die
+nachfolgenden authentifizierten Production-Gates benötigt wird.
+
+Diese Ausnahme:
+
+- aktiviert oder bestätigt keine Production-Runtime,
+- ersetzt kein dediziertes Production-Testkonto,
+- gilt nicht als authentifizierter Production-Smoke,
+- erlaubt keine Production-Mutation und keinen 2FA-Bypass.
+
+Der technische PR darf den Task ausschließlich auf `review` setzen.
+`done` bleibt bis zum dokumentierten manuellen Smoke ausgeschlossen.
+
 ## Phase 1 — Öffentliche Flächen, Sprache und Rückkehrlogik
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
