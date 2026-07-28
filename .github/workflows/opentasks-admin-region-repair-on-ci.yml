@@ -2,7 +2,7 @@ name: One-time Admin Region Queue Repair
 
 on:
   workflow_run:
-    workflows: ["Web CI"]
+    workflows: ["Web CI", "Admin Region Repair Trigger"]
     types: [completed]
 
 permissions:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   repair:
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.name == 'Admin Region Repair Trigger'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +104,7 @@ jobs:
           git pull --ff-only origin main
           rm -f .github/workflows/opentasks-admin-region-workspace-sync.yml
           rm -f .github/workflows/opentasks-admin-region-repair-on-ci.yml
-          git add .github/workflows/opentasks-admin-region-workspace-sync.yml .github/workflows/opentasks-admin-region-repair-on-ci.yml
+          rm -f .github/workflows/admin-region-repair-trigger.yml
+          git add .github/workflows/opentasks-admin-region-workspace-sync.yml .github/workflows/opentasks-admin-region-repair-on-ci.yml .github/workflows/admin-region-repair-trigger.yml
           git diff --cached --quiet || git commit -m "chore: remove one-time admin region queue workflows"
           git push origin main
