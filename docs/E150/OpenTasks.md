@@ -51,6 +51,8 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 - Die Videoabnahme von PR `#478` hat Issue `#490` / `MARKETING-CONTEXTUAL-ASSISTANT-UX-FIX-01` freigegeben: Der Review-Link muss die zwei Marketinginhalte wirklich zeigen, die Handlungshierarchie und Sicherheitsdarstellung werden operator-tauglich korrigiert.
 - PR `#493` wurde als Merge `6dd113f7f65b4d2f1656ed4dfed01ed4310af876` integriert; `/admin/marketing/review` zeigt die zwei realen Marketinginhalte, content-first Handlungshierarchie und qualitative Empfehlungssicherheit sind umgesetzt, erneute Produktabnahme steht aus.
 
+- Commit `ce04fe67eaf96e5681064a68f4990221be5db88f` integrierte den vollständig geprüften Marketing-Operator-Workspace und den Themenradar-Source-/Cluster-Contract auf `main`; `MARKETING-WORKSPACE-OPERABILITY-01` steht bis zur erneuten Produktabnahme auf `review`, `MARKETING-THEME-RADAR-SOURCE-CONTRACT-01` ist `done`, und Live-Ingestion bleibt über `MARKETING-REGIONAL-SOURCE-DISCOVERY-02` am `manual_gate`.
+
 ## Phase 0 — Governance und Production Gates
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
@@ -272,8 +274,8 @@ V3 Workspace evidence:
 
 | ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
 |---|---|---|---|---|---|---|---|---|
-| MARKETING-WORKSPACE-OPERABILITY-01 | codex_ready | P0 | PR #493; Issue #497 | lokales `/admin/marketing/**`-Layout, sichtbare Navigation, Loading-State, kompakter Operator-Workspace | Marketing als schnellen täglichen Arbeitsplatz statt langes Read-only-Reporting nutzbar machen | Review-Route dauerhaft sichtbar; echter Count; kein leerer Ladebildschirm; keine toten Links; DE/EN; Mobile/Desktop; Tests, Lint, Typecheck, Build grün | nein | Issue #497; Videoabnahme 2026-07-28 |
-| MARKETING-THEME-RADAR-SOURCE-CONTRACT-01 | codex_ready | P0 | Epic #442; Issue #498 | Source Registry, Coverage-Matrix, Topic-/Cluster-Schema, Ranking, Dedupe, Sprache, Lizenz, Retention | verbindlichen Vertrag für aktuelle Themen aus International, EU, Deutschland, Nachbarländern und 16 Bundesländern definieren | Contract und Schemas im Repo; keine leere UI; Live-Ingestion bleibt separater Gate-Slice | nein | Issue #498; Nutzerfreigabe 2026-07-28 |
+| MARKETING-WORKSPACE-OPERABILITY-01 | review | P0 | PR #493; Issue #497 | lokales `/admin/marketing/**`-Layout, sichtbare Navigation, Loading-State, kompakter Operator-Workspace | Marketing als schnellen täglichen Arbeitsplatz statt langes Read-only-Reporting nutzbar machen | Review-Route dauerhaft sichtbar; echter Count; kein leerer Ladebildschirm; keine toten Links; DE/EN; Mobile/Desktop; Tests, Lint, Typecheck, Build grün | nein | Issue #497; Videoabnahme 2026-07-28 |
+| MARKETING-THEME-RADAR-SOURCE-CONTRACT-01 | done | P0 | Epic #442; Issue #498 | Source Registry, Coverage-Matrix, Topic-/Cluster-Schema, Ranking, Dedupe, Sprache, Lizenz, Retention | verbindlichen Vertrag für aktuelle Themen aus International, EU, Deutschland, Nachbarländern und 16 Bundesländern definieren | Contract und Schemas im Repo; keine leere UI; Live-Ingestion bleibt separater Gate-Slice | nein | Issue #498; Nutzerfreigabe 2026-07-28 |
 
 ### Admin Region Operating Workspace – nächster Slice
 
