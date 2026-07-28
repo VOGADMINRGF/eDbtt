@@ -16,6 +16,7 @@ const COPY = {
     campaigns: "Kampagnen",
     review: "Inhalte & Freigaben",
     insights: "Ergebnisse",
+    sources: "Quellen & Themen",
   },
   en: {
     label: "Marketing workspace",
@@ -23,6 +24,7 @@ const COPY = {
     campaigns: "Campaigns",
     review: "Content & approvals",
     insights: "Results",
+    sources: "Sources & topics",
   },
 } as const;
 
@@ -38,6 +40,7 @@ export function MarketingWorkspaceNav({ reviewCount }: Props) {
     { href: `/admin/marketing?${lang}#campaigns`, label: copy.campaigns, active: false },
     { href: `/admin/marketing/review?${lang}`, label: copy.review, active: pathname === "/admin/marketing/review", count: reviewCount },
     { href: `/admin/marketing/insights?${lang}`, label: copy.insights, active: pathname === "/admin/marketing/insights" },
+    { href: `/admin/marketing/sources?${lang}`, label: copy.sources, active: pathname === "/admin/marketing/sources" },
   ];
 
   return (

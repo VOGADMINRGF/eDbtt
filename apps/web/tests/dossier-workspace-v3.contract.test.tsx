@@ -310,6 +310,43 @@ describe("DOSSIER-WORKSPACE-02", () => {
     expect(screen.getByRole("group", { name: "Quellen filtern" })).toBeTruthy();
   });
 
+  it("resets a restrictive source filter before navigating to a filtered source", () => {
+    render(<DossierWorkspace dossier={dossierWithUnreviewedSource()} demo />);
+    fireEvent.click(screen.getByRole("tab", { name: "Quellen" }));
+
+    const unreviewed = screen.getByRole("button", { name: /Ungeprüft \(/ });
+    fireEvent.click(unreviewed);
+    expect(unreviewed.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      screen.queryByText("Barcelona Superblocks – Environmental and health effects"),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Überblick" }));
+    fireEvent.click(
+      claimSelector(/Internationale Beispiele berichten positive Effekte/),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Barcelona Superblocks/ }));
+
+    expect(screen.getByRole("tab", { name: "Quellen" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /Alle \(/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(
+      screen.getByText("Barcelona Superblocks – Environmental and health effects"),
+    ).toBeTruthy();
+    expect(document.activeElement?.textContent).toContain("Barcelona Superblocks");
+
+    fireEvent.click(screen.getByRole("button", { name: /Ungeprüft \(/ }));
+    expect(screen.getByRole("button", { name: /Ungeprüft \(/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(
+      screen.queryByText("Barcelona Superblocks – Environmental and health effects"),
+    ).toBeNull();
+  });
+
   it("prefers a concrete finding over a generic question-source link", () => {
     const concrete = dossierWithDirectQuestionSource(true);
     const concreteQuestion = buildDossierWorkspaceModel(concrete.dossier).questions.find(
