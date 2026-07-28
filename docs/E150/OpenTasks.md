@@ -248,6 +248,14 @@ V3 Workspace evidence:
 - Abschluss PR `#479` (2026-07-27): Die manuelle visuelle Abnahme für Desktop-Breite, Hierarchie, verständliche Zusammenhangsäste, Objektfokus, Review-/Fehlerpfad, Mobile und RTL ist bestanden. Die beiden abschließenden P2-Reviews sind behoben: In der Fragenansicht verdrängt ein konkretes `supports`-/`contradicts`-Finding derselben Quelle die generische `unclear`-Verknüpfung, während direkte Quellen ohne konkreten Verdict ehrlich `unclear` bleiben. Die öffentliche Runtime berücksichtigt alle eindeutigen Citations eines Findings in stabiler Reihenfolge, überträgt den Verdict auf jede reale Citation und dedupliziert identische Graphkanten. Fragen-, Quellen- und Zusammenhangsmodell lesen weiterhin dieselbe Runtime-/Graphwahrheit. Nachweis: 4 fokussierte Dossier-Testdateien / 21 Tests, Typecheck, ESLint, Produktions-Build und `git diff --check` grün. `DOSSIER-WORKSPACE-02` ist `done`; `RUNDEN-WORKSPACE-03` bleibt ausdrücklich `blocked`.
 -->
 
+
+### Marketing Workspace und Themenradar – nächste Slices
+
+| ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
+|---|---|---|---|---|---|---|---|---|
+| MARKETING-WORKSPACE-OPERABILITY-01 | codex_ready | P0 | PR #493; Issue #497 | lokales `/admin/marketing/**`-Layout, sichtbare Navigation, Loading-State, kompakter Operator-Workspace | Marketing als schnellen täglichen Arbeitsplatz statt langes Read-only-Reporting nutzbar machen | Review-Route dauerhaft sichtbar; echter Count; kein leerer Ladebildschirm; keine toten Links; DE/EN; Mobile/Desktop; Tests, Lint, Typecheck, Build grün | nein | Issue #497; Videoabnahme 2026-07-28 |
+| MARKETING-THEME-RADAR-SOURCE-CONTRACT-01 | codex_ready | P0 | Epic #442; Issue #498 | Source Registry, Coverage-Matrix, Topic-/Cluster-Schema, Ranking, Dedupe, Sprache, Lizenz, Retention | verbindlichen Vertrag für aktuelle Themen aus International, EU, Deutschland, Nachbarländern und 16 Bundesländern definieren | Contract und Schemas im Repo; keine leere UI; Live-Ingestion bleibt separater Gate-Slice | nein | Issue #498; Nutzerfreigabe 2026-07-28 |
+
 ## Historischer Katalog und Evidenz
 
 Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.
