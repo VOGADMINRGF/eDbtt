@@ -1,0 +1,56 @@
+name: One-time Marketing Workspace and Radar Sync
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/opentasks-marketing-workspace-radar-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Insert canonical tasks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/E150/OpenTasks.md')
+          text = p.read_text(encoding='utf-8')
+          marker = '## Historischer Katalog und Evidenz'
+          section_title = '### Marketing Workspace und Themenradar – nächste Slices'
+          if marker not in text:
+              raise SystemExit('history marker missing')
+          if section_title not in text:
+              block = '''\n### Marketing Workspace und Themenradar – nächste Slices\n\n| ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |\n|---|---|---|---|---|---|---|---|---|\n| MARKETING-WORKSPACE-OPERABILITY-01 | codex_ready | P0 | PR #493; Issue #497 | lokales `/admin/marketing/**`-Layout, sichtbare Navigation, Loading-State, kompakter Operator-Workspace | Marketing als schnellen täglichen Arbeitsplatz statt langes Read-only-Reporting nutzbar machen | Review-Route dauerhaft sichtbar; echter Count; kein leerer Ladebildschirm; keine toten Links; DE/EN; Mobile/Desktop; Tests, Lint, Typecheck, Build grün | nein | Issue #497; Videoabnahme 2026-07-28 |\n| MARKETING-THEME-RADAR-SOURCE-CONTRACT-01 | codex_ready | P0 | Epic #442; Issue #498 | Source Registry, Coverage-Matrix, Topic-/Cluster-Schema, Ranking, Dedupe, Sprache, Lizenz, Retention | verbindlichen Vertrag für aktuelle Themen aus International, EU, Deutschland, Nachbarländern und 16 Bundesländern definieren | Contract und Schemas im Repo; keine leere UI; Live-Ingestion bleibt separater Gate-Slice | nein | Issue #498; Nutzerfreigabe 2026-07-28 |\n\n'''
+              text = text.replace(marker, block + marker, 1)
+              p.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit canonical tasks
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/E150/OpenTasks.md
+          git diff --cached --quiet || git commit -m "docs: queue marketing workspace and topic radar slices"
+          git push origin main
+      - name: Run canonical preflights
+        run: |
+          node scripts/codex-task-preflight.mjs MARKETING-WORKSPACE-OPERABILITY-01
+          node scripts/codex-task-preflight.mjs MARKETING-THEME-RADAR-SOURCE-CONTRACT-01
+      - name: Self-remove workflow
+        run: |
+          git pull --ff-only origin main
+          rm .github/workflows/opentasks-marketing-workspace-radar-sync.yml
+          git add .github/workflows/opentasks-marketing-workspace-radar-sync.yml
+          git commit -m "chore: remove one-time marketing queue sync"
+          git push origin main
