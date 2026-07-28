@@ -1,0 +1,109 @@
+name: One-time Admin Region Queue Repair
+
+on:
+  workflow_run:
+    workflows: ["Web CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-time-admin-region-queue-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Normalize canonical admin region tasks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('docs/E150/OpenTasks.md')
+          text = p.read_text(encoding='utf-8')
+          marker = '## Historischer Katalog und Evidenz'
+          section_title = '### Admin Region Operating Workspace – nächster Slice'
+          if marker not in text:
+              raise SystemExit('history marker missing')
+
+          head, history = text.split(marker, 1)
+          if section_title in head:
+              head = head.split(section_title, 1)[0].rstrip() + '\n\n'
+
+          task_prefixes = (
+              '| ADMIN-BOARD-INFORMATION-ARCHITECTURE-03 |',
+              '| ADMIN-REGION-OPERATING-WORKSPACE-01 |',
+          )
+          head = '\n'.join(
+              line for line in head.splitlines()
+              if not line.startswith(task_prefixes)
+          ).rstrip() + '\n\n'
+
+          head = head.replace(
+              '# E150 Open Tasks — Operativer Kopf 2026-07-27',
+              '# E150 Open Tasks — Operativer Kopf 2026-07-28',
+              1,
+          )
+          head = head.replace('- Stand: `2026-07-27`', '- Stand: `2026-07-28`', 1)
+
+          for old_line in (
+              '- Letzter gezielter Kopf-Sync: Marketing Assistant UX Fix nach PR `#493`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.',
+              '- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.',
+          ):
+              if old_line in head:
+                  head = head.replace(
+                      old_line,
+                      '- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.',
+                      1,
+                  )
+                  break
+
+          for old_line in (
+              '- Issue `#459` hält die spätere Vereinfachung der übrigen Admin-Boards fest und bleibt bis zur Produktabnahme von `/admin/marketing` blockiert.',
+              '- Issue `#459` ist nach der Nutzerabnahme der Marketing-Referenz `in_progress`; Issue `#495` / `ADMIN-REGION-OPERATING-WORKSPACE-01` ist der erste freigegebene Folge-Slice für `/admin/region`.',
+          ):
+              if old_line in head:
+                  head = head.replace(
+                      old_line,
+                      '- Issue `#459` ist nach der Nutzerabnahme der Marketing-Referenz `in_progress`; Issue `#495` / `ADMIN-REGION-OPERATING-WORKSPACE-01` ist der erste freigegebene Folge-Slice für `/admin/region`.',
+                      1,
+                  )
+                  break
+
+          block = '''### Admin Region Operating Workspace – nächster Slice
+
+| ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
+|---|---|---|---|---|---|---|---|---|
+| ADMIN-BOARD-INFORMATION-ARCHITECTURE-03 | in_progress | P1 | Nutzerabnahme `/admin/marketing`; Issue #459 | übrige Admin-Boards schrittweise auf die operator-taugliche Informationsarchitektur der Marketing-Referenz prüfen | technische Statussammlungen in verständliche, entscheidungsorientierte Arbeitsräume überführen | je Board eigener kollisionsgeprüfter Slice; reale Workflows; keine zweite Runtime; keine globalen Layout- oder Governanceänderungen | nein | Issue #459; erster Slice Issue #495 |
+| ADMIN-REGION-OPERATING-WORKSPACE-01 | codex_ready | P0 | ADMIN-BOARD-INFORMATION-ARCHITECTURE-03; Issue #495 | `/admin/region`, `RegionSourceConnectionsPanel`, fokussierte Region-Tests und Evidence-Doku | ausgewählte Region als durchgängigen Arbeitsraum von Lagebild, Quellen und Recherche über Claims/Dossier und interne/externe Beiträge bis zur regionalen Kampagnenübergabe nutzbar machen | erster Bereich zeigt Relevanz, Quellenlage und nächste Aktion; Arbeitsbereiche Lagebild, Quellen & Feeds, Recherche, Claims & Dossiers, Beiträge & Veröffentlichung, regionale Kampagnen sowie nachgeordnete Einstellungen; reale Handoffs ohne Dead Clicks; kein Auto-Research, Auto-Publish oder neue Persistenz; Mobile/Desktop; Tests, Typecheck, Lint und `git diff --check` grün | nein | Issue #495; Nutzerentscheidung und Videoabnahme 2026-07-28 |
+
+'''
+          p.write_text(head + block + marker + history, encoding='utf-8')
+          PY
+      - name: Commit normalized queue
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/E150/OpenTasks.md
+          git diff --cached --quiet || git commit -m "docs: normalize admin region operating workspace queue"
+          git push origin main
+      - name: Run canonical task preflight
+        run: node scripts/codex-task-preflight.mjs ADMIN-REGION-OPERATING-WORKSPACE-01
+      - name: Remove one-time workflows
+        run: |
+          git pull --ff-only origin main
+          rm -f .github/workflows/opentasks-admin-region-workspace-sync.yml
+          rm -f .github/workflows/opentasks-admin-region-repair-on-ci.yml
+          git add .github/workflows/opentasks-admin-region-workspace-sync.yml .github/workflows/opentasks-admin-region-repair-on-ci.yml
+          git diff --cached --quiet || git commit -m "chore: remove one-time admin region queue workflows"
+          git push origin main
