@@ -175,6 +175,11 @@ function isAdminOnlyRoute(path: string) {
   return path.startsWith("/admin") || path.startsWith("/dashboard");
 }
 
+function isAuthenticationLoopRoute(path: string) {
+  const pathname = path.split("?")[0]?.replace(/\/+$/, "") || "/";
+  return pathname === "/login" || pathname.startsWith("/login/");
+}
+
 export function resolvePostLoginRedirect(input: {
   requestedRedirect?: string | null;
   roles?: Array<UserRole | { role?: string } | string> | null;
@@ -185,6 +190,9 @@ export function resolvePostLoginRedirect(input: {
   const requested = normalizeInternalRedirectPath(input.requestedRedirect);
 
   if (requested) {
+    if (isAuthenticationLoopRoute(requested)) {
+      return contract.expectedPostLoginRoute;
+    }
     if (isAdminOnlyRoute(requested) && roleId !== "admin_backoffice") {
       return contract.expectedPostLoginRoute;
     }

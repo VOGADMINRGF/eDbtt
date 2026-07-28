@@ -117,13 +117,8 @@ export function sha256(value: string) {
 
 export function sanitizeRedirect(raw?: string | null) {
   if (!raw) return DEFAULT_REDIRECT;
-  try {
-    const url = new URL(raw, "http://localhost");
-    const normalized = normalizeInternalRedirectPath(url.pathname + url.search);
-    return normalized ?? DEFAULT_REDIRECT;
-  } catch {
-    return DEFAULT_REDIRECT;
-  }
+  const normalized = normalizeInternalRedirectPath(raw);
+  return normalized ?? DEFAULT_REDIRECT;
 }
 
 export function resolveTwoFactorMethod(

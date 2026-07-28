@@ -200,6 +200,9 @@ vi.mock("@/utils/emailTemplates", () => ({
 
 vi.mock("@core/telemetry/authEvents", () => ({
   logAuthEvent: (...args: unknown[]) => mocks.logAuthEvent(...args),
+  logAuthEventBestEffort: (...args: unknown[]) => {
+    void mocks.logAuthEvent(...args);
+  },
 }));
 
 vi.mock("@core/pii/userProfileService", () => ({

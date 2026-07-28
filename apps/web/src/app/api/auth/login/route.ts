@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol } from "@core/db/db/triMongo";
 import { ObjectId } from "@core/db/triMongo";
 import { verifyPassword } from "@/utils/password";
-import { logAuthEvent } from "@core/telemetry/authEvents";
+import { logAuthEvent, logAuthEventBestEffort } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
 import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);
-    await logAuthEvent("auth.login.success", {
+    logAuthEventBestEffort("auth.login.success", {
       meta: { ipHash: sha256(ip), userHash: sha256(String(user._id)) },
     });
     return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });

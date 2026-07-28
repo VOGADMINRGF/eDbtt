@@ -32,3 +32,10 @@ export async function logAuthEvent(event: AuthEventName, payload?: { userId?: st
     await core.insertOne(doc);
   }
 }
+
+export function logAuthEventBestEffort(
+  event: AuthEventName,
+  payload?: { userId?: string | null; meta?: Record<string, unknown> },
+) {
+  void logAuthEvent(event, payload).catch(() => undefined);
+}
