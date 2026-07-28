@@ -1,0 +1,74 @@
+name: One-time Rebase Marketing Workspace PR506
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/marketing-workspace-506.trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.ref == 'docs/trigger-marketing-workspace-506-rebase'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out fresh marketing branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/marketing-workspace-topic-radar-contract-01-rebased
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply validated PR 506 patch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          gh api \
+            -H "Accept: application/vnd.github.v3.patch" \
+            "repos/${GITHUB_REPOSITORY}/pulls/506" > /tmp/pr506.patch
+
+          git apply --index --3way /tmp/pr506.patch
+
+          cat > /tmp/expected-files.txt <<'EOF'
+          apps/web/package.json
+          apps/web/src/app/admin/marketing/layout.tsx
+          apps/web/src/app/admin/marketing/loading.tsx
+          apps/web/src/app/admin/marketing/page.tsx
+          apps/web/src/features/marketing/assistant/AssistantPanel.tsx
+          apps/web/src/features/marketing/workspace/MarketingWorkspaceNav.tsx
+          apps/web/tests/admin-marketing-insights.page.test.tsx
+          apps/web/tests/admin-marketing-workspace.layout.test.tsx
+          apps/web/tests/admin-marketing.page.test.tsx
+          apps/web/tests/marketing-topic-radar-source.contract.test.ts
+          docs/E150/MARKETING-THEME-RADAR-SOURCE-CONTRACT-01_2026-07-28.md
+          docs/E150/MARKETING-WORKSPACE-OPERABILITY-01_2026-07-28.md
+          docs/marketing/schemas/marketing-topic-cluster.schema.json
+          docs/marketing/schemas/marketing-topic-source.schema.json
+          docs/marketing/source-profiles/topic-radar-coverage.json
+          EOF
+          sed -i 's/^          //' /tmp/expected-files.txt
+          git diff --cached --name-only | sort > /tmp/actual-files.txt
+          sort -o /tmp/expected-files.txt /tmp/expected-files.txt
+          diff -u /tmp/expected-files.txt /tmp/actual-files.txt
+          git diff --cached --check
+
+          git commit -m "feat(marketing): add operator workspace and topic radar contract"
+          git push origin HEAD:feat/marketing-workspace-topic-radar-contract-01-rebased
+
+      - name: Remove one-time workflow from main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B one-time-cleanup origin/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/rebase-marketing-workspace-506.yml
+          git commit -m "chore: remove one-time marketing workspace rebase workflow"
+          git push origin HEAD:main
