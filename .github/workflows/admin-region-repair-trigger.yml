@@ -1,6 +1,6 @@
 name: Admin Region Repair Trigger
 
-# trigger
+# trigger-2
 on:
   pull_request:
     branches: [main]
