@@ -1,5 +1,6 @@
 name: One-time Admin Region Workspace Sync
 
+# trigger
 on:
   pull_request:
     branches: [main]
