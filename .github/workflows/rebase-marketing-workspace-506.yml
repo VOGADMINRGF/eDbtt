@@ -22,19 +22,12 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Apply validated PR 506 patch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy validated PR 506 file set
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          gh api \
-            -H "Accept: application/vnd.github.v3.patch" \
-            "repos/${GITHUB_REPOSITORY}/pulls/506" > /tmp/pr506.patch
-
-          git apply --index --3way /tmp/pr506.patch
+          git fetch origin feat/marketing-workspace-topic-radar-contract-01
 
           cat > /tmp/expected-files.txt <<'EOF'
           apps/web/package.json
@@ -54,6 +47,12 @@ jobs:
           docs/marketing/source-profiles/topic-radar-coverage.json
           EOF
           sed -i 's/^          //' /tmp/expected-files.txt
+
+          while IFS= read -r file; do
+            git checkout origin/feat/marketing-workspace-topic-radar-contract-01 -- "$file"
+          done < /tmp/expected-files.txt
+
+          git add -A
           git diff --cached --name-only | sort > /tmp/actual-files.txt
           sort -o /tmp/expected-files.txt /tmp/expected-files.txt
           diff -u /tmp/expected-files.txt /tmp/actual-files.txt
@@ -63,12 +62,15 @@ jobs:
           git push origin HEAD:feat/marketing-workspace-topic-radar-contract-01-rebased
 
       - name: Remove one-time workflow from main
+        if: always()
         run: |
           set -euo pipefail
           git fetch origin main
           git checkout -B one-time-cleanup origin/main
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/rebase-marketing-workspace-506.yml
-          git commit -m "chore: remove one-time marketing workspace rebase workflow"
-          git push origin HEAD:main
+          if [ -f .github/workflows/rebase-marketing-workspace-506.yml ]; then
+            git rm .github/workflows/rebase-marketing-workspace-506.yml
+            git commit -m "chore: remove one-time marketing workspace rebase workflow"
+            git push origin HEAD:main
+          fi
