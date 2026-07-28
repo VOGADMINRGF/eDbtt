@@ -36,48 +36,40 @@ type PageProps = {
 const COPY = {
   de: {
     eyebrow: "Admin · Marketing",
-    title: "Kampagnen- & Posting-Steuerung",
-    intro: "Plane und prüfe B2C-, B2B- und B2G-Kampagnen, ihre Beiträge, Ausspielungen und belegten Ergebnisse an einem Ort.",
-    guardrail: "Keine Fantasiezahlen: Ergebnisse erscheinen nur mit nachvollziehbarer Quelle und Zeitraum.",
+    title: "Marketing-Cockpit",
+    intro: "Steuere Kampagnen, Beiträge, Freigaben und belegte Ergebnisse für B2C, B2B und B2G.",
+    guardrail: "Ergebnisse erscheinen nur mit nachvollziehbarer Quelle und Zeitraum.",
+    german: "Deutsch",
+    english: "English",
+    today: "Heute wichtig",
     campaigns: "Kampagnen",
-    assistant: "Assistent",
-    distribution: "Beiträge & Ausspielungen",
-    performance: "Datenlage",
+    concreteContent: "konkrete Beiträge & Videos",
+    scheduled: "eingeplant",
+    published: "veröffentlicht",
+    reviewNow: "Inhalte prüfen",
     allSegments: "Alle Zielmärkte",
     allReach: "Alle Reichweiten",
     allContent: "Alle Inhalte",
     reviewReady: "Zur Freigabe",
-    campaignCount: "Kampagnen",
-    campaignCountNote: "im gewählten Betrachtungsrahmen",
-    contentCount: "Beiträge & Videos",
-    contentCountNote: "konkrete Varianten",
-    scheduled: "Eingeplant",
-    scheduledNote: "mit bestätigtem Termin",
-    published: "Veröffentlicht",
-    publishedNote: "mit Ausspielbeleg",
-    measured: "Mit Messdaten",
-    measuredNote: "Kampagnen mit Snapshots",
-    portfolioTitle: "Kampagnenportfolio",
-    portfolioIntro: "Im Mittelpunkt stehen Kampagnen, Zielgruppen, Regionen, Sprachen, Kanäle und Ziele. Dateien sind nur Bestandteile einer Kampagne.",
+    portfolioTitle: "Kampagnen",
+    portfolioIntro: "Kompakte Arbeitsliste. Weitere Zielgruppen-, Kanal- und KPI-Details lassen sich je Kampagne öffnen.",
     noCampaigns: "Für diese Filterkombination gibt es keine Kampagne.",
     audiences: "Zielgruppen",
     reach: "Reichweite",
     regions: "Regionen",
     languages: "Sprachen",
     channels: "Kanäle",
-    objective: "Ziel",
     primaryKpi: "Hauptkennzahl",
     content: "Inhalte",
     dataQuality: "Datenlage",
-    openCampaign: "Kampagne öffnen",
-    openInsights: "Ergebnisse öffnen",
+    openCampaign: "Details öffnen",
+    openInsights: "Ergebnisse",
     detail: "Kampagnendetails",
     primaryMarket: "Hauptzielmarkt",
-    status: "Status",
-    promotion: "Ausspielung",
-    distributionTitle: "Gestreute Beiträge und Varianten",
+    review: "Inhalte prüfen",
+    distributionTitle: "Beiträge & Ausspielungen",
     distributionIntro: "Interne und externe Varianten derselben Kampagne bleiben verbunden. Organische und bezahlte Ausspielung werden getrennt ausgewiesen.",
-    reviewFilterNote: "Es werden ausschließlich Marketinginhalte angezeigt, die auf Prüfung warten.",
+    reviewFilterNote: "Es werden nur Inhalte angezeigt, die auf Prüfung warten.",
     surface: "Bereich",
     internal: "Intern",
     external: "Extern",
@@ -86,14 +78,13 @@ const COPY = {
     notScheduled: "Noch nicht terminiert",
     result: "Ergebnis",
     noMetrics: "Noch keine verifizierten Leistungsdaten",
-    review: "Marketing-Inhalte prüfen",
-    contentPreview: "Inhalt ansehen",
+    contentPreview: "Caption und Script ansehen",
     caption: "Caption",
     script: "Script",
     noScript: "Kein separates Script erforderlich.",
     noContent: "Für die gewählten Filter sind noch keine konkreten Beiträge angelegt.",
-    sourceTitle: "Messdaten und Datenquellen",
-    sourceIntro: "eDebatte, Social Media, E-Mail, Downloads und Werbung werden getrennt betrachtet. Nicht verbundene Daten sind kein Null-Ergebnis.",
+    sourceTitle: "Messdaten & Datenquellen",
+    sourceIntro: "Nicht verbundene Daten sind kein Null-Ergebnis. Details bleiben zunächst eingeklappt.",
     sourceSummary: "Datenquellen verbunden",
     sourceJoin: "von",
     sourceDetails: "Einzelne Datenquellen anzeigen",
@@ -102,53 +93,44 @@ const COPY = {
     notConnected: "Nicht verbunden / keine verifizierten Daten",
     backAdmin: "Admin-Übersicht",
     participation: "Beteiligungskampagnen",
-    german: "Deutsch",
-    english: "English",
+    more: "Weitere Angaben",
   },
   en: {
     eyebrow: "Admin · Marketing",
-    title: "Campaign & posting control",
-    intro: "Plan and review B2C, B2B and B2G campaigns, their content, distribution and evidenced outcomes in one place.",
-    guardrail: "No invented numbers: results appear only with a traceable source and reporting period.",
-    campaigns: "Campaigns",
-    assistant: "Assistant",
-    distribution: "Content & distribution",
-    performance: "Data coverage",
+    title: "Marketing cockpit",
+    intro: "Control campaigns, content, approvals and evidenced outcomes for B2C, B2B and B2G.",
+    guardrail: "Results appear only with a traceable source and reporting period.",
+    german: "Deutsch",
+    english: "English",
+    today: "Important today",
+    campaigns: "campaigns",
+    concreteContent: "concrete posts & videos",
+    scheduled: "scheduled",
+    published: "published",
+    reviewNow: "Review content",
     allSegments: "All market segments",
     allReach: "All reach scopes",
     allContent: "All content",
     reviewReady: "Ready for review",
-    campaignCount: "Campaigns",
-    campaignCountNote: "in the selected scope",
-    contentCount: "Posts & videos",
-    contentCountNote: "concrete variants",
-    scheduled: "Scheduled",
-    scheduledNote: "with a confirmed time",
-    published: "Published",
-    publishedNote: "with distribution evidence",
-    measured: "With measurements",
-    measuredNote: "campaigns with snapshots",
-    portfolioTitle: "Campaign portfolio",
-    portfolioIntro: "Campaigns, audiences, regions, languages, channels and outcomes come first. Files are subordinate campaign elements.",
+    portfolioTitle: "Campaigns",
+    portfolioIntro: "Compact work list. Additional audience, channel and KPI details open per campaign.",
     noCampaigns: "No campaign matches this filter combination.",
     audiences: "Audiences",
     reach: "Reach",
     regions: "Regions",
     languages: "Languages",
     channels: "Channels",
-    objective: "Objective",
     primaryKpi: "Primary KPI",
     content: "Content",
     dataQuality: "Data quality",
-    openCampaign: "Open campaign",
-    openInsights: "Open results",
+    openCampaign: "Open details",
+    openInsights: "Results",
     detail: "Campaign details",
     primaryMarket: "Primary market",
-    status: "Status",
-    promotion: "Distribution type",
-    distributionTitle: "Distributed content and variants",
+    review: "Review content",
+    distributionTitle: "Content & distribution",
     distributionIntro: "Internal and external variants of the same campaign remain connected. Organic and paid distribution are reported separately.",
-    reviewFilterNote: "Only marketing content waiting for review is shown.",
+    reviewFilterNote: "Only content waiting for review is shown.",
     surface: "Surface",
     internal: "Internal",
     external: "External",
@@ -157,15 +139,14 @@ const COPY = {
     notScheduled: "Not scheduled yet",
     result: "Result",
     noMetrics: "No verified performance data yet",
-    review: "Review marketing content",
-    contentPreview: "View content",
+    contentPreview: "View caption and script",
     caption: "Caption",
     script: "Script",
     noScript: "No separate script is required.",
     noContent: "No concrete content exists for the selected filters yet.",
-    sourceTitle: "Measurement data and sources",
-    sourceIntro: "eDebatte, social media, email, downloads and advertising are considered separately. Unconnected data is not a zero result.",
-    sourceSummary: "Data sources connected",
+    sourceTitle: "Measurement data & sources",
+    sourceIntro: "Unconnected data is not a zero result. Details remain collapsed by default.",
+    sourceSummary: "data sources connected",
     sourceJoin: "of",
     sourceDetails: "Show individual data sources",
     snapshots: "Snapshots",
@@ -173,8 +154,7 @@ const COPY = {
     notConnected: "Not connected / no verified data",
     backAdmin: "Admin overview",
     participation: "Participation campaigns",
-    german: "Deutsch",
-    english: "English",
+    more: "More details",
   },
 } as const;
 
@@ -201,39 +181,45 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
     campaignId: selectedCampaign?.campaign.id ?? null,
     surface: "cockpit",
   });
-  const summary = {
-    campaigns: campaigns.length,
-    content: contentItems.length,
-    scheduled: campaigns.reduce((sum, row) => sum + row.scheduledContentCount, 0),
-    published: campaigns.reduce((sum, row) => sum + row.publishedContentCount, 0),
-    measured: campaigns.filter((row) => row.hasPerformanceData).length,
-  };
+  const reviewCount = model.contentItems.filter((row) => row.content.status === "review_ready").length;
+  const scheduledCount = campaigns.reduce((sum, row) => sum + row.scheduledContentCount, 0);
+  const publishedCount = campaigns.reduce((sum, row) => sum + row.publishedContentCount, 0);
   const connectedSources = model.sourceStates.filter((source) => source.snapshotCount > 0).length;
 
   return (
-    <main className="space-y-8 pb-12" data-testid="admin-marketing-control-system">
-      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-4xl space-y-3">
+    <main className="space-y-6 pb-12" data-testid="admin-marketing-control-system">
+      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-4xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">{copy.eyebrow}</p>
-            <h1 className="text-3xl font-bold text-[rgb(var(--fg))] sm:text-4xl">{copy.title}</h1>
-            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">{copy.intro}</p>
-            <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100">{copy.guardrail}</p>
+            <h1 className="mt-1 text-3xl font-bold text-[rgb(var(--fg))]">{copy.title}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.intro}</p>
           </div>
           <div className="flex gap-2 text-xs font-semibold">
             <Link href={pageHref("de", segment, reach, contentFilter)} className={languageClass(locale === "de")}>{copy.german}</Link>
             <Link href={pageHref("en", segment, reach, contentFilter)} className={languageClass(locale === "en")}>{copy.english}</Link>
           </div>
         </div>
-        <nav className="mt-6 flex flex-wrap gap-2" aria-label="Marketing navigation">
-          <Anchor href="#assistant" label={copy.assistant} />
-          <Anchor href="#campaigns" label={copy.campaigns} />
-          <Anchor href="#distribution" label={copy.distribution} />
-          <Anchor href="#performance" label={copy.performance} />
-        </nav>
+        <p className="mt-4 inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-400/10 dark:text-emerald-100">{copy.guardrail}</p>
       </header>
 
-      <section className="space-y-4" aria-label="Marketing filters">
+      <section className="rounded-3xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-400/30 dark:bg-sky-400/10" aria-labelledby="today-heading">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p id="today-heading" className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">{copy.today}</p>
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+              {campaigns.length} {copy.campaigns} · {contentItems.length} {copy.concreteContent} · {scheduledCount} {copy.scheduled} · {publishedCount} {copy.published}
+            </p>
+          </div>
+          {reviewCount > 0 ? (
+            <Link href={`/admin/marketing/review?lang=${locale}`} className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">
+              {copy.reviewNow} <span className="rounded-full bg-white/20 px-2 py-0.5">{reviewCount}</span>
+            </Link>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4" aria-label="Marketing filters">
         <div className="flex flex-wrap gap-2">
           <Filter href={pageHref(locale, "all", reach, contentFilter)} active={segment === "all"} label={copy.allSegments} />
           {(["b2c", "b2b", "b2g"] as const).map((value) => (
@@ -248,36 +234,28 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Filter href={pageHref(locale, segment, reach, "all")} active={contentFilter === "all"} label={copy.allContent} />
-          <Filter href={pageHref(locale, segment, reach, "review_ready")} active={contentFilter === "review_ready"} label={copy.reviewReady} />
+          <Filter href={pageHref(locale, segment, reach, "review_ready")} active={contentFilter === "review_ready"} label={`${copy.reviewReady} (${reviewCount})`} />
         </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Marketing summary">
-        <Metric href="#campaigns" label={copy.campaignCount} value={summary.campaigns} note={copy.campaignCountNote} />
-        <Metric href="#distribution" label={copy.contentCount} value={summary.content} note={copy.contentCountNote} />
-        <Metric href="#distribution" label={copy.scheduled} value={summary.scheduled} note={copy.scheduledNote} />
-        <Metric href="#distribution" label={copy.published} value={summary.published} note={copy.publishedNote} />
-        <Metric href="#performance" label={copy.measured} value={summary.measured} note={copy.measuredNote} />
       </section>
 
       <MarketingAssistantPanel model={assistant} locale={locale} />
 
-      <section id="campaigns" className="scroll-mt-6 space-y-5" aria-labelledby="campaigns-heading">
+      <section id="campaigns" className="scroll-mt-24 space-y-4" aria-labelledby="campaigns-heading">
         <div>
           <Heading id="campaigns-heading" title={copy.portfolioTitle} />
-          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.portfolioIntro}</p>
+          <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{copy.portfolioIntro}</p>
         </div>
         {campaigns.length ? (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="divide-y divide-[rgb(var(--border))] overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
             {campaigns.map((row) => (
-              <CampaignCard key={row.campaign.id} row={row} locale={locale} copy={copy} segment={segment} reach={reach} contentFilter={contentFilter} />
+              <CampaignRow key={row.campaign.id} row={row} locale={locale} copy={copy} segment={segment} reach={reach} contentFilter={contentFilter} />
             ))}
           </div>
         ) : <Empty text={copy.noCampaigns} />}
       </section>
 
-      {selectedCampaign && (
-        <section id="campaign-detail" className="scroll-mt-6 rounded-3xl border-2 border-sky-300 bg-sky-50/70 p-5 dark:border-sky-400/40 dark:bg-sky-400/10" aria-labelledby="campaign-detail-heading">
+      {selectedCampaign ? (
+        <section id="campaign-detail" className="scroll-mt-24 rounded-3xl border-2 border-sky-300 bg-sky-50/70 p-5 dark:border-sky-400/40 dark:bg-sky-400/10" aria-labelledby="campaign-detail-heading">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">{copy.detail}</p>
@@ -295,22 +273,22 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
             <Definition label={copy.channels} value={selectedCampaign.profile.plannedChannels.map((value) => channelLabel(value, locale)).join(", ")} />
           </dl>
           <div className="mt-5 flex flex-wrap gap-2">
-            {selectedCampaign.contentItems.some((item) => item.status === "review_ready") && <Action href={`/admin/marketing/review?lang=${locale}&campaign=${selectedCampaign.campaign.id}`} label={copy.review} />}
+            {selectedCampaign.contentItems.some((item) => item.status === "review_ready") ? <Action href={`/admin/marketing/review?lang=${locale}&campaign=${selectedCampaign.campaign.id}`} label={copy.review} /> : null}
             <Action href={`/admin/marketing/insights?lang=${locale}&campaign=${selectedCampaign.campaign.id}`} label={copy.openInsights} secondary />
           </div>
         </section>
-      )}
+      ) : null}
 
-      <section id="distribution" className="scroll-mt-6 space-y-5" aria-labelledby="distribution-heading">
+      <section id="distribution" className="scroll-mt-24 space-y-4" aria-labelledby="distribution-heading">
         <div>
           <Heading id="distribution-heading" title={copy.distributionTitle} />
-          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.distributionIntro}</p>
+          <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{copy.distributionIntro}</p>
           {contentFilter === "review_ready" ? <p className="mt-2 text-sm font-semibold text-amber-800 dark:text-amber-200">{copy.reviewFilterNote}</p> : null}
         </div>
         {contentItems.length ? (
           <div className="grid gap-4 xl:grid-cols-2">
             {contentItems.map((row) => (
-              <article id={`content-${row.content.id}`} key={row.content.id} className="scroll-mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <article id={`content-${row.content.id}`} key={row.content.id} className="scroll-mt-24 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">{row.profile.primarySegment.toUpperCase()} · {promotionLabel(row.profile.promotion, locale)}</p>
@@ -334,7 +312,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
                 </details>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Action href={`/admin/marketing?lang=${locale}&segment=${segment}&reach=${reach}&campaign=${row.campaign.id}#campaign-detail`} label={copy.openCampaign} secondary />
-                  {row.content.status === "review_ready" && <Action href={`/admin/marketing/review?lang=${locale}&campaign=${row.campaign.id}#content-${row.content.id}`} label={copy.review} />}
+                  {row.content.status === "review_ready" ? <Action href={`/admin/marketing/review?lang=${locale}&campaign=${row.campaign.id}#content-${row.content.id}`} label={copy.review} /> : null}
                 </div>
               </article>
             ))}
@@ -342,10 +320,10 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
         ) : <Empty text={copy.noContent} />}
       </section>
 
-      <section id="performance" className="scroll-mt-6 space-y-5" aria-labelledby="performance-heading">
+      <section id="performance" className="scroll-mt-24 space-y-4" aria-labelledby="performance-heading">
         <div>
           <Heading id="performance-heading" title={copy.sourceTitle} />
-          <p className="mt-1 max-w-5xl text-sm leading-6 text-[rgb(var(--muted))]">{copy.sourceIntro}</p>
+          <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">{copy.sourceIntro}</p>
         </div>
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{connectedSources} {copy.sourceJoin} {model.sourceStates.length} {copy.sourceSummary}</p>
@@ -368,32 +346,37 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
   );
 }
 
-function CampaignCard({ row, locale, copy, segment, reach, contentFilter }: { row: MarketingCampaignControlRow; locale: UiLocale; copy: (typeof COPY)[UiLocale]; segment: SegmentFilter; reach: ReachFilter; contentFilter: ContentFilter }) {
+function CampaignRow({ row, locale, copy, segment, reach, contentFilter }: { row: MarketingCampaignControlRow; locale: UiLocale; copy: (typeof COPY)[UiLocale]; segment: SegmentFilter; reach: ReachFilter; contentFilter: ContentFilter }) {
   return (
-    <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-2xl">
-          <div className="flex flex-wrap gap-2">
-            {row.profile.segments.map((value) => <span key={value} className="rounded-full border border-sky-300 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:text-sky-200">{value.toUpperCase()}</span>)}
-            <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))]">{promotionLabel(row.profile.promotion, locale)}</span>
+    <article className="p-4 sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            {row.profile.segments.map((value) => <span key={value} className="rounded-full border border-sky-300 px-2 py-0.5 text-xs font-semibold text-sky-800 dark:text-sky-200">{value.toUpperCase()}</span>)}
+            <Badge label={campaignStatusLabel(row.campaign.status, locale)} />
           </div>
-          <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{row.campaign.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{row.profile.objective}</p>
+          <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))] sm:text-lg">{row.campaign.title}</h3>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">{row.profile.objective}</p>
+          <p className="mt-2 text-xs font-medium text-[rgb(var(--muted))]">
+            {row.plannedContentCount} {copy.content.toLowerCase()} · {row.profile.reachScopes.map((value) => reachLabel(value, locale)).join(", ")} · {promotionLabel(row.profile.promotion, locale)}
+          </p>
         </div>
-        <Badge label={campaignStatusLabel(row.campaign.status, locale)} />
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Action href={`/admin/marketing?lang=${locale}&segment=${segment}&reach=${reach}&contentStatus=${contentFilter}&campaign=${row.campaign.id}#campaign-detail`} label={copy.openCampaign} secondary />
+          <Action href={`/admin/marketing/insights?lang=${locale}&campaign=${row.campaign.id}`} label={copy.openInsights} />
+        </div>
       </div>
-      <dl className="mt-4 grid gap-3 rounded-2xl bg-[rgb(var(--bg))] p-4 text-sm sm:grid-cols-2">
-        <Definition label={copy.audiences} value={row.profile.audienceLabels.join(", ")} />
-        <Definition label={copy.reach} value={row.profile.reachScopes.map((value) => reachLabel(value, locale)).join(", ")} />
-        <Definition label={copy.channels} value={row.profile.plannedChannels.slice(0, 5).map((value) => channelLabel(value, locale)).join(", ") + (row.profile.plannedChannels.length > 5 ? " …" : "")} />
-        <Definition label={copy.primaryKpi} value={metricLabel(row.profile.primaryKpi, locale)} />
-        <Definition label={copy.content} value={`${row.plannedContentCount} · ${row.publishedContentCount} ${copy.published.toLowerCase()}`} />
-        <Definition label={copy.dataQuality} value={qualityLabel(row.dataQuality, locale)} />
-      </dl>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Action href={`/admin/marketing?lang=${locale}&segment=${segment}&reach=${reach}&contentStatus=${contentFilter}&campaign=${row.campaign.id}#campaign-detail`} label={copy.openCampaign} secondary />
-        <Action href={`/admin/marketing/insights?lang=${locale}&campaign=${row.campaign.id}`} label={copy.openInsights} />
-      </div>
+      <details className="mt-3 rounded-2xl border border-[rgb(var(--border))] px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{copy.more}</summary>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <Definition label={copy.audiences} value={row.profile.audienceLabels.join(", ")} />
+          <Definition label={copy.channels} value={row.profile.plannedChannels.map((value) => channelLabel(value, locale)).join(", ")} />
+          <Definition label={copy.primaryKpi} value={metricLabel(row.profile.primaryKpi, locale)} />
+          <Definition label={copy.dataQuality} value={qualityLabel(row.dataQuality, locale)} />
+          <Definition label={copy.languages} value={row.profile.locales.join(", ")} />
+          <Definition label={copy.regions} value={row.profile.regionKeys.join(", ")} />
+        </dl>
+      </details>
     </article>
   );
 }
@@ -431,13 +414,11 @@ function scopeLabel(value: "internal" | "external" | "mixed", copy: (typeof COPY
 function formatPrimaryResult(snapshots: Array<{ values: Partial<Record<MarketingMetricKey, number>> }>, key: MarketingMetricKey, locale: UiLocale) { const value = snapshots.reduce((sum, snapshot) => sum + (snapshot.values[key] ?? 0), 0); return `${new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB").format(value)} · ${metricLabel(key, locale)}`; }
 function formatDate(value: string, locale: UiLocale) { return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }
 function languageClass(active: boolean) { return `rounded-full border px-3 py-1.5 ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`; }
-function Metric({ href, label, value, note }: { href: string; label: string; value: number; note: string }) { return <a href={href} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 transition hover:border-sky-300"><p className="text-sm font-semibold text-[rgb(var(--fg))]">{label}</p><strong className="mt-3 block text-3xl text-[rgb(var(--fg))]">{value}</strong><p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">{note}</p></a>; }
-function Filter({ href, active, label }: { href: string; active: boolean; label: string }) { return <Link href={href} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-300"}`}>{label}</Link>; }
+function Filter({ href, active, label }: { href: string; active: boolean; label: string }) { return <Link href={href} prefetch className={`rounded-full border px-3 py-2 text-sm font-semibold ${active ? "border-sky-400 bg-sky-50 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200" : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-300"}`}>{label}</Link>; }
 function Badge({ label }: { label: string }) { return <span className="rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-400/10 dark:text-sky-200">{label}</span>; }
 function Definition({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</dt><dd className="mt-1 break-words font-medium leading-6 text-[rgb(var(--fg))]">{value}</dd></div>; }
 function TextBlock({ label, body }: { label: string; body: string }) { return <div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</p><p className="mt-1 whitespace-pre-wrap text-[rgb(var(--fg))]">{body}</p></div>; }
 function Heading({ id, title }: { id: string; title: string }) { return <h2 id={id} className="text-xl font-bold text-[rgb(var(--fg))] sm:text-2xl">{title}</h2>; }
 function Empty({ text }: { text: string }) { return <div className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center text-sm text-[rgb(var(--muted))]">{text}</div>; }
-function Anchor({ href, label }: { href: string; label: string }) { return <a href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</a>; }
-function Action({ href, label, secondary = false }: { href: string; label: string; secondary?: boolean }) { return <Link href={href} className={secondary ? "inline-flex rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300" : "inline-flex rounded-xl bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"}>{label}</Link>; }
+function Action({ href, label, secondary = false }: { href: string; label: string; secondary?: boolean }) { return <Link href={href} prefetch className={secondary ? "inline-flex rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300" : "inline-flex rounded-xl bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"}>{label}</Link>; }
 function AdminLink({ href, label }: { href: string; label: string }) { return <Link href={href} className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</Link>; }

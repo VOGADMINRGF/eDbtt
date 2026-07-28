@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edebatte.org/schemas/marketing-topic-cluster.schema.json",
+  "title": "Marketing Topic Cluster",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "originalLanguages",
+    "jurisdictions",
+    "publishedAt",
+    "updatedAt",
+    "sources",
+    "independentPublisherCount",
+    "categories",
+    "segmentRelevance",
+    "participationSuitability",
+    "uncertainties",
+    "missingVoices",
+    "ranking",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^topic-[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1500
+    },
+    "originalLanguages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]{2,3}(?:-[A-Z]{2})?$"
+      }
+    },
+    "jurisdictions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scope", "countryCode", "regionCode"],
+        "properties": {
+          "scope": {
+            "enum": ["international", "eu", "national", "neighbor_country", "state"]
+          },
+          "countryCode": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z]{2}$"
+          },
+          "regionCode": {
+            "type": ["string", "null"],
+            "minLength": 2,
+            "maxLength": 20
+          }
+        }
+      }
+    },
+    "publishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sourceId",
+          "publisher",
+          "canonicalUrl",
+          "originalTitle",
+          "originalLanguage",
+          "publishedAt",
+          "fetchedAt",
+          "provenanceStatus"
+        ],
+        "properties": {
+          "sourceId": { "type": "string", "minLength": 1 },
+          "publisher": { "type": "string", "minLength": 1 },
+          "canonicalUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "originalTitle": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "originalLanguage": { "type": "string", "pattern": "^[a-z]{2,3}(?:-[A-Z]{2})?$" },
+          "publishedAt": { "type": "string", "format": "date-time" },
+          "fetchedAt": { "type": "string", "format": "date-time" },
+          "provenanceStatus": { "enum": ["verified", "partial", "rejected"] }
+        }
+      }
+    },
+    "independentPublisherCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "categories": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 100 }
+    },
+    "segmentRelevance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["b2c", "b2b", "b2g"],
+      "properties": {
+        "b2c": { "enum": ["high", "medium", "low", "none"] },
+        "b2b": { "enum": ["high", "medium", "low", "none"] },
+        "b2g": { "enum": ["high", "medium", "low", "none"] }
+      }
+    },
+    "participationSuitability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": { "enum": ["suitable", "explain_only", "observe", "unsuitable"] },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "missingVoices": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+    },
+    "ranking": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freshness", "sourceDiversity", "regionalRelevance", "significance", "coverageGap", "total"],
+      "properties": {
+        "freshness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sourceDiversity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "regionalRelevance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "significance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coverageGap": { "type": "number", "minimum": 0, "maximum": 1 },
+        "total": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "status": {
+      "enum": ["new", "observed", "relevant", "hidden", "dismissed", "adopted_to_dossier", "adopted_to_campaign"]
+    },
+    "canonicalClusterKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    }
+  }
+}
