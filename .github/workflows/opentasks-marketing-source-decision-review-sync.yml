@@ -1,0 +1,84 @@
+name: One-time Marketing Source Decision Review Sync
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/marketing-source-decision-review.trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.ref == 'docs/trigger-marketing-source-decision-review-sync'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update canonical task status
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/E150/OpenTasks.md')
+          text = path.read_text(encoding='utf-8')
+
+          old_truth = ('- Nutzerkorrektur und Issue `#514` machen die Source-Allowlist und Providerentscheidung im '
+                       'Marketing-Workspace sichtbar: `MARKETING-SOURCE-DECISION-WORKSPACE-01` ist als '
+                       'read-only Entscheidungs- und Coverage-Fläche `codex_ready`; echte Providerverbindungen '
+                       'und Live-Ingestion bleiben getrennte Manual Gates.')
+          new_truth = ('- PR `#517` wurde als Merge `be79264e51fa76982c44b32f1fe57a9dfe11a661` integriert; '
+                       '`/admin/marketing/sources` macht Source-Allowlist, Coverage und Providerentscheidungen '
+                       'im Marketing-Workspace sichtbar. `MARKETING-SOURCE-DECISION-WORKSPACE-01` steht bis zur '
+                       'Produktabnahme auf `review`; echte Providerverbindungen und Live-Ingestion bleiben getrennte Manual Gates.')
+          if old_truth not in text:
+              raise SystemExit('Expected source decision truth line not found')
+          text = text.replace(old_truth, new_truth, 1)
+
+          old_row = '| MARKETING-SOURCE-DECISION-WORKSPACE-01 | codex_ready | P0 | MARKETING-THEME-RADAR-SOURCE-CONTRACT-01; Issue #514 | sichtbare `/admin/marketing/sources`-Entscheidungsfläche mit Coverage, Allowlist-/Providerstatus und realen Arbeitswegen | Source-Allowlist und Providerentscheidungen ohne GitHub-Kenntnisse auffindbar machen, ohne Live-Ingestion oder Fake-Provider | Navigation sichtbar; reale Contract-/Coverage-Daten; offene Entscheidungen verständlich; kein Demo-Feed; DE/EN; Tests, Lint, Typecheck und Build grün | nein | Issue #514; Nutzerkorrektur 2026-07-28 |'
+          new_row = '| MARKETING-SOURCE-DECISION-WORKSPACE-01 | review | P0 | MARKETING-THEME-RADAR-SOURCE-CONTRACT-01; Issue #514 | sichtbare `/admin/marketing/sources`-Entscheidungsfläche mit Coverage, Allowlist-/Providerstatus und realen Arbeitswegen | Source-Allowlist und Providerentscheidungen ohne GitHub-Kenntnisse auffindbar machen, ohne Live-Ingestion oder Fake-Provider | Navigation sichtbar; reale Contract-/Coverage-Daten; offene Entscheidungen verständlich; kein Demo-Feed; DE/EN; Tests, Lint, Typecheck und Build grün | nein | PR #517; Merge `be79264e51fa76982c44b32f1fe57a9dfe11a661`; Web CI #1151 und Vercel grün; Produktabnahme offen |'
+          if old_row not in text:
+              raise SystemExit('Expected source decision task row not found')
+          text = text.replace(old_row, new_row, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          git add docs/E150/OpenTasks.md
+          git commit -m "docs: move marketing source decision workspace to review"
+          git push origin HEAD:main
+
+  cleanup:
+    if: always()
+    needs: sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fresh checkout of updated main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove one-time workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .github/workflows/opentasks-marketing-source-decision-review-sync.yml ]; then
+            git rm .github/workflows/opentasks-marketing-source-decision-review-sync.yml
+            git commit -m "chore: remove one-time marketing source decision review sync"
+            git push origin HEAD:main
+          fi
