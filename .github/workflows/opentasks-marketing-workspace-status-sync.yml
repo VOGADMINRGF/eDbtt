@@ -1,0 +1,104 @@
+name: One-time Marketing Workspace OpenTasks Status Sync
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/marketing-workspace-status-sync.trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.ref == 'docs/trigger-marketing-workspace-status-sync'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update canonical marketing task statuses
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('docs/E150/OpenTasks.md')
+          text = path.read_text(encoding='utf-8')
+          start_marker = '## Kanonischer Operativteil'
+          end_marker = '## Historischer Katalog und Evidenz'
+          if start_marker not in text or end_marker not in text:
+              raise SystemExit('canonical_markers_missing')
+
+          start = text.index(start_marker)
+          end = text.index(end_marker)
+          head = text[start:end]
+          tail = text[end:]
+
+          def set_status(block: str, task_id: str, status: str) -> str:
+              pattern = re.compile(rf'^(\|\s*{re.escape(task_id)}\s*\|\s*)([^|]+?)(\s*\|.*)$', re.MULTILINE)
+              matches = list(pattern.finditer(block))
+              if len(matches) != 1:
+                  raise SystemExit(f'task_row_count_invalid:{task_id}:{len(matches)}')
+              return pattern.sub(lambda m: f'{m.group(1)}{status}{m.group(3)}', block, count=1)
+
+          head = set_status(head, 'MARKETING-WORKSPACE-OPERABILITY-01', 'review')
+          head = set_status(head, 'MARKETING-THEME-RADAR-SOURCE-CONTRACT-01', 'done')
+
+          source_pattern = re.compile(r'^\|\s*MARKETING-REGIONAL-SOURCE-DISCOVERY-02\s*\|\s*manual_gate\s*\|', re.MULTILINE)
+          if not source_pattern.search(head):
+              raise SystemExit('source_discovery_manual_gate_missing')
+
+          evidence = ('- Commit `ce04fe67eaf96e5681064a68f4990221be5db88f` integrierte den vollständig geprüften '
+                      'Marketing-Operator-Workspace und den Themenradar-Source-/Cluster-Contract auf `main`; '
+                      '`MARKETING-WORKSPACE-OPERABILITY-01` steht bis zur erneuten Produktabnahme auf `review`, '
+                      '`MARKETING-THEME-RADAR-SOURCE-CONTRACT-01` ist `done`, und Live-Ingestion bleibt über '
+                      '`MARKETING-REGIONAL-SOURCE-DISCOVERY-02` am `manual_gate`.')
+          if evidence not in head:
+              phase_marker = '## Phase 0 — Governance und Production Gates'
+              if phase_marker not in head:
+                  raise SystemExit('phase_zero_marker_missing')
+              head = head.replace(phase_marker, evidence + '\n\n' + phase_marker, 1)
+
+          updated = text[:start] + head + tail
+          if updated == text:
+              raise SystemExit('no_op_status_sync')
+          path.write_text(updated, encoding='utf-8')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test "$(git diff --name-only)" = "docs/E150/OpenTasks.md"
+          git diff --check
+          git add docs/E150/OpenTasks.md
+          git commit -m "docs: sync marketing workspace and topic radar statuses"
+          git push origin HEAD:main
+
+  cleanup:
+    needs: sync
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fresh checkout of updated main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove one-time workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .github/workflows/opentasks-marketing-workspace-status-sync.yml ]; then
+            git rm .github/workflows/opentasks-marketing-workspace-status-sync.yml
+            git commit -m "chore: remove one-time marketing OpenTasks sync"
+            git push origin HEAD:main
+          fi
