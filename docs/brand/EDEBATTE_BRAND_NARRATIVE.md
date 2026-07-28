@@ -1,0 +1,90 @@
+# eDebatte Brand Narrative
+
+Status: **kanonisch**  
+Beschlossen: **2026-07-28**  
+Geltungsbereich: Homepage, Marketing, Social Media, Video, Presse, Präsentationen, Partneransprache, Membership und produktnahe öffentliche Texte
+
+## Zweck
+
+Diese Datei ist die verbindliche sprachliche Grundlage dafür, warum es eDebatte gibt, wie eDebatte wirkt und was eDebatte konkret ermöglicht. Die zugrunde liegende Logik folgt intern der Reihenfolge Why–How–What, wird in öffentlichen Texten jedoch nicht mit diesen Überschriften ausgezeichnet.
+
+Ableitungen dürfen je nach Kanal gekürzt, erweitert oder sprachlich angepasst werden. Bedeutung, Reihenfolge und Abgrenzungen dieser Positionierung dürfen dabei nicht verändert werden.
+
+## Kanonische Langfassung
+
+Gesellschaftliche Debatten werden häufig von Lautstärke, Reichweite und Zuspitzung bestimmt. Dabei gehen leisere Stimmen, wichtige Zusammenhänge und belastbare Informationen verloren. Wir glauben, dass bessere Entscheidungen möglich werden, wenn Menschen einander verstehen, unterschiedliche Perspektiven sichtbar sind und Informationen nachvollziehbar eingeordnet werden können.
+
+eDebatte verbindet Stimmen, Positionen und Perspektiven über Sprach- und Interessengrenzen hinweg. Quellen, Evidenzen, Widersprüche und Zusammenhänge werden strukturiert und transparent sichtbar gemacht. So entsteht aus einzelnen Aussagen, Beiträgen und Informationen ein nachvollziehbarer Debattenstand.
+
+Auf eDebatte werden aktuelle Themen, Positionen, Aussagen, Quellen und Dossiers zusammengeführt, geprüft, diskutiert und bewertet. Menschen können sich informieren, eigene Perspektiven beitragen und über Prioritäten, Positionen und mögliche Lösungen abstimmen. Nicht über Wahrheit wird abgestimmt, sondern darüber, wie wir als Gesellschaft mit den verfügbaren Erkenntnissen umgehen.
+
+## Verdichtete Kernbotschaft
+
+> eDebatte verbindet Stimmen, macht Quellen, Evidenzen und Zusammenhänge sichtbar und ermöglicht informierte gesellschaftliche Entscheidungen.
+
+## Optionale Leitzeile
+
+> Damit nicht Lautstärke entscheidet.
+
+Die Leitzeile darf als Hero-Headline, Kampagnenzeile oder Videoeinstieg verwendet werden. Sie ersetzt nicht die erklärende Kernbotschaft oder die kanonische Langfassung.
+
+## Verbindliche Bedeutungsanker
+
+Jede öffentliche Ableitung muss die folgenden Aussagen respektieren:
+
+1. eDebatte stellt nicht bloß einzelne Meinungen nebeneinander, sondern verbindet Stimmen, Positionen, Quellen und Zusammenhänge.
+2. Quellen, Evidenzen, Widersprüche und Unsicherheiten sollen nachvollziehbar sichtbar werden.
+3. Aus verstreuten Aussagen und Informationen soll ein verständlicher Debattenstand entstehen.
+4. Sprachbarrieren dürfen Beteiligung und Zugang zu Perspektiven nicht begrenzen.
+5. Über Fakten oder Wahrheit wird nicht abgestimmt. Abstimmungen beziehen sich auf Positionen, Prioritäten, Bewertungen, Handlungsoptionen und mögliche Lösungen.
+6. Öffentliche Texte dürfen keine Funktionen, Automatisierungen, Prüfungen oder Veröffentlichungszustände behaupten, die im Produkt noch nicht tatsächlich verfügbar sind.
+
+## Sprachliche Regeln
+
+Bevorzugte Begriffe:
+
+- Stimmen verbinden
+- Perspektiven sichtbar machen
+- Quellen und Evidenzen nachvollziehbar einordnen
+- Widersprüche, Unsicherheiten und Zusammenhänge zeigen
+- nachvollziehbarer Debattenstand
+- informierte Beteiligung
+- gesellschaftliche Entscheidungen
+- Positionen, Prioritäten und Lösungen bewerten
+
+Zu vermeiden oder nur mit eindeutiger Einordnung zu verwenden:
+
+- „Wahrheit abstimmen“
+- „Fakten demokratisch entscheiden“
+- „allgemeine Abstimmung“ ohne Benennung des Abstimmungsgegenstands
+- absolute Wahrheits-, Neutralitäts- oder Vollständigkeitsversprechen
+- „KI entscheidet“, „KI prüft die Wahrheit“ oder vergleichbare autonome Entscheidungsbehauptungen
+- reine Plattformfloskeln wie „Ort für Diskussionen“, wenn Quellen, Evidenzen, Debattenstand und Beteiligung nicht ebenfalls erklärt werden
+
+„Evidenzen“ darf verwendet werden. In Texten für ein breites Publikum soll der Begriff nach Möglichkeit gemeinsam mit verständlicheren Wörtern wie „Quellen“, „Belege“ oder „nachvollziehbare Informationen“ erscheinen.
+
+## Nutzung nach Kanal
+
+### Homepage
+
+Im Hero-Bereich kann die optionale Leitzeile mit der verdichteten Kernbotschaft kombiniert werden. Die kanonische Langfassung soll anschließend in drei aufeinanderfolgenden Absätzen erscheinen, ohne sichtbare Why–How–What-Überschriften.
+
+### Social Media und Kampagnen
+
+Einzelne Beiträge dürfen jeweils Problem, Wirkweise oder konkrete Beteiligung hervorheben. Über mehrere Beiträge hinweg muss das Gesamtbild erhalten bleiben: Stimmen verbinden, Evidenzen und Zusammenhänge sichtbar machen, Debattenstand herstellen und informierte Beteiligung ermöglichen.
+
+### Video und Voxy
+
+Videoeinstiege dürfen emotional und zugespitzt sein. Die Auflösung muss jedoch zu dieser Positionierung zurückführen und darf nicht behaupten, dass eDebatte Wahrheit automatisiert feststellt oder über Fakten abstimmen lässt.
+
+### Präsentationen, Partner und Membership
+
+Die Langfassung ist die Standarderklärung. Anschließend kann je nach Zielgruppe erläutert werden, wie eDebatte für Bürgerinnen und Bürger, Initiativen, Medien, Wissenschaft, Verwaltung oder Organisationen nutzbar wird.
+
+### Produkttexte
+
+Buttons, Hilfetexte und Workflows sollen den konkreten Gegenstand benennen: beitragen, einordnen, Quellen prüfen, Position bewerten, Priorität setzen oder Lösung abstimmen. Allgemeine Formulierungen wie „Jetzt abstimmen“ sind nur zulässig, wenn der Abstimmungsgegenstand unmittelbar sichtbar ist.
+
+## Ableitungsregel für Agenten und Redaktion
+
+Vor der Erstellung oder Änderung öffentlicher eDebatte-Texte ist diese Datei zu prüfen. Neue Varianten dürfen den Stil an den Kanal anpassen, aber keine parallele Markenpositionierung etablieren. Bei einem echten Bedeutungswechsel ist zuerst diese kanonische Datei zu aktualisieren und die Entscheidung in `docs/E150/OpenTasks.md` zu synchronisieren.
