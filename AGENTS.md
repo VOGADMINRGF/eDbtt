@@ -86,6 +86,24 @@ Für deutschsprachige Frontend-Texte gilt:
 - keine Umschreibungen mit `ae`, `oe`, `ue` in UI-Texten
 - technische Bezeichner, IDs und APIs bleiben davon unberührt
 
+### 9. Canonical brand narrative (verbindlich)
+Für öffentliche oder öffentlichkeitsnahe eDebatte-Texte gilt `docs/brand/EDEBATTE_BRAND_NARRATIVE.md` als kanonische Marken- und Positionierungsgrundlage.
+
+Das betrifft insbesondere:
+- Homepage und Landingpages
+- Marketing und Kampagnen
+- Social Media und Video
+- Presse, Präsentationen und Partneransprache
+- Membership- und produktnahe Erklärungstexte
+
+Vor entsprechenden Änderungen müssen Agenten die kanonische Datei lesen und folgende Grenzen einhalten:
+- keine parallele oder widersprüchliche Markenpositionierung etablieren
+- die öffentliche Langfassung als drei natürliche Absätze führen, ohne sichtbare Why–How–What-Überschriften
+- Stimmen, Perspektiven, Quellen, Evidenzen, Zusammenhänge und den Debattenstand in ihrer Bedeutung erhalten
+- nicht behaupten, dass über Fakten oder Wahrheit abgestimmt wird
+- nur tatsächlich verfügbare Produktfunktionen und Automatisierungen versprechen
+- einen echten Bedeutungswechsel zuerst in der kanonischen Datei und anschließend in `docs/E150/OpenTasks.md` synchronisieren
+
 ---
 
 ## Required Task Status Meanings
