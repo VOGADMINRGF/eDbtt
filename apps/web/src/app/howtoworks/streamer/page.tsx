@@ -32,7 +32,7 @@ export default function StreamerGuidePage() {
               <li>Session in `Dashboard → Streams` anlegen.</li>
               <li>Agenda aus Thema ziehen oder manuell ergänzen.</li>
               <li>Overlay URL in OBS als Browser-Source einbinden.</li>
-              <li>QR-Ziel je Tagespunkt setzen (z. B. `/qr/...`).</li>
+              <li>QR-Ziel je Tagespunkt über `/qr-studio` sicher setzen.</li>
               <li>Mit `Aktiv setzen` den Tagespunkt live schalten.</li>
             </ul>
           </article>

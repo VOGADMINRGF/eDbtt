@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
+import { buildQrStudioCodeHref } from "@/features/qr/security";
 
 type QuestionDraft = {
   title: string;
@@ -93,12 +94,13 @@ export default function AdminMediaPage() {
 
   useEffect(() => {
     async function renderQr() {
-      if (!createdCode || !origin) {
+      const qrStudioHref = createdCode ? buildQrStudioCodeHref(createdCode) : null;
+      if (!qrStudioHref || !origin) {
         setQrImage(null);
         return;
       }
       try {
-        const target = `${origin}/qr/${createdCode}`;
+        const target = new URL(qrStudioHref, origin).toString();
         const dataUrl = await QRCode.toDataURL(target, { width: 220, margin: 1 });
         setQrImage(dataUrl);
       } catch {
@@ -316,8 +318,11 @@ export default function AdminMediaPage() {
                 <p className="font-semibold text-[rgb(var(--fg))]">QR-Link bereit</p>
                 <p>
                   Link:{" "}
-                  <Link href={`/qr/${createdCode}`} className="font-semibold text-sky-600 underline">
-                    /qr/{createdCode}
+                  <Link
+                    href={buildQrStudioCodeHref(createdCode) ?? "/qr-studio"}
+                    className="font-semibold text-sky-600 underline"
+                  >
+                    /qr-studio?code={createdCode}
                   </Link>
                 </p>
                 {qrImage && (

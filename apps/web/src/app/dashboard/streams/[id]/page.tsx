@@ -2054,7 +2054,7 @@ export default function StreamCockpitPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <input
                       className="min-w-[240px] flex-1 rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
-                      placeholder={`/qr/${qrCode ?? "deinCode"} oder ${publicStreamPath}?agendaItemId=${item._id}`}
+                      placeholder={`/qr-studio?code=${qrCode ?? "deinCode"} oder /qr-studio?target=${publicStreamPath}`}
                       value={qrDraftByItem[item._id] ?? ""}
                       onChange={(e) =>
                         setQrDraftByItem((prev) => ({ ...prev, [item._id]: e.target.value }))
@@ -2145,7 +2145,10 @@ export default function StreamCockpitPage() {
           {qrNotice && <p className="text-xs text-emerald-600">{qrNotice}</p>}
           {qrCode && (
             <p className="text-xs text-[rgb(var(--muted))]">
-              QR-Link: <a className="underline" href={`/qr/${qrCode}`}>{`/qr/${qrCode}`}</a>
+              QR-Link:{" "}
+              <a className="underline" href={`/qr-studio?code=${qrCode}`}>
+                {`/qr-studio?code=${qrCode}`}
+              </a>
             </p>
           )}
           <div className="space-y-3">
