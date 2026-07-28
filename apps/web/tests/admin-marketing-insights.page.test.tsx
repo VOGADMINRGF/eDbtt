@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import MarketingInsightsPage from "@/app/admin/marketing/insights/page";
 
 describe("admin marketing insights", () => {
-  it("shows scorecards and assistant guidance without invented performance", async () => {
+  it("shows scorecards and compact assistant guidance without invented performance", async () => {
     const html = renderToStaticMarkup(
       await MarketingInsightsPage({ searchParams: Promise.resolve({ lang: "de" }) }),
     );
@@ -14,15 +14,15 @@ describe("admin marketing insights", () => {
     expect(html).toContain("Plattform- &amp; Reichweitenintelligenz");
     expect(html).toContain("Marketing-Assistent");
     expect(html).toContain("Messplan und Datenlage prüfen");
-    expect(html).toContain("Bestandsdaten");
+    expect(html).toContain("Bestandsdaten verifiziert");
     expect(html).toContain("Empfehlungssicherheit");
     expect(html).toContain("Niedrig");
+    expect(html).toContain("Heute sinnvoll");
     expect(html).toContain("Noch keine verifizierten Daten");
     expect(html).toContain("Nicht verbunden");
     expect(html).toContain("Debattenstand der Woche");
     expect(html).toContain("Bezahlte Werbung");
     expect(html).not.toContain("25 %");
-    expect(html).not.toContain("Sicherheit der Einordnung");
     expect(html).not.toContain("0 Likes");
     expect(html).not.toContain("0 Shares");
     expect(html).not.toContain("ROI");
@@ -55,7 +55,7 @@ describe("admin marketing insights", () => {
     expect(html).toContain("Campaign scorecards");
     expect(html).toContain("Platform &amp; reach intelligence");
     expect(html).toContain("Marketing assistant");
-    expect(html).toContain("Inventory data");
+    expect(html).toContain("Inventory verified");
     expect(html).toContain("Recommendation confidence");
     expect(html).toContain("Low");
     expect(html).toContain("No verified data yet");
