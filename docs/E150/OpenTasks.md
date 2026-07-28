@@ -6,7 +6,7 @@
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
 - Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
 - Stand: `2026-07-28`
-- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
+- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495` sowie Auth-2FA-Redirect-Intake aus Issue `#477`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
 - PR `#415` (`docs/opentasks-head-sync-2026-07-23`) wurde am 2026-07-23 gemergt; der damalige Governance-SSOT-Sync ist abgeschlossen.
 
 ## Operative Statuswerte
@@ -86,6 +86,26 @@ Keine Implementierung freigegeben.
 | PROD-E2E-HARNESS-03A | done | P0 | PROD-PUBLIC-LIVE-SMOKE-02A | Sicherer Harness aus PR `#414` für `public-read`, `authenticated-read`, `registration-form` und fail-closed Mutationstests, ohne Production-Credentials oder freigegebene Mutationen | Harness ist im Repo und in CI integriert; `public-read` und Registration-Form-Smoke sind belegt; `POST /api/auth/register` und Mutation-Contract blockieren fail-closed; keine Production-Mutation ist freigegeben |
 | PROD-TEST-ACCOUNT-03B | manual_gate | P0 | PROD-RUNTIME-02 | Dediziertes Production-Testkonto für sichere authentifizierte Read-Smokes ohne stillen 2FA-Bypass oder produktive Mutation | Testkonto ist getrennt, dokumentiert und für kontrollierte Read-Smokes nutzbar; keine Mutation oder verdeckte Ausnahmefreigabe entsteht |
 | PROD-AUTHENTICATED-SMOKE-03C | blocked | P0 | PROD-RUNTIME-02, PROD-TEST-ACCOUNT-03B, PROD-E2E-HARNESS-03A | Realer authenticated-read plus vollständiger manueller Desktop-/Mobile-Production-Smoke über `/create`, Dossier, Beteiligung, Fehler- und Reload-Pfade | Reproduzierbarer Bericht mit Commit, Domain, Gerätetyp und Ergebnis liegt vor; Persistenz hält nach Reload; kein Auto-Publish, keine Fake-Runtime und keine freigegebene Mutation |
+| AUTH-2FA-REDIRECT-IDEMPOTENCY-01 | codex_ready | P0 | PROD-E2E-HARNESS-03A, Issue `#477` | Den erfolgreichen Login-/2FA-Abschluss idempotent und sichtbar abschließen: Nach genau einem gültigen Code sofort zum sicher bereinigten Ziel weiterleiten, das Formular nach Erfolg gesperrt halten, Wiederholungen bei bereits gültiger Session ohne irreführenden Challenge-Fehler behandeln und optionale Telemetrie vom Sessionabschluss entkoppeln; kein Bypass und keine Rollen-, Credential- oder ENV-Änderung | Ein gültiger TOTP- oder E-Mail-Code genügt mit einem Submit; `next` bleibt erhalten und erzeugt keine Login-Schleife; schneller Doppelklick erzeugt keine zweite Verifizierung; Replay ist nur bei nachgewiesener gültiger Session erfolgreich; ungültige, abgelaufene und methodenfremde Codes bleiben fail-closed; Authenticator-Texte zeigen keine falsche Minuten-Gültigkeit; fokussierte Route-, Hook-, UI- und Regressions-Tests sind grün; manueller Smoke bleibt vor `done` erforderlich |
+
+### Ausführungsreihenfolge-Ausnahme: AUTH-2FA-REDIRECT-IDEMPOTENCY-01
+
+Dieser eng begrenzte Auth-Hardening-Slice darf technisch vor
+`PROD-RUNTIME-02`, `PROD-TEST-ACCOUNT-03B` und
+`PROD-AUTHENTICATED-SMOKE-03C` umgesetzt werden.
+
+Begründung: Er repariert den bestehenden Login-/2FA-Pfad, der für die
+nachfolgenden authentifizierten Production-Gates benötigt wird.
+
+Diese Ausnahme:
+
+- aktiviert oder bestätigt keine Production-Runtime,
+- ersetzt kein dediziertes Production-Testkonto,
+- gilt nicht als authentifizierter Production-Smoke,
+- erlaubt keine Production-Mutation und keinen 2FA-Bypass.
+
+Der technische PR darf den Task ausschließlich auf `review` setzen.
+`done` bleibt bis zum dokumentierten manuellen Smoke ausgeschlossen.
 
 ## Phase 1 — Öffentliche Flächen, Sprache und Rückkehrlogik
 
