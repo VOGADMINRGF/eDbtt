@@ -14,6 +14,7 @@ import {
   type DossierWorkspaceCount,
   type DossierWorkspaceModel,
   type DossierWorkspaceQuestion,
+  type DossierWorkspaceSource,
 } from "./workspaceModel";
 
 const MODES = [
@@ -25,6 +26,57 @@ const MODES = [
 ] as const;
 
 type WorkspaceMode = (typeof MODES)[number]["id"];
+type SourceFilter = "all" | "unreviewed" | "contradicting" | "unlinked";
+type SemanticTone =
+  | "positive"
+  | "warning"
+  | "danger"
+  | "info"
+  | "question"
+  | "participation"
+  | "neutral";
+
+const SOURCE_FILTERS: Array<{ id: SourceFilter; label: string }> = [
+  { id: "all", label: "Alle" },
+  { id: "unreviewed", label: "Ungeprüft" },
+  { id: "contradicting", label: "Widersprechend" },
+  { id: "unlinked", label: "Ohne direkten Aussagebezug" },
+];
+
+const SEMANTIC_TONE_CLASSES: Record<SemanticTone, string> = {
+  positive:
+    "border-emerald-300/80 bg-emerald-50/70 dark:border-emerald-700 dark:bg-emerald-950/30",
+  warning:
+    "border-amber-300/80 bg-amber-50/70 dark:border-amber-700 dark:bg-amber-950/30",
+  danger: "border-red-300/80 bg-red-50/70 dark:border-red-700 dark:bg-red-950/30",
+  info: "border-blue-300/80 bg-blue-50/70 dark:border-blue-700 dark:bg-blue-950/30",
+  question:
+    "border-violet-300/80 bg-violet-50/70 dark:border-violet-700 dark:bg-violet-950/30",
+  participation:
+    "border-teal-300/80 bg-teal-50/70 dark:border-teal-700 dark:bg-teal-950/30",
+  neutral:
+    "border-slate-300/80 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/40",
+};
+
+const SEMANTIC_BAR_CLASSES: Record<SemanticTone, string> = {
+  positive: "bg-emerald-600 dark:bg-emerald-400",
+  warning: "bg-amber-600 dark:bg-amber-400",
+  danger: "bg-red-600 dark:bg-red-400",
+  info: "bg-blue-600 dark:bg-blue-400",
+  question: "bg-violet-600 dark:bg-violet-400",
+  participation: "bg-teal-600 dark:bg-teal-400",
+  neutral: "bg-slate-500 dark:bg-slate-400",
+};
+
+const SEMANTIC_MARKERS: Record<SemanticTone, string> = {
+  positive: "✓",
+  warning: "!",
+  danger: "×",
+  info: "i",
+  question: "?",
+  participation: "→",
+  neutral: "–",
+};
 
 function dossierFocusId(target: DossierFocusTarget) {
   return `dossier-focus-${target.type}-${encodeURIComponent(target.id)}`;
@@ -42,15 +94,48 @@ function safeInternalHref(value: string | null | undefined) {
   return normalized?.startsWith("/") && !normalized.startsWith("//") ? normalized : null;
 }
 
+function sourceMatchesFilter(source: DossierWorkspaceSource, filter: SourceFilter) {
+  if (filter === "unreviewed") return source.reviewState === "unreviewed";
+  if (filter === "contradicting") return source.hasContradiction;
+  if (filter === "unlinked") return source.claimLinks.length === 0;
+  return true;
+}
+
+function sourceSemanticTone(source: DossierWorkspaceSource): SemanticTone {
+  if (source.hasContradiction) return "danger";
+  if (source.reviewState === "unreviewed") return "warning";
+  if (source.reviewState === "reviewed") return "positive";
+  if (source.claimLinks.length > 0) return "info";
+  return "neutral";
+}
+
+function questionSemanticTone(
+  question: DossierWorkspaceQuestion,
+): SemanticTone {
+  if (question.status === "closed") return "positive";
+  if (question.status === "answered") return "info";
+  if (question.status === "in_review") return "warning";
+  if (question.status === "open") return "question";
+  return "neutral";
+}
+
 function EvidenceBadge({ claim }: { claim: DossierWorkspaceClaim }) {
   const tone =
     claim.evidenceTone === "positive"
       ? "border-emerald-300/70 bg-emerald-500/10 text-emerald-950 dark:text-emerald-200"
+      : claim.evidenceTone === "danger"
+        ? "border-red-300/70 bg-red-500/10 text-red-950 dark:text-red-200"
       : claim.evidenceTone === "warning"
         ? "border-amber-300/70 bg-amber-500/10 text-amber-950 dark:text-amber-200"
         : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
   return (
-    <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${tone}`}>
+    <span
+      data-semantic-tone={claim.evidenceTone}
+      className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${tone}`}
+    >
+      <span aria-hidden="true" className="me-1">
+        {SEMANTIC_MARKERS[claim.evidenceTone]}
+      </span>
       {claim.evidenceLabel}
     </span>
   );
@@ -72,7 +157,7 @@ function ClaimCard({
     <article
       id={dossierFocusId({ type: "claim", id: claim.id })}
       tabIndex={-1}
-      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+      className="scroll-mt-36 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="max-w-2xl text-sm font-semibold leading-6 text-[rgb(var(--fg))]">
@@ -194,6 +279,26 @@ function PanelHeader({
   );
 }
 
+function MetricHeading({
+  tone,
+  children,
+}: {
+  tone: SemanticTone;
+  children: React.ReactNode;
+}) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold text-[rgb(var(--fg))]">
+      <span
+        aria-hidden="true"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current text-[11px]"
+      >
+        {SEMANTIC_MARKERS[tone]}
+      </span>
+      {children}
+    </h3>
+  );
+}
+
 function CountBars({
   items,
   onSelect,
@@ -205,6 +310,7 @@ function CountBars({
   return (
     <ul className="space-y-3">
       {items.map((item) => {
+        const tone = item.tone ?? "neutral";
         const content = (
           <>
             <span className="flex items-center justify-between gap-3 text-xs">
@@ -217,7 +323,7 @@ function CountBars({
               className="mt-1 block h-2 overflow-hidden rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]"
             >
               <span
-                className="block h-full rounded-full bg-[rgb(var(--fg))]"
+                className={`block h-full rounded-full ${SEMANTIC_BAR_CLASSES[tone]}`}
                 style={{ width: `${(item.count / maximum) * 100}%` }}
               />
             </span>
@@ -228,7 +334,7 @@ function CountBars({
             {item.targetId ? (
               <button
                 type="button"
-                className="w-full rounded-xl p-1 text-start text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+                className="w-full rounded-xl p-1 text-start text-[rgb(var(--fg))] transition-colors duration-150 hover:bg-[rgb(var(--card))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none"
                 onClick={() => onSelect(item)}
               >
                 {content}
@@ -252,8 +358,11 @@ function DossierMetrics({
 }) {
   return (
     <aside aria-label="Kompakte Dossier-Übersichten" className="space-y-4">
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Beleglage der Aussagen</h3>
+      <section
+        data-semantic-tone="info"
+        className={`rounded-3xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.info}`}
+      >
+        <MetricHeading tone="info">Beleglage der Aussagen</MetricHeading>
         {model.metrics.evidence.available ? (
           <div className="mt-3">
             <CountBars
@@ -276,8 +385,11 @@ function DossierMetrics({
         )}
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Perspektiven</h3>
+      <section
+        data-semantic-tone="question"
+        className={`rounded-3xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.question}`}
+      >
+        <MetricHeading tone="question">Perspektiven</MetricHeading>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-[rgb(var(--card))] p-3">
             <dt className="text-xs text-[rgb(var(--muted))]">Fehlend dokumentiert</dt>
@@ -309,8 +421,11 @@ function DossierMetrics({
         ) : null}
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Status offener Fragen</h3>
+      <section
+        data-semantic-tone="question"
+        className={`rounded-3xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.question}`}
+      >
+        <MetricHeading tone="question">Status offener Fragen</MetricHeading>
         {model.metrics.questions.length ? (
           <div className="mt-3">
             <CountBars
@@ -327,8 +442,11 @@ function DossierMetrics({
         )}
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellenstatus und -arten</h3>
+      <section
+        data-semantic-tone="info"
+        className={`rounded-3xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.info}`}
+      >
+        <MetricHeading tone="info">Quellenstatus und -arten</MetricHeading>
         <p className="mt-2 text-xs leading-5 text-[rgb(var(--muted))]">
           {model.sourceTrustLabel}
         </p>
@@ -350,10 +468,13 @@ function DossierMetrics({
         )}
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+      <section
+        data-semantic-tone="participation"
+        className={`rounded-3xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.participation}`}
+      >
+        <MetricHeading tone="participation">
           Optionen und Abhängigkeiten
-        </h3>
+        </MetricHeading>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-[rgb(var(--card))] p-3">
             <dt className="text-xs text-[rgb(var(--muted))]">Optionen</dt>
@@ -485,6 +606,10 @@ export function DossierWorkspace({
   );
   const [mode, setMode] = useState<WorkspaceMode>("overview");
   const [focusTarget, setFocusTarget] = useState<DossierFocusTarget | null>(null);
+  const [selectedRelationshipClaimId, setSelectedRelationshipClaimId] = useState<
+    string | null
+  >(null);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const anlassraumHref = safeInternalHref(updateContext?.relatedContext.anlassraumHref);
   const participationHref =
@@ -492,6 +617,29 @@ export function DossierWorkspace({
   const participationLabel = anlassraumHref
     ? "Zum Anlassraum"
     : "Zur Beteiligung";
+  const participationCandidates = dossier.analyze.participationCandidates ?? [];
+  const sourceFilterCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        SOURCE_FILTERS.map((filter) => [
+          filter.id,
+          model.sources.filter((source) => sourceMatchesFilter(source, filter.id)).length,
+        ]),
+      ) as Record<SourceFilter, number>,
+    [model.sources],
+  );
+  const visibleSourceGroups = useMemo(
+    () =>
+      model.sourceGroups
+        .map((group) => ({
+          ...group,
+          sources: group.sources.filter((source) =>
+            sourceMatchesFilter(source, sourceFilter),
+          ),
+        }))
+        .filter((group) => group.sources.length > 0),
+    [model.sourceGroups, sourceFilter],
+  );
 
   function selectMode(nextMode: WorkspaceMode, moveFocus = false) {
     setFocusTarget(null);
@@ -503,6 +651,9 @@ export function DossierWorkspace({
   }
 
   function navigateTo(nextMode: WorkspaceMode, target: DossierFocusTarget) {
+    if (target.type === "source") {
+      setSourceFilter("all");
+    }
     setFocusTarget(target);
     setMode(nextMode);
   }
@@ -512,8 +663,22 @@ export function DossierWorkspace({
     const element = document.getElementById(dossierFocusId(focusTarget));
     if (!element) return;
     element.focus({ preventScroll: true });
-    element.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    element.scrollIntoView?.({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "center",
+    });
   }, [focusTarget, mode]);
+
+  useEffect(() => {
+    const activeIndex = MODES.findIndex((item) => item.id === mode);
+    tabRefs.current[activeIndex]?.scrollIntoView?.({
+      behavior: "auto",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [mode]);
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     let nextIndex: number | null = null;
@@ -548,11 +713,33 @@ export function DossierWorkspace({
 
   return (
     <section
+      data-dossier-workspace="true"
       className="mx-auto w-full max-w-[1560px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 xl:px-10"
       lang={model.language}
       dir={model.dir}
       aria-label="Dossier-Arbeitsraum"
     >
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          [data-dossier-workspace="true"] #dossier-workspace-panel > div {
+            animation: dossier-workspace-panel-in 150ms ease-out;
+          }
+
+          [data-dossier-workspace="true"] details[open] > :not(summary) {
+            animation: dossier-workspace-detail-in 150ms ease-out;
+          }
+        }
+
+        @keyframes dossier-workspace-panel-in {
+          from { opacity: 0.82; transform: translateY(2px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes dossier-workspace-detail-in {
+          from { opacity: 0.7; }
+          to { opacity: 1; }
+        }
+      `}</style>
       <header className="rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_22px_60px_rgba(2,6,23,0.07)] sm:p-6">
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-[rgb(var(--fg))]">
@@ -593,11 +780,14 @@ export function DossierWorkspace({
         </dl>
       </header>
 
-      <div className="mt-5 overflow-x-auto pb-1">
+      <div
+        data-sticky-workspace-navigation="true"
+        className="sticky top-16 z-30 -mx-2 mt-5 overflow-x-auto overscroll-x-contain rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-1.5 shadow-[0_10px_30px_rgba(2,6,23,0.10)] backdrop-blur-xl transition-[background-color,box-shadow,border-color] duration-150 motion-reduce:transition-none sm:mx-0"
+      >
         <div
           role="tablist"
           aria-label="Dossier-Bereiche"
-          className="inline-flex min-w-full gap-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-1 sm:min-w-0"
+          className="inline-flex min-w-max gap-1 sm:min-w-full"
         >
           {MODES.map((item, index) => (
             <button
@@ -613,7 +803,7 @@ export function DossierWorkspace({
               tabIndex={mode === item.id ? 0 : -1}
               onClick={() => selectMode(item.id)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
-              className={`min-h-11 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
+              className={`min-h-10 shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none ${
                 mode === item.id
                   ? "bg-[rgb(var(--fg))] text-[rgb(var(--bg))] shadow-sm"
                   : "text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] hover:text-[rgb(var(--fg))]"
@@ -630,7 +820,7 @@ export function DossierWorkspace({
         role="tabpanel"
         aria-labelledby={`dossier-tab-${mode}`}
         tabIndex={0}
-        className="mt-5 rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:p-7"
+        className="mt-5 scroll-mt-36 rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 transition-[opacity,background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none sm:p-7"
       >
         {mode === "overview" ? (
           <div className="space-y-6">
@@ -652,6 +842,8 @@ export function DossierWorkspace({
                 <DossierConnections
                   model={model}
                   focusTarget={focusTarget}
+                  selectedClaimId={selectedRelationshipClaimId}
+                  onSelectClaim={setSelectedRelationshipClaimId}
                   onNavigate={navigateTo}
                   focusId={dossierFocusId}
                 />
@@ -765,9 +957,35 @@ export function DossierWorkspace({
                 </button>
               }
             />
+            <div
+              role="group"
+              aria-label="Quellen filtern"
+              className="flex max-w-full gap-2 overflow-x-auto pb-1"
+            >
+              {SOURCE_FILTERS.map((filter) => {
+                const count = sourceFilterCounts[filter.id];
+                const active = sourceFilter === filter.id;
+                return (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={filter.id !== "all" && count === 0}
+                    onClick={() => setSourceFilter(filter.id)}
+                    className={`min-h-10 shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition-[background-color,color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                      active
+                        ? "border-blue-700 bg-blue-700 text-white dark:border-blue-300 dark:bg-blue-300 dark:text-slate-950"
+                        : "border-blue-300 bg-blue-50 text-blue-950 hover:border-blue-600 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-100"
+                    }`}
+                  >
+                    {filter.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
             {model.sourceGroups.length ? (
               <div className="space-y-5">
-                {model.sourceGroups.map((group) => (
+                {visibleSourceGroups.map((group) => (
                   <section key={group.key} aria-labelledby={`source-group-${group.key}`}>
                     <h3 id={`source-group-${group.key}`} className="text-base font-semibold text-[rgb(var(--fg))]">
                       {group.label} ({group.sources.length})
@@ -780,11 +998,22 @@ export function DossierWorkspace({
                           tabIndex={-1}
                           lang={source.language}
                           dir={source.dir}
-                          className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+                          data-semantic-tone={sourceSemanticTone(source)}
+                          className={`scroll-mt-36 rounded-2xl border border-s-4 p-4 transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none ${SEMANTIC_TONE_CLASSES[sourceSemanticTone(source)]}`}
                         >
-                          <h4 className="text-sm font-semibold leading-6 text-[rgb(var(--fg))]">{source.title}</h4>
+                          <h4 className="flex items-start gap-2 text-sm font-semibold leading-6 text-[rgb(var(--fg))]">
+                            <span aria-hidden="true">
+                              {SEMANTIC_MARKERS[sourceSemanticTone(source)]}
+                            </span>
+                            <span>{source.title}</span>
+                          </h4>
                           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                             {source.publisher ?? "Herausgeber nicht ausgewiesen"} · {source.typeLabel}
+                          </p>
+                          <p className="mt-2 text-xs font-semibold text-[rgb(var(--fg))]">
+                            Quellenstatus:{" "}
+                            {source.evidenceStatus ??
+                              "nicht verfügbar – kein expliziter Prüfstatus hinterlegt"}
                           </p>
                           {source.href ? (
                             <a
@@ -802,7 +1031,7 @@ export function DossierWorkspace({
                           )}
                           {source.details.length ? (
                             <details className="mt-3 text-xs text-[rgb(var(--muted))]">
-                              <summary className="cursor-pointer font-semibold text-[rgb(var(--fg))]">
+                              <summary className="cursor-pointer rounded-md font-semibold text-[rgb(var(--fg))] transition-colors duration-150 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 motion-reduce:transition-none dark:hover:text-blue-300">
                                 Details und Einschränkungen
                               </summary>
                               <ul className="mt-2 space-y-1">
@@ -810,11 +1039,44 @@ export function DossierWorkspace({
                               </ul>
                             </details>
                           ) : null}
+                          <div className="mt-3 border-t border-current/15 pt-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                              Aussagebezug
+                            </p>
+                            {source.claimLinks.length ? (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {source.claimLinks.map((link) => (
+                                  <button
+                                    key={`${link.claimId}-${link.relation}`}
+                                    type="button"
+                                    className="rounded-full border border-blue-300 bg-blue-50 px-2.5 py-1 text-start text-xs font-semibold text-blue-950 transition-colors duration-150 hover:border-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 motion-reduce:transition-none dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-100"
+                                    onClick={() =>
+                                      navigateTo("positions", {
+                                        type: "claim",
+                                        id: link.claimId,
+                                      })
+                                    }
+                                  >
+                                    {link.relationLabel}: {link.claimTitle}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                                Kein direkter Aussagebezug dokumentiert.
+                              </p>
+                            )}
+                          </div>
                         </article>
                       ))}
                     </div>
                   </section>
                 ))}
+                {visibleSourceGroups.length === 0 ? (
+                  <EmptyState>
+                    Für diesen Filter liegen keine Quellen mit dem geforderten realen Status vor.
+                  </EmptyState>
+                ) : null}
               </div>
             ) : (
               <EmptyState>
@@ -849,10 +1111,17 @@ export function DossierWorkspace({
                       key={question.id}
                       id={dossierFocusId({ type: "question", id: question.id })}
                       tabIndex={-1}
-                      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:p-5"
+                      data-semantic-tone="question"
+                      className={`scroll-mt-36 rounded-2xl border border-s-4 p-4 transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] motion-reduce:transition-none sm:p-5 ${SEMANTIC_TONE_CLASSES.question}`}
                     >
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 font-semibold text-[rgb(var(--fg))]">
+                        <span
+                          data-semantic-tone={questionSemanticTone(question)}
+                          className={`rounded-full border px-2 py-1 font-semibold text-[rgb(var(--fg))] ${SEMANTIC_TONE_CLASSES[questionSemanticTone(question)]}`}
+                        >
+                          <span aria-hidden="true" className="me-1">
+                            {SEMANTIC_MARKERS[questionSemanticTone(question)]}
+                          </span>
                           {question.statusLabel}
                         </span>
                         <span className="text-[rgb(var(--muted))]">
@@ -867,7 +1136,7 @@ export function DossierWorkspace({
                       </h3>
 
                       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                        <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <section className={`rounded-xl border border-s-4 p-3 ${SEMANTIC_TONE_CLASSES.info}`}>
                           <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                             Ursprung und betroffene Aussagen
                           </h4>
@@ -901,7 +1170,7 @@ export function DossierWorkspace({
                           )}
                         </section>
 
-                        <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <section className={`rounded-xl border border-s-4 p-3 ${SEMANTIC_TONE_CLASSES[questionSemanticTone(question)]}`}>
                           <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                             Antwortstand
                           </h4>
@@ -930,7 +1199,13 @@ export function DossierWorkspace({
                           ) : null}
                         </section>
 
-                        <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <section
+                          className={`rounded-xl border border-s-4 p-3 ${
+                            SEMANTIC_TONE_CLASSES[
+                              supportingSources.length ? "positive" : "neutral"
+                            ]
+                          }`}
+                        >
                           <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                             Stützende Quellen
                           </h4>
@@ -961,7 +1236,13 @@ export function DossierWorkspace({
                           )}
                         </section>
 
-                        <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                        <section
+                          className={`rounded-xl border border-s-4 p-3 ${
+                            SEMANTIC_TONE_CLASSES[
+                              conflictingSources.length ? "danger" : "neutral"
+                            ]
+                          }`}
+                        >
                           <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                             Widersprechende oder ungeklärte Quellen
                           </h4>
@@ -996,7 +1277,7 @@ export function DossierWorkspace({
                         </section>
                       </div>
 
-                      <section className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                      <section className={`mt-3 rounded-xl border border-s-4 p-3 ${SEMANTIC_TONE_CLASSES.participation}`}>
                         <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                           Betroffene Entscheidungsoptionen
                         </h4>
@@ -1051,15 +1332,27 @@ export function DossierWorkspace({
                     {participationLabel}
                   </Link>
                 ) : (
-                  <button type="button" className="btn-primary min-h-11 px-4 py-2 text-sm" onClick={() => selectMode("overview", true)}>
-                    Zum Überblick
+                  <button
+                    type="button"
+                    className="btn-primary min-h-11 px-4 py-2 text-sm"
+                    onClick={() =>
+                      selectMode(model.questions.length ? "questions" : "overview", true)
+                    }
+                  >
+                    {model.questions.length ? "Offene Fragen prüfen" : "Zum Überblick"}
                   </button>
                 )
               }
             />
             {participationHref ? (
-              <div className="rounded-2xl border border-emerald-300/60 bg-emerald-500/10 p-5">
+              <div
+                data-semantic-tone="participation"
+                className={`rounded-2xl border border-s-4 p-5 ${SEMANTIC_TONE_CLASSES.participation}`}
+              >
                 <h3 className="text-base font-semibold text-[rgb(var(--fg))]">
+                  <span aria-hidden="true" className="me-2">
+                    {SEMANTIC_MARKERS.participation}
+                  </span>
                   Beteiligung ist verknüpft
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -1069,22 +1362,85 @@ export function DossierWorkspace({
                 </p>
               </div>
             ) : (
-              <EmptyState>
-                Für diesen Dossierstand ist noch kein öffentlicher Beteiligungspfad verknüpft. Es wird weder automatisch ein Anlassraum noch eine Abstimmung erzeugt.
-              </EmptyState>
+              <div
+                data-semantic-tone="neutral"
+                className={`rounded-2xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.neutral}`}
+              >
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  <span aria-hidden="true" className="me-2">
+                    {SEMANTIC_MARKERS.neutral}
+                  </span>
+                  Kein realer Beteiligungspfad verknüpft
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                  Es wird weder automatisch ein Anlassraum noch eine Abstimmung erzeugt.
+                </p>
+              </div>
             )}
-            {(dossier.analyze.participationCandidates ?? []).length ? (
-              <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-                  Dokumentierte Beteiligungshinweise ({(dossier.analyze.participationCandidates ?? []).length})
-                </summary>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-[rgb(var(--muted))]">
-                  {(dossier.analyze.participationCandidates ?? []).map((candidate, index) => (
-                    <li key={candidate.id ?? index}>{candidate.text}</li>
-                  ))}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section
+                data-semantic-tone="participation"
+                className={`rounded-2xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.participation}`}
+              >
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  <span aria-hidden="true" className="me-2">
+                    {SEMANTIC_MARKERS.participation}
+                  </span>
+                  Dokumentierte betroffene Gruppen
+                </h3>
+                {participationCandidates.length ? (
+                  <ul className="mt-3 space-y-3 text-sm leading-6 text-[rgb(var(--fg))]">
+                    {participationCandidates.map((candidate, index) => (
+                      <li key={candidate.id ?? index}>
+                        <span className="font-semibold">{candidate.text}</span>
+                        {candidate.rationale ? (
+                          <span className="mt-1 block text-xs text-[rgb(var(--muted))]">
+                            Beteiligungshinweis: {candidate.rationale}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
+                    Nicht verfügbar: Es sind keine betroffenen Gruppen dokumentiert.
+                  </p>
+                )}
+              </section>
+
+              <section
+                data-semantic-tone="question"
+                className={`rounded-2xl border border-s-4 p-4 ${SEMANTIC_TONE_CLASSES.question}`}
+              >
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  <span aria-hidden="true" className="me-2">
+                    {SEMANTIC_MARKERS.question}
+                  </span>
+                  Voraussetzungen und Blocker
+                </h3>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-[rgb(var(--fg))]">
+                  <li>
+                    Beteiligungspfad:{" "}
+                    {participationHref ? "real verknüpft" : "nicht verknüpft"}
+                  </li>
+                  <li>Dokumentierte offene Fragen: {model.questions.length}</li>
+                  <li>
+                    Dokumentierte fehlende Perspektiven: {model.perspectives.length}
+                  </li>
+                  <li>
+                    Freigabe- oder Bereitschaftsstatus: nicht verfügbar
+                  </li>
                 </ul>
-              </details>
-            ) : null}
+                <p className="mt-3 text-xs leading-5 text-[rgb(var(--muted))]">
+                  Zulässiger nächster Schritt:{" "}
+                  {participationHref
+                    ? "den bestehenden Beteiligungspfad öffnen"
+                    : model.questions.length
+                      ? "die dokumentierten offenen Fragen prüfen"
+                      : "den Debattenstand prüfen"}. Keine automatische Übergabe.
+                </p>
+              </section>
+            </div>
           </div>
         ) : null}
       </div>
