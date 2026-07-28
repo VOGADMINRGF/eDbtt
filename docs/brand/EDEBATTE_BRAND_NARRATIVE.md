@@ -2,7 +2,7 @@
 
 Status: **kanonisch**  
 Beschlossen: **2026-07-28**  
-Geltungsbereich: Homepage, Marketing, Social Media, Video, Presse, Präsentationen, Partneransprache, Membership und produktnahe öffentliche Texte
+Geltungsbereich: Homepage, Marketing, Social Media, Video, Presse, Präsentationen, Partneransprache, Membership, Agentenkommunikation und produktnahe öffentliche Texte
 
 ## Zweck
 
@@ -28,6 +28,19 @@ Auf eDebatte werden aktuelle Themen, Positionen, Aussagen, Quellen und Dossiers 
 
 Die Leitzeile darf als Hero-Headline, Kampagnenzeile oder Videoeinstieg verwendet werden. Sie ersetzt nicht die erklärende Kernbotschaft oder die kanonische Langfassung.
 
+## Nachbarschaftsprinzip und verbindliche Anrede
+
+eDebatte begegnet Menschen nicht als Zielgruppe, Datenpunkt oder anonyme Masse, sondern als Nachbarinnen und Nachbarn auf einem gemeinsamen Planeten. Das Nachbarschaftsprinzip steht für Gleichwertigkeit, Nähe, gegenseitige Verantwortung und respektvollen Austausch über räumliche, sprachliche und gesellschaftliche Grenzen hinweg.
+
+Für deutschsprachige Agenten-, Voxy- und dialogische Produktoberflächen gilt bei der Eröffnung einer direkten Ansprache verbindlich:
+
+- eine einzelne Person: **„Hallo Nachbar,“**
+- mehrere Personen oder eine Community: **„Hallo Nachbarn,“**
+
+Die Anrede soll insbesondere in Agentengesprächen, Onboarding, dialogischen Hilfen, persönlichen Zusammenfassungen und gemeinschaftlichen Aufrufen verwendet werden. Sie muss nicht in jedem Folgesatz oder rein technischen Status-, Fehler- und Buttontext wiederholt werden.
+
+„Nachbar“ bezeichnet die gemeinsame menschliche Zugehörigkeit und darf keine konkrete räumliche Nähe, Standortfreigabe oder lokale Zuordnung behaupten. In anderen Sprachen ist eine natürliche, kulturell verständliche Entsprechung zu verwenden, die denselben Gedanken bewahrt: Wir leben gemeinsam auf diesem einen Planeten und begegnen einander auf Augenhöhe.
+
 ## Verbindliche Bedeutungsanker
 
 Jede öffentliche Ableitung muss die folgenden Aussagen respektieren:
@@ -38,6 +51,7 @@ Jede öffentliche Ableitung muss die folgenden Aussagen respektieren:
 4. Sprachbarrieren dürfen Beteiligung und Zugang zu Perspektiven nicht begrenzen.
 5. Über Fakten oder Wahrheit wird nicht abgestimmt. Abstimmungen beziehen sich auf Positionen, Prioritäten, Bewertungen, Handlungsoptionen und mögliche Lösungen.
 6. Öffentliche Texte dürfen keine Funktionen, Automatisierungen, Prüfungen oder Veröffentlichungszustände behaupten, die im Produkt noch nicht tatsächlich verfügbar sind.
+7. Dialogische Ansprache soll das Nachbarschaftsprinzip sichtbar machen, ohne persönliche Nähe oder Standortwissen vorzutäuschen.
 
 ## Sprachliche Regeln
 
@@ -51,6 +65,7 @@ Bevorzugte Begriffe:
 - informierte Beteiligung
 - gesellschaftliche Entscheidungen
 - Positionen, Prioritäten und Lösungen bewerten
+- Nachbarn auf einem gemeinsamen Planeten
 
 Zu vermeiden oder nur mit eindeutiger Einordnung zu verwenden:
 
@@ -60,6 +75,7 @@ Zu vermeiden oder nur mit eindeutiger Einordnung zu verwenden:
 - absolute Wahrheits-, Neutralitäts- oder Vollständigkeitsversprechen
 - „KI entscheidet“, „KI prüft die Wahrheit“ oder vergleichbare autonome Entscheidungsbehauptungen
 - reine Plattformfloskeln wie „Ort für Diskussionen“, wenn Quellen, Evidenzen, Debattenstand und Beteiligung nicht ebenfalls erklärt werden
+- die Anrede „Nachbar“ als Behauptung eines bekannten Standorts oder einer tatsächlichen räumlichen Nähe
 
 „Evidenzen“ darf verwendet werden. In Texten für ein breites Publikum soll der Begriff nach Möglichkeit gemeinsam mit verständlicheren Wörtern wie „Quellen“, „Belege“ oder „nachvollziehbare Informationen“ erscheinen.
 
@@ -71,19 +87,21 @@ Im Hero-Bereich kann die optionale Leitzeile mit der verdichteten Kernbotschaft 
 
 ### Social Media und Kampagnen
 
-Einzelne Beiträge dürfen jeweils Problem, Wirkweise oder konkrete Beteiligung hervorheben. Über mehrere Beiträge hinweg muss das Gesamtbild erhalten bleiben: Stimmen verbinden, Evidenzen und Zusammenhänge sichtbar machen, Debattenstand herstellen und informierte Beteiligung ermöglichen.
+Einzelne Beiträge dürfen jeweils Problem, Wirkweise oder konkrete Beteiligung hervorheben. Über mehrere Beiträge hinweg muss das Gesamtbild erhalten bleiben: Stimmen verbinden, Evidenzen und Zusammenhänge sichtbar machen, Debattenstand herstellen und informierte Beteiligung ermöglichen. Gemeinschaftliche Aufrufe dürfen mit „Hallo Nachbarn,“ eröffnet werden.
 
 ### Video und Voxy
 
-Videoeinstiege dürfen emotional und zugespitzt sein. Die Auflösung muss jedoch zu dieser Positionierung zurückführen und darf nicht behaupten, dass eDebatte Wahrheit automatisiert feststellt oder über Fakten abstimmen lässt.
+Videoeinstiege dürfen emotional und zugespitzt sein. Die Auflösung muss jedoch zu dieser Positionierung zurückführen und darf nicht behaupten, dass eDebatte Wahrheit automatisiert feststellt oder über Fakten abstimmen lässt. Richtet sich Voxy in deutscher Sprache direkt an eine Person oder Community, beginnt die dialogische Ansprache mit „Hallo Nachbar,“ beziehungsweise „Hallo Nachbarn,“.
 
 ### Präsentationen, Partner und Membership
 
 Die Langfassung ist die Standarderklärung. Anschließend kann je nach Zielgruppe erläutert werden, wie eDebatte für Bürgerinnen und Bürger, Initiativen, Medien, Wissenschaft, Verwaltung oder Organisationen nutzbar wird.
 
-### Produkttexte
+### Produkttexte und Agentenoberflächen
 
 Buttons, Hilfetexte und Workflows sollen den konkreten Gegenstand benennen: beitragen, einordnen, Quellen prüfen, Position bewerten, Priorität setzen oder Lösung abstimmen. Allgemeine Formulierungen wie „Jetzt abstimmen“ sind nur zulässig, wenn der Abstimmungsgegenstand unmittelbar sichtbar ist.
+
+Dialogische Agenten- und Assistenzoberflächen verwenden beim Beginn einer deutschsprachigen direkten Ansprache die kanonische Nachbarschaftsanrede. Die Anrede soll zentral als wiederverwendbare, lokalisierbare Copy-Regel umgesetzt werden, nicht uneinheitlich in einzelnen Komponenten.
 
 ## Ableitungsregel für Agenten und Redaktion
 
