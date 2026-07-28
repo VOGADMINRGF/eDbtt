@@ -1,12 +1,12 @@
-# E150 Open Tasks — Operativer Kopf 2026-07-27
+# E150 Open Tasks — Operativer Kopf 2026-07-28
 
 ## Kanonischer Operativteil
 
 - Dieser Abschnitt ist die aktuelle operative Queue.
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
 - Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
-- Stand: `2026-07-27`
-- Letzter gezielter Kopf-Sync: Marketing Assistant UX Fix nach PR `#493`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
+- Stand: `2026-07-28`
+- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
 - PR `#415` (`docs/opentasks-head-sync-2026-07-23`) wurde am 2026-07-23 gemergt; der damalige Governance-SSOT-Sync ist abgeschlossen.
 
 ## Operative Statuswerte
@@ -30,7 +30,7 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 - PR `#441` wurde gemergt und definiert den regionalen, mehrsprachigen Civic Opportunity & Campaign Operator als review-first Orchestrierungsprofil ohne Auto-Publish.
 - PR `#443` wurde gemergt; `/admin/marketing` und `/api/admin/marketing` sind als typisierte, repo-backed, 2FA-geschützte Read-only-Registry umgesetzt.
 - PR `#460` wurde als Merge `f14659d298af34afbd036c987e3c28c6b3a0adfb` gemergt und überarbeitet ausschließlich die Informationsarchitektur und Bedienbarkeit von `/admin/marketing`; Produkt-Smoke und Nutzerabnahme stehen noch aus.
-- Issue `#459` hält die spätere Vereinfachung der übrigen Admin-Boards fest und bleibt bis zur Produktabnahme von `/admin/marketing` blockiert.
+- Issue `#459` ist nach der Nutzerabnahme der Marketing-Referenz `in_progress`; Issue `#495` / `ADMIN-REGION-OPERATING-WORKSPACE-01` ist der erste freigegebene Folge-Slice für `/admin/region`.
 - Issue `#445` ist der einzige aktuell unmittelbar ausführbare Marketing-Slice; `MARKETING-CONTEXTUAL-ASSISTANT-01` und sein UX-Fix `#490` stehen auf `review`, während Performance-Ingestion und Konten & Datenquellen bis zu realen Provider-, CSV-, Secret-Store- und Datenschutzfreigaben `manual_gate` bleiben.
 - PR `#400`, `#404`, `#405` und `#406` bleiben die integrierte Basis für Create, Dossier-Runtime-Wahrheit und Review-first-Guardrails.
 - PR `#409` wurde am 2026-07-22 gemergt und zählt als erledigter öffentlicher Production-Live-Smoke.
@@ -255,6 +255,14 @@ V3 Workspace evidence:
 |---|---|---|---|---|---|---|---|---|
 | MARKETING-WORKSPACE-OPERABILITY-01 | codex_ready | P0 | PR #493; Issue #497 | lokales `/admin/marketing/**`-Layout, sichtbare Navigation, Loading-State, kompakter Operator-Workspace | Marketing als schnellen täglichen Arbeitsplatz statt langes Read-only-Reporting nutzbar machen | Review-Route dauerhaft sichtbar; echter Count; kein leerer Ladebildschirm; keine toten Links; DE/EN; Mobile/Desktop; Tests, Lint, Typecheck, Build grün | nein | Issue #497; Videoabnahme 2026-07-28 |
 | MARKETING-THEME-RADAR-SOURCE-CONTRACT-01 | codex_ready | P0 | Epic #442; Issue #498 | Source Registry, Coverage-Matrix, Topic-/Cluster-Schema, Ranking, Dedupe, Sprache, Lizenz, Retention | verbindlichen Vertrag für aktuelle Themen aus International, EU, Deutschland, Nachbarländern und 16 Bundesländern definieren | Contract und Schemas im Repo; keine leere UI; Live-Ingestion bleibt separater Gate-Slice | nein | Issue #498; Nutzerfreigabe 2026-07-28 |
+
+
+### Admin Region Operating Workspace – nächster Slice
+
+| ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
+|---|---|---|---|---|---|---|---|---|
+| ADMIN-BOARD-INFORMATION-ARCHITECTURE-03 | in_progress | P1 | Nutzerabnahme `/admin/marketing`; Issue #459 | übrige Admin-Boards schrittweise auf die operator-taugliche Informationsarchitektur der Marketing-Referenz prüfen | technische Statussammlungen in verständliche, entscheidungsorientierte Arbeitsräume überführen | je Board eigener kollisionsgeprüfter Slice; reale Workflows; keine zweite Runtime; keine globalen Layout- oder Governanceänderungen | nein | Issue #459; erster Slice Issue #495 |
+| ADMIN-REGION-OPERATING-WORKSPACE-01 | codex_ready | P0 | ADMIN-BOARD-INFORMATION-ARCHITECTURE-03; Issue #495 | `/admin/region`, `RegionSourceConnectionsPanel`, fokussierte Region-Tests und Evidence-Doku | ausgewählte Region als durchgängigen Arbeitsraum von Lagebild, Quellen und Recherche über Claims/Dossier und interne/externe Beiträge bis zur regionalen Kampagnenübergabe nutzbar machen | erster Bereich zeigt Relevanz, Quellenlage und nächste Aktion; Arbeitsbereiche Lagebild, Quellen & Feeds, Recherche, Claims & Dossiers, Beiträge & Veröffentlichung, regionale Kampagnen sowie nachgeordnete Einstellungen; reale Handoffs ohne Dead Clicks; kein Auto-Research, Auto-Publish oder neue Persistenz; Mobile/Desktop; Tests, Typecheck, Lint und `git diff --check` grün | nein | Issue #495; Nutzerentscheidung und Videoabnahme 2026-07-28 |
 
 ## Historischer Katalog und Evidenz
 
