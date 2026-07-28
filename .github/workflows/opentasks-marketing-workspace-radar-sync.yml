@@ -1,5 +1,6 @@
 name: One-time Marketing Workspace and Radar Sync
 
+# trigger
 on:
   pull_request:
     branches: [main]
