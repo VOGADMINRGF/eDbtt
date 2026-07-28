@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildQrStudioTargetHref } from "@/features/qr/security";
 import {
   parseShareReadyAssetContract,
   resolveShareReadyAssetContract,
@@ -19,7 +20,9 @@ describe("share ready asset contract", () => {
 
     expect(contract.primaryTargetKind).toBe("round_operating_target");
     expect(contract.canonicalPublicTarget).toContain("/round/mobilitaet-innenstadt");
-    expect(contract.qrTarget).toContain("/round/mobilitaet-innenstadt");
+    expect(contract.qrTarget).toBe(
+      buildQrStudioTargetHref("/round/mobilitaet-innenstadt?anlassraumId=65f000000000000000000001"),
+    );
     expect(contract.socialPublication.shareReady).toBe(true);
     expect(contract.socialPublication.socialCandidate).toBe(false);
     expect(contract.socialPublication.autoPostEligible).toBe(false);
@@ -40,6 +43,9 @@ describe("share ready asset contract", () => {
 
     expect(contract.primaryTargetKind).toBe("round_results_target");
     expect(contract.targets.roundResultsTarget).toContain("/round/fernwaerme-ausbau");
+    expect(contract.qrTarget).toBe(
+      buildQrStudioTargetHref("/round/fernwaerme-ausbau?anlassraumId=65f000000000000000000002"),
+    );
     expect(contract.socialPublication.socialCandidate).toBe(true);
     expect(contract.socialPublication.qualification).toBe("review_ready_candidate");
     expect(contract.socialPublication.autoPostEligible).toBe(false);
