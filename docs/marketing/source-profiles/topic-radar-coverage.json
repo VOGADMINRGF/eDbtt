@@ -1,0 +1,272 @@
+{
+  "version": "1.0.0",
+  "status": "decision_contract",
+  "liveIngestionEnabled": false,
+  "candidateLimitPerArea": 20,
+  "operatorTopLimitPerArea": 20,
+  "phase1SourcePolicy": "official_public_machine_readable_sources",
+  "phase2ProviderCandidate": "gdelt-cloud",
+  "areas": [
+    {
+      "id": "international",
+      "labelDe": "International",
+      "scope": "international",
+      "countryCode": null,
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "eu",
+      "labelDe": "Europäische Union",
+      "scope": "eu",
+      "countryCode": null,
+      "regionCode": "EU",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-national",
+      "labelDe": "Deutschland national",
+      "scope": "national",
+      "countryCode": "DE",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-neighbors",
+      "labelDe": "Nachbarländer Deutschlands gesamt",
+      "scope": "neighbor_country_group",
+      "countryCode": "DE",
+      "regionCode": null,
+      "candidateLimit": 180,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-dk",
+      "labelDe": "Dänemark",
+      "scope": "neighbor_country",
+      "countryCode": "DK",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-pl",
+      "labelDe": "Polen",
+      "scope": "neighbor_country",
+      "countryCode": "PL",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-cz",
+      "labelDe": "Tschechien",
+      "scope": "neighbor_country",
+      "countryCode": "CZ",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-at",
+      "labelDe": "Österreich",
+      "scope": "neighbor_country",
+      "countryCode": "AT",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-ch",
+      "labelDe": "Schweiz",
+      "scope": "neighbor_country",
+      "countryCode": "CH",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-fr",
+      "labelDe": "Frankreich",
+      "scope": "neighbor_country",
+      "countryCode": "FR",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-lu",
+      "labelDe": "Luxemburg",
+      "scope": "neighbor_country",
+      "countryCode": "LU",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-be",
+      "labelDe": "Belgien",
+      "scope": "neighbor_country",
+      "countryCode": "BE",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "neighbor-nl",
+      "labelDe": "Niederlande",
+      "scope": "neighbor_country",
+      "countryCode": "NL",
+      "regionCode": null,
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-bw",
+      "labelDe": "Baden-Württemberg",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-BW",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-by",
+      "labelDe": "Bayern",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-BY",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-be",
+      "labelDe": "Berlin",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-BE",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-bb",
+      "labelDe": "Brandenburg",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-BB",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-hb",
+      "labelDe": "Bremen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-HB",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-hh",
+      "labelDe": "Hamburg",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-HH",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-he",
+      "labelDe": "Hessen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-HE",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-mv",
+      "labelDe": "Mecklenburg-Vorpommern",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-MV",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-ni",
+      "labelDe": "Niedersachsen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-NI",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-nw",
+      "labelDe": "Nordrhein-Westfalen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-NW",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-rp",
+      "labelDe": "Rheinland-Pfalz",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-RP",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-sl",
+      "labelDe": "Saarland",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-SL",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-sn",
+      "labelDe": "Sachsen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-SN",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-st",
+      "labelDe": "Sachsen-Anhalt",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-ST",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-sh",
+      "labelDe": "Schleswig-Holstein",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-SH",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    },
+    {
+      "id": "de-th",
+      "labelDe": "Thüringen",
+      "scope": "state",
+      "countryCode": "DE",
+      "regionCode": "DE-TH",
+      "candidateLimit": 20,
+      "operatorTopLimit": 20
+    }
+  ]
+}
