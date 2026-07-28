@@ -651,6 +651,9 @@ export function DossierWorkspace({
   }
 
   function navigateTo(nextMode: WorkspaceMode, target: DossierFocusTarget) {
+    if (target.type === "source") {
+      setSourceFilter("all");
+    }
     setFocusTarget(target);
     setMode(nextMode);
   }
