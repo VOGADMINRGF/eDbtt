@@ -272,6 +272,12 @@ V3 Workspace evidence:
 -->
 
 
+### Anlassraum-/Runden-Endstate – Bootstrap-Sync
+
+| ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
+|---|---|---|---|---|---|---|---|---|
+| OPENTASKS-ANLASSRAUM-RUNDEN-ENDSTATE-SYNC-01 | codex_ready | P0 | PR #519 ist gemergt; Issues #480, #481 und #488 enthalten die bereits getroffene Produkt-, Routing- und Ausführungsentscheidung | `docs/E150/OpenTasks.md`; im nachfolgenden ausführbaren Slice zusätzlich: `docs/E150/ANLASSRAUM_RUNDEN_SURFACE_CONTRACT_01_2026-07-29.md` | Die bereits in #480, #481 und #488 beschlossene Anlassraum-/Runden-Endstate-Kette verlustfrei in den kanonischen operativen Kopf übertragen und ANLASSRAUM-RUNDEN-SURFACE-CONTRACT-01 als nächsten ausführbaren P0-Task registrieren | ANLASSRAUM-RUNDEN-SURFACE-CONTRACT-01 wird im Folgeslice als `codex_ready` registriert; ANLASSRAUM-WORKSPACE-02, RUNDEN-WORKSPACE-03, PARTICIPATION-QR-SURFACE-01, SWIPE-RUNDEN-PARTICIPATION-MODE-01 und ANLASSRAUM-RUNDEN-E2E-CLOSURE-01 bleiben `blocked`; Reihenfolge und Abhängigkeiten werden explizit dokumentiert; keine UI-, Runtime-, Routing- oder Persistenzänderung; PR #520 und alle darin bearbeiteten Dateien bleiben unberührt; keine bestehende Task-ID wird dupliziert oder überschrieben | Keine. Dieser Bootstrap trifft keine neue Produktentscheidung. | GitHub Issues #480, #481 und #488; PR #519 gemergt; aktueller Preflight: `task_not_found` |
+
 ### Marketing Workspace und Themenradar – nächste Slices
 
 | ID | Status | Priority | Depends on | Scope | Goal | Acceptance Criteria | Decision open | Evidence / Notes |
