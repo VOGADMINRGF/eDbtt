@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buildCanonicalDossierHref } from "@/components/dossier/runtimeTruth";
 import StudioCodeWorkspaceClient from "./StudioCodeWorkspaceClient";
-import {
-  buildQrEntryMetadata,
-  renderResolvedQrTargetEntry,
-} from "@/features/qr/publicEntry";
+import StudioTargetWorkspace from "./StudioTargetWorkspace";
+import { buildQrEntryMetadata } from "@/features/qr/publicEntry";
 
 /* page-contract: delegated-h1 */
 
@@ -234,12 +232,12 @@ export default async function StudioPage({ searchParams }: PageProps) {
   const caller = readParam(resolved.caller);
 
   if (code) return <StudioCodeWorkspaceClient code={code} />;
-  if (target) return renderResolvedQrTargetEntry(target, { caller });
+  if (target) return <StudioTargetWorkspace rawTarget={target} caller={caller} />;
   if (
     readParam(resolved.invalidTarget) ||
     readParam(resolved.targetState) === "blocked"
   ) {
-    return renderResolvedQrTargetEntry("", { caller });
+    return <StudioTargetWorkspace rawTarget="" caller={caller} />;
   }
 
   return <StudioLanding />;
