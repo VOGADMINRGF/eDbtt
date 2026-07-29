@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
-import { logAuthEventBestEffort } from "@core/telemetry/authEvents";
 import { isDemoUser } from "@/lib/demo/demoAccess";
 import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { scheduleAuthEvent } from "../authEventScheduling";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
 
     if (!valid) {
       await challenges.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
-      logAuthEventBestEffort("auth.2fa.failed", {
+      scheduleAuthEvent("auth.2fa.failed", {
         meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
       });
       return errorResponse("invalid_code", 401);
@@ -213,10 +213,10 @@ export async function POST(req: NextRequest) {
       primaryRole: user.role,
     });
 
-    logAuthEventBestEffort("auth.2fa.success", {
+    scheduleAuthEvent("auth.2fa.success", {
       meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
     });
-    logAuthEventBestEffort("auth.login.success", {
+    scheduleAuthEvent("auth.login.success", {
       meta: { ipHash: sha256(ip), via: method, userHash: sha256(String(challenge.userId)) },
     });
 

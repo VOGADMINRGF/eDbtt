@@ -18,6 +18,11 @@ describe("auth shared redirect contract", () => {
     expect(sanitizeRedirect("/account?tab=security")).toBe("/account?tab=security");
     expect(sanitizeRedirect("https://example.org/account?tab=security")).toBe(DEFAULT_REDIRECT);
     expect(sanitizeRedirect("//example.org/account")).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect("/\\evil.example")).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect("/\\\\evil.example")).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect("\\evil.example")).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect("\\\\evil.example")).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect("/account\\security")).toBe(DEFAULT_REDIRECT);
   });
 
   it("falls back for invalid or unsafe redirect values", () => {

@@ -9,6 +9,7 @@ function trimString(value: unknown): string | null {
 export function normalizeInternalRedirectPath(value: unknown): InternalRedirectPath | null {
   const trimmed = trimString(value);
   if (!trimmed) return null;
+  if (trimmed.includes("\\")) return null;
   if (!trimmed.startsWith("/")) return null;
   if (trimmed.startsWith("//")) return null;
   return trimmed as InternalRedirectPath;

@@ -145,7 +145,7 @@ const mocks = vi.hoisted(() => {
       operations.push("session:complete");
     }),
     getSessionUser: vi.fn(async () => clone(sessionUser)),
-    logAuthEventBestEffort: vi.fn(() => undefined),
+    scheduleAuthEvent: vi.fn(() => undefined),
   };
 });
 
@@ -158,9 +158,9 @@ vi.mock("@core/db/triMongo", async () => {
   };
 });
 
-vi.mock("@core/telemetry/authEvents", () => ({
-  logAuthEventBestEffort: (...args: unknown[]) =>
-    mocks.logAuthEventBestEffort(...args),
+vi.mock("@/app/api/auth/authEventScheduling", () => ({
+  scheduleAuthEvent: (...args: unknown[]) =>
+    mocks.scheduleAuthEvent(...args),
 }));
 
 vi.mock("@/lib/demo/demoAccess", () => ({
@@ -274,7 +274,17 @@ describe("verify-2fa route idempotency", () => {
       status: "used",
       consumedAt: expect.any(Date),
     });
-    expect(mocks.logAuthEventBestEffort).toHaveBeenCalledTimes(2);
+    expect(mocks.scheduleAuthEvent).toHaveBeenCalledTimes(2);
+    expect(mocks.scheduleAuthEvent).toHaveBeenNthCalledWith(
+      1,
+      "auth.2fa.success",
+      expect.objectContaining({ meta: expect.any(Object) }),
+    );
+    expect(mocks.scheduleAuthEvent).toHaveBeenNthCalledWith(
+      2,
+      "auth.login.success",
+      expect.objectContaining({ meta: expect.any(Object) }),
+    );
   });
 
   it("does not resolve the response until the session cookie write completes", async () => {
@@ -402,6 +412,10 @@ describe("verify-2fa route idempotency", () => {
     await expect(invalidResponse.json()).resolves.toMatchObject({
       error: "invalid_code",
     });
+    expect(mocks.scheduleAuthEvent).toHaveBeenCalledWith(
+      "auth.2fa.failed",
+      expect.objectContaining({ meta: expect.any(Object) }),
+    );
 
     const expired = await seedPendingChallenge("otp");
     mocks.seedChallenge({
