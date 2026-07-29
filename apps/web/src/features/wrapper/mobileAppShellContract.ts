@@ -18,6 +18,7 @@ const EXCLUDED_EXACT_PATHS = new Set<InternalRedirectPath>([
   "/embed",
   "/research",
   "/studio",
+  "/qr-studio",
   "/partner/demo",
 ]);
 
@@ -45,7 +46,6 @@ const CORE_EXACT_PATHS = new Set<InternalRedirectPath>([
   "/pricing",
   "/order",
   "/vormerken",
-  "/qr-studio",
   "/account",
   "/account/security",
   "/account/payment",
