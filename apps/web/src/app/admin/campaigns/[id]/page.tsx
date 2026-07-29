@@ -374,10 +374,10 @@ export default function AdminCampaignDetailPage() {
                 <>
                   <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--muted))]">{qrCode}</span>
                   <a
-                    href={`/qr-studio?code=${encodeURIComponent(qrCode)}`}
+                    href={`/qr/${encodeURIComponent(qrCode)}`}
                     className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   >
-                    /qr-studio?code={qrCode}
+                    /qr/{qrCode}
                   </a>
                 </>
               ) : (
@@ -497,10 +497,10 @@ export default function AdminCampaignDetailPage() {
                             </div>
                           {session.qrCode ? (
                             <a
-                              href={`/qr-studio?code=${encodeURIComponent(session.qrCode)}`}
+                              href={`/qr/${encodeURIComponent(session.qrCode)}`}
                               className="text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                             >
-                              QR: /qr-studio?code={session.qrCode}
+                              QR: {session.qrCode}
                             </a>
                           ) : null}
                           </div>
