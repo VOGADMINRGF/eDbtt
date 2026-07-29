@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import {
-  buildQrEntryMetadata,
-  renderResolvedQrCodeEntry,
-} from "@/features/qr/publicEntry";
+import { renderResolvedQrCodeEntry } from "@/features/qr/publicEntry";
 
 /* page-contract: delegated-h1 */
 
@@ -12,7 +9,10 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { qrId } = await params;
-  return buildQrEntryMetadata(`Teilnahme · ${qrId}`);
+  return {
+    title: `Teilnahme · ${qrId} · eDebatte`,
+    description: "Direkter öffentlicher Einstieg in eine freigegebene Beteiligung.",
+  };
 }
 
 export default async function PublicQrEntryPage({ params }: PageProps) {
