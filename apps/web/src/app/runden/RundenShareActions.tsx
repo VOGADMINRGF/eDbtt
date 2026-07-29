@@ -165,6 +165,16 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         </button>
       </div>
 
+      <p className="mt-2 break-all text-[11px] text-[rgb(var(--muted))]">
+        Teilnahmelink:{" "}
+        <a
+          href={canonicalUrl}
+          className="font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
+        >
+          {canonicalUrl}
+        </a>
+      </p>
+
       <div className="mt-3 space-y-1 text-[11px] text-[rgb(var(--muted))]">
         <p>Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.</p>
         <p>Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.</p>
