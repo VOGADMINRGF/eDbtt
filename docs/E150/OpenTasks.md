@@ -1,12 +1,12 @@
-# E150 Open Tasks — Operativer Kopf 2026-07-28
+# E150 Open Tasks — Operativer Kopf 2026-07-29
 
 ## Kanonischer Operativteil
 
 - Dieser Abschnitt ist die aktuelle operative Queue.
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
 - Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
-- Stand: `2026-07-28`
-- Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495` sowie Auth-2FA-Redirect-Intake aus Issue `#477`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
+- Stand: `2026-07-29`
+- Letzter gezielter Kopf-Sync: `HOME-VOXY-PODCAST-LANDING-01` aus Issue `#526` / Draft-PR `#527` nach technischem Zielbildabgleich auf `review` gesetzt; Admin-Region-Arbeitsraum und Auth-2FA-Redirect-Intake bleiben unverändert, ebenso alle nicht berührten operativen Zeilen.
 - PR `#415` (`docs/opentasks-head-sync-2026-07-23`) wurde am 2026-07-23 gemergt; der damalige Governance-SSOT-Sync ist abgeschlossen.
 
 ## Operative Statuswerte
@@ -115,6 +115,8 @@ Der technische PR darf den Task ausschließlich auf `review` setzen.
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
 | HOME-PRODUCT-MESSAGE-01 | done | P0 | keine | Startseite erklärt Entwicklungen, Quellen, Beteiligung und Wirkung statt nur Eingabe oder Voxy | PR `#412` ist gegen `main` verifiziert; Produktpositionierung und Canonical sind nicht mehr als offen dargestellt |
+| HOME-VOXY-PODCAST-LANDING-01 | review | P0 | HOME-PRODUCT-MESSAGE-01, Issue `#526` | Bestehende `/start`-Landingpage in Draft-PR `#527` an die freigegebene Voxy-Podcast-Hierarchie und Scroll-Dramaturgie angleichen, ohne neue Produkt-, Routing-, Daten- oder Veröffentlichungswahrheit | Originales Podcast-Asset und kanonischer miniAvatar; eDebatte führt; Claim, `Hallo Nachbar.`, vier Zielgruppen, sechs Nutzenbausteine und drei Prozessschritte; unveränderte Ziele `/themen`, `/create`, `/swipes`, `/dossier`; keine Fake-Zahlen, Demo-Runtime, Faktenabstimmung oder Auto-Publish; responsive, zugänglich und motion-reduced abgesichert; `done` erst nach dokumentierter Desktop- und Mobile-Produktabnahme |
+<!-- HOME-VOXY-PODCAST-LANDING-01 evidence (2026-07-29): Technischer Zielbildabgleich für Desktop 1440×900 und Mobile 393×852 einschließlich Reveal-/Reduced-Motion- und Launcher-/Bottom-Navigation-Geometrie abgeschlossen. Bewusste Abweichungen und verbleibende Realgeräte-, Consent- sowie menschliche Produktabnahme sind in `docs/E150/HOME-VOXY-PODCAST-LANDING-01_2026-07-29.md` dokumentiert. Task bleibt `review`; kein Auto-Merge. -->
 | LEGAL-PUBLIC-PAGES-01 | manual_gate | P0 | verifizierter Rechtsträger und fachliche Rechts-/Datenschutzfreigabe | Impressum, Datenschutz, AGB, Widerruf, Kündigung, Widerspruch, Footer, Registrierung, Pricing, Order, Account und feste geprüfte Sprachfassungen | Keine Platzhalter, keine toten Rechtslinks, keine ungeprüften automatischen Rechtsübersetzungen und keine kostenpflichtige Funktion ohne passende Rechtsgrundlage |
 | PRIVACY-SNIPPET-02 | review | P0 | HOME-PRODUCT-MESSAGE-01 | Mobiler Consent-Dialog, verständliche Aktionen, `data-nosnippet`, `/settings` noindex und saubere Snippet-/Indexierungsgrenzen | Privacy-Dialog, Snippet-Grenzen und Indexierungsregeln sind technisch geschlossen und widersprechen weder SEO noch Datenschutz |
 <!-- Evidenz (2026-07-25): Mobiler Consent-Dialog, Fokus-/Tastaturvertrag, data-nosnippet-Grenzen und /settings noindex sind über fokussierte Tests sowie Typecheck, Lint und diff-check abgesichert; manueller Desktop-/Mobile-/Keyboard-Browser-Smoke bleibt als verbleibendes Manual Gate offen. -->

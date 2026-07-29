@@ -16,7 +16,11 @@ vi.mock("@/context/LocaleContext", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => <img alt="" {...props} />,
+  default: ({
+    fill: _fill,
+    priority: _priority,
+    ...props
+  }: Record<string, unknown>) => <img alt="" {...props} />,
 }));
 
 describe("landing clarity contract", () => {
@@ -35,6 +39,12 @@ describe("landing clarity contract", () => {
     expect(html).toContain("Voxy am gemeinsamen Tisch");
     expect(html).toContain("/brand/voxy/voxy-podcast-stage.png");
     expect(html).toContain("/brand/voxy/voxy-mini-avatar.webp");
+    expect(html).toContain("Gesellschaftliche Debatten werden häufig von Lautstärke");
+    expect(html).toContain(
+      "eDebatte verbindet Stimmen, Positionen und Perspektiven über Sprach- und Interessengrenzen hinweg.",
+    );
+    expect(html).toContain("Nicht über Wahrheit wird abgestimmt");
+    expect((html.match(/data-testid="home-brand-narrative-paragraph"/g) ?? []).length).toBe(3);
 
     expect(html).toContain("Für Nachbarn und Bürger");
     expect(html).toContain("Für Initiativen und Communities");
@@ -51,6 +61,9 @@ describe("landing clarity contract", () => {
     expect(html).toContain("Voxy hört zu und strukturiert");
     expect(html).toContain("Quellen und Perspektiven werden verbunden");
     expect(html).toContain("Die Community prüft, ergänzt und entscheidet");
+    expect(html).toContain("Entschieden wird über Positionen und nächste Schritte");
+    expect(html).toContain("Jeder Mensch sieht einen Teil.");
+    expect(html).toContain("Gemeinsam sehen wir mehr.");
 
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
@@ -63,6 +76,8 @@ describe("landing clarity contract", () => {
     expect(html).not.toContain("250 Partner");
     expect(html).not.toContain("35 Länder");
     expect(html).not.toContain("Live Poll");
+    expect(html).not.toContain("Berlin-Rahnsdorf");
+    expect(html).not.toContain("Hero, Guide und Status-Schicht");
     expect(html).not.toContain("/demo/");
     expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
@@ -110,5 +125,26 @@ describe("landing clarity contract", () => {
     expect(landingSource).not.toContain("/demo/");
     expect(splitLandingSource).not.toContain("/demo/");
     expect(splitLandingSource).not.toContain("/brand/voxy/voxy-presenting.webp");
+  });
+
+  it("keeps reveal motion optional and the launcher clear of fixed mobile overlays", () => {
+    const splitLandingSource = readFileSync(
+      resolve(process.cwd(), "src/features/home/HomeSplitVoxyLanding.tsx"),
+      "utf8",
+    );
+    const revealSource = readFileSync(
+      resolve(process.cwd(), "src/features/home/HomeScrollReveal.tsx"),
+      "utf8",
+    );
+
+    expect(revealSource).toContain("prefers-reduced-motion: reduce");
+    expect(revealSource).toContain("IntersectionObserver");
+    expect(revealSource).toContain("motion-reduce:transition-none");
+    expect(splitLandingSource).toContain(
+      "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]",
+    );
+    expect(splitLandingSource).toContain('data-overlay-safe-offset="mobile-bottom-navigation"');
+    expect(splitLandingSource).toContain("md:bottom-7");
+    expect(splitLandingSource).not.toContain("fixed bottom-5 right-5 z-40");
   });
 });
