@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536" role="img" aria-labelledby="title desc">
+  <title id="title">Zielbild für die eDebatte Voxy Podcast Landingpage</title>
+  <desc id="desc">Dunkles Full-Page-Layout mit Podcast-Hero, Zielgruppen, Nutzenbausteinen, Voxy-Prozess, Debattenkarte, Abschluss-CTA und Voxy-Launcher.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#020711"/>
+      <stop offset="0.55" stop-color="#061326"/>
+      <stop offset="1" stop-color="#03101d"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#156bff"/>
+      <stop offset="1" stop-color="#27d4d0"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1c31"/>
+      <stop offset="1" stop-color="#071426"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#116fff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#116fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#001b44" flood-opacity="0.5"/>
+    </filter>
+    <style>
+      .nav { font: 600 12px Inter, Arial, sans-serif; fill: #d8e6f7; }
+      .eyebrow { font: 700 11px Inter, Arial, sans-serif; letter-spacing: 2px; fill: #46d8d0; }
+      .hero { font: 750 48px Inter, Arial, sans-serif; fill: #f7fbff; }
+      .heroBlue { font: 750 48px Inter, Arial, sans-serif; fill: #2b7cff; }
+      .copy { font: 400 15px Inter, Arial, sans-serif; fill: #aebed3; }
+      .section { font: 750 25px Inter, Arial, sans-serif; fill: #f7fbff; }
+      .cardTitle { font: 700 14px Inter, Arial, sans-serif; fill: #f7fbff; }
+      .cardCopy { font: 400 11px Inter, Arial, sans-serif; fill: #9fb1c8; }
+      .small { font: 600 10px Inter, Arial, sans-serif; fill: #74aefc; }
+      .button { font: 700 12px Inter, Arial, sans-serif; fill: #ffffff; }
+      .muted { font: 500 10px Inter, Arial, sans-serif; fill: #7e94ae; }
+    </style>
+  </defs>
+
+  <rect width="1024" height="1536" fill="url(#bg)"/>
+  <circle cx="530" cy="220" r="250" fill="url(#glow)"/>
+
+  <!-- Navigation -->
+  <text x="36" y="42" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="750" fill="#ffffff">e<tspan fill="#2b7cff">Debatte</tspan></text>
+  <text x="38" y="60" class="muted">Eine Initiative von VoiceOpenGov</text>
+  <text x="275" y="42" class="nav">Aktuelle Debatten</text>
+  <text x="390" y="42" class="nav">Dossiers</text>
+  <text x="457" y="42" class="nav">Runden</text>
+  <text x="522" y="42" class="nav">Über uns</text>
+  <text x="594" y="42" class="nav">Mitgliedschaft</text>
+  <rect x="752" y="20" width="92" height="34" rx="8" fill="none" stroke="#62748d"/>
+  <text x="776" y="42" class="nav">Anmelden</text>
+  <rect x="860" y="20" width="130" height="34" rx="8" fill="#1266ff"/>
+  <text x="881" y="42" class="button">Thema einbringen</text>
+
+  <!-- Hero -->
+  <text x="48" y="138" class="hero">Stimmen verbinden.</text>
+  <text x="48" y="190" class="heroBlue">Zusammenhänge</text>
+  <text x="48" y="242" class="heroBlue">sichtbar machen.</text>
+  <text x="48" y="294" class="hero">Gemeinsam</text>
+  <text x="48" y="346" class="hero">entscheiden.</text>
+  <text x="48" y="382" class="copy">Voxy hilft dir, Themen zu verstehen, Quellen</text>
+  <text x="48" y="404" class="copy">einzuordnen und unterschiedliche Perspektiven</text>
+  <text x="48" y="426" class="copy">zu verbinden – über Sprachen und Grenzen hinweg.</text>
+  <rect x="48" y="452" width="158" height="42" rx="8" fill="#1266ff" filter="url(#shadow)"/>
+  <text x="78" y="478" class="button">Thema einbringen</text>
+  <rect x="220" y="452" width="150" height="42" rx="8" fill="none" stroke="#647791"/>
+  <text x="251" y="478" class="nav">Debatten entdecken</text>
+  <rect x="48" y="516" width="336" height="42" rx="14" fill="#08162a" stroke="#234a78"/>
+  <circle cx="72" cy="537" r="9" fill="none" stroke="#8aa7c9" stroke-width="2"/>
+  <line x1="79" y1="544" x2="86" y2="551" stroke="#8aa7c9" stroke-width="2"/>
+  <text x="96" y="541" class="small">Hallo Nachbar.</text>
+  <text x="176" y="541" class="cardCopy">Was bewegt dich?</text>
+  <text x="356" y="542" font-family="Inter, Arial, sans-serif" font-size="22" fill="#2b8bff">→</text>
+
+  <!-- Podcast stage -->
+  <rect x="448" y="92" width="530" height="470" rx="28" fill="#060d17" stroke="#1b3f6f" filter="url(#shadow)"/>
+  <rect x="470" y="112" width="486" height="426" rx="22" fill="url(#panel)"/>
+  <text x="704" y="150" class="eyebrow">KANONISCHES HERO-ASSET</text>
+  <text x="693" y="172" class="muted">apps/web/public/brand/voxy/voxy-podcast-stage.png</text>
+  <ellipse cx="717" cy="485" rx="222" ry="28" fill="#07101b" stroke="#1671ff" stroke-width="5"/>
+  <rect x="570" y="360" width="294" height="120" rx="55" fill="#0b1320"/>
+  <circle cx="714" cy="300" r="102" fill="#eef3f7"/>
+  <path d="M624 248 h116 l28 24 v88 h-144 z" fill="#eef3f7"/>
+  <path d="M642 274 h46" stroke="#2268f3" stroke-width="13" stroke-linecap="round"/>
+  <path d="M642 300 h33" stroke="#2268f3" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="686" cy="318" r="8" fill="#07101b"/>
+  <circle cx="738" cy="318" r="8" fill="#07101b"/>
+  <path d="M686 350 q28 25 56 0" fill="#2b8bff" stroke="#07101b" stroke-width="6"/>
+  <rect x="642" y="386" width="142" height="86" rx="38" fill="#111b2b"/>
+  <rect x="810" y="300" width="22" height="135" rx="11" fill="#152133"/>
+  <ellipse cx="821" cy="288" rx="30" ry="18" transform="rotate(28 821 288)" fill="#111827" stroke="#2f78ff"/>
+  <rect x="850" y="402" width="48" height="52" rx="7" fill="#0b111b" stroke="#33465f"/>
+  <text x="860" y="431" class="small">eDebatte</text>
+  <rect x="508" y="464" width="404" height="56" rx="14" fill="#06111f" fill-opacity="0.9" stroke="#2d537d"/>
+  <text x="528" y="486" class="eyebrow">VOXY AM GEMEINSAMEN TISCH</text>
+  <text x="528" y="508" class="cardTitle">Zuhören. Einordnen. Gemeinsam weiterdenken.</text>
+
+  <!-- Audience -->
+  <text x="398" y="610" class="section">Für wen ist <tspan fill="#2b7cff">eDebatte?</tspan></text>
+  <g transform="translate(44 634)">
+    <rect width="224" height="162" rx="16" fill="url(#panel)" stroke="#19365c"/>
+    <circle cx="32" cy="34" r="18" fill="#0d2d57"/>
+    <text x="23" y="40" font-size="20" fill="#2d8dff">◎</text>
+    <text x="58" y="34" class="cardTitle">Nachbarn</text>
+    <text x="58" y="53" class="cardTitle">und Bürger</text>
+    <text x="22" y="88" class="cardCopy">Verstehen, mitreden und</text>
+    <text x="22" y="106" class="cardCopy">mitentscheiden – vom eigenen</text>
+    <text x="22" y="124" class="cardCopy">Viertel bis zum größeren Kontext.</text>
+  </g>
+  <g transform="translate(282 634)">
+    <rect width="224" height="162" rx="16" fill="url(#panel)" stroke="#19365c"/>
+    <circle cx="32" cy="34" r="18" fill="#073b3c"/>
+    <text x="23" y="40" font-size="20" fill="#28d5c9">◁</text>
+    <text x="58" y="34" class="cardTitle">Initiativen und</text>
+    <text x="58" y="53" class="cardTitle">Communities</text>
+    <text x="22" y="88" class="cardCopy">Anliegen sichtbar machen,</text>
+    <text x="22" y="106" class="cardCopy">Unterstützer verbinden und</text>
+    <text x="22" y="124" class="cardCopy">Debatten handlungsfähig machen.</text>
+  </g>
+  <g transform="translate(520 634)">
+    <rect width="224" height="162" rx="16" fill="url(#panel)" stroke="#19365c"/>
+    <circle cx="32" cy="34" r="18" fill="#442b07"/>
+    <text x="22" y="41" font-size="20" fill="#ff9f1a">⌂</text>
+    <text x="58" y="34" class="cardTitle">Kommunen und</text>
+    <text x="58" y="53" class="cardTitle">Organisationen</text>
+    <text x="22" y="88" class="cardCopy">Beteiligung strukturieren,</text>
+    <text x="22" y="106" class="cardCopy">Rückmeldungen auswerten und</text>
+    <text x="22" y="124" class="cardCopy">Entscheidungen erklären.</text>
+  </g>
+  <g transform="translate(758 634)">
+    <rect width="224" height="162" rx="16" fill="url(#panel)" stroke="#19365c"/>
+    <circle cx="32" cy="34" r="18" fill="#381351"/>
+    <text x="24" y="41" font-size="20" fill="#c665ff">◉</text>
+    <text x="58" y="34" class="cardTitle">Medien und</text>
+    <text x="58" y="53" class="cardTitle">Redaktionen</text>
+    <text x="22" y="88" class="cardCopy">Quellen, Perspektiven und</text>
+    <text x="22" y="106" class="cardCopy">Debattenstände schneller</text>
+    <text x="22" y="124" class="cardCopy">einordnen und erklären.</text>
+  </g>
+
+  <!-- Benefits -->
+  <text x="346" y="842" class="section">Was <tspan fill="#2b7cff">eDebatte</tspan> besonders macht</text>
+  <g transform="translate(44 866)">
+    <rect width="146" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="27" fill="#2d8dff">◎</text>
+    <text x="18" y="68" class="cardTitle">Sprachen</text><text x="18" y="85" class="cardTitle">verbinden</text>
+    <text x="18" y="112" class="cardCopy">Original-, Lese- und</text><text x="18" y="128" class="cardCopy">Ausgabesprache trennen.</text>
+  </g>
+  <g transform="translate(204 866)">
+    <rect width="146" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="26" fill="#69a8ff">▤</text>
+    <text x="18" y="68" class="cardTitle">Quellen sichtbar</text><text x="18" y="85" class="cardTitle">machen</text>
+    <text x="18" y="112" class="cardCopy">Aussagen und Dokumente</text><text x="18" y="128" class="cardCopy">bleiben nachvollziehbar.</text>
+  </g>
+  <g transform="translate(364 866)">
+    <rect width="146" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="26" fill="#25d3c8">⌬</text>
+    <text x="18" y="68" class="cardTitle">Zusammenhänge</text><text x="18" y="85" class="cardTitle">erkennen</text>
+    <text x="18" y="112" class="cardCopy">Argumente und Akteure</text><text x="18" y="128" class="cardCopy">werden verbunden.</text>
+  </g>
+  <g transform="translate(524 866)">
+    <rect width="146" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="26" fill="#c665ff">☵</text>
+    <text x="18" y="68" class="cardTitle">Debatten statt</text><text x="18" y="85" class="cardTitle">Kommentarchaos</text>
+    <text x="18" y="112" class="cardCopy">Perspektiven werden zu</text><text x="18" y="128" class="cardCopy">Debattenständen gebündelt.</text>
+  </g>
+  <g transform="translate(684 866)">
+    <rect width="146" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="26" fill="#ff9f1a">▥</text>
+    <text x="18" y="68" class="cardTitle">Gemeinsam</text><text x="18" y="85" class="cardTitle">entscheiden</text>
+    <text x="18" y="112" class="cardCopy">Fakten sind kein Voting.</text><text x="18" y="128" class="cardCopy">Nächste Schritte schon.</text>
+  </g>
+  <g transform="translate(844 866)">
+    <rect width="138" height="146" rx="14" fill="url(#panel)" stroke="#19365c"/>
+    <text x="18" y="34" font-size="26" fill="#8c9cff">⌖</text>
+    <text x="18" y="68" class="cardTitle">Von lokal</text><text x="18" y="85" class="cardTitle">bis global</text>
+    <text x="18" y="112" class="cardCopy">Lokale Themen werden</text><text x="18" y="128" class="cardCopy">weltweit verbunden.</text>
+  </g>
+
+  <!-- Process -->
+  <text x="361" y="1058" class="section">So begleitet dich Voxy</text>
+  <rect x="44" y="1082" width="938" height="142" rx="18" fill="url(#panel)" stroke="#19365c"/>
+  <circle cx="86" cy="1124" r="18" fill="#0c3266"/><text x="81" y="1130" class="button">1</text>
+  <text x="118" y="1114" class="cardTitle">Voxy hört zu</text><text x="118" y="1133" class="cardTitle">und strukturiert</text>
+  <text x="118" y="1162" class="cardCopy">Fragen, Quellen und Gedanken werden erfasst.</text>
+  <text x="324" y="1131" font-size="26" fill="#2b8bff">→</text>
+  <circle cx="382" cy="1124" r="18" fill="#0c3266"/><text x="377" y="1130" class="button">2</text>
+  <text x="414" y="1114" class="cardTitle">Quellen und Perspektiven</text><text x="414" y="1133" class="cardTitle">werden verbunden</text>
+  <text x="414" y="1162" class="cardCopy">Belege und offene Punkte bleiben getrennt.</text>
+  <text x="660" y="1131" font-size="26" fill="#2b8bff">→</text>
+  <circle cx="718" cy="1124" r="18" fill="#0c3266"/><text x="713" y="1130" class="button">3</text>
+  <text x="750" y="1114" class="cardTitle">Die Community prüft,</text><text x="750" y="1133" class="cardTitle">ergänzt und entscheidet</text>
+  <text x="750" y="1162" class="cardCopy">Der Debattenstand wächst gemeinsam.</text>
+
+  <!-- Debate card -->
+  <text x="48" y="1266" class="cardTitle">Was gerade diskutiert wird</text>
+  <text x="856" y="1266" class="small">Alle Debatten anzeigen →</text>
+  <rect x="44" y="1282" width="938" height="122" rx="16" fill="url(#panel)" stroke="#19365c"/>
+  <rect x="58" y="1296" width="126" height="94" rx="10" fill="#274c3a"/>
+  <path d="M58 1362 L94 1328 L122 1347 L151 1318 L184 1350 V1390 H58 Z" fill="#79a86b"/>
+  <text x="204" y="1313" class="small">Berlin-Rahnsdorf · Neu</text>
+  <text x="204" y="1338" class="cardTitle">Verkehrssicherheit in der Bölschestraße</text>
+  <text x="204" y="1362" class="cardCopy">Wie können wir Fußwege sichern, Tempo reduzieren</text>
+  <text x="204" y="1378" class="cardCopy">und Schulwege besser schützen?</text>
+  <text x="508" y="1316" class="small">PERSPEKTIVEN</text>
+  <text x="508" y="1340" class="cardCopy">• Mehr Tempo 30 im Wohngebiet</text>
+  <text x="508" y="1358" class="cardCopy">• Sichere Schulwege priorisieren</text>
+  <text x="508" y="1376" class="cardCopy">• ÖPNV und Radwege ausbauen</text>
+  <text x="744" y="1316" class="small">QUELLEN &amp; STIMMUNGSBILD</text>
+  <rect x="744" y="1330" width="45" height="54" rx="5" fill="#edf2f6"/>
+  <rect x="798" y="1330" width="45" height="54" rx="5" fill="#edf2f6"/>
+  <circle cx="908" cy="1358" r="33" fill="none" stroke="#ff5d62" stroke-width="10"/>
+  <path d="M908 1325 A33 33 0 0 1 935 1378" fill="none" stroke="#25d3c8" stroke-width="10"/>
+
+  <!-- Final CTA -->
+  <rect x="44" y="1430" width="938" height="82" rx="18" fill="#07172b" stroke="#19365c"/>
+  <circle cx="108" cy="1471" r="30" fill="#eef3f7"/>
+  <path d="M88 1452 h38 l10 9 v31 H88 Z" fill="#eef3f7"/>
+  <path d="M96 1461 h20 M96 1470 h16" stroke="#2268f3" stroke-width="5" stroke-linecap="round"/>
+  <text x="160" y="1462" class="section">Jeder Mensch sieht einen Teil.</text>
+  <text x="160" y="1490" class="section" fill="#2b7cff">Gemeinsam sehen wir mehr.</text>
+  <rect x="654" y="1450" width="126" height="40" rx="8" fill="#1266ff"/>
+  <text x="678" y="1475" class="button">Jetzt mitmachen</text>
+  <rect x="792" y="1450" width="152" height="40" rx="8" fill="none" stroke="#647791"/>
+  <text x="818" y="1475" class="nav">Mehr über eDebatte</text>
+
+  <!-- Floating Voxy -->
+  <rect x="812" y="1378" width="160" height="48" rx="12" fill="#f4f8fc"/>
+  <text x="826" y="1398" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b1a2d">Hallo Nachbar!</text>
+  <text x="826" y="1414" font-family="Inter, Arial, sans-serif" font-size="10" fill="#31445c">Soll ich die Seite erklären?</text>
+  <circle cx="944" cy="1454" r="34" fill="#1266ff" stroke="#5ab7ff" stroke-width="3"/>
+  <path d="M922 1436 h34 l10 9 v25 h-44 z" fill="#eef3f7"/>
+  <path d="M930 1446 h18 M930 1454 h14" stroke="#2268f3" stroke-width="5" stroke-linecap="round"/>
+</svg>
