@@ -5,7 +5,15 @@ import {
 } from "@/features/create/finalizeRedirect";
 import { publicOrigin } from "@/utils/publicOrigin";
 
-export const QR_STUDIO_PATH = "/qr-studio" as const;
+export const STUDIO_PATH = "/studio" as const;
+export const LEGACY_QR_STUDIO_PATH = "/qr-studio" as const;
+export const PUBLIC_QR_PATH = "/qr" as const;
+
+/**
+ * Compatibility export for existing callers. The canonical operator surface is
+ * now `/studio`; `/qr-studio` remains a redirect-only legacy route.
+ */
+export const QR_STUDIO_PATH = STUDIO_PATH;
 
 const BLOCKED_SCHEMES = new Set(["javascript", "data", "file", "vbscript"]);
 const BLOCKED_PATH_PREFIXES = ["/admin", "/api", "/_next"] as const;
@@ -160,7 +168,7 @@ function toAbsoluteTarget(target: string) {
   return new URL(target, publicOrigin()).toString();
 }
 
-function unwrapCanonicalQrStudioTarget(value: string): string | null {
+function unwrapCanonicalStudioTarget(value: string): string | null {
   const baseOrigin = publicOrigin();
   const candidates = [value];
 
@@ -176,7 +184,12 @@ function unwrapCanonicalQrStudioTarget(value: string): string | null {
         candidate.startsWith("http://") || candidate.startsWith("https://")
           ? new URL(candidate)
           : new URL(candidate, baseOrigin);
-      if (parsed.pathname !== QR_STUDIO_PATH) continue;
+      if (
+        parsed.pathname !== STUDIO_PATH &&
+        parsed.pathname !== LEGACY_QR_STUDIO_PATH
+      ) {
+        continue;
+      }
       const innerTarget = parsed.searchParams.get("target");
       if (innerTarget) return innerTarget;
     } catch {
@@ -193,11 +206,19 @@ export function validateQrCodeValue(value: unknown): string | null {
   return trimmed;
 }
 
-export function buildQrStudioCodeHref(code: unknown): string | null {
+export function buildPublicQrCodeHref(code: unknown): string | null {
   const normalizedCode = validateQrCodeValue(code);
   if (!normalizedCode) return null;
-  return `${QR_STUDIO_PATH}?code=${encodeURIComponent(normalizedCode)}`;
+  return `${PUBLIC_QR_PATH}/${encodeURIComponent(normalizedCode)}`;
 }
+
+export function buildStudioCodeHref(code: unknown): string | null {
+  const normalizedCode = validateQrCodeValue(code);
+  if (!normalizedCode) return null;
+  return `${STUDIO_PATH}?code=${encodeURIComponent(normalizedCode)}`;
+}
+
+export const buildQrStudioCodeHref = buildStudioCodeHref;
 
 export function validateQrTarget(
   rawTarget: unknown,
@@ -306,26 +327,51 @@ export function validateQrTarget(
   };
 }
 
-export function buildQrStudioTargetHref(
+export function buildPublicQrTargetHref(
   rawTarget: unknown,
   options: ValidateQrTargetOptions = {},
 ): string | null {
   const innerTarget = trimString(rawTarget);
-  const unwrappedTarget = innerTarget ? unwrapCanonicalQrStudioTarget(innerTarget) : null;
+  const unwrappedTarget = innerTarget ? unwrapCanonicalStudioTarget(innerTarget) : null;
   const validation = validateQrTarget(unwrappedTarget ?? innerTarget, options);
   if (!validation.ok) return null;
-  return `${QR_STUDIO_PATH}?target=${encodeURIComponent(validation.value.normalizedTarget)}`;
+  return validation.value.kind === "internal"
+    ? validation.value.normalizedTarget
+    : validation.value.absoluteTarget;
 }
 
-export function requireQrStudioTargetHref(
+export function requirePublicQrTargetHref(
   rawTarget: unknown,
   options: ValidateQrTargetOptions = {},
 ): string {
-  const href = buildQrStudioTargetHref(rawTarget, options);
+  const href = buildPublicQrTargetHref(rawTarget, options);
   if (!href) {
     throw new Error("invalid_qr_target");
   }
   return href;
+}
+
+export function buildStudioTargetHref(
+  rawTarget: unknown,
+  options: ValidateQrTargetOptions = {},
+): string | null {
+  const publicTarget = buildPublicQrTargetHref(rawTarget, options);
+  if (!publicTarget) return null;
+  return `${STUDIO_PATH}?target=${encodeURIComponent(publicTarget)}`;
+}
+
+export const buildQrStudioTargetHref = buildStudioTargetHref;
+
+/**
+ * Compatibility alias used by existing share/runtime contracts. QR artefacts
+ * must open the public target directly; the operator Studio is a separate
+ * preparation and distribution surface.
+ */
+export function requireQrStudioTargetHref(
+  rawTarget: unknown,
+  options: ValidateQrTargetOptions = {},
+): string {
+  return requirePublicQrTargetHref(rawTarget, options);
 }
 
 export function toAbsolutePublicTarget(target: InternalRedirectPath | string): string {
