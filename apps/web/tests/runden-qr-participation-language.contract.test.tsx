@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import RundenShareActions from "@/app/runden/RundenShareActions";
-import { buildQrStudioTargetHref } from "@/features/qr/security";
+import { buildPublicQrTargetHref } from "@/features/qr/security";
 
 describe("runden qr participation language contract", () => {
-  it("uses participation-first wording for link + QR actions", () => {
+  it("uses participation-first wording for direct link and qr actions", () => {
     const html = renderToStaticMarkup(
       <RundenShareActions
         share={{
@@ -12,9 +12,9 @@ describe("runden qr participation language contract", () => {
           primaryTargetKind: "round_operating_target",
           canonicalTarget: "/round/mobilitaet?anlassraumId=65f000000000000000000401",
           qrTarget:
-            buildQrStudioTargetHref(
+            buildPublicQrTargetHref(
               "/round/mobilitaet?anlassraumId=65f000000000000000000401",
-            ) ?? "/qr-studio",
+            ) ?? "/runden",
           shareTitle: "Mobilität Innenstadt",
           sharePrompt: "Laufenden Anlass teilen",
           shareSummary: "Zusammenfassung",
@@ -37,6 +37,9 @@ describe("runden qr participation language contract", () => {
     expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
     expect(html).toContain("Wird Sichtbarkeit zurückgenommen, pausiert, geschlossen oder archiviert, verschwindet auch dieser öffentliche Link- und QR-Pfad wieder.");
     expect(html).toContain("Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.");
+    expect(html).toContain("/round/mobilitaet");
+    expect(html).not.toContain("/studio?target=");
+    expect(html).not.toContain("/qr-studio?target=");
 
     expect(html).not.toContain("Link kopieren");
     expect(html).not.toContain("QR bereitstellen");
