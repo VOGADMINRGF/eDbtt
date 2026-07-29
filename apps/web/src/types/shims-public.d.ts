@@ -24,6 +24,7 @@ declare module "next/headers" {
 
 declare module "next/server" {
   export type NextRequest = any;
+  export function after(callback: () => void | Promise<void>): void;
   // als Wert exportieren, nicht nur Type
   export const NextResponse: {
     json: (body: any, init?: any) => any;

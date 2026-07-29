@@ -6,6 +6,11 @@ export type AuthEventName =
   | "auth.2fa.success"
   | "auth.2fa.failed";
 
+export type AuthEventPayload = {
+  userId?: string | null;
+  meta?: Record<string, unknown>;
+};
+
 export interface AuthEventDoc {
   _id?: string;
   createdAt: Date;
@@ -16,7 +21,7 @@ export interface AuthEventDoc {
 
 const COLLECTION = "auth_events";
 
-export async function logAuthEvent(event: AuthEventName, payload?: { userId?: string | null; meta?: Record<string, unknown> }) {
+export async function logAuthEvent(event: AuthEventName, payload?: AuthEventPayload) {
   const doc: AuthEventDoc = {
     event,
     userId: payload?.userId ?? null,
@@ -30,5 +35,16 @@ export async function logAuthEvent(event: AuthEventName, payload?: { userId?: st
   } catch {
     const core = await coreCol<AuthEventDoc>(COLLECTION);
     await core.insertOne(doc);
+  }
+}
+
+export async function logAuthEventBestEffort(
+  event: AuthEventName,
+  payload?: AuthEventPayload,
+) {
+  try {
+    await logAuthEvent(event, payload);
+  } catch {
+    // Optional audit persistence must not change the auth response outcome.
   }
 }

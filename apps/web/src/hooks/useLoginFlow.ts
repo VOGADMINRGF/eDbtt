@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export type LoginStep = "credentials" | "twofactor";
 export type TwoFactorMethod = "email" | "otp" | "totp";
+export type TwoFactorVerificationState = "idle" | "submitting" | "redirecting";
+
+function navigateWindow(href: string) {
+  window.location.href = href;
+}
 
 function normalizeMethod(method?: TwoFactorMethod | null): TwoFactorMethod | null {
   if (!method) return null;
@@ -34,7 +39,9 @@ export function useLoginFlow(opts?: {
   redirectTo?: string;
   initialStep?: LoginStep;
   initialMethod?: TwoFactorMethod | null;
+  navigate?: (href: string) => void;
 }) {
+  const twoFactorSubmitGuard = useRef(false);
   const [step, setStep] = useState<LoginStep>(opts?.initialStep ?? "credentials");
   const initialMethod =
     opts?.initialMethod ?? (opts?.initialStep === "twofactor" ? "email" : null);
@@ -49,6 +56,9 @@ export function useLoginFlow(opts?: {
   const [switchingMethod, setSwitchingMethod] = useState(false);
   const [allowEmailFallback, setAllowEmailFallback] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationState, setVerificationState] =
+    useState<TwoFactorVerificationState>("idle");
+  const navigate = opts?.navigate ?? navigateWindow;
 
   const submitCredentials = useCallback(
     async (identifier: string, password: string) => {
@@ -78,24 +88,30 @@ export function useLoginFlow(opts?: {
           return;
         }
 
-        window.location.href = body.redirectUrl || redirectUrl || "/account";
+        navigate(body.redirectUrl || redirectUrl || "/account");
       } catch (e: any) {
         setError(mapLoginError(e?.message));
       } finally {
         setLoading(false);
       }
     },
-    [redirectUrl],
+    [navigate, redirectUrl],
   );
 
   const submitTwoFactor = useCallback(
     async (code: string) => {
+      if (twoFactorSubmitGuard.current) {
+        return;
+      }
       if (!method) {
         setError("2FA-Methode fehlt – bitte Login neu starten.");
         return;
       }
+      twoFactorSubmitGuard.current = true;
       setLoading(true);
+      setVerificationState("submitting");
       setError(null);
+      let succeeded = false;
       try {
         const res = await fetch("/api/auth/verify-2fa", {
           method: "POST",
@@ -106,7 +122,9 @@ export function useLoginFlow(opts?: {
         if (!res.ok || !body?.ok) {
           throw new Error(body?.error || "verify_failed");
         }
-        window.location.href = body.redirectUrl || redirectUrl || "/";
+        succeeded = true;
+        setVerificationState("redirecting");
+        navigate(body.redirectUrl || "/");
       } catch (e: any) {
         const codeVal = e?.message as string | undefined;
         setError(mapVerifyError(codeVal));
@@ -117,14 +135,21 @@ export function useLoginFlow(opts?: {
           setExpiresAt(null);
         }
       } finally {
-        setLoading(false);
+        if (!succeeded) {
+          twoFactorSubmitGuard.current = false;
+          setVerificationState("idle");
+          setLoading(false);
+        }
       }
     },
-    [method, redirectUrl],
+    [method, navigate, redirectUrl],
   );
 
   const selectTwoFactorMethod = useCallback(
     async (nextMethod: TwoFactorMethod) => {
+      if (twoFactorSubmitGuard.current) {
+        return false;
+      }
       const normalizedMethod = normalizeMethod(nextMethod);
       if (!normalizedMethod) {
         setError(mapVerifyError("method_required"));
@@ -170,6 +195,9 @@ export function useLoginFlow(opts?: {
   );
 
   const resendEmailCode = useCallback(async () => {
+    if (twoFactorSubmitGuard.current) {
+      return false;
+    }
     if (!allowEmailFallback) {
       setError(mapVerifyError("email_fallback_disabled"));
       return false;
@@ -198,6 +226,9 @@ export function useLoginFlow(opts?: {
   }, [allowEmailFallback, redirectUrl]);
 
   const reset = useCallback(() => {
+    if (twoFactorSubmitGuard.current) {
+      return;
+    }
     setStep("credentials");
     setMethod(null);
     setAvailableMethods([]);
@@ -206,6 +237,8 @@ export function useLoginFlow(opts?: {
     setSwitchingMethod(false);
     setError(null);
     setAllowEmailFallback(false);
+    setLoading(false);
+    setVerificationState("idle");
   }, []);
 
   return {
@@ -219,6 +252,7 @@ export function useLoginFlow(opts?: {
     switchingMethod,
     allowEmailFallback,
     error,
+    verificationState,
     submitCredentials,
     submitTwoFactor,
     requestEmailCode: resendEmailCode,
