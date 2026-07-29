@@ -1,57 +1,97 @@
 # ADMIN-REGION-OPERATING-WORKSPACE-01
 
-Stand: 2026-07-28
+Stand: 2026-07-29
 Issue: #495
 Status: `review`
 
-## Ziel und Rollen
+## Produktkorrektur in Draft-PR #513
 
-`/admin/region` ist als zusammenhängender Operator-Arbeitsraum umgesetzt:
+Die erste Fassung begann zu stark als allgemeiner Workflow- und Navigationsraum. Die
+Produktkorrektur richtet `/admin/region` jetzt am eigentlichen Operatorauftrag aus:
 
-`Region → Lagebild → Quellen & Feeds → bewusste Recherche → Claims/Dossiers → interne und externe Beiträge → regionale Kampagne → Wirkung`
+`Region auswählen → Regionsprofil und Erfahrungsstand → Fähigkeiten und Evidenzen → Lücken → genau eine nächste Aktion → nachgeordnete Arbeitsbereiche`
 
-Der Lauf folgt dem Single-Runner-Modell aus dem Issue-Run-Pack.
+Der Einstieg zeigt keine fest verdrahtete Pilotregion mehr. Ohne `regionId` bleibt die Seite
+auf `/admin/region` und bietet eine suchbare Auswahl aus `listOperationalRegions()`. Die
+Auswahl enthält die vorhandenen Regionstypen und Regionseinträge; ihr Slug bleibt in allen
+nachgeordneten Workspace-Links im URL-Kontext erhalten. Eine ungültige Eingabe erzeugt
+keinen vermeintlichen Arbeitsraum, sondern einen erklärten Leerzustand.
 
-- Primary: `research_source`
-- Supporting: `claims_factcheck`, `dossier_briefing`, `governance_compliance`
+Nach Auswahl zeigt das Regionsprofil ausschließlich repo-backed Angaben:
 
-Die Rollen begrenzen Produktverhalten und Review. Es wurden keine parallelen Agentenprozesse, Stores, Review Queues oder Publishing-Pfade angelegt.
+- Regionstyp, Bundesland, Land, zuständige Stelle und vorhandener amtlicher
+  Verzeichniseintrag,
+- Quellenverbindungen und kontrollierte Quellenprüfungen,
+- Feed-Signale, Pilot-/Fixture-Herkunft und Themencluster,
+- Claim-Kandidaten, Dossier-Vorschläge, aktive Dossier-Referenzen und Anlassräume,
+- Beteiligungssignale, Community-Hinweise und Akteurszahlen,
+- ehrliche Nicht-Anbindungen für Kampagnen, Initiativen-Aufschlüsselung und regionale
+  Sprachkontexte.
 
-## Umgesetzter Arbeitsraum
+## Status- und Evidenzmodell
 
-Der erste sichtbare Bereich zeigt:
+Jeder Fähigkeitsbereich trägt genau einen verständlichen Erfahrungsstatus:
 
-- die gewählte Region ohne technische ID- oder Routenerklärung,
-- das aktuell priorisierte Signal aus dem bestehenden Region-Readmodel,
-- aktive Quellen, vorhandene Prüfergebnisse, Signale, Cluster und offene Review-Hinweise,
-- Pilot-/Fixture-Herkunft, sofern sie im Readmodel belegt ist,
-- genau eine dominante nächste Aktion.
+- `bereits erprobt`
+- `teilweise vorbereitet`
+- `noch ohne Erfahrung`
+- `manuelle Freigabe erforderlich`
 
-Die serverseitige Arbeitsnavigation nutzt den bestehenden Regionspfad mit `view=lagebild|quellen|recherche|claims|beitraege|kampagnen|einstellungen`. Jeder Eintrag zeigt einen echten Arbeitsbereich; Einstellungen, Zugriff, Limits und Diagnose bleiben vollständig erreichbar, stehen aber nicht mehr vor der eigentlichen Arbeit.
+Jede Statusaussage nennt direkt:
 
-### Lagebild
+1. die Grundlage aus dem vorhandenen Regionsreadmodel oder einen ehrlichen Leerstand,
+2. die konkrete verbleibende Lücke.
 
-Feed-Signale, Herkunft, Prüfstatus, Themencluster, offene Fragen und Quellenlage werden aus dem bestehenden Readmodel abgeleitet. Fixture- und Pilotdaten bleiben sichtbar gekennzeichnet.
+Kontrollierte Dry Runs, kuratierte Pilot-/Fixture-Daten und produktive Live-Anbindungen werden
+nicht gleichgesetzt. Insbesondere werden aus einem Prüfergebnis weder Live-Ingestion noch
+Veröffentlichung abgeleitet.
 
-### Quellen & Feeds
+## Eine priorisierte Hauptaktion
 
-`RegionSourceConnectionsPanel` verwendet unverändert die vorhandenen Source-Connection- und Test-APIs. Die Oberfläche priorisiert Quelle, Herkunft, Relevanz, Test und Prüfergebnis. Snapshot- und Guardrail-Details sind progressiv nachgeordnet.
+Der regionale Stand leitet deterministisch genau eine Hauptaktion ab:
 
-### Recherche
+1. fehlende Quellenverbindung → erste regionale Quelle vorbereiten,
+2. vorhandene, noch ungeprüfte Verbindung → Quelle kontrolliert prüfen,
+3. vorhandene Prüfergebnisse und offene Hinweise → Hinweise lokal im Lagebild prüfen,
+4. Claim-Kandidaten ohne aktive Dossier-Referenz → Claims für ein Dossier prüfen,
+5. sonst → regionalen internen Beitrag bewusst vorbereiten.
 
-Die Übergabe führt bewusst zu `/admin/research/tasks` und trägt Region, Thema, Quelle und Herkunftskontext als Query-Kontext. Sie startet keinen Task, Provider, Deep Search, Crawler oder Scraper automatisch.
+Die Hauptaktion bleibt im ausgewählten Regionskontext. Rohsignale werden nicht mehr in eine
+globale Review-Queue geschickt, die sie nicht als Queue-Einträge führt.
 
-### Claims & Dossiers
+## Nachgeordnete Arbeitsbereiche
 
-Claim-Kandidaten, Belege, offene Fragen sowie Dossier- und Anlassraum-Vorschläge werden nur aus vorhandenen Quellenprüfungen und dem Region-Readmodel gezeigt. Review und der bestehende Create-Kontext sind die einzigen Übergaben; es gibt keine automatische Erstellung.
+Die vorhandenen Bereiche bleiben vollständig erreichbar:
 
-### Beiträge & Veröffentlichung
+- Lagebild
+- Quellen & Feeds
+- bewusste Recherche
+- Claims & Dossiers
+- Beiträge & Veröffentlichung
+- regionale Kampagnen
+- Einstellungen & Zugriff
 
-Interne eDebatte-Beiträge gehen mit Region-, Signal- und Themenkontext in den bestehenden Create-Flow. Externe Social-/Web-Inhalte gehen getrennt in bestehende Marketing-Review- und Freigabeflächen. Nicht belegte Draft-, Planungs-, Veröffentlichungs- oder Archivstatus werden nicht behauptet.
+Die Recherche-Aufgabenliste wird ohne erfundene Region-, Themen- oder Quellenparameter
+geöffnet, weil ihr bestehender Consumer nur `taskId` verarbeitet. Die Marketing-Control-Plane
+erhält nur ihre unterstützten Filter `lang`, `segment` und `reach`; die Oberfläche erklärt
+ausdrücklich, dass die ausgewählte Region dort noch nicht automatisch angebunden ist. Der
+bestehende Create-Flow behält seinen bereits unterstützten regionalen Draft-Kontext.
 
-### Regionale Kampagnen
+Die horizontale Workspace-Navigation bleibt auf kleinen Viewports scrollbar. Profil-, Status-
+und Lückentexte verwenden mobile-sichere Mindestbreiten und Umbruchregeln.
 
-Region, Thema, B2G-Zielgruppe und regionaler Reichweitenraum werden an `/admin/marketing` übergeben. Performance verweist auf die bestehenden Insights. Das Region-Readmodel erfindet keine Kampagne, Marketing-Registry, Analytics-Runtime oder Kennzahl.
+## Neue Abnahmekriterien der Produktkorrektur
+
+- die suchbare Regionsauswahl ist der dominante Seiteneinstieg,
+- Wechsel zwischen mindestens zwei vorhandenen Regionen verändert das Regionsprofil,
+- vorhandene Erfahrung und ehrliche Leerstände sind getrennt,
+- jede Statusaussage hat Grundlage und Lücke,
+- genau eine aus dem regionalen Stand abgeleitete Hauptaktion ist priorisiert,
+- alle bestehenden Arbeitsbereiche bleiben ohne tote Links erreichbar,
+- Regionskontext bleibt in der Workspace-URL erhalten,
+- mobile Navigation und lange Texte brechen kontrolliert um,
+- keine erfundenen Live-Daten, Providerverbindungen oder Kampagnen-/Sprachwerte,
+- keine neue Persistenz, zweite Runtime, automatische Recherche oder Veröffentlichung.
 
 ## Guardrails
 
@@ -78,14 +118,16 @@ Der Run-Pack-Scope von maximal sechs Dateien ist eingehalten.
 ## Automatische Evidenz
 
 - `pnpm -C apps/web exec vitest run tests/admin-region-page.render.test.tsx tests/admin-region-entitlement-ui.test.tsx`
-  - 2 Testdateien, 4 Tests, grün
+  - 2 Testdateien, 5 Tests, grün
+  - deckt suchbaren Einstieg, ungültigen Leerzustand, Wechsel Reinickendorf/Magdeburg,
+    belegte Erfahrung versus fehlende Anbindung, genau eine Hauptaktion, Workspace-Links,
+    mobile Navigation und Textumbruch ab
 - `pnpm -C apps/web run typecheck`
   - grün
 - `pnpm -C apps/web run lint`
   - grün
-- `cp apps/web/.env.example apps/web/.env.local && pnpm -C apps/web run build`
-  - Page-Contract, Paket-Builds, Next-Kompilierung, TypeScript, 321 statische Seiten und finale Build-Ausgabe grün
-  - der erste Build ohne die im Repo-CI vorgeschriebene lokale Beispielumgebung scheiterte ausschließlich an fehlenden Runtime-Variablen; der CI-konforme Wiederholungslauf war grün
+- `pnpm -C apps/web run build`
+  - Page-Contract, Paket-Builds, Next-Kompilierung, TypeScript, 322 statische Seiten und finale Build-Ausgabe grün
 - `git diff --check`
   - grün
 
@@ -94,7 +136,8 @@ Die lokale Toolchain meldete Node `v25.9.0`, während das Repository Node `20.x`
 ## Verbleibend
 
 - manuelle Produktabnahme auf Desktop und Mobile,
-- visuelle Prüfung der Sticky-Navigation, horizontalen mobilen Navigation und progressiven Details,
+- visuelle Prüfung der dominanten Regionsauswahl, Profilhierarchie, horizontalen mobilen
+  Navigation und langen Evidenz-/Lückentexte,
 - fachliche Prüfung, ob die gewählte dominante Aktion je realer Region die gewünschte Operatorpriorität trifft,
 - Merge erst nach Review und Produktabnahme.
 
