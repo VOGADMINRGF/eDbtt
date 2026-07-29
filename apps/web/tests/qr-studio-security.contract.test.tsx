@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import QrStudioPage from "@/app/qr-studio/page";
+import StudioPage from "@/app/studio/page";
+import LegacyQrStudioPage from "@/app/qr-studio/page";
+import PublicQrEntryPage from "@/app/qr/[qrId]/page";
 import RundenShareActions from "@/app/runden/RundenShareActions";
 import {
-  buildQrStudioTargetHref,
+  buildPublicQrTargetHref,
+  buildStudioCodeHref,
+  buildStudioTargetHref,
   validateQrTarget,
 } from "@/features/qr/security";
 
@@ -13,7 +17,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-describe("qr studio security contract", () => {
+describe("studio and qr security contract", () => {
   it("allows a safe internal relative path", () => {
     const result = validateQrTarget("/round/mobilitaet?anlassraumId=65f000000000000000000401");
     expect(result.ok).toBe(true);
@@ -56,7 +60,27 @@ describe("qr studio security contract", () => {
     expect(validateQrTarget("/login?password=hunter2").ok).toBe(false);
   });
 
-  it("renders the canonical /qr-studio entry for code-based qr flows", async () => {
+  it("separates operator studio links from direct public qr links", () => {
+    expect(buildStudioCodeHref("pflege-berlin")).toBe("/studio?code=pflege-berlin");
+    expect(buildStudioTargetHref("/runden/demo")).toBe(
+      "/studio?target=%2Frunden%2Fdemo",
+    );
+    expect(buildPublicQrTargetHref("/runden/demo")).toBe("/runden/demo");
+  });
+
+  it("renders the canonical studio operator workspace for code-based flows", async () => {
+    const tree = await StudioPage({
+      searchParams: Promise.resolve({ code: "pflege-berlin" }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Studio · verteilen, einladen und live begleiten");
+    expect(html).toContain("Code: pflege-berlin");
+    expect(html).toContain("Direkt teilnehmen – ohne zweite Eingabe");
+    expect(html).toContain("/qr/[code]");
+  });
+
+  it("keeps /qr/[code] as the direct public participation entry", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -71,8 +95,8 @@ describe("qr studio security contract", () => {
       }),
     );
 
-    const tree = await QrStudioPage({
-      searchParams: Promise.resolve({ code: "pflege-berlin" }),
+    const tree = await PublicQrEntryPage({
+      params: Promise.resolve({ qrId: "pflege-berlin" }),
     });
     const html = renderToStaticMarkup(tree);
 
@@ -101,26 +125,39 @@ describe("qr studio security contract", () => {
       );
 
       await expect(
-        QrStudioPage({
-          searchParams: Promise.resolve({ code: `code-${targetType}` }),
+        PublicQrEntryPage({
+          params: Promise.resolve({ qrId: `code-${targetType}` }),
         }),
       ).rejects.toThrow(`redirect:${expectedHref}`);
     }
   });
 
-  it("fails closed for invalid targets and does not render an opening CTA", async () => {
-    const tree = await QrStudioPage({
+  it("redirects the former qr-studio route into the canonical studio", async () => {
+    await expect(
+      LegacyQrStudioPage({
+        searchParams: Promise.resolve({
+          code: "pflege-berlin",
+          caller: "organization_dashboard",
+        }),
+      }),
+    ).rejects.toThrow(
+      "redirect:/studio?code=pflege-berlin&caller=organization_dashboard",
+    );
+  });
+
+  it("fails closed for invalid studio targets and does not render an opening CTA", async () => {
+    const tree = await StudioPage({
       searchParams: Promise.resolve({ target: "javascript:alert(1)" }),
     });
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain('data-testid="qr-target-invalid"');
-    expect(html).toContain("QR-Ziel blockiert");
-    expect(html).not.toContain("Öffentlichen Pfad öffnen");
+    expect(html).toContain("Ziel wurde blockiert");
+    expect(html).not.toContain("Ziel testen");
   });
 
-  it("keeps the current caller context and public qr preview on valid targets", async () => {
-    const tree = await QrStudioPage({
+  it("keeps caller context and public qr preview on valid studio targets", async () => {
+    const tree = await StudioPage({
       searchParams: Promise.resolve({
         target: "/dossier/demo-1?view=public",
         caller: "content_release_workbench",
@@ -129,12 +166,14 @@ describe("qr studio security contract", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain('data-testid="qr-target-gateway"');
+    expect(html).toContain('data-testid="studio-target-workspace"');
     expect(html).toContain('data-testid="qr-studio-target-preview"');
     expect(html).toContain("Aufrufer: Review-to-Publish Workspace");
-    expect(html).toContain("Öffentlichen Pfad öffnen");
+    expect(html).toContain("Ziel testen");
+    expect(html).toContain("keine erneute Inhaltseingabe");
   });
 
-  it("keeps the share and print contract intact without starting camera access", () => {
+  it("keeps the share and print contract direct without starting camera access", () => {
     const getUserMedia = vi.fn();
     vi.stubGlobal("navigator", {
       mediaDevices: { getUserMedia },
@@ -148,9 +187,9 @@ describe("qr studio security contract", () => {
           primaryTargetKind: "round_operating_target",
           canonicalTarget: "/round/mobilitaet?anlassraumId=65f000000000000000000401",
           qrTarget:
-            buildQrStudioTargetHref(
+            buildPublicQrTargetHref(
               "/round/mobilitaet?anlassraumId=65f000000000000000000401",
-            ) ?? "/qr-studio",
+            ) ?? "/runden",
           shareTitle: "Mobilität Innenstadt",
           sharePrompt: "Laufenden Anlass teilen",
           shareSummary: "Zusammenfassung",
@@ -163,5 +202,6 @@ describe("qr studio security contract", () => {
     expect(getUserMedia).not.toHaveBeenCalled();
     expect(html).toContain("QR drucken");
     expect(html).toContain("Ohne Kamera bleibt der sichere Link sichtbar");
+    expect(html).toContain("/round/mobilitaet");
   });
 });
