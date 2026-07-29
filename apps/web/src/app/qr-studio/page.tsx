@@ -1,43 +1,45 @@
 import type { Metadata } from "next";
-import QrStudioBuilderClient from "./QrStudioBuilderClient";
-import {
-  buildQrEntryMetadata,
-  renderResolvedQrCodeEntry,
-  renderResolvedQrTargetEntry,
-} from "@/features/qr/publicEntry";
+import { redirect } from "next/navigation";
+import { STUDIO_PATH } from "@/features/qr/security";
 
-/* page-contract: delegated-h1 */
+/* page-contract: delegated-h1 legacy redirect only */
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function readParam(value: string | string[] | undefined) {
-  if (typeof value === "string") return value.trim();
-  if (Array.isArray(value)) return value[0]?.trim() ?? "";
-  return "";
+export const metadata: Metadata = {
+  title: "Studio · eDebatte",
+  description: "Weiterleitung in das eDebatte Studio für QR, Events, Live und Auswertung.",
+};
+
+function appendParam(params: URLSearchParams, key: string, value: string | string[] | undefined) {
+  if (typeof value === "string" && value.trim()) {
+    params.set(key, value.trim());
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (item.trim()) params.append(key, item.trim());
+    }
+  }
 }
 
-export const metadata: Metadata = buildQrEntryMetadata("Öffentlicher Einstieg");
-
-export default async function QrStudioPage({ searchParams }: PageProps) {
+export default async function LegacyQrStudioPage({ searchParams }: PageProps) {
   const resolved = await searchParams;
-  const code = readParam(resolved.code);
-  const target = readParam(resolved.target);
-  const caller = readParam(resolved.caller);
+  const params = new URLSearchParams();
 
-  if (code) {
-    return renderResolvedQrCodeEntry(code);
-  }
-  if (target) {
-    return renderResolvedQrTargetEntry(target, { caller });
-  }
-  if (
-    readParam(resolved.invalidTarget) ||
-    readParam(resolved.targetState) === "blocked"
-  ) {
-    return renderResolvedQrTargetEntry("", { caller });
+  for (const key of [
+    "code",
+    "target",
+    "caller",
+    "invalidTarget",
+    "targetState",
+    "legacy",
+  ]) {
+    appendParam(params, key, resolved[key]);
   }
 
-  return <QrStudioBuilderClient />;
+  const query = params.toString();
+  redirect(query ? `${STUDIO_PATH}?${query}` : STUDIO_PATH);
 }
