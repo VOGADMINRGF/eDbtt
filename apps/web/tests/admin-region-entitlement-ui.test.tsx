@@ -208,7 +208,7 @@ describe("admin-region-entitlement-ui", () => {
   it("shows missing Freischaltung distinctly from membership verification", async () => {
     const html = renderToStaticMarkup(
       await AdminRegionPage({
-        searchParams: { regionId: "berlin-reinickendorf" },
+        searchParams: { regionId: "berlin-reinickendorf", view: "einstellungen" },
       }),
     );
 
