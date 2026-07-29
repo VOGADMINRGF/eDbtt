@@ -1789,6 +1789,13 @@ function AnalysisStateBubble(props: {
         : analysisFailed
           ? copy.retry
           : null;
+  const safeFailureStateMessage =
+    analysisFailed &&
+    /keine Themen|nicht vollständig geladen|KI-Orchester|no topics|not fully loaded|AI orchestra/i.test(
+      props.message,
+    )
+      ? props.message
+      : null;
 
   return (
     <div className="create-chat-message flex gap-3">
@@ -1799,7 +1806,9 @@ function AnalysisStateBubble(props: {
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             {analysisFailed
-              ? "2 · Analyse blockiert"
+              ? props.locale === "en"
+                ? "Analysis blocked"
+                : "Analyse blockiert"
               : "2 · Analyse offen"}
           </p>
           <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
@@ -1819,6 +1828,11 @@ function AnalysisStateBubble(props: {
               {failureCopy.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
+              {safeFailureStateMessage ? (
+                <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+                  {safeFailureStateMessage}
+                </p>
+              ) : null}
             </div>
           ) : (
             <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">

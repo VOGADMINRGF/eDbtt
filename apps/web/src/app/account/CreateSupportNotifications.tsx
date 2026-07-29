@@ -3,8 +3,10 @@ import type { AccountSupportNotification } from "@/features/support/createSuppor
 
 export default function CreateSupportNotifications(props: {
   notifications: AccountSupportNotification[];
+  locale: "de" | "en";
 }) {
   if (props.notifications.length === 0) return null;
+  const isEnglish = props.locale === "en";
 
   return (
     <section
@@ -16,7 +18,7 @@ export default function CreateSupportNotifications(props: {
         id="support-notifications-title"
         className="text-base font-semibold text-[rgb(var(--fg))]"
       >
-        Nachrichten vom technischen Support
+        {isEnglish ? "Messages from technical support" : "Nachrichten vom technischen Support"}
       </h2>
       <div className="mt-3 space-y-3">
         {props.notifications.map((notification) => (
@@ -34,7 +36,7 @@ export default function CreateSupportNotifications(props: {
               className="mt-3 inline-flex text-sm font-semibold text-cyan-700 hover:underline dark:text-cyan-200"
               href={notification.href}
             >
-              Ticket ansehen
+              {isEnglish ? "View ticket" : "Ticket ansehen"}
             </Link>
           </article>
         ))}

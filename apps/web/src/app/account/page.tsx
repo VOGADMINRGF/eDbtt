@@ -57,6 +57,7 @@ export default async function AccountPage({ searchParams }: Props) {
   const supportNotifications = await listCreateSupportNotificationsForUser(
     userId,
   ).catch(() => []);
+  const supportLocale = overview.uiLocale === "en" ? "en" : "de";
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] py-5 md:py-8">
@@ -77,12 +78,16 @@ export default async function AccountPage({ searchParams }: Props) {
           </p>
         </header>
 
-        <CreateSupportNotifications notifications={supportNotifications} />
+        <CreateSupportNotifications
+          notifications={supportNotifications}
+          locale={supportLocale}
+        />
 
         {supportTicketNumber ? (
           <CreateSupportTicketAccountCard
             ticketNumber={supportTicketNumber}
             ticket={supportTicket}
+            locale={supportLocale}
           />
         ) : null}
 

@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
 import CreateWorkspaceShell from "@/features/create/CreateWorkspaceShell";
+import CreateSupportNotifications from "@/app/account/CreateSupportNotifications";
+import CreateSupportTicketAccountCard from "@/app/account/CreateSupportTicketAccountCard";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 import {
   deriveVoxyGreetingName,
@@ -83,6 +85,68 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).not.toContain("data-create-shell-pipeline");
     expect(html).toContain("Kein Auto-Publish");
     expect(html.indexOf("Hinweis")).toBeLessThan(html.indexOf("Beitrag"));
+  });
+
+  it("uses the account UI locale for ticket status and resolution messages", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <CreateSupportNotifications
+          locale="en"
+          notifications={[
+            {
+              id: "notification-1",
+              userId: "user-1",
+              type: "support_ticket_resolved",
+              ticketId: "ticket-1",
+              ticketNumber: "EDB-20260729-ABC12345",
+              title: "Ticket EDB-20260729-ABC12345 has been resolved",
+              body: "The technical incident has been resolved.",
+              href: "/account?ticket=EDB-20260729-ABC12345#support-tickets",
+              locale: "en",
+              createdAt: "2026-07-29T12:00:00.000Z",
+              readAt: null,
+              emailDeliveryStatus: "sent",
+              emailMessageId: "mail-1",
+            },
+          ]}
+        />
+        <CreateSupportTicketAccountCard
+          locale="en"
+          ticketNumber="EDB-20260729-ABC12345"
+          ticket={{
+            id: "ticket-1",
+            ticketNumber: "EDB-20260729-ABC12345",
+            status: "resolved",
+            affectedUserId: "user-1",
+            anonymousSessionId: null,
+            route: "/create",
+            orchestrationPhase: "intelligent_followup",
+            correlationId: "correlation-1",
+            traceId: "correlation-1",
+            technicalErrorCode: "CREATE_AI_FAILED",
+            technicalDiagnosis: {
+              provider: "openai",
+              reason: "timeout",
+              providerErrorCode: "TIMEOUT",
+              attemptCount: 2,
+            },
+            failureFingerprint: "fingerprint-1",
+            draftId: "draft-1",
+            createdAt: "2026-07-29T12:00:00.000Z",
+            updatedAt: "2026-07-29T12:05:00.000Z",
+            resolvedAt: "2026-07-29T12:05:00.000Z",
+            notificationRecipientLinked: true,
+            notificationStatus: "email_sent",
+          }}
+        />
+      </>,
+    );
+
+    expect(html).toContain("Messages from technical support");
+    expect(html).toContain("View ticket");
+    expect(html).toContain("Resolved");
+    expect(html).toContain("Open saved contribution");
+    expect(html).not.toContain("Technischer Support");
   });
 
   it("saves before analysis and carries draft and correlation identifiers", () => {
