@@ -9,6 +9,14 @@ Branch: `pr/home-voxy-podcast-landing-01`
 
 Die öffentliche eDebatte-Startseite übernimmt die freigegebene Dramaturgie der Video-Referenz: Voxy empfängt Menschen an einem gemeinsamen Podcast-Tisch; beim Scrollen werden Zielgruppen, Nutzen und Arbeitsweise verständlich sichtbar.
 
+## Verbindliches Zielbild für Codex
+
+- Zielbild: `docs/E150/assets/HOME-VOXY-PODCAST-LANDING-01_TARGET.svg`
+- Das SVG ist die kanonische visuelle Referenz für Hierarchie, Reihenfolge, Gewichtung und Gesamtwirkung.
+- Für das produktive Hero-Motiv wird trotzdem ausschließlich das vorhandene Originalasset `apps/web/public/brand/voxy/voxy-podcast-stage.png` verwendet.
+- Das Zielbild darf nicht als Aufforderung verstanden werden, Voxy neu zu zeichnen, umzubauen, umzufärben oder durch ein generiertes Maskottchen zu ersetzen.
+- Codex soll Abstände, Kontrast, Responsive-Verhalten und Barrierefreiheit technisch verbessern dürfen, ohne die freigegebene Inhaltsdramaturgie zu verändern.
+
 ## Verbindliche Produktentscheidungen
 
 - Voxy bleibt unverändert im kanonischen Design.
@@ -47,19 +55,22 @@ Die öffentliche eDebatte-Startseite übernimmt die freigegebene Dramaturgie der
 - `apps/web/tests/landing-clarity.contract.test.tsx`
 - `apps/web/tests/landing-information-architecture.contract.test.tsx`
 - `docs/E150/HOME-VOXY-PODCAST-LANDING-01_2026-07-29.md`
+- `docs/E150/assets/HOME-VOXY-PODCAST-LANDING-01_TARGET.svg`
 
 ## Prüfstand
 
-- TSX-Syntax der geänderten lokalen Entwürfe wurde mit dem TypeScript-Parser geprüft.
-- Die zwei fokussierten Landing-Contracts wurden an Claim, Asset, Zielgruppen, Nutzen, Prozess, Launcher und No-Fake-Data-Guardrails angepasst.
-- GitHub Web CI ist für den Draft-PR maßgeblich.
-- Kein lokaler vollständiger Typecheck, Lint oder Build wurde über den GitHub-Connector ausgeführt.
+- Web Security: grün
+- Web Contracts und Production Guardrails: grün
+- `git diff --check`: grün
+- Lint: grün
+- Typecheck: grün
+- Build: grün
+- Die zwei fokussierten Landing-Contracts sichern Claim, Asset, Zielgruppen, Nutzen, Prozess, Launcher und No-Fake-Data-Guardrails.
 
 ## Offene Gates
 
-- Web CI vollständig grün
-- Desktop-Sichtprüfung
-- Mobile-Sichtprüfung
+- Desktop-Sichtprüfung gegen das Zielbild
+- Mobile-Sichtprüfung gegen das Zielbild
 - Zusammenspiel des fixierten Voxy-Launchers mit Consent- und Mobile-Overlays
 - operativen Kopf von `docs/E150/OpenTasks.md` vor Merge um `HOME-VOXY-PODCAST-LANDING-01` ergänzen und auf `review` setzen
 - kein Auto-Merge
