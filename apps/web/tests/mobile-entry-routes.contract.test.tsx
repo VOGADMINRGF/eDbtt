@@ -21,7 +21,7 @@ import { classifyMobileAppShellPath } from "@/features/wrapper/mobileAppShellCon
 describe("mobile entry routes contract", () => {
   const startPageSource = readFileSync(resolve(process.cwd(), "src/app/start/page.tsx"), "utf8");
 
-  it("keeps start, swipes, event, dossier and QR entry inside the mobile core shell", () => {
+  it("keeps citizen participation routes inside the mobile core shell", () => {
     expect(classifyMobileAppShellPath("/start")).toMatchObject({
       shellEnabled: true,
       bottomNavEnabled: true,
@@ -67,11 +67,6 @@ describe("mobile entry routes contract", () => {
       bottomNavEnabled: true,
       reason: "core",
     });
-    expect(classifyMobileAppShellPath("/qr-studio")).toMatchObject({
-      shellEnabled: true,
-      bottomNavEnabled: true,
-      reason: "core",
-    });
     expect(classifyMobileAppShellPath("/live/demo-pflege-vor-ort")).toMatchObject({
       shellEnabled: true,
       bottomNavEnabled: true,
@@ -91,6 +86,19 @@ describe("mobile entry routes contract", () => {
       shellEnabled: true,
       bottomNavEnabled: true,
       reason: "core",
+    });
+  });
+
+  it("keeps the operator studio and its legacy redirect outside the citizen bottom navigation", () => {
+    expect(classifyMobileAppShellPath("/studio")).toMatchObject({
+      shellEnabled: false,
+      bottomNavEnabled: false,
+      reason: "excluded",
+    });
+    expect(classifyMobileAppShellPath("/qr-studio")).toMatchObject({
+      shellEnabled: false,
+      bottomNavEnabled: false,
+      reason: "excluded",
     });
   });
 
