@@ -28,7 +28,7 @@ export default function StudioTargetWorkspace({
   const validation = validateQrTarget(rawTarget);
   const callerLabel = getQrStudioCallerLabel(caller);
 
-  if (!validation.ok) {
+  if ("message" in validation) {
     return (
       <main
         className="mx-auto flex min-h-[100svh] max-w-3xl flex-col gap-6 px-4 py-12"
