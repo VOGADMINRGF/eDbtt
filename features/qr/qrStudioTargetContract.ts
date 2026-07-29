@@ -1,4 +1,5 @@
 import { BRAND } from "@/lib/brand";
+import { STUDIO_PATH } from "@/features/qr/security";
 
 export const QR_STUDIO_CALLER_INVENTORY = {
   content_release_workbench: "Review-to-Publish Workspace",
@@ -6,7 +7,7 @@ export const QR_STUDIO_CALLER_INVENTORY = {
   organization_dashboard: "Organisations-Dashboard",
   legacy_qrcodegenerator: "Legacy QR Generator",
   legacy_qrcodewizard: "Legacy QR Wizard",
-  qr_studio: "QR Studio",
+  qr_studio: "Studio",
 } as const;
 
 export type QrStudioCaller = keyof typeof QR_STUDIO_CALLER_INVENTORY;
@@ -138,7 +139,7 @@ export function buildQrStudioHref(input: {
   }
 
   const query = params.toString();
-  return query ? `/qr-studio?${query}` : "/qr-studio";
+  return query ? `${STUDIO_PATH}?${query}` : STUDIO_PATH;
 }
 
 function normalizeBaseOrigin(publicOrigin: string | null | undefined): string {
