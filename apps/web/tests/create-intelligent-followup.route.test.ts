@@ -3,10 +3,18 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   buildCreateIntelligentFollowup: vi.fn(),
+  ensureCreateSupportTicket: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 
 vi.mock("@/features/create/intelligentFollowup", () => ({
   buildCreateIntelligentFollowup: (...args: unknown[]) => mocks.buildCreateIntelligentFollowup(...args),
+}));
+vi.mock("@/features/support/createSupportTickets", () => ({
+  ensureCreateSupportTicket: (...args: unknown[]) => mocks.ensureCreateSupportTicket(...args),
+}));
+vi.mock("@/lib/server/auth/sessionUser", () => ({
+  getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
 }));
 
 import { POST } from "@/app/api/create/intelligent-followup/route";
@@ -14,6 +22,62 @@ import { POST } from "@/app/api/create/intelligent-followup/route";
 describe("/api/create/intelligent-followup route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getSessionUser.mockResolvedValue(null);
+    mocks.ensureCreateSupportTicket.mockResolvedValue({
+      ticketNumber: "EDB-20260729-ROUTE001",
+      status: "open",
+      safeUserMessage: "Dein Beitrag ist gespeichert.",
+      viewHref: "/account?ticket=EDB-20260729-ROUTE001#support-tickets",
+      notificationLinked: true,
+    });
+  });
+
+  it("creates a user-safe support handoff for a degraded planner result", async () => {
+    mocks.getSessionUser.mockResolvedValue({
+      _id: { toString: () => "user-1" },
+    });
+    mocks.buildCreateIntelligentFollowup.mockResolvedValue({
+      sourceText: "Input",
+      meta: {
+        analysis: { state: "ai_failed" },
+        planner: {
+          degradedReason: "timeout",
+          providerAttemptCount: 2,
+          plannerDebug: {
+            attemptedProvider: "anthropic",
+            providerErrorCode: "TIMEOUT",
+          },
+        },
+      },
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/create/intelligent-followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: "Input",
+          locale: "de",
+          correlationId: "correlation-route-1",
+          draftId: "draft-route-1",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.supportHandoff).toMatchObject({
+      status: "created",
+      ticket: { ticketNumber: "EDB-20260729-ROUTE001" },
+    });
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        affectedUserId: "user-1",
+        correlationId: "correlation-route-1",
+        draftId: "draft-route-1",
+        attemptCount: 2,
+      }),
+    );
   });
 
   it("returns 400 on empty text", async () => {

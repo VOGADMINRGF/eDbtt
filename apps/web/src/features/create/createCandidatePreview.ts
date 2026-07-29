@@ -24,6 +24,7 @@ import type {
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { V3VoxyCocreationDialogModel } from "@/features/create/voxyCocreationDialogContract";
 import { buildVoxyCocreationDialog } from "@/features/create/voxyCocreationDialogContract";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type CreateCandidateKind =
   | "claim"
@@ -1334,7 +1335,7 @@ export function hasValidatedCreateSemanticOutput(
     (analysis.state === "analysis_validated" || analysis.state === "result_ready");
   return (
     analysisValidated &&
-    planner.source === "openai" &&
+    isCreatePlannerProviderSource(planner.source) &&
     planner.qualityStatus === "specific" &&
     planner.plannerDegraded === false
   );

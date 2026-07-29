@@ -1,4 +1,5 @@
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 import type {
   DialogHandoffTarget,
   DialogOutcome,
@@ -206,8 +207,8 @@ export function getDialogIntelligenceRuntimeBlockers(
   }
   if (planner) {
     const plannerUsesRuntimeAi =
-      planner.source === "openai" &&
-      planner.plannerSource === "openai" &&
+      isCreatePlannerProviderSource(planner.source) &&
+      isCreatePlannerProviderSource(planner.plannerSource) &&
       planner.plannerProvider === "openai" &&
       planner.providerCallSucceeded === true &&
       planner.providerCallAttempted === true;

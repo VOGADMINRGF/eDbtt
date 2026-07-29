@@ -6,6 +6,7 @@ import type { CreateIntelligentFollowupResult } from "@/features/create/intellig
 import type { RundenCreateHandoffIntegrityState } from "@/features/create/rundenCreateHandoffIntegrity";
 import type { ManualAnlassraumServerDraftSnapshot } from "@/features/surfaces/runden/manualAnlassraumSetup";
 import type { RunReceipt } from "@features/analyze/schemas";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type AiOrchestrationTraceSurface =
   | "/runden/new"
@@ -588,7 +589,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         ? {
             provider: planner.plannerProvider,
             model:
-              planner.source === "openai" && planner.plannerProvider === "openai"
+              isCreatePlannerProviderSource(planner.source) &&
+              planner.plannerProvider === planner.source
                 ? "gpt-4.1-mini"
                 : null,
             known: true,
@@ -678,7 +680,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
     inputOriginRef: primaryInputOrigin.inputOriginRef,
     provider: planner?.plannerProvider === "none" ? null : planner?.plannerProvider ?? null,
     model:
-      planner?.source === "openai" && planner?.plannerProvider === "openai"
+      isCreatePlannerProviderSource(planner?.source) &&
+      planner?.plannerProvider === planner?.source
         ? "gpt-4.1-mini"
         : null,
     providerKnown: Boolean(planner?.plannerProvider && planner.plannerProvider !== "none"),
@@ -686,10 +689,12 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       planner?.plannerProvider && planner.plannerProvider !== "none"
         ? "admin_review_only"
         : "missing_runtime_truth",
-    aiActive: planner?.source === "openai",
+    aiActive: isCreatePlannerProviderSource(planner?.source),
     usageRecorded: Boolean(planner?.providerCallAttempted),
     outputType: "planner_followup",
-    outputOrigin: planner?.source === "openai" ? "ai_assisted" : "human_input",
+    outputOrigin: isCreatePlannerProviderSource(planner?.source)
+      ? "ai_assisted"
+      : "human_input",
     sourceProvenance: plannerSourceProvenance,
     evidenceRefs: buildEvidenceRefs([
       params.plannerTrace?.requestId ?? null,
@@ -713,7 +718,9 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       ...(!params.plannerTrace?.requestId
         ? ["Planner-Request-/Operation-Korrelation wird im aktuellen Frontend-Zustand noch nicht vollstaendig getragen."]
         : []),
-      ...((planner?.source === "openai" && planner?.plannerProvider === "openai") || !planner
+      ...((isCreatePlannerProviderSource(planner?.source) &&
+        planner?.plannerProvider === planner?.source) ||
+      !planner
         ? []
         : ["Planner-Fallback bleibt ohne belastbaren Modellnamen und ohne behaupteten externen KI-Nachweis."]),
     ],

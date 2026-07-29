@@ -3,6 +3,7 @@ import {
   type Part06CategoryKey,
 } from "@/features/create/part06TopicMapping";
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type FollowupConfidence = "low" | "medium" | "high";
 
@@ -677,7 +678,7 @@ function buildPlannerStructureBranches(
   const planner = result.meta?.planner;
   if (
     !planner ||
-    planner.source !== "openai" ||
+    !isCreatePlannerProviderSource(planner.source) ||
     planner.qualityStatus !== "specific" ||
     planner.plannerDegraded
   ) {

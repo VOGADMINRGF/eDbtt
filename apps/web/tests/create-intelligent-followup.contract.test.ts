@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/create/createPlanner", () => ({
   buildCreatePlanner: (...args: unknown[]) => mocks.buildCreatePlanner(...args),
+  isCreatePlannerProviderSource: (source: string) =>
+    source === "openai" || source === "anthropic" || source === "mistral",
 }));
 
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";

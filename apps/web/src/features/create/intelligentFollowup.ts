@@ -6,6 +6,7 @@ import {
   type CreatePlannerScope,
   type CreatePlannerStance,
 } from "@/features/create/createPlanner";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 import {
   buildCreateTechnicalFollowup,
 } from "@/features/create/intelligentFollowupResults";
@@ -166,7 +167,7 @@ function buildGraphMatchPlan(planner?: CreatePlannerResult | null): CreateFollow
   const graphAllowed =
     planner?.qualityStatus === "specific" &&
     planner.plannerDegraded === false &&
-    planner.source === "openai";
+    isCreatePlannerProviderSource(planner.source);
   if (!graphAllowed || !planner) {
     return {
       stage: "after_structure",
@@ -228,7 +229,7 @@ export async function buildCreateIntelligentFollowup(
   });
 
   if (
-    planner.source !== "openai" ||
+    !isCreatePlannerProviderSource(planner.source) ||
     planner.qualityStatus !== "specific" ||
     planner.plannerDegraded
   ) {

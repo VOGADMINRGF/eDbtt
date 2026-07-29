@@ -304,6 +304,7 @@ function buildDefaultDependencies(): AgenticCivicE2EPilotDependencies {
         qualityIssues: [],
         providerCallAttempted: true,
         providerCallSucceeded: true,
+        providerAttemptCount: 1,
         plannerDebug: {
           attemptedProvider: "openai",
           usedProvider: "openai",

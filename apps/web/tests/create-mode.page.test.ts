@@ -126,9 +126,11 @@ describe("/create start surface", () => {
     });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Dein Beitrag im Workspace");
-    expect(html).toContain("Schreib unten frei los.");
-    expect(html).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(html).toContain("Hallo");
+    expect(html).toContain("Was möchtest du einbringen?");
+    expect(html).toContain(
+      "Ich ordne deinen Beitrag, erkenne die wichtigsten Themen und zeige dir passende nächste Schritte.",
+    );
     expect(html).toContain("Thema ordnen");
     expect(html).toContain("Frage schärfen");
     expect(html).toContain("Anhang");
@@ -157,7 +159,7 @@ describe("/create start surface", () => {
     expect(html).not.toContain("Beitrag sortieren");
     expect(html).not.toContain("Warum sehe ich das?");
     expect(html).not.toContain("Welche KI im aktuellen Schritt sichtbar arbeitet");
-    expect(html).not.toContain('data-voxy-appearance="panel"');
+    expect(html).toContain('data-voxy-appearance="panel"');
     expect(html).not.toContain("Kurzer Einstieg");
     expect(html).not.toContain("create-start-chat-preview");
 
@@ -219,7 +221,7 @@ describe("/create start surface", () => {
     expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-stage-shell="true"');
     expect(html).toContain("Aus laufendem Anlass gestartet");
-    expect(html).not.toContain('data-voxy-appearance="panel"');
+    expect(html).toContain('data-voxy-appearance="panel"');
     expect(html).not.toContain("autoAnalyze");
     expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
   });

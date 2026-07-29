@@ -2,6 +2,13 @@
 
 import * as React from "react";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
+import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
+import {
+  buildCreateSupportFailureCopy,
+  getCreateVoxyCopy,
+  type CreateVoxyLocale,
+} from "@/features/create/createVoxySupportCopy";
+import type { CreateSupportHandoffPublic } from "@/features/support/createSupportTicketContract";
 import {
   buildCreateVisualSections,
   buildCreateStructureBranches,
@@ -102,6 +109,8 @@ type CreateVisualFollowupProps = {
   canCreateInternalWorkstate?: boolean;
   onRetryPlanner?: () => void;
   isRetryPlannerPending?: boolean;
+  locale?: CreateVoxyLocale;
+  supportHandoff?: CreateSupportHandoffPublic | null;
   onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
   linkDetection?: CreateLinkIntakeDetection | null;
@@ -455,7 +464,7 @@ function hasTechnicalPlannerFallbackMeta(result?: CreateIntelligentFollowupResul
 
 function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
-  if (!planner || planner.source !== "openai") return false;
+  if (!planner || !isCreatePlannerProviderSource(planner.source)) return false;
   const uniqueTopics = Array.from(new Set([planner.plannerTopic, ...planner.topicCandidates].map((value) => value.trim()).filter(Boolean)));
   const uniqueClusters = Array.from(new Set(planner.plannerClusters.map((value) => value.trim()).filter(Boolean)));
   const nonGenericTopics = uniqueTopics.filter((value) => !isGenericPlannerLabel(value));
@@ -1073,7 +1082,7 @@ function AssistantUnderstandingBubble(props: {
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.stepLabel}</p>
-          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Assistent</p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Voxy</p>
         </div>
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">{props.eyebrow}</p>
@@ -1680,7 +1689,7 @@ function DocumentAnalysisBubble(props: {
             2 · Dokument analysiert
           </p>
           <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
-            Assistent
+            Voxy
           </p>
         </div>
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
@@ -1762,14 +1771,23 @@ function AnalysisStateBubble(props: {
   onPrimaryAction?: () => void;
   onSaveOnly?: () => void;
   onDeferWork?: () => void;
+  locale: CreateVoxyLocale;
+  supportHandoff?: CreateSupportHandoffPublic | null;
 }) {
+  const analysisFailed =
+    props.state === "fetch_failed" || props.state === "ai_failed";
+  const copy = getCreateVoxyCopy(props.locale, null);
+  const failureCopy = buildCreateSupportFailureCopy({
+    locale: props.locale,
+    handoff: props.supportHandoff ?? null,
+  });
   const primaryLabel =
     props.state === "link_detected"
       ? "Link analysieren"
       : props.state === "entitlement_required"
         ? "Analyse starten"
-        : props.state === "fetch_failed" || props.state === "ai_failed"
-          ? "Erneut versuchen"
+        : analysisFailed
+          ? copy.retry
           : null;
 
   return (
@@ -1780,25 +1798,33 @@ function AnalysisStateBubble(props: {
       <div className="w-full max-w-[78%] min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            {props.state === "fetch_failed" || props.state === "ai_failed"
+            {analysisFailed
               ? "2 · Analyse blockiert"
               : "2 · Analyse offen"}
           </p>
           <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
-            Assistent
+            Voxy
           </p>
         </div>
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">
             {props.state === "link_detected" || props.state === "entitlement_required"
               ? "Link erkannt"
-              : props.state === "fetch_failed" || props.state === "ai_failed"
-                ? "Analyse blockiert"
+              : analysisFailed
+                ? failureCopy.title
                 : "Analyse noch nicht abgeschlossen"}
           </p>
-          <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
-            {props.message}
-          </p>
+          {analysisFailed ? (
+            <div className="mt-3 space-y-2 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+              {failureCopy.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+              {props.message}
+            </p>
+          )}
           <div className="mt-5 flex flex-wrap gap-2.5">
             {primaryLabel && props.onPrimaryAction ? (
               <button
@@ -1809,13 +1835,21 @@ function AnalysisStateBubble(props: {
                 {primaryLabel}
               </button>
             ) : null}
-            {props.onSaveOnly ? (
+            {failureCopy.ticketHref ? (
+              <a
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                href={failureCopy.ticketHref}
+              >
+                {copy.viewTicket}
+              </a>
+            ) : null}
+            {props.onSaveOnly && !analysisFailed ? (
               <button
                 type="button"
                 className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
                 onClick={props.onSaveOnly}
               >
-                Eingabe speichern
+                {props.locale === "en" ? "Save input" : "Eingabe speichern"}
               </button>
             ) : null}
             {props.onDeferWork ? (
@@ -1824,7 +1858,7 @@ function AnalysisStateBubble(props: {
                 className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
                 onClick={props.onDeferWork}
               >
-                Später fortsetzen
+                {copy.continueLater}
               </button>
             ) : null}
           </div>
@@ -1864,7 +1898,7 @@ function TopicExpansionPrompt(props: {
       <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-cyan-300/35 bg-cyan-500/[0.06] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.1]">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">3 · Entscheidung offen</p>
-          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Assistent</p>
+          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Voxy</p>
         </div>
         <p className="mt-2 text-base font-semibold text-cyan-950 dark:text-cyan-50">{intro}</p>
         {props.overflowCount > 0 ? (
@@ -2392,7 +2426,7 @@ function TopicFocusPanel(props: {
       <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-cyan-300/35 bg-cyan-500/[0.06] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.1]">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">4 · Deine Entscheidung</p>
-          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Assistent</p>
+          <p className="text-[13px] font-semibold text-cyan-900 dark:text-cyan-100">Voxy</p>
         </div>
         <p className="mt-2 text-base font-semibold text-cyan-950 dark:text-cyan-50">
           Du schaust Thema {props.activeTopicIndex + 1}: {props.activeBranch.title}.
@@ -3274,6 +3308,8 @@ export default function CreateVisualFollowup({
   canCreateInternalWorkstate = false,
   onRetryPlanner,
   isRetryPlannerPending = false,
+  locale = "de",
+  supportHandoff = null,
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   linkDetection = null,
@@ -3822,7 +3858,7 @@ export default function CreateVisualFollowup({
                     <VoxyAvatar appearance="inline" variant="presenting" />
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                        Dein KI-Assistent
+                        Voxy
                       </p>
                       <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
                         {plannerClarificationRequired
@@ -3866,6 +3902,8 @@ export default function CreateVisualFollowup({
                   }
                   onSaveOnly={onSaveOnly}
                   onDeferWork={onDeferWork}
+                  locale={locale}
+                  supportHandoff={supportHandoff}
                 />
               ) : null}
               {hasValidatedAnalysis && documentAnalysis ? (

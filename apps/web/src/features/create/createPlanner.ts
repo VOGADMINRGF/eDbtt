@@ -1,7 +1,10 @@
 import { callOpenAIJson } from "@features/ai";
+import { callAnthropic } from "@features/ai/providers/anthropic";
+import { callMistral } from "@features/ai/providers/mistral";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
 import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
+export { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type CreatePlannerScope =
   | "local"
@@ -20,7 +23,13 @@ export type CreatePlannerStance =
   | "reform_oriented"
   | "unclear";
 export type CreatePlannerRecommendedLane = "standard" | "create_fast_followup";
-export type CreatePlannerSource = "openai" | "technical_fallback" | "heuristic_fallback";
+export type CreatePlannerSource =
+  | "openai"
+  | "anthropic"
+  | "mistral"
+  | "technical_fallback"
+  | "heuristic_fallback";
+
 export type CreatePlannerProviderName = "openai" | "anthropic" | "mistral" | "local_fallback" | "none";
 export type CreatePlannerDegradedReason =
   | "missing_provider_key"
@@ -34,7 +43,7 @@ export type CreatePlannerDegradedReason =
   | "rate_limited";
 export type CreatePlannerQualityStatus = "specific" | "generic" | "failed" | "needs_confirmation";
 export type CreatePlannerDebug = {
-  attemptedProvider: "openai" | null;
+  attemptedProvider: "openai" | "anthropic" | "mistral" | null;
   usedProvider: CreatePlannerProviderName;
   attemptedModel?: string | null;
   usedModel?: string | null;
@@ -98,6 +107,7 @@ export type CreatePlannerResult = {
   qualityIssues: string[];
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
+  providerAttemptCount: number;
   plannerDebug: CreatePlannerDebug;
 };
 
@@ -748,6 +758,7 @@ function finalizePlannerResult(params: {
     qualityIssues: quality.qualityIssues,
     providerCallAttempted: params.providerCallAttempted,
     providerCallSucceeded: params.providerCallSucceeded,
+    providerAttemptCount: params.providerCallAttempted ? 1 : 0,
     plannerDebug: params.plannerDebug,
   };
 }
@@ -1154,11 +1165,12 @@ function buildHeuristicPlanner(params: {
   });
 }
 
-function normalizeOpenAiPlannerPayload(
+function normalizeProviderPlannerPayload(
   payload: OpenAiPlannerPayload,
   text: string,
   model: string,
   locale: string,
+  provider: Extract<CreatePlannerProviderName, "openai" | "anthropic" | "mistral">,
   rawText?: string,
 ): PlannerAttempt {
   const normalizedRawText = normalizePlannerDebugRawText(rawText);
@@ -1171,7 +1183,7 @@ function normalizeOpenAiPlannerPayload(
       reason: "invalid_provider_payload",
       rawText: normalizedRawText,
       debug: createPlannerDebug({
-        attemptedProvider: "openai",
+        attemptedProvider: provider,
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
@@ -1217,16 +1229,16 @@ function normalizeOpenAiPlannerPayload(
 
   const result = finalizePlannerResult({
     text,
-    source: "openai",
-    plannerProvider: "openai",
+    source: provider,
+    plannerProvider: provider,
     plannerDegraded: false,
     degradedReason: null,
     providerCallAttempted: true,
     providerCallSucceeded: true,
     plannerDebug: {
       ...createPlannerDebug({
-        attemptedProvider: "openai",
-        usedProvider: "openai",
+        attemptedProvider: provider,
+        usedProvider: provider,
         attemptedModel: model,
         usedModel: model,
         providerAvailable: true,
@@ -1264,7 +1276,7 @@ function normalizeOpenAiPlannerPayload(
       reason: "quality_gate_failed",
       rawText: normalizedRawText,
       debug: createPlannerDebug({
-        attemptedProvider: "openai",
+        attemptedProvider: provider,
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
@@ -1381,7 +1393,14 @@ async function tryOpenAiPlannerWithModel(
         }),
       };
     }
-    return normalizeOpenAiPlannerPayload(parsed, input.text, model, input.locale, text);
+    return normalizeProviderPlannerPayload(
+      parsed,
+      input.text,
+      model,
+      input.locale,
+      "openai",
+      text,
+    );
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
@@ -1511,6 +1530,150 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
   };
 }
 
+type CreatePlannerFallbackProvider = "anthropic" | "mistral";
+
+function resolveCreatePlannerFallbackProvider(): CreatePlannerFallbackProvider | null {
+  const policy = getAiRuntimePolicy();
+  for (const provider of policy.providerOrder) {
+    if (
+      provider === "anthropic" &&
+      policy.enabledProviders.includes("anthropic") &&
+      policy.anthropic.apiKeyPresent &&
+      !policy.anthropic.disabledExplicitly
+    ) {
+      return "anthropic";
+    }
+    if (
+      provider === "mistral" &&
+      policy.enabledProviders.includes("mistral") &&
+      policy.mistral.apiKeyPresent
+    ) {
+      return "mistral";
+    }
+  }
+  return null;
+}
+
+function buildFallbackPlannerPrompt(input: BuildCreatePlannerInput) {
+  return [
+    "Du bist planner_only für den ersten nicht-mutativen /create-Follow-up-Schritt in E150.",
+    "Strukturiere den Beitrag fachlich, ohne Fakten zu erfinden und ohne mutative Aktionen.",
+    "Gib ausschließlich ein valides JSON-Objekt zurück.",
+    "Pflichtfelder:",
+    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
+    "Keine Veröffentlichung, kein Speichern, kein Mergen, kein DeepSearch und keine Quellenbehauptungen.",
+    "Erhalte jedes ausdrücklich genannte, fachlich eigenständige Thema als eigenen topicCandidate.",
+    "Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
+    "recommendedLane ist standard oder create_fast_followup.",
+    `Locale: ${input.locale}`,
+    "",
+    "TEXT:",
+    input.text,
+  ].join("\n");
+}
+
+async function tryFallbackPlanner(
+  input: BuildCreatePlannerInput,
+  provider: CreatePlannerFallbackProvider,
+): Promise<PlannerAttempt> {
+  const policy = getAiRuntimePolicy();
+  const model =
+    provider === "anthropic" ? policy.anthropic.model : policy.mistral.model;
+  const controller = new AbortController();
+  const timeoutMs = Math.min(
+    policy.plannerTimeoutMs,
+    policy.providerTimeoutsMs[provider],
+  );
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response =
+      provider === "anthropic"
+        ? await callAnthropic({
+            prompt: buildFallbackPlannerPrompt(input),
+            model,
+            maxOutputTokens: policy.plannerMaxOutputTokens,
+            signal: controller.signal,
+          })
+        : await callMistral({
+            prompt: buildFallbackPlannerPrompt(input),
+            model,
+            maxOutputTokens: policy.plannerMaxOutputTokens,
+            signal: controller.signal,
+          });
+    const normalizedRawText = normalizePlannerDebugRawText(response.text);
+    let parsed: OpenAiPlannerPayload;
+    try {
+      parsed = JSON.parse(response.text) as OpenAiPlannerPayload;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "JSON.parse fehlgeschlagen";
+      return {
+        ok: false,
+        reason: "invalid_json",
+        rawText: normalizedRawText,
+        debug: createPlannerDebug({
+          attemptedProvider: provider,
+          usedProvider: "local_fallback",
+          attemptedModel: model,
+          providerAvailable: true,
+          providerErrorMessage: errorMessage,
+          errorMessage,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+          rawText: normalizedRawText,
+        }),
+      };
+    }
+    return normalizeProviderPlannerPayload(
+      parsed,
+      input.text,
+      response.model ?? model,
+      input.locale,
+      provider,
+      response.text,
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "unknown_provider_error";
+    const errorObject = error as {
+      code?: string;
+      status?: number;
+      meta?: { code?: string };
+    } | null;
+    const reason: CreatePlannerDegradedReason = isPlannerTimeoutError(error)
+      ? "timeout"
+      : errorObject?.status === 429 || /rate.?limit|429/i.test(message)
+        ? "rate_limited"
+        : isModelNotFoundError(error)
+          ? "model_not_found"
+          : "provider_error";
+    return {
+      ok: false,
+      reason,
+      debug: createPlannerDebug({
+        attemptedProvider: provider,
+        usedProvider: "local_fallback",
+        attemptedModel: model,
+        providerAvailable: true,
+        providerErrorCode:
+          errorObject?.meta?.code ??
+          errorObject?.code ??
+          (reason === "timeout" ? "TIMEOUT" : null),
+        providerErrorMessage: message,
+        errorMessage: message,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function mapPlannerAttemptToUsageOutcome(
   attempt: PlannerAttempt,
 ): { success: boolean; errorKind: AiErrorKind | null } {
@@ -1543,7 +1706,11 @@ async function recordCreatePlannerAiUsage(params: {
   attempt: PlannerAttempt;
   durationMs: number;
 }) {
-  if (!params.attempt.debug.providerAvailable || params.attempt.debug.attemptedProvider !== "openai") {
+  const provider = params.attempt.debug.attemptedProvider;
+  if (
+    !params.attempt.debug.providerAvailable ||
+    (provider !== "openai" && provider !== "anthropic" && provider !== "mistral")
+  ) {
     return;
   }
   const outcome = mapPlannerAttemptToUsageOutcome(params.attempt);
@@ -1551,11 +1718,15 @@ async function recordCreatePlannerAiUsage(params: {
     (params.attempt.ok
       ? params.attempt.result.plannerDebug.usedModel
       : params.attempt.debug.usedModel ?? params.attempt.debug.attemptedModel) ??
-    resolveCreatePlannerModelCandidates()[0] ??
+    (provider === "openai"
+      ? resolveCreatePlannerModelCandidates()[0]
+      : provider === "anthropic"
+        ? getAiRuntimePolicy().anthropic.model
+        : getAiRuntimePolicy().mistral.model) ??
     "unknown";
   await logAiUsage({
     createdAt: new Date(),
-    provider: "openai",
+    provider,
     model: usageModel,
     pipeline: CREATE_PLANNER_USAGE_PIPELINE,
     operationId: params.input.operationId ?? params.input.requestId ?? null,
@@ -1591,7 +1762,45 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
   if (openAiResult.ok) return openAiResult.result;
   if (!openAiResult.ok) {
     const plannerFailure = openAiResult as Extract<PlannerAttempt, { ok: false }>;
-    return buildHeuristicPlanner({
+    const primaryAttemptCount =
+      plannerFailure.reason === "missing_provider_key" ? 0 : 1;
+    const fallbackProvider = resolveCreatePlannerFallbackProvider();
+    if (fallbackProvider) {
+      const fallbackStartedAt = Date.now();
+      const fallbackResult = await tryFallbackPlanner(
+        { ...input, text },
+        fallbackProvider,
+      );
+      await recordCreatePlannerAiUsage({
+        input,
+        attempt: fallbackResult,
+        durationMs: Date.now() - fallbackStartedAt,
+      }).catch(() => {});
+      if (fallbackResult.ok) {
+        return {
+          ...fallbackResult.result,
+          providerAttemptCount: primaryAttemptCount + 1,
+        };
+      }
+      const fallbackFailure = fallbackResult as Extract<
+        PlannerAttempt,
+        { ok: false }
+      >;
+      return {
+        ...buildHeuristicPlanner({
+          text,
+          plannerProvider: "local_fallback",
+          plannerDegraded: true,
+          degradedReason: fallbackFailure.reason,
+          providerCallAttempted: true,
+          providerCallSucceeded: false,
+          plannerDebug: fallbackFailure.debug,
+        }),
+        providerAttemptCount: primaryAttemptCount + 1,
+      };
+    }
+    return {
+      ...buildHeuristicPlanner({
       text,
       plannerProvider: "local_fallback",
       plannerDegraded: true,
@@ -1599,7 +1808,9 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
       providerCallAttempted: plannerFailure.reason !== "missing_provider_key",
       providerCallSucceeded: false,
       plannerDebug: plannerFailure.debug,
-    });
+      }),
+      providerAttemptCount: primaryAttemptCount,
+    };
   }
 
   return buildNeutralPlanner({

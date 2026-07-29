@@ -106,6 +106,12 @@ import CreateDraftNextActionGate from "./CreateDraftNextActionGate";
 import CreateStartDraftHandoff from "./CreateStartDraftHandoff";
 import { useCreateStartDraftRestore } from "./createStartDraftRestore";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
+import {
+  buildCreateSupportFailureCopy,
+  getCreateVoxyCopy,
+  type CreateVoxyLocale,
+} from "@/features/create/createVoxySupportCopy";
+import type { CreateSupportHandoffPublic } from "@/features/support/createSupportTicketContract";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -128,6 +134,13 @@ export type CreateClientProps = {
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
 
 const MIN_INTENT_INPUT_LENGTH = 24;
+
+function createClientCorrelationId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `create-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function buildCreateToRundenHref(text: string): string {
   const normalized = text.trim();
@@ -402,21 +415,36 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
 }
 
 function CreateAssistantStatusBubble(props: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   body: string;
   notice?: string | null;
   chips?: string[];
+  largeAvatar?: boolean;
 }) {
   return (
-    <div className="create-chat-message flex gap-3">
+    <div
+      className={`create-chat-message flex gap-3 ${
+        props.largeAvatar ? "flex-col sm:flex-row sm:gap-5" : ""
+      }`}
+      data-create-voxy-intro={props.largeAvatar ? "large-aura" : undefined}
+    >
       <div className="mt-1 shrink-0">
-        <VoxyAvatar appearance="inline" compact variant="presenting" />
+        <VoxyAvatar
+          appearance={props.largeAvatar ? "panel" : "inline"}
+          compact={!props.largeAvatar}
+          priority={props.largeAvatar}
+          variant="presenting"
+        />
       </div>
-      <div className="w-full max-w-[78%] min-w-0 flex-1">
-        <p className="text-sm font-semibold text-[rgb(var(--muted))]">Assistent</p>
+      <div className={`w-full min-w-0 flex-1 ${props.largeAvatar ? "max-w-4xl" : "max-w-[78%]"}`}>
+        <p className="text-sm font-semibold text-[rgb(var(--muted))]">Voxy</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
-          <p className="text-sm font-medium text-[rgb(var(--muted))]">{props.eyebrow}</p>
+          {props.eyebrow ? (
+            <p className="text-sm font-medium text-[rgb(var(--muted))]">
+              {props.eyebrow}
+            </p>
+          ) : null}
           <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))] md:text-[1.35rem]">{props.title}</p>
           <p className="mt-3 text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">{props.body}</p>
           {props.chips?.length ? (
@@ -684,6 +712,14 @@ export default function CreateClient({
   const router = useRouter();
   const { locale } = useLocale();
   const surfaceLocale = resolveCreateSurfaceLocale(locale);
+  const voxyCopy = React.useMemo(
+    () =>
+      getCreateVoxyCopy(
+        surfaceLocale as CreateVoxyLocale,
+        overview.displayName,
+      ),
+    [overview.displayName, surfaceLocale],
+  );
   const surfaceTexts = React.useMemo(() => getCreateSurfaceTexts(surfaceLocale), [surfaceLocale]);
   const surfaceComposerTexts = React.useMemo(
     () => getCreateComposerTexts(surfaceLocale),
@@ -750,6 +786,8 @@ export default function CreateClient({
     React.useState<CreateLightweightFollowupSnapshot | null>(null);
   const [intelligentFollowup, setIntelligentFollowup] =
     React.useState<CreateIntelligentFollowupResult | null>(null);
+  const [supportHandoff, setSupportHandoff] =
+    React.useState<CreateSupportHandoffPublic | null>(null);
   const [plannerTrace, setPlannerTrace] = React.useState<CreatePlannerRuntimeTrace | null>(null);
   const [analyzeTrace, setAnalyzeTrace] = React.useState<CreateAnalyzeRuntimeTrace | null>(null);
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
@@ -778,6 +816,7 @@ export default function CreateClient({
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [isRetryPlannerPending, setIsRetryPlannerPending] = React.useState(false);
+  const analysisRunInFlightRef = React.useRef(false);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const [workspaceTransparencyOpen, setWorkspaceTransparencyOpen] = React.useState(false);
@@ -1043,7 +1082,7 @@ export default function CreateClient({
   }, [hasStarted, intelligentFollowup]);
 
   const startCreateFlow = React.useCallback(async (rawText: string) => {
-    if (isStarting) return;
+    if (isStarting || analysisRunInFlightRef.current) return;
     const normalizedText = rawText.trim();
     const linkDetection = detectCreateLinkIntake(normalizedText);
     const materialRouting = resolveMaterialRouting({
@@ -1059,6 +1098,8 @@ export default function CreateClient({
       setIntakeError(productModeConfig.minimumInputHint);
       return;
     }
+    analysisRunInFlightRef.current = true;
+    let draftSavedForRun = false;
     try {
       setIntakeRestoreInfo(null);
       setIntakeError(null);
@@ -1075,6 +1116,7 @@ export default function CreateClient({
       });
       setFollowupSnapshot(snapshot);
       setIntelligentFollowup(null);
+      setSupportHandoff(null);
       setPlannerTrace(null);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
@@ -1106,6 +1148,38 @@ export default function CreateClient({
           : null,
       );
 
+      const saveResponse = await fetch("/api/create/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          draftId: savedDraftId ?? undefined,
+          text: normalizedText,
+          locale: surfaceLocale,
+          source: "create_auto_before_analysis",
+          createMode: canonicalCreateMode,
+          anlassraumId:
+            canonicalIntent === "contribution"
+              ? selectedAnlassraumId ?? undefined
+              : undefined,
+          useCase: productModeConfig.preferredUseCase,
+          sourceUrls: materialRouting.sourceUrls,
+          materialItems: materialRouting.materialItems,
+          analysis: {
+            orchestration: {
+              phase: "saved_before_analysis",
+              autoPublish: false,
+            },
+          },
+        }),
+      });
+      const saveBody = await saveResponse.json().catch(() => ({}));
+      if (!saveResponse.ok || !saveBody?.ok || typeof saveBody?.draftId !== "string") {
+        throw new Error("create_auto_save_failed");
+      }
+      const runDraftId = saveBody.draftId as string;
+      setSavedDraftId(runDraftId);
+      draftSavedForRun = true;
+
       if (linkDetection.hasLink && linkDetection.primaryUrl) {
         setIntelligentFollowup(
           buildCreateTechnicalFollowup({
@@ -1126,6 +1200,7 @@ export default function CreateClient({
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
+      const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1137,6 +1212,8 @@ export default function CreateClient({
           intent: activeIntent,
           sourceUrls: materialRouting.sourceUrls,
           materialItems: materialRouting.materialItems,
+          correlationId,
+          draftId: runDraftId,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -1147,6 +1224,7 @@ export default function CreateClient({
       nextPlannerTrace = body.trace ?? null;
 
       setIntelligentFollowup(nextIntelligentFollowup);
+      setSupportHandoff(body.supportHandoff ?? null);
       setPlannerTrace(nextPlannerTrace);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
@@ -1165,29 +1243,62 @@ export default function CreateClient({
       }
       setIsStarting(false);
     } catch {
-      setIsStarting(false);
-      if (productMode === "analyze") {
+      if (!draftSavedForRun) {
+        setIntakeError(
+          surfaceLocale === "en"
+            ? "Your contribution could not be saved securely. Please try again."
+            : "Dein Beitrag konnte nicht sicher gespeichert werden. Bitte versuche es erneut.",
+        );
+      } else {
+        const technicalReference = createClientCorrelationId();
+        const failedHandoff: CreateSupportHandoffPublic = {
+          status: "failed",
+          technicalReference,
+          safeUserMessage:
+            surfaceLocale === "en"
+              ? "The support handoff could not be confirmed."
+              : "Die technische Übergabe konnte nicht bestätigt werden.",
+        };
+        setSupportHandoff(failedHandoff);
+        setIntelligentFollowup(
+          buildCreateTechnicalFollowup({
+            text: normalizedText,
+            analysisState: "ai_failed",
+            sourceType: "text",
+            sourceLoaded: true,
+            userMessage: buildCreateSupportFailureCopy({
+              locale: surfaceLocale as CreateVoxyLocale,
+              handoff: failedHandoff,
+            }).paragraphs.join(" "),
+          }),
+        );
+      }
+      if (draftSavedForRun && productMode === "analyze") {
         setActionNotice("Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst die Aussage schärfen oder Details später erneut prüfen.");
         setIntakeError("Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.");
-      } else {
+      } else if (draftSavedForRun) {
         setIntakeError(surfaceTexts.startFailedError);
       }
+    } finally {
+      analysisRunInFlightRef.current = false;
+      setIsStarting(false);
     }
   }, [
     activeContextAnchor?.label,
     activeIntent,
     composerAttachmentMaterialItems,
     dossierId,
-    initialIntakeContext?.sourceLabel,
     isStarting,
+    canonicalCreateMode,
+    canonicalIntent,
     productMode,
     productModeConfig.label,
     productModeConfig.minimumInputHint,
-    contextItems,
+    productModeConfig.preferredUseCase,
+    savedDraftId,
     selectedAnlassraumId,
     surfaceLocale,
     surfaceTexts,
-    linkClarificationState?.selectedIntentId,
   ]);
 
   const handleStart = React.useCallback(async () => {
@@ -1448,6 +1559,8 @@ export default function CreateClient({
       <div ref={intelligentFollowupResultRef} className="scroll-mt-24">
         <CreateVisualFollowup
           result={intelligentFollowup}
+          locale={surfaceLocale as CreateVoxyLocale}
+          supportHandoff={supportHandoff}
           actionNotice={actionNotice}
           isConfirmed={understandingConfirmed}
           embedInWorkspaceShell
@@ -1639,11 +1752,15 @@ export default function CreateClient({
         className="create-chat-spine relative flex min-h-[18rem] min-w-0 items-start pt-1 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] md:min-h-[22rem] md:pt-2"
       >
         <CreateAssistantStatusBubble
-          eyebrow="Assistent"
-          title="Schreib unten frei los."
-          body="Ich sortiere daraus Thema, Kontext und nächste Schritte."
-          chips={["Thema ordnen", "Frage schärfen", "Quellen prüfen"]}
+          title={voxyCopy.greeting}
+          body={voxyCopy.intro}
+          chips={
+            surfaceLocale === "en"
+              ? ["Organize topics", "Sharpen questions", "Check sources"]
+              : ["Thema ordnen", "Frage schärfen", "Quellen prüfen"]
+          }
           notice={actionNotice}
+          largeAvatar
         />
       </div>
     );
@@ -2134,11 +2251,14 @@ export default function CreateClient({
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
-    if (isRetryPlannerPending) return;
+    if (isRetryPlannerPending || analysisRunInFlightRef.current) return;
     if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
 
+    analysisRunInFlightRef.current = true;
     setIsRetryPlannerPending(true);
+    setSupportHandoff(null);
     try {
+      const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -2150,6 +2270,8 @@ export default function CreateClient({
           intent: activeIntent,
           sourceUrls: currentMaterialRouting.sourceUrls,
           materialItems: currentMaterialRouting.materialItems,
+          correlationId,
+          draftId: savedDraftId,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -2158,6 +2280,7 @@ export default function CreateClient({
       }
       const nextFollowup = body.result as CreateIntelligentFollowupResult;
       setIntelligentFollowup(nextFollowup);
+      setSupportHandoff(body.supportHandoff ?? null);
       setPlannerTrace(body.trace ?? null);
       setUnderstandingConfirmed(false);
       setActiveTopicLabel(null);
@@ -2175,8 +2298,17 @@ export default function CreateClient({
           : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
       );
     } catch {
+      setSupportHandoff({
+        status: "failed",
+        technicalReference: createClientCorrelationId(),
+        safeUserMessage:
+          surfaceLocale === "en"
+            ? "The support handoff could not be confirmed."
+            : "Die technische Übergabe konnte nicht bestätigt werden.",
+      });
       setActionNotice(null);
     } finally {
+      analysisRunInFlightRef.current = false;
       setIsRetryPlannerPending(false);
     }
   }, [
@@ -2189,6 +2321,7 @@ export default function CreateClient({
     isRetryPlannerPending,
     normalizedIntakeText,
     privacyGate,
+    savedDraftId,
     selectedAnlassraumId,
     surfaceLocale,
   ]);
@@ -2364,8 +2497,10 @@ export default function CreateClient({
       return;
     }
 
-    if (isStarting) return;
+    if (isStarting || analysisRunInFlightRef.current) return;
+    analysisRunInFlightRef.current = true;
     setIsStarting(true);
+    setSupportHandoff(null);
     setActionNotice(null);
     setDocumentTopicOverviewOpened(false);
     setTopicExpansionDecision("link");
@@ -2382,6 +2517,7 @@ export default function CreateClient({
     );
 
     try {
+      const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/link-analysis", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -2390,6 +2526,8 @@ export default function CreateClient({
           url: currentLinkDetection.primaryUrl,
           locale: surfaceLocale,
           additionalContext: linkClarificationState?.additionalContext ?? "",
+          correlationId,
+          draftId: savedDraftId,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -2397,11 +2535,21 @@ export default function CreateClient({
         throw new Error("create_link_analysis_failed");
       }
       setIntelligentFollowup(body.result as CreateIntelligentFollowupResult);
+      setSupportHandoff(body.supportHandoff ?? null);
       setWorkspaceActionMode("default");
       setChatContinuationText("");
       setShowFollowupCorrectionComposer(false);
       setDocumentTopicOverviewOpened(false);
     } catch {
+      const failedHandoff: CreateSupportHandoffPublic = {
+        status: "failed",
+        technicalReference: createClientCorrelationId(),
+        safeUserMessage:
+          surfaceLocale === "en"
+            ? "The support handoff could not be confirmed."
+            : "Die technische Übergabe konnte nicht bestätigt werden.",
+      };
+      setSupportHandoff(failedHandoff);
       setIntelligentFollowup(
         buildCreateTechnicalFollowup({
           text: normalizedIntakeText,
@@ -2409,11 +2557,14 @@ export default function CreateClient({
           sourceType: "link",
           sourceUrl: currentLinkDetection.primaryUrl,
           sourceLoaded: false,
-          userMessage:
-            "Die KI-Analyse ist derzeit nicht verfügbar. Es wurden keine Themen oder Zusammenfassungen erzeugt.",
+          userMessage: buildCreateSupportFailureCopy({
+            locale: surfaceLocale as CreateVoxyLocale,
+            handoff: failedHandoff,
+          }).paragraphs.join(" "),
         }),
       );
     } finally {
+      analysisRunInFlightRef.current = false;
       setIsStarting(false);
     }
   }, [
@@ -2423,6 +2574,7 @@ export default function CreateClient({
     linkClarificationState?.additionalContext,
     normalizedIntakeText,
     privacyGate,
+    savedDraftId,
     surfaceLocale,
   ]);
 
