@@ -226,7 +226,7 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
                 Organisations-, Runden- und Eventkontext. Es entsteht keine parallele Studio-Persistenz.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/organisation" className="btn-secondary text-sm">
+                <Link href="/account/organization/dashboard" className="btn-secondary text-sm">
                   Organisation einbeziehen
                 </Link>
                 <Link href="/dashboard/streams" className="btn-secondary text-sm">
