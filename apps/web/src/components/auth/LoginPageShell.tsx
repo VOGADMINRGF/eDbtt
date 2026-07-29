@@ -31,6 +31,7 @@ export function LoginPageShell({
     switchingMethod,
     allowEmailFallback,
     error,
+    verificationState,
     submitCredentials,
     submitTwoFactor,
     requestEmailCode,
@@ -45,7 +46,9 @@ export function LoginPageShell({
     return Math.ceil(diff / 60000);
   }, [expiresAt]);
   const normalizedCode = useMemo(() => normalizeTwoFactorCode(code), [code]);
-  const canSubmitTwoFactor = normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !loading;
+  const twoFactorLocked = loading || verificationState !== "idle";
+  const canSubmitTwoFactor =
+    normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !twoFactorLocked;
   const showOtpOption = availableMethods.includes("otp");
   const showEmailOption = availableMethods.includes("email");
 
@@ -157,7 +160,11 @@ export function LoginPageShell({
       )}
 
       {step === "twofactor" && (
-        <form onSubmit={handleTwoFactorSubmit} className="space-y-4">
+        <form
+          onSubmit={handleTwoFactorSubmit}
+          className="space-y-4"
+          aria-busy={twoFactorLocked}
+        >
           {(showOtpOption || showEmailOption) && (
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -176,7 +183,7 @@ export function LoginPageShell({
                       const ok = await selectTwoFactorMethod("otp");
                       if (ok) setCode("");
                     }}
-                    disabled={switchingMethod || requestingEmail || loading}
+                    disabled={switchingMethod || requestingEmail || twoFactorLocked}
                   >
                     Authenticator-App
                   </button>
@@ -193,7 +200,7 @@ export function LoginPageShell({
                       const ok = await selectTwoFactorMethod("email");
                       if (ok) setCode("");
                     }}
-                    disabled={switchingMethod || requestingEmail || loading}
+                    disabled={switchingMethod || requestingEmail || twoFactorLocked}
                   >
                     Code per E-Mail
                   </button>
@@ -205,7 +212,9 @@ export function LoginPageShell({
             {method === "email"
               ? "Wir haben dir einen 6-stelligen Code per E-Mail gesendet. Bitte Posteingang/Spam prüfen."
               : "Öffne deine Authenticator-App und gib den aktuellen 6-stelligen Code ein."}
-            {expiresInMinutes ? ` (gültig für ca. ${expiresInMinutes} Min.)` : null}
+            {method === "email" && expiresInMinutes
+              ? ` (gültig für ca. ${expiresInMinutes} Min.)`
+              : null}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-[rgb(var(--muted))]" htmlFor="code">
@@ -223,6 +232,7 @@ export function LoginPageShell({
               maxLength={6}
               autoFocus
               required
+              disabled={twoFactorLocked}
             />
           </div>
           {allowEmailFallback && method === "email" && (
@@ -233,17 +243,31 @@ export function LoginPageShell({
                 const ok = await requestEmailCode();
                 if (ok) setCode("");
               }}
-              disabled={requestingEmail || switchingMethod || loading}
+              disabled={requestingEmail || switchingMethod || twoFactorLocked}
             >
               {requestingEmail ? "Sende neuen Code per E-Mail …" : "Neuen Code per E-Mail senden"}
             </button>
           )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
+          {verificationState === "redirecting" && (
+            <p className="text-sm text-emerald-700" role="status">
+              Anmeldung erfolgreich. Du wirst weitergeleitet …
+            </p>
+          )}
           <div className="flex items-center gap-3">
             <button type="submit" className={`${primaryButtonClass} w-full`} disabled={!canSubmitTwoFactor}>
-              {loading ? "Prüfe Code …" : "Bestätigen"}
+              {verificationState === "redirecting"
+                ? "Weiterleitung …"
+                : loading
+                  ? "Prüfe Code …"
+                  : "Bestätigen"}
             </button>
-            <button type="button" className={secondaryButtonClass} onClick={reset}>
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={reset}
+              disabled={twoFactorLocked}
+            >
               Zurück
             </button>
           </div>

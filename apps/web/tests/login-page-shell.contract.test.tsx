@@ -24,6 +24,7 @@ describe("login page shell", () => {
       switchingMethod: false,
       allowEmailFallback: true,
       error: null,
+      verificationState: "idle",
       submitCredentials: vi.fn(),
       submitTwoFactor: vi.fn(),
       selectTwoFactorMethod: vi.fn().mockResolvedValue(true),
@@ -54,6 +55,7 @@ describe("login page shell", () => {
       switchingMethod: false,
       allowEmailFallback: true,
       error: null,
+      verificationState: "idle",
       submitCredentials: vi.fn(),
       submitTwoFactor: vi.fn(),
       selectTwoFactorMethod: vi.fn().mockResolvedValue(true),
@@ -72,5 +74,63 @@ describe("login page shell", () => {
     expect(html).not.toContain("OTP");
     expect(html).not.toContain("Token");
     expect(html).not.toContain("Provider");
+  });
+
+  it("shows challenge expiry only for email codes, not authenticator TOTP", () => {
+    const flowState = {
+      step: "twofactor",
+      method: "otp",
+      availableMethods: ["otp", "email"],
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      loading: false,
+      requestingEmail: false,
+      switchingMethod: false,
+      allowEmailFallback: true,
+      error: null,
+      verificationState: "idle",
+      submitCredentials: vi.fn(),
+      submitTwoFactor: vi.fn(),
+      selectTwoFactorMethod: vi.fn().mockResolvedValue(true),
+      requestEmailCode: vi.fn().mockResolvedValue(true),
+      reset: vi.fn(),
+    };
+    mocks.useLoginFlow.mockReturnValue(flowState);
+
+    const authenticatorHtml = renderToStaticMarkup(<LoginPageShell forceTwoFactor />);
+    expect(authenticatorHtml).toContain("aktuellen 6-stelligen Code");
+    expect(authenticatorHtml).not.toContain("gültig für ca.");
+
+    mocks.useLoginFlow.mockReturnValue({
+      ...flowState,
+      method: "email",
+    });
+    const emailHtml = renderToStaticMarkup(<LoginPageShell forceTwoFactor />);
+    expect(emailHtml).toContain("gültig für ca.");
+  });
+
+  it("keeps every 2FA control disabled after successful verification", () => {
+    mocks.useLoginFlow.mockReturnValue({
+      step: "twofactor",
+      method: "otp",
+      availableMethods: ["otp", "email"],
+      expiresAt: null,
+      loading: true,
+      requestingEmail: false,
+      switchingMethod: false,
+      allowEmailFallback: true,
+      error: null,
+      verificationState: "redirecting",
+      submitCredentials: vi.fn(),
+      submitTwoFactor: vi.fn(),
+      selectTwoFactorMethod: vi.fn().mockResolvedValue(true),
+      requestEmailCode: vi.fn().mockResolvedValue(true),
+      reset: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<LoginPageShell forceTwoFactor />);
+    expect(html).toContain("Anmeldung erfolgreich");
+    expect(html).toContain("Weiterleitung …");
+    expect(html).toContain('aria-busy="true"');
+    expect((html.match(/disabled=""/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
 });
