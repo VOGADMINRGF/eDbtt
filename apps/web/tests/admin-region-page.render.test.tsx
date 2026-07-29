@@ -212,19 +212,27 @@ describe("admin-region-page.render", () => {
 
     expect(html).toContain('data-testid="admin-region-page"');
     expect(html).toContain('data-testid="admin-region-selector"');
+    expect(html).toContain('data-testid="admin-region-operational-summary"');
     expect(html).toContain('data-testid="admin-region-context"');
     expect(html).toContain('data-testid="admin-region-profile"');
     expect(html).toContain('data-testid="admin-region-experience"');
     expect(html).toContain('data-testid="admin-region-next-action"');
+    expect(html).toContain('data-testid="admin-region-quick-actions"');
     expect(html).toContain('data-testid="admin-region-workspace-navigation"');
     expect(html).toContain('data-testid="admin-region-lagebild"');
-    expect(html).toContain("Region suchen und auswählen");
+    expect(html).toContain("Region wechseln");
     expect(html).toContain('type="search"');
     expect(html).toContain('list="admin-region-options"');
     expect(html).toContain('action="/admin/region"');
     expect(html).toContain('method="get"');
     expect(html).toContain("Berlin Reinickendorf");
-    expect(html).toContain("Ausgewähltes Regionsprofil");
+    expect(html).toContain("Operatives Lagebild");
+    expect(html).toContain("Relevantestes regionales Signal");
+    expect(html).toContain("Quellenbasis und Aktualität");
+    expect(html).toContain("Belastbarkeit:");
+    expect(html).toContain("Review- und Recherchebedarf");
+    expect(html).toContain("Arbeitspriorität:");
+    expect(html).toContain("offene Frage");
     expect(html).toContain("Bezirksamt Reinickendorf");
     expect(html).toContain("bereits erprobt");
     expect(html).toContain("teilweise vorbereitet");
@@ -236,6 +244,25 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Pilot-/Fixture-Daten enthalten");
     expect(html).toContain("Genau eine nächste Aktion");
     expect(html.match(/data-testid="admin-region-primary-action"/g)).toHaveLength(1);
+    expect(
+      html.match(/data-testid="admin-region-quick-action-[^"]+"/g),
+    ).toHaveLength(5);
+    expect(html).toContain("Quellen sammeln");
+    expect(html).toContain("Recherche vertiefen");
+    expect(html).toContain("Beitrag erstellen");
+    expect(html).toContain("Dossier vorbereiten");
+    expect(html).toContain("Kampagne planen");
+    expect(html).toContain('data-testid="admin-region-quick-action-sources"');
+    expect(html).toContain('data-testid="admin-region-quick-action-research"');
+    expect(html).toContain('data-testid="admin-region-quick-action-create"');
+    expect(html).toContain('data-testid="admin-region-quick-action-dossier"');
+    expect(html).toContain('data-testid="admin-region-quick-action-marketing"');
+    expect(html.indexOf('data-testid="admin-region-operational-summary"')).toBeLessThan(
+      html.indexOf('data-testid="admin-region-profile"'),
+    );
+    expect(html.indexOf('data-testid="admin-region-operational-summary"')).toBeLessThan(
+      html.indexOf('data-testid="admin-region-experience"'),
+    );
     expect(html).toContain("Lagebild");
     expect(html).toContain("Quellen &amp; Feeds");
     expect(html).toContain("Recherche");
@@ -246,11 +273,26 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain("min-w-max");
     expect(html).toContain("break-words");
+    for (const view of [
+      "lagebild",
+      "quellen",
+      "recherche",
+      "claims",
+      "beitraege",
+      "kampagnen",
+      "einstellungen",
+    ]) {
+      expect(html).toContain(
+        `regionId=berlin-reinickendorf&amp;view=${view}`,
+      );
+    }
     expect(html).not.toContain('href="#"');
     expect(html).not.toContain("Detailroute");
     expect(html).not.toContain("regionId=...");
     expect(html).not.toContain("Contract");
     expect(html).not.toContain("Auto-Publish aktiv");
+    expect(html).not.toContain("Recherche startet automatisch");
+    expect(html).not.toContain("wird automatisch veröffentlicht");
 
     const sourcesHtml = renderToStaticMarkup(
       await AdminRegionPage({
@@ -273,8 +315,12 @@ describe("admin-region-page.render", () => {
     expect(researchHtml).toContain('data-testid="admin-region-recherche"');
     expect(researchHtml).toContain('data-testid="admin-region-research-handoff"');
     expect(researchHtml).toContain("es startet kein Provideraufruf, Crawling oder Scraping.");
-    expect(researchHtml).toContain('href="/admin/research/tasks"');
-    expect(researchHtml).not.toContain("/admin/research/tasks?regionId=");
+    expect(researchHtml).toContain(
+      'href="/admin/research/tasks?regionId=berlin-reinickendorf',
+    );
+    expect(researchHtml).toContain("origin=admin-region");
+    expect(researchHtml).toContain("topic=");
+    expect(researchHtml).toContain("source=Bezirksamt+Reinickendorf+News");
 
     const claimsHtml = renderToStaticMarkup(
       await AdminRegionPage({
@@ -298,6 +344,10 @@ describe("admin-region-page.render", () => {
     expect(contributionsHtml).toContain("Externe Veröffentlichung");
     expect(contributionsHtml).toContain("/create?source=admin_region");
     expect(contributionsHtml).toContain("region=berlin-reinickendorf");
+    expect(html).toContain('data-testid="admin-region-quick-action-dossier"');
+    expect(html).toContain(
+      "reason=Dossier+aus+regionalem+Quellen-+und+Themenkontext+vorbereiten",
+    );
 
     const campaignsHtml = renderToStaticMarkup(
       await AdminRegionPage({
@@ -306,11 +356,13 @@ describe("admin-region-page.render", () => {
     );
     expect(campaignsHtml).toContain('data-testid="admin-region-kampagnen"');
     expect(campaignsHtml).toContain('data-testid="admin-region-marketing-handoff"');
-    expect(campaignsHtml).toContain("wird dort aktuell nicht automatisch als Regionenkontext übernommen");
+    expect(campaignsHtml).toContain("als gefahrlos ignorierbarer Kontext übergeben");
     expect(campaignsHtml).toContain("keine verifizierten Kampagnen- oder Performancewerte");
     expect(campaignsHtml).toContain("/admin/marketing?lang=de");
     expect(campaignsHtml).toContain("reach=regional");
-    expect(campaignsHtml).not.toContain("region=berlin-reinickendorf");
+    expect(campaignsHtml).toContain("segment=b2g");
+    expect(campaignsHtml).toContain("region=berlin-reinickendorf");
+    expect(campaignsHtml).toContain("origin=admin-region");
 
     const settingsHtml = renderToStaticMarkup(
       await AdminRegionPage({
