@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
+import HomeScrollReveal from "@/features/home/HomeScrollReveal";
 import type { StartExperienceModel } from "@/features/start/startExperience";
 import { resolveVoxyAsset } from "@/features/voxy/voxyAssets";
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
@@ -21,10 +22,18 @@ type EntryCard = {
 
 type SegmentCard = {
   href: string;
-  eyebrow: string;
   title: string;
   text: string;
 };
+
+type BenefitCard = {
+  title: string;
+  text: string;
+  marker: string;
+};
+
+const VOXY_PODCAST_STAGE_ASSET = "/brand/voxy/voxy-podcast-stage.png";
+const VOXY_MINI_AVATAR = resolveVoxyAsset("miniAvatar");
 
 const ENTRY_CARDS: readonly EntryCard[] = [
   {
@@ -37,8 +46,8 @@ const ENTRY_CARDS: readonly EntryCard[] = [
   {
     href: "/create",
     eyebrow: "Eigener Beitrag",
-    title: "Beitrag prüfen und strukturieren",
-    text: "Bring eine Beobachtung, Frage, Idee oder Quelle ein. Voxy hilft beim Einordnen, ohne automatisch zu veröffentlichen.",
+    title: "Ein Thema einbringen",
+    text: "Teile eine Beobachtung, Frage, Idee oder Quelle. Voxy hilft beim Sortieren, ohne automatisch zu veröffentlichen.",
     cta: "Beitrag starten",
     gated: true,
   },
@@ -53,49 +62,88 @@ const ENTRY_CARDS: readonly EntryCard[] = [
   {
     href: "/dossier",
     eyebrow: "Dossiers",
-    title: "Fakten, Positionen und offene Fragen verbinden",
-    text: "Verfolge, was belegt ist, wo Quellen widersprechen und wie sich ein Debattenstand weiterentwickelt.",
-    cta: "Dossiers verstehen",
+    title: "Den Debattenstand nachvollziehen",
+    text: "Erkenne, was belegt ist, wo Quellen widersprechen und welche Fragen noch offen sind.",
+    cta: "Dossiers ansehen",
   },
 ] as const;
 
 const SEGMENT_CARDS: readonly SegmentCard[] = [
   {
     href: "/account",
-    eyebrow: "Für Bürger:innen",
-    title: "Relevante Entwicklungen verstehen und mitwirken",
-    text: "Folge Themen, Regionen und Beteiligungen. Später siehst du auf einen Blick, was sich seit deinem letzten Besuch wesentlich verändert hat.",
+    title: "Für Nachbarn und Bürger",
+    text: "Themen aus deiner Umgebung verstehen, Perspektiven einbringen und nachvollziehbar mitentscheiden.",
   },
   {
     href: "/account/organization",
-    eyebrow: "Für Organisationen, Medien & Kultur",
-    title: "Themen, Veranstaltungen, Publikum und Ergebnisse verbinden",
-    text: "Bereite Beteiligung, Live-Formate und Dossiers gemeinsam im Team vor – vom Theatergespräch bis zum Medienformat.",
+    title: "Für Initiativen und Communities",
+    text: "Anliegen strukturiert darstellen, Unterstützer verbinden und aus Diskussionen handlungsfähige Debatten machen.",
   },
   {
     href: "/account/organization",
-    eyebrow: "Für Verwaltung & Behörden",
-    title: "Zuständigkeiten, Rückmeldungen und Debattenstände bearbeiten",
-    text: "Ordne öffentliche Themen ein, begleite Beteiligungsverfahren und dokumentiere Antworten sowie nächste Schritte nachvollziehbar.",
+    title: "Für Kommunen und Organisationen",
+    text: "Menschen früh beteiligen, Rückmeldungen einordnen und Entscheidungen verständlicher kommunizieren.",
+  },
+  {
+    href: "/dossier",
+    title: "Für Medien und Redaktionen",
+    text: "Quellen, unterschiedliche Perspektiven und den aktuellen Debattenstand schneller erfassen.",
   },
 ] as const;
 
-const CHANGE_QUESTIONS = [
-  "Was ist neu?",
-  "Was ist belegt?",
-  "Was bleibt offen?",
-  "Wo kannst du mitwirken?",
+const BENEFIT_CARDS: readonly BenefitCard[] = [
+  {
+    marker: "01",
+    title: "Sprachen verbinden",
+    text: "Original-, Lese-, Bedien- und Ausgabesprache werden passend zusammengeführt.",
+  },
+  {
+    marker: "02",
+    title: "Quellen sichtbar machen",
+    text: "Aussagen, Dokumente und öffentliche Quellen bleiben nachvollziehbar und getrennt erkennbar.",
+  },
+  {
+    marker: "03",
+    title: "Zusammenhänge erkennen",
+    text: "Argumente, Ereignisse, Akteure und Perspektiven werden über Themen und Regionen hinweg verbunden.",
+  },
+  {
+    marker: "04",
+    title: "Debatten statt Kommentarchaos",
+    text: "Beiträge werden strukturiert, zusammengeführt und zu einem verständlichen Debattenstand entwickelt.",
+  },
+  {
+    marker: "05",
+    title: "Gemeinsam entscheiden",
+    text: "Fakten werden nicht abgestimmt. Menschen entscheiden nachvollziehbar über Positionen und nächste Schritte.",
+  },
+  {
+    marker: "06",
+    title: "Von lokal bis global",
+    text: "Ein Thema kann im eigenen Viertel beginnen und mit ähnlichen Entwicklungen weltweit verbunden werden.",
+  },
+] as const;
+
+const PROCESS_STEPS = [
+  {
+    number: "1",
+    title: "Voxy hört zu und strukturiert",
+    text: "Du bringst eine Frage, Beobachtung, Idee oder Quelle ein.",
+  },
+  {
+    number: "2",
+    title: "Quellen und Perspektiven werden verbunden",
+    text: "Belege, Aussagen und offene Punkte bleiben getrennt und nachvollziehbar.",
+  },
+  {
+    number: "3",
+    title: "Die Community prüft, ergänzt und entscheidet",
+    text: "Der Debattenstand wächst gemeinsam – veröffentlicht wird nur nach Prüfung.",
+  },
 ] as const;
 
 const TRUST_LINE =
   "eDebatte veröffentlicht nichts automatisch. Quellen, Prüfstatus und Beteiligung bleiben nachvollziehbar – du entscheidest den nächsten Schritt.";
-
-const VOXY_LIGHT_HERO_ASSET = resolveVoxyAsset("createGuideLight");
-const VOXY_DARK_HERO_ASSET = resolveVoxyAsset("createGuideDark");
-
-function joinClasses(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
-}
 
 function EntryLinkCard({ href, eyebrow, title, text, cta, gated = false }: EntryCard) {
   return (
@@ -103,15 +151,15 @@ function EntryLinkCard({ href, eyebrow, title, text, cta, gated = false }: Entry
       href={href}
       data-testid="home-entry-card"
       data-requires-privacy-gate={gated ? "true" : undefined}
-      className="group flex h-full min-h-[13rem] flex-col rounded-[1.8rem] border border-[rgba(114,178,236,0.24)] bg-[linear-gradient(150deg,rgba(250,253,255,0.94),rgba(228,243,255,0.88)_52%,rgba(203,230,249,0.78))] px-5 py-5 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:border-[rgba(112,180,240,0.16)] dark:bg-[linear-gradient(150deg,rgba(10,24,52,0.92),rgba(13,57,112,0.52)_52%,rgba(7,17,37,0.98))] sm:px-6"
-      style={{ boxShadow: "0 20px 48px rgba(29, 88, 150, 0.13)" }}
+      className="group flex h-full min-h-[13rem] flex-col rounded-[1.8rem] border border-[rgba(114,178,236,0.2)] bg-[rgba(255,255,255,0.72)] px-5 py-5 text-left backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:border-[rgba(30,140,255,0.44)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:border-[rgba(112,180,240,0.14)] dark:bg-[rgba(8,25,54,0.7)] sm:px-6"
+      style={{ boxShadow: "0 20px 48px rgba(11, 54, 105, 0.12)" }}
     >
       <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--grad-to))]">
         {eyebrow}
       </span>
-      <h2 className="mt-4 text-[1.3rem] font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-[1.45rem]">
+      <h3 className="mt-4 text-[1.3rem] font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-[1.45rem]">
         {title}
-      </h2>
+      </h3>
       <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/72 sm:text-[15px]">{text}</p>
       <span className="mt-auto pt-6 text-sm font-semibold text-[rgb(var(--grad-to))] transition group-hover:translate-x-0.5">
         {cta} →
@@ -120,22 +168,31 @@ function EntryLinkCard({ href, eyebrow, title, text, cta, gated = false }: Entry
   );
 }
 
-function SegmentLinkCard({ href, eyebrow, title, text }: SegmentCard) {
+function SegmentLinkCard({ href, title, text }: SegmentCard) {
   return (
     <Link
       href={href}
-      className="group rounded-[1.55rem] border border-[rgba(114,178,236,0.18)] bg-[rgba(237,247,255,0.66)] p-5 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:border-[rgba(112,180,240,0.14)] dark:bg-[rgba(10,31,66,0.5)]"
+      className="group flex h-full flex-col rounded-[1.55rem] border border-[rgba(114,178,236,0.18)] bg-[rgba(255,255,255,0.62)] p-5 text-left backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:border-[rgba(30,140,255,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:border-[rgba(112,180,240,0.14)] dark:bg-[rgba(9,29,62,0.62)]"
       style={{ boxShadow: "0 16px 36px rgba(29, 88, 150, 0.09)" }}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
-        {eyebrow}
-      </span>
-      <h3 className="mt-3 text-lg font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/70">{text}</p>
-      <span className="mt-4 inline-flex text-sm font-semibold text-[rgb(var(--grad-to))]">
+      <span aria-hidden="true" className="mb-5 h-1 w-12 rounded-full bg-[linear-gradient(90deg,#168cff,#20cfc8)]" />
+      <h3 className="text-lg font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[rgb(var(--fg))]/70">{text}</p>
+      <span className="mt-auto pt-5 text-sm font-semibold text-[rgb(var(--grad-to))]">
         Einstieg ansehen →
       </span>
     </Link>
+  );
+}
+
+function BenefitCardView({ marker, title, text }: BenefitCard) {
+  return (
+    <article className="relative h-full overflow-hidden rounded-[1.45rem] border border-[rgba(105,171,231,0.18)] bg-[rgba(255,255,255,0.58)] p-5 backdrop-blur-sm dark:border-[rgba(112,180,240,0.13)] dark:bg-[rgba(7,24,51,0.7)]">
+      <span className="text-xs font-semibold tracking-[0.16em] text-[rgb(var(--grad-to))]">{marker}</span>
+      <h3 className="mt-4 text-lg font-semibold tracking-tight text-[rgb(var(--fg))]">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[rgb(var(--fg))]/68">{text}</p>
+      <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(24,140,255,0.72),rgba(32,207,200,0.5),transparent)]" />
+    </article>
   );
 }
 
@@ -144,45 +201,33 @@ export default function HomeSplitVoxyLanding({
   experience,
 }: HomeSplitVoxyLandingProps) {
   const isUnknownVisitor = experience.familiarity === "unknown_visitor";
-  const heroTitle = isUnknownVisitor
-    ? "Verstehen, was sich verändert. Mitreden, wo es zählt."
-    : experience.title;
-  const heroDescription = isUnknownVisitor
-    ? "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten zu nachvollziehbaren Themenständen – von deiner Region bis zur Welt."
-    : experience.description;
   const primaryHref = isUnknownVisitor ? "/themen" : "/swipes";
-  const primaryLabel = isUnknownVisitor
-    ? "Aktuelle Entwicklungen entdecken"
-    : "Neu für dich öffnen";
+  const primaryLabel = isUnknownVisitor ? "Debatten entdecken" : "Neu für dich öffnen";
 
   return (
     <section className="landing-canvas public-canvas public-start-canvas overflow-hidden">
-      <div className="landing-shell public-shell public-start-shell !w-full !max-w-[82rem] !gap-0 !px-5 !pb-12 !pt-3 sm:!px-8 sm:!pb-16 lg:!px-10 lg:!pt-6">
-        <section className="relative py-8 sm:py-12 lg:py-16">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-[-22%] top-[-16rem] h-[32rem] rounded-full bg-[radial-gradient(circle,rgba(18,118,255,0.18),transparent_62%)] blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-[-10rem] top-[2rem] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(160,223,255,0.32),transparent_62%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(24,207,200,0.16),transparent_66%)]"
-          />
+      <div className="landing-shell public-shell public-start-shell !w-full !max-w-[88rem] !gap-0 !px-5 !pb-16 !pt-3 sm:!px-8 sm:!pb-20 lg:!px-10 lg:!pt-6">
+        <section className="relative py-8 sm:py-12 lg:py-16" aria-labelledby="home-hero-title">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-[-18%] top-[-18rem] h-[38rem] rounded-full bg-[radial-gradient(circle,rgba(18,118,255,0.2),transparent_62%)] blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-[-12rem] top-[3rem] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,rgba(24,207,200,0.16),transparent_66%)] blur-3xl" />
 
-          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
-            <div className="relative z-[1] max-w-[43rem]">
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:gap-12">
+            <HomeScrollReveal className="relative z-[2] max-w-[43rem]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgb(var(--grad-to))]">
-                {isUnknownVisitor
-                  ? "AKTUELLE THEMEN · QUELLEN · BETEILIGUNG"
-                  : experience.eyebrow}
+                eDebatte · getragen von VoiceOpenGov
               </p>
-              <h1 className="mt-4 max-w-[43rem] text-[2.85rem] font-semibold leading-[1.02] tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.2rem] lg:text-[4.8rem]">
-                {heroTitle}
+              <h1 id="home-hero-title" className="mt-5 max-w-[43rem] text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[4.15rem] lg:text-[4.75rem]">
+                <span className="block">Stimmen verbinden.</span>
+                <span className="block bg-[linear-gradient(90deg,#168cff,#20cfc8)] bg-clip-text text-transparent">
+                  Zusammenhänge sichtbar machen.
+                </span>
+                <span className="block">Gemeinsam entscheiden.</span>
               </h1>
               <p className="mt-6 max-w-[40rem] text-base leading-8 text-[rgb(var(--fg))]/76 sm:text-lg">
-                {heroDescription}
+                Voxy hilft dir, Themen zu verstehen, Quellen einzuordnen und unterschiedliche Perspektiven zu verbinden – über Sprachen, Meinungen und Grenzen hinweg.
               </p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href={primaryHref}
                   className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(90deg,rgba(24,207,200,0.96),rgba(26,140,255,0.98))] px-6 py-3 text-sm font-semibold text-[rgb(var(--btn-primary-fg))] transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]"
@@ -193,144 +238,152 @@ export default function HomeSplitVoxyLanding({
                 <Link
                   href="/create"
                   data-requires-privacy-gate="true"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(74,142,204,0.24)] bg-[rgba(235,247,255,0.72)] px-6 py-3 text-sm font-semibold text-[rgb(var(--fg))] transition duration-200 hover:bg-[rgba(222,241,255,0.86)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:bg-[rgba(15,52,104,0.46)] dark:hover:bg-[rgba(18,65,126,0.58)]"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(74,142,204,0.28)] bg-[rgba(235,247,255,0.72)] px-6 py-3 text-sm font-semibold text-[rgb(var(--fg))] transition duration-200 hover:bg-[rgba(222,241,255,0.86)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:bg-[rgba(15,52,104,0.46)] dark:hover:bg-[rgba(18,65,126,0.58)]"
                 >
-                  Beitrag prüfen
+                  Thema einbringen
                 </Link>
               </div>
 
-              <div
-                className="mt-8 rounded-[1.55rem] border border-[rgba(112,180,240,0.2)] bg-[rgba(238,248,255,0.66)] p-5 dark:border-[rgba(112,180,240,0.14)] dark:bg-[rgba(10,31,66,0.46)]"
-                style={{ boxShadow: "0 16px 38px rgba(29, 88, 150, 0.1)" }}
+              <Link
+                href="/create"
+                data-requires-privacy-gate="true"
+                className="mt-7 inline-flex max-w-full items-center gap-3 rounded-full border border-[rgba(112,180,240,0.2)] bg-[rgba(255,255,255,0.5)] px-4 py-3 text-left text-sm text-[rgb(var(--fg))]/72 backdrop-blur-sm transition hover:border-[rgba(30,140,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)] dark:bg-[rgba(8,28,58,0.5)]"
               >
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  Nicht nur die nächste Schlagzeile.
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {CHANGE_QUESTIONS.map((question) => (
-                    <span
-                      key={question}
-                      className="rounded-full border border-[rgba(82,154,219,0.18)] bg-[rgba(255,255,255,0.5)] px-3 py-2 text-center text-xs font-semibold text-[rgb(var(--fg))]/76 dark:bg-[rgba(12,41,84,0.42)]"
-                    >
-                      {question}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                <Image alt="" aria-hidden="true" className="h-8 w-8 rounded-full object-cover" height={32} src={VOXY_MINI_AVATAR.candidates[0]} width={32} />
+                <span><strong className="font-semibold text-[rgb(var(--fg))]">Hallo Nachbar.</strong> Was bewegt dich?</span>
+                <span aria-hidden="true">→</span>
+              </Link>
 
               {!isUnknownVisitor ? (
-                <div
-                  className="mt-5 rounded-[1.55rem] border border-[rgba(112,180,240,0.18)] bg-[rgba(255,255,255,0.38)] p-5 dark:bg-[rgba(8,28,58,0.4)]"
-                  style={{ boxShadow: "0 16px 38px rgba(29, 88, 150, 0.08)" }}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">
-                    Dein nächster Schritt
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/74">
-                    {experience.helperText}
-                  </p>
+                <div className="mt-5 rounded-[1.4rem] border border-[rgba(112,180,240,0.18)] bg-[rgba(255,255,255,0.38)] p-5 dark:bg-[rgba(8,28,58,0.4)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--grad-to))]">Dein nächster Schritt</p>
+                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/74">{experience.helperText}</p>
                   {experience.workspaceHref ? (
-                    <Link
-                      href={experience.workspaceHref}
-                      className="mt-4 inline-flex text-sm font-semibold text-[rgb(var(--grad-to))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]"
-                    >
+                    <Link href={experience.workspaceHref} className="mt-4 inline-flex text-sm font-semibold text-[rgb(var(--grad-to))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.42)]">
                       {experience.workspaceLabel ?? "Arbeitsbereich öffnen"} →
                     </Link>
                   ) : null}
                 </div>
               ) : null}
 
-              <p className="mt-6 max-w-[40rem] text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px]">
-                {TRUST_LINE}
-              </p>
-            </div>
+              <p className="mt-6 max-w-[40rem] text-sm leading-7 text-[rgb(var(--fg))]/64 sm:text-[15px]">{TRUST_LINE}</p>
+            </HomeScrollReveal>
 
-            <aside className="relative mx-auto w-full max-w-[35rem]">
-              <div
-                className="relative overflow-hidden rounded-[2.4rem] border border-[rgba(112,180,240,0.2)] bg-[linear-gradient(155deg,rgba(248,252,255,0.94),rgba(220,240,255,0.9)_50%,rgba(194,226,248,0.82))] px-6 pb-7 pt-6 dark:border-[rgba(112,180,240,0.16)] dark:bg-[linear-gradient(155deg,rgba(7,18,40,0.94),rgba(11,42,86,0.8)_50%,rgba(6,16,34,0.98))]"
-                style={{ boxShadow: "0 30px 72px rgba(29, 88, 150, 0.17)" }}
-              >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-[12%] top-[8%] h-[55%] rounded-full bg-[radial-gradient(circle,rgba(47,160,255,0.24),rgba(24,207,200,0.13)_42%,transparent_76%)] blur-3xl"
-                />
-                <p className="relative z-[2] text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--grad-to))]">
-                  Mit Voxy
-                </p>
-                <div className="relative z-[2] mx-auto mt-4 w-full max-w-[13rem]" data-voxy-avatar="">
-                  <div className="relative" style={{ aspectRatio: VOXY_LIGHT_HERO_ASSET.aspectRatio }}>
-                    <Image
-                      alt={VOXY_LIGHT_HERO_ASSET.alt}
-                      className="object-contain object-center dark:hidden"
-                      fill
-                      priority
-                      sizes="220px"
-                      src={VOXY_LIGHT_HERO_ASSET.candidates[0]}
-                    />
-                    <Image
-                      alt={VOXY_DARK_HERO_ASSET.alt}
-                      className="hidden object-contain object-center dark:block"
-                      fill
-                      priority
-                      sizes="220px"
-                      src={VOXY_DARK_HERO_ASSET.candidates[0]}
-                    />
+            <HomeScrollReveal className="relative mx-auto w-full max-w-[44rem]" delayMs={120}>
+              <div className="relative overflow-hidden rounded-[2.4rem] border border-[rgba(112,180,240,0.22)] bg-[rgba(5,17,37,0.96)] p-2" style={{ boxShadow: "0 36px 90px rgba(4, 30, 68, 0.34)" }}>
+                <div className="relative aspect-[1125/1165] overflow-hidden rounded-[2rem]">
+                  <Image
+                    alt="Voxy als Gastgeber am Podcast-Tisch von VoiceOpenGov und eDebatte"
+                    className="object-cover object-center"
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 48vw, 92vw"
+                    src={VOXY_PODCAST_STAGE_ASSET}
+                  />
+                  <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,transparent_58%,rgba(2,10,24,0.62))]" />
+                  <div className="absolute inset-x-5 bottom-5 rounded-[1.35rem] border border-white/15 bg-[rgba(3,14,33,0.72)] p-4 text-white backdrop-blur-md sm:inset-x-7 sm:bottom-7 sm:p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#67dbe0]">Voxy am gemeinsamen Tisch</p>
+                    <p className="mt-2 text-lg font-semibold sm:text-xl">Zuhören. Einordnen. Gemeinsam weiterdenken.</p>
+                    <p className="mt-2 text-xs leading-5 text-white/72 sm:text-sm">{buildVoxyExperienceShellHint("home")}</p>
                   </div>
                 </div>
-                <div className="relative z-[2] mt-2 text-center">
-                  <h2 className="text-2xl font-semibold tracking-tight text-[rgb(var(--fg))]">
-                    Relevantes erkennen. Zusammenhänge verstehen.
-                  </h2>
-                  <p className="mx-auto mt-3 max-w-[28rem] text-sm leading-6 text-[rgb(var(--fg))]/72">
-                    Voxy begleitet dich durch eDebatte. Im Hintergrund werden Quellen, Aussagen, Perspektiven und Beteiligungswege getrennt eingeordnet.
-                  </p>
-                  <p className="mx-auto mt-4 max-w-[28rem] text-xs leading-5 text-[rgb(var(--fg))]/58">
-                    {buildVoxyExperienceShellHint("home")}
-                  </p>
-                </div>
               </div>
-            </aside>
+            </HomeScrollReveal>
           </div>
         </section>
 
-        <section aria-labelledby="home-entry-title" className="py-10 sm:py-14">
-          <div className="max-w-[47rem]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">
-              Dein Einstieg
-            </p>
-            <h2 id="home-entry-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
-              Von der Entwicklung zum nachvollziehbaren nächsten Schritt.
+        <section aria-labelledby="home-audience-title" className="py-12 sm:py-16">
+          <HomeScrollReveal className="mx-auto max-w-[52rem] text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">Für wen ist eDebatte?</p>
+            <h2 id="home-audience-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
+              Für alle, die mitreden und mitgestalten wollen.
             </h2>
             <p className="mt-4 text-base leading-7 text-[rgb(var(--fg))]/70">
-              Lesen, prüfen, mitwirken oder selbst etwas einbringen – alles bleibt Teil desselben Themen-, Dossier- und Beteiligungskosmos.
+              Unterschiedliche Aufgaben, dieselbe nachvollziehbare Infrastruktur für Quellen, Perspektiven, Beteiligung und Debattenstände.
             </p>
-          </div>
+          </HomeScrollReveal>
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {ENTRY_CARDS.map((card) => (
-              <EntryLinkCard key={card.href} {...card} />
+            {SEGMENT_CARDS.map((card, index) => (
+              <HomeScrollReveal key={card.title} delayMs={index * 70}>
+                <SegmentLinkCard {...card} />
+              </HomeScrollReveal>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="home-audience-title" className="py-10 sm:py-14">
-          <div className="max-w-[50rem]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">
-              Ein System, unterschiedliche Aufgaben
-            </p>
-            <h2 id="home-audience-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
-              Für Bürger, Organisationen, Medien, Kultur und Verwaltung.
+        <section aria-labelledby="home-benefits-title" className="relative py-12 sm:py-16">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-[8%] top-1/2 h-px bg-[linear-gradient(90deg,transparent,rgba(24,140,255,0.35),rgba(32,207,200,0.28),transparent)]" />
+          <HomeScrollReveal className="mx-auto max-w-[52rem] text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">Warum eDebatte?</p>
+            <h2 id="home-benefits-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
+              Mehr Klarheit. Mehr Tiefe. Mehr Wirkung.
+            </h2>
+          </HomeScrollReveal>
+          <div className="relative mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {BENEFIT_CARDS.map((benefit, index) => (
+              <HomeScrollReveal key={benefit.title} delayMs={(index % 3) * 80}>
+                <BenefitCardView {...benefit} />
+              </HomeScrollReveal>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="home-process-title" className="py-12 sm:py-16">
+          <HomeScrollReveal className="rounded-[2.2rem] border border-[rgba(112,180,240,0.18)] bg-[linear-gradient(145deg,rgba(243,250,255,0.82),rgba(218,239,255,0.62))] p-6 dark:border-[rgba(112,180,240,0.13)] dark:bg-[linear-gradient(145deg,rgba(7,22,48,0.9),rgba(10,39,80,0.62))] sm:p-9 lg:p-11">
+            <div className="mx-auto max-w-[52rem] text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">So begleitet dich Voxy</p>
+              <h2 id="home-process-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
+                Vom ersten Gedanken zum gemeinsamen Debattenstand.
+              </h2>
+            </div>
+            <div className="mt-9 grid gap-7 lg:grid-cols-3">
+              {PROCESS_STEPS.map((step, index) => (
+                <div key={step.number} className="relative text-center lg:text-left">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#168cff,#20cfc8)] text-sm font-bold text-white lg:mx-0">{step.number}</div>
+                  <h3 className="mt-4 text-lg font-semibold tracking-tight text-[rgb(var(--fg))]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[rgb(var(--fg))]/68">{step.text}</p>
+                  {index < PROCESS_STEPS.length - 1 ? <span aria-hidden="true" className="absolute -right-4 top-5 hidden text-2xl text-[rgb(var(--grad-to))]/45 lg:block">→</span> : null}
+                </div>
+              ))}
+            </div>
+          </HomeScrollReveal>
+        </section>
+
+        <section aria-labelledby="home-entry-title" className="py-12 sm:py-16">
+          <HomeScrollReveal className="max-w-[50rem]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--grad-to))]">Dein Einstieg</p>
+            <h2 id="home-entry-title" className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[rgb(var(--fg))] sm:text-4xl">
+              Lesen, beitragen, mitwirken oder tiefer einsteigen.
             </h2>
             <p className="mt-4 text-base leading-7 text-[rgb(var(--fg))]/70">
-              Die Oberfläche passt sich dem Auftrag an. Quellen, Dossiers, Beteiligung und Prüfregeln bleiben dieselbe gemeinsame Infrastruktur.
+              Alles bleibt Teil desselben Themen-, Dossier- und Beteiligungskosmos – statt in getrennten Kommentarspalten zu verschwinden.
             </p>
-          </div>
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {SEGMENT_CARDS.map((card) => (
-              <SegmentLinkCard key={`${card.eyebrow}-${card.title}`} {...card} />
+          </HomeScrollReveal>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {ENTRY_CARDS.map((card, index) => (
+              <HomeScrollReveal key={card.href} delayMs={index * 70}>
+                <EntryLinkCard {...card} />
+              </HomeScrollReveal>
             ))}
           </div>
         </section>
       </div>
+
+      <Link
+        href="/create"
+        data-testid="home-voxy-launcher"
+        data-requires-privacy-gate="true"
+        aria-label="Mit Voxy ein Thema sortieren"
+        className="group fixed bottom-5 right-5 z-40 flex items-end gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.55)] sm:bottom-7 sm:right-7"
+      >
+        <span className="hidden max-w-[15rem] rounded-[1.15rem] border border-[rgba(112,180,240,0.22)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-sm leading-5 text-[rgb(var(--fg))] backdrop-blur-md transition group-hover:-translate-y-0.5 dark:bg-[rgba(7,24,51,0.94)] sm:block" style={{ boxShadow: "0 18px 46px rgba(4, 30, 68, 0.22)" }}>
+          <strong className="block font-semibold">Hallo Nachbar.</strong>
+          Soll ich dir helfen, dein Thema zu sortieren?
+        </span>
+        <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-[rgba(42,150,255,0.72)] bg-[rgb(var(--surface))] transition group-hover:-translate-y-1" style={{ boxShadow: "0 20px 52px rgba(4, 30, 68, 0.3)" }}>
+          <Image alt="Voxy" className="h-full w-full object-cover" height={64} src={VOXY_MINI_AVATAR.candidates[0]} width={64} />
+        </span>
+      </Link>
     </section>
   );
 }
