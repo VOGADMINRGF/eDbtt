@@ -14,7 +14,7 @@ import type {
   StreamSessionStatus,
 } from "@features/stream/types";
 import { resolveSessionStatus } from "@features/stream/types";
-import { buildQrStudioTargetHref } from "@/features/qr/security";
+import { buildPublicQrTargetHref } from "@/features/qr/security";
 import { enforceStreamHost, enforceStreamIdentityReady, requireCreatorContext } from "../../../utils";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
@@ -26,7 +26,7 @@ async function loadSession(sessionId: string) {
 function normalizeAgendaQrTarget(value: unknown) {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw) return { ok: true as const, value: null };
-  const qrTarget = buildQrStudioTargetHref(raw);
+  const qrTarget = buildPublicQrTargetHref(raw);
   if (!qrTarget) {
     return {
       ok: false as const,
