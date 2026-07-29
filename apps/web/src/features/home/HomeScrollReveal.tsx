@@ -13,7 +13,7 @@ export default function HomeScrollReveal({
   className = "",
   delayMs = 0,
 }: HomeScrollRevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<globalThis.HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function HomeScrollReveal({
     }
 
     setIsVisible(false);
-    const observer = new IntersectionObserver(
+    const observer = new globalThis.IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
         setIsVisible(true);
