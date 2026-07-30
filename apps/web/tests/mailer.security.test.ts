@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderTransactionalMail } from "@/utils/mailRenderer";
+import type { TransactionalMail } from "@/utils/mailRenderer";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -30,11 +30,20 @@ vi.mock("@/lib/server/webRuntimeEnv", () => ({
 
 async function loadMailer() {
   vi.resetModules();
+  const renderer = await import("@/utils/mailRenderer");
+  renderForCurrentRuntime = renderer.renderTransactionalMail;
   return import("@/utils/mailer");
 }
 
+let renderForCurrentRuntime:
+  | typeof import("@/utils/mailRenderer").renderTransactionalMail
+  | null = null;
+
 function buildTestMail(subject = "verify") {
-  return renderTransactionalMail({
+  if (!renderForCurrentRuntime) {
+    throw new Error("mail_test_runtime_not_loaded");
+  }
+  return renderForCurrentRuntime({
     subject,
     preheader: subject,
     title: subject,
@@ -58,16 +67,25 @@ describe("mailer security", () => {
   it("logs only safe metadata when SMTP is unavailable", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { sendMail } = await loadMailer();
+    const mail = buildTestMail("secret-token");
 
     const result = await sendMail({
       to: "member@edebatte.org",
-      subject: "verify",
-      html: '<a href="https://edebatte.test/register/verify-email?token=secret-token">verify</a>',
-      text: "verify https://edebatte.test/register/verify-email?token=secret-token",
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
-    expect(result).toMatchObject({ ok: false, code: "mail_transport_unavailable" });
+    expect(result).toMatchObject({
+      ok: false,
+      status: "failed",
+      code: "mail_transport_unavailable",
+      category: "smtp_unconfigured",
+      retryable: false,
+      attemptedCount: 0,
+      deliveredCount: 0,
+      failedCount: 1,
+    });
     const output = JSON.stringify(warnSpy.mock.calls);
     expect(output).not.toContain("secret-token");
     expect(output).not.toContain("https://edebatte.test/register/verify-email");
@@ -92,9 +110,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: "member@gmail.com",
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "send_password_link",
     });
 
@@ -107,7 +124,7 @@ describe("mailer security", () => {
     warnSpy.mockRestore();
   });
 
-  it("rejects raw unrendered HTML before invoking SMTP", async () => {
+  it("rejects a spoofed transactional marker and unsafe tracking HTML before SMTP", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     mocks.hasSmtpTransportConfig.mockReturnValue(true);
     process.env.NODE_ENV = "production";
@@ -115,13 +132,30 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: "member@gmail.com",
-      subject: "raw",
-      html: '<p><a href="https://attacker.example">raw</a></p>',
+      mail: {
+        subject: "raw",
+        preheader: "raw",
+        locale: "de",
+        text: "raw",
+        html: `<body data-edebatte-mail="transactional">
+          <a href="javascript:alert(1)" target="_self" rel="opener">JavaScript</a>
+          <a href="data:text/html,boom">Data</a>
+          <a href="//attacker.example/path">Protocol relative</a>
+          <img src="https://tracker.example/pixel.gif" width="1" height="1">
+        </body>`,
+      } as TransactionalMail,
+      delivery: "required_delivery",
     });
 
     expect(result).toMatchObject({
       ok: false,
       code: "mail_transport_error",
+      status: "failed",
+      category: "mail_content_invalid",
+      retryable: false,
+      attemptedCount: 0,
+      deliveredCount: 0,
+      failedCount: 1,
     });
     expect(mocks.transportSendMail).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
@@ -140,13 +174,20 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: "member@gmail.com",
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
-    expect(result).toMatchObject({ ok: true, messageId: "msg-gmail" });
+    expect(result).toMatchObject({
+      ok: true,
+      status: "delivered",
+      retryable: false,
+      attemptedCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      messageId: "msg-gmail",
+    });
     expect(mocks.createTransport).toHaveBeenCalledTimes(1);
     expect(mocks.transportSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -166,9 +207,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: "member@company.de",
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
@@ -191,9 +231,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: recipient,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
@@ -214,11 +253,12 @@ describe("mailer security", () => {
     mocks.hasSmtpTransportConfig.mockReturnValue(true);
     process.env.NODE_ENV = "production";
     const { sendMail } = await loadMailer();
+    const mail = buildTestMail();
 
     const result = await sendMail({
       to: recipient,
-      subject: "verify",
-      html: "<p>verify</p>",
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
@@ -242,9 +282,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: recipient,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
@@ -259,11 +298,12 @@ describe("mailer security", () => {
     mocks.hasSmtpTransportConfig.mockReturnValue(true);
     process.env.NODE_ENV = "production";
     const { sendMail } = await loadMailer();
+    const mail = buildTestMail();
 
     const result = await sendMail({
       to: "member@edebatte.test",
-      subject: "verify",
-      html: "<p>verify</p>",
+      mail,
+      delivery: "required_delivery",
       tag: "resend_verification",
     });
 
@@ -286,9 +326,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: ["alice@gmail.com", "bob@company.de"],
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "multi_user_test",
     });
 
@@ -311,9 +350,8 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: "alice@gmail.com, bob@company.de",
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
     });
 
     expect(result.ok).toBe(true);
@@ -332,9 +370,8 @@ describe("mailer security", () => {
 
     await sendMail({
       to: [" Alice@Gmail.com ", "BOB@COMPANY.DE"],
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
     });
 
     expect(mocks.transportSendMail.mock.calls.map(([payload]) => payload.to)).toEqual([
@@ -352,14 +389,18 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: ["alice@gmail.com", "not-an-email", "bob@company.de"],
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
     });
 
     expect(result).toMatchObject({
       ok: false,
       code: "mail_transport_unavailable",
+      category: "recipient_invalid",
+      retryable: false,
+      attemptedCount: 0,
+      deliveredCount: 0,
+      failedCount: 3,
     });
     expect(mocks.transportSendMail).not.toHaveBeenCalled();
     const output = JSON.stringify(warnSpy.mock.calls);
@@ -384,15 +425,20 @@ describe("mailer security", () => {
 
     const result = await sendMail({
       to: ["alice@gmail.com", "bob@company.de"],
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "partial_delivery_test",
     });
 
     expect(result).toMatchObject({
       ok: false,
+      status: "partial",
       code: "mail_transport_error",
+      category: "smtp_response_error",
+      retryable: false,
+      attemptedCount: 2,
+      deliveredCount: 1,
+      failedCount: 1,
       messageId: null,
     });
     expect(mocks.transportSendMail).toHaveBeenCalledTimes(2);
@@ -405,6 +451,113 @@ describe("mailer security", () => {
         failedCount: 1,
       }),
     );
+    warnSpy.mockRestore();
+  });
+
+  it("marks a mixed partial failure retryable when any failed delivery is transient", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    mocks.transportSendMail
+      .mockResolvedValueOnce({ messageId: "msg-delivered" })
+      .mockRejectedValueOnce(
+        Object.assign(new Error("permanent recipient response"), {
+          code: "EENVELOPE",
+          responseCode: 550,
+        }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error("temporary timeout"), {
+          code: "ETIMEDOUT",
+        }),
+      );
+    process.env.NODE_ENV = "production";
+    const { sendMail } = await loadMailer();
+
+    const result = await sendMail({
+      to: ["alice@gmail.com", "bob@company.de", "carol@company.de"],
+      mail: buildTestMail("mixed partial failure"),
+      delivery: "required_delivery",
+      tag: "mixed_partial_delivery_test",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: "partial",
+      category: "smtp_timeout",
+      retryable: true,
+      attemptedCount: 3,
+      deliveredCount: 1,
+      failedCount: 2,
+    });
+    expect(mocks.transportSendMail).toHaveBeenCalledTimes(3);
+    warnSpy.mockRestore();
+  });
+
+  it.each([
+    { responseCode: 451, retryable: true },
+    { responseCode: 550, retryable: false },
+  ])(
+    "classifies complete SMTP response failure $responseCode with retryable=$retryable",
+    async ({ responseCode, retryable }) => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mocks.hasSmtpTransportConfig.mockReturnValue(true);
+      mocks.transportSendMail.mockRejectedValueOnce(
+        Object.assign(new Error("provider response"), {
+          code: "EENVELOPE",
+          responseCode,
+        }),
+      );
+      process.env.NODE_ENV = "production";
+      const { sendMail } = await loadMailer();
+      const mail = buildTestMail(`response-${responseCode}`);
+
+      const result = await sendMail({
+        to: "member@gmail.com",
+        mail,
+        delivery: "required_delivery",
+      });
+
+      expect(result).toMatchObject({
+        ok: false,
+        status: "failed",
+        category: "smtp_response_error",
+        retryable,
+        attemptedCount: 1,
+        deliveredCount: 0,
+        failedCount: 1,
+      });
+      warnSpy.mockRestore();
+    },
+  );
+
+  it("classifies an invalid production envelope as permanent before transport", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    mocks.resolveMailEnvelopeForRuntime.mockImplementationOnce(() => {
+      const error = new Error("invalid envelope");
+      error.name = "CriticalProductionWebRuntimeEnvError";
+      throw error;
+    });
+    process.env.NODE_ENV = "production";
+    const { sendMail } = await loadMailer();
+    const mail = buildTestMail("invalid envelope");
+
+    const result = await sendMail({
+      to: "member@gmail.com",
+      mail,
+      delivery: "required_delivery",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: "failed",
+      category: "sender_configuration_invalid",
+      retryable: false,
+      attemptedCount: 0,
+      deliveredCount: 0,
+      failedCount: 1,
+    });
+    expect(mocks.transportSendMail).not.toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
@@ -423,9 +576,8 @@ describe("mailer security", () => {
 
     await sendMail({
       to: "alice@gmail.com,bob@company.de",
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "metadata_only_test",
     });
 

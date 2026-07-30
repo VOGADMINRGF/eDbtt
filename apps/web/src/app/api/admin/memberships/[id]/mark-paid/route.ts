@@ -97,9 +97,8 @@ export async function POST(
     });
     const mailResult = await sendMail({
       to: activatedUser.email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "best_effort_delivery",
       tag: "membership_activation",
     });
     activationMailQueued = mailResult.ok;

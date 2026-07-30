@@ -207,9 +207,9 @@ export async function POST(req: NextRequest) {
     });
     await sendMail({
       to: adminTo,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "best_effort_delivery",
+      tag: "contribution_admin_notice",
     });
 
     return NextResponse.json({

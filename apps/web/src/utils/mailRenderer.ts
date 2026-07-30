@@ -19,6 +19,8 @@ export type TransactionalMail = {
   locale: MailLocale;
 };
 
+const RENDERED_TRANSACTIONAL_MAILS = new WeakSet<TransactionalMail>();
+
 export type MailContentBlock =
   | { kind: "paragraph"; text: string }
   | { kind: "details"; rows: Array<{ label: string; value: string }> }
@@ -44,13 +46,6 @@ type LegacyTransactionalMailInput = {
   html: LegacyMailHtml;
   text?: string;
   reason?: string;
-};
-
-type EnsuredTransactionalMailInput = Omit<
-  LegacyTransactionalMailInput,
-  "html"
-> & {
-  html: string;
 };
 
 const COPY = {
@@ -189,7 +184,7 @@ export function renderTransactionalMail(input: TransactionalMailInput): Transact
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  return { subject, preheader, html, text, locale };
+  return registerTransactionalMail({ subject, preheader, html, text, locale });
 }
 
 export function renderLegacyTransactionalMail(
@@ -225,7 +220,7 @@ export function renderLegacyTransactionalMail(
   const reason = normalizePlainText(input.reason ?? copy.defaultReason);
   const text = normalizePlainText(input.text ?? htmlFragmentToText(sanitizedFragment));
 
-  return {
+  return registerTransactionalMail({
     subject,
     preheader,
     locale,
@@ -246,22 +241,18 @@ export function renderLegacyTransactionalMail(
       .filter(Boolean)
       .join("\n\n")
       .trim(),
-  };
+  });
 }
 
-export function ensureTransactionalMail(
-  input: EnsuredTransactionalMailInput,
-): TransactionalMail {
-  if (/<body\s+data-edebatte-mail="transactional"/i.test(input.html)) {
-    return {
-      subject: normalizeMailHeader(input.subject),
-      preheader: normalizePlainText(input.preheader ?? input.subject),
-      html: input.html,
-      text: normalizePlainText(input.text ?? htmlFragmentToText(input.html)),
-      locale: resolveMailLocale(input.locale),
-    };
+export function ensureTransactionalMail(input: unknown): TransactionalMail {
+  if (
+    input &&
+    typeof input === "object" &&
+    RENDERED_TRANSACTIONAL_MAILS.has(input as TransactionalMail)
+  ) {
+    return input as TransactionalMail;
   }
-  throw new Error("mail_html_not_transactional");
+  throw new Error("mail_content_provenance_invalid");
 }
 
 function renderBlock(
@@ -395,6 +386,11 @@ function renderLegacyMailInterpolation(value: unknown): string {
     return "";
   }
   return escapeMailHtml(value);
+}
+
+function registerTransactionalMail(mail: TransactionalMail): TransactionalMail {
+  RENDERED_TRANSACTIONAL_MAILS.add(mail);
+  return Object.freeze(mail);
 }
 
 function normalizeLegacyLink(value: string | undefined): string | null {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { createEmailVerificationToken } from "@core/auth/emailVerificationService";
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { buildVerificationMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
@@ -51,12 +51,22 @@ export async function POST(req: NextRequest) {
       displayName: (user.profile?.displayName || user.name) ?? null,
       locale: mailLocaleFromUser(user),
     });
-    await sendMail({
+    const mailResult = await sendMail({
       to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
+      tag: "verification_start",
     });
+    if (!mailResult.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "mail_delivery_failed",
+          delivery: mailFailureMetadata(mailResult),
+        },
+        { status: 503 },
+      );
+    }
   }
 
   return NextResponse.json({ ok: true });

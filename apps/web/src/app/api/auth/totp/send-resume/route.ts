@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildIdentityResumeMail } from "@/utils/emailTemplates";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
@@ -43,12 +43,25 @@ export async function POST(req: NextRequest) {
     locale: mailLocaleFromUser(user),
   });
 
-  await sendMail({
+  const mailResult = await sendMail({
     to: user.email,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "required_delivery",
+    tag: "identity_resume",
   });
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 503 },
+    );
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    delivery: { status: mailResult.status },
+  });
 }

@@ -417,9 +417,8 @@ export async function POST(req: NextRequest) {
 
     const mailResult = await sendMail({
       to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "admin_create_verification",
     });
     if (!mailResult.ok) {
@@ -448,9 +447,8 @@ export async function POST(req: NextRequest) {
     });
     const mailResult = await sendMail({
       to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "admin_create_password_link",
     });
     if (!mailResult.ok) {

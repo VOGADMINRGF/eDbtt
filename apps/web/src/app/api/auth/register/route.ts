@@ -8,7 +8,7 @@ import { createEmailVerificationToken } from "@core/auth/emailVerificationServic
 import { DEFAULT_LOCALE, isSupportedLocale } from "@core/locale/locales";
 import { hashPassword } from "@/utils/password";
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildVerificationMail } from "@/utils/emailTemplates";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
@@ -521,7 +521,11 @@ export async function POST(req: NextRequest) {
 
   let emailVerification:
     | { status: "sent" }
-    | { status: "pending"; reason: "token_create_failed" | "mail_dispatch_failed" | "unknown" } = { status: "sent" };
+    | {
+        status: "pending";
+        reason: "token_create_failed" | "mail_dispatch_failed" | "unknown";
+        delivery?: ReturnType<typeof mailFailureMetadata>;
+      } = { status: "sent" };
   let rawToken: string | null = null;
 
   let piiProfileError: string | null = null;
@@ -642,18 +646,41 @@ export async function POST(req: NextRequest) {
 
       const mailResult = await sendMail({
         to: email,
-        subject: mail.subject,
-        html: mail.html,
-        text: mail.text,
+        mail,
+        delivery: "required_delivery",
+        tag: "registration_verification",
       });
 
       if (!mailResult?.ok) {
-        emailVerification = { status: "pending", reason: "mail_dispatch_failed" };
+        emailVerification = {
+          status: "pending",
+          reason: "mail_dispatch_failed",
+          delivery: mailFailureMetadata(mailResult),
+        };
       }
     } catch (err) {
       emailVerification = { status: "pending", reason: "mail_dispatch_failed" };
       console.error("[register] verification mail dispatch failed", err);
     }
+  }
+
+  if (emailVerification.status === "pending") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          emailVerification.reason === "mail_dispatch_failed"
+            ? "mail_delivery_failed"
+            : "verification_setup_failed",
+        partial: true,
+        accountCreated: true,
+        emailVerification,
+      },
+      {
+        status:
+          emailVerification.reason === "mail_dispatch_failed" ? 502 : 500,
+      },
+    );
   }
 
   return NextResponse.json(

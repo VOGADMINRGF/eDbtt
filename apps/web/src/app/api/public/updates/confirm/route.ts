@@ -171,9 +171,9 @@ export async function GET(req: NextRequest) {
   });
   await sendMail({
     to: email,
-    subject: welcomeMail.subject,
-    html: welcomeMail.html,
-    text: welcomeMail.text,
+    mail: welcomeMail,
+    delivery: "best_effort_delivery",
+    tag: "updates_welcome",
   });
 
   // Info-Mail an updates@
@@ -184,9 +184,9 @@ export async function GET(req: NextRequest) {
     });
     await sendMail({
       to: UPDATES_NOTIFY_TO,
-      subject: internalMail.subject,
-      html: internalMail.html,
-      text: internalMail.text,
+      mail: internalMail,
+      delivery: "best_effort_delivery",
+      tag: "updates_internal_confirmed",
     });
   }
 

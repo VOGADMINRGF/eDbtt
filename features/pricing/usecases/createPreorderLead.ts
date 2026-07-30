@@ -45,7 +45,7 @@ export type CreatePreorderLeadDeps = {
     accountUrl?: string;
     locale?: string;
   }) => ConfirmationMail;
-  sendMail?: (payload: { to: string; subject: string; html: string; text: string }) => Promise<void>;
+  sendMail?: (payload: { to: string; mail: ConfirmationMail }) => Promise<void>;
 };
 
 export type CreatePreorderLeadOptions = {
@@ -330,9 +330,7 @@ export async function createPreorderLead(
 
       await deps.sendMail({
         to: contactEmail,
-        subject: mail.subject,
-        html: mail.html,
-        text: mail.text,
+        mail,
       });
       mailSent = true;
     } catch {

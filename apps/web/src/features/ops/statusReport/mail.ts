@@ -103,10 +103,10 @@ export function buildStatusReportSubject(params: {
   return `${prefix}Ops Statusbericht | ${statusLabel(params.summary.overallStatus)} | ${datePart} | Slot ${params.summary.slot}`.trim();
 }
 
-export function renderStatusReportMail(summary: StatusReportSummary): {
-  text: string;
-  html: string;
-} {
+export function renderStatusReportMail(
+  summary: StatusReportSummary,
+  subject = `Ops Statusbericht: ${statusLabel(summary.overallStatus)}`,
+) {
   const textLines: string[] = [];
   textLines.push(`Ops Statusbericht: ${statusLabel(summary.overallStatus)}`);
   textLines.push(`Slot: ${summary.slot}`);
@@ -159,12 +159,12 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
   </div>`;
 
   const rendered = renderLegacyTransactionalMail({
-    subject: `Ops Statusbericht: ${statusLabel(summary.overallStatus)}`,
+    subject,
     preheader: summarizeExecutiveStatus(summary),
     html,
     text: textLines.join("\n"),
     reason: "der interne eDebatte-Statusbericht für diesen Zeitslot erzeugt wurde.",
   });
 
-  return { text: rendered.text, html: rendered.html };
+  return rendered;
 }

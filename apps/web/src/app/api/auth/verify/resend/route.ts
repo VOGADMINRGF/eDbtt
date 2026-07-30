@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getCol } from "@core/db/triMongo";
 import { piiCol } from "@core/db/triMongo";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { buildVerificationMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
@@ -47,13 +47,26 @@ export async function POST(req: NextRequest) {
     locale: mailLocaleFromUser(user),
   });
 
-  await sendMail({
+  const mailResult = await sendMail({
     to: user.email,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "required_delivery",
     tag: "verification_resend",
   });
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 503 },
+    );
+  }
 
-  return NextResponse.json({ ok: true, verifyUrl });
+  return NextResponse.json({
+    ok: true,
+    verifyUrl,
+    delivery: { status: mailResult.status },
+  });
 }

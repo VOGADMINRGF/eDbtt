@@ -63,9 +63,8 @@ export async function sendAlertEmail({
   });
   return sendCanonicalMail({
     to,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "best_effort_delivery",
     tag: "admin_alert",
   });
 }

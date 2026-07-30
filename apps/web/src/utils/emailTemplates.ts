@@ -599,7 +599,7 @@ export function buildMembershipConfirmationMail({
   locale,
 }: MembershipMailInput) {
   const isEnglish = resolveMailLocale(locale) === "en";
-  const amount = formatEuro(monthlyAmount);
+  const amount = formatEuro(monthlyAmount, locale);
   return renderTransactionalMail({
     locale,
     subject: isEnglish
@@ -695,8 +695,15 @@ export function buildMembershipActivationMail({
   });
 }
 
-function formatEuro(value: number) {
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(value);
+function formatEuro(value: number, locale?: string | null) {
+  return new Intl.NumberFormat(
+    resolveMailLocale(locale) === "en" ? "en-US" : "de-DE",
+    {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    },
+  ).format(value);
 }
 
 function formatIban(value?: string | null) {
@@ -713,14 +720,8 @@ type EdebatePreorderMailInput = {
   locale?: string;
 };
 
-const EURO_EDEB = new Intl.NumberFormat("de-DE", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 2,
-});
-
-function formatEuroEdeb(amount: number) {
-  return EURO_EDEB.format(amount);
+function formatEuroEdeb(amount: number, locale?: string | null) {
+  return formatEuro(amount, locale);
 }
 
 function formatIbanEdeb(iban: string) {
@@ -748,7 +749,7 @@ export function buildEdebatePreorderMail({
         ? isEnglish
           ? "Free"
           : "Kostenfrei"
-        : formatEuroEdeb(monthlyPrice)
+        : formatEuroEdeb(monthlyPrice, locale)
       : isEnglish
         ? "Price follows"
         : "Preis folgt";
@@ -861,7 +862,7 @@ export function buildEdebatePreorderPledgeUserMail(args: {
   locale?: string | null;
 }) {
   if (resolveMailLocale(args.locale) === "en") {
-    const amount = formatEuro(args.amount);
+    const amount = formatEuro(args.amount, args.locale);
     return renderTransactionalMail({
       locale: args.locale,
       subject: `Payment pledge: ${args.planLabel}`,
@@ -893,7 +894,7 @@ export function buildEdebatePreorderPledgeUserMail(args: {
   }
 
   const greeting = args.displayName ? `Hallo ${args.displayName},` : "Hallo,";
-  const amount = formatEuro(args.amount);
+  const amount = formatEuro(args.amount, args.locale);
   const bankIban = formatIban(args.bank.iban);
   const bankBic = args.bank.bic ?? "";
   const bankName = args.bank.bankName ?? "";
@@ -979,7 +980,7 @@ export function buildEdebatePreorderPledgeAdminMail(args: {
             { label: "User", value: `${args.displayName || "—"} (${args.email})` },
             { label: "User ID", value: args.userId },
             { label: "Package", value: args.planLabel },
-            { label: "Amount", value: formatEuro(args.amount) },
+            { label: "Amount", value: formatEuro(args.amount, args.locale) },
             { label: "Reference", value: args.reference },
           ],
         },
@@ -988,7 +989,7 @@ export function buildEdebatePreorderPledgeAdminMail(args: {
     });
   }
 
-  const amount = formatEuro(args.amount);
+  const amount = formatEuro(args.amount, args.locale);
   const bankIban = formatIban(args.bank.iban);
   const bankBic = args.bank.bic ?? "";
   const bankName = args.bank.bankName ?? "";
@@ -1107,7 +1108,7 @@ export function buildMembershipApplyUserMail(args: {
           rows: [
             {
               label: "Contribution",
-              value: `${formatEuro(args.amountPerPeriod)} (${rhythmLabel})`,
+              value: `${formatEuro(args.amountPerPeriod, args.locale)} (${rhythmLabel})`,
             },
             { label: "Household", value: `${args.householdSize} person(s)` },
             { label: "Application ID", value: args.membershipId },
@@ -1166,7 +1167,7 @@ export function buildMembershipApplyUserMail(args: {
   const greeting = `Hallo ${displayName || "Mitglied"}`;
   const rhythmLabel =
     rhythm === "monthly" ? "monatlich" : rhythm === "yearly" ? "jährlich" : "einmalig";
-  const amount = formatEuro(amountPerPeriod);
+  const amount = formatEuro(amountPerPeriod, args.locale);
   const bankRecipient = bankDetails?.recipient ?? paymentInfo?.bankRecipient ?? "eDebatte";
   const bankIban =
     bankDetails?.iban ??
@@ -1214,7 +1215,7 @@ export function buildMembershipApplyUserMail(args: {
   const hasEdebate = Boolean(edebatte?.enabled && edebatte.finalPricePerMonth);
   const edebatteDiscount = edebatte?.discountPercent ? ` (inkl. ${edebatte.discountPercent}% eDebatte-Rabatt)` : "";
   const edebatteLine = hasEdebate
-    ? `${edebatte?.planKey || "unbekannt"} ${formatEuro(edebatte?.finalPricePerMonth || 0)} ${
+    ? `${edebatte?.planKey || "unbekannt"} ${formatEuro(edebatte?.finalPricePerMonth || 0, args.locale)} ${
         edebatte?.billingMode || "monatlich"
       }${edebatteDiscount}`
     : "";
@@ -1445,7 +1446,7 @@ export function buildMembershipApplyAdminMail(args: {
             { label: "Email", value: args.email },
             {
               label: "Contribution",
-              value: `${formatEuro(args.amountPerPeriod)} (${args.rhythm})`,
+              value: `${formatEuro(args.amountPerPeriod, args.locale)} (${args.rhythm})`,
             },
             { label: "Household", value: String(args.householdSize) },
             ...(args.paymentMethod
@@ -1486,7 +1487,7 @@ export function buildMembershipApplyAdminMail(args: {
       <li>ID: ${args.membershipId}</li>
       <li>User: ${args.userId}</li>
       <li>E-Mail: ${args.email}</li>
-      <li>Betrag: ${formatEuro(args.amountPerPeriod)} (${args.rhythm})</li>
+      <li>Betrag: ${formatEuro(args.amountPerPeriod, args.locale)} (${args.rhythm})</li>
       <li>Haushalt: ${args.householdSize}</li>
       ${optionalRows}
     </ul>
@@ -1495,7 +1496,7 @@ export function buildMembershipApplyAdminMail(args: {
 - ID: ${args.membershipId}
 - User: ${args.userId}
 - E-Mail: ${args.email}
-- Betrag: ${formatEuro(args.amountPerPeriod)} (${args.rhythm})
+- Betrag: ${formatEuro(args.amountPerPeriod, args.locale)} (${args.rhythm})
 - Haushalt: ${args.householdSize}
 ${args.paymentMethod ? `- Zahlungsweg: ${args.paymentMethod}` : ""}
 ${args.paymentReference ? `- Verwendungszweck: ${args.paymentReference}` : ""}
@@ -1613,7 +1614,7 @@ export function buildMembershipReminderMail(
         {
           kind: "details",
           rows: [
-            { label: "Contribution", value: formatEuro(args.amountPerPeriod) },
+            { label: "Contribution", value: formatEuro(args.amountPerPeriod, args.locale) },
             { label: "Household", value: String(args.householdSize) },
             {
               label: "Recipient",
@@ -1649,7 +1650,7 @@ export function buildMembershipReminderMail(
     level === 3
       ? "Letzte Erinnerung – eDebatte-Mitgliedsantrag"
       : "Erinnerung – eDebatte-Mitgliedsbeitrag";
-  const amount = formatEuro(args.amountPerPeriod);
+  const amount = formatEuro(args.amountPerPeriod, args.locale);
   const rhythmLabel =
     args.rhythm === "once" ? "einmalig" : args.rhythm === "yearly" ? "jährlich" : "monatlich";
   const bankRecipient = args.paymentInfo?.bankRecipient ?? "eDebatte";

@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       return errorResponse("totp_not_setup", 400);
     }
 
-    const { expiresAt } = await issueTwoFactorChallenge({
+    const challengeResult = await issueTwoFactorChallenge({
       userId: existing.userId,
       method,
       emailForCode: credentials?.email || user.email,
@@ -82,6 +82,17 @@ export async function POST(req: NextRequest) {
       redirectTo: requestedRedirect ?? existing.redirectTo ?? null,
       locale: mailLocaleFromUser(user),
     });
+    if (!challengeResult.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: challengeResult.error,
+          delivery: challengeResult.delivery,
+        },
+        { status: 503 },
+      );
+    }
+    const { expiresAt } = challengeResult;
 
     await challenges.updateOne(
       { _id: existing._id },

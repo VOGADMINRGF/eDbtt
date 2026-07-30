@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { evaluateContactSpam } from "@/lib/spam/contactSpam";
 import { verifyHumanChallenge } from "@/lib/spam/humanChallenge";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildSupportTicketReceivedMail } from "@/utils/emailTemplates";
 import { renderTransactionalMail } from "@/utils/mailRenderer";
 import {
@@ -31,6 +31,7 @@ const ContactSchema = z.object({
   phone: z.string().max(120).optional(),
   subject: z.string().max(200).optional(),
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH + 500),
+  locale: z.string().trim().max(12).optional(),
   newsletterOptIn: z.string().optional(),
   website: z.string().optional(),
   hp_contact: z.string().optional(),
@@ -105,7 +106,8 @@ function logRequest(data: {
   durationMs: number | null;
   urlCount?: number;
   honeypot?: boolean;
-  messagePreview?: string;
+  messageLength?: number;
+  deliveryCategory?: string;
 }) {
   try {
     console.info(
@@ -169,6 +171,7 @@ export async function POST(req: NextRequest) {
     phone,
     subject,
     message,
+    locale,
     newsletterOptIn,
     website,
     hp_contact,
@@ -380,24 +383,48 @@ export async function POST(req: NextRequest) {
       reason: "eine Kontaktanfrage intern bearbeitet werden muss.",
     });
 
-    await sendMail({
+    const inboxDelivery = await sendMail({
       to,
-      subject: internalMail.subject,
-      html: internalMail.html,
-      text: internalMail.text,
+      mail: internalMail,
+      delivery: "required_delivery",
+      tag: "contact_inbox",
     });
+    if (!inboxDelivery.ok) {
+      logRequest({
+        classification,
+        spamScore,
+        reasons,
+        ipHash,
+        durationMs,
+        urlCount: spamEvaluation.urlCount,
+        honeypot: Boolean(honeypotValue),
+        messageLength: cleanMessage.length,
+        deliveryCategory: inboxDelivery.category,
+      });
+      if (wantsJson(req)) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "mail_delivery_failed",
+            delivery: mailFailureMetadata(inboxDelivery),
+          },
+          { status: 502, headers: rateLimitHeaders(ipRate) },
+        );
+      }
+      return redirect(req, "error=delivery", rateLimitHeaders(ipRate));
+    }
 
     const acknowledgement = buildSupportTicketReceivedMail({
       displayName: cleanName,
       category: cleanCategory,
       requestSubject: safeSubject,
+      locale,
     });
 
     await sendMail({
       to: cleanEmail,
-      subject: acknowledgement.subject,
-      html: acknowledgement.html,
-      text: acknowledgement.text,
+      mail: acknowledgement,
+      delivery: "best_effort_delivery",
       tag: "support_ticket_received",
     });
   }
@@ -410,10 +437,7 @@ export async function POST(req: NextRequest) {
     durationMs,
     urlCount: spamEvaluation.urlCount,
     honeypot: Boolean(honeypotValue),
-    messagePreview:
-      classification === "spam"
-        ? cleanMessage.slice(0, 200)
-        : cleanMessage.slice(0, 400),
+    messageLength: cleanMessage.length,
   });
 
   const payload = { ok: true, classification, spamScore, reasons };

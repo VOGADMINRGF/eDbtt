@@ -3,6 +3,7 @@ import { coreCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { buildMembershipReminderMail } from "@/utils/emailTemplates";
 import { sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 async function run() {
   if (process.env.VOG_DUNNING_ENABLED === "0") {
@@ -47,12 +48,68 @@ async function run() {
 
     const user = await Users.findOne(
       { _id: app.coreUserId },
-      { projection: { email: 1, name: 1 } },
+      { projection: { email: 1, name: 1, profile: 1, settings: 1 } },
     );
+
+    if (!user?.email || !sendLevel) {
+      await Applications.updateOne(
+        { _id: app._id },
+        {
+          $set: {
+            lastReminderDeliveryStatus: "failed",
+            lastReminderDeliveryCategory: "recipient_invalid",
+            lastReminderDeliveryRetryable: false,
+            lastReminderDeliveryAttemptedAt: now,
+            updatedAt: now,
+          },
+        },
+      );
+      continue;
+    }
+
+    try {
+      const mail = buildMembershipReminderMail(sendLevel, {
+        displayName: user.name ?? "Mitglied",
+        amountPerPeriod: app.amountPerPeriod,
+        rhythm: app.rhythm,
+        householdSize: app.householdSize,
+        paymentInfo: app.paymentInfo,
+        reference: app.paymentReference ?? "",
+        locale: mailLocaleFromUser(user),
+      });
+      const mailResult = await sendMail({
+        to: user.email,
+        mail,
+        delivery: "required_delivery",
+        tag: "membership_dunning_reminder",
+      });
+      if (!mailResult.ok) {
+        await Applications.updateOne(
+          { _id: app._id },
+          {
+            $set: {
+              lastReminderDeliveryStatus: mailResult.status,
+              lastReminderDeliveryCategory: mailResult.category,
+              lastReminderDeliveryRetryable: mailResult.retryable,
+              lastReminderDeliveryAttemptedAt: now,
+              updatedAt: now,
+            },
+          },
+        );
+        continue;
+      }
+    } catch (err) {
+      console.error("[dunning] mail execution failed", err);
+      continue;
+    }
 
     const update: any = {
       dunningLevel: nextLevel,
       lastReminderSentAt: now,
+      lastReminderDeliveryStatus: "delivered",
+      lastReminderDeliveryCategory: null,
+      lastReminderDeliveryRetryable: false,
+      lastReminderDeliveryAttemptedAt: now,
       updatedAt: now,
     };
     if (newStatus) {
@@ -62,27 +119,6 @@ async function run() {
     }
 
     await Applications.updateOne({ _id: app._id }, { $set: update });
-
-    if (user?.email && sendLevel) {
-      try {
-        const mail = buildMembershipReminderMail(sendLevel, {
-          displayName: user.name ?? "Mitglied",
-          amountPerPeriod: app.amountPerPeriod,
-          rhythm: app.rhythm,
-          householdSize: app.householdSize,
-          paymentInfo: app.paymentInfo,
-          reference: app.paymentReference ?? "",
-        });
-        await sendMail({
-          to: user.email,
-          subject: mail.subject,
-          html: mail.html,
-          text: mail.text,
-        });
-      } catch (err) {
-        console.error("[dunning] mail failed", err);
-      }
-    }
 
     if (newStatus) {
       await Users.updateOne(

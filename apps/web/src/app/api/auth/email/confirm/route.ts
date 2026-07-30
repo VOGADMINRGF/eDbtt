@@ -73,9 +73,9 @@ export async function POST(req: NextRequest) {
     });
     await sendMail({
       to: String(user.email),
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "best_effort_delivery",
+      tag: "account_welcome",
     });
   }
 

@@ -128,10 +128,13 @@ Mailblöcke umgestellt:
 - Admin-Alerts.
 
 Die freie Kompatibilitätsfunktion `utils/email.ts::sendMail` wurde entfernt.
-`ensureTransactionalMail` akzeptiert an der Transportgrenze nur noch HTML mit
-dem kanonischen Transactional-Frame-Marker und lehnt beliebiges Roh-HTML mit
-`mail_html_not_transactional` ab. Einen produktiven `sendEmail`-Aufrufer gibt
-es im Repository nicht.
+`ensureTransactionalMail` akzeptiert an der Transportgrenze nur noch exakt das
+Objekt, das derselbe Runtime-Modulkontext zuvor über
+`renderTransactionalMail` oder `renderLegacyTransactionalMail` erzeugt und
+eingefroren hat. Ein frei gesetzter Stringmarker im HTML ist kein
+Vertrauenssignal mehr. Nachbauten und nachträgliche Mutationen werden mit
+`mail_content_provenance_invalid` fail-closed abgelehnt. Einen produktiven
+`sendEmail`-Aufrufer gibt es im Repository nicht.
 
 Synthetisch geprüft wurden fremdes HTTPS, `mailto`, dynamisches Nutzer-`<a>`,
 dynamisches Nutzer-`style`, `javascript:`, `data:`, protocol-relative URLs
@@ -168,6 +171,90 @@ Versand. Teilfehler werden nach dem Versuch aller getrennten Zustellungen als
 Gesamtfehler mit ausschließlich aggregierten Zähler-Metadaten gemeldet.
 Mehrfachempfänger-Logs enthalten weder Adressen noch Empfängerlisten,
 Nachrichteninhalte oder Provider-Fehlertexte.
+
+## Review-Follow-up: Delivery-, Fehler-, Locale- und Logging-Contract
+
+### Formale Delivery-Klassifikation
+
+Jeder produktive Aufruf der zentralen Transportgrenze muss jetzt
+`required_delivery` oder `best_effort_delivery` deklarieren. Es gibt keinen
+impliziten Default.
+
+| Familie / reale Aufrufer | Contract | Verhalten bei `{ ok: false }` |
+| --- | --- | --- |
+| Login-2FA, Setup-/Resend-Code, Select-Method, Identity-Code/-Resume | `required_delivery` | kein Success, kein neuer nutzbarer Challenge-/Cookie-Zustand; HTTP 503 mit Delivery-Metadaten |
+| Registrierung, Verify-Start/-Resend, Passwort-Reset, Admin-Verifikation/-Passwortlink | `required_delivery` | kein falsches Success; bereits angelegtes Konto wird als persistierter Teilzustand ausgewiesen |
+| Organisations-Einladung/-Zugriff | `required_delivery` | Membership bleibt persistiert, Delivery-Status wird gespeichert, HTTP 502 `partial`; ein fehlgeschlagener New-User-Invite bleibt bei einem Delivery-Retry `invited` |
+| Updates Double-Opt-in | `required_delivery` | gespeicherter Pending-Opt-in wird als Teilzustand ausgewiesen; keine DOI-Erfolgsmeldung |
+| Kontakt-Inbox | `required_delivery` | keine Eingangs-Success-Antwort und keine nachgelagerte Bestätigung; HTTP 502 |
+| Institutioneller Angebots-/Download-Link an anfragende Person | `required_delivery` | kein Download-Mail-Success; interne Folgemail wird nicht ausgelöst |
+| Membership-Antragsbestätigung, Pledge-Zahlungsanweisung, Household-Invite und Dunning | `required_delivery` | persistierte Fachmutation bleibt erhalten und wird explizit als `partial` gemeldet; Dunning-Level/Auto-Cancel werden erst nach erfolgreicher Reminder-Zustellung fortgeschrieben |
+| Account Self-Service | `required_delivery` | Fachmutation wird nicht zurückgerollt; Delivery-Status wird gespeichert und HTTP 502 `partial` geliefert |
+| Welcome-, Paketaktivierungs-, Mark-paid-Aktivierungs-, Beitrags-, Membership-Admin-, Pledge-Admin-, Updates-Info- und Preorder-Bestätigungsmails | `best_effort_delivery` | fachlich unabhängige Mutation/Antwort bleibt erfolgreich; vorhandene Aufrufer exponieren oder speichern den Zustellstatus, wo er für die Oberfläche relevant ist |
+| Admin-Alerts | `best_effort_delivery` | Alert-Erzeugung blockiert keine Fachmutation; explizite Notify-/Test-Routen melden den Zustellfehler dennoch als HTTP 502 |
+| Ops-Statusreport | `best_effort_delivery` | kein App-Runtime-Blocker; der konkrete Reporting-Run wird bei Zustellfehler als fehlgeschlagen markiert |
+
+Required-Delivery-Aufrufer prüfen das Resultat direkt. Es existiert kein
+Catch-Block mehr, der ein aufgelöstes `{ ok: false }` fälschlich als Erfolg
+behandelt. Bei bereits persistierten Fachmutationen enthalten Antworten den
+Teilzustand und die aggregierten Delivery-Metadaten; es wird keine persistierte
+Konto-, Membership-, Pledge-, Opt-in- oder Self-Service-Mutation wegen eines
+Transportfehlers zurückgerollt. Technische 2FA-Challenges werden dagegen erst
+nach erfolgreichem Versand aktiviert oder bei Fehlschlag superseded.
+
+### Zentraler Fehlervertrag
+
+`SendMailResult` liefert für jede Zustellung:
+
+- `status`: `delivered`, `failed` oder `partial`,
+- `category`,
+- `retryable`,
+- `attemptedCount`, `deliveredCount` und `failedCount`,
+- keine Empfängerliste und keine Nachrichteninhalte.
+
+Permanente Empfänger-, Placeholder-/Allowlist-, Inhalts-Provenienz-,
+Envelope-, SMTP-Unconfigured- und SMTP-Auth-Fehler sind nicht retryable.
+Connection-, Timeout- und unbekannte Transportfehler sind retryable.
+SMTP-Responsefehler sind nur für 4xx-Providerantworten retryable; 5xx ist
+permanent. Bei getrennter Mehrfachempfängerzustellung bildet `partial` den
+aggregierten Teilfehler ab.
+
+### Runtime-Provenienz gegen Marker-Spoofing
+
+Ein Angreifer kann die Transportgrenze nicht mehr durch
+`data-edebatte-mail="transactional"` umgehen. Die Runtime-Provenienz liegt in
+einem nicht exportierten `WeakSet`; nur originale, eingefrorene
+Renderer-Resultate werden akzeptiert. Der Negativtest kombiniert den
+gefälschten Marker mit `javascript:`, `data:`, protocol-relative URL,
+Tracking-`img` und manipuliertem `target`/`rel` und bestätigt, dass vor jedem
+Transportversuch permanent mit `mail_content_invalid` abgebrochen wird. Eine
+echte Renderer-Mail passiert denselben Contract.
+
+### Locale und Zahlenformat
+
+- Organisationszugang/-Invite: vorhandene User-Locale, bei neuem User
+  kanonischer DE-Fallback.
+- Paketaktivierung: persistierte User-Locale, sonst DE.
+- Kontaktbestätigung: validierte Request-Locale, sonst DE.
+- Auth-, Membership-, Pledge- und Dunning-Mails: persistierte User-Locale,
+  soweit ein Userkontext existiert; andernfalls DE.
+
+Echte Routentests führen Organisationszugang, Paketaktivierung und
+Kontaktbestätigung mit englischer Locale aus und prüfen den tatsächlich
+gerenderten englischen Betreff, Text und `lang="en"`-Frame. Eurobeträge werden
+an dieselbe aufgelöste Mail-Locale gekoppelt (`5,00 €` in DE, `€5.00` in EN);
+damit kann ein englischer Mailtext nicht mehr unbemerkt deutsches
+Zahlenformat enthalten.
+
+### Inhaltsfreies Logging
+
+Der Kontaktpfad protokolliert nur Klassifikation, Hashes und numerische
+Metadaten wie `messageLength`; `messagePreview` und der Freitext wurden
+entfernt. Der Test verwendet einen eindeutigen vertraulichen Freitext und
+weist nach, dass er in keinem Logargument erscheint. Der zentrale Mailer
+protokolliert bei Einzelzustellung nur maskierte Adressen, bei Listen nur
+`[multiple]`, Zähler und Fehlerkategorie; Provider-Fehlertexte,
+Empfängerlisten, Betreff und Body bleiben ausgeschlossen.
 
 In Production schlägt die Konfiguration fehl, wenn From oder Reply-To fehlen,
 abweichen oder eine VoiceOpenGov-, No-Reply-, Localhost-, `.invalid`- oder
@@ -240,6 +327,18 @@ Erfolgreich:
   - 17 Testdateien, 83 Tests
 - fokussierte Admin-/Mail-Regression
   - 8 Testdateien, 64 Tests
+- Review-Follow-up Required-/Best-effort-, Provenance-, Fehler-, Locale- und
+  Logging-Contract:
+  - fokussierte Mail-/Runtime-/Auth-/Membership-/Support-/Admin-/Preorder-/
+    Statusreport-Matrix: 22 Testdateien, 139 Tests
+  - davon Mail-Communication, Mailer-Security und Runtime-ENV:
+    3 Testdateien, 48 Tests
+  - Web-PR-Critical-Guardrails: 17 Testdateien, 71 Tests
+  - Production-Guardrails: 12 Testdateien, 36 Tests
+  - cachefreier Web-Typecheck und `pnpm -w run typecheck`: grün
+  - Root-Lint: grün
+  - vollständiger Web-Build ohne Mail-/SMTP-ENV: 322 von 322 statischen Seiten
+    generiert
 - `pnpm install --frozen-lockfile --offline --ignore-scripts`
 - `git diff --check`
 

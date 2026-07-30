@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { piiCol } from "@core/db/db/triMongo";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { renderTransactionalMail } from "@/utils/mailRenderer";
 import { verifyPassword } from "@/utils/password";
 import { clearSession, readSession } from "@/utils/session";
@@ -127,20 +127,53 @@ export async function POST(req: NextRequest) {
     reason: "eine Account-Self-Service-Anfrage intern geprüft werden muss.",
   });
 
-  await sendMail({
+  const mailResult = await sendMail({
     to,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "required_delivery",
+    tag: "account_self_service",
   });
+
+  await Users.updateOne(
+    { _id: oid },
+    {
+      $set: {
+        "selfService.lastDeliveryStatus": mailResult.status,
+        "selfService.lastDeliveryAt": new Date(),
+        "selfService.lastDeliveryRetryable": mailResult.retryable,
+        "selfService.lastDeliveryCategory": mailResult.category,
+        updatedAt: new Date(),
+      },
+    },
+  );
 
   if (action === "delete_account") {
     await clearSession();
   }
 
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        mutationPersisted: true,
+        action,
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 502 },
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     action,
+    delivery: {
+      status: mailResult.status,
+      attemptedCount: mailResult.attemptedCount,
+      deliveredCount: mailResult.deliveredCount,
+      failedCount: mailResult.failedCount,
+    },
     next: action === "delete_account" ? "/logout" : "/account",
   });
 }

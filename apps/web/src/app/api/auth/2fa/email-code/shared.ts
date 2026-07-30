@@ -4,7 +4,7 @@ import { coreCol, piiCol } from "@core/db/db/triMongo";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 import { isDemoUser } from "@/lib/demo/demoAccess";
 import {
@@ -135,21 +135,43 @@ export async function issueSetupEmailCode(params: {
 
   const challenges = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
   const { insertedId } = await challenges.insertOne(challenge);
-  await setPendingTwoFactorCookie(String(insertedId));
 
-  if (email) {
-    const mail = buildTwoFactorCodeMail({
-      code,
-      locale: mailLocaleFromUser(user),
-    });
-    await sendMail({
-      to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+  if (!email) {
+    await challenges.updateOne(
+      { _id: insertedId },
+      { $set: { status: "superseded", supersededAt: new Date() } },
+    );
+    return {
+      ok: false as const,
+      error: "email_unavailable",
+      status: 400,
+    };
   }
 
+  const mail = buildTwoFactorCodeMail({
+    code,
+    locale: mailLocaleFromUser(user),
+  });
+  const mailResult = await sendMail({
+    to: email,
+    mail,
+    delivery: "required_delivery",
+    tag: "two_factor_setup_code",
+  });
+  if (!mailResult.ok) {
+    await challenges.updateOne(
+      { _id: insertedId },
+      { $set: { status: "superseded", supersededAt: new Date() } },
+    );
+    return {
+      ok: false as const,
+      error: "mail_delivery_failed",
+      status: 503,
+      delivery: mailFailureMetadata(mailResult),
+    };
+  }
+
+  await setPendingTwoFactorCookie(String(insertedId));
   return {
     ok: true as const,
     expiresAt,

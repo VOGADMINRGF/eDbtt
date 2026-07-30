@@ -3,7 +3,11 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
-import { renderTransactionalMail } from "@/utils/mailRenderer";
+import {
+  mailLocaleFromUser,
+  renderTransactionalMail,
+  resolveMailLocale,
+} from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +51,17 @@ export async function POST(req: NextRequest) {
   const userObjectId = new ObjectId(userId);
   const existing = await Users.findOne(
     { _id: userObjectId },
-    { projection: { email: 1, profile: 1, displayName: 1, firstName: 1, lastName: 1, edebatte: 1 } },
+    {
+      projection: {
+        email: 1,
+        profile: 1,
+        settings: 1,
+        displayName: 1,
+        firstName: 1,
+        lastName: 1,
+        edebatte: 1,
+      },
+    },
   );
 
   const currentPackage = (existing as any)?.edebatte?.package;
@@ -81,33 +95,52 @@ export async function POST(req: NextRequest) {
     "";
 
   const isSame = currentPackage === normalizedPackage && currentStatus === "active";
+  let activationMailDelivered: boolean | null = null;
   if (to && !isSame) {
-    const subject = "eDebatte Basis aktiviert";
-    const greeting = displayName ? `Hallo ${displayName},` : "Hallo,";
+    const locale = mailLocaleFromUser(existing);
+    const isEnglish = resolveMailLocale(locale) === "en";
+    const subject = isEnglish
+      ? "eDebatte Basic activated"
+      : "eDebatte Basis aktiviert";
+    const greeting = displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,";
     const mail = renderTransactionalMail({
+      locale,
       subject,
-      preheader: "Dein eDebatte-Basispaket ist aktiv.",
-      title: "eDebatte Basis aktiviert",
+      preheader: isEnglish
+        ? "Your eDebatte Basic package is active."
+        : "Dein eDebatte-Basispaket ist aktiv.",
+      title: isEnglish ? "eDebatte Basic activated" : "eDebatte Basis aktiviert",
       greeting,
       blocks: [
         {
           kind: "paragraph",
-          text: "Dein Paket eDebatte Basis ist jetzt aktiv.",
+          text: isEnglish
+            ? "Your eDebatte Basic package is now active."
+            : "Dein Paket eDebatte Basis ist jetzt aktiv.",
         },
         {
           kind: "paragraph",
-          text: "Du kannst sofort swipen, lesen und dich in Themen einbringen.",
+          text: isEnglish
+            ? "You can start swiping, reading and contributing to topics right away."
+            : "Du kannst sofort swipen, lesen und dich in Themen einbringen.",
         },
       ],
-      reason: "dein eDebatte-Basispaket aktiviert wurde.",
+      reason: isEnglish
+        ? "your eDebatte Basic package was activated."
+        : "dein eDebatte-Basispaket aktiviert wurde.",
     });
-    await sendMail({
+    const mailResult = await sendMail({
       to,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "best_effort_delivery",
+      tag: "package_activation",
     });
+    activationMailDelivered = mailResult.ok;
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, activationMailDelivered });
 }

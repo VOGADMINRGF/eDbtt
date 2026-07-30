@@ -5,7 +5,7 @@ import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
 import { buildPasswordResetMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
@@ -32,13 +32,22 @@ export async function POST(req: Request) {
     locale: mailLocaleFromUser(user),
   });
 
-  await sendMail({
+  const mailResult = await sendMail({
     to: email_lc,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "required_delivery",
     tag: "password_reset",
   });
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

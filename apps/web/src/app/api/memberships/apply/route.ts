@@ -5,7 +5,11 @@ import { z } from "zod";
 import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles";
 import { safeRandomId } from "@core/utils/random";
 import crypto from "crypto";
-import { sendMail } from "@/utils/mailer";
+import {
+  mailFailureMetadata,
+  sendMail,
+  type SendMailResult,
+} from "@/utils/mailer";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
@@ -404,6 +408,106 @@ export async function POST(req: NextRequest) {
   );
   let invitesCreated = 0;
   const inviteTokens: { email: string; token: string; name?: string | null }[] = [];
+
+  // Mails
+  const payerMail = user.email;
+  const payerName = user.name || memberRefs.find((m) => m.role === "primary")?.givenName || "Mitglied";
+  const origin = publicOrigin();
+  const base = origin.replace(/\/$/, "");
+  const accountUrl = `${base}/account/payment`;
+  const shareEnabled = Boolean(
+    (user as any)?.profile?.publicFlags?.showMembership ?? (user as any)?.publicFlags?.showMembership,
+  );
+  const shareId = (user as any)?.profile?.publicShareId;
+  const profileUrl = shareEnabled && shareId ? `${base}/profile/${shareId}` : undefined;
+
+  let payerDelivery: SendMailResult | null = null;
+  if (!payerMail) {
+    await MembersCol.updateOne(
+      { _id: application._id },
+      {
+        $set: {
+          mailDeliveryStatus: "failed",
+          mailDeliveryRetryable: false,
+          mailDeliveryCategory: "recipient_invalid",
+          mailDeliveryAttemptedAt: new Date(),
+        },
+      },
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "recipient_missing",
+        partial: true,
+        applicationPersisted: true,
+        membershipId: String(application._id),
+        delivery: {
+          status: "failed",
+          category: "recipient_invalid",
+          retryable: false,
+          attemptedCount: 0,
+          deliveredCount: 0,
+          failedCount: 1,
+        },
+      },
+      { status: 409 },
+    );
+  }
+
+  if (payerMail) {
+    const mail = buildMembershipApplyUserMail({
+      displayName: payerName,
+      amountPerPeriod: body.amountPerPeriod,
+      rhythm: body.rhythm,
+      householdSize: body.householdSize,
+      membershipId: String(application._id),
+      accountUrl,
+      edebatte: body.edebatte,
+      paymentMethod: application.paymentMethod,
+      paymentReference,
+      paymentInfo: application.paymentInfo,
+      bankDetails: {
+        recipient: paymentEnv.recipient,
+        iban: paymentEnv.iban,
+        bic: paymentEnv.bic || "",
+        bankName: paymentEnv.bankName || "",
+        accountMode: paymentEnv.accountMode,
+      },
+      profileUrl,
+      locale: mailLocaleFromUser(user),
+    });
+    payerDelivery = await sendMail({
+      to: payerMail,
+      mail,
+      delivery: "required_delivery",
+      tag: "membership_application_confirmation",
+    });
+    await MembersCol.updateOne(
+      { _id: application._id },
+      {
+        $set: {
+          mailDeliveryStatus: payerDelivery.status,
+          mailDeliveryRetryable: payerDelivery.retryable,
+          mailDeliveryCategory: payerDelivery.category,
+          mailDeliveryAttemptedAt: new Date(),
+        },
+      },
+    );
+    if (!payerDelivery.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "mail_delivery_failed",
+          partial: true,
+          applicationPersisted: true,
+          membershipId: String(application._id),
+          delivery: mailFailureMetadata(payerDelivery),
+        },
+        { status: 502 },
+      );
+    }
+  }
+
   if (inviteTargets.length > 0) {
     const invites: HouseholdInvite[] = inviteTargets.map((m) => ({
       _id: new ObjectId(),
@@ -429,48 +533,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Mails
-  const payerMail = user.email;
-  const payerName = user.name || memberRefs.find((m) => m.role === "primary")?.givenName || "Mitglied";
-  const origin = publicOrigin();
-  const base = origin.replace(/\/$/, "");
-  const accountUrl = `${base}/account/payment`;
-  const shareEnabled = Boolean(
-    (user as any)?.profile?.publicFlags?.showMembership ?? (user as any)?.publicFlags?.showMembership,
-  );
-  const shareId = (user as any)?.profile?.publicShareId;
-  const profileUrl = shareEnabled && shareId ? `${base}/profile/${shareId}` : undefined;
-
-  if (payerMail) {
-    const mail = buildMembershipApplyUserMail({
-      displayName: payerName,
-      amountPerPeriod: body.amountPerPeriod,
-      rhythm: body.rhythm,
-      householdSize: body.householdSize,
-      membershipId: String(application._id),
-      accountUrl,
-      edebatte: body.edebatte,
-      paymentMethod: application.paymentMethod,
-      paymentReference,
-      paymentInfo: application.paymentInfo,
-      bankDetails: {
-        recipient: paymentEnv.recipient,
-        iban: paymentEnv.iban,
-        bic: paymentEnv.bic || "",
-        bankName: paymentEnv.bankName || "",
-        accountMode: paymentEnv.accountMode,
-      },
-      profileUrl,
-      locale: mailLocaleFromUser(user),
-    });
-    await sendMail({
-      to: payerMail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
-  }
-
   const adminTo = process.env.MAIL_ADMIN_TO || paymentEnv.membershipContactEmail;
   const adminMail = buildMembershipApplyAdminMail({
     membershipId: String(application._id),
@@ -487,9 +549,9 @@ export async function POST(req: NextRequest) {
   });
   await sendMail({
     to: adminTo,
-    subject: adminMail.subject,
-    html: adminMail.html,
-    text: adminMail.text,
+    mail: adminMail,
+    delivery: "best_effort_delivery",
+    tag: "membership_application_admin",
   });
 
   try {
@@ -505,29 +567,80 @@ export async function POST(req: NextRequest) {
   }
 
   if (invitesCreated > 0) {
+    const inviteDeliveries: SendMailResult[] = [];
     for (const inv of inviteTokens) {
       const inviteUrl = `${base}/register?invite=${encodeURIComponent(inv.token)}`;
       const inviteMail = buildHouseholdInviteMail({
         targetName: inv.name,
         inviteUrl,
         inviterName: payerName,
+        locale: mailLocaleFromUser(user),
       });
-      await sendMail({
+      const inviteDelivery = await sendMail({
         to: inv.email,
-        subject: inviteMail.subject,
-        html: inviteMail.html,
-        text: inviteMail.text,
+        mail: inviteMail,
+        delivery: "required_delivery",
+        tag: "household_invite",
       });
+      inviteDeliveries.push(inviteDelivery);
+      await invitesCol.updateOne(
+        { membershipId: application._id, targetEmail: inv.email },
+        {
+          $set: {
+            deliveryStatus: inviteDelivery.status,
+            deliveryRetryable: inviteDelivery.retryable,
+            deliveryCategory: inviteDelivery.category,
+            deliveryAttemptedAt: new Date(),
+          },
+        },
+      );
     }
 
-    try {
-      await logHouseholdInviteSent({
-        userId: String(userId),
-        membershipId: String(application._id),
-        inviteCount: invitesCreated,
-      });
-    } catch (err) {
-      console.error("[membership.apply] invite telemetry failed", err);
+    const failedInvites = inviteDeliveries.filter(
+      (delivery): delivery is Extract<SendMailResult, { ok: false }> =>
+        !delivery.ok,
+    );
+    if (failedInvites.length > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "household_invite_delivery_failed",
+          partial: true,
+          applicationPersisted: true,
+          membershipId: String(application._id),
+          delivery: {
+            status:
+              failedInvites.length === inviteDeliveries.length
+                ? "failed"
+                : "partial",
+            category: failedInvites[0]?.category ?? "smtp_unknown_error",
+            retryable: failedInvites.some((delivery) => delivery.retryable),
+            attemptedCount: inviteDeliveries.reduce(
+              (sum, delivery) => sum + delivery.attemptedCount,
+              0,
+            ),
+            deliveredCount: inviteDeliveries.reduce(
+              (sum, delivery) => sum + delivery.deliveredCount,
+              0,
+            ),
+            failedCount: inviteDeliveries.reduce(
+              (sum, delivery) => sum + delivery.failedCount,
+              0,
+            ),
+          },
+        },
+        { status: 502 },
+      );
+    } else {
+      try {
+        await logHouseholdInviteSent({
+          userId: String(userId),
+          membershipId: String(application._id),
+          inviteCount: invitesCreated,
+        });
+      } catch (err) {
+        console.error("[membership.apply] invite telemetry failed", err);
+      }
     }
   }
 
@@ -537,6 +650,9 @@ export async function POST(req: NextRequest) {
       data: {
         membershipId: String(application._id),
         invitesCreated,
+        delivery: payerDelivery
+          ? { status: payerDelivery.status }
+          : { status: "not_applicable" },
       },
     },
     { status: 201 },

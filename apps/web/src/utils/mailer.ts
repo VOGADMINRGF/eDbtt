@@ -7,27 +7,43 @@ import {
 } from "@/lib/server/webRuntimeEnv";
 import {
   ensureTransactionalMail,
+  type TransactionalMail,
 } from "@/utils/mailRenderer";
 
 let transporter: nodemailer.Transporter | null = null;
 
+export type MailDeliveryRequirement =
+  | "required_delivery"
+  | "best_effort_delivery";
+
 export type SendMailResult =
   | {
       ok: true;
+      status: "delivered";
       transport: "smtp";
+      category: null;
+      retryable: false;
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: 0;
       messageId: string | null;
     }
   | {
       ok: false;
+      status: "failed" | "partial";
       transport: "none" | "smtp";
       code: "mail_transport_unavailable" | "mail_transport_error";
+      category: MailFailureCategory;
       retryable: boolean;
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: number;
       messageId: string | null;
     };
 
 type MailFailureCode = Extract<SendMailResult, { ok: false }>["code"];
 
-type MailFailureCategory =
+export type MailFailureCategory =
   | "recipient_invalid"
   | "recipient_placeholder_domain"
   | "recipient_test_domain_blocked"
@@ -41,6 +57,22 @@ type MailFailureCategory =
   | "smtp_response_error"
   | "smtp_unknown_error";
 
+export function mailFailureMetadata(
+  result: SendMailResult,
+) {
+  if (!("code" in result)) {
+    throw new Error("mail_failure_metadata_requires_failure");
+  }
+  return {
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  };
+}
+
 const RESERVED_PLACEHOLDER_DOMAINS = new Set([
   "example.org",
   "example.com",
@@ -52,12 +84,9 @@ const EMAIL_PATTERN =
 
 export async function sendMail(opts: {
   to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
+  mail: TransactionalMail;
+  delivery: MailDeliveryRequirement;
   tag?: string;
-  locale?: string | null;
-  preheader?: string;
 }): Promise<SendMailResult> {
   const recipients = recipientsToArray(opts.to);
   const recipient = recipients[0] ?? "";
@@ -67,32 +96,50 @@ export async function sendMail(opts: {
   const logFailure = (
     code: MailFailureCode,
     category: MailFailureCategory,
+    counts: {
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: number;
+    },
+    error?: unknown,
     messageId?: string | null,
-    delivery?: { deliveredCount: number; failedCount: number },
   ) => {
     const singleRecipient = recipients.length === 1;
+    const status = counts.deliveredCount > 0 ? "partial" : "failed";
     console.warn("[mailer] delivery_blocked", {
       code,
       category,
+      status,
+      delivery: opts.delivery,
       tag: opts.tag ?? "generic",
       recipient: singleRecipient ? maskEmail(recipient) : "[multiple]",
       domain: singleRecipient ? domain : null,
       recipientCount: recipients.length,
-      deliveredCount: delivery?.deliveredCount ?? 0,
-      failedCount: delivery?.failedCount ?? recipients.length,
+      attemptedCount: counts.attemptedCount,
+      deliveredCount: counts.deliveredCount,
+      failedCount: counts.failedCount,
       messageId: messageId ?? null,
     });
     return {
       ok: false,
-      transport: code === "mail_transport_unavailable" ? "none" : "smtp",
+      status,
+      transport: counts.attemptedCount > 0 ? "smtp" : "none",
       code,
-      retryable: true,
+      category,
+      retryable: isRetryableFailure(category, error),
+      attemptedCount: counts.attemptedCount,
+      deliveredCount: counts.deliveredCount,
+      failedCount: counts.failedCount,
       messageId: messageId ?? null,
     } as const;
   };
 
   if (recipients.length === 0) {
-    return logFailure("mail_transport_unavailable", "recipient_invalid");
+    return logFailure(
+      "mail_transport_unavailable",
+      "recipient_invalid",
+      emptyFailureCounts(0),
+    );
   }
 
   for (const currentRecipient of recipients) {
@@ -102,23 +149,25 @@ export async function sendMail(opts: {
       process.env,
     );
     if (recipientPolicy.allowed === false) {
-      return logFailure("mail_transport_unavailable", recipientPolicy.category);
+      return logFailure(
+        "mail_transport_unavailable",
+        recipientPolicy.category,
+        emptyFailureCounts(recipients.length),
+      );
     }
   }
 
   if (!wantsSmtp) {
-    return logFailure("mail_transport_unavailable", "smtp_unconfigured");
+    return logFailure(
+      "mail_transport_unavailable",
+      "smtp_unconfigured",
+      emptyFailureCounts(recipients.length),
+    );
   }
 
   try {
     const envelope = resolveMailEnvelopeForRuntime();
-    const mail = ensureTransactionalMail({
-      locale: opts.locale,
-      subject: opts.subject,
-      preheader: opts.preheader,
-      html: opts.html,
-      text: opts.text,
-    });
+    const mail = ensureTransactionalMail(opts.mail);
 
     if (!transporter) {
       transporter = process.env.SMTP_URL
@@ -153,18 +202,33 @@ export async function sendMail(opts: {
     const deliveredCount = deliveries.length - failedDeliveries.length;
 
     if (failedDeliveries.length > 0) {
-      const firstError = failedDeliveries[0]?.reason;
+      const classifiedFailures = failedDeliveries.map((delivery) => {
+        const category = classifyTransportError(delivery.reason);
+        return {
+          error: delivery.reason,
+          category,
+          retryable: isRetryableFailure(category, delivery.reason),
+        };
+      });
+      const representativeFailure =
+        classifiedFailures.find((failure) => failure.retryable) ??
+        classifiedFailures[0]!;
       return logFailure(
         "mail_transport_error",
-        classifyTransportError(firstError),
-        recipients.length === 1 &&
-          typeof (firstError as { messageId?: unknown })?.messageId === "string"
-          ? String((firstError as { messageId: string }).messageId)
-          : null,
+        representativeFailure.category,
         {
+          attemptedCount: deliveries.length,
           deliveredCount,
           failedCount: failedDeliveries.length,
         },
+        representativeFailure.error,
+        recipients.length === 1 &&
+          typeof (representativeFailure.error as { messageId?: unknown })
+            ?.messageId === "string"
+          ? String(
+              (representativeFailure.error as { messageId: string }).messageId,
+            )
+          : null,
       );
     }
 
@@ -176,14 +240,20 @@ export async function sendMail(opts: {
 
     return {
       ok: true,
+      status: "delivered",
       transport: "smtp",
+      category: null,
+      retryable: false,
+      attemptedCount: recipients.length,
+      deliveredCount: recipients.length,
+      failedCount: 0,
       messageId:
         typeof singleInfo?.messageId === "string" ? singleInfo.messageId : null,
     };
   } catch (error: unknown) {
     const category =
       error instanceof Error &&
-      error.message === "mail_html_not_transactional"
+      error.message === "mail_content_provenance_invalid"
         ? "mail_content_invalid"
         : error instanceof Error &&
             (error.name === "CriticalProductionWebRuntimeEnvError" ||
@@ -193,11 +263,21 @@ export async function sendMail(opts: {
     return logFailure(
       "mail_transport_error",
       category,
+      emptyFailureCounts(recipients.length),
+      error,
       typeof (error as { messageId?: unknown })?.messageId === "string"
         ? String((error as { messageId: string }).messageId)
         : null,
     );
   }
+}
+
+function emptyFailureCounts(failedCount: number) {
+  return {
+    attemptedCount: 0,
+    deliveredCount: 0,
+    failedCount,
+  };
 }
 
 function recipientsToArray(value: string | string[]) {
@@ -303,5 +383,32 @@ function classifyTransportError(error: unknown): MailFailureCategory {
       return typeof (error as { responseCode?: unknown })?.responseCode === "number"
         ? "smtp_response_error"
         : "smtp_unknown_error";
+  }
+}
+
+function isRetryableFailure(
+  category: MailFailureCategory,
+  error?: unknown,
+): boolean {
+  switch (category) {
+    case "smtp_connection_error":
+    case "smtp_timeout":
+    case "smtp_unknown_error":
+      return true;
+    case "smtp_response_error": {
+      const responseCode = (error as { responseCode?: unknown })?.responseCode;
+      return typeof responseCode === "number"
+        ? responseCode >= 400 && responseCode < 500
+        : false;
+    }
+    case "recipient_invalid":
+    case "recipient_placeholder_domain":
+    case "recipient_test_domain_blocked":
+    case "recipient_domain_not_allowed":
+    case "mail_content_invalid":
+    case "sender_configuration_invalid":
+    case "smtp_unconfigured":
+    case "smtp_auth_error":
+      return false;
   }
 }

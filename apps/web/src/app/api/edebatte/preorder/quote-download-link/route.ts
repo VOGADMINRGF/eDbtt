@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizePricingLocale } from "@features/pricing";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { renderTransactionalMail } from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 
@@ -218,30 +218,18 @@ export async function POST(req: NextRequest) {
       : "ein Downloadlink für einen Kostenvoranschlag angefordert wurde.",
   });
 
-  try {
-    await Promise.all([
-      sendMail({
-        to: email,
-        subject: userMail.subject,
-        text: userMail.text,
-        html: userMail.html,
-        locale,
-        tag: "institutional_quote_download",
-      }),
-      sendMail({
-        to: SALES_EMAIL,
-        subject: internalMail.subject,
-        text: internalMail.text,
-        html: internalMail.html,
-        locale,
-        tag: "institutional_quote_download_internal",
-      }),
-    ]);
-  } catch {
+  const requesterDelivery = await sendMail({
+    to: email,
+    mail: userMail,
+    delivery: "required_delivery",
+    tag: "institutional_quote_download",
+  });
+  if (!requesterDelivery.ok) {
     return NextResponse.json(
       {
         ok: false,
         error: "mail_failed",
+        delivery: mailFailureMetadata(requesterDelivery),
         message: isEnglish
           ? "Download link mail could not be sent."
           : "Downloadlink konnte per E-Mail nicht versendet werden.",
@@ -250,8 +238,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  await sendMail({
+    to: SALES_EMAIL,
+    mail: internalMail,
+    delivery: "best_effort_delivery",
+    tag: "institutional_quote_download_internal",
+  });
+
   return NextResponse.json({
     ok: true,
+    delivery: {
+      status: requesterDelivery.status,
+      attemptedCount: requesterDelivery.attemptedCount,
+      deliveredCount: requesterDelivery.deliveredCount,
+      failedCount: requesterDelivery.failedCount,
+    },
     message: isEnglish
       ? "Download link requested. The email is sent separately."
       : "Downloadlink angefordert. Die E-Mail wird separat versendet.",

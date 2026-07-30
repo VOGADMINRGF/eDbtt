@@ -8,7 +8,7 @@ import type { Collection } from "mongodb";
 import { coreCol } from "@core/db/triMongo";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import {
   renderTransactionalMail,
@@ -302,12 +302,25 @@ export async function POST(req: NextRequest) {
     origin,
     locale: rawLocale,
   });
-  await sendMail({
+  const confirmDelivery = await sendMail({
     to: email,
-    subject: confirmMail.subject,
-    html: confirmMail.html,
-    text: confirmMail.text,
+    mail: confirmMail,
+    delivery: "required_delivery",
+    tag: "updates_double_opt_in",
   });
+  if (!confirmDelivery.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        subscriptionPersisted: true,
+        code: "pending_delivery",
+        delivery: mailFailureMetadata(confirmDelivery),
+      },
+      { status: 502 },
+    );
+  }
 
   // 2) Empfangsbestätigung an internes Updates-Postfach
   if (UPDATES_NOTIFY_TO) {
@@ -318,12 +331,21 @@ export async function POST(req: NextRequest) {
     });
     await sendMail({
       to: UPDATES_NOTIFY_TO,
-      subject: internalMail.subject,
-      html: internalMail.html,
-      text: internalMail.text,
+      mail: internalMail,
+      delivery: "best_effort_delivery",
+      tag: "updates_internal_pending",
     });
   }
 
   // Frontend erwartet nur { ok: true }, Code wird ignoriert
-  return NextResponse.json({ ok: true, code: "pending_confirm" });
+  return NextResponse.json({
+    ok: true,
+    code: "pending_confirm",
+    delivery: {
+      status: confirmDelivery.status,
+      attemptedCount: confirmDelivery.attemptedCount,
+      deliveredCount: confirmDelivery.deliveredCount,
+      failedCount: confirmDelivery.failedCount,
+    },
+  });
 }

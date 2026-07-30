@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { coreCol, piiCol } from "@core/db/db/triMongo";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildIdentityEmailCodeMail } from "@/utils/emailTemplates";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { CREDENTIAL_COLLECTION, sha256 } from "../../../sharedAuth";
@@ -74,7 +74,26 @@ export async function POST(req: NextRequest) {
     code,
     locale: mailLocaleFromUser(dbUser),
   });
-  await sendMail({ to: user.email, subject: mail.subject, html: mail.html, text: mail.text });
+  const mailResult = await sendMail({
+    to: user.email,
+    mail,
+    delivery: "required_delivery",
+    tag: "identity_email_code",
+  });
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 503 },
+    );
+  }
 
-  return NextResponse.json({ ok: true, expiresAt: expiresAt.toISOString() });
+  return NextResponse.json({
+    ok: true,
+    expiresAt: expiresAt.toISOString(),
+    delivery: { status: mailResult.status },
+  });
 }

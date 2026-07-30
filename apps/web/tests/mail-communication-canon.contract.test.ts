@@ -81,6 +81,29 @@ describe("mail communication canon", () => {
     expect(de.text).toContain("123456");
   });
 
+  it("couples Euro formatting to the resolved mail locale", () => {
+    const de = buildMembershipConfirmationMail({
+      firstName: "Alex",
+      planLabel: "Basis",
+      monthlyAmount: 5,
+      reference: "MEM-DE",
+      bank: BANK,
+      locale: "de-DE",
+    });
+    const en = buildMembershipConfirmationMail({
+      firstName: "Alex",
+      planLabel: "Basic",
+      monthlyAmount: 5,
+      reference: "MEM-EN",
+      bank: BANK,
+      locale: "en-GB",
+    });
+
+    expect(de.text).toMatch(/5,00\s€/);
+    expect(en.text).toContain("€5.00");
+    expect(en.text).not.toMatch(/5,00\s€/);
+  });
+
   it("escapes dynamic content and removes unsafe legacy markup and URLs", () => {
     const malicious = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
     const mail = buildOrgInviteMail({
@@ -113,8 +136,8 @@ describe("mail communication canon", () => {
     );
     expect(migratedLegacyTemplate.html).toContain("&lt;a href=");
     expect(migratedLegacyTemplate.html).toContain("&lt;span style=");
-    expect(migratedLegacyTemplate.html).not.toContain(
-      'href="https://attacker.example"',
+    expect(migratedLegacyTemplate.html).not.toMatch(
+      /<a\b[^>]*href="https:\/\/attacker\.example"/i,
     );
   });
 
@@ -163,13 +186,32 @@ describe("mail communication canon", () => {
     }
   });
 
-  it("rejects unrendered free HTML at the canonical mail boundary", () => {
+  it("requires immutable runtime provenance at the canonical mail boundary", () => {
+    const genuine = renderTransactionalMail({
+      subject: "Genuine",
+      preheader: "Genuine",
+      title: "Genuine",
+      blocks: [{ kind: "paragraph", text: "Safe" }],
+      reason: "eine echte Renderer-Mail geprüft wird.",
+    });
+    const spoof = {
+      subject: "Spoof",
+      preheader: "Spoof",
+      locale: "de",
+      text: "Spoof",
+      html: `<body data-edebatte-mail="transactional">
+        <a href="javascript:alert(1)" target="_self" rel="opener">JavaScript</a>
+        <a href="data:text/html,boom">Data</a>
+        <a href="//attacker.example/path">Protocol relative</a>
+        <img src="https://tracker.example/pixel.gif" width="1" height="1">
+      </body>`,
+    };
+
     expect(() =>
-      ensureTransactionalMail({
-        subject: "Raw HTML",
-        html: '<p><a href="https://attacker.example">raw</a></p>',
-      }),
-    ).toThrow("mail_html_not_transactional");
+      ensureTransactionalMail(spoof),
+    ).toThrow("mail_content_provenance_invalid");
+    expect(ensureTransactionalMail(genuine)).toBe(genuine);
+    expect(Object.isFrozen(genuine)).toBe(true);
   });
 
   it("renders code and CTA components without exposing tokenized URLs as link text", () => {

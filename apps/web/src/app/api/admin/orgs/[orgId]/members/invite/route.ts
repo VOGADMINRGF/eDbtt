@@ -11,7 +11,8 @@ import { recordAuditEvent } from "@features/audit/recordAuditEvent";
 import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
 import { buildOrgInviteMail, buildOrgAccessMail } from "@/utils/emailTemplates";
-import { sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { DEFAULT_LOCALE } from "@core/locale/locales";
 import type { UserRole } from "@/types/user";
 import type { OrgMembershipDoc } from "@features/org/types";
@@ -85,14 +86,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
     userId,
   });
 
-  if (existingMembership?.status === "active") {
+  if (
+    existingMembership?.status === "active" &&
+    existingMembership.inviteDeliveryStatus !== "failed"
+  ) {
     return NextResponse.json({ ok: false, error: "already_member" }, { status: 409 });
   }
 
   const invite = createInviteToken();
   const inviteExpiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-  const status = existing ? "active" : "invited";
+  const status =
+    existingMembership?.status === "invited"
+      ? "invited"
+      : existing
+        ? "active"
+        : "invited";
   const update: Partial<OrgMembershipDoc> = {
     role,
     status,
@@ -100,6 +109,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
     invitedByUserId: new ObjectId(String(gate.user._id)),
     inviteTokenHash: status === "invited" ? invite.tokenHash : null,
     inviteExpiresAt: status === "invited" ? inviteExpiresAt : null,
+    inviteDeliveryStatus: "pending",
+    inviteDeliveryAttemptedAt: now,
+    inviteDeliveryRetryable: null,
+    inviteDeliveryCategory: null,
     updatedAt: now,
     disabledAt: null,
   };
@@ -117,39 +130,48 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
     { upsert: true, returnDocument: "after" },
   );
 
+  const locale = mailLocaleFromUser(existing) ?? DEFAULT_LOCALE;
+  let mail: ReturnType<typeof buildOrgInviteMail>;
   if (status === "invited") {
     const resetToken = await createToken(String(userId), "reset", 60);
     const resetUrl = `${resetEmailLink(resetToken)}&invite=${encodeURIComponent(invite.raw)}`;
-    const mail = buildOrgInviteMail({
+    mail = buildOrgInviteMail({
       resetUrl,
       orgName: org.name,
       role,
       displayName: existing?.name ?? null,
       expiresAt: inviteExpiresAt.toISOString(),
-      locale: DEFAULT_LOCALE,
-    });
-    await sendMail({
-      to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      locale,
     });
   } else {
     const accessUrl = `${process.env.PUBLIC_BASE_URL ?? "http://localhost:3000"}/login`;
-    const mail = buildOrgAccessMail({
+    mail = buildOrgAccessMail({
       accessUrl,
       orgName: org.name,
       role,
       displayName: existing?.name ?? null,
-      locale: DEFAULT_LOCALE,
-    });
-    await sendMail({
-      to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      locale,
     });
   }
+  const mailResult = await sendMail({
+    to: email,
+    mail,
+    delivery: "required_delivery",
+    tag: status === "invited" ? "org_invite" : "org_access",
+  });
+
+  await memberships.updateOne(
+    { orgId: new ObjectId(orgId), userId },
+    {
+      $set: {
+        inviteDeliveryStatus: mailResult.ok ? "delivered" : "failed",
+        inviteDeliveryAttemptedAt: new Date(),
+        inviteDeliveryRetryable: mailResult.retryable,
+        inviteDeliveryCategory: mailResult.category,
+        updatedAt: new Date(),
+      },
+    },
+  );
 
   await recordAuditEvent({
     scope: "org",
@@ -158,13 +180,38 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
     actorIp: getRequestIp(req),
     target: { type: "org_membership", id: membership?._id ? String(membership._id) : undefined },
     after: membership ?? null,
-    reason: status === "invited" ? "invite_sent" : "member_added",
+    reason: mailResult.ok
+      ? status === "invited"
+        ? "invite_sent"
+        : "member_added_and_notified"
+      : "membership_persisted_mail_delivery_failed",
   });
+
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        membershipPersisted: true,
+        membershipId: membership?._id ? String(membership._id) : null,
+        status,
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,
     membershipId: membership?._id ? String(membership._id) : null,
     status,
+    delivery: {
+      status: mailResult.status,
+      attemptedCount: mailResult.attemptedCount,
+      deliveredCount: mailResult.deliveredCount,
+      failedCount: mailResult.failedCount,
+    },
   });
 }
 
