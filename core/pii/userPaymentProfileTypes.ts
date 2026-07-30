@@ -21,6 +21,7 @@ export type UserPaymentProfileDoc = {
   bic?: string | null;
   mandateReference?: string | null;
   microTransferHash?: string | null;
+  microTransferCode?: string | null;
   microTransferExpiresAt?: Date | null;
   microTransferAttempts?: number | null;
   microTransferVerifiedAt?: Date | null;

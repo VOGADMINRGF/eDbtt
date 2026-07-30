@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { ResetRequestSchema } from "@/utils/authSchemas";
 import { coreCol } from "@core/db/triMongo";
-import { createToken } from "@/utils/tokens";
+import { createToken, recordTokenDelivery } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
 import { buildPasswordResetMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
-import { mailFailureMetadata, sendMail } from "@/utils/mailer";
+import { sendMail } from "@/utils/mailer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
+
+const PUBLIC_RESET_RESPONSE = { ok: true } as const;
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
   const users = await coreCol("users");
   const user = await users.findOne({ $or: [{ email: email_lc }, { email_lc }] });
   // immer 200 zurückgeben, um User-Enumeration zu vermeiden
-  if (!user) return NextResponse.json({ ok: true });
+  if (!user) return NextResponse.json(PUBLIC_RESET_RESPONSE);
 
   const token = await createToken(String(user._id), "reset", 60); // 60 Minuten
   const link = resetEmailLink(token);
@@ -38,16 +40,7 @@ export async function POST(req: Request) {
     delivery: "required_delivery",
     tag: "password_reset",
   });
-  if (!mailResult.ok) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "mail_delivery_failed",
-        delivery: mailFailureMetadata(mailResult),
-      },
-      { status: 503 },
-    );
-  }
+  await recordTokenDelivery(String(user._id), "reset", token, mailResult);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json(PUBLIC_RESET_RESPONSE);
 }

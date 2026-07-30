@@ -96,6 +96,34 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
   return { rawToken, expiresAt };
 }
 
+export async function recordEmailVerificationDelivery(
+  userId: ObjectId,
+  rawToken: string,
+  delivery: {
+    status: "delivered" | "failed" | "partial";
+    retryable: boolean;
+    category: string | null;
+  },
+) {
+  const Tokens = await getCol<EmailVerificationTokenDoc>(TOKEN_COLLECTION);
+  const now = new Date();
+  await Tokens.updateOne(
+    {
+      slotKey: tokenSlotKey(userId),
+      tokenHash: tokenHash(rawToken),
+    },
+    {
+      $set: {
+        deliveryStatus: delivery.status,
+        deliveryRetryable: delivery.retryable,
+        deliveryCategory: delivery.category,
+        deliveryAttemptedAt: now,
+        updatedAt: now,
+      },
+    },
+  );
+}
+
 export async function consumeEmailVerificationToken(rawToken: string) {
   const hash = tokenHash(rawToken);
   const Tokens = await getCol<EmailVerificationTokenDoc>(TOKEN_COLLECTION);

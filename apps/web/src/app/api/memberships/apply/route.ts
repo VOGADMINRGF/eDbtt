@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import { z } from "zod";
-import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles";
+import {
+  getMembershipPaymentWorkflowProfile,
+  upsertMembershipPaymentProfile,
+} from "@core/db/pii/userPaymentProfiles";
 import { safeRandomId } from "@core/utils/random";
 import crypto from "crypto";
 import {
@@ -38,6 +41,8 @@ const RATE_LIMIT_MAX = 6;
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 Minuten
 const MIN_FORM_MS = 3000;
 const MAX_FORM_MS = 2 * 60 * 60 * 1000;
+const DELIVERY_CLAIM_TTL_MS = 10 * 60_000;
+let workflowIndexesEnsured = false;
 
 function hashedClientKey(req: NextRequest) {
   const ip =
@@ -284,134 +289,239 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "household_locked" }, { status: 403 });
   }
 
-  const microTransferCode = createMicroTransferCode();
-  const microTransferHash = hashMicroTransferCode(microTransferCode);
-  const payerIban = normalizeIban(body.payment.iban);
-  const microTransferExpiresAt = new Date(
-    Date.now() + MICRO_TRANSFER_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
-  );
-
-  // Zahlungsprofil anlegen/updaten
-  const paymentProfileId = await upsertMembershipPaymentProfile(new ObjectId(userId), {
-    type: body.payment.type,
-    billingName: body.payment.billingName,
-    billingAddress: {
-      street: body.payment.street,
-      postalCode: body.payment.postalCode,
-      city: body.payment.city,
-      country: body.payment.country,
-    },
-    iban: payerIban,
-    mandateReference: body.payment.mandateReference,
-    microTransferHash,
-    microTransferExpiresAt,
-    microTransferAttempts: 0,
-    microTransferVerifiedAt: null,
-  });
-
   const now = new Date();
+  const coreUserId = new ObjectId(userId);
   const MembersCol = await coreCol<MembershipApplication>("membership_applications");
-  const membershipId = new ObjectId();
-  const paymentReference = `${paymentEnv.referencePrefix}${String(membershipId).slice(-6)}`;
-  const dunningFirstDays = Number(process.env.VOG_DUNNING_DAYS_FIRST ?? "7");
-  const firstDueAt = new Date(now.getTime() + Math.max(1, dunningFirstDays) * 24 * 60 * 60 * 1000);
+  await ensureMembershipWorkflowIndexes(MembersCol);
+  const openApplicationKey = `membership-open:${userId}`;
+  const claimId = crypto.randomUUID();
+  let application = await MembersCol.findOne({ openApplicationKey });
+  let applicationCreated = false;
 
-  const memberRefs: HouseholdMemberRef[] = body.members.map((m) => ({
-    email: m.email ?? null,
-    givenName: m.givenName ?? null,
-    familyName: m.familyName ?? null,
-    birthDate: m.birthDate ?? null,
-    role: m.role,
-    status: m.role === "primary" ? "active" : "invited",
-  }));
-
-  const application: MembershipApplication = {
-    _id: membershipId,
-    coreUserId: new ObjectId(userId),
-    householdSize: body.householdSize,
-    peopleCount: body.peopleCount ?? body.householdSize,
-    membershipAmountPerMonth: body.membershipAmountPerMonth ?? body.amountPerPeriod,
-    members: memberRefs,
-    amountPerPeriod: body.amountPerPeriod,
-    rhythm: body.rhythm,
-    edebatte: body.edebatte ?? { enabled: false },
-    paymentProfileId,
-    paymentMethod: "bank_transfer",
-    paymentReference,
-    paymentInfo: {
-      method: "bank_transfer",
-      reference: paymentReference,
-      bankRecipient: paymentEnv.recipient,
-      bankIban: paymentEnv.iban,
-      bankIbanMasked: maskIban(paymentEnv.iban),
-      bankBic: paymentEnv.bic || null,
-      bankName: paymentEnv.bankName || null,
-      accountMode: paymentEnv.accountMode as any,
-      mandateStatus: "pending_microtransfer",
-    },
-    legalAcceptedAt: now,
-    transparencyVersion: "2025-12-01",
-    statuteVersion: "Entwurf-2026-v1",
-    firstDueAt,
-    dunningLevel: 0,
-    lastReminderSentAt: null,
-    cancelledAt: null,
-    cancelledReason: null,
-    status: "waiting_payment",
-    createdAt: now,
-    updatedAt: now,
-    address: body.payment.street
-      ? {
-          street: body.payment.street,
-          postalCode: body.payment.postalCode,
-          city: body.payment.city,
-          country: body.payment.country,
-          geo: body.payment.geo
-            ? {
-                lat: body.payment.geo.lat,
-                lon: body.payment.geo.lon,
-                label: body.payment.geo.label,
-                region: geoRegion ?? undefined,
-              }
-            : undefined,
-        }
-      : undefined,
-  };
-
-  await MembersCol.insertOne(application);
-
-  // Snapshot im User aktualisieren
-  await Users.updateOne(
-    { _id: new ObjectId(userId) },
-    {
-      $set: {
-        "membership.status": "waiting_payment",
-        "membership.amountPerMonth": application.membershipAmountPerMonth ?? application.amountPerPeriod,
-        "membership.rhythm": application.rhythm,
-        "membership.householdSize": application.householdSize,
-        "membership.peopleCount": application.peopleCount ?? application.householdSize,
-        "membership.submittedAt": now,
-        "membership.applicationId": application._id,
-        "membership.edebatte": application.edebatte,
-        "membership.paymentMethod": application.paymentMethod ?? null,
-        "membership.paymentReference": paymentReference,
-        "membership.paymentInfo": application.paymentInfo,
-        updatedAt: now,
+  if (!application) {
+    const membershipId = new ObjectId();
+    const paymentReference = `${paymentEnv.referencePrefix}${String(membershipId).slice(-6)}`;
+    const dunningFirstDays = Number(process.env.VOG_DUNNING_DAYS_FIRST ?? "7");
+    const firstDueAt = new Date(
+      now.getTime() + Math.max(1, dunningFirstDays) * 24 * 60 * 60 * 1000,
+    );
+    const memberRefs: HouseholdMemberRef[] = body.members.map((member) => ({
+      email: member.email?.trim().toLowerCase() ?? null,
+      givenName: member.givenName ?? null,
+      familyName: member.familyName ?? null,
+      birthDate: member.birthDate ?? null,
+      role: member.role,
+      status: member.role === "primary" ? "active" : "invited",
+    }));
+    const candidate: MembershipApplication = {
+      _id: membershipId,
+      openApplicationKey,
+      workflowStatus: "initializing",
+      deliveryClaimId: claimId,
+      deliveryClaimedAt: now,
+      coreUserId,
+      householdSize: body.householdSize,
+      peopleCount: body.peopleCount ?? body.householdSize,
+      membershipAmountPerMonth:
+        body.membershipAmountPerMonth ?? body.amountPerPeriod,
+      members: memberRefs,
+      amountPerPeriod: body.amountPerPeriod,
+      rhythm: body.rhythm,
+      edebatte: body.edebatte ?? { enabled: false },
+      paymentProfileId: null,
+      paymentMethod: "bank_transfer",
+      paymentReference,
+      paymentInfo: {
+        method: "bank_transfer",
+        reference: paymentReference,
+        bankRecipient: paymentEnv.recipient,
+        bankIban: paymentEnv.iban,
+        bankIbanMasked: maskIban(paymentEnv.iban),
+        bankBic: paymentEnv.bic || null,
+        bankName: paymentEnv.bankName || null,
+        accountMode: paymentEnv.accountMode as any,
+        mandateStatus: "pending_microtransfer",
       },
-    },
-  );
+      legalAcceptedAt: now,
+      transparencyVersion: "2025-12-01",
+      statuteVersion: "Entwurf-2026-v1",
+      firstDueAt,
+      dunningLevel: 0,
+      lastReminderSentAt: null,
+      cancelledAt: null,
+      cancelledReason: null,
+      mailDeliveryStatus: null,
+      mailDeliveryRetryable: null,
+      mailDeliveryCategory: null,
+      adminMailDeliveryStatus: null,
+      adminMailDeliveryRetryable: null,
+      adminMailDeliveryCategory: null,
+      status: "waiting_payment",
+      createdAt: now,
+      updatedAt: now,
+      address: body.payment.street
+        ? {
+            street: body.payment.street,
+            postalCode: body.payment.postalCode,
+            city: body.payment.city,
+            country: body.payment.country,
+            geo: body.payment.geo
+              ? {
+                  lat: body.payment.geo.lat,
+                  lon: body.payment.geo.lon,
+                  label: body.payment.geo.label,
+                  region: geoRegion ?? undefined,
+                }
+              : undefined,
+          }
+        : undefined,
+    };
 
-  // Household Invites nur für Nicht-Primaries mit E-Mail
+    try {
+      await MembersCol.insertOne(candidate);
+      application = candidate;
+      applicationCreated = true;
+    } catch (error: any) {
+      if (error?.code !== 11000) throw error;
+      application = await MembersCol.findOne({ openApplicationKey });
+    }
+  }
+
+  if (!application) {
+    return NextResponse.json(
+      { ok: false, error: "application_state_missing" },
+      { status: 500 },
+    );
+  }
+
+  if (application.workflowStatus === "complete") {
+    return successfulMembershipResponse(application, false, true);
+  }
+
+  if (!applicationCreated) {
+    const claimExpiredBefore = new Date(now.getTime() - DELIVERY_CLAIM_TTL_MS);
+    const claimed = await MembersCol.findOneAndUpdate(
+      {
+        _id: application._id,
+        status: "waiting_payment",
+        $or: [
+          { deliveryClaimId: null },
+          { deliveryClaimId: { $exists: false } },
+          { deliveryClaimedAt: { $lt: claimExpiredBefore } },
+        ],
+      },
+      {
+        $set: {
+          deliveryClaimId: claimId,
+          deliveryClaimedAt: now,
+          updatedAt: now,
+        },
+      },
+      { returnDocument: "after" },
+    );
+    if (!claimed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "application_delivery_in_progress",
+          partial: true,
+          applicationPersisted: true,
+          membershipId: String(application._id),
+        },
+        { status: 409 },
+      );
+    }
+    application = claimed;
+  }
+
+  if (applicationCreated) {
+    const microTransferCode = createMicroTransferCode();
+    const microTransferExpiresAt = new Date(
+      now.getTime() + MICRO_TRANSFER_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const paymentProfileId = await upsertMembershipPaymentProfile(coreUserId, {
+      type: body.payment.type,
+      billingName: body.payment.billingName,
+      billingAddress: {
+        street: body.payment.street,
+        postalCode: body.payment.postalCode,
+        city: body.payment.city,
+        country: body.payment.country,
+      },
+      iban: normalizeIban(body.payment.iban),
+      mandateReference: body.payment.mandateReference,
+      microTransferHash: hashMicroTransferCode(microTransferCode),
+      microTransferCode,
+      microTransferExpiresAt,
+      microTransferAttempts: 0,
+      microTransferVerifiedAt: null,
+    });
+    application.paymentProfileId = paymentProfileId;
+    application.workflowStatus = "delivery_pending";
+    await MembersCol.updateOne(
+      { _id: application._id, deliveryClaimId: claimId },
+      {
+        $set: {
+          paymentProfileId,
+          workflowStatus: "delivery_pending",
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    await Users.updateOne(
+      { _id: coreUserId },
+      {
+        $set: {
+          "membership.status": "waiting_payment",
+          "membership.amountPerMonth":
+            application.membershipAmountPerMonth ?? application.amountPerPeriod,
+          "membership.rhythm": application.rhythm,
+          "membership.householdSize": application.householdSize,
+          "membership.peopleCount":
+            application.peopleCount ?? application.householdSize,
+          "membership.submittedAt": now,
+          "membership.applicationId": application._id,
+          "membership.edebatte": application.edebatte,
+          "membership.paymentMethod": application.paymentMethod ?? null,
+          "membership.paymentReference": application.paymentReference,
+          "membership.paymentInfo": application.paymentInfo,
+          updatedAt: now,
+        },
+      },
+    );
+  }
+
+  const workflowProfile = await getMembershipPaymentWorkflowProfile(coreUserId);
+  if (!workflowProfile?.microTransferCode) {
+    await releaseApplicationClaim(MembersCol, application._id, claimId, {
+      workflowStatus: "manual_recovery",
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "payment_workflow_manual_recovery_required",
+        partial: true,
+        applicationPersisted: true,
+        membershipId: String(application._id),
+      },
+      { status: 409 },
+    );
+  }
+
   const invitesCol = await piiCol<HouseholdInvite>("household_invites");
-  const inviteTargets = memberRefs.filter(
-    (m) => m.role !== "primary" && m.email && m.email !== user.email,
+  await ensureHouseholdInviteIndexes(invitesCol);
+  const inviteTargets = application.members.filter(
+    (member) =>
+      member.role !== "primary" &&
+      member.email &&
+      member.email.toLowerCase() !== String(user.email ?? "").toLowerCase(),
   );
-  let invitesCreated = 0;
-  const inviteTokens: { email: string; token: string; name?: string | null }[] = [];
-
-  // Mails
   const payerMail = user.email;
-  const payerName = user.name || memberRefs.find((m) => m.role === "primary")?.givenName || "Mitglied";
+  const payerName =
+    user.name ||
+    application.members.find((member) => member.role === "primary")?.givenName ||
+    "Mitglied";
   const origin = publicOrigin();
   const base = origin.replace(/\/$/, "");
   const accountUrl = `${base}/account/payment`;
@@ -423,17 +533,13 @@ export async function POST(req: NextRequest) {
 
   let payerDelivery: SendMailResult | null = null;
   if (!payerMail) {
-    await MembersCol.updateOne(
-      { _id: application._id },
-      {
-        $set: {
-          mailDeliveryStatus: "failed",
-          mailDeliveryRetryable: false,
-          mailDeliveryCategory: "recipient_invalid",
-          mailDeliveryAttemptedAt: new Date(),
-        },
-      },
-    );
+    await releaseApplicationClaim(MembersCol, application._id, claimId, {
+      workflowStatus: "manual_recovery",
+      mailDeliveryStatus: "failed",
+      mailDeliveryRetryable: false,
+      mailDeliveryCategory: "recipient_invalid",
+      mailDeliveryAttemptedAt: new Date(),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -454,24 +560,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (payerMail) {
+  if (
+    application.mailDeliveryStatus === "failed" &&
+    application.mailDeliveryRetryable !== true
+  ) {
+    await releaseApplicationClaim(MembersCol, application._id, claimId, {
+      workflowStatus: "manual_recovery",
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_manual_recovery_required",
+        partial: true,
+        applicationPersisted: true,
+        membershipId: String(application._id),
+      },
+      { status: 409 },
+    );
+  }
+
+  if (application.mailDeliveryStatus !== "delivered") {
     const mail = buildMembershipApplyUserMail({
       displayName: payerName,
-      amountPerPeriod: body.amountPerPeriod,
-      rhythm: body.rhythm,
-      householdSize: body.householdSize,
+      amountPerPeriod: application.amountPerPeriod,
+      rhythm: application.rhythm,
+      householdSize: application.householdSize,
       membershipId: String(application._id),
       accountUrl,
-      edebatte: body.edebatte,
+      edebatte: application.edebatte,
       paymentMethod: application.paymentMethod,
-      paymentReference,
+      paymentReference: application.paymentReference ?? "",
       paymentInfo: application.paymentInfo,
       bankDetails: {
-        recipient: paymentEnv.recipient,
-        iban: paymentEnv.iban,
-        bic: paymentEnv.bic || "",
-        bankName: paymentEnv.bankName || "",
-        accountMode: paymentEnv.accountMode,
+        recipient: application.paymentInfo?.bankRecipient ?? paymentEnv.recipient,
+        iban: application.paymentInfo?.bankIban ?? paymentEnv.iban,
+        bic: application.paymentInfo?.bankBic ?? "",
+        bankName: application.paymentInfo?.bankName ?? "",
+        accountMode:
+          application.paymentInfo?.accountMode ?? paymentEnv.accountMode,
       },
       profileUrl,
       locale: mailLocaleFromUser(user),
@@ -483,7 +609,7 @@ export async function POST(req: NextRequest) {
       tag: "membership_application_confirmation",
     });
     await MembersCol.updateOne(
-      { _id: application._id },
+      { _id: application._id, deliveryClaimId: claimId },
       {
         $set: {
           mailDeliveryStatus: payerDelivery.status,
@@ -494,6 +620,9 @@ export async function POST(req: NextRequest) {
       },
     );
     if (!payerDelivery.ok) {
+      await releaseApplicationClaim(MembersCol, application._id, claimId, {
+        workflowStatus: payerDelivery.retryable ? "partial" : "manual_recovery",
+      });
       return NextResponse.json(
         {
           ok: false,
@@ -503,158 +632,322 @@ export async function POST(req: NextRequest) {
           membershipId: String(application._id),
           delivery: mailFailureMetadata(payerDelivery),
         },
-        { status: 502 },
+        { status: payerDelivery.retryable ? 502 : 409 },
       );
     }
+    application.mailDeliveryStatus = "delivered";
+  } else {
+    payerDelivery = deliveredReplayResult();
   }
 
-  if (inviteTargets.length > 0) {
-    const invites: HouseholdInvite[] = inviteTargets.map((m) => ({
+  let existingInvites = await invitesCol
+    .find({ membershipId: application._id })
+    .toArray();
+  for (const target of inviteTargets) {
+    const targetEmail = target.email!.trim().toLowerCase();
+    if (
+      existingInvites.some(
+        (invite) => invite.targetEmail.trim().toLowerCase() === targetEmail,
+      )
+    ) {
+      continue;
+    }
+    const invite: HouseholdInvite = {
       _id: new ObjectId(),
       membershipId: application._id,
-      coreUserId: new ObjectId(userId),
-      targetEmail: m.email!,
-      targetGivenName: m.givenName ?? null,
-      targetFamilyName: m.familyName ?? null,
+      coreUserId,
+      targetEmail,
+      targetGivenName: target.givenName ?? null,
+      targetFamilyName: target.familyName ?? null,
       token: safeRandomId(),
       status: "pending",
+      deliveryStatus: "pending",
+      deliveryRetryable: null,
+      deliveryCategory: null,
       sentAt: now,
       createdAt: now,
       updatedAt: now,
-    }));
-    await invitesCol.insertMany(invites);
-    invitesCreated = invites.length;
-    inviteTokens.push(
-      ...invites.map((inv) => ({
-        email: inv.targetEmail,
-        token: inv.token,
-        name: [inv.targetGivenName, inv.targetFamilyName].filter(Boolean).join(" "),
-      })),
-    );
+    };
+    try {
+      await invitesCol.insertOne(invite);
+      existingInvites.push(invite);
+    } catch (error: any) {
+      if (error?.code !== 11000) throw error;
+    }
   }
 
   const adminTo = process.env.MAIL_ADMIN_TO || paymentEnv.membershipContactEmail;
-  const adminMail = buildMembershipApplyAdminMail({
-    membershipId: String(application._id),
-    userId: String(userId),
-    email: user.email ?? "n/a",
-    amountPerPeriod: body.amountPerPeriod,
-    rhythm: body.rhythm,
-    householdSize: body.householdSize,
-    paymentMethod: application.paymentMethod,
-    paymentReference,
-    payerName: body.payment.billingName,
-    payerIban: payerIban ?? undefined,
-    microTransferCode,
-  });
-  await sendMail({
-    to: adminTo,
-    mail: adminMail,
-    delivery: "best_effort_delivery",
-    tag: "membership_application_admin",
-  });
-
-  try {
-    await logMembershipApplySubmitted({
-      userId: String(userId),
+  if (
+    application.adminMailDeliveryStatus !== "delivered" &&
+    !(
+      application.adminMailDeliveryStatus === "failed" &&
+      application.adminMailDeliveryRetryable !== true
+    )
+  ) {
+    const adminMail = buildMembershipApplyAdminMail({
       membershipId: String(application._id),
-      amountPerPeriod: body.amountPerPeriod,
-      rhythm: body.rhythm,
-      householdSize: body.householdSize,
+      userId: String(userId),
+      email: user.email ?? "n/a",
+      amountPerPeriod: application.amountPerPeriod,
+      rhythm: application.rhythm,
+      householdSize: application.householdSize,
+      paymentMethod: application.paymentMethod,
+      paymentReference: application.paymentReference ?? "",
+      payerName: workflowProfile.billingName ?? payerName,
+      payerIban: workflowProfile.ibanMasked ?? undefined,
+      microTransferCode: workflowProfile.microTransferCode,
     });
-  } catch (err) {
-    console.error("[membership.apply] telemetry failed", err);
+    const adminDelivery = await sendMail({
+      to: adminTo,
+      mail: adminMail,
+      delivery: "best_effort_delivery",
+      tag: "membership_application_admin",
+    });
+    await MembersCol.updateOne(
+      { _id: application._id, deliveryClaimId: claimId },
+      {
+        $set: {
+          adminMailDeliveryStatus: adminDelivery.status,
+          adminMailDeliveryRetryable: adminDelivery.retryable,
+          adminMailDeliveryCategory: adminDelivery.category,
+          adminMailDeliveryAttemptedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      },
+    );
+    application.adminMailDeliveryStatus = adminDelivery.status;
+    application.adminMailDeliveryRetryable = adminDelivery.retryable;
   }
 
-  if (invitesCreated > 0) {
-    const inviteDeliveries: SendMailResult[] = [];
-    for (const inv of inviteTokens) {
-      const inviteUrl = `${base}/register?invite=${encodeURIComponent(inv.token)}`;
+  if (!application.submittedTelemetryAt) {
+    try {
+      await logMembershipApplySubmitted({
+        userId: String(userId),
+        membershipId: String(application._id),
+        amountPerPeriod: application.amountPerPeriod,
+        rhythm: application.rhythm,
+        householdSize: application.householdSize,
+      });
+      await MembersCol.updateOne(
+        { _id: application._id, deliveryClaimId: claimId },
+        { $set: { submittedTelemetryAt: new Date(), updatedAt: new Date() } },
+      );
+    } catch (err) {
+      console.error("[membership.apply] telemetry failed", err);
+    }
+  }
+
+  const attemptedInviteDeliveries: SendMailResult[] = [];
+  for (const invite of existingInvites) {
+    if (invite.deliveryStatus === "delivered") continue;
+    if (
+      invite.deliveryStatus === "failed" &&
+      invite.deliveryRetryable !== true
+    ) {
+      continue;
+    }
+    const inviteUrl = `${base}/register?invite=${encodeURIComponent(invite.token)}`;
+    const inviteName = [
+      invite.targetGivenName,
+      invite.targetFamilyName,
+    ]
+      .filter(Boolean)
+      .join(" ");
       const inviteMail = buildHouseholdInviteMail({
-        targetName: inv.name,
+        targetName: inviteName,
         inviteUrl,
         inviterName: payerName,
         locale: mailLocaleFromUser(user),
       });
       const inviteDelivery = await sendMail({
-        to: inv.email,
+        to: invite.targetEmail,
         mail: inviteMail,
         delivery: "required_delivery",
         tag: "household_invite",
       });
-      inviteDeliveries.push(inviteDelivery);
+      attemptedInviteDeliveries.push(inviteDelivery);
       await invitesCol.updateOne(
-        { membershipId: application._id, targetEmail: inv.email },
+        { _id: invite._id, membershipId: application._id },
         {
           $set: {
             deliveryStatus: inviteDelivery.status,
             deliveryRetryable: inviteDelivery.retryable,
             deliveryCategory: inviteDelivery.category,
             deliveryAttemptedAt: new Date(),
+            updatedAt: new Date(),
           },
         },
       );
-    }
+  }
 
-    const failedInvites = inviteDeliveries.filter(
-      (delivery): delivery is Extract<SendMailResult, { ok: false }> =>
-        !delivery.ok,
+  existingInvites = await invitesCol
+    .find({ membershipId: application._id })
+    .toArray();
+  const permanentInviteFailures = existingInvites.filter(
+    (invite) =>
+      invite.deliveryStatus === "failed" &&
+      invite.deliveryRetryable !== true,
+  );
+  const retryableInviteFailures = existingInvites.filter(
+    (invite) =>
+      invite.deliveryStatus !== "delivered" &&
+      invite.deliveryRetryable === true,
+  );
+
+  if (permanentInviteFailures.length > 0 || retryableInviteFailures.length > 0) {
+    const retryable = retryableInviteFailures.length > 0;
+    await releaseApplicationClaim(MembersCol, application._id, claimId, {
+      workflowStatus: retryable ? "partial" : "manual_recovery",
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: retryable
+          ? "household_invite_delivery_failed"
+          : "household_invite_manual_recovery_required",
+        partial: true,
+        applicationPersisted: true,
+        membershipId: String(application._id),
+        delivery: aggregateInviteDelivery(
+          attemptedInviteDeliveries,
+          existingInvites,
+          retryable,
+        ),
+      },
+      { status: retryable ? 502 : 409 },
     );
-    if (failedInvites.length > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "household_invite_delivery_failed",
-          partial: true,
-          applicationPersisted: true,
-          membershipId: String(application._id),
-          delivery: {
-            status:
-              failedInvites.length === inviteDeliveries.length
-                ? "failed"
-                : "partial",
-            category: failedInvites[0]?.category ?? "smtp_unknown_error",
-            retryable: failedInvites.some((delivery) => delivery.retryable),
-            attemptedCount: inviteDeliveries.reduce(
-              (sum, delivery) => sum + delivery.attemptedCount,
-              0,
-            ),
-            deliveredCount: inviteDeliveries.reduce(
-              (sum, delivery) => sum + delivery.deliveredCount,
-              0,
-            ),
-            failedCount: inviteDeliveries.reduce(
-              (sum, delivery) => sum + delivery.failedCount,
-              0,
-            ),
-          },
-        },
-        { status: 502 },
-      );
-    } else {
-      try {
-        await logHouseholdInviteSent({
-          userId: String(userId),
-          membershipId: String(application._id),
-          inviteCount: invitesCreated,
-        });
-      } catch (err) {
-        console.error("[membership.apply] invite telemetry failed", err);
-      }
+  }
+
+  if (existingInvites.length > 0 && attemptedInviteDeliveries.some((result) => result.ok)) {
+    try {
+      await logHouseholdInviteSent({
+        userId: String(userId),
+        membershipId: String(application._id),
+        inviteCount: existingInvites.length,
+      });
+    } catch (err) {
+      console.error("[membership.apply] invite telemetry failed", err);
     }
   }
 
+  await releaseApplicationClaim(MembersCol, application._id, claimId, {
+    workflowStatus: "complete",
+  });
+  application.workflowStatus = "complete";
+  return successfulMembershipResponse(
+    application,
+    applicationCreated,
+    !applicationCreated,
+    existingInvites.length,
+    payerDelivery,
+  );
+}
+
+async function ensureMembershipWorkflowIndexes(
+  col: Awaited<ReturnType<typeof coreCol<MembershipApplication>>>,
+) {
+  if (workflowIndexesEnsured) return;
+  await col.createIndex(
+    { openApplicationKey: 1 },
+    { unique: true, sparse: true, name: "membership_open_application_unique" },
+  );
+  workflowIndexesEnsured = true;
+}
+
+async function ensureHouseholdInviteIndexes(
+  col: Awaited<ReturnType<typeof piiCol<HouseholdInvite>>>,
+) {
+  await col.createIndex(
+    { membershipId: 1, targetEmail: 1 },
+    { unique: true, name: "household_invite_recipient_unique" },
+  );
+}
+
+async function releaseApplicationClaim(
+  col: Awaited<ReturnType<typeof coreCol<MembershipApplication>>>,
+  membershipId: ObjectId,
+  claimId: string,
+  fields: Partial<MembershipApplication>,
+) {
+  await col.updateOne(
+    { _id: membershipId, deliveryClaimId: claimId },
+    {
+      $set: {
+        ...fields,
+        deliveryClaimId: null,
+        deliveryClaimedAt: null,
+        updatedAt: new Date(),
+      },
+    },
+  );
+}
+
+function deliveredReplayResult(): SendMailResult {
+  return {
+    ok: true,
+    status: "delivered",
+    transport: "smtp",
+    category: null,
+    retryable: false,
+    attemptedCount: 0,
+    deliveredCount: 0,
+    failedCount: 0,
+    messageId: null,
+  };
+}
+
+function aggregateInviteDelivery(
+  attempted: SendMailResult[],
+  invites: HouseholdInvite[],
+  retryable: boolean,
+) {
+  const failures = attempted.filter(
+    (delivery): delivery is Extract<SendMailResult, { ok: false }> =>
+      !delivery.ok,
+  );
+  const deliveredRecipientCount = invites.filter(
+    (invite) => invite.deliveryStatus === "delivered",
+  ).length;
+  return {
+    status: deliveredRecipientCount > 0
+      ? "partial"
+      : "failed",
+    category: failures[0]?.category ?? "smtp_unknown_error",
+    retryable,
+    attemptedCount: attempted.reduce(
+      (sum, delivery) => sum + delivery.attemptedCount,
+      0,
+    ),
+    deliveredCount: attempted.reduce(
+      (sum, delivery) => sum + delivery.deliveredCount,
+      0,
+    ),
+    failedCount: failures.reduce(
+      (sum, delivery) => sum + delivery.failedCount,
+      0,
+    ),
+  };
+}
+
+function successfulMembershipResponse(
+  application: MembershipApplication,
+  created: boolean,
+  idempotentReplay: boolean,
+  invitesCreated = application.members.filter(
+    (member) => member.role !== "primary" && Boolean(member.email),
+  ).length,
+  payerDelivery: SendMailResult = deliveredReplayResult(),
+) {
   return NextResponse.json(
     {
       ok: true,
+      idempotentReplay,
       data: {
         membershipId: String(application._id),
         invitesCreated,
-        delivery: payerDelivery
-          ? { status: payerDelivery.status }
-          : { status: "not_applicable" },
+        delivery: { status: payerDelivery.status },
       },
     },
-    { status: 201 },
+    { status: created ? 201 : 200 },
   );
 }

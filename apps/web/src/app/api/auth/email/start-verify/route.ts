@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCol, ObjectId } from "@core/db/triMongo";
-import { createEmailVerificationToken } from "@core/auth/emailVerificationService";
+import {
+  createEmailVerificationToken,
+  recordEmailVerificationDelivery,
+} from "@core/auth/emailVerificationService";
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
-import { mailFailureMetadata, sendMail } from "@/utils/mailer";
+import { sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { buildVerificationMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
@@ -14,6 +17,8 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   email: z.string().email(),
 });
+
+const PUBLIC_VERIFY_RESPONSE = { ok: true } as const;
 
 export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
@@ -57,17 +62,8 @@ export async function POST(req: NextRequest) {
       delivery: "required_delivery",
       tag: "verification_start",
     });
-    if (!mailResult.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "mail_delivery_failed",
-          delivery: mailFailureMetadata(mailResult),
-        },
-        { status: 503 },
-      );
-    }
+    await recordEmailVerificationDelivery(user._id, rawToken, mailResult);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json(PUBLIC_VERIFY_RESPONSE);
 }

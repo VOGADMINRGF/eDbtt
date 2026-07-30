@@ -9,7 +9,12 @@ export const ORG_ROLES = [
 ] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
 
-export const ORG_MEMBERSHIP_STATUSES = ["active", "invited", "disabled"] as const;
+export const ORG_MEMBERSHIP_STATUSES = [
+  "active",
+  "invited",
+  "pending_activation",
+  "disabled",
+] as const;
 export type OrgMembershipStatus = (typeof ORG_MEMBERSHIP_STATUSES)[number];
 
 export type OrgDoc = {
@@ -37,6 +42,8 @@ export type OrgMembershipDoc = {
   inviteDeliveryAttemptedAt?: Date | null;
   inviteDeliveryRetryable?: boolean | null;
   inviteDeliveryCategory?: string | null;
+  inviteDeliveryClaimId?: string | null;
+  inviteDeliveryClaimedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   disabledAt?: Date | null;

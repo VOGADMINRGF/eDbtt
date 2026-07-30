@@ -45,6 +45,11 @@ export async function POST(
         "paymentInfo.firstPaidAt": now,
         "paymentInfo.mandateStatus": "active",
       },
+      $unset: {
+        openApplicationKey: "",
+        deliveryClaimId: "",
+        deliveryClaimedAt: "",
+      },
     },
   );
 
@@ -68,6 +73,7 @@ export async function POST(
       $set: {
         microTransferVerifiedAt: now,
         microTransferHash: null,
+        microTransferCode: null,
         microTransferExpiresAt: null,
         microTransferAttempts: null,
       },

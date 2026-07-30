@@ -72,6 +72,7 @@ export async function upsertMembershipPaymentProfile(
     bic?: string | null;
     mandateReference?: string | null;
     microTransferHash?: string | null;
+    microTransferCode?: string | null;
     microTransferExpiresAt?: Date | null;
     microTransferAttempts?: number | null;
     microTransferVerifiedAt?: Date | null;
@@ -103,6 +104,9 @@ export async function upsertMembershipPaymentProfile(
   if (input.microTransferHash !== undefined) {
     profile.microTransferHash = input.microTransferHash;
   }
+  if (input.microTransferCode !== undefined) {
+    profile.microTransferCode = input.microTransferCode;
+  }
   if (input.microTransferExpiresAt !== undefined) {
     profile.microTransferExpiresAt = input.microTransferExpiresAt;
   }
@@ -126,6 +130,22 @@ export async function upsertMembershipPaymentProfile(
   );
 
   return result.upsertedId?._id ?? (await col.findOne({ userId }, { projection: { _id: 1 } }))!._id!;
+}
+
+export async function getMembershipPaymentWorkflowProfile(userId: ObjectId) {
+  const col = await piiCol<UserPaymentProfileDoc>(COLLECTION);
+  return col.findOne(
+    { userId },
+    {
+      projection: {
+        _id: 1,
+        billingName: 1,
+        ibanMasked: 1,
+        microTransferCode: 1,
+        microTransferExpiresAt: 1,
+      },
+    },
+  );
 }
 
 function maskIban(iban: string): string {

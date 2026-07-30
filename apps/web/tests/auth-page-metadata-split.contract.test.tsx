@@ -105,7 +105,7 @@ describe("auth page metadata split contract", () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ verifyUrl: "https://example.test/verify?token=new-token" }),
+        json: async () => ({ ok: true }),
       });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -134,7 +134,9 @@ describe("auth page metadata split contract", () => {
       }),
     );
     expect(
-      screen.getByText("Neuer Link gesendet. (Dev: https://example.test/verify?token=new-token)"),
+      screen.getByText(
+        "Wenn die Adresse bekannt ist, wurde ein neuer Verifizierungslink gesendet.",
+      ),
     ).toBeTruthy();
   });
 });

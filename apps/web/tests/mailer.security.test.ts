@@ -165,6 +165,87 @@ describe("mailer security", () => {
     warnSpy.mockRestore();
   });
 
+  it("rejects a spread clone of a genuine renderer mail before transport", async () => {
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    const { sendMail } = await loadMailer();
+    const clone = { ...buildTestMail("spread-clone") };
+
+    const result = await sendMail({
+      to: "member@gmail.com",
+      mail: clone,
+      delivery: "required_delivery",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      category: "mail_content_invalid",
+      attemptedCount: 0,
+    });
+    expect(mocks.transportSendMail).not.toHaveBeenCalled();
+  });
+
+  it("rejects a JSON round-trip of a genuine renderer mail before transport", async () => {
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    const { sendMail } = await loadMailer();
+    const clone = JSON.parse(
+      JSON.stringify(buildTestMail("json-clone")),
+    ) as TransactionalMail;
+
+    const result = await sendMail({
+      to: "member@gmail.com",
+      mail: clone,
+      delivery: "required_delivery",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      category: "mail_content_invalid",
+      attemptedCount: 0,
+    });
+    expect(mocks.transportSendMail).not.toHaveBeenCalled();
+  });
+
+  it("rejects a subsequently mutated copy before transport", async () => {
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    const { sendMail } = await loadMailer();
+    const mutated = { ...buildTestMail("mutation") };
+    mutated.html = mutated.html.replace("Testnachricht", "<img src=x>");
+
+    const result = await sendMail({
+      to: "member@gmail.com",
+      mail: mutated,
+      delivery: "required_delivery",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      category: "mail_content_invalid",
+      attemptedCount: 0,
+    });
+    expect(mocks.transportSendMail).not.toHaveBeenCalled();
+  });
+
+  it("delivers the original unchanged and frozen renderer object", async () => {
+    mocks.hasSmtpTransportConfig.mockReturnValue(true);
+    mocks.transportSendMail.mockResolvedValueOnce({ messageId: "genuine-1" });
+    const { sendMail } = await loadMailer();
+    const genuine = buildTestMail("genuine");
+
+    const result = await sendMail({
+      to: "member@gmail.com",
+      mail: genuine,
+      delivery: "required_delivery",
+    });
+
+    expect(Object.isFrozen(genuine)).toBe(true);
+    expect(result).toMatchObject({
+      ok: true,
+      status: "delivered",
+      attemptedCount: 1,
+    });
+    expect(mocks.transportSendMail).toHaveBeenCalledTimes(1);
+  });
+
   it("allows member@gmail.com when SMTP is configured", async () => {
     mocks.hasSmtpTransportConfig.mockReturnValue(true);
     mocks.transportSendMail.mockResolvedValueOnce({ messageId: "msg-gmail" });

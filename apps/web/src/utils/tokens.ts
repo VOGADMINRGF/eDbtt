@@ -16,6 +16,16 @@ type StoredTokenDoc = {
   invalidationReason?: string | null;
   createdAt: Date;
   updatedAt?: Date | null;
+  deliveryStatus?: "pending" | "delivered" | "failed" | "partial";
+  deliveryRetryable?: boolean | null;
+  deliveryCategory?: string | null;
+  deliveryAttemptedAt?: Date | null;
+};
+
+export type TokenDeliveryMetadata = {
+  status: "delivered" | "failed" | "partial";
+  retryable: boolean;
+  category: string | null;
 };
 
 let indexesEnsured = false;
@@ -112,6 +122,31 @@ export async function createToken(
   );
 
   return raw;
+}
+
+export async function recordTokenDelivery(
+  userId: string,
+  type: TokenType,
+  raw: string,
+  delivery: TokenDeliveryMetadata,
+) {
+  const col = await piiCol<StoredTokenDoc>("tokens");
+  const now = new Date();
+  await col.updateOne(
+    {
+      slotKey: tokenSlotKey(userId, type),
+      tokenHash: sha256(raw),
+    },
+    {
+      $set: {
+        deliveryStatus: delivery.status,
+        deliveryRetryable: delivery.retryable,
+        deliveryCategory: delivery.category,
+        deliveryAttemptedAt: now,
+        updatedAt: now,
+      },
+    },
+  );
 }
 
 export async function consumeToken(raw: string, type: TokenType) {
