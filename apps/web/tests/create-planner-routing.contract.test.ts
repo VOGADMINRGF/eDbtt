@@ -12,6 +12,40 @@ vi.mock("@/features/create/createPlanner", () => ({
 
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 
+function openAiProviderIdentity() {
+  return {
+    providerCallAttempted: true,
+    providerCallSucceeded: true,
+    providerAttemptCount: 1,
+    providerAttempts: [
+      {
+        attempt: 1,
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "succeeded",
+        resultCode: "succeeded",
+        responseLength: 512,
+        responseHash: "d".repeat(64),
+      },
+    ],
+    plannerDebug: {
+      attemptedProvider: "openai",
+      usedProvider: "openai",
+      attemptedModel: "gpt-4.1-mini",
+      usedModel: "gpt-4.1-mini",
+      attemptNumber: 1,
+      providerAvailable: true,
+      providerErrorCode: null,
+      rawPayloadValid: true,
+      rawTextValid: true,
+      normalizedPayloadValid: true,
+      qualityGatePassed: true,
+      responseLength: 512,
+      responseHash: "d".repeat(64),
+    },
+  };
+}
+
 describe("create planner routing contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,20 +106,7 @@ describe("create planner routing contract", () => {
       plannerDegradedReason: null,
       qualityStatus: "specific",
       qualityIssues: [],
-      providerCallAttempted: true,
-      providerCallSucceeded: true,
-      plannerDebug: {
-        attemptedProvider: "openai",
-        usedProvider: "openai",
-        providerAvailable: true,
-        providerErrorCode: null,
-        providerErrorMessage: null,
-        errorMessage: null,
-        rawPayloadValid: true,
-        rawTextValid: true,
-        normalizedPayloadValid: true,
-        qualityGatePassed: true,
-      },
+      ...openAiProviderIdentity(),
     });
 
     const result = await buildCreateIntelligentFollowup({
@@ -166,20 +187,7 @@ describe("create planner routing contract", () => {
       plannerDegradedReason: null,
       qualityStatus: "specific",
       qualityIssues: [],
-      providerCallAttempted: true,
-      providerCallSucceeded: true,
-      plannerDebug: {
-        attemptedProvider: "openai",
-        usedProvider: "openai",
-        providerAvailable: true,
-        providerErrorCode: null,
-        providerErrorMessage: null,
-        errorMessage: null,
-        rawPayloadValid: true,
-        rawTextValid: true,
-        normalizedPayloadValid: true,
-        qualityGatePassed: true,
-      },
+      ...openAiProviderIdentity(),
     });
 
     await buildCreateIntelligentFollowup({
@@ -249,13 +257,26 @@ describe("create planner routing contract", () => {
       qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: true,
       providerCallSucceeded: false,
+      providerAttemptCount: 1,
+      providerAttempts: [
+        {
+          attempt: 1,
+          provider: "openai",
+          model: "gpt-4.1-mini",
+          status: "quality_failed",
+          resultCode: "quality_gate_failed",
+          responseLength: 256,
+          responseHash: "e".repeat(64),
+        },
+      ],
       plannerDebug: {
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: "gpt-4.1-mini",
+        usedModel: null,
+        attemptNumber: 1,
         providerAvailable: true,
-        providerErrorCode: null,
-        providerErrorMessage: "qualityStatus=generic",
-        errorMessage: "qualityStatus=generic",
+        providerErrorCode: "quality_gate_failed",
         rawPayloadValid: true,
         rawTextValid: true,
         normalizedPayloadValid: true,
@@ -329,13 +350,26 @@ describe("create planner routing contract", () => {
       qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: true,
       providerCallSucceeded: false,
+      providerAttemptCount: 1,
+      providerAttempts: [
+        {
+          attempt: 1,
+          provider: "openai",
+          model: "gpt-4.1-mini",
+          status: "failed",
+          resultCode: "timeout",
+          responseLength: null,
+          responseHash: null,
+        },
+      ],
       plannerDebug: {
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
+        attemptedModel: "gpt-4.1-mini",
+        usedModel: null,
+        attemptNumber: 1,
         providerAvailable: true,
-        providerErrorCode: null,
-        providerErrorMessage: "create_planner_timeout_after_2200ms",
-        errorMessage: "create_planner_timeout_after_2200ms",
+        providerErrorCode: "TIMEOUT",
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
@@ -444,20 +478,7 @@ describe("create planner routing contract", () => {
       plannerDegradedReason: null,
       qualityStatus: "specific",
       qualityIssues: [],
-      providerCallAttempted: true,
-      providerCallSucceeded: true,
-      plannerDebug: {
-        attemptedProvider: "openai",
-        usedProvider: "openai",
-        providerAvailable: true,
-        providerErrorCode: null,
-        providerErrorMessage: null,
-        errorMessage: null,
-        rawPayloadValid: true,
-        rawTextValid: true,
-        normalizedPayloadValid: true,
-        qualityGatePassed: true,
-      },
+      ...openAiProviderIdentity(),
     });
 
     const result = await buildCreateIntelligentFollowup({

@@ -72,7 +72,8 @@ describe("create planner timeout contract", () => {
     expect(planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(planner.plannerDebug.providerAvailable).toBe(true);
     expect(planner.plannerDebug.providerErrorCode).toBe("TIMEOUT");
-    expect(planner.plannerDebug.errorMessage).toContain("aborted");
+    expect(planner.plannerDebug).not.toHaveProperty("errorMessage");
+    expect(JSON.stringify(planner)).not.toContain("aborted");
     expect(planner.permissions.nonMutative).toBe(true);
     expect(planner.permissions.canDeepSearch).toBe(false);
     expect(mocks.logAiUsage).toHaveBeenCalledWith(

@@ -24,7 +24,7 @@ import type {
 import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 import type { V3VoxyCocreationDialogModel } from "@/features/create/voxyCocreationDialogContract";
 import { buildVoxyCocreationDialog } from "@/features/create/voxyCocreationDialogContract";
-import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 
 export type CreateCandidateKind =
   | "claim"
@@ -1300,12 +1300,11 @@ function resolveProviderContext(params: {
   const planner = params.followup?.meta?.planner;
   if (
     planner?.providerCallSucceeded &&
-    hasText(planner.plannerProvider) &&
-    planner.plannerProvider !== "none"
+    hasValidatedCreatePlannerProviderIdentity(planner)
   ) {
     return {
       provider: planner.plannerProvider,
-      model: null,
+      model: planner.plannerDebug.usedModel,
       runtimeTruth: "present",
     };
   }
@@ -1335,7 +1334,7 @@ export function hasValidatedCreateSemanticOutput(
     (analysis.state === "analysis_validated" || analysis.state === "result_ready");
   return (
     analysisValidated &&
-    isCreatePlannerProviderSource(planner.source) &&
+    hasValidatedCreatePlannerProviderIdentity(planner) &&
     planner.qualityStatus === "specific" &&
     planner.plannerDegraded === false
   );

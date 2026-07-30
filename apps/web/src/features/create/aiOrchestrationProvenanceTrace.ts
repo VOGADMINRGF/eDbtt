@@ -215,20 +215,33 @@ function resolvePlannerProviderTrace(
     planner.providerCallAttempted === true &&
     planner.providerCallSucceeded === true &&
     planner.plannerDebug.usedProvider === planner.plannerProvider;
-  const attemptedProvider = isCreatePlannerProviderSource(
-    planner.plannerDebug.attemptedProvider,
-  )
-    ? planner.plannerDebug.attemptedProvider
+  const finalAttempt = Array.isArray(planner.providerAttempts)
+    ? planner.providerAttempts[planner.providerAttempts.length - 1] ?? null
     : null;
+  const attemptedProvider = isCreatePlannerProviderSource(
+    finalAttempt?.provider,
+  )
+    ? finalAttempt.provider
+    : isCreatePlannerProviderSource(planner.plannerDebug.attemptedProvider)
+      ? planner.plannerDebug.attemptedProvider
+      : null;
   const provider = validatedSuccess
     ? planner.plannerProvider
     : attemptedProvider;
   const model = validatedSuccess
-    ? planner.plannerDebug.usedModel ?? planner.plannerDebug.attemptedModel ?? null
-    : planner.plannerDebug.attemptedModel ?? planner.plannerDebug.usedModel ?? null;
+    ? finalAttempt?.model ??
+      planner.plannerDebug.usedModel ??
+      planner.plannerDebug.attemptedModel ??
+      null
+    : finalAttempt?.model ??
+      planner.plannerDebug.attemptedModel ??
+      planner.plannerDebug.usedModel ??
+      null;
   const attempt =
-    provider && planner.providerAttemptCount > 0
-      ? planner.providerAttemptCount
+    provider && finalAttempt
+      ? finalAttempt.attempt
+      : provider && planner.providerAttemptCount > 0
+        ? planner.providerAttemptCount
       : null;
   const resultStatus = validatedSuccess
     ? "succeeded"
@@ -753,7 +766,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
     aiActive: plannerProviderTrace.resultStatus !== "not_attempted",
     usageRecorded: Boolean(planner?.providerCallAttempted),
     outputType: "planner_followup",
-    outputOrigin: isCreatePlannerProviderSource(planner?.source)
+    outputOrigin:
+      planner && hasValidatedCreatePlannerProviderIdentity(planner)
       ? "ai_assisted"
       : "human_input",
     sourceProvenance: plannerSourceProvenance,

@@ -73,6 +73,59 @@ describe("create support ticket contract", () => {
     });
   });
 
+  it("requires a server-bound actor and never exposes an account link for guests", async () => {
+    await expect(
+      ensureCreateSupportTicket({
+        orchestrationPhase: "intelligent_followup",
+        correlationId: "correlation-without-actor",
+        technicalErrorCode: "CREATE_AI_FAILED",
+      }),
+    ).rejects.toThrow("create_support_ticket_actor_required");
+
+    const guest = await ensureCreateSupportTicket({
+      anonymousSessionId: "create-anon-verified-1",
+      orchestrationPhase: "intelligent_followup",
+      correlationId: "correlation-guest-1",
+      technicalErrorCode: "CREATE_AI_FAILED",
+      reason: "timeout",
+      draftId: "draft-guest-1",
+      locale: "en",
+    });
+
+    expect(guest).toMatchObject({
+      viewHref: "",
+      notificationLinked: false,
+    });
+    await expect(
+      getCreateSupportTicketByNumberForAdmin(guest.ticketNumber),
+    ).resolves.toMatchObject({
+      affectedUserId: null,
+      anonymousSessionId: "create-anon-verified-1",
+      notificationRecipientLinked: false,
+      notificationStatus: "not_applicable",
+    });
+    await expect(
+      getCreateSupportTicketForUser(guest.ticketNumber, "later-user"),
+    ).resolves.toBeNull();
+  });
+
+  it("does not deduplicate the same correlation across different actors", async () => {
+    const first = await ensureCreateSupportTicket({
+      affectedUserId: "user-actor-a",
+      orchestrationPhase: "intelligent_followup",
+      correlationId: "correlation-shared-by-actors",
+      technicalErrorCode: "CREATE_AI_FAILED",
+    });
+    const second = await ensureCreateSupportTicket({
+      affectedUserId: "user-actor-b",
+      orchestrationPhase: "intelligent_followup",
+      correlationId: "correlation-shared-by-actors",
+      technicalErrorCode: "CREATE_AI_FAILED",
+    });
+
+    expect(second.ticketNumber).not.toBe(first.ticketNumber);
+  });
+
   it("creates the linked resolution notification and sends one account email", async () => {
     const created = await ensureCreateSupportTicket({
       affectedUserId: "user-1",

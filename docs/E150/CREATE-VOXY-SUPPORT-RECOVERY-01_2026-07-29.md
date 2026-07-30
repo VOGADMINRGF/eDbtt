@@ -160,17 +160,70 @@ Node-Version `20.19.0`.
 - Build mit den eingecheckten Werten aus `apps/web/.env.example`: grün;
   `322/322` statische Seiten wurden erzeugt. Es wurden keine Preview- oder
   Production-Secrets gelesen.
-- In der separaten Suite `create-candidate-preview.contract.test.ts` bestehen
-  weiterhin `0/3` Tests. Die Testdatei ist gegenüber `origin/main` unverändert; bereits
-  `origin/main` verlangt in `hasValidatedCreateSemanticOutput` eine validierte
-  `meta.analysis.state`, die diese ältere Fixture nicht setzt. Der PR ändert in
-  diesem Pfad ausschließlich die Providerprüfung von OpenAI-only auf die
-  bestehende Allowlist und erweitert die Defektklasse nicht. Die Fixture wurde
-  deshalb nicht sachfremd repariert und diese Suite wird nicht als grün
-  behauptet.
+- Die veraltete Candidate-Preview-Fixture führt nun die bereits kanonisch
+  erforderliche validierte `meta.analysis.state` und die vollständige
+  Provideridentität. Die Suite
+  `create-candidate-preview.contract.test.ts` ist mit `3/3` Tests grün.
 - Das konkurrierende Resolution-/Mail-Idempotenz-Finding wurde weder im Code
   noch in Tests oder Mail-Evidence verändert und bleibt bis zum neuen
   Delta-Mailvertrag offen.
+
+## Nicht überlappende Härtung — 2026-07-30
+
+- Das externe Planner-Budget zählt jeden tatsächlichen Modellaufruf. Zwei
+  OpenAI-Modellkandidaten verbrauchen damit beide verfügbaren Plätze; danach
+  startet kein Anthropic-/Mistral-Drittversuch. Alternativprovider teilen
+  dasselbe harte Zwei-Aufruf-Budget.
+- Die zentrale Provideridentität validiert gemeinsam `source`,
+  `plannerSource`, `plannerProvider`, `providerPlan.plannerProvider`,
+  `plannerDebug`, Modell, Versuch und die vollständige Attempt-Provenienz.
+  Sämtliche Create-, Dialog-, Candidate-, Connection- und Trace-Consumer
+  behandeln nur diesen vollständigen Allowlist-Vertrag als validierten
+  Providererfolg.
+- Planner-Ergebnisse enthalten auch in Entwicklung und Test keine rohen
+  Providerfehler, Prompts oder Completions mehr. Persistiert beziehungsweise
+  serialisiert werden nur normalisierte Fehlercodes sowie
+  Provider-/Modell-/Versuchs-/Status-, Längen- und Hash-Metadaten.
+- `/api/create/intelligent-followup` verwendet vor dem Plannerlauf einen
+  persistenten Mongo-Claim mit eindeutigem Schlüssel aus verifiziertem Nutzer
+  oder serverseitig verifizierter anonymer Session, Draft, Korrelation und
+  Orchestrierungstyp. Parallele Requests teilen Ergebnis und Ticket-Handoff.
+  Fehlgeschlagene Claims vor dem externen Start sind wiederholbar; abgelaufene
+  Claims nach markiertem externem Start werden ohne zweiten Provideraufruf in
+  einen sichtbaren technischen Fallback überführt.
+- Anonyme Create-Sessions werden serverseitig persistiert und über ein
+  signiertes, `HttpOnly`-Cookie gebunden. Clientgewählte oder manipulierte
+  Session-IDs werden nicht akzeptiert. Support-Tickets verlangen immer genau
+  eine Nutzer- oder anonyme Session-Bindung; Gasttickets erzeugen keinen
+  Account-Link und können nach einem späteren Login nicht übernommen werden.
+- Fokussierte Provider-/Planner-/Dialog-/Provenienz-/Single-Flight-Matrix:
+  `12` Testdateien / `79` Tests grün.
+- Nicht konkurrierende Create-/Support-Gesamtmatrix:
+  `19` eindeutige Testdateien / `120` Tests grün. Die zwei vorhandenen
+  Resolution-/Mail-Tests wurden ausdrücklich übersprungen und nicht als grün
+  gewertet.
+- Candidate-Preview-Baseline: `1` Testdatei / `3` Tests grün.
+- Web-PR-Critical-Guardrails:
+  `17` Testdateien / `63` Tests grün.
+- Production-Guardrails:
+  `12` Testdateien / `36` Tests grün.
+- Typecheck, Lint, Critical-Guardrail-Skript und `git diff --check`: grün.
+- Build in einer bereinigten Umgebung ausschließlich mit der eingecheckten
+  `apps/web/.env.example`-Konfiguration: grün; `322/322` statische Seiten
+  wurden erzeugt. Preview- oder Production-Secrets wurden nicht gelesen.
+- Ein zusätzlicher explorativer Lauf enthält vier sachfremde rote
+  Heuristik-Assertions in
+  `create-planner-complex-civic-input.contract.test.ts`,
+  `create-planner-no-domain-heuristic-expansion.contract.test.ts`,
+  `create-graph-match-after-planner.contract.test.ts` und
+  `create-connection-suggestions.no-domain-fallback.contract.test.ts`.
+  Diese Testdateien sind bytegleich zu `origin/main` und erwarten semantische
+  Heuristikdaten, obwohl der kanonische Main-Planner bereits den technischen
+  Fallback liefert. Sie wurden nicht sachfremd umgeschrieben und sind in keiner
+  grünen Matrix enthalten.
+- `docs/E150/OpenTasks.md` bleibt in diesem Follow-up unverändert. Das
+  Resolution-/Mail-Idempotenz-Finding bleibt bis zum neuen Delta-Mailvertrag
+  ausdrücklich offen.
 
 ## Geänderte Dateien
 

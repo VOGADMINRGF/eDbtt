@@ -14,6 +14,45 @@ function buildFollowupResult(
   overrides: Partial<CreateIntelligentFollowupResult> = {},
   provider: CreatePlannerValidatedProviderSource = "openai",
 ): CreateIntelligentFollowupResult {
+  const model =
+    provider === "openai"
+      ? "gpt-4.1-mini"
+      : provider === "anthropic"
+        ? "claude-sonnet-test"
+        : "mistral-large-test";
+  const providerAttempts =
+    provider === "openai"
+      ? [
+          {
+            attempt: 1,
+            provider: "openai" as const,
+            model,
+            status: "succeeded" as const,
+            resultCode: "succeeded",
+            responseLength: 420,
+            responseHash: "a".repeat(64),
+          },
+        ]
+      : [
+          {
+            attempt: 1,
+            provider: "openai" as const,
+            model: "gpt-4.1-mini",
+            status: "failed" as const,
+            resultCode: "rate_limited",
+            responseLength: null,
+            responseHash: null,
+          },
+          {
+            attempt: 2,
+            provider,
+            model,
+            status: "succeeded" as const,
+            resultCode: "succeeded",
+            responseLength: 420,
+            responseHash: "b".repeat(64),
+          },
+        ];
   return {
     understanding: {
       summary: "Du möchtest sichere Schulwege im Quartier verbessern.",
@@ -98,30 +137,21 @@ function buildFollowupResult(
         providerCallAttempted: true,
         providerCallSucceeded: true,
         providerAttemptCount: provider === "openai" ? 1 : 2,
+        providerAttempts,
         plannerDebug: {
           attemptedProvider: provider,
           usedProvider: provider,
-          attemptedModel:
-            provider === "openai"
-              ? "gpt-4.1-mini"
-              : provider === "anthropic"
-                ? "claude-sonnet-test"
-                : "mistral-large-test",
-          usedModel:
-            provider === "openai"
-              ? "gpt-4.1-mini"
-              : provider === "anthropic"
-                ? "claude-sonnet-test"
-                : "mistral-large-test",
+          attemptedModel: model,
+          usedModel: model,
+          attemptNumber: providerAttempts.length,
           providerAvailable: true,
           providerErrorCode: null,
-          providerErrorMessage: null,
-          errorMessage: null,
           rawPayloadValid: true,
           rawTextValid: true,
           normalizedPayloadValid: true,
           qualityGatePassed: true,
-          rawText: null,
+          responseLength: 420,
+          responseHash: "b".repeat(64),
         },
       },
       graphMatch: {

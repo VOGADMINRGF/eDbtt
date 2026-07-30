@@ -4,6 +4,11 @@ import { callMistral } from "@features/ai/providers/mistral";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
 import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
+import { stableHash } from "@core/utils/hash";
+import type {
+  CreatePlannerProviderAttemptIdentity,
+  CreatePlannerValidatedProviderSource,
+} from "@/features/create/createPlannerProviderContract";
 export { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type CreatePlannerScope =
@@ -47,15 +52,15 @@ export type CreatePlannerDebug = {
   usedProvider: CreatePlannerProviderName;
   attemptedModel?: string | null;
   usedModel?: string | null;
+  attemptNumber?: number | null;
   providerAvailable: boolean;
   providerErrorCode?: string | null;
-  providerErrorMessage?: string | null;
-  errorMessage?: string | null;
   rawPayloadValid: boolean;
   rawTextValid: boolean;
   normalizedPayloadValid: boolean;
   qualityGatePassed: boolean;
-  rawText?: string | null;
+  responseLength?: number | null;
+  responseHash?: string | null;
 };
 
 export type CreatePlannerProviderPlan = {
@@ -108,6 +113,7 @@ export type CreatePlannerResult = {
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
   providerAttemptCount: number;
+  providerAttempts: CreatePlannerProviderAttemptIdentity[];
   plannerDebug: CreatePlannerDebug;
 };
 
@@ -123,13 +129,17 @@ type BuildCreatePlannerInput = {
 };
 
 export type PlannerAttempt =
-  | { ok: true; result: CreatePlannerResult; debug: CreatePlannerDebug; rawText?: string }
+  | { ok: true; result: CreatePlannerResult; debug: CreatePlannerDebug }
   | {
       ok: false;
       reason: CreatePlannerDegradedReason;
       debug: CreatePlannerDebug;
-      rawText?: string;
     };
+
+type PlannerAttemptBudget = {
+  maxAttempts: 2;
+  attempts: CreatePlannerProviderAttemptIdentity[];
+};
 
 type CreatePlannerDraft = {
   plannerTopic: string;
@@ -500,13 +510,127 @@ function summarizeText(text: string): string {
   return `${normalized.slice(0, 237).trim()}...`;
 }
 
-function shouldExposePlannerDebugRawText(): boolean {
-  return process.env.NODE_ENV !== "production";
+function responseMetadata(rawText?: string | null) {
+  if (typeof rawText !== "string") {
+    return { responseLength: null, responseHash: null };
+  }
+  return {
+    responseLength: rawText.length,
+    responseHash: stableHash(rawText),
+  };
 }
 
-function normalizePlannerDebugRawText(rawText?: string | null): string | null {
-  if (!rawText || !shouldExposePlannerDebugRawText()) return null;
-  return rawText;
+function normalizePlannerErrorCode(value: unknown, fallback: string) {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_.:-]/g, "_")
+    .slice(0, 96);
+  return normalized || fallback;
+}
+
+function createPlannerAttemptBudget(): PlannerAttemptBudget {
+  return {
+    maxAttempts: 2,
+    attempts: [],
+  };
+}
+
+function reservePlannerAttempt(
+  budget: PlannerAttemptBudget,
+  provider: CreatePlannerValidatedProviderSource,
+  model: string,
+): number | null {
+  if (budget.attempts.length >= budget.maxAttempts) return null;
+  const attempt = budget.attempts.length + 1;
+  budget.attempts.push({
+    attempt,
+    provider,
+    model,
+    status: "failed",
+    resultCode: "attempt_in_progress",
+    responseLength: null,
+    responseHash: null,
+  });
+  return attempt;
+}
+
+function finishPlannerAttempt(
+  budget: PlannerAttemptBudget,
+  attempt: number,
+  input: {
+    status: CreatePlannerProviderAttemptIdentity["status"];
+    resultCode: string;
+    rawText?: string | null;
+    model?: string;
+  },
+) {
+  const current = budget.attempts[attempt - 1];
+  if (!current || current.attempt !== attempt) {
+    throw new Error("create_planner_attempt_budget_corrupt");
+  }
+  budget.attempts[attempt - 1] = {
+    ...current,
+    model: input.model?.trim() || current.model,
+    status: input.status,
+    resultCode: normalizePlannerErrorCode(
+      input.resultCode,
+      input.status === "succeeded" ? "succeeded" : "provider_error",
+    ),
+    ...responseMetadata(input.rawText),
+  };
+}
+
+function applyPlannerAttemptBudget(
+  result: CreatePlannerResult,
+  budget: PlannerAttemptBudget,
+): CreatePlannerResult {
+  const attempts = budget.attempts.map((attempt) => ({ ...attempt }));
+  const finalAttempt = attempts[attempts.length - 1] ?? null;
+  return {
+    ...result,
+    providerCallAttempted: attempts.length > 0,
+    providerAttemptCount: attempts.length,
+    providerAttempts: attempts,
+    plannerDebug: {
+      ...result.plannerDebug,
+      attemptedProvider:
+        finalAttempt?.provider ?? result.plannerDebug.attemptedProvider ?? null,
+      attemptedModel:
+        finalAttempt?.model ?? result.plannerDebug.attemptedModel ?? null,
+      attemptNumber: finalAttempt?.attempt ?? null,
+      responseLength:
+        finalAttempt?.responseLength ?? result.plannerDebug.responseLength ?? null,
+      responseHash:
+        finalAttempt?.responseHash ?? result.plannerDebug.responseHash ?? null,
+    },
+  };
+}
+
+function attachPlannerAttemptNumber(
+  attempt: PlannerAttempt,
+  attemptNumber: number,
+): PlannerAttempt {
+  if (attempt.ok) {
+    const plannerDebug = {
+      ...attempt.result.plannerDebug,
+      attemptNumber,
+    };
+    return {
+      ...attempt,
+      result: {
+        ...attempt.result,
+        plannerDebug,
+      },
+      debug: plannerDebug,
+    };
+  }
+  return {
+    ...attempt,
+    debug: {
+      ...attempt.debug,
+      attemptNumber,
+    },
+  };
 }
 
 function dedupeModelCandidates(candidates: Array<string | null | undefined>): string[] {
@@ -571,8 +695,6 @@ function estimateTopicSignalCount(text: string): number {
 }
 
 function createPlannerDebug(overrides: Partial<CreatePlannerDebug>): CreatePlannerDebug {
-  const providerErrorMessage = overrides.providerErrorMessage ?? overrides.errorMessage ?? null;
-  const errorMessage = overrides.errorMessage ?? providerErrorMessage;
   const rawPayloadValid = overrides.rawPayloadValid ?? overrides.rawTextValid ?? false;
   const rawTextValid = overrides.rawTextValid ?? rawPayloadValid;
   return {
@@ -580,15 +702,15 @@ function createPlannerDebug(overrides: Partial<CreatePlannerDebug>): CreatePlann
     usedProvider: overrides.usedProvider ?? "none",
     attemptedModel: overrides.attemptedModel ?? null,
     usedModel: overrides.usedModel ?? null,
+    attemptNumber: overrides.attemptNumber ?? null,
     providerAvailable: overrides.providerAvailable ?? false,
     providerErrorCode: overrides.providerErrorCode ?? null,
-    providerErrorMessage,
-    errorMessage,
     rawPayloadValid,
     rawTextValid,
     normalizedPayloadValid: overrides.normalizedPayloadValid ?? false,
     qualityGatePassed: overrides.qualityGatePassed ?? false,
-    rawText: overrides.rawText ?? null,
+    responseLength: overrides.responseLength ?? null,
+    responseHash: overrides.responseHash ?? null,
   };
 }
 
@@ -759,6 +881,7 @@ function finalizePlannerResult(params: {
     providerCallAttempted: params.providerCallAttempted,
     providerCallSucceeded: params.providerCallSucceeded,
     providerAttemptCount: params.providerCallAttempted ? 1 : 0,
+    providerAttempts: [],
     plannerDebug: params.plannerDebug,
   };
 }
@@ -1173,27 +1296,26 @@ function normalizeProviderPlannerPayload(
   provider: Extract<CreatePlannerProviderName, "openai" | "anthropic" | "mistral">,
   rawText?: string,
 ): PlannerAttempt {
-  const normalizedRawText = normalizePlannerDebugRawText(rawText);
+  const metadata = responseMetadata(rawText);
   const plannerTopic = String(payload.plannerTopic ?? "").trim();
   const plannerCore = String(payload.plannerCore ?? "").trim();
   if (!plannerTopic || !plannerCore) {
-    const errorMessage = !plannerTopic ? "plannerTopic fehlt" : "plannerCore fehlt";
     return {
       ok: false,
       reason: "invalid_provider_payload",
-      rawText: normalizedRawText,
       debug: createPlannerDebug({
         attemptedProvider: provider,
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
-        providerErrorMessage: errorMessage,
-        errorMessage,
+        providerErrorCode: !plannerTopic
+          ? "planner_topic_missing"
+          : "planner_core_missing",
         rawPayloadValid: true,
         rawTextValid: true,
         normalizedPayloadValid: false,
         qualityGatePassed: false,
-        rawText: normalizedRawText,
+        ...metadata,
       }),
     };
   }
@@ -1242,13 +1364,11 @@ function normalizeProviderPlannerPayload(
         attemptedModel: model,
         usedModel: model,
         providerAvailable: true,
-        providerErrorMessage: null,
-        errorMessage: null,
         rawPayloadValid: true,
         rawTextValid: true,
         normalizedPayloadValid: true,
         qualityGatePassed: true,
-        rawText: normalizedRawText,
+        ...metadata,
       }),
     },
     draft: {
@@ -1270,23 +1390,20 @@ function normalizeProviderPlannerPayload(
     },
   });
   if (result.qualityStatus !== "specific") {
-    const errorMessage = `qualityStatus=${result.qualityStatus}; issues=${result.qualityIssues.join(",")}`;
     return {
       ok: false,
       reason: "quality_gate_failed",
-      rawText: normalizedRawText,
       debug: createPlannerDebug({
         attemptedProvider: provider,
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
-        providerErrorMessage: errorMessage,
-        errorMessage,
+        providerErrorCode: "quality_gate_failed",
         rawPayloadValid: true,
         rawTextValid: true,
         normalizedPayloadValid: true,
         qualityGatePassed: false,
-        rawText: normalizedRawText,
+        ...metadata,
       }),
     };
   }
@@ -1294,17 +1411,16 @@ function normalizeProviderPlannerPayload(
     ok: true,
     result,
     debug: result.plannerDebug,
-    rawText: normalizedRawText ?? undefined,
   };
 }
 
 async function tryOpenAiPlannerWithModel(
   input: BuildCreatePlannerInput,
   model: string,
+  budget: PlannerAttemptBudget,
 ): Promise<PlannerAttempt> {
   const policy = getAiRuntimePolicy();
   if (!policy.openai.apiKeyPresent) {
-    const errorMessage = "OPENAI_API_KEY fehlt";
     return {
       ok: false,
       reason: "missing_provider_key",
@@ -1313,8 +1429,25 @@ async function tryOpenAiPlannerWithModel(
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: false,
-        providerErrorMessage: errorMessage,
-        errorMessage,
+        providerErrorCode: "missing_provider_key",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
+  const attemptNumber = reservePlannerAttempt(budget, "openai", model);
+  if (!attemptNumber) {
+    return {
+      ok: false,
+      reason: "provider_error",
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        attemptedModel: model,
+        providerAvailable: true,
+        providerErrorCode: "attempt_budget_exhausted",
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
@@ -1371,29 +1504,30 @@ async function tryOpenAiPlannerWithModel(
     let parsed: OpenAiPlannerPayload;
     try {
       parsed = JSON.parse(text) as OpenAiPlannerPayload;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "JSON.parse fehlgeschlagen";
-      const normalizedRawText = normalizePlannerDebugRawText(text);
-      return {
+    } catch {
+      finishPlannerAttempt(budget, attemptNumber, {
+        status: "failed",
+        resultCode: "invalid_json",
+        rawText: text,
+      });
+      return attachPlannerAttemptNumber({
         ok: false,
         reason: "invalid_json",
-        rawText: normalizedRawText,
         debug: createPlannerDebug({
           attemptedProvider: "openai",
           usedProvider: "local_fallback",
           attemptedModel: model,
           providerAvailable: true,
-          providerErrorMessage: errorMessage,
-          errorMessage,
+          providerErrorCode: "invalid_json",
           rawPayloadValid: false,
           rawTextValid: false,
           normalizedPayloadValid: false,
           qualityGatePassed: false,
-          rawText: normalizedRawText,
+          ...responseMetadata(text),
         }),
-      };
+      }, attemptNumber);
     }
-    return normalizeProviderPlannerPayload(
+    const normalized = normalizeProviderPlannerPayload(
       parsed,
       input.text,
       model,
@@ -1401,11 +1535,29 @@ async function tryOpenAiPlannerWithModel(
       "openai",
       text,
     );
+    const normalizedFailure =
+      "reason" in normalized ? normalized.reason : null;
+    finishPlannerAttempt(budget, attemptNumber, {
+      status: normalized.ok
+        ? "succeeded"
+        : normalizedFailure === "quality_gate_failed"
+          ? "quality_failed"
+          : "failed",
+      resultCode: normalized.ok
+        ? "succeeded"
+        : (normalizedFailure ?? "provider_error"),
+      rawText: text,
+    });
+    return attachPlannerAttemptNumber(normalized, attemptNumber);
   } catch (error) {
     const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
     const message = error instanceof Error ? error.message : "unknown_provider_error";
     if (isPlannerTimeoutError(error)) {
-      return {
+      finishPlannerAttempt(budget, attemptNumber, {
+        status: "failed",
+        resultCode: "timeout",
+      });
+      return attachPlannerAttemptNumber({
         ok: false,
         reason: "timeout",
         debug: createPlannerDebug({
@@ -1413,18 +1565,23 @@ async function tryOpenAiPlannerWithModel(
           usedProvider: "local_fallback",
           attemptedModel: model,
           providerAvailable: true,
-          providerErrorCode: errorObject?.meta?.code ?? "TIMEOUT",
-          providerErrorMessage: message,
-          errorMessage: message,
+          providerErrorCode: normalizePlannerErrorCode(
+            errorObject?.meta?.code,
+            "TIMEOUT",
+          ),
           rawPayloadValid: false,
           rawTextValid: false,
           normalizedPayloadValid: false,
           qualityGatePassed: false,
         }),
-      };
+      }, attemptNumber);
     }
     if (isModelNotFoundError(error)) {
-      return {
+      finishPlannerAttempt(budget, attemptNumber, {
+        status: "failed",
+        resultCode: "model_not_found",
+      });
+      return attachPlannerAttemptNumber({
         ok: false,
         reason: "model_not_found",
         debug: createPlannerDebug({
@@ -1433,17 +1590,19 @@ async function tryOpenAiPlannerWithModel(
           attemptedModel: model,
           providerAvailable: true,
           providerErrorCode: "MODEL_NOT_FOUND",
-          providerErrorMessage: message,
-          errorMessage: message,
           rawPayloadValid: false,
           rawTextValid: false,
           normalizedPayloadValid: false,
           qualityGatePassed: false,
         }),
-      };
+      }, attemptNumber);
     }
     if (/rate.?limit|429/i.test(message)) {
-      return {
+      finishPlannerAttempt(budget, attemptNumber, {
+        status: "failed",
+        resultCode: "rate_limited",
+      });
+      return attachPlannerAttemptNumber({
         ok: false,
         reason: "rate_limited",
         debug: createPlannerDebug({
@@ -1451,17 +1610,22 @@ async function tryOpenAiPlannerWithModel(
           usedProvider: "local_fallback",
           attemptedModel: model,
           providerAvailable: true,
-          providerErrorCode: errorObject?.meta?.code ?? "rate_limited",
-          providerErrorMessage: message,
-          errorMessage: message,
+          providerErrorCode: normalizePlannerErrorCode(
+            errorObject?.meta?.code,
+            "rate_limited",
+          ),
           rawPayloadValid: false,
           rawTextValid: false,
           normalizedPayloadValid: false,
           qualityGatePassed: false,
         }),
-      };
+      }, attemptNumber);
     }
-    return {
+    finishPlannerAttempt(budget, attemptNumber, {
+      status: "failed",
+      resultCode: "provider_error",
+    });
+    return attachPlannerAttemptNumber({
       ok: false,
       reason: "provider_error",
       debug: createPlannerDebug({
@@ -1469,22 +1633,25 @@ async function tryOpenAiPlannerWithModel(
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
-        providerErrorCode: errorObject?.meta?.code ?? null,
-        providerErrorMessage: message,
-        errorMessage: message,
+        providerErrorCode: normalizePlannerErrorCode(
+          errorObject?.meta?.code,
+          "provider_error",
+        ),
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
         qualityGatePassed: false,
       }),
-    };
+    }, attemptNumber);
   }
 }
 
-async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+async function tryOpenAiPlanner(
+  input: BuildCreatePlannerInput,
+  budget: PlannerAttemptBudget,
+): Promise<PlannerAttempt> {
   const models = resolveCreatePlannerModelCandidates();
   if (models.length === 0) {
-    const errorMessage = "OPENAI_PLANNER_MODEL oder OPENAI_MODEL fehlt";
     return {
       ok: false,
       reason: "provider_error",
@@ -1492,8 +1659,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
         providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
-        providerErrorMessage: errorMessage,
-        errorMessage,
+        providerErrorCode: "planner_model_missing",
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
@@ -1504,7 +1670,8 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
 
   let lastAttempt: PlannerAttempt | null = null;
   for (const [index, model] of models.entries()) {
-    const attempt = await tryOpenAiPlannerWithModel(input, model);
+    if (budget.attempts.length >= budget.maxAttempts) break;
+    const attempt = await tryOpenAiPlannerWithModel(input, model, budget);
     if (attempt.ok) return attempt;
     const failedAttempt = attempt as Extract<PlannerAttempt, { ok: false }>;
     lastAttempt = failedAttempt;
@@ -1520,8 +1687,7 @@ async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<Planner
       attemptedProvider: "openai",
       usedProvider: "local_fallback",
       providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
-      providerErrorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
-      errorMessage: "Kein OpenAI-Modell konnte aufgerufen werden.",
+      providerErrorCode: "openai_model_unavailable",
       rawPayloadValid: false,
       rawTextValid: false,
       normalizedPayloadValid: false,
@@ -1575,6 +1741,7 @@ function buildFallbackPlannerPrompt(input: BuildCreatePlannerInput) {
 async function tryFallbackPlanner(
   input: BuildCreatePlannerInput,
   provider: CreatePlannerFallbackProvider,
+  budget: PlannerAttemptBudget,
 ): Promise<PlannerAttempt> {
   const policy = getAiRuntimePolicy();
   const model =
@@ -1584,6 +1751,24 @@ async function tryFallbackPlanner(
     policy.plannerTimeoutMs,
     policy.providerTimeoutsMs[provider],
   );
+  const attemptNumber = reservePlannerAttempt(budget, provider, model);
+  if (!attemptNumber) {
+    return {
+      ok: false,
+      reason: "provider_error",
+      debug: createPlannerDebug({
+        attemptedProvider: provider,
+        usedProvider: "local_fallback",
+        attemptedModel: model,
+        providerAvailable: true,
+        providerErrorCode: "attempt_budget_exhausted",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response =
@@ -1600,40 +1785,56 @@ async function tryFallbackPlanner(
             maxOutputTokens: policy.plannerMaxOutputTokens,
             signal: controller.signal,
           });
-    const normalizedRawText = normalizePlannerDebugRawText(response.text);
     let parsed: OpenAiPlannerPayload;
     try {
       parsed = JSON.parse(response.text) as OpenAiPlannerPayload;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "JSON.parse fehlgeschlagen";
-      return {
+    } catch {
+      finishPlannerAttempt(budget, attemptNumber, {
+        status: "failed",
+        resultCode: "invalid_json",
+        rawText: response.text,
+      });
+      return attachPlannerAttemptNumber({
         ok: false,
         reason: "invalid_json",
-        rawText: normalizedRawText,
         debug: createPlannerDebug({
           attemptedProvider: provider,
           usedProvider: "local_fallback",
           attemptedModel: model,
           providerAvailable: true,
-          providerErrorMessage: errorMessage,
-          errorMessage,
+          providerErrorCode: "invalid_json",
           rawPayloadValid: false,
           rawTextValid: false,
           normalizedPayloadValid: false,
           qualityGatePassed: false,
-          rawText: normalizedRawText,
+          ...responseMetadata(response.text),
         }),
-      };
+      }, attemptNumber);
     }
-    return normalizeProviderPlannerPayload(
+    const actualModel = response.model?.trim() || model;
+    const normalized = normalizeProviderPlannerPayload(
       parsed,
       input.text,
-      response.model ?? model,
+      actualModel,
       input.locale,
       provider,
       response.text,
     );
+    const normalizedFailure =
+      "reason" in normalized ? normalized.reason : null;
+    finishPlannerAttempt(budget, attemptNumber, {
+      status: normalized.ok
+        ? "succeeded"
+        : normalizedFailure === "quality_gate_failed"
+          ? "quality_failed"
+          : "failed",
+      resultCode: normalized.ok
+        ? "succeeded"
+        : (normalizedFailure ?? "provider_error"),
+      rawText: response.text,
+      model: actualModel,
+    });
+    return attachPlannerAttemptNumber(normalized, attemptNumber);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "unknown_provider_error";
@@ -1649,7 +1850,11 @@ async function tryFallbackPlanner(
         : isModelNotFoundError(error)
           ? "model_not_found"
           : "provider_error";
-    return {
+    finishPlannerAttempt(budget, attemptNumber, {
+      status: "failed",
+      resultCode: reason,
+    });
+    return attachPlannerAttemptNumber({
       ok: false,
       reason,
       debug: createPlannerDebug({
@@ -1657,18 +1862,16 @@ async function tryFallbackPlanner(
         usedProvider: "local_fallback",
         attemptedModel: model,
         providerAvailable: true,
-        providerErrorCode:
-          errorObject?.meta?.code ??
-          errorObject?.code ??
-          (reason === "timeout" ? "TIMEOUT" : null),
-        providerErrorMessage: message,
-        errorMessage: message,
+        providerErrorCode: normalizePlannerErrorCode(
+          errorObject?.meta?.code ?? errorObject?.code,
+          reason === "timeout" ? "TIMEOUT" : reason,
+        ),
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
         qualityGatePassed: false,
       }),
-    };
+    }, attemptNumber);
   } finally {
     clearTimeout(timeout);
   }
@@ -1743,33 +1946,35 @@ async function recordCreatePlannerAiUsage(params: {
     success: outcome.success,
     errorKind: outcome.errorKind,
     strictJson: true,
-    rawError: params.attempt.ok ? null : params.attempt.debug.errorMessage ?? null,
+    rawError: null,
   });
 }
 
 export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promise<CreatePlannerResult> {
   const text = input.text.trim();
+  const budget = createPlannerAttemptBudget();
   const startedAt = Date.now();
   const openAiResult = await tryOpenAiPlanner({
     ...input,
     text,
-  });
+  }, budget);
   await recordCreatePlannerAiUsage({
     input,
     attempt: openAiResult,
     durationMs: Date.now() - startedAt,
   }).catch(() => {});
-  if (openAiResult.ok) return openAiResult.result;
+  if (openAiResult.ok) {
+    return applyPlannerAttemptBudget(openAiResult.result, budget);
+  }
   if (!openAiResult.ok) {
     const plannerFailure = openAiResult as Extract<PlannerAttempt, { ok: false }>;
-    const primaryAttemptCount =
-      plannerFailure.reason === "missing_provider_key" ? 0 : 1;
     const fallbackProvider = resolveCreatePlannerFallbackProvider();
-    if (fallbackProvider) {
+    if (fallbackProvider && budget.attempts.length < budget.maxAttempts) {
       const fallbackStartedAt = Date.now();
       const fallbackResult = await tryFallbackPlanner(
         { ...input, text },
         fallbackProvider,
+        budget,
       );
       await recordCreatePlannerAiUsage({
         input,
@@ -1777,16 +1982,13 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
         durationMs: Date.now() - fallbackStartedAt,
       }).catch(() => {});
       if (fallbackResult.ok) {
-        return {
-          ...fallbackResult.result,
-          providerAttemptCount: primaryAttemptCount + 1,
-        };
+        return applyPlannerAttemptBudget(fallbackResult.result, budget);
       }
       const fallbackFailure = fallbackResult as Extract<
         PlannerAttempt,
         { ok: false }
       >;
-      return {
+      return applyPlannerAttemptBudget({
         ...buildHeuristicPlanner({
           text,
           plannerProvider: "local_fallback",
@@ -1796,10 +1998,9 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
           providerCallSucceeded: false,
           plannerDebug: fallbackFailure.debug,
         }),
-        providerAttemptCount: primaryAttemptCount + 1,
-      };
+      }, budget);
     }
-    return {
+    return applyPlannerAttemptBudget({
       ...buildHeuristicPlanner({
       text,
       plannerProvider: "local_fallback",
@@ -1809,11 +2010,10 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
       providerCallSucceeded: false,
       plannerDebug: plannerFailure.debug,
       }),
-      providerAttemptCount: primaryAttemptCount,
-    };
+    }, budget);
   }
 
-  return buildNeutralPlanner({
+  return applyPlannerAttemptBudget(buildNeutralPlanner({
     text,
     source: "technical_fallback",
     plannerProvider: "local_fallback",
@@ -1826,14 +2026,12 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
         providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
-        providerErrorMessage: "planner_attempt_unreachable_state",
-        errorMessage: "planner_attempt_unreachable_state",
+        providerErrorCode: "planner_attempt_unreachable_state",
         rawPayloadValid: false,
         rawTextValid: false,
         normalizedPayloadValid: false,
         qualityGatePassed: false,
-        rawText: null,
       }),
     },
-  });
+  }), budget);
 }

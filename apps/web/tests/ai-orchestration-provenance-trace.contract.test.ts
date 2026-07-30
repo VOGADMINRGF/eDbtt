@@ -14,6 +14,39 @@ function buildPlannerTraceResult(input: {
   finalFailure?: boolean;
 }): CreateIntelligentFollowupResult {
   const finalFailure = input.finalFailure === true;
+  const providerAttempts =
+    input.attempt === 1
+      ? [
+          {
+            attempt: 1,
+            provider: input.provider,
+            model: input.model,
+            status: finalFailure ? ("failed" as const) : ("succeeded" as const),
+            resultCode: finalFailure ? "provider_error" : "succeeded",
+            responseLength: finalFailure ? null : 512,
+            responseHash: finalFailure ? null : "f".repeat(64),
+          },
+        ]
+      : [
+          {
+            attempt: 1,
+            provider: "openai" as const,
+            model: "gpt-4.1-mini",
+            status: "failed" as const,
+            resultCode: "rate_limited",
+            responseLength: null,
+            responseHash: null,
+          },
+          {
+            attempt: 2,
+            provider: input.provider,
+            model: input.model,
+            status: finalFailure ? ("failed" as const) : ("succeeded" as const),
+            resultCode: finalFailure ? "provider_error" : "succeeded",
+            responseLength: finalFailure ? null : 512,
+            responseHash: finalFailure ? null : "f".repeat(64),
+          },
+        ];
   return {
     understanding: {
       summary: finalFailure
@@ -85,19 +118,21 @@ function buildPlannerTraceResult(input: {
         providerCallAttempted: true,
         providerCallSucceeded: !finalFailure,
         providerAttemptCount: input.attempt,
+        providerAttempts,
         plannerDebug: {
           attemptedProvider: input.provider,
           usedProvider: finalFailure ? "local_fallback" : input.provider,
           attemptedModel: input.model,
           usedModel: finalFailure ? null : input.model,
+          attemptNumber: input.attempt,
           providerAvailable: true,
           providerErrorCode: finalFailure ? "upstream_error" : null,
-          providerErrorMessage: finalFailure ? "sanitized provider failure" : null,
-          errorMessage: finalFailure ? "sanitized provider failure" : null,
           rawPayloadValid: !finalFailure,
           rawTextValid: !finalFailure,
           normalizedPayloadValid: !finalFailure,
           qualityGatePassed: !finalFailure,
+          responseLength: finalFailure ? null : 512,
+          responseHash: finalFailure ? null : "f".repeat(64),
         },
       },
       analysis: {

@@ -377,22 +377,30 @@ export async function ensureCreateSupportTicket(input: {
     input.orchestrationPhase,
     "intelligent_followup",
   );
+  const affectedUserId = normalizeOptionalId(input.affectedUserId);
+  const anonymousSessionId = affectedUserId
+    ? null
+    : normalizeOptionalId(input.anonymousSessionId);
+  if (!affectedUserId && !anonymousSessionId) {
+    throw new Error("create_support_ticket_actor_required");
+  }
+  const actorBinding = affectedUserId
+    ? `user:${affectedUserId}`
+    : `anonymous:${anonymousSessionId}`;
   const failureFingerprint = stableHash({
     route: "/create",
+    actorBinding,
     correlationId,
     orchestrationPhase,
     technicalErrorCode,
   });
   const ticketNumber = buildTicketNumber(createdAt, failureFingerprint);
-  const affectedUserId = normalizeOptionalId(input.affectedUserId);
   const record: CreateSupportTicketRecord = {
     id: crypto.randomUUID(),
     ticketNumber,
     status: "open",
     affectedUserId,
-    anonymousSessionId: affectedUserId
-      ? null
-      : normalizeOptionalId(input.anonymousSessionId),
+    anonymousSessionId,
     route: "/create",
     orchestrationPhase,
     correlationId,
@@ -430,9 +438,11 @@ export async function ensureCreateSupportTicket(input: {
     ticketNumber: ensured.record.ticketNumber,
     status: ensured.record.status,
     safeUserMessage: localizedCopy(locale, ensured.record.ticketNumber).safeUserMessage,
-    viewHref: `/account?ticket=${encodeURIComponent(
-      ensured.record.ticketNumber,
-    )}#support-tickets`,
+    viewHref: ensured.record.affectedUserId
+      ? `/account?ticket=${encodeURIComponent(
+          ensured.record.ticketNumber,
+        )}#support-tickets`
+      : "",
     notificationLinked: ensured.record.notificationRecipientLinked,
   };
 }

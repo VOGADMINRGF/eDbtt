@@ -1,9 +1,16 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { stableHash } from "@core/utils/hash";
+import {
+  applyVerifiedCreateActorCookie,
+  resolveVerifiedCreateActor,
+  type VerifiedCreateActor,
+} from "@/features/create/createAnonymousSession";
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 import { parseCreateIntent } from "@/features/create/intentFlows";
+import { runCreateOrchestrationSingleFlight } from "@/features/create/createOrchestrationSingleFlight";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import {
   ensureCreateSupportTicket,
@@ -35,14 +42,66 @@ const RequestSchema = z.object({
   anlassraumId: z.string().trim().optional().nullable(),
   dossierId: z.string().trim().optional().nullable(),
   intent: z.string().trim().optional().nullable(),
-  correlationId: z.string().trim().min(8).max(160).optional().nullable(),
-  draftId: z.string().trim().max(160).optional().nullable(),
+  correlationId: z.string().trim().min(8).max(160),
+  draftId: z.string().trim().min(1).max(160),
 });
+
+function supportFailureMessage(locale: string) {
+  return locale.toLowerCase().startsWith("en")
+    ? "Your contribution is saved. Please try again and use the technical reference if the problem persists."
+    : "Dein Beitrag ist gespeichert. Bitte versuche es erneut und nutze die technische Fehlerreferenz, falls das Problem bestehen bleibt.";
+}
+
+async function createSupportHandoff(input: {
+  actor: VerifiedCreateActor;
+  requestId: string;
+  analysisState: "ai_failed" | "fetch_failed";
+  planner:
+    | Awaited<ReturnType<typeof buildCreateIntelligentFollowup>>["meta"]["planner"]
+    | null;
+  draftId: string;
+  locale: string;
+  reasonOverride?: string;
+  technicalErrorCodeOverride?: string;
+}): Promise<CreateSupportHandoffPublic> {
+  try {
+    const ticket = await ensureCreateSupportTicket({
+      affectedUserId: input.actor.affectedUserId,
+      anonymousSessionId: input.actor.anonymousSessionId,
+      orchestrationPhase: "intelligent_followup",
+      correlationId: input.requestId,
+      traceId: input.requestId,
+      technicalErrorCode:
+        input.technicalErrorCodeOverride ??
+        (input.analysisState === "fetch_failed"
+          ? "CREATE_FETCH_FAILED"
+          : "CREATE_AI_FAILED"),
+      provider: input.planner?.plannerDebug?.attemptedProvider ?? null,
+      reason:
+        input.reasonOverride ??
+        input.planner?.degradedReason ??
+        input.analysisState,
+      providerErrorCode:
+        input.planner?.plannerDebug?.providerErrorCode ?? null,
+      attemptCount: input.planner?.providerAttemptCount ?? 1,
+      draftId: input.draftId,
+      locale: input.locale,
+    });
+    return { status: "created", ticket };
+  } catch {
+    return {
+      status: "failed",
+      technicalReference: input.requestId,
+      safeUserMessage: supportFailureMessage(input.locale),
+    };
+  }
+}
 
 export async function POST(req: NextRequest) {
   const fallbackRequestId = crypto.randomUUID();
   const sessionUser = await getSessionUser(req).catch(() => null);
   const userId = sessionUser?._id?.toString() ?? null;
+  let actor: VerifiedCreateActor | null = null;
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -64,81 +123,165 @@ export async function POST(req: NextRequest) {
     };
     const parsed = RequestSchema.safeParse(normalizedBody);
     if (!parsed.success) {
+      const hasText = readTextAlias(rawBody).length > 0;
       return NextResponse.json(
         {
           ok: false,
-          errorCode: "TEXT_REQUIRED",
-          message: "Bitte gib zuerst einen Text ein.",
+          errorCode: hasText ? "CREATE_CONTEXT_REQUIRED" : "TEXT_REQUIRED",
+          message: hasText
+            ? "Der gespeicherte Entwurf und die technische Referenz fehlen."
+            : "Bitte gib zuerst einen Text ein.",
         },
         { status: 400 },
       );
     }
 
     const body = parsed.data;
-    const requestId = body.correlationId ?? fallbackRequestId;
+    const requestId = body.correlationId;
     const normalizedIntent = parseCreateIntent(body.intent ?? undefined);
     const operationType = "create_intelligent_followup_planner" as const;
     const operationId = requestId;
-    const result = await buildCreateIntelligentFollowup({
-      text: body.text,
-      locale: body.locale ?? "de",
-      requestId,
-      operationId,
+    const locale = body.locale ?? "de";
+    const verifiedActor = await resolveVerifiedCreateActor(req, userId);
+    actor = verifiedActor;
+    const singleFlight = await runCreateOrchestrationSingleFlight({
+      actorKey: verifiedActor.actorKey,
+      draftId: body.draftId,
+      correlationId: requestId,
       operationType,
-      userId,
-      anlassraumId: body.anlassraumId ?? null,
-      dossierId: body.dossierId ?? null,
-      intent: normalizedIntent,
-      maxSuggestions: 6,
-    });
-    const analysisState = result.meta?.analysis?.state ?? null;
-    let supportHandoff: CreateSupportHandoffPublic | null = null;
-    if (analysisState === "ai_failed" || analysisState === "fetch_failed") {
-      const planner = result.meta?.planner ?? null;
-      try {
-        const ticket = await ensureCreateSupportTicket({
-          affectedUserId: userId,
-          orchestrationPhase: "intelligent_followup",
-          correlationId: requestId,
-          traceId: requestId,
-          technicalErrorCode:
-            analysisState === "fetch_failed"
-              ? "CREATE_FETCH_FAILED"
-              : "CREATE_AI_FAILED",
-          provider: planner?.plannerDebug?.attemptedProvider ?? null,
-          reason: planner?.degradedReason ?? analysisState,
-          providerErrorCode: planner?.plannerDebug?.providerErrorCode ?? null,
-          attemptCount: planner?.providerAttemptCount ?? 1,
-          draftId: body.draftId ?? null,
-          locale: body.locale ?? "de",
-        });
-        supportHandoff = {
-          status: "created",
-          ticket,
-        };
-      } catch {
-        supportHandoff = {
-          status: "failed",
-          technicalReference: requestId,
-          safeUserMessage:
-            body.locale?.toLowerCase().startsWith("en")
-              ? "Your contribution is saved. Please try again and use the technical reference if the problem persists."
-              : "Dein Beitrag ist gespeichert. Bitte versuche es erneut und nutze die technische Fehlerreferenz, falls das Problem bestehen bleibt.",
-        };
-      }
-    }
+      inputHash: stableHash({
+        text: body.text,
+        locale,
+        anlassraumId: body.anlassraumId ?? null,
+        dossierId: body.dossierId ?? null,
+        intent: normalizedIntent,
+      }),
+      run: async ({
+        recoveryWithoutExternalCall,
+        markExternalExecutionStarted,
+      }) => {
+        if (recoveryWithoutExternalCall) {
+          const supportHandoff = await createSupportHandoff({
+            actor: verifiedActor,
+            requestId,
+            analysisState: "ai_failed",
+            planner: null,
+            draftId: body.draftId,
+            locale,
+            reasonOverride: "stale_single_flight_recovered",
+          });
+          return {
+            ok: true as const,
+            result: buildCreateTechnicalFollowup({
+              text: body.text,
+              analysisState: "ai_failed",
+              sourceType: "text",
+              sourceLoaded: true,
+              userMessage:
+                supportHandoff.status === "created"
+                  ? supportHandoff.ticket.safeUserMessage
+                  : supportHandoff.safeUserMessage,
+            }),
+            supportHandoff,
+            trace: {
+              requestId,
+              operationId,
+              operationType,
+              userScope: verifiedActor.affectedUserId
+                ? ("present" as const)
+                : ("verified_anonymous" as const),
+            },
+          };
+        }
 
-    return NextResponse.json({
-      ok: true,
-      result,
-      supportHandoff,
-      trace: {
-        requestId,
-        operationId,
-        operationType,
-        userScope: userId ? "present" : "missing_runtime_truth",
+        try {
+          await markExternalExecutionStarted();
+          const result = await buildCreateIntelligentFollowup({
+            text: body.text,
+            locale,
+            requestId,
+            operationId,
+            operationType,
+            userId: verifiedActor.affectedUserId,
+            anlassraumId: body.anlassraumId ?? null,
+            dossierId: body.dossierId ?? null,
+            intent: normalizedIntent,
+            maxSuggestions: 6,
+          });
+          const analysisState = result.meta?.analysis?.state ?? null;
+          const supportHandoff =
+            analysisState === "ai_failed" || analysisState === "fetch_failed"
+              ? await createSupportHandoff({
+                  actor: verifiedActor,
+                  requestId,
+                  analysisState,
+                  planner: result.meta?.planner ?? null,
+                  draftId: body.draftId,
+                  locale,
+                })
+              : null;
+
+          return {
+            ok: true as const,
+            result,
+            supportHandoff,
+            trace: {
+              requestId,
+              operationId,
+              operationType,
+              userScope: verifiedActor.affectedUserId
+                ? ("present" as const)
+                : ("verified_anonymous" as const),
+            },
+          };
+        } catch {
+          const supportHandoff = await createSupportHandoff({
+            actor: verifiedActor,
+            requestId,
+            analysisState: "ai_failed",
+            planner: null,
+            draftId: body.draftId,
+            locale,
+            reasonOverride: "unhandled_orchestration_error",
+            technicalErrorCodeOverride: "CREATE_FOLLOWUP_FAILED",
+          });
+          return {
+            ok: true as const,
+            result: buildCreateTechnicalFollowup({
+              text: body.text,
+              analysisState: "ai_failed",
+              sourceType: "text",
+              sourceLoaded: true,
+              userMessage:
+                supportHandoff.status === "created"
+                  ? supportHandoff.ticket.safeUserMessage
+                  : supportHandoff.safeUserMessage,
+            }),
+            supportHandoff,
+            trace: {
+              requestId,
+              operationId,
+              operationType,
+              userScope: verifiedActor.affectedUserId
+                ? ("present" as const)
+                : ("verified_anonymous" as const),
+            },
+          };
+        }
       },
     });
+    const response = NextResponse.json({
+      ...singleFlight.result,
+      trace: {
+        ...singleFlight.result.trace,
+        singleFlight: singleFlight.reused
+          ? "reused"
+          : singleFlight.recovered
+            ? "recovered"
+            : "owner",
+      },
+    });
+    return applyVerifiedCreateActorCookie(response, verifiedActor);
   } catch {
     const normalizedBody =
       rawBody && typeof rawBody === "object"
@@ -152,51 +295,33 @@ export async function POST(req: NextRequest) {
       normalizedBody.correlationId.trim().length >= 8
         ? normalizedBody.correlationId.trim()
         : fallbackRequestId;
-    let supportHandoff: CreateSupportHandoffPublic;
-    try {
-      const ticket = await ensureCreateSupportTicket({
-        affectedUserId: userId,
-        orchestrationPhase: "intelligent_followup",
-        correlationId: requestId,
-        traceId: requestId,
-        technicalErrorCode: "CREATE_FOLLOWUP_FAILED",
-        reason: "unhandled_orchestration_error",
-        attemptCount: 1,
-        draftId:
-          typeof normalizedBody.draftId === "string"
-            ? normalizedBody.draftId
-            : null,
-        locale,
-      });
-      supportHandoff = { status: "created", ticket };
-    } catch {
-      supportHandoff = {
-        status: "failed",
-        technicalReference: requestId,
-        safeUserMessage: locale.toLowerCase().startsWith("en")
-          ? "Your contribution is saved. Please try again and use the technical reference if the problem persists."
-          : "Dein Beitrag ist gespeichert. Bitte versuche es erneut und nutze die technische Fehlerreferenz, falls das Problem bestehen bleibt.",
-      };
-    }
-    return NextResponse.json({
+    const supportHandoff: CreateSupportHandoffPublic = {
+      status: "failed",
+      technicalReference: requestId,
+      safeUserMessage: supportFailureMessage(locale),
+    };
+    const response = NextResponse.json({
       ok: true,
       result: buildCreateTechnicalFollowup({
         text: sourceText,
         analysisState: "ai_failed",
         sourceType: "text",
         sourceLoaded: true,
-        userMessage:
-          supportHandoff.status === "created"
-            ? supportHandoff.ticket.safeUserMessage
-            : supportHandoff.safeUserMessage,
+        userMessage: supportHandoff.safeUserMessage,
       }),
       supportHandoff,
       trace: {
         requestId,
         operationId: requestId,
         operationType: "create_intelligent_followup_planner",
-        userScope: userId ? "present" : "missing_runtime_truth",
+        userScope: actor?.affectedUserId
+          ? "present"
+          : actor?.anonymousSessionId
+            ? "verified_anonymous"
+            : "identity_unavailable",
+        singleFlight: "unavailable",
       },
     });
+    return actor ? applyVerifiedCreateActorCookie(response, actor) : response;
   }
 }

@@ -21,6 +21,7 @@ vi.mock("@core/telemetry/aiUsage", () => ({
 }));
 
 import { buildCreatePlanner } from "@/features/create/createPlanner";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 
 const ENV_KEYS = [
   "OPENAI_API_KEY",
@@ -130,6 +131,15 @@ describe("create planner cross-provider fallback contract", () => {
         usedModel: "gpt-4.1-mini",
       },
     });
+    expect(planner.providerAttempts).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "succeeded",
+      }),
+    ]);
+    expect(hasValidatedCreatePlannerProviderIdentity(planner)).toBe(true);
   });
 
   it("uses exactly one Anthropic alternative after an OpenAI rate limit", async () => {
@@ -155,6 +165,21 @@ describe("create planner cross-provider fallback contract", () => {
     expect(planner.plannerDebug.usedModel).toBe("claude-sonnet-test");
     expect(planner.permissions.canPublish).toBe(false);
     expect(planner.permissions.canSave).toBe(false);
+    expect(planner.providerAttempts).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        provider: "openai",
+        status: "failed",
+        resultCode: "rate_limited",
+      }),
+      expect.objectContaining({
+        attempt: 2,
+        provider: "anthropic",
+        model: "claude-sonnet-test",
+        status: "succeeded",
+      }),
+    ]);
+    expect(hasValidatedCreatePlannerProviderIdentity(planner)).toBe(true);
   });
 
   it("accepts Mistral as the single policy-selected alternative provider", async () => {
@@ -181,6 +206,63 @@ describe("create planner cross-provider fallback contract", () => {
         usedModel: "mistral-large-test",
       },
     });
+    expect(hasValidatedCreatePlannerProviderIdentity(planner)).toBe(true);
+  });
+
+  it("shares the two-call budget across OpenAI model candidates and providers", async () => {
+    mocks.callOpenAIJson.mockRejectedValue(new Error("404 model not found"));
+
+    const planner = await runPlanner();
+
+    expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(2);
+    expect(mocks.callOpenAIJson.mock.calls[0]?.[0]).toMatchObject({
+      model: "gpt-4.1-mini",
+    });
+    expect(mocks.callOpenAIJson.mock.calls[1]?.[0]).toMatchObject({
+      model: "gpt-5",
+    });
+    expect(mocks.callAnthropic).not.toHaveBeenCalled();
+    expect(mocks.callMistral).not.toHaveBeenCalled();
+    expect(planner.providerAttemptCount).toBe(2);
+    expect(planner.providerAttempts).toHaveLength(2);
+    expect(planner.source).toBe("technical_fallback");
+  });
+
+  it("uses the remaining second slot for an alternative after a quality failure", async () => {
+    mocks.callOpenAIJson.mockResolvedValue({
+      text: JSON.stringify({
+        ...buildValidPlannerPayload(),
+        plannerTopic: "Öffentliches Anliegen",
+        plannerCore: "Aussage",
+        topicCandidates: ["Öffentliches Anliegen"],
+        graphSearchTerms: ["Öffentliches Anliegen"],
+      }),
+    });
+    mocks.callAnthropic.mockResolvedValue({
+      text: JSON.stringify(buildValidPlannerPayload()),
+      model: "claude-sonnet-actual",
+    });
+
+    const planner = await runPlanner();
+
+    expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
+    expect(mocks.callAnthropic).toHaveBeenCalledTimes(1);
+    expect(planner.source).toBe("anthropic");
+    expect(planner.plannerDebug.usedModel).toBe("claude-sonnet-actual");
+    expect(planner.providerAttempts).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        provider: "openai",
+        status: "quality_failed",
+      }),
+      expect.objectContaining({
+        attempt: 2,
+        provider: "anthropic",
+        model: "claude-sonnet-actual",
+        status: "succeeded",
+      }),
+    ]);
+    expect(hasValidatedCreatePlannerProviderIdentity(planner)).toBe(true);
   });
 
   it("keeps the technical fallback visible when the second provider returns invalid JSON", async () => {

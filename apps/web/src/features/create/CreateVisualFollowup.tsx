@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
-import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 import {
   buildCreateSupportFailureCopy,
   getCreateVoxyCopy,
@@ -464,7 +464,7 @@ function hasTechnicalPlannerFallbackMeta(result?: CreateIntelligentFollowupResul
 
 function hasUsablePlannerStructure(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
-  if (!planner || !isCreatePlannerProviderSource(planner.source)) return false;
+  if (!planner || !hasValidatedCreatePlannerProviderIdentity(planner)) return false;
   const uniqueTopics = Array.from(new Set([planner.plannerTopic, ...planner.topicCandidates].map((value) => value.trim()).filter(Boolean)));
   const uniqueClusters = Array.from(new Set(planner.plannerClusters.map((value) => value.trim()).filter(Boolean)));
   const nonGenericTopics = uniqueTopics.filter((value) => !isGenericPlannerLabel(value));
