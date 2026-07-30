@@ -9,6 +9,43 @@ import {
   setRegionSourceConnectionRuntimeRepoForTests,
 } from "@features/region";
 
+const directoryCatalogMocks = vi.hoisted(() => ({
+  status: "ready" as "ready" | "missing" | "error",
+  errorCode: null as string | null,
+}));
+
+vi.mock("@features/region", async () => {
+  const actual = await vi.importActual<typeof import("@features/region")>(
+    "@features/region",
+  );
+  return {
+    ...actual,
+    getOperationalRegionCatalog: () => {
+      const catalog = actual.getOperationalRegionCatalog();
+      return {
+        ...catalog,
+        sources: {
+          ...catalog.sources,
+          officialDirectory: {
+            ...catalog.sources.officialDirectory,
+            status: directoryCatalogMocks.status,
+            isConnected: directoryCatalogMocks.status === "ready",
+            recordCount:
+              directoryCatalogMocks.status === "ready"
+                ? catalog.sources.officialDirectory.recordCount
+                : 0,
+            message:
+              directoryCatalogMocks.status === "ready"
+                ? catalog.sources.officialDirectory.message
+                : "Amtliche Verwaltungsanschriften sind nicht verfügbar.",
+            errorCode: directoryCatalogMocks.errorCode,
+          },
+        },
+      };
+    },
+  };
+});
+
 const navigationMocks = vi.hoisted(() => ({
   redirect: vi.fn((target: string) => {
     throw new Error(`NEXT_REDIRECT:${target}`);
@@ -31,6 +68,8 @@ import AdminRegionPage from "@/app/admin/region/page";
 describe("admin-region-page.render", () => {
   beforeEach(() => {
     navigationMocks.redirect.mockClear();
+    directoryCatalogMocks.status = "ready";
+    directoryCatalogMocks.errorCode = null;
   });
 
   it("renders a connected regional operator workspace with contextual handoffs", async () => {
@@ -223,6 +262,14 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Region wechseln");
     expect(html).toContain('type="search"');
     expect(html).toContain('list="admin-region-options"');
+    expect(html).toContain("placeholder:text-[rgb(var(--muted))]");
+    expect(html).toContain("focus:ring-2");
+    expect(html).toContain("focus-visible:ring-2");
+    expect(html).toContain("dark:text-cyan-200");
+    expect(html).toContain("dark:bg-amber-950/50");
+    expect(html).toContain('class="no-grad ');
+    expect(html).not.toContain("from-cyan-50");
+    expect(html).not.toContain("bg-white");
     expect(html).toContain('action="/admin/region"');
     expect(html).toContain('method="get"');
     expect(html).toContain("Berlin Reinickendorf");
@@ -293,6 +340,9 @@ describe("admin-region-page.render", () => {
     expect(html).not.toContain("Auto-Publish aktiv");
     expect(html).not.toContain("Recherche startet automatisch");
     expect(html).not.toContain("wird automatisch veröffentlicht");
+    expect(html).not.toContain("Draft wird automatisch erstellt");
+    expect(html).not.toContain("Dossier wird automatisch erstellt");
+    expect(html).not.toContain("Provider wird automatisch aktiviert");
 
     const sourcesHtml = renderToStaticMarkup(
       await AdminRegionPage({
@@ -410,10 +460,10 @@ describe("admin-region-page.render", () => {
 
     expect(reinickendorfHtml).toContain("Berlin Reinickendorf");
     expect(magdeburgHtml).toContain("Magdeburg");
+    expect(magdeburgHtml).toContain(">Magdeburg</h1>");
     expect(magdeburgHtml).toContain('value="magdeburg"');
     expect(magdeburgHtml).toContain("Erste regionale Quelle vorbereiten");
     expect(magdeburgHtml).toContain("noch ohne Erfahrung");
-    expect(magdeburgHtml).not.toContain("Bezirksamt Reinickendorf");
     expect(reinickendorfHtml).not.toEqual(magdeburgHtml);
   });
 
@@ -438,7 +488,7 @@ describe("admin-region-page.render", () => {
     expect(navigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("keeps an invalid region in the selector and explains the empty state", async () => {
+  it("opens an official directory region by its stable ID", async () => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setParticipationSignalReviewRuntimeRepoForTests(
       createInMemoryParticipationSignalReviewRuntimeRepo(),
@@ -452,9 +502,53 @@ describe("admin-region-page.render", () => {
       }),
     );
 
-    expect(html).toContain('role="alert"');
-    expect(html).toContain("ist kein vorhandener Regionseintrag");
-    expect(html).toContain('value="region-official-01001000"');
-    expect(html).toContain('data-testid="admin-region-empty-profile"');
+    expect(html).toContain("Flensburg, Stadt");
+    expect(html).toContain('value="flensburg-stadt-01001000"');
+    expect(html).toContain("Amtlicher Verzeichniseintrag");
+    expect(html).not.toContain('data-testid="admin-region-empty-profile"');
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it("shows an honest visible diagnostic when the official directory is unavailable", async () => {
+    setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
+    directoryCatalogMocks.status = "missing";
+    directoryCatalogMocks.errorCode = "official_directory_not_found";
+
+    const missingHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: {},
+      }),
+    );
+
+    expect(missingHtml).toContain(
+      'data-testid="admin-region-directory-diagnostic"',
+    );
+    expect(missingHtml).toContain('data-directory-status="missing"');
+    expect(missingHtml).toContain(
+      "Amtliches Verwaltungsverzeichnis nicht verfügbar",
+    );
+    expect(missingHtml).toContain(
+      "nicht als vollständiges amtliches Verzeichnis",
+    );
+    expect(missingHtml).toContain("Diagnose: official_directory_not_found");
+    expect(missingHtml).toContain("Berlin Reinickendorf");
+
+    directoryCatalogMocks.status = "error";
+    directoryCatalogMocks.errorCode =
+      "official_directory_sheet_missing:Anschriften_31_01_2023";
+    const errorHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: {},
+      }),
+    );
+
+    expect(errorHtml).toContain('data-directory-status="error"');
+    expect(errorHtml).toContain(
+      "Amtliches Verwaltungsverzeichnis konnte nicht geladen werden",
+    );
+    expect(errorHtml).toContain("official_directory_sheet_missing");
   });
 });

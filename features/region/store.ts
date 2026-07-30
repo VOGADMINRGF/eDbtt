@@ -1,8 +1,11 @@
 import { z } from "zod";
 import {
+  buildOfficialRegionsFromDirectory,
   buildOfficialRegionalActorsFromDirectory,
+  getDirectorySourceStatus,
   listRegionsFromRegistry,
   summarizeOfficialAdministrativeDirectory,
+  type DirectorySourceStatus,
 } from "./directory";
 import {
   mapRegionIntelligenceToSignals,
@@ -41,7 +44,6 @@ import {
 import {
   getCommunitySignalById,
   getRegionalAdminCockpitById,
-  getRegionById,
   listCommunitySignals,
   listRegions,
   listRegionalAnlassraeume,
@@ -789,12 +791,210 @@ function buildDefaultCockpit(params: {
   };
 }
 
-export async function listOperationalRegions(): Promise<Region[]> {
-  const operationalMap = new Map(listRegionsFromRegistry().map((region) => [region.id, clone(region)]));
-  for (const region of listRegions()) {
-    if (!operationalMap.has(region.id)) operationalMap.set(region.id, clone(region));
+export type OperationalRegionCatalog = {
+  regions: Region[];
+  sources: {
+    regionRegistry: DirectorySourceStatus;
+    officialDirectory: DirectorySourceStatus;
+    fixtureCount: number;
+  };
+};
+
+type OperationalRegionSource = "registry" | "directory" | "fixture";
+
+type OperationalRegionCandidate = {
+  region: Region;
+  source: OperationalRegionSource;
+};
+
+function normalizeRegionIdentifier(value: string | null | undefined): string | null {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
+}
+
+function stableRegionIdentityKeys(region: Region): string[] {
+  return uniqueNonEmpty([
+    normalizeRegionIdentifier(region.id)
+      ? `id:${normalizeRegionIdentifier(region.id)}`
+      : null,
+    normalizeRegionIdentifier(region.officialDirectoryEntry?.ags)
+      ? `ags:${normalizeRegionIdentifier(region.officialDirectoryEntry?.ags)}`
+      : null,
+    normalizeRegionIdentifier(region.officialDirectoryEntry?.ars)
+      ? `ars:${normalizeRegionIdentifier(region.officialDirectoryEntry?.ars)}`
+      : null,
+  ]);
+}
+
+function operationalSlugSuffix(region: Region): string {
+  return slugify(
+    region.officialDirectoryEntry?.ags ??
+      region.officialDirectoryEntry?.ars ??
+      region.id,
+  );
+}
+
+function ensureUniqueOperationalSlugs(
+  candidates: OperationalRegionCandidate[],
+): OperationalRegionCandidate[] {
+  const slugCounts = new Map<string, number>();
+  for (const { region } of candidates) {
+    slugCounts.set(region.slug, (slugCounts.get(region.slug) ?? 0) + 1);
   }
-  return Array.from(operationalMap.values());
+
+  const usedSlugs = new Set<string>();
+  return candidates.map((candidate) => {
+    const baseSlug = candidate.region.slug;
+    let slug =
+      usedSlugs.has(baseSlug) || (slugCounts.get(baseSlug) ?? 0) > 1
+        ? `${baseSlug}-${operationalSlugSuffix(candidate.region)}`
+        : baseSlug;
+    let collisionIndex = 2;
+    while (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${operationalSlugSuffix(candidate.region)}-${collisionIndex}`;
+      collisionIndex += 1;
+    }
+    usedSlugs.add(slug);
+    return slug === candidate.region.slug
+      ? candidate
+      : {
+          ...candidate,
+          region: {
+            ...candidate.region,
+            slug,
+          },
+        };
+  });
+}
+
+export function buildOperationalRegionCatalog(input: {
+  registryRegions: readonly Region[];
+  directoryRegions: readonly Region[];
+  fixtureRegions: readonly Region[];
+  regionRegistryStatus: DirectorySourceStatus;
+  officialDirectoryStatus: DirectorySourceStatus;
+}): OperationalRegionCatalog {
+  const accepted: OperationalRegionCandidate[] = [];
+  const claimedStableIdentities = new Set<string>();
+
+  const addSource = (
+    source: OperationalRegionSource,
+    regions: readonly Region[],
+  ) => {
+    for (const region of regions) {
+      const candidate = clone(region);
+      const stableIdentities = stableRegionIdentityKeys(candidate);
+      const hasClaimedIdentity = stableIdentities.some((identity) =>
+        claimedStableIdentities.has(identity),
+      );
+      stableIdentities.forEach((identity) => claimedStableIdentities.add(identity));
+      if (hasClaimedIdentity) {
+        continue;
+      }
+      accepted.push({ region: candidate, source });
+    }
+  };
+
+  addSource("registry", input.registryRegions);
+  addSource("directory", input.directoryRegions);
+  addSource("fixture", input.fixtureRegions);
+
+  return {
+    regions: ensureUniqueOperationalSlugs(accepted).map(({ region }) => region),
+    sources: {
+      regionRegistry: clone(input.regionRegistryStatus),
+      officialDirectory: clone(input.officialDirectoryStatus),
+      fixtureCount: input.fixtureRegions.length,
+    },
+  };
+}
+
+let cachedOperationalRegionCatalog: OperationalRegionCatalog | null = null;
+
+export function getOperationalRegionCatalog(): OperationalRegionCatalog {
+  if (cachedOperationalRegionCatalog) return clone(cachedOperationalRegionCatalog);
+
+  const sourceStatus = getDirectorySourceStatus();
+  cachedOperationalRegionCatalog = buildOperationalRegionCatalog({
+    registryRegions: listRegionsFromRegistry(),
+    directoryRegions: buildOfficialRegionsFromDirectory(),
+    fixtureRegions: listRegions(),
+    regionRegistryStatus: sourceStatus.regionRegistry,
+    officialDirectoryStatus: sourceStatus.officialDirectory,
+  });
+  return clone(cachedOperationalRegionCatalog);
+}
+
+function normalizeRegionLookup(value: string): string {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("de-DE");
+}
+
+function uniqueRegionMatch(matches: Region[]): Region | null {
+  return matches.length === 1 ? clone(matches[0]) : null;
+}
+
+export function resolveOperationalRegion(
+  regions: readonly Region[],
+  value: string,
+): Region | null {
+  const normalized = normalizeRegionLookup(value);
+  if (!normalized) return null;
+
+  const byId = regions.filter(
+    (region) => normalizeRegionLookup(region.id) === normalized,
+  );
+  if (byId.length > 0) return uniqueRegionMatch(byId);
+
+  const bySlug = regions.filter(
+    (region) => normalizeRegionLookup(region.slug) === normalized,
+  );
+  if (bySlug.length > 0) return uniqueRegionMatch(bySlug);
+
+  const byAgs = regions.filter(
+    (region) =>
+      normalizeRegionLookup(region.officialDirectoryEntry?.ags ?? "") ===
+      normalized,
+  );
+  if (byAgs.length > 0) return uniqueRegionMatch(byAgs);
+
+  const byArs = regions.filter(
+    (region) =>
+      normalizeRegionLookup(region.officialDirectoryEntry?.ars ?? "") ===
+      normalized,
+  );
+  if (byArs.length > 0) return uniqueRegionMatch(byArs);
+
+  const byName = regions.filter(
+    (region) => normalizeRegionLookup(region.name) === normalized,
+  );
+  if (byName.length > 0) return uniqueRegionMatch(byName);
+
+  const byAdministrativeLabel = regions.filter((region) =>
+    uniqueNonEmpty([
+      region.officialBody?.label,
+      region.officialDirectoryEntry?.administrativeSeat,
+      region.officialDirectoryEntry?.rawAdministrativeUnitLabel,
+    ]).some((label) => normalizeRegionLookup(label) === normalized),
+  );
+  if (byAdministrativeLabel.length === 1) {
+    return clone(byAdministrativeLabel[0]);
+  }
+  if (byAdministrativeLabel.length > 1) {
+    const canonicalMunicipalityMatches = byAdministrativeLabel.filter(
+      (region) => Boolean(region.officialDirectoryEntry?.ags),
+    );
+    return uniqueRegionMatch(canonicalMunicipalityMatches);
+  }
+
+  return null;
+}
+
+export async function listOperationalRegions(): Promise<Region[]> {
+  return getOperationalRegionCatalog().regions;
 }
 
 export async function getOperationalRegionById(id: string): Promise<Region | null> {
@@ -802,11 +1002,7 @@ export async function getOperationalRegionById(id: string): Promise<Region | nul
   if (!normalized) return null;
 
   const regions = await listOperationalRegions();
-  const operational = regions.find((region) => region.id === normalized || region.slug === normalized) ?? null;
-  if (operational) return clone(operational);
-
-  const fixture = getRegionById(normalized);
-  return fixture ? clone(fixture) : null;
+  return resolveOperationalRegion(regions, normalized);
 }
 
 export async function listRegionalActorRegister(query: RegionalActorRegisterQuery = {}): Promise<RegionalActor[]> {

@@ -3,22 +3,82 @@
 Stand: 2026-07-29
 Issue: #528
 Branch: `fix/admin-region-product-acceptance-02`
-Status: `review`
+Kanonischer Taskstatus: `codex_ready`
+Empfohlener technischer Endstatus: `review`
 
 ## Ausgangspunkt
 
 PR #513 ist gemergt und bleibt die technische Basis. Dieser Slice korrigiert ausschließlich
-die bei der Produktabnahme festgestellte Handlungshierarchie und die regionalen Handoffs.
-Es gibt keinen Revert, keine neue Runtime, keine neue Persistenz und keine Änderung an Rollen,
-Entitlements oder Governance.
+die bei der Produktabnahme festgestellte Directory-Integration, Regionsauflösung,
+Directory-Diagnose, Theme-Darstellung und die regionalen Handoffs. Es gibt keinen Revert,
+keine neue Runtime, keine neue Persistenz und keine Änderung an Rollen, Entitlements oder
+Governance.
 
-Der Branch wurde vor der Umsetzung per Fast-forward mit `origin/main@a4723fb7` abgeglichen.
-Der Worktree war sauber und befand sich am verlangten Pfad und Branch. Der Kollisionsscan
-der offenen Pull Requests zeigte keine Berührung von
-`apps/web/src/app/admin/region/page.tsx` oder
-`apps/web/tests/admin-region-page.render.test.tsx`. Die Draft-PRs #527, #529 und #535
-berühren ebenfalls `docs/E150/OpenTasks.md`; deshalb bleibt der Kopf-Sync dieses Slices auf
-eine neue operative Zeile begrenzt.
+Der korrektive Lauf integrierte `origin/main@d615149a25178ae1def02b7b20418cacaee75aec`
+genau einmal per Merge in den bestehenden Branch. Beim erwarteten Konflikt wurde
+`docs/E150/OpenTasks.md` vollständig aus `origin/main` übernommen. Die beiden neuen
+`codex_ready`-Zeilen aus PR #542 blieben erhalten; danach wurde die Datei nicht weiter
+verändert. Alpha bleibt alleiniger SSOT-Schreiber und setzt den Task nach Abschluss
+gesammelt auf `review`.
+
+## Korrektives Follow-up
+
+### Amtliches Verwaltungsdirectory
+
+`buildOfficialRegionsFromDirectory()` ist jetzt Bestandteil des operativen
+Regionskatalogs. Die Quellenreihenfolge lautet:
+
+1. Registry
+2. amtliches Directory
+3. Fixtures
+
+Nur identische stabile IDs, AGS oder ARS führen zur Deduplizierung. Gleiche Namen allein
+werden nicht zusammengeführt. Der kontrollierte Stand:
+
+- 13.339 gelesene XLSX-Zeilen,
+- 12.401 amtlich abgeleitete Regionen,
+- 7 weiterhin technisch verfügbare Fixtures,
+- 0 Registry-Einträge, weil `RegionRegistry.snapshot.json` nicht verbunden ist,
+- 12.408 operative Regionen,
+- 384 Gruppen beziehungsweise 481 überzählige Slug-Kollisionen vor der Korrektur,
+- 0 doppelte Slugs nach deterministischer Ergänzung von AGS beziehungsweise ARS.
+
+Die XLSX-Quelle wird weiterhin serverseitig gelesen und im Prozess gecacht. Ein
+`missing`- oder `error`-Ergebnis bleibt mit Status, Nachricht und Fehlercode im Cache
+nachvollziehbar. Registry und Fixtures bleiben in diesem Zustand technisch verfügbar;
+die Oberfläche zeigt jedoch ausdrücklich, dass kein vollständiges amtliches Verzeichnis
+geladen ist.
+
+### Regionsauflösung
+
+Die operative Auflösung akzeptiert ausschließlich eindeutige Treffer über ID, Slug, AGS,
+ARS, Namen oder Verwaltungsbezeichnung. Mehrdeutige Namen liefern keinen heuristischen
+Treffer. Hamburg ist belegt über:
+
+- `Hamburg` → `region-land-02`,
+- AGS `02000000` → `region-official-02000000`,
+- ARS `020000000000` → `region-official-02000000`,
+- ID `region-official-02000000`,
+- Slug `hamburg-freie-und-hansestadt-02000000`,
+- Verwaltungsbezeichnung `Senat der Freien und Hansestadt Hamburg`.
+
+Die gleichnamigen amtlichen Einträge `Hamburg, Freie und Hansestadt` bleiben getrennt.
+Die Verwaltungsbezeichnung bevorzugt nur dann den kanonischen kommunalen Eintrag, wenn
+unter den sonst gleichlautenden amtlichen Treffern genau ein AGS-geführter Eintrag
+existiert.
+
+### Light/Dark und Diagnose
+
+Selektor, operative Zusammenfassung, Eingabe, Placeholder, Fehlerzustand, Typ- und
+Status-Badges sowie Fokuszustände verwenden lokale Theme-Tokens und explizite
+Dark-Mode-Verträge. Der Selektor nutzt keine weißen Karten oder hellen
+`from-cyan-50`-Verläufe mehr. Seine H1 trägt `no-grad`, sodass die globale H1-Regel
+den lokalen Textkontrast nicht überschreibt. Es wurde keine globale CSS-Datei verändert
+und keine zweite Designwelt eingeführt.
+
+Der bestehende Beteiligungssignal-Regressionstest ist wieder geschlossen: Das Lagebild
+zeigt die vorhandenen anonymisierten beziehungsweise aggregierten Readmodel-Werte kompakt,
+ohne Personenprofile, Repräsentativitätsbehauptung oder automatische amtliche Übernahme.
 
 ## Operative Zusammenfassung
 
@@ -97,14 +157,30 @@ Create- und Dossier-Handoffs behalten `source=admin_region`, den regionalen Slug
 - horizontal nutzbare mobile Navigation,
 - kontrollierten Umbruch langer Texte,
 - keine Dead Clicks,
-- keine Auto-Research- oder Auto-Publish-Behauptung.
+- keine Auto-Research-, Auto-Publish-, Draft-, Dossier- oder Provideraktivierung,
+- sichtbare `missing`- und `error`-Diagnosezustände,
+- lokale Light-/Dark-Verträge für Selektor, Eingabe, Placeholder, Fehler, Badges und Fokus,
+- die Abgrenzung des Selektor-H1 von der globalen H1-Verlaufsregel.
+
+`apps/web/tests/regional-official-directory.contract.test.ts` prüft:
+
+- Hamburg per Name, ID, Slug, AGS, ARS und Verwaltungsbezeichnung,
+- 13.339 gelesene Directory-Einträge und 12.401 amtlich abgeleitete Regionen,
+- 12.408 operative Regionen statt einer stillen Reduktion auf sieben Fixtures,
+- eindeutige Slugs nach der deterministischen AGS-/ARS-Ergänzung,
+- Registry-/Directory-/Fixture-Priorität bei stabiler Identität,
+- getrennte gleichnamige Orte und `null` bei mehrdeutiger Namensauflösung,
+- weiterhin verfügbare Registry-/Fixture-Einträge bei fehlender oder fehlerhafter Quelle,
+- nachvollziehbare `missing`- und `error`-Statusdaten.
 
 ## Automatische Checks
 
 - `git diff --check`
   - grün
-- `pnpm -C apps/web exec vitest run tests/admin-region-page.render.test.tsx tests/admin-region-entitlement-ui.test.tsx`
-  - 2 Testdateien, 5 Tests, grün
+- fokussierte Directory-/Render-Verträge
+  - 2 Testdateien, 12 Tests, grün
+- bestehende Region-/Entitlement-/Navigation-Regression
+  - 15 Testdateien, 57 Tests, grün
 - `pnpm -C apps/web run typecheck`
   - grün
 - `pnpm -C apps/web run lint`

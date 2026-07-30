@@ -278,6 +278,35 @@ function buildDirectorySummary(rows: DirectoryWorkbookRow[]): Array<{
     .sort((left, right) => right.count - left.count);
 }
 
+function officialRegionSlugSuffix(region: Region): string {
+  return (
+    region.officialDirectoryEntry?.ags ??
+    region.officialDirectoryEntry?.ars ??
+    region.id.replace(/^region-(?:official|land)-/, "")
+  );
+}
+
+function ensureUniqueOfficialRegionSlugs(regions: Region[]): Region[] {
+  const slugCounts = new Map<string, number>();
+  for (const region of regions) {
+    slugCounts.set(region.slug, (slugCounts.get(region.slug) ?? 0) + 1);
+  }
+
+  const usedSlugs = new Set<string>();
+  return regions.map((region) => {
+    const baseSlug = region.slug;
+    let slug =
+      (slugCounts.get(baseSlug) ?? 0) > 1
+        ? `${baseSlug}-${slugify(officialRegionSlugSuffix(region))}`
+        : baseSlug;
+    if (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${slugify(region.id)}`;
+    }
+    usedSlugs.add(slug);
+    return slug === region.slug ? region : { ...region, slug };
+  });
+}
+
 function buildOfficialRegionsFromEntries(
   entries: OfficialDirectoryEntry[],
   rows: DirectoryWorkbookRow[],
@@ -297,7 +326,7 @@ function buildOfficialRegionsFromEntries(
     if (!regions.has(landRegionId)) {
       regions.set(landRegionId, {
         id: landRegionId,
-        slug: `${slugify(entry.municipalityName.split(",")[0] || entry.municipalityName)}-${landCode}`,
+        slug: `${slugify(landName)}-${landCode}`,
         name: landName,
         type: "land",
         administrativeUnitType: "land",
@@ -336,7 +365,7 @@ function buildOfficialRegionsFromEntries(
     });
   }
 
-  return Array.from(regions.values());
+  return ensureUniqueOfficialRegionSlugs(Array.from(regions.values()));
 }
 
 function buildOfficialActorsFromEntries(entries: OfficialDirectoryEntry[]): RegionalActor[] {
