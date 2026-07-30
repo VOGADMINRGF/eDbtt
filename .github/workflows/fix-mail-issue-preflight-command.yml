@@ -1,0 +1,47 @@
+name: One-time Mail Issue Preflight Command Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-mail-issue-preflight-command.yml
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Align issue command and remove workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          gh api "repos/${GITHUB_REPOSITORY}/issues/538" --jq .body > /tmp/issue-body.md
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("/tmp/issue-body.md")
+          text = path.read_text(encoding="utf-8")
+          old = "pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01"
+          new = "node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01"
+          if old not in text:
+              raise SystemExit("Expected old issue command not found")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+          jq -Rs '{body: .}' /tmp/issue-body.md > /tmp/issue-patch.json
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/538" --input /tmp/issue-patch.json >/dev/null
+
+          git rm .github/workflows/fix-mail-issue-preflight-command.yml
+          git commit -m "chore: remove one-time mail issue command fix"
+          git push origin HEAD:main
