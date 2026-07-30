@@ -38,6 +38,8 @@ export type OrgMembershipDoc = {
   invitedByUserId?: ObjectId | null;
   inviteTokenHash?: string | null;
   inviteExpiresAt?: Date | null;
+  inviteSetupTokenHash?: string | null;
+  inviteSetupTokenExpiresAt?: Date | null;
   inviteDeliveryStatus?: "pending" | "delivered" | "failed";
   inviteDeliveryAttemptedAt?: Date | null;
   inviteDeliveryRetryable?: boolean | null;

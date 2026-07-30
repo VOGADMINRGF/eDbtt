@@ -20,12 +20,22 @@ type StoredTokenDoc = {
   deliveryRetryable?: boolean | null;
   deliveryCategory?: string | null;
   deliveryAttemptedAt?: Date | null;
+  deliveryAttemptedCount?: number;
+  deliveryDeliveredCount?: number;
+  deliveryFailedCount?: number;
+  deliveryMessageId?: string | null;
+  deliveryRecoveryStatus?: string | null;
+  deliveryNextAttemptAt?: Date | null;
 };
 
 export type TokenDeliveryMetadata = {
   status: "delivered" | "failed" | "partial";
   retryable: boolean;
   category: string | null;
+  attemptedCount?: number;
+  deliveredCount?: number;
+  failedCount?: number;
+  messageId?: string | null;
 };
 
 let indexesEnsured = false;
@@ -93,6 +103,16 @@ export async function createToken(
         usedAt: null,
         invalidatedAt: null,
         invalidationReason: null,
+        deliveryStatus: "pending",
+        deliveryRetryable: null,
+        deliveryCategory: null,
+        deliveryAttemptedAt: null,
+        deliveryAttemptedCount: 0,
+        deliveryDeliveredCount: 0,
+        deliveryFailedCount: 0,
+        deliveryMessageId: null,
+        deliveryRecoveryStatus: null,
+        deliveryNextAttemptAt: null,
         updatedAt: now,
       },
       $setOnInsert: {
@@ -143,6 +163,12 @@ export async function recordTokenDelivery(
         deliveryRetryable: delivery.retryable,
         deliveryCategory: delivery.category,
         deliveryAttemptedAt: now,
+        deliveryAttemptedCount: delivery.attemptedCount ?? 0,
+        deliveryDeliveredCount: delivery.deliveredCount ?? 0,
+        deliveryFailedCount: delivery.failedCount ?? 0,
+        deliveryMessageId: delivery.messageId ?? null,
+        deliveryRecoveryStatus: null,
+        deliveryNextAttemptAt: null,
         updatedAt: now,
       },
     },

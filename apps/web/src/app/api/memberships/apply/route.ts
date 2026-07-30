@@ -3,8 +3,9 @@ import { cookies } from "next/headers";
 import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import { z } from "zod";
 import {
+  ensureMembershipApplicationPaymentProfile,
   getMembershipPaymentWorkflowProfile,
-  upsertMembershipPaymentProfile,
+  linkMembershipPaymentProfileToApplication,
 } from "@core/db/pii/userPaymentProfiles";
 import { safeRandomId } from "@core/utils/random";
 import crypto from "crypto";
@@ -23,7 +24,11 @@ import {
   buildMembershipApplyAdminMail,
   buildMembershipApplyUserMail,
 } from "@/utils/emailTemplates";
-import type { MembershipApplication, HouseholdMemberRef } from "@core/memberships/types";
+import type {
+  MembershipApplication,
+  HouseholdMemberRef,
+  MembershipInitializationStage,
+} from "@core/memberships/types";
 import type { HouseholdInvite } from "@core/pii/households/types";
 import {
   logIdentityEvent,
@@ -105,6 +110,7 @@ const bodySchema = z.object({
   formStartedAt: z.coerce.number().optional(),
   hp_membership: z.string().optional(),
 });
+type MembershipApplyBody = z.infer<typeof bodySchema>;
 
 function normalizeIban(raw?: string) {
   return raw?.replace(/\s+/g, "").toUpperCase();
@@ -296,7 +302,7 @@ export async function POST(req: NextRequest) {
   const openApplicationKey = `membership-open:${userId}`;
   const claimId = crypto.randomUUID();
   let application = await MembersCol.findOne({ openApplicationKey });
-  let applicationCreated = false;
+  let createdInThisResponse = false;
 
   if (!application) {
     const membershipId = new ObjectId();
@@ -317,6 +323,9 @@ export async function POST(req: NextRequest) {
       _id: membershipId,
       openApplicationKey,
       workflowStatus: "initializing",
+      initializationStage: "pii_payment_profile",
+      initializationStageUpdatedAt: now,
+      initializationPaymentProfileId: null,
       deliveryClaimId: claimId,
       deliveryClaimedAt: now,
       coreUserId,
@@ -350,10 +359,10 @@ export async function POST(req: NextRequest) {
       lastReminderSentAt: null,
       cancelledAt: null,
       cancelledReason: null,
-      mailDeliveryStatus: null,
+      mailDeliveryStatus: "pending",
       mailDeliveryRetryable: null,
       mailDeliveryCategory: null,
-      adminMailDeliveryStatus: null,
+      adminMailDeliveryStatus: "pending",
       adminMailDeliveryRetryable: null,
       adminMailDeliveryCategory: null,
       status: "waiting_payment",
@@ -380,7 +389,7 @@ export async function POST(req: NextRequest) {
     try {
       await MembersCol.insertOne(candidate);
       application = candidate;
-      applicationCreated = true;
+      createdInThisResponse = true;
     } catch (error: any) {
       if (error?.code !== 11000) throw error;
       application = await MembersCol.findOne({ openApplicationKey });
@@ -394,11 +403,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (application.workflowStatus === "complete") {
+  if (
+    application.workflowStatus === "complete" &&
+    application.initializationStage === "complete"
+  ) {
     return successfulMembershipResponse(application, false, true);
   }
 
-  if (!applicationCreated) {
+  if (application.deliveryClaimId !== claimId) {
     const claimExpiredBefore = new Date(now.getTime() - DELIVERY_CLAIM_TTL_MS);
     const claimed = await MembersCol.findOneAndUpdate(
       {
@@ -434,65 +446,23 @@ export async function POST(req: NextRequest) {
     application = claimed;
   }
 
-  if (applicationCreated) {
-    const microTransferCode = createMicroTransferCode();
-    const microTransferExpiresAt = new Date(
-      now.getTime() + MICRO_TRANSFER_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
-    );
-    const paymentProfileId = await upsertMembershipPaymentProfile(coreUserId, {
-      type: body.payment.type,
-      billingName: body.payment.billingName,
-      billingAddress: {
-        street: body.payment.street,
-        postalCode: body.payment.postalCode,
-        city: body.payment.city,
-        country: body.payment.country,
-      },
-      iban: normalizeIban(body.payment.iban),
-      mandateReference: body.payment.mandateReference,
-      microTransferHash: hashMicroTransferCode(microTransferCode),
-      microTransferCode,
-      microTransferExpiresAt,
-      microTransferAttempts: 0,
-      microTransferVerifiedAt: null,
-    });
-    application.paymentProfileId = paymentProfileId;
-    application.workflowStatus = "delivery_pending";
-    await MembersCol.updateOne(
-      { _id: application._id, deliveryClaimId: claimId },
-      {
-        $set: {
-          paymentProfileId,
-          workflowStatus: "delivery_pending",
-          updatedAt: new Date(),
-        },
-      },
-    );
+  const invitesCol = await piiCol<HouseholdInvite>("household_invites");
+  await ensureHouseholdInviteIndexes(invitesCol);
+  application = await initializeMembershipApplication({
+    application,
+    claimId,
+    body,
+    user,
+    coreUserId,
+    MembersCol,
+    Users,
+    invitesCol,
+  });
 
-    await Users.updateOne(
-      { _id: coreUserId },
-      {
-        $set: {
-          "membership.status": "waiting_payment",
-          "membership.amountPerMonth":
-            application.membershipAmountPerMonth ?? application.amountPerPeriod,
-          "membership.rhythm": application.rhythm,
-          "membership.householdSize": application.householdSize,
-          "membership.peopleCount":
-            application.peopleCount ?? application.householdSize,
-          "membership.submittedAt": now,
-          "membership.applicationId": application._id,
-          "membership.edebatte": application.edebatte,
-          "membership.paymentMethod": application.paymentMethod ?? null,
-          "membership.paymentReference": application.paymentReference,
-          "membership.paymentInfo": application.paymentInfo,
-          updatedAt: now,
-        },
-      },
-    );
-  }
-
-  const workflowProfile = await getMembershipPaymentWorkflowProfile(coreUserId);
+  const workflowProfile = await getMembershipPaymentWorkflowProfile(
+    coreUserId,
+    application._id,
+  );
   if (!workflowProfile?.microTransferCode) {
     await releaseApplicationClaim(MembersCol, application._id, claimId, {
       workflowStatus: "manual_recovery",
@@ -509,8 +479,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const invitesCol = await piiCol<HouseholdInvite>("household_invites");
-  await ensureHouseholdInviteIndexes(invitesCol);
   const inviteTargets = application.members.filter(
     (member) =>
       member.role !== "primary" &&
@@ -643,38 +611,6 @@ export async function POST(req: NextRequest) {
   let existingInvites = await invitesCol
     .find({ membershipId: application._id })
     .toArray();
-  for (const target of inviteTargets) {
-    const targetEmail = target.email!.trim().toLowerCase();
-    if (
-      existingInvites.some(
-        (invite) => invite.targetEmail.trim().toLowerCase() === targetEmail,
-      )
-    ) {
-      continue;
-    }
-    const invite: HouseholdInvite = {
-      _id: new ObjectId(),
-      membershipId: application._id,
-      coreUserId,
-      targetEmail,
-      targetGivenName: target.givenName ?? null,
-      targetFamilyName: target.familyName ?? null,
-      token: safeRandomId(),
-      status: "pending",
-      deliveryStatus: "pending",
-      deliveryRetryable: null,
-      deliveryCategory: null,
-      sentAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    try {
-      await invitesCol.insertOne(invite);
-      existingInvites.push(invite);
-    } catch (error: any) {
-      if (error?.code !== 11000) throw error;
-    }
-  }
 
   const adminTo = process.env.MAIL_ADMIN_TO || paymentEnv.membershipContactEmail;
   if (
@@ -836,8 +772,8 @@ export async function POST(req: NextRequest) {
   application.workflowStatus = "complete";
   return successfulMembershipResponse(
     application,
-    applicationCreated,
-    !applicationCreated,
+    createdInThisResponse,
+    !createdInThisResponse,
     existingInvites.length,
     payerDelivery,
   );
@@ -852,6 +788,290 @@ async function ensureMembershipWorkflowIndexes(
     { unique: true, sparse: true, name: "membership_open_application_unique" },
   );
   workflowIndexesEnsured = true;
+}
+
+async function initializeMembershipApplication(input: {
+  application: MembershipApplication;
+  claimId: string;
+  body: MembershipApplyBody;
+  user: Record<string, any>;
+  coreUserId: ObjectId;
+  MembersCol: Awaited<ReturnType<typeof coreCol<MembershipApplication>>>;
+  Users: Awaited<ReturnType<typeof coreCol>>;
+  invitesCol: Awaited<ReturnType<typeof piiCol<HouseholdInvite>>>;
+}) {
+  let application = input.application;
+  if (!application.initializationStage) {
+    application =
+      (await input.MembersCol.findOneAndUpdate(
+        {
+          _id: application._id,
+          deliveryClaimId: input.claimId,
+          initializationStage: { $exists: false },
+        },
+        {
+          $set: {
+            initializationStage: "pii_payment_profile",
+            initializationStageUpdatedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+        { returnDocument: "after" },
+      )) ?? application;
+  }
+
+  for (let guard = 0; guard < 6; guard += 1) {
+    const stage = application.initializationStage ?? "pii_payment_profile";
+    if (stage === "complete") return application;
+
+    if (stage === "pii_payment_profile") {
+      const microTransferCode = createMicroTransferCode();
+      const profile = await ensureMembershipApplicationPaymentProfile(
+        input.coreUserId,
+        {
+          type: input.body.payment.type,
+          billingName: input.body.payment.billingName,
+          billingAddress: {
+            street: input.body.payment.street,
+            postalCode: input.body.payment.postalCode,
+            city: input.body.payment.city,
+            country: input.body.payment.country,
+          },
+          iban: normalizeIban(input.body.payment.iban),
+          mandateReference: input.body.payment.mandateReference,
+          microTransferHash: hashMicroTransferCode(microTransferCode),
+          microTransferCode,
+          microTransferExpiresAt: new Date(
+            Date.now() +
+              MICRO_TRANSFER_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
+          ),
+        },
+      );
+      if (!profile?._id || !profile.microTransferCode) {
+        throw new Error("membership_payment_profile_initialization_failed");
+      }
+      application = await advanceInitializationStage(
+        input.MembersCol,
+        application,
+        input.claimId,
+        "pii_payment_profile",
+        "payment_profile_link",
+        { initializationPaymentProfileId: profile._id },
+      );
+      continue;
+    }
+
+    if (stage === "payment_profile_link") {
+      const paymentProfileId =
+        application.initializationPaymentProfileId ??
+        (
+          await getMembershipPaymentWorkflowProfile(input.coreUserId)
+        )?._id;
+      if (!paymentProfileId) {
+        throw new Error("membership_payment_profile_link_missing");
+      }
+      application = await advanceInitializationStage(
+        input.MembersCol,
+        application,
+        input.claimId,
+        "payment_profile_link",
+        "application_link",
+        { paymentProfileId },
+      );
+      continue;
+    }
+
+    if (stage === "application_link") {
+      if (!application.paymentProfileId) {
+        throw new Error("membership_application_payment_profile_missing");
+      }
+      const linked = await linkMembershipPaymentProfileToApplication({
+        userId: input.coreUserId,
+        paymentProfileId: application.paymentProfileId,
+        membershipApplicationId: application._id,
+      });
+      if (
+        !linked ||
+        String(linked.membershipApplicationId) !== String(application._id)
+      ) {
+        throw new Error("membership_application_link_failed");
+      }
+      application = await advanceInitializationStage(
+        input.MembersCol,
+        application,
+        input.claimId,
+        "application_link",
+        "user_membership_projection",
+      );
+      continue;
+    }
+
+    if (stage === "user_membership_projection") {
+      const projectedAt = new Date();
+      await input.Users.updateOne(
+        { _id: input.coreUserId },
+        {
+          $set: {
+            "membership.status": "waiting_payment",
+            "membership.amountPerMonth":
+              application.membershipAmountPerMonth ??
+              application.amountPerPeriod,
+            "membership.rhythm": application.rhythm,
+            "membership.householdSize": application.householdSize,
+            "membership.peopleCount":
+              application.peopleCount ?? application.householdSize,
+            "membership.submittedAt": application.createdAt,
+            "membership.applicationId": application._id,
+            "membership.edebatte": application.edebatte,
+            "membership.paymentMethod": application.paymentMethod ?? null,
+            "membership.paymentReference": application.paymentReference,
+            "membership.paymentInfo": application.paymentInfo,
+            updatedAt: projectedAt,
+          },
+        },
+      );
+      const projectedUser = await input.Users.findOne(
+        { _id: input.coreUserId },
+        { projection: { "membership.applicationId": 1 } },
+      );
+      if (
+        String(projectedUser?.membership?.applicationId ?? "") !==
+        String(application._id)
+      ) {
+        throw new Error("membership_user_projection_failed");
+      }
+      application = await advanceInitializationStage(
+        input.MembersCol,
+        application,
+        input.claimId,
+        "user_membership_projection",
+        "delivery_initialization",
+      );
+      continue;
+    }
+
+    const inviteTargets = application.members.filter(
+      (member) =>
+        member.role !== "primary" &&
+        member.email &&
+        member.email.toLowerCase() !==
+          String(input.user.email ?? "").toLowerCase(),
+    );
+    let existingInvites = await input.invitesCol
+      .find({ membershipId: application._id })
+      .toArray();
+    for (const target of inviteTargets) {
+      const targetEmail = target.email!.trim().toLowerCase();
+      if (
+        existingInvites.some(
+          (invite) =>
+            invite.targetEmail.trim().toLowerCase() === targetEmail,
+        )
+      ) {
+        continue;
+      }
+      const invite: HouseholdInvite = {
+        _id: new ObjectId(),
+        membershipId: application._id,
+        coreUserId: input.coreUserId,
+        targetEmail,
+        targetGivenName: target.givenName ?? null,
+        targetFamilyName: target.familyName ?? null,
+        token: safeRandomId(),
+        status: "pending",
+        deliveryStatus: "pending",
+        deliveryRetryable: null,
+        deliveryCategory: null,
+        sentAt: application.createdAt,
+        createdAt: application.createdAt,
+        updatedAt: new Date(),
+      };
+      try {
+        await input.invitesCol.insertOne(invite);
+      } catch (error: any) {
+        if (error?.code !== 11000) throw error;
+      }
+    }
+    existingInvites = await input.invitesCol
+      .find({ membershipId: application._id })
+      .toArray();
+    const initializedRecipients = new Set(
+      existingInvites.map((invite) => invite.targetEmail.trim().toLowerCase()),
+    );
+    if (
+      inviteTargets.some(
+        (target) =>
+          !initializedRecipients.has(target.email!.trim().toLowerCase()),
+      )
+    ) {
+      throw new Error("membership_delivery_initialization_failed");
+    }
+    const linkedProfile = await getMembershipPaymentWorkflowProfile(
+      input.coreUserId,
+      application._id,
+    );
+    if (
+      !linkedProfile?._id ||
+      String(linkedProfile._id) !== String(application.paymentProfileId)
+    ) {
+      throw new Error("membership_initialization_projection_incomplete");
+    }
+    application = await advanceInitializationStage(
+      input.MembersCol,
+      application,
+      input.claimId,
+      "delivery_initialization",
+      "complete",
+      {
+        workflowStatus:
+          application.workflowStatus === "complete"
+            ? "complete"
+            : "delivery_pending",
+        mailDeliveryStatus: application.mailDeliveryStatus ?? "pending",
+        adminMailDeliveryStatus:
+          application.adminMailDeliveryStatus ?? "pending",
+      },
+    );
+  }
+
+  throw new Error("membership_initialization_stage_guard_exhausted");
+}
+
+async function advanceInitializationStage(
+  col: Awaited<ReturnType<typeof coreCol<MembershipApplication>>>,
+  application: MembershipApplication,
+  claimId: string,
+  expected: MembershipInitializationStage,
+  next: MembershipInitializationStage,
+  fields: Partial<MembershipApplication> = {},
+) {
+  const now = new Date();
+  const advanced = await col.findOneAndUpdate(
+    {
+      _id: application._id,
+      deliveryClaimId: claimId,
+      initializationStage: expected,
+    },
+    {
+      $set: {
+        ...fields,
+        initializationStage: next,
+        initializationStageUpdatedAt: now,
+        updatedAt: now,
+      },
+    },
+    { returnDocument: "after" },
+  );
+  if (advanced) return advanced;
+
+  const current = await col.findOne({ _id: application._id });
+  if (
+    current?.deliveryClaimId === claimId &&
+    current.initializationStage !== expected
+  ) {
+    return current;
+  }
+  throw new Error(`membership_initialization_cas_failed:${expected}`);
 }
 
 async function ensureHouseholdInviteIndexes(

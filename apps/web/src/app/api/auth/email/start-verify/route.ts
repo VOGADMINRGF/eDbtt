@@ -10,6 +10,10 @@ import { sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { buildVerificationMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
+import {
+  beginPublicAuthMailControl,
+  finishPublicAuthMailControl,
+} from "@/utils/publicAuthMailControl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,42 +32,53 @@ export async function POST(req: NextRequest) {
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const Users = await getCol("users");
-  const user = await Users.findOne(
-    { email },
-    {
-      projection: {
-        _id: 1,
-        emailVerified: 1,
-        verifiedEmail: 1,
-        name: 1,
-        profile: 1,
-        settings: 1,
-      },
-    },
-  );
+  const control = await beginPublicAuthMailControl(req, "verify", email);
 
-  if (user?._id instanceof ObjectId) {
-    const { rawToken } = await createEmailVerificationToken(user._id, email);
-    await logIdentityEvent("identity_email_verify_start", {
-      userId: String(user._id),
-      meta: { email },
+  try {
+    if (control.allowed) {
+      const Users = await getCol("users");
+      const user = await Users.findOne(
+        { email },
+        {
+          projection: {
+            _id: 1,
+            emailVerified: 1,
+            verifiedEmail: 1,
+            name: 1,
+            profile: 1,
+            settings: 1,
+          },
+        },
+      );
+
+      if (user?._id instanceof ObjectId) {
+        const { rawToken } = await createEmailVerificationToken(user._id, email);
+        await logIdentityEvent("identity_email_verify_start", {
+          userId: String(user._id),
+          meta: { email },
+        });
+        const origin = publicOrigin();
+        const verifyUrl = `${origin.replace(/\/$/, "")}/register/verify-email?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
+        const mail = buildVerificationMail({
+          verifyUrl,
+          displayName: (user.profile?.displayName || user.name) ?? null,
+          locale: mailLocaleFromUser(user),
+        });
+        const mailResult = await sendMail({
+          to: email,
+          mail,
+          delivery: "required_delivery",
+          tag: "verification_start",
+        });
+        await recordEmailVerificationDelivery(user._id, rawToken, mailResult);
+      }
+    }
+  } catch (error) {
+    console.error("[auth.email.start-verify] controlled_pipeline_failed", {
+      error: error instanceof Error ? error.name : "unknown",
     });
-    const origin = publicOrigin();
-    const verifyUrl = `${origin.replace(/\/$/, "")}/register/verify-email?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
-    const mail = buildVerificationMail({
-      verifyUrl,
-      displayName: (user.profile?.displayName || user.name) ?? null,
-      locale: mailLocaleFromUser(user),
-    });
-    const mailResult = await sendMail({
-      to: email,
-      mail,
-      delivery: "required_delivery",
-      tag: "verification_start",
-    });
-    await recordEmailVerificationDelivery(user._id, rawToken, mailResult);
   }
 
+  await finishPublicAuthMailControl(control);
   return NextResponse.json(PUBLIC_VERIFY_RESPONSE);
 }

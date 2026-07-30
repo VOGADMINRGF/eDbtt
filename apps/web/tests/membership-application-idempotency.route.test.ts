@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   paymentProfileUpserts: 0,
   userUpdates: 0,
   inviteTokenCounter: 0,
+  crashAfterStage: null as string | null,
+  crashTriggered: false,
   sendMail: vi.fn(),
 }));
 
@@ -63,8 +65,41 @@ const applicationCollection = {
   findOneAndUpdate: vi.fn(
     async (query: Record<string, any>, update: Record<string, any>) => {
       const doc = findApplication(query);
-      if (!doc || doc.deliveryClaimId) return null;
+      if (!doc) return null;
+      if (
+        query.deliveryClaimId &&
+        query.deliveryClaimId !== doc.deliveryClaimId
+      ) {
+        return null;
+      }
+      if (
+        query.$or &&
+        doc.deliveryClaimId &&
+        !query.deliveryClaimId
+      ) {
+        return null;
+      }
+      if (
+        typeof query.initializationStage === "string" &&
+        query.initializationStage !== doc.initializationStage
+      ) {
+        return null;
+      }
+      if (
+        query.initializationStage?.$exists === false &&
+        doc.initializationStage !== undefined
+      ) {
+        return null;
+      }
       applyUpdate(doc, update);
+      if (
+        mocks.crashAfterStage &&
+        update.$set?.initializationStage === mocks.crashAfterStage &&
+        !mocks.crashTriggered
+      ) {
+        mocks.crashTriggered = true;
+        throw new Error(`simulated_crash_after:${mocks.crashAfterStage}`);
+      }
       return doc;
     },
   ),
@@ -95,8 +130,9 @@ const userDoc = {
 
 const usersCollection = {
   findOne: vi.fn(async () => userDoc),
-  updateOne: vi.fn(async () => {
+  updateOne: vi.fn(async (_query: unknown, update: Record<string, any>) => {
     mocks.userUpdates += 1;
+    applyUpdate(userDoc, update);
     return { modifiedCount: 1 };
   }),
 };
@@ -155,21 +191,40 @@ vi.mock("next/headers", () => ({
 vi.mock("@core/db/pii/userPaymentProfiles", async () => {
   const { ObjectId } = await import("mongodb");
   return {
-    upsertMembershipPaymentProfile: vi.fn(
+    ensureMembershipApplicationPaymentProfile: vi.fn(
       async (_userId: unknown, input: Record<string, any>) => {
-        mocks.paymentProfileUpserts += 1;
-        mocks.paymentProfile = {
-          _id: new ObjectId("66b0bca9f1b1444b8f635402"),
-          billingName: input.billingName,
-          ibanMasked: "DE89 **** 3000",
-          microTransferCode: input.microTransferCode,
-          microTransferExpiresAt: input.microTransferExpiresAt,
-        };
-        return mocks.paymentProfile._id;
+        if (!mocks.paymentProfile) {
+          mocks.paymentProfileUpserts += 1;
+          mocks.paymentProfile = {
+            _id: new ObjectId("66b0bca9f1b1444b8f635402"),
+            billingName: input.billingName,
+            ibanMasked: "DE89 **** 3000",
+            microTransferCode: input.microTransferCode,
+            microTransferExpiresAt: input.microTransferExpiresAt,
+          };
+        }
+        return mocks.paymentProfile;
+      },
+    ),
+    linkMembershipPaymentProfileToApplication: vi.fn(
+      async (input: Record<string, any>) => {
+        if (!mocks.paymentProfile) return null;
+        mocks.paymentProfile.membershipApplicationId =
+          input.membershipApplicationId;
+        return mocks.paymentProfile;
       },
     ),
     getMembershipPaymentWorkflowProfile: vi.fn(
-      async () => mocks.paymentProfile,
+      async (_userId: unknown, membershipApplicationId?: unknown) => {
+        if (
+          membershipApplicationId &&
+          String(mocks.paymentProfile?.membershipApplicationId) !==
+            String(membershipApplicationId)
+        ) {
+          return null;
+        }
+        return mocks.paymentProfile;
+      },
     ),
   };
 });
@@ -313,6 +368,9 @@ describe("membership application idempotency", () => {
     mocks.paymentProfileUpserts = 0;
     mocks.userUpdates = 0;
     mocks.inviteTokenCounter = 0;
+    mocks.crashAfterStage = null;
+    mocks.crashTriggered = false;
+    userDoc.membership = { status: "none" };
     mocks.sendMail.mockResolvedValue(delivered);
   });
 
@@ -482,4 +540,61 @@ describe("membership application idempotency", () => {
     expect(mocks.sendMail).not.toHaveBeenCalled();
     expect(mocks.inviteTokenCounter).toBe(1);
   });
+
+  it.each([
+    "payment_profile_link",
+    "application_link",
+    "user_membership_projection",
+    "delivery_initialization",
+    "complete",
+  ])(
+    "recovers the persisted initialization state after a crash at %s",
+    async (stage) => {
+      const members = [
+        {
+          givenName: "Payer",
+          familyName: "Person",
+          email: "payer@company.de",
+          role: "primary",
+        },
+        {
+          givenName: "Household",
+          familyName: "Member",
+          email: "household@company.de",
+          role: "adult",
+        },
+      ];
+      mocks.crashAfterStage = stage;
+
+      await expect(POST(applyRequest(members))).rejects.toThrow(
+        `simulated_crash_after:${stage}`,
+      );
+      const application = mocks.applications[0]!;
+      const originalCode = mocks.paymentProfile?.microTransferCode;
+      expect(application.initializationStage).toBe(stage);
+      expect(mocks.applications).toHaveLength(1);
+
+      application.deliveryClaimId = null;
+      application.deliveryClaimedAt = null;
+      mocks.crashAfterStage = null;
+
+      const recovered = await POST(applyRequest(members));
+
+      expect(recovered.status).toBe(200);
+      expect(application).toMatchObject({
+        initializationStage: "complete",
+        workflowStatus: "complete",
+        paymentProfileId: mocks.paymentProfile?._id,
+      });
+      expect(mocks.paymentProfile).toMatchObject({
+        membershipApplicationId: application._id,
+        microTransferCode: originalCode,
+      });
+      expect(userDoc.membership.applicationId).toEqual(application._id);
+      expect(mocks.paymentProfileUpserts).toBe(1);
+      expect(mocks.applications).toHaveLength(1);
+      expect(mocks.invites).toHaveLength(1);
+      expect(mocks.inviteTokenCounter).toBe(1);
+    },
+  );
 });

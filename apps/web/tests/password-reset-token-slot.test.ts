@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   tokenDoc: null as Record<string, any> | null,
-  upsertCount: 0,
 }));
 
 const tokenCollection = {
@@ -22,7 +21,6 @@ const tokenCollection = {
           update.$setOnInsert ?? {},
           update.$set ?? {},
         );
-        mocks.upsertCount += 1;
       }
       return before;
     },
@@ -43,86 +41,39 @@ const tokenCollection = {
   ),
 };
 
-vi.mock("@core/db/triMongo", async () => {
-  const { ObjectId } = await import("mongodb");
-  return {
-    ObjectId,
-    getCol: vi.fn(async () => tokenCollection),
-  };
-});
+vi.mock("@core/db/triMongo", () => ({
+  piiCol: vi.fn(async () => tokenCollection),
+}));
 
-import {
-  createEmailVerificationToken,
-  recordEmailVerificationDelivery,
-} from "@core/auth/emailVerificationService";
-import { ObjectId } from "mongodb";
+import { createToken, recordTokenDelivery } from "@/utils/tokens";
 
-describe("email verification token slot", () => {
+describe("password reset token slot", () => {
   beforeEach(() => {
     mocks.tokenDoc = null;
-    mocks.upsertCount = 0;
     vi.clearAllMocks();
   });
 
-  it("atomically rotates one canonical slot so the earlier token is no longer current", async () => {
-    const userId = new ObjectId("66b0bca9f1b1444b8f635601");
-    const first = await createEmailVerificationToken(
-      userId,
-      "member@company.de",
-    );
-    const firstHash = crypto
-      .createHash("sha256")
-      .update(first.rawToken)
-      .digest("hex");
-    const second = await createEmailVerificationToken(
-      userId,
-      "member@company.de",
-    );
-    const secondHash = crypto
-      .createHash("sha256")
-      .update(second.rawToken)
-      .digest("hex");
-
-    expect(first.rawToken).not.toBe(second.rawToken);
-    expect(firstHash).not.toBe(secondHash);
-    expect(mocks.upsertCount).toBe(2);
-    expect(mocks.tokenDoc).toMatchObject({
-      slotKey: `slot:verify:${String(userId)}`,
-      userId,
-      email: "member@company.de",
-      tokenHash: secondHash,
-      invalidatedAt: null,
-      invalidationReason: null,
-    });
-    expect(mocks.tokenDoc?.tokenHash).not.toBe(firstHash);
-  });
-
-  it("resets delivery metadata on rotation and fences a late result from the old token", async () => {
-    const userId = new ObjectId("66b0bca9f1b1444b8f635602");
-    const first = await createEmailVerificationToken(
-      userId,
-      "member@company.de",
-    );
-    await recordEmailVerificationDelivery(userId, first.rawToken, {
+  it("starts a rotated token as pending and ignores a late delivery callback for its predecessor", async () => {
+    const userId = "66b0bca9f1b1444b8f635603";
+    const first = await createToken(userId, "reset", 60);
+    await recordTokenDelivery(userId, "reset", first, {
       status: "failed",
       retryable: true,
       category: "smtp_timeout",
       attemptedCount: 2,
       deliveredCount: 0,
       failedCount: 2,
-      messageId: "old-message",
+      messageId: "old-reset-message",
     });
 
-    const second = await createEmailVerificationToken(
-      userId,
-      "member@company.de",
-    );
+    const second = await createToken(userId, "reset", 60);
     const secondHash = crypto
       .createHash("sha256")
-      .update(second.rawToken)
+      .update(second)
       .digest("hex");
 
     expect(mocks.tokenDoc).toMatchObject({
+      slotKey: `slot:reset:${userId}`,
       tokenHash: secondHash,
       deliveryStatus: "pending",
       deliveryRetryable: null,
@@ -136,14 +87,14 @@ describe("email verification token slot", () => {
       deliveryNextAttemptAt: null,
     });
 
-    await recordEmailVerificationDelivery(userId, first.rawToken, {
+    await recordTokenDelivery(userId, "reset", first, {
       status: "delivered",
       retryable: false,
       category: null,
       attemptedCount: 1,
       deliveredCount: 1,
       failedCount: 0,
-      messageId: "late-old-message",
+      messageId: "late-reset-message",
     });
 
     expect(mocks.tokenDoc).toMatchObject({

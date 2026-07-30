@@ -10,11 +10,11 @@ const mocks = vi.hoisted(() => ({
   membership: null as Record<string, any> | null,
   membershipInsertCount: 0,
   membershipUpdates: [] as Array<Record<string, any>>,
-  createInviteToken: vi.fn(() => ({
-    raw: "invite-raw",
-    tokenHash: "invite-hash",
-  })),
-  createToken: vi.fn(async () => "reset-token"),
+  setupTokenCounter: 0,
+  currentSetupToken: null as Record<string, any> | null,
+  issueOrgInviteSetupToken: vi.fn(),
+  startOrgInviteSetupDispatch: vi.fn(),
+  recordOrgInviteSetupDelivery: vi.fn(),
   sendMail: vi.fn(),
   recordAuditEvent: vi.fn(async () => {}),
 }));
@@ -28,6 +28,12 @@ function matchesClaim(query: Record<string, any>) {
     return false;
   }
   if (query._id && String(query._id) !== String(mocks.membership._id)) {
+    return false;
+  }
+  if (
+    query.inviteSetupTokenHash &&
+    mocks.membership.inviteSetupTokenHash !== query.inviteSetupTokenHash
+  ) {
     return false;
   }
   return true;
@@ -89,16 +95,13 @@ vi.mock("@features/org/db", async () => {
   };
 });
 
-vi.mock("@features/org/invite", () => ({
-  createInviteToken: (...args: unknown[]) => mocks.createInviteToken(...args),
-}));
-
 vi.mock("@features/org/inviteDelivery", () => ({
-  storeOrgInviteDeliveryPayload: vi.fn(async () => {}),
-  getOrgInviteDeliveryPayload: vi.fn(async () => ({
-    inviteToken: "invite-raw",
-    resetToken: "reset-token",
-  })),
+  issueOrgInviteSetupToken: (...args: unknown[]) =>
+    mocks.issueOrgInviteSetupToken(...args),
+  startOrgInviteSetupDispatch: (...args: unknown[]) =>
+    mocks.startOrgInviteSetupDispatch(...args),
+  recordOrgInviteSetupDelivery: (...args: unknown[]) =>
+    mocks.recordOrgInviteSetupDelivery(...args),
 }));
 
 vi.mock("@/lib/server/auth/org", async () => {
@@ -112,10 +115,6 @@ vi.mock("@/lib/server/auth/org", async () => {
 
 vi.mock("@features/audit/recordAuditEvent", () => ({
   recordAuditEvent: (...args: unknown[]) => mocks.recordAuditEvent(...args),
-}));
-
-vi.mock("@/utils/tokens", () => ({
-  createToken: (...args: unknown[]) => mocks.createToken(...args),
 }));
 
 vi.mock("@/utils/email", () => ({
@@ -182,6 +181,8 @@ describe("organization invite delivery state", () => {
     mocks.membership = null;
     mocks.membershipInsertCount = 0;
     mocks.membershipUpdates.length = 0;
+    mocks.setupTokenCounter = 0;
+    mocks.currentSetupToken = null;
     mocks.existingUser = {
       _id: new ObjectId(mocks.userId),
       email: "english-member@company.de",
@@ -189,6 +190,23 @@ describe("organization invite delivery state", () => {
       settings: { preferredLocale: "en-US" },
     };
     mocks.sendMail.mockResolvedValue(delivered);
+    mocks.issueOrgInviteSetupToken.mockImplementation(async () => {
+      mocks.setupTokenCounter += 1;
+      mocks.currentSetupToken = {
+        rawToken: `org-setup-${mocks.setupTokenCounter}`,
+        tokenHash: `org-setup-hash-${mocks.setupTokenCounter}`,
+        expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      };
+      return mocks.currentSetupToken;
+    });
+    mocks.startOrgInviteSetupDispatch.mockImplementation(
+      async (input: Record<string, any>) =>
+        input.rawToken === mocks.currentSetupToken?.rawToken,
+    );
+    mocks.recordOrgInviteSetupDelivery.mockImplementation(
+      async (input: Record<string, any>) =>
+        input.rawToken === mocks.currentSetupToken?.rawToken,
+    );
   });
 
   it("keeps an existing user pending when required access delivery fails", async () => {
@@ -212,8 +230,6 @@ describe("organization invite delivery state", () => {
       inviteDeliveryRetryable: true,
     });
     expect(mocks.membershipInsertCount).toBe(1);
-    expect(mocks.createInviteToken).not.toHaveBeenCalled();
-    expect(mocks.createToken).not.toHaveBeenCalled();
     expect(mocks.recordAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         reason: "member_activation_pending_required_delivery_failed",
@@ -247,8 +263,6 @@ describe("organization invite delivery state", () => {
       status: "active",
       inviteDeliveryStatus: "delivered",
     });
-    expect(mocks.createInviteToken).not.toHaveBeenCalled();
-    expect(mocks.createToken).not.toHaveBeenCalled();
   });
 
   it("atomically rejects a parallel request while the first delivery owns the claim", async () => {
@@ -294,5 +308,102 @@ describe("organization invite delivery state", () => {
     expect(options.tag).toBe("org_access");
     expect(options.mail.locale).toBe("en");
     expect(options.mail.html).toContain('lang="en"');
+  });
+
+  it("reuses the invited membership but binds a fresh setup link to its retry", async () => {
+    mocks.existingUser!.emailVerified = false;
+    mocks.sendMail
+      .mockResolvedValueOnce(transientFailure)
+      .mockResolvedValueOnce(delivered);
+
+    const first = await POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+    const membershipId = String(mocks.membership?._id);
+    const second = await POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+
+    expect(first.status).toBe(502);
+    expect(second.status).toBe(200);
+    expect(mocks.membershipInsertCount).toBe(1);
+    expect(String(mocks.membership?._id)).toBe(membershipId);
+    expect(mocks.issueOrgInviteSetupToken).toHaveBeenCalledTimes(2);
+    const firstMail = mocks.sendMail.mock.calls[0]?.[0]?.mail;
+    const secondMail = mocks.sendMail.mock.calls[1]?.[0]?.mail;
+    expect(firstMail.text).toContain("org-setup-1");
+    expect(secondMail.text).toContain("org-setup-2");
+    expect(secondMail.text).not.toContain("org-setup-1");
+    expect(mocks.membership).toMatchObject({
+      status: "invited",
+      inviteSetupTokenHash: "org-setup-hash-2",
+      inviteDeliveryStatus: "delivered",
+    });
+  });
+
+  it("does not let a late result for an older setup token mark the newer link delivered", async () => {
+    mocks.existingUser!.emailVerified = false;
+    mocks.sendMail.mockImplementationOnce(async () => {
+      mocks.currentSetupToken = {
+        rawToken: "org-setup-2",
+        tokenHash: "org-setup-hash-2",
+        expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      };
+      Object.assign(mocks.membership!, {
+        inviteSetupTokenHash: "org-setup-hash-2",
+        inviteSetupTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      });
+      return delivered;
+    });
+
+    const response = await POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+
+    expect(response.status).toBe(502);
+    expect(mocks.membership).toMatchObject({
+      status: "invited",
+      inviteSetupTokenHash: "org-setup-hash-2",
+      inviteDeliveryStatus: "pending",
+    });
+    expect(mocks.recordOrgInviteSetupDelivery).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows only one parallel retry to rotate and dispatch an invited setup link", async () => {
+    mocks.existingUser!.emailVerified = false;
+    mocks.sendMail.mockResolvedValueOnce(transientFailure);
+    const initial = await POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+    expect(initial.status).toBe(502);
+
+    let resolveRetry!: (value: typeof delivered) => void;
+    mocks.sendMail.mockImplementationOnce(
+      () =>
+        new Promise<typeof delivered>((resolve) => {
+          resolveRetry = resolve;
+        }),
+    );
+    const retryPromise = POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+    await vi.waitFor(() =>
+      expect(mocks.membership?.inviteDeliveryClaimId).toEqual(expect.any(String)),
+    );
+
+    const parallel = await POST(inviteRequest(), {
+      params: Promise.resolve({ orgId: mocks.orgId }),
+    });
+    expect(parallel.status).toBe(409);
+    expect(mocks.issueOrgInviteSetupToken).toHaveBeenCalledTimes(2);
+    expect(mocks.sendMail).toHaveBeenCalledTimes(2);
+
+    resolveRetry(delivered);
+    const retry = await retryPromise;
+    expect(retry.status).toBe(200);
+    expect(mocks.membership).toMatchObject({
+      inviteSetupTokenHash: "org-setup-hash-2",
+      inviteDeliveryStatus: "delivered",
+    });
   });
 });

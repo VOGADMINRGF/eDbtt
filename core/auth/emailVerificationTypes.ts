@@ -16,4 +16,10 @@ export type EmailVerificationTokenDoc = {
   deliveryRetryable?: boolean | null;
   deliveryCategory?: string | null;
   deliveryAttemptedAt?: Date | null;
+  deliveryAttemptedCount?: number;
+  deliveryDeliveredCount?: number;
+  deliveryFailedCount?: number;
+  deliveryMessageId?: string | null;
+  deliveryRecoveryStatus?: string | null;
+  deliveryNextAttemptAt?: Date | null;
 };

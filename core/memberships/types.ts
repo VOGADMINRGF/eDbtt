@@ -20,6 +20,14 @@ export type MembershipMandateStatus =
   | "active"
   | "revoked";
 
+export type MembershipInitializationStage =
+  | "pii_payment_profile"
+  | "payment_profile_link"
+  | "application_link"
+  | "user_membership_projection"
+  | "delivery_initialization"
+  | "complete";
+
 export interface MembershipPaymentInfo {
   method: MembershipPaymentMethod;
   reference: string;
@@ -54,6 +62,9 @@ export interface MembershipApplication {
     | "partial"
     | "manual_recovery"
     | "complete";
+  initializationStage?: MembershipInitializationStage;
+  initializationStageUpdatedAt?: Date | null;
+  initializationPaymentProfileId?: ObjectId | null;
   deliveryClaimId?: string | null;
   deliveryClaimedAt?: Date | null;
   coreUserId: ObjectId; // Hauptkonto (Gönner:in / Antragsteller:in)
@@ -109,11 +120,11 @@ export interface MembershipApplication {
   cancelledAt?: Date | null;
   cancelledReason?: string | null;
   firstPaidAt?: Date | null;
-  mailDeliveryStatus?: "delivered" | "failed" | "partial" | null;
+  mailDeliveryStatus?: "pending" | "delivered" | "failed" | "partial" | null;
   mailDeliveryRetryable?: boolean | null;
   mailDeliveryCategory?: string | null;
   mailDeliveryAttemptedAt?: Date | null;
-  adminMailDeliveryStatus?: "delivered" | "failed" | "partial" | null;
+  adminMailDeliveryStatus?: "pending" | "delivered" | "failed" | "partial" | null;
   adminMailDeliveryRetryable?: boolean | null;
   adminMailDeliveryCategory?: string | null;
   adminMailDeliveryAttemptedAt?: Date | null;

@@ -9,12 +9,19 @@ const mocks = vi.hoisted(() => ({
   createEmailVerificationToken: vi.fn(),
   recordEmailVerificationDelivery: vi.fn(async () => {}),
   logIdentityEvent: vi.fn(async () => {}),
+  rateLimitOrThrow: vi.fn(),
+  backendDelayMs: 0,
 }));
 
 vi.mock("@core/db/triMongo", async () => {
   const { ObjectId } = await import("mongodb");
   const users = {
-    findOne: vi.fn(async () => mocks.user),
+    findOne: vi.fn(async () => {
+      if (mocks.backendDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, mocks.backendDelayMs));
+      }
+      return mocks.user;
+    }),
   };
   return {
     ObjectId,
@@ -45,7 +52,7 @@ vi.mock("@/utils/mailer", () => ({
 }));
 
 vi.mock("@/utils/rateLimitHelpers", () => ({
-  rateLimitOrThrow: vi.fn(async () => ({ ok: true })),
+  rateLimitOrThrow: (...args: unknown[]) => mocks.rateLimitOrThrow(...args),
 }));
 
 vi.mock("@/utils/publicOrigin", () => ({
@@ -89,7 +96,10 @@ const delivered = {
 function request(path: string, email: string) {
   return new NextRequest(`http://localhost${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": "192.0.2.42",
+    },
     body: JSON.stringify({ email }),
   });
 }
@@ -107,6 +117,9 @@ describe("public auth mail enumeration contract", () => {
     vi.clearAllMocks();
     mocks.sendMail.mockReset();
     mocks.createEmailVerificationToken.mockReset();
+    mocks.rateLimitOrThrow.mockReset();
+    mocks.rateLimitOrThrow.mockResolvedValue({ ok: true });
+    mocks.backendDelayMs = 0;
     mocks.user = {
       _id: new ObjectId("66b0bca9f1b1444b8f635201"),
       email: "known@company.de",
@@ -115,15 +128,14 @@ describe("public auth mail enumeration contract", () => {
       settings: { preferredLocale: "de" },
     };
     mocks.sendMail.mockResolvedValue(delivered);
-    mocks.createEmailVerificationToken
-      .mockResolvedValueOnce({
-        rawToken: "verify-raw-1",
+    let tokenNumber = 0;
+    mocks.createEmailVerificationToken.mockImplementation(async () => {
+      tokenNumber += 1;
+      return {
+        rawToken: `verify-raw-${tokenNumber}`,
         expiresAt: new Date("2030-01-01T00:00:00.000Z"),
-      })
-      .mockResolvedValueOnce({
-        rawToken: "verify-raw-2",
-        expiresAt: new Date("2030-01-01T00:00:00.000Z"),
-      });
+      };
+    });
   });
 
   it("returns the identical reset response for known delivery failure and unknown address", async () => {
@@ -215,6 +227,135 @@ describe("public auth mail enumeration contract", () => {
     );
 
     expect(response).toEqual({ status: 200, body: { ok: true } });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("keeps fast and slower known/unknown backends inside the documented response floor tolerance", async () => {
+    mocks.backendDelayMs = 5;
+    const knownStartedAt = Date.now();
+    const known = await responseSnapshot(
+      await requestReset(
+        request("/api/auth/request-reset", "known@company.de"),
+      ),
+    );
+    const knownDuration = Date.now() - knownStartedAt;
+
+    mocks.user = null;
+    mocks.backendDelayMs = 60;
+    const unknownStartedAt = Date.now();
+    const unknown = await responseSnapshot(
+      await requestReset(
+        request("/api/auth/request-reset", "unknown@company.de"),
+      ),
+    );
+    const unknownDuration = Date.now() - unknownStartedAt;
+
+    expect(known).toEqual({ status: 200, body: { ok: true } });
+    expect(unknown).toEqual(known);
+    expect(knownDuration).toBeGreaterThanOrEqual(100);
+    expect(unknownDuration).toBeGreaterThanOrEqual(100);
+    expect(Math.abs(knownDuration - unknownDuration)).toBeLessThan(70);
+  });
+
+  it("applies the same tolerant response floor to verify for known and unknown addresses", async () => {
+    mocks.backendDelayMs = 10;
+    const knownStartedAt = Date.now();
+    const known = await responseSnapshot(
+      await startVerify(
+        request("/api/auth/email/start-verify", "known@company.de"),
+      ),
+    );
+    const knownDuration = Date.now() - knownStartedAt;
+
+    mocks.user = null;
+    mocks.backendDelayMs = 55;
+    const unknownStartedAt = Date.now();
+    const unknown = await responseSnapshot(
+      await startVerify(
+        request("/api/auth/email/start-verify", "unknown@company.de"),
+      ),
+    );
+    const unknownDuration = Date.now() - unknownStartedAt;
+
+    expect(known).toEqual({ status: 200, body: { ok: true } });
+    expect(unknown).toEqual(known);
+    expect(knownDuration).toBeGreaterThanOrEqual(100);
+    expect(unknownDuration).toBeGreaterThanOrEqual(100);
+    expect(Math.abs(knownDuration - unknownDuration)).toBeLessThan(70);
+  });
+
+  it("returns the same public response when known and unknown addresses are rate-limited", async () => {
+    mocks.rateLimitOrThrow.mockResolvedValue({ ok: false });
+    const known = await responseSnapshot(
+      await requestReset(
+        request("/api/auth/request-reset", "known@company.de"),
+      ),
+    );
+    mocks.user = null;
+    const unknown = await responseSnapshot(
+      await requestReset(
+        request("/api/auth/request-reset", "unknown@company.de"),
+      ),
+    );
+
+    expect(known).toEqual({ status: 200, body: { ok: true } });
+    expect(unknown).toEqual(known);
+    expect(mocks.createToken).not.toHaveBeenCalled();
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+    const rateLimitKeys = mocks.rateLimitOrThrow.mock.calls.map(
+      ([key]) => String(key),
+    );
+    expect(rateLimitKeys).toHaveLength(4);
+    expect(rateLimitKeys.join(" ")).not.toContain("known@company.de");
+    expect(rateLimitKeys.join(" ")).not.toContain("unknown@company.de");
+  });
+
+  it("shares the verify address limit across start and resend so rotation is bounded", async () => {
+    let verifyAddressChecks = 0;
+    mocks.rateLimitOrThrow.mockImplementation(async (key: string) => {
+      if (key.startsWith("public-auth:verify:address:")) {
+        verifyAddressChecks += 1;
+        return { ok: verifyAddressChecks <= 3 };
+      }
+      return { ok: true };
+    });
+
+    const responses = [];
+    for (const path of [
+      "/api/auth/email/start-verify",
+      "/api/auth/verify/resend",
+      "/api/auth/email/start-verify",
+      "/api/auth/verify/resend",
+    ]) {
+      const handler = path.includes("start-verify") ? startVerify : resendVerify;
+      responses.push(
+        await responseSnapshot(
+          await handler(request(path, "known@company.de")),
+        ),
+      );
+    }
+
+    expect(responses).toEqual([
+      { status: 200, body: { ok: true } },
+      { status: 200, body: { ok: true } },
+      { status: 200, body: { ok: true } },
+      { status: 200, body: { ok: true } },
+    ]);
+    expect(mocks.createEmailVerificationToken).toHaveBeenCalledTimes(3);
+    expect(mocks.sendMail).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails a limiter backend closed behind the same public response", async () => {
+    mocks.rateLimitOrThrow.mockRejectedValue(new Error("limiter unavailable"));
+
+    const response = await responseSnapshot(
+      await resendVerify(
+        request("/api/auth/verify/resend", "known@company.de"),
+      ),
+    );
+
+    expect(response).toEqual({ status: 200, body: { ok: true } });
+    expect(mocks.createEmailVerificationToken).not.toHaveBeenCalled();
     expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });

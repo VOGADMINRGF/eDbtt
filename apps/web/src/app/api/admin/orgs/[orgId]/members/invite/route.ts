@@ -6,14 +6,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, getCol } from "@core/db/triMongo";
 import { OrgInviteSchema } from "@features/org/schemas";
 import { orgMembershipsCol, orgsCol } from "@features/org/db";
-import { createInviteToken } from "@features/org/invite";
 import {
-  getOrgInviteDeliveryPayload,
-  storeOrgInviteDeliveryPayload,
+  issueOrgInviteSetupToken,
+  recordOrgInviteSetupDelivery,
+  startOrgInviteSetupDispatch,
 } from "@features/org/inviteDelivery";
 import { requireAdminOrOrgRole } from "@/lib/server/auth/org";
 import { recordAuditEvent } from "@features/audit/recordAuditEvent";
-import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
 import { buildOrgInviteMail, buildOrgAccessMail } from "@/utils/emailTemplates";
 import { mailLocaleFromUser } from "@/utils/mailRenderer";
@@ -125,9 +124,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
   const claimId = crypto.randomUUID();
   const claimExpiredBefore = new Date(now.getTime() - DELIVERY_CLAIM_TTL_MS);
   let membership: OrgMembershipDoc | null = null;
-  let initialInvitePayload:
-    | { inviteToken: string; resetToken: string }
-    | null = null;
 
   if (!existingMembership) {
     const initialStatus =
@@ -156,6 +152,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
           invitedByUserId: new ObjectId(String(gate.user._id)),
           inviteTokenHash: null,
           inviteExpiresAt,
+          inviteSetupTokenHash: null,
+          inviteSetupTokenExpiresAt: null,
           inviteDeliveryStatus: "pending",
           inviteDeliveryAttemptedAt: null,
           inviteDeliveryRetryable: null,
@@ -172,25 +170,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
 
     if (membership?.inviteDeliveryClaimId !== claimId) {
       return deliveryInProgressResponse(membership);
-    }
-    if (initialStatus === "invited" && membership._id) {
-      const invite = createInviteToken();
-      const resetToken = await createToken(String(userId), "reset", 60);
-      initialInvitePayload = { inviteToken: invite.raw, resetToken };
-      await memberships.updateOne(
-        { _id: membership._id, inviteDeliveryClaimId: claimId },
-        {
-          $set: {
-            inviteTokenHash: invite.tokenHash,
-            updatedAt: new Date(),
-          },
-        },
-      );
-      await storeOrgInviteDeliveryPayload({
-        membershipId: membership._id,
-        inviteToken: invite.raw,
-        resetToken,
-      });
     }
   } else {
     membership = await memberships.findOneAndUpdate(
@@ -222,34 +201,71 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
 
   const locale = mailLocaleFromUser(userRecord) ?? DEFAULT_LOCALE;
   let mail: ReturnType<typeof buildOrgInviteMail>;
+  let setupDispatch:
+    | {
+        rawToken: string;
+        tokenHash: string;
+        expiresAt: Date;
+        dispatchedAt: Date;
+      }
+    | null = null;
   if (membership.status === "invited") {
-    const payload =
-      initialInvitePayload ??
-      (await getOrgInviteDeliveryPayload(membership._id));
-    if (!payload) {
-      await releaseClaimAsPermanentFailure(
+    const setupToken = await issueOrgInviteSetupToken({
+      membershipId: membership._id,
+      userId,
+      ttlMinutes: INVITE_TTL_DAYS * 24 * 60,
+    });
+    const tokenBound = await memberships.updateOne(
+      { _id: membership._id, inviteDeliveryClaimId: claimId },
+      {
+        $set: {
+          inviteTokenHash: null,
+          inviteExpiresAt: setupToken.expiresAt,
+          inviteSetupTokenHash: setupToken.tokenHash,
+          inviteSetupTokenExpiresAt: setupToken.expiresAt,
+          inviteDeliveryStatus: "pending",
+          inviteDeliveryRetryable: null,
+          inviteDeliveryCategory: null,
+          inviteDeliveryAttemptedAt: null,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    const dispatchedAt = new Date();
+    const dispatchStarted =
+      tokenBound.modifiedCount === 1 &&
+      (await startOrgInviteSetupDispatch({
+        membershipId: membership._id,
+        rawToken: setupToken.rawToken,
+        dispatchId: claimId,
+        startedAt: dispatchedAt,
+      }));
+    if (!dispatchStarted) {
+      await releaseClaimAsFailure(
         memberships,
         membership._id,
         claimId,
-        "invite_payload_missing",
+        "invite_setup_token_not_current",
+        true,
       );
       return NextResponse.json(
         {
           ok: false,
-          error: "mail_delivery_manual_recovery_required",
+          error: "invite_setup_token_retry_required",
           membershipId: String(membership._id),
           status: membership.status,
         },
-        { status: 409 },
+        { status: 502 },
       );
     }
-    const resetUrl = `${resetEmailLink(payload.resetToken)}&invite=${encodeURIComponent(payload.inviteToken)}`;
+    setupDispatch = { ...setupToken, dispatchedAt };
+    const resetUrl = resetEmailLink(setupToken.rawToken);
     mail = buildOrgInviteMail({
       resetUrl,
       orgName: org.name,
       role: membership.role,
       displayName: userRecord?.name ?? null,
-      expiresAt: membership.inviteExpiresAt?.toISOString() ?? null,
+      expiresAt: setupToken.expiresAt.toISOString(),
       locale,
     });
   } else {
@@ -263,18 +279,37 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
     });
   }
 
-  const mailResult = await sendMail({
+  const transportResult = await sendMail({
     to: email,
     mail,
     delivery: "required_delivery",
     tag: membership.status === "invited" ? "org_invite" : "org_access",
   });
+  const setupResultCurrent = setupDispatch
+    ? await recordOrgInviteSetupDelivery({
+        membershipId: membership._id,
+        rawToken: setupDispatch.rawToken,
+        dispatchId: claimId,
+        dispatchedAt: setupDispatch.dispatchedAt,
+        result: transportResult,
+      })
+    : true;
+  const mailResult =
+    setupResultCurrent || !transportResult.ok
+      ? transportResult
+      : staleSetupTokenFailure();
   const completedAt = new Date();
   const activated = membership.status === "pending_activation" && mailResult.ok;
   const finalStatus = activated ? "active" : membership.status;
 
   await memberships.updateOne(
-    { _id: membership._id, inviteDeliveryClaimId: claimId },
+    {
+      _id: membership._id,
+      inviteDeliveryClaimId: claimId,
+      ...(setupDispatch
+        ? { inviteSetupTokenHash: setupDispatch.tokenHash }
+        : {}),
+    },
     {
       $set: {
         status: finalStatus,
@@ -345,18 +380,19 @@ function deliveryInProgressResponse(membership: OrgMembershipDoc | null) {
   );
 }
 
-async function releaseClaimAsPermanentFailure(
+async function releaseClaimAsFailure(
   memberships: Awaited<ReturnType<typeof orgMembershipsCol>>,
   membershipId: ObjectId,
   claimId: string,
   category: string,
+  retryable: boolean,
 ) {
   await memberships.updateOne(
     { _id: membershipId, inviteDeliveryClaimId: claimId },
     {
       $set: {
         inviteDeliveryStatus: "failed",
-        inviteDeliveryRetryable: false,
+        inviteDeliveryRetryable: retryable,
         inviteDeliveryCategory: category,
         inviteDeliveryAttemptedAt: new Date(),
         inviteDeliveryClaimId: null,
@@ -365,6 +401,21 @@ async function releaseClaimAsPermanentFailure(
       },
     },
   );
+}
+
+function staleSetupTokenFailure() {
+  return {
+    ok: false,
+    status: "failed",
+    transport: "smtp",
+    code: "mail_transport_error",
+    category: "smtp_unknown_error",
+    retryable: true,
+    attemptedCount: 1,
+    deliveredCount: 0,
+    failedCount: 1,
+    messageId: null,
+  } as const;
 }
 
 function getRequestIp(req: NextRequest) {
