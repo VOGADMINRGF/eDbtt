@@ -1,0 +1,107 @@
+name: One-time Mail Communication OpenTasks Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/opentasks-mail-communication-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Register mail tasks and remove one-time workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("docs/E150/OpenTasks.md")
+          text = path.read_text(encoding="utf-8")
+
+          text = re.sub(
+              r"^# E150 Open Tasks — Operativer Kopf \d{4}-\d{2}-\d{2}$",
+              "# E150 Open Tasks — Operativer Kopf 2026-07-30",
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          text = re.sub(
+              r"^- Stand: `\d{4}-\d{2}-\d{2}`$",
+              "- Stand: `2026-07-30`",
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+
+          truth = (
+              "- Nutzerbefund und Issue `#538` registrieren den einheitlichen eDebatte-Mailkanon: "
+              "`MAIL-COMMUNICATION-CANON-01` ist für gemeinsamen Envelope, Absender "
+              "`eDebatte <members@edebatte.org>`, Reply-To, responsives Brand-Layout, HTML-Sicherheit, "
+              "Mehrsprachigkeit und Migration aller Systemmails `codex_ready`; "
+              "`MAIL-PRODUCTION-SENDER-GATE-01` bleibt bis zu realer Postfach-, Provider-, SPF-, DKIM-, "
+              "DMARC- und Production-Mailclient-Abnahme `manual_gate`."
+          )
+          phase_anchor = "## Phase 0 — Governance und Production Gates"
+          if truth not in text:
+              if phase_anchor not in text:
+                  raise SystemExit("Phase-0 anchor not found")
+              text = text.replace(phase_anchor, f"{truth}\n\n{phase_anchor}", 1)
+
+          technical_row = (
+              "| MAIL-COMMUNICATION-CANON-01 | codex_ready | P0 | Issue `#538`; "
+              "`docs/E150/MAIL-COMMUNICATION-CANON-01_2026-07-30.md` | "
+              "kanonischen eDebatte-Absender `eDebatte <members@edebatte.org>`, Reply-To, gemeinsamen "
+              "responsiven Mailrahmen, HTML-Escaping, DE/EN-Lokalisierung und Migration aller realen "
+              "Systemmail-Pfade umsetzen, ohne neue Mailruntime oder Newsletter-System | "
+              "Mailinventar vollständig; alle transaktionalen Templates nutzen den gemeinsamen Renderer; "
+              "VoiceOpenGov-/No-Reply-Absender aus eDebatte-Code und Defaults entfernt; Envelope- und "
+              "Empfänger-Guardrails fail-closed; HTML und Plain Text; DE/EN plus kontrollierter Fallback; "
+              "keine Codes/Token in Logs; fokussierte Tests, Typecheck, Lint, Build und git diff --check grün; "
+              "Evidence vorhanden; Status nach Umsetzung maximal review |"
+          )
+          gate_row = (
+              "| MAIL-PRODUCTION-SENDER-GATE-01 | manual_gate | P0 | MAIL-COMMUNICATION-CANON-01; "
+              "Issue `#538`; verwaltetes Postfach und realer SMTP-Provider | Production- und Preview-ENV auf "
+              "`eDebatte <members@edebatte.org>` sowie Reply-To umstellen, Postfach und Provider autorisieren, "
+              "SPF/DKIM/DMARC und Alignment anhand echter Header prüfen und realen Apple-Mail-/Gmail-/Outlook-"
+              "Smoke auf Desktop, Mobile und Dark Mode abnehmen | `members@edebatte.org` empfängt Antworten; "
+              "sichtbarer From und Reply-To korrekt; SPF, DKIM und DMARC pass; Return-Path dokumentiert; "
+              "keine Secrets oder aktiven Codes in Evidence; sicherer Rollback deaktiviert Versand statt "
+              "VoiceOpenGov-/No-Reply-Rückfall |"
+          )
+
+          if "| MAIL-COMMUNICATION-CANON-01 |" not in text:
+              lines = text.splitlines()
+              insert_at = None
+              for i, line in enumerate(lines):
+                  if line.startswith("| AI-RUNTIME-POLICY-01 |"):
+                      insert_at = i + 1
+                      break
+              if insert_at is None:
+                  raise SystemExit("AI-RUNTIME-POLICY-01 row not found")
+              lines[insert_at:insert_at] = [technical_row, gate_row]
+              text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          git diff --check
+          git add docs/E150/OpenTasks.md
+          git rm .github/workflows/opentasks-mail-communication-sync.yml
+          git commit -m "docs: make mail communication canon codex ready"
+          git push origin HEAD:main
