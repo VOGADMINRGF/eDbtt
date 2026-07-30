@@ -637,6 +637,7 @@ export async function POST(req: NextRequest) {
       const mail = buildVerificationMail({
         verifyUrl,
         displayName: body.name.trim(),
+        locale,
       });
 
       const mailResult = await sendMail({

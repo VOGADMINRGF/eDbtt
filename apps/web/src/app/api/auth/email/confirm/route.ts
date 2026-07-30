@@ -7,6 +7,7 @@ import { applySessionCookies, ensureVerificationDefaults, type CoreUserAuthSnaps
 import { sendMail } from "@/utils/mailer";
 import { buildAccountWelcomeMail } from "@/utils/emailTemplates";
 import { publicOrigin } from "@/utils/publicOrigin";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +31,16 @@ export async function POST(req: NextRequest) {
   const Users = await getCol("users");
   const user = await Users.findOne(
     { _id: new ObjectId(consumption.userId) },
-    { projection: { role: 1, verification: 1, email: 1, name: 1, "profile.displayName": 1 } },
+    {
+      projection: {
+        role: 1,
+        verification: 1,
+        email: 1,
+        name: 1,
+        profile: 1,
+        settings: 1,
+      },
+    },
   );
   if (!user) {
     return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
@@ -59,6 +69,7 @@ export async function POST(req: NextRequest) {
       accountUrl: `${origin}/account`,
       identityUrl: `${origin}/register/identity`,
       displayName,
+      locale: mailLocaleFromUser(user),
     });
     await sendMail({
       to: String(user.email),

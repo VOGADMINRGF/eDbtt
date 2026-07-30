@@ -1,8 +1,6 @@
 import { BRAND } from "@/lib/brand";
-import { resolveMailFromForRuntime } from "@/lib/server/webRuntimeEnv";
 import { publicOrigin } from "@/utils/publicOrigin";
-import type { Transporter } from "nodemailer";
-import nodemailer from "nodemailer";
+import { sendMail as sendCanonicalMail } from "@/utils/mailer";
 
 type Mail = {
   to: string | string[];
@@ -22,119 +20,17 @@ type AlertMail = {
 };
 const PUBLIC_BASE = publicOrigin() || BRAND.baseUrl || "http://localhost:3000";
 
-// Cache den Transporter (Singleton)
-let transporterPromise: Promise<Transporter | null> | null = null;
-
-function recipientsToArray(to: string | string[] | undefined): string[] {
-  if (!to) return [];
-  const raw = Array.isArray(to) ? to.join(",") : to;
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-async function getTransporter(): Promise<Transporter | null> {
-  // Kein SMTP konfiguriert -> dev/console
-  const url = process.env.SMTP_URL; // optional: vollständige URL wie smtp://user:pass@host:port
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT
-    ? Number(process.env.SMTP_PORT)
-    : undefined;
-
-  if (!url && (!host || !port)) return null;
-
-  if (!transporterPromise) {
-    transporterPromise = (async () => {
-      try {
-        const secureEnv = process.env.SMTP_SECURE?.toLowerCase();
-        const secure =
-          secureEnv === "true" || secureEnv === "1" || (!!port && port === 465); // 465 meist „secure“
-
-        const user = process.env.SMTP_USER;
-        const pass = process.env.SMTP_PASS;
-
-        // Optional DKIM
-        const dkimDomain = process.env.DKIM_DOMAIN;
-        const dkimSelector = process.env.DKIM_SELECTOR;
-        const dkimKey = process.env.DKIM_PRIVATE_KEY;
-
-        const baseOptions = url
-          ? { url }
-          : {
-              host,
-              port,
-              secure,
-              auth: user && pass ? { user, pass } : undefined,
-            };
-
-        const transporter = nodemailer.createTransport({
-          ...baseOptions,
-          // Timeouts konservativ setzen
-          connectionTimeout: 10_000,
-          greetingTimeout: 10_000,
-          socketTimeout: 20_000,
-          // Optional DKIM
-          dkim:
-            dkimDomain && dkimSelector && dkimKey
-              ? {
-                  domainName: dkimDomain,
-                  keySelector: dkimSelector,
-                  privateKey: dkimKey,
-                }
-              : undefined,
-        });
-
-        // Verbindungsprobe (wirft bei Fehlkonfig)
-        await transporter.verify();
-        return transporter;
-      } catch (err) {
-        // Fallback: Kein harter Absturz – wir gehen in dev/console-Mode
-        console.warn(
-          "[MAIL] SMTP verify failed – falling back to console log:",
-          err,
-        );
-        return null;
-      }
-    })();
-  }
-
-  return transporterPromise;
-}
-
 /**
- * Schickt eine generische E-Mail. Fällt auf Console-Log zurück, wenn kein SMTP konfiguriert ist.
+ * Backward-compatible facade for the canonical mailer.
  */
 export async function sendMail({ to, subject, html, text }: Mail) {
-  const toList = recipientsToArray(to);
-  if (toList.length === 0) {
-    console.warn("[MAIL] no recipients provided");
-    return { ok: false, error: "NO_RECIPIENTS" as const };
-  }
-
-  const transporter = await getTransporter();
-
-  if (!transporter) {
-    // Dev/Console-Fallback
-    console.log("[MAIL:DEV] to=%s | subject=%s", toList.join(", "), subject);
-    console.log("[MAIL:BODY]\n" + html);
-    return { ok: true, dev: true as const };
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: resolveMailFromForRuntime(),
-      to: toList,
-      subject,
-      // Beides mitsenden – viele Clients bevorzugen text
-      text: text ?? htmlToText(html),
-      html,
-    });
-    return { ok: true, id: info.messageId };
-  } catch (err: any) {
-    console.error("[MAIL:SMTP:ERROR]", err);
-    return { ok: false, error: err?.message ?? "SEND_FAILED" };
-  }
+  return sendCanonicalMail({
+    to,
+    subject,
+    html,
+    text: text ?? htmlToText(html),
+    tag: "legacy_email_facade",
+  });
 }
 
 /**

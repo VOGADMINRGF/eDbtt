@@ -6,6 +6,7 @@ import { logIdentityEvent } from "@core/telemetry/identityEvents";
 import { sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { buildVerificationMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,16 @@ export async function POST(req: NextRequest) {
   const Users = await getCol("users");
   const user = await Users.findOne(
     { email },
-    { projection: { _id: 1, emailVerified: 1, verifiedEmail: 1, name: 1, "profile.displayName": 1 } },
+    {
+      projection: {
+        _id: 1,
+        emailVerified: 1,
+        verifiedEmail: 1,
+        name: 1,
+        profile: 1,
+        settings: 1,
+      },
+    },
   );
 
   if (user?._id instanceof ObjectId) {
@@ -39,6 +49,7 @@ export async function POST(req: NextRequest) {
     const mail = buildVerificationMail({
       verifyUrl,
       displayName: (user.profile?.displayName || user.name) ?? null,
+      locale: mailLocaleFromUser(user),
     });
     await sendMail({
       to: email,

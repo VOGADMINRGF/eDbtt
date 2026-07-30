@@ -182,8 +182,22 @@ export async function POST(req: NextRequest) {
 
   try {
     await Promise.all([
-      sendMail({ to: email, subject: userSubject, text: userText, html: userHtml }),
-      sendMail({ to: SALES_EMAIL, subject: internalSubject, text: internalText, html: internalHtml }),
+      sendMail({
+        to: email,
+        subject: userSubject,
+        text: userText,
+        html: userHtml,
+        locale,
+        tag: "institutional_quote_download",
+      }),
+      sendMail({
+        to: SALES_EMAIL,
+        subject: internalSubject,
+        text: internalText,
+        html: internalHtml,
+        locale,
+        tag: "institutional_quote_download_internal",
+      }),
     ]);
   } catch {
     return NextResponse.json(

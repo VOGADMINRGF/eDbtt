@@ -4,6 +4,7 @@ import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { isDemoUser } from "@/lib/demo/demoAccess";
 import {
   CREDENTIAL_COLLECTION,
@@ -96,7 +97,10 @@ export async function POST(req: NextRequest) {
       { $set: { supersededAt: now, status: "superseded" } },
     );
 
-    const mail = buildTwoFactorCodeMail({ code });
+    const mail = buildTwoFactorCodeMail({
+      code,
+      locale: mailLocaleFromUser(user),
+    });
     await sendMail({ to: email, subject: mail.subject, html: mail.html, text: mail.text });
 
     return NextResponse.json({

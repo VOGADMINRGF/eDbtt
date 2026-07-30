@@ -4,6 +4,7 @@ import { sendMail } from "@/utils/mailer";
 import { buildIdentityResumeMail } from "@/utils/emailTemplates";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
   const mail = buildIdentityResumeMail({
     resumeUrl,
     displayName: user.name ?? null,
+    locale: mailLocaleFromUser(user),
   });
 
   await sendMail({

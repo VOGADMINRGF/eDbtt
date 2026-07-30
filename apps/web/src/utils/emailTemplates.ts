@@ -1,5 +1,22 @@
 import type { BankDetails } from "@/config/banking";
+import {
+  renderTransactionalMail,
+  renderLegacyTransactionalMail,
+  resolveMailLocale,
+  type TransactionalMail,
+} from "@/utils/mailRenderer";
 import type { MembershipRhythm } from "@core/memberships/types";
+
+function finalizeMail(input: {
+  subject: string;
+  html: string;
+  text: string;
+  locale?: string | null;
+  preheader?: string;
+  reason?: string;
+}): TransactionalMail {
+  return renderLegacyTransactionalMail(input);
+}
 
 type VerificationTemplateInput = {
   verifyUrl: string;
@@ -7,163 +24,195 @@ type VerificationTemplateInput = {
   locale?: string;
 };
 
-export function buildVerificationMail({ verifyUrl, displayName }: VerificationTemplateInput) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#1a8cff;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;box-shadow:0 10px 24px rgba(26,140,255,0.25);";
-
-  const cleanToken = (() => {
-    const tokenPart = verifyUrl.split("token=").pop() ?? verifyUrl;
-    return tokenPart.split("&email")[0];
-  })();
-
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        schön, dass du bei eDebatte dabei sein möchtest. Bitte bestätige deine E-Mail-Adresse, damit wir dein Konto freischalten können.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${verifyUrl}" style="${buttonStyle}">
-          E-Mail jetzt bestätigen
-        </a>
-      </td></tr>
-      <tr><td style="padding:10px 0 6px 0; font-size:14px; color:#334155;">
-        Alternativ kannst du den Code kopieren und im Browser eingeben:
-      </td></tr>
-      <tr><td>
-        <div style="font-size:18px;font-weight:800;letter-spacing:1px;background:#f0f9ff;border-radius:14px;padding:14px 16px;display:inline-block;border:1px solid #bae6fd;">
-          ${cleanToken}
-        </div>
-      </td></tr>
-      <tr><td style="padding:14px 0 0 0; font-size:14px; color:#334155;">
-        Falls du kein Konto angelegt hast, kannst du diese Nachricht ignorieren.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#334155;">
-        Danke, dass du dich engagierst – jede Registrierung hilft uns, Beteiligung transparenter zu machen.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        Wir freuen uns auf dich.<br/>– Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `${greeting},
-
-schön, dass du bei eDebatte dabei sein möchtest! Bitte bestätige deine E-Mail-Adresse:
-${verifyUrl}
-
-Falls du kein Konto angelegt hast, kannst du diese Nachricht ignorieren.
-
-Danke, dass du dich engagierst – jede Registrierung hilft uns, Beteiligung transparenter zu machen.
-
-Wir freuen uns auf dich.
-– eDebatte Team`;
-
-  return { subject: "Bitte bestätige deine E-Mail-Adresse", html, text };
+export function buildVerificationMail({ verifyUrl, displayName, locale }: VerificationTemplateInput) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Please confirm your email address"
+      : "Bitte bestätige deine E-Mail-Adresse",
+    preheader: isEnglish
+      ? "Confirm your email address to activate your eDebatte account."
+      : "Bestätige deine E-Mail-Adresse, um dein eDebatte-Konto zu aktivieren.",
+    title: isEnglish ? "Confirm your email address" : "E-Mail-Adresse bestätigen",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Please confirm your email address so that we can activate your eDebatte account."
+          : "Bitte bestätige deine E-Mail-Adresse, damit wir dein eDebatte-Konto aktivieren können.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Confirm email address" : "E-Mail-Adresse bestätigen",
+        url: verifyUrl,
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Security note" : "Sicherheitshinweis",
+        text: isEnglish
+          ? "If you did not create an account, you can ignore this message."
+          : "Falls du kein Konto angelegt hast, kannst du diese Nachricht ignorieren.",
+      },
+    ],
+    reason: isEnglish
+      ? "an email address was added to an eDebatte account."
+      : "eine E-Mail-Adresse zu einem eDebatte-Konto hinzugefügt wurde.",
+  });
 }
 
 type AccountWelcomeTemplateInput = {
   accountUrl: string;
   identityUrl?: string;
   displayName?: string | null;
+  locale?: string | null;
 };
 
-export function buildAccountWelcomeMail({ accountUrl, identityUrl, displayName }: AccountWelcomeTemplateInput) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
-
-  const identityHtml = identityUrl
-    ? `<tr><td style="padding:12px 0 0 0; font-size:14px; color:#334155;">
-        Identitätsprüfung noch offen? Du kannst jederzeit hier fortsetzen:
-        <a href="${identityUrl}" style="color:#0f172a;text-decoration:underline;">${identityUrl}</a>
-      </td></tr>`
-    : "";
-
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        herzlich willkommen bei eDebatte! Danke, dass du dich registriert hast – dein Konto ist eingerichtet.
-        Ab jetzt kannst du dein Profil vervollständigen und die nächsten Schritte starten.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${accountUrl}" style="${buttonStyle}">
-          Zum Profil
-        </a>
-      </td></tr>
-      ${identityHtml}
-      <tr><td style="padding:12px 0 0 0; font-size:14px; color:#334155;">
-        Wir freuen uns sehr, dass du dich einbringst.
-      </td></tr>
-      <tr><td style="padding:12px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        Schön, dass du dabei bist.<br/>– Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const identityText = identityUrl
-    ? `Identitätsprüfung noch offen? Hier fortsetzen: ${identityUrl}
-
-`
-    : "";
-
-  const text = `${greeting},
-
-herzlich willkommen bei eDebatte! Danke, dass du dich registriert hast – dein Konto ist eingerichtet.
-Profil öffnen: ${accountUrl}
-
-${identityText}Wir freuen uns sehr, dass du dich einbringst.
-
-Schön, dass du dabei bist.
-– eDebatte Team`;
-
-  return { subject: "Herzlich willkommen bei eDebatte", html, text };
+export function buildAccountWelcomeMail({ accountUrl, identityUrl, displayName, locale }: AccountWelcomeTemplateInput) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish ? "Welcome to eDebatte" : "Herzlich willkommen bei eDebatte",
+    preheader: isEnglish
+      ? "Your eDebatte account is ready."
+      : "Dein eDebatte-Konto ist eingerichtet.",
+    title: isEnglish ? "Welcome to eDebatte" : "Willkommen bei eDebatte",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Thank you for registering. Your account is ready and you can now complete your profile."
+          : "Danke für deine Registrierung. Dein Konto ist eingerichtet und du kannst jetzt dein Profil vervollständigen.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Open profile" : "Profil öffnen",
+        url: accountUrl,
+      },
+      ...(identityUrl
+        ? [
+            {
+              kind: "cta" as const,
+              label: isEnglish
+                ? "Continue identity verification"
+                : "Identitätsprüfung fortsetzen",
+              url: identityUrl,
+            },
+          ]
+        : []),
+    ],
+    reason: isEnglish
+      ? "your eDebatte account was confirmed."
+      : "dein eDebatte-Konto bestätigt wurde.",
+  });
 }
 
 export function buildSetPasswordMail({
   resetUrl,
   displayName,
+  locale,
 }: {
   resetUrl: string;
   displayName?: string | null;
+  locale?: string | null;
 }) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Set the password for your account"
+      : "Passwort für dein Konto setzen",
+    preheader: isEnglish
+      ? "Use this secure link to set your eDebatte password."
+      : "Setze dein eDebatte-Passwort über diesen sicheren Link.",
+    title: isEnglish ? "Set your password" : "Passwort setzen",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Your account has been created. Set your password to sign in."
+          : "Dein Konto wurde angelegt. Setze jetzt dein Passwort, um dich anzumelden.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Set password" : "Passwort setzen",
+        url: resetUrl,
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Security note" : "Sicherheitshinweis",
+        text: isEnglish
+          ? "If you did not request this access, you can ignore this message."
+          : "Falls du diesen Zugang nicht angefordert hast, kannst du diese Nachricht ignorieren.",
+      },
+    ],
+    reason: isEnglish
+      ? "a password link was requested for your eDebatte account."
+      : "für dein eDebatte-Konto ein Passwort-Link angefordert wurde.",
+  });
+}
 
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        dein Account wurde angelegt. Bitte setze jetzt dein Passwort, um dich einzuloggen.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${resetUrl}" style="${buttonStyle}">
-          Passwort setzen
-        </a>
-      </td></tr>
-      <tr><td style="padding:14px 0 0 0; font-size:14px; color:#334155;">
-        Falls du den Zugang nicht angefordert hast, kannst du diese Nachricht ignorieren.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        Viele Gruesse<br/>– Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `${greeting},
-
-dein Account wurde angelegt. Bitte setze dein Passwort:
-${resetUrl}
-
-Falls du den Zugang nicht angefordert hast, kannst du diese Nachricht ignorieren.
-
-Viele Gruesse
-– eDebatte Team`;
-
-  return { subject: "Passwort fuer deinen Account setzen", html, text };
+export function buildPasswordResetMail({
+  resetUrl,
+  displayName,
+  locale,
+}: {
+  resetUrl: string;
+  displayName?: string | null;
+  locale?: string | null;
+}) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish ? "Reset your eDebatte password" : "eDebatte-Passwort zurücksetzen",
+    preheader: isEnglish
+      ? "Use this secure link to choose a new password."
+      : "Lege über diesen sicheren Link ein neues Passwort fest.",
+    title: isEnglish ? "Reset password" : "Passwort zurücksetzen",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "A password reset was requested for your eDebatte account."
+          : "Für dein eDebatte-Konto wurde ein neues Passwort angefordert.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Choose new password" : "Neues Passwort festlegen",
+        url: resetUrl,
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Security note" : "Sicherheitshinweis",
+        text: isEnglish
+          ? "The link expires after 60 minutes. If you did not request it, ignore this message."
+          : "Der Link läuft nach 60 Minuten ab. Falls du ihn nicht angefordert hast, ignoriere die Nachricht.",
+      },
+    ],
+    reason: isEnglish
+      ? "a password reset was requested for your eDebatte account."
+      : "für dein eDebatte-Konto das Zurücksetzen des Passworts angefordert wurde.",
+  });
 }
 
 export function buildOrgInviteMail({
@@ -172,52 +221,64 @@ export function buildOrgInviteMail({
   role,
   displayName,
   expiresAt,
+  locale,
 }: {
   resetUrl: string;
   orgName: string;
   role: string;
   displayName?: string | null;
   expiresAt?: string | null;
+  locale?: string | null;
 }) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
-  const expiresLine = expiresAt ? `Einladung gueltig bis: ${expiresAt}` : "";
-
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        du wurdest zur Organisation <strong>${orgName}</strong> eingeladen (Rolle: ${role}).
-        Bitte setze dein Passwort, um den Zugang zu aktivieren.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${resetUrl}" style="${buttonStyle}">
-          Einladung annehmen
-        </a>
-      </td></tr>
-      ${expiresLine ? `<tr><td style="padding:8px 0 0 0; font-size:13px; color:#64748b;">${expiresLine}</td></tr>` : ""}
-      <tr><td style="padding:14px 0 0 0; font-size:14px; color:#334155;">
-        Falls du keine Einladung erwartet hast, kannst du diese Nachricht ignorieren.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        Viele Gruesse<br/>– Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `${greeting},
-
-du wurdest zur Organisation ${orgName} eingeladen (Rolle: ${role}).
-Bitte setze dein Passwort, um den Zugang zu aktivieren:
-${resetUrl}
-
-${expiresLine ? `${expiresLine}\n` : ""}Falls du keine Einladung erwartet hast, kannst du diese Nachricht ignorieren.
-
-Viele Gruesse
-– eDebatte Team`;
-
-  return { subject: `Einladung zu ${orgName}`, html, text };
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish ? `Invitation to ${orgName}` : `Einladung zu ${orgName}`,
+    preheader: isEnglish
+      ? `You have been invited to ${orgName} on eDebatte.`
+      : `Du wurdest auf eDebatte zu ${orgName} eingeladen.`,
+    title: isEnglish ? "Organization invitation" : "Einladung zur Organisation",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? `You have been invited to the organization ${orgName} with the role ${role}.`
+          : `Du wurdest zur Organisation ${orgName} mit der Rolle ${role} eingeladen.`,
+      },
+      ...(expiresAt
+        ? [
+            {
+              kind: "details" as const,
+              rows: [
+                {
+                  label: isEnglish ? "Valid until" : "Gültig bis",
+                  value: expiresAt,
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        kind: "cta",
+        label: isEnglish ? "Accept invitation" : "Einladung annehmen",
+        url: resetUrl,
+      },
+      {
+        kind: "notice",
+        text: isEnglish
+          ? "If you did not expect this invitation, you can ignore this message."
+          : "Falls du diese Einladung nicht erwartet hast, kannst du die Nachricht ignorieren.",
+      },
+    ],
+    reason: isEnglish
+      ? "you were invited to an organization on eDebatte."
+      : "du zu einer Organisation auf eDebatte eingeladen wurdest.",
+  });
 }
 
 export function buildOrgAccessMail({
@@ -225,154 +286,297 @@ export function buildOrgAccessMail({
   orgName,
   role,
   displayName,
+  locale,
 }: {
   accessUrl: string;
   orgName: string;
   role: string;
   displayName?: string | null;
+  locale?: string | null;
 }) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
-
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        dir wurde Zugriff auf die Organisation <strong>${orgName}</strong> gegeben (Rolle: ${role}).
-        Melde dich an, um loszulegen.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${accessUrl}" style="${buttonStyle}">
-          Zum Login
-        </a>
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        Viele Gruesse<br/>– Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `${greeting},
-
-dir wurde Zugriff auf die Organisation ${orgName} gegeben (Rolle: ${role}).
-Login: ${accessUrl}
-
-Viele Gruesse
-– eDebatte Team`;
-
-  return { subject: `Zugriff auf ${orgName}`, html, text };
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish ? `Access to ${orgName}` : `Zugriff auf ${orgName}`,
+    preheader: isEnglish
+      ? `Your access to ${orgName} is ready.`
+      : `Dein Zugriff auf ${orgName} ist eingerichtet.`,
+    title: isEnglish ? "Organization access" : "Organisationszugriff",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? `You now have access to the organization ${orgName} with the role ${role}.`
+          : `Du hast jetzt Zugriff auf die Organisation ${orgName} mit der Rolle ${role}.`,
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Sign in" : "Anmelden",
+        url: accessUrl,
+      },
+    ],
+    reason: isEnglish
+      ? "organization access was granted to your eDebatte account."
+      : "dir Organisationszugriff auf eDebatte erteilt wurde.",
+  });
 }
 
 type IdentityResumeTemplateInput = {
   resumeUrl: string;
   displayName?: string | null;
+  locale?: string | null;
 };
 
-export function buildIdentityResumeMail({ resumeUrl, displayName }: IdentityResumeTemplateInput) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
-  const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
-
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">${greeting},</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        danke, dass du dir die Zeit für eDebatte nimmst. Du kannst die Identitätsprüfung jederzeit fortsetzen.
-        Öffne den Link, wenn du den QR-Code bequem scannen möchtest.
-      </td></tr>
-      <tr><td style="padding:12px 0;">
-        <a href="${resumeUrl}" style="${buttonStyle}">
-          Identitätsprüfung fortsetzen
-        </a>
-      </td></tr>
-      <tr><td style="padding:12px 0 0 0; font-size:14px; color:#334155;">
-        Falls du ausgeloggt bist, melde dich zuerst an.
-      </td></tr>
-      <tr><td style="padding:12px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        – Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `${greeting},
-
-danke, dass du dir die Zeit für eDebatte nimmst. Du kannst die Identitätsprüfung jederzeit fortsetzen:
-${resumeUrl}
-
-Falls du ausgeloggt bist, melde dich zuerst an.
-
-– eDebatte Team`;
-
-  return { subject: "Dein Link zur Identitätsprüfung", html, text };
+export function buildIdentityResumeMail({ resumeUrl, displayName, locale }: IdentityResumeTemplateInput) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Continue your identity verification"
+      : "Identitätsprüfung fortsetzen",
+    preheader: isEnglish
+      ? "Continue your identity verification securely."
+      : "Setze deine Identitätsprüfung sicher fort.",
+    title: isEnglish ? "Continue identity verification" : "Identitätsprüfung fortsetzen",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "You can continue your identity verification at any time."
+          : "Du kannst deine Identitätsprüfung jederzeit fortsetzen.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Continue verification" : "Prüfung fortsetzen",
+        url: resumeUrl,
+      },
+      {
+        kind: "notice",
+        text: isEnglish
+          ? "If you are signed out, sign in first."
+          : "Falls du abgemeldet bist, melde dich zuerst an.",
+      },
+    ],
+    reason: isEnglish
+      ? "you requested a link to continue your identity verification."
+      : "du einen Link zum Fortsetzen deiner Identitätsprüfung angefordert hast.",
+  });
 }
 
-export function buildTwoFactorCodeMail({ code }: { code: string }) {
-  const subject = "Dein Login-Code für eDebatte";
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">Hallo,</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        dein Login-Code für eDebatte lautet:
-      </td></tr>
-      <tr><td>
-        <div style="font-size:28px;font-weight:700;letter-spacing:4px;background:#f8fafc;border-radius:12px;padding:12px 16px;display:inline-block;border:1px solid #e2e8f0;">
-          ${code}
-        </div>
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:13px; color:#334155;">
-        Der Code ist nur wenige Minuten gültig. Falls du den Login nicht gestartet hast, kannst du diese Nachricht ignorieren.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        – Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
-
-  const text = `Hallo,
-
-dein Login-Code für eDebatte lautet: ${code}
-Der Code ist nur wenige Minuten gültig.
-
-Falls du den Login nicht gestartet hast, kannst du diese Nachricht ignorieren.
-
-– eDebatte Team`;
-
-  return { subject, html, text };
+export function buildTwoFactorCodeMail({ code, locale }: { code: string; locale?: string | null }) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish ? "Your eDebatte login code" : "Dein Login-Code für eDebatte",
+    preheader: isEnglish
+      ? "Use this one-time code to complete your sign-in."
+      : "Verwende diesen einmaligen Code, um deine Anmeldung abzuschließen.",
+    title: isEnglish ? "Complete sign-in" : "Anmeldung abschließen",
+    greeting: isEnglish ? "Hello," : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Enter this code in the eDebatte sign-in window:"
+          : "Gib diesen Code im eDebatte-Anmeldefenster ein:",
+      },
+      {
+        kind: "code",
+        label: isEnglish ? "One-time login code" : "Einmaliger Login-Code",
+        value: code,
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Security note" : "Sicherheitshinweis",
+        text: isEnglish
+          ? "The code is valid for a few minutes. If you did not start this sign-in, ignore this message."
+          : "Der Code ist nur wenige Minuten gültig. Falls du diese Anmeldung nicht gestartet hast, ignoriere die Nachricht.",
+      },
+    ],
+    reason: isEnglish
+      ? "a sign-in with an email code was started for your eDebatte account."
+      : "ein Login mit E-Mail-Code für dein eDebatte-Konto gestartet wurde.",
+  });
 }
 
-export function buildIdentityEmailCodeMail({ code }: { code: string }) {
-  const subject = "Dein Code zur Identitätsbestätigung";
-  const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
-      <tr><td style="padding:12px 0;">Hallo,</td></tr>
-      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
-        dein Code zur Identitätsbestätigung lautet:
-      </td></tr>
-      <tr><td>
-        <div style="font-size:28px;font-weight:700;letter-spacing:4px;background:#f0f9ff;border-radius:12px;padding:12px 16px;display:inline-block;border:1px solid #bae6fd;">
-          ${code}
-        </div>
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:13px; color:#334155;">
-        Der Code ist nur wenige Minuten gültig. Falls du diesen Schritt nicht gestartet hast, kannst du diese Nachricht ignorieren.
-      </td></tr>
-      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
-        – Dein eDebatte Team
-      </td></tr>
-    </table>
-  `;
+export function buildIdentityEmailCodeMail({ code, locale }: { code: string; locale?: string | null }) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Your identity confirmation code"
+      : "Dein Code zur Identitätsbestätigung",
+    preheader: isEnglish
+      ? "Use this one-time code to confirm your identity."
+      : "Verwende diesen einmaligen Code zur Identitätsbestätigung.",
+    title: isEnglish ? "Confirm your identity" : "Identität bestätigen",
+    greeting: isEnglish ? "Hello," : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Enter this code in the eDebatte verification window:"
+          : "Gib diesen Code im eDebatte-Prüffenster ein:",
+      },
+      {
+        kind: "code",
+        label: isEnglish ? "One-time confirmation code" : "Einmaliger Bestätigungscode",
+        value: code,
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Security note" : "Sicherheitshinweis",
+        text: isEnglish
+          ? "The code is valid for a few minutes. If you did not start this step, ignore this message."
+          : "Der Code ist nur wenige Minuten gültig. Falls du diesen Schritt nicht gestartet hast, ignoriere die Nachricht.",
+      },
+    ],
+    reason: isEnglish
+      ? "identity confirmation was started for your eDebatte account."
+      : "eine Identitätsbestätigung für dein eDebatte-Konto gestartet wurde.",
+  });
+}
 
-  const text = `Hallo,
+export function buildSupportTicketReceivedMail({
+  displayName,
+  category,
+  requestSubject,
+  locale,
+}: {
+  displayName?: string | null;
+  category: string;
+  requestSubject?: string | null;
+  locale?: string | null;
+}) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "We received your message"
+      : "Wir haben deine Nachricht erhalten",
+    preheader: isEnglish
+      ? "The eDebatte team will review your request."
+      : "Das eDebatte-Team prüft dein Anliegen.",
+    title: isEnglish ? "Message received" : "Nachricht eingegangen",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Thank you for contacting eDebatte. Our team will review your request and get back to you."
+          : "Danke für deine Nachricht an eDebatte. Unser Team prüft dein Anliegen und meldet sich bei dir.",
+      },
+      {
+        kind: "details",
+        rows: [
+          { label: isEnglish ? "Category" : "Kategorie", value: category },
+          ...(requestSubject
+            ? [
+                {
+                  label: isEnglish ? "Subject" : "Betreff",
+                  value: requestSubject,
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
+    reason: isEnglish
+      ? "you sent a message to the eDebatte support team."
+      : "du dem eDebatte-Support eine Nachricht gesendet hast.",
+  });
+}
 
-dein Code zur Identitätsbestätigung lautet: ${code}
-Der Code ist nur wenige Minuten gültig.
-
-Falls du diesen Schritt nicht gestartet hast, kannst du diese Nachricht ignorieren.
-
-– eDebatte Team`;
-
-  return { subject, html, text };
+export function buildSupportStatusMail({
+  displayName,
+  ticketReference,
+  status,
+  resolution,
+  supportUrl,
+  locale,
+}: {
+  displayName?: string | null;
+  ticketReference: string;
+  status: string;
+  resolution?: string | null;
+  supportUrl?: string | null;
+  locale?: string | null;
+}) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  const isResolved = Boolean(resolution);
+  return renderTransactionalMail({
+    locale,
+    subject: isResolved
+      ? isEnglish
+        ? `Your support request ${ticketReference} was resolved`
+        : `Dein Support-Anliegen ${ticketReference} wurde gelöst`
+      : isEnglish
+        ? `Update for support request ${ticketReference}`
+        : `Update zu deinem Support-Anliegen ${ticketReference}`,
+    preheader: isResolved
+      ? isEnglish
+        ? "A resolution is available for your support request."
+        : "Für dein Support-Anliegen liegt eine Lösung vor."
+      : isEnglish
+        ? "The status of your support request changed."
+        : "Der Status deines Support-Anliegens hat sich geändert.",
+    title: isResolved
+      ? isEnglish
+        ? "Support request resolved"
+        : "Support-Anliegen gelöst"
+      : isEnglish
+        ? "Support status updated"
+        : "Support-Status aktualisiert",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: isEnglish ? "Reference" : "Referenz", value: ticketReference },
+          { label: isEnglish ? "Status" : "Status", value: status },
+        ],
+      },
+      ...(resolution
+        ? [
+            {
+              kind: "notice" as const,
+              title: isEnglish ? "Resolution" : "Lösung",
+              text: resolution,
+            },
+          ]
+        : []),
+      ...(supportUrl
+        ? [
+            {
+              kind: "cta" as const,
+              label: isEnglish ? "Open support request" : "Support-Anliegen öffnen",
+              url: supportUrl,
+            },
+          ]
+        : []),
+    ],
+    reason: isEnglish
+      ? "the status of your eDebatte support request changed."
+      : "sich der Status deines eDebatte-Support-Anliegens geändert hat.",
+  });
 }
 
 type MembershipMailInput = {
@@ -381,6 +585,7 @@ type MembershipMailInput = {
   monthlyAmount: number;
   reference: string;
   bank: BankDetails;
+  locale?: string | null;
 };
 
 export function buildMembershipConfirmationMail({
@@ -389,53 +594,103 @@ export function buildMembershipConfirmationMail({
   monthlyAmount,
   reference,
   bank,
+  locale,
 }: MembershipMailInput) {
-  const greeting = firstName ? `Hallo ${firstName}` : "Hallo";
+  const isEnglish = resolveMailLocale(locale) === "en";
   const amount = formatEuro(monthlyAmount);
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "eDebatte – Membership application received"
+      : "eDebatte – Mitgliedsantrag eingegangen",
+    preheader: isEnglish
+      ? "We received your eDebatte membership application."
+      : "Wir haben deinen eDebatte-Mitgliedsantrag erhalten.",
+    title: isEnglish ? "Application received" : "Mitgliedsantrag eingegangen",
+    greeting: firstName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${firstName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? `Thank you for applying for the eDebatte membership plan ${planLabel}.`
+          : `Danke für deinen Antrag auf die eDebatte-Mitgliedschaft ${planLabel}.`,
+      },
+      {
+        kind: "details",
+        rows: [
+          { label: isEnglish ? "Monthly amount" : "Monatlicher Beitrag", value: amount },
+          { label: isEnglish ? "Recipient" : "Empfänger", value: bank.recipient },
+          { label: isEnglish ? "Bank" : "Bank", value: bank.bankName },
+          { label: "IBAN", value: bank.iban },
+          { label: "BIC", value: bank.bic },
+          { label: isEnglish ? "Reference" : "Verwendungszweck", value: reference },
+        ],
+      },
+      {
+        kind: "notice",
+        title: isEnglish ? "Important" : "Wichtig",
+        text: isEnglish
+          ? "This is a membership contribution, not a donation, and no donation receipt is issued."
+          : "Dies ist ein Mitgliedsbeitrag, keine Spende; eine Spendenquittung wird nicht ausgestellt.",
+      },
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "You will receive confirmation once the first contribution has been received."
+          : "Sobald der erste Beitrag eingegangen ist, erhältst du die Bestätigung deiner Mitgliedschaft.",
+      },
+    ],
+    reason: isEnglish
+      ? "your eDebatte membership application was received."
+      : "dein Mitgliedsantrag bei eDebatte eingegangen ist.",
+  });
+}
 
-  const bankHtml = `
-    <ul>
-      <li><strong>Empfänger:</strong> ${bank.recipient}</li>
-      <li><strong>Bank:</strong> ${bank.bankName}</li>
-      <li><strong>IBAN:</strong> ${bank.iban}</li>
-      <li><strong>BIC:</strong> ${bank.bic}</li>
-      <li><strong>Verwendungszweck:</strong> ${reference}</li>
-    </ul>
-  `;
-
-  const html = `
-    <p>${greeting},</p>
-    <p>danke für deinen Antrag auf die eDebatte-Mitgliedschaft (<strong>${planLabel}</strong>).</p>
-    <p>Dein monatlicher Beitrag beträgt <strong>${amount}</strong>. Bitte richte eine Überweisung oder einen Dauerauftrag mit folgenden Bankdaten ein:</p>
-    ${bankHtml}
-    <p>Wichtig: Es handelt sich um eine Gutschrift bzw. einen Mitgliedsbeitrag – keine Spende, keine Spendenquittung.</p>
-    <p>Sobald der erste Beitrag eingegangen ist, erhältst du die Bestätigung deiner Mitgliedschaft.</p>
-    <p>– Dein eDebatte Team</p>
-  `;
-
-  const text = `${greeting},
-
-danke für deinen Antrag auf die eDebatte-Mitgliedschaft (${planLabel}).
-Monatlicher Beitrag: ${amount}
-
-Bank:
-Empfänger: ${bank.recipient}
-Bank: ${bank.bankName}
-IBAN: ${bank.iban}
-BIC: ${bank.bic}
-Verwendungszweck: ${reference}
-
-Es handelt sich um eine Gutschrift bzw. einen Mitgliedsbeitrag – keine Spende, keine Spendenquittung.
-
-Sobald der erste Beitrag eingegangen ist, erhältst du die Bestätigung deiner Mitgliedschaft.
-
-– eDebatte Team`;
-
-  return {
-    subject: "eDebatte – Mitgliedsantrag eingegangen",
-    html,
-    text,
-  };
+export function buildMembershipActivationMail({
+  displayName,
+  accountUrl,
+  locale,
+}: {
+  displayName?: string | null;
+  accountUrl: string;
+  locale?: string | null;
+}) {
+  const isEnglish = resolveMailLocale(locale) === "en";
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Your eDebatte membership is active"
+      : "Deine eDebatte-Mitgliedschaft ist aktiv",
+    preheader: isEnglish
+      ? "Your membership contribution was received."
+      : "Dein Mitgliedsbeitrag ist eingegangen.",
+    title: isEnglish ? "Membership activated" : "Mitgliedschaft aktiviert",
+    greeting: displayName
+      ? `${isEnglish ? "Hello" : "Hallo"} ${displayName},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "We received your first contribution and activated your eDebatte membership."
+          : "Wir haben deinen ersten Beitrag erhalten und deine eDebatte-Mitgliedschaft aktiviert.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Open account" : "Konto öffnen",
+        url: accountUrl,
+      },
+    ],
+    reason: isEnglish
+      ? "your first membership contribution was received."
+      : "dein erster Mitgliedsbeitrag eingegangen ist.",
+  });
 }
 
 function formatEuro(value: number) {
@@ -498,7 +753,7 @@ export function buildEdebatePreorderMail({
 
   const accountBlock = accountUrl
     ? `<p style="margin:12px 0 0 0;">
-        <a href="${accountUrl}" style="display:inline-flex;padding:10px 16px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">Zum Konto</a>
+        <a href="${accountUrl}" style="display:inline-flex;padding:10px 16px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">${isEnglish ? "Open account" : "Zum Konto"}</a>
       </p>`
     : "";
 
@@ -510,7 +765,7 @@ export function buildEdebatePreorderMail({
             <tr>
               <td style="padding:20px 24px;background:#0f172a;">
                 <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#94a3b8;">eDebatte</div>
-                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">${isEnglish ? "Package start confirmed" : "Paketstart bestaetigt"}</div>
+                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">${isEnglish ? "Package start confirmed" : "Paketstart bestätigt"}</div>
               </td>
             </tr>
             <tr>
@@ -576,7 +831,17 @@ ${accountUrl ? `${isEnglish ? "Open account" : "Zum Konto"}: ${accountUrl}` : ""
 
 ${isEnglish ? "– Your eDebatte team" : "– Dein eDebatte Team"}`;
 
-  return { subject: isEnglish ? "eDebatte – Package start confirmed" : "eDebatte – Paketstart bestaetigt", html, text };
+  return finalizeMail({
+    subject: isEnglish
+      ? "eDebatte – Package start confirmed"
+      : "eDebatte – Paketstart bestätigt",
+    html,
+    text,
+    locale,
+    reason: isEnglish
+      ? "your requested eDebatte package start was recorded."
+      : "dein angefragter eDebatte-Paketstart erfasst wurde.",
+  });
 }
 
 export function buildEdebatePreorderPledgeUserMail(args: {
@@ -591,7 +856,40 @@ export function buildEdebatePreorderPledgeUserMail(args: {
     bankName?: string | null;
     accountMode?: string | null;
   };
+  locale?: string | null;
 }) {
+  if (resolveMailLocale(args.locale) === "en") {
+    const amount = formatEuro(args.amount);
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject: `Payment pledge: ${args.planLabel}`,
+      preheader: "We recorded your eDebatte payment pledge.",
+      title: "Payment pledge recorded",
+      greeting: args.displayName ? `Hello ${args.displayName},` : "Hello,",
+      blocks: [
+        {
+          kind: "paragraph",
+          text: `Thank you for your payment pledge for ${args.planLabel}. Please transfer ${amount} once using the reference below.`,
+        },
+        {
+          kind: "details",
+          rows: [
+            { label: "Reference", value: args.reference },
+            { label: "Recipient", value: args.bank.recipient },
+            { label: "Bank", value: args.bank.bankName || "not available" },
+            { label: "IBAN", value: formatIban(args.bank.iban) },
+            ...(args.bank.bic ? [{ label: "BIC", value: args.bank.bic }] : []),
+          ],
+        },
+        {
+          kind: "notice",
+          text: "Membership contributions remain separate from this one-time payment pledge.",
+        },
+      ],
+      reason: "your payment pledge for an eDebatte package was recorded.",
+    });
+  }
+
   const greeting = args.displayName ? `Hallo ${args.displayName},` : "Hallo,";
   const amount = formatEuro(args.amount);
   const bankIban = formatIban(args.bank.iban);
@@ -616,7 +914,7 @@ export function buildEdebatePreorderPledgeUserMail(args: {
       ${bankBic ? `<li><strong>BIC:</strong> ${bankBic}</li>` : ""}
     </ul>
     <p>${accountNote}</p>
-    <p>Mitgliedschaftsbeiträge laufen weiterhin ausschließlich über voiceopengov.</p>
+    <p>Mitgliedschaftsbeiträge bleiben von dieser einmaligen Zahlungszusage getrennt.</p>
     <p>– Dein eDebatte Team</p>
   `;
 
@@ -633,15 +931,17 @@ IBAN: ${bankIban}
 ${bankBic ? `BIC: ${bankBic}` : ""}
 
 ${accountNote}
-Mitgliedschaftsbeiträge laufen weiterhin ausschließlich über voiceopengov.
+Mitgliedschaftsbeiträge bleiben von dieser einmaligen Zahlungszusage getrennt.
 
 – Dein eDebatte Team`;
 
-  return {
+  return finalizeMail({
     subject: `Zahlungszusage: ${args.planLabel}`,
     html,
     text,
-  };
+    locale: args.locale,
+    reason: "deine Zahlungszusage für ein eDebatte-Paket erfasst wurde.",
+  });
 }
 
 export function buildEdebatePreorderPledgeAdminMail(args: {
@@ -658,7 +958,30 @@ export function buildEdebatePreorderPledgeAdminMail(args: {
     bankName?: string | null;
     accountMode?: string | null;
   };
+  locale?: string | null;
 }) {
+  if (resolveMailLocale(args.locale) === "en") {
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject: `Payment pledge confirmed: ${args.planLabel}`,
+      preheader: "A payment pledge was recorded in eDebatte.",
+      title: "New payment pledge",
+      blocks: [
+        {
+          kind: "details",
+          rows: [
+            { label: "User", value: `${args.displayName || "—"} (${args.email})` },
+            { label: "User ID", value: args.userId },
+            { label: "Package", value: args.planLabel },
+            { label: "Amount", value: formatEuro(args.amount) },
+            { label: "Reference", value: args.reference },
+          ],
+        },
+      ],
+      reason: "a payment pledge was recorded in the eDebatte system.",
+    });
+  }
+
   const amount = formatEuro(args.amount);
   const bankIban = formatIban(args.bank.iban);
   const bankBic = args.bank.bic ?? "";
@@ -696,11 +1019,13 @@ Bank: ${bankName || "n/a"}
 IBAN: ${bankIban}
 ${bankBic ? `BIC: ${bankBic}` : ""}`;
 
-  return {
+  return finalizeMail({
     subject: `Zahlungszusage bestätigt: ${args.planLabel}`,
     html,
     text,
-  };
+    locale: args.locale,
+    reason: "eine Zahlungszusage im eDebatte-System erfasst wurde.",
+  });
 }
 
 export function buildMembershipApplyUserMail(args: {
@@ -736,7 +1061,84 @@ export function buildMembershipApplyUserMail(args: {
     accountMode?: string | null;
     mandateStatus?: string | null;
   };
+  locale?: string | null;
 }) {
+  if (resolveMailLocale(args.locale) === "en") {
+    const bankRecipient =
+      args.bankDetails?.recipient ??
+      args.paymentInfo?.bankRecipient ??
+      "eDebatte";
+    const bankIban =
+      args.bankDetails?.iban ??
+      args.paymentInfo?.bankIban ??
+      args.paymentInfo?.bankIbanMasked ??
+      "IBAN pending";
+    const bankBic = args.bankDetails?.bic ?? args.paymentInfo?.bankBic ?? "";
+    const bankName = args.bankDetails?.bankName ?? args.paymentInfo?.bankName ?? "";
+    const rhythmLabel =
+      args.rhythm === "monthly"
+        ? "monthly"
+        : args.rhythm === "yearly"
+          ? "yearly"
+          : "one-time";
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject: "Your eDebatte membership application",
+      preheader: "We received your eDebatte membership application.",
+      title: "Membership application received",
+      greeting: `Hello ${args.displayName || "member"},`,
+      blocks: [
+        {
+          kind: "paragraph",
+          text: "We received your application. Here are the key details.",
+        },
+        {
+          kind: "details",
+          rows: [
+            {
+              label: "Contribution",
+              value: `${formatEuro(args.amountPerPeriod)} (${rhythmLabel})`,
+            },
+            { label: "Household", value: `${args.householdSize} person(s)` },
+            { label: "Application ID", value: args.membershipId },
+            { label: "Recipient", value: bankRecipient },
+            { label: "Bank", value: bankName || "not available" },
+            { label: "IBAN", value: bankIban },
+            ...(bankBic ? [{ label: "BIC", value: bankBic }] : []),
+            {
+              label: "Reference",
+              value: args.paymentReference ?? "Membership contribution",
+            },
+          ],
+        },
+        ...(args.paymentInfo?.mandateStatus === "pending_microtransfer"
+          ? [
+              {
+                kind: "notice" as const,
+                title: "Account verification",
+                text: "We will transfer EUR 0.01 with a confirmation code in the payment reference. Enter that code in your payment profile.",
+              },
+            ]
+          : []),
+        ...(args.accountUrl
+          ? [
+              {
+                kind: "cta" as const,
+                label: "Open payment profile",
+                url: args.accountUrl,
+              },
+            ]
+          : []),
+        {
+          kind: "notice",
+          title: "Transparency",
+          text: "Membership contributions are not donations and no donation receipt is issued. Your membership becomes active after the first contribution is received.",
+        },
+      ],
+      reason: "your eDebatte membership application was received.",
+    });
+  }
+
   const {
     displayName,
     amountPerPeriod,
@@ -996,7 +1398,13 @@ Du kannst eDebatte im Free-Modus nutzen. Sobald dein Beitrag eingeht, bestätige
 Danke für deine Unterstützung!
 – Dein eDebatte Team`;
 
-  return { subject, html, text };
+  return finalizeMail({
+    subject,
+    html,
+    text,
+    locale: args.locale,
+    reason: "dein Mitgliedsantrag bei eDebatte eingegangen ist.",
+  });
 }
 
 export function buildMembershipApplyAdminMail(args: {
@@ -1011,7 +1419,39 @@ export function buildMembershipApplyAdminMail(args: {
   payerName?: string;
   payerIban?: string;
   microTransferCode?: string;
+  locale?: string | null;
 }) {
+  if (resolveMailLocale(args.locale) === "en") {
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject: "New membership application",
+      preheader: "A membership application was submitted in eDebatte.",
+      title: "New membership application",
+      blocks: [
+        {
+          kind: "details",
+          rows: [
+            { label: "Application ID", value: args.membershipId },
+            { label: "User ID", value: args.userId },
+            { label: "Email", value: args.email },
+            {
+              label: "Contribution",
+              value: `${formatEuro(args.amountPerPeriod)} (${args.rhythm})`,
+            },
+            { label: "Household", value: String(args.householdSize) },
+            ...(args.paymentMethod
+              ? [{ label: "Payment method", value: args.paymentMethod }]
+              : []),
+            ...(args.paymentReference
+              ? [{ label: "Reference", value: args.paymentReference }]
+              : []),
+          ],
+        },
+      ],
+      reason: "a membership application was submitted in the eDebatte system.",
+    });
+  }
+
   const subject = "Neuer Mitgliedsantrag";
   const payerIban = formatIban(args.payerIban);
   const html = `
@@ -1040,14 +1480,47 @@ ${args.paymentReference ? `- Verwendungszweck: ${args.paymentReference}` : ""}
 ${args.payerName ? `- Zahlungsname: ${args.payerName}` : ""}
 ${args.payerIban ? `- IBAN (für 0,01 €): ${payerIban}` : ""}
 ${args.microTransferCode ? `- TAN-Code (0,01 €): ${args.microTransferCode}` : ""}`;
-  return { subject, html, text };
+  return finalizeMail({
+    subject,
+    html,
+    text,
+    locale: args.locale,
+    reason: "ein Mitgliedsantrag im eDebatte-System eingegangen ist.",
+  });
 }
 
 export function buildHouseholdInviteMail(args: {
   targetName?: string | null;
   inviteUrl: string;
   inviterName: string;
+  locale?: string | null;
 }) {
+  if (resolveMailLocale(args.locale) === "en") {
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject: "Invitation to join eDebatte",
+      preheader: `${args.inviterName} invited you to join eDebatte as part of a household.`,
+      title: "Household invitation",
+      greeting: args.targetName ? `Hello ${args.targetName},` : "Hello,",
+      blocks: [
+        {
+          kind: "paragraph",
+          text: `${args.inviterName} invited you to participate in eDebatte as part of a household.`,
+        },
+        {
+          kind: "cta",
+          label: "Accept invitation",
+          url: args.inviteUrl,
+        },
+        {
+          kind: "notice",
+          text: "The invitation gives you your own access after double opt-in. Each person has one vote.",
+        },
+      ],
+      reason: "you were invited to a household on eDebatte.",
+    });
+  }
+
   const subject = "Einladung zur Teilnahme bei eDebatte";
   const greeting = args.targetName ? `Hallo ${args.targetName},` : "Hallo,";
   const html = `
@@ -1068,7 +1541,13 @@ Die Einladung ermöglicht dir eigenen Zugang (Double-Opt-In, eine Person – ein
 
 Danke für dein Interesse!`;
 
-  return { subject, html, text };
+  return finalizeMail({
+    subject,
+    html,
+    text,
+    locale: args.locale,
+    reason: "du zu einem Haushalt auf eDebatte eingeladen wurdest.",
+  });
 }
 
 export function buildMembershipReminderMail(
@@ -1087,8 +1566,63 @@ export function buildMembershipReminderMail(
       reference?: string;
     };
     reference: string;
+    locale?: string | null;
   },
 ) {
+  if (resolveMailLocale(args.locale) === "en") {
+    const subject =
+      level === 3
+        ? "Final reminder – eDebatte membership application"
+        : "Reminder – eDebatte membership contribution";
+    const intro =
+      level === 1
+        ? "We have not yet recorded your payment."
+        : level === 2
+          ? "Please check your membership contribution; no payment has been recorded yet."
+          : "We have not been able to match a payment. The application will be cancelled if no payment is received.";
+    return renderTransactionalMail({
+      locale: args.locale,
+      subject,
+      preheader: intro,
+      title: "Membership contribution reminder",
+      greeting: `Hello ${args.displayName},`,
+      blocks: [
+        { kind: "paragraph", text: intro },
+        {
+          kind: "details",
+          rows: [
+            { label: "Contribution", value: formatEuro(args.amountPerPeriod) },
+            { label: "Household", value: String(args.householdSize) },
+            {
+              label: "Recipient",
+              value: args.paymentInfo?.bankRecipient ?? "eDebatte",
+            },
+            {
+              label: "Bank",
+              value: args.paymentInfo?.bankName ?? "not available",
+            },
+            {
+              label: "IBAN",
+              value:
+                args.paymentInfo?.bankIban ??
+                args.paymentInfo?.bankIbanMasked ??
+                "IBAN pending",
+            },
+            { label: "Reference", value: args.reference },
+          ],
+        },
+        {
+          kind: "notice",
+          text:
+            level === 3
+              ? "If no payment is received, the application will be cancelled. You can apply again later."
+              : "Use the reference exactly as shown so that we can match the payment.",
+        },
+      ],
+      reason: "we could not yet match a payment to your membership application.",
+    });
+  }
+
   const subject =
     level === 3
       ? "Letzte Erinnerung – eDebatte-Mitgliedsantrag"
@@ -1142,5 +1676,11 @@ ${bankBic ? `BIC: ${bankBic}\n` : ""}Verwendungszweck: ${args.reference}
 Bitte den Verwendungszweck genau so nutzen.
 ${level === 3 ? "Ohne Zahlung wird der Antrag storniert und der Haushalt gesperrt. Später kannst du neu beantragen.\n" : ""}Danke für deine Unterstützung.`;
 
-  return { subject, html, text };
+  return finalizeMail({
+    subject,
+    html,
+    text,
+    locale: args.locale,
+    reason: "zu deinem Mitgliedsantrag noch kein Zahlungseingang zugeordnet werden konnte.",
+  });
 }

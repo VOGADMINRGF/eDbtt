@@ -3,6 +3,7 @@ import { ObjectId } from "@core/db/triMongo";
 import { coreCol, piiCol } from "@core/db/db/triMongo";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { sendMail } from "@/utils/mailer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 import { isDemoUser } from "@/lib/demo/demoAccess";
@@ -137,7 +138,10 @@ export async function issueSetupEmailCode(params: {
   await setPendingTwoFactorCookie(String(insertedId));
 
   if (email) {
-    const mail = buildTwoFactorCodeMail({ code });
+    const mail = buildTwoFactorCodeMail({
+      code,
+      locale: mailLocaleFromUser(user),
+    });
     await sendMail({
       to: email,
       subject: mail.subject,

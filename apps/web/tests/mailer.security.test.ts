@@ -6,7 +6,10 @@ const mocks = vi.hoisted(() => {
   const transportSendMail = vi.fn();
   return {
     hasSmtpTransportConfig: vi.fn(() => false),
-    resolveMailFromForRuntime: vi.fn(() => "noreply@edebatte.test"),
+    resolveMailEnvelopeForRuntime: vi.fn(() => ({
+      from: "eDebatte <members@edebatte.org>",
+      replyTo: "eDebatte Team <members@edebatte.org>",
+    })),
     createTransport: vi.fn(() => ({ sendMail: transportSendMail })),
     transportSendMail,
   };
@@ -20,7 +23,8 @@ vi.mock("nodemailer", () => ({
 
 vi.mock("@/lib/server/webRuntimeEnv", () => ({
   hasSmtpTransportConfig: (...args: unknown[]) => mocks.hasSmtpTransportConfig(...args),
-  resolveMailFromForRuntime: (...args: unknown[]) => mocks.resolveMailFromForRuntime(...args),
+  resolveMailEnvelopeForRuntime: (...args: unknown[]) =>
+    mocks.resolveMailEnvelopeForRuntime(...args),
 }));
 
 async function loadMailer() {
@@ -107,7 +111,11 @@ describe("mailer security", () => {
     expect(result).toMatchObject({ ok: true, messageId: "msg-gmail" });
     expect(mocks.createTransport).toHaveBeenCalledTimes(1);
     expect(mocks.transportSendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "member@gmail.com" }),
+      expect.objectContaining({
+        from: "eDebatte <members@edebatte.org>",
+        replyTo: "eDebatte Team <members@edebatte.org>",
+        to: ["member@gmail.com"],
+      }),
     );
   });
 
@@ -126,7 +134,7 @@ describe("mailer security", () => {
 
     expect(result).toMatchObject({ ok: true, messageId: "msg-company" });
     expect(mocks.transportSendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "member@company.de" }),
+      expect.objectContaining({ to: ["member@company.de"] }),
     );
   });
 
@@ -198,7 +206,7 @@ describe("mailer security", () => {
 
     expect(result).toMatchObject({ ok: true, messageId: `msg:${recipient}` });
     expect(mocks.transportSendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: recipient }),
+      expect.objectContaining({ to: [recipient] }),
     );
   });
 

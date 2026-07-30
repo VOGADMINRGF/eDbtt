@@ -15,6 +15,7 @@ const BaseSchema = z
 
     // EMAIL (mind. eins von beiden muss gesetzt sein)
     MAIL_FROM: z.string().optional(),
+    MAIL_REPLY_TO: z.string().optional(),
     SMTP_FROM: z.string().optional(),
 
     // --- MONGO (pro DB eigene URI + Name) ---
@@ -76,6 +77,30 @@ const BaseSchema = z
         path: ["MAIL_FROM"],
       });
     }
+
+    if (
+      v.NODE_ENV === "production" &&
+      v.MAIL_FROM !== "eDebatte <members@edebatte.org>"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "MAIL_FROM muss in Production exakt eDebatte <members@edebatte.org> sein.",
+        path: ["MAIL_FROM"],
+      });
+    }
+
+    if (
+      v.NODE_ENV === "production" &&
+      v.MAIL_REPLY_TO !== "eDebatte Team <members@edebatte.org>"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "MAIL_REPLY_TO muss in Production exakt eDebatte Team <members@edebatte.org> sein.",
+        path: ["MAIL_REPLY_TO"],
+      });
+    }
   });
 
 const p = BaseSchema.parse({
@@ -87,6 +112,7 @@ const p = BaseSchema.parse({
   EDITOR_TOKEN: process.env.EDITOR_TOKEN,
 
   MAIL_FROM: process.env.MAIL_FROM,
+  MAIL_REPLY_TO: process.env.MAIL_REPLY_TO,
   SMTP_FROM: process.env.SMTP_FROM,
 
   CORE_DB_NAME: process.env.CORE_DB_NAME,

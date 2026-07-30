@@ -6,6 +6,7 @@ import { sendMail } from "@/utils/mailer";
 import { buildIdentityEmailCodeMail } from "@/utils/emailTemplates";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { CREDENTIAL_COLLECTION, sha256 } from "../../../sharedAuth";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,15 @@ export async function POST(req: NextRequest) {
   const Users = await coreCol("users");
   const dbUser = await Users.findOne(
     { _id: user._id },
-    { projection: { verifiedEmail: 1, emailVerified: 1, email: 1 } },
+    {
+      projection: {
+        verifiedEmail: 1,
+        emailVerified: 1,
+        email: 1,
+        profile: 1,
+        settings: 1,
+      },
+    },
   );
   if (!dbUser || !(dbUser.verifiedEmail || dbUser.emailVerified)) {
     return NextResponse.json({ ok: false, error: "email_not_verified" }, { status: 403 });
@@ -61,7 +70,10 @@ export async function POST(req: NextRequest) {
     },
   );
 
-  const mail = buildIdentityEmailCodeMail({ code });
+  const mail = buildIdentityEmailCodeMail({
+    code,
+    locale: mailLocaleFromUser(dbUser),
+  });
   await sendMail({ to: user.email, subject: mail.subject, html: mail.html, text: mail.text });
 
   return NextResponse.json({ ok: true, expiresAt: expiresAt.toISOString() });

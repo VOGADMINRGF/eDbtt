@@ -4,6 +4,8 @@ import { getCol } from "@core/db/triMongo";
 import { piiCol } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
+import { buildVerificationMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json().catch(() => ({}));
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
   const Users = await getCol("users");
   const user = await Users.findOne(
     { email: String(email).toLowerCase() },
-    { projection: { _id: 1, email: 1 } },
+    { projection: { _id: 1, email: 1, name: 1, profile: 1, settings: 1 } },
   );
 
   // Privacy: immer OK antworten
@@ -39,10 +41,18 @@ export async function POST(req: NextRequest) {
     base,
   ).toString();
 
+  const mail = buildVerificationMail({
+    verifyUrl,
+    displayName: user.profile?.displayName ?? user.name ?? null,
+    locale: mailLocaleFromUser(user),
+  });
+
   await sendMail({
     to: user.email,
-    subject: "Bitte E-Mail verifizieren",
-    html: `<p>Hallo,</p><p>bitte bestätige deine E-Mail:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>Gültig bis: ${exp.toLocaleString()}</p>`,
+    subject: mail.subject,
+    html: mail.html,
+    text: mail.text,
+    tag: "verification_resend",
   });
 
   return NextResponse.json({ ok: true, verifyUrl });

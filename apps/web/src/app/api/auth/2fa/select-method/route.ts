@@ -12,6 +12,7 @@ import {
   TwoFactorChallengeDoc,
   TwoFactorMethod,
 } from "../../sharedAuth";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       emailForCode: credentials?.email || user.email,
       purpose: existing.purpose ?? "login_verify",
       redirectTo: requestedRedirect ?? existing.redirectTo ?? null,
+      locale: mailLocaleFromUser(user),
     });
 
     await challenges.updateOne(

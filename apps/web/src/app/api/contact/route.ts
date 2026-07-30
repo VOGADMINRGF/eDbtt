@@ -4,6 +4,7 @@ import { z } from "zod";
 import { evaluateContactSpam } from "@/lib/spam/contactSpam";
 import { verifyHumanChallenge } from "@/lib/spam/humanChallenge";
 import { sendMail } from "@/utils/mailer";
+import { buildSupportTicketReceivedMail } from "@/utils/emailTemplates";
 import {
   getClientIp,
   rateLimitFromRequest,
@@ -377,20 +378,18 @@ export async function POST(req: NextRequest) {
       html,
     });
 
+    const acknowledgement = buildSupportTicketReceivedMail({
+      displayName: cleanName,
+      category: cleanCategory,
+      requestSubject: safeSubject,
+    });
+
     await sendMail({
       to: cleanEmail,
-      subject: "Danke für deine Nachricht an eDebatte",
-      html: `
-        <p>Hi ${escapeHtml(cleanName)},</p>
-        <p>danke für deine Nachricht – wir freuen uns über jedes Feedback und melden uns so schnell wie möglich.</p>
-        <p><strong>Zusammenfassung:</strong></p>
-        <ul>
-          <li><strong>Thema:</strong> ${escapeHtml(cleanCategory)}</li>
-          ${safeSubject ? `<li><strong>Betreff:</strong> ${escapeHtml(safeSubject)}</li>` : ""}
-          <li><strong>Nachricht:</strong><br/>${escapeHtml(cleanMessage).replace(/\n/g, "<br/>")}</li>
-        </ul>
-        <p>Viele Grüße<br/>dein eDebatte Team</p>
-      `,
+      subject: acknowledgement.subject,
+      html: acknowledgement.html,
+      text: acknowledgement.text,
+      tag: "support_ticket_received",
     });
   }
 

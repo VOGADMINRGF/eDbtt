@@ -3,8 +3,9 @@
 import nodemailer from "nodemailer";
 import {
   hasSmtpTransportConfig,
-  resolveMailFromForRuntime,
+  resolveMailEnvelopeForRuntime,
 } from "@/lib/server/webRuntimeEnv";
+import { ensureTransactionalMail } from "@/utils/mailRenderer";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -29,6 +30,7 @@ type MailFailureCategory =
   | "recipient_placeholder_domain"
   | "recipient_test_domain_blocked"
   | "recipient_domain_not_allowed"
+  | "sender_configuration_invalid"
   | "smtp_unconfigured"
   | "smtp_auth_error"
   | "smtp_connection_error"
@@ -46,15 +48,17 @@ const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 export async function sendMail(opts: {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   text?: string;
   tag?: string;
+  locale?: string | null;
+  preheader?: string;
 }): Promise<SendMailResult> {
-  const recipient = normalizeEmail(opts.to);
+  const recipients = recipientsToArray(opts.to);
+  const recipient = recipients[0] ?? "";
   const domain = emailDomain(recipient);
-  const from = resolveMailFromForRuntime();
   const wantsSmtp = hasSmtpTransportConfig();
 
   const logFailure = (
@@ -68,6 +72,7 @@ export async function sendMail(opts: {
       tag: opts.tag ?? "generic",
       recipient: maskEmail(recipient),
       domain,
+      recipientCount: recipients.length,
       messageId: messageId ?? null,
     });
     return {
@@ -79,9 +84,19 @@ export async function sendMail(opts: {
     } as const;
   };
 
-  const recipientPolicy = evaluateRecipientPolicy(recipient, domain, process.env);
-  if (recipientPolicy.allowed === false) {
-    return logFailure("mail_transport_unavailable", recipientPolicy.category);
+  if (recipients.length === 0) {
+    return logFailure("mail_transport_unavailable", "recipient_invalid");
+  }
+
+  for (const currentRecipient of recipients) {
+    const recipientPolicy = evaluateRecipientPolicy(
+      currentRecipient,
+      emailDomain(currentRecipient),
+      process.env,
+    );
+    if (recipientPolicy.allowed === false) {
+      return logFailure("mail_transport_unavailable", recipientPolicy.category);
+    }
   }
 
   if (!wantsSmtp) {
@@ -89,6 +104,15 @@ export async function sendMail(opts: {
   }
 
   try {
+    const envelope = resolveMailEnvelopeForRuntime();
+    const mail = ensureTransactionalMail({
+      locale: opts.locale,
+      subject: opts.subject,
+      preheader: opts.preheader,
+      html: opts.html,
+      text: opts.text,
+    });
+
     if (!transporter) {
       transporter = process.env.SMTP_URL
         ? nodemailer.createTransport(process.env.SMTP_URL as string)
@@ -104,11 +128,12 @@ export async function sendMail(opts: {
     }
 
     const info = await transporter.sendMail({
-      from,
-      to: recipient,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text ?? opts.html.replace(/<[^>]+>/g, ""),
+      from: envelope.from,
+      replyTo: envelope.replyTo,
+      to: recipients,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
     });
 
     return {
@@ -117,14 +142,27 @@ export async function sendMail(opts: {
       messageId: typeof info?.messageId === "string" ? info.messageId : null,
     };
   } catch (error: unknown) {
+    const category =
+      error instanceof Error &&
+      (error.name === "CriticalProductionWebRuntimeEnvError" ||
+        error.message === "mail_cta_url_invalid")
+        ? "sender_configuration_invalid"
+        : classifyTransportError(error);
     return logFailure(
       "mail_transport_error",
-      classifyTransportError(error),
+      category,
       typeof (error as { messageId?: unknown })?.messageId === "string"
         ? String((error as { messageId: string }).messageId)
         : null,
     );
   }
+}
+
+function recipientsToArray(value: string | string[]) {
+  return (Array.isArray(value) ? value : [value])
+    .flatMap((entry) => entry.split(","))
+    .map(normalizeEmail)
+    .filter(Boolean);
 }
 
 function normalizeEmail(value: string) {

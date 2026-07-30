@@ -7,6 +7,7 @@ import { createEmailVerificationToken } from "@core/auth/emailVerificationServic
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
 import { buildSetPasswordMail, buildVerificationMail } from "@/utils/emailTemplates";
 import { sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
@@ -244,6 +245,7 @@ export async function POST(
         const mail = buildVerificationMail({
           verifyUrl,
           displayName: target.profile?.displayName ?? target.name ?? null,
+          locale: mailLocaleFromUser(target),
         });
 
         return {
@@ -275,6 +277,7 @@ export async function POST(
         const mail = buildSetPasswordMail({
           resetUrl,
           displayName: target.profile?.displayName ?? target.name ?? null,
+          locale: mailLocaleFromUser(target),
         });
 
         return {

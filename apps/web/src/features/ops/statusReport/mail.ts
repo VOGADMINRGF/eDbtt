@@ -1,4 +1,5 @@
 import type { StatusReportSummary } from "./contracts";
+import { renderLegacyTransactionalMail } from "@/utils/mailRenderer";
 
 function statusLabel(status: string): string {
   if (status === "green") return "GRÜN";
@@ -159,8 +160,13 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
     </div>
   </div>`;
 
-  return {
-    text: textLines.join("\n"),
+  const rendered = renderLegacyTransactionalMail({
+    subject: `Ops Statusbericht: ${statusLabel(summary.overallStatus)}`,
+    preheader: summarizeExecutiveStatus(summary),
     html,
-  };
+    text: textLines.join("\n"),
+    reason: "der interne eDebatte-Statusbericht für diesen Zeitslot erzeugt wurde.",
+  });
+
+  return { text: rendered.text, html: rendered.html };
 }

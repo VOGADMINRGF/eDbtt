@@ -20,6 +20,7 @@ import {
   sanitizeRedirect,
   sha256,
 } from "../sharedAuth";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
@@ -225,6 +226,7 @@ export async function POST(req: NextRequest) {
     emailForCode: credentials?.email || user.email,
     purpose: "login_verify",
     redirectTo: redirectUrl,
+    locale: mailLocaleFromUser(user),
   });
 
   return NextResponse.json({

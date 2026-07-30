@@ -3,6 +3,10 @@ import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { logMembershipPaid } from "@core/telemetry/identityEvents";
+import { buildMembershipActivationMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
+import { sendMail } from "@/utils/mailer";
+import { publicOrigin } from "@/utils/publicOrigin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,5 +83,27 @@ export async function POST(
     console.error("[membership.mark-paid] logMembershipPaid failed", err);
   });
 
-  return NextResponse.json({ ok: true });
+  const activatedUser = await Users.findOne(
+    { _id: application.coreUserId },
+    { projection: { email: 1, name: 1, profile: 1, settings: 1 } },
+  );
+  let activationMailQueued = false;
+  if (activatedUser?.email) {
+    const mail = buildMembershipActivationMail({
+      displayName:
+        activatedUser.profile?.displayName ?? activatedUser.name ?? null,
+      accountUrl: `${publicOrigin().replace(/\/$/, "")}/account`,
+      locale: mailLocaleFromUser(activatedUser),
+    });
+    const mailResult = await sendMail({
+      to: activatedUser.email,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+      tag: "membership_activation",
+    });
+    activationMailQueued = mailResult.ok;
+  }
+
+  return NextResponse.json({ ok: true, activationMailQueued });
 }

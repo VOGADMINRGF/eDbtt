@@ -6,6 +6,7 @@ import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles
 import { safeRandomId } from "@core/utils/random";
 import crypto from "crypto";
 import { sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
@@ -266,8 +267,8 @@ export async function POST(req: NextRequest) {
         emailVerified: 1,
         verification: 1,
         membership: 1,
-        "profile.publicFlags": 1,
-        "profile.publicShareId": 1,
+        profile: 1,
+        settings: 1,
         publicFlags: 1,
       },
     },
@@ -460,6 +461,7 @@ export async function POST(req: NextRequest) {
         accountMode: paymentEnv.accountMode,
       },
       profileUrl,
+      locale: mailLocaleFromUser(user),
     });
     await sendMail({
       to: payerMail,

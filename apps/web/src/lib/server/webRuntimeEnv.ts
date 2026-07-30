@@ -3,6 +3,9 @@ type EnvSource = Record<string, string | undefined>;
 export type WebRuntimeEnvIssueCode =
   | "mail_from_missing"
   | "mail_from_conflict"
+  | "mail_from_not_canonical"
+  | "mail_reply_to_missing"
+  | "mail_reply_to_not_canonical"
   | "web_database_url_missing"
   | "database_url_without_web_database_url"
   | "web_database_url_conflict"
@@ -16,6 +19,18 @@ export type WebRuntimeEnvIssue = {
 export type MailFromResolution = {
   value: string | null;
   source: "MAIL_FROM" | "SMTP_FROM" | null;
+  usesLegacyAlias: boolean;
+  issues: WebRuntimeEnvIssue[];
+};
+
+export const CANONICAL_MAIL_FROM = "eDebatte <members@edebatte.org>";
+export const CANONICAL_MAIL_REPLY_TO = "eDebatte Team <members@edebatte.org>";
+
+export type MailEnvelopeResolution = {
+  from: string;
+  replyTo: string;
+  fromSource: "MAIL_FROM" | "SMTP_FROM" | "canonical_fallback";
+  replyToSource: "MAIL_REPLY_TO" | "canonical_fallback";
   usesLegacyAlias: boolean;
   issues: WebRuntimeEnvIssue[];
 };
@@ -63,6 +78,52 @@ export function resolveCanonicalMailFrom(env: EnvSource = process.env): MailFrom
   };
 }
 
+export function resolveCanonicalMailEnvelope(
+  env: EnvSource = process.env,
+): MailEnvelopeResolution {
+  const fromResolution = resolveCanonicalMailFrom(env);
+  const configuredReplyTo = readTrimmed(env, "MAIL_REPLY_TO");
+  const issues = [...fromResolution.issues];
+
+  if (fromResolution.value && fromResolution.value !== CANONICAL_MAIL_FROM) {
+    issues.push({
+      code: "mail_from_not_canonical",
+      message:
+        "MAIL_FROM muss exakt der kanonischen eDebatte-Absenderidentität entsprechen.",
+    });
+  }
+
+  if (!configuredReplyTo) {
+    issues.push({
+      code: "mail_reply_to_missing",
+      message: "MAIL_REPLY_TO fehlt für die eDebatte-Mailkommunikation.",
+    });
+  } else if (configuredReplyTo !== CANONICAL_MAIL_REPLY_TO) {
+    issues.push({
+      code: "mail_reply_to_not_canonical",
+      message:
+        "MAIL_REPLY_TO muss exakt der kanonischen eDebatte-Antwortadresse entsprechen.",
+    });
+  }
+
+  return {
+    from:
+      fromResolution.value === CANONICAL_MAIL_FROM
+        ? fromResolution.value
+        : CANONICAL_MAIL_FROM,
+    replyTo:
+      configuredReplyTo === CANONICAL_MAIL_REPLY_TO
+        ? configuredReplyTo
+        : CANONICAL_MAIL_REPLY_TO,
+    fromSource: fromResolution.source ?? "canonical_fallback",
+    replyToSource: configuredReplyTo
+      ? "MAIL_REPLY_TO"
+      : "canonical_fallback",
+    usesLegacyAlias: fromResolution.usesLegacyAlias,
+    issues,
+  };
+}
+
 export function resolveCanonicalWebDatabaseUrl(env: EnvSource = process.env): WebDatabaseResolution {
   const webDatabaseUrl = readTrimmed(env, "WEB_DATABASE_URL");
   const databaseUrl = readTrimmed(env, "DATABASE_URL");
@@ -96,9 +157,31 @@ export function resolveCanonicalWebDatabaseUrl(env: EnvSource = process.env): We
 
 export function resolveMailFromForRuntime(
   env: EnvSource = process.env,
-  fallback = "no-reply@localhost",
 ) {
-  return resolveCanonicalMailFrom(env).value ?? fallback;
+  return resolveMailEnvelopeForRuntime(env).from;
+}
+
+export function resolveMailEnvelopeForRuntime(
+  env: EnvSource = process.env,
+): Pick<MailEnvelopeResolution, "from" | "replyTo"> {
+  const resolution = resolveCanonicalMailEnvelope(env);
+  const production = readTrimmed(env, "NODE_ENV") === "production";
+  const fatalIssues = production
+    ? resolution.issues
+    : resolution.issues.filter((issue) =>
+        [
+          "mail_from_conflict",
+          "mail_from_not_canonical",
+          "mail_reply_to_not_canonical",
+        ].includes(issue.code),
+      );
+  if (fatalIssues.length > 0) {
+    throw new CriticalProductionWebRuntimeEnvError(fatalIssues);
+  }
+  return {
+    from: resolution.from,
+    replyTo: resolution.replyTo,
+  };
 }
 
 export function hasSmtpTransportConfig(env: EnvSource = process.env) {
@@ -113,7 +196,7 @@ export function collectCriticalProductionWebRuntimeIssues(
   env: EnvSource = process.env,
 ): WebRuntimeEnvIssue[] {
   const issues = [
-    ...resolveCanonicalMailFrom(env).issues,
+    ...resolveCanonicalMailEnvelope(env).issues,
     ...resolveCanonicalWebDatabaseUrl(env).issues,
   ];
 

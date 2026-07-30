@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { ResetRequestSchema } from "@/utils/authSchemas";
 import { coreCol } from "@core/db/triMongo";
 import { createToken } from "@/utils/tokens";
-import { sendMail, resetEmailLink } from "@/utils/email";
+import { resetEmailLink } from "@/utils/email";
+import { buildPasswordResetMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
+import { sendMail } from "@/utils/mailer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
@@ -23,12 +26,18 @@ export async function POST(req: Request) {
 
   const token = await createToken(String(user._id), "reset", 60); // 60 Minuten
   const link = resetEmailLink(token);
+  const mail = buildPasswordResetMail({
+    resetUrl: link,
+    displayName: user.profile?.displayName ?? user.name ?? null,
+    locale: mailLocaleFromUser(user),
+  });
 
   await sendMail({
     to: email_lc,
-    subject: "Passwort zurücksetzen",
-    html: `<p>Passwort zurücksetzen: <a href="${link}">${link}</a></p>`,
-    text: `Passwort zurücksetzen: ${link}`,
+    subject: mail.subject,
+    html: mail.html,
+    text: mail.text,
+    tag: "password_reset",
   });
 
   return NextResponse.json({ ok: true });

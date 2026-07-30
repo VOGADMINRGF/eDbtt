@@ -126,6 +126,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
       role,
       displayName: existing?.name ?? null,
       expiresAt: inviteExpiresAt.toISOString(),
+      locale: DEFAULT_LOCALE,
     });
     await sendMail({
       to: email,
@@ -140,6 +141,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ orgId: str
       orgName: org.name,
       role,
       displayName: existing?.name ?? null,
+      locale: DEFAULT_LOCALE,
     });
     await sendMail({
       to: email,

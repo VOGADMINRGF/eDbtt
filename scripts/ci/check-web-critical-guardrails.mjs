@@ -17,7 +17,14 @@ const checks = [
     file: "apps/web/.env.example",
     description: "canonical MAIL_FROM in env example",
     validate(source) {
-      return /^MAIL_FROM=/m.test(source) && !/^SMTP_FROM=/m.test(source);
+      return (
+        source.includes('MAIL_FROM="eDebatte <members@edebatte.org>"') &&
+        source.includes(
+          'MAIL_REPLY_TO="eDebatte Team <members@edebatte.org>"',
+        ) &&
+        !/^SMTP_FROM=/m.test(source) &&
+        !/no-?reply/i.test(source)
+      );
     },
   },
   {
@@ -36,9 +43,9 @@ const checks = [
   },
   {
     file: "apps/web/src/utils/mailer.ts",
-    description: "mailer uses centralized mail-from resolver",
+    description: "mailer uses centralized mail-envelope resolver",
     validate(source) {
-      return source.includes("resolveMailFromForRuntime");
+      return source.includes("resolveMailEnvelopeForRuntime");
     },
   },
   {
