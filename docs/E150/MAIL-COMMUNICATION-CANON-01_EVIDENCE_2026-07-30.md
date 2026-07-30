@@ -20,11 +20,13 @@ Die technische Umsetzung versendet keine Testmail. Die reale Postfach-,
 Provider-, DNS-, Header- und Mailclient-Abnahme bleibt ausschließlich
 `MAIL-PRODUCTION-SENDER-GATE-01`.
 
-## Finales Alpha-Review-Korrekturdelta
+## Finales Foxtrott-Review-Korrekturdelta
 
 Der korrektive technische Prüf-Head ist
-`e4feabab69f2ef0ad3ed9fae813ea19d44c4030a`. Der nachfolgende
-Dokumentationscommit verändert ausschließlich diese Evidence.
+`adb8c6e0d8f5d7b7709edfef05c80cc6b1d5142c`. Der nachfolgende
+Dokumentationscommit verändert ausschließlich diese Evidence; sein finaler
+PR-Head wird zusätzlich in der synchronisierten PR-Beschreibung und im
+Abschlussbericht festgehalten.
 
 ### Zustandsklassen und Idempotenz
 
@@ -33,14 +35,26 @@ Dokumentationscommit verändert ausschließlich diese Evidence.
   verbleiben in `invited`. Erst eine erfolgreiche Required Delivery wechselt
   denselben Membership-Datensatz atomar auf `active`.
 - Eine eindeutige Membership pro Organisation und Nutzer sowie ein atomarer
-  Delivery-Claim verhindern parallele Dopplungen. Ein Retry verwendet
-  Membership, Invite-/Reset-Payload und Auditkontext des vorhandenen
-  Teilzustands; er erzeugt weder eine zweite Membership noch neue Tokens.
-  Permanente Zustellfehler wechseln in manuelle Recovery.
+  Delivery-Claim verhindern parallele Dopplungen. Ein Retry verwendet dieselbe
+  fachliche Einladung, erzeugt für den konkreten Zustellversuch aber bewusst
+  einen frischen, zweckgebundenen Org-Invite-Setup-Token. Persistiert wird nur
+  dessen Hash, niemals der vollständige Setup-Link. Der eigene Slot kollidiert
+  nicht mit dem öffentlichen Passwort-Reset-Slot. Ablauf, Rotation,
+  Dispatch-Claim und spätes Zustellergebnis werden mit Token-Hash und
+  Dispatch-ID gefenced; nur der beim Dispatch aktuelle und gültige Link darf
+  `delivered` setzen. Permanente Zustellfehler wechseln in manuelle Recovery.
 - Membership-Anträge besitzen einen eindeutigen offenen Vorgang
   `membership-open:<userId>` und einen globalen Workflow-Claim.
   `membershipId`, Zahlungsreferenz, PII-Zahlungsprofil und
   Microtransfer-Code werden nur einmal erzeugt und bei Retry wiederverwendet.
+  Die persistierten, CAS-basierten Initialisierungsstufen
+  `pii_payment_profile`, `payment_profile_link`, `application_link`,
+  `user_membership_projection`, `delivery_initialization` und `complete`
+  ersetzen jede Entscheidung anhand lokaler Prozessvariablen. Nach einem
+  Abbruch wird der nachweislich vorhandene Teilzustand wiederverwendet und nur
+  die fehlende Projektion ergänzt; `complete` wird erst nach Rückprüfung von
+  Zahlungsprofil-Verknüpfung, User-Projektion und Delivery-Initialisierung
+  persistiert.
   Payer-, Admin- und Household-Zustellungen werden getrennt persistiert.
   Bereits erfolgreiche Empfänger werden ausgelassen; nur retryable
   Fehlschläge werden erneut beansprucht. Household-Tokens sind pro
@@ -52,7 +66,8 @@ Dokumentationscommit verändert ausschließlich diese Evidence.
   erfolgreicher Required Delivery gelöscht; ein Mailfehler hinterlässt einen
   wiederholbaren Teilzustand mit derselben Löschanforderung.
 - Dunning beansprucht jede Stufe atomar. Transiente Fehler erhalten
-  exponentiellen Backoff, permanente Fehler den Status `manual_recovery`.
+  exponentiellen Backoff, permanente Fehler den tatsächlich persistierten
+  manuellen Recovery-Status `manual`.
   Eine erfolgreich zugestellte Stufe wird vor dem nächsten Lauf fortgeschrieben
   und nicht erneut versendet.
 
@@ -64,12 +79,24 @@ antworten für bekannte und unbekannte Adressen einheitlich mit
 Delivery-Metadaten noch Verify-Token oder `verifyUrl`; der interne
 Zustellstatus bleibt am Token-Slot auditierbar.
 
+Bekannte und unbekannte Adressen durchlaufen denselben öffentlichen
+Kontrollpfad mit einem begrenzten minimalen Response-Floor von 120 ms. Das ist
+keine Behauptung konstanter Laufzeit: langsamere abhängige Systeme können die
+Antwort weiterhin verlängern. Tolerante Routentests vergleichen schnelle und
+langsamere Backends. Serverseitige, datensparsam gehashte Limits gelten je
+Adresse und IP; Verify-Start und Verify-Resend teilen denselben Verify-Bucket.
+Auch ein Rate-Limit oder ein ausgefallener Limiter liefert öffentlich denselben
+Status und Body und erzeugt keinen weiteren Token.
+
 Reset und Verifikation verwenden die kanonischen Token-Slot-Dienste. Eine
 Neuausstellung rotiert den jeweiligen Slot atomar; alte Tokens werden
-invalidiert. Das Delivery-Audit schreibt nur dann auf einen Slot zurück, wenn
-Token-Hash und Slot noch dem versendeten Token entsprechen. Ein verspäteter
-paralleler Versand kann deshalb keinen neueren Token wieder als gültig oder
-zugestellt markieren.
+invalidiert. Jede Rotation setzt Delivery-Status, Retryability, Kategorie,
+Versuchszeit, Zustellzähler, Message-ID und Recovery-Felder atomar auf
+`pending` beziehungsweise `null`/`0` zurück. Das Delivery-Audit schreibt nur
+dann auf einen Slot zurück, wenn Token-Hash und Slot noch dem versendeten Token
+entsprechen. Ein verspäteter paralleler Versand kann deshalb weder Metadaten
+von Token A auf Token B übertragen noch den neueren Token wieder als gültig
+oder zugestellt markieren.
 
 ### Renderer-Provenienz und reale Atomaritätsgrenze
 
@@ -81,10 +108,13 @@ unveränderte und eingefrorene Renderer-Objekt bleibt zustellbar.
 DB-Zustand und ein externer SMTP-Provider können nicht in einer gemeinsamen
 ACID-Transaktion committen. Atomare Claims verhindern parallele
 Doppelversuche; ein Prozessabbruch nach Providerannahme, aber vor
-Zustellpersistenz, benötigt dennoch manuelle Reconciliation. Ebenso ist die
-Initialisierung über Core- und PII-Store nicht storeübergreifend atomar:
-Fehlende bereits angelegte PII-Workflow-Secrets führen deshalb kontrolliert
-in manuelle Recovery statt zu einer zweiten Zahlungsidentität.
+Zustellpersistenz, benötigt dennoch manuelle Reconciliation. Die
+Initialisierung über Core- und PII-Store ist ebenfalls nicht
+storeübergreifend atomar. Persistierte CAS-Stufen machen jedoch jede
+Initialisierungsgrenze wiederholbar: Bereits angelegte PII-Profile,
+Microtransfer-Codes, Antragsverknüpfungen, User-Projektionen und
+Household-Delivery-Zustände werden rückgelesen und wiederverwendet, statt eine
+zweite Zahlungsidentität oder Einladung zu erzeugen.
 
 ## Root Cause und Ist-Befund
 
@@ -420,6 +450,22 @@ Erfolgreich:
     nichtproduktiven Infrastruktur-Platzhaltern und leeren Mail-/SMTP-Werten:
     322 von 322 statischen Seiten generiert
   - Guardrail-Orchestrator und `git diff --check`: grün
+- finales Foxtrott-Korrekturdelta:
+  - Pflichtmatrix für Org-Setup-Slot/-Retry, Membership-Crashstufen,
+    öffentliche Reset-/Verify-Pipeline, Reset-/Verify-Tokenmetadaten,
+    Account-Löschung, Dunning, Renderer-Provenienz und Mail-Communication:
+    11 Testdateien, 76 Tests
+  - fokussierte Auth-/Verify-/Reset-/Organisation-/Membership-/Dunning-/
+    Mailer-Regression: 18 Testdateien, 121 Tests
+  - darin Membership-Crash-Recovery nach jeder persistierten Grenze:
+    5 parametrisierte Crashfälle; insgesamt 9 Membership-Workflowtests
+  - Web-PR-Critical-Guardrails: 17 Testdateien, 71 Tests
+  - Production-Guardrails: 12 Testdateien, 36 Tests
+  - Guardrail-Orchestrator, Workspace-Typecheck und Root-Lint: grün
+  - vollständiger Web-Build mit ausschließlich prozesslokalen,
+    nichtproduktiven Infrastruktur-Platzhaltern und leeren Mail-/SMTP-Werten:
+    322 von 322 statischen Seiten generiert
+  - `git diff --check`: grün
 
 Ein erster Web-Build ohne lokale Infrastruktur-ENV kompilierte erfolgreich,
 erreichte die Seitendatensammlung und stoppte erwartbar an fehlenden
