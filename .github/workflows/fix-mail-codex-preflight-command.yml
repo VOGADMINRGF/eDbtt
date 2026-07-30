@@ -1,0 +1,56 @@
+name: One-time Mail Codex Preflight Command Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-mail-codex-preflight-command.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Align command with canonical run-pack contract
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path("docs/E150/MAIL-COMMUNICATION-CANON-01_2026-07-30.md"),
+              Path("docs/E150/MAIL-COMMUNICATION-CANON-01_CODEX_BRIEF.md"),
+              Path("docs/E150/MAIL-COMMUNICATION-CANON-01_CODEX_ENTRY.md"),
+          ]
+          old = "pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01"
+          new = "node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01"
+          changed = 0
+          for path in paths:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count:
+                  text = text.replace(old, new)
+                  path.write_text(text, encoding="utf-8")
+                  changed += count
+          if changed < 3:
+              raise SystemExit(f"Expected at least 3 replacements, got {changed}")
+          PY
+
+          git diff --check
+          git add docs/E150/MAIL-COMMUNICATION-CANON-01_2026-07-30.md \
+                  docs/E150/MAIL-COMMUNICATION-CANON-01_CODEX_BRIEF.md \
+                  docs/E150/MAIL-COMMUNICATION-CANON-01_CODEX_ENTRY.md
+          git rm .github/workflows/fix-mail-codex-preflight-command.yml
+          git commit -m "docs(mail): use canonical Codex preflight command"
+          git push origin HEAD:main
