@@ -20,6 +20,72 @@ Die technische Umsetzung versendet keine Testmail. Die reale Postfach-,
 Provider-, DNS-, Header- und Mailclient-Abnahme bleibt ausschließlich
 `MAIL-PRODUCTION-SENDER-GATE-01`.
 
+## Finales Alpha-Review-Korrekturdelta
+
+Der korrektive technische Prüf-Head ist
+`e4feabab69f2ef0ad3ed9fae813ea19d44c4030a`. Der nachfolgende
+Dokumentationscommit verändert ausschließlich diese Evidence.
+
+### Zustandsklassen und Idempotenz
+
+- Organisationszugänge für bestehende Nutzer werden zunächst als
+  `pending_activation` persistiert. Neue oder noch nicht verifizierte Nutzer
+  verbleiben in `invited`. Erst eine erfolgreiche Required Delivery wechselt
+  denselben Membership-Datensatz atomar auf `active`.
+- Eine eindeutige Membership pro Organisation und Nutzer sowie ein atomarer
+  Delivery-Claim verhindern parallele Dopplungen. Ein Retry verwendet
+  Membership, Invite-/Reset-Payload und Auditkontext des vorhandenen
+  Teilzustands; er erzeugt weder eine zweite Membership noch neue Tokens.
+  Permanente Zustellfehler wechseln in manuelle Recovery.
+- Membership-Anträge besitzen einen eindeutigen offenen Vorgang
+  `membership-open:<userId>` und einen globalen Workflow-Claim.
+  `membershipId`, Zahlungsreferenz, PII-Zahlungsprofil und
+  Microtransfer-Code werden nur einmal erzeugt und bei Retry wiederverwendet.
+  Payer-, Admin- und Household-Zustellungen werden getrennt persistiert.
+  Bereits erfolgreiche Empfänger werden ausgelassen; nur retryable
+  Fehlschläge werden erneut beansprucht. Household-Tokens sind pro
+  Membership/Empfänger eindeutig und werden wiederverwendet. Permanente
+  Fehler wechseln in manuelle Recovery.
+- Account-Löschung persistiert eine eindeutige fachliche Löschanforderung mit
+  eigenem Delivery-Claim. Membership-/Antragsstornierung wird je Vorgang
+  höchstens einmal als erledigt markiert. Die Session wird erst nach
+  erfolgreicher Required Delivery gelöscht; ein Mailfehler hinterlässt einen
+  wiederholbaren Teilzustand mit derselben Löschanforderung.
+- Dunning beansprucht jede Stufe atomar. Transiente Fehler erhalten
+  exponentiellen Backoff, permanente Fehler den Status `manual_recovery`.
+  Eine erfolgreich zugestellte Stufe wird vor dem nächsten Lauf fortgeschrieben
+  und nicht erneut versendet.
+
+### Enumeration-Schutz und Tokenrotation
+
+`auth/request-reset`, `auth/email/start-verify` und `auth/verify/resend`
+antworten für bekannte und unbekannte Adressen einheitlich mit
+`200 { "ok": true }`. Öffentliche Antworten enthalten weder
+Delivery-Metadaten noch Verify-Token oder `verifyUrl`; der interne
+Zustellstatus bleibt am Token-Slot auditierbar.
+
+Reset und Verifikation verwenden die kanonischen Token-Slot-Dienste. Eine
+Neuausstellung rotiert den jeweiligen Slot atomar; alte Tokens werden
+invalidiert. Das Delivery-Audit schreibt nur dann auf einen Slot zurück, wenn
+Token-Hash und Slot noch dem versendeten Token entsprechen. Ein verspäteter
+paralleler Versand kann deshalb keinen neueren Token wieder als gültig oder
+zugestellt markieren.
+
+### Renderer-Provenienz und reale Atomaritätsgrenze
+
+Separate Regressionstests belegen, dass Spread-Clone,
+JSON-Serialize/Deserialize und nachträgliche Mutation eines echten
+Renderer-Objekts vor jedem Transportversuch abgewiesen werden. Das originale,
+unveränderte und eingefrorene Renderer-Objekt bleibt zustellbar.
+
+DB-Zustand und ein externer SMTP-Provider können nicht in einer gemeinsamen
+ACID-Transaktion committen. Atomare Claims verhindern parallele
+Doppelversuche; ein Prozessabbruch nach Providerannahme, aber vor
+Zustellpersistenz, benötigt dennoch manuelle Reconciliation. Ebenso ist die
+Initialisierung über Core- und PII-Store nicht storeübergreifend atomar:
+Fehlende bereits angelegte PII-Workflow-Secrets führen deshalb kontrolliert
+in manuelle Recovery statt zu einer zweiten Zahlungsidentität.
+
 ## Root Cause und Ist-Befund
 
 Vor diesem Slice gab es zwei Mailruntime-Flächen:
@@ -341,6 +407,19 @@ Erfolgreich:
     generiert
 - `pnpm install --frozen-lockfile --offline --ignore-scripts`
 - `git diff --check`
+- finales Alpha-Korrekturdelta:
+  - Pflichtmatrix für Org-Invite, Membership-Retry, öffentliche Auth-Routen,
+    Token-Slot, Account-Löschung, Dunning, Renderer-Provenienz und
+    Verify-Frontend: 8 Testdateien, 48 Tests
+  - angrenzende Auth-/Membership-/Organisations-/Dunning-/Mail-Regression:
+    29 Testdateien, 161 Tests
+  - Web-PR-Critical-Guardrails: 17 Testdateien, 71 Tests
+  - Production-Guardrails: 12 Testdateien, 36 Tests
+  - Workspace-Typecheck und Root-Lint: grün
+  - vollständiger Web-Build mit ausschließlich prozesslokalen,
+    nichtproduktiven Infrastruktur-Platzhaltern und leeren Mail-/SMTP-Werten:
+    322 von 322 statischen Seiten generiert
+  - Guardrail-Orchestrator und `git diff --check`: grün
 
 Ein erster Web-Build ohne lokale Infrastruktur-ENV kompilierte erfolgreich,
 erreichte die Seitendatensammlung und stoppte erwartbar an fehlenden
@@ -396,5 +475,7 @@ Status-/Resolution-Builder für eine konfliktarme spätere Anbindung bereit.
 
 - Implementierungs-Commit:
   `018a06b046af3b48395799eb348789d73773b48d`
+- korrektiver technischer Prüf-Head:
+  `e4feabab69f2ef0ad3ed9fae813ea19d44c4030a`
 - Draft-PR: `#539`
 - Branch: `fix/mail-communication-canon-01`
