@@ -11,7 +11,7 @@ Aus dem Hauptrepository ausführen:
 ```bash
 cd /Users/RF/Arbeitsmappe/edebatte-org \
   && git fetch origin \
-  && pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01 \
+  && node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01 \
   && git worktree add -b fix/mail-communication-canon-01 \
        /Users/RF/Arbeitsmappe/worktrees/edebatte-mail-communication-01 \
        origin/main \
@@ -52,7 +52,7 @@ Lies zuerst vollständig und in dieser Reihenfolge:
 11. Issue #538
 
 Führe danach erneut aus:
-pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01
+node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01
 
 Prüfe anschließend offene Pull Requests sowie erkennbare Datei-, Scope- und Produktkollisionen. Beachte insbesondere parallele Änderungen an docs/E150/OpenTasks.md und an Auth-/Support-Mailpfaden. Integriere keine fremden ungemergten Änderungen und überschreibe keinen neueren main-Stand.
 

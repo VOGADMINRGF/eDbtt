@@ -40,7 +40,7 @@ Vor Branch- oder Codeänderung ausführen:
 
 ```bash
 cd /Users/RF/Arbeitsmappe/edebatte-org
-pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01
+node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01
 ```
 
 Nur bei Ergebnis `codex_ready` beziehungsweise `executable` fortfahren. Bei `blocked`, `manual_gate`, `needs_decision`, `research_only` oder `done` ohne Codeänderung stoppen und den exakten Blocker melden.
@@ -247,7 +247,7 @@ Erweitere die Dateifläche nur, wenn das Mailinventar einen realen zusätzlichen
 Mindestens:
 
 ```bash
-pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01
+node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01
 pnpm -w run typecheck
 pnpm lint
 pnpm -C apps/web run build

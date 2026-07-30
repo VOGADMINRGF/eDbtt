@@ -249,7 +249,7 @@ Mindestens relevante Pfade prüfen:
 Pflichtchecks:
 
 ```bash
-pnpm codex:preflight -- --task MAIL-COMMUNICATION-CANON-01
+node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01
 pnpm -w run typecheck
 pnpm lint
 pnpm -C apps/web run build
