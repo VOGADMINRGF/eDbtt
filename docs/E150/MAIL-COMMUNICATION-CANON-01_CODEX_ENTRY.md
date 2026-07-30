@@ -11,6 +11,7 @@ Aus dem Hauptrepository ausführen:
 ```bash
 cd /Users/RF/Arbeitsmappe/edebatte-org \
   && git fetch origin \
+  && git pull --ff-only \
   && node scripts/codex-task-preflight.mjs MAIL-COMMUNICATION-CANON-01 \
   && git worktree add -b fix/mail-communication-canon-01 \
        /Users/RF/Arbeitsmappe/worktrees/edebatte-mail-communication-01 \
