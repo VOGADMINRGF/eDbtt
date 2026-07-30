@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createSession } from "@/utils/session";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
-import { normalizeInternalRedirectPath } from "@/features/create/finalizeRedirect";
+import { normalizeInternalRedirectPath } from "@/lib/security/internalNavigation";
 import { piiCol } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";

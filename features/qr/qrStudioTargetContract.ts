@@ -1,5 +1,9 @@
 import { BRAND } from "@/lib/brand";
-import { STUDIO_PATH } from "@/features/qr/security";
+import {
+  STUDIO_PATH,
+  validateQrTarget,
+  type QrTargetValidationFailureReason,
+} from "@/features/qr/security";
 
 export const QR_STUDIO_CALLER_INVENTORY = {
   content_release_workbench: "Review-to-Publish Workspace",
@@ -20,13 +24,7 @@ export type QrStudioTargetResolution =
   | {
       status: "blocked";
       caller: QrStudioCaller;
-      reason:
-        | "empty"
-        | "network_path_not_allowed"
-        | "unsafe_scheme"
-        | "invalid_url"
-        | "credentials_not_allowed"
-        | "host_not_allowed";
+      reason: QrTargetValidationFailureReason;
     }
   | {
       status: "ready";
@@ -56,63 +54,33 @@ export function resolveQrStudioTarget(input: {
   publicOrigin?: string | null | undefined;
 }): QrStudioTargetResolution {
   const caller = parseQrStudioCaller(input.caller);
-  const rawTarget = String(input.target ?? "").trim();
-  if (!rawTarget) {
+  const rawTarget = typeof input.target === "string" ? input.target : "";
+  if (!rawTarget.trim()) {
     return { status: "empty", caller };
   }
 
-  if (/[\u0000-\u001f\u007f]/.test(rawTarget)) {
-    return { status: "blocked", caller, reason: "invalid_url" };
-  }
-
-  if (rawTarget.startsWith("//")) {
-    return { status: "blocked", caller, reason: "network_path_not_allowed" };
-  }
-
   const baseOrigin = normalizeBaseOrigin(input.publicOrigin);
-  if (rawTarget.startsWith("/")) {
-    try {
-      const url = new URL(rawTarget, baseOrigin);
-      const normalizedTarget = `${url.pathname}${url.search}${url.hash}`;
-      return {
-        status: "ready",
-        caller,
-        targetKind: "internal",
-        normalizedTarget,
-        absoluteHref: url.toString(),
-        displayHref: normalizedTarget,
-      };
-    } catch {
-      return { status: "blocked", caller, reason: "invalid_url" };
-    }
+  const validation = validateQrTarget(rawTarget, {
+    expectedOrigin: baseOrigin,
+  });
+  if ("reason" in validation) {
+    return {
+      status: "blocked",
+      caller,
+      reason: validation.reason,
+    };
   }
 
-  let url: URL;
-  try {
-    url = new URL(rawTarget);
-  } catch {
-    return { status: "blocked", caller, reason: "invalid_url" };
-  }
-
-  if (url.protocol !== "https:") {
-    return { status: "blocked", caller, reason: "unsafe_scheme" };
-  }
-
-  if (url.username || url.password) {
-    return { status: "blocked", caller, reason: "credentials_not_allowed" };
-  }
-
-  if (!isAllowedHttpsHostname(url.hostname, baseOrigin)) {
-    return { status: "blocked", caller, reason: "host_not_allowed" };
-  }
+  const target = validation.value;
+  const isInternal = target.kind === "internal";
 
   return {
     status: "ready",
     caller,
-    targetKind: "allowed_https",
-    normalizedTarget: url.toString(),
-    absoluteHref: url.toString(),
-    displayHref: url.toString(),
+    targetKind: isInternal ? "internal" : "allowed_https",
+    normalizedTarget: target.normalizedTarget,
+    absoluteHref: target.absoluteTarget,
+    displayHref: isInternal ? target.normalizedTarget : target.absoluteTarget,
   };
 }
 
@@ -153,33 +121,4 @@ function normalizeBaseOrigin(publicOrigin: string | null | undefined): string {
     }
   }
   return "https://www.edebatte.org";
-}
-
-function isAllowedHttpsHostname(hostname: string, publicOrigin: string): boolean {
-  const allowedHosts = new Set<string>();
-
-  try {
-    allowedHosts.add(new URL(publicOrigin).hostname.toLowerCase());
-  } catch {
-    // ignore
-  }
-
-  allowedHosts.add(BRAND.domain.toLowerCase());
-
-  try {
-    allowedHosts.add(new URL(BRAND.baseUrl).hostname.toLowerCase());
-  } catch {
-    // ignore
-  }
-
-  const normalizedHostname = hostname.toLowerCase();
-  for (const allowedHost of allowedHosts) {
-    if (
-      normalizedHostname === allowedHost ||
-      normalizedHostname.endsWith(`.${allowedHost}`)
-    ) {
-      return true;
-    }
-  }
-  return false;
 }

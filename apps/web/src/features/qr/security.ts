@@ -1,13 +1,15 @@
-import { BRAND } from "@/lib/brand";
 import {
-  normalizeInternalRedirectPath,
+  MAX_INTERNAL_NAVIGATION_TARGET_LENGTH,
+  validateSameOriginNavigationTarget,
+  type InternalNavigationFailureReason,
   type InternalRedirectPath,
-} from "@/features/create/finalizeRedirect";
+} from "@/lib/security/internalNavigation";
 import { publicOrigin } from "@/utils/publicOrigin";
 
 export const STUDIO_PATH = "/studio" as const;
 export const LEGACY_QR_STUDIO_PATH = "/qr-studio" as const;
 export const PUBLIC_QR_PATH = "/qr" as const;
+export const MAX_QR_TARGET_LENGTH = MAX_INTERNAL_NAVIGATION_TARGET_LENGTH;
 
 /**
  * Compatibility export for existing callers. The canonical operator surface is
@@ -15,7 +17,6 @@ export const PUBLIC_QR_PATH = "/qr" as const;
  */
 export const QR_STUDIO_PATH = STUDIO_PATH;
 
-const BLOCKED_SCHEMES = new Set(["javascript", "data", "file", "vbscript"]);
 const BLOCKED_PATH_PREFIXES = ["/admin", "/api", "/_next"] as const;
 const REDIRECT_PARAM_NAMES = new Set([
   "redirect",
@@ -66,12 +67,23 @@ export type ValidatedQrTarget = {
 
 export type QrTargetValidationResult =
   | { ok: true; value: ValidatedQrTarget }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      reason: QrTargetValidationFailureReason;
+      message: string;
+    };
+
+export type QrTargetValidationFailureReason =
+  | InternalNavigationFailureReason
+  | "local_target_not_allowed"
+  | "blocked_path"
+  | "nested_redirect_parameter"
+  | "sensitive_query_parameter";
 
 type ValidateQrTargetOptions = {
+  expectedOrigin?: string;
   allowLocalHttp?: boolean;
   allowLocalHosts?: boolean;
-  extraAllowedHosts?: readonly string[];
 };
 
 function trimString(value: unknown): string {
@@ -80,37 +92,6 @@ function trimString(value: unknown): string {
 
 function normalizeParamName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function defaultAllowedHosts() {
-  const hosts = new Set<string>();
-  const candidates = [BRAND.baseUrl, `https://${BRAND.domain}`, publicOrigin()];
-  for (const candidate of candidates) {
-    try {
-      hosts.add(new URL(candidate).host.toLowerCase());
-    } catch {
-      // Ignore malformed environment overrides.
-    }
-  }
-  return hosts;
-}
-
-function buildAllowedHosts(extraAllowedHosts?: readonly string[]) {
-  const hosts = defaultAllowedHosts();
-  for (const host of extraAllowedHosts ?? []) {
-    const trimmed = trimString(host).toLowerCase();
-    if (trimmed) hosts.add(trimmed);
-  }
-  return hosts;
-}
-
-function looksLikeBlockedEncodedInput(value: string) {
-  if (!value.includes("%")) return false;
-  try {
-    return decodeURIComponent(value) !== value;
-  } catch {
-    return true;
-  }
 }
 
 function isLocalHostname(host: string) {
@@ -140,11 +121,16 @@ function isBlockedPath(pathname: string) {
   );
 }
 
-function inspectQuery(searchParams: URLSearchParams) {
+function inspectQuery(
+  searchParams: URLSearchParams,
+): { reason: QrTargetValidationFailureReason; message: string } | null {
   for (const [rawKey, rawValue] of searchParams.entries()) {
     const key = normalizeParamName(rawKey);
     if (REDIRECT_PARAM_NAMES.has(key)) {
-      return "Verschachtelte Redirect-Parameter sind im öffentlichen QR-Ziel nicht erlaubt.";
+      return {
+        reason: "nested_redirect_parameter",
+        message: "Verschachtelte Redirect-Parameter sind im öffentlichen QR-Ziel nicht erlaubt.",
+      };
     }
     if (
       SENSITIVE_PARAM_NAMES.has(key) ||
@@ -155,48 +141,98 @@ function inspectQuery(searchParams: URLSearchParams) {
       key.endsWith("jwt") ||
       key.endsWith("email")
     ) {
-      return "QR-Ziele dürfen keine sensiblen Query-Parameter enthalten.";
+      return {
+        reason: "sensitive_query_parameter",
+        message: "QR-Ziele dürfen keine sensiblen Query-Parameter enthalten.",
+      };
     }
     if (containsSensitiveValue(rawValue)) {
-      return "QR-Ziele dürfen keine sensiblen Identifikatoren oder Token enthalten.";
+      return {
+        reason: "sensitive_query_parameter",
+        message: "QR-Ziele dürfen keine sensiblen Identifikatoren oder Token enthalten.",
+      };
     }
   }
   return null;
 }
 
-function toAbsoluteTarget(target: string) {
-  return new URL(target, publicOrigin()).toString();
+function failure(
+  reason: QrTargetValidationFailureReason,
+  message: string,
+): QrTargetValidationResult {
+  return { ok: false, reason, message };
 }
 
-function unwrapCanonicalStudioTarget(value: string): string | null {
-  const baseOrigin = publicOrigin();
-  const candidates = [value];
-
+function resolveExpectedOrigin(value?: string): string | null {
   try {
-    candidates.push(new URL(value, baseOrigin).toString());
+    const parsed = new URL(value ?? publicOrigin());
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    return parsed.origin;
   } catch {
-    // Ignore invalid candidates.
+    return null;
   }
+}
 
-  for (const candidate of candidates) {
+function internalFailureMessage(reason: InternalNavigationFailureReason): string {
+  switch (reason) {
+    case "empty":
+    case "invalid_type":
+      return "Es wurde kein QR-Ziel übergeben.";
+    case "too_long":
+      return "Das QR-Ziel überschreitet die erlaubte Länge.";
+    case "unsafe_character":
+      return "Das QR-Ziel enthält nicht erlaubte Steuer- oder Trennzeichen.";
+    case "network_path_not_allowed":
+      return "Protocol-relative Netzwerkpfade sind im QR-Ziel nicht erlaubt.";
+    case "malformed_encoding":
+    case "encoding_depth_exceeded":
+      return "Das QR-Ziel enthält keine zulässige eindeutige Encodierung.";
+    case "origin_not_allowed":
+      return "Das QR-Ziel verlässt die erwartete öffentliche Origin.";
+    case "unsafe_scheme":
+      return "Das Schema des QR-Ziels ist nicht erlaubt.";
+    case "credentials_not_allowed":
+      return "QR-Ziele mit eingebetteten Zugangsdaten sind nicht erlaubt.";
+    case "surrounding_whitespace":
+    case "not_internal_path":
+    case "invalid_origin":
+    case "invalid_url":
+    case "non_canonical":
+      return "Das QR-Ziel ist kein unveränderter sicherer Navigationspfad.";
+  }
+}
+
+function inspectDecodedLayers(
+  decodedLayers: readonly string[],
+  expectedOrigin: string,
+): { reason: QrTargetValidationFailureReason; message: string } | null {
+  for (const layer of decodedLayers) {
+    let parsed: URL;
     try {
-      const parsed =
-        candidate.startsWith("http://") || candidate.startsWith("https://")
-          ? new URL(candidate)
-          : new URL(candidate, baseOrigin);
-      if (
-        parsed.pathname !== STUDIO_PATH &&
-        parsed.pathname !== LEGACY_QR_STUDIO_PATH
-      ) {
-        continue;
-      }
-      const innerTarget = parsed.searchParams.get("target");
-      if (innerTarget) return innerTarget;
+      parsed = layer.startsWith("/")
+        ? new URL(layer, expectedOrigin)
+        : new URL(layer);
     } catch {
-      // Ignore invalid wrapper values.
+      return {
+        reason: "invalid_url",
+        message: "Das QR-Ziel ist nach der Sicherheitsprüfung nicht eindeutig lesbar.",
+      };
     }
+    if (parsed.origin !== expectedOrigin) {
+      return {
+        reason: "origin_not_allowed",
+        message: "Das QR-Ziel verlässt die erwartete öffentliche Origin.",
+      };
+    }
+    if (isBlockedPath(parsed.pathname)) {
+      return {
+        reason: "blocked_path",
+        message: "Administrative oder interne Systempfade sind kein erlaubtes QR-Ziel.",
+      };
+    }
+    const queryIssue = inspectQuery(parsed.searchParams);
+    if (queryIssue) return queryIssue;
   }
-
   return null;
 }
 
@@ -224,104 +260,68 @@ export function validateQrTarget(
   rawTarget: unknown,
   options: ValidateQrTargetOptions = {},
 ): QrTargetValidationResult {
-  const target = trimString(rawTarget);
-  if (!target) {
-    return { ok: false, message: "Es wurde kein QR-Ziel übergeben." };
-  }
-  if (looksLikeBlockedEncodedInput(target)) {
-    return {
-      ok: false,
-      message: "Doppelt oder verschachtelt encodierte QR-Ziele sind nicht erlaubt.",
-    };
-  }
-  if (target.startsWith("//")) {
-    return {
-      ok: false,
-      message: "Protocol-relative URLs sind im öffentlichen QR-Ziel nicht erlaubt.",
-    };
+  const expectedOrigin = resolveExpectedOrigin(options.expectedOrigin);
+  if (!expectedOrigin) {
+    return failure("invalid_origin", "Die erwartete öffentliche Origin ist nicht gültig.");
   }
 
-  const schemeMatch = target.match(/^([a-z][a-z0-9+.-]*):/i);
-  if (schemeMatch) {
-    const scheme = schemeMatch[1].toLowerCase();
-    if (BLOCKED_SCHEMES.has(scheme)) {
-      return { ok: false, message: `Das Schema ${scheme}: ist im öffentlichen QR-Ziel gesperrt.` };
-    }
+  const navigationTarget = validateSameOriginNavigationTarget(rawTarget, {
+    expectedOrigin,
+    allowAbsolute: true,
+    maxLength: MAX_QR_TARGET_LENGTH,
+  });
+  if ("reason" in navigationTarget) {
+    return failure(
+      navigationTarget.reason,
+      internalFailureMessage(navigationTarget.reason),
+    );
   }
+  const target = navigationTarget.value;
 
-  if (target.startsWith("/")) {
-    const normalizedInternalPath = normalizeInternalRedirectPath(target);
-    if (!normalizedInternalPath) {
-      return { ok: false, message: "Interne QR-Ziele müssen mit einem sicheren relativen Pfad beginnen." };
-    }
-
-    let parsed: URL;
-    try {
-      parsed = new URL(normalizedInternalPath, publicOrigin());
-    } catch {
-      return { ok: false, message: "Das interne QR-Ziel ist nicht lesbar." };
-    }
-
-    if (isBlockedPath(parsed.pathname)) {
-      return { ok: false, message: "Administrative oder interne Systempfade sind kein erlaubtes QR-Ziel." };
-    }
-
-    const queryIssue = inspectQuery(parsed.searchParams);
-    if (queryIssue) return { ok: false, message: queryIssue };
+  if (target.kind === "internal") {
+    const layerIssue = inspectDecodedLayers(
+      target.decodedLayers,
+      expectedOrigin,
+    );
+    if (layerIssue) return failure(layerIssue.reason, layerIssue.message);
 
     return {
       ok: true,
       value: {
         kind: "internal",
-        normalizedTarget: normalizedInternalPath,
-        absoluteTarget: toAbsoluteTarget(normalizedInternalPath),
+        normalizedTarget: target.normalizedTarget,
+        absoluteTarget: target.absoluteHref,
         host: null,
       },
     };
   }
 
-  let parsed: URL;
-  try {
-    parsed = new URL(target);
-  } catch {
-    return { ok: false, message: "Externe QR-Ziele müssen eine vollständige HTTPS-URL sein." };
-  }
-
-  const scheme = parsed.protocol.replace(/:$/, "").toLowerCase();
-  if (BLOCKED_SCHEMES.has(scheme)) {
-    return { ok: false, message: `Das Schema ${scheme}: ist im öffentlichen QR-Ziel gesperrt.` };
-  }
-  if (parsed.username || parsed.password) {
-    return { ok: false, message: "QR-Ziele mit eingebetteten Zugangsdaten sind nicht erlaubt." };
-  }
-  if (scheme !== "https") {
-    if (!(scheme === "http" && options.allowLocalHttp)) {
-      return { ok: false, message: "Öffentliche QR-Ziele müssen HTTPS verwenden." };
+  if (target.protocol !== "https:") {
+    if (!(target.protocol === "http:" && options.allowLocalHttp)) {
+      return failure("unsafe_scheme", "Öffentliche QR-Ziele müssen HTTPS verwenden.");
     }
   }
 
-  const host = parsed.host.toLowerCase();
-  if ((isLocalHostname(parsed.hostname) || isPrivateIpv4(parsed.hostname)) && !options.allowLocalHosts) {
-    return { ok: false, message: "Lokale Hosts und private IP-Ziele sind im öffentlichen QR-Pfad gesperrt." };
+  const host = target.host.toLowerCase();
+  if (
+    (isLocalHostname(target.hostname) || isPrivateIpv4(target.hostname)) &&
+    !options.allowLocalHosts
+  ) {
+    return failure(
+      "local_target_not_allowed",
+      "Lokale Hosts und private IP-Ziele sind im öffentlichen QR-Pfad gesperrt.",
+    );
   }
 
-  const allowedHosts = buildAllowedHosts(options.extraAllowedHosts);
-  if (!allowedHosts.has(host)) {
-    return { ok: false, message: "Dieses externe QR-Ziel ist nicht auf der Allowlist freigegeben." };
-  }
-  if (isBlockedPath(parsed.pathname)) {
-    return { ok: false, message: "Administrative oder interne Systempfade sind kein erlaubtes QR-Ziel." };
-  }
-
-  const queryIssue = inspectQuery(parsed.searchParams);
-  if (queryIssue) return { ok: false, message: queryIssue };
+  const layerIssue = inspectDecodedLayers(target.decodedLayers, expectedOrigin);
+  if (layerIssue) return failure(layerIssue.reason, layerIssue.message);
 
   return {
     ok: true,
     value: {
       kind: "external",
-      normalizedTarget: parsed.toString(),
-      absoluteTarget: parsed.toString(),
+      normalizedTarget: target.normalizedTarget,
+      absoluteTarget: target.absoluteHref,
       host,
     },
   };
@@ -331,9 +331,7 @@ export function buildPublicQrTargetHref(
   rawTarget: unknown,
   options: ValidateQrTargetOptions = {},
 ): string | null {
-  const innerTarget = trimString(rawTarget);
-  const unwrappedTarget = innerTarget ? unwrapCanonicalStudioTarget(innerTarget) : null;
-  const validation = validateQrTarget(unwrappedTarget ?? innerTarget, options);
+  const validation = validateQrTarget(rawTarget, options);
   if (!validation.ok) return null;
   return validation.value.kind === "internal"
     ? validation.value.normalizedTarget
@@ -375,5 +373,9 @@ export function requireQrStudioTargetHref(
 }
 
 export function toAbsolutePublicTarget(target: InternalRedirectPath | string): string {
-  return toAbsoluteTarget(target);
+  const validation = validateQrTarget(target);
+  if (!validation.ok) {
+    throw new Error("invalid_qr_target");
+  }
+  return validation.value.absoluteTarget;
 }

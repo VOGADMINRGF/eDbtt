@@ -66,7 +66,7 @@ describe("studio target contract", () => {
     ).toMatchObject({
       status: "blocked",
       caller: "legacy_qrcodegenerator",
-      reason: "host_not_allowed",
+      reason: "origin_not_allowed",
     });
 
     expect(
