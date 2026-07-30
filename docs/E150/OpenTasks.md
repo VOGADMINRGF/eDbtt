@@ -1,11 +1,11 @@
-# E150 Open Tasks — Operativer Kopf 2026-07-28
+# E150 Open Tasks — Operativer Kopf 2026-07-30
 
 ## Kanonischer Operativteil
 
 - Dieser Abschnitt ist die aktuelle operative Queue.
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
 - Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
-- Stand: `2026-07-28`
+- Stand: `2026-07-30`
 - Letzter gezielter Kopf-Sync: Admin-Region-Arbeitsraum nach Nutzerabnahme der Marketing-Referenz und Issue `#495` sowie Auth-2FA-Redirect-Intake aus Issue `#477`; nicht berührte operative Zeilen behalten ihren zuletzt verifizierten Status.
 - PR `#415` (`docs/opentasks-head-sync-2026-07-23`) wurde am 2026-07-23 gemergt; der damalige Governance-SSOT-Sync ist abgeschlossen.
 
@@ -54,6 +54,8 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 - Commit `ce04fe67eaf96e5681064a68f4990221be5db88f` integrierte den vollständig geprüften Marketing-Operator-Workspace und den Themenradar-Source-/Cluster-Contract auf `main`; `MARKETING-WORKSPACE-OPERABILITY-01` steht bis zur erneuten Produktabnahme auf `review`, `MARKETING-THEME-RADAR-SOURCE-CONTRACT-01` ist `done`, und Live-Ingestion bleibt über `MARKETING-REGIONAL-SOURCE-DISCOVERY-02` am `manual_gate`.
 - PR `#517` wurde als Merge `be79264e51fa76982c44b32f1fe57a9dfe11a661` integriert; `/admin/marketing/sources` macht Source-Allowlist, Coverage und Providerentscheidungen im Marketing-Workspace sichtbar. `MARKETING-SOURCE-DECISION-WORKSPACE-01` steht bis zur Produktabnahme auf `review`; echte Providerverbindungen und Live-Ingestion bleiben getrennte Manual Gates.
 
+- Nutzerbefund und Issue `#538` registrieren den einheitlichen eDebatte-Mailkanon: `MAIL-COMMUNICATION-CANON-01` ist für gemeinsamen Envelope, Absender `eDebatte <members@edebatte.org>`, Reply-To, responsives Brand-Layout, HTML-Sicherheit, Mehrsprachigkeit und Migration aller Systemmails `codex_ready`; `MAIL-PRODUCTION-SENDER-GATE-01` bleibt bis zu realer Postfach-, Provider-, SPF-, DKIM-, DMARC- und Production-Mailclient-Abnahme `manual_gate`.
+
 ## Phase 0 — Governance und Production Gates
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
@@ -62,6 +64,8 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 | PROD-PR-CHAIN-01 | done | P0 | keine | PR `#400`, `#404`, `#405`, `#406`, `#409`, `#410`, `#411`, `#412`, `#413` und `#414` sind auf `main` nachvollziehbar; PR `#397` und `#398` bleiben ersetzt und geschlossen | Merge-Kette ist gegen GitHub und `origin/main` verifiziert; keine alte Stash-/Backup-Lesart wird wieder geöffnet |
 | PROD-RUNTIME-02 | manual_gate | P0 | PROD-PR-CHAIN-01 | Vercel-Projekt, `main` als Production-Branch, Domain-/Alias-Zuordnung, saubere Trennung von Preview, Development und Production sowie alle relevanten Secrets und Rollback-Anker praktisch prüfen | Production deployt den erwarteten Commit; ENV-Guardrails laufen grün; Secrets erscheinen nicht in Repo, Logs oder Browserantworten; Rollback ist praktisch bestätigt |
 | AI-RUNTIME-POLICY-01 | manual_gate | P0 | PROD-RUNTIME-02 | Tatsächlich verfügbare Modelle, Planner- und Smoke-Modell, Timeouts, Output-Limits, Budgets, Rate Limits, Logging, Datenverarbeitung, Aufbewahrung und Löschung festlegen; keine Prompts, Secrets oder personenbezogenen Inhalte in Logs | Modelle und Grenzen sind in den jeweiligen ENV-Umgebungen bewusst gesetzt; Preview-Smoke ist grün; Kosten- und Datenschutzgrenzen sind dokumentiert |
+| MAIL-COMMUNICATION-CANON-01 | codex_ready | P0 | Issue `#538`; `docs/E150/MAIL-COMMUNICATION-CANON-01_2026-07-30.md` | kanonischen eDebatte-Absender `eDebatte <members@edebatte.org>`, Reply-To, gemeinsamen responsiven Mailrahmen, HTML-Escaping, DE/EN-Lokalisierung und Migration aller realen Systemmail-Pfade umsetzen, ohne neue Mailruntime oder Newsletter-System | Mailinventar vollständig; alle transaktionalen Templates nutzen den gemeinsamen Renderer; VoiceOpenGov-/No-Reply-Absender aus eDebatte-Code und Defaults entfernt; Envelope- und Empfänger-Guardrails fail-closed; HTML und Plain Text; DE/EN plus kontrollierter Fallback; keine Codes/Token in Logs; fokussierte Tests, Typecheck, Lint, Build und git diff --check grün; Evidence vorhanden; Status nach Umsetzung maximal review |
+| MAIL-PRODUCTION-SENDER-GATE-01 | manual_gate | P0 | MAIL-COMMUNICATION-CANON-01; Issue `#538`; verwaltetes Postfach und realer SMTP-Provider | Production- und Preview-ENV auf `eDebatte <members@edebatte.org>` sowie Reply-To umstellen, Postfach und Provider autorisieren, SPF/DKIM/DMARC und Alignment anhand echter Header prüfen und realen Apple-Mail-/Gmail-/Outlook-Smoke auf Desktop, Mobile und Dark Mode abnehmen | `members@edebatte.org` empfängt Antworten; sichtbarer From und Reply-To korrekt; SPF, DKIM und DMARC pass; Return-Path dokumentiert; keine Secrets oder aktiven Codes in Evidence; sicherer Rollback deaktiviert Versand statt VoiceOpenGov-/No-Reply-Rückfall |
 <!-- Technischer Hardening-Stand (2026-07-26, PR #431): Shared Runtime-Policy unter `features/ai/aiRuntimePolicy.ts` ist produktiv an E150-Orchestrator, Planner-/Smoke-/Clarify-/Trace-Pfade und metadata-only Logging gebunden; Contract-Tests für invalid booleans, Placeholder-Credentials, runtime profiles, degraded heuristic fallback, sanitized smoke logs und produktive Orchestrator-Bindung sind grün. Das Manual Gate bleibt offen, bis reale Preview-/Production-Modelle, Budgets, Datenschutz-/Retention-Regeln und echte ENV-Smokes praktisch bestätigt sind. -->
 | VOG-MISSION-LAYER-01 | manual_gate | P1 | Governance, Membership, Organisationen, Branding, Routing, Mehrsprachigkeit und Rollenmodell | VoiceOpenGov als unabhängige Mission-, Träger-, Mitgliedschafts- und Partnerschaftsebene kanonisieren; Grenze zu eDebatte, Position-Lifecycle, Partnerkategorien, Rechte, Funding-Grenzen, Informationsarchitektur und Voxy-Kontext definieren, ohne eine zweite Runtime, Datenbasis oder KI einzuführen | Ebenenmatrix, Partner-/Rechtematrix, Position-Lifecycle, Influence-Guardrails, Voxy-Kontextregeln und Folge-Task-Zerlegung liegen als verbindlicher Decision-Contract vor; keine Implementierung ist vor Abschluss der offenen Entscheidungen freigegeben |
 <!--
