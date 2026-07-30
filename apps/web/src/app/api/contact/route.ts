@@ -5,6 +5,7 @@ import { evaluateContactSpam } from "@/lib/spam/contactSpam";
 import { verifyHumanChallenge } from "@/lib/spam/humanChallenge";
 import { sendMail } from "@/utils/mailer";
 import { buildSupportTicketReceivedMail } from "@/utils/emailTemplates";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 import {
   getClientIp,
   rateLimitFromRequest,
@@ -61,15 +62,6 @@ function sanitizeText(value: unknown, maxLen: number, opts?: { preserveNewlines?
   const withoutControls = stripped.replace(/\p{C}/gu, "");
   const cleaned = opts?.preserveNewlines ? withoutControls.trim() : withoutControls.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, maxLen);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 async function hashValue(value: string, salt = "") {
@@ -361,21 +353,38 @@ export async function POST(req: NextRequest) {
     classification === "suspicious" ? `[VERDACHT SPAM] ${safeSubject}` : safeSubject;
 
   if (allowMail) {
-    const html = `
-      <h3>Neue Kontaktanfrage</h3>
-      <p><strong>Kategorie:</strong> ${escapeHtml(cleanCategory)}</p>
-      <p><strong>Name:</strong> ${escapeHtml(cleanName)}</p>
-      <p><strong>E-Mail:</strong> ${escapeHtml(cleanEmail)}</p>
-      ${cleanPhone ? `<p><strong>Telefon:</strong> ${escapeHtml(cleanPhone)}</p>` : ""}
-      <p><strong>Newsletter Opt-In:</strong> ${wantsNewsletter ? "ja" : "nein"}</p>
-      <p><strong>Spam-Score:</strong> ${spamScore} (${classification})</p>
-      <p><strong>Nachricht:</strong><br/>${escapeHtml(cleanMessage).replace(/\n/g, "<br/>")}</p>
-    `;
+    const internalMail = renderTransactionalMail({
+      subject: outboundSubject,
+      preheader: "Eine neue Kontaktanfrage ist eingegangen.",
+      title: "Neue Kontaktanfrage",
+      blocks: [
+        {
+          kind: "details",
+          rows: [
+            { label: "Kategorie", value: cleanCategory },
+            { label: "Name", value: cleanName },
+            { label: "E-Mail", value: cleanEmail },
+            ...(cleanPhone ? [{ label: "Telefon", value: cleanPhone }] : []),
+            {
+              label: "Newsletter Opt-in",
+              value: wantsNewsletter ? "ja" : "nein",
+            },
+            {
+              label: "Spam-Score",
+              value: `${spamScore} (${classification})`,
+            },
+          ],
+        },
+        { kind: "notice", title: "Nachricht", text: cleanMessage },
+      ],
+      reason: "eine Kontaktanfrage intern bearbeitet werden muss.",
+    });
 
     await sendMail({
       to,
-      subject: outboundSubject,
-      html,
+      subject: internalMail.subject,
+      html: internalMail.html,
+      text: internalMail.text,
     });
 
     const acknowledgement = buildSupportTicketReceivedMail({

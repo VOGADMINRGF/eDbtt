@@ -24,7 +24,9 @@ import {
   buildVerificationMail,
 } from "@/utils/emailTemplates";
 import {
+  ensureTransactionalMail,
   escapeMailHtml,
+  legacyMailHtml,
   renderLegacyTransactionalMail,
   renderTransactionalMail,
 } from "@/utils/mailRenderer";
@@ -90,14 +92,84 @@ describe("mail communication canon", () => {
     });
     const legacy = renderLegacyTransactionalMail({
       subject: "Legacy",
-      html: `<p>${malicious}</p><a href="javascript:alert(4)">bad</a>`,
+      html: legacyMailHtml`<p>${malicious}</p><a href="${"javascript:alert(4)"}">bad</a>`,
       text: "Legacy text",
+    });
+    const migratedLegacyTemplate = buildMembershipApplyAdminMail({
+      membershipId: '<a href="https://attacker.example">MEM-42</a>',
+      userId: '<span style="position:fixed">user-42</span>',
+      email: "member@edebatte.org",
+      amountPerPeriod: 5,
+      rhythm: "monthly",
+      householdSize: 1,
+      locale: "de",
     });
 
     expect(escapeMailHtml(malicious)).toContain("&lt;script&gt;");
     expect(mail.html).not.toMatch(/<(?:script|svg|img)\b/i);
     expect(mail.html).toContain("&lt;img");
-    expect(legacy.html).not.toMatch(/<script|<img|javascript:|onerror/i);
+    expect(legacy.html).not.toMatch(
+      /<(?:script|img)\b|<[^>]+\sonerror=|href=["']javascript:/i,
+    );
+    expect(migratedLegacyTemplate.html).toContain("&lt;a href=");
+    expect(migratedLegacyTemplate.html).toContain("&lt;span style=");
+    expect(migratedLegacyTemplate.html).not.toContain(
+      'href="https://attacker.example"',
+    );
+  });
+
+  it("escapes every legacy interpolation and normalizes allowed link attributes", () => {
+    const foreignUrl = "https://foreign.example/path?q=1";
+    const mailtoUrl = "mailto:team@edebatte.org";
+    const injectedAnchor =
+      '<a href="https://attacker.example" target="_self">Nutzerlink</a>';
+    const injectedStyle =
+      '<span style="position:fixed;inset:0">Nutzerstil</span>';
+    const manipulatedTarget = '_self" onclick="alert(1)';
+    const manipulatedRel = 'opener" data-secret="x';
+
+    const mail = renderLegacyTransactionalMail({
+      subject: "Legacy-Link-Contract",
+      html: legacyMailHtml`
+        <a href="${foreignUrl}">Fremder HTTPS-Link</a>
+        <a href="${mailtoUrl}">Mail-Link</a>
+        <p>${injectedAnchor}</p>
+        <p>${injectedStyle}</p>
+        <a href="${"javascript:alert(1)"}">JavaScript</a>
+        <a href="${"data:text/html,boom"}">Data</a>
+        <a href="${"//attacker.example/path"}">Protocol relative</a>
+        <a href="${foreignUrl}" target="${manipulatedTarget}" rel="${manipulatedRel}">Manipuliert</a>
+      `,
+    });
+
+    expect(mail.html).toContain('href="https://foreign.example/path?q=1"');
+    expect(mail.html).toContain('href="mailto:team@edebatte.org"');
+    expect(mail.html).toContain("&lt;a href=");
+    expect(mail.html).toContain("&lt;span style=");
+    expect(mail.html).not.toMatch(
+      /href=["'](?:javascript:|data:|\/\/attacker\.example)/i,
+    );
+    expect(mail.html).not.toContain("onclick");
+    expect(mail.html).not.toContain("data-secret");
+
+    const anchors = Array.from(mail.html.matchAll(/<a\b([^>]*)>/g)).map(
+      (match) => match[1] ?? "",
+    );
+    expect(anchors.length).toBeGreaterThanOrEqual(3);
+    for (const attributes of anchors) {
+      expect(attributes).toContain('target="_blank"');
+      expect(attributes).toContain('rel="noopener noreferrer"');
+      expect(attributes).not.toContain("_self");
+    }
+  });
+
+  it("rejects unrendered free HTML at the canonical mail boundary", () => {
+    expect(() =>
+      ensureTransactionalMail({
+        subject: "Raw HTML",
+        html: '<p><a href="https://attacker.example">raw</a></p>',
+      }),
+    ).toThrow("mail_html_not_transactional");
   });
 
   it("renders code and CTA components without exposing tokenized URLs as link text", () => {
@@ -240,6 +312,12 @@ describe("mail communication canon", () => {
     const nodemailerUsers = files.filter((file) =>
       readFileSync(file, "utf8").includes('from "nodemailer"'),
     );
+    const legacyHtmlCallers = files.filter((file) => {
+      if (file.endsWith("/utils/mailRenderer.ts")) return false;
+      return readFileSync(file, "utf8").includes(
+        "renderLegacyTransactionalMail",
+      );
+    });
 
     expect(senders.length).toBeGreaterThan(20);
     for (const file of senders) {
@@ -247,6 +325,12 @@ describe("mail communication canon", () => {
       expect(source).toMatch(/@\/utils\/(mailer|email)/);
     }
     expect(nodemailerUsers).toEqual([path.join(sourceRoot, "utils/mailer.ts")]);
+    for (const file of legacyHtmlCallers) {
+      expect(readFileSync(file, "utf8")).toContain("legacyMailHtml");
+    }
+    expect(
+      readFileSync(path.join(sourceRoot, "utils/email.ts"), "utf8"),
+    ).not.toMatch(/export\s+async\s+function\s+sendMail\s*\(/);
   });
 
   it("contains no forbidden sender identity or placeholder domain in real mail code", () => {

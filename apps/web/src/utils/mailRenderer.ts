@@ -4,6 +4,13 @@ export const DEFAULT_MAIL_LOCALE = "de";
 
 export type MailLocale = "de" | "en";
 
+const LEGACY_MAIL_HTML_TOKEN = Symbol("legacy-mail-html");
+
+export type LegacyMailHtml = {
+  readonly value: string;
+  readonly [LEGACY_MAIL_HTML_TOKEN]: true;
+};
+
 export type TransactionalMail = {
   subject: string;
   preheader: string;
@@ -34,9 +41,16 @@ type LegacyTransactionalMailInput = {
   locale?: string | null;
   subject: string;
   preheader?: string;
-  html: string;
+  html: LegacyMailHtml;
   text?: string;
   reason?: string;
+};
+
+type EnsuredTransactionalMailInput = Omit<
+  LegacyTransactionalMailInput,
+  "html"
+> & {
+  html: string;
 };
 
 const COPY = {
@@ -128,6 +142,22 @@ export function escapeMailHtml(value: unknown): string {
     .replaceAll("'", "&#039;");
 }
 
+export function legacyMailHtml(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): LegacyMailHtml {
+  const value = strings.reduce((result, fragment, index) => {
+    const interpolation =
+      index < values.length ? renderLegacyMailInterpolation(values[index]) : "";
+    return `${result}${fragment}${interpolation}`;
+  }, "");
+
+  return {
+    value,
+    [LEGACY_MAIL_HTML_TOKEN]: true,
+  };
+}
+
 export function renderTransactionalMail(input: TransactionalMailInput): TransactionalMail {
   const locale = resolveMailLocale(input.locale);
   const copy = COPY[locale];
@@ -169,12 +199,28 @@ export function renderLegacyTransactionalMail(
   const copy = COPY[locale];
   const subject = normalizeMailHeader(input.subject);
   const preheader = normalizePlainText(input.preheader ?? subject);
-  const sanitizedFragment = sanitizeHtml(input.html, {
+  const sanitizedFragment = sanitizeHtml(input.html.value, {
     allowedTags: LEGACY_ALLOWED_TAGS,
     allowedAttributes: LEGACY_ALLOWED_ATTRIBUTES,
     allowedSchemes: ["http", "https", "mailto"],
     allowProtocolRelative: false,
     disallowedTagsMode: "discard",
+    transformTags: {
+      a: (_tagName, attribs) => {
+        const href = normalizeLegacyLink(attribs.href);
+        if (!href) {
+          return { tagName: "span", attribs: {} };
+        }
+        return {
+          tagName: "a",
+          attribs: {
+            href,
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+        };
+      },
+    },
   });
   const reason = normalizePlainText(input.reason ?? copy.defaultReason);
   const text = normalizePlainText(input.text ?? htmlFragmentToText(sanitizedFragment));
@@ -203,7 +249,9 @@ export function renderLegacyTransactionalMail(
   };
 }
 
-export function ensureTransactionalMail(input: LegacyTransactionalMailInput): TransactionalMail {
+export function ensureTransactionalMail(
+  input: EnsuredTransactionalMailInput,
+): TransactionalMail {
   if (/<body\s+data-edebatte-mail="transactional"/i.test(input.html)) {
     return {
       subject: normalizeMailHeader(input.subject),
@@ -213,7 +261,7 @@ export function ensureTransactionalMail(input: LegacyTransactionalMailInput): Tr
       locale: resolveMailLocale(input.locale),
     };
   }
-  return renderLegacyTransactionalMail(input);
+  throw new Error("mail_html_not_transactional");
 }
 
 function renderBlock(
@@ -329,6 +377,45 @@ function renderFrame(input: {
     </table>
   </body>
 </html>`;
+}
+
+function renderLegacyMailInterpolation(value: unknown): string {
+  if (
+    value &&
+    typeof value === "object" &&
+    LEGACY_MAIL_HTML_TOKEN in value &&
+    (value as LegacyMailHtml)[LEGACY_MAIL_HTML_TOKEN] === true
+  ) {
+    return (value as LegacyMailHtml).value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(renderLegacyMailInterpolation).join("");
+  }
+  if (value === null || value === undefined || value === false) {
+    return "";
+  }
+  return escapeMailHtml(value);
+}
+
+function normalizeLegacyLink(value: string | undefined): string | null {
+  const href = String(value ?? "").trim();
+  if (!href || href.startsWith("//")) return null;
+
+  if (href.toLowerCase().startsWith("mailto:")) {
+    const address = href.slice("mailto:".length);
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)
+      ? `mailto:${address}`
+      : null;
+  }
+
+  try {
+    const url = new URL(href);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeMailHeader(value: string) {

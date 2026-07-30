@@ -98,20 +98,22 @@ function buildInternalConfirmedMail(opts: { email: string; name?: string | null 
   const { email, name } = opts;
   const subject =
     "eDebatte-Updates: Anmeldung bestätigt (Double-Opt-in abgeschlossen)";
-  const html = `
-    <p>Eine Anmeldung für den Updates-Verteiler wurde soeben bestätigt.</p>
-    <ul>
-      <li><strong>E-Mail:</strong> ${email}</li>
-      <li><strong>Name:</strong> ${name || "—"}</li>
-    </ul>
-  `;
-  const text = `eDebatte-Updates: Double-Opt-in bestätigt.
-
-E-Mail: ${email}
-Name: ${name || "—"}
-`;
-
-  return { subject, html, text };
+  return renderTransactionalMail({
+    subject,
+    preheader: "Eine Updates-Anmeldung wurde per Double-Opt-in bestätigt.",
+    title: "Updates-Anmeldung bestätigt",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: "E-Mail", value: email },
+          { label: "Name", value: name || "—" },
+          { label: "Status", value: "active" },
+        ],
+      },
+    ],
+    reason: "eine Updates-Anmeldung intern bestätigt wurde.",
+  });
 }
 
 export async function GET(req: NextRequest) {

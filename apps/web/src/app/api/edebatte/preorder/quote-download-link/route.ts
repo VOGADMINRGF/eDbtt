@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizePricingLocale } from "@features/pricing";
 import { sendMail } from "@/utils/mailer";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 
 export const runtime = "nodejs";
@@ -141,60 +142,97 @@ export async function POST(req: NextRequest) {
   const userSubject = isEnglish
     ? "eDebatte – your cost estimate download link"
     : "eDebatte – dein Downloadlink zum Kostenvoranschlag";
-  const userText = isEnglish
-    ? [
-        `Hello ${contactPerson},`,
-        "",
-        "here is your download link for the configured cost estimate:",
-        downloadLink,
-        "",
-        "If your setup changes, create a new request from the order flow.",
-        "",
-        "– eDebatte Team",
-      ].join("\n")
-    : [
-        `Hallo ${contactPerson},`,
-        "",
-        "hier ist dein Downloadlink für den konfigurierten Kostenvoranschlag:",
-        downloadLink,
-        "",
-        "Wenn sich euer Einsatzrahmen ändert, fordere bitte einen neuen Link im Bestellfluss an.",
-        "",
-        "– Dein eDebatte Team",
-      ].join("\n");
-  const userHtml = userText.replace(/\n/g, "<br/>");
+  const userMail = renderTransactionalMail({
+    locale,
+    subject: userSubject,
+    preheader: isEnglish
+      ? "Your configured cost estimate is ready."
+      : "Dein konfigurierter Kostenvoranschlag ist bereit.",
+    title: isEnglish ? "Cost estimate ready" : "Kostenvoranschlag bereit",
+    greeting: `${isEnglish ? "Hello" : "Hallo"} ${contactPerson},`,
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Here is your download link for the configured cost estimate."
+          : "Hier ist dein Downloadlink für den konfigurierten Kostenvoranschlag.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Download cost estimate" : "Kostenvoranschlag herunterladen",
+        url: downloadLink,
+      },
+      {
+        kind: "notice",
+        text: isEnglish
+          ? "If your setup changes, create a new request from the order flow."
+          : "Wenn sich euer Einsatzrahmen ändert, fordere bitte einen neuen Link im Bestellfluss an.",
+      },
+    ],
+    reason: isEnglish
+      ? "you requested a configured cost estimate."
+      : "du einen konfigurierten Kostenvoranschlag angefordert hast.",
+  });
 
   const internalSubject = isEnglish
     ? `Quote download link requested (${organizationName})`
     : `Downloadlink für Kostenvoranschlag angefordert (${organizationName})`;
-  const internalText = [
-    `${isEnglish ? "Organization" : "Organisation"}: ${organizationName}`,
-    `${isEnglish ? "Contact person" : "Ansprechpartner"}: ${contactPerson}`,
-    `${isEnglish ? "Phone" : "Telefon"}: ${phone}`,
-    `E-Mail: ${email}`,
-    `${isEnglish ? "Package" : "Paket"}: ${packageLabel} (${packagePriceLabel})`,
-    `${isEnglish ? "Segment" : "Segment"}: ${segment || "-"}`,
-    "",
-    `${isEnglish ? "User download link" : "Downloadlink für Nutzer"}:`,
-    downloadLink,
-  ].join("\n");
-  const internalHtml = internalText.replace(/\n/g, "<br/>");
+  const internalMail = renderTransactionalMail({
+    locale,
+    subject: internalSubject,
+    preheader: isEnglish
+      ? "A cost estimate download link was requested."
+      : "Ein Downloadlink für einen Kostenvoranschlag wurde angefordert.",
+    title: isEnglish
+      ? "Cost estimate link requested"
+      : "Kostenvoranschlag-Link angefordert",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          {
+            label: isEnglish ? "Organization" : "Organisation",
+            value: organizationName,
+          },
+          {
+            label: isEnglish ? "Contact person" : "Ansprechpartner",
+            value: contactPerson,
+          },
+          { label: isEnglish ? "Phone" : "Telefon", value: phone },
+          { label: "E-Mail", value: email },
+          {
+            label: isEnglish ? "Package" : "Paket",
+            value: `${packageLabel} (${packagePriceLabel})`,
+          },
+          { label: "Segment", value: segment || "-" },
+        ],
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Open user download" : "Nutzer-Download öffnen",
+        url: downloadLink,
+      },
+    ],
+    reason: isEnglish
+      ? "a cost estimate download link was requested."
+      : "ein Downloadlink für einen Kostenvoranschlag angefordert wurde.",
+  });
 
   try {
     await Promise.all([
       sendMail({
         to: email,
-        subject: userSubject,
-        text: userText,
-        html: userHtml,
+        subject: userMail.subject,
+        text: userMail.text,
+        html: userMail.html,
         locale,
         tag: "institutional_quote_download",
       }),
       sendMail({
         to: SALES_EMAIL,
-        subject: internalSubject,
-        text: internalText,
-        html: internalHtml,
+        subject: internalMail.subject,
+        text: internalMail.text,
+        html: internalMail.html,
         locale,
         tag: "institutional_quote_download_internal",
       }),

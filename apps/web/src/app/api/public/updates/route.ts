@@ -143,24 +143,27 @@ function buildInternalNotifyMail(opts: {
   const { email, name, interests } = opts;
   const subject =
     "Neue Anmeldung für eDebatte-Updates (Double-Opt-in gestartet)";
-  const html = `
-    <p>Es gibt eine neue Anmeldung für den Updates-Verteiler.</p>
-    <ul>
-      <li><strong>E-Mail:</strong> ${email}</li>
-      <li><strong>Name:</strong> ${name || "—"}</li>
-      <li><strong>Interessen:</strong> ${interests || "—"}</li>
-    </ul>
-    <p>Status: <strong>pending</strong> – Bestätigung per Double-Opt-in steht noch aus.</p>
-  `;
-  const text = `Neue Anmeldung für den Updates-Verteiler:
-
-E-Mail: ${email}
-Name: ${name || "—"}
-Interessen: ${interests || "—"}
-
-Status: pending (Double-Opt-in läuft).`;
-
-  return { subject, html, text };
+  return renderTransactionalMail({
+    subject,
+    preheader: "Eine neue Updates-Anmeldung wartet auf Double-Opt-in.",
+    title: "Neue Updates-Anmeldung",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: "E-Mail", value: email },
+          { label: "Name", value: name || "—" },
+          { label: "Interessen", value: interests || "—" },
+          { label: "Status", value: "pending" },
+        ],
+      },
+      {
+        kind: "notice",
+        text: "Die Bestätigung per Double-Opt-in steht noch aus.",
+      },
+    ],
+    reason: "eine Updates-Anmeldung intern nachvollzogen werden muss.",
+  });
 }
 
 export async function POST(req: NextRequest) {

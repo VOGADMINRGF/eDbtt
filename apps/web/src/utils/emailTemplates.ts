@@ -1,15 +1,17 @@
 import type { BankDetails } from "@/config/banking";
 import {
+  legacyMailHtml,
   renderTransactionalMail,
   renderLegacyTransactionalMail,
   resolveMailLocale,
+  type LegacyMailHtml,
   type TransactionalMail,
 } from "@/utils/mailRenderer";
 import type { MembershipRhythm } from "@core/memberships/types";
 
 function finalizeMail(input: {
   subject: string;
-  html: string;
+  html: LegacyMailHtml;
   text: string;
   locale?: string | null;
   preheader?: string;
@@ -752,12 +754,12 @@ export function buildEdebatePreorderMail({
         : "Preis folgt";
 
   const accountBlock = accountUrl
-    ? `<p style="margin:12px 0 0 0;">
+    ? legacyMailHtml`<p style="margin:12px 0 0 0;">
         <a href="${accountUrl}" style="display:inline-flex;padding:10px 16px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">${isEnglish ? "Open account" : "Zum Konto"}</a>
       </p>`
-    : "";
+    : null;
 
-  const html = `
+  const html = legacyMailHtml`
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: system-ui, -apple-system, Segoe UI, sans-serif; color:#0f172a; background:#f8fafc; padding:24px;">
       <tr>
         <td align="center">
@@ -901,7 +903,7 @@ export function buildEdebatePreorderPledgeUserMail(args: {
       ? "Hinweis: Aufbauphase (Privatkonto), keine Spendenquittung."
       : "Hinweis: Geschäftskonto nach Gründung.";
 
-  const html = `
+  const html = legacyMailHtml`
     <p>${greeting}</p>
     <p>danke für deine Zahlungszusage für <strong>${args.planLabel}</strong>.</p>
     <p>Bitte überweise den Betrag <strong>${amount}</strong> einmalig mit folgendem Verwendungszweck:</p>
@@ -911,7 +913,11 @@ export function buildEdebatePreorderPledgeUserMail(args: {
       <li><strong>Empfänger:</strong> ${args.bank.recipient}</li>
       <li><strong>Bank:</strong> ${bankName || "n/a"}</li>
       <li><strong>IBAN:</strong> ${bankIban}</li>
-      ${bankBic ? `<li><strong>BIC:</strong> ${bankBic}</li>` : ""}
+      ${
+        bankBic
+          ? legacyMailHtml`<li><strong>BIC:</strong> ${bankBic}</li>`
+          : null
+      }
     </ul>
     <p>${accountNote}</p>
     <p>Mitgliedschaftsbeiträge bleiben von dieser einmaligen Zahlungszusage getrennt.</p>
@@ -987,7 +993,7 @@ export function buildEdebatePreorderPledgeAdminMail(args: {
   const bankBic = args.bank.bic ?? "";
   const bankName = args.bank.bankName ?? "";
 
-  const html = `
+  const html = legacyMailHtml`
     <p>Neue Zahlungszusage (eDebatte)</p>
     <ul>
       <li><strong>User:</strong> ${args.displayName || "–"} (${args.email})</li>
@@ -1001,7 +1007,11 @@ export function buildEdebatePreorderPledgeAdminMail(args: {
       <li><strong>Empfänger:</strong> ${args.bank.recipient}</li>
       <li><strong>Bank:</strong> ${bankName || "n/a"}</li>
       <li><strong>IBAN:</strong> ${bankIban}</li>
-      ${bankBic ? `<li><strong>BIC:</strong> ${bankBic}</li>` : ""}
+      ${
+        bankBic
+          ? legacyMailHtml`<li><strong>BIC:</strong> ${bankBic}</li>`
+          : null
+      }
     </ul>
   `;
 
@@ -1182,12 +1192,13 @@ export function buildMembershipApplyUserMail(args: {
     : null;
   const iconStyle =
     "display:inline-block;width:28px;height:28px;border-radius:999px;background:#0f172a;color:#ffffff;font-size:11px;font-weight:700;line-height:28px;text-align:center;text-decoration:none;";
-  const socialLink = (label: string, text: string, href: string, isLast = false) => `
+  const socialLink = (label: string, text: string, href: string, isLast = false) =>
+    legacyMailHtml`
       <td style="padding-right:${isLast ? "0" : "8px"};">
         <a href="${href}" style="${iconStyle}" aria-label="${label}" target="_blank" rel="noopener noreferrer">${text}</a>
       </td>`;
   const shareIcons = shareLinks
-    ? `
+    ? legacyMailHtml`
       <table role="presentation" cellpadding="0" cellspacing="0">
         <tr>
           ${socialLink("LinkedIn", "IN", shareLinks.linkedin)}
@@ -1198,7 +1209,7 @@ export function buildMembershipApplyUserMail(args: {
         </tr>
       </table>
     `
-    : "";
+    : null;
 
   const hasEdebate = Boolean(edebatte?.enabled && edebatte.finalPricePerMonth);
   const edebatteDiscount = edebatte?.discountPercent ? ` (inkl. ${edebatte.discountPercent}% eDebatte-Rabatt)` : "";
@@ -1208,22 +1219,27 @@ export function buildMembershipApplyUserMail(args: {
       }${edebatteDiscount}`
     : "";
   const edebatteRow = hasEdebate
-    ? `
+    ? legacyMailHtml`
         <tr>
           <td style="padding:6px 0;font-size:12px;color:#64748b;">eDebatte</td>
           <td style="padding:6px 0;font-size:13px;font-weight:600;text-align:right;color:#0f172a;">${edebatteLine}</td>
         </tr>
       `
-    : "";
+    : null;
   const edebatteNote = hasEdebate
-    ? `
+    ? legacyMailHtml`
       <p style="margin:12px 0 0 0;font-size:12px;line-height:1.6;color:#64748b;">
         Während der Pilotphase ist das eine unverbindliche Vormerkung; die konkrete Buchung klären wir separat.
       </p>
     `
-    : "";
+    : null;
+  const accountPaymentLink = accountUrl
+    ? legacyMailHtml`<p style="margin:12px 0 0 0;">
+        <a href="${accountUrl}" style="display:inline-block;padding:10px 16px;border-radius:999px;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">Zahlungsprofil öffnen</a>
+      </p>`
+    : null;
   const microTransferBlock = showMicroTransfer
-    ? `
+    ? legacyMailHtml`
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:16px;border:1px solid #bae6fd;background:#ecfeff;border-radius:16px;">
         <tr>
           <td style="padding:16px;">
@@ -1231,20 +1247,14 @@ export function buildMembershipApplyUserMail(args: {
             <p style="margin:0;font-size:13px;line-height:1.6;color:#0f172a;">
               Wir überweisen dir in den nächsten Tagen 0,01 EUR mit einem TAN-Code im Verwendungszweck. Bitte gib den Code im Zahlungsprofil ein.
             </p>
-            ${
-              accountUrl
-                ? `<p style="margin:12px 0 0 0;">
-                  <a href="${accountUrl}" style="display:inline-block;padding:10px 16px;border-radius:999px;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">Zahlungsprofil öffnen</a>
-                </p>`
-                : ""
-            }
+            ${accountPaymentLink}
           </td>
         </tr>
       </table>
     `
-    : "";
+    : null;
   const profileBlock = shareLinks
-    ? `
+    ? legacyMailHtml`
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:18px;border:1px dashed #e2e8f0;border-radius:16px;">
         <tr>
           <td style="padding:16px;">
@@ -1263,9 +1273,15 @@ export function buildMembershipApplyUserMail(args: {
         </tr>
       </table>
     `
-    : "";
+    : null;
+  const bankBicRow = bankBic
+    ? legacyMailHtml`<tr>
+        <td style="padding:6px 0;font-size:12px;color:#64748b;">BIC</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;text-align:right;color:#0f172a;">${bankBic}</td>
+      </tr>`
+    : null;
 
-  const html = `
+  const html = legacyMailHtml`
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#0f172a;">
       <tr>
         <td align="center" style="padding:24px 12px;">
@@ -1325,14 +1341,7 @@ export function buildMembershipApplyUserMail(args: {
                           <td style="padding:6px 0;font-size:12px;color:#64748b;">IBAN</td>
                           <td style="padding:6px 0;font-size:13px;font-weight:600;text-align:right;color:#0f172a;">${bankIban}</td>
                         </tr>
-                        ${
-                          bankBic
-                            ? `<tr>
-                                <td style="padding:6px 0;font-size:12px;color:#64748b;">BIC</td>
-                                <td style="padding:6px 0;font-size:13px;font-weight:600;text-align:right;color:#0f172a;">${bankBic}</td>
-                              </tr>`
-                            : ""
-                        }
+                        ${bankBicRow}
                         <tr>
                           <td style="padding:6px 0;font-size:12px;color:#64748b;">Verwendungszweck</td>
                           <td style="padding:6px 0;font-size:13px;font-weight:700;text-align:right;color:#0f172a;">${paymentReference ?? "Mitgliedsbeitrag"}</td>
@@ -1454,7 +1463,24 @@ export function buildMembershipApplyAdminMail(args: {
 
   const subject = "Neuer Mitgliedsantrag";
   const payerIban = formatIban(args.payerIban);
-  const html = `
+  const optionalRows = [
+    args.paymentMethod
+      ? legacyMailHtml`<li>Zahlungsweg: ${args.paymentMethod}</li>`
+      : null,
+    args.paymentReference
+      ? legacyMailHtml`<li>Verwendungszweck: ${args.paymentReference}</li>`
+      : null,
+    args.payerName
+      ? legacyMailHtml`<li>Zahlungsname: ${args.payerName}</li>`
+      : null,
+    args.payerIban
+      ? legacyMailHtml`<li>IBAN (für 0,01 €): ${payerIban}</li>`
+      : null,
+    args.microTransferCode
+      ? legacyMailHtml`<li>TAN-Code (0,01 €): ${args.microTransferCode}</li>`
+      : null,
+  ];
+  const html = legacyMailHtml`
     <p>Neuer Antrag eingegangen:</p>
     <ul>
       <li>ID: ${args.membershipId}</li>
@@ -1462,11 +1488,7 @@ export function buildMembershipApplyAdminMail(args: {
       <li>E-Mail: ${args.email}</li>
       <li>Betrag: ${formatEuro(args.amountPerPeriod)} (${args.rhythm})</li>
       <li>Haushalt: ${args.householdSize}</li>
-      ${args.paymentMethod ? `<li>Zahlungsweg: ${args.paymentMethod}</li>` : ""}
-      ${args.paymentReference ? `<li>Verwendungszweck: ${args.paymentReference}</li>` : ""}
-      ${args.payerName ? `<li>Zahlungsname: ${args.payerName}</li>` : ""}
-      ${args.payerIban ? `<li>IBAN (für 0,01 €): ${payerIban}</li>` : ""}
-      ${args.microTransferCode ? `<li>TAN-Code (0,01 €): ${args.microTransferCode}</li>` : ""}
+      ${optionalRows}
     </ul>
   `;
   const text = `Neuer Antrag:
@@ -1523,7 +1545,7 @@ export function buildHouseholdInviteMail(args: {
 
   const subject = "Einladung zur Teilnahme bei eDebatte";
   const greeting = args.targetName ? `Hallo ${args.targetName},` : "Hallo,";
-  const html = `
+  const html = legacyMailHtml`
     <p>${greeting}</p>
     <p>${args.inviterName} hat dich eingeladen, im Rahmen eines Haushalts an eDebatte teilzunehmen.</p>
     <p>
@@ -1644,8 +1666,15 @@ export function buildMembershipReminderMail(
       : level === 2
         ? "bitte prüfe deinen Mitgliedsbeitrag – uns liegt noch keine Zahlung vor."
         : "wir konnten bisher keinen Zahlungseingang zuordnen. Der Antrag wird storniert, wenn keine Zahlung erfolgt.";
+  const bankBicLine = bankBic
+    ? legacyMailHtml`BIC: ${bankBic}<br/>`
+    : null;
+  const finalReminderNotice =
+    level === 3
+      ? legacyMailHtml`<p>Hinweis: Wenn keine Zahlung eingeht, wird der Antrag storniert und der Haushalt gesperrt. Du kannst später jederzeit neu beantragen.</p>`
+      : null;
 
-  const html = `
+  const html = legacyMailHtml`
     <p>Hallo ${args.displayName},</p>
     <p>${intro}</p>
     <p><strong>Dein Beitrag:</strong> ${amount} (${rhythmLabel}), Haushalt: ${args.householdSize}</p>
@@ -1653,13 +1682,9 @@ export function buildMembershipReminderMail(
     Empfänger: ${bankRecipient}<br/>
     Bank: ${bankName}<br/>
     IBAN: ${bankIban}<br/>
-    ${bankBic ? `BIC: ${bankBic}<br/>` : ""}Verwendungszweck: ${args.reference}</p>
+    ${bankBicLine}Verwendungszweck: ${args.reference}</p>
     <p>Bitte nutze den Verwendungszweck exakt so, damit wir die Zahlung eindeutig zuordnen können.</p>
-    ${
-      level === 3
-        ? "<p>Hinweis: Wenn keine Zahlung eingeht, wird der Antrag storniert und der Haushalt gesperrt. Du kannst später jederzeit neu beantragen.</p>"
-        : ""
-    }
+    ${finalReminderNotice}
     <p>Danke für deine Unterstützung.</p>
   `;
   const text = `Hallo ${args.displayName},

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { piiCol } from "@core/db/db/triMongo";
 import { sendMail } from "@/utils/mailer";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 import { verifyPassword } from "@/utils/password";
 import { clearSession, readSession } from "@/utils/session";
 import { CREDENTIAL_COLLECTION } from "../../auth/sharedAuth";
@@ -106,19 +107,31 @@ export async function POST(req: NextRequest) {
   const to = process.env.CONTACT_INBOX || "members@edebatte.org";
   const safeName = (user as any)?.profile?.displayName || (user as any)?.name || "Unbekannt";
   const safeEmail = (user as any)?.email || "unbekannt";
-  const html = `
-    <h3>Selbst-Service Anfrage</h3>
-    <p><strong>UserID:</strong> ${oid.toHexString()}</p>
-    <p><strong>Name:</strong> ${safeName}</p>
-    <p><strong>E-Mail:</strong> ${safeEmail}</p>
-    <p><strong>Aktion:</strong> ${action}</p>
-    <p><strong>Hinweis:</strong> ${reason || "–"}</p>
-  `;
+  const subject = `[Self-Service] ${action === "cancel_membership" ? "Mitgliedschaft beenden" : "Account-Löschung"} angefordert`;
+  const mail = renderTransactionalMail({
+    subject,
+    preheader: "Eine Account-Self-Service-Anfrage wurde erfasst.",
+    title: "Selbst-Service-Anfrage",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: "User-ID", value: oid.toHexString() },
+          { label: "Name", value: safeName },
+          { label: "E-Mail", value: safeEmail },
+          { label: "Aktion", value: action },
+          { label: "Hinweis", value: reason || "–" },
+        ],
+      },
+    ],
+    reason: "eine Account-Self-Service-Anfrage intern geprüft werden muss.",
+  });
 
   await sendMail({
     to,
-    subject: `[Self-Service] ${action === "cancel_membership" ? "Mitgliedschaft beenden" : "Account-Löschung"} angefordert`,
-    html,
+    subject: mail.subject,
+    html: mail.html,
+    text: mail.text,
   });
 
   if (action === "delete_account") {

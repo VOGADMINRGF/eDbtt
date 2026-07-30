@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,14 +84,29 @@ export async function POST(req: NextRequest) {
   if (to && !isSame) {
     const subject = "eDebatte Basis aktiviert";
     const greeting = displayName ? `Hallo ${displayName},` : "Hallo,";
-    const html = `
-      <p>${greeting}</p>
-      <p>dein Paket <strong>eDebatte Basis</strong> ist jetzt aktiv.</p>
-      <p>Du kannst sofort swipen, lesen und dich in Themen einbringen.</p>
-      <p>– Dein eDebatte‑Team</p>
-    `;
-    const text = `${greeting}\n\ndein Paket eDebatte Basis ist jetzt aktiv.\nDu kannst sofort swipen, lesen und dich in Themen einbringen.\n\n– Dein eDebatte‑Team`;
-    await sendMail({ to, subject, html, text });
+    const mail = renderTransactionalMail({
+      subject,
+      preheader: "Dein eDebatte-Basispaket ist aktiv.",
+      title: "eDebatte Basis aktiviert",
+      greeting,
+      blocks: [
+        {
+          kind: "paragraph",
+          text: "Dein Paket eDebatte Basis ist jetzt aktiv.",
+        },
+        {
+          kind: "paragraph",
+          text: "Du kannst sofort swipen, lesen und dich in Themen einbringen.",
+        },
+      ],
+      reason: "dein eDebatte-Basispaket aktiviert wurde.",
+    });
+    await sendMail({
+      to,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -5,7 +5,9 @@ import {
   hasSmtpTransportConfig,
   resolveMailEnvelopeForRuntime,
 } from "@/lib/server/webRuntimeEnv";
-import { ensureTransactionalMail } from "@/utils/mailRenderer";
+import {
+  ensureTransactionalMail,
+} from "@/utils/mailRenderer";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -30,6 +32,7 @@ type MailFailureCategory =
   | "recipient_placeholder_domain"
   | "recipient_test_domain_blocked"
   | "recipient_domain_not_allowed"
+  | "mail_content_invalid"
   | "sender_configuration_invalid"
   | "smtp_unconfigured"
   | "smtp_auth_error"
@@ -65,14 +68,18 @@ export async function sendMail(opts: {
     code: MailFailureCode,
     category: MailFailureCategory,
     messageId?: string | null,
+    delivery?: { deliveredCount: number; failedCount: number },
   ) => {
+    const singleRecipient = recipients.length === 1;
     console.warn("[mailer] delivery_blocked", {
       code,
       category,
       tag: opts.tag ?? "generic",
-      recipient: maskEmail(recipient),
-      domain,
+      recipient: singleRecipient ? maskEmail(recipient) : "[multiple]",
+      domain: singleRecipient ? domain : null,
       recipientCount: recipients.length,
+      deliveredCount: delivery?.deliveredCount ?? 0,
+      failedCount: delivery?.failedCount ?? recipients.length,
       messageId: messageId ?? null,
     });
     return {
@@ -127,26 +134,61 @@ export async function sendMail(opts: {
           });
     }
 
-    const info = await transporter.sendMail({
-      from: envelope.from,
-      replyTo: envelope.replyTo,
-      to: recipients,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    const deliveries = await Promise.allSettled(
+      recipients.map((currentRecipient) =>
+        transporter!.sendMail({
+          from: envelope.from,
+          replyTo: envelope.replyTo,
+          to: currentRecipient,
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
+        }),
+      ),
+    );
+    const failedDeliveries = deliveries.filter(
+      (delivery): delivery is PromiseRejectedResult =>
+        delivery.status === "rejected",
+    );
+    const deliveredCount = deliveries.length - failedDeliveries.length;
+
+    if (failedDeliveries.length > 0) {
+      const firstError = failedDeliveries[0]?.reason;
+      return logFailure(
+        "mail_transport_error",
+        classifyTransportError(firstError),
+        recipients.length === 1 &&
+          typeof (firstError as { messageId?: unknown })?.messageId === "string"
+          ? String((firstError as { messageId: string }).messageId)
+          : null,
+        {
+          deliveredCount,
+          failedCount: failedDeliveries.length,
+        },
+      );
+    }
+
+    const singleDelivery = deliveries[0];
+    const singleInfo =
+      recipients.length === 1 && singleDelivery?.status === "fulfilled"
+        ? singleDelivery.value
+        : null;
 
     return {
       ok: true,
       transport: "smtp",
-      messageId: typeof info?.messageId === "string" ? info.messageId : null,
+      messageId:
+        typeof singleInfo?.messageId === "string" ? singleInfo.messageId : null,
     };
   } catch (error: unknown) {
     const category =
       error instanceof Error &&
-      (error.name === "CriticalProductionWebRuntimeEnvError" ||
-        error.message === "mail_cta_url_invalid")
-        ? "sender_configuration_invalid"
+      error.message === "mail_html_not_transactional"
+        ? "mail_content_invalid"
+        : error instanceof Error &&
+            (error.name === "CriticalProductionWebRuntimeEnvError" ||
+              error.message === "mail_cta_url_invalid")
+          ? "sender_configuration_invalid"
         : classifyTransportError(error);
     return logFailure(
       "mail_transport_error",
@@ -159,10 +201,14 @@ export async function sendMail(opts: {
 }
 
 function recipientsToArray(value: string | string[]) {
-  return (Array.isArray(value) ? value : [value])
-    .flatMap((entry) => entry.split(","))
-    .map(normalizeEmail)
-    .filter(Boolean);
+  return Array.from(
+    new Set(
+      (Array.isArray(value) ? value : [value])
+        .flatMap((entry) => entry.split(","))
+        .map(normalizeEmail)
+        .filter(Boolean),
+    ),
+  );
 }
 
 function normalizeEmail(value: string) {

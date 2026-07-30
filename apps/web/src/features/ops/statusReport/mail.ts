@@ -1,20 +1,15 @@
 import type { StatusReportSummary } from "./contracts";
-import { renderLegacyTransactionalMail } from "@/utils/mailRenderer";
+import {
+  legacyMailHtml,
+  renderLegacyTransactionalMail,
+  type LegacyMailHtml,
+} from "@/utils/mailRenderer";
 
 function statusLabel(status: string): string {
   if (status === "green") return "GRÜN";
   if (status === "yellow") return "GELB";
   if (status === "red") return "ROT";
   return "GRAU";
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 function statusTone(status: string): { bg: string; border: string; text: string } {
@@ -30,9 +25,9 @@ function summarizeExecutiveStatus(summary: StatusReportSummary): string {
   return "Kritische Auffälligkeiten erkannt. Operatives Eingreifen erforderlich.";
 }
 
-function metaItem(label: string, value: string): string {
-  return `<span style="display:inline-block;margin-right:12px;color:#475569;font-size:13px;">
-    <strong style="color:#0f172a;">${escapeHtml(label)}:</strong> ${escapeHtml(value)}
+function metaItem(label: string, value: string): LegacyMailHtml {
+  return legacyMailHtml`<span style="display:inline-block;margin-right:12px;color:#475569;font-size:13px;">
+    <strong style="color:#0f172a;">${label}:</strong> ${value}
   </span>`;
 }
 
@@ -51,12 +46,14 @@ function sectionToText(section: StatusReportSummary["sections"][number]): string
   return lines;
 }
 
-function sectionToHtml(section: StatusReportSummary["sections"][number]): string {
+function sectionToHtml(
+  section: StatusReportSummary["sections"][number],
+): LegacyMailHtml {
   if (section.checks.length === 0) {
-    return `<section style="margin-top:16px;">
+    return legacyMailHtml`<section style="margin-top:16px;">
       <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;overflow:hidden;">
         <div style="padding:12px 14px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
-          <h3 style="margin:0;font-size:15px;color:#0f172a;">${escapeHtml(section.label)}</h3>
+          <h3 style="margin:0;font-size:15px;color:#0f172a;">${section.label}</h3>
         </div>
         <div style="padding:12px 14px;color:#64748b;font-size:13px;">Keine Checks in diesem Abschnitt.</div>
       </div>
@@ -68,28 +65,27 @@ function sectionToHtml(section: StatusReportSummary["sections"][number]): string
       const latency = typeof check.latencyMs === "number" ? ` (${check.latencyMs} ms)` : "";
       const tone = statusTone(check.status);
       const errorLine = check.error
-        ? `<div style="margin-top:4px;color:#991b1b;font-size:12px;">Fehler: ${escapeHtml(check.error)}</div>`
-        : "";
+        ? legacyMailHtml`<div style="margin-top:4px;color:#991b1b;font-size:12px;">Fehler: ${check.error}</div>`
+        : null;
 
-      return `<tr>
+      return legacyMailHtml`<tr>
         <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;white-space:nowrap;vertical-align:top;">
           <span style="display:inline-block;padding:3px 9px;border-radius:999px;border:1px solid ${tone.border};background:${tone.bg};color:${tone.text};font-weight:700;font-size:11px;letter-spacing:0.02em;">
             ${statusLabel(check.status)}
           </span>
         </td>
         <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;vertical-align:top;">
-          <div style="font-size:14px;font-weight:600;color:#0f172a;">${escapeHtml(check.label)}${escapeHtml(latency)}</div>
-          <div style="margin-top:3px;font-size:13px;color:#334155;">${escapeHtml(check.detail)}</div>
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">${check.label}${latency}</div>
+          <div style="margin-top:3px;font-size:13px;color:#334155;">${check.detail}</div>
           ${errorLine}
         </td>
       </tr>`;
-    })
-    .join("");
+    });
 
-  return `<section style="margin-top:16px;">
+  return legacyMailHtml`<section style="margin-top:16px;">
     <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;overflow:hidden;">
       <div style="padding:12px 14px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
-        <h3 style="margin:0;font-size:15px;color:#0f172a;">${escapeHtml(section.label)}</h3>
+        <h3 style="margin:0;font-size:15px;color:#0f172a;">${section.label}</h3>
       </div>
       <table role="presentation" style="width:100%;border-collapse:collapse;">
         ${rows}
@@ -128,13 +124,15 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
     textLines.push(...sectionToText(section));
   }
 
-  const htmlSections = summary.sections.map(sectionToHtml).join("\n");
+  const htmlSections = summary.sections.map(sectionToHtml);
   const htmlSummary = summary.summaryPoints
-    .map((point) => `<li style="margin:0 0 6px 0;color:#334155;">${escapeHtml(point)}</li>`)
-    .join("");
+    .map(
+      (point) =>
+        legacyMailHtml`<li style="margin:0 0 6px 0;color:#334155;">${point}</li>`,
+    );
 
   const overallTone = statusTone(summary.overallStatus);
-  const html = `<div style="background:#f3f6fb;padding:24px 12px;font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.45;color:#0f172a;">
+  const html = legacyMailHtml`<div style="background:#f3f6fb;padding:24px 12px;font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.45;color:#0f172a;">
     <div style="max-width:760px;margin:0 auto;">
       <div style="border:1px solid #dbe4ee;border-radius:14px;overflow:hidden;background:#ffffff;">
         <div style="padding:14px 16px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
@@ -151,7 +149,7 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
         <div style="padding:14px 16px;">
           <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:12px 14px;">
             <h3 style="margin:0 0 6px 0;font-size:15px;color:#0f172a;">Executive Summary</h3>
-            <p style="margin:0 0 8px 0;font-size:14px;color:#334155;">${escapeHtml(summarizeExecutiveStatus(summary))}</p>
+            <p style="margin:0 0 8px 0;font-size:14px;color:#334155;">${summarizeExecutiveStatus(summary)}</p>
             <ul style="margin:0;padding-left:18px;">${htmlSummary}</ul>
           </div>
           ${htmlSections}

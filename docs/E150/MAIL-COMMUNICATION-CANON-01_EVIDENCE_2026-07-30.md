@@ -53,9 +53,9 @@ eine fail-closed Absenderprüfung besaß.
 | eDebatte-Paket/Pledge/Preorder | Package, Pledge User/Admin, Preorder, institutionelles Angebot User/Internal | Pricing-/Request-Locale, sonst DE | bestehende Builder im gemeinsamen Renderer |
 | Öffentliche Updates | Double-Opt-in, interne DOI-Meldung, Welcome, interne Confirm-Meldung | gespeicherte Request-Locale, sonst DE | lokale Content-Builder plus gemeinsamer Renderer |
 | Account Self-Service | interne Benachrichtigung | DE-Fallback | gemeinsamer Renderer über Mailer |
-| Beiträge | interne Beitragsbenachrichtigung | DE-Fallback | Legacy-Fragment wird zentral sanitisiert und gerendert |
+| Beiträge | interne Beitragsbenachrichtigung | DE-Fallback | strukturierte Blöcke im gemeinsamen Renderer |
 | Statusreport | Ops-Statusreport | DE-Fallback | Statusreport-Inhalt im gemeinsamen Renderer |
-| Admin-Alerts | Test-/Notify-Routen über dynamischen Legacy-Import | DE-Fallback | Kompatibilitätsfassade delegiert an den kanonischen Mailer |
+| Admin-Alerts | Test-/Notify-Routen über dynamischen Import | DE-Fallback | strukturierte Blöcke delegieren an den kanonischen Mailer |
 
 Zusätzlich verwendet `features/pricing/usecases/createPreorderLead.ts` einen
 injizierten Sender; die Route injiziert ausschließlich den kanonischen Mailer.
@@ -74,7 +74,8 @@ Transport: `apps/web/src/utils/mailer.ts`.
 - einen tabellenbasierten, maximal 620 px breiten eDebatte-Rahmen
 - versteckten Preheader, Viewport-/Color-Scheme-Metadaten, Textheader und
   nachvollziehbaren Nachrichtengrund im Footer
-- Sanitizing und Einbettung verbleibender kontrollierter Legacy-Fragmente
+- Sanitizing und Einbettung verbleibender kontrollierter Legacy-Fragmente;
+  der `legacyMailHtml`-Template-Tag escaped jede dynamische Interpolation
 
 `apps/web/src/utils/mailer.ts` ist die einzige Transportgrenze. Sie:
 
@@ -86,6 +87,87 @@ Transport: `apps/web/src/utils/mailer.ts`.
   gegebenenfalls Provider-Message-ID,
 - protokolliert weder Code, Token, Reset-Link, vollständigen Mailtext noch
   vollständige Empfängeradresse.
+
+## Legacy-HTML- und Mehrfachempfänger-Contract
+
+### Legacy-HTML-Finding: bestätigt und zentral behoben
+
+Die repository-weite Prüfung ergab zwei direkte produktive Aufrufer von
+`renderLegacyTransactionalMail`:
+
+- `apps/web/src/utils/emailTemplates.ts` über `finalizeMail` für Preorder,
+  Pledge User/Admin, Membership Apply User/Admin, Household Invite und
+  Membership Reminder,
+- `apps/web/src/features/ops/statusReport/mail.ts` für den Ops-Statusreport.
+
+Diese Flächen enthielten intern kontrollierte Template-Strukturen, interpolierten
+aber zugleich Nutzer-, Mitgliedschafts-, Organisations-, Zahlungs- und
+Statuswerte. Der bisherige Sanitizer erlaubte unter anderem `a` sowie globale
+`style`-Attribute. Ein interpolierter dynamischer Wert mit erlaubtem HTML konnte
+deshalb als echtes Markup überleben. Die Annahme „Legacy-HTML ist vollständig
+statisch“ ist damit widerlegt.
+
+Der zentrale Klassenfix führt den verpflichtenden `legacyMailHtml`-Template-Tag
+ein. Jede normale Interpolation wird HTML-escaped; nur bereits mit demselben Tag
+erzeugte, intern kontrollierte Teiltemplates können strukturell komponiert
+werden. Legacy-Links werden zusätzlich zentral normalisiert: erlaubt sind
+valide absolute `http`-/`https`-Links und einfache `mailto`-Adressen.
+`javascript:`, `data:`, protocol-relative und ungültige URLs verlieren ihre
+Linkwirkung. Für verbleibende Links werden `target="_blank"` und
+`rel="noopener noreferrer"` erzwungen.
+
+Alle weiteren produktiven freien HTML-Erzeuger wurden auf strukturierte
+Mailblöcke umgestellt:
+
+- Account Self-Service,
+- Kontakt-Inbox,
+- Beitrags-Inbox,
+- eDebatte-Paket-Aktivierung,
+- institutioneller Angebots-/Download-Link für User und interne Empfänger,
+- öffentliche Updates Start/Bestätigung für interne Empfänger,
+- Admin-Alerts.
+
+Die freie Kompatibilitätsfunktion `utils/email.ts::sendMail` wurde entfernt.
+`ensureTransactionalMail` akzeptiert an der Transportgrenze nur noch HTML mit
+dem kanonischen Transactional-Frame-Marker und lehnt beliebiges Roh-HTML mit
+`mail_html_not_transactional` ab. Einen produktiven `sendEmail`-Aufrufer gibt
+es im Repository nicht.
+
+Synthetisch geprüft wurden fremdes HTTPS, `mailto`, dynamisches Nutzer-`<a>`,
+dynamisches Nutzer-`style`, `javascript:`, `data:`, protocol-relative URLs
+sowie manipulierte `target`-/`rel`-Attribute. Zusätzlich wird ein realer
+Membership-Legacy-Builder mit injiziertem Anchor und Style geprüft und ein
+Source-Contract erfasst jeden direkten Legacy-Renderer-Aufrufer.
+
+### Mehrfachempfänger-Finding: bestätigt und zentral behoben
+
+Der Mailer normalisierte bereits `string[]` und kommaseparierte Empfänger,
+übergab die vollständige Liste anschließend aber in einem Nodemailer-Aufruf als
+sichtbares `to`. Mehrere unabhängige Empfänger konnten sich deshalb gegenseitig
+im To-Header sehen.
+
+Produktiv erreichbar waren Listen insbesondere über:
+
+- Admin-Alerts mit `cfg.recipients`,
+- die konfigurierbaren internen Ziele `CONTACT_INBOX`, `MAIL_ADMIN_TO` und
+  `UPDATES_NOTIFY_TO`,
+- den Ops-Statusreport-Listenpfad; seine aktuelle Konfiguration begrenzt die
+  erlaubten Empfänger zusätzlich auf die kanonische interne Adresse.
+
+Der Pledge-Adminpfad lieferte bereits getrennt je Empfänger aus. Auth-,
+2FA-, Verifikations-, Passwort-, Organisations-, Membership-, Support-,
+Update-, Paket-, Preorder- und Admin-User-Mails adressieren fachlich jeweils
+eine einzelne externe Adresse. Interne Inbox-/Ops-Ziele sind gemeinsame
+Verteiler, können technisch aber als Liste konfiguriert sein.
+
+Der zentrale Mailer validiert nun die vollständige, normalisierte und
+deduplizierte Empfängerliste vor dem ersten Transportaufruf. Danach erfolgt
+genau ein Nodemailer-Aufruf je Adresse, jeweils mit einer einzelnen Adresse im
+sichtbaren `to`. Ein ungültiger Empfänger blockiert die gesamte Liste vor dem
+Versand. Teilfehler werden nach dem Versuch aller getrennten Zustellungen als
+Gesamtfehler mit ausschließlich aggregierten Zähler-Metadaten gemeldet.
+Mehrfachempfänger-Logs enthalten weder Adressen noch Empfängerlisten,
+Nachrichteninhalte oder Provider-Fehlertexte.
 
 In Production schlägt die Konfiguration fehl, wenn From oder Reply-To fehlen,
 abweichen oder eine VoiceOpenGov-, No-Reply-, Localhost-, `.invalid`- oder
@@ -143,6 +225,13 @@ Erfolgreich:
   - nach dem Vercel-Klassenfix: 17 Testdateien, 71 Tests
 - `pnpm -C apps/web run test:production-guardrails`
   - 12 Testdateien, 36 Tests
+- Abschlussdelta Legacy-HTML/Mehrfachempfänger:
+  - Mail-Communication, Mailer-Security und Runtime-ENV:
+    3 Testdateien, 43 Tests
+  - relevante Auth-/Membership-/Support-/Admin-/Preorder-/Status-Regression:
+    17 Testdateien, 73 Tests
+  - Web-PR-Critical-Guardrails: 17 Testdateien, 71 Tests
+  - Production-Guardrails: 12 Testdateien, 36 Tests
 - Vercel-Delta: Mail-Communication-, Mailer-Security- und Runtime-ENV-Tests
   - 3 Testdateien, 34 Tests
 - fokussierte Renderer-/Mailer-/Env-/Statusreport-Tests
