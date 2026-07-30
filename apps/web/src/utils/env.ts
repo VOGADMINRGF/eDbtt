@@ -1,7 +1,7 @@
 // apps/web/src/utils/env.ts
 import { z } from "zod";
 
-/** Striktes Env-Layer mit Legacy-Aliassen für alten Code. */
+/** Striktes Env-Layer für fachlich allgemeine Web-Runtime-Abhängigkeiten. */
 const BaseSchema = z
   .object({
     // RUNTIME
@@ -12,11 +12,6 @@ const BaseSchema = z
     BCRYPT_ROUNDS: z.coerce.number().int().positive().default(12),
     SESSION_TTL_DAYS: z.coerce.number().int().positive().default(7),
     EDITOR_TOKEN: z.string().optional(),
-
-    // EMAIL (mind. eins von beiden muss gesetzt sein)
-    MAIL_FROM: z.string().optional(),
-    MAIL_REPLY_TO: z.string().optional(),
-    SMTP_FROM: z.string().optional(),
 
     // --- MONGO (pro DB eigene URI + Name) ---
     CORE_DB_NAME: z.string().min(1),
@@ -58,49 +53,6 @@ const BaseSchema = z
       .string()
       .url()
       .default("https://api.openai.com/v1/chat/completions"),
-  })
-  .superRefine((v, ctx) => {
-    // mindestens eine Absender-Quelle
-    if (!v.MAIL_FROM && !v.SMTP_FROM) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "MAIL_FROM oder SMTP_FROM muss gesetzt sein",
-        path: ["MAIL_FROM"],
-      });
-    }
-
-    if (v.MAIL_FROM && v.SMTP_FROM && v.MAIL_FROM !== v.SMTP_FROM) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "MAIL_FROM und SMTP_FROM muessen identisch sein. MAIL_FROM ist kanonisch, SMTP_FROM nur Legacy-Alias.",
-        path: ["MAIL_FROM"],
-      });
-    }
-
-    if (
-      v.NODE_ENV === "production" &&
-      v.MAIL_FROM !== "eDebatte <members@edebatte.org>"
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "MAIL_FROM muss in Production exakt eDebatte <members@edebatte.org> sein.",
-        path: ["MAIL_FROM"],
-      });
-    }
-
-    if (
-      v.NODE_ENV === "production" &&
-      v.MAIL_REPLY_TO !== "eDebatte Team <members@edebatte.org>"
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "MAIL_REPLY_TO muss in Production exakt eDebatte Team <members@edebatte.org> sein.",
-        path: ["MAIL_REPLY_TO"],
-      });
-    }
   });
 
 const p = BaseSchema.parse({
@@ -110,10 +62,6 @@ const p = BaseSchema.parse({
   BCRYPT_ROUNDS: process.env.BCRYPT_ROUNDS,
   SESSION_TTL_DAYS: process.env.SESSION_TTL_DAYS,
   EDITOR_TOKEN: process.env.EDITOR_TOKEN,
-
-  MAIL_FROM: process.env.MAIL_FROM,
-  MAIL_REPLY_TO: process.env.MAIL_REPLY_TO,
-  SMTP_FROM: process.env.SMTP_FROM,
 
   CORE_DB_NAME: process.env.CORE_DB_NAME,
   CORE_MONGODB_URI: process.env.CORE_MONGODB_URI,
@@ -152,7 +100,6 @@ export type Env = typeof p;
 
 /** Export + Backwards-Compat-Aliasse */
 export const env: Env & {
-  EMAIL_DEFAULT_FROM: string;
   MONGO_URI: string;
   MODEL: string;
   TIMEOUT_MS: number;
@@ -161,7 +108,6 @@ export const env: Env & {
   ...p,
 
   // Kompatibilität: alter Code nutzt diese Felder
-  EMAIL_DEFAULT_FROM: p.MAIL_FROM ?? (p.SMTP_FROM as string),
   MONGO_URI: p.MONGODB_URI ?? p.CORE_MONGODB_URI,
   MODEL: p.OPENAI_MODEL,
   TIMEOUT_MS: p.OPENAI_TIMEOUT_MS,

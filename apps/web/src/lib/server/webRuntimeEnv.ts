@@ -195,10 +195,7 @@ export function hasSmtpTransportConfig(env: EnvSource = process.env) {
 export function collectCriticalProductionWebRuntimeIssues(
   env: EnvSource = process.env,
 ): WebRuntimeEnvIssue[] {
-  const issues = [
-    ...resolveCanonicalMailEnvelope(env).issues,
-    ...resolveCanonicalWebDatabaseUrl(env).issues,
-  ];
+  const issues = [...resolveCanonicalWebDatabaseUrl(env).issues];
 
   if (!readTrimmed(env, "JWT_SECRET")) {
     issues.push({

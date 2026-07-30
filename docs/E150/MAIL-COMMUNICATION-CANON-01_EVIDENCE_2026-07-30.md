@@ -1,9 +1,9 @@
 # MAIL-COMMUNICATION-CANON-01 — Technische Evidence
 
-Stand: 2026-07-30  
-Task: `MAIL-COMMUNICATION-CANON-01`  
-Issue: `#538`  
-Branch: `fix/mail-communication-canon-01`  
+Stand: 2026-07-30
+Task: `MAIL-COMMUNICATION-CANON-01`
+Issue: `#538`
+Branch: `fix/mail-communication-canon-01`
 Status: `review`
 
 ## Ergebnis
@@ -95,6 +95,40 @@ bei vollständig fehlenden Envelope-Werten auf die sicheren kanonischen Werte
 zurückfallen; explizit gesetzte widersprüchliche Werte werden auch dort
 abgelehnt.
 
+## Vercel-Preview-Root-Cause und Klassenfix
+
+Das Vercel-Deployment `FjJWKvzixZQCetmiqJNsJUu6iE4M` für Commit
+`93548412958868a1042c70223ac4c0465944c107` kompilierte erfolgreich und
+bestand die TypeScript-Prüfung. Es scheiterte erst bei `Collecting page data`
+für `/_not-found` und mehrere Account-Routen.
+
+Die konkrete Ursache lag in `apps/web/src/utils/env.ts`: Der auf Modulebene
+ausgeführte `BaseSchema.parse(...)` verlangte allein wegen
+`NODE_ENV=production` bereits beim Import exakt kanonische Werte für
+`MAIL_FROM` und `MAIL_REPLY_TO`. Dadurch blockierte eine fehlende oder
+abweichende optionale Mailkonfiguration den Preview-Build, obwohl kein
+Mailversand ausgeführt wurde. Die GitHub-Web-CI blieb grün, weil sie
+`apps/web/.env.example` als `.env.local` verwendete und damit die kanonischen
+Beispielwerte in den Build einbrachte.
+
+Der Klassenfix trennt die Lebenszyklen:
+
+- Das allgemeine `utils/env.ts` validiert keine Mail-Envelope-Werte mehr beim
+  Modulimport.
+- Die allgemeine Production-Startup-Prüfung validiert weiterhin
+  `WEB_DATABASE_URL` und `JWT_SECRET`, koppelt den App-Start aber nicht mehr an
+  optionale Mailzustellung.
+- `resolveMailEnvelopeForRuntime(...)` bleibt die zentrale Versandgrenze. Ein
+  tatsächlicher Production-Versand ohne exakt kanonisches From und Reply-To
+  schlägt weiterhin fail-closed fehl.
+
+Ein preview-naher Vollbuild mit absichtlich leeren `MAIL_FROM`,
+`MAIL_REPLY_TO` und `SMTP_FROM` sowie ausschließlich prozesslokalen,
+nichtproduktiven Platzhaltern für die unabhängigen Runtime-Abhängigkeiten
+generierte alle 322 statischen Seiten erfolgreich. Es wurden weder Provider-,
+Postfach-, DNS- noch Secret-Konfigurationen verändert und keine reale Mail
+versendet.
+
 ## Automatisierte Prüfung
 
 Erfolgreich:
@@ -106,7 +140,11 @@ Erfolgreich:
     Infrastruktur-Platzhalterwerten; keine `.env`-Datei verändert
 - `node scripts/ci/check-web-critical-guardrails.mjs`
 - `pnpm -C apps/web run test:web-pr-critical-guardrails`
-  - 17 Testdateien, 69 Tests
+  - nach dem Vercel-Klassenfix: 17 Testdateien, 71 Tests
+- `pnpm -C apps/web run test:production-guardrails`
+  - 12 Testdateien, 36 Tests
+- Vercel-Delta: Mail-Communication-, Mailer-Security- und Runtime-ENV-Tests
+  - 3 Testdateien, 34 Tests
 - fokussierte Renderer-/Mailer-/Env-/Statusreport-Tests
   - 6 Testdateien, 38 Tests
 - fokussierte Auth-/Membership-/Support-/Preorder-Regression
