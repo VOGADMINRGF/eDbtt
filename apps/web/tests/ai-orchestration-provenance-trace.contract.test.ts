@@ -4,6 +4,129 @@ import {
   buildCreateAiOrchestrationProvenanceTrace,
   buildRundenAiOrchestrationProvenanceTrace,
 } from "@/features/create/aiOrchestrationProvenanceTrace";
+import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import type { CreatePlannerValidatedProviderSource } from "@/features/create/createPlannerProviderContract";
+
+function buildPlannerTraceResult(input: {
+  provider: CreatePlannerValidatedProviderSource;
+  model: string;
+  attempt: number;
+  finalFailure?: boolean;
+}): CreateIntelligentFollowupResult {
+  const finalFailure = input.finalFailure === true;
+  return {
+    understanding: {
+      summary: finalFailure
+        ? "Es liegt noch kein validierter KI-Run vor."
+        : "Sichere Schulwege sollen verbessert werden.",
+      categories: [],
+      topics: finalFailure
+        ? []
+        : [{ id: "topic-1", label: "Sichere Schulwege", confidence: "high" }],
+      statements: [],
+      scopes: finalFailure ? ["unclear"] : ["district"],
+      confidence: finalFailure ? "low" : "high",
+    },
+    suggestions: [],
+    sourceText: "Vor der Schule fehlen sichere Querungen.",
+    generatedAt: "2026-07-30T10:00:00.000Z",
+    degraded: finalFailure,
+    degradedReason: finalFailure ? "provider_error" : null,
+    meta: {
+      planner: {
+        source: finalFailure ? "technical_fallback" : input.provider,
+        plannerSource: finalFailure ? "technical_fallback" : input.provider,
+        plannerProvider: finalFailure ? "local_fallback" : input.provider,
+        plannerRole: "planner_only",
+        plannerTopic: finalFailure
+          ? "Analyse noch nicht validiert"
+          : "Sichere Schulwege",
+        plannerCore: finalFailure
+          ? "Es liegt noch kein validierter KI-Run vor."
+          : "Vor der Schule fehlen sichere Querungen.",
+        plannerScope: finalFailure ? ["unclear"] : ["district"],
+        plannerStance: finalFailure ? "unclear" : "pro",
+        plannerClusters: finalFailure ? [] : ["Schulwegsicherheit"],
+        plannerOpenQuestions: [],
+        shortSummary: finalFailure
+          ? "Es liegt noch kein validierter KI-Run vor."
+          : "Sichere Schulwege sollen verbessert werden.",
+        topicCandidates: finalFailure ? [] : ["Sichere Schulwege"],
+        clusterCandidates: finalFailure ? [] : ["Schulwegsicherheit"],
+        scopeCandidates: finalFailure ? ["unclear"] : ["district"],
+        stance: finalFailure ? "unclear" : "pro",
+        openQuestions: [],
+        graphSearchTerms: finalFailure ? [] : ["Schulwege"],
+        materialSignals: [],
+        recommendedLane: finalFailure ? "standard" : "create_fast_followup",
+        providerPlan: {
+          lane: finalFailure ? "standard" : "create_fast_followup",
+          plannerProvider: finalFailure ? "local_fallback" : input.provider,
+          plannerRole: "planner_only",
+          structureProvider: "mistral",
+          summaryProvider: "claude",
+          researchUsed: "none",
+          researchProvider: null,
+          deepSearchUsed: false,
+          graphMatch: "after_structure",
+        },
+        permissions: {
+          nonMutative: true,
+          canPublish: false,
+          canSave: false,
+          canMerge: false,
+          canDeepSearch: false,
+        },
+        plannerDegraded: finalFailure,
+        degradedReason: finalFailure ? "provider_error" : null,
+        plannerDegradedReason: finalFailure ? "provider_error" : null,
+        qualityStatus: finalFailure ? "failed" : "specific",
+        qualityIssues: finalFailure ? ["technical_fallback_only"] : [],
+        providerCallAttempted: true,
+        providerCallSucceeded: !finalFailure,
+        providerAttemptCount: input.attempt,
+        plannerDebug: {
+          attemptedProvider: input.provider,
+          usedProvider: finalFailure ? "local_fallback" : input.provider,
+          attemptedModel: input.model,
+          usedModel: finalFailure ? null : input.model,
+          providerAvailable: true,
+          providerErrorCode: finalFailure ? "upstream_error" : null,
+          providerErrorMessage: finalFailure ? "sanitized provider failure" : null,
+          errorMessage: finalFailure ? "sanitized provider failure" : null,
+          rawPayloadValid: !finalFailure,
+          rawTextValid: !finalFailure,
+          normalizedPayloadValid: !finalFailure,
+          qualityGatePassed: !finalFailure,
+        },
+      },
+      analysis: {
+        state: finalFailure ? "ai_failed" : "result_ready",
+        sourceType: "text",
+        sourceUrl: null,
+        sourceLoaded: true,
+        validationStatus: finalFailure ? "failed" : "validated",
+        userMessage: finalFailure ? "Die Analyse konnte nicht abgeschlossen werden." : null,
+      },
+      graphMatch: {
+        stage: "after_structure",
+        prepared: !finalFailure,
+        requiresConfirmation: true,
+        searchTerms: finalFailure ? [] : ["Schulwege"],
+        matches: [],
+        matchedTopics: [],
+        matchedDossiers: [],
+        matchedClaims: [],
+        matchedAnlassraeume: [],
+        matchedVotes: [],
+        shouldCreateNewTopic: !finalFailure,
+      },
+      researchUsed: "none",
+      researchProvider: null,
+      deepSearchUsed: false,
+    },
+  };
+}
 
 describe("AI orchestration provenance trace contract", () => {
   it("keeps /runden/new no-ai and draft-first without inventing usage", () => {
@@ -125,9 +248,12 @@ describe("AI orchestration provenance trace contract", () => {
             qualityIssues: [],
             providerCallAttempted: true,
             providerCallSucceeded: true,
+            providerAttemptCount: 1,
             plannerDebug: {
               attemptedProvider: "openai",
               usedProvider: "openai",
+              attemptedModel: "gpt-4.1-mini",
+              usedModel: "gpt-4.1-mini",
               providerAvailable: true,
               providerErrorCode: null,
               providerErrorMessage: null,
@@ -270,6 +396,95 @@ describe("AI orchestration provenance trace contract", () => {
       outputType: "planned_not_active",
       missingRuntimeTruth: true,
     });
+  });
+
+  it.each([
+    {
+      provider: "openai" as const,
+      model: "gpt-4.1-mini",
+      attempt: 1,
+    },
+    {
+      provider: "anthropic" as const,
+      model: "claude-sonnet-test",
+      attempt: 2,
+    },
+    {
+      provider: "mistral" as const,
+      model: "mistral-large-test",
+      attempt: 2,
+    },
+  ])(
+    "records the actual $provider model and provider attempt in planner and candidate traces",
+    ({ provider, model, attempt }) => {
+      const steps = buildCreateAiOrchestrationProvenanceTrace({
+        initialText: "Vor der Schule fehlen sichere Querungen.",
+        plannerResult: buildPlannerTraceResult({
+          provider,
+          model,
+          attempt,
+        }),
+        plannerTrace: {
+          requestId: `request-${provider}`,
+          operationId: `request-${provider}`,
+          operationType: "create_intelligent_followup_planner",
+          userScope: "present",
+        },
+      });
+      const plannerStep = steps.find(
+        (step) => step.stepId === "create_planner_trace",
+      );
+      const candidateStep = steps.find(
+        (step) => step.stepId === "claims_questions_review_handoff",
+      );
+
+      expect(plannerStep).toMatchObject({
+        provider,
+        model,
+        providerAttempt: attempt,
+        providerResultStatus: "succeeded",
+      });
+      expect(candidateStep).toMatchObject({
+        provider,
+        model,
+        providerAttempt: attempt,
+        providerResultStatus: "succeeded",
+      });
+      const serialized = JSON.stringify(candidateStep);
+      expect(serialized).not.toMatch(/prompt|completion|api[_-]?key|secret/i);
+    },
+  );
+
+  it("keeps the actual second provider and final degraded status visible after failure", () => {
+    const steps = buildCreateAiOrchestrationProvenanceTrace({
+      initialText: "Vor der Schule fehlen sichere Querungen.",
+      plannerResult: buildPlannerTraceResult({
+        provider: "anthropic",
+        model: "claude-sonnet-test",
+        attempt: 2,
+        finalFailure: true,
+      }),
+      plannerTrace: {
+        requestId: "request-final-failure",
+        operationId: "request-final-failure",
+        operationType: "create_intelligent_followup_planner",
+        userScope: "present",
+      },
+    });
+    const candidateStep = steps.find(
+      (step) => step.stepId === "claims_questions_review_handoff",
+    );
+
+    expect(candidateStep).toMatchObject({
+      provider: "anthropic",
+      model: "claude-sonnet-test",
+      providerAttempt: 2,
+      providerResultStatus: "degraded_fallback",
+      providerKnown: true,
+    });
+    expect(JSON.stringify(candidateStep)).not.toContain(
+      "sanitized provider failure",
+    );
   });
 
   it("keeps admin smoke provider truth technical and admin-only", () => {

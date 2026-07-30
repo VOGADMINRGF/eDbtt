@@ -158,4 +158,58 @@ describe("/api/create/intelligent-followup route", () => {
       }),
     );
   });
+
+  it("converts a final unhandled orchestration error into one safe support handoff", async () => {
+    mocks.buildCreateIntelligentFollowup.mockRejectedValue(
+      new Error("raw upstream planner failure"),
+    );
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/create/intelligent-followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: "Please preserve this contribution.",
+          locale: "en",
+          correlationId: "correlation-final-error",
+          draftId: "draft-final-error",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      result: {
+        sourceText: "Please preserve this contribution.",
+        meta: {
+          analysis: {
+            state: "ai_failed",
+            validationStatus: "failed",
+          },
+        },
+      },
+      supportHandoff: {
+        status: "created",
+        ticket: {
+          ticketNumber: "EDB-20260729-ROUTE001",
+        },
+      },
+      trace: {
+        requestId: "correlation-final-error",
+      },
+    });
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledTimes(1);
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: "correlation-final-error",
+        technicalErrorCode: "CREATE_FOLLOWUP_FAILED",
+        reason: "unhandled_orchestration_error",
+        draftId: "draft-final-error",
+        locale: "en",
+      }),
+    );
+    expect(JSON.stringify(body)).not.toContain("raw upstream planner failure");
+  });
 });

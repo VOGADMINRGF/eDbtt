@@ -398,12 +398,17 @@ export function buildCreateLightweightFollowupSnapshot(params: {
   };
 }
 
-function CreateSubmittedContributionBubble(props: { text: string }) {
+function CreateSubmittedContributionBubble(props: {
+  text: string;
+  locale: CreateVoxyLocale;
+}) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
       <div className="w-full max-w-[78%] min-w-0">
-        <p className="text-sm font-semibold text-[rgb(var(--muted))]">Du</p>
+        <p className="text-sm font-semibold text-[rgb(var(--muted))]">
+          {props.locale === "en" ? "You" : "Du"}
+        </p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
           <p className="whitespace-pre-wrap text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">
             {props.text}
@@ -1527,7 +1532,10 @@ export default function CreateClient({
   const renderWorkspaceThread = () =>
     showLinkClarification && linkClarificationState ? (
       <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
-        <CreateSubmittedContributionBubble text={followupSnapshot?.originalText ?? normalizedIntakeText} />
+        <CreateSubmittedContributionBubble
+          text={followupSnapshot?.originalText ?? normalizedIntakeText}
+          locale={surfaceLocale}
+        />
         <CreateLinkIntakeClarification
           locale={surfaceLocale}
           detection={linkClarificationState.detection}
@@ -1738,7 +1746,10 @@ export default function CreateClient({
         data-create-loading-thread={isStarting ? "true" : undefined}
         className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]"
       >
-        <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
+        <CreateSubmittedContributionBubble
+          text={followupSnapshot.originalText}
+          locale={surfaceLocale}
+        />
         <CreateAssistantStatusBubble
           eyebrow={isStarting ? "Verstehen" : surfaceTexts.followupUnderstandingLabel}
           title={isStarting ? "Ich ordne deinen Beitrag gerade …" : startChatAssistantTitle}

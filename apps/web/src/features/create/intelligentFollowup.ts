@@ -6,7 +6,9 @@ import {
   type CreatePlannerScope,
   type CreatePlannerStance,
 } from "@/features/create/createPlanner";
-import { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
+import {
+  hasValidatedCreatePlannerProviderIdentity,
+} from "@/features/create/createPlannerProviderContract";
 import {
   buildCreateTechnicalFollowup,
 } from "@/features/create/intelligentFollowupResults";
@@ -167,7 +169,7 @@ function buildGraphMatchPlan(planner?: CreatePlannerResult | null): CreateFollow
   const graphAllowed =
     planner?.qualityStatus === "specific" &&
     planner.plannerDegraded === false &&
-    isCreatePlannerProviderSource(planner.source);
+    hasValidatedCreatePlannerProviderIdentity(planner);
   if (!graphAllowed || !planner) {
     return {
       stage: "after_structure",
@@ -205,11 +207,19 @@ function buildGraphMatchPlan(planner?: CreatePlannerResult | null): CreateFollow
   };
 }
 
-function resolveTextAnalysisFailureMessage(planner: CreatePlannerResult): string {
+function resolveTextAnalysisFailureMessage(
+  planner: CreatePlannerResult,
+  locale: string,
+): string {
+  const isEnglish = locale.trim().toLowerCase().startsWith("en");
   if (planner.degradedReason === "missing_provider_key") {
-    return "Die KI-Analyse ist derzeit nicht verfügbar. Es wurden keine Themen oder Zusammenfassungen erzeugt.";
+    return isEnglish
+      ? "The AI analysis is currently unavailable. No topics or summaries were generated."
+      : "Die KI-Analyse ist derzeit nicht verfügbar. Es wurden keine Themen oder Zusammenfassungen erzeugt.";
   }
-  return "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden deshalb keine Themen abgeleitet.";
+  return isEnglish
+    ? "The AI analysis could not be completed. No topics were derived."
+    : "Die KI-Analyse konnte noch nicht durchgeführt werden. Es wurden deshalb keine Themen abgeleitet.";
 }
 
 export async function buildCreateIntelligentFollowup(
@@ -229,7 +239,7 @@ export async function buildCreateIntelligentFollowup(
   });
 
   if (
-    !isCreatePlannerProviderSource(planner.source) ||
+    !hasValidatedCreatePlannerProviderIdentity(planner) ||
     planner.qualityStatus !== "specific" ||
     planner.plannerDegraded
   ) {
@@ -238,7 +248,7 @@ export async function buildCreateIntelligentFollowup(
       analysisState: "ai_failed",
       sourceType: "text",
       sourceLoaded: true,
-      userMessage: resolveTextAnalysisFailureMessage(planner),
+      userMessage: resolveTextAnalysisFailureMessage(planner, input.locale),
       generatedAt,
       planner,
     });

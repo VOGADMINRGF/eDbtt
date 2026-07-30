@@ -68,7 +68,103 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).toContain("Ich habe die Meldung an unser IT-Team übergeben.");
     expect(html).toContain("EDB-20260729-ABC12345");
     expect(html).toContain("Ticket ansehen");
+    expect(html).toContain(">Du<");
+    expect(html).toContain("Analyse blockiert");
+    expect(html).not.toContain("Analysis blocked");
+    expect(html).not.toContain(">You<");
     expect(html).not.toContain("Eingabe speichern");
+  });
+
+  it("renders the complete English failure handoff without German user-chat fragments", () => {
+    const longFailureMessage = `The AI analysis could not be completed. No topics were derived. ${"The saved contribution remains available for another controlled attempt. ".repeat(8)}`;
+    const result = buildCreateTechnicalFollowup({
+      text: "Safer crossings are needed near the school.",
+      analysisState: "ai_failed",
+      sourceType: "text",
+      sourceLoaded: true,
+      userMessage: longFailureMessage,
+    });
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={result}
+        locale="en"
+        supportHandoff={{
+          status: "created",
+          ticket: {
+            ticketNumber: "EDB-20260730-ENGLISH1",
+            status: "open",
+            safeUserMessage: "Your contribution is saved.",
+            viewHref: "/account?ticket=EDB-20260730-ENGLISH1#support-tickets",
+            notificationLinked: true,
+          },
+        }}
+        onConfirm={NOOP}
+        onEdit={NOOP}
+        onPrepareSubmission={NOOP}
+        onPrepareAnlassraum={NOOP}
+        onOpenDossierAppend={NOOP}
+        onOpenDossierCreate={NOOP}
+        onPrepareVote={NOOP}
+        onRetryPlanner={NOOP}
+        onDeferWork={NOOP}
+        continuationValue=""
+        onContinuationChange={NOOP}
+        onContinueConversation={NOOP}
+      />,
+    );
+
+    expect(html).toContain("1 · Contribution received");
+    expect(html).toContain(">You<");
+    expect(html).toContain("Analysis blocked");
+    expect(html).toContain("Your contribution is saved.");
+    expect(html).toContain("I handed the incident over to our IT team.");
+    expect(html).toContain(longFailureMessage);
+    expect(html).toContain("View ticket");
+    expect(html).not.toContain(">Du<");
+    expect(html).not.toContain("Deinen Beitrag");
+    expect(html).not.toContain("Die KI-Analyse");
+    expect(html).not.toContain("Fehlerreferenz");
+  });
+
+  it("keeps a failed English ticket persistence handoff honest and language-pure", () => {
+    const result = buildCreateTechnicalFollowup({
+      text: "Please check this contribution.",
+      analysisState: "ai_failed",
+      sourceType: "text",
+      sourceLoaded: true,
+      userMessage:
+        "The AI analysis could not be completed. No topics were derived.",
+    });
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={result}
+        locale="en"
+        supportHandoff={{
+          status: "failed",
+          technicalReference: "corr-english-failed",
+          safeUserMessage: "Your contribution is saved.",
+        }}
+        onConfirm={NOOP}
+        onEdit={NOOP}
+        onPrepareSubmission={NOOP}
+        onPrepareAnlassraum={NOOP}
+        onOpenDossierAppend={NOOP}
+        onOpenDossierCreate={NOOP}
+        onPrepareVote={NOOP}
+        onRetryPlanner={NOOP}
+        onDeferWork={NOOP}
+        continuationValue=""
+        onContinuationChange={NOOP}
+        onContinueConversation={NOOP}
+      />,
+    );
+
+    expect(html).toContain("No topics were derived.");
+    expect(html).toContain("Technical reference");
+    expect(html).toContain("corr-english-failed");
+    expect(html).not.toContain("I handed the incident over to our IT team.");
+    expect(html).not.toContain("Your ticket");
+    expect(html).not.toContain("Fehlerreferenz");
   });
 
   it("keeps the initial shell focused and places the no-publish guardrail by the composer", () => {
@@ -165,5 +261,8 @@ describe("/create Voxy and support recovery contract", () => {
     expect(startFlow).toContain("correlationId");
     expect(startFlow).toContain("draftId: runDraftId");
     expect(startFlow).toContain("autoPublish: false");
+    expect(source).toContain(
+      '{props.locale === "en" ? "You" : "Du"}',
+    );
   });
 });

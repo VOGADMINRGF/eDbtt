@@ -1044,14 +1044,23 @@ function derivePositionClusters(result: CreateIntelligentFollowupResult): string
   return clusters.slice(0, 3);
 }
 
-function UserContributionBubble(props: { text: string }) {
+function UserContributionBubble(props: {
+  text: string;
+  locale: CreateVoxyLocale;
+}) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="w-full max-w-[78%] min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">1 · Beitrag aufgenommen</p>
-          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">Du</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {props.locale === "en"
+              ? "1 · Contribution received"
+              : "1 · Beitrag aufgenommen"}
+          </p>
+          <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
+            {props.locale === "en" ? "You" : "Du"}
+          </p>
         </div>
         <div className="mt-2 rounded-[1.5rem] rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-5 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-[15px] leading-relaxed text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">{props.text}</p>
@@ -3904,7 +3913,7 @@ export default function CreateVisualFollowup({
               data-create-chat-thread
               className={`create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] ${embedInWorkspaceShell ? "" : "mt-5"}`}
             >
-              <UserContributionBubble text={result.sourceText} />
+              <UserContributionBubble text={result.sourceText} locale={locale} />
               {!hasValidatedAnalysis ? (
                 <AnalysisStateBubble
                   state={analysisState}

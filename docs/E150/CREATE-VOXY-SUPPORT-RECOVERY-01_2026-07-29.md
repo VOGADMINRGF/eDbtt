@@ -62,9 +62,10 @@ Progress-Pipeline konkurrierten mit dem eigentlichen Chat.
    bleibt die Oberfläche beim ehrlichen technischen Fehlerzustand.
 4. Der Nutzer kann sein Ticket ausschließlich über die eigene Account-Zuordnung
    lesen. Der administrative Statuspfad verlangt weiterhin 2FA.
-5. Der erste Statuswechsel auf `resolved` erzeugt idempotent eine persistente
+5. Der vorhandene Statuswechsel auf `resolved` erzeugt eine persistente
    Account-Nachricht und versucht danach zusätzlich die vorhandene E-Mail-Zustellung.
-   Ein E-Mail-Fehler nimmt die bereits gespeicherte In-App-Nachricht nicht zurück.
+   Die konkurrierende Resolution-/Mail-Idempotenz ist mit diesem Review-Follow-up
+   ausdrücklich nicht abgeschlossen und bleibt bis zum neuen Delta-Mailvertrag offen.
 
 ## Datenschutzgrenzen
 
@@ -129,6 +130,47 @@ Progress-Pipeline konkurrierten mit dem eigentlichen Chat.
 Der lokale Lauf nutzt Node `25.9.0`, obwohl das Repository Node `20.x` verlangt;
 pnpm meldet dies als Engine-Warnung. GitHub CI verwendet die kanonische
 Node-Version `20.19.0`.
+
+## Nicht überlappender Review-Follow-up — 2026-07-30
+
+- Die zentrale Planner-Provider-Identität akzeptiert validierte Ergebnisse von
+  `openai`, `anthropic` und `mistral` nur dann, wenn `source`, `plannerSource`
+  und `plannerProvider` auf denselben Provider aus der kanonischen Allowlist
+  zeigen. Die Dialog-Bridge enthält keinen OpenAI-only-Check mehr.
+- Der vollständige technische Fehlerchat ist für Deutsch und Englisch
+  sprachrein; unbekannte Sprachen fallen kontrolliert auf Deutsch zurück. Der
+  Nutzerabsender lautet im englischen Chat `You` statt `Du`. Rohe
+  Providerfehler werden weiterhin nicht gerendert.
+- Planner- und Candidate-Trace führen den tatsächlich eingesetzten oder zuletzt
+  versuchten Provider, den tatsächlichen Modellnamen, die Provider-Versuchsnummer
+  und den Ergebnisstatus. Prompts, Completions und Secrets sind nicht Teil
+  dieser Metadaten.
+- Fokussierte Provider-/Planner-/Dialog-/Sprach-/Provenienzmatrix:
+  `6` Testdateien / `37` Tests grün.
+- Nicht konkurrierende Create-/Support-Gesamtmatrix:
+  `19` Testdateien / `105` Tests grün; der eine Resolution-/Mail-Test wurde
+  bewusst übersprungen und nicht als grün gewertet.
+- Repo-kanonischer Focused-Create-CI-Satz:
+  `10` Testdateien / `85` Tests grün.
+- Web-PR-Critical-Guardrails:
+  `17` Testdateien / `63` Tests grün.
+- Production-Guardrails:
+  `12` Testdateien / `36` Tests grün.
+- Typecheck, Lint, Critical-Guardrail-Skript und `git diff --check`: grün.
+- Build mit den eingecheckten Werten aus `apps/web/.env.example`: grün;
+  `322/322` statische Seiten wurden erzeugt. Es wurden keine Preview- oder
+  Production-Secrets gelesen.
+- In der separaten Suite `create-candidate-preview.contract.test.ts` bestehen
+  weiterhin `0/3` Tests. Die Testdatei ist gegenüber `origin/main` unverändert; bereits
+  `origin/main` verlangt in `hasValidatedCreateSemanticOutput` eine validierte
+  `meta.analysis.state`, die diese ältere Fixture nicht setzt. Der PR ändert in
+  diesem Pfad ausschließlich die Providerprüfung von OpenAI-only auf die
+  bestehende Allowlist und erweitert die Defektklasse nicht. Die Fixture wurde
+  deshalb nicht sachfremd repariert und diese Suite wird nicht als grün
+  behauptet.
+- Das konkurrierende Resolution-/Mail-Idempotenz-Finding wurde weder im Code
+  noch in Tests oder Mail-Evidence verändert und bleibt bis zum neuen
+  Delta-Mailvertrag offen.
 
 ## Geänderte Dateien
 
