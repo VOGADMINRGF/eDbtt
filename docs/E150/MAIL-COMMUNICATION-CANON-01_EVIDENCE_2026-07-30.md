@@ -168,4 +168,7 @@ Status-/Resolution-Builder für eine konfliktarme spätere Anbindung bereit.
 
 ## PR- und Commit-Referenzen
 
-Werden nach Commit und Anlage des einzigen Draft-PR ergänzt.
+- Implementierungs-Commit:
+  `018a06b046af3b48395799eb348789d73773b48d`
+- Draft-PR: `#539`
+- Branch: `fix/mail-communication-canon-01`
