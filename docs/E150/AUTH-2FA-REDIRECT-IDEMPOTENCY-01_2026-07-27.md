@@ -79,3 +79,74 @@ Die technische Umsetzung setzt den Task ausschließlich auf `review`.
 8. Fokussierte Route-, Hook-, UI- und Regressions-Tests sind grün.
 9. Der technische Abschluss setzt den Task auf `review`.
 10. Ein manueller lokaler Smoke bleibt vor `done` erforderlich.
+
+## Technische Evidence — 2026-07-28
+
+### Root Cause
+
+- `useLoginFlow.submitTwoFactor()` setzte `loading` im `finally` auch nach
+  erfolgreicher Verifizierung wieder auf `false`.
+- Ein schneller zweiter Submit konnte vor dem nächsten React-Render einen
+  zweiten Verify-Request auslösen.
+- Die Verify-Route behandelte fehlende oder verbrauchte Challenges immer als
+  Fehler, auch wenn bereits eine gültige aktive 2FA-Session bestand.
+- Erfolgstelemetrie wurde nach Session- und Cookie-Erstellung awaited und
+  konnte dadurch die erfolgreiche Antwort verzögern oder in einen
+  `server_error` verwandeln.
+- Die Loginoberfläche zeigte die E-Mail-Challenge-Laufzeit auch für
+  zeitfensterbasierte Authenticator-Codes.
+- Externe Redirect-URLs wurden nicht als Ganzes verworfen; ihr Pfad wurde als
+  internes Ziel weiterverwendet. Login-Schleifen waren nicht gesondert
+  ausgeschlossen.
+
+### Umsetzung
+
+- synchroner `useRef`-Guard vor dem ersten `await`
+- terminale Zustände `submitting` und `redirecting`
+- `loading` bleibt nach Erfolg gesetzt; Formular, Methodenwahl, Codefeld,
+  Resend und Zurück-Aktion bleiben gesperrt
+- Guard wird nur nach einem echten Fehler kontrolliert freigegeben
+- atomarer Challenge-Consume über Status- und `consumedAt`-Filter
+- Replay-Erfolg nur über `getSessionUser(req)` bei gültiger, aktiver und
+  tatsächlich 2FA-authentifizierter Session
+- kein neuer Session-Write bei Replay
+- Session- und Cookie-Writes bleiben vollständig awaited
+- Erfolgs- und optionale Auth-Telemetrie laufen über einen lokal
+  fehlerentkoppelten Best-effort-Helper
+- externe Redirectziele werden verworfen; `/login`-Schleifen fallen auf das
+  rollenbasierte kanonische Ziel zurück
+- Minutenlaufzeit erscheint nur für den bestehenden E-Mail-OTP-Vertrag
+
+### Geänderte Produktpfade
+
+- `apps/web/src/hooks/useLoginFlow.ts`
+- `apps/web/src/components/auth/LoginPageShell.tsx`
+- `apps/web/src/components/auth/HeaderLoginInline.tsx`
+- `apps/web/src/app/api/auth/verify-2fa/route.ts`
+- `apps/web/src/app/api/auth/login/route.ts`
+- `apps/web/src/app/api/auth/sharedAuth.ts`
+- `apps/web/src/features/auth/roleExperienceContract.ts`
+- `core/telemetry/authEvents.ts`
+
+### Tests
+
+Grün:
+
+- 9 fokussierte Testdateien
+- 36 Tests
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+
+Der Produktions-Build:
+
+- Seitenvertrag grün
+- UI- und Tri-Mongo-Paket-Build grün
+- Next.js-Kompilierung grün
+- nachgelagertes Page-Data-Collect blockiert im secret-freien Worktree an
+  fehlenden bestehenden Pflichtwerten wie `JWT_SECRET` und den DB-/Graph-ENV
+- keine ENV-, Secret- oder Credential-Datei wurde gelesen oder verändert
+
+### Verbleibendes Gate
+
+Der dokumentierte manuelle Login-/TOTP-/E-Mail-OTP-Smoke einschließlich
+Reload-Persistenz bleibt vor `done` erforderlich.

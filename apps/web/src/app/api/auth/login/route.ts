@@ -6,6 +6,7 @@ import { logAuthEvent } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
 import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
+import { scheduleAuthEvent } from "../authEventScheduling";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -212,7 +213,7 @@ export async function POST(req: NextRequest) {
 
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);
-    await logAuthEvent("auth.login.success", {
+    scheduleAuthEvent("auth.login.success", {
       meta: { ipHash: sha256(ip), userHash: sha256(String(user._id)) },
     });
     return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });

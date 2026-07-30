@@ -169,6 +169,7 @@ const mocks = vi.hoisted(() => {
     ensureBasicPiiProfile: vi.fn(async () => {}),
     ensureEnvSuperadminSeed: vi.fn(async () => {}),
     sendMail: vi.fn(async () => {}),
+    scheduleAuthEvent: vi.fn(() => undefined),
   };
 });
 
@@ -200,6 +201,10 @@ vi.mock("@/utils/emailTemplates", () => ({
 
 vi.mock("@core/telemetry/authEvents", () => ({
   logAuthEvent: (...args: unknown[]) => mocks.logAuthEvent(...args),
+}));
+
+vi.mock("@/app/api/auth/authEventScheduling", () => ({
+  scheduleAuthEvent: (...args: unknown[]) => mocks.scheduleAuthEvent(...args),
 }));
 
 vi.mock("@core/pii/userProfileService", () => ({
@@ -291,6 +296,10 @@ describe("auth login route regressions", () => {
       }),
     );
     expect(mocks.applySessionCookies).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleAuthEvent).toHaveBeenCalledWith(
+      "auth.login.success",
+      expect.objectContaining({ meta: expect.any(Object) }),
+    );
   });
 
   it("auth fallback: stale pii password hash falls back to core hash and repairs credentials", async () => {
@@ -435,6 +444,7 @@ describe("auth login route regressions", () => {
     });
     expect(mocks.applySessionCookies).not.toHaveBeenCalled();
     expect(mocks.issueTwoFactorChallenge).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleAuthEvent).not.toHaveBeenCalled();
   });
 
   it("advertises an explicit email alternative for authenticator-based 2FA when an address exists", async () => {

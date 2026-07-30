@@ -25,6 +25,7 @@ export function HeaderLoginInline({
     switchingMethod,
     allowEmailFallback,
     error,
+    verificationState,
     submitCredentials,
     submitTwoFactor,
     requestEmailCode,
@@ -34,7 +35,9 @@ export function HeaderLoginInline({
   const normalizedCode = useMemo(() => normalizeTwoFactorCode(code), [code]);
   const showOtpOption = availableMethods.includes("otp");
   const showEmailOption = availableMethods.includes("email");
-  const canSubmitTwoFactor = normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !loading;
+  const twoFactorLocked = loading || verificationState !== "idle";
+  const canSubmitTwoFactor =
+    normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !twoFactorLocked;
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -108,7 +111,7 @@ export function HeaderLoginInline({
           )}
 
           {step === "twofactor" && (
-            <form onSubmit={handleCode} className="space-y-3">
+            <form onSubmit={handleCode} className="space-y-3" aria-busy={twoFactorLocked}>
               {(showOtpOption || showEmailOption) && (
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -127,7 +130,7 @@ export function HeaderLoginInline({
                           const ok = await selectTwoFactorMethod("otp");
                           if (ok) setCode("");
                         }}
-                        disabled={switchingMethod || requestingEmail || loading}
+                        disabled={switchingMethod || requestingEmail || twoFactorLocked}
                       >
                         Authenticator-App
                       </button>
@@ -144,7 +147,7 @@ export function HeaderLoginInline({
                           const ok = await selectTwoFactorMethod("email");
                           if (ok) setCode("");
                         }}
-                        disabled={switchingMethod || requestingEmail || loading}
+                        disabled={switchingMethod || requestingEmail || twoFactorLocked}
                       >
                         Code per E-Mail
                       </button>
@@ -166,6 +169,7 @@ export function HeaderLoginInline({
                 autoComplete="one-time-code"
                 maxLength={6}
                 required
+                disabled={twoFactorLocked}
               />
               {allowEmailFallback && method === "otp" && (
                 <button
@@ -175,7 +179,7 @@ export function HeaderLoginInline({
                     const ok = await selectTwoFactorMethod("email");
                     if (ok) setCode("");
                   }}
-                  disabled={switchingMethod || requestingEmail || loading}
+                  disabled={switchingMethod || requestingEmail || twoFactorLocked}
                 >
                   Ich habe keine Authenticator-App
                 </button>
@@ -188,24 +192,30 @@ export function HeaderLoginInline({
                     const ok = await requestEmailCode();
                     if (ok) setCode("");
                   }}
-                  disabled={switchingMethod || requestingEmail || loading}
+                  disabled={switchingMethod || requestingEmail || twoFactorLocked}
                 >
                   {requestingEmail ? "Sende Code per E-Mail …" : "Code per E-Mail senden"}
                 </button>
               )}
               {error && <p className="text-xs text-rose-600">{error}</p>}
+              {verificationState === "redirecting" && (
+                <p className="text-xs text-emerald-700" role="status">
+                  Anmeldung erfolgreich. Weiterleitung …
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   className="flex-1 rounded-md bg-slate-900 px-3 py-2 text-white shadow-sm disabled:opacity-60"
                   disabled={!canSubmitTwoFactor}
                 >
-                  {loading ? "…" : "Bestätigen"}
+                  {verificationState === "redirecting" ? "Weiterleitung …" : loading ? "…" : "Bestätigen"}
                 </button>
                 <button
                   type="button"
                   className="rounded-md border border-[rgb(var(--border))] px-3 py-2 text-[rgb(var(--muted))]"
                   onClick={reset}
+                  disabled={twoFactorLocked}
                 >
                   Zurück
                 </button>
