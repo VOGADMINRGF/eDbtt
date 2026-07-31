@@ -24,6 +24,11 @@ async function loadRateLimiter(): Promise<RateLimitFn | null> {
   }
 }
 
+function allowAll(limit: number, windowMs: number): RateLimitResult {
+  const resetAt = Date.now() + windowMs;
+  return { ok: true, remaining: limit, limit, resetAt, retryIn: 0 };
+}
+
 export function getClientIp(req: NextRequest): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
@@ -39,11 +44,7 @@ export async function rateLimitOrThrow(
   opts?: { salt?: string },
 ): Promise<RateLimitResult> {
   const limiter = await loadRateLimiter();
-  if (!limiter) {
-    const error = new Error("rate_limiter_unavailable");
-    error.name = "RateLimiterUnavailableError";
-    throw error;
-  }
+  if (!limiter) return allowAll(limit, windowMs);
   return limiter(key, limit, windowMs, opts);
 }
 
