@@ -320,7 +320,9 @@ function createMongoRepo(): TicketRepository {
         .sort({ createdAt: -1 })
         .limit(limit)
         .toArray();
-      return records.map(clone);
+      return records.map((record) =>
+        clone(normalizeCreateSupportTicketRecordForRuntime(record)),
+      );
     },
     async listNotifications(userId, limit) {
       await ensureIndexes();
@@ -332,9 +334,7 @@ function createMongoRepo(): TicketRepository {
         .sort({ createdAt: -1 })
         .limit(limit)
         .toArray();
-      return records.map((record) =>
-        clone(normalizeCreateSupportTicketRecordForRuntime(record)),
-      );
+      return records.map(clone);
     },
     async transitionStatus(input) {
       await ensureIndexes();
