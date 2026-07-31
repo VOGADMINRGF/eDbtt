@@ -1,10 +1,14 @@
 import "server-only";
 
+import crypto from "node:crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { stableHash } from "@core/utils/hash";
 import { getClientIp } from "@/utils/rateLimitHelpers";
-import { rateLimit } from "@/utils/rateLimit";
+import type {
+  PersistentRateLimitInput,
+  PersistentRateLimitResult,
+} from "@/utils/persistentRateLimit";
 import { getCreateContributionDraftForResumeRecord } from "@/server/serverDrafts";
 import {
   CREATE_MUTATION_CSRF_HEADER,
@@ -42,6 +46,22 @@ const RATE_LIMITS: Record<
 };
 
 const MAX_CREATE_MUTATION_BYTES = 64 * 1024;
+
+type CreateRateLimiter = (
+  input: PersistentRateLimitInput,
+) => Promise<PersistentRateLimitResult>;
+
+async function loadCreateRateLimiter(): Promise<CreateRateLimiter | null> {
+  if (process.env.NEXT_RUNTIME === "edge") return null;
+  const module = await import("@/utils/persistentRateLimit");
+  return typeof module.consumePersistentRateLimit === "function"
+    ? module.consumePersistentRateLimit
+    : null;
+}
+
+function digest(value: string) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
 
 function normalizeLocale(value: string | null | undefined) {
   return String(value ?? "")
@@ -107,20 +127,25 @@ export async function enforceCreateMutationSecurity(input: {
 
   const policy = RATE_LIMITS[input.scope];
   try {
-    const ip = getClientIp(input.req);
+    const limiter = await loadCreateRateLimiter();
+    if (!limiter) {
+      return genericSecurityFailure(503, "CREATE_RATE_LIMIT_UNAVAILABLE");
+    }
+    const actorHash = digest(`${input.scope}:actor:${input.actorKey}`);
+    const ipHash = digest(`${input.scope}:ip:${getClientIp(input.req)}`);
     const [userLimit, ipLimit] = await Promise.all([
-      rateLimit(
-        `${input.scope}:actor:${input.actorKey}`,
-        policy.userLimit,
-        policy.windowMs,
-        { salt: "create-route-security-v1" },
-      ),
-      rateLimit(
-        `${input.scope}:ip:${ip}`,
-        policy.ipLimit,
-        policy.windowMs,
-        { salt: "create-route-security-v1" },
-      ),
+      limiter({
+        namespace: `create:${input.scope}:actor`,
+        subjectHash: actorHash,
+        limit: policy.userLimit,
+        windowMs: policy.windowMs,
+      }),
+      limiter({
+        namespace: `create:${input.scope}:ip`,
+        subjectHash: ipHash,
+        limit: policy.ipLimit,
+        windowMs: policy.windowMs,
+      }),
     ]);
     const limited = !userLimit.ok ? userLimit : !ipLimit.ok ? ipLimit : null;
     if (limited) {
