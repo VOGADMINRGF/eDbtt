@@ -51,6 +51,7 @@ export function buildCreateWorkspaceStages(params: {
   isBusy: boolean;
   analysisState?: CreateAnalysisState | null;
   hasValidatedTopics?: boolean;
+  locale?: "de" | "en";
 }): CreateWorkspaceStage[] {
   const stageOrder: CreateWorkspaceStageId[] = [
     "input",
@@ -61,64 +62,91 @@ export function buildCreateWorkspaceStages(params: {
   ];
   const analysisFailed =
     params.analysisState === "ai_failed" || params.analysisState === "fetch_failed";
+  const isEnglish = params.locale === "en";
   if (analysisFailed) {
     return [
       {
         id: "input",
-        title: "1 · Beitrag aufgenommen",
-        lead: "Text liegt im Workspace.",
+        title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+        lead: isEnglish ? "The text is available in the workspace." : "Text liegt im Workspace.",
         status: "done",
       },
       {
         id: "understanding",
-        title: "2 · Analyse blockiert",
-        lead: "Es liegen noch keine validierten Themen vor.",
+        title: isEnglish ? "2 · Analysis blocked" : "2 · Analyse blockiert",
+        lead: isEnglish
+          ? "No validated topics are available yet."
+          : "Es liegen noch keine validierten Themen vor.",
         status: "error",
       },
       {
         id: "topics",
-        title: "3 · Entscheidung offen",
-        lead: "Wird nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+        lead: isEnglish
+          ? "Available after a successful analysis."
+          : "Wird nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
       {
         id: "sources",
-        title: "4 · Quellen optional",
-        lead: "Bleibt bis zur validierten Analyse gesperrt.",
+        title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+        lead: isEnglish
+          ? "Locked until the analysis has been validated."
+          : "Bleibt bis zur validierten Analyse gesperrt.",
         status: "locked",
       },
       {
         id: "draft",
-        title: "5 · Entwurf",
-        lead: "Wird erst nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+        lead: isEnglish
+          ? "Available only after a successful analysis."
+          : "Wird erst nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
     ];
   }
   const labels: Record<CreateWorkspaceStageId, { title: string; lead: string }> = {
     input: {
-      title: "1 · Beitrag aufgenommen",
-      lead: "Text liegt im Workspace.",
+      title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+      lead: isEnglish ? "The text is available in the workspace." : "Text liegt im Workspace.",
     },
     understanding: {
-      title: params.hasValidatedTopics ? "2 · Themen erkannt" : "2 · Analyse läuft",
+      title: params.hasValidatedTopics
+        ? isEnglish
+          ? "2 · Topics detected"
+          : "2 · Themen erkannt"
+        : isEnglish
+          ? "2 · Analysis in progress"
+          : "2 · Analyse läuft",
       lead: params.hasValidatedTopics
-        ? "Erste Themen sind sichtbar."
+        ? isEnglish
+          ? "Initial topics are visible."
+          : "Erste Themen sind sichtbar."
         : params.isBusy
-          ? "Einordnung läuft."
-          : "Die Einordnung wird vorbereitet.",
+          ? isEnglish
+            ? "Classification is in progress."
+            : "Einordnung läuft."
+          : isEnglish
+            ? "Classification is being prepared."
+            : "Die Einordnung wird vorbereitet.",
     },
     topics: {
-      title: "3 · Entscheidung offen",
-      lead: "Du wählst Fokus oder Themenstruktur.",
+      title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+      lead: isEnglish
+        ? "You choose the focus or topic structure."
+        : "Du wählst Fokus oder Themenstruktur.",
     },
     sources: {
-      title: "4 · Quellen optional",
-      lead: "Quellenmodus bleibt bewusst optional.",
+      title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+      lead: isEnglish
+        ? "Source mode remains optional."
+        : "Quellenmodus bleibt bewusst optional.",
     },
     draft: {
-      title: "5 · Entwurf",
-      lead: "Danach schärfen, speichern oder weiterführen.",
+      title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+      lead: isEnglish
+        ? "Then refine, save, or continue."
+        : "Danach schärfen, speichern oder weiterführen.",
     },
   };
 
@@ -214,8 +242,8 @@ export default function CreateWorkspaceShell({
   renderMobileSidecarSummary,
 }: CreateWorkspaceShellProps) {
   const resolvedStages = React.useMemo(
-    () => stages ?? buildCreateWorkspaceStages({ activeStage, isBusy }),
-    [activeStage, isBusy, stages],
+    () => stages ?? buildCreateWorkspaceStages({ activeStage, isBusy, locale }),
+    [activeStage, isBusy, locale, stages],
   );
   const [desktopSidecarMode, setDesktopSidecarMode] =
     React.useState<DesktopSidecarMode>("compact");

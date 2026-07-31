@@ -73,39 +73,39 @@ describe("create support ticket contract", () => {
     });
   });
 
-  it("requires a server-bound actor and never exposes an account link for guests", async () => {
+  it("requires a verified user binding and exposes tickets only to that account", async () => {
     await expect(
       ensureCreateSupportTicket({
+        affectedUserId: "",
         orchestrationPhase: "intelligent_followup",
         correlationId: "correlation-without-actor",
         technicalErrorCode: "CREATE_AI_FAILED",
       }),
     ).rejects.toThrow("create_support_ticket_actor_required");
 
-    const guest = await ensureCreateSupportTicket({
-      anonymousSessionId: "create-anon-verified-1",
+    const ticket = await ensureCreateSupportTicket({
+      affectedUserId: "verified-user-1",
       orchestrationPhase: "intelligent_followup",
-      correlationId: "correlation-guest-1",
+      correlationId: "correlation-user-1",
       technicalErrorCode: "CREATE_AI_FAILED",
       reason: "timeout",
-      draftId: "draft-guest-1",
+      draftId: "draft-user-1",
       locale: "en",
     });
 
-    expect(guest).toMatchObject({
-      viewHref: "",
-      notificationLinked: false,
+    expect(ticket).toMatchObject({
+      viewHref: expect.stringContaining("/account?ticket="),
+      notificationLinked: true,
     });
     await expect(
-      getCreateSupportTicketByNumberForAdmin(guest.ticketNumber),
+      getCreateSupportTicketByNumberForAdmin(ticket.ticketNumber),
     ).resolves.toMatchObject({
-      affectedUserId: null,
-      anonymousSessionId: "create-anon-verified-1",
-      notificationRecipientLinked: false,
-      notificationStatus: "not_applicable",
+      affectedUserId: "verified-user-1",
+      notificationRecipientLinked: true,
+      notificationStatus: "pending",
     });
     await expect(
-      getCreateSupportTicketForUser(guest.ticketNumber, "later-user"),
+      getCreateSupportTicketForUser(ticket.ticketNumber, "later-user"),
     ).resolves.toBeNull();
   });
 

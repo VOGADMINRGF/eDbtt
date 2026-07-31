@@ -23,6 +23,9 @@ describe("/create Voxy and support recovery contract", () => {
     expect(getCreateVoxyCopy("de", "user@example.org").greeting).toBe(
       "Hallo Nachbar,",
     );
+    expect(
+      getCreateVoxyCopy("fr" as unknown as "de", null).greeting,
+    ).toBe("Hallo Nachbar,");
   });
 
   it("renders the truthful ticket recovery message without another save action", () => {
@@ -68,6 +71,11 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).toContain("Ich habe die Meldung an unser IT-Team übergeben.");
     expect(html).toContain("EDB-20260729-ABC12345");
     expect(html).toContain("Ticket ansehen");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('aria-atomic="true"');
+    expect(html).toContain('tabindex="-1"');
+    expect(html).toContain("[overflow-wrap:anywhere]");
     expect(html).toContain(">Du<");
     expect(html).toContain("Analyse blockiert");
     expect(html).not.toContain("Analysis blocked");
@@ -118,8 +126,12 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).toContain("Analysis blocked");
     expect(html).toContain("Your contribution is saved.");
     expect(html).toContain("I handed the incident over to our IT team.");
-    expect(html).toContain(longFailureMessage);
+    expect(html).toContain(longFailureMessage.trim());
     expect(html).toContain("View ticket");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('tabindex="-1"');
+    expect(html).toContain("sm:max-w-[78%]");
     expect(html).not.toContain(">Du<");
     expect(html).not.toContain("Deinen Beitrag");
     expect(html).not.toContain("Die KI-Analyse");
@@ -161,10 +173,46 @@ describe("/create Voxy and support recovery contract", () => {
 
     expect(html).toContain("No topics were derived.");
     expect(html).toContain("Technical reference");
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain('aria-live="assertive"');
+    expect(html).toContain('tabindex="-1"');
     expect(html).toContain("corr-english-failed");
     expect(html).not.toContain("I handed the incident over to our IT team.");
     expect(html).not.toContain("Your ticket");
     expect(html).not.toContain("Fehlerreferenz");
+  });
+
+  it("does not render raw provider failures in the user-facing recovery state", () => {
+    const result = buildCreateTechnicalFollowup({
+      text: "Please check this contribution.",
+      analysisState: "ai_failed",
+      sourceType: "text",
+      sourceLoaded: true,
+      userMessage:
+        "Anthropic 529 overloaded_error: request req_secret_provider_trace failed",
+    });
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={result}
+        locale="en"
+        onConfirm={NOOP}
+        onEdit={NOOP}
+        onPrepareSubmission={NOOP}
+        onPrepareAnlassraum={NOOP}
+        onOpenDossierAppend={NOOP}
+        onOpenDossierCreate={NOOP}
+        onPrepareVote={NOOP}
+        onRetryPlanner={NOOP}
+        onDeferWork={NOOP}
+        continuationValue=""
+        onContinuationChange={NOOP}
+        onContinueConversation={NOOP}
+      />,
+    );
+
+    expect(html).toContain("The analysis could not be completed.");
+    expect(html).not.toContain("overloaded_error");
+    expect(html).not.toContain("req_secret_provider_trace");
   });
 
   it("keeps the initial shell focused and places the no-publish guardrail by the composer", () => {
@@ -214,7 +262,6 @@ describe("/create Voxy and support recovery contract", () => {
             ticketNumber: "EDB-20260729-ABC12345",
             status: "resolved",
             affectedUserId: "user-1",
-            anonymousSessionId: null,
             route: "/create",
             orchestrationPhase: "intelligent_followup",
             correlationId: "correlation-1",
@@ -264,5 +311,32 @@ describe("/create Voxy and support recovery contract", () => {
     expect(source).toContain(
       '{props.locale === "en" ? "You" : "Du"}',
     );
+  });
+
+  it("keeps loading, focus, keyboard, and 320px recovery safeguards wired", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const composerSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
+      "utf8",
+    );
+
+    expect(clientSource).toContain('role={props.announce ? "status" : undefined}');
+    expect(clientSource).toContain('aria-live={props.announce ? "polite" : undefined}');
+    expect(clientSource).toContain("lastFocusedDynamicStatusRef.current === focusKey");
+    expect(clientSource).toContain("isActivelyTyping");
+    expect(clientSource).toContain("target.focus({ preventScroll: true })");
+    expect(followupSource).toContain("flex-col gap-2.5 sm:flex-row");
+    expect(followupSource).toContain("w-full px-4 py-2");
+    expect(followupSource).toContain("focus-visible:outline");
+    expect(followupSource).toContain("[overflow-wrap:anywhere]");
+    expect(composerSource).toContain('role="alert"');
+    expect(composerSource).toContain('tabIndex={-1}');
   });
 });

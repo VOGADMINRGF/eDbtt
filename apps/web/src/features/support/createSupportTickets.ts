@@ -37,7 +37,6 @@ export type CreateSupportTicketRecord = {
   ticketNumber: string;
   status: CreateSupportTicketStatus;
   affectedUserId: string | null;
-  anonymousSessionId: string | null;
   route: "/create";
   orchestrationPhase: string;
   correlationId: string;
@@ -354,8 +353,7 @@ function getRepo() {
 }
 
 export async function ensureCreateSupportTicket(input: {
-  affectedUserId?: string | null;
-  anonymousSessionId?: string | null;
+  affectedUserId: string;
   orchestrationPhase: string;
   correlationId: string;
   traceId?: string | null;
@@ -378,15 +376,10 @@ export async function ensureCreateSupportTicket(input: {
     "intelligent_followup",
   );
   const affectedUserId = normalizeOptionalId(input.affectedUserId);
-  const anonymousSessionId = affectedUserId
-    ? null
-    : normalizeOptionalId(input.anonymousSessionId);
-  if (!affectedUserId && !anonymousSessionId) {
+  if (!affectedUserId) {
     throw new Error("create_support_ticket_actor_required");
   }
-  const actorBinding = affectedUserId
-    ? `user:${affectedUserId}`
-    : `anonymous:${anonymousSessionId}`;
+  const actorBinding = `user:${affectedUserId}`;
   const failureFingerprint = stableHash({
     route: "/create",
     actorBinding,
@@ -400,7 +393,6 @@ export async function ensureCreateSupportTicket(input: {
     ticketNumber,
     status: "open",
     affectedUserId,
-    anonymousSessionId,
     route: "/create",
     orchestrationPhase,
     correlationId,
@@ -417,8 +409,8 @@ export async function ensureCreateSupportTicket(input: {
     createdAt,
     updatedAt: createdAt,
     resolvedAt: null,
-    notificationRecipientLinked: Boolean(affectedUserId),
-    notificationStatus: affectedUserId ? "pending" : "not_applicable",
+    notificationRecipientLinked: true,
+    notificationStatus: "pending",
   };
   const ensured = await getRepo().ensure(record);
   if (ensured.created) {
@@ -438,11 +430,9 @@ export async function ensureCreateSupportTicket(input: {
     ticketNumber: ensured.record.ticketNumber,
     status: ensured.record.status,
     safeUserMessage: localizedCopy(locale, ensured.record.ticketNumber).safeUserMessage,
-    viewHref: ensured.record.affectedUserId
-      ? `/account?ticket=${encodeURIComponent(
-          ensured.record.ticketNumber,
-        )}#support-tickets`
-      : "",
+    viewHref: `/account?ticket=${encodeURIComponent(
+      ensured.record.ticketNumber,
+    )}#support-tickets`,
     notificationLinked: ensured.record.notificationRecipientLinked,
   };
 }

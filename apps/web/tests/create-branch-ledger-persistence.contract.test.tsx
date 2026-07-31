@@ -110,7 +110,12 @@ function countOccurrences(haystack: string, needle: string) {
 function req(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/create/save", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      origin: "http://localhost",
+      "sec-fetch-site": "same-origin",
+      "x-edebatte-create-csrf": "create-mutation-v1",
+    },
     body: JSON.stringify(body),
   });
 }

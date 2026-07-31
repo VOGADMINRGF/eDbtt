@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   buildCreateIntelligentFollowup: vi.fn(),
   ensureCreateSupportTicket: vi.fn(),
   getSessionUser: vi.fn(),
-  resolveVerifiedCreateActor: vi.fn(),
+  enforceCreateMutationSecurity: vi.fn(),
+  verifyCreateDraftBinding: vi.fn(),
   runCreateOrchestrationSingleFlight: vi.fn(),
   markExternalExecutionStarted: vi.fn(),
 }));
@@ -19,10 +21,11 @@ vi.mock("@/features/support/createSupportTickets", () => ({
 vi.mock("@/lib/server/auth/sessionUser", () => ({
   getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
 }));
-vi.mock("@/features/create/createAnonymousSession", () => ({
-  resolveVerifiedCreateActor: (...args: unknown[]) =>
-    mocks.resolveVerifiedCreateActor(...args),
-  applyVerifiedCreateActorCookie: (response: Response) => response,
+vi.mock("@/features/create/createRouteSecurity", () => ({
+  enforceCreateMutationSecurity: (...args: unknown[]) =>
+    mocks.enforceCreateMutationSecurity(...args),
+  verifyCreateDraftBinding: (...args: unknown[]) =>
+    mocks.verifyCreateDraftBinding(...args),
 }));
 vi.mock("@/features/create/createOrchestrationSingleFlight", () => ({
   runCreateOrchestrationSingleFlight: (...args: unknown[]) =>
@@ -31,25 +34,36 @@ vi.mock("@/features/create/createOrchestrationSingleFlight", () => ({
 
 import { POST } from "@/app/api/create/intelligent-followup/route";
 
+const SECURE_HEADERS = {
+  "content-type": "application/json",
+  origin: "http://localhost",
+  "sec-fetch-site": "same-origin",
+  "x-edebatte-create-csrf": "create-mutation-v1",
+};
+
+function request(body: Record<string, unknown>) {
+  return new NextRequest("http://localhost/api/create/intelligent-followup", {
+    method: "POST",
+    headers: SECURE_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
 describe("/api/create/intelligent-followup route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getSessionUser.mockResolvedValue(null);
-    mocks.resolveVerifiedCreateActor.mockImplementation(
-      async (_req: unknown, userId: string | null) =>
-        userId
-          ? {
-              actorKey: `user:${userId}`,
-              affectedUserId: userId,
-              anonymousSessionId: null,
-              responseCookie: null,
-            }
-          : {
-              actorKey: "anonymous:create-anon-route",
-              affectedUserId: null,
-              anonymousSessionId: "create-anon-route",
-              responseCookie: null,
-            },
+    mocks.getSessionUser.mockResolvedValue({
+      _id: { toString: () => "user-1" },
+      sessionValid: true,
+    });
+    mocks.enforceCreateMutationSecurity.mockResolvedValue(null);
+    mocks.verifyCreateDraftBinding.mockImplementation(
+      async (input: { draftId: string; userId: string }) => ({
+        draftId: input.draftId,
+        userId: input.userId,
+        payloadHash: `payload-${input.draftId}`,
+        inputHash: `draft-input-${input.draftId}`,
+      }),
     );
     mocks.markExternalExecutionStarted.mockResolvedValue(undefined);
     mocks.runCreateOrchestrationSingleFlight.mockImplementation(
@@ -77,9 +91,6 @@ describe("/api/create/intelligent-followup route", () => {
   });
 
   it("creates a user-safe support handoff for a degraded planner result", async () => {
-    mocks.getSessionUser.mockResolvedValue({
-      _id: { toString: () => "user-1" },
-    });
     mocks.buildCreateIntelligentFollowup.mockResolvedValue({
       sourceText: "Input",
       meta: {
@@ -95,18 +106,12 @@ describe("/api/create/intelligent-followup route", () => {
       },
     });
 
-    const response = await POST(
-      new NextRequest("http://localhost/api/create/intelligent-followup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: "Input",
-          locale: "de",
-          correlationId: "correlation-route-1",
-          draftId: "draft-route-1",
-        }),
-      }),
-    );
+    const response = await POST(request({
+      text: "Input",
+      locale: "de",
+      correlationId: "correlation-route-1",
+      draftId: "draft-route-1",
+    }));
     const body = await response.json();
 
     expect(body.ok).toBe(true);
@@ -125,13 +130,7 @@ describe("/api/create/intelligent-followup route", () => {
   });
 
   it("returns 400 on empty text", async () => {
-    const response = await POST(
-      new NextRequest("http://localhost/api/create/intelligent-followup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: "   " }),
-      }),
-    );
+    const response = await POST(request({ text: "   " }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
@@ -174,20 +173,14 @@ describe("/api/create/intelligent-followup route", () => {
       degradedReason: null,
     });
 
-    const response = await POST(
-      new NextRequest("http://localhost/api/create/intelligent-followup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: "Input",
-          locale: "de",
-          intent: "contribute",
-          dossierId: "dossier-1",
-          correlationId: "correlation-valid-route",
-          draftId: "draft-valid-route",
-        }),
-      }),
-    );
+    const response = await POST(request({
+      text: "Input",
+      locale: "de",
+      intent: "contribute",
+      dossierId: "dossier-1",
+      correlationId: "correlation-valid-route",
+      draftId: "draft-valid-route",
+    }));
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.ok).toBe(true);
@@ -196,7 +189,7 @@ describe("/api/create/intelligent-followup route", () => {
       requestId: "correlation-valid-route",
       operationId: "correlation-valid-route",
       operationType: "create_intelligent_followup_planner",
-      userScope: "verified_anonymous",
+      userScope: "present",
       singleFlight: "owner",
     });
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledTimes(1);
@@ -205,7 +198,7 @@ describe("/api/create/intelligent-followup route", () => {
         requestId: expect.any(String),
         operationId: expect.any(String),
         operationType: "create_intelligent_followup_planner",
-        userId: null,
+        userId: "user-1",
         dossierId: "dossier-1",
       }),
     );
@@ -216,19 +209,12 @@ describe("/api/create/intelligent-followup route", () => {
       new Error("raw upstream planner failure"),
     );
 
-    const response = await POST(
-      new NextRequest("http://localhost/api/create/intelligent-followup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: "Please preserve this contribution.",
-          locale: "en",
-          correlationId: "correlation-final-error",
-          draftId: "draft-final-error",
-          anonymousSessionId: "foreign-client-session",
-        }),
-      }),
-    );
+    const response = await POST(request({
+      text: "Please preserve this contribution.",
+      locale: "en",
+      correlationId: "correlation-final-error",
+      draftId: "draft-final-error",
+    }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -256,7 +242,7 @@ describe("/api/create/intelligent-followup route", () => {
     expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledTimes(1);
     expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
       expect.objectContaining({
-        anonymousSessionId: "create-anon-route",
+        affectedUserId: "user-1",
         correlationId: "correlation-final-error",
         technicalErrorCode: "CREATE_FOLLOWUP_FAILED",
         reason: "unhandled_orchestration_error",
@@ -264,11 +250,75 @@ describe("/api/create/intelligent-followup route", () => {
         locale: "en",
       }),
     );
-    expect(mocks.ensureCreateSupportTicket).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        anonymousSessionId: "foreign-client-session",
+    expect(JSON.stringify(body)).not.toContain("raw upstream planner failure");
+  });
+
+  it("rejects an anonymous direct request before security, draft, claim, provider, or ticket work", async () => {
+    mocks.getSessionUser.mockResolvedValue(null);
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/create/intelligent-followup", {
+        method: "POST",
+        body: "{malformed-json",
       }),
     );
-    expect(JSON.stringify(body)).not.toContain("raw upstream planner failure");
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+    });
+    expect(mocks.enforceCreateMutationSecurity).not.toHaveBeenCalled();
+    expect(mocks.verifyCreateDraftBinding).not.toHaveBeenCalled();
+    expect(mocks.runCreateOrchestrationSingleFlight).not.toHaveBeenCalled();
+    expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
+    expect(mocks.ensureCreateSupportTicket).not.toHaveBeenCalled();
+  });
+
+  it.each(["invented-draft", "foreign-draft"])(
+    "rejects %s without disclosing draft existence or starting side effects",
+    async (draftId) => {
+      mocks.verifyCreateDraftBinding.mockResolvedValue(null);
+
+      const response = await POST(request({
+        text: "Bound input",
+        locale: "de",
+        correlationId: `correlation-${draftId}`,
+        draftId,
+      }));
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        ok: false,
+        errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+        message: "Die Anfrage konnte nicht verarbeitet werden.",
+      });
+      expect(mocks.runCreateOrchestrationSingleFlight).not.toHaveBeenCalled();
+      expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
+      expect(mocks.ensureCreateSupportTicket).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails closed when the create-specific limiter is unavailable", async () => {
+    mocks.enforceCreateMutationSecurity.mockResolvedValue(
+      NextResponse.json(
+        { ok: false, errorCode: "CREATE_RATE_LIMIT_UNAVAILABLE" },
+        { status: 503 },
+      ),
+    );
+
+    const response = await POST(request({
+      text: "Input",
+      locale: "de",
+      correlationId: "correlation-limiter-failure",
+      draftId: "draft-limiter-failure",
+    }));
+
+    expect(response.status).toBe(503);
+    expect(mocks.verifyCreateDraftBinding).not.toHaveBeenCalled();
+    expect(mocks.runCreateOrchestrationSingleFlight).not.toHaveBeenCalled();
+    expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
+    expect(mocks.ensureCreateSupportTicket).not.toHaveBeenCalled();
   });
 });

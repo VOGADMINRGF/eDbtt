@@ -5,7 +5,8 @@ const mocks = vi.hoisted(() => ({
   buildCreateIntelligentFollowup: vi.fn(),
   ensureCreateSupportTicket: vi.fn(),
   getSessionUser: vi.fn(),
-  resolveVerifiedCreateActor: vi.fn(),
+  enforceCreateMutationSecurity: vi.fn(),
+  verifyCreateDraftBinding: vi.fn(),
 }));
 
 vi.mock("@/features/create/intelligentFollowup", () => ({
@@ -19,10 +20,11 @@ vi.mock("@/features/support/createSupportTickets", () => ({
 vi.mock("@/lib/server/auth/sessionUser", () => ({
   getSessionUser: (...args: unknown[]) => mocks.getSessionUser(...args),
 }));
-vi.mock("@/features/create/createAnonymousSession", () => ({
-  resolveVerifiedCreateActor: (...args: unknown[]) =>
-    mocks.resolveVerifiedCreateActor(...args),
-  applyVerifiedCreateActorCookie: (response: Response) => response,
+vi.mock("@/features/create/createRouteSecurity", () => ({
+  enforceCreateMutationSecurity: (...args: unknown[]) =>
+    mocks.enforceCreateMutationSecurity(...args),
+  verifyCreateDraftBinding: (...args: unknown[]) =>
+    mocks.verifyCreateDraftBinding(...args),
 }));
 
 import { POST } from "@/app/api/create/intelligent-followup/route";
@@ -42,7 +44,12 @@ function request(input: {
 }) {
   return new NextRequest("http://localhost/api/create/intelligent-followup", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      origin: "http://localhost",
+      "sec-fetch-site": "same-origin",
+      "x-edebatte-create-csrf": "create-mutation-v1",
+    },
     body: JSON.stringify({
       text: input.text ?? "Mehr sichere Schulwege.",
       locale: "de",
@@ -77,19 +84,25 @@ describe("persistent create orchestration single-flight", () => {
     setCreateOrchestrationClaimRepoForTests(
       createInMemoryCreateOrchestrationClaimRepo(),
     );
-    mocks.getSessionUser.mockResolvedValue(null);
-    mocks.resolveVerifiedCreateActor.mockResolvedValue({
-      actorKey: "anonymous:create-anon-single-flight",
-      affectedUserId: null,
-      anonymousSessionId: "create-anon-single-flight",
-      responseCookie: null,
+    mocks.getSessionUser.mockResolvedValue({
+      _id: { toString: () => "single-flight-user" },
+      sessionValid: true,
     });
+    mocks.enforceCreateMutationSecurity.mockResolvedValue(null);
+    mocks.verifyCreateDraftBinding.mockImplementation(
+      async (input: { draftId: string; userId: string }) => ({
+        draftId: input.draftId,
+        userId: input.userId,
+        payloadHash: `payload-${input.draftId}`,
+        inputHash: `input-${input.draftId}`,
+      }),
+    );
     mocks.ensureCreateSupportTicket.mockResolvedValue({
       ticketNumber: "EDB-20260730-SINGLE01",
       status: "open",
       safeUserMessage: "Dein Beitrag ist gespeichert.",
-      viewHref: "",
-      notificationLinked: false,
+      viewHref: "/account?ticket=EDB-20260730-SINGLE01#support-tickets",
+      notificationLinked: true,
     });
   });
 
@@ -178,7 +191,7 @@ describe("persistent create orchestration single-flight", () => {
     const repo = createInMemoryCreateOrchestrationClaimRepo();
     setCreateOrchestrationClaimRepoForTests(repo);
     const keyInput = {
-      actorKey: "anonymous:create-anon-stale",
+      actorKey: "user:create-single-flight-stale",
       draftId: "draft-stale",
       correlationId: "correlation-stale",
       operationType: OPERATION_TYPE,

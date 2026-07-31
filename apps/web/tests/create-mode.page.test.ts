@@ -53,6 +53,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  redirect: (href: string) => {
+    throw new Error(`redirect:${href}`);
+  },
 }));
 
 import CreatePage from "@/app/create/page";
@@ -118,6 +121,19 @@ describe("/create start surface", () => {
     mocks.resolveCurrentRequestScopeContext.mockResolvedValue(null);
     mocks.summarizeRequestScopeContext.mockReturnValue(null);
     mocks.analyzeWorkspaceCalls.length = 0;
+  });
+
+  it("redirects a guest to login without rendering the create workspace", async () => {
+    mocks.getCreateEntitlementsForRequest.mockResolvedValue({
+      ...AUTH_ENTITLEMENTS,
+      userId: null,
+      isAuthenticated: false,
+    });
+
+    await expect(
+      CreatePage({ searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("redirect:/login?next=%2Fcreate");
+    expect(mocks.getAccountOverview).not.toHaveBeenCalled();
   });
 
   it("renders only the primary start surface on first load", async () => {

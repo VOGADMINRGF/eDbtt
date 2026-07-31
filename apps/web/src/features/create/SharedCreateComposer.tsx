@@ -163,6 +163,7 @@ export type SharedCreateComposerProps = {
   activeContextAnchorLead?: string | null;
   helperLinks: readonly CreateHelperLinkDefinition[];
   error?: string | null;
+  errorRef?: React.Ref<React.ElementRef<"p">>;
   contextBanner?: React.ReactNode;
   allowVoice?: boolean;
   onAttachmentsChange?: (files: File[]) => void;
@@ -205,6 +206,7 @@ export default function SharedCreateComposer({
   startBusyLabel,
   secondaryAction,
   error,
+  errorRef,
   contextBanner,
   allowVoice = true,
   onAttachmentsChange,
@@ -519,7 +521,17 @@ export default function SharedCreateComposer({
 
           {attachmentsError ? <p className="text-[13px] text-[rgb(var(--fg))]" role="alert">{attachmentsError}</p> : null}
           {voiceError ? <p className="text-[13px] text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
-          {error ? <p className="text-[15px] text-[rgb(var(--fg))]">{error}</p> : null}
+          {error ? (
+            <p
+              ref={errorRef}
+              className="break-words rounded-lg text-[15px] text-[rgb(var(--fg))] [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              role="alert"
+              aria-atomic="true"
+              tabIndex={-1}
+            >
+              {error}
+            </p>
+          ) : null}
         </div>
       </section>
     );
@@ -781,7 +793,17 @@ export default function SharedCreateComposer({
 
           {voiceError ? <p className="text-xs text-[rgb(var(--fg))]" role="alert">{voiceError}</p> : null}
 
-          {error ? <p className="text-sm text-[rgb(var(--fg))]">{error}</p> : null}
+          {error ? (
+            <p
+              ref={errorRef}
+              className="break-words rounded-lg text-sm text-[rgb(var(--fg))] [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              role="alert"
+              aria-atomic="true"
+              tabIndex={-1}
+            >
+              {error}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

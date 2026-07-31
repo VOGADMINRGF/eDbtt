@@ -37,7 +37,7 @@ Progress-Pipeline konkurrierten mit dem eigentlichen Chat.
   Qualitäts-, Provenance-, Handoff- und No-Mutation-Vertrag.
 - Ein endgültig fehlgeschlagener Run erzeugt idempotent anhand von
   Korrelation, Phase und Fehlercode höchstens ein persistentes Ticket. Gespeichert
-  werden Nutzer-/anonyme Session-Zuordnung, Route, Phase, Korrelation/Trace,
+  werden ausschließlich Nutzerzuordnung, Route, Phase, Korrelation/Trace,
   normalisierte technische Diagnose, Draft-ID, Status und Zeitstempel — nicht der
   Beitragsinhalt.
 - Eine Ticketnummer und IT-Übergabe werden nur nach erfolgreicher Persistenz
@@ -71,7 +71,7 @@ Progress-Pipeline konkurrierten mit dem eigentlichen Chat.
 
 - Der Ticketdatensatz enthält keinen Beitrags-, Link- oder Dokumentinhalt und keine
   Prompt-/Completion-Nutzlast.
-- Gespeichert werden nur Nutzer- oder anonyme Session-Zuordnung, Route, Phase,
+- Gespeichert werden nur Nutzerzuordnung, Route, Phase,
   Korrelation/Trace, normalisierte technische Diagnose, optionale Draft-ID,
   Status und Zeitstempel.
 - Die Account-Leseoperation ist an den angemeldeten Nutzer gebunden; fremde oder
@@ -185,17 +185,16 @@ Node-Version `20.19.0`.
   serialisiert werden nur normalisierte Fehlercodes sowie
   Provider-/Modell-/Versuchs-/Status-, Längen- und Hash-Metadaten.
 - `/api/create/intelligent-followup` verwendet vor dem Plannerlauf einen
-  persistenten Mongo-Claim mit eindeutigem Schlüssel aus verifiziertem Nutzer
-  oder serverseitig verifizierter anonymer Session, Draft, Korrelation und
-  Orchestrierungstyp. Parallele Requests teilen Ergebnis und Ticket-Handoff.
+  persistenten Mongo-Claim mit eindeutigem Schlüssel aus verifiziertem Nutzer,
+  verifiziertem eigenem Draft, Korrelation und Orchestrierungstyp. Parallele
+  Requests teilen Ergebnis und Ticket-Handoff.
   Fehlgeschlagene Claims vor dem externen Start sind wiederholbar; abgelaufene
   Claims nach markiertem externem Start werden ohne zweiten Provideraufruf in
   einen sichtbaren technischen Fallback überführt.
-- Anonyme Create-Sessions werden serverseitig persistiert und über ein
-  signiertes, `HttpOnly`-Cookie gebunden. Clientgewählte oder manipulierte
-  Session-IDs werden nicht akzeptiert. Support-Tickets verlangen immer genau
-  eine Nutzer- oder anonyme Session-Bindung; Gasttickets erzeugen keinen
-  Account-Link und können nach einem späteren Login nicht übernommen werden.
+- `/create` ist in diesem PR vollständig loginpflichtig. Es gibt keinen aktiven
+  anonymen Draft-, Provider- oder Gastticket-Vertrag. Anonymer Gastzugang folgt
+  ausschließlich als eigener P0-Slice; vorhandene anonyme Datensätze werden
+  keinem Nutzer automatisch zugeordnet.
 - Fokussierte Provider-/Planner-/Dialog-/Provenienz-/Single-Flight-Matrix:
   `12` Testdateien / `79` Tests grün.
 - Nicht konkurrierende Create-/Support-Gesamtmatrix:
@@ -224,6 +223,36 @@ Node-Version `20.19.0`.
 - `docs/E150/OpenTasks.md` bleibt in diesem Follow-up unverändert. Das
   Resolution-/Mail-Idempotenz-Finding bleibt bis zum neuen Delta-Mailvertrag
   ausdrücklich offen.
+
+## Authentifizierter Create-Vertrag — 2026-07-30
+
+- `/create` bleibt bis zu einem eigenen P0-Folge-Slice vollständig
+  loginpflichtig. Der sichtbare und serverseitige Vertrag dieses PRs enthält
+  keinen Gastdraft, keinen anonymen Providerlauf und kein Gastticket.
+- `/api/create/save`, `/api/create/intelligent-followup` und
+  `/api/create/link-analysis` prüfen die gültige Nutzersitzung vor dem Lesen
+  oder Parsen des Request-Bodys. Eine abgewiesene Gastanfrage erzeugt weder
+  Cookie noch Draft, Single-Flight-Claim, Provideraufruf oder Ticket.
+- Mutative Create-Requests benötigen denselben Origin, `Sec-Fetch-Site:
+  same-origin` und den Create-CSRF-Nachweis. Getrennte Nutzer- und IP-Limits
+  gelten fail-closed; Sicherheits- und Limiterfehler starten keinen Provider.
+- Analyse und Ticket-Handoff beginnen ausschließlich für einen aktiven
+  kanonischen Server-Draft, der dem angemeldeten Nutzer gehört und dessen Text,
+  Sprache, Kontext sowie persistierter Draft-Payload-Hash zur Anfrage passen.
+  Fremde, erfundene, gelöschte, finalisierte oder Legacy-Drafts liefern
+  denselben kontrollierten Fehler ohne Existenzoffenlegung.
+- Der Zwei-Provider-Höchstwert, Single Flight und der datensparsame
+  Support-Handoff gelten damit ausschließlich für verifizierte Nutzer und
+  verifizierte eigene Drafts. Es gibt weiterhin kein Auto-Publish,
+  Auto-Dossier oder Auto-Anlassraum.
+- Loading, vollständiger Fehlerzustand und erfolgreicher Ticket-Handoff sind
+  deutsch beziehungsweise englisch sprachrein; unbekannte Sprachen fallen
+  kontrolliert auf Deutsch zurück. Dynamische Statusflächen besitzen
+  Live-Semantik, lange Inhalte umbrechen bei 320 px, und neue Fehler oder
+  Hand-offs erhalten einmalig Fokus, ohne eine laufende Texteingabe zu
+  unterbrechen.
+- Die Resolution-/Mail-Idempotenz wurde nicht verändert und bleibt bis nach
+  dem finalen Merge von PR `#539` ausdrücklich offen.
 
 ## Geänderte Dateien
 

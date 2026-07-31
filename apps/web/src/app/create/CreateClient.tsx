@@ -64,6 +64,7 @@ import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
+import { createMutationRequestHeaders } from "@/features/create/createMutationSecurityContract";
 import {
   buildCreateFollowupPrimaryCtaHref,
   buildCreateFollowupTargetHref,
@@ -398,19 +399,69 @@ export function buildCreateLightweightFollowupSnapshot(params: {
   };
 }
 
+const EN_ACTION_NOTICE_BY_DE = new Map<string, string>([
+  ["Vorbereiteter Arbeitsstand geladen. Du kannst jetzt überarbeiten und neu einordnen.", "Your prepared workspace has loaded. You can now revise and classify it again."],
+  ["Vorbereiteter Arbeitsstand geladen. Du kannst jetzt weiterbearbeiten.", "Your prepared workspace has loaded. You can continue editing it."],
+  ["Schreib kurz, was ich anpassen oder ergänzen soll.", "Briefly describe what I should change or add."],
+  ["Aussage schärfen geöffnet.", "Statement refinement opened."],
+  ["Die Themen werden wieder getrennt weitergeführt.", "The topics will be continued separately."],
+  ["Themen ändern geöffnet.", "Topic editing opened."],
+  ["Bitte beschreibe zuerst deinen Beitrag.", "Please describe your contribution first."],
+  ["Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.", "This step is not available in the current workspace yet."],
+  ["Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.", "The review status could not be saved. Please try again."],
+  ["Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.", "This step requires a confirmable workspace first."],
+  ["Bitte bestätige das Thema zuerst genauer oder sende einen Bericht an die Redaktion.", "Please confirm the topic more precisely or send a report to the editorial team."],
+  ["Der vorbereitete Beitrag konnte nicht gespeichert werden. Bitte erneut versuchen.", "The prepared contribution could not be saved. Please try again."],
+  ["Bitte wähle zuerst ein Hauptthema, bevor wir einen Anlassraum vorbereiten.", "Please choose a main topic before we prepare a discussion space."],
+  ["Dein Beitrag ist vorbereitet. Wähle jetzt einen Anlassraum oder starte einen neuen.", "Your contribution is prepared. Choose a discussion space or start a new one."],
+  ["Bitte wähle ein Thema für die Vertiefung.", "Please choose a topic to explore."],
+  ["Das weitere Thema wird jetzt angezeigt.", "The additional topic is now visible."],
+  ["Alle erkannten Themen sind jetzt geöffnet.", "All detected topics are now open."],
+  ["Du arbeitest zunächst mit der kompakten Themenansicht weiter.", "You will continue with the compact topic view for now."],
+  ["Ich habe gerade keinen Link erkannt.", "I could not detect a link."],
+  ["Vollständige Auswertung bleibt vorerst zurückgestellt.", "The full analysis remains deferred for now."],
+  ["Interne Notizen sind nur im Admin-Kontext verfügbar.", "Internal notes are available only in the admin context."],
+  ["Quellenmodus geöffnet.", "Source mode opened."],
+]);
+
+function localizeCreateActionNotice(
+  locale: CreateVoxyLocale,
+  notice: string | null,
+) {
+  if (!notice || locale !== "en") return notice;
+  const exact = EN_ACTION_NOTICE_BY_DE.get(notice);
+  if (exact) return exact;
+  if (notice.endsWith(" wurde fokussiert.")) {
+    return `${notice.slice(0, -" wurde fokussiert.".length)} is now focused.`;
+  }
+  if (notice.endsWith(" ist jetzt dein Fokus.")) {
+    return `${notice.slice(0, -" ist jetzt dein Fokus.".length)} is now your focus.`;
+  }
+  if (notice.endsWith(" wurde geparkt.")) {
+    return `${notice.slice(0, -" wurde geparkt.".length)} has been set aside.`;
+  }
+  if (notice.endsWith(" werden gemeinsam weitergeführt.")) {
+    return `${notice.slice(0, -" werden gemeinsam weitergeführt.".length)} will be continued together.`;
+  }
+  if (/\b(Bitte|Beitrag|Entwurf|Prüfung|Arbeitsstand|wurde|werden|konnte|geöffnet|vorbereitet)\b/.test(notice)) {
+    return "The requested action could not be completed. Please try again.";
+  }
+  return notice;
+}
+
 function CreateSubmittedContributionBubble(props: {
   text: string;
   locale: CreateVoxyLocale;
 }) {
   return (
-    <div className="create-chat-message flex gap-3">
+    <div className="create-chat-message flex min-w-0 gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[rgb(var(--muted))] ring-4 ring-[rgb(var(--card))]" />
-      <div className="w-full max-w-[78%] min-w-0">
+      <div className="w-full min-w-0 max-w-full sm:max-w-[78%]">
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">
           {props.locale === "en" ? "You" : "Du"}
         </p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
-          <p className="whitespace-pre-wrap text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">
+          <p className="whitespace-pre-wrap break-words text-base leading-relaxed text-[rgb(var(--fg))] [overflow-wrap:anywhere] md:text-[17px]">
             {props.text}
           </p>
         </div>
@@ -426,6 +477,7 @@ function CreateAssistantStatusBubble(props: {
   notice?: string | null;
   chips?: string[];
   largeAvatar?: boolean;
+  announce?: boolean;
 }) {
   return (
     <div
@@ -433,6 +485,9 @@ function CreateAssistantStatusBubble(props: {
         props.largeAvatar ? "flex-col sm:flex-row sm:gap-5" : ""
       }`}
       data-create-voxy-intro={props.largeAvatar ? "large-aura" : undefined}
+      role={props.announce ? "status" : undefined}
+      aria-live={props.announce ? "polite" : undefined}
+      aria-atomic={props.announce ? "true" : undefined}
     >
       <div className="mt-1 shrink-0">
         <VoxyAvatar
@@ -442,7 +497,11 @@ function CreateAssistantStatusBubble(props: {
           variant="presenting"
         />
       </div>
-      <div className={`w-full min-w-0 flex-1 ${props.largeAvatar ? "max-w-4xl" : "max-w-[78%]"}`}>
+      <div
+        className={`w-full min-w-0 flex-1 break-words [overflow-wrap:anywhere] ${
+          props.largeAvatar ? "max-w-4xl" : "max-w-full sm:max-w-[78%]"
+        }`}
+      >
         <p className="text-sm font-semibold text-[rgb(var(--muted))]">Voxy</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-[rgb(var(--grad-from))]/25 bg-[linear-gradient(180deg,color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--grad-from))_10%),color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%))] px-4 py-4 md:px-5 md:py-5">
           {props.eyebrow ? (
@@ -479,7 +538,10 @@ function CreateAssistantStatusBubble(props: {
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
 export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
-  const normalizedUserId = String(userId ?? "").trim() || "anon";
+  const normalizedUserId = String(userId ?? "").trim();
+  if (!normalizedUserId) {
+    throw new Error("authenticated_create_user_required");
+  }
   return `${CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX}:${normalizedUserId}`;
 }
 
@@ -826,6 +888,9 @@ export default function CreateClient({
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const [workspaceTransparencyOpen, setWorkspaceTransparencyOpen] = React.useState(false);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
+  const dynamicStatusFocusRef = React.useRef<HTMLDivElement | null>(null);
+  const intakeErrorFocusRef = React.useRef<HTMLParagraphElement | null>(null);
+  const lastFocusedDynamicStatusRef = React.useRef<string | null>(null);
   const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
   const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
   const readStoredPrimaryIntake = React.useCallback(
@@ -834,6 +899,7 @@ export default function CreateClient({
   );
 
   const startDraftRestore = useCreateStartDraftRestore({
+    locale: surfaceLocale,
     initialText,
     intakeText,
     readStoredIntake: readStoredPrimaryIntake,
@@ -1155,7 +1221,7 @@ export default function CreateClient({
 
       const saveResponse = await fetch("/api/create/save", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: createMutationRequestHeaders(),
         body: JSON.stringify({
           draftId: savedDraftId ?? undefined,
           text: normalizedText,
@@ -1194,7 +1260,9 @@ export default function CreateClient({
             sourceUrl: linkDetection.primaryUrl,
             sourceLoaded: false,
             userMessage:
-              "Ich muss den verlinkten Inhalt zuerst vollständig laden und mit dem KI-Orchester analysieren. Vorher leite ich keine Themen ab.",
+              surfaceLocale === "en"
+                ? "I need to load the linked content in full and analyze it with the AI orchestrator first. No topics are derived before that."
+                : "Ich muss den verlinkten Inhalt zuerst vollständig laden und mit dem KI-Orchester analysieren. Vorher leite ich keine Themen ab.",
           }),
         );
         setPlannerTrace(null);
@@ -1208,7 +1276,7 @@ export default function CreateClient({
       const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: createMutationRequestHeaders(),
         body: JSON.stringify({
           text: normalizedText,
           locale: surfaceLocale,
@@ -1279,8 +1347,16 @@ export default function CreateClient({
         );
       }
       if (draftSavedForRun && productMode === "analyze") {
-        setActionNotice("Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst die Aussage schärfen oder Details später erneut prüfen.");
-        setIntakeError("Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.");
+        setActionNotice(
+          surfaceLocale === "en"
+            ? "I could not complete the automatic classification. You can refine the statement or review details again later."
+            : "Ich konnte die automatische Einordnung gerade nicht abschließen. Du kannst die Aussage schärfen oder Details später erneut prüfen.",
+        );
+        setIntakeError(
+          surfaceLocale === "en"
+            ? "The system check is currently unavailable. Your text is retained."
+            : "Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.",
+        );
       } else if (draftSavedForRun) {
         setIntakeError(surfaceTexts.startFailedError);
       }
@@ -1423,11 +1499,17 @@ export default function CreateClient({
     normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH &&
     !currentLinkDetection.hasLink;
   const startBusyStatusLabel =
-    productMode === "analyze" ? "Wir ordnen deinen Beitrag ein …" : surfaceTexts.startBusyStatus;
+    productMode === "analyze"
+      ? surfaceLocale === "en"
+        ? "We’re organizing your contribution …"
+        : "Wir ordnen deinen Beitrag ein …"
+      : surfaceTexts.startBusyStatus;
   const showStartChatPreview =
     Boolean(followupSnapshot) && hasStarted && !showIntelligentFollowup && !showLinkClarification;
   const startChatAssistantTitle = isStarting
-    ? "Ich ordne das kurz ein"
+    ? surfaceLocale === "en"
+      ? "I’m organizing this briefly"
+      : "Ich ordne das kurz ein"
     : productMode === "guided"
       ? surfaceTexts.followupGuidedTitle
       : productMode === "media"
@@ -1442,6 +1524,55 @@ export default function CreateClient({
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
   const analysisState = intelligentFollowup?.meta?.analysis?.state ?? null;
   const analysisFailed = analysisState === "ai_failed" || analysisState === "fetch_failed";
+  const localizedActionNotice = localizeCreateActionNotice(
+    surfaceLocale,
+    actionNotice,
+  );
+  const localizedReviewRequestMessage = localizeCreateActionNotice(
+    surfaceLocale,
+    reviewRequestMessage,
+  );
+  const localizedFactcheckMessage = localizeCreateActionNotice(
+    surfaceLocale,
+    factcheckMessage,
+  );
+  React.useEffect(() => {
+    const focusKey = intakeError
+      ? `intake:${intakeError}`
+      : analysisFailed
+        ? `analysis:${analysisState}:${supportHandoff?.status ?? "none"}:${
+            supportHandoff?.status === "created"
+              ? supportHandoff.ticket.ticketNumber
+              : ""
+          }`
+        : null;
+    if (!focusKey || lastFocusedDynamicStatusRef.current === focusKey) return;
+
+    const activeElement = document.activeElement;
+    const isActivelyTyping =
+      activeElement instanceof HTMLInputElement ||
+      activeElement instanceof HTMLTextAreaElement ||
+      (activeElement instanceof HTMLElement && activeElement.isContentEditable);
+
+    const target = intakeError
+      ? intakeErrorFocusRef.current
+      : dynamicStatusFocusRef.current;
+    if (!target) return;
+    const focusTargetOnce = () => {
+      if (lastFocusedDynamicStatusRef.current === focusKey) return;
+      lastFocusedDynamicStatusRef.current = focusKey;
+      window.requestAnimationFrame(() => {
+        target.focus({ preventScroll: true });
+      });
+    };
+    if (isActivelyTyping && activeElement instanceof HTMLElement) {
+      activeElement.addEventListener("blur", focusTargetOnce, { once: true });
+      return () => {
+        activeElement.removeEventListener("blur", focusTargetOnce);
+      };
+    }
+    focusTargetOnce();
+  }, [analysisFailed, analysisState, intakeError, supportHandoff]);
   const hasValidatedTopics =
     hasValidatedCreateSemanticOutput(intelligentFollowup) &&
     (intelligentFollowup?.understanding.topics.length ?? 0) > 0;
@@ -1470,8 +1601,9 @@ export default function CreateClient({
         isBusy: isStarting,
         analysisState,
         hasValidatedTopics,
+        locale: surfaceLocale,
       }),
-    [analysisState, hasValidatedTopics, isStarting, workspaceActiveStage],
+    [analysisState, hasValidatedTopics, isStarting, surfaceLocale, workspaceActiveStage],
   );
   const workspaceShellPhase: CreateWorkspaceShellPhase = !hasStarted
     ? "initial"
@@ -1483,29 +1615,49 @@ export default function CreateClient({
   const workspaceNotice = showTooShortHint
     ? productModeConfig.minimumInputHint
     : !hasStarted
-      ? actionNotice
+      ? localizedActionNotice
       : null;
   const workspaceComposerValue = hasStarted ? chatContinuationText : intakeText;
   const workspaceComposerPlaceholder = hasStarted
     ? analysisFailed
-      ? "Du kannst den Beitrag ergänzen oder später fortsetzen."
+      ? surfaceLocale === "en"
+        ? "You can add to the contribution or continue later."
+        : "Du kannst den Beitrag ergänzen oder später fortsetzen."
       : workspaceActionMode === "source"
-        ? "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
+        ? surfaceLocale === "en"
+          ? "Add a source, decision, or example …"
+          : "Füge eine Quelle, einen Beschluss oder ein Beispiel hinzu …"
         : !understandingConfirmed
-          ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
+          ? surfaceLocale === "en"
+            ? "Would you like to change, add, or group a topic?"
+            : "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
           : workspaceActionMode === "edit"
-            ? "Welche Aussage möchtest du schärfen?"
+            ? surfaceLocale === "en"
+              ? "Which statement would you like to refine?"
+              : "Welche Aussage möchtest du schärfen?"
             : workspaceActionMode === "manual_topic"
-            ? "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
-            : "Welche Aussage möchtest du schärfen?"
+              ? surfaceLocale === "en"
+                ? "Would you like to change, add, or group a topic?"
+                : "Möchtest du ein Thema ändern, ergänzen oder zusammenführen?"
+              : surfaceLocale === "en"
+                ? "Which statement would you like to refine?"
+                : "Welche Aussage möchtest du schärfen?"
     : intakePlaceholder;
   const workspaceComposerStartLabel = hasStarted
-    ? "Weiter"
+    ? surfaceLocale === "en"
+      ? "Continue"
+      : "Weiter"
     : productMode === "guided"
-      ? "Entwurf vorbereiten"
-      : "Prüfen";
+      ? surfaceLocale === "en"
+        ? "Prepare draft"
+        : "Entwurf vorbereiten"
+      : surfaceLocale === "en"
+        ? "Review"
+        : "Prüfen";
   const workspaceComposerStartBusyLabel = hasStarted
-    ? "Ich ordne deine Ergänzung gerade …"
+    ? surfaceLocale === "en"
+      ? "I’m organizing your addition …"
+      : "Ich ordne deine Ergänzung gerade …"
     : startBusyStatusLabel;
   const workspaceComposerStartDisabled = hasStarted
     ? isStarting || !chatContinuationText.trim()
@@ -1569,7 +1721,8 @@ export default function CreateClient({
           result={intelligentFollowup}
           locale={surfaceLocale as CreateVoxyLocale}
           supportHandoff={supportHandoff}
-          actionNotice={actionNotice}
+          dynamicStatusRef={dynamicStatusFocusRef}
+          actionNotice={localizedActionNotice}
           isConfirmed={understandingConfirmed}
           embedInWorkspaceShell
           activeTopicLabel={activeTopicLabel}
@@ -1578,8 +1731,8 @@ export default function CreateClient({
           parkedTopicLabels={parkedTopicLabels}
           composerMode={workspaceActionMode}
           reviewRequestState={reviewRequestState}
-          reviewRequestMessage={reviewRequestMessage}
-          factcheckMessage={factcheckMessage}
+          reviewRequestMessage={localizedReviewRequestMessage}
+          factcheckMessage={localizedFactcheckMessage}
           showCorrectionComposer={showFollowupCorrectionComposer}
           onConfirm={() => {
             const defaultPrimaryTopic =
@@ -1751,10 +1904,23 @@ export default function CreateClient({
           locale={surfaceLocale}
         />
         <CreateAssistantStatusBubble
-          eyebrow={isStarting ? "Verstehen" : surfaceTexts.followupUnderstandingLabel}
-          title={isStarting ? "Ich ordne deinen Beitrag gerade …" : startChatAssistantTitle}
+          eyebrow={
+            isStarting
+              ? surfaceLocale === "en"
+                ? "Understanding"
+                : "Verstehen"
+              : surfaceTexts.followupUnderstandingLabel
+          }
+          title={
+            isStarting
+              ? surfaceLocale === "en"
+                ? "I’m organizing your contribution …"
+                : "Ich ordne deinen Beitrag gerade …"
+              : startChatAssistantTitle
+          }
           body={startChatAssistantBody}
-          notice={isStarting ? null : actionNotice}
+          notice={isStarting ? null : localizedActionNotice}
+          announce={isStarting}
         />
       </div>
     ) : (
@@ -1770,7 +1936,7 @@ export default function CreateClient({
               ? ["Organize topics", "Sharpen questions", "Check sources"]
               : ["Thema ordnen", "Frage schärfen", "Quellen prüfen"]
           }
-          notice={actionNotice}
+          notice={localizedActionNotice}
           largeAvatar
         />
       </div>
@@ -2093,7 +2259,7 @@ export default function CreateClient({
     try {
       const response = await fetch("/api/create/save", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: createMutationRequestHeaders(),
         body: JSON.stringify({
           draftId: savedDraftId ?? undefined,
           text: normalizedText,
@@ -2259,7 +2425,11 @@ export default function CreateClient({
   const handleRetryPlanner = React.useCallback(async () => {
     const sourceText = (intelligentFollowup?.sourceText ?? followupSnapshot?.originalText ?? normalizedIntakeText).trim();
     if (!sourceText) {
-      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      setActionNotice(
+        surfaceLocale === "en"
+          ? "Please describe your contribution first."
+          : "Bitte beschreibe zuerst deinen Beitrag.",
+      );
       return;
     }
     if (isRetryPlannerPending || analysisRunInFlightRef.current) return;
@@ -2272,7 +2442,7 @@ export default function CreateClient({
       const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: createMutationRequestHeaders(),
         body: JSON.stringify({
           text: sourceText,
           locale: surfaceLocale,
@@ -2305,8 +2475,12 @@ export default function CreateClient({
       setShowFollowupCorrectionComposer(false);
       setActionNotice(
         isPlannerReadyForStructuredHandoff(nextFollowup)
-          ? "Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen."
-          : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
+          ? surfaceLocale === "en"
+            ? "Classification updated. Please confirm which part we should prepare first."
+            : "Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen."
+          : surfaceLocale === "en"
+            ? "The classification remains pending. You can continue manually and choose the next step yourself."
+            : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
       );
     } catch {
       setSupportHandoff({
@@ -2488,7 +2662,11 @@ export default function CreateClient({
   const handlePrepareLinkReview = React.useCallback(async () => {
     if (!privacyGate.ensureActiveProcessingAllowed("create-link-analysis")) return;
     if (!currentLinkDetection.hasLink || !currentLinkDetection.primaryUrl) {
-      setActionNotice("Ich habe gerade keinen Link erkannt.");
+      setActionNotice(
+        surfaceLocale === "en"
+          ? "I could not detect a link."
+          : "Ich habe gerade keinen Link erkannt.",
+      );
       return;
     }
     const currentState = intelligentFollowup?.meta?.analysis?.state ?? "link_detected";
@@ -2501,7 +2679,9 @@ export default function CreateClient({
           sourceUrl: currentLinkDetection.primaryUrl,
           sourceLoaded: false,
           userMessage:
-            "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
+            surfaceLocale === "en"
+              ? "The full link and document analysis uses your available analysis or research allowance."
+              : "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
         }),
       );
       setActionNotice(null);
@@ -2523,7 +2703,9 @@ export default function CreateClient({
         sourceUrl: currentLinkDetection.primaryUrl,
         sourceLoaded: false,
         userMessage:
-          "Ich lade den Linkinhalt und bereite die Analyse vor. Vorher leite ich keine Themen ab.",
+          surfaceLocale === "en"
+            ? "I’m loading the linked content and preparing the analysis. No topics are derived before that."
+            : "Ich lade den Linkinhalt und bereite die Analyse vor. Vorher leite ich keine Themen ab.",
       }),
     );
 
@@ -2531,7 +2713,7 @@ export default function CreateClient({
       const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/link-analysis", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: createMutationRequestHeaders(),
         body: JSON.stringify({
           text: normalizedIntakeText,
           url: currentLinkDetection.primaryUrl,
@@ -3044,6 +3226,7 @@ export default function CreateClient({
                 activeContextAnchorLead={activeContextAnchor?.lead}
                 helperLinks={surfaceHelperLinks}
                 error={intakeError}
+                errorRef={intakeErrorFocusRef}
                 contextBanner={
                   fromRundenFlow ? (
                     <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--fg))]">

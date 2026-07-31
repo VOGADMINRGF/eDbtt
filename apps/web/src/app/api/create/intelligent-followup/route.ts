@@ -2,15 +2,18 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { stableHash } from "@core/utils/hash";
-import {
-  applyVerifiedCreateActorCookie,
-  resolveVerifiedCreateActor,
-  type VerifiedCreateActor,
-} from "@/features/create/createAnonymousSession";
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
 import { parseCreateIntent } from "@/features/create/intentFlows";
 import { runCreateOrchestrationSingleFlight } from "@/features/create/createOrchestrationSingleFlight";
+import {
+  enforceCreateMutationSecurity,
+  verifyCreateDraftBinding,
+} from "@/features/create/createRouteSecurity";
+import {
+  CREATE_MAX_CONTEXT_LENGTH,
+  CREATE_MAX_TEXT_LENGTH,
+} from "@/features/create/createMutationSecurityContract";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import {
   ensureCreateSupportTicket,
@@ -37,14 +40,19 @@ function readTextAlias(body: unknown): string {
 }
 
 const RequestSchema = z.object({
-  text: z.string().trim().min(1),
-  locale: z.string().trim().optional().nullable(),
-  anlassraumId: z.string().trim().optional().nullable(),
-  dossierId: z.string().trim().optional().nullable(),
-  intent: z.string().trim().optional().nullable(),
+  text: z.string().trim().min(1).max(CREATE_MAX_TEXT_LENGTH),
+  locale: z.string().trim().max(10).optional().nullable(),
+  anlassraumId: z.string().trim().max(160).optional().nullable(),
+  dossierId: z.string().trim().max(160).optional().nullable(),
+  intent: z.string().trim().max(CREATE_MAX_CONTEXT_LENGTH).optional().nullable(),
   correlationId: z.string().trim().min(8).max(160),
   draftId: z.string().trim().min(1).max(160),
 });
+
+type VerifiedCreateUserActor = {
+  actorKey: string;
+  affectedUserId: string;
+};
 
 function supportFailureMessage(locale: string) {
   return locale.toLowerCase().startsWith("en")
@@ -53,7 +61,7 @@ function supportFailureMessage(locale: string) {
 }
 
 async function createSupportHandoff(input: {
-  actor: VerifiedCreateActor;
+  actor: VerifiedCreateUserActor;
   requestId: string;
   analysisState: "ai_failed" | "fetch_failed";
   planner:
@@ -67,7 +75,6 @@ async function createSupportHandoff(input: {
   try {
     const ticket = await ensureCreateSupportTicket({
       affectedUserId: input.actor.affectedUserId,
-      anonymousSessionId: input.actor.anonymousSessionId,
       orchestrationPhase: "intelligent_followup",
       correlationId: input.requestId,
       traceId: input.requestId,
@@ -101,7 +108,23 @@ export async function POST(req: NextRequest) {
   const fallbackRequestId = crypto.randomUUID();
   const sessionUser = await getSessionUser(req).catch(() => null);
   const userId = sessionUser?._id?.toString() ?? null;
-  let actor: VerifiedCreateActor | null = null;
+  if (!sessionUser?.sessionValid || !userId) {
+    return NextResponse.json(
+      {
+        ok: false,
+        errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+        message: "Die Anfrage konnte nicht verarbeitet werden.",
+      },
+      { status: 401 },
+    );
+  }
+  const securityFailure = await enforceCreateMutationSecurity({
+    req,
+    scope: "create_intelligent_followup",
+    actorKey: `user:${userId}`,
+  });
+  if (securityFailure) return securityFailure;
+
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -137,19 +160,39 @@ export async function POST(req: NextRequest) {
     }
 
     const body = parsed.data;
+    const draftBinding = await verifyCreateDraftBinding({
+      draftId: body.draftId,
+      userId,
+      text: body.text,
+      locale: body.locale,
+      anlassraumId: body.anlassraumId,
+    });
+    if (!draftBinding) {
+      return NextResponse.json(
+        {
+          ok: false,
+          errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+          message: "Die Anfrage konnte nicht verarbeitet werden.",
+        },
+        { status: 403 },
+      );
+    }
     const requestId = body.correlationId;
     const normalizedIntent = parseCreateIntent(body.intent ?? undefined);
     const operationType = "create_intelligent_followup_planner" as const;
     const operationId = requestId;
     const locale = body.locale ?? "de";
-    const verifiedActor = await resolveVerifiedCreateActor(req, userId);
-    actor = verifiedActor;
+    const verifiedActor: VerifiedCreateUserActor = {
+      actorKey: `user:${userId}`,
+      affectedUserId: userId,
+    };
     const singleFlight = await runCreateOrchestrationSingleFlight({
       actorKey: verifiedActor.actorKey,
-      draftId: body.draftId,
+      draftId: draftBinding.draftId,
       correlationId: requestId,
       operationType,
       inputHash: stableHash({
+        draftBinding: draftBinding.inputHash,
         text: body.text,
         locale,
         anlassraumId: body.anlassraumId ?? null,
@@ -166,7 +209,7 @@ export async function POST(req: NextRequest) {
             requestId,
             analysisState: "ai_failed",
             planner: null,
-            draftId: body.draftId,
+            draftId: draftBinding.draftId,
             locale,
             reasonOverride: "stale_single_flight_recovered",
           });
@@ -187,9 +230,7 @@ export async function POST(req: NextRequest) {
               requestId,
               operationId,
               operationType,
-              userScope: verifiedActor.affectedUserId
-                ? ("present" as const)
-                : ("verified_anonymous" as const),
+              userScope: "present" as const,
             },
           };
         }
@@ -216,7 +257,7 @@ export async function POST(req: NextRequest) {
                   requestId,
                   analysisState,
                   planner: result.meta?.planner ?? null,
-                  draftId: body.draftId,
+                  draftId: draftBinding.draftId,
                   locale,
                 })
               : null;
@@ -229,9 +270,7 @@ export async function POST(req: NextRequest) {
               requestId,
               operationId,
               operationType,
-              userScope: verifiedActor.affectedUserId
-                ? ("present" as const)
-                : ("verified_anonymous" as const),
+              userScope: "present" as const,
             },
           };
         } catch {
@@ -240,7 +279,7 @@ export async function POST(req: NextRequest) {
             requestId,
             analysisState: "ai_failed",
             planner: null,
-            draftId: body.draftId,
+            draftId: draftBinding.draftId,
             locale,
             reasonOverride: "unhandled_orchestration_error",
             technicalErrorCodeOverride: "CREATE_FOLLOWUP_FAILED",
@@ -262,9 +301,7 @@ export async function POST(req: NextRequest) {
               requestId,
               operationId,
               operationType,
-              userScope: verifiedActor.affectedUserId
-                ? ("present" as const)
-                : ("verified_anonymous" as const),
+              userScope: "present" as const,
             },
           };
         }
@@ -281,7 +318,7 @@ export async function POST(req: NextRequest) {
             : "owner",
       },
     });
-    return applyVerifiedCreateActorCookie(response, verifiedActor);
+    return response;
   } catch {
     const normalizedBody =
       rawBody && typeof rawBody === "object"
@@ -314,14 +351,10 @@ export async function POST(req: NextRequest) {
         requestId,
         operationId: requestId,
         operationType: "create_intelligent_followup_planner",
-        userScope: actor?.affectedUserId
-          ? "present"
-          : actor?.anonymousSessionId
-            ? "verified_anonymous"
-            : "identity_unavailable",
+        userScope: "present",
         singleFlight: "unavailable",
       },
     });
-    return actor ? applyVerifiedCreateActorCookie(response, actor) : response;
+    return response;
   }
 }

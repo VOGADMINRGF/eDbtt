@@ -111,6 +111,7 @@ type CreateVisualFollowupProps = {
   isRetryPlannerPending?: boolean;
   locale?: CreateVoxyLocale;
   supportHandoff?: CreateSupportHandoffPublic | null;
+  dynamicStatusRef?: React.Ref<React.ElementRef<"div">>;
   onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
   linkDetection?: CreateLinkIntakeDetection | null;
@@ -763,43 +764,55 @@ function buildWorkflowStages(params: {
   isConfirmed: boolean;
   analysisState: NonNullable<CreateIntelligentFollowupResult["meta"]>["analysis"]["state"];
   hasValidatedTopics: boolean;
+  locale: CreateVoxyLocale;
   composerMode?: "default" | "edit" | "source" | "manual_topic";
   activeTopicLabel?: string | null;
   selectedPrimaryTopic?: string | null;
   groupedTopicLabels?: string[];
 }): FollowupStage[] {
+  const isEnglish = params.locale === "en";
   const analysisFailed =
     params.analysisState === "fetch_failed" || params.analysisState === "ai_failed";
   if (analysisFailed) {
     return [
       {
         id: "input",
-        title: "1 · Beitrag aufgenommen",
-        lead: "Dein Beitrag liegt im Workspace.",
+        title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+        lead: isEnglish
+          ? "Your contribution is available in the workspace."
+          : "Dein Beitrag liegt im Workspace.",
         status: "done",
       },
       {
         id: "understanding",
-        title: "2 · Analyse blockiert",
-        lead: "Es liegen noch keine validierten Themen vor.",
+        title: isEnglish ? "2 · Analysis blocked" : "2 · Analyse blockiert",
+        lead: isEnglish
+          ? "No validated topics are available yet."
+          : "Es liegen noch keine validierten Themen vor.",
         status: "error",
       },
       {
         id: "topics",
-        title: "3 · Entscheidung offen",
-        lead: "Wird nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+        lead: isEnglish
+          ? "Available after a successful analysis."
+          : "Wird nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
       {
         id: "sources",
-        title: "4 · Quellen optional",
-        lead: "Bleibt bis zur validierten Analyse gesperrt.",
+        title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+        lead: isEnglish
+          ? "Locked until the analysis has been validated."
+          : "Bleibt bis zur validierten Analyse gesperrt.",
         status: "locked",
       },
       {
         id: "draft",
-        title: "5 · Entwurf",
-        lead: "Wird erst nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+        lead: isEnglish
+          ? "Available only after a successful analysis."
+          : "Wird erst nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
     ];
@@ -815,32 +828,64 @@ function buildWorkflowStages(params: {
   return [
     {
       id: "input",
-      title: "1 · Beitrag aufgenommen",
-      lead: "Dein Beitrag liegt im Workspace.",
+      title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+      lead: isEnglish
+        ? "Your contribution is available in the workspace."
+        : "Dein Beitrag liegt im Workspace.",
       status: "done",
     },
     {
       id: "understanding",
-      title: params.hasValidatedTopics ? "2 · Themen erkannt" : "2 · Analyse läuft",
-      lead: params.hasValidatedTopics ? "Die ersten Themen sind sichtbar." : "Die Einordnung wird vorbereitet.",
+      title: params.hasValidatedTopics
+        ? isEnglish
+          ? "2 · Topics detected"
+          : "2 · Themen erkannt"
+        : isEnglish
+          ? "2 · Analysis in progress"
+          : "2 · Analyse läuft",
+      lead: params.hasValidatedTopics
+        ? isEnglish
+          ? "Initial topics are visible."
+          : "Die ersten Themen sind sichtbar."
+        : isEnglish
+          ? "Classification is being prepared."
+          : "Die Einordnung wird vorbereitet.",
       status: params.hasValidatedTopics ? "done" : "active",
     },
     {
       id: "topics",
-      title: "3 · Entscheidung offen",
-      lead: topicsChosen ? "Fokus oder Struktur ist gewählt." : "Du wählst Fokus oder Struktur.",
+      title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+      lead: topicsChosen
+        ? isEnglish
+          ? "The focus or structure has been selected."
+          : "Fokus oder Struktur ist gewählt."
+        : isEnglish
+          ? "You choose the focus or structure."
+          : "Du wählst Fokus oder Struktur.",
       status: sourceActive || draftActive ? "done" : "active",
     },
     {
       id: "sources",
-      title: "4 · Quellen optional",
-      lead: sourceActive ? "Quellenmodus ist geöffnet." : "Quellen bleiben optional.",
+      title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+      lead: sourceActive
+        ? isEnglish
+          ? "Source mode is open."
+          : "Quellenmodus ist geöffnet."
+        : isEnglish
+          ? "Sources remain optional."
+          : "Quellen bleiben optional.",
       status: sourceActive ? "active" : draftActive ? "done" : "planned",
     },
     {
       id: "draft",
-      title: "5 · Entwurf",
-      lead: draftActive ? "Entwurf kann weitergeführt werden." : "Danach schärfen oder speichern.",
+      title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+      lead: draftActive
+        ? isEnglish
+          ? "The draft can be continued."
+          : "Entwurf kann weitergeführt werden."
+        : isEnglish
+          ? "Then refine or save it."
+          : "Danach schärfen oder speichern.",
       status: draftActive ? "active" : "planned",
     },
   ];
@@ -1782,6 +1827,7 @@ function AnalysisStateBubble(props: {
   onDeferWork?: () => void;
   locale: CreateVoxyLocale;
   supportHandoff?: CreateSupportHandoffPublic | null;
+  statusRef?: React.Ref<React.ElementRef<"div">>;
 }) {
   const analysisFailed =
     props.state === "fetch_failed" || props.state === "ai_failed";
@@ -1790,35 +1836,63 @@ function AnalysisStateBubble(props: {
     locale: props.locale,
     handoff: props.supportHandoff ?? null,
   });
+  const safeFailureStateMessage = (() => {
+    const normalizedMessage = props.message.trim();
+    if (!normalizedMessage) return null;
+    const isApprovedProductMessage =
+      props.locale === "en"
+        ? /^(The AI analysis could not be completed\.|No topics were derived\.|The linked content could not be loaded completely\.|The content was loaded but could not yet be analyzed by the AI orchestrator\.)/i.test(
+            normalizedMessage,
+          )
+        : /^(Die KI-Analyse konnte (?:nicht abgeschlossen|noch nicht durchgeführt) werden\.|Keine Themen wurden abgeleitet\.|Der (?:verlinkte Inhalt|Linkinhalt) konnte nicht vollständig geladen werden\.|Der Inhalt wurde geladen, konnte aber noch nicht durch das KI-Orchester analysiert werden\.)/i.test(
+            normalizedMessage,
+          );
+    return isApprovedProductMessage ? props.message : null;
+  })();
   const primaryLabel =
     props.state === "link_detected"
-      ? "Link analysieren"
+      ? props.locale === "en"
+        ? "Analyze link"
+        : "Link analysieren"
       : props.state === "entitlement_required"
-        ? "Analyse starten"
+        ? props.locale === "en"
+          ? "Start analysis"
+          : "Analyse starten"
         : analysisFailed
           ? copy.retry
           : null;
-  const safeFailureStateMessage =
-    analysisFailed &&
-    /keine Themen|nicht vollständig geladen|KI-Orchester|no topics|not fully loaded|AI orchestra/i.test(
-      props.message,
-    )
-      ? props.message
-      : null;
-
   return (
-    <div className="create-chat-message flex gap-3">
+    <div
+      ref={props.statusRef}
+      className="create-chat-message flex min-w-0 gap-3 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
+      role={
+        analysisFailed && props.supportHandoff?.status === "created"
+          ? "status"
+          : analysisFailed
+            ? "alert"
+            : "status"
+      }
+      aria-live={
+        analysisFailed && props.supportHandoff?.status !== "created"
+          ? undefined
+          : "polite"
+      }
+      aria-atomic="true"
+      tabIndex={-1}
+    >
       <div className="mt-1 shrink-0">
         <VoxyAvatar appearance="inline" variant="presenting" />
       </div>
-      <div className="w-full max-w-[78%] min-w-0 flex-1">
+      <div className="w-full min-w-0 max-w-full flex-1 sm:max-w-[78%]">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             {analysisFailed
               ? props.locale === "en"
                 ? "Analysis blocked"
                 : "Analyse blockiert"
-              : "2 · Analyse offen"}
+              : props.locale === "en"
+                ? "2 · Analysis pending"
+                : "2 · Analyse offen"}
           </p>
           <p className="text-[13px] font-semibold text-slate-700 dark:text-[rgb(var(--muted))]">
             Voxy
@@ -1827,32 +1901,40 @@ function AnalysisStateBubble(props: {
         <div className="mt-2 rounded-[1.9rem] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] px-5 py-5 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-7 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_95%,rgb(var(--bg))_5%)] dark:shadow-none">
           <p className="text-[14px] font-medium text-cyan-900 dark:text-cyan-200">
             {props.state === "link_detected" || props.state === "entitlement_required"
-              ? "Link erkannt"
+              ? props.locale === "en"
+                ? "Link detected"
+                : "Link erkannt"
               : analysisFailed
                 ? failureCopy.title
-                : "Analyse noch nicht abgeschlossen"}
+                : props.locale === "en"
+                  ? "Analysis not yet complete"
+                  : "Analyse noch nicht abgeschlossen"}
           </p>
           {analysisFailed ? (
-            <div className="mt-3 space-y-2 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+            <div className="mt-3 space-y-2 break-words text-[15px] leading-relaxed text-cyan-950 [overflow-wrap:anywhere] md:text-base dark:text-cyan-100">
               {failureCopy.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
-              {safeFailureStateMessage ? (
-                <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
-                  {safeFailureStateMessage}
-                </p>
+              {safeFailureStateMessage &&
+              !failureCopy.paragraphs.some(
+                (paragraph) =>
+                  paragraph === safeFailureStateMessage ||
+                  paragraph.includes(safeFailureStateMessage) ||
+                  safeFailureStateMessage.includes(paragraph),
+              ) ? (
+                <p>{safeFailureStateMessage}</p>
               ) : null}
             </div>
           ) : (
-            <p className="mt-3 text-[15px] leading-relaxed text-cyan-950 md:text-base dark:text-cyan-100">
+            <p className="mt-3 break-words text-[15px] leading-relaxed text-cyan-950 [overflow-wrap:anywhere] md:text-base dark:text-cyan-100">
               {props.message}
             </p>
           )}
-          <div className="mt-5 flex flex-wrap gap-2.5">
+          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
             {primaryLabel && props.onPrimaryAction ? (
               <button
                 type="button"
-                className="btn-primary min-h-[42px] px-4 py-2 text-sm"
+                className="btn-primary min-h-[42px] w-full px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto"
                 onClick={props.onPrimaryAction}
               >
                 {primaryLabel}
@@ -1860,7 +1942,7 @@ function AnalysisStateBubble(props: {
             ) : null}
             {failureCopy.ticketHref ? (
               <a
-                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                className="btn-secondary min-h-[40px] w-full break-words px-3 py-2 text-sm [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto"
                 href={failureCopy.ticketHref}
               >
                 {copy.viewTicket}
@@ -1869,7 +1951,7 @@ function AnalysisStateBubble(props: {
             {props.onSaveOnly && !analysisFailed ? (
               <button
                 type="button"
-                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                className="btn-secondary min-h-[40px] w-full px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto"
                 onClick={props.onSaveOnly}
               >
                 {props.locale === "en" ? "Save input" : "Eingabe speichern"}
@@ -1878,7 +1960,7 @@ function AnalysisStateBubble(props: {
             {props.onDeferWork ? (
               <button
                 type="button"
-                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                className="btn-secondary min-h-[40px] w-full px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto"
                 onClick={props.onDeferWork}
               >
                 {copy.continueLater}
@@ -2179,7 +2261,11 @@ function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
   );
 }
 
-function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
+function WorkspaceStageRail(props: {
+  stages: FollowupStage[];
+  locale: CreateVoxyLocale;
+}) {
+  const isEnglish = props.locale === "en";
   return (
     <div
       data-create-pipeline-rail
@@ -2187,8 +2273,14 @@ function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Assistenzpfad</p>
-          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Vom Eingang bis zur bewussten nächsten Aktion</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {isEnglish ? "Assistance path" : "Assistenzpfad"}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+            {isEnglish
+              ? "From intake to a deliberate next action"
+              : "Vom Eingang bis zur bewussten nächsten Aktion"}
+          </p>
         </div>
         <span className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
           review-first
@@ -2208,14 +2300,24 @@ function WorkspaceStageRail(props: { stages: FollowupStage[] }) {
                     : "border-slate-200/75 bg-[rgb(var(--bg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]";
           const badge =
             stage.status === "done"
-              ? "bereit"
+              ? isEnglish
+                ? "ready"
+                : "bereit"
               : stage.status === "active"
-                ? "jetzt"
+                ? isEnglish
+                  ? "now"
+                  : "jetzt"
                 : stage.status === "error"
-                  ? "blockiert"
+                  ? isEnglish
+                    ? "blocked"
+                    : "blockiert"
                   : stage.status === "locked"
-                    ? "gesperrt"
-                    : "danach";
+                    ? isEnglish
+                      ? "locked"
+                      : "gesperrt"
+                    : isEnglish
+                      ? "next"
+                      : "danach";
 
           return (
             <article
@@ -2802,6 +2904,7 @@ function StructureFocusPanel(props: {
 }
 
 function StructuredWorkstateBlock(props: {
+  locale: CreateVoxyLocale;
   rootTopic: string;
   topicLabels: string[];
   positionClusters: string[];
@@ -2823,8 +2926,9 @@ function StructuredWorkstateBlock(props: {
         isConfirmed: props.isConfirmed,
         analysisState: "result_ready",
         hasValidatedTopics: props.topicLabels.length > 0,
+        locale: props.locale,
       }),
-    [props.isConfirmed, props.topicLabels.length],
+    [props.isConfirmed, props.locale, props.topicLabels.length],
   );
   const overviewCards = React.useMemo<FocusOverviewCard[]>(
     () => {
@@ -3333,6 +3437,7 @@ export default function CreateVisualFollowup({
   isRetryPlannerPending = false,
   locale = "de",
   supportHandoff = null,
+  dynamicStatusRef,
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   linkDetection = null,
@@ -3602,17 +3707,18 @@ export default function CreateVisualFollowup({
         isConfirmed: hasValidatedAnalysis && isConfirmed,
         analysisState,
         hasValidatedTopics,
+        locale,
         composerMode,
         activeTopicLabel: hasValidatedAnalysis ? activeTopicLabel : null,
         selectedPrimaryTopic: hasValidatedAnalysis ? selectedPrimaryTopic : null,
         groupedTopicLabels: hasValidatedAnalysis ? groupedTopicLabels : [],
       }),
-    [activeTopicLabel, analysisState, composerMode, groupedTopicLabels, hasValidatedAnalysis, hasValidatedTopics, isConfirmed, selectedPrimaryTopic],
+    [activeTopicLabel, analysisState, composerMode, groupedTopicLabels, hasValidatedAnalysis, hasValidatedTopics, isConfirmed, locale, selectedPrimaryTopic],
   );
   const workspaceMetrics = React.useMemo(
     () => [
         {
-          label: "Prioritäten",
+          label: locale === "en" ? "Priorities" : "Prioritäten",
           value: String(
             hasValidatedAnalysis
               ? documentAnalysis
@@ -3620,26 +3726,41 @@ export default function CreateVisualFollowup({
                 : Math.max(0, Math.min(topicLabels.length, 3))
               : 0,
           ),
-          detail: "Was du zuerst schärfen solltest",
+          detail:
+            locale === "en"
+              ? "What to refine first"
+              : "Was du zuerst schärfen solltest",
         },
         {
-          label: "Themen",
+          label: locale === "en" ? "Topics" : "Themen",
           value: String(hasValidatedAnalysis ? totalStructureTopicCount : 0),
-          detail: "Sichtbar getrennte Schwerpunkte",
+          detail:
+            locale === "en"
+              ? "Distinct visible areas of focus"
+              : "Sichtbar getrennte Schwerpunkte",
         },
       {
-        label: "Offene Fragen",
+        label: locale === "en" ? "Open questions" : "Offene Fragen",
         value: String(hasValidatedAnalysis ? voteQuestions.length : 0),
-        detail: "Bleiben review-first sichtbar",
+        detail:
+          locale === "en"
+            ? "Remain visible for review first"
+            : "Bleiben review-first sichtbar",
       },
         {
-          label: "Nächster Schritt",
+          label: locale === "en" ? "Next step" : "Nächster Schritt",
           value: !hasValidatedAnalysis
             ? analysisState === "entitlement_required"
-              ? "Analyse starten"
+              ? locale === "en"
+                ? "Start analysis"
+                : "Analyse starten"
               : analysisState === "link_detected"
-                ? "Link analysieren"
-                : "Erneut versuchen"
+                ? locale === "en"
+                  ? "Analyze link"
+                  : "Link analysieren"
+                : locale === "en"
+                  ? "Try again"
+                  : "Erneut versuchen"
             : plannerClarificationRequired
             ? "Themenstruktur bestätigen"
             : groupedTopicLabels.length > 1
@@ -3651,7 +3772,10 @@ export default function CreateVisualFollowup({
                   : showMultiTopicActionPanel
                     ? "Thema fokussieren"
                     : "Themenstruktur bestätigen",
-        detail: "Nur nach bewusster Entscheidung",
+        detail:
+          locale === "en"
+            ? "Only after a deliberate decision"
+            : "Nur nach bewusster Entscheidung",
       },
     ],
     [
@@ -3660,6 +3784,7 @@ export default function CreateVisualFollowup({
       documentAnalysis,
       documentTopicCount,
       groupedTopicLabels.length,
+      locale,
       plannerClarificationRequired,
       hasValidatedAnalysis,
       analysisState,
@@ -3885,25 +4010,33 @@ export default function CreateVisualFollowup({
                       </p>
                       <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
                         {plannerClarificationRequired
-                          ? "Ich habe diese Themen erkannt."
+                          ? locale === "en"
+                            ? "I detected these topics."
+                            : "Ich habe diese Themen erkannt."
                           : plannerUsesProvisionalStructure
                             ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
-                            : "Chat-Arbeitsstand für deinen Beitrag"}
+                            : locale === "en"
+                              ? "Chat workspace for your contribution"
+                              : "Chat-Arbeitsstand für deinen Beitrag"}
                       </p>
                       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
                         {plannerClarificationRequired
-                          ? "Aus deinem Beitrag ergeben sich diese Stränge. Du entscheidest, wie wir weiterarbeiten."
-                          : "Ich halte Eingabe, Themen, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
+                          ? locale === "en"
+                            ? "These strands emerge from your contribution. You decide how to continue."
+                            : "Aus deinem Beitrag ergeben sich diese Stränge. Du entscheidest, wie wir weiterarbeiten."
+                          : locale === "en"
+                            ? "I keep the input, topics, questions, and next steps together in one workspace."
+                            : "Ich halte Eingabe, Themen, Fragen und nächste Schritte in einem gemeinsamen Workspace zusammen."}
                       </p>
                     </div>
                   </div>
                   <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
-                    Noch nicht veröffentlicht
+                    {locale === "en" ? "Not published" : "Noch nicht veröffentlicht"}
                   </span>
                 </div>
 
                 <div className="mt-4 space-y-4">
-                  <WorkspaceStageRail stages={followupStages} />
+                  <WorkspaceStageRail stages={followupStages} locale={locale} />
                   <WorkspaceMetricRail items={workspaceMetrics} />
                 </div>
               </>
@@ -3927,6 +4060,7 @@ export default function CreateVisualFollowup({
                   onDeferWork={onDeferWork}
                   locale={locale}
                   supportHandoff={supportHandoff}
+                  statusRef={dynamicStatusRef}
                 />
               ) : null}
               {hasValidatedAnalysis && documentAnalysis ? (
@@ -4126,7 +4260,9 @@ export default function CreateVisualFollowup({
               aria-expanded={detailsOpen}
               onClick={() => setDetailsOpen((current) => !current)}
             >
-              <span>Details & Transparenz</span>
+              <span>
+                {locale === "en" ? "Details & transparency" : "Details & Transparenz"}
+              </span>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 20 20"
@@ -4212,6 +4348,7 @@ export default function CreateVisualFollowup({
                       ) : (
                         <div className="space-y-4">
                           <StructuredWorkstateBlock
+                            locale={locale}
                             rootTopic={rootTopic}
                             topicLabels={topicLabels}
                             positionClusters={positionClusters}
