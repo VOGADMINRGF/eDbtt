@@ -1,13 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+const originalNextRuntime = process.env.NEXT_RUNTIME;
 const mocks = vi.hoisted(() => ({
-  rateLimit: vi.fn(),
+  consumePersistentRateLimit: vi.fn(),
   getCreateContributionDraftForResumeRecord: vi.fn(),
 }));
 
-vi.mock("@/utils/rateLimit", () => ({
-  rateLimit: (...args: unknown[]) => mocks.rateLimit(...args),
+vi.mock("@/utils/persistentRateLimit", () => ({
+  consumePersistentRateLimit: (input: unknown) =>
+    mocks.consumePersistentRateLimit(input),
 }));
 
 vi.mock("@/server/serverDrafts", () => ({
@@ -61,14 +63,25 @@ function ownDraft(overrides: Record<string, unknown> = {}) {
 describe("authenticated create mutation security contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.rateLimit.mockResolvedValue({
+    delete process.env.NEXT_RUNTIME;
+    mocks.consumePersistentRateLimit.mockResolvedValue({
       ok: true,
       remaining: 10,
+      limit: 12,
+      resetAt: Date.now() + 60_000,
       retryIn: 0,
     });
     mocks.getCreateContributionDraftForResumeRecord.mockResolvedValue(
       ownDraft(),
     );
+  });
+
+  afterEach(() => {
+    if (originalNextRuntime === undefined) {
+      delete process.env.NEXT_RUNTIME;
+    } else {
+      process.env.NEXT_RUNTIME = originalNextRuntime;
+    }
   });
 
   it.each([
@@ -89,10 +102,10 @@ describe("authenticated create mutation security contract", () => {
       ok: false,
       errorCode: "CREATE_REQUEST_REJECTED",
     });
-    expect(mocks.rateLimit).not.toHaveBeenCalled();
+    expect(mocks.consumePersistentRateLimit).not.toHaveBeenCalled();
   });
 
-  it("applies independent authenticated-user and IP limits", async () => {
+  it("applies shared persistent authenticated-user and IP limits with hashed subjects", async () => {
     const response = await enforceCreateMutationSecurity({
       req: request({ "x-forwarded-for": "203.0.113.42" }),
       scope: "create_link_analysis",
@@ -100,22 +113,46 @@ describe("authenticated create mutation security contract", () => {
     });
 
     expect(response).toBeNull();
-    expect(mocks.rateLimit).toHaveBeenCalledTimes(2);
-    expect(mocks.rateLimit).toHaveBeenCalledWith(
-      "create_link_analysis:actor:user:user-1",
-      12,
-      600_000,
-      { salt: "create-route-security-v1" },
+    expect(mocks.consumePersistentRateLimit).toHaveBeenCalledTimes(2);
+    expect(mocks.consumePersistentRateLimit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        namespace: "create:create_link_analysis:actor",
+        subjectHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        limit: 12,
+        windowMs: 600_000,
+      }),
     );
-    expect(mocks.rateLimit.mock.calls[1]?.[0]).toMatch(
-      /^create_link_analysis:ip:/,
+    expect(mocks.consumePersistentRateLimit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        namespace: "create:create_link_analysis:ip",
+        subjectHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        limit: 30,
+        windowMs: 600_000,
+      }),
+    );
+    expect(mocks.consumePersistentRateLimit.mock.calls[0]?.[0].subjectHash).not.toBe(
+      mocks.consumePersistentRateLimit.mock.calls[1]?.[0].subjectHash,
     );
   });
 
-  it("returns a controlled rate limit and fails closed if either limiter is unavailable", async () => {
-    mocks.rateLimit
-      .mockResolvedValueOnce({ ok: false, remaining: 0, retryIn: 5_000 })
-      .mockResolvedValueOnce({ ok: true, remaining: 1, retryIn: 0 });
+  it("returns a controlled rate limit and fails closed if storage is unavailable", async () => {
+    mocks.consumePersistentRateLimit
+      .mockResolvedValueOnce({
+        ok: false,
+        remaining: 0,
+        limit: 12,
+        resetAt: Date.now() + 5_000,
+        retryIn: 5_000,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        remaining: 1,
+        limit: 30,
+        resetAt: Date.now() + 5_000,
+        retryIn: 0,
+      });
     const limited = await enforceCreateMutationSecurity({
       req: request(),
       scope: "create_intelligent_followup",
@@ -124,8 +161,10 @@ describe("authenticated create mutation security contract", () => {
     expect(limited?.status).toBe(429);
     expect(limited?.headers.get("retry-after")).toBe("5");
 
-    mocks.rateLimit.mockReset();
-    mocks.rateLimit.mockRejectedValue(new Error("limiter unavailable"));
+    mocks.consumePersistentRateLimit.mockReset();
+    mocks.consumePersistentRateLimit.mockRejectedValue(
+      new Error("limiter unavailable"),
+    );
     const unavailable = await enforceCreateMutationSecurity({
       req: request(),
       scope: "create_intelligent_followup",
@@ -135,6 +174,21 @@ describe("authenticated create mutation security contract", () => {
     await expect(unavailable?.json()).resolves.toMatchObject({
       errorCode: "CREATE_RATE_LIMIT_UNAVAILABLE",
     });
+  });
+
+  it("fails closed when the persistent loader is unavailable in an unsupported runtime", async () => {
+    process.env.NEXT_RUNTIME = "edge";
+    const response = await enforceCreateMutationSecurity({
+      req: request(),
+      scope: "create_save",
+      actorKey: "user:user-1",
+    });
+
+    expect(response?.status).toBe(503);
+    await expect(response?.json()).resolves.toMatchObject({
+      errorCode: "CREATE_RATE_LIMIT_UNAVAILABLE",
+    });
+    expect(mocks.consumePersistentRateLimit).not.toHaveBeenCalled();
   });
 
   it("accepts only an active canonical draft owned by the authenticated user", async () => {
