@@ -103,7 +103,7 @@ export async function enforceCreateMutationSecurity(input: {
   req: NextRequest;
   scope: CreateMutationScope;
   actorKey: string;
-}): Promise<NextResponse | null> {
+}): Promise<Response | null> {
   const origin = input.req.headers.get("origin")?.trim() ?? "";
   const fetchSite = input.req.headers.get("sec-fetch-site")?.trim().toLowerCase() ?? "";
   const csrfIntent = input.req.headers.get(CREATE_MUTATION_CSRF_HEADER)?.trim() ?? "";
