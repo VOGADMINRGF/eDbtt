@@ -77,6 +77,18 @@ describe("studio target contract", () => {
     ).toBe("/studio?caller=legacy_qrcodegenerator&targetState=blocked");
   });
 
+  it("does not turn surrounding whitespace into an empty or ready target", () => {
+    expect(
+      resolveQrStudioTarget({
+        target: " /dossier/demo ",
+        publicOrigin: "https://www.edebatte.org",
+      }),
+    ).toMatchObject({
+      status: "blocked",
+      reason: "surrounding_whitespace",
+    });
+  });
+
   it("keeps a small caller inventory for known studio entry sources", () => {
     expect(QR_STUDIO_CALLER_INVENTORY).toMatchObject({
       content_release_workbench: "Review-to-Publish Workspace",

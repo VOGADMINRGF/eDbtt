@@ -15,7 +15,6 @@ export { ensureVerificationDefaults };
 
 export const CREDENTIAL_COLLECTION = "user_credentials" as const;
 export const TWO_FA_COLLECTION = "twofactor_challenges" as const;
-export const DEFAULT_REDIRECT = "/" as const;
 export const TWO_FA_WINDOW_MS = 10 * 60 * 1000;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const TWO_FACTOR_FALLBACK_COOKIE = "u_2fa_fallback" as const;
@@ -116,9 +115,7 @@ export function sha256(value: string) {
 }
 
 export function sanitizeRedirect(raw?: string | null) {
-  if (!raw) return DEFAULT_REDIRECT;
-  const normalized = normalizeInternalRedirectPath(raw);
-  return normalized ?? DEFAULT_REDIRECT;
+  return normalizeInternalRedirectPath(raw);
 }
 
 export function resolveTwoFactorMethod(

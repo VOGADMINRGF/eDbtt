@@ -17,6 +17,12 @@ function readParam(value: string | string[] | undefined) {
   return "";
 }
 
+function readRawParam(value: string | string[] | undefined) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0] ?? "";
+  return "";
+}
+
 const PRODUCT_AREAS = [
   {
     href: buildCanonicalDossierHref(null, { allowIndexFallback: true }) ?? "/dossier",
@@ -228,11 +234,13 @@ function StudioLanding() {
 export default async function StudioPage({ searchParams }: PageProps) {
   const resolved = await searchParams;
   const code = readParam(resolved.code);
-  const target = readParam(resolved.target);
+  const target = readRawParam(resolved.target);
   const caller = readParam(resolved.caller);
 
   if (code) return <StudioCodeWorkspaceClient code={code} />;
-  if (target) return <StudioTargetWorkspace rawTarget={target} caller={caller} />;
+  if (resolved.target !== undefined) {
+    return <StudioTargetWorkspace rawTarget={target} caller={caller} />;
+  }
   if (
     readParam(resolved.invalidTarget) ||
     readParam(resolved.targetState) === "blocked"

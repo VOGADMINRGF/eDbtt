@@ -36,19 +36,33 @@ type NavigationTargetSyntaxResult =
       reason: InternalNavigationFailureReason;
     };
 
+export type SameOriginNavigationDecodedTarget = {
+  rawValue: string;
+  kind: "internal" | "absolute";
+  pathname: string;
+  search: string;
+  hash: string;
+  queryEntries: readonly (readonly [string, string])[];
+};
+
 export type SameOriginNavigationValidationResult =
   | {
       ok: true;
       value: {
         kind: "internal" | "absolute";
         normalizedTarget: InternalRedirectPath | string;
+        relativeTarget: InternalRedirectPath;
         absoluteHref: string;
         expectedOrigin: string;
         resolvedOrigin: string;
         protocol: string;
         host: string;
         hostname: string;
+        pathname: string;
+        search: string;
+        hash: string;
         decodedLayers: readonly string[];
+        decodedTargets: readonly SameOriginNavigationDecodedTarget[];
       };
     }
   | {
@@ -148,26 +162,23 @@ function validateNavigationTargetSyntax(
   return { ok: false, reason: "encoding_depth_exceeded" };
 }
 
-export function validateSameOriginNavigationTarget(
-  value: unknown,
-  options: SameOriginNavigationOptions = {},
-): SameOriginNavigationValidationResult {
-  const syntax = validateNavigationTargetSyntax(value, options);
-  if ("reason" in syntax) {
-    return { ok: false, reason: syntax.reason };
-  }
-
-  const rawValue = syntax.value.rawValue;
+function resolveNavigationLayer(
+  rawValue: string,
+  expectedOrigin: string,
+  allowAbsolute: boolean,
+):
+  | {
+      ok: true;
+      parsed: URL;
+      target: SameOriginNavigationDecodedTarget;
+    }
+  | {
+      ok: false;
+      reason: InternalNavigationFailureReason;
+    } {
   const isInternal = rawValue.startsWith("/");
-  if (!isInternal && !options.allowAbsolute) {
+  if (!isInternal && !allowAbsolute) {
     return { ok: false, reason: "not_internal_path" };
-  }
-
-  const expectedOrigin = normalizeExpectedOrigin(
-    options.expectedOrigin ?? INTERNAL_REDIRECT_ORIGIN,
-  );
-  if (!expectedOrigin) {
-    return { ok: false, reason: "invalid_origin" };
   }
 
   let parsed: URL;
@@ -188,6 +199,54 @@ export function validateSameOriginNavigationTarget(
     return { ok: false, reason: "origin_not_allowed" };
   }
 
+  return {
+    ok: true,
+    parsed,
+    target: {
+      rawValue,
+      kind: isInternal ? "internal" : "absolute",
+      pathname: parsed.pathname,
+      search: parsed.search,
+      hash: parsed.hash,
+      queryEntries: Array.from(parsed.searchParams.entries()),
+    },
+  };
+}
+
+export function validateSameOriginNavigationTarget(
+  value: unknown,
+  options: SameOriginNavigationOptions = {},
+): SameOriginNavigationValidationResult {
+  const syntax = validateNavigationTargetSyntax(value, options);
+  if ("reason" in syntax) {
+    return { ok: false, reason: syntax.reason };
+  }
+
+  const expectedOrigin = normalizeExpectedOrigin(
+    options.expectedOrigin ?? INTERNAL_REDIRECT_ORIGIN,
+  );
+  if (!expectedOrigin) {
+    return { ok: false, reason: "invalid_origin" };
+  }
+
+  const decodedTargets: SameOriginNavigationDecodedTarget[] = [];
+  let parsedRaw: URL | null = null;
+  for (const layer of syntax.value.decodedLayers) {
+    const resolvedLayer = resolveNavigationLayer(
+      layer,
+      expectedOrigin,
+      options.allowAbsolute === true,
+    );
+    if ("reason" in resolvedLayer) {
+      return { ok: false, reason: resolvedLayer.reason };
+    }
+    parsedRaw ??= resolvedLayer.parsed;
+    decodedTargets.push(resolvedLayer.target);
+  }
+
+  const rawValue = syntax.value.rawValue;
+  const isInternal = rawValue.startsWith("/");
+  const parsed = parsedRaw!;
   const browserTarget = isInternal
     ? `${parsed.pathname}${parsed.search}${parsed.hash}`
     : parsed.toString();
@@ -202,13 +261,18 @@ export function validateSameOriginNavigationTarget(
       normalizedTarget: isInternal
         ? (rawValue as InternalRedirectPath)
         : rawValue,
+      relativeTarget: `${parsed.pathname}${parsed.search}${parsed.hash}` as InternalRedirectPath,
       absoluteHref: parsed.toString(),
       expectedOrigin,
       resolvedOrigin: parsed.origin,
       protocol: parsed.protocol,
       host: parsed.host,
       hostname: parsed.hostname,
+      pathname: parsed.pathname,
+      search: parsed.search,
+      hash: parsed.hash,
       decodedLayers: syntax.value.decodedLayers,
+      decodedTargets,
     },
   };
 }

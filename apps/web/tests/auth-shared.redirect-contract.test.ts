@@ -10,7 +10,7 @@ vi.mock("@/utils/session", () => ({
   createSession: vi.fn(async () => "token"),
 }));
 
-import { DEFAULT_REDIRECT, sanitizeRedirect } from "@/app/api/auth/sharedAuth";
+import { sanitizeRedirect } from "@/app/api/auth/sharedAuth";
 import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
 import { normalizeInternalRedirectPath } from "@/features/create/finalizeRedirect";
 
@@ -38,7 +38,10 @@ const UNSAFE_REDIRECT_CASES = [
   ["encoded DEL before second slash", "/%7F/evil.example"],
   ["tab and backslash origin escape", "/\t\\evil.example"],
   ["line feed between leading slashes", "/\n/evil.example"],
-  ["malformed protocol-relative URL", "//["],
+    ["malformed protocol-relative URL", "//["],
+  ["lone percent", "/%"],
+  ["invalid percent octet", "/%GG"],
+  ["truncated UTF-8", "/%E2%82"],
 ] as const;
 const SAFE_REDIRECT_CASES = [
   ["/account", "/account"],
@@ -50,7 +53,7 @@ const SAFE_REDIRECT_CASES = [
 
 describe("auth shared redirect contract", () => {
   it.each(UNSAFE_REDIRECT_CASES)("rejects %s", (_label, candidate) => {
-    expect(sanitizeRedirect(candidate)).toBe(DEFAULT_REDIRECT);
+    expect(sanitizeRedirect(candidate)).toBeNull();
   });
 
   it.each(SAFE_REDIRECT_CASES)("keeps safe internal redirect %s", (candidate, expected) => {
@@ -70,10 +73,10 @@ describe("auth shared redirect contract", () => {
     }
   });
 
-  it("falls back for invalid or unsafe redirect values", () => {
-    expect(sanitizeRedirect("javascript:alert(1)")).toBe(DEFAULT_REDIRECT);
-    expect(sanitizeRedirect("")).toBe(DEFAULT_REDIRECT);
-    expect(sanitizeRedirect(null)).toBe(DEFAULT_REDIRECT);
+  it("returns explicit rejection for invalid or unsafe redirect values", () => {
+    expect(sanitizeRedirect("javascript:alert(1)")).toBeNull();
+    expect(sanitizeRedirect("")).toBeNull();
+    expect(sanitizeRedirect(null)).toBeNull();
   });
 
   it("rejects login loops while preserving a safe internal next target", () => {

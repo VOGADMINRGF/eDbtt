@@ -27,6 +27,8 @@ describe("studio target rejection UI", () => {
     ["encoded backslash", "/%5Cevil.example"],
     ["double encoded backslash", "/%255Cevil.example"],
     ["control-character origin escape", "/\t/evil.example"],
+    ["surrounding whitespace", " /dossier/demo "],
+    ["malformed encoding", "/%GG"],
     ["nested target", "/safe?target=/dossier/demo"],
   ])(
     "shows a safe blocked state without QR or target test for %s",

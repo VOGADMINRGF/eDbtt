@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_INTERNAL_NAVIGATION_TARGET_LENGTH,
   normalizeInternalRedirectPath,
+  validateSameOriginNavigationTarget,
 } from "@/lib/security/internalNavigation";
 import {
   buildPublicQrTargetHref,
@@ -46,6 +47,13 @@ const STRUCTURALLY_UNSAFE_TARGETS = [
   ["raw line feed", "/\n/evil.example"],
   ["encoded line feed", "/%0A/evil.example"],
   ["double encoded line feed", "/%250A/evil.example"],
+  ["lone percent", "/%"],
+  ["non-hex percent G0", "/%G0"],
+  ["non-hex percent GG", "/%GG"],
+  ["truncated UTF-8 sequence", "/%E2%82"],
+  ["invalid UTF-8 continuation", "/%C3%28"],
+  ["malformed encoding after encoded backslash", "/safe%5C%"],
+  ["invalid UTF-8 after encoded control", "/safe%00%C3%28"],
   ["triple encoding depth", "/%25255Cevil.example"],
   ["browser-normalized dot segment", "/safe/../admin"],
   ["surrounding whitespace", " /safe"],
@@ -100,6 +108,12 @@ describe("shared internal navigation security matrix", () => {
     (_label, candidate) => {
       expect(normalizeInternalRedirectPath(candidate)).toBeNull();
       expect(
+        validateSameOriginNavigationTarget(candidate, {
+          expectedOrigin: EXPECTED_ORIGIN,
+          allowAbsolute: true,
+        }),
+      ).toMatchObject({ ok: false });
+      expect(
         validateQrTarget(candidate, { expectedOrigin: EXPECTED_ORIGIN }),
       ).toMatchObject({ ok: false });
       expect(
@@ -139,6 +153,18 @@ describe("shared internal navigation security matrix", () => {
     "preserves safe internal target %s without rewriting query or fragment",
     (candidate, expected) => {
       expect(normalizeInternalRedirectPath(candidate)).toBe(expected);
+
+      const navigation = validateSameOriginNavigationTarget(candidate, {
+        expectedOrigin: EXPECTED_ORIGIN,
+        allowAbsolute: true,
+      });
+      expect(navigation).toMatchObject({
+        ok: true,
+        value: {
+          relativeTarget: expected,
+          resolvedOrigin: EXPECTED_ORIGIN,
+        },
+      });
 
       const validation = validateQrTarget(candidate, {
         expectedOrigin: EXPECTED_ORIGIN,
@@ -211,5 +237,22 @@ describe("shared internal navigation security matrix", () => {
       }),
     ).toBe("/studio?targetState=blocked");
     expect(buildPublicQrTargetHref(candidate)).toBeNull();
+  });
+
+  it.each([
+    "/%",
+    "/%G0",
+    "/%GG",
+    "/%E2%82",
+    "/%C3%28",
+    "/safe%5C%",
+    "/safe%00%C3%28",
+  ])("classifies malformed encoding %s fail-closed", (candidate) => {
+    expect(
+      validateSameOriginNavigationTarget(candidate, {
+        expectedOrigin: EXPECTED_ORIGIN,
+        allowAbsolute: true,
+      }),
+    ).toEqual({ ok: false, reason: "malformed_encoding" });
   });
 });

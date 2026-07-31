@@ -3,6 +3,7 @@ import {
   validateSameOriginNavigationTarget,
   type InternalNavigationFailureReason,
   type InternalRedirectPath,
+  type SameOriginNavigationDecodedTarget,
 } from "@/lib/security/internalNavigation";
 import { publicOrigin } from "@/utils/publicOrigin";
 
@@ -63,6 +64,9 @@ export type ValidatedQrTarget = {
   normalizedTarget: string;
   absoluteTarget: string;
   host: string | null;
+  pathname: string;
+  search: string;
+  hash: string;
 };
 
 export type QrTargetValidationResult =
@@ -122,9 +126,9 @@ function isBlockedPath(pathname: string) {
 }
 
 function inspectQuery(
-  searchParams: URLSearchParams,
+  queryEntries: readonly (readonly [string, string])[],
 ): { reason: QrTargetValidationFailureReason; message: string } | null {
-  for (const [rawKey, rawValue] of searchParams.entries()) {
+  for (const [rawKey, rawValue] of queryEntries) {
     const key = normalizeParamName(rawKey);
     if (REDIRECT_PARAM_NAMES.has(key)) {
       return {
@@ -202,35 +206,17 @@ function internalFailureMessage(reason: InternalNavigationFailureReason): string
   }
 }
 
-function inspectDecodedLayers(
-  decodedLayers: readonly string[],
-  expectedOrigin: string,
+function inspectDecodedTargets(
+  decodedTargets: readonly SameOriginNavigationDecodedTarget[],
 ): { reason: QrTargetValidationFailureReason; message: string } | null {
-  for (const layer of decodedLayers) {
-    let parsed: URL;
-    try {
-      parsed = layer.startsWith("/")
-        ? new URL(layer, expectedOrigin)
-        : new URL(layer);
-    } catch {
-      return {
-        reason: "invalid_url",
-        message: "Das QR-Ziel ist nach der Sicherheitsprüfung nicht eindeutig lesbar.",
-      };
-    }
-    if (parsed.origin !== expectedOrigin) {
-      return {
-        reason: "origin_not_allowed",
-        message: "Das QR-Ziel verlässt die erwartete öffentliche Origin.",
-      };
-    }
-    if (isBlockedPath(parsed.pathname)) {
+  for (const target of decodedTargets) {
+    if (isBlockedPath(target.pathname)) {
       return {
         reason: "blocked_path",
         message: "Administrative oder interne Systempfade sind kein erlaubtes QR-Ziel.",
       };
     }
-    const queryIssue = inspectQuery(parsed.searchParams);
+    const queryIssue = inspectQuery(target.queryEntries);
     if (queryIssue) return queryIssue;
   }
   return null;
@@ -279,10 +265,7 @@ export function validateQrTarget(
   const target = navigationTarget.value;
 
   if (target.kind === "internal") {
-    const layerIssue = inspectDecodedLayers(
-      target.decodedLayers,
-      expectedOrigin,
-    );
+    const layerIssue = inspectDecodedTargets(target.decodedTargets);
     if (layerIssue) return failure(layerIssue.reason, layerIssue.message);
 
     return {
@@ -292,6 +275,9 @@ export function validateQrTarget(
         normalizedTarget: target.normalizedTarget,
         absoluteTarget: target.absoluteHref,
         host: null,
+        pathname: target.pathname,
+        search: target.search,
+        hash: target.hash,
       },
     };
   }
@@ -313,7 +299,7 @@ export function validateQrTarget(
     );
   }
 
-  const layerIssue = inspectDecodedLayers(target.decodedLayers, expectedOrigin);
+  const layerIssue = inspectDecodedTargets(target.decodedTargets);
   if (layerIssue) return failure(layerIssue.reason, layerIssue.message);
 
   return {
@@ -323,6 +309,9 @@ export function validateQrTarget(
       normalizedTarget: target.normalizedTarget,
       absoluteTarget: target.absoluteHref,
       host,
+      pathname: target.pathname,
+      search: target.search,
+      hash: target.hash,
     },
   };
 }
@@ -336,6 +325,19 @@ export function buildPublicQrTargetHref(
   return validation.value.kind === "internal"
     ? validation.value.normalizedTarget
     : validation.value.absoluteTarget;
+}
+
+export function normalizeOptionalPublicQrTarget(
+  rawTarget: unknown,
+  options: ValidateQrTargetOptions = {},
+):
+  | { ok: true; value: string | null }
+  | { ok: false } {
+  if (rawTarget === null || rawTarget === undefined || rawTarget === "") {
+    return { ok: true, value: null };
+  }
+  const target = buildPublicQrTargetHref(rawTarget, options);
+  return target ? { ok: true, value: target } : { ok: false };
 }
 
 export function requirePublicQrTargetHref(

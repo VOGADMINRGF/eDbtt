@@ -110,4 +110,34 @@ describe("2FA login flow idempotency", () => {
     expect(result.current.verificationState).toBe("redirecting");
     expect(result.current.loading).toBe(true);
   });
+
+  it("never navigates to an unvalidated redirect returned by the API", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          ok: true,
+          redirectUrl: " /\\evil.example ",
+        }),
+      ),
+    );
+    const navigate = vi.fn();
+
+    const { result } = renderHook(() =>
+      useLoginFlow({
+        initialStep: "twofactor",
+        initialMethod: "email",
+        redirectTo: " /admin ",
+        navigate,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.submitTwoFactor("123456");
+    });
+
+    expect(result.current.redirectUrl).toBe("");
+    expect(navigate).toHaveBeenCalledWith("/account");
+    expect(navigate).not.toHaveBeenCalledWith(" /\\evil.example ");
+  });
 });

@@ -14,7 +14,7 @@ import type {
   StreamSessionStatus,
 } from "@features/stream/types";
 import { resolveSessionStatus } from "@features/stream/types";
-import { buildPublicQrTargetHref } from "@/features/qr/security";
+import { normalizeOptionalPublicQrTarget } from "@/features/qr/security";
 import { enforceStreamHost, enforceStreamIdentityReady, requireCreatorContext } from "../../../utils";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
@@ -24,16 +24,14 @@ async function loadSession(sessionId: string) {
 }
 
 function normalizeAgendaQrTarget(value: unknown) {
-  const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return { ok: true as const, value: null };
-  const qrTarget = buildPublicQrTargetHref(raw);
-  if (!qrTarget) {
+  const result = normalizeOptionalPublicQrTarget(value);
+  if (!result.ok) {
     return {
       ok: false as const,
       message: "Das QR-Ziel muss ein sicherer interner Pfad oder ein explizit freigegebenes HTTPS-Ziel sein.",
     };
   }
-  return { ok: true as const, value: qrTarget.slice(0, 1000) };
+  return { ok: true as const, value: result.value };
 }
 
 export async function GET(

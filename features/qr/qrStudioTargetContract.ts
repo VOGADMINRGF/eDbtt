@@ -55,7 +55,7 @@ export function resolveQrStudioTarget(input: {
 }): QrStudioTargetResolution {
   const caller = parseQrStudioCaller(input.caller);
   const rawTarget = typeof input.target === "string" ? input.target : "";
-  if (!rawTarget.trim()) {
+  if (!rawTarget) {
     return { status: "empty", caller };
   }
 

@@ -242,6 +242,8 @@ export async function verifySetupEmailCode(params: {
 
   return {
     ok: true as const,
-    redirectUrl: sanitizeRedirect(next || challenge.redirectTo),
+    redirectUrl: sanitizeRedirect(
+      typeof next === "string" ? next : challenge.redirectTo,
+    ),
   };
 }

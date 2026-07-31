@@ -23,13 +23,18 @@ Campaign-/Session- oder Retention-Entscheidung.
 `apps/web/src/lib/security/internalNavigation.ts` ist der gemeinsame strukturelle
 Vertrag. Er:
 
+- prüft den unveränderten Rohwert vor `trim`, Kürzung, separatem URL-Parsing,
+  Fragmententfernung oder anderer Normalisierung;
 - lehnt rohe Backslashes, C0-Control-Zeichen, DEL, Tab, CR und LF ab;
 - prüft dieselben Zeichen nach höchstens zwei Decoding-Schritten;
-- lehnt Network Paths, malformed Encoding und größere Decoding-Tiefen ab;
+- lehnt Network Paths, unvollständige Prozentfolgen, Nicht-Hex-Oktette,
+  abgeschnittene oder ungültige UTF-8-Folgen und größere Decoding-Tiefen ab;
 - begrenzt Navigationsziele auf 1.000 Zeichen;
 - verlangt für interne Ziele nach URL-Auflösung exakt die erwartete Origin;
 - lehnt Browser-Normalisierungen ab, die Pfad, Query oder Fragment verändern würden;
-- gibt bei Ablehnung keinen bereinigten Ersatzpfad zurück.
+- gibt bei Ablehnung keinen bereinigten Ersatzpfad zurück;
+- liefert bei Erfolg Pfad, Query, Fragment, absolute URL und die begrenzt
+  dekodierten Query-Einträge als gemeinsam geprüftes Ergebnis.
 
 `validateQrTarget` ergänzt auf diesem Kern ausschließlich die bestehende engere
 QR-Policy:
@@ -43,6 +48,19 @@ QR-Policy:
 `resolveQrStudioTarget` besitzt keinen eigenen URL- oder Hostparser mehr. Der
 Resolver adaptiert nur noch das Ergebnis von `validateQrTarget` für den
 Studio-Vertrag.
+
+Die aktiven Studio-, Agenda-, Wrapper-, Auth- und Create-Consumer reichen ihren
+Originalwert zuerst in den gemeinsamen Vertrag. Nach erfolgreicher Prüfung
+verwenden sie nur dessen Ergebnis; insbesondere werden absolute Studio-Ziele
+nicht erneut geparst und Wrapper-Pfade behalten Query und Fragment. Externe
+Wrapper-Links werden erst nach einer fehlgeschlagenen internen Klassifikation
+gegen ihren getrennten, eng begrenzten Protokollvertrag geprüft.
+
+`sanitizeRedirect` liefert jetzt explizit `InternalRedirectPath | null`.
+Ungültige Werte werden nicht mehr als `/` ausgegeben. Auth-Caller behandeln
+`null` kontrolliert über ihren bereits dokumentierten rollenbezogenen
+Post-Login- oder `/account`-Fallback; API-Antworten werden vor Client-Navigation
+erneut mit demselben Vertrag geprüft.
 
 ## Ablehnungsverhalten
 
@@ -67,6 +85,8 @@ Die gemeinsame parametrisierte Matrix prüft:
 - `%5C` und `%255C`;
 - rohe, encodierte und doppelt encodierte C0-, NUL-, DEL-, Tab-, CR- und LF-Werte;
 - `//evil.example` sowie encodierte Network Paths;
+- `/%`, `/%G0`, `/%GG`, abgeschnittene Multibyte-Sequenzen, ungültige
+  UTF-8-Prozentfolgen sowie Kombinationen mit Backslash und Control-Zeichen;
 - mehrstufiges Encoding über der erlaubten Tiefe;
 - `javascript:`, `data:`, `file:` und `vbscript:`;
 - URLs mit Credentials;
@@ -79,7 +99,10 @@ Die gemeinsame parametrisierte Matrix prüft:
 - maximale Länge und `max + 1`;
 - erlaubte interne Pfade mit harmloser Query und Fragment;
 - die Origin-Invariante für jedes akzeptierte Ziel;
-- das Fehlen von QR-Erzeugung und Zieltest bei Ablehnung.
+- identische Rohwert-Klassifikation in Auth, QR, Studio, Wrapper und Agenda;
+- unveränderte Query und Fragmente in allen akzeptierenden Consumer-Verträgen;
+- das Fehlen von Agenda-Persistenz, QR-Erzeugung und Zieltest sowie das
+  Ausbleiben jeder Navigation zum abgelehnten Rohwert.
 
 ## Automatische Evidence
 
@@ -98,7 +121,9 @@ Die GitHub-CI verwendet den kanonischen Node-20-Vertrag.
 
 ## Task-Lifecycle
 
-`docs/E150/OpenTasks.md` bleibt in diesem Delivery-Branch unverändert. Nach
-vollständiger technischer Validierung ist für
+`docs/E150/OpenTasks.md` wurde ausschließlich mechanisch und bytegleich auf den
+aktuellen `origin/main`-Blob
+`b590a495c8d22cf502a1fb8bc06b1ea85ce39e46` synchronisiert. Dabei wurde kein
+Taskstatus geändert oder ergänzt. Nach vollständiger technischer Validierung ist für
 `QR-INTERNAL-REDIRECT-HARDENING-01` maximal der Status `review` empfohlen. Die
 kanonische Statusänderung bleibt dem alleinigen SSOT-Schreiber vorbehalten.

@@ -104,7 +104,8 @@ export async function POST(req: NextRequest) {
   const rawIdentifier = (body.identifier || body.email || "").trim();
   const identifier = normalizeIdentifier(rawIdentifier);
   const password = body.password?.trim();
-  const requestedRedirect = body.next ? sanitizeRedirect(body.next) : null;
+  const requestedRedirect =
+    typeof body.next === "string" ? sanitizeRedirect(body.next) : null;
 
   if (!identifier || !password) {
     return errorResponse("invalid_input", 400);

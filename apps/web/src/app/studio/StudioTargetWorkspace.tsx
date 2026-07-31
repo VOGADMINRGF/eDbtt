@@ -66,13 +66,7 @@ export default function StudioTargetWorkspace({
 
   const target = validation.value;
   const publicHref = target.kind === "internal" ? target.normalizedTarget : target.absoluteTarget;
-  let pathname = publicHref;
-  try {
-    pathname = new URL(target.absoluteTarget).pathname;
-  } catch {
-    // Keep publicHref as a readable fallback.
-  }
-  const targetLabel = targetTypeLabel(pathname);
+  const targetLabel = targetTypeLabel(target.pathname);
 
   return (
     <main
