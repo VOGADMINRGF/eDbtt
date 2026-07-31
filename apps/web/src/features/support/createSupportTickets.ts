@@ -4,7 +4,8 @@ import crypto from "node:crypto";
 import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
 import { getAccountOverview } from "@features/account/service";
-import { sendMail } from "@/utils/mailer";
+import { sendMail, type SendMailResult } from "@/utils/mailer";
+import { buildSupportStatusMail } from "@/utils/emailTemplates";
 import type {
   CreateSupportHandoffPublic,
   CreateSupportTicketPublic,
@@ -32,6 +33,28 @@ export type CreateSupportNotificationStatus =
   | "email_failed"
   | "not_applicable";
 
+export type CreateSupportResolutionDeliveryStatus =
+  | "pending"
+  | "claimed"
+  | "delivered"
+  | "failed_retryable"
+  | "failed_terminal"
+  | "delivery_unknown"
+  | "not_applicable";
+
+export type CreateSupportResolutionDelivery = {
+  key: string;
+  status: CreateSupportResolutionDeliveryStatus;
+  attemptCount: number;
+  claimId: string | null;
+  claimedAt: string | null;
+  leaseExpiresAt: string | null;
+  completedAt: string | null;
+  messageId: string | null;
+  failureCategory: string | null;
+  retryable: boolean | null;
+};
+
 export type CreateSupportTicketRecord = {
   id: string;
   ticketNumber: string;
@@ -55,6 +78,7 @@ export type CreateSupportTicketRecord = {
   resolvedAt: string | null;
   notificationRecipientLinked: boolean;
   notificationStatus: CreateSupportNotificationStatus;
+  resolutionDelivery: CreateSupportResolutionDelivery;
 };
 
 export type AccountSupportNotification = {
@@ -84,7 +108,20 @@ type TicketAuditEvent = {
   createdAt: string;
 };
 
-type TicketRepository = {
+type StatusTransitionResult = {
+  record: CreateSupportTicketRecord;
+  changed: boolean;
+};
+
+type ResolutionDeliveryCompletion = {
+  status: Exclude<CreateSupportResolutionDeliveryStatus, "pending" | "claimed">;
+  messageId: string | null;
+  failureCategory: string | null;
+  retryable: boolean;
+  completedAt: string;
+};
+
+export type TicketRepository = {
   ensure(record: CreateSupportTicketRecord): Promise<{
     record: CreateSupportTicketRecord;
     created: boolean;
@@ -95,16 +132,35 @@ type TicketRepository = {
     userId: string,
     limit: number,
   ): Promise<AccountSupportNotification[]>;
-  updateStatus(input: {
+  transitionStatus(input: {
     ticketNumber: string;
+    expectedStatus: CreateSupportTicketStatus;
     status: CreateSupportTicketStatus;
     updatedAt: string;
     resolvedAt: string | null;
-  }): Promise<CreateSupportTicketRecord | null>;
-  updateNotification(input: {
+  }): Promise<StatusTransitionResult | null>;
+  markInAppNotification(input: {
     ticketNumber: string;
-    status: CreateSupportNotificationStatus;
     updatedAt: string;
+  }): Promise<CreateSupportTicketRecord | null>;
+  claimResolutionDelivery(input: {
+    ticketNumber: string;
+    claimId: string;
+    claimedAt: string;
+    leaseExpiresAt: string;
+  }): Promise<CreateSupportTicketRecord | null>;
+  reconcileExpiredResolutionDelivery(input: {
+    ticketNumber: string;
+    now: string;
+  }): Promise<CreateSupportTicketRecord | null>;
+  completeResolutionDelivery(input: {
+    ticketNumber: string;
+    claimId: string;
+    completion: ResolutionDeliveryCompletion;
+  }): Promise<CreateSupportTicketRecord | null>;
+  markResolutionDeliveryNotApplicable(input: {
+    ticketNumber: string;
+    completedAt: string;
   }): Promise<CreateSupportTicketRecord | null>;
   upsertNotification(notification: AccountSupportNotification): Promise<void>;
   appendAudit(event: TicketAuditEvent): Promise<void>;
@@ -113,6 +169,8 @@ type TicketRepository = {
 const TICKETS_COLLECTION = "support_tickets";
 const NOTIFICATIONS_COLLECTION = "account_notifications";
 const AUDIT_COLLECTION = "support_ticket_audit";
+const RESOLUTION_CLAIM_LEASE_MS = 5 * 60_000;
+const MAX_RESOLUTION_DELIVERY_ATTEMPTS = 2;
 
 let repoSingleton: TicketRepository | null = null;
 let indexesReady = false;
@@ -146,7 +204,7 @@ function localizedCopy(locale: "de" | "en", ticketNumber: string) {
       notificationTitle: `Ticket ${ticketNumber} has been resolved`,
       notificationBody:
         "The technical incident affecting your contribution has been resolved. You can continue your saved draft.",
-      emailSubject: `eDebatte: Ticket ${ticketNumber} has been resolved`,
+      resolvedStatus: "Resolved",
     };
   }
   return {
@@ -155,13 +213,28 @@ function localizedCopy(locale: "de" | "en", ticketNumber: string) {
     notificationTitle: `Ticket ${ticketNumber} wurde gelöst`,
     notificationBody:
       "Der technische Fall zu deinem Beitrag wurde gelöst. Du kannst deinen gespeicherten Arbeitsstand fortsetzen.",
-    emailSubject: `eDebatte: Ticket ${ticketNumber} wurde gelöst`,
+    resolvedStatus: "Gelöst",
   };
 }
 
 function buildTicketNumber(createdAt: string, fingerprint: string) {
   const compactDate = createdAt.slice(0, 10).replaceAll("-", "");
   return `EDB-${compactDate}-${fingerprint.slice(0, 8).toUpperCase()}`;
+}
+
+function resolutionDeliveryForTicket(ticketId: string): CreateSupportResolutionDelivery {
+  return {
+    key: `support-resolution-${ticketId}`,
+    status: "pending",
+    attemptCount: 0,
+    claimId: null,
+    claimedAt: null,
+    leaseExpiresAt: null,
+    completedAt: null,
+    messageId: null,
+    failureCategory: null,
+    retryable: null,
+  };
 }
 
 async function ensureIndexes() {
@@ -173,8 +246,10 @@ async function ensureIndexes() {
     tickets.createIndex({ failureFingerprint: 1 }, { unique: true }),
     tickets.createIndex({ ticketNumber: 1 }, { unique: true }),
     tickets.createIndex({ affectedUserId: 1, createdAt: -1 }),
+    tickets.createIndex({ "resolutionDelivery.key": 1 }, { unique: true }),
     notifications.createIndex({ id: 1 }, { unique: true }),
     notifications.createIndex({ userId: 1, createdAt: -1 }),
+    audit.createIndex({ id: 1 }, { unique: true }),
     audit.createIndex({ ticketId: 1, createdAt: -1 }),
   ]);
   indexesReady = true;
@@ -223,11 +298,14 @@ function createMongoRepo(): TicketRepository {
         .toArray();
       return records.map(clone);
     },
-    async updateStatus(input) {
+    async transitionStatus(input) {
       await ensureIndexes();
       const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
-      const record = await tickets.findOneAndUpdate(
-        { ticketNumber: input.ticketNumber },
+      const changed = await tickets.findOneAndUpdate(
+        {
+          ticketNumber: input.ticketNumber,
+          status: input.expectedStatus,
+        },
         {
           $set: {
             status: input.status,
@@ -237,19 +315,138 @@ function createMongoRepo(): TicketRepository {
         },
         { returnDocument: "after" },
       );
-      return record ? clone(record) : null;
+      if (changed) return { record: clone(changed), changed: true };
+      const current = await tickets.findOne({ ticketNumber: input.ticketNumber });
+      return current ? { record: clone(current), changed: false } : null;
     },
-    async updateNotification(input) {
+    async markInAppNotification(input) {
       await ensureIndexes();
       const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
       const record = await tickets.findOneAndUpdate(
-        { ticketNumber: input.ticketNumber },
+        { ticketNumber: input.ticketNumber, status: "resolved" },
         {
           $set: {
-            notificationStatus: input.status,
+            notificationStatus: "in_app_created",
             updatedAt: input.updatedAt,
           },
-        },
+        } as any,
+        { returnDocument: "after" },
+      );
+      return record ? clone(record) : null;
+    },
+    async claimResolutionDelivery(input) {
+      await ensureIndexes();
+      const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
+      const record = await tickets.findOneAndUpdate(
+        {
+          ticketNumber: input.ticketNumber,
+          status: "resolved",
+          $or: [
+            {
+              "resolutionDelivery.status": "pending",
+              "resolutionDelivery.attemptCount": 0,
+            },
+            {
+              "resolutionDelivery.status": "failed_retryable",
+              "resolutionDelivery.attemptCount": {
+                $lt: MAX_RESOLUTION_DELIVERY_ATTEMPTS,
+              },
+            },
+          ],
+        } as any,
+        {
+          $set: {
+            "resolutionDelivery.status": "claimed",
+            "resolutionDelivery.claimId": input.claimId,
+            "resolutionDelivery.claimedAt": input.claimedAt,
+            "resolutionDelivery.leaseExpiresAt": input.leaseExpiresAt,
+            "resolutionDelivery.completedAt": null,
+            "resolutionDelivery.failureCategory": null,
+            "resolutionDelivery.retryable": null,
+            notificationStatus: "in_app_created",
+            updatedAt: input.claimedAt,
+          },
+          $inc: { "resolutionDelivery.attemptCount": 1 },
+        } as any,
+        { returnDocument: "after" },
+      );
+      return record ? clone(record) : null;
+    },
+    async reconcileExpiredResolutionDelivery(input) {
+      await ensureIndexes();
+      const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
+      const record = await tickets.findOneAndUpdate(
+        {
+          ticketNumber: input.ticketNumber,
+          "resolutionDelivery.status": "claimed",
+          "resolutionDelivery.leaseExpiresAt": { $lt: input.now },
+        } as any,
+        {
+          $set: {
+            "resolutionDelivery.status": "delivery_unknown",
+            "resolutionDelivery.completedAt": input.now,
+            "resolutionDelivery.leaseExpiresAt": null,
+            "resolutionDelivery.failureCategory": "claim_expired",
+            "resolutionDelivery.retryable": false,
+            notificationStatus: "email_failed",
+            updatedAt: input.now,
+          },
+        } as any,
+        { returnDocument: "after" },
+      );
+      return record ? clone(record) : null;
+    },
+    async completeResolutionDelivery(input) {
+      await ensureIndexes();
+      const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
+      const record = await tickets.findOneAndUpdate(
+        {
+          ticketNumber: input.ticketNumber,
+          "resolutionDelivery.status": "claimed",
+          "resolutionDelivery.claimId": input.claimId,
+        } as any,
+        {
+          $set: {
+            "resolutionDelivery.status": input.completion.status,
+            "resolutionDelivery.completedAt": input.completion.completedAt,
+            "resolutionDelivery.leaseExpiresAt": null,
+            "resolutionDelivery.messageId": input.completion.messageId,
+            "resolutionDelivery.failureCategory":
+              input.completion.failureCategory,
+            "resolutionDelivery.retryable": input.completion.retryable,
+            notificationStatus:
+              input.completion.status === "delivered"
+                ? "email_sent"
+                : "email_failed",
+            updatedAt: input.completion.completedAt,
+          },
+        } as any,
+        { returnDocument: "after" },
+      );
+      return record ? clone(record) : null;
+    },
+    async markResolutionDeliveryNotApplicable(input) {
+      await ensureIndexes();
+      const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
+      const record = await tickets.findOneAndUpdate(
+        {
+          ticketNumber: input.ticketNumber,
+          status: "resolved",
+          "resolutionDelivery.status": {
+            $in: ["pending", "failed_retryable"],
+          },
+        } as any,
+        {
+          $set: {
+            "resolutionDelivery.status": "not_applicable",
+            "resolutionDelivery.completedAt": input.completedAt,
+            "resolutionDelivery.leaseExpiresAt": null,
+            "resolutionDelivery.failureCategory": null,
+            "resolutionDelivery.retryable": false,
+            notificationStatus: "in_app_created",
+            updatedAt: input.completedAt,
+          },
+        } as any,
         { returnDocument: "after" },
       );
       return record ? clone(record) : null;
@@ -311,9 +508,12 @@ export function createInMemoryCreateSupportTicketRepo(): TicketRepository {
         .slice(0, limit)
         .map(clone);
     },
-    async updateStatus(input) {
+    async transitionStatus(input) {
       const current = tickets.get(input.ticketNumber);
       if (!current) return null;
+      if (current.status !== input.expectedStatus) {
+        return { record: clone(current), changed: false };
+      }
       const next = {
         ...current,
         status: input.status,
@@ -321,15 +521,123 @@ export function createInMemoryCreateSupportTicketRepo(): TicketRepository {
         resolvedAt: input.resolvedAt,
       };
       tickets.set(input.ticketNumber, next);
-      return clone(next);
+      return { record: clone(next), changed: true };
     },
-    async updateNotification(input) {
+    async markInAppNotification(input) {
       const current = tickets.get(input.ticketNumber);
-      if (!current) return null;
+      if (!current || current.status !== "resolved") return null;
       const next = {
         ...current,
-        notificationStatus: input.status,
+        notificationStatus: "in_app_created" as const,
         updatedAt: input.updatedAt,
+      };
+      tickets.set(input.ticketNumber, next);
+      return clone(next);
+    },
+    async claimResolutionDelivery(input) {
+      const current = tickets.get(input.ticketNumber);
+      if (!current || current.status !== "resolved") return null;
+      const delivery = current.resolutionDelivery;
+      const canClaim =
+        (delivery.status === "pending" && delivery.attemptCount === 0) ||
+        (delivery.status === "failed_retryable" &&
+          delivery.attemptCount < MAX_RESOLUTION_DELIVERY_ATTEMPTS);
+      if (!canClaim) return null;
+      const next = {
+        ...current,
+        notificationStatus: "in_app_created" as const,
+        updatedAt: input.claimedAt,
+        resolutionDelivery: {
+          ...delivery,
+          status: "claimed" as const,
+          attemptCount: delivery.attemptCount + 1,
+          claimId: input.claimId,
+          claimedAt: input.claimedAt,
+          leaseExpiresAt: input.leaseExpiresAt,
+          completedAt: null,
+          failureCategory: null,
+          retryable: null,
+        },
+      };
+      tickets.set(input.ticketNumber, next);
+      return clone(next);
+    },
+    async reconcileExpiredResolutionDelivery(input) {
+      const current = tickets.get(input.ticketNumber);
+      if (
+        !current ||
+        current.resolutionDelivery.status !== "claimed" ||
+        !current.resolutionDelivery.leaseExpiresAt ||
+        current.resolutionDelivery.leaseExpiresAt >= input.now
+      ) {
+        return null;
+      }
+      const next = {
+        ...current,
+        notificationStatus: "email_failed" as const,
+        updatedAt: input.now,
+        resolutionDelivery: {
+          ...current.resolutionDelivery,
+          status: "delivery_unknown" as const,
+          completedAt: input.now,
+          leaseExpiresAt: null,
+          failureCategory: "claim_expired",
+          retryable: false,
+        },
+      };
+      tickets.set(input.ticketNumber, next);
+      return clone(next);
+    },
+    async completeResolutionDelivery(input) {
+      const current = tickets.get(input.ticketNumber);
+      if (
+        !current ||
+        current.resolutionDelivery.status !== "claimed" ||
+        current.resolutionDelivery.claimId !== input.claimId
+      ) {
+        return null;
+      }
+      const next = {
+        ...current,
+        notificationStatus:
+          input.completion.status === "delivered"
+            ? ("email_sent" as const)
+            : ("email_failed" as const),
+        updatedAt: input.completion.completedAt,
+        resolutionDelivery: {
+          ...current.resolutionDelivery,
+          status: input.completion.status,
+          completedAt: input.completion.completedAt,
+          leaseExpiresAt: null,
+          messageId: input.completion.messageId,
+          failureCategory: input.completion.failureCategory,
+          retryable: input.completion.retryable,
+        },
+      };
+      tickets.set(input.ticketNumber, next);
+      return clone(next);
+    },
+    async markResolutionDeliveryNotApplicable(input) {
+      const current = tickets.get(input.ticketNumber);
+      if (!current || current.status !== "resolved") return null;
+      if (
+        current.resolutionDelivery.status !== "pending" &&
+        current.resolutionDelivery.status !== "failed_retryable"
+      ) {
+        return clone(current);
+      }
+      const next = {
+        ...current,
+        notificationStatus: "in_app_created" as const,
+        updatedAt: input.completedAt,
+        resolutionDelivery: {
+          ...current.resolutionDelivery,
+          status: "not_applicable" as const,
+          completedAt: input.completedAt,
+          leaseExpiresAt: null,
+          failureCategory: null,
+          retryable: false,
+        },
       };
       tickets.set(input.ticketNumber, next);
       return clone(next);
@@ -388,8 +696,9 @@ export async function ensureCreateSupportTicket(input: {
     technicalErrorCode,
   });
   const ticketNumber = buildTicketNumber(createdAt, failureFingerprint);
+  const id = crypto.randomUUID();
   const record: CreateSupportTicketRecord = {
-    id: crypto.randomUUID(),
+    id,
     ticketNumber,
     status: "open",
     affectedUserId,
@@ -411,6 +720,7 @@ export async function ensureCreateSupportTicket(input: {
     resolvedAt: null,
     notificationRecipientLinked: true,
     notificationStatus: "pending",
+    resolutionDelivery: resolutionDeliveryForTicket(id),
   };
   const ensured = await getRepo().ensure(record);
   if (ensured.created) {
@@ -464,50 +774,88 @@ export async function listCreateSupportNotificationsForUser(
   );
 }
 
+function deliveryCompletionFromResult(
+  result: SendMailResult,
+  attemptCount: number,
+  completedAt: string,
+): ResolutionDeliveryCompletion {
+  if (result.ok) {
+    return {
+      status: "delivered",
+      messageId: result.messageId,
+      failureCategory: null,
+      retryable: false,
+      completedAt,
+    };
+  }
+  if (result.status === "partial" || result.deliveredCount > 0) {
+    return {
+      status: "delivery_unknown",
+      messageId: result.messageId,
+      failureCategory: result.category,
+      retryable: false,
+      completedAt,
+    };
+  }
+  const mayRetry =
+    result.retryable && attemptCount < MAX_RESOLUTION_DELIVERY_ATTEMPTS;
+  return {
+    status: mayRetry ? "failed_retryable" : "failed_terminal",
+    messageId: result.messageId,
+    failureCategory: result.category,
+    retryable: mayRetry,
+    completedAt,
+  };
+}
+
 export async function transitionCreateSupportTicketStatus(input: {
   ticketNumber: string;
   status: CreateSupportTicketStatus;
   actorId: string;
 }) {
-  const current = await getRepo().findByNumber(input.ticketNumber.trim());
+  const repo = getRepo();
+  const current = await repo.findByNumber(input.ticketNumber.trim());
   if (!current) return null;
-  if (current.status === input.status) return current;
 
-  const updatedAt = new Date().toISOString();
+  const transitionAt = new Date().toISOString();
   const resolvedAt =
     input.status === "resolved" || input.status === "closed"
-      ? current.resolvedAt ?? updatedAt
+      ? current.resolvedAt ?? transitionAt
       : null;
-  let updated = await getRepo().updateStatus({
-    ticketNumber: current.ticketNumber,
-    status: input.status,
-    updatedAt,
-    resolvedAt,
-  });
-  if (!updated) return null;
+  const transition =
+    current.status === input.status
+      ? { record: current, changed: false }
+      : await repo.transitionStatus({
+          ticketNumber: current.ticketNumber,
+          expectedStatus: current.status,
+          status: input.status,
+          updatedAt: transitionAt,
+          resolvedAt,
+        });
+  if (!transition) return null;
+  let updated = transition.record;
 
-  await getRepo().appendAudit({
-    id: `support-audit-status-${current.id}-${input.status}`,
-    ticketId: current.id,
-    ticketNumber: current.ticketNumber,
-    action: "status_changed",
-    actorId: normalizeSafeCode(input.actorId, "admin"),
-    fromStatus: current.status,
-    toStatus: input.status,
-    createdAt: updatedAt,
-  });
+  if (transition.changed) {
+    await repo.appendAudit({
+      id: `support-audit-status-${updated.id}-${input.status}`,
+      ticketId: updated.id,
+      ticketNumber: updated.ticketNumber,
+      action: "status_changed",
+      actorId: normalizeSafeCode(input.actorId, "admin"),
+      fromStatus: current.status,
+      toStatus: input.status,
+      createdAt: transitionAt,
+    });
+  }
 
-  if (
-    input.status !== "resolved" ||
-    current.status === "resolved" ||
-    !updated.affectedUserId
-  ) {
+  if (input.status !== "resolved" || !updated.affectedUserId) {
     return updated;
   }
 
   const overview = await getAccountOverview(updated.affectedUserId).catch(() => null);
   const locale = normalizeLocale(overview?.uiLocale ?? overview?.readingLocale);
   const copy = localizedCopy(locale, updated.ticketNumber);
+  const notificationCreatedAt = updated.resolvedAt ?? transitionAt;
   const notification: AccountSupportNotification = {
     id: `support-resolution-${updated.id}`,
     userId: updated.affectedUserId,
@@ -520,13 +868,19 @@ export async function transitionCreateSupportTicketStatus(input: {
       updated.ticketNumber,
     )}#support-tickets`,
     locale,
-    createdAt: updatedAt,
+    createdAt: notificationCreatedAt,
     readAt: null,
-    emailDeliveryStatus: "not_attempted",
-    emailMessageId: null,
+    emailDeliveryStatus:
+      updated.resolutionDelivery.status === "delivered"
+        ? "sent"
+        : updated.resolutionDelivery.status === "pending" ||
+            updated.resolutionDelivery.status === "claimed"
+          ? "not_attempted"
+          : "failed",
+    emailMessageId: updated.resolutionDelivery.messageId,
   };
-  await getRepo().upsertNotification(notification);
-  await getRepo().appendAudit({
+  await repo.upsertNotification(notification);
+  await repo.appendAudit({
     id: `support-audit-notification-${updated.id}`,
     ticketId: updated.id,
     ticketNumber: updated.ticketNumber,
@@ -534,30 +888,105 @@ export async function transitionCreateSupportTicketStatus(input: {
     actorId: normalizeSafeCode(input.actorId, "admin"),
     fromStatus: "resolved",
     toStatus: "resolved",
-    createdAt: updatedAt,
+    createdAt: notificationCreatedAt,
+  });
+  updated =
+    (await repo.markInAppNotification({
+      ticketNumber: updated.ticketNumber,
+      updatedAt: transitionAt,
+    })) ?? updated;
+
+  const email = String(overview?.email ?? "").trim();
+  if (!email) {
+    return (
+      (await repo.markResolutionDeliveryNotApplicable({
+        ticketNumber: updated.ticketNumber,
+        completedAt: new Date().toISOString(),
+      })) ?? updated
+    );
+  }
+
+  const now = new Date();
+  const expired = await repo.reconcileExpiredResolutionDelivery({
+    ticketNumber: updated.ticketNumber,
+    now: now.toISOString(),
+  });
+  if (expired) {
+    notification.emailDeliveryStatus = "failed";
+    notification.emailMessageId = expired.resolutionDelivery.messageId;
+    await repo.upsertNotification(notification);
+    return expired;
+  }
+
+  const claimId = crypto.randomUUID();
+  const claimed = await repo.claimResolutionDelivery({
+    ticketNumber: updated.ticketNumber,
+    claimId,
+    claimedAt: now.toISOString(),
+    leaseExpiresAt: new Date(
+      now.getTime() + RESOLUTION_CLAIM_LEASE_MS,
+    ).toISOString(),
+  });
+  if (!claimed) {
+    return (await repo.findByNumber(updated.ticketNumber)) ?? updated;
+  }
+
+  const accountRecord = overview as unknown as Record<string, unknown> | null;
+  const profile =
+    accountRecord?.profile &&
+    typeof accountRecord.profile === "object" &&
+    !Array.isArray(accountRecord.profile)
+      ? (accountRecord.profile as Record<string, unknown>)
+      : null;
+  const displayName = normalizeOptionalId(
+    accountRecord?.displayName ?? profile?.displayName,
+  );
+  const mail = buildSupportStatusMail({
+    displayName,
+    ticketReference: claimed.ticketNumber,
+    status: copy.resolvedStatus,
+    resolution: copy.notificationBody,
+    locale,
   });
 
-  let notificationStatus: CreateSupportNotificationStatus = "in_app_created";
-  if (overview?.email) {
-    const mail = await sendMail({
-      to: overview.email,
-      subject: copy.emailSubject,
-      text: copy.notificationBody,
-      html: `<p>${copy.notificationBody}</p>`,
+  let completion: ResolutionDeliveryCompletion;
+  try {
+    const result = await sendMail({
+      to: email,
+      mail,
+      delivery: "required_delivery",
       tag: "support_ticket_resolved",
     });
-    notification.emailDeliveryStatus = mail.ok ? "sent" : "failed";
-    notification.emailMessageId = mail.messageId;
-    await getRepo().upsertNotification(notification);
-    notificationStatus = mail.ok ? "email_sent" : "email_failed";
+    completion = deliveryCompletionFromResult(
+      result,
+      claimed.resolutionDelivery.attemptCount,
+      new Date().toISOString(),
+    );
+  } catch (error) {
+    completion = {
+      status: "delivery_unknown",
+      messageId: null,
+      failureCategory:
+        error instanceof Error ? normalizeSafeCode(error.name, "unknown") : "unknown",
+      retryable: false,
+      completedAt: new Date().toISOString(),
+    };
   }
-  updated =
-    (await getRepo().updateNotification({
-      ticketNumber: updated.ticketNumber,
-      status: notificationStatus,
-      updatedAt,
-    })) ?? updated;
-  return updated;
+
+  const completed = await repo.completeResolutionDelivery({
+    ticketNumber: claimed.ticketNumber,
+    claimId,
+    completion,
+  });
+  if (!completed) {
+    return (await repo.findByNumber(claimed.ticketNumber)) ?? claimed;
+  }
+
+  notification.emailDeliveryStatus =
+    completion.status === "delivered" ? "sent" : "failed";
+  notification.emailMessageId = completion.messageId;
+  await repo.upsertNotification(notification);
+  return completed;
 }
 
 export function setCreateSupportTicketRepoForTests(repo: TicketRepository | null) {
