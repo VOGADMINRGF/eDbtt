@@ -3,6 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getAccountOverview: vi.fn(),
   sendMail: vi.fn(),
+  buildSupportStatusMail: vi.fn(),
+  renderedMail: {
+    subject: "Support status",
+    html: "<p>Support status</p>",
+    text: "Support status",
+    provenance: {
+      renderer: "mailRenderer",
+      version: "test",
+    },
+  },
 }));
 
 vi.mock("@features/account/service", () => ({
@@ -10,6 +20,10 @@ vi.mock("@features/account/service", () => ({
 }));
 vi.mock("@/utils/mailer", () => ({
   sendMail: (...args: unknown[]) => mocks.sendMail(...args),
+}));
+vi.mock("@/utils/emailTemplates", () => ({
+  buildSupportStatusMail: (...args: unknown[]) =>
+    mocks.buildSupportStatusMail(...args),
 }));
 
 import {
@@ -22,6 +36,52 @@ import {
   transitionCreateSupportTicketStatus,
 } from "@/features/support/createSupportTickets";
 
+function delivered(messageId = "mail-1") {
+  return {
+    ok: true as const,
+    status: "delivered" as const,
+    transport: "smtp" as const,
+    category: null,
+    retryable: false as const,
+    attemptedCount: 1,
+    deliveredCount: 1,
+    failedCount: 0 as const,
+    messageId,
+  };
+}
+
+function failed(input: {
+  retryable: boolean;
+  category?: "smtp_timeout" | "recipient_invalid";
+  deliveredCount?: number;
+}) {
+  const deliveredCount = input.deliveredCount ?? 0;
+  return {
+    ok: false as const,
+    status: deliveredCount > 0 ? ("partial" as const) : ("failed" as const),
+    transport: "smtp" as const,
+    code: "mail_transport_error" as const,
+    category: input.category ?? "smtp_timeout",
+    retryable: input.retryable,
+    attemptedCount: 1,
+    deliveredCount,
+    failedCount: deliveredCount > 0 ? 0 : 1,
+    messageId: null,
+  };
+}
+
+async function createTicket(correlationId: string, locale = "de") {
+  return ensureCreateSupportTicket({
+    affectedUserId: "user-1",
+    orchestrationPhase: "intelligent_followup",
+    correlationId,
+    technicalErrorCode: "CREATE_AI_FAILED",
+    reason: "provider_error",
+    draftId: "draft-2",
+    locale,
+  });
+}
+
 describe("create support ticket contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,11 +89,10 @@ describe("create support ticket contract", () => {
     mocks.getAccountOverview.mockResolvedValue({
       email: "nachbar@edebatte.de",
       uiLocale: "de",
+      profile: { displayName: "Nachbarin" },
     });
-    mocks.sendMail.mockResolvedValue({
-      ok: true,
-      messageId: "mail-1",
-    });
+    mocks.buildSupportStatusMail.mockReturnValue(mocks.renderedMail);
+    mocks.sendMail.mockResolvedValue(delivered());
   });
 
   it("deduplicates one failed run but creates a new ticket for a controlled retry", async () => {
@@ -70,6 +129,10 @@ describe("create support ticket contract", () => {
     ).resolves.toMatchObject({
       draftId: "draft-1",
       notificationRecipientLinked: true,
+      resolutionDelivery: {
+        status: "pending",
+        attemptCount: 0,
+      },
     });
   });
 
@@ -126,16 +189,8 @@ describe("create support ticket contract", () => {
     expect(second.ticketNumber).not.toBe(first.ticketNumber);
   });
 
-  it("creates the linked resolution notification and sends one account email", async () => {
-    const created = await ensureCreateSupportTicket({
-      affectedUserId: "user-1",
-      orchestrationPhase: "intelligent_followup",
-      correlationId: "correlation-resolve-1",
-      technicalErrorCode: "CREATE_AI_FAILED",
-      reason: "provider_error",
-      draftId: "draft-2",
-      locale: "de",
-    });
+  it("uses the canonical support renderer object unchanged and records delivery", async () => {
+    const created = await createTicket("correlation-resolve-1");
 
     const resolved = await transitionCreateSupportTicketStatus({
       ticketNumber: created.ticketNumber,
@@ -146,24 +201,199 @@ describe("create support ticket contract", () => {
     expect(resolved).toMatchObject({
       status: "resolved",
       notificationStatus: "email_sent",
+      resolutionDelivery: {
+        status: "delivered",
+        attemptCount: 1,
+        messageId: "mail-1",
+      },
+    });
+    expect(mocks.buildSupportStatusMail).toHaveBeenCalledWith({
+      displayName: "Nachbarin",
+      ticketReference: created.ticketNumber,
+      status: "Gelöst",
+      resolution:
+        "Der technische Fall zu deinem Beitrag wurde gelöst. Du kannst deinen gespeicherten Arbeitsstand fortsetzen.",
+      locale: "de",
     });
     expect(mocks.sendMail).toHaveBeenCalledTimes(1);
-    expect(mocks.sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "nachbar@edebatte.de",
-        tag: "support_ticket_resolved",
-      }),
-    );
-    await expect(
-      getCreateSupportTicketByNumberForAdmin(created.ticketNumber),
-    ).resolves.toMatchObject({ resolvedAt: expect.any(String) });
+    expect(mocks.sendMail).toHaveBeenCalledWith({
+      to: "nachbar@edebatte.de",
+      mail: mocks.renderedMail,
+      delivery: "required_delivery",
+      tag: "support_ticket_resolved",
+    });
+    expect(mocks.sendMail.mock.calls[0]?.[0].mail).toBe(mocks.renderedMail);
     await expect(
       listCreateSupportNotificationsForUser("user-1"),
     ).resolves.toEqual([
       expect.objectContaining({
         ticketNumber: created.ticketNumber,
         emailDeliveryStatus: "sent",
+        emailMessageId: "mail-1",
       }),
     ]);
+  });
+
+  it("claims one delivery across parallel resolution calls and keeps one notification", async () => {
+    const created = await createTicket("correlation-parallel-resolution");
+
+    const results = await Promise.all([
+      transitionCreateSupportTicketStatus({
+        ticketNumber: created.ticketNumber,
+        status: "resolved",
+        actorId: "admin-a",
+      }),
+      transitionCreateSupportTicketStatus({
+        ticketNumber: created.ticketNumber,
+        status: "resolved",
+        actorId: "admin-b",
+      }),
+    ]);
+
+    expect(results.every((entry) => entry?.status === "resolved")).toBe(true);
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+    await expect(
+      listCreateSupportNotificationsForUser("user-1"),
+    ).resolves.toHaveLength(1);
+    await expect(
+      getCreateSupportTicketByNumberForAdmin(created.ticketNumber),
+    ).resolves.toMatchObject({
+      resolutionDelivery: { status: "delivered", attemptCount: 1 },
+    });
+  });
+
+  it("allows exactly one explicit retry after a retryable failure", async () => {
+    const created = await createTicket("correlation-retryable-resolution");
+    mocks.sendMail
+      .mockResolvedValueOnce(failed({ retryable: true }))
+      .mockResolvedValueOnce(delivered("mail-retry"));
+
+    const first = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(first).toMatchObject({
+      resolutionDelivery: {
+        status: "failed_retryable",
+        attemptCount: 1,
+      },
+    });
+
+    const retry = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(retry).toMatchObject({
+      resolutionDelivery: {
+        status: "delivered",
+        attemptCount: 2,
+        messageId: "mail-retry",
+      },
+    });
+
+    await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a terminal delivery failure", async () => {
+    const created = await createTicket("correlation-terminal-resolution");
+    mocks.sendMail.mockResolvedValue(
+      failed({ retryable: false, category: "recipient_invalid" }),
+    );
+
+    const first = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(first).toMatchObject({
+      resolutionDelivery: {
+        status: "failed_terminal",
+        attemptCount: 1,
+        failureCategory: "recipient_invalid",
+      },
+    });
+
+    await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves an unexpected or partial transport result to reconciliation without resend", async () => {
+    const thrown = await createTicket("correlation-unknown-resolution");
+    mocks.sendMail.mockRejectedValueOnce(new Error("transport state unknown"));
+
+    const unknown = await transitionCreateSupportTicketStatus({
+      ticketNumber: thrown.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(unknown).toMatchObject({
+      resolutionDelivery: {
+        status: "delivery_unknown",
+        attemptCount: 1,
+      },
+    });
+    await transitionCreateSupportTicketStatus({
+      ticketNumber: thrown.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates the in-app notification but marks email not applicable without an address", async () => {
+    const created = await createTicket("correlation-no-email");
+    mocks.getAccountOverview.mockResolvedValue({ uiLocale: "de" });
+
+    const resolved = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+
+    expect(resolved).toMatchObject({
+      notificationStatus: "in_app_created",
+      resolutionDelivery: {
+        status: "not_applicable",
+        attemptCount: 0,
+      },
+    });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+    await expect(
+      listCreateSupportNotificationsForUser("user-1"),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("renders the English resolution without mixed locale copy", async () => {
+    const created = await createTicket("correlation-english-resolution", "en");
+    mocks.getAccountOverview.mockResolvedValue({
+      email: "neighbor@edebatte.de",
+      uiLocale: "en",
+    });
+
+    await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+
+    expect(mocks.buildSupportStatusMail).toHaveBeenCalledWith({
+      displayName: null,
+      ticketReference: created.ticketNumber,
+      status: "Resolved",
+      resolution:
+        "The technical incident affecting your contribution has been resolved. You can continue your saved draft.",
+      locale: "en",
+    });
   });
 });
