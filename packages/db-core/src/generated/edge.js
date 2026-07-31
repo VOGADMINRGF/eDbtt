@@ -442,7 +442,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/RF/Arbeitsmappe/worktrees/edebatte-qr-public-entry-02/packages/db-core/src/generated",
+      "value": "/Users/RF/Arbeitsmappe/edebatte-org/packages/db-core/src/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -456,7 +456,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/RF/Arbeitsmappe/worktrees/edebatte-qr-public-entry-02/prisma/core/schema.prisma",
+    "sourceFilePath": "/Users/RF/Arbeitsmappe/edebatte-org/prisma/core/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
