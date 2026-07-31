@@ -148,6 +148,7 @@ export type TicketRepository = {
     claimId: string;
     claimedAt: string;
     leaseExpiresAt: string;
+    allowRetry: boolean;
   }): Promise<CreateSupportTicketRecord | null>;
   reconcileExpiredResolutionDelivery(input: {
     ticketNumber: string;
@@ -237,6 +238,16 @@ function resolutionDeliveryForTicket(ticketId: string): CreateSupportResolutionD
   };
 }
 
+export function normalizeCreateSupportTicketRecordForRuntime(
+  record: CreateSupportTicketRecord,
+): CreateSupportTicketRecord {
+  if (record.resolutionDelivery?.key) return record;
+  return {
+    ...record,
+    resolutionDelivery: resolutionDeliveryForTicket(record.id),
+  };
+}
+
 async function ensureIndexes() {
   if (indexesReady) return;
   const tickets = await coreCol(TICKETS_COLLECTION);
@@ -246,7 +257,15 @@ async function ensureIndexes() {
     tickets.createIndex({ failureFingerprint: 1 }, { unique: true }),
     tickets.createIndex({ ticketNumber: 1 }, { unique: true }),
     tickets.createIndex({ affectedUserId: 1, createdAt: -1 }),
-    tickets.createIndex({ "resolutionDelivery.key": 1 }, { unique: true }),
+    tickets.createIndex(
+      { "resolutionDelivery.key": 1 },
+      {
+        unique: true,
+        partialFilterExpression: {
+          "resolutionDelivery.key": { $type: "string" },
+        },
+      },
+    ),
     notifications.createIndex({ id: 1 }, { unique: true }),
     notifications.createIndex({ userId: 1, createdAt: -1 }),
     audit.createIndex({ id: 1 }, { unique: true }),
@@ -274,7 +293,24 @@ function createMongoRepo(): TicketRepository {
       await ensureIndexes();
       const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
       const record = await tickets.findOne({ ticketNumber });
-      return record ? clone(record) : null;
+      if (!record) return null;
+      if (record.resolutionDelivery?.key) return clone(record);
+
+      const hydrated = await tickets.findOneAndUpdate(
+        {
+          ticketNumber,
+          "resolutionDelivery.key": { $exists: false },
+        } as any,
+        {
+          $set: {
+            resolutionDelivery: resolutionDeliveryForTicket(record.id),
+          },
+        } as any,
+        { returnDocument: "after" },
+      );
+      return clone(
+        normalizeCreateSupportTicketRecordForRuntime(hydrated ?? record),
+      );
     },
     async listByUser(userId, limit) {
       await ensureIndexes();
@@ -296,7 +332,9 @@ function createMongoRepo(): TicketRepository {
         .sort({ createdAt: -1 })
         .limit(limit)
         .toArray();
-      return records.map(clone);
+      return records.map((record) =>
+        clone(normalizeCreateSupportTicketRecordForRuntime(record)),
+      );
     },
     async transitionStatus(input) {
       await ensureIndexes();
@@ -323,7 +361,11 @@ function createMongoRepo(): TicketRepository {
       await ensureIndexes();
       const tickets = await coreCol<CreateSupportTicketRecord>(TICKETS_COLLECTION);
       const record = await tickets.findOneAndUpdate(
-        { ticketNumber: input.ticketNumber, status: "resolved" },
+        {
+          ticketNumber: input.ticketNumber,
+          status: "resolved",
+          notificationStatus: { $in: ["pending", "in_app_created"] },
+        } as any,
         {
           $set: {
             notificationStatus: "in_app_created",
@@ -346,12 +388,16 @@ function createMongoRepo(): TicketRepository {
               "resolutionDelivery.status": "pending",
               "resolutionDelivery.attemptCount": 0,
             },
-            {
-              "resolutionDelivery.status": "failed_retryable",
-              "resolutionDelivery.attemptCount": {
-                $lt: MAX_RESOLUTION_DELIVERY_ATTEMPTS,
-              },
-            },
+            ...(input.allowRetry
+              ? [
+                  {
+                    "resolutionDelivery.status": "failed_retryable",
+                    "resolutionDelivery.attemptCount": {
+                      $lt: MAX_RESOLUTION_DELIVERY_ATTEMPTS,
+                    },
+                  },
+                ]
+              : []),
           ],
         } as any,
         {
@@ -492,14 +538,20 @@ export function createInMemoryCreateSupportTicketRepo(): TicketRepository {
     },
     async findByNumber(ticketNumber) {
       const record = tickets.get(ticketNumber);
-      return record ? clone(record) : null;
+      if (!record) return null;
+      const normalized =
+        normalizeCreateSupportTicketRecordForRuntime(record);
+      tickets.set(ticketNumber, clone(normalized));
+      return clone(normalized);
     },
     async listByUser(userId, limit) {
       return Array.from(tickets.values())
         .filter((ticket) => ticket.affectedUserId === userId)
         .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
         .slice(0, limit)
-        .map(clone);
+        .map((record) =>
+          clone(normalizeCreateSupportTicketRecordForRuntime(record)),
+        );
     },
     async listNotifications(userId, limit) {
       return Array.from(notifications.values())
@@ -526,6 +578,12 @@ export function createInMemoryCreateSupportTicketRepo(): TicketRepository {
     async markInAppNotification(input) {
       const current = tickets.get(input.ticketNumber);
       if (!current || current.status !== "resolved") return null;
+      if (
+        current.notificationStatus !== "pending" &&
+        current.notificationStatus !== "in_app_created"
+      ) {
+        return clone(current);
+      }
       const next = {
         ...current,
         notificationStatus: "in_app_created" as const,
@@ -540,7 +598,8 @@ export function createInMemoryCreateSupportTicketRepo(): TicketRepository {
       const delivery = current.resolutionDelivery;
       const canClaim =
         (delivery.status === "pending" && delivery.attemptCount === 0) ||
-        (delivery.status === "failed_retryable" &&
+        (input.allowRetry &&
+          delivery.status === "failed_retryable" &&
           delivery.attemptCount < MAX_RESOLUTION_DELIVERY_ATTEMPTS);
       if (!canClaim) return null;
       const next = {
@@ -812,6 +871,7 @@ export async function transitionCreateSupportTicketStatus(input: {
   ticketNumber: string;
   status: CreateSupportTicketStatus;
   actorId: string;
+  retryResolutionDelivery?: boolean;
 }) {
   const repo = getRepo();
   const current = await repo.findByNumber(input.ticketNumber.trim());
@@ -852,7 +912,13 @@ export async function transitionCreateSupportTicketStatus(input: {
     return updated;
   }
 
-  const overview = await getAccountOverview(updated.affectedUserId).catch(() => null);
+  let overview: Awaited<ReturnType<typeof getAccountOverview>> | null = null;
+  let accountLookupAvailable = true;
+  try {
+    overview = await getAccountOverview(updated.affectedUserId);
+  } catch {
+    accountLookupAvailable = false;
+  }
   const locale = normalizeLocale(overview?.uiLocale ?? overview?.readingLocale);
   const copy = localizedCopy(locale, updated.ticketNumber);
   const notificationCreatedAt = updated.resolvedAt ?? transitionAt;
@@ -896,16 +962,6 @@ export async function transitionCreateSupportTicketStatus(input: {
       updatedAt: transitionAt,
     })) ?? updated;
 
-  const email = String(overview?.email ?? "").trim();
-  if (!email) {
-    return (
-      (await repo.markResolutionDeliveryNotApplicable({
-        ticketNumber: updated.ticketNumber,
-        completedAt: new Date().toISOString(),
-      })) ?? updated
-    );
-  }
-
   const now = new Date();
   const expired = await repo.reconcileExpiredResolutionDelivery({
     ticketNumber: updated.ticketNumber,
@@ -918,6 +974,20 @@ export async function transitionCreateSupportTicketStatus(input: {
     return expired;
   }
 
+  if (!accountLookupAvailable) {
+    return updated;
+  }
+
+  const email = String(overview?.email ?? "").trim();
+  if (!email) {
+    return (
+      (await repo.markResolutionDeliveryNotApplicable({
+        ticketNumber: updated.ticketNumber,
+        completedAt: new Date().toISOString(),
+      })) ?? updated
+    );
+  }
+
   const claimId = crypto.randomUUID();
   const claimed = await repo.claimResolutionDelivery({
     ticketNumber: updated.ticketNumber,
@@ -926,6 +996,7 @@ export async function transitionCreateSupportTicketStatus(input: {
     leaseExpiresAt: new Date(
       now.getTime() + RESOLUTION_CLAIM_LEASE_MS,
     ).toISOString(),
+    allowRetry: input.retryResolutionDelivery === true,
   });
   if (!claimed) {
     return (await repo.findByNumber(updated.ticketNumber)) ?? updated;

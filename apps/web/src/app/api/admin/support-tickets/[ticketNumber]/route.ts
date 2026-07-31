@@ -9,6 +9,7 @@ import {
 
 const UpdateSchema = z.object({
   status: z.enum(CREATE_SUPPORT_TICKET_STATUSES),
+  retryResolutionDelivery: z.boolean().optional(),
 });
 
 export async function GET(
@@ -43,6 +44,9 @@ export async function PATCH(
     ticketNumber,
     status: parsed.data.status,
     actorId: gate._id.toString(),
+    ...(parsed.data.retryResolutionDelivery === true
+      ? { retryResolutionDelivery: true }
+      : {}),
   });
   if (!ticket) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });

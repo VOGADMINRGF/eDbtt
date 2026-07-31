@@ -32,6 +32,7 @@ import {
   getCreateSupportTicketByNumberForAdmin,
   getCreateSupportTicketForUser,
   listCreateSupportNotificationsForUser,
+  normalizeCreateSupportTicketRecordForRuntime,
   setCreateSupportTicketRepoForTests,
   transitionCreateSupportTicketStatus,
 } from "@/features/support/createSupportTickets";
@@ -234,6 +235,77 @@ describe("create support ticket contract", () => {
     ]);
   });
 
+  it("hydrates a legacy ticket without a resolution-delivery record", async () => {
+    const created = await createTicket("correlation-legacy-resolution");
+    const current = await getCreateSupportTicketByNumberForAdmin(
+      created.ticketNumber,
+    );
+    expect(current).not.toBeNull();
+
+    const legacy = {
+      ...current!,
+      resolutionDelivery: undefined,
+    } as any;
+    const normalized =
+      normalizeCreateSupportTicketRecordForRuntime(legacy);
+
+    expect(normalized.resolutionDelivery).toMatchObject({
+      key: `support-resolution-${current!.id}`,
+      status: "pending",
+      attemptCount: 0,
+    });
+  });
+
+  it("does not downgrade a delivered resolution during replay", async () => {
+    const created = await createTicket("correlation-delivered-replay");
+
+    await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    const replayed = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+
+    expect(replayed).toMatchObject({
+      notificationStatus: "email_sent",
+      resolutionDelivery: {
+        status: "delivered",
+        attemptCount: 1,
+      },
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps delivery pending when account lookup is temporarily unavailable", async () => {
+    const created = await createTicket("correlation-account-unavailable");
+    mocks.getAccountOverview.mockRejectedValueOnce(
+      new Error("temporary account read failure"),
+    );
+
+    const resolved = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+
+    expect(resolved).toMatchObject({
+      status: "resolved",
+      notificationStatus: "in_app_created",
+      resolutionDelivery: {
+        status: "pending",
+        attemptCount: 0,
+      },
+    });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+    await expect(
+      listCreateSupportNotificationsForUser("user-1"),
+    ).resolves.toHaveLength(1);
+  });
+
   it("claims one delivery across parallel resolution calls and keeps one notification", async () => {
     const created = await createTicket("correlation-parallel-resolution");
 
@@ -280,10 +352,24 @@ describe("create support ticket contract", () => {
       },
     });
 
+    const replayWithoutRetry = await transitionCreateSupportTicketStatus({
+      ticketNumber: created.ticketNumber,
+      status: "resolved",
+      actorId: "admin-1",
+    });
+    expect(replayWithoutRetry).toMatchObject({
+      resolutionDelivery: {
+        status: "failed_retryable",
+        attemptCount: 1,
+      },
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+
     const retry = await transitionCreateSupportTicketStatus({
       ticketNumber: created.ticketNumber,
       status: "resolved",
       actorId: "admin-1",
+      retryResolutionDelivery: true,
     });
     expect(retry).toMatchObject({
       resolutionDelivery: {
@@ -297,6 +383,7 @@ describe("create support ticket contract", () => {
       ticketNumber: created.ticketNumber,
       status: "resolved",
       actorId: "admin-1",
+      retryResolutionDelivery: true,
     });
     expect(mocks.sendMail).toHaveBeenCalledTimes(2);
   });
