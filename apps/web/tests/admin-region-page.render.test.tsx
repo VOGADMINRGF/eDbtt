@@ -261,7 +261,11 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-lagebild"');
     expect(html).toContain("Region wechseln");
     expect(html).toContain('type="search"');
-    expect(html).toContain('list="admin-region-options"');
+    expect(html).toContain('name="regionQuery"');
+    expect(html).toContain(">Region suchen</span>");
+    expect(html).not.toContain("<datalist");
+    expect(html).not.toContain("<option");
+    expect(html).not.toContain('role="combobox"');
     expect(html).toContain("placeholder:text-[rgb(var(--muted))]");
     expect(html).toContain("focus:ring-2");
     expect(html).toContain("focus-visible:ring-2");
@@ -461,7 +465,9 @@ describe("admin-region-page.render", () => {
     expect(reinickendorfHtml).toContain("Berlin Reinickendorf");
     expect(magdeburgHtml).toContain("Magdeburg");
     expect(magdeburgHtml).toContain(">Magdeburg</h1>");
-    expect(magdeburgHtml).toContain('value="magdeburg"');
+    expect(magdeburgHtml).toContain(
+      'name="regionId" value="kommune-magdeburg"',
+    );
     expect(magdeburgHtml).toContain("Erste regionale Quelle vorbereiten");
     expect(magdeburgHtml).toContain("noch ohne Erfahrung");
     expect(reinickendorfHtml).not.toEqual(magdeburgHtml);
@@ -482,10 +488,75 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-selector"');
     expect(html).toContain('data-testid="admin-region-empty-profile"');
     expect(html).toContain("Noch kein Regionsprofil ausgewählt");
-    expect(html).toContain("Berlin Reinickendorf · Bezirk");
-    expect(html).toContain("Magdeburg · Kommune");
+    expect(html).toContain("Gib einen Namen, eine Regions-ID, AGS, ARS");
+    expect(html).not.toContain('data-testid="admin-region-search-result"');
+    expect(html).not.toContain("<datalist");
+    expect(html).not.toContain("<option");
     expect(html).not.toContain('data-testid="admin-region-workspace-navigation"');
     expect(navigationMocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("renders at most 40 accessible server-side results without catalog payload", async () => {
+    setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
+
+    const noQueryHtml = renderToStaticMarkup(
+      await AdminRegionPage({ searchParams: {} }),
+    );
+    const broadSearchHtml = renderToStaticMarkup(
+      await AdminRegionPage({ searchParams: { regionQuery: "a" } }),
+    );
+    const hamburgNameHtml = renderToStaticMarkup(
+      await AdminRegionPage({ searchParams: { regionQuery: "Hamburg" } }),
+    );
+    const hamburgAgsHtml = renderToStaticMarkup(
+      await AdminRegionPage({ searchParams: { regionQuery: "02000000" } }),
+    );
+    const hamburgArsHtml = renderToStaticMarkup(
+      await AdminRegionPage({ searchParams: { regionQuery: "020000000000" } }),
+    );
+    const longLabelHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionQuery: "Verwaltungsgemeinschaft" },
+      }),
+    );
+    const resultCount = (
+      broadSearchHtml.match(/data-testid="admin-region-search-result"/g) ?? []
+    ).length;
+
+    expect(noQueryHtml).not.toContain('data-testid="admin-region-search-result"');
+    expect(noQueryHtml).not.toContain("Berlin Reinickendorf · Bezirk");
+    expect(broadSearchHtml).toContain(
+      "die ersten 40 Ergebnisse werden angezeigt",
+    );
+    expect(resultCount).toBe(40);
+    expect(broadSearchHtml.length).toBeLessThan(250_000);
+    for (const html of [
+      noQueryHtml,
+      broadSearchHtml,
+      hamburgNameHtml,
+      hamburgAgsHtml,
+      hamburgArsHtml,
+      longLabelHtml,
+    ]) {
+      expect(html).not.toContain("<datalist");
+      expect(html).not.toContain("<option");
+      expect(html).not.toContain('role="combobox"');
+    }
+    expect(broadSearchHtml).toContain('role="status"');
+    expect(broadSearchHtml).toContain('aria-label="Gefundene Regionen"');
+    expect(broadSearchHtml).toContain(">Region suchen</span>");
+    expect(broadSearchHtml).toContain("min-w-0");
+    expect(broadSearchHtml).toContain("break-words");
+    expect(hamburgNameHtml).toContain("Hamburg");
+    for (const html of [hamburgAgsHtml, hamburgArsHtml]) {
+      expect(html).toContain("regionId=region-official-02000000");
+      expect(html).toContain("Exakter Identitätstreffer");
+    }
+    expect(longLabelHtml).toContain('data-testid="admin-region-search-result"');
+    expect(longLabelHtml).toContain("break-words");
   });
 
   it("opens an official directory region by its stable ID", async () => {
@@ -503,7 +574,9 @@ describe("admin-region-page.render", () => {
     );
 
     expect(html).toContain("Flensburg, Stadt");
-    expect(html).toContain('value="flensburg-stadt-01001000"');
+    expect(html).toContain(
+      'name="regionId" value="region-official-01001000"',
+    );
     expect(html).toContain("Amtlicher Verzeichniseintrag");
     expect(html).not.toContain('data-testid="admin-region-empty-profile"');
     expect(html).not.toContain('role="alert"');
@@ -519,7 +592,7 @@ describe("admin-region-page.render", () => {
 
     const missingHtml = renderToStaticMarkup(
       await AdminRegionPage({
-        searchParams: {},
+        searchParams: { regionQuery: "Berlin Reinickendorf" },
       }),
     );
 
@@ -534,6 +607,7 @@ describe("admin-region-page.render", () => {
       "nicht als vollständiges amtliches Verzeichnis",
     );
     expect(missingHtml).toContain("Diagnose: official_directory_not_found");
+    expect(missingHtml).toContain('data-testid="admin-region-search-result"');
     expect(missingHtml).toContain("Berlin Reinickendorf");
 
     directoryCatalogMocks.status = "error";
@@ -541,7 +615,7 @@ describe("admin-region-page.render", () => {
       "official_directory_sheet_missing:Anschriften_31_01_2023";
     const errorHtml = renderToStaticMarkup(
       await AdminRegionPage({
-        searchParams: {},
+        searchParams: { regionQuery: "Berlin Reinickendorf" },
       }),
     );
 
@@ -550,5 +624,17 @@ describe("admin-region-page.render", () => {
       "Amtliches Verwaltungsverzeichnis konnte nicht geladen werden",
     );
     expect(errorHtml).toContain("official_directory_sheet_missing");
+
+    directoryCatalogMocks.status = "ready";
+    directoryCatalogMocks.errorCode = null;
+    const recoveredHtml = renderToStaticMarkup(
+      await AdminRegionPage({
+        searchParams: { regionQuery: "Berlin Reinickendorf" },
+      }),
+    );
+    expect(recoveredHtml).not.toContain(
+      'data-testid="admin-region-directory-diagnostic"',
+    );
+    expect(recoveredHtml).toContain("Berlin Reinickendorf");
   });
 });

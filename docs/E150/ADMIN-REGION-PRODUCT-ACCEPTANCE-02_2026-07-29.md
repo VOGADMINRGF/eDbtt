@@ -1,9 +1,9 @@
 # ADMIN-REGION-PRODUCT-ACCEPTANCE-02
 
-Stand: 2026-07-29
+Stand: 2026-07-30
 Issue: #528
 Branch: `fix/admin-region-product-acceptance-02`
-Kanonischer Taskstatus: `codex_ready`
+Kanonischer Taskstatus auf `main`: `codex_ready`
 Empfohlener technischer Endstatus: `review`
 
 ## Ausgangspunkt
@@ -43,11 +43,23 @@ werden nicht zusammengeführt. Der kontrollierte Stand:
 - 384 Gruppen beziehungsweise 481 überzählige Slug-Kollisionen vor der Korrektur,
 - 0 doppelte Slugs nach deterministischer Ergänzung von AGS beziehungsweise ARS.
 
-Die XLSX-Quelle wird weiterhin serverseitig gelesen und im Prozess gecacht. Ein
-`missing`- oder `error`-Ergebnis bleibt mit Status, Nachricht und Fehlercode im Cache
-nachvollziehbar. Registry und Fixtures bleiben in diesem Zustand technisch verfügbar;
-die Oberfläche zeigt jedoch ausdrücklich, dass kein vollständiges amtliches Verzeichnis
-geladen ist.
+Die Deduplizierung bildet jetzt echte transitive Komponenten über normalisierte
+ID-, AGS- und ARS-Tokens. Union-Find verbindet deshalb auch zwei zunächst getrennte
+Gruppen, wenn ein späterer Kandidat beide Identitäten trägt. Der Repräsentant wird
+deterministisch nach Registry, Directory und Fixture sowie innerhalb derselben Quelle
+nach ID, AGS, ARS und Slug gewählt. Alternative IDs, Codes, Slugs, Namen und
+Verwaltungsbezeichnungen bleiben als Auflösungsaliase der Komponente erhalten. Die
+grüne Permutationsmatrix belegt den Brückenfall für alle sechs Reihenfolgen.
+
+Die XLSX-Quelle wird serverseitig als Buffer gelesen. Erfolgreiche immutable Imports
+bleiben pro Prozess dauerhaft im Cache. `missing`- und `error`-Ergebnisse behalten
+Status, Nachricht und Fehlercode, werden aber nur fünf Sekunden festgehalten und danach
+erneut geprüft. Der daraus gebildete operative Katalog vergleicht bei jedem Zugriff den
+aktuellen Quellenstatus und baut sich nach einer Recovery neu auf; ein früherer
+Fallback wird nicht als endgültige Wahrheit zweitgecacht. Registry und Fixtures bleiben
+während eines Fehlers technisch verfügbar. Die Oberfläche zeigt ausdrücklich, dass
+kein vollständiges amtliches Verzeichnis geladen ist, und entfernt die Diagnose nach
+erfolgreicher Wiederherstellung.
 
 ### Regionsauflösung
 
@@ -66,6 +78,26 @@ Die gleichnamigen amtlichen Einträge `Hamburg, Freie und Hansestadt` bleiben ge
 Die Verwaltungsbezeichnung bevorzugt nur dann den kanonischen kommunalen Eintrag, wenn
 unter den sonst gleichlautenden amtlichen Treffern genau ein AGS-geführter Eintrag
 existiert.
+
+### Serverseitige Regionssuche und Payload
+
+Der vollständige operative Katalog wird nicht mehr als natives Datalist mit 12.408
+`option`-Elementen in jedes Dokument serialisiert. Die bestehende Page verarbeitet ein
+progressiv verbessertes GET-Formular mit `regionQuery` vollständig serverseitig; es gibt
+keinen neuen API-Endpunkt und keine JavaScript-Pflicht.
+
+Die Trefferreihenfolge lautet:
+
+1. exakte ID-, AGS- oder ARS-Treffer,
+2. ein eindeutiger Präfixtreffer,
+3. deterministisch nach Name und ID sortierte Texttreffer.
+
+Die Page rendert höchstens 40 Ergebnisse und wählt ausschließlich über die stabile
+`regionId`. Ohne Query erscheint nur die Suchaufforderung mit aggregierten Typzahlen.
+Der aktuelle Regionskontext bleibt bei einer weiteren Suche sichtbar. Sichtbares Label,
+Ergebnisstatus und Ergebnisliste verwenden native Formular- und Linksemantik; es wird
+keine ARIA-Combobox nachgebildet. Lange Namen, Verwaltungsbezeichnungen und IDs tragen
+kontrollierte Umbruch- und `min-width: 0`-Verträge für 320 Pixel, Mobile und Textzoom.
 
 ### Light/Dark und Diagnose
 
@@ -158,7 +190,12 @@ Create- und Dossier-Handoffs behalten `source=admin_region`, den regionalen Slug
 - kontrollierten Umbruch langer Texte,
 - keine Dead Clicks,
 - keine Auto-Research-, Auto-Publish-, Draft-, Dossier- oder Provideraktivierung,
+- GET-Suche ohne Datalist oder nachgebildete ARIA-Combobox,
+- höchstens 40 serverseitig gerenderte Ergebnisse und kein Katalog im Leerzustand,
+- Hamburg-Suche per Name, AGS und ARS mit stabiler `regionId`,
+- sichtbares Suchlabel, Ergebnisanzahl, Tastatur-Linksemantik und kontrollierte Umbrüche,
 - sichtbare `missing`- und `error`-Diagnosezustände,
+- Verschwinden der Diagnose nach erfolgreicher Wiederherstellung,
 - lokale Light-/Dark-Verträge für Selektor, Eingabe, Placeholder, Fehler, Badges und Fokus,
 - die Abgrenzung des Selektor-H1 von der globalen H1-Verlaufsregel.
 
@@ -168,10 +205,17 @@ Create- und Dossier-Handoffs behalten `source=admin_region`, den regionalen Slug
 - 13.339 gelesene Directory-Einträge und 12.401 amtlich abgeleitete Regionen,
 - 12.408 operative Regionen statt einer stillen Reduktion auf sieben Fixtures,
 - eindeutige Slugs nach der deterministischen AGS-/ARS-Ergänzung,
-- Registry-/Directory-/Fixture-Priorität bei stabiler Identität,
+- Union-Find-Komponenten über ID, AGS und ARS,
+- alle sechs Permutationen des transitiven A-/B-/C-Brückenfalls,
+- Verbindung zweier zunächst getrennter Gruppen durch einen späteren Kandidaten,
+- reihenfolgeinvariante Registry-/Directory-/Fixture-Priorität und Repräsentantenwahl,
+- Erhalt aller alternativen Identitäten und Bezeichnungen für die Auflösung,
 - getrennte gleichnamige Orte und `null` bei mehrdeutiger Namensauflösung,
+- deterministische, auf 40 Einträge begrenzte Suche,
 - weiterhin verfügbare Registry-/Fixture-Einträge bei fehlender oder fehlerhafter Quelle,
-- nachvollziehbare `missing`- und `error`-Statusdaten.
+- nachvollziehbare `missing`- und `error`-Statusdaten,
+- Recovery von `missing` und `error` zu `ready`,
+- dauerhafte Wiederverwendung erfolgreicher Imports ohne unkontrollierten Lese-Loop.
 
 ## Automatische Checks
 

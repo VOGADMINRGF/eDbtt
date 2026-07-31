@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type {
   DirectorySourceStatus,
+  OperationalRegionSearchResult,
   Region,
   RegionalAdminCockpitReadModel,
 } from "@features/region";
@@ -13,6 +14,7 @@ import {
   regionFeedSignalOriginLabel,
   regionReviewStatusLabel,
   resolveOperationalRegion,
+  searchOperationalRegions,
 } from "@features/region";
 import { RegionSourceConnectionsPanel } from "./RegionSourceConnectionsPanel";
 
@@ -167,10 +169,10 @@ function regionOptionLabel(region: Region) {
       : null,
   ].filter(Boolean);
   return [
-    region.name,
     regionTypeLabel(region.type),
     region.officialBody?.label,
     ...identifiers,
+    `ID ${region.id}`,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -243,16 +245,12 @@ function authoritySourceLabel(
 }
 
 function RegionSelector(props: {
-  regions: Region[];
   selectedRegion: Region | null;
   directoryStatus: DirectorySourceStatus;
+  search: OperationalRegionSearchResult;
+  regionTypeCounts: Array<{ type: string; count: number }>;
   invalidSelection?: string | null;
 }) {
-  const typeCounts = new Map<string, number>();
-  props.regions.forEach((region) => {
-    typeCounts.set(region.type, (typeCounts.get(region.type) ?? 0) + 1);
-  });
-
   return (
     <section
       data-testid="admin-region-selector"
@@ -298,14 +296,18 @@ function RegionSelector(props: {
               : "mt-5 flex flex-col gap-3 sm:flex-row lg:col-span-2"
           }
         >
+            {props.selectedRegion ? (
+              <input type="hidden" name="regionId" value={props.selectedRegion.id} />
+            ) : null}
             <label className="min-w-0 flex-1">
-              <span className="sr-only">Region nach Name oder Typ suchen</span>
+              <span className="mb-1 block text-sm font-semibold text-[rgb(var(--fg))]">
+                Region suchen
+              </span>
               <input
                 type="search"
-                name="regionId"
-                list="admin-region-options"
-                defaultValue={props.selectedRegion?.slug ?? props.invalidSelection ?? ""}
-                placeholder="z. B. Hamburg, AGS, ARS, Kommune oder Landkreis"
+                name="regionQuery"
+                defaultValue={props.search.query}
+                placeholder="z. B. Hamburg, 02000000 oder 020000000000"
                 autoComplete="off"
                 className="min-h-12 w-full rounded-2xl border border-cyan-500/80 bg-[rgb(var(--card))] px-4 text-base text-[rgb(var(--fg))] placeholder:text-[rgb(var(--muted))] focus:border-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 dark:border-cyan-500/70 dark:focus:border-cyan-300 dark:focus:ring-cyan-300/40"
               />
@@ -318,17 +320,8 @@ function RegionSelector(props: {
                   : "min-h-12 rounded-full bg-[rgb(var(--fg))] px-5 text-sm font-semibold text-[rgb(var(--bg))] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]"
               }
             >
-              {props.selectedRegion ? "Wechseln" : "Regionsprofil öffnen"}
+              Suchen
             </button>
-            <datalist id="admin-region-options">
-              {props.regions.map((region) => (
-                <option
-                  key={region.id}
-                  value={region.slug || region.id}
-                  label={regionOptionLabel(region)}
-                />
-              ))}
-            </datalist>
         </form>
       </div>
       {props.directoryStatus.status !== "ready" ? (
@@ -354,6 +347,65 @@ function RegionSelector(props: {
           ) : null}
         </div>
       ) : null}
+      {props.search.query ? (
+        <section
+          aria-labelledby="admin-region-search-results-title"
+          className="mt-5 min-w-0"
+        >
+          <p
+            id="admin-region-search-results-title"
+            role="status"
+            className="text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            {props.search.totalMatches === 0
+              ? `Keine Region für „${props.search.query}“ gefunden`
+              : `${props.search.totalMatches} ${
+                  props.search.totalMatches === 1 ? "Region" : "Regionen"
+                } gefunden${
+                  props.search.truncated
+                    ? " – die ersten 40 Ergebnisse werden angezeigt"
+                    : ""
+                }`}
+          </p>
+          {props.search.results.length > 0 ? (
+            <ul
+              aria-label="Gefundene Regionen"
+              className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2"
+            >
+              {props.search.results.map(({ region, matchKind }) => (
+                <li
+                  key={region.id}
+                  data-testid="admin-region-search-result"
+                  className="min-w-0"
+                >
+                  <Link
+                    href={withQuery("/admin/region", {
+                      regionId: region.id,
+                      regionQuery: props.search.query,
+                    })}
+                    className="block min-w-0 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-[rgb(var(--fg))] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]"
+                  >
+                    <span className="block break-words font-semibold">
+                      {region.name}
+                    </span>
+                    <span className="mt-1 block break-words text-xs leading-5 text-[rgb(var(--muted))]">
+                      {regionOptionLabel(region)}
+                    </span>
+                    {matchKind === "exact_identity" ? (
+                      <span className="sr-only">Exakter Identitätstreffer</span>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : (
+        <p className="mt-4 text-sm leading-6 text-[rgb(var(--muted))]">
+          Gib einen Namen, eine Regions-ID, AGS, ARS oder Verwaltungsbezeichnung ein.
+          Es werden höchstens 40 Treffer angezeigt.
+        </p>
+      )}
       {!props.selectedRegion ? (
         <>
           {props.invalidSelection ? (
@@ -362,15 +414,11 @@ function RegionSelector(props: {
               className="mt-3 rounded-xl border border-amber-400/80 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-100"
             >
               „{props.invalidSelection}“ ist kein vorhandener Regionseintrag. Bitte wähle einen
-              Vorschlag aus der Liste.
+              Treffer aus der Suche.
             </p>
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
-            {Array.from(typeCounts.entries())
-              .sort(([left], [right]) =>
-                regionTypeLabel(left).localeCompare(regionTypeLabel(right), "de"),
-              )
-              .map(([type, count]) => (
+            {props.regionTypeCounts.map(({ type, count }) => (
                 <span
                   key={type}
                   className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[rgb(var(--fg))]"
@@ -437,12 +485,20 @@ export default async function AdminRegionPage({
 }) {
   const resolved = searchParams ? await searchParams : {};
   const selectedRegionId = firstParam(resolved.regionId);
+  const regionQuery = firstParam(resolved.regionQuery) ?? "";
   const regionCatalog = getOperationalRegionCatalog();
-  const regions = regionCatalog.regions.sort((left, right) =>
-    left.name.localeCompare(right.name, "de"),
-  );
+  const search = searchOperationalRegions(regionCatalog, regionQuery);
+  const typeCounts = new Map<string, number>();
+  regionCatalog.regions.forEach((entry) => {
+    typeCounts.set(entry.type, (typeCounts.get(entry.type) ?? 0) + 1);
+  });
+  const regionTypeCounts = Array.from(typeCounts.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((left, right) =>
+      regionTypeLabel(left.type).localeCompare(regionTypeLabel(right.type), "de"),
+    );
   const region = selectedRegionId
-    ? resolveOperationalRegion(regions, selectedRegionId)
+    ? resolveOperationalRegion(regionCatalog, selectedRegionId)
     : null;
 
   if (!region) {
@@ -452,9 +508,10 @@ export default async function AdminRegionPage({
         className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8"
       >
         <RegionSelector
-          regions={regions}
           selectedRegion={null}
           directoryStatus={regionCatalog.sources.officialDirectory}
+          search={search}
+          regionTypeCounts={regionTypeCounts}
           invalidSelection={selectedRegionId}
         />
         <section
@@ -665,9 +722,10 @@ export default async function AdminRegionPage({
       className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8"
     >
       <RegionSelector
-        regions={regions}
         selectedRegion={region}
         directoryStatus={regionCatalog.sources.officialDirectory}
+        search={search}
+        regionTypeCounts={regionTypeCounts}
       />
 
       <section

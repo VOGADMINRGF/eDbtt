@@ -793,11 +793,22 @@ function buildDefaultCockpit(params: {
 
 export type OperationalRegionCatalog = {
   regions: Region[];
+  aliases: OperationalRegionAliases[];
   sources: {
     regionRegistry: DirectorySourceStatus;
     officialDirectory: DirectorySourceStatus;
     fixtureCount: number;
   };
+};
+
+export type OperationalRegionAliases = {
+  regionId: string;
+  ids: string[];
+  slugs: string[];
+  names: string[];
+  ags: string[];
+  ars: string[];
+  administrativeLabels: string[];
 };
 
 type OperationalRegionSource = "registry" | "directory" | "fixture";
@@ -807,8 +818,16 @@ type OperationalRegionCandidate = {
   source: OperationalRegionSource;
 };
 
+function normalizeRegionLookup(value: string | null | undefined): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("de-DE");
+}
+
 function normalizeRegionIdentifier(value: string | null | undefined): string | null {
-  const normalized = String(value ?? "").trim();
+  const normalized = normalizeRegionLookup(value);
   return normalized || null;
 }
 
@@ -824,6 +843,41 @@ function stableRegionIdentityKeys(region: Region): string[] {
       ? `ars:${normalizeRegionIdentifier(region.officialDirectoryEntry?.ars)}`
       : null,
   ]);
+}
+
+const operationalRegionSourceRank: Record<OperationalRegionSource, number> = {
+  registry: 0,
+  directory: 1,
+  fixture: 2,
+};
+
+function compareOperationalCandidates(
+  left: OperationalRegionCandidate,
+  right: OperationalRegionCandidate,
+): number {
+  const sourceDifference =
+    operationalRegionSourceRank[left.source] -
+    operationalRegionSourceRank[right.source];
+  if (sourceDifference !== 0) return sourceDifference;
+
+  const leftValues = [
+    left.region.id,
+    left.region.officialDirectoryEntry?.ags,
+    left.region.officialDirectoryEntry?.ars,
+    left.region.slug,
+  ].map(normalizeRegionLookup);
+  const rightValues = [
+    right.region.id,
+    right.region.officialDirectoryEntry?.ags,
+    right.region.officialDirectoryEntry?.ars,
+    right.region.slug,
+  ].map(normalizeRegionLookup);
+
+  for (let index = 0; index < leftValues.length; index += 1) {
+    const difference = leftValues[index].localeCompare(rightValues[index], "de");
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
 
 function operationalSlugSuffix(region: Region): string {
@@ -874,33 +928,122 @@ export function buildOperationalRegionCatalog(input: {
   regionRegistryStatus: DirectorySourceStatus;
   officialDirectoryStatus: DirectorySourceStatus;
 }): OperationalRegionCatalog {
-  const accepted: OperationalRegionCandidate[] = [];
-  const claimedStableIdentities = new Set<string>();
+  const candidates: OperationalRegionCandidate[] = [
+    ...input.registryRegions.map((region) => ({
+      region: clone(region),
+      source: "registry" as const,
+    })),
+    ...input.directoryRegions.map((region) => ({
+      region: clone(region),
+      source: "directory" as const,
+    })),
+    ...input.fixtureRegions.map((region) => ({
+      region: clone(region),
+      source: "fixture" as const,
+    })),
+  ];
+  const parents = candidates.map((_, index) => index);
 
-  const addSource = (
-    source: OperationalRegionSource,
-    regions: readonly Region[],
-  ) => {
-    for (const region of regions) {
-      const candidate = clone(region);
-      const stableIdentities = stableRegionIdentityKeys(candidate);
-      const hasClaimedIdentity = stableIdentities.some((identity) =>
-        claimedStableIdentities.has(identity),
-      );
-      stableIdentities.forEach((identity) => claimedStableIdentities.add(identity));
-      if (hasClaimedIdentity) {
-        continue;
-      }
-      accepted.push({ region: candidate, source });
+  const findRoot = (candidateIndex: number): number => {
+    let root = candidateIndex;
+    while (parents[root] !== root) root = parents[root];
+    let current = candidateIndex;
+    while (parents[current] !== current) {
+      const next = parents[current];
+      parents[current] = root;
+      current = next;
     }
+    return root;
+  };
+  const union = (leftIndex: number, rightIndex: number) => {
+    const leftRoot = findRoot(leftIndex);
+    const rightRoot = findRoot(rightIndex);
+    if (leftRoot === rightRoot) return;
+    const canonicalRoot = Math.min(leftRoot, rightRoot);
+    parents[leftRoot] = canonicalRoot;
+    parents[rightRoot] = canonicalRoot;
+  };
+  const identityOwners = new Map<string, number>();
+
+  candidates.forEach((candidate, candidateIndex) => {
+    stableRegionIdentityKeys(candidate.region).forEach((identity) => {
+      const existingOwner = identityOwners.get(identity);
+      if (existingOwner === undefined) {
+        identityOwners.set(identity, candidateIndex);
+      } else {
+        union(existingOwner, candidateIndex);
+      }
+    });
+  });
+
+  const componentMembers = new Map<number, OperationalRegionCandidate[]>();
+  candidates.forEach((candidate, candidateIndex) => {
+    const root = findRoot(candidateIndex);
+    const members = componentMembers.get(root) ?? [];
+    members.push(candidate);
+    componentMembers.set(root, members);
+  });
+
+  const components = Array.from(componentMembers.values())
+    .map((members) => {
+      const orderedMembers = [...members].sort(compareOperationalCandidates);
+      return {
+        representative: orderedMembers[0],
+        members: orderedMembers,
+      };
+    })
+    .sort((left, right) =>
+      compareOperationalCandidates(left.representative, right.representative),
+    );
+  const accepted = ensureUniqueOperationalSlugs(
+    components.map(({ representative }) => representative),
+  );
+
+  const sortedUniqueValues = (
+    values: Array<string | null | undefined>,
+  ): string[] => {
+    const byNormalizedValue = new Map<string, string>();
+    values.forEach((value) => {
+      const raw = String(value ?? "").trim();
+      const normalized = normalizeRegionLookup(raw);
+      if (normalized && !byNormalizedValue.has(normalized)) {
+        byNormalizedValue.set(normalized, raw);
+      }
+    });
+    return Array.from(byNormalizedValue.values()).sort((left, right) =>
+      normalizeRegionLookup(left).localeCompare(normalizeRegionLookup(right), "de"),
+    );
   };
 
-  addSource("registry", input.registryRegions);
-  addSource("directory", input.directoryRegions);
-  addSource("fixture", input.fixtureRegions);
+  const aliases = accepted.map((candidate, componentIndex) => {
+    const members = components[componentIndex].members.map(({ region }) => region);
+    return {
+      regionId: candidate.region.id,
+      ids: sortedUniqueValues(members.map((region) => region.id)),
+      slugs: sortedUniqueValues([
+        candidate.region.slug,
+        ...members.map((region) => region.slug),
+      ]),
+      names: sortedUniqueValues(members.map((region) => region.name)),
+      ags: sortedUniqueValues(
+        members.map((region) => region.officialDirectoryEntry?.ags),
+      ),
+      ars: sortedUniqueValues(
+        members.map((region) => region.officialDirectoryEntry?.ars),
+      ),
+      administrativeLabels: sortedUniqueValues(
+        members.flatMap((region) => [
+          region.officialBody?.label,
+          region.officialDirectoryEntry?.administrativeSeat,
+          region.officialDirectoryEntry?.rawAdministrativeUnitLabel,
+        ]),
+      ),
+    };
+  });
 
   return {
-    regions: ensureUniqueOperationalSlugs(accepted).map(({ region }) => region),
+    regions: accepted.map(({ region }) => region),
+    aliases,
     sources: {
       regionRegistry: clone(input.regionRegistryStatus),
       officialDirectory: clone(input.officialDirectoryStatus),
@@ -911,10 +1054,32 @@ export function buildOperationalRegionCatalog(input: {
 
 let cachedOperationalRegionCatalog: OperationalRegionCatalog | null = null;
 
-export function getOperationalRegionCatalog(): OperationalRegionCatalog {
-  if (cachedOperationalRegionCatalog) return clone(cachedOperationalRegionCatalog);
+function operationalCatalogSourceSignature(input: {
+  regionRegistry: DirectorySourceStatus;
+  officialDirectory: DirectorySourceStatus;
+}): string {
+  return JSON.stringify([
+    input.regionRegistry.status,
+    input.regionRegistry.sourcePath,
+    input.regionRegistry.recordCount,
+    input.regionRegistry.errorCode,
+    input.officialDirectory.status,
+    input.officialDirectory.sourcePath,
+    input.officialDirectory.recordCount,
+    input.officialDirectory.errorCode,
+  ]);
+}
 
+export function getOperationalRegionCatalog(): OperationalRegionCatalog {
   const sourceStatus = getDirectorySourceStatus();
+  if (
+    cachedOperationalRegionCatalog &&
+    operationalCatalogSourceSignature(cachedOperationalRegionCatalog.sources) ===
+      operationalCatalogSourceSignature(sourceStatus)
+  ) {
+    return clone(cachedOperationalRegionCatalog);
+  }
+
   cachedOperationalRegionCatalog = buildOperationalRegionCatalog({
     registryRegions: listRegionsFromRegistry(),
     directoryRegions: buildOfficialRegionsFromDirectory(),
@@ -925,61 +1090,76 @@ export function getOperationalRegionCatalog(): OperationalRegionCatalog {
   return clone(cachedOperationalRegionCatalog);
 }
 
-function normalizeRegionLookup(value: string): string {
-  return value
-    .normalize("NFKC")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLocaleLowerCase("de-DE");
+function aliasesForCatalog(
+  input: OperationalRegionCatalog | readonly Region[],
+): Array<{ region: Region; aliases: OperationalRegionAliases }> {
+  if ("regions" in input) {
+    const regionsById = new Map(input.regions.map((region) => [region.id, region]));
+    return input.aliases.flatMap((aliases) => {
+      const region = regionsById.get(aliases.regionId);
+      return region ? [{ region, aliases }] : [];
+    });
+  }
+  return input.map((region) => ({
+    region,
+    aliases: {
+      regionId: region.id,
+      ids: [region.id],
+      slugs: [region.slug],
+      names: [region.name],
+      ags: uniqueNonEmpty([region.officialDirectoryEntry?.ags]),
+      ars: uniqueNonEmpty([region.officialDirectoryEntry?.ars]),
+      administrativeLabels: uniqueNonEmpty([
+        region.officialBody?.label,
+        region.officialDirectoryEntry?.administrativeSeat,
+        region.officialDirectoryEntry?.rawAdministrativeUnitLabel,
+      ]),
+    },
+  }));
 }
 
-function uniqueRegionMatch(matches: Region[]): Region | null {
+function uniqueRegionMatch(matches: readonly Region[]): Region | null {
   return matches.length === 1 ? clone(matches[0]) : null;
 }
 
 export function resolveOperationalRegion(
-  regions: readonly Region[],
+  input: OperationalRegionCatalog | readonly Region[],
   value: string,
 ): Region | null {
   const normalized = normalizeRegionLookup(value);
   if (!normalized) return null;
+  const entries = aliasesForCatalog(input);
+  const matchesAlias = (values: readonly string[]) =>
+    values.some((entry) => normalizeRegionLookup(entry) === normalized);
 
-  const byId = regions.filter(
-    (region) => normalizeRegionLookup(region.id) === normalized,
-  );
+  const byId = entries
+    .filter(({ aliases }) => matchesAlias(aliases.ids))
+    .map(({ region }) => region);
   if (byId.length > 0) return uniqueRegionMatch(byId);
 
-  const bySlug = regions.filter(
-    (region) => normalizeRegionLookup(region.slug) === normalized,
-  );
+  const bySlug = entries
+    .filter(({ aliases }) => matchesAlias(aliases.slugs))
+    .map(({ region }) => region);
   if (bySlug.length > 0) return uniqueRegionMatch(bySlug);
 
-  const byAgs = regions.filter(
-    (region) =>
-      normalizeRegionLookup(region.officialDirectoryEntry?.ags ?? "") ===
-      normalized,
-  );
+  const byAgs = entries
+    .filter(({ aliases }) => matchesAlias(aliases.ags))
+    .map(({ region }) => region);
   if (byAgs.length > 0) return uniqueRegionMatch(byAgs);
 
-  const byArs = regions.filter(
-    (region) =>
-      normalizeRegionLookup(region.officialDirectoryEntry?.ars ?? "") ===
-      normalized,
-  );
+  const byArs = entries
+    .filter(({ aliases }) => matchesAlias(aliases.ars))
+    .map(({ region }) => region);
   if (byArs.length > 0) return uniqueRegionMatch(byArs);
 
-  const byName = regions.filter(
-    (region) => normalizeRegionLookup(region.name) === normalized,
-  );
+  const byName = entries
+    .filter(({ aliases }) => matchesAlias(aliases.names))
+    .map(({ region }) => region);
   if (byName.length > 0) return uniqueRegionMatch(byName);
 
-  const byAdministrativeLabel = regions.filter((region) =>
-    uniqueNonEmpty([
-      region.officialBody?.label,
-      region.officialDirectoryEntry?.administrativeSeat,
-      region.officialDirectoryEntry?.rawAdministrativeUnitLabel,
-    ]).some((label) => normalizeRegionLookup(label) === normalized),
-  );
+  const byAdministrativeLabel = entries
+    .filter(({ aliases }) => matchesAlias(aliases.administrativeLabels))
+    .map(({ region }) => region);
   if (byAdministrativeLabel.length === 1) {
     return clone(byAdministrativeLabel[0]);
   }
@@ -993,6 +1173,100 @@ export function resolveOperationalRegion(
   return null;
 }
 
+export type OperationalRegionSearchResult = {
+  query: string;
+  totalMatches: number;
+  truncated: boolean;
+  results: Array<{
+    region: Region;
+    matchedValue: string;
+    matchKind: "exact_identity" | "unique_prefix" | "text";
+  }>;
+};
+
+export function searchOperationalRegions(
+  catalog: OperationalRegionCatalog,
+  query: string,
+  requestedLimit = 40,
+): OperationalRegionSearchResult {
+  const normalized = normalizeRegionLookup(query);
+  const limit = Math.max(0, Math.min(40, Math.floor(requestedLimit)));
+  if (!normalized || limit === 0) {
+    return {
+      query: String(query ?? "").trim(),
+      totalMatches: 0,
+      truncated: false,
+      results: [],
+    };
+  }
+
+  const entries = aliasesForCatalog(catalog);
+  const exactIdentityMatches = new Set(
+    entries
+      .filter(({ aliases }) =>
+        [...aliases.ids, ...aliases.ags, ...aliases.ars].some(
+          (value) => normalizeRegionLookup(value) === normalized,
+        ),
+      )
+      .map(({ region }) => region.id),
+  );
+  const prefixCandidates = entries.filter(({ aliases }) =>
+    [
+      ...aliases.ids,
+      ...aliases.slugs,
+      ...aliases.names,
+      ...aliases.ags,
+      ...aliases.ars,
+      ...aliases.administrativeLabels,
+    ].some((value) => normalizeRegionLookup(value).startsWith(normalized)),
+  );
+  const uniquePrefixId =
+    prefixCandidates.length === 1 ? prefixCandidates[0].region.id : null;
+
+  const ranked = entries.flatMap(({ region, aliases }) => {
+    const searchableValues = uniqueNonEmpty([
+      ...aliases.ids,
+      ...aliases.slugs,
+      ...aliases.names,
+      ...aliases.ags,
+      ...aliases.ars,
+      ...aliases.administrativeLabels,
+    ]);
+    const matchingValue = searchableValues.find((value) =>
+      normalizeRegionLookup(value).includes(normalized),
+    );
+    if (!matchingValue) return [];
+    const matchKind = exactIdentityMatches.has(region.id)
+      ? ("exact_identity" as const)
+      : uniquePrefixId === region.id
+        ? ("unique_prefix" as const)
+        : ("text" as const);
+    const rank =
+      matchKind === "exact_identity" ? 0 : matchKind === "unique_prefix" ? 1 : 2;
+    return [{ region, matchedValue: matchingValue, matchKind, rank }];
+  });
+
+  ranked.sort((left, right) => {
+    if (left.rank !== right.rank) return left.rank - right.rank;
+    const nameDifference = normalizeRegionLookup(left.region.name).localeCompare(
+      normalizeRegionLookup(right.region.name),
+      "de",
+    );
+    if (nameDifference !== 0) return nameDifference;
+    return normalizeRegionLookup(left.region.id).localeCompare(
+      normalizeRegionLookup(right.region.id),
+      "de",
+    );
+  });
+
+  return {
+    query: String(query ?? "").trim(),
+    totalMatches: ranked.length,
+    truncated: ranked.length > limit,
+    results: ranked.slice(0, limit).map(({ rank: _rank, ...result }) => result),
+  };
+}
+
 export async function listOperationalRegions(): Promise<Region[]> {
   return getOperationalRegionCatalog().regions;
 }
@@ -1001,8 +1275,7 @@ export async function getOperationalRegionById(id: string): Promise<Region | nul
   const normalized = String(id || "").trim();
   if (!normalized) return null;
 
-  const regions = await listOperationalRegions();
-  return resolveOperationalRegion(regions, normalized);
+  return resolveOperationalRegion(getOperationalRegionCatalog(), normalized);
 }
 
 export async function listRegionalActorRegister(query: RegionalActorRegisterQuery = {}): Promise<RegionalActor[]> {
