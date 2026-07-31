@@ -20,6 +20,14 @@ export type MembershipMandateStatus =
   | "active"
   | "revoked";
 
+export type MembershipInitializationStage =
+  | "pii_payment_profile"
+  | "payment_profile_link"
+  | "application_link"
+  | "user_membership_projection"
+  | "delivery_initialization"
+  | "complete";
+
 export interface MembershipPaymentInfo {
   method: MembershipPaymentMethod;
   reference: string;
@@ -47,6 +55,18 @@ export interface HouseholdMemberRef {
 
 export interface MembershipApplication {
   _id: ObjectId;
+  openApplicationKey?: string | null;
+  workflowStatus?:
+    | "initializing"
+    | "delivery_pending"
+    | "partial"
+    | "manual_recovery"
+    | "complete";
+  initializationStage?: MembershipInitializationStage;
+  initializationStageUpdatedAt?: Date | null;
+  initializationPaymentProfileId?: ObjectId | null;
+  deliveryClaimId?: string | null;
+  deliveryClaimedAt?: Date | null;
   coreUserId: ObjectId; // Hauptkonto (Gönner:in / Antragsteller:in)
   householdSize: number;
   members: HouseholdMemberRef[];
@@ -88,9 +108,27 @@ export interface MembershipApplication {
   firstDueAt?: Date | null;
   dunningLevel?: number;
   lastReminderSentAt?: Date | null;
+  lastReminderDeliveryStatus?: "delivered" | "failed" | "partial" | null;
+  lastReminderDeliveryCategory?: string | null;
+  lastReminderDeliveryRetryable?: boolean | null;
+  lastReminderDeliveryAttemptedAt?: Date | null;
+  dunningClaimId?: string | null;
+  dunningClaimedAt?: Date | null;
+  dunningNextAttemptAt?: Date | null;
+  dunningFailureCount?: number;
+  dunningRecoveryStatus?: "manual" | null;
   cancelledAt?: Date | null;
   cancelledReason?: string | null;
   firstPaidAt?: Date | null;
+  mailDeliveryStatus?: "pending" | "delivered" | "failed" | "partial" | null;
+  mailDeliveryRetryable?: boolean | null;
+  mailDeliveryCategory?: string | null;
+  mailDeliveryAttemptedAt?: Date | null;
+  adminMailDeliveryStatus?: "pending" | "delivered" | "failed" | "partial" | null;
+  adminMailDeliveryRetryable?: boolean | null;
+  adminMailDeliveryCategory?: string | null;
+  adminMailDeliveryAttemptedAt?: Date | null;
+  submittedTelemetryAt?: Date | null;
 
   status: MembershipStatus;
   createdAt: Date;

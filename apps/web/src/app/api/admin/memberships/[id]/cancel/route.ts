@@ -40,6 +40,11 @@ export async function POST(
         cancelledReason: reason,
         updatedAt: now,
       },
+      $unset: {
+        openApplicationKey: "",
+        deliveryClaimId: "",
+        deliveryClaimedAt: "",
+      },
     },
   );
 

@@ -10,6 +10,12 @@ export type SessionUser = {
   _id: ObjectId;
   email?: string | null;
   name?: string | null;
+  profile?: { displayName?: string | null; locale?: string | null } | null;
+  settings?: {
+    uiLocale?: string | null;
+    preferredLocale?: string | null;
+    readingLocale?: string | null;
+  } | null;
   roles?: UserRole[] | null;
   role?: UserRole | null;
   accessTier?: string | null;
@@ -54,6 +60,8 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
         role: 1,
         email: 1,
         name: 1,
+        profile: 1,
+        settings: 1,
         accessTier: 1,
         b2cPlanId: 1,
         verification: 1,

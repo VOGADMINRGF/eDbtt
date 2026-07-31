@@ -40,6 +40,9 @@ const mocks = vi.hoisted(() => {
     seedChallenge(doc: AnyDoc) {
       challenges.set(objectIdString(doc._id), clone(doc));
     },
+    readChallenge(id: unknown) {
+      return clone(challenges.get(objectIdString(id)) ?? null);
+    },
     coreCol: vi.fn(async (name: string) => {
       if (name !== "users") throw new Error(`unexpected_core_collection_${name}`);
       return {
@@ -70,6 +73,7 @@ const mocks = vi.hoisted(() => {
     }),
     rateLimitOrThrow: vi.fn(async () => ({ ok: true })),
     issueTwoFactorChallenge: vi.fn(async ({ method }: AnyDoc) => ({
+      ok: true as const,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       challengeId: `${method}-challenge`,
     })),
@@ -203,5 +207,59 @@ describe("2FA method selection route", () => {
         emailForCode: "person@example.org",
       }),
     );
+  });
+
+  it("keeps the existing challenge pending when required email delivery fails", async () => {
+    const { ObjectId } = await import("mongodb");
+    const userId = new ObjectId();
+    const challengeId = new ObjectId();
+    mocks.seedUser({
+      _id: userId,
+      email: "delivery-failure@example.org",
+      verification: { twoFA: { enabled: true, method: "totp", secret: "SECRET123" } },
+    });
+    mocks.seedCredentials({
+      coreUserId: userId,
+      email: "delivery-failure@example.org",
+      otpSecret: "SECRET123",
+    });
+    mocks.seedChallenge({
+      _id: challengeId,
+      userId,
+      method: "otp",
+      purpose: "login_verify",
+      redirectTo: "/create",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      attempts: 0,
+      status: "pending",
+    });
+    mocks.issueTwoFactorChallenge.mockResolvedValueOnce({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: {
+        status: "failed",
+        category: "smtp_timeout",
+        retryable: true,
+        attemptedCount: 1,
+        deliveredCount: 0,
+        failedCount: 1,
+      },
+    });
+
+    const response = await POST(
+      requestWithCookies(
+        { method: "email", next: "/create" },
+        `pending_2fa=${String(challengeId)}`,
+      ),
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: { category: "smtp_timeout", retryable: true },
+    });
+    expect(mocks.readChallenge(challengeId)).toMatchObject({ status: "pending" });
   });
 });

@@ -12,7 +12,11 @@ describe("web ci critical guardrails contract", () => {
   it("keeps the web env example on canonical MAIL_FROM and WEB_DATABASE_URL", () => {
     const source = readRoot("apps/web/.env.example");
 
-    expect(source).toContain('MAIL_FROM="eDebatte <no-reply@edebatte.org>"');
+    expect(source).toContain('MAIL_FROM="eDebatte <members@edebatte.org>"');
+    expect(source).toContain(
+      'MAIL_REPLY_TO="eDebatte Team <members@edebatte.org>"',
+    );
+    expect(source).not.toMatch(/no-?reply/i);
     expect(source).toContain("WEB_DATABASE_URL=postgresql://dev:devpassword@localhost:5433/vog?schema=public");
     expect(source).not.toMatch(/^SMTP_FROM=/m);
     expect(source).not.toMatch(/^DATABASE_URL=/m);

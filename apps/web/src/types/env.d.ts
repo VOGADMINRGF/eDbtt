@@ -10,6 +10,7 @@ declare namespace NodeJS {
     UPSTASH_REDIS_REST_TOKEN?: string;
     CONTACT_INBOX?: string;
     MAIL_FROM?: string;
+    MAIL_REPLY_TO?: string;
     SMTP_FROM?: string;
     SMTP_URL?: string;
     SMTP_HOST?: string;

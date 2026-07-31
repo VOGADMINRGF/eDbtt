@@ -3,38 +3,75 @@
 import nodemailer from "nodemailer";
 import {
   hasSmtpTransportConfig,
-  resolveMailFromForRuntime,
+  resolveMailEnvelopeForRuntime,
 } from "@/lib/server/webRuntimeEnv";
+import {
+  ensureTransactionalMail,
+  type TransactionalMail,
+} from "@/utils/mailRenderer";
 
 let transporter: nodemailer.Transporter | null = null;
+
+export type MailDeliveryRequirement =
+  | "required_delivery"
+  | "best_effort_delivery";
 
 export type SendMailResult =
   | {
       ok: true;
+      status: "delivered";
       transport: "smtp";
+      category: null;
+      retryable: false;
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: 0;
       messageId: string | null;
     }
   | {
       ok: false;
+      status: "failed" | "partial";
       transport: "none" | "smtp";
       code: "mail_transport_unavailable" | "mail_transport_error";
+      category: MailFailureCategory;
       retryable: boolean;
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: number;
       messageId: string | null;
     };
 
 type MailFailureCode = Extract<SendMailResult, { ok: false }>["code"];
 
-type MailFailureCategory =
+export type MailFailureCategory =
   | "recipient_invalid"
   | "recipient_placeholder_domain"
   | "recipient_test_domain_blocked"
   | "recipient_domain_not_allowed"
+  | "mail_content_invalid"
+  | "sender_configuration_invalid"
   | "smtp_unconfigured"
   | "smtp_auth_error"
   | "smtp_connection_error"
   | "smtp_timeout"
   | "smtp_response_error"
   | "smtp_unknown_error";
+
+export function mailFailureMetadata(
+  result: SendMailResult,
+) {
+  if (!("code" in result)) {
+    throw new Error("mail_failure_metadata_requires_failure");
+  }
+  return {
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  };
+}
 
 const RESERVED_PLACEHOLDER_DOMAINS = new Set([
   "example.org",
@@ -46,49 +83,92 @@ const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 export async function sendMail(opts: {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
+  to: string | string[];
+  mail: TransactionalMail;
+  delivery: MailDeliveryRequirement;
   tag?: string;
 }): Promise<SendMailResult> {
-  const recipient = normalizeEmail(opts.to);
+  const recipients = recipientsToArray(opts.to);
+  const recipient = recipients[0] ?? "";
   const domain = emailDomain(recipient);
-  const from = resolveMailFromForRuntime();
   const wantsSmtp = hasSmtpTransportConfig();
 
   const logFailure = (
     code: MailFailureCode,
     category: MailFailureCategory,
+    counts: {
+      attemptedCount: number;
+      deliveredCount: number;
+      failedCount: number;
+    },
+    error?: unknown,
     messageId?: string | null,
   ) => {
+    const singleRecipient = recipients.length === 1;
+    const status = counts.deliveredCount > 0 ? "partial" : "failed";
     console.warn("[mailer] delivery_blocked", {
       code,
       category,
+      status,
+      delivery: opts.delivery,
       tag: opts.tag ?? "generic",
-      recipient: maskEmail(recipient),
-      domain,
+      recipient: singleRecipient ? maskEmail(recipient) : "[multiple]",
+      domain: singleRecipient ? domain : null,
+      recipientCount: recipients.length,
+      attemptedCount: counts.attemptedCount,
+      deliveredCount: counts.deliveredCount,
+      failedCount: counts.failedCount,
       messageId: messageId ?? null,
     });
     return {
       ok: false,
-      transport: code === "mail_transport_unavailable" ? "none" : "smtp",
+      status,
+      transport: counts.attemptedCount > 0 ? "smtp" : "none",
       code,
-      retryable: true,
+      category,
+      retryable: isRetryableFailure(category, error),
+      attemptedCount: counts.attemptedCount,
+      deliveredCount: counts.deliveredCount,
+      failedCount: counts.failedCount,
       messageId: messageId ?? null,
     } as const;
   };
 
-  const recipientPolicy = evaluateRecipientPolicy(recipient, domain, process.env);
-  if (recipientPolicy.allowed === false) {
-    return logFailure("mail_transport_unavailable", recipientPolicy.category);
+  if (recipients.length === 0) {
+    return logFailure(
+      "mail_transport_unavailable",
+      "recipient_invalid",
+      emptyFailureCounts(0),
+    );
+  }
+
+  for (const currentRecipient of recipients) {
+    const recipientPolicy = evaluateRecipientPolicy(
+      currentRecipient,
+      emailDomain(currentRecipient),
+      process.env,
+    );
+    if (recipientPolicy.allowed === false) {
+      return logFailure(
+        "mail_transport_unavailable",
+        recipientPolicy.category,
+        emptyFailureCounts(recipients.length),
+      );
+    }
   }
 
   if (!wantsSmtp) {
-    return logFailure("mail_transport_unavailable", "smtp_unconfigured");
+    return logFailure(
+      "mail_transport_unavailable",
+      "smtp_unconfigured",
+      emptyFailureCounts(recipients.length),
+    );
   }
 
   try {
+    const envelope = resolveMailEnvelopeForRuntime();
+    const mail = ensureTransactionalMail(opts.mail);
+
     if (!transporter) {
       transporter = process.env.SMTP_URL
         ? nodemailer.createTransport(process.env.SMTP_URL as string)
@@ -103,28 +183,112 @@ export async function sendMail(opts: {
           });
     }
 
-    const info = await transporter.sendMail({
-      from,
-      to: recipient,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text ?? opts.html.replace(/<[^>]+>/g, ""),
-    });
+    const deliveries = await Promise.allSettled(
+      recipients.map((currentRecipient) =>
+        transporter!.sendMail({
+          from: envelope.from,
+          replyTo: envelope.replyTo,
+          to: currentRecipient,
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
+        }),
+      ),
+    );
+    const failedDeliveries = deliveries.filter(
+      (delivery): delivery is PromiseRejectedResult =>
+        delivery.status === "rejected",
+    );
+    const deliveredCount = deliveries.length - failedDeliveries.length;
+
+    if (failedDeliveries.length > 0) {
+      const classifiedFailures = failedDeliveries.map((delivery) => {
+        const category = classifyTransportError(delivery.reason);
+        return {
+          error: delivery.reason,
+          category,
+          retryable: isRetryableFailure(category, delivery.reason),
+        };
+      });
+      const representativeFailure =
+        classifiedFailures.find((failure) => failure.retryable) ??
+        classifiedFailures[0]!;
+      return logFailure(
+        "mail_transport_error",
+        representativeFailure.category,
+        {
+          attemptedCount: deliveries.length,
+          deliveredCount,
+          failedCount: failedDeliveries.length,
+        },
+        representativeFailure.error,
+        recipients.length === 1 &&
+          typeof (representativeFailure.error as { messageId?: unknown })
+            ?.messageId === "string"
+          ? String(
+              (representativeFailure.error as { messageId: string }).messageId,
+            )
+          : null,
+      );
+    }
+
+    const singleDelivery = deliveries[0];
+    const singleInfo =
+      recipients.length === 1 && singleDelivery?.status === "fulfilled"
+        ? singleDelivery.value
+        : null;
 
     return {
       ok: true,
+      status: "delivered",
       transport: "smtp",
-      messageId: typeof info?.messageId === "string" ? info.messageId : null,
+      category: null,
+      retryable: false,
+      attemptedCount: recipients.length,
+      deliveredCount: recipients.length,
+      failedCount: 0,
+      messageId:
+        typeof singleInfo?.messageId === "string" ? singleInfo.messageId : null,
     };
   } catch (error: unknown) {
+    const category =
+      error instanceof Error &&
+      error.message === "mail_content_provenance_invalid"
+        ? "mail_content_invalid"
+        : error instanceof Error &&
+            (error.name === "CriticalProductionWebRuntimeEnvError" ||
+              error.message === "mail_cta_url_invalid")
+          ? "sender_configuration_invalid"
+        : classifyTransportError(error);
     return logFailure(
       "mail_transport_error",
-      classifyTransportError(error),
+      category,
+      emptyFailureCounts(recipients.length),
+      error,
       typeof (error as { messageId?: unknown })?.messageId === "string"
         ? String((error as { messageId: string }).messageId)
         : null,
     );
   }
+}
+
+function emptyFailureCounts(failedCount: number) {
+  return {
+    attemptedCount: 0,
+    deliveredCount: 0,
+    failedCount,
+  };
+}
+
+function recipientsToArray(value: string | string[]) {
+  return Array.from(
+    new Set(
+      (Array.isArray(value) ? value : [value])
+        .flatMap((entry) => entry.split(","))
+        .map(normalizeEmail)
+        .filter(Boolean),
+    ),
+  );
 }
 
 function normalizeEmail(value: string) {
@@ -219,5 +383,32 @@ function classifyTransportError(error: unknown): MailFailureCategory {
       return typeof (error as { responseCode?: unknown })?.responseCode === "number"
         ? "smtp_response_error"
         : "smtp_unknown_error";
+  }
+}
+
+function isRetryableFailure(
+  category: MailFailureCategory,
+  error?: unknown,
+): boolean {
+  switch (category) {
+    case "smtp_connection_error":
+    case "smtp_timeout":
+    case "smtp_unknown_error":
+      return true;
+    case "smtp_response_error": {
+      const responseCode = (error as { responseCode?: unknown })?.responseCode;
+      return typeof responseCode === "number"
+        ? responseCode >= 400 && responseCode < 500
+        : false;
+    }
+    case "recipient_invalid":
+    case "recipient_placeholder_domain":
+    case "recipient_test_domain_blocked":
+    case "recipient_domain_not_allowed":
+    case "mail_content_invalid":
+    case "sender_configuration_invalid":
+    case "smtp_unconfigured":
+    case "smtp_auth_error":
+      return false;
   }
 }

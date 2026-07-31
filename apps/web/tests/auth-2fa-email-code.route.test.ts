@@ -95,7 +95,17 @@ const mocks = vi.hoisted(() => {
       if (rateLimitMode === "cooldown" && key.includes("cooldown")) return { ok: false };
       return { ok: true };
     }),
-    sendMail: vi.fn(async () => {}),
+    sendMail: vi.fn(async () => ({
+      ok: true,
+      status: "delivered",
+      transport: "smtp",
+      category: null,
+      retryable: false,
+      attemptedCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      messageId: "msg-1",
+    })),
     buildTwoFactorCodeMail: vi.fn(() => ({
       subject: "2FA code",
       html: "<p>code</p>",
@@ -126,6 +136,14 @@ vi.mock("@/utils/rateLimitHelpers", () => ({
 
 vi.mock("@/utils/mailer", () => ({
   sendMail: (...args: unknown[]) => mocks.sendMail(...args),
+  mailFailureMetadata: (result: Record<string, unknown>) => ({
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  }),
 }));
 
 vi.mock("@/utils/emailTemplates", () => ({
@@ -207,6 +225,49 @@ describe("2FA email code routes", () => {
     expect(String(inserted[0].codeHash || "")).toContain("sha:");
     expect(mocks.setPendingTwoFactorCookie).toHaveBeenCalledTimes(1);
     expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("supersedes the technical challenge and sets no cookie when required delivery fails", async () => {
+    const { ObjectId } = await import("mongodb");
+    const userId = new ObjectId();
+    mocks.seedUser({ _id: userId, email: "setup-failure@example.org" });
+    mocks.seedCredentials({ coreUserId: userId, email: "setup-failure@example.org" });
+    mocks.sendMail.mockResolvedValueOnce({
+      ok: false,
+      status: "failed",
+      transport: "smtp",
+      code: "smtp_timeout",
+      category: "smtp_timeout",
+      retryable: true,
+      attemptedCount: 1,
+      deliveredCount: 0,
+      failedCount: 1,
+    });
+
+    const res = await sendEmailCode(
+      requestWithCookies(
+        "http://localhost/api/auth/2fa/email-code/send",
+        { next: "/admin", context: "setup" },
+        `u_id=${String(userId)}`,
+      ),
+    );
+
+    expect(res.status).toBe(503);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: {
+        status: "failed",
+        category: "smtp_timeout",
+        retryable: true,
+      },
+    });
+    expect(mocks.listChallenges()).toEqual([
+      expect.objectContaining({
+        status: "superseded",
+      }),
+    ]);
+    expect(mocks.setPendingTwoFactorCookie).not.toHaveBeenCalled();
   });
 
   it("verifies a valid setup email code and enables a session fallback cookie", async () => {
