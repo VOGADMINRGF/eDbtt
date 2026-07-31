@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({
   createEmailVerificationToken: vi.fn(),
   recordEmailVerificationDelivery: vi.fn(async () => {}),
   logIdentityEvent: vi.fn(async () => {}),
-  rateLimitOrThrow: vi.fn(),
+  loadPublicAuthRateLimiter: vi.fn(),
+  publicAuthRateLimiter: vi.fn(),
   backendDelayMs: 0,
 }));
 
@@ -51,8 +52,9 @@ vi.mock("@/utils/mailer", () => ({
   sendMail: (...args: unknown[]) => mocks.sendMail(...args),
 }));
 
-vi.mock("@/utils/rateLimitHelpers", () => ({
-  rateLimitOrThrow: (...args: unknown[]) => mocks.rateLimitOrThrow(...args),
+vi.mock("@/utils/publicAuthRateLimitLoader", () => ({
+  loadPublicAuthRateLimiter: (...args: unknown[]) =>
+    mocks.loadPublicAuthRateLimiter(...args),
 }));
 
 vi.mock("@/utils/publicOrigin", () => ({
@@ -117,8 +119,18 @@ describe("public auth mail enumeration contract", () => {
     vi.clearAllMocks();
     mocks.sendMail.mockReset();
     mocks.createEmailVerificationToken.mockReset();
-    mocks.rateLimitOrThrow.mockReset();
-    mocks.rateLimitOrThrow.mockResolvedValue({ ok: true });
+    mocks.loadPublicAuthRateLimiter.mockReset();
+    mocks.publicAuthRateLimiter.mockReset();
+    mocks.loadPublicAuthRateLimiter.mockResolvedValue(
+      mocks.publicAuthRateLimiter,
+    );
+    mocks.publicAuthRateLimiter.mockResolvedValue({
+      ok: true,
+      remaining: 1,
+      limit: 3,
+      resetAt: Date.now() + 600_000,
+      retryIn: 0,
+    });
     mocks.backendDelayMs = 0;
     mocks.user = {
       _id: new ObjectId("66b0bca9f1b1444b8f635201"),
@@ -285,7 +297,13 @@ describe("public auth mail enumeration contract", () => {
   });
 
   it("returns the same public response when known and unknown addresses are rate-limited", async () => {
-    mocks.rateLimitOrThrow.mockResolvedValue({ ok: false });
+    mocks.publicAuthRateLimiter.mockResolvedValue({
+      ok: false,
+      remaining: 0,
+      limit: 3,
+      resetAt: Date.now() + 600_000,
+      retryIn: 600_000,
+    });
     const known = await responseSnapshot(
       await requestReset(
         request("/api/auth/request-reset", "known@company.de"),
@@ -302,22 +320,50 @@ describe("public auth mail enumeration contract", () => {
     expect(unknown).toEqual(known);
     expect(mocks.createToken).not.toHaveBeenCalled();
     expect(mocks.sendMail).not.toHaveBeenCalled();
-    const rateLimitKeys = mocks.rateLimitOrThrow.mock.calls.map(
-      ([key]) => String(key),
+    const rateLimitInputs = mocks.publicAuthRateLimiter.mock.calls.map(
+      ([input]) => input,
     );
-    expect(rateLimitKeys).toHaveLength(4);
-    expect(rateLimitKeys.join(" ")).not.toContain("known@company.de");
-    expect(rateLimitKeys.join(" ")).not.toContain("unknown@company.de");
+    expect(rateLimitInputs).toHaveLength(4);
+    expect(JSON.stringify(rateLimitInputs)).not.toContain("known@company.de");
+    expect(JSON.stringify(rateLimitInputs)).not.toContain("unknown@company.de");
+    expect(rateLimitInputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          namespace: "public-auth:reset:address",
+          limit: 3,
+          windowMs: 600_000,
+          subjectHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+        expect.objectContaining({
+          namespace: "public-auth:reset:ip",
+          limit: 12,
+          windowMs: 600_000,
+          subjectHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+      ]),
+    );
   });
 
   it("shares the verify address limit across start and resend so rotation is bounded", async () => {
     let verifyAddressChecks = 0;
-    mocks.rateLimitOrThrow.mockImplementation(async (key: string) => {
-      if (key.startsWith("public-auth:verify:address:")) {
+    mocks.publicAuthRateLimiter.mockImplementation(async (input) => {
+      if (input.namespace === "public-auth:verify:address") {
         verifyAddressChecks += 1;
-        return { ok: verifyAddressChecks <= 3 };
+        return {
+          ok: verifyAddressChecks <= 3,
+          remaining: Math.max(0, 3 - verifyAddressChecks),
+          limit: 3,
+          resetAt: Date.now() + 600_000,
+          retryIn: verifyAddressChecks <= 3 ? 0 : 600_000,
+        };
       }
-      return { ok: true };
+      return {
+        ok: true,
+        remaining: 11,
+        limit: 12,
+        resetAt: Date.now() + 600_000,
+        retryIn: 0,
+      };
     });
 
     const responses = [];
@@ -345,8 +391,11 @@ describe("public auth mail enumeration contract", () => {
     expect(mocks.sendMail).toHaveBeenCalledTimes(3);
   });
 
-  it("fails a limiter backend closed behind the same public response", async () => {
-    mocks.rateLimitOrThrow.mockRejectedValue(new Error("limiter unavailable"));
+  it("fails an unreachable limiter storage closed behind the same public response", async () => {
+    const audit = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.publicAuthRateLimiter.mockRejectedValue(
+      new Error("storage unavailable"),
+    );
 
     const response = await responseSnapshot(
       await resendVerify(
@@ -357,5 +406,64 @@ describe("public auth mail enumeration contract", () => {
     expect(response).toEqual({ status: 200, body: { ok: true } });
     expect(mocks.createEmailVerificationToken).not.toHaveBeenCalled();
     expect(mocks.sendMail).not.toHaveBeenCalled();
+    expect(audit).toHaveBeenCalledWith(
+      "[public-auth-mail-control] rate_limiter_unavailable",
+      expect.objectContaining({
+        auditStatus: "rate_limiter_unavailable",
+        scope: "verify",
+        category: "loader_or_storage_error",
+      }),
+    );
+    audit.mockRestore();
+  });
+
+  it("fails a null limiter loader closed with a structured internal audit status", async () => {
+    const audit = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.loadPublicAuthRateLimiter.mockResolvedValue(null);
+
+    const response = await responseSnapshot(
+      await requestReset(
+        request("/api/auth/request-reset", "known@company.de"),
+      ),
+    );
+
+    expect(response).toEqual({ status: 200, body: { ok: true } });
+    expect(mocks.createToken).not.toHaveBeenCalled();
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+    expect(audit).toHaveBeenCalledWith(
+      "[public-auth-mail-control] rate_limiter_unavailable",
+      expect.objectContaining({
+        auditStatus: "rate_limiter_unavailable",
+        scope: "reset",
+        category: "loader_null",
+      }),
+    );
+    audit.mockRestore();
+  });
+
+  it("fails a real limiter loader error closed without token or mail side effects", async () => {
+    const audit = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.loadPublicAuthRateLimiter.mockRejectedValue(
+      new Error("dynamic import failed"),
+    );
+
+    const response = await responseSnapshot(
+      await startVerify(
+        request("/api/auth/email/start-verify", "known@company.de"),
+      ),
+    );
+
+    expect(response).toEqual({ status: 200, body: { ok: true } });
+    expect(mocks.createEmailVerificationToken).not.toHaveBeenCalled();
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+    expect(audit).toHaveBeenCalledWith(
+      "[public-auth-mail-control] rate_limiter_unavailable",
+      expect.objectContaining({
+        auditStatus: "rate_limiter_unavailable",
+        scope: "verify",
+        category: "loader_or_storage_error",
+      }),
+    );
+    audit.mockRestore();
   });
 });

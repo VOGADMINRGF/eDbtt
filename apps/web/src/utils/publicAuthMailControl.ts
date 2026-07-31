@@ -1,7 +1,7 @@
 import "server-only";
 
 import crypto from "node:crypto";
-import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
+import { loadPublicAuthRateLimiter } from "@/utils/publicAuthRateLimitLoader";
 
 const WINDOW_MS = 10 * 60_000;
 const ADDRESS_LIMIT = 3;
@@ -12,6 +12,10 @@ export const PUBLIC_AUTH_RESPONSE_FLOOR_MS = 120;
 export type PublicAuthMailControl = {
   allowed: boolean;
   startedAt: number;
+  auditStatus:
+    | "allowed"
+    | "rate_limited"
+    | "rate_limiter_unavailable";
 };
 
 function digest(value: string) {
@@ -34,31 +38,54 @@ export async function beginPublicAuthMailControl(
   const startedAt = Date.now();
   const addressKey = digest(`${scope}:address:${normalizedEmail}`);
   const ipKey = digest(`${scope}:ip:${requestIp(req)}`);
+
   try {
+    const limiter = await loadPublicAuthRateLimiter();
+    if (!limiter) {
+      console.error("[public-auth-mail-control] rate_limiter_unavailable", {
+        auditStatus: "rate_limiter_unavailable",
+        scope,
+        category: "loader_null",
+      });
+      return {
+        allowed: false,
+        startedAt,
+        auditStatus: "rate_limiter_unavailable",
+      };
+    }
+
     const [addressLimit, ipLimit] = await Promise.all([
-      rateLimitOrThrow(
-        `public-auth:${scope}:address:${addressKey}`,
-        ADDRESS_LIMIT,
-        WINDOW_MS,
-        {
-          salt: `public-auth-${scope}-address`,
-        },
-      ),
-      rateLimitOrThrow(
-        `public-auth:${scope}:ip:${ipKey}`,
-        IP_LIMIT,
-        WINDOW_MS,
-        {
-          salt: `public-auth-${scope}-ip`,
-        },
-      ),
+      limiter({
+        namespace: `public-auth:${scope}:address`,
+        subjectHash: addressKey,
+        limit: ADDRESS_LIMIT,
+        windowMs: WINDOW_MS,
+      }),
+      limiter({
+        namespace: `public-auth:${scope}:ip`,
+        subjectHash: ipKey,
+        limit: IP_LIMIT,
+        windowMs: WINDOW_MS,
+      }),
     ]);
+    const allowed = addressLimit.ok && ipLimit.ok;
     return {
-      allowed: addressLimit.ok && ipLimit.ok,
+      allowed,
       startedAt,
+      auditStatus: allowed ? "allowed" : "rate_limited",
     };
-  } catch {
-    return { allowed: false, startedAt };
+  } catch (error) {
+    console.error("[public-auth-mail-control] rate_limiter_unavailable", {
+      auditStatus: "rate_limiter_unavailable",
+      scope,
+      category: "loader_or_storage_error",
+      error: error instanceof Error ? error.name : "unknown",
+    });
+    return {
+      allowed: false,
+      startedAt,
+      auditStatus: "rate_limiter_unavailable",
+    };
   }
 }
 
