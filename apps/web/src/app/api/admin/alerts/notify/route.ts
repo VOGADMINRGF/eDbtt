@@ -77,6 +77,31 @@ export async function POST(req: Request) {
     );
   }
 
-  await sendAlertEmail(payload as any);
-  return NextResponse.json({ ok: true });
+  const result = await sendAlertEmail(payload as any);
+  if (!result.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        delivery: {
+          status: result.status,
+          category: result.category,
+          retryable: result.retryable,
+          attemptedCount: result.attemptedCount,
+          deliveredCount: result.deliveredCount,
+          failedCount: result.failedCount,
+        },
+      },
+      { status: 502 },
+    );
+  }
+  return NextResponse.json({
+    ok: true,
+    delivery: {
+      status: result.status,
+      attemptedCount: result.attemptedCount,
+      deliveredCount: result.deliveredCount,
+      failedCount: result.failedCount,
+    },
+  });
 }

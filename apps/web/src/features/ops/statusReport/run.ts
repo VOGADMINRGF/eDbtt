@@ -113,17 +113,17 @@ async function executeClaimedRun(params: {
       };
     }
 
-    const rendered = renderStatusReportMail(summary);
     const subject = buildStatusReportSubject({
       summary,
       subjectPrefix: config.subjectPrefix,
     });
+    const rendered = renderStatusReportMail(summary, subject);
 
     const mailResult = await sendMail({
       to: config.recipients.join(","),
-      subject,
-      html: rendered.html,
-      text: rendered.text,
+      mail: rendered,
+      delivery: "best_effort_delivery",
+      tag: "ops_status_report",
     });
 
     const usedFallback = Boolean((mailResult as any)?.fallback || (mailResult as any)?.dev);

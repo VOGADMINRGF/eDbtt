@@ -8,8 +8,12 @@ import type { Collection } from "mongodb";
 import { coreCol } from "@core/db/triMongo";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
+import {
+  renderTransactionalMail,
+  resolveMailLocale,
+} from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,52 +85,54 @@ function buildConfirmMail(opts: {
   name?: string | null;
   confirmUrl: string;
   origin: string;
+  locale?: string | null;
 }) {
-  const { email, name, confirmUrl, origin } = opts;
-  const greeting = name ? `Hallo ${name}` : "Hallo";
+  const { email, name, confirmUrl, origin, locale } = opts;
+  const isEnglish = resolveMailLocale(locale) === "en";
   const membershipUrl = getMembershipUrl(origin);
-
-  const html = `
-    <p>${greeting},</p>
-    <p>du hast deine E-Mail-Adresse <strong>${email}</strong> für Updates von eDebatte eingetragen.</p>
-    <p>Bitte bestätige deine Anmeldung mit einem Klick:</p>
-    <p>
-      <a href="${confirmUrl}"
-         style="display:inline-flex;padding:10px 18px;border-radius:999px;background:#111;color:#fff;text-decoration:none;font-weight:600;">
-        Anmeldung bestätigen
-      </a>
-    </p>
-    <p>Oder kopiere diesen Link in deinen Browser:<br />
-      <a href="${confirmUrl}">${confirmUrl}</a>
-    </p>
-    <p>Mit deinen Updates halten wir dich über neue Abstimmungen, Funktionen und Beteiligungsmöglichkeiten auf dem Laufenden.</p>
-    <p>Wenn du unsere Arbeit langfristig stärken möchtest, findest du hier Pakete, Preise und Möglichkeiten zur Unterstützung:
-      <a href="${membershipUrl}">Pakete &amp; Preise</a>.</p>
-    <p>Falls du dich nicht selbst eingetragen hast, kannst du diese Nachricht ignorieren.</p>
-    <p>– Dein Team von eDebatte</p>
-  `;
-
-  const text = `${greeting},
-
-du hast deine E-Mail-Adresse ${email} für Updates von eDebatte eingetragen.
-
-Bitte bestätige deine Anmeldung über diesen Link:
-${confirmUrl}
-
-Mit deinen Updates halten wir dich über neue Abstimmungen, Funktionen und Beteiligungsmöglichkeiten auf dem Laufenden.
-
-Wenn du unsere Arbeit langfristig stärken möchtest, kannst du jederzeit Mitglied werden oder uns anonym unterstützen:
-${membershipUrl}
-
-Falls du dich nicht selbst eingetragen hast, kannst du diese Nachricht ignorieren.
-
-– Dein Team von eDebatte`;
-
-  return {
-    subject: "Bitte bestätige deine Anmeldung für eDebatte-Updates",
-    html,
-    text,
-  };
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Confirm your eDebatte updates subscription"
+      : "Anmeldung für eDebatte-Updates bestätigen",
+    preheader: isEnglish
+      ? "Confirm your email address for eDebatte updates."
+      : "Bestätige deine E-Mail-Adresse für eDebatte-Updates.",
+    title: isEnglish ? "Confirm updates" : "Updates bestätigen",
+    greeting: name
+      ? `${isEnglish ? "Hello" : "Hallo"} ${name},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? `The email address ${email} was entered for eDebatte updates. Confirm the subscription below.`
+          : `Die E-Mail-Adresse ${email} wurde für eDebatte-Updates eingetragen. Bestätige die Anmeldung unten.`,
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "Confirm subscription" : "Anmeldung bestätigen",
+        url: confirmUrl,
+      },
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? `Information about packages and support is available at ${membershipUrl}.`
+          : `Informationen zu Paketen und Unterstützung findest du unter ${membershipUrl}.`,
+      },
+      {
+        kind: "notice",
+        text: isEnglish
+          ? "If you did not subscribe, ignore this message."
+          : "Falls du dich nicht selbst eingetragen hast, ignoriere die Nachricht.",
+      },
+    ],
+    reason: isEnglish
+      ? "this email address was entered for eDebatte updates."
+      : "diese E-Mail-Adresse für eDebatte-Updates eingetragen wurde.",
+  });
 }
 
 function buildInternalNotifyMail(opts: {
@@ -137,24 +143,27 @@ function buildInternalNotifyMail(opts: {
   const { email, name, interests } = opts;
   const subject =
     "Neue Anmeldung für eDebatte-Updates (Double-Opt-in gestartet)";
-  const html = `
-    <p>Es gibt eine neue Anmeldung für den Updates-Verteiler.</p>
-    <ul>
-      <li><strong>E-Mail:</strong> ${email}</li>
-      <li><strong>Name:</strong> ${name || "—"}</li>
-      <li><strong>Interessen:</strong> ${interests || "—"}</li>
-    </ul>
-    <p>Status: <strong>pending</strong> – Bestätigung per Double-Opt-in steht noch aus.</p>
-  `;
-  const text = `Neue Anmeldung für den Updates-Verteiler:
-
-E-Mail: ${email}
-Name: ${name || "—"}
-Interessen: ${interests || "—"}
-
-Status: pending (Double-Opt-in läuft).`;
-
-  return { subject, html, text };
+  return renderTransactionalMail({
+    subject,
+    preheader: "Eine neue Updates-Anmeldung wartet auf Double-Opt-in.",
+    title: "Neue Updates-Anmeldung",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: "E-Mail", value: email },
+          { label: "Name", value: name || "—" },
+          { label: "Interessen", value: interests || "—" },
+          { label: "Status", value: "pending" },
+        ],
+      },
+      {
+        kind: "notice",
+        text: "Die Bestätigung per Double-Opt-in steht noch aus.",
+      },
+    ],
+    reason: "eine Updates-Anmeldung intern nachvollzogen werden muss.",
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -291,13 +300,27 @@ export async function POST(req: NextRequest) {
     name,
     confirmUrl,
     origin,
+    locale: rawLocale,
   });
-  await sendMail({
+  const confirmDelivery = await sendMail({
     to: email,
-    subject: confirmMail.subject,
-    html: confirmMail.html,
-    text: confirmMail.text,
+    mail: confirmMail,
+    delivery: "required_delivery",
+    tag: "updates_double_opt_in",
   });
+  if (!confirmDelivery.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        subscriptionPersisted: true,
+        code: "pending_delivery",
+        delivery: mailFailureMetadata(confirmDelivery),
+      },
+      { status: 502 },
+    );
+  }
 
   // 2) Empfangsbestätigung an internes Updates-Postfach
   if (UPDATES_NOTIFY_TO) {
@@ -308,12 +331,21 @@ export async function POST(req: NextRequest) {
     });
     await sendMail({
       to: UPDATES_NOTIFY_TO,
-      subject: internalMail.subject,
-      html: internalMail.html,
-      text: internalMail.text,
+      mail: internalMail,
+      delivery: "best_effort_delivery",
+      tag: "updates_internal_pending",
     });
   }
 
   // Frontend erwartet nur { ok: true }, Code wird ignoriert
-  return NextResponse.json({ ok: true, code: "pending_confirm" });
+  return NextResponse.json({
+    ok: true,
+    code: "pending_confirm",
+    delivery: {
+      status: confirmDelivery.status,
+      attemptedCount: confirmDelivery.attemptedCount,
+      deliveredCount: confirmDelivery.deliveredCount,
+      failedCount: confirmDelivery.failedCount,
+    },
+  });
 }

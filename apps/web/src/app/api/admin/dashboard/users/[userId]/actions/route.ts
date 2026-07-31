@@ -7,6 +7,10 @@ import { createEmailVerificationToken } from "@core/auth/emailVerificationServic
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
 import { buildSetPasswordMail, buildVerificationMail } from "@/utils/emailTemplates";
 import { sendMail } from "@/utils/mailer";
+import {
+  mailLocaleFromUser,
+  type TransactionalMail,
+} from "@/utils/mailRenderer";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { createToken } from "@/utils/tokens";
 import { resetEmailLink } from "@/utils/email";
@@ -244,6 +248,7 @@ export async function POST(
         const mail = buildVerificationMail({
           verifyUrl,
           displayName: target.profile?.displayName ?? target.name ?? null,
+          locale: mailLocaleFromUser(target),
         });
 
         return {
@@ -275,6 +280,7 @@ export async function POST(
         const mail = buildSetPasswordMail({
           resetUrl,
           displayName: target.profile?.displayName ?? target.name ?? null,
+          locale: mailLocaleFromUser(target),
         });
 
         return {
@@ -414,7 +420,7 @@ async function handleMailAction(input: {
   target: ActionUserDoc;
   before: AdminDashboardUserView;
   buildMessage: () => Promise<{
-    mail: { subject: string; html: string; text?: string };
+    mail: TransactionalMail;
     responseKey: "verificationMailQueued" | "passwordMailQueued";
     after: Record<string, unknown>;
     afterSend?: () => Promise<void>;
@@ -490,9 +496,8 @@ async function handleMailAction(input: {
 
   const mailResult = await sendMail({
     to: input.target.email,
-    subject: message.mail.subject,
-    html: message.mail.html,
-    text: message.mail.text,
+    mail: message.mail,
+    delivery: "required_delivery",
     tag: input.action,
   });
   if (!mailResult.ok) {
