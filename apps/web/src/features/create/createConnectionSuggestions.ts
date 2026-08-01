@@ -1,5 +1,6 @@
 import type { CreateIntent } from "@/features/create/intentFlows";
 import type { CreatePlannerResult } from "@/features/create/createPlanner";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 import type {
   CreateConnectionSuggestion,
   CreateUnderstandingResult,
@@ -110,7 +111,9 @@ export function buildCreateConnectionSuggestions(
   const suggestions: CreateConnectionSuggestion[] = [];
   const maxSuggestions = Math.max(2, Math.min(8, input.maxSuggestions ?? 5));
   const plannerReadyForStructuredHandoff = input.planner
-    ? input.planner.qualityStatus === "specific" && input.planner.source === "openai" && input.planner.plannerDegraded === false
+    ? input.planner.qualityStatus === "specific" &&
+      hasValidatedCreatePlannerProviderIdentity(input.planner) &&
+      input.planner.plannerDegraded === false
     : true;
   const topics = input.understanding.topics.slice(0, 3);
   const topStatement = input.understanding.statements[0];

@@ -7,6 +7,18 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/features/create/createPlanner", () => ({
   buildCreatePlanner: (...args: unknown[]) => mocks.buildCreatePlanner(...args),
 }));
+vi.mock("@/features/create/createPlannerProviderContract", () => ({
+  isCreatePlannerProviderSource: (source: string) =>
+    ["openai", "anthropic", "mistral"].includes(source),
+  hasValidatedCreatePlannerProviderIdentity: (planner: {
+    source?: string;
+    plannerSource?: string;
+    plannerProvider?: string;
+  }) =>
+    ["openai", "anthropic", "mistral"].includes(planner.source ?? "") &&
+    planner.source === planner.plannerSource &&
+    planner.source === planner.plannerProvider,
+}));
 
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 import {
@@ -15,6 +27,73 @@ import {
   buildCreateVisualSections,
 } from "@/features/create/intelligentFollowupContract";
 import { buildCreateValidatedDocumentFollowup } from "@/features/create/intelligentFollowupResults";
+
+function buildTechnicalPlanner(
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    source: "technical_fallback",
+    plannerSource: "technical_fallback",
+    plannerProvider: "local_fallback",
+    plannerRole: "planner_only",
+    plannerTopic: "Analyse noch nicht validiert",
+    plannerCore: "Es liegt noch kein validierter KI-Run vor.",
+    plannerScope: ["unclear"],
+    plannerStance: "unclear",
+    plannerClusters: [],
+    plannerOpenQuestions: [],
+    shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+    topicCandidates: [],
+    clusterCandidates: [],
+    scopeCandidates: ["unclear"],
+    stance: "unclear",
+    openQuestions: [],
+    graphSearchTerms: [],
+    materialSignals: [],
+    recommendedLane: "standard",
+    providerPlan: {
+      lane: "standard",
+      plannerProvider: "local_fallback",
+      plannerRole: "planner_only",
+      structureProvider: "mistral",
+      summaryProvider: "claude",
+      researchUsed: "none",
+      researchProvider: null,
+      deepSearchUsed: false,
+      graphMatch: "after_structure",
+    },
+    permissions: {
+      nonMutative: true,
+      canPublish: false,
+      canSave: false,
+      canMerge: false,
+      canDeepSearch: false,
+    },
+    plannerDegraded: true,
+    degradedReason: "provider_error",
+    plannerDegradedReason: "provider_error",
+    qualityStatus: "failed",
+    qualityIssues: ["technical_fallback_only"],
+    providerCallAttempted: true,
+    providerCallSucceeded: false,
+    providerAttemptCount: 2,
+    plannerDebug: {
+      attemptedProvider: "anthropic",
+      usedProvider: "local_fallback",
+      attemptedModel: "claude-sonnet-test",
+      usedModel: null,
+      providerAvailable: true,
+      providerErrorCode: "upstream_error",
+      providerErrorMessage: "raw provider detail",
+      errorMessage: "raw provider detail",
+      rawPayloadValid: false,
+      rawTextValid: false,
+      normalizedPayloadValid: false,
+      qualityGatePassed: false,
+    },
+    ...overrides,
+  };
+}
 
 describe("create intelligent follow-up contract", () => {
   beforeEach(() => {
@@ -208,6 +287,114 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions).toEqual([]);
     expect(result.meta?.graphMatch.prepared).toBe(false);
     expect(buildCreateStructureBranches(result, 3)).toEqual([]);
+  });
+
+  it("renders an English planner failure without German fragments", async () => {
+    mocks.buildCreatePlanner.mockResolvedValue({
+      source: "technical_fallback",
+      plannerSource: "technical_fallback",
+      plannerProvider: "local_fallback",
+      plannerRole: "planner_only",
+      plannerTopic: "Analyse noch nicht validiert",
+      plannerCore: "Es liegt noch kein validierter KI-Run vor.",
+      plannerScope: ["unclear"],
+      plannerStance: "unclear",
+      plannerClusters: [],
+      plannerOpenQuestions: [],
+      shortSummary: "Es liegt noch kein validierter KI-Run vor.",
+      topicCandidates: [],
+      clusterCandidates: [],
+      scopeCandidates: ["unclear"],
+      stance: "unclear",
+      openQuestions: [],
+      graphSearchTerms: [],
+      materialSignals: [],
+      recommendedLane: "standard",
+      providerPlan: {
+        lane: "standard",
+        plannerProvider: "local_fallback",
+        plannerRole: "planner_only",
+        structureProvider: "mistral",
+        summaryProvider: "claude",
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+        graphMatch: "after_structure",
+      },
+      permissions: {
+        nonMutative: true,
+        canPublish: false,
+        canSave: false,
+        canMerge: false,
+        canDeepSearch: false,
+      },
+      plannerDegraded: true,
+      degradedReason: "provider_error",
+      plannerDegradedReason: "provider_error",
+      qualityStatus: "failed",
+      qualityIssues: ["technical_fallback_only"],
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+      providerAttemptCount: 2,
+      plannerDebug: {
+        attemptedProvider: "anthropic",
+        usedProvider: "local_fallback",
+        attemptedModel: "claude-sonnet-test",
+        usedModel: null,
+        providerAvailable: true,
+        providerErrorCode: "upstream_error",
+        providerErrorMessage: "raw provider detail",
+        errorMessage: "raw provider detail",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      },
+    });
+
+    const result = await buildCreateIntelligentFollowup({
+      text: "Please review this contribution.",
+      locale: "en",
+      intent: "check",
+    });
+
+    expect(result.meta?.analysis?.userMessage).toBe(
+      "The AI analysis could not be completed. No topics were derived.",
+    );
+    expect(result.meta?.analysis?.userMessage).not.toMatch(
+      /Die |konnte|Themen|durchgeführt/,
+    );
+    expect(result.meta?.analysis?.userMessage).not.toContain(
+      "raw provider detail",
+    );
+  });
+
+  it("uses the controlled German fallback for an unknown language", async () => {
+    mocks.buildCreatePlanner.mockResolvedValue(buildTechnicalPlanner({
+      degradedReason: "missing_provider_key",
+      plannerDegradedReason: "missing_provider_key",
+      providerCallAttempted: false,
+      providerAttemptCount: 0,
+      plannerDebug: {
+        attemptedProvider: null,
+        usedProvider: "local_fallback",
+        providerAvailable: false,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      },
+    }));
+
+    const result = await buildCreateIntelligentFollowup({
+      text: "Veuillez examiner cette contribution.",
+      locale: "fr",
+      intent: "check",
+    });
+
+    expect(result.meta?.analysis?.userMessage).toBe(
+      "Die KI-Analyse ist derzeit nicht verfügbar. Es wurden keine Themen oder Zusammenfassungen erzeugt.",
+    );
   });
 
   it("normalizes validated document analyses to the real topic objects", () => {

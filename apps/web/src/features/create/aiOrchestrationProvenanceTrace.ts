@@ -6,6 +6,12 @@ import type { CreateIntelligentFollowupResult } from "@/features/create/intellig
 import type { RundenCreateHandoffIntegrityState } from "@/features/create/rundenCreateHandoffIntegrity";
 import type { ManualAnlassraumServerDraftSnapshot } from "@/features/surfaces/runden/manualAnlassraumSetup";
 import type { RunReceipt } from "@features/analyze/schemas";
+import {
+  hasValidatedCreatePlannerProviderIdentity,
+  isCreatePlannerProviderSource,
+  type CreatePlannerValidatedProviderSource,
+} from "@/features/create/createPlannerProviderContract";
+import type { CreatePlannerResult } from "@/features/create/createPlanner";
 
 export type AiOrchestrationTraceSurface =
   | "/runden/new"
@@ -118,6 +124,13 @@ export type AiOrchestrationProvenanceTraceStep = {
   inputOriginRef: string | null;
   provider: string | null;
   model: string | null;
+  providerAttempt?: number | null;
+  providerResultStatus?:
+    | "succeeded"
+    | "failed"
+    | "degraded_fallback"
+    | "not_attempted"
+    | null;
   providerKnown: boolean;
   providerVisibility: AiOrchestrationProviderVisibility;
   aiActive: boolean;
@@ -166,8 +179,88 @@ type CreateTraceInput = {
   feedEnrichmentSuggestionsAvailable?: boolean;
 };
 
+type PlannerProviderTrace = {
+  provider: CreatePlannerValidatedProviderSource | null;
+  model: string | null;
+  attempt: number | null;
+  resultStatus:
+    | "succeeded"
+    | "failed"
+    | "degraded_fallback"
+    | "not_attempted";
+  known: boolean;
+  visibility: AiOrchestrationProviderVisibility;
+};
+
 function hasText(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function resolvePlannerProviderTrace(
+  planner: CreatePlannerResult | null,
+): PlannerProviderTrace {
+  if (!planner) {
+    return {
+      provider: null,
+      model: null,
+      attempt: null,
+      resultStatus: "not_attempted",
+      known: false,
+      visibility: "missing_runtime_truth",
+    };
+  }
+
+  const validatedSuccess =
+    hasValidatedCreatePlannerProviderIdentity(planner) &&
+    planner.providerCallAttempted === true &&
+    planner.providerCallSucceeded === true &&
+    planner.plannerDebug.usedProvider === planner.plannerProvider;
+  const finalAttempt = Array.isArray(planner.providerAttempts)
+    ? planner.providerAttempts[planner.providerAttempts.length - 1] ?? null
+    : null;
+  const attemptedProvider = isCreatePlannerProviderSource(
+    finalAttempt?.provider,
+  )
+    ? finalAttempt.provider
+    : isCreatePlannerProviderSource(planner.plannerDebug.attemptedProvider)
+      ? planner.plannerDebug.attemptedProvider
+      : null;
+  const provider = validatedSuccess
+    ? planner.plannerProvider
+    : attemptedProvider;
+  const model = validatedSuccess
+    ? finalAttempt?.model ??
+      planner.plannerDebug.usedModel ??
+      planner.plannerDebug.attemptedModel ??
+      null
+    : finalAttempt?.model ??
+      planner.plannerDebug.attemptedModel ??
+      planner.plannerDebug.usedModel ??
+      null;
+  const attempt =
+    provider && finalAttempt
+      ? finalAttempt.attempt
+      : provider && planner.providerAttemptCount > 0
+        ? planner.providerAttemptCount
+      : null;
+  const resultStatus = validatedSuccess
+    ? "succeeded"
+    : provider && planner.providerCallAttempted
+      ? planner.plannerDegraded
+        ? "degraded_fallback"
+        : "failed"
+      : "not_attempted";
+
+  return {
+    provider,
+    model,
+    attempt,
+    resultStatus,
+    known: Boolean(provider),
+    visibility: provider
+      ? "admin_review_only"
+      : "missing_runtime_truth",
+  };
 }
 
 function pushSource(
@@ -538,6 +631,7 @@ export function buildCreateAiOrchestrationProvenanceTrace(
   params: CreateTraceInput,
 ): AiOrchestrationProvenanceTraceStep[] {
   const planner = params.plannerResult?.meta?.planner ?? null;
+  const plannerProviderTrace = resolvePlannerProviderTrace(planner);
   const plannerSourceProvenance = buildCreateSourceProvenance({
     intakeContext: params.intakeContext,
     draftId: params.draftId,
@@ -581,25 +675,12 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       ? {
           provider: analyzeProvider.provider,
           model: analyzeProvider.model,
+          attempt: null,
+          resultStatus: "succeeded" as const,
           known: true,
           visibility: "admin_review_only" as const,
         }
-      : planner?.plannerProvider && planner.plannerProvider !== "none"
-        ? {
-            provider: planner.plannerProvider,
-            model:
-              planner.source === "openai" && planner.plannerProvider === "openai"
-                ? "gpt-4.1-mini"
-                : null,
-            known: true,
-            visibility: "admin_review_only" as const,
-          }
-        : {
-            provider: null,
-            model: null,
-            known: false,
-            visibility: "missing_runtime_truth" as const,
-          };
+      : plannerProviderTrace;
 
   const steps: AiOrchestrationProvenanceTraceStep[] = [];
 
@@ -676,20 +757,19 @@ export function buildCreateAiOrchestrationProvenanceTrace(
     inputOrigin: primaryInputOrigin.inputOrigin,
     inputOriginType: primaryInputOrigin.inputOriginType,
     inputOriginRef: primaryInputOrigin.inputOriginRef,
-    provider: planner?.plannerProvider === "none" ? null : planner?.plannerProvider ?? null,
-    model:
-      planner?.source === "openai" && planner?.plannerProvider === "openai"
-        ? "gpt-4.1-mini"
-        : null,
-    providerKnown: Boolean(planner?.plannerProvider && planner.plannerProvider !== "none"),
-    providerVisibility:
-      planner?.plannerProvider && planner.plannerProvider !== "none"
-        ? "admin_review_only"
-        : "missing_runtime_truth",
-    aiActive: planner?.source === "openai",
+    provider: plannerProviderTrace.provider,
+    model: plannerProviderTrace.model,
+    providerAttempt: plannerProviderTrace.attempt,
+    providerResultStatus: plannerProviderTrace.resultStatus,
+    providerKnown: plannerProviderTrace.known,
+    providerVisibility: plannerProviderTrace.visibility,
+    aiActive: plannerProviderTrace.resultStatus !== "not_attempted",
     usageRecorded: Boolean(planner?.providerCallAttempted),
     outputType: "planner_followup",
-    outputOrigin: planner?.source === "openai" ? "ai_assisted" : "human_input",
+    outputOrigin:
+      planner && hasValidatedCreatePlannerProviderIdentity(planner)
+      ? "ai_assisted"
+      : "human_input",
     sourceProvenance: plannerSourceProvenance,
     evidenceRefs: buildEvidenceRefs([
       params.plannerTrace?.requestId ?? null,
@@ -713,9 +793,9 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       ...(!params.plannerTrace?.requestId
         ? ["Planner-Request-/Operation-Korrelation wird im aktuellen Frontend-Zustand noch nicht vollstaendig getragen."]
         : []),
-      ...((planner?.source === "openai" && planner?.plannerProvider === "openai") || !planner
+      ...(plannerProviderTrace.model || !planner
         ? []
-        : ["Planner-Fallback bleibt ohne belastbaren Modellnamen und ohne behaupteten externen KI-Nachweis."]),
+        : ["Der tatsächlich eingesetzte Planner-Modellname fehlt in den Runtime-Metadaten."]),
     ],
   });
 
@@ -818,6 +898,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
         : null,
       provider: candidatePreviewProvider.provider,
       model: candidatePreviewProvider.model,
+      providerAttempt: candidatePreviewProvider.attempt,
+      providerResultStatus: candidatePreviewProvider.resultStatus,
       providerKnown: candidatePreviewProvider.known,
       providerVisibility: candidatePreviewProvider.visibility,
       aiActive: Boolean(
@@ -985,6 +1067,8 @@ export function buildCreateAiOrchestrationProvenanceTrace(
       : null,
     provider: candidatePreviewProvider.provider,
     model: candidatePreviewProvider.model,
+    providerAttempt: candidatePreviewProvider.attempt,
+    providerResultStatus: candidatePreviewProvider.resultStatus,
     providerKnown: candidatePreviewProvider.known,
     providerVisibility: candidatePreviewProvider.visibility,
     aiActive: Boolean(

@@ -84,8 +84,9 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("renderMobileSidecarSummary");
     expect(clientSource).toContain("showSceneRail={false}");
     expect(clientSource).toContain("data-create-thread-prompt-chip");
-    expect(clientSource).toContain("Schreib unten frei los.");
-    expect(clientSource).toContain("Ich sortiere daraus Thema, Kontext und nächste Schritte.");
+    expect(clientSource).toContain("voxyCopy.greeting");
+    expect(clientSource).toContain("voxyCopy.intro");
+    expect(clientSource).toContain("largeAvatar");
     expect(clientSource).toContain("selectedPrimaryTopic");
     expect(clientSource).toContain("workspaceActionMode");
     expect(clientSource).not.toContain("startLabel={productModeConfig.ctaLabel}");
@@ -163,9 +164,9 @@ describe("create curated dialog workspace contract", () => {
     );
 
     expect(followupSource).toContain("Du");
-    expect(followupSource).toContain("Assistent");
+    expect(followupSource).toContain("Voxy");
     expect(followupSource).toContain("Ich sehe einen gemeinsamen Kern.");
-    expect(followupSource).toContain("Dein KI-Assistent");
+    expect(followupSource).not.toContain("Dein KI-Assistent");
     expect(followupSource).toContain("Details & Transparenz");
     expect(followupSource).toContain("Themenstruktur bestätigen");
     expect(followupSource).toContain("Themen ändern");

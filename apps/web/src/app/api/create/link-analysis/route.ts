@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { callOpenAIJson } from "@features/ai";
@@ -7,15 +8,31 @@ import {
 } from "@/features/create/intelligentFollowupResults";
 import { resolveCreatePlannerModelCandidates } from "@/features/create/createPlanner";
 import type { DocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import {
+  enforceCreateMutationSecurity,
+  verifyCreateDraftBinding,
+} from "@/features/create/createRouteSecurity";
+import {
+  CREATE_MAX_CONTEXT_LENGTH,
+  CREATE_MAX_TEXT_LENGTH,
+  CREATE_MAX_URL_LENGTH,
+} from "@/features/create/createMutationSecurityContract";
+import {
+  ensureCreateSupportTicket,
+  type CreateSupportHandoffPublic,
+} from "@/features/support/createSupportTickets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const RequestSchema = z.object({
-  text: z.string().trim().min(1),
-  url: z.string().trim().url(),
-  locale: z.string().trim().optional().nullable(),
-  additionalContext: z.string().trim().optional().nullable(),
+  text: z.string().trim().min(1).max(CREATE_MAX_TEXT_LENGTH),
+  url: z.string().trim().url().max(CREATE_MAX_URL_LENGTH),
+  locale: z.string().trim().max(10).optional().nullable(),
+  additionalContext: z.string().trim().max(CREATE_MAX_CONTEXT_LENGTH).optional().nullable(),
+  correlationId: z.string().trim().min(8).max(160).optional().nullable(),
+  draftId: z.string().trim().min(1).max(160),
 });
 
 const DocumentTopicSchema = z.object({
@@ -262,7 +279,7 @@ async function runDocumentAnalysis(params: {
   ]
     .filter(Boolean)
     .join("\n");
-  const analysisModels = resolveCreatePlannerModelCandidates();
+  const analysisModels = resolveCreatePlannerModelCandidates().slice(0, 2);
   if (analysisModels.length === 0) {
     throw new Error("create_link_analysis_model_missing");
   }
@@ -319,6 +336,25 @@ async function runDocumentAnalysis(params: {
 }
 
 export async function POST(req: NextRequest) {
+  const fallbackCorrelationId = crypto.randomUUID();
+  const sessionUser = await getSessionUser(req).catch(() => null);
+  const userId = sessionUser?._id?.toString() ?? null;
+  if (!sessionUser?.sessionValid || !userId) {
+    return NextResponse.json(
+      {
+        ok: false,
+        errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+      },
+      { status: 401 },
+    );
+  }
+  const securityFailure = await enforceCreateMutationSecurity({
+    req,
+    scope: "create_link_analysis",
+    actorKey: `user:${userId}`,
+  });
+  if (securityFailure) return securityFailure;
+
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -344,20 +380,81 @@ export async function POST(req: NextRequest) {
   }
 
   const body = parsed.data;
+  const draftBinding = await verifyCreateDraftBinding({
+    draftId: body.draftId,
+    userId,
+    text: body.text,
+    locale: body.locale,
+  });
+  if (!draftBinding) {
+    return NextResponse.json(
+      {
+        ok: false,
+        errorCode: "CREATE_REQUEST_NOT_ALLOWED",
+      },
+      { status: 403 },
+    );
+  }
+  const correlationId = body.correlationId ?? fallbackCorrelationId;
+  const buildFailureResponse = async (input: {
+    analysisState: "ai_failed" | "fetch_failed";
+    sourceType: "link" | "document";
+    sourceLoaded: boolean;
+    technicalErrorCode: string;
+    reason: string;
+  }) => {
+    let supportHandoff: CreateSupportHandoffPublic;
+    try {
+      const ticket = await ensureCreateSupportTicket({
+        affectedUserId: userId,
+        orchestrationPhase: "link_analysis",
+        correlationId,
+        traceId: correlationId,
+        technicalErrorCode: input.technicalErrorCode,
+        provider: input.analysisState === "ai_failed" ? "openai" : null,
+        reason: input.reason,
+        attemptCount: 1,
+        draftId: draftBinding.draftId,
+        locale: body.locale ?? "de",
+      });
+      supportHandoff = { status: "created", ticket };
+    } catch {
+      supportHandoff = {
+        status: "failed",
+        technicalReference: correlationId,
+        safeUserMessage:
+          body.locale?.toLowerCase().startsWith("en")
+            ? "Your contribution is saved. Please try again and use the technical reference if the problem persists."
+            : "Dein Beitrag ist gespeichert. Bitte versuche es erneut und nutze die technische Fehlerreferenz, falls das Problem bestehen bleibt.",
+      };
+    }
+    return NextResponse.json({
+      ok: true,
+      result: buildCreateTechnicalFollowup({
+        text: body.text,
+        analysisState: input.analysisState,
+        sourceType: input.sourceType,
+        sourceUrl: body.url,
+        sourceLoaded: input.sourceLoaded,
+        userMessage:
+          supportHandoff.status === "created"
+            ? supportHandoff.ticket.safeUserMessage
+            : supportHandoff.safeUserMessage,
+      }),
+      supportHandoff,
+      trace: { correlationId },
+    });
+  };
+
   try {
     const source = await fetchSource(body.url);
     if (source.text.trim().length < 180) {
-      return NextResponse.json({
-        ok: true,
-        result: buildCreateTechnicalFollowup({
-          text: body.text,
-          analysisState: "fetch_failed",
-          sourceType: "link",
-          sourceUrl: body.url,
-          sourceLoaded: false,
-          userMessage:
-            "Der Linkinhalt konnte nicht vollständig geladen werden. Es wurden keine Themen abgeleitet.",
-        }),
+      return buildFailureResponse({
+        analysisState: "fetch_failed",
+        sourceType: "link",
+        sourceLoaded: false,
+        technicalErrorCode: "CREATE_LINK_CONTENT_INCOMPLETE",
+        reason: "source_content_too_short",
       });
     }
 
@@ -379,33 +476,25 @@ export async function POST(req: NextRequest) {
           sourceUrl: body.url,
           documentAnalysis: analysis,
         }),
+        supportHandoff: null,
+        trace: { correlationId },
       });
     } catch {
-      return NextResponse.json({
-        ok: true,
-        result: buildCreateTechnicalFollowup({
-          text: body.text,
-          analysisState: "ai_failed",
-          sourceType: "document",
-          sourceUrl: body.url,
-          sourceLoaded: true,
-          userMessage:
-            "Der Inhalt wurde geladen, konnte aber noch nicht durch das KI-Orchester analysiert werden. Es wurden keine Themen abgeleitet.",
-        }),
+      return buildFailureResponse({
+        analysisState: "ai_failed",
+        sourceType: "document",
+        sourceLoaded: true,
+        technicalErrorCode: "CREATE_LINK_AI_FAILED",
+        reason: "document_analysis_failed",
       });
     }
   } catch {
-    return NextResponse.json({
-      ok: true,
-      result: buildCreateTechnicalFollowup({
-        text: body.text,
-        analysisState: "fetch_failed",
-        sourceType: "link",
-        sourceUrl: body.url,
-        sourceLoaded: false,
-        userMessage:
-          "Der Linkinhalt konnte nicht vollständig geladen werden. Es wurden keine Themen abgeleitet.",
-      }),
+    return buildFailureResponse({
+      analysisState: "fetch_failed",
+      sourceType: "link",
+      sourceLoaded: false,
+      technicalErrorCode: "CREATE_LINK_FETCH_FAILED",
+      reason: "source_fetch_failed",
     });
   }
 }
