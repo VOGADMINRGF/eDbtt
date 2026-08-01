@@ -44,9 +44,9 @@ Nach dem Squash-Merge von PR #539 wurde `main` mit einem echten Zwei-Eltern-Merg
 - Keine externe Provider-, SMTP-, Preview- oder Production-Zustellung wurde für diesen Follow-up ausgeführt.
 - `autoPublish` bleibt `false`; es entstehen keine automatischen Dossier-, Anlassraum-, Graph- oder Veröffentlichungsaktionen.
 
-## Verifikation auf finalem technischen Head
+## Verifikation des finalen technischen Codes
 
-Finaler technisch geprüfter Head vor dieser Evidence-Aktualisierung:
+Technisch geprüfter Code-Head vor den reinen Evidence-Commits:
 
 `5dc35e3083ff35c2d4d8f396cef678b388ac9cb4`
 
@@ -65,6 +65,8 @@ GitHub Web CI, Lauf `1263`:
 - Lint: grün
 - vollständiger Build mit `apps/web/.env.example`: grün
 - Vercel Preview: grün
+
+Die nachfolgenden Evidence-Commits verändern ausschließlich diese Dokumentation. Deren eigener CI-/Vercel-Status ist vor einer Freigabe erneut zu prüfen.
 
 Die CI-Matrix enthält explizit den isolierten Security-Harness für die Create-Save-Routen, damit `server-only`- und Runtime-Grenzen ohne Absenkung der Produktionssicherheit testbar bleiben.
 
