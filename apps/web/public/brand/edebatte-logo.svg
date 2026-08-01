@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 96" role="img" aria-labelledby="title desc">
+  <title id="title">eDebatte</title>
+  <desc id="desc">eDebatte logo with an open evidence path and connected discussion points.</desc>
+  <defs>
+    <linearGradient id="ed-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8 8)">
+    <rect width="80" height="80" rx="24" fill="#08111f"/>
+    <path d="M20 24h40M20 40h28M20 56h40" fill="none" stroke="url(#ed-gradient)" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="62" cy="24" r="5" fill="#22d3ee"/>
+    <circle cx="52" cy="40" r="5" fill="#2dd4bf"/>
+    <circle cx="62" cy="56" r="5" fill="#5eead4"/>
+  </g>
+  <g transform="translate(108 23)">
+    <text x="0" y="28" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="36" font-weight="800" letter-spacing="-1.2">eDebatte</text>
+    <text x="1" y="54" fill="#5eead4" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="2.8">VERSTEHEN.</text>
+  </g>
+</svg>
