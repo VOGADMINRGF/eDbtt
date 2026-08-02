@@ -196,8 +196,10 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.plannerDegraded).toBe(true);
     expect(planner.degradedReason).toBe("provider_error");
     expect(planner.plannerDegradedReason).toBe("provider_error");
-    expect(planner.plannerDebug.errorMessage).toContain("upstream exploded");
-    expect(planner.plannerDebug.providerErrorMessage).toContain("upstream exploded");
+    expect(planner.plannerDebug.providerErrorCode).toBe("provider_error");
+    expect(planner.plannerDebug).not.toHaveProperty("errorMessage");
+    expect(planner.plannerDebug).not.toHaveProperty("providerErrorMessage");
+    expect(JSON.stringify(planner)).not.toContain("upstream exploded");
     expect(planner.plannerDebug.providerAvailable).toBe(true);
     expect(planner.plannerDebug.qualityGatePassed).toBe(false);
   });
@@ -228,7 +230,10 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.degradedReason).toBe("invalid_json");
     expect(planner.plannerDebug.rawPayloadValid).toBe(false);
     expect(planner.plannerDebug.rawTextValid).toBe(false);
-    expect(planner.plannerDebug.rawText).toBe("kein json");
+    expect(planner.plannerDebug).not.toHaveProperty("rawText");
+    expect(planner.plannerDebug.responseLength).toBe("kein json".length);
+    expect(planner.plannerDebug.responseHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(planner)).not.toContain("kein json");
     expect(planner.plannerDebug.attemptedModel).toBe("gpt-5");
   });
 
@@ -263,8 +268,9 @@ describe("create planner debug diagnostics contract", () => {
 
     expect(planner.degradedReason).toBe("invalid_provider_payload");
     expect(planner.plannerDebug.normalizedPayloadValid).toBe(false);
-    expect(planner.plannerDebug.errorMessage).toContain("plannerCore fehlt");
-    expect(planner.plannerDebug.providerErrorMessage).toContain("plannerCore fehlt");
+    expect(planner.plannerDebug.providerErrorCode).toBe("planner_core_missing");
+    expect(planner.plannerDebug).not.toHaveProperty("errorMessage");
+    expect(planner.plannerDebug).not.toHaveProperty("providerErrorMessage");
   });
 
   it("surfaces quality_gate_failed for generic provider labels", async () => {
@@ -295,7 +301,8 @@ describe("create planner debug diagnostics contract", () => {
 
     expect(planner.degradedReason).toBe("quality_gate_failed");
     expect(planner.plannerDebug.normalizedPayloadValid).toBe(true);
-    expect(planner.plannerDebug.errorMessage).toContain("qualityStatus=");
+    expect(planner.plannerDebug.providerErrorCode).toBe("quality_gate_failed");
+    expect(planner.plannerDebug).not.toHaveProperty("errorMessage");
     expect(planner.plannerDebug.qualityGatePassed).toBe(false);
   });
 

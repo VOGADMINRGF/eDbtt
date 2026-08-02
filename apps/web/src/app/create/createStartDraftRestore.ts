@@ -10,6 +10,7 @@ type StoredPrimaryIntakeSnapshot = {
 };
 
 type UseCreateStartDraftRestoreOptions = {
+  locale?: "de" | "en";
   initialText?: string | null;
   intakeText: string;
   readStoredIntake: () => StoredPrimaryIntakeSnapshot | null;
@@ -30,20 +31,30 @@ function hasPrimaryIntakeText(value?: string | null): boolean {
   return Boolean(String(value ?? "").trim());
 }
 
-export function resolveCreateStartDraftNotice(draft: StartDraftContext): string {
+export function resolveCreateStartDraftNotice(
+  draft: StartDraftContext,
+  locale: "de" | "en" = "de",
+): string {
   if (draft.preview?.relevance === "needs_reframe") {
-    return "Bitte mache das öffentliche Anliegen noch klarer, bevor du den Beitrag weitergibst.";
+    return locale === "en"
+      ? "Please clarify the public concern before you continue with the contribution."
+      : "Bitte mache das öffentliche Anliegen noch klarer, bevor du den Beitrag weitergibst.";
   }
   if (draft.preview?.relevance === "personal_only") {
-    return "Beschreibe bitte, welche öffentliche Bedeutung dein Anliegen hat.";
+    return locale === "en"
+      ? "Please describe the public relevance of your concern."
+      : "Beschreibe bitte, welche öffentliche Bedeutung dein Anliegen hat.";
   }
-  return "Aus deiner Startseiten-Eingabe übernommen.";
+  return locale === "en"
+    ? "Imported from your homepage entry."
+    : "Aus deiner Startseiten-Eingabe übernommen.";
 }
 
 export function useCreateStartDraftRestore(
   options: UseCreateStartDraftRestoreOptions,
 ): CreateStartDraftRestoreState {
   const {
+    locale = "de",
     initialText,
     intakeText,
     readStoredIntake,
@@ -59,11 +70,15 @@ export function useCreateStartDraftRestore(
       setIntakeText(nextDraft.text);
       setDraft(nextDraft);
       setPendingImport(null);
-      setIntakeRestoreInfo("Aus deiner Startseiten-Eingabe übernommen.");
-      setActionNotice(resolveCreateStartDraftNotice(nextDraft));
+      setIntakeRestoreInfo(
+        locale === "en"
+          ? "Imported from your homepage entry."
+          : "Aus deiner Startseiten-Eingabe übernommen.",
+      );
+      setActionNotice(resolveCreateStartDraftNotice(nextDraft, locale));
       bumpStartDraftHandoff("create");
     },
-    [setActionNotice, setIntakeRestoreInfo, setIntakeText],
+    [locale, setActionNotice, setIntakeRestoreInfo, setIntakeText],
   );
 
   React.useEffect(() => {

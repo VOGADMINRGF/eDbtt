@@ -1,4 +1,5 @@
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 import type {
   DialogHandoffTarget,
   DialogOutcome,
@@ -206,9 +207,7 @@ export function getDialogIntelligenceRuntimeBlockers(
   }
   if (planner) {
     const plannerUsesRuntimeAi =
-      planner.source === "openai" &&
-      planner.plannerSource === "openai" &&
-      planner.plannerProvider === "openai" &&
+      hasValidatedCreatePlannerProviderIdentity(planner) &&
       planner.providerCallSucceeded === true &&
       planner.providerCallAttempted === true;
     if (!plannerUsesRuntimeAi) {
@@ -294,7 +293,7 @@ export function runDialogIntelligenceRuntime(
       status: "runtime_ai",
       blockers: [],
       usedSources: [
-        "create_planner_openai_runtime",
+        `create_planner_${context.result.meta?.planner.plannerProvider}_runtime`,
         "create_intelligent_followup_contract",
         "dialog_intelligence_contract",
       ],

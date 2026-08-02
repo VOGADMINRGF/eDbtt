@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
 import type { CreateAnalysisState } from "@/features/create/intelligentFollowupContract";
 
 export type CreateWorkspaceStageId =
@@ -52,6 +51,7 @@ export function buildCreateWorkspaceStages(params: {
   isBusy: boolean;
   analysisState?: CreateAnalysisState | null;
   hasValidatedTopics?: boolean;
+  locale?: "de" | "en";
 }): CreateWorkspaceStage[] {
   const stageOrder: CreateWorkspaceStageId[] = [
     "input",
@@ -62,64 +62,91 @@ export function buildCreateWorkspaceStages(params: {
   ];
   const analysisFailed =
     params.analysisState === "ai_failed" || params.analysisState === "fetch_failed";
+  const isEnglish = params.locale === "en";
   if (analysisFailed) {
     return [
       {
         id: "input",
-        title: "1 · Beitrag aufgenommen",
-        lead: "Text liegt im Workspace.",
+        title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+        lead: isEnglish ? "The text is available in the workspace." : "Text liegt im Workspace.",
         status: "done",
       },
       {
         id: "understanding",
-        title: "2 · Analyse blockiert",
-        lead: "Es liegen noch keine validierten Themen vor.",
+        title: isEnglish ? "2 · Analysis blocked" : "2 · Analyse blockiert",
+        lead: isEnglish
+          ? "No validated topics are available yet."
+          : "Es liegen noch keine validierten Themen vor.",
         status: "error",
       },
       {
         id: "topics",
-        title: "3 · Entscheidung offen",
-        lead: "Wird nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+        lead: isEnglish
+          ? "Available after a successful analysis."
+          : "Wird nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
       {
         id: "sources",
-        title: "4 · Quellen optional",
-        lead: "Bleibt bis zur validierten Analyse gesperrt.",
+        title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+        lead: isEnglish
+          ? "Locked until the analysis has been validated."
+          : "Bleibt bis zur validierten Analyse gesperrt.",
         status: "locked",
       },
       {
         id: "draft",
-        title: "5 · Entwurf",
-        lead: "Wird erst nach erfolgreicher Analyse freigeschaltet.",
+        title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+        lead: isEnglish
+          ? "Available only after a successful analysis."
+          : "Wird erst nach erfolgreicher Analyse freigeschaltet.",
         status: "locked",
       },
     ];
   }
   const labels: Record<CreateWorkspaceStageId, { title: string; lead: string }> = {
     input: {
-      title: "1 · Beitrag aufgenommen",
-      lead: "Text liegt im Workspace.",
+      title: isEnglish ? "1 · Contribution received" : "1 · Beitrag aufgenommen",
+      lead: isEnglish ? "The text is available in the workspace." : "Text liegt im Workspace.",
     },
     understanding: {
-      title: params.hasValidatedTopics ? "2 · Themen erkannt" : "2 · Analyse läuft",
+      title: params.hasValidatedTopics
+        ? isEnglish
+          ? "2 · Topics detected"
+          : "2 · Themen erkannt"
+        : isEnglish
+          ? "2 · Analysis in progress"
+          : "2 · Analyse läuft",
       lead: params.hasValidatedTopics
-        ? "Erste Themen sind sichtbar."
+        ? isEnglish
+          ? "Initial topics are visible."
+          : "Erste Themen sind sichtbar."
         : params.isBusy
-          ? "Einordnung läuft."
-          : "Die Einordnung wird vorbereitet.",
+          ? isEnglish
+            ? "Classification is in progress."
+            : "Einordnung läuft."
+          : isEnglish
+            ? "Classification is being prepared."
+            : "Die Einordnung wird vorbereitet.",
     },
     topics: {
-      title: "3 · Entscheidung offen",
-      lead: "Du wählst Fokus oder Themenstruktur.",
+      title: isEnglish ? "3 · Decision pending" : "3 · Entscheidung offen",
+      lead: isEnglish
+        ? "You choose the focus or topic structure."
+        : "Du wählst Fokus oder Themenstruktur.",
     },
     sources: {
-      title: "4 · Quellen optional",
-      lead: "Quellenmodus bleibt bewusst optional.",
+      title: isEnglish ? "4 · Sources optional" : "4 · Quellen optional",
+      lead: isEnglish
+        ? "Source mode remains optional."
+        : "Quellenmodus bleibt bewusst optional.",
     },
     draft: {
-      title: "5 · Entwurf",
-      lead: "Danach schärfen, speichern oder weiterführen.",
+      title: isEnglish ? "5 · Draft" : "5 · Entwurf",
+      lead: isEnglish
+        ? "Then refine, save, or continue."
+        : "Danach schärfen, speichern oder weiterführen.",
     },
   };
 
@@ -130,38 +157,6 @@ export function buildCreateWorkspaceStages(params: {
     lead: labels[stageId].lead,
     status: index < activeIndex ? "done" : index === activeIndex ? "active" : "planned",
   }));
-}
-
-function WorkspaceHeader(props: { notice?: React.ReactNode; compact?: boolean }) {
-  return (
-    <div className={props.compact ? "space-y-2.5" : "space-y-3"}>
-      <div className={`flex flex-wrap items-start justify-between ${props.compact ? "gap-2.5" : "gap-3"}`}>
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5 overflow-hidden rounded-full">
-            <div className="origin-top-left scale-[0.82]">
-              <VoxyAvatar appearance="inline" compact variant="presenting" />
-            </div>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[1.22rem] font-semibold tracking-[-0.01em] text-[rgb(var(--fg))] md:text-[1.45rem]">
-              Dein Beitrag im Workspace
-            </p>
-            <p className={`max-w-4xl text-[14px] leading-relaxed text-[rgb(var(--muted))] md:text-[15px] ${props.compact ? "mt-1" : "mt-1.5"}`}>
-              Schreib los. Ich halte Themen, Entscheidungen und nächste Schritte kompakt zusammen.
-            </p>
-          </div>
-        </div>
-        <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-100">
-          Kein Auto-Publish
-        </span>
-      </div>
-      {props.notice ? (
-        <div className={`rounded-[1.25rem] border border-cyan-500/18 bg-cyan-500/[0.06] px-4 text-[15px] leading-relaxed text-cyan-950 dark:border-cyan-300/20 dark:bg-cyan-500/12 dark:text-cyan-100 ${props.compact ? "py-2.5" : "py-3"}`}>
-          {props.notice}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function ProgressPipeline(props: {
@@ -234,6 +229,7 @@ type DesktopSidecarMode = "collapsed" | "compact" | "expanded";
 type MobileSidecarMode = "compact" | "expanded";
 
 export default function CreateWorkspaceShell({
+  locale,
   activeStage,
   stages,
   phase = "initial",
@@ -246,8 +242,8 @@ export default function CreateWorkspaceShell({
   renderMobileSidecarSummary,
 }: CreateWorkspaceShellProps) {
   const resolvedStages = React.useMemo(
-    () => stages ?? buildCreateWorkspaceStages({ activeStage, isBusy }),
-    [activeStage, isBusy, stages],
+    () => stages ?? buildCreateWorkspaceStages({ activeStage, isBusy, locale }),
+    [activeStage, isBusy, locale, stages],
   );
   const [desktopSidecarMode, setDesktopSidecarMode] =
     React.useState<DesktopSidecarMode>("compact");
@@ -362,7 +358,6 @@ export default function CreateWorkspaceShell({
         ref={workspaceContentRef}
         className={`flex min-h-0 flex-1 flex-col ${isInitialPhase ? "gap-3 md:gap-3.5" : "gap-4"}`}
       >
-        <WorkspaceHeader notice={notice} compact={isInitialPhase} />
         {!isInitialPhase ? <ProgressPipeline stages={resolvedStages} /> : null}
         {renderMobileSidecarSummary
           ? renderMobileSidecarSummary(openMobileSidecar)
@@ -380,16 +375,25 @@ export default function CreateWorkspaceShell({
               data-create-shell-composer
               className="sticky bottom-0 z-10 border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_74%,rgb(var(--bg))_26%)] supports-[backdrop-filter]:backdrop-blur"
             >
+              {notice ? (
+                <div className="border-b border-cyan-500/15 bg-cyan-500/[0.05] px-4 py-2.5 text-sm leading-relaxed text-cyan-950 dark:border-cyan-300/15 dark:text-cyan-100 md:px-6">
+                  {notice}
+                </div>
+              ) : null}
               {composer}
             </div>
-            {footer ? (
+            <div
+              data-create-shell-footer
+              className="border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_78%,rgb(var(--bg))_22%)] px-4 py-2 md:px-6"
+            >
               <div
-                data-create-shell-footer
-                className="border-t border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_78%,rgb(var(--bg))_22%)] px-4 py-2 md:px-6"
+                data-create-no-auto-publish
+                className="mb-1.5 text-[11px] font-semibold text-[rgb(var(--muted))]"
               >
-                {footer}
+                {locale === "en" ? "No auto-publishing" : "Kein Auto-Publish"}
               </div>
-            ) : null}
+              {footer}
+            </div>
           </div>
           {showDesktopSidecar ? (
             <aside

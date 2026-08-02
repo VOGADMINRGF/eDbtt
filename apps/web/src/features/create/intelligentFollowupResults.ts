@@ -1,4 +1,8 @@
-import type { CreatePlannerResult, CreatePlannerScope } from "@/features/create/createPlanner";
+import type {
+  CreatePlannerResult,
+  CreatePlannerScope,
+} from "@/features/create/createPlanner";
+import { hasValidatedCreatePlannerProviderIdentity } from "@/features/create/createPlannerProviderContract";
 import type {
   CreateAnalysisState,
   CreateFollowupGraphMatchPlan,
@@ -114,7 +118,7 @@ function buildGraphMatchPlan(planner?: CreatePlannerResult | null): CreateFollow
   const graphAllowed =
     planner?.qualityStatus === "specific" &&
     planner.plannerDegraded === false &&
-    planner.source === "openai";
+    hasValidatedCreatePlannerProviderIdentity(planner);
   if (!graphAllowed || !planner) {
     return {
       stage: "after_structure",

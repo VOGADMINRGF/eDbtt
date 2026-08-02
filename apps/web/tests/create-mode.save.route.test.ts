@@ -182,7 +182,12 @@ import { POST as savePOST } from "@/app/api/create/save/route";
 function req(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/create/save", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      origin: "http://localhost",
+      "sec-fetch-site": "same-origin",
+      "x-edebatte-create-csrf": "create-mutation-v1",
+    },
     body: JSON.stringify(body),
   });
 }
@@ -192,6 +197,24 @@ describe("create mode split - save route", () => {
     vi.clearAllMocks();
     mocks.reset();
     mocks.getDraft.mockResolvedValue(null);
+  });
+
+  it("rejects a guest before parsing the body and never emits a cookie or draft", async () => {
+    mocks.setUser(null);
+    const response = await savePOST(
+      new NextRequest("http://localhost/api/create/save", {
+        method: "POST",
+        body: "{malformed-json",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: "not_authenticated",
+    });
+    expect(mocks.readAll()).toHaveLength(0);
   });
 
   it("accepts manual mode and persists it in the canonical drafts collection", async () => {
@@ -524,16 +547,16 @@ describe("create mode split - save route", () => {
       }),
     );
 
-    expect(second.status).toBe(404);
+    expect(second.status).toBe(403);
     await expect(second.json()).resolves.toMatchObject({
       ok: false,
-      error: "draft_not_found",
+      error: "CREATE_REQUEST_NOT_ALLOWED",
     });
     expect(mocks.readAll()).toHaveLength(1);
     expect(mocks.readAll()[0].text).toBe("Nur der Eigentümer darf diesen Draft fortschreiben.");
   });
 
-  it("rejects invalid draft ids explicitly", async () => {
+  it("rejects invented draft ids with the same generic ownership response", async () => {
     const res = await savePOST(
       req({
         draftId: "bad-id",
@@ -543,8 +566,29 @@ describe("create mode split - save route", () => {
       }),
     );
 
-    expect(res.status).toBe(400);
-    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_draft" });
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "CREATE_REQUEST_NOT_ALLOWED",
+    });
+    expect(mocks.readAll()).toHaveLength(0);
+  });
+
+  it("rejects a deleted canonical draft with the generic ownership response", async () => {
+    const res = await savePOST(
+      req({
+        draftId: "65f000000000000000000099",
+        textPrepared: "Ein gelöschter Draft darf keinen neuen Write auslösen.",
+        source: "create_followup",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toEqual({
+      ok: false,
+      error: "CREATE_REQUEST_NOT_ALLOWED",
+    });
     expect(mocks.readAll()).toHaveLength(0);
   });
 
@@ -566,10 +610,10 @@ describe("create mode split - save route", () => {
       }),
     );
 
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(403);
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
-      error: "legacy_draft_read_only",
+      error: "CREATE_REQUEST_NOT_ALLOWED",
     });
     expect(mocks.readAll()).toHaveLength(0);
   });
@@ -594,10 +638,10 @@ describe("create mode split - save route", () => {
       }),
     );
 
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(403);
     await expect(second.json()).resolves.toMatchObject({
       ok: false,
-      error: "draft_finalized",
+      error: "CREATE_REQUEST_NOT_ALLOWED",
     });
   });
 });
