@@ -93,6 +93,7 @@ const COPY = {
     notConnected: "Nicht verbunden / keine verifizierten Daten",
     backAdmin: "Admin-Übersicht",
     participation: "Beteiligungskampagnen",
+    regionalRuns: "Regionale Agent Runs",
     more: "Weitere Angaben",
   },
   en: {
@@ -154,6 +155,7 @@ const COPY = {
     notConnected: "Not connected / no verified data",
     backAdmin: "Admin overview",
     participation: "Participation campaigns",
+    regionalRuns: "Regional agent runs",
     more: "More details",
   },
 } as const;
@@ -339,6 +341,7 @@ export default async function MarketingAdminPage({ searchParams }: PageProps) {
       </section>
 
       <footer className="flex flex-wrap gap-2 border-t border-[rgb(var(--border))] pt-5">
+        <AdminLink href={`/admin/marketing/agent/runs?lang=${locale}`} label={copy.regionalRuns} />
         <AdminLink href="/admin" label={copy.backAdmin} />
         <AdminLink href="/admin/campaigns" label={copy.participation} />
       </footer>

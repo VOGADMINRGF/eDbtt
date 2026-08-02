@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RegionalAgentRunSchema } from "./regionalRuns/contracts";
 
 export const MARKETING_MARKETABILITY_VALUES = [
   "not_marketable",
@@ -219,6 +220,7 @@ export const MarketingRegistrySchema = z
     assets: z.array(MarketingAssetSchema),
     brandProfiles: z.array(MarketingBrandProfileSchema),
     distributionRecords: z.array(MarketingDistributionRecordSchema),
+    regionalAgentRuns: z.array(RegionalAgentRunSchema),
   })
   .strict();
 

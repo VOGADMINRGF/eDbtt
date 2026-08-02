@@ -26,6 +26,8 @@ describe("admin marketing operator workspace", () => {
     expect(html).toContain("Weitere Angaben");
     expect(html).toContain("Beiträge &amp; Ausspielungen");
     expect(html).toContain("Messdaten &amp; Datenquellen");
+    expect(html).toContain("Regionale Agent Runs");
+    expect(html).toContain("/admin/marketing/agent/runs?lang=de");
     expect(html).toContain("0 von 6 Datenquellen verbunden");
     expect(html).toContain("Debattenstand der Woche");
     expect(html).toContain("Voxy erklärt");

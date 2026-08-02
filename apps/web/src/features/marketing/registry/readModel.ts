@@ -8,6 +8,7 @@ import type {
   MarketingOpportunity,
   MarketingRegistry,
 } from "./contracts";
+import type { RegionalAgentRun } from "./regionalRuns/contracts";
 
 export type MarketingRegistryCount = {
   key: string;
@@ -35,12 +36,15 @@ export type MarketingRegistryReadModel = {
     brandsByStatus: MarketingRegistryCount[];
     blockersByKey: MarketingRegistryCount[];
     approvedButUndistributedAssets: number;
+    totalRegionalAgentRuns: number;
+    blockedRegionalAgentRuns: number;
   };
   opportunities: MarketingOpportunity[];
   campaigns: MarketingCampaign[];
   assets: MarketingAsset[];
   brandProfiles: MarketingBrandProfile[];
   distributionRecords: MarketingDistributionRecord[];
+  regionalAgentRuns: RegionalAgentRun[];
   recentEvidence: MarketingRegistryEvidenceRow[];
 };
 
@@ -93,12 +97,17 @@ export function buildMarketingRegistryReadModel(
           (asset.status === "approved" || asset.status === "published") &&
           !distributedAssetIds.has(asset.id),
       ).length,
+      totalRegionalAgentRuns: registry.regionalAgentRuns.length,
+      blockedRegionalAgentRuns: registry.regionalAgentRuns.filter(
+        (run) => run.status === "blocked" || run.status === "failed",
+      ).length,
     },
     opportunities: [...registry.opportunities].sort(sortByUpdatedAtThenId),
     campaigns: [...registry.campaigns].sort(sortByUpdatedAtThenId),
     assets: [...registry.assets].sort(sortByUpdatedAtThenId),
     brandProfiles: [...registry.brandProfiles].sort(sortByUpdatedAtThenId),
     distributionRecords: [...registry.distributionRecords].sort(sortByUpdatedAtThenId),
+    regionalAgentRuns: [...registry.regionalAgentRuns].sort(sortByUpdatedAtThenId),
     recentEvidence,
   };
 }
