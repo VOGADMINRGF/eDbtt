@@ -295,6 +295,13 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Pilot-/Fixture-Daten enthalten");
     expect(html).toContain("Genau eine nächste Aktion");
     expect(html.match(/data-testid="admin-region-primary-action"/g)).toHaveLength(1);
+    expect(html).toContain(
+      "min-h-11 items-center justify-center rounded-full bg-[rgb(var(--grad-from))]",
+    );
+    expect(html).toContain(
+      "text-[rgb(var(--fg))] focus:outline-none focus-visible:ring-2",
+    );
+    expect(html).toContain("dark:text-[rgb(var(--bg))]");
     expect(
       html.match(/data-testid="admin-region-quick-action-[^"]+"/g),
     ).toHaveLength(5);
@@ -323,6 +330,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Einstellungen &amp; Zugriff");
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain("min-w-max");
+    expect(html).toContain(
+      "inline-flex min-h-11 items-center rounded-full bg-[rgb(var(--fg))]",
+    );
     expect(html).toContain("break-words");
     for (const view of [
       "lagebild",

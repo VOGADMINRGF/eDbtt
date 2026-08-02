@@ -1,6 +1,6 @@
 # ADMIN-REGION-PRODUCT-ACCEPTANCE-02
 
-Stand: 2026-07-30
+Stand: 2026-08-02
 Issue: #528
 Branch: `fix/admin-region-product-acceptance-02`
 Kanonischer Taskstatus auf `main`: `codex_ready`
@@ -239,12 +239,88 @@ wie die bestehende Web-CI ausschließlich die eingecheckte `apps/web/.env.exampl
 keine lokale Env-Datei angelegt, gelesen oder verändert. Lokal lief Node `v25.9.0`, während
 das Repository Node `20.x` erwartet. CI bleibt die maßgebliche Node-20-Bestätigung.
 
+## Product-Acceptance- und Closing-Pass am 2. August 2026
+
+Die Oberfläche wurde zusätzlich mit der echten Serverkomponente, dem realen operativen
+Katalog, der tatsächlich kompilierten App-CSS und Chromium geprüft. Dafür wurde weder eine
+Admin-Session umgangen noch ein Benutzer- oder Berechtigungsdatensatz verändert. Der
+temporäre Browser-Harness gehörte nicht zum PR-Diff.
+
+Geprüfte Kombinationen:
+
+- Desktop `1440 × 900`, Light und Dark,
+- Mobile `390 × 844`, Light und Dark,
+- vollständige Screenshots aller vier Kombinationen,
+- Tastaturreihenfolge vom Suchfeld über den Submit bis zum ersten Treffer,
+- sichtbarer Fokus, Formularlabel, native Ergebnisliste und Linksemantik,
+- Root-Breite, Touch-Ziele sowie Eingabe-, Placeholder- und Aktionskontrast.
+
+Die Suche lieferte im realen Katalog:
+
+- `Hamburg`: vier nachvollziehbar getrennte Treffer; der Land-Eintrag steht zuerst,
+- `02000000`: der kommunale Hamburg-Eintrag ist der erste exakte Identitätstreffer;
+  weitere vier Code-Texttreffer bleiben sichtbar,
+- `020000000000`, `region-official-02000000` und
+  `hamburg-freie-und-hansestadt-02000000`: jeweils der erwartete kommunale Hamburg-Eintrag,
+- `Senat der Freien und Hansestadt Hamburg`: zwei getrennte amtliche Treffer, darunter der
+  AGS-geführte kommunale Eintrag,
+- `Flensburg`: drei Verwaltungsebenen beziehungsweise Einträge,
+- `Beispielstadt`: genau das weiterhin verfügbare Fixture,
+- eine unbekannte Suchphrase: null Treffer mit sichtbarem Leerstand,
+- `Hamburg, Freie und Hansestadt`: zwei getrennte und damit nicht heuristisch
+  zusammengeführte Treffer.
+
+Der Browserpass fand einen realen Kontrast- und Mobile-Hit-Area-Mangel: Die dominante Aktion
+verwendete Weiß auf `--grad-from` und erreichte nur `2,77:1`. `ActionLink` verwendet nun
+theme-adaptiv den dunklen Vordergrund beziehungsweise Dark-Mode-Hintergrund auf Cyan und
+erreicht `6,70:1` im Light Mode sowie `7,23:1` im Dark Mode. Alle Aktions- und
+Workspace-Links besitzen außerdem mindestens `44 px` Höhe.
+
+Nach der Korrektur gilt für alle vier Kombinationen:
+
+- Root-Scrollbreite entspricht der Viewportbreite; kein horizontaler Seitenüberlauf,
+- keine abgeschnittenen Inhalte im Vollseitenbild,
+- kein heller Lichtkegel und kein weißer Schatten im Dark Mode,
+- Eingabetext und Placeholder jeweils mindestens `4,5:1`,
+- Suchtreffer mindestens `74 px` hoch,
+- kein sichtbares interaktives Ziel innerhalb der Regionsseite unter `44 × 44 px`,
+- Fokus-Ring in Light und Dark sichtbar,
+- ausgewählte Region, Wechsel-Suche und stabiler `regionId`-Kontext sichtbar,
+- Research-, Marketing-, Create-, Dossier- und Review-Handoffs tragen nur den
+  dokumentierten Kontext; kein Auto-Research, Auto-Publish oder Auto-Create-Parameter.
+
+`ready` wurde mit dem realen Directory geprüft. Die kontrollierten `missing`-, `error`- und
+Recovery-Verträge bleiben durch die fokussierten Import- und Render-Tests abgedeckt: Registry
+und Fixtures bleiben verfügbar, die Diagnose behauptet keine vollständige amtliche Abdeckung,
+der kurze Fehlercache wird erneut geprüft und die Diagnose verschwindet nach Recovery ohne
+Prozessneustart.
+
+Abschließende Validierung des Closing-Passes unter Node `v20.20.2`:
+
+- fokussierte Directory- und Render-Verträge: 2 Dateien, 16 Tests, grün,
+- Deduplizierung, alle sechs Union-Find-Permutationen sowie Missing-/Error-/Recovery sind
+  Bestandteil der 10 grünen Directory-Verträge,
+- erweiterte Region-/Entitlement-/Navigation-Matrix: 25 Dateien, 90 von 92 Tests grün,
+- die zwei roten Verträge sind unverändert auch auf `origin/main` vorhanden und liegen
+  außerhalb des erlaubten Scopes: `region-contract.test.ts` erwartet noch die Typmenge ohne
+  das bereits kanonische `land`; `navigation-initiative-label.contract.test.ts` erwartet im
+  globalen Header weiterhin einen nicht mehr vorhandenen Eintrag `Zur Initiative`,
+- `pnpm -C apps/web run typecheck`: grün,
+- `pnpm -C apps/web run lint`: grün,
+- vollständiger `pnpm -C apps/web run build`: Page-Contracts, Paket-Builds und optimierter
+  Next-Production-Build grün; ein finales `.next/BUILD_ID` wurde erzeugt,
+- der Build exportierte `apps/web/.env.example`; Next lud zusätzlich die bereits vorhandene
+  `.env.local`. Keine Env-Datei wurde verändert und kein Geheimnis ausgegeben,
+- `git diff --check`: grün.
+
 ## Verbleibend
 
-- Desktop-Produktabnahme der kompakten Above-the-fold-Hierarchie,
-- Mobile-Produktabnahme von Dichte, horizontaler Navigation und Textumbrüchen,
-- fachliche Sichtprüfung der aus realen Readmodels abgeleiteten Signal- und
+- einmalige manuelle Gegenprüfung im vollständigen authentifizierten Admin-Layout der
+  PR-Preview; der lokale Pass umging bewusst keine Admin-Session,
+- fachliche Reviewentscheidung zur aus den vorhandenen Readmodels abgeleiteten Signal- und
   Arbeitspriorisierung,
-- Merge erst nach Review und Produktabnahme.
+- die beiden out-of-scope Baseline-Verträge separat mit ihrem aktuellen Produkt- und
+  Typvertrag harmonisieren,
+- Merge erst nach Review und ausdrücklicher Produktfreigabe.
 
 Der Task steht deshalb maximal auf `review`, nicht auf `done`.

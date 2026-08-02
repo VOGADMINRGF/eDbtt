@@ -469,8 +469,8 @@ function ActionLink(props: {
       href={props.href}
       className={
         props.primary
-          ? "inline-flex items-center justify-center rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]"
-          : "inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]"
+          ? "inline-flex min-h-11 items-center justify-center rounded-full bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))] dark:text-[rgb(var(--bg))]"
+          : "inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]"
       }
     >
       {props.children}
@@ -908,8 +908,8 @@ export default async function AdminRegionPage({
               aria-current={view === entry.id ? "page" : undefined}
               className={
                 view === entry.id
-                  ? "rounded-full bg-[rgb(var(--fg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--bg))]"
-                  : "rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+                  ? "inline-flex min-h-11 items-center rounded-full bg-[rgb(var(--fg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--bg))]"
+                  : "inline-flex min-h-11 items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
               }
             >
               {entry.label}
