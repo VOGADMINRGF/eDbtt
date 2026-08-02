@@ -37,6 +37,22 @@ type PersistentLimiter = (
   input: PersistentRateLimitInput,
 ) => Promise<PersistentRateLimitResult>;
 
+type VogCookieResponse = {
+  cookies: {
+    set: (
+      name: string,
+      value: string,
+      options: {
+        httpOnly: boolean;
+        secure: boolean;
+        sameSite: "lax";
+        path: string;
+        maxAge: number;
+      },
+    ) => unknown;
+  };
+};
+
 async function loadPersistentLimiter(): Promise<PersistentLimiter | null> {
   if (process.env.NEXT_RUNTIME === "edge") return null;
   const module = await import("@/utils/persistentRateLimit");
@@ -65,8 +81,8 @@ export function resolveVogGuestToken(req: NextRequest) {
   };
 }
 
-export function setVogGuestParticipationCookie(
-  response: NextResponse,
+export function setVogGuestParticipationCookie<T extends VogCookieResponse>(
+  response: T,
   token: string,
 ) {
   response.cookies.set(VOG_GUEST_PARTICIPATION_COOKIE, token, {
