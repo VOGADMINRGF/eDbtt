@@ -4,7 +4,7 @@ Datum: 2026-08-01
 Repository: `VOGADMINRGF/edebatte-org`  
 Ausgangs-Head: `796951574caf21c606edfc8af94f6e025cf04fc0`  
 Issue: #548  
-Status: `dependency_wait`  
+Status: `review`
 Verdict: `ecosystem_contract_ready`
 
 ## Auftrag
@@ -307,3 +307,53 @@ Je nach Slice mindestens:
 ## CI-Status
 
 Zum Zeitpunkt der Dateierstellung wurde noch kein CI-Lauf für diesen Dokumentationsbranch ausgewertet. Es werden keine Ergebnisse vorweggenommen.
+
+## Implementierungsnachweis — 2026-08-02
+
+### Technischer Umfang
+
+- `apps/web/src/config/ecosystem.ts` führt den zentralen typsicheren Vertrag für
+  exakt eDebatte, VoiceOpenGov, Vote4Gov und Voxy.
+- Jede Marke besitzt stabile ID, Anzeigename, eindeutige kanonische Rolle,
+  sachliche Beschreibung, Beziehung zu eDebatte und einen diskriminierten
+  Zielvertrag.
+- Verfügbare Ziele werden als validierter interner Pfad oder validiertes
+  externes HTTPS-Ziel geführt. Nicht verfügbare Ziele tragen ausschließlich
+  `status: "unavailable"`, `kind: "none"` und `href: null`; der zentrale
+  Resolver liefert dafür keinen Fallback.
+- Das eDebatte-Ziel wird aus `BRAND.baseUrl` abgeleitet. VoiceOpenGov nutzt
+  ausschließlich den bestehenden zentralen `VOG_SUPPORT_URL`. Vote4Gov und
+  Voxy bleiben mangels belegter kanonischer Destination nicht verfügbar.
+- Die vorherige sichtbare Altimplementierung aus zwei Logo-SVGs,
+  `EcosystemChrome.tsx` und der Layout-Einbindung wurde vollständig entfernt.
+  Header, Footer, Navigation, `globals.css`, Voxy- und Produktflächen bleiben
+  gegenüber `origin/main` unverändert.
+
+### Validierung
+
+- Fokussierter Contract: `1` Testdatei / `13` Tests grün.
+- Gemeinsame Brand-/Routing-Regression einschließlich des fokussierten
+  Contracts: `7` Testdateien / `28` Tests grün; davon `6` bestehende
+  Testdateien / `15` bestehende Tests.
+- `pnpm -C apps/web run typecheck`: grün.
+- `pnpm -C apps/web run lint`: grün, keine Befunde.
+- `pnpm -C apps/web run build`: vollständig grün; 255 Seitenverträge geprüft
+  und 322 statische Seiten erzeugt. Der Abschlusslauf verwendete ausschließlich
+  explizite, nicht geheime, prozesslokale Build-Platzhalter. Keine ENV-Datei
+  wurde gelesen, erstellt, verändert oder ausgegeben.
+- `git diff --check`: grün.
+- Lokale Umgebung: Node `25.9.0`; das Repository verlangt Node `20.x`. pnpm
+  meldete die Abweichung als Engine-Warnung, alle Abschlussprüfungen blieben
+  dennoch grün.
+
+### Bewusst verbleibende Folge-Slices
+
+- Sichtbare Footer-, Header-, Navigations-, Domain- und Produktflächenmigration
+  bleibt getrennt.
+- Vote4Gov bleibt bis zu einer belegten kanonischen Destination nicht klickbar.
+- Voxy bleibt bis zu einer realen eigenständigen Erklärfläche oder einem
+  belegten internen Anker nicht klickbar.
+- Gemeinsamer Footer, aktive Domain, Iconografie, Terminologie, Accessibility,
+  Motion und flächenweise Migration bleiben den getrennten Folge-Slices
+  vorbehalten.
+- Dieser Nachweis ist keine sichtbare Produktabnahme.

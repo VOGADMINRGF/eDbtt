@@ -18,7 +18,6 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ReadingModeProvider } from "@/components/providers/reading-mode-provider";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { MobileAppShellChrome } from "@/components/mobile/MobileAppShellChrome";
-import { EcosystemChrome } from "@/components/brand/EcosystemChrome";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
@@ -78,11 +77,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <PrivacyGateProvider initialConsent={initialConsent}>
                 <div className="flex min-h-screen flex-col">
                   <SiteHeader initialUser={initialUser} />
-                  <EcosystemChrome footer={false} />
                   <main data-site-main="true" className="flex-1">
                     {children}
                   </main>
-                  <EcosystemChrome />
                   <SiteFooter />
                   <MobileAppShellChrome />
                   <div data-site-safe-area-spacer="true" />
