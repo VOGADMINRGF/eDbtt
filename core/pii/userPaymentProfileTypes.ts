@@ -3,6 +3,7 @@ import type { ObjectId } from "mongodb";
 export type UserPaymentProfileDoc = {
   _id: ObjectId;
   userId: ObjectId;
+  membershipApplicationId?: ObjectId | null;
   type: "sepa_mandate" | "manual_transfer" | "paypal" | "other" | "bank_transfer";
 
   billingName: string;
@@ -21,6 +22,7 @@ export type UserPaymentProfileDoc = {
   bic?: string | null;
   mandateReference?: string | null;
   microTransferHash?: string | null;
+  microTransferCode?: string | null;
   microTransferExpiresAt?: Date | null;
   microTransferAttempts?: number | null;
   microTransferVerifiedAt?: Date | null;

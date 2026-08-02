@@ -1,8 +1,8 @@
 # HOME-VOXY-PODCAST-LANDING-01
 
-Datum: 2026-07-29  
-Issue: `#526`  
-Draft-PR: `#527`  
+Datum: 2026-07-29
+Issue: `#526`
+Draft-PR: `#527`
 Branch: `pr/home-voxy-podcast-landing-01`
 
 ## Ziel
@@ -22,7 +22,7 @@ Die öffentliche eDebatte-Startseite übernimmt die freigegebene Dramaturgie der
 - Voxy bleibt unverändert im kanonischen Design.
 - Produktiv wird das bereits vorhandene Asset `apps/web/public/brand/voxy/voxy-podcast-stage.png` eingebunden.
 - Der kompakte Launcher nutzt ausschließlich `voxy-mini-avatar`.
-- eDebatte führt als Produktmarke; VoiceOpenGov erscheint als Träger- und Initiativkontext.
+- eDebatte führt als eigenständige offene Infrastruktur und Produktmarke; VoiceOpenGov ist eine internationale Mitgliederbewegung, aber weder Eigentümer noch exklusiver Träger von eDebatte.
 - Fakten und Wahrheit werden nicht zur Abstimmung gestellt. Entscheidungen betreffen Positionen und nächste Schritte.
 - Es gibt kein Auto-Publish und keine erfundene Live-, Partner- oder Nutzungsmetrik.
 
@@ -62,7 +62,7 @@ Beim technischen Soll-/Ist-Abgleich wurden folgende Abweichungen erkannt und kor
 - Die verbindliche dreiteilige Marken-Narrative fehlte. Sie steht jetzt unterhalb des Hero und wahrt ausdrücklich, dass nicht über Wahrheit abgestimmt wird.
 - Zielgruppen und Nutzen waren auf Desktop zu breit gestaffelt. Vier Zielgruppen und sechs Nutzenbausteine bilden jetzt die im Zielbild erkennbare Querdramaturgie; mobil bleiben sie in sinnvoller Lesereihenfolge gestapelt.
 - Der Abschlussimpuls aus dem Zielbild fehlte. Er wurde mit bestehenden Routen und ohne neue Produktlogik ergänzt.
-- Der Launcher kollidierte mobil mit der festen Bottom-Navigation. Er liegt jetzt oberhalb der Safe-Area-Navigation; zwischen Hero-CTA, Launcher und Navigation bleiben im geprüften `393 × 852`-Viewport sichtbare Abstände.
+- Der Launcher kollidierte mobil mit der festen Bottom-Navigation. Er ist deshalb auf kleinen Viewports ausgeblendet und erscheint erst ab `md` kompakt unten rechts.
 - Das Launcher-Porträt ist für Screenreader dekorativ, während der Link einen eindeutigen Aktionsnamen trägt. Der Begleittext erscheint desktopseitig bei Hover und Tastaturfokus.
 
 ## Bewusste Abweichungen vom Zielbild
@@ -71,7 +71,7 @@ Beim technischen Soll-/Ist-Abgleich wurden folgende Abweichungen erkannt und kor
 - Die illustrative Debattenkarte mit Ortsname, Beteiligungszahlen und Fortschrittswert wird nicht übernommen. Stattdessen bleiben die vier realen Einstiege nach `/themen`, `/create`, `/swipes` und `/dossier` erhalten. So entstehen weder Fake-Zahlen noch eine Demo-Runtime.
 - Die Voxy-Darstellung aus dem SVG wird nicht als Produktasset exportiert. Produktiv bleibt ausschließlich `apps/web/public/brand/voxy/voxy-podcast-stage.png`; der Launcher verwendet ausschließlich den kanonischen `miniAvatar`.
 - Die vorhandenen Theme-Tokens und der globale Seitenrahmen bleiben erhalten. Das Zielbild wird in Hierarchie, Gewichtung und Scroll-Dramaturgie übernommen, nicht als pixelgenaue zweite Designwelt.
-- Der Launcher zeigt seinen Sprechtext auf kleinen Viewports nicht dauerhaft. Der miniAvatar und der zugängliche Linkname bleiben sichtbar; dadurch wird der knappe mobile Raum nicht von einem zusätzlichen festen Overlay belegt.
+- Der Launcher bleibt auf kleinen Viewports vollständig ausgeblendet; dort führt bereits die feste Bottom-Navigation in den Create-Pfad. Ab `md` bleiben miniAvatar, zugänglicher Linkname und fokussierbarer Begleittext erhalten.
 - Die kanonische Marken-Narrative bleibt trotz ihrer verkürzten Darstellung im Zielbild vollständig. Das folgt dem verbindlichen Brand-SSOT.
 
 ## Sicht- und Interaktionsprüfung
@@ -79,8 +79,8 @@ Beim technischen Soll-/Ist-Abgleich wurden folgende Abweichungen erkannt und kor
 - Lokale Browserprüfung im Dark Theme: Desktop `1440 × 900` und Mobile `393 × 852`.
 - Alle `22` Scroll-Reveal-Elemente wurden durch Scrollen aktiviert und blieben sichtbar.
 - Unter `prefers-reduced-motion: reduce` blieb kein Reveal-Inhalt durch Opazität verborgen.
-- Mobile Ausgangsgeometrie: zweiter Hero-CTA endet bei `686.06 px`, Launcher beginnt bei `708 px`, Launcher endet bei `764 px`, Bottom-Navigation beginnt bei `789.70 px`.
-- Der Consent-Dialog liegt in der bestehenden Overlay-Schicht über der Seitenshell und setzt sie `inert`/`aria-hidden`; der Launcher erzeugt deshalb keinen konkurrierenden Tastatur- oder Screenreader-Fokus.
+- Im geprüften mobilen `393 × 852`-Viewport ist der Launcher ausgeblendet und kann daher weder mit Hero-CTAs noch mit der festen Bottom-Navigation kollidieren.
+- Der Consent-Dialog liegt in der bestehenden Overlay-Schicht über der Seitenshell und setzt sie `inert`/`aria-hidden`; der ab `md` sichtbare Launcher erzeugt deshalb keinen konkurrierenden Tastatur- oder Screenreader-Fokus.
 - Überschriftenstruktur: genau ein sichtbares `h1`; die Hauptabschnitte folgen als `h2`, Karten und Prozessschritte als `h3`.
 - Das Hero-Bild behält die priorisierte Next-Image-Auslieferung und eine responsive `sizes`-Angabe. Die Quelldatei wurde weder dupliziert noch verändert.
 
@@ -96,12 +96,16 @@ Diese technische Sichtprüfung ist keine Desktop-/Mobile-Produktabnahme. Die men
 ## Geänderte Dateien dieses Abgleichs
 
 - `apps/web/src/features/home/HomeSplitVoxyLanding.tsx`
+- `apps/web/src/features/home/HomeScrollReveal.tsx`
 - `apps/web/tests/landing-clarity.contract.test.tsx`
 - `apps/web/tests/landing-information-architecture.contract.test.tsx`
 - `apps/web/tests/start-privacy-gate-links.contract.test.ts`
 - `apps/web/tests/start-shared-create-composer.contract.test.tsx`
 - `docs/E150/HOME-VOXY-PODCAST-LANDING-01_2026-07-29.md`
-- `docs/E150/OpenTasks.md`
+- `docs/E150/HOME-VOXY-PODCAST-LANDING-01_CODEX_BRIEF.md`
+- `docs/E150/HOME-VOXY-PODCAST-LANDING-01_CODEX_ENTRY.md`
+- `docs/E150/HOME-VOXY-PODCAST-LANDING-01_VISUAL_HANDOFF.md`
+- `docs/E150/assets/HOME-VOXY-PODCAST-LANDING-01_TARGET.svg`
 
 ## Prüfstand
 
@@ -111,7 +115,7 @@ Diese technische Sichtprüfung ist keine Desktop-/Mobile-Produktabnahme. Die men
 - `pnpm -C apps/web run build` — grün mit ausschließlich lokalen, nicht-produktiven Platzhalterwerten für die verpflichtende Infrastrukturkonfiguration; Page-Check über `255` Seiten mit `0` fehlenden `h1` und `0` Button-Verstößen, Next.js-Kompilierung erfolgreich, `322/322` statische Seiten generiert.
 - Ein vorausgehender Build ohne lokale Infrastrukturvariablen kompilierte erfolgreich und scheiterte erwartungsgemäß erst beim Page-Data-Collect an der strikten Env-Validierung. Es wurden keine echten Secrets verwendet und keine Datenbankverbindung vorausgesetzt.
 - `git diff --check` — grün.
-- Lokaler Werkzeughinweis für Lint, Typecheck und Build: Node `v25.9.0`; das Repository fordert Node `20.x`. Die Befehle liefen dennoch wie oben dokumentiert erfolgreich.
+- Lokale Laufzeit für fokussierte Tests, Lint, Typecheck und Build: Node `v20.20.2`, entsprechend der Repository-Vorgabe `20.x`.
 
 ## Offene Gates
 

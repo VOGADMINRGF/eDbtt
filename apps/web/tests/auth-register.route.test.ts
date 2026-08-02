@@ -70,6 +70,14 @@ vi.mock("@core/telemetry/identityEvents", () => ({
 
 vi.mock("@/utils/mailer", () => ({
   sendMail: (...args: unknown[]) => mocks.sendMail(...args),
+  mailFailureMetadata: (result: Record<string, unknown>) => ({
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  }),
 }));
 
 vi.mock("@/utils/emailTemplates", () => ({
@@ -191,7 +199,17 @@ describe("/api/auth/register", () => {
       html: "<p>mail</p>",
       text: "mail",
     });
-    mocks.sendMail.mockResolvedValue({ ok: true });
+    mocks.sendMail.mockResolvedValue({
+      ok: true,
+      status: "delivered",
+      transport: "smtp",
+      category: null,
+      retryable: false,
+      attemptedCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      messageId: "registration-message",
+    });
     mocks.publicOrigin.mockReturnValue("https://edebatte.org");
     mocks.ensureBasicPiiProfile.mockResolvedValue(undefined);
     mocks.upsertMembershipPaymentProfile.mockResolvedValue(undefined);
@@ -236,6 +254,43 @@ describe("/api/auth/register", () => {
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({
       error: "invalid_input",
+    });
+  });
+
+  it("reports a persisted account without false success when verification delivery fails", async () => {
+    mocks.sendMail.mockResolvedValueOnce({
+      ok: false,
+      status: "failed",
+      transport: "smtp",
+      code: "mail_transport_error",
+      category: "smtp_timeout",
+      retryable: true,
+      attemptedCount: 1,
+      deliveredCount: 0,
+      failedCount: 1,
+      messageId: null,
+    });
+
+    const response = await POST(makeRequest({ reg_guardian_reference: "" }));
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_delivery_failed",
+      partial: true,
+      accountCreated: true,
+      emailVerification: {
+        status: "pending",
+        reason: "mail_dispatch_failed",
+        delivery: {
+          status: "failed",
+          category: "smtp_timeout",
+          retryable: true,
+          attemptedCount: 1,
+          deliveredCount: 0,
+          failedCount: 1,
+        },
+      },
     });
   });
 });

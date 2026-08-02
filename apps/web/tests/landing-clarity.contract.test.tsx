@@ -34,7 +34,8 @@ describe("landing clarity contract", () => {
     expect(html).toContain("Stimmen verbinden.");
     expect(html).toContain("Zusammenhänge sichtbar machen.");
     expect(html).toContain("Gemeinsam entscheiden.");
-    expect(html).toContain("eDebatte · getragen von VoiceOpenGov");
+    expect(html).toContain("eDebatte · offene Infrastruktur");
+    expect(html).not.toContain("getragen von VoiceOpenGov");
     expect(html).toContain("Hallo Nachbar.");
     expect(html).toContain("Voxy am gemeinsamen Tisch");
     expect(html).toContain("/brand/voxy/voxy-podcast-stage.png");
@@ -139,12 +140,13 @@ describe("landing clarity contract", () => {
 
     expect(revealSource).toContain("prefers-reduced-motion: reduce");
     expect(revealSource).toContain("IntersectionObserver");
+    expect(revealSource).toContain("min-w-0");
     expect(revealSource).toContain("motion-reduce:transition-none");
-    expect(splitLandingSource).toContain(
-      "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]",
-    );
-    expect(splitLandingSource).toContain('data-overlay-safe-offset="mobile-bottom-navigation"');
-    expect(splitLandingSource).toContain("md:bottom-7");
+    expect(splitLandingSource).toContain("xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]");
+    expect(splitLandingSource).toContain("hidden items-end");
+    expect(splitLandingSource).toContain("md:flex");
+    expect(splitLandingSource).not.toContain("data-overlay-safe-offset");
+    expect(splitLandingSource).not.toContain("env(safe-area-inset-bottom");
     expect(splitLandingSource).not.toContain("fixed bottom-5 right-5 z-40");
   });
 });

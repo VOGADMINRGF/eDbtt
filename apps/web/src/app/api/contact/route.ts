@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { evaluateContactSpam } from "@/lib/spam/contactSpam";
 import { verifyHumanChallenge } from "@/lib/spam/humanChallenge";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
+import { buildSupportTicketReceivedMail } from "@/utils/emailTemplates";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 import {
   getClientIp,
   rateLimitFromRequest,
@@ -29,6 +31,7 @@ const ContactSchema = z.object({
   phone: z.string().max(120).optional(),
   subject: z.string().max(200).optional(),
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH + 500),
+  locale: z.string().trim().max(12).optional(),
   newsletterOptIn: z.string().optional(),
   website: z.string().optional(),
   hp_contact: z.string().optional(),
@@ -60,15 +63,6 @@ function sanitizeText(value: unknown, maxLen: number, opts?: { preserveNewlines?
   const withoutControls = stripped.replace(/\p{C}/gu, "");
   const cleaned = opts?.preserveNewlines ? withoutControls.trim() : withoutControls.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, maxLen);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 async function hashValue(value: string, salt = "") {
@@ -112,7 +106,8 @@ function logRequest(data: {
   durationMs: number | null;
   urlCount?: number;
   honeypot?: boolean;
-  messagePreview?: string;
+  messageLength?: number;
+  deliveryCategory?: string;
 }) {
   try {
     console.info(
@@ -176,6 +171,7 @@ export async function POST(req: NextRequest) {
     phone,
     subject,
     message,
+    locale,
     newsletterOptIn,
     website,
     hp_contact,
@@ -360,37 +356,76 @@ export async function POST(req: NextRequest) {
     classification === "suspicious" ? `[VERDACHT SPAM] ${safeSubject}` : safeSubject;
 
   if (allowMail) {
-    const html = `
-      <h3>Neue Kontaktanfrage</h3>
-      <p><strong>Kategorie:</strong> ${escapeHtml(cleanCategory)}</p>
-      <p><strong>Name:</strong> ${escapeHtml(cleanName)}</p>
-      <p><strong>E-Mail:</strong> ${escapeHtml(cleanEmail)}</p>
-      ${cleanPhone ? `<p><strong>Telefon:</strong> ${escapeHtml(cleanPhone)}</p>` : ""}
-      <p><strong>Newsletter Opt-In:</strong> ${wantsNewsletter ? "ja" : "nein"}</p>
-      <p><strong>Spam-Score:</strong> ${spamScore} (${classification})</p>
-      <p><strong>Nachricht:</strong><br/>${escapeHtml(cleanMessage).replace(/\n/g, "<br/>")}</p>
-    `;
-
-    await sendMail({
-      to,
+    const internalMail = renderTransactionalMail({
       subject: outboundSubject,
-      html,
+      preheader: "Eine neue Kontaktanfrage ist eingegangen.",
+      title: "Neue Kontaktanfrage",
+      blocks: [
+        {
+          kind: "details",
+          rows: [
+            { label: "Kategorie", value: cleanCategory },
+            { label: "Name", value: cleanName },
+            { label: "E-Mail", value: cleanEmail },
+            ...(cleanPhone ? [{ label: "Telefon", value: cleanPhone }] : []),
+            {
+              label: "Newsletter Opt-in",
+              value: wantsNewsletter ? "ja" : "nein",
+            },
+            {
+              label: "Spam-Score",
+              value: `${spamScore} (${classification})`,
+            },
+          ],
+        },
+        { kind: "notice", title: "Nachricht", text: cleanMessage },
+      ],
+      reason: "eine Kontaktanfrage intern bearbeitet werden muss.",
+    });
+
+    const inboxDelivery = await sendMail({
+      to,
+      mail: internalMail,
+      delivery: "required_delivery",
+      tag: "contact_inbox",
+    });
+    if (!inboxDelivery.ok) {
+      logRequest({
+        classification,
+        spamScore,
+        reasons,
+        ipHash,
+        durationMs,
+        urlCount: spamEvaluation.urlCount,
+        honeypot: Boolean(honeypotValue),
+        messageLength: cleanMessage.length,
+        deliveryCategory: inboxDelivery.category,
+      });
+      if (wantsJson(req)) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "mail_delivery_failed",
+            delivery: mailFailureMetadata(inboxDelivery),
+          },
+          { status: 502, headers: rateLimitHeaders(ipRate) },
+        );
+      }
+      return redirect(req, "error=delivery", rateLimitHeaders(ipRate));
+    }
+
+    const acknowledgement = buildSupportTicketReceivedMail({
+      displayName: cleanName,
+      category: cleanCategory,
+      requestSubject: safeSubject,
+      locale,
     });
 
     await sendMail({
       to: cleanEmail,
-      subject: "Danke für deine Nachricht an eDebatte",
-      html: `
-        <p>Hi ${escapeHtml(cleanName)},</p>
-        <p>danke für deine Nachricht – wir freuen uns über jedes Feedback und melden uns so schnell wie möglich.</p>
-        <p><strong>Zusammenfassung:</strong></p>
-        <ul>
-          <li><strong>Thema:</strong> ${escapeHtml(cleanCategory)}</li>
-          ${safeSubject ? `<li><strong>Betreff:</strong> ${escapeHtml(safeSubject)}</li>` : ""}
-          <li><strong>Nachricht:</strong><br/>${escapeHtml(cleanMessage).replace(/\n/g, "<br/>")}</li>
-        </ul>
-        <p>Viele Grüße<br/>dein eDebatte Team</p>
-      `,
+      mail: acknowledgement,
+      delivery: "best_effort_delivery",
+      tag: "support_ticket_received",
     });
   }
 
@@ -402,10 +437,7 @@ export async function POST(req: NextRequest) {
     durationMs,
     urlCount: spamEvaluation.urlCount,
     honeypot: Boolean(honeypotValue),
-    messagePreview:
-      classification === "spam"
-        ? cleanMessage.slice(0, 200)
-        : cleanMessage.slice(0, 400),
+    messageLength: cleanMessage.length,
   });
 
   const payload = { ok: true, classification, spamScore, reasons };

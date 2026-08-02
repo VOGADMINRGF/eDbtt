@@ -45,7 +45,7 @@ export default function HomeScrollReveal({
       ref={ref}
       data-scroll-reveal=""
       data-visible={isVisible ? "true" : "false"}
-      className={`transform-gpu transition-[opacity,transform] duration-700 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${
+      className={`min-w-0 transform-gpu transition-[opacity,transform] duration-700 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${
         isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
       } ${className}`}
       style={{ transitionDelay: `${Math.max(0, delayMs)}ms` }}

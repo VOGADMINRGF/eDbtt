@@ -14,6 +14,10 @@ export interface HouseholdInvite {
   status: HouseholdInviteStatus;
 
   sentAt: Date;
+  deliveryStatus?: "delivered" | "failed" | "partial" | "pending";
+  deliveryRetryable?: boolean | null;
+  deliveryCategory?: string | null;
+  deliveryAttemptedAt?: Date | null;
   acceptedAt?: Date;
   expiresAt?: Date;
   createdAt: Date;

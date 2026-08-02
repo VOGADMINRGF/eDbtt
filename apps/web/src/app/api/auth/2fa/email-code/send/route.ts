@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       {
         ok: false,
         error: result.error,
+        delivery: "delivery" in result ? result.delivery : undefined,
         retryAfterSeconds: result.retryAfterSeconds ?? null,
         message:
           result.error === "rate_limited"

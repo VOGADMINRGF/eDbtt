@@ -107,8 +107,12 @@ describe("analyze workbench progressive disclosure", () => {
 
   it("uses stable per-user local draft keys for primary intake persistence", () => {
     expect(buildCreatePrimaryIntakeStorageKey("user-1")).toBe("vog_create_primary_intake_v1:user-1");
-    expect(buildCreatePrimaryIntakeStorageKey("")).toBe("vog_create_primary_intake_v1:anon");
-    expect(buildCreatePrimaryIntakeStorageKey(null)).toBe("vog_create_primary_intake_v1:anon");
+    expect(() => buildCreatePrimaryIntakeStorageKey("")).toThrow(
+      "authenticated_create_user_required",
+    );
+    expect(() => buildCreatePrimaryIntakeStorageKey(null)).toThrow(
+      "authenticated_create_user_required",
+    );
   });
 
   it("parses valid primary intake snapshots and ignores empty/no-op payloads", () => {
@@ -306,12 +310,12 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("create-chat-spine");
     expect(source).toContain("create-chat-message");
     expect(source).toContain("Du");
-    expect(source).toContain("Assistent");
-    expect(source).toContain("Wie möchtest du tiefer ins Thema gehen?");
-    expect(source).toContain("Hauptthema wählen");
-    expect(source).toContain("Beitrag weiterentwickeln");
-    expect(source).toContain("Quellen ergänzen");
-    expect(source).toContain("Entwurf speichern");
+    expect(source).toContain("Voxy");
+    expect(source).toContain("Themenstruktur bestätigen");
+    expect(source).toContain("Eigenes Hauptthema benennen");
+    expect(source).toContain("Aussage schärfen");
+    expect(source).toContain("Quellenmodus geöffnet");
+    expect(source).toContain("Entwurf kann weitergeführt werden");
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
     expect(source).toContain("data-structure-overview-grid");
@@ -323,7 +327,6 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).not.toContain("Was ich nach deiner Bestätigung vorbereiten kann");
     expect(source).toContain("Keine automatische Stimme.");
     expect(source).toContain("Keine automatische Veröffentlichung.");
-    expect(source).toContain("Keine automatische Kostenbuchung.");
     expect(source).toContain("Änderungsvorschläge werden zur Prüfung vorbereitet.");
     expect(source).toContain("Abstimmungsfrage bearbeiten");
     expect(source).toContain("Thema ändern");
@@ -358,7 +361,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).not.toContain("Zusatzservices (optional)");
     expect(source).not.toContain("Nicht passend");
     expect(source).toContain("dedupeCreateFollowupSections");
-    expect(source).toContain("Redaktionelle Prüfung anfragen");
+    expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("disabled:cursor-not-allowed");
     expect(source).not.toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");

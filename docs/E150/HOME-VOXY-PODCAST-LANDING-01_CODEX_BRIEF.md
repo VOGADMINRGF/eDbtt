@@ -15,7 +15,7 @@ Gleiche die Implementierung der öffentlichen Startseite mit dem visuellen Zielb
 ## Muss erhalten bleiben
 
 - Hero-Claim: `Stimmen verbinden. Zusammenhänge sichtbar machen. Gemeinsam entscheiden.`
-- eDebatte als Produktmarke; VoiceOpenGov nur als Trägerkontext
+- eDebatte als eigenständige offene Infrastruktur und Produktmarke; VoiceOpenGov als internationale Mitgliederbewegung, nicht als Eigentümer oder exklusiver Träger
 - Originalasset `apps/web/public/brand/voxy/voxy-podcast-stage.png`
 - Launcher-Asset aus dem kanonischen `miniAvatar`
 - vier Zielgruppen, sechs Nutzenbausteine und drei Voxy-Prozessschritte

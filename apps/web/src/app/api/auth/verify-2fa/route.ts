@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
-import { logAuthEvent } from "@core/telemetry/authEvents";
 import { isDemoUser } from "@/lib/demo/demoAccess";
 import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { scheduleAuthEvent } from "../authEventScheduling";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -39,6 +40,33 @@ function errorResponse(error: string, status: number) {
   return NextResponse.json({ error, message: error }, { status });
 }
 
+async function existingSessionSuccess(
+  req: NextRequest,
+  requestedRedirect: string | null,
+) {
+  const sessionUser = await getSessionUser(req);
+  if (
+    !sessionUser?.sessionValid ||
+    sessionUser.sessionTwoFactorAuthenticated !== true
+  ) {
+    return null;
+  }
+
+  await clearPendingTwoFactorCookie();
+  const redirectUrl = resolvePostLoginRedirect({
+    requestedRedirect,
+    roles: sessionUser.roles,
+    primaryRole: sessionUser.role,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    idempotent: true,
+    redirectUrl,
+    message: "2fa_already_verified",
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
@@ -58,17 +86,25 @@ export async function POST(req: NextRequest) {
 
     const pendingId = req.cookies.get("pending_2fa")?.value;
     if (!pendingId || !ObjectId.isValid(pendingId)) {
+      const replayResponse = await existingSessionSuccess(req, requestedRedirect);
+      if (replayResponse) return replayResponse;
       return errorResponse("challenge_missing", 400);
     }
 
     const challenges = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
     const challenge = await challenges.findOne({ _id: new ObjectId(pendingId) });
     if (!challenge) {
+      const replayResponse = await existingSessionSuccess(req, requestedRedirect);
+      if (replayResponse) return replayResponse;
       await clearPendingTwoFactorCookie();
       return errorResponse("challenge_missing", 400);
     }
 
-    if (challenge.expiresAt < new Date()) {
+    if (challenge.method !== method) {
+      return errorResponse("method_mismatch", 400);
+    }
+
+    if (challenge.status === "expired" || challenge.expiresAt < new Date()) {
       await challenges.updateOne(
         { _id: challenge._id },
         { $set: { consumedAt: new Date(), status: "expired" } },
@@ -77,8 +113,14 @@ export async function POST(req: NextRequest) {
       return errorResponse("challenge_expired", 400);
     }
 
-    if (challenge.method !== method) {
-      return errorResponse("method_mismatch", 400);
+    if (
+      challenge.consumedAt ||
+      (challenge.status && challenge.status !== "pending")
+    ) {
+      const replayResponse = await existingSessionSuccess(req, requestedRedirect);
+      if (replayResponse) return replayResponse;
+      await clearPendingTwoFactorCookie();
+      return errorResponse("challenge_missing", 400);
     }
 
     const userLimit = await rateLimitOrThrow(
@@ -138,17 +180,31 @@ export async function POST(req: NextRequest) {
 
     if (!valid) {
       await challenges.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
-      await logAuthEvent("auth.2fa.failed", {
+      scheduleAuthEvent("auth.2fa.failed", {
         meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
       });
       return errorResponse("invalid_code", 401);
     }
 
     const now = new Date();
-    await challenges.updateOne(
-      { _id: challenge._id },
+    const consumeResult = await challenges.updateOne(
+      {
+        _id: challenge._id,
+        consumedAt: { $exists: false },
+        $or: [
+          { status: "pending" },
+          { status: { $exists: false } },
+        ],
+      },
       { $set: { consumedAt: now, status: "used" } },
     );
+    if (consumeResult.matchedCount !== 1) {
+      const replayResponse = await existingSessionSuccess(req, requestedRedirect);
+      if (replayResponse) return replayResponse;
+      await clearPendingTwoFactorCookie();
+      return errorResponse("challenge_missing", 400);
+    }
+
     await clearPendingTwoFactorCookie();
     await applySessionCookies(user);
     const redirectUrl = resolvePostLoginRedirect({
@@ -157,10 +213,10 @@ export async function POST(req: NextRequest) {
       primaryRole: user.role,
     });
 
-    await logAuthEvent("auth.2fa.success", {
+    scheduleAuthEvent("auth.2fa.success", {
       meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
     });
-    await logAuthEvent("auth.login.success", {
+    scheduleAuthEvent("auth.login.success", {
       meta: { ipHash: sha256(ip), via: method, userHash: sha256(String(challenge.userId)) },
     });
 

@@ -216,12 +216,12 @@ export default function HomeSplitVoxyLanding({
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-[-18%] top-[-18rem] h-[38rem] rounded-full bg-[radial-gradient(circle,rgba(18,118,255,0.2),transparent_62%)] blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute right-[-12rem] top-[3rem] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,rgba(24,207,200,0.16),transparent_66%)] blur-3xl" />
 
-          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-12">
+          <div className="relative grid min-w-0 gap-10 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-start xl:gap-12">
             <HomeScrollReveal className="relative z-[2] max-w-[43rem]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgb(var(--grad-to))]">
-                eDebatte · getragen von VoiceOpenGov
+                eDebatte · offene Infrastruktur
               </p>
-              <h1 id="home-hero-title" className="mt-5 max-w-[43rem] text-[clamp(2.35rem,11vw,4.15rem)] font-semibold leading-[1.02] tracking-[-0.05em] text-[rgb(var(--fg))] lg:text-[clamp(3rem,4.2vw,4rem)]">
+              <h1 id="home-hero-title" className="mt-5 max-w-[43rem] text-[clamp(2.15rem,9.5vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.05em] text-[rgb(var(--fg))] sm:text-[clamp(2.75rem,7vw,3.75rem)] xl:text-[clamp(3rem,4.2vw,4rem)]">
                 <span className="block">Stimmen verbinden.</span>
                 <span className="block bg-[linear-gradient(90deg,#168cff,#20cfc8)] bg-clip-text text-transparent">
                   Zusammenhänge sichtbar machen.
@@ -276,7 +276,7 @@ export default function HomeSplitVoxyLanding({
 
             <HomeScrollReveal className="relative mx-auto w-full max-w-[44rem]" delayMs={120}>
               <div className="relative overflow-hidden rounded-[2.4rem] border border-[rgba(112,180,240,0.22)] bg-[rgba(5,17,37,0.96)] p-2" style={{ boxShadow: "0 36px 90px rgba(4, 30, 68, 0.34)" }}>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] lg:aspect-[6/5] xl:aspect-[4/3]">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] xl:aspect-[6/5] 2xl:aspect-[4/3]">
                   <Image
                     alt="Voxy als Gastgeber am gemeinsamen eDebatte-Podcast-Tisch"
                     className="object-cover object-center"
@@ -287,8 +287,8 @@ export default function HomeSplitVoxyLanding({
                   />
                   <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,transparent_58%,rgba(2,10,24,0.62))]" />
                   <div className="absolute inset-x-5 bottom-5 rounded-[1.35rem] border border-white/15 bg-[rgba(3,14,33,0.72)] p-4 text-white backdrop-blur-md sm:inset-x-7 sm:bottom-7 sm:p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#67dbe0]">Voxy am gemeinsamen Tisch</p>
-                    <p className="mt-2 text-lg font-semibold sm:text-xl">Zuhören. Einordnen. Gemeinsam weiterdenken.</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] !text-[#67dbe0]">Voxy am gemeinsamen Tisch</p>
+                    <p className="mt-2 text-lg font-semibold !text-white sm:text-xl">Zuhören. Einordnen. Gemeinsam weiterdenken.</p>
                   </div>
                 </div>
               </div>
@@ -415,9 +415,8 @@ export default function HomeSplitVoxyLanding({
         href="/create"
         data-testid="home-voxy-launcher"
         data-requires-privacy-gate="true"
-        data-overlay-safe-offset="mobile-bottom-navigation"
         aria-label="Mit Voxy ein Thema einbringen"
-        className="group fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-4 z-30 flex items-end gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.55)] md:bottom-7 md:right-7"
+        className="group fixed bottom-7 right-7 z-30 hidden items-end gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--grad-to),0.55)] md:flex"
       >
         <span className="hidden max-w-[15rem] translate-y-1 rounded-[1.15rem] border border-[rgba(112,180,240,0.22)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-sm leading-5 text-[rgb(var(--fg))] opacity-0 backdrop-blur-md transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 dark:bg-[rgba(7,24,51,0.94)] md:block" style={{ boxShadow: "0 18px 46px rgba(4, 30, 68, 0.22)" }}>
           <strong className="block font-semibold">Hallo Nachbar.</strong>

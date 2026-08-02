@@ -12,4 +12,14 @@ export type EmailVerificationTokenDoc = {
   invalidatedAt?: Date | null;
   invalidationReason?: string | null;
   updatedAt?: Date | null;
+  deliveryStatus?: "pending" | "delivered" | "failed" | "partial";
+  deliveryRetryable?: boolean | null;
+  deliveryCategory?: string | null;
+  deliveryAttemptedAt?: Date | null;
+  deliveryAttemptedCount?: number;
+  deliveryDeliveredCount?: number;
+  deliveryFailedCount?: number;
+  deliveryMessageId?: string | null;
+  deliveryRecoveryStatus?: string | null;
+  deliveryNextAttemptAt?: Date | null;
 };

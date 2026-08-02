@@ -164,11 +164,26 @@ const mocks = vi.hoisted(() => {
         redirectTo,
         expiresAt,
       });
-      return { expiresAt, challengeId: `challenge-${twoFactorChallenges.length}` };
+      return {
+        ok: true as const,
+        expiresAt,
+        challengeId: `challenge-${twoFactorChallenges.length}`,
+      };
     }),
     ensureBasicPiiProfile: vi.fn(async () => {}),
     ensureEnvSuperadminSeed: vi.fn(async () => {}),
-    sendMail: vi.fn(async () => {}),
+    sendMail: vi.fn(async () => ({
+      ok: true,
+      status: "delivered",
+      transport: "smtp",
+      category: null,
+      retryable: false,
+      attemptedCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      messageId: "msg-1",
+    })),
+    scheduleAuthEvent: vi.fn(() => undefined),
   };
 });
 
@@ -200,6 +215,10 @@ vi.mock("@/utils/emailTemplates", () => ({
 
 vi.mock("@core/telemetry/authEvents", () => ({
   logAuthEvent: (...args: unknown[]) => mocks.logAuthEvent(...args),
+}));
+
+vi.mock("@/app/api/auth/authEventScheduling", () => ({
+  scheduleAuthEvent: (...args: unknown[]) => mocks.scheduleAuthEvent(...args),
 }));
 
 vi.mock("@core/pii/userProfileService", () => ({
@@ -291,6 +310,10 @@ describe("auth login route regressions", () => {
       }),
     );
     expect(mocks.applySessionCookies).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleAuthEvent).toHaveBeenCalledWith(
+      "auth.login.success",
+      expect.objectContaining({ meta: expect.any(Object) }),
+    );
   });
 
   it("auth fallback: stale pii password hash falls back to core hash and repairs credentials", async () => {
@@ -435,6 +458,57 @@ describe("auth login route regressions", () => {
     });
     expect(mocks.applySessionCookies).not.toHaveBeenCalled();
     expect(mocks.issueTwoFactorChallenge).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleAuthEvent).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a required 2FA email cannot be delivered", async () => {
+    mocks.seedUser({
+      _id: "user-mail-failure",
+      email: "mail-failure@example.org",
+      passwordHash: "mail-failure-hash",
+      verification: { twoFA: { enabled: true, method: "email" } },
+    });
+    mocks.seedCredentials({
+      _id: "cred-mail-failure",
+      coreUserId: "user-mail-failure",
+      email: "mail-failure@example.org",
+      passwordHash: "mail-failure-hash",
+      twoFactorEnabled: true,
+      twoFactorMethod: "email",
+    });
+    mocks.allowPassword("correct-pass", "mail-failure-hash");
+    mocks.issueTwoFactorChallenge.mockResolvedValueOnce({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: {
+        status: "failed",
+        category: "smtp_timeout",
+        retryable: true,
+        attemptedCount: 1,
+        deliveredCount: 0,
+        failedCount: 1,
+      },
+    });
+
+    const res = await POST(
+      loginReq({
+        identifier: "mail-failure@example.org",
+        password: "correct-pass",
+      }),
+    );
+
+    expect(res.status).toBe(503);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: {
+        status: "failed",
+        category: "smtp_timeout",
+        retryable: true,
+      },
+    });
+    expect(mocks.applySessionCookies).not.toHaveBeenCalled();
+    expect(mocks.setPendingTwoFactorCookie).not.toHaveBeenCalled();
   });
 
   it("advertises an explicit email alternative for authenticator-based 2FA when an address exists", async () => {
