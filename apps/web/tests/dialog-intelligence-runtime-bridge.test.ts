@@ -8,10 +8,51 @@ import {
   runDialogIntelligenceRuntime,
 } from "@/features/create/dialogIntelligenceRuntimeBridge";
 import type { CreateIntelligentFollowupResult } from "@/features/create/intelligentFollowupContract";
+import type { CreatePlannerValidatedProviderSource } from "@/features/create/createPlannerProviderContract";
 
 function buildFollowupResult(
   overrides: Partial<CreateIntelligentFollowupResult> = {},
+  provider: CreatePlannerValidatedProviderSource = "openai",
 ): CreateIntelligentFollowupResult {
+  const model =
+    provider === "openai"
+      ? "gpt-4.1-mini"
+      : provider === "anthropic"
+        ? "claude-sonnet-test"
+        : "mistral-large-test";
+  const providerAttempts =
+    provider === "openai"
+      ? [
+          {
+            attempt: 1,
+            provider: "openai" as const,
+            model,
+            status: "succeeded" as const,
+            resultCode: "succeeded",
+            responseLength: 420,
+            responseHash: "a".repeat(64),
+          },
+        ]
+      : [
+          {
+            attempt: 1,
+            provider: "openai" as const,
+            model: "gpt-4.1-mini",
+            status: "failed" as const,
+            resultCode: "rate_limited",
+            responseLength: null,
+            responseHash: null,
+          },
+          {
+            attempt: 2,
+            provider,
+            model,
+            status: "succeeded" as const,
+            resultCode: "succeeded",
+            responseLength: 420,
+            responseHash: "b".repeat(64),
+          },
+        ];
   return {
     understanding: {
       summary: "Du möchtest sichere Schulwege im Quartier verbessern.",
@@ -51,9 +92,9 @@ function buildFollowupResult(
     generatedAt: "2026-06-29T10:00:00.000Z",
     meta: {
       planner: {
-        source: "openai",
-        plannerSource: "openai",
-        plannerProvider: "openai",
+        source: provider,
+        plannerSource: provider,
+        plannerProvider: provider,
         plannerRole: "planner_only",
         plannerTopic: "Sichere Schulwege",
         plannerCore: "Vor der Schule fehlen sichere Querungen und klare Tempo-30-Kontrollen.",
@@ -72,7 +113,7 @@ function buildFollowupResult(
         recommendedLane: "create_fast_followup",
         providerPlan: {
           lane: "create_fast_followup",
-          plannerProvider: "openai",
+          plannerProvider: provider,
           plannerRole: "planner_only",
           structureProvider: "mistral",
           summaryProvider: "claude",
@@ -95,18 +136,22 @@ function buildFollowupResult(
         qualityIssues: [],
         providerCallAttempted: true,
         providerCallSucceeded: true,
+        providerAttemptCount: provider === "openai" ? 1 : 2,
+        providerAttempts,
         plannerDebug: {
-          attemptedProvider: "openai",
-          usedProvider: "openai",
+          attemptedProvider: provider,
+          usedProvider: provider,
+          attemptedModel: model,
+          usedModel: model,
+          attemptNumber: providerAttempts.length,
           providerAvailable: true,
           providerErrorCode: null,
-          providerErrorMessage: null,
-          errorMessage: null,
           rawPayloadValid: true,
           rawTextValid: true,
           normalizedPayloadValid: true,
           qualityGatePassed: true,
-          rawText: null,
+          responseLength: 420,
+          responseHash: "b".repeat(64),
         },
       },
       graphMatch: {
@@ -149,6 +194,41 @@ describe("dialog intelligence runtime bridge", () => {
     expect(result.sourceLabel).toBe("KI-Auswertung aus Runtime");
     expect(result.outcome.recognizedStandpoint.confirmedByUser).toBe(true);
     expect(result.outcome.arguments.every((argument) => argument.verificationStatus !== "reviewed")).toBe(true);
+  });
+
+  it.each([
+    ["anthropic", "create_planner_anthropic_runtime"],
+    ["mistral", "create_planner_mistral_runtime"],
+  ] as const)(
+    "accepts a validated %s planner result throughout the dialog bridge",
+    (provider, runtimeSource) => {
+      const followup = buildFollowupResult({}, provider);
+      const result = runDialogIntelligenceRuntime({ result: followup });
+
+      expect(canRunDialogIntelligenceRuntime({ result: followup })).toBe(true);
+      expect(result.status).toBe("runtime_ai");
+      expect(result.blockers).toEqual([]);
+      expect(result.usedSources).toContain(runtimeSource);
+    },
+  );
+
+  it("rejects providers outside the canonical allow contract", () => {
+    const followup = buildFollowupResult();
+    followup.meta!.planner = {
+      ...followup.meta!.planner,
+      source: "unapproved-provider",
+      plannerSource: "unapproved-provider",
+      plannerProvider: "unapproved-provider",
+      providerPlan: {
+        ...followup.meta!.planner.providerPlan,
+        plannerProvider: "unapproved-provider",
+      },
+    } as never;
+
+    expect(canRunDialogIntelligenceRuntime({ result: followup })).toBe(false);
+    expect(getDialogIntelligenceRuntimeBlockers({ result: followup })).toContain(
+      "planner_not_runtime_ai",
+    );
   });
 
   it("routes needs_source and factcheck hints through the existing dialog contract instead of confirming truth", () => {

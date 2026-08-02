@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { isDemoUser } from "@/lib/demo/demoAccess";
 import {
   CREDENTIAL_COLLECTION,
@@ -89,15 +90,37 @@ export async function POST(req: NextRequest) {
     };
 
     const { insertedId } = await challenges.insertOne(challenge);
-    await setPendingTwoFactorCookie(String(insertedId));
+
+    const mail = buildTwoFactorCodeMail({
+      code,
+      locale: mailLocaleFromUser(user),
+    });
+    const mailResult = await sendMail({
+      to: email,
+      mail,
+      delivery: "required_delivery",
+      tag: "two_factor_resend",
+    });
+    if (!mailResult.ok) {
+      await challenges.updateOne(
+        { _id: insertedId },
+        { $set: { supersededAt: new Date(), status: "superseded" } },
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "mail_delivery_failed",
+          delivery: mailFailureMetadata(mailResult),
+        },
+        { status: 503 },
+      );
+    }
 
     await challenges.updateOne(
       { _id: existing._id },
       { $set: { supersededAt: now, status: "superseded" } },
     );
-
-    const mail = buildTwoFactorCodeMail({ code });
-    await sendMail({ to: email, subject: mail.subject, html: mail.html, text: mail.text });
+    await setPendingTwoFactorCookie(String(insertedId));
 
     return NextResponse.json({
       ok: true,

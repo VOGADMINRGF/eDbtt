@@ -455,8 +455,16 @@ export async function POST(req: NextRequest) {
       internalReviewNote: forceInternalReview ? reviewReasons.join(" | ") : null,
     },
     {
-      sendMail: async ({ to, subject, html, text }) => {
-        await sendMailInternal({ to, subject, html, text });
+      sendMail: async ({ to, mail }) => {
+        const result = await sendMailInternal({
+          to,
+          mail,
+          delivery: "best_effort_delivery",
+          tag: "preorder_confirmation",
+        });
+        if (!result.ok) {
+          throw new Error("preorder_mail_delivery_failed");
+        }
       },
       publicOrigin,
       buildConfirmationMail: buildEdebatePreorderMail,

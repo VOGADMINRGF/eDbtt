@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
+import { renderTransactionalMail } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -183,23 +184,33 @@ export async function POST(req: NextRequest) {
     const adminTo = process.env.MAIL_ADMIN_TO || "beitraege@edebatte.org";
     const preview = text.length > 600 ? `${text.slice(0, 600)}…` : text;
     const subject = "Neue Landing-Einreichung (pending_review)";
-    const html = `
-      <div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;color:#0f172a;">
-        <h2 style="margin:0 0 12px 0;font-size:18px;">Neue Landing-Einreichung</h2>
-        <p style="margin:0 0 10px 0;"><strong>ID:</strong> ${String(result.insertedId)}</p>
-        <p style="margin:0 0 10px 0;"><strong>Locale:</strong> ${locale || "n/a"}</p>
-        <p style="margin:0 0 10px 0;"><strong>Rolle:</strong> ${role || "n/a"} · <strong>Ebene:</strong> ${level || "n/a"}</p>
-        <p style="margin:0 0 10px 0;"><strong>Dateien:</strong> ${attachments.length}</p>
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:14px 0;" />
-        <p style="margin:0 0 8px 0;font-weight:600;">Text</p>
-        <div style="white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">${preview
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")}</div>
-        <p style="margin:12px 0 0 0;font-size:12px;color:#64748b;">Quelle: landing_demo · Status: pending_review</p>
-      </div>
-    `;
-    await sendMail({ to: adminTo, subject, html });
+    const mail = renderTransactionalMail({
+      subject,
+      preheader: "Eine neue Landing-Einreichung wartet auf Prüfung.",
+      title: "Neue Landing-Einreichung",
+      blocks: [
+        {
+          kind: "details",
+          rows: [
+            { label: "ID", value: String(result.insertedId) },
+            { label: "Locale", value: locale || "n/a" },
+            { label: "Rolle", value: role || "n/a" },
+            { label: "Ebene", value: level || "n/a" },
+            { label: "Dateien", value: String(attachments.length) },
+            { label: "Quelle", value: "landing_demo" },
+            { label: "Status", value: "pending_review" },
+          ],
+        },
+        { kind: "notice", title: "Text", text: preview },
+      ],
+      reason: "eine neue Einreichung intern geprüft werden muss.",
+    });
+    await sendMail({
+      to: adminTo,
+      mail,
+      delivery: "best_effort_delivery",
+      tag: "contribution_admin_notice",
+    });
 
     return NextResponse.json({
       ok: true,

@@ -4,7 +4,25 @@ import { POST } from "@/app/api/contact/route";
 import { sendMail } from "@/utils/mailer";
 
 vi.mock("@/utils/mailer", () => ({
-  sendMail: vi.fn(async () => ({ ok: true })),
+  sendMail: vi.fn(async () => ({
+    ok: true,
+    status: "delivered",
+    transport: "smtp",
+    category: null,
+    retryable: false,
+    attemptedCount: 1,
+    deliveredCount: 1,
+    failedCount: 0,
+    messageId: "msg-1",
+  })),
+  mailFailureMetadata: (result: Record<string, unknown>) => ({
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  }),
 }));
 const sendMailMock = sendMail as unknown as Mock;
 
@@ -17,6 +35,7 @@ function buildForm(overrides: Record<string, string> = {}) {
     phone: "",
     subject: "Frage",
     message: "Dies ist eine ganz normale Nachricht ohne Spam.",
+    locale: "de",
     newsletterOptIn: "",
     website: "",
     hp_contact: "",
@@ -57,6 +76,84 @@ describe("contact API spam protection", () => {
     expect(body.ok).toBe(true);
     expect(body.classification).toBe("ham");
     expect(sendMailMock.mock.calls.length).toBe(2);
+  });
+
+  it("renders the acknowledgement in the submitted English locale", async () => {
+    const res = await callContact(
+      buildForm({
+        email: "english@example.com",
+        locale: "en-GB",
+        formStartedAt: String(Date.now() - 7000),
+      }),
+      "10.0.0.11",
+    );
+
+    expect(res.status).toBe(200);
+    const acknowledgementCall = sendMailMock.mock.calls[1]?.[0];
+    expect(acknowledgementCall.delivery).toBe("best_effort_delivery");
+    expect(acknowledgementCall.mail.locale).toBe("en");
+    expect(acknowledgementCall.mail.subject).toBe("We received your message");
+    expect(acknowledgementCall.mail.html).toContain('lang="en"');
+    expect(acknowledgementCall.mail.html).not.toContain(
+      "Wir haben deine Nachricht erhalten",
+    );
+  });
+
+  it("returns a delivery failure when the required inbox mail resolves ok false", async () => {
+    sendMailMock.mockResolvedValueOnce({
+      ok: false,
+      status: "failed",
+      transport: "smtp",
+      code: "mail_transport_error",
+      category: "smtp_timeout",
+      retryable: true,
+      attemptedCount: 1,
+      deliveredCount: 0,
+      failedCount: 1,
+      messageId: null,
+    });
+
+    const res = await callContact(
+      buildForm({
+        email: "failed@example.com",
+        formStartedAt: String(Date.now() - 7000),
+      }),
+      "10.0.0.12",
+    );
+
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_delivery_failed",
+      delivery: {
+        retryable: true,
+        attemptedCount: 1,
+        deliveredCount: 0,
+        failedCount: 1,
+      },
+    });
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs message metadata without message content", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const secretText = "Vertraulicher Freitext Alpha-4711";
+
+    const res = await callContact(
+      buildForm({
+        email: "privacy@example.com",
+        message: secretText,
+        formStartedAt: String(Date.now() - 7000),
+      }),
+      "10.0.0.13",
+    );
+
+    expect(res.status).toBe(200);
+    const loggedMetadata = JSON.parse(String(infoSpy.mock.calls.at(-1)?.[0]));
+    expect(loggedMetadata.messageLength).toBe(secretText.length);
+    expect(loggedMetadata).not.toHaveProperty("messagePreview");
+    expect(JSON.stringify(loggedMetadata)).not.toContain(secretText);
+    infoSpy.mockRestore();
   });
 
   it("drops honeypot submissions silently", async () => {

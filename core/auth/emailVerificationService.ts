@@ -66,6 +66,16 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
         usedAt: null,
         invalidatedAt: null,
         invalidationReason: null,
+        deliveryStatus: "pending",
+        deliveryRetryable: null,
+        deliveryCategory: null,
+        deliveryAttemptedAt: null,
+        deliveryAttemptedCount: 0,
+        deliveryDeliveredCount: 0,
+        deliveryFailedCount: 0,
+        deliveryMessageId: null,
+        deliveryRecoveryStatus: null,
+        deliveryNextAttemptAt: null,
         updatedAt: now,
       },
       $setOnInsert: {
@@ -94,6 +104,44 @@ export async function createEmailVerificationToken(userId: ObjectId, email: stri
   );
 
   return { rawToken, expiresAt };
+}
+
+export async function recordEmailVerificationDelivery(
+  userId: ObjectId,
+  rawToken: string,
+  delivery: {
+    status: "delivered" | "failed" | "partial";
+    retryable: boolean;
+    category: string | null;
+    attemptedCount?: number;
+    deliveredCount?: number;
+    failedCount?: number;
+    messageId?: string | null;
+  },
+) {
+  const Tokens = await getCol<EmailVerificationTokenDoc>(TOKEN_COLLECTION);
+  const now = new Date();
+  await Tokens.updateOne(
+    {
+      slotKey: tokenSlotKey(userId),
+      tokenHash: tokenHash(rawToken),
+    },
+    {
+      $set: {
+        deliveryStatus: delivery.status,
+        deliveryRetryable: delivery.retryable,
+        deliveryCategory: delivery.category,
+        deliveryAttemptedAt: now,
+        deliveryAttemptedCount: delivery.attemptedCount ?? 0,
+        deliveryDeliveredCount: delivery.deliveredCount ?? 0,
+        deliveryFailedCount: delivery.failedCount ?? 0,
+        deliveryMessageId: delivery.messageId ?? null,
+        deliveryRecoveryStatus: null,
+        deliveryNextAttemptAt: null,
+        updatedAt: now,
+      },
+    },
+  );
 }
 
 export async function consumeEmailVerificationToken(rawToken: string) {

@@ -412,13 +412,13 @@ export async function POST(req: NextRequest) {
     const mail = buildVerificationMail({
       verifyUrl,
       displayName: name,
+      locale: DEFAULT_LOCALE,
     });
 
     const mailResult = await sendMail({
       to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "admin_create_verification",
     });
     if (!mailResult.ok) {
@@ -440,12 +440,15 @@ export async function POST(req: NextRequest) {
   if (sendPasswordLink) {
     const rawToken = await createToken(String(userId), "reset", 60);
     const resetUrl = resetEmailLink(rawToken);
-    const mail = buildSetPasswordMail({ resetUrl, displayName: name });
+    const mail = buildSetPasswordMail({
+      resetUrl,
+      displayName: name,
+      locale: DEFAULT_LOCALE,
+    });
     const mailResult = await sendMail({
       to: email,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
+      mail,
+      delivery: "required_delivery",
       tag: "admin_create_password_link",
     });
     if (!mailResult.ok) {

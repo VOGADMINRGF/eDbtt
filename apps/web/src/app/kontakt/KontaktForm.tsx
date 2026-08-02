@@ -200,6 +200,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
 
       <form className="mt-5 space-y-4 relative" action="/api/contact" method="POST">
         <input type="hidden" name="formStartedAt" value={formStartedAt} readOnly />
+        <input type="hidden" name="locale" value={locale} readOnly />
         <input type="hidden" name="turnstileToken" value={turnstileToken} readOnly />
         <input type="hidden" name="humanChallengeId" value={challenge.id} readOnly />
 

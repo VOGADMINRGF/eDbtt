@@ -5,6 +5,11 @@ vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   __esModule: true,
   default: () => null,
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
 
 import CreateClient, { type CreateClientProps } from "@/app/create/CreateClient";
 import { LocaleProvider } from "@/context/LocaleContext";
@@ -79,10 +84,9 @@ describe("create i18n no mixed locale contract", () => {
     const html = renderCreate("en");
 
     expect(html).toContain("What would you like to contribute?");
-    expect(html).toContain("Contribute");
     expect(html).toContain("Review");
-    expect(html).toContain("Draft together");
-    expect(html).toContain("Different mode");
+    expect(html).toContain("Hello neighbor,");
+    expect(html).toContain("No auto-publishing");
 
     expect(html).not.toContain("Deine");
     expect(html).not.toContain("Meinung");
@@ -96,10 +100,9 @@ describe("create i18n no mixed locale contract", () => {
     const html = renderCreate("de");
 
     expect(html).toContain("Was möchtest du einbringen?");
-    expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
-    expect(html).toContain("Entwerfen");
-    expect(html).toContain("Anderer Arbeitsmodus");
+    expect(html).toContain("Hallo Nachbar,");
+    expect(html).toContain("Kein Auto-Publish");
 
     expect(html).not.toContain("Different mode");
     expect(html).not.toContain("What would you like to contribute?");

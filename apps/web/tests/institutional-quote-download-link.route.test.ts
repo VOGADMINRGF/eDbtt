@@ -7,6 +7,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/utils/mailer", () => ({
   sendMail: (...args: unknown[]) => mocks.sendMail(...args),
+  mailFailureMetadata: (result: Record<string, unknown>) => ({
+    status: result.status,
+    category: result.category,
+    retryable: result.retryable,
+    attemptedCount: result.attemptedCount,
+    deliveredCount: result.deliveredCount,
+    failedCount: result.failedCount,
+  }),
 }));
 
 vi.mock("@/utils/publicOrigin", () => ({
@@ -19,7 +27,17 @@ import { GET as DOWNLOAD_QUOTE } from "@/app/api/edebatte/preorder/quote-downloa
 describe("/api/edebatte/preorder/quote-download-link", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.sendMail.mockResolvedValue(undefined);
+    mocks.sendMail.mockResolvedValue({
+      ok: true,
+      status: "delivered",
+      transport: "smtp",
+      category: null,
+      retryable: false,
+      attemptedCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      messageId: "msg-1",
+    });
   });
 
   it("rejects quote-link requests when required recipient data is missing", async () => {
@@ -73,7 +91,64 @@ describe("/api/edebatte/preorder/quote-download-link", () => {
 
     const requesterMail = mocks.sendMail.mock.calls[0]?.[0];
     expect(requesterMail?.to).toBe("max@example.org");
-    expect(String(requesterMail?.text || "")).toContain("/api/edebatte/preorder/quote-download?");
+    expect(String(requesterMail?.mail?.text || "")).toContain(
+      "/api/edebatte/preorder/quote-download?",
+    );
+    expect(requesterMail?.delivery).toBe("required_delivery");
+    expect(mocks.sendMail.mock.calls[1]?.[0]?.delivery).toBe(
+      "best_effort_delivery",
+    );
+  });
+
+  it("does not report success when required requester delivery returns ok false", async () => {
+    mocks.sendMail.mockResolvedValueOnce({
+      ok: false,
+      status: "failed",
+      transport: "smtp",
+      code: "mail_transport_error",
+      category: "smtp_timeout",
+      retryable: true,
+      attemptedCount: 1,
+      deliveredCount: 0,
+      failedCount: 1,
+      messageId: null,
+    });
+    const req = new NextRequest(
+      "http://localhost/api/edebatte/preorder/quote-download-link",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          locale: "en",
+          segment: "organizations",
+          packageId: "b2b_basis",
+          packageLabel: "Organization",
+          packagePriceLabel: "on request",
+          organizationName: "Civic Lab",
+          contactPerson: "Alex",
+          phone: "+49 123",
+          email: "alex@company.de",
+          acceptedPrivacy: true,
+          acceptedContact: true,
+        }),
+      },
+    );
+
+    const res = await REQUEST_QUOTE_LINK(req);
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "mail_failed",
+      delivery: {
+        status: "failed",
+        category: "smtp_timeout",
+        retryable: true,
+        attemptedCount: 1,
+        deliveredCount: 0,
+        failedCount: 1,
+      },
+    });
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
   });
 });
 
