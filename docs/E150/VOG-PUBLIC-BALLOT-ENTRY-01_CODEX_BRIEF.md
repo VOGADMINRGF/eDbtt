@@ -1,9 +1,9 @@
 # VOG-PUBLIC-BALLOT-ENTRY-01 · Codex-Brief für Alpha
 
-**Status:** Implementierungsauftrag zur Prüfung und Umsetzung  
-**Datum:** 2. August 2026  
-**Repository:** `VOGADMINRGF/edebatte-org`  
-**Bestehender Branch:** `fix/vog-public-ballot-entry-01`  
+**Status:** Implementierungsauftrag zur Prüfung und Umsetzung<br>
+**Datum:** 2. August 2026<br>
+**Repository:** `VOGADMINRGF/edebatte-org`<br>
+**Bestehender Branch:** `fix/vog-public-ballot-entry-01`<br>
 **Bestehender Draft-PR:** wird auf diesem Branch geführt
 
 ## 1. Produktentscheidung
