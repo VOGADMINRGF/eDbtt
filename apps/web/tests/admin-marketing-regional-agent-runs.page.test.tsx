@@ -19,6 +19,7 @@ describe("admin regional agent run surfaces", () => {
     expect(html).toContain('data-run-status="failed"');
     expect(html).toContain("sm:grid-cols-2");
     expect(html).toContain("xl:grid-cols-2");
+    expect(html).toContain("focus-visible:ring-2");
   });
 
   it("renders the English list and keeps the language-aware detail link", async () => {
@@ -61,6 +62,14 @@ describe("admin regional agent run surfaces", () => {
     expect(html).toContain("Herausgeber");
     expect(html).toContain("Abgerufen");
     expect(html).toContain("Provenienz");
+    expect(html).toContain("Provenienz erfasst");
+    expect(html).toContain("Provenienznotiz");
+    expect(html).toContain("Stabile Referenz");
+    expect(html).toContain("Evidenzstatus");
+    expect(html).toContain("Übersetzungsstatus");
+    expect(html).toContain("machine_reading_support");
+    expect(html).toContain("Übersetzung ist keine Evidenz");
+    expect(html).toContain("Manuelle Source Packs · 1");
     expect(html).toContain("Nur Vorschläge");
     expect(html).toContain("suggestion_only");
     expect(html).toContain("User-sichere Spur");
@@ -88,6 +97,8 @@ describe("admin regional agent run surfaces", () => {
     );
     expect(missing).toContain("Regional run not found");
     expect(missing).toContain("No fallback or external search was executed");
+    expect(missing).toContain("read_only");
+    expect(missing).toContain("no_external_search");
     expect(missing).toContain('data-testid="regional-agent-run-error-state"');
   });
 });

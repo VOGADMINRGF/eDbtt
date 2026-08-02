@@ -33,10 +33,16 @@ const COPY = {
     translationRule: "Übersetzung ist Lesehilfe, keine Evidenz. Originale bleiben erhalten.",
     sourcePacks: "Manuelle Source Packs",
     sourceClass: "Quellklasse",
+    sourceLanguage: "Originalsprache",
     publisher: "Herausgeber",
     retrieved: "Abgerufen",
     published: "Veröffentlicht",
+    evidenceStatus: "Evidenzstatus",
+    translationStatus: "Übersetzungsstatus",
     provenance: "Provenienz",
+    provenanceRecorded: "Provenienz erfasst",
+    provenanceNote: "Provenienznotiz",
+    stableReference: "Stabile Referenz",
     coverage: "Abdeckung",
     limitations: "Einschränkungen",
     noPublishedDate: "Kein Veröffentlichungszeitpunkt im Fixture",
@@ -80,10 +86,16 @@ const COPY = {
     translationRule: "Translation is reading support, not evidence. Originals remain preserved.",
     sourcePacks: "Manual source packs",
     sourceClass: "Source class",
+    sourceLanguage: "Original language",
     publisher: "Issuer",
     retrieved: "Retrieved",
     published: "Published",
+    evidenceStatus: "Evidence status",
+    translationStatus: "Translation status",
     provenance: "Provenance",
+    provenanceRecorded: "Provenance recorded",
+    provenanceNote: "Provenance note",
+    stableReference: "Stable reference",
     coverage: "Coverage",
     limitations: "Limitations",
     noPublishedDate: "No publication date in the fixture",
@@ -124,7 +136,7 @@ function RegionalAgentRunDetailView({
     return (
       <main className="space-y-5 pb-12" data-testid="regional-agent-run-error-state">
         <section className="rounded-3xl border border-rose-300 bg-rose-50/70 p-6 dark:border-rose-300/40 dark:bg-rose-400/10">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rose-800 dark:text-rose-200">{copy.noSearch}</p>
+          <div className="flex flex-wrap gap-2"><Badge label={copy.readOnly} tone="emerald" /><Badge label={copy.noSearch} tone="rose" /></div>
           <h1 className="mt-2 text-2xl font-bold text-[rgb(var(--fg))]">{copy.notFound}</h1>
           <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{copy.notFoundBody}</p>
         </section>
@@ -181,12 +193,15 @@ function RegionalAgentRunDetailView({
       </section>
 
       <section className="space-y-4" aria-labelledby="run-sources-heading">
-        <Heading id="run-sources-heading" title={`${copy.sourcePacks} · ${model.sourceCount}`} />
+        <Heading id="run-sources-heading" title={`${copy.sourcePacks} · ${run.sourcePacks.length}`} />
         {run.sourcePacks.map((pack) => (
           <article key={pack.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--muted))]">{pack.id}</p><h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{pack.label}</h3></div>
-              <Badge label={`${copy.coverage}: ${pack.coverageStatus}`} tone={pack.coverageStatus === "sufficient_for_fixture" ? "sky" : "amber"} />
+              <div className="flex flex-wrap gap-2">
+                <Badge label={pack.collectionMode} tone="sky" />
+                <Badge label={`${copy.coverage}: ${pack.coverageStatus}`} tone={pack.coverageStatus === "sufficient_for_fixture" ? "sky" : "amber"} />
+              </div>
             </div>
             <div className="mt-4 grid gap-4 xl:grid-cols-2">
               {pack.sources.map((source) => (
@@ -196,12 +211,16 @@ function RegionalAgentRunDetailView({
                   <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                     <Definition label={copy.publisher} value={source.issuer} />
                     <Definition label={copy.sourceClass} value={source.sourceClass} />
-                    <Definition label={copy.original} value={source.originalLanguage} />
+                    <Definition label={copy.sourceLanguage} value={source.originalLanguage} />
                     <Definition label={copy.retrieved} value={formatDateTime(source.retrievedAt, locale)} />
                     <Definition label={copy.published} value={source.publishedAt ? formatDateTime(source.publishedAt, locale) : copy.noPublishedDate} />
+                    <Definition label={copy.evidenceStatus} value={source.evidenceStatus} />
+                    <Definition label={copy.translationStatus} value={source.translationStatus} />
                     <Definition label={copy.provenance} value={`${source.provenance.mode} · ${source.provenance.recordedBy}`} />
+                    <Definition label={copy.provenanceRecorded} value={formatDateTime(source.provenance.recordedAt, locale)} />
                   </dl>
-                  <p className="mt-3 break-all text-xs text-[rgb(var(--muted))]">{source.stableRef}</p>
+                  <p className="mt-3 break-all text-xs leading-5 text-[rgb(var(--muted))]"><strong>{copy.stableReference}:</strong> {source.stableRef}</p>
+                  <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]"><strong>{copy.provenanceNote}:</strong> {source.provenance.note}</p>
                   <p className="mt-3 text-sm leading-6 text-[rgb(var(--muted))]"><strong>{copy.limitations}:</strong> {source.limitations.join(" · ")}</p>
                 </section>
               ))}
@@ -234,8 +253,9 @@ function RegionalAgentRunDetailView({
 function Heading({ id, title }: { id: string; title: string }) { return <h2 id={id} className="text-2xl font-semibold text-[rgb(var(--fg))]">{title}</h2>; }
 function Definition({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--muted))]">{label}</dt><dd className="mt-1 break-words font-medium leading-6 text-[rgb(var(--fg))]">{value}</dd></div>; }
 function Badge({ label, tone }: { label: string; tone: "emerald" | "amber" | "rose" | "sky" }) { const classes = { emerald: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-100", amber: "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100", rose: "border-rose-300 bg-rose-50 text-rose-900 dark:bg-rose-400/10 dark:text-rose-100", sky: "border-sky-300 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100" }[tone]; return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${classes}`}>{label}</span>; }
-function BackLink({ locale, label }: { locale: UiLocale; label: string }) { return <Link href={`/admin/marketing/agent/runs?lang=${locale}`} className="inline-flex rounded-xl border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{label}</Link>; }
-function languageClass(active: boolean) { return `rounded-full border px-3 py-1 ${active ? "border-sky-400 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`; }
+function BackLink({ locale, label }: { locale: UiLocale; label: string }) { return <Link href={`/admin/marketing/agent/runs?lang=${locale}`} className={`inline-flex rounded-xl border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 ${FOCUS_RING_CLASS}`}>{label}</Link>; }
+function languageClass(active: boolean) { return `rounded-full border px-3 py-1 ${FOCUS_RING_CLASS} ${active ? "border-sky-400 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`; }
+const FOCUS_RING_CLASS = "focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]";
 function formatDate(value: string, locale: UiLocale) { return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { dateStyle: "medium" }).format(new Date(value)); }
 function formatDateTime(value: string, locale: UiLocale) { return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(value)); }
 function first(value?: string | string[]) { return Array.isArray(value) ? value[0] : value; }

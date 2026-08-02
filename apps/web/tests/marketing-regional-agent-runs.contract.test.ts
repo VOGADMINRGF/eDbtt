@@ -74,6 +74,36 @@ describe("marketing regional agent run contract", () => {
     expect(RegionalAgentRunSchema.safeParse(invalid).success).toBe(false);
   });
 
+  it("keeps every source demonstrably fixture-only, chronologically consistent and non-production", () => {
+    const stableRefs = new Set<string>();
+
+    for (const run of getRegionalAgentRunFixtures()) {
+      expect(run.configuration.topicFrame.excludedTopicKeys).toContain("political-person-profiles");
+      expect(run.runtimeBoundaries.politicalPersonProfiles).toBe("disabled");
+      expect(run.configuration.languages.translationIsEvidence).toBe(false);
+
+      for (const pack of run.sourcePacks) {
+        expect(pack.externalSearchUsed).toBe(false);
+        for (const source of pack.sources) {
+          expect(source.url).toBeNull();
+          expect(source.stableRef).toMatch(/^fixture:/);
+          expect(stableRefs.has(`${run.id}:${source.stableRef}`)).toBe(false);
+          stableRefs.add(`${run.id}:${source.stableRef}`);
+          expect(source.issuer).toMatch(/Fixture/);
+          expect(source.provenance.note).toMatch(/Fixture|Manuell|manuell|keine Live|ohne Provider/);
+          expect(source.limitations.length).toBeGreaterThan(0);
+          expect(Date.parse(source.provenance.recordedAt)).toBeGreaterThanOrEqual(Date.parse(source.retrievedAt));
+          if (source.publishedAt) {
+            expect(Date.parse(source.retrievedAt)).toBeGreaterThanOrEqual(Date.parse(source.publishedAt));
+          }
+          if (source.translationStatus === "machine_reading_support") {
+            expect(source.evidenceStatus).not.toBe("qualified");
+          }
+        }
+      }
+    }
+  });
+
   it("exposes only user-safe trace fields and suggestion-only opportunity candidates", () => {
     const privateKeys = new Set([
       "prompt",

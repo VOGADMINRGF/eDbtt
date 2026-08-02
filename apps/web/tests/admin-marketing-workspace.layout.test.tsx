@@ -28,6 +28,7 @@ describe("admin marketing workspace shell", () => {
     expect(html).toContain("/admin/marketing/review?lang=de");
     expect(html).toContain("/admin/marketing/sources?lang=de");
     expect(html).toContain("/admin/marketing/agent/runs?lang=de");
+    expect(html).toContain("focus-visible:ring-2");
     expect(html).toContain('aria-current="page"');
     expect(html).not.toContain("/admin/marketing/topics");
     expect(html).not.toContain("/admin/marketing/connections");

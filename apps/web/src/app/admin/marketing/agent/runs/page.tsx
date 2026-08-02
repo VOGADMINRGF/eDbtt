@@ -116,7 +116,7 @@ function RegionalAgentRunsView({
         <RegionalAgentRunsEmptyState title={copy.emptyTitle} body={copy.emptyBody} />
       )}
 
-      <Link href={`/admin/marketing?lang=${locale}`} className="inline-flex rounded-xl border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300">{copy.back}</Link>
+      <Link href={`/admin/marketing?lang=${locale}`} className={`inline-flex rounded-xl border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 ${FOCUS_RING_CLASS}`}>{copy.back}</Link>
     </main>
   );
 }
@@ -148,7 +148,7 @@ function RunCard({ row, locale }: { row: RegionalAgentRunListRow; locale: UiLoca
         <Count label={copy.candidates} value={row.opportunityCandidateCount} />
         <Count label={copy.blockers} value={row.openBlockerCount} />
       </div>
-      <Link href={`/admin/marketing/agent/runs/${encodeURIComponent(run.id)}?lang=${locale}`} className="mt-5 inline-flex rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">{copy.open} →</Link>
+      <Link href={`/admin/marketing/agent/runs/${encodeURIComponent(run.id)}?lang=${locale}`} className={`mt-5 inline-flex rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 ${FOCUS_RING_CLASS}`}>{copy.open} →</Link>
     </article>
   );
 }
@@ -177,8 +177,10 @@ function Count({ label, value }: { label: string; value: number }) {
 }
 
 function languageClass(active: boolean) {
-  return `rounded-full border px-3 py-1 ${active ? "border-sky-400 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`;
+  return `rounded-full border px-3 py-1 ${FOCUS_RING_CLASS} ${active ? "border-sky-400 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"}`;
 }
+
+const FOCUS_RING_CLASS = "focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]";
 
 function statusLabel(status: RegionalRunStatus, locale: UiLocale) {
   const labels = locale === "de" ? { configured: "Konfiguriert", review_ready: "Zur Prüfung", blocked: "Blockiert", failed: "Fehlerhaft" } : { configured: "Configured", review_ready: "Review ready", blocked: "Blocked", failed: "Failed" };
