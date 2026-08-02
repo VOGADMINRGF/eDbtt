@@ -44,7 +44,7 @@ export default function QrStudioTargetPreview({
         <a
           href={qrImage}
           download="edebatte-public-entry-qr.png"
-          className="mt-2 inline-block text-xs font-semibold underline"
+          className="mt-2 inline-block text-xs font-semibold text-slate-900 underline hover:text-slate-700"
         >
           QR-Code speichern
         </a>

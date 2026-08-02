@@ -264,7 +264,7 @@ function QrFallback({
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
         <a
           href="/start"
-          className={`landing-cta-primary public-cta-primary vog-btn-brand ${ctaClassName}`}
+          className={`btn btn-primary text-sm ${ctaClassName}`}
         >
           Über Start weiter
         </a>

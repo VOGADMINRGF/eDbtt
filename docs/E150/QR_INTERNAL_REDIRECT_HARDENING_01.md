@@ -119,6 +119,46 @@ Die gemeinsame parametrisierte Matrix prüft:
 Die lokale Laufzeit meldete Node `25.9.0` statt des Repository-Ziels `20.x`.
 Die GitHub-CI verwendet den kanonischen Node-20-Vertrag.
 
+## Ergänzende Product-Evidence vom 2026-08-02
+
+Die lokale Playwright-Abnahme deckte die Studio-Landingpage, ein geprüftes
+kanonisches Ziel, einen blockierten Backslash-Escape, einen nicht vorhandenen
+Code sowie den öffentlichen QR-Fallback jeweils in Desktop `1440 × 900`,
+Mobile `393 × 852`, Light und Dark ab. Zusätzlich wurde der
+`/qr-studio`-Kompatibilitätsredirect mit erhaltener `target`-, `caller`- und
+`legacy`-Query geprüft. Alle 20 Viewport-/Theme-Zustände renderten mit genau
+einer sichtbaren Hauptüberschrift, ohne horizontalen Überlauf oder
+Page-Exception.
+
+Die Abnahme bestätigte und behob vier eng begrenzte Lücken:
+
+- Der Downloadlink im weißen QR-Feld besitzt auch im Dark Mode belastbaren
+  Kontrast.
+- Der primäre öffentliche Fallback ist in Light und Dark lesbar.
+- Das alternative Codefeld besitzt einen zugänglichen Namen.
+- Ein syntaktisch gültiger, aber nicht auflösbarer Code zeigt jetzt
+  `nicht verfügbar`, erläutert den Fehler ohne internen Rohcode und erzeugt
+  weder QR-Bild noch Downloadlink. Die sichtbare URL bleibt für einen
+  bewussten manuellen Zieltest erhalten.
+
+Ergänzende automatische Evidence:
+
+- fokussierte QR-, Redirect-, Auth-, Rollen-, Stream- und Wrapper-Suite:
+  14 Testdateien, 102 Tests grün;
+- Web Critical Guardrails: 17 Testdateien, 71 Tests grün;
+- Production Guardrails: 12 Testdateien, 36 Tests grün;
+- `node scripts/ci/check-web-critical-guardrails.mjs`: grün;
+- vollständiger Typecheck direkt unter Node `20.20.2`: grün;
+- vollständiger ESLint-Lauf: grün;
+- Production-Build: 322 von 322 statischen Seiten grün;
+- `git diff --check`: grün.
+
+Die Rollen- und Handoff-Prüfung bestätigt weiterhin keine neue Studio-Rolle,
+keine neue Berechtigungs- oder Persistenzwahrheit und keine Mutation durch
+QR-Erzeugung oder Zieltest. Reale Kamera-/Geräteabnahme sowie authentifizierte
+Organisations- und Event-Handoffs bleiben manuelle Gates; es wurden weder
+Produktivdaten erfunden noch reale Nachrichten versendet.
+
 ## Task-Lifecycle
 
 `docs/E150/OpenTasks.md` wurde ausschließlich mechanisch und bytegleich auf den

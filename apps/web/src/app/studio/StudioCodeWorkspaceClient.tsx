@@ -26,6 +26,17 @@ function toArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+function summaryErrorMessage(reason: unknown) {
+  if (
+    reason === "not_found" ||
+    reason === "set_not_found" ||
+    reason === "qr_set_not_found"
+  ) {
+    return "Zu diesem Code wurde keine freigegebene Beteiligung gefunden.";
+  }
+  return "Die Daten zu diesem Code konnten nicht geladen werden. Bitte versuche es erneut.";
+}
+
 const STUDIO_MODES = [
   {
     id: "public",
@@ -86,7 +97,7 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
       .catch((reason: unknown) => {
         if (!cancelled) {
           setSummary(null);
-          setError(reason instanceof Error ? reason.message : "summary_failed");
+          setError(summaryErrorMessage(reason instanceof Error ? reason.message : reason));
         }
       })
       .finally(() => {
@@ -98,13 +109,16 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
     };
   }, [normalizedCode]);
 
+  const verifiedPublicHref =
+    normalizedCode && summary?.set?.code === normalizedCode ? publicHref : null;
+
   useEffect(() => {
     let cancelled = false;
-    if (!origin || !publicHref) {
+    if (!origin || !verifiedPublicHref) {
       setQrImage(null);
       return;
     }
-    const absoluteTarget = new URL(publicHref, origin).toString();
+    const absoluteTarget = new URL(verifiedPublicHref, origin).toString();
     void QRCode.toDataURL(absoluteTarget, {
       width: 320,
       margin: 1,
@@ -119,7 +133,7 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
     return () => {
       cancelled = true;
     };
-  }, [origin, publicHref]);
+  }, [origin, verifiedPublicHref]);
 
   const questions = toArray(summary?.questions);
   const absolutePublicHref = origin && publicHref ? new URL(publicHref, origin).toString() : publicHref;
@@ -180,7 +194,9 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
                   <h2 className="mt-1 text-xl font-semibold">Direkt teilnehmen – ohne zweite Eingabe</h2>
                 </div>
                 <span className="vog-chip vog-chip--status">
-                  {summary?.set?.status || (loading ? "wird geladen" : "vorbereitet")}
+                  {error
+                    ? "nicht verfügbar"
+                    : summary?.set?.status || (loading ? "wird geladen" : "vorbereitet")}
                 </span>
               </div>
               <p className="mt-3 break-all rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
@@ -249,7 +265,7 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
               {loading ? (
                 <p className="mt-4 text-sm text-[rgb(var(--muted))]">Auswertung wird geladen …</p>
               ) : error ? (
-                <p className="mt-4 rounded-2xl border border-amber-300/50 bg-amber-300/10 p-3 text-sm text-amber-100">
+                <p className="mt-4 rounded-2xl border border-amber-500/50 bg-amber-300/10 p-3 text-sm text-amber-900 dark:text-amber-100">
                   Die Auswertung ist noch nicht verfügbar: {error}
                 </p>
               ) : questions.length ? (
@@ -286,7 +302,11 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
                   Andere Auswertung öffnen
                 </summary>
                 <form action="/studio" method="get" className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <label htmlFor="studio-evaluation-code" className="sr-only">
+                    Code für eine andere Auswertung
+                  </label>
                   <input
+                    id="studio-evaluation-code"
                     name="code"
                     placeholder="Code eingeben"
                     className="min-w-0 flex-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
@@ -308,7 +328,11 @@ export default function StudioCodeWorkspaceClient({ code }: { code: string }) {
               {qrImage ? (
                 <img src={qrImage} alt="QR-Code zur direkten Beteiligung" className="h-64 w-64" />
               ) : (
-                <span className="text-center text-sm text-slate-600">QR-Code wird vorbereitet …</span>
+                <span className="text-center text-sm text-slate-600">
+                  {error
+                    ? "QR-Code ist erst nach erfolgreicher Zielprüfung verfügbar."
+                    : "QR-Code wird vorbereitet …"}
+                </span>
               )}
             </div>
             <p className="mt-4 text-xs leading-5 text-[rgb(var(--muted))]">
