@@ -18,6 +18,11 @@ import {
   summarizeRequestScopeContext,
 } from "@/lib/server/auth/requestScope";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { enforceCreateMutationSecurity } from "@/features/create/createRouteSecurity";
+import {
+  CREATE_MAX_TEXT_LENGTH,
+  CREATE_MAX_URL_LENGTH,
+} from "@/features/create/createMutationSecurityContract";
 import { buildCreateContributionLedgerEntry } from "@features/create/createContributionLedger";
 import { createEditorialReviewRequest } from "@features/editorialReviewQueue";
 import type {
@@ -31,17 +36,16 @@ import {
   getCreateContributionDraftForResumeRecord,
   saveUserScopedServerDraft,
 } from "@/server/serverDrafts";
-import { getDraft as getLegacyDraftByStringId } from "@/server/draftStore";
 
 const DraftSaveSchema = z.object({
-  draftId: z.string().optional(),
-  packageId: z.string().min(1).optional(),
-  text: z.string().optional(),
-  textOriginal: z.string().optional(),
-  textPrepared: z.string().optional(),
-  evidenceInput: z.string().optional(),
-  locale: z.string().optional(),
-  source: z.string().optional(),
+  draftId: z.string().max(160).optional(),
+  packageId: z.string().min(1).max(160).optional(),
+  text: z.string().max(CREATE_MAX_TEXT_LENGTH).optional(),
+  textOriginal: z.string().max(CREATE_MAX_TEXT_LENGTH).optional(),
+  textPrepared: z.string().max(CREATE_MAX_TEXT_LENGTH).optional(),
+  evidenceInput: z.string().max(CREATE_MAX_TEXT_LENGTH).optional(),
+  locale: z.string().max(10).optional(),
+  source: z.string().max(160).optional(),
   createMode: z.preprocess(
     (value) => {
       if (typeof value !== "string") return value;
@@ -63,9 +67,9 @@ const DraftSaveSchema = z.object({
   ),
   authorName: z.string().max(160).optional(),
   useCase: z.enum(["civic", "journalism", "agenda"]).optional(),
-  sourceUrls: z.array(z.string().min(1)).optional(),
-  uploadIds: z.array(z.string().min(1)).optional(),
-  materialItems: z.array(z.record(z.string(), z.any())).optional(),
+  sourceUrls: z.array(z.string().min(1).max(CREATE_MAX_URL_LENGTH)).max(20).optional(),
+  uploadIds: z.array(z.string().min(1).max(160)).max(20).optional(),
+  materialItems: z.array(z.record(z.string(), z.any())).max(20).optional(),
   analysis: z.unknown().optional(),
   manualReviewRequested: z.boolean().optional(),
 });
@@ -333,36 +337,33 @@ async function resolveExistingCreateDraftForSave(input: {
   if (!draftId) {
     return {
       draft: null,
-      invalidDraftId: false,
-      legacyReadOnly: false,
+      requestedExistingDraft: false,
     };
   }
 
-  if (ObjectId.isValid(draftId)) {
-    const draft = await getCreateContributionDraftForResumeRecord(draftId, input.userId).catch(
-      () => null,
-    );
-    return {
-      draft,
-      invalidDraftId: false,
-      legacyReadOnly: draft?.storage === "contribution_drafts_legacy",
-    };
-  }
-
-  const legacyDraft = await getLegacyDraftByStringId(draftId).catch(() => null);
+  const draft = ObjectId.isValid(draftId)
+    ? await getCreateContributionDraftForResumeRecord(draftId, input.userId).catch(
+        () => null,
+      )
+    : null;
   return {
-    draft: null,
-    invalidDraftId: !legacyDraft,
-    legacyReadOnly: Boolean(legacyDraft),
+    draft,
+    requestedExistingDraft: true,
   };
 }
 
 export async function POST(req: NextRequest) {
-  const sessionUser = await getSessionUser(req);
+  const sessionUser = await getSessionUser(req).catch(() => null);
   const userId = sessionUser?._id?.toHexString?.() ?? null;
   if (!sessionUser || !sessionUser.sessionValid || !userId) {
     return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
   }
+  const securityFailure = await enforceCreateMutationSecurity({
+    req,
+    scope: "create_save",
+    actorKey: `user:${userId}`,
+  });
+  if (securityFailure) return securityFailure;
 
   let body: z.infer<typeof DraftSaveSchema>;
   try {
@@ -383,11 +384,17 @@ export async function POST(req: NextRequest) {
     draftId: body.draftId,
     userId,
   });
-  if (existingDraftState.invalidDraftId) {
-    return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
-  }
-  if (existingDraftState.legacyReadOnly) {
-    return NextResponse.json({ ok: false, error: "legacy_draft_read_only" }, { status: 409 });
+  if (
+    existingDraftState.requestedExistingDraft &&
+    (!existingDraftState.draft ||
+      existingDraftState.draft.storage !== "drafts" ||
+      existingDraftState.draft.status !== "draft" ||
+      existingDraftState.draft.userId !== userId)
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "CREATE_REQUEST_NOT_ALLOWED" },
+      { status: 403 },
+    );
   }
   const existingDraft = existingDraftState.draft;
   const requestScope = summarizeRequestScopeContext(

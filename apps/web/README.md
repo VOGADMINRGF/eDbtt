@@ -40,7 +40,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 Relevant variables for the contact form and protections:
 
 - `CONTACT_INBOX` – Zieladresse für Kontaktmails (Fallback: kontakt@edebatte.org)
-- `MAIL_FROM`, `SMTP_URL` oder `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_SECURE` – SMTP Versand
+- `MAIL_FROM="eDebatte <members@edebatte.org>"`, `MAIL_REPLY_TO="eDebatte Team <members@edebatte.org>"`, `SMTP_URL` oder `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_SECURE` – SMTP-Versand. `SMTP_FROM` ist nur als identischer Legacy-Alias zulässig.
 - `CONTACT_LOG_SALT` – Salt zum Hashen von IPs in Kontakt-Logs
 - `TURNSTILE_SECRET_KEY` und `NEXT_PUBLIC_TURNSTILE_SITE_KEY` – aktivieren Cloudflare Turnstile Schutz
 

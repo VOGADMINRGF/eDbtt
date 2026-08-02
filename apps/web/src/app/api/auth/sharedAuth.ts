@@ -5,7 +5,7 @@ import { normalizeAccessTier } from "@/config/accessTiers";
 import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
 import { normalizeInternalRedirectPath } from "@/lib/security/internalNavigation";
 import { piiCol } from "@core/db/triMongo";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { ensureVerificationDefaults } from "@core/auth/verificationTypes";
 import type { ObjectId } from "@core/db/triMongo";
@@ -76,7 +76,16 @@ export type CoreUserAuthSnapshot = {
     contributionCredits?: number | null;
   };
   vogMembershipStatus?: string | null;
-  profile?: { displayName?: string | null; location?: string | null } | null;
+  profile?: {
+    displayName?: string | null;
+    location?: string | null;
+    locale?: string | null;
+  } | null;
+  settings?: {
+    uiLocale?: string | null;
+    preferredLocale?: string | null;
+    readingLocale?: string | null;
+  } | null;
   verification?: ReturnType<typeof ensureVerificationDefaults> & {
     twoFA?: { enabled?: boolean; method?: TwoFactorMethod | null; secret?: string | null };
   };
@@ -133,6 +142,7 @@ export async function issueTwoFactorChallenge(opts: {
   emailForCode?: string | null;
   purpose?: TwoFactorChallengePurpose;
   redirectTo?: string | null;
+  locale?: string | null;
 }) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + TWO_FA_WINDOW_MS);
@@ -148,23 +158,35 @@ export async function issueTwoFactorChallenge(opts: {
   };
 
   if (opts.method === "email") {
+    if (!opts.emailForCode) {
+      return {
+        ok: false as const,
+        error: "email_unavailable" as const,
+        delivery: null,
+      };
+    }
     const code = crypto.randomInt(100000, 999999).toString();
     challenge.codeHash = sha256(code);
-    if (opts.emailForCode) {
-      const mail = buildTwoFactorCodeMail({ code });
-      await sendMail({
-        to: opts.emailForCode,
-        subject: mail.subject,
-        html: mail.html,
-        text: mail.text,
-      });
+    const mail = buildTwoFactorCodeMail({ code, locale: opts.locale });
+    const mailResult = await sendMail({
+      to: opts.emailForCode,
+      mail,
+      delivery: "required_delivery",
+      tag: "two_factor_challenge",
+    });
+    if (!mailResult.ok) {
+      return {
+        ok: false as const,
+        error: "mail_delivery_failed" as const,
+        delivery: mailFailureMetadata(mailResult),
+      };
     }
   }
 
   const col = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
   const { insertedId } = await col.insertOne(challenge);
   await setPendingTwoFactorCookie(String(insertedId));
-  return { expiresAt, challengeId: insertedId };
+  return { ok: true as const, expiresAt, challengeId: insertedId };
 }
 
 function normalizeUserRoles(

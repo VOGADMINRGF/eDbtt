@@ -3,7 +3,8 @@ import { z } from "zod";
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
 import { getPaymentEnv } from "@/lib/env/payment";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { buildEdebatePreorderPledgeAdminMail, buildEdebatePreorderPledgeUserMail } from "@/utils/emailTemplates";
 
 export const runtime = "nodejs";
@@ -47,7 +48,17 @@ export async function POST(req: NextRequest) {
   const oid = new ObjectId(userId);
   const user = await Users.findOne(
     { _id: oid },
-    { projection: { email: 1, profile: 1, displayName: 1, firstName: 1, lastName: 1, edebatte: 1 } },
+    {
+      projection: {
+        email: 1,
+        profile: 1,
+        settings: 1,
+        displayName: 1,
+        firstName: 1,
+        lastName: 1,
+        edebatte: 1,
+      },
+    },
   );
   if (!user) {
     return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
@@ -96,15 +107,54 @@ export async function POST(req: NextRequest) {
     accountMode: paymentEnv.accountMode,
   };
 
-  if (email) {
-    const userMail = buildEdebatePreorderPledgeUserMail({
-      displayName,
-      planLabel,
-      amount,
-      reference,
-      bank,
-    });
-    await sendMail({ to: email, subject: userMail.subject, html: userMail.html, text: userMail.text });
+  if (!email) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "recipient_missing",
+        partial: true,
+        pledgePersisted: true,
+      },
+      { status: 409 },
+    );
+  }
+
+  const userMail = buildEdebatePreorderPledgeUserMail({
+    displayName,
+    planLabel,
+    amount,
+    reference,
+    bank,
+    locale: mailLocaleFromUser(user),
+  });
+  const userDelivery = await sendMail({
+    to: email,
+    mail: userMail,
+    delivery: "required_delivery",
+    tag: "pledge_payment_instructions",
+  });
+  await Users.updateOne(
+    { _id: oid },
+    {
+      $set: {
+        "edebatte.pledgeMailDeliveryStatus": userDelivery.status,
+        "edebatte.pledgeMailDeliveryRetryable": userDelivery.retryable,
+        "edebatte.pledgeMailDeliveryCategory": userDelivery.category,
+        "edebatte.pledgeMailDeliveryAttemptedAt": new Date(),
+      },
+    },
+  );
+  if (!userDelivery.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        pledgePersisted: true,
+        delivery: mailFailureMetadata(userDelivery),
+      },
+      { status: 502 },
+    );
   }
 
   const teamRecipients = uniqueEmails([
@@ -125,7 +175,12 @@ export async function POST(req: NextRequest) {
     });
     await Promise.all(
       teamRecipients.map((to) =>
-        sendMail({ to, subject: adminMail.subject, html: adminMail.html, text: adminMail.text }),
+        sendMail({
+          to,
+          mail: adminMail,
+          delivery: "best_effort_delivery",
+          tag: "pledge_admin_notice",
+        }),
       ),
     );
   }
@@ -137,5 +192,6 @@ export async function POST(req: NextRequest) {
       reference,
       confirmedAt: confirmedAt.toISOString(),
     },
+    delivery: { status: userDelivery.status },
   });
 }

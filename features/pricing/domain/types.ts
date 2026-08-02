@@ -366,6 +366,8 @@ export type UserContact = {
 
 export type ConfirmationMail = {
   subject: string;
+  preheader: string;
   html: string;
   text: string;
+  locale: "de" | "en";
 };

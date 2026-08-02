@@ -5,8 +5,9 @@ import { ObjectId, getCol } from "@core/db/triMongo";
 import { upsertPiiProfile } from "@core/pii/userProfileService";
 import { insertMembershipApplication, type MembershipPackage } from "@core/membership/applications";
 import { BANK_DETAILS } from "@/config/banking";
-import { sendMail } from "@/utils/mailer";
+import { mailFailureMetadata, sendMail } from "@/utils/mailer";
 import { buildMembershipConfirmationMail } from "@/utils/emailTemplates";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,7 +76,15 @@ export async function POST(req: NextRequest) {
   const Users = await getCol("users");
   const userDoc = await Users.findOne(
     { _id: oid },
-    { projection: { email: 1, name: 1, membership: 1, profile: 1 } },
+    {
+      projection: {
+        email: 1,
+        name: 1,
+        membership: 1,
+        profile: 1,
+        settings: 1,
+      },
+    },
   );
   if (!userDoc) {
     return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
@@ -145,14 +154,38 @@ export async function POST(req: NextRequest) {
     monthlyAmount,
     reference: `${BANK_DETAILS.referenceHint} · ${reference}`,
     bank: BANK_DETAILS,
+    locale: mailLocaleFromUser(userDoc),
   });
 
-  await sendMail({
+  const mailResult = await sendMail({
     to: body.email,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+    mail,
+    delivery: "required_delivery",
+    tag: "membership_application_confirmation",
   });
+  await Users.updateOne(
+    { _id: oid },
+    {
+      $set: {
+        "membership.lastApplication.mailDeliveryStatus": mailResult.status,
+        "membership.lastApplication.mailDeliveryRetryable": mailResult.retryable,
+        "membership.lastApplication.mailDeliveryCategory": mailResult.category,
+      },
+    },
+  );
+  if (!mailResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mail_delivery_failed",
+        partial: true,
+        applicationPersisted: true,
+        applicationId: String(applicationId),
+        delivery: mailFailureMetadata(mailResult),
+      },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,
@@ -160,6 +193,7 @@ export async function POST(req: NextRequest) {
     reference: `${BANK_DETAILS.referenceHint} · ${reference}`,
     monthlyAmount,
     bank: BANK_DETAILS,
+    delivery: { status: mailResult.status },
   });
 }
 

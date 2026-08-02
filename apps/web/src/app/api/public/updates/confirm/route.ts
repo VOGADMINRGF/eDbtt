@@ -7,6 +7,10 @@ import type { Collection } from "mongodb";
 import { coreCol } from "@core/db/triMongo";
 import { sendMail } from "@/utils/mailer";
 import { publicOrigin } from "@/utils/publicOrigin";
+import {
+  renderTransactionalMail,
+  resolveMailLocale,
+} from "@/utils/mailRenderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,56 +50,70 @@ function buildWelcomeMail(opts: {
   email: string;
   name?: string | null;
   origin: string;
+  locale?: string | null;
 }) {
-  const { email, name, origin } = opts;
-  const greeting = name ? `Hallo ${name}` : "Hallo";
+  const { name, origin, locale } = opts;
+  const isEnglish = resolveMailLocale(locale) === "en";
   const membershipUrl = getMembershipUrl(origin);
-
-  const html = `
-    <p>${greeting},</p>
-    <p>deine Anmeldung für die eDebatte-Updates wurde erfolgreich bestätigt.</p>
-    <p>Ab jetzt informieren wir dich regelmäßig über neue Abstimmungen, Funktionen und Beteiligungsmöglichkeiten.</p>
-    <p>Wenn du unsere Arbeit noch stärker unterstützen möchtest, findest du hier Pakete, Preise und Möglichkeiten zur Unterstützung:
-      <a href="${membershipUrl}">Pakete &amp; Preise</a>.</p>
-    <p>– Dein Team von eDebatte</p>
-  `;
-
-  const text = `${greeting},
-
-deine Anmeldung für die eDebatte-Updates wurde bestätigt.
-
-Ab jetzt informieren wir dich regelmäßig über neue Abstimmungen, Funktionen und Beteiligungsmöglichkeiten.
-
-Wenn du unsere Arbeit noch stärker unterstützen möchtest, findest du hier Pakete, Preise und Möglichkeiten zur Unterstützung:
-${membershipUrl}
-
-– Dein Team von eDebatte`;
-
-  return {
-    subject: "Du erhältst jetzt eDebatte-Updates",
-    html,
-    text,
-  };
+  return renderTransactionalMail({
+    locale,
+    subject: isEnglish
+      ? "Your eDebatte updates are active"
+      : "Deine eDebatte-Updates sind aktiv",
+    preheader: isEnglish
+      ? "Your subscription has been confirmed."
+      : "Deine Anmeldung wurde bestätigt.",
+    title: isEnglish ? "Updates confirmed" : "Updates bestätigt",
+    greeting: name
+      ? `${isEnglish ? "Hello" : "Hallo"} ${name},`
+      : isEnglish
+        ? "Hello,"
+        : "Hallo,",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "Your subscription to eDebatte updates has been confirmed."
+          : "Deine Anmeldung für eDebatte-Updates wurde bestätigt.",
+      },
+      {
+        kind: "paragraph",
+        text: isEnglish
+          ? "We will keep you informed about relevant developments and participation opportunities."
+          : "Wir informieren dich über relevante Entwicklungen und Beteiligungsmöglichkeiten.",
+      },
+      {
+        kind: "cta",
+        label: isEnglish ? "View packages and support" : "Pakete und Unterstützung ansehen",
+        url: membershipUrl,
+      },
+    ],
+    reason: isEnglish
+      ? "you confirmed your subscription to eDebatte updates."
+      : "du deine Anmeldung für eDebatte-Updates bestätigt hast.",
+  });
 }
 
 function buildInternalConfirmedMail(opts: { email: string; name?: string | null }) {
   const { email, name } = opts;
   const subject =
     "eDebatte-Updates: Anmeldung bestätigt (Double-Opt-in abgeschlossen)";
-  const html = `
-    <p>Eine Anmeldung für den Updates-Verteiler wurde soeben bestätigt.</p>
-    <ul>
-      <li><strong>E-Mail:</strong> ${email}</li>
-      <li><strong>Name:</strong> ${name || "—"}</li>
-    </ul>
-  `;
-  const text = `eDebatte-Updates: Double-Opt-in bestätigt.
-
-E-Mail: ${email}
-Name: ${name || "—"}
-`;
-
-  return { subject, html, text };
+  return renderTransactionalMail({
+    subject,
+    preheader: "Eine Updates-Anmeldung wurde per Double-Opt-in bestätigt.",
+    title: "Updates-Anmeldung bestätigt",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: "E-Mail", value: email },
+          { label: "Name", value: name || "—" },
+          { label: "Status", value: "active" },
+        ],
+      },
+    ],
+    reason: "eine Updates-Anmeldung intern bestätigt wurde.",
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -149,12 +167,13 @@ export async function GET(req: NextRequest) {
     email,
     name: doc.name,
     origin,
+    locale: doc.locale,
   });
   await sendMail({
     to: email,
-    subject: welcomeMail.subject,
-    html: welcomeMail.html,
-    text: welcomeMail.text,
+    mail: welcomeMail,
+    delivery: "best_effort_delivery",
+    tag: "updates_welcome",
   });
 
   // Info-Mail an updates@
@@ -165,9 +184,9 @@ export async function GET(req: NextRequest) {
     });
     await sendMail({
       to: UPDATES_NOTIFY_TO,
-      subject: internalMail.subject,
-      html: internalMail.html,
-      text: internalMail.text,
+      mail: internalMail,
+      delivery: "best_effort_delivery",
+      tag: "updates_internal_confirmed",
     });
   }
 

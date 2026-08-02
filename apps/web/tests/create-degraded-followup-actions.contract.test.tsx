@@ -39,7 +39,7 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Analyse blockiert");
     expect(html).toContain("Es wurden keine Themen abgeleitet.");
     expect(html).toContain("Erneut versuchen");
-    expect(html).toContain("Eingabe speichern");
+    expect(html).not.toContain("Eingabe speichern");
     expect(html).toContain("Details &amp; Transparenz");
     expect(html).not.toContain("Ich habe diese Themen erkannt.");
     expect(html).not.toContain("Verkehrssicherheit");

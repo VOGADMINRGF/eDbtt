@@ -20,6 +20,7 @@ import {
   sanitizeRedirect,
   sha256,
 } from "../sharedAuth";
+import { mailLocaleFromUser } from "@/utils/mailRenderer";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
@@ -220,13 +221,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });
   }
 
-  const { expiresAt } = await issueTwoFactorChallenge({
+  const challengeResult = await issueTwoFactorChallenge({
     userId: user._id,
     method: twoFactorMethod,
     emailForCode: credentials?.email || user.email,
     purpose: "login_verify",
     redirectTo: redirectUrl,
+    locale: mailLocaleFromUser(user),
   });
+  if (!challengeResult.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: challengeResult.error,
+        delivery: challengeResult.delivery,
+      },
+      { status: 503 },
+    );
+  }
+  const { expiresAt } = challengeResult;
 
   return NextResponse.json({
     ok: true,

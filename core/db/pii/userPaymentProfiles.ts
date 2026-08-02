@@ -72,6 +72,7 @@ export async function upsertMembershipPaymentProfile(
     bic?: string | null;
     mandateReference?: string | null;
     microTransferHash?: string | null;
+    microTransferCode?: string | null;
     microTransferExpiresAt?: Date | null;
     microTransferAttempts?: number | null;
     microTransferVerifiedAt?: Date | null;
@@ -103,6 +104,9 @@ export async function upsertMembershipPaymentProfile(
   if (input.microTransferHash !== undefined) {
     profile.microTransferHash = input.microTransferHash;
   }
+  if (input.microTransferCode !== undefined) {
+    profile.microTransferCode = input.microTransferCode;
+  }
   if (input.microTransferExpiresAt !== undefined) {
     profile.microTransferExpiresAt = input.microTransferExpiresAt;
   }
@@ -126,6 +130,104 @@ export async function upsertMembershipPaymentProfile(
   );
 
   return result.upsertedId?._id ?? (await col.findOne({ userId }, { projection: { _id: 1 } }))!._id!;
+}
+
+export async function getMembershipPaymentWorkflowProfile(
+  userId: ObjectId,
+  membershipApplicationId?: ObjectId,
+) {
+  const col = await piiCol<UserPaymentProfileDoc>(COLLECTION);
+  return col.findOne(
+    {
+      userId,
+      ...(membershipApplicationId ? { membershipApplicationId } : {}),
+    },
+    {
+      projection: {
+        _id: 1,
+        membershipApplicationId: 1,
+        billingName: 1,
+        ibanMasked: 1,
+        microTransferCode: 1,
+        microTransferExpiresAt: 1,
+      },
+    },
+  );
+}
+
+export async function ensureMembershipApplicationPaymentProfile(
+  userId: ObjectId,
+  input: Parameters<typeof upsertMembershipPaymentProfile>[1] & {
+    microTransferHash: string;
+    microTransferCode: string;
+    microTransferExpiresAt: Date;
+  },
+) {
+  const profileId = await upsertMembershipPaymentProfile(userId, {
+    ...input,
+    microTransferHash: undefined,
+    microTransferCode: undefined,
+    microTransferExpiresAt: undefined,
+    microTransferAttempts: undefined,
+    microTransferVerifiedAt: undefined,
+  });
+  const col = await piiCol<UserPaymentProfileDoc>(COLLECTION);
+  const now = new Date();
+  await col.updateOne(
+    {
+      _id: profileId,
+      userId,
+      $or: [
+        { microTransferCode: null },
+        { microTransferCode: { $exists: false } },
+      ],
+    },
+    {
+      $set: {
+        microTransferHash: input.microTransferHash,
+        microTransferCode: input.microTransferCode,
+        microTransferExpiresAt: input.microTransferExpiresAt,
+        microTransferAttempts: 0,
+        microTransferVerifiedAt: null,
+        updatedAt: now,
+      },
+    },
+  );
+  return col.findOne({ _id: profileId, userId });
+}
+
+export async function linkMembershipPaymentProfileToApplication(input: {
+  userId: ObjectId;
+  paymentProfileId: ObjectId;
+  membershipApplicationId: ObjectId;
+}) {
+  const col = await piiCol<UserPaymentProfileDoc>(COLLECTION);
+  await col.createIndex(
+    { membershipApplicationId: 1 },
+    {
+      unique: true,
+      sparse: true,
+      name: "payment_profile_membership_application_unique",
+    },
+  );
+  return col.findOneAndUpdate(
+    {
+      _id: input.paymentProfileId,
+      userId: input.userId,
+      $or: [
+        { membershipApplicationId: input.membershipApplicationId },
+        { membershipApplicationId: null },
+        { membershipApplicationId: { $exists: false } },
+      ],
+    },
+    {
+      $set: {
+        membershipApplicationId: input.membershipApplicationId,
+        updatedAt: new Date(),
+      },
+    },
+    { returnDocument: "after" },
+  );
 }
 
 function maskIban(iban: string): string {

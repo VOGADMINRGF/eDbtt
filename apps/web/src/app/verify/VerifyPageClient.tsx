@@ -109,11 +109,7 @@ export default function VerifyPageClient() {
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok) {
-        setInfoMsg(
-          j?.verifyUrl
-            ? `Neuer Link gesendet. (Dev: ${j.verifyUrl})`
-            : "Neuer Verifizierungslink gesendet (Postfach prüfen).",
-        );
+        setInfoMsg("Wenn die Adresse bekannt ist, wurde ein neuer Verifizierungslink gesendet.");
       } else {
         setInfoMsg(j?.error || "Senden nicht möglich.");
       }
@@ -188,10 +184,6 @@ export default function VerifyPageClient() {
           </button>
         </div>
       </form>
-
-      <p className="mt-4 text-sm text-neutral-600">
-        Hinweis: Im lokalen Dev steht der Verify-Link in der Server-Konsole.
-      </p>
 
       <p className="mt-2 text-sm">
         Zurück zum{" "}

@@ -7,6 +7,12 @@ import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract
 import { buildAgenticCivicE2EAccountHint } from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
 import { buildPersonalAccountSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
+import {
+  getCreateSupportTicketForUser,
+  listCreateSupportNotificationsForUser,
+} from "@/features/support/createSupportTickets";
+import CreateSupportTicketAccountCard from "./CreateSupportTicketAccountCard";
+import CreateSupportNotifications from "./CreateSupportNotifications";
 
 export const metadata = {
   title: "Mein Konto & eDebatte · eDebatte",
@@ -44,6 +50,14 @@ export default async function AccountPage({ searchParams }: Props) {
   const preorderNotice = readParam(params, "preorder") === "thanks";
   const welcomeParam = readParam(params, "welcome");
   const welcomeNotice = Boolean(welcomeParam && ["1", "true", "yes"].includes(welcomeParam));
+  const supportTicketNumber = readParam(params, "ticket")?.trim() ?? null;
+  const supportTicket = supportTicketNumber
+    ? await getCreateSupportTicketForUser(supportTicketNumber, userId).catch(() => null)
+    : null;
+  const supportNotifications = await listCreateSupportNotificationsForUser(
+    userId,
+  ).catch(() => []);
+  const supportLocale = overview.uiLocale === "en" ? "en" : "de";
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] py-5 md:py-8">
@@ -63,6 +77,19 @@ export default async function AccountPage({ searchParams }: Props) {
             {buildVoxyExperienceShellHint("account")} {buildAgenticCivicE2EAccountHint()}
           </p>
         </header>
+
+        <CreateSupportNotifications
+          notifications={supportNotifications}
+          locale={supportLocale}
+        />
+
+        {supportTicketNumber ? (
+          <CreateSupportTicketAccountCard
+            ticketNumber={supportTicketNumber}
+            ticket={supportTicket}
+            locale={supportLocale}
+          />
+        ) : null}
 
         <AccountClient
           initialData={overview}
