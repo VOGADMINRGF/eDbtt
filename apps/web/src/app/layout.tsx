@@ -1,10 +1,6 @@
 // E200: Public root layout with locale bootstrap and privacy gate.
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import type { Collection } from "mongodb";
-import { ObjectId, getCol } from "@core/db/triMongo";
-import type { AuthUser } from "@/hooks/auth";
-import { readSession } from "@/utils/session";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 import { LocaleProvider } from "@/context/LocaleContext";
@@ -16,8 +12,8 @@ import { CONSENT_COOKIE_NAME, LEGACY_CONSENT_COOKIE_NAME, parseConsentCookie } f
 import SiteFooter from "@/components/SiteFooter";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ReadingModeProvider } from "@/components/providers/reading-mode-provider";
-import { normalizeAccessTier } from "@/config/accessTiers";
 import { MobileAppShellChrome } from "@/components/mobile/MobileAppShellChrome";
+import { loadServerUser } from "@/lib/server/auth/loadServerUser";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
@@ -52,21 +48,13 @@ export const viewport = {
   themeColor: "#06b6d4",
 };
 
-function normalizeInitialUserRoles(value: unknown): string[] {
-  if (!Array.isArray(value)) return ["user"];
-  const safeRoles = value
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter(Boolean);
-  return safeRoles.length > 0 ? safeRoles : ["user"];
-}
-
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const initialLocale = await detectInitialLocale(cookieStore);
   const initialConsent = parseConsentCookie(
     cookieStore.get(CONSENT_COOKIE_NAME)?.value ?? cookieStore.get(LEGACY_CONSENT_COOKIE_NAME)?.value,
   );
-  const initialUser = await loadServerUser(cookieStore);
+  const initialUser = await loadServerUser();
 
   return (
     <html lang={initialLocale} dir={getDir(initialLocale)} className="h-full" suppressHydrationWarning>
@@ -112,37 +100,4 @@ async function detectInitialLocale(cookieStore: Awaited<ReturnType<typeof cookie
   }
 
   return DEFAULT_LOCALE;
-}
-
-async function loadServerUser(cookieStore: Awaited<ReturnType<typeof cookies>>): Promise<AuthUser | null> {
-  try {
-    const session = await readSession();
-    const uid = session?.uid;
-    if (!uid || !ObjectId.isValid(uid)) return null;
-    const users = (await getCol("users")) as Collection<any>;
-    const doc = await users.findOne(
-      { _id: new ObjectId(uid) },
-      { projection: { email: 1, name: 1, roles: 1, accessTier: 1, b2cPlanId: 1, profile: 1 } },
-    );
-    if (!doc) return null;
-    const roles = normalizeInitialUserRoles(doc.roles);
-    const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? null);
-    return {
-      id: String(doc._id),
-      email: doc.email ?? null,
-      name: doc.name ?? null,
-      roles,
-      accessTier,
-      b2cPlanId: doc.b2cPlanId ?? null,
-      engagementXp: null,
-      engagementLevel: null,
-      contributionCredits: null,
-      planSlug: doc.b2cPlanId ?? null,
-      vogMembershipStatus: null,
-      avatarUrl: doc.profile?.avatarUrl ?? null,
-      avatarStyle: doc.profile?.avatarStyle ?? null,
-    };
-  } catch {
-    return null;
-  }
 }
