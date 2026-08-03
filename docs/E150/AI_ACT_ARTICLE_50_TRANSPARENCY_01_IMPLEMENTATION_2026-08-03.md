@@ -5,7 +5,7 @@ Task-ID: `AI-ACT-ARTICLE-50-TRANSPARENCY-01`
 Issue: `#559`
 Branch: `hardening/ai-act-article-50-transparency-01`
 Status: `review`
-Implementation-Head: `137bcb5e8dca6f268832ad71808d6edd967f2fba`
+Implementation-Head: `4b7c0133f59f8fa4d5bd85115fc1afddd3ce1aa7`
 
 Diese Evidence dokumentiert den kleinen realen P0-Slice des gemergten
 Run-Packs. Sie ist keine Rechtsberatung und erteilt keine Freigabe für Ready,
@@ -189,7 +189,11 @@ Ausgeführt mit Node `v20.20.2`:
   **23 Dateien, 111 Tests grün**.
 - Abschlusswiederholung der unmittelbar betroffenen Contract-, Render-,
   Route-, Persistence-, Manipulations- und Workbench-Tests:
-  **7 Dateien, 54 Tests grün**.
+  **7 Dateien, 55 Tests grün**.
+- Der vom ersten Closing-Push aufgedeckte Legacy-Readmodel-Pfad wird nun
+  explizit fail-closed dargestellt. Der zuvor fehlgeschlagene
+  Production-Admin-Review-Satz ist lokal mit **3 Dateien, 6 Tests grün**
+  reproduziert.
 - Die positiven End-to-End-Contract-Pfade decken `human_only`,
   `ai_assisted` und `ai_generated_reviewed` sowie `make_visible`,
   `prepare_publication`, Rücknahme und Archivierung ab.
