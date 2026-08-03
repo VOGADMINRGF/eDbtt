@@ -323,3 +323,88 @@ bestehenden Checks von Draft-PR `#557` verifiziert und im PR dokumentiert.
   Membership-, Eligibility-, Doppelzählungs- und Consent-Vertrag. Der Slice
   projiziert die Klasse getrennt, erzeugt sie aber nicht.
 - Kein Merge, kein Ready-for-Review und kein Deployment erfolgt aus diesem PR.
+
+## Main-Synchronisierung nach Merge von PR #562 · 2026-08-03
+
+### Exakte Basis und Merge-Ergebnis
+
+- Vorheriger PR-Head: `ae36a65772bb0c6d65282fc5db591141e17f069a`.
+- Integrierter Main-Stand und finaler Merge-Commit von PR `#562`:
+  `aa228773fcf87713c32f1645967a03cbac0a20e0`.
+- Lokaler konfliktfreier Merge-Head vor diesem Evidence-Nachtrag:
+  `0ddaa74763cd3df0417d73cc34b7c352bcbf1481`.
+- Mergekonflikte: **0**. Die seit der gemeinsamen Basis von diesem Branch und
+  `origin/main` veränderten Dateimengen hatten **0** Überschneidungen.
+- Objektiv notwendige Codeänderungen nach der Synchronisierung: **keine**.
+  Weder die Vote4Gov-Artikelregistry noch Auth-, Session-, Topic-, QR-, Stream-
+  oder Security-Flächen wurden durch diesen Closing-Pass verändert.
+
+### Kompatibilität mit dem gemergten Vote4Gov-Handoff
+
+- Der kanonische Public-Ballot-Pfad bleibt
+  `/vog/fragen/[code]/[questionId]`.
+- Der zentrale Vertrag bleibt Eigentum dieses Slices und exportiert mit
+  `buildVogPublicBallotHref` genau den kleinen Baustein für einen späteren
+  Adapter.
+- Der auf Main gemergte Adapter bleibt bis zu einer ausdrücklich freigegebenen
+  Folgeintegration unverändert bei `Public Ballot noch nicht freigegeben`,
+  `canWrite: false` und `publicHref: null`.
+- Die serverseitige Vote4Gov-Artikelregistry bleibt leer. Issue `#564` wurde
+  nicht aktiviert; es gibt kein reales Artikelrelease und kein Auto-Publish.
+- Gaststimmen bleiben `open_public_consultation` / `open_guest`.
+  `verified_vog_member` wird weder automatisch erzeugt noch aus einer
+  Gaststimme oder lokalen Vote4Gov-Vormerkung abgeleitet.
+- Der gemeinsame Main-Authpfad behält Gast, Auth-Unknown und authentifizierte
+  Nutzer als getrennte Wahrheiten. Dieser PR führt keine ältere Login-, Auth-
+  oder Sessionannahme wieder ein.
+
+### Erneute Validierung auf synchronisiertem Stand
+
+Alle lokalen Läufe erfolgten unter Node `20.20.2`:
+
+- fokussierte VOG-Public-Ballot-Suite: `6` Dateien, `24/24` Tests grün;
+- Vote4Gov-Kontext-Handoff plus Auth-/Session-/Topic-Regression: `12` Dateien,
+  `87/87` Tests grün;
+- QR-/Stream-/Rate-Limit-Regression: `16` Dateien, `29` Tests grün, ein bereits
+  als `skip` markierter Vote-Stats-Test unverändert übersprungen;
+- Production Guardrails: Public Routes `7/7`, Admin Review `6/6`, Publish
+  Guardrails `23/23`; insgesamt `36/36` grün;
+- Typecheck: grün;
+- vollständiger Lint: grün;
+- vollständiger Production Build mit ausschließlich `apps/web/.env.example`
+  im Prozess: grün; `256` Seitenverträge ohne Verstoß, Compiler und TypeScript
+  grün, statische Generierung `322/322`;
+- `docs/E150/OpenTasks.md` ist blob- und byte-identisch zu `origin/main` und
+  bleibt im PR-Diff unverändert.
+
+### Aktuelle Fremd-PR-Kollisionen
+
+Die Dateilisten aller offenen Fremd-PRs wurden auf ihren aktuellen Heads gegen
+die `16` Dateien dieses PRs geprüft. Direkte Überschneidung: **0**.
+
+| PR | Geprüfter Head | Überschneidung |
+| --- | --- | ---: |
+| `#565` | `0e57e67869bcd98327078424d3fb7b76df4d56df` | 0 |
+| `#561` | `5f6af8ab6fb125a7d222ef915ec4caafe61def01` | 0 |
+| `#558` | `cbd50fe4221c50f64e3368f6c0de04069448412e` | 0 |
+| `#556` | `4c6e208b6505964723632ebc16512f7c810b143e` | 0 |
+| `#555` | `29a20906bd32fe766f7e21f64809a5aa8be020c7` | 0 |
+| `#553` | `976c580f85b0632cbf78ad1392c663d9949bbe10` | 0 |
+| `#536` | `cce473fa8436e10e42d7b7ceb102393b8b6d7f1e` | 0 |
+| `#527` | `e41211a9dc290692569674b3910ab018c4b8082b` | 0 |
+| `#521` | `a347f9f4725dab9eb4387ccdf2e613f86b15d9b8` | 0 |
+| `#520` | `1c7cec7f0c16372b8804d794915b327d3f558173` | 0 |
+
+PRs `#565` und `#555` führen parallel `docs/E150/OpenTasks.md`; diese Datei
+wurde deshalb ausschließlich aus `origin/main` übernommen und nicht editiert.
+
+### Verbleibende manuelle Gates
+
+- unabhängiger Preview-Smoke für Public Ballot sowie DE/EN, Desktop, Mobile,
+  Tastatur, Fokus und Screenreader;
+- reale Vote4Gov-Artikelaktivierung ausschließlich nach Erfüllung der
+  manuellen Gates aus Issue `#564` und in einem getrennten freigegebenen Slice;
+- menschliche Review- und Mergeentscheidung.
+
+Dieser PR bleibt Draft. Kein Ready-for-Review, Merge, Deployment oder reale
+Freigabe erfolgt aus diesem Closing-Pass.
