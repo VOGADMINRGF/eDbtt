@@ -46,7 +46,7 @@ async function postAction(input: {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok || !body?.ok) {
-    throw new Error(body?.error ?? "content_release_action_failed");
+    throw new Error(body?.message ?? body?.error ?? "content_release_action_failed");
   }
 }
 
@@ -91,6 +91,11 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
       </p>
       <p className="mt-1 text-xs text-[rgb(var(--muted))]">
         {DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES[3]}
+      </p>
+      <p className="mt-2 rounded-xl border border-violet-300/45 bg-violet-500/[0.06] px-3 py-2 text-xs leading-5 text-[rgb(var(--fg))]" data-ai-transparency-publish-guard="">
+        Vor öffentlicher Sichtbarkeit müssen KI-Status, menschliche Prüfung,
+        redaktionelle Freigabe, sichtbares Label und Provenienz vollständig
+        dokumentiert sein. Fehlende oder unbekannte Angaben blockieren fail-closed.
       </p>
       {props.scopeCopy ? (
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">{props.scopeCopy}</p>

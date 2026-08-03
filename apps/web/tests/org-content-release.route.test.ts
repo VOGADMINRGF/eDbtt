@@ -119,6 +119,77 @@ function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {
   };
 }
 
+function buildHumanOnlyTransparencyRecord() {
+  return {
+    artifactId: "handoff-1:topic-page",
+    contentKind: "text",
+    createdAt: "2026-08-03T08:00:00.000Z",
+    modifiedAt: null,
+    status: "human_only",
+    humanReview: {
+      completed: true,
+      completedAt: "2026-08-03T09:00:00.000Z",
+      auditRef: "review:handoff-1",
+    },
+    editorialApproval: {
+      approved: true,
+      approvedAt: "2026-08-03T09:15:00.000Z",
+      auditRef: "approval:handoff-1",
+      responsibleRole: "institutional_actor",
+    },
+    intendedPublic: true,
+    publicInterest: true,
+    visibleLabelKey: null,
+    labelAccessible: true,
+    originalContentRef: "handoff-1",
+    derivativeContentRef: "handoff-1:topic-page",
+    deepfakeDisclosureApplied: false,
+    provenance: {
+      traceRefs: ["review:handoff-1"],
+      inputOrigin: "human_input",
+      providerMetadataPresent: false,
+      capabilities: [
+        {
+          standard: "safe_trace",
+          capability: "supported",
+          preservation: "preserved",
+          verificationRef: "review:handoff-1",
+        },
+        ...["c2pa", "iptc", "xmp"].map((standard) => ({
+          standard,
+          capability: "unsupported",
+          preservation: "unsupported",
+          verificationRef: null,
+        })),
+      ],
+    },
+  };
+}
+
+function buildOpenReviewReadModel() {
+  return {
+    organization: {
+      primaryOrganizationId: "org-1",
+    },
+    entitlementSummary: buildEntitlementSummary(),
+    openReviewItems: [
+      {
+        id: "create_handoff:own-1",
+        contentReleaseWorkbench: {
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targets: [{ targetType: "topic_page" }],
+        },
+        moderationPermission: {
+          canPrepareOwnContentRelease: true,
+          canMakeOwnContentVisible: true,
+          canArchiveOwnContent: true,
+        },
+      },
+    ],
+  };
+}
+
 describe("/api/account/organization/review/content-release", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -144,31 +215,9 @@ describe("/api/account/organization/review/content-release", () => {
   });
 
   it("lets publication-approved organizations manage visibility without setting public_official", async () => {
-    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
-      organization: {
-        primaryOrganizationId: "org-1",
-      },
-      entitlementSummary: buildEntitlementSummary(),
-      openReviewItems: [
-        {
-          id: "create_handoff:own-1",
-          contentReleaseWorkbench: {
-            sourceKind: "create_handoff",
-            sourceId: "handoff-1",
-            targets: [
-              {
-                targetType: "topic_page",
-              },
-            ],
-          },
-          moderationPermission: {
-            canPrepareOwnContentRelease: true,
-            canMakeOwnContentVisible: true,
-            canArchiveOwnContent: true,
-          },
-        },
-      ],
-    });
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(
+      buildOpenReviewReadModel(),
+    );
 
     const response = await POST(
       new NextRequest("http://localhost/api/account/organization/review/content-release", {
@@ -178,6 +227,7 @@ describe("/api/account/organization/review/content-release", () => {
           sourceId: "handoff-1",
           targetType: "topic_page",
           action: "make_visible",
+          aiTransparency: buildHumanOnlyTransparencyRecord(),
         }),
         headers: { "content-type": "application/json" },
       }),
@@ -194,6 +244,10 @@ describe("/api/account/organization/review/content-release", () => {
         targetType: "topic_page",
         action: "make_visible",
         requestedBy: "user-1",
+        aiTransparency: expect.objectContaining({
+          status: "human_only",
+          visibleLabelKey: null,
+        }),
       }),
     );
     expect(body.requestScope).toMatchObject({
@@ -205,6 +259,31 @@ describe("/api/account/organization/review/content-release", () => {
         visibilityState: "public_official",
       }),
     );
+  });
+
+  it("blocks public visibility fail-closed when AI transparency truth is missing", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(
+      buildOpenReviewReadModel(),
+    );
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "make_visible",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toBe("ai_transparency_guard_blocked");
+    expect(body.blockers).toContain("record_missing");
+    expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
   });
 
   it("blocks visibility changes when the organization lacks publication permission", async () => {

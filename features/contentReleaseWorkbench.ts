@@ -25,6 +25,10 @@ import {
   persistedCreateHandoffStatementId,
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  validateAiTransparencyRecord,
+  type AiTransparencyRecord,
+} from "@features/ai/aiTransparencyContract";
 
 export const CONTENT_RELEASE_TARGET_TYPES = ["dossier", "anlassraum", "topic_page"] as const;
 export type ContentReleaseTargetType = (typeof CONTENT_RELEASE_TARGET_TYPES)[number];
@@ -148,6 +152,16 @@ const ContentReleaseTargetRecordSchema = z
     noSocialPublishing: z.literal(true),
     noAutomaticOfficialResponse: z.literal(true),
     noAutoFinalization: z.literal(true),
+    aiTransparency: z
+      .custom<AiTransparencyRecord>((value) => {
+        try {
+          return validateAiTransparencyRecord(value as AiTransparencyRecord).length === 0;
+        } catch {
+          return false;
+        }
+      })
+      .nullable()
+      .optional(),
     revokable: z.literal(true),
     archivable: z.literal(true),
   })
@@ -277,6 +291,7 @@ export type UpdateContentReleaseTargetInput = {
   action: Exclude<ContentReleaseAction, "prepare_target">;
   requestedBy: string;
   note?: string | null;
+  aiTransparency?: AiTransparencyRecord | null;
 };
 
 export type ContentReleaseRepository = {
@@ -1340,6 +1355,7 @@ function buildRecord(params: {
     noSocialPublishing: true,
     noAutomaticOfficialResponse: true,
     noAutoFinalization: true,
+    aiTransparency: null,
     revokable: true,
     archivable: true,
   });
@@ -1473,6 +1489,10 @@ export async function updateContentReleaseTargetFromSourceResult(
   const next = ContentReleaseTargetRecordSchema.parse({
     ...existing,
     visibilityState: nextVisibilityState,
+    aiTransparency:
+      input.aiTransparency === undefined
+        ? existing.aiTransparency ?? null
+        : input.aiTransparency,
     updatedByUserId: input.requestedBy,
     updatedAt,
   });

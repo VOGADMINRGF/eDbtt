@@ -16,6 +16,10 @@ import {
   regionScopeFromRegionAccessContext,
 } from "@features/region";
 import { getRegionSourceTestResultById } from "@features/region/server/sourceConnectionRuntime";
+import {
+  parseAiTransparencyRecord,
+  resolveContentReleaseAiTransparencyGate,
+} from "@/features/ai/aiTransparencyReleaseGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +39,7 @@ const ContentReleaseBodySchema = z
     targetType: z.enum(["dossier", "anlassraum", "topic_page"]),
     action: ContentReleaseActionSchema,
     note: z.string().trim().min(1).optional(),
+    aiTransparency: z.unknown().optional(),
   })
   .strict();
 
@@ -144,6 +149,23 @@ export async function POST(req: NextRequest) {
       return denied("content_release_publication_forbidden");
     }
 
+    const aiTransparencyGate = resolveContentReleaseAiTransparencyGate({
+      action: body.action,
+      record: body.aiTransparency,
+    });
+    if (!aiTransparencyGate.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_transparency_guard_blocked",
+          message:
+            "KI-Transparenzstatus, menschliche Prüfung, redaktionelle Freigabe, Kennzeichnung und Provenienz müssen vor öffentlicher Sichtbarkeit vollständig dokumentiert sein.",
+          blockers: aiTransparencyGate.gate.blockers,
+        },
+        { status: 409 },
+      );
+    }
+
     const record = await updateContentReleaseTargetFromSourceResult({
       sourceKind: body.sourceKind,
       sourceResultId: body.sourceId,
@@ -151,6 +173,7 @@ export async function POST(req: NextRequest) {
       action: body.action,
       requestedBy: gate.actor.userId,
       note: body.note,
+      aiTransparency: parseAiTransparencyRecord(body.aiTransparency),
     });
     return NextResponse.json(
       {
