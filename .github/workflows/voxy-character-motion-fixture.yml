@@ -1,0 +1,81 @@
+name: Voxy character motion fixture
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/web/src/features/voxyVideo/modernCharacterContracts.ts"
+      - "apps/web/src/features/voxyVideo/characterMotionFixture.ts"
+      - "apps/web/src/features/voxyVideo/characterMotionFixtureHtml.ts"
+      - "apps/web/scripts/render-voxy-character-motion-fixture.ts"
+      - "apps/web/tests/voxy-video-modern-character.contract.test.ts"
+      - "apps/web/tests/voxy-character-motion-fixture.contract.test.ts"
+      - "apps/web/public/brand/voxy/fixtures/**"
+      - "docs/E150/VOXY-CHARACTER-MOTION-FIXTURE-RENDER-01_2026-08-03.md"
+      - ".github/workflows/voxy-character-motion-fixture.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  render-fixture:
+    name: Render Voxy fixture artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium and FFmpeg
+        run: |
+          pnpm -C apps/web exec playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run focused contracts
+        run: |
+          pnpm -C apps/web exec vitest run \
+            tests/voxy-video-modern-character.contract.test.ts \
+            tests/voxy-character-motion-fixture.contract.test.ts
+
+      - name: Render 16:9 MP4
+        run: |
+          pnpm -w exec tsx apps/web/scripts/render-voxy-character-motion-fixture.ts \
+            --format=16:9 \
+            --output=artifacts/voxy-character-motion-fixture-16x9.mp4
+
+      - name: Render 9:16 MP4
+        run: |
+          pnpm -w exec tsx apps/web/scripts/render-voxy-character-motion-fixture.ts \
+            --format=9:16 \
+            --output=artifacts/voxy-character-motion-fixture-9x16.mp4
+
+      - name: Render 1:1 MP4
+        run: |
+          pnpm -w exec tsx apps/web/scripts/render-voxy-character-motion-fixture.ts \
+            --format=1:1 \
+            --output=artifacts/voxy-character-motion-fixture-1x1.mp4
+
+      - name: Upload review artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxy-character-motion-fixture
+          path: artifacts/voxy-character-motion-fixture-*
+          if-no-files-found: error
+          retention-days: 14
