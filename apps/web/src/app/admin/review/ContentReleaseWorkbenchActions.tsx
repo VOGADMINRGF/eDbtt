@@ -6,7 +6,9 @@ import { startTransition, useState } from "react";
 import type { ReviewQueueItem } from "@features/reviewQueue";
 import type {
   ContentReleaseAiClassification,
+  ContentReleaseAiTransparencyReadiness,
   ContentReleasePersistenceState,
+  ContentReleaseWorkbenchTarget,
 } from "@features/contentReleaseWorkbench";
 import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
 import { AiTransparencyLabel } from "@/components/ai/AiTransparencyDisclosure";
@@ -78,6 +80,27 @@ const BLOCKER_LABELS: Record<string, string> = {
   source_target_binding_missing: "Source-/Target-/Artifact-Bindung ist nicht belastbar",
 };
 
+const FAIL_CLOSED_AI_TRANSPARENCY_READINESS: ContentReleaseAiTransparencyReadiness = {
+  classification: null,
+  visibleLabelKey: null,
+  humanReview: { completed: false, completedAt: null, auditRef: null },
+  editorialApproval: {
+    approved: false,
+    approvedAt: null,
+    auditRef: null,
+    responsibleRole: null,
+  },
+  blockers: [
+    "classification_required",
+    "human_review_event_missing",
+    "editorial_approval_pending",
+  ],
+};
+
+function resolveAiTransparencyReadiness(target: ContentReleaseWorkbenchTarget) {
+  return target.aiTransparencyReadiness ?? FAIL_CLOSED_AI_TRANSPARENCY_READINESS;
+}
+
 export default function ContentReleaseWorkbenchActions(props: Props) {
   const router = useRouter();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -87,10 +110,10 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
   >(() =>
     Object.fromEntries(
       props.contentReleaseWorkbench.targets
-        .filter((target) => target.aiTransparencyReadiness.classification)
+        .filter((target) => resolveAiTransparencyReadiness(target).classification)
         .map((target) => [
           target.targetType,
-          target.aiTransparencyReadiness.classification,
+          resolveAiTransparencyReadiness(target).classification,
         ]),
     ),
   );
@@ -163,14 +186,15 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
           const publicationKey = `${target.targetType}:prepare_publication`;
           const revokeKey = `${target.targetType}:retract_visibility`;
           const archiveKey = `${target.targetType}:archive_target`;
+          const aiTransparencyReadiness = resolveAiTransparencyReadiness(target);
           const selectedClassification =
             classifications[target.targetType] ??
-            target.aiTransparencyReadiness.classification ??
+            aiTransparencyReadiness.classification ??
             null;
           const publicActionBlocked =
             !selectedClassification ||
-            !target.aiTransparencyReadiness.humanReview.completed;
-          const displayedBlockers = target.aiTransparencyReadiness.blockers.filter(
+            !aiTransparencyReadiness.humanReview.completed;
+          const displayedBlockers = aiTransparencyReadiness.blockers.filter(
             (blocker) =>
               blocker !== "classification_required" || !selectedClassification,
           );
@@ -225,7 +249,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                         locale="de"
                         status={selectedClassification}
                         contentKind="text"
-                        humanReviewed={target.aiTransparencyReadiness.humanReview.completed}
+                        humanReviewed={aiTransparencyReadiness.humanReview.completed}
                       />
                     ) : selectedClassification === "human_only" ? (
                       <span className="text-xs font-semibold text-[rgb(var(--fg))]">
@@ -241,7 +265,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     <div>
                       <dt className="text-[rgb(var(--muted))]">Menschliche Prüfung</dt>
                       <dd className="font-semibold text-[rgb(var(--fg))]">
-                        {target.aiTransparencyReadiness.humanReview.completed
+                        {aiTransparencyReadiness.humanReview.completed
                           ? "Serverseitig belegt"
                           : "Offen — Review zuerst als bereit markieren"}
                       </dd>
@@ -249,7 +273,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                     <div>
                       <dt className="text-[rgb(var(--muted))]">Redaktionelle Freigabe</dt>
                       <dd className="font-semibold text-[rgb(var(--fg))]">
-                        {target.aiTransparencyReadiness.editorialApproval.approved
+                        {aiTransparencyReadiness.editorialApproval.approved
                           ? "Serverseitig protokolliert"
                           : "Noch nicht protokolliert"}
                       </dd>

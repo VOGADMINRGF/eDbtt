@@ -63,7 +63,7 @@ function buildTarget(
   };
 }
 
-function render(classification: ContentReleaseAiClassification | null) {
+function renderTarget(target: ContentReleaseWorkbenchTarget) {
   return renderToStaticMarkup(
     <ContentReleaseWorkbenchActions
       itemId="create_handoff:persisted:handoff-1"
@@ -83,10 +83,14 @@ function render(classification: ContentReleaseAiClassification | null) {
         intro: "Review-first",
         sourceKind: "create_handoff",
         sourceId: "handoff-1",
-        targets: [buildTarget(classification)],
+        targets: [target],
       }}
     />,
   );
+}
+
+function render(classification: ContentReleaseAiClassification | null) {
+  return renderTarget(buildTarget(classification));
 }
 
 describe("content release AI transparency UI handoff", () => {
@@ -111,6 +115,18 @@ describe("content release AI transparency UI handoff", () => {
     const html = render("human_only");
     expect(html).toContain("Kein KI-Label");
     expect(html).not.toContain('data-ai-transparency-label="ai_generated');
+  });
+
+  it("treats a legacy target without readiness truth as fail-closed", () => {
+    const target = {
+      ...buildTarget(null),
+      aiTransparencyReadiness: undefined,
+    } as unknown as ContentReleaseWorkbenchTarget;
+    const html = renderTarget(target);
+    expect(html).toContain("Klassifizierung fehlt");
+    expect(html).toContain("Als-bereit-Review fehlt");
+    expect(html).toContain("disabled");
+    expect(html).not.toContain("Kein KI-Label");
   });
 
   it("sends only classification and never client-asserted audit truth", () => {
