@@ -20,6 +20,7 @@ describe("Voxy character motion fixture", () => {
     expect(validation).toEqual({ ok: true, errors: [] });
     expect(plan.durationMs).toBe(8_000);
     expect(plan.fps).toBe(24);
+    expect((plan.durationMs / 1_000) * plan.fps).toBe(192);
     expect(plan.reviewRequired).toBe(true);
     expect(plan.autoPublish).toBe(false);
     expect(plan.lipSync).toBe(false);
@@ -76,6 +77,29 @@ describe("Voxy character motion fixture", () => {
     expect(html).toContain("character-layer");
     expect(html).not.toContain("HeyGen");
     expect(html).not.toContain("autoPublish: true");
+  });
+
+  it("supports exact paused frame capture for deterministic 24fps output", () => {
+    const plan = buildVoxyCharacterMotionFixturePlan("16:9");
+    const html = renderVoxyCharacterMotionFixtureHtml({
+      plan,
+      captureTimeMs: 4_000,
+    });
+
+    expect(html).toContain('class="capture-mode"');
+    expect(html).toContain("--capture-time:4000ms");
+    expect(html).toContain("animation-play-state: paused");
+    expect(html).toContain("calc(var(--scene-start) - var(--capture-time))");
+  });
+
+  it("clamps capture time to the fixture duration", () => {
+    const plan = buildVoxyCharacterMotionFixturePlan("16:9");
+    const html = renderVoxyCharacterMotionFixtureHtml({
+      plan,
+      captureTimeMs: 99_999,
+    });
+
+    expect(html).toContain("--capture-time:7999ms");
   });
 
   it("adapts the fixture canvas for vertical output", () => {
