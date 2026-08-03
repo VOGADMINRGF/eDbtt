@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import type { ReviewQueueItem } from "@features/reviewQueue";
-import type { ContentReleasePersistenceState } from "@features/contentReleaseWorkbench";
+import type {
+  ContentReleaseAiClassification,
+  ContentReleasePersistenceState,
+} from "@features/contentReleaseWorkbench";
 import { DOSSIER_EXPORT_SHARE_PUBLICATION_NOTES } from "@/features/review/dossierExportShareTruth";
+import { AiTransparencyLabel } from "@/components/ai/AiTransparencyDisclosure";
 
 type Props = {
   itemId: string;
@@ -38,22 +42,58 @@ async function postAction(input: {
   sourceId: string;
   targetType: "dossier" | "anlassraum" | "topic_page";
   action: ActionState["action"];
+  aiClassification?: ContentReleaseAiClassification;
 }) {
   const res = await fetch(input.endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      sourceKind: input.sourceKind,
+      sourceId: input.sourceId,
+      targetType: input.targetType,
+      action: input.action,
+      aiClassification: input.aiClassification,
+    }),
   });
   const body = await res.json().catch(() => null);
   if (!res.ok || !body?.ok) {
-    throw new Error(body?.message ?? body?.error ?? "content_release_action_failed");
+    const blockerSummary = Array.isArray(body?.blockers)
+      ? body.blockers.filter((value: unknown) => typeof value === "string").join(" · ")
+      : "";
+    const message = body?.message ?? body?.error ?? "content_release_action_failed";
+    throw new Error(blockerSummary ? `${message} Offene Blocker: ${blockerSummary}` : message);
   }
 }
+
+const CLASSIFICATION_LABELS: Record<ContentReleaseAiClassification, string> = {
+  human_only: "Rein menschlicher Inhalt",
+  ai_assisted: "Mit KI unterstützt",
+  ai_generated_reviewed: "Wesentlich KI-generiert",
+};
+
+const BLOCKER_LABELS: Record<string, string> = {
+  classification_required: "Klassifizierung fehlt",
+  human_review_event_missing: "Als-bereit-Review fehlt",
+  editorial_approval_pending: "Redaktionelle Freigabe wird erst mit der autorisierten öffentlichen Aktion protokolliert",
+  source_target_binding_missing: "Source-/Target-/Artifact-Bindung ist nicht belastbar",
+};
 
 export default function ContentReleaseWorkbenchActions(props: Props) {
   const router = useRouter();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [classifications, setClassifications] = useState<
+    Partial<Record<ActionState["targetType"], ContentReleaseAiClassification>>
+  >(() =>
+    Object.fromEntries(
+      props.contentReleaseWorkbench.targets
+        .filter((target) => target.aiTransparencyReadiness.classification)
+        .map((target) => [
+          target.targetType,
+          target.aiTransparencyReadiness.classification,
+        ]),
+    ),
+  );
   const actionEndpoint = props.endpoint ?? "/api/admin/review/content-release";
 
   async function runAction(actionState: ActionState) {
@@ -67,6 +107,11 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
         sourceId: props.sourceId,
         targetType: actionState.targetType,
         action: actionState.action,
+        aiClassification:
+          actionState.action === "make_visible" ||
+          actionState.action === "prepare_publication"
+            ? classifications[actionState.targetType]
+            : undefined,
       });
       startTransition(() => router.refresh());
     } catch (actionError) {
@@ -118,6 +163,17 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
           const publicationKey = `${target.targetType}:prepare_publication`;
           const revokeKey = `${target.targetType}:retract_visibility`;
           const archiveKey = `${target.targetType}:archive_target`;
+          const selectedClassification =
+            classifications[target.targetType] ??
+            target.aiTransparencyReadiness.classification ??
+            null;
+          const publicActionBlocked =
+            !selectedClassification ||
+            !target.aiTransparencyReadiness.humanReview.completed;
+          const displayedBlockers = target.aiTransparencyReadiness.blockers.filter(
+            (blocker) =>
+              blocker !== "classification_required" || !selectedClassification,
+          );
           return (
             <article key={`${props.itemId}:${target.targetType}`} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
@@ -131,6 +187,92 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                 <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                   Audit-Events: {target.auditEvents.length}
                 </p>
+              ) : null}
+              {target.prepared ? (
+                <div
+                  className="mt-3 rounded-xl border border-violet-300/45 bg-violet-500/[0.05] p-3"
+                  data-ai-transparency-release-handoff={target.targetType}
+                >
+                  <label
+                    className="text-xs font-semibold text-[rgb(var(--fg))]"
+                    htmlFor={`ai-classification-${props.itemId}-${target.targetType}`}
+                  >
+                    KI-Klassifizierung
+                  </label>
+                  <select
+                    id={`ai-classification-${props.itemId}-${target.targetType}`}
+                    className="mt-2 min-h-10 w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 text-sm text-[rgb(var(--fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                    value={selectedClassification ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value as ContentReleaseAiClassification | "";
+                      setClassifications((current) => ({
+                        ...current,
+                        [target.targetType]: value || undefined,
+                      }));
+                    }}
+                  >
+                    <option value="">Klassifizierung auswählen</option>
+                    {Object.entries(CLASSIFICATION_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-[rgb(var(--muted))]">
+                      Erforderliches sichtbares Label:
+                    </span>
+                    {selectedClassification && selectedClassification !== "human_only" ? (
+                      <AiTransparencyLabel
+                        locale="de"
+                        status={selectedClassification}
+                        contentKind="text"
+                        humanReviewed={target.aiTransparencyReadiness.humanReview.completed}
+                      />
+                    ) : selectedClassification === "human_only" ? (
+                      <span className="text-xs font-semibold text-[rgb(var(--fg))]">
+                        Kein KI-Label
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        Noch offen
+                      </span>
+                    )}
+                  </div>
+                  <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[rgb(var(--muted))]">Menschliche Prüfung</dt>
+                      <dd className="font-semibold text-[rgb(var(--fg))]">
+                        {target.aiTransparencyReadiness.humanReview.completed
+                          ? "Serverseitig belegt"
+                          : "Offen — Review zuerst als bereit markieren"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[rgb(var(--muted))]">Redaktionelle Freigabe</dt>
+                      <dd className="font-semibold text-[rgb(var(--fg))]">
+                        {target.aiTransparencyReadiness.editorialApproval.approved
+                          ? "Serverseitig protokolliert"
+                          : "Noch nicht protokolliert"}
+                      </dd>
+                    </div>
+                  </dl>
+                  {displayedBlockers.length > 0 ? (
+                    <div className="mt-3" aria-label="Offene Publish-Blocker">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                        Veröffentlichung ist noch blockiert:
+                      </p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-[rgb(var(--muted))]">
+                        {displayedBlockers.map((blocker) => (
+                          <li key={blocker}>{BLOCKER_LABELS[blocker] ?? blocker}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                    Der Browser sendet nur diese Klassifizierungsentscheidung. Actor,
+                    Review, Freigabe, Audit-Referenzen, Provenienz und Bindung entstehen
+                    serverseitig aus persistierten Ereignissen.
+                  </p>
+                </div>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 {target.canPrepare && props.allowPrepare !== false ? (
@@ -158,7 +300,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                 {target.canMakeVisible && props.allowMakeVisible !== false ? (
                   <button
                     type="button"
-                    disabled={pendingKey === visibleKey}
+                    disabled={pendingKey === visibleKey || publicActionBlocked}
                     onClick={() => runAction({ targetType: target.targetType, action: "make_visible" })}
                     className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
                   >
@@ -168,7 +310,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
                 {target.canPreparePublication && props.allowPreparePublication !== false ? (
                   <button
                     type="button"
-                    disabled={pendingKey === publicationKey}
+                    disabled={pendingKey === publicationKey || publicActionBlocked}
                     onClick={() => runAction({ targetType: target.targetType, action: "prepare_publication" })}
                     className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
                   >
@@ -229,7 +371,7 @@ export default function ContentReleaseWorkbenchActions(props: Props) {
           );
         })}
       </div>
-      {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-sm text-rose-700">{error}</p> : null}
     </div>
   );
 }

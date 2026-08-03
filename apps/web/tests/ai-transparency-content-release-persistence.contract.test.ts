@@ -41,6 +41,18 @@ function buildTransparencyRecord(): AiTransparencyRecord {
         safeTraceVerificationRef: "safe-trace:content-release-dossier-1",
       }),
     },
+    integrityBinding: {
+      sourceKind: "region_source_result",
+      sourceId: "source-result-1",
+      targetKind: "dossier",
+      targetId: "dossier-1",
+      contentReleaseRecordId: "content-release-dossier-1",
+      artifactId: "content-release-dossier-1",
+      actorUserId: "user-1",
+      actorRole: "editorial_actor",
+      reviewAuditRef: "review:content-release-dossier-1",
+      approvalAuditRef: "approval:content-release-dossier-1",
+    },
   };
 }
 
@@ -97,6 +109,10 @@ describe("content release AI transparency persistence", () => {
       },
       provenance: {
         providerMetadataPresent: false,
+      },
+      integrityBinding: {
+        sourceId: "source-result-1",
+        targetId: "dossier-1",
       },
     });
     expect(persisted?.noAutoPublish).toBe(true);

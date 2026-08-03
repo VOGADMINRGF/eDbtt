@@ -10,15 +10,13 @@ const ROUTES = [
 describe("AI transparency release wiring", () => {
   it.each(ROUTES)("guards public release before persistence in %s", (route) => {
     const source = readFileSync(resolve(process.cwd(), route), "utf8");
-    const gateCall = source.indexOf("resolveContentReleaseAiTransparencyGate({");
+    const gateCall = source.indexOf("executeServerAuthoritativeContentReleaseAction({");
     const blockedResponse = source.indexOf('error: "ai_transparency_guard_blocked"');
-    const updateCall = source.indexOf("updateContentReleaseTargetFromSourceResult({");
 
     expect(gateCall).toBeGreaterThan(-1);
     expect(blockedResponse).toBeGreaterThan(gateCall);
-    expect(updateCall).toBeGreaterThan(blockedResponse);
-    expect(source).toContain(
-      "aiTransparency: parseAiTransparencyRecord(body.aiTransparency)",
-    );
+    expect(source).toContain("classification: body.aiClassification ?? null");
+    expect(source).not.toContain("body.aiTransparency");
+    expect(source).not.toContain("parseAiTransparencyRecord");
   });
 });

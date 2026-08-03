@@ -70,6 +70,29 @@ const AiTransparencyRecordSchema = z
         ),
       })
       .strict(),
+    integrityBinding: z
+      .object({
+        sourceKind: z.string().trim().min(1),
+        sourceId: z.string().trim().min(1),
+        targetKind: z.string().trim().min(1),
+        targetId: z.string().trim().min(1),
+        contentReleaseRecordId: z.string().trim().min(1),
+        artifactId: z.string().trim().min(1),
+        actorUserId: z.string().trim().min(1),
+        actorRole: z.enum([
+          "reviewer",
+          "editor",
+          "editorial_actor",
+          "institutional_actor",
+          "admin",
+          "legal_safety_reviewer",
+        ]),
+        reviewAuditRef: z.string().trim().min(1),
+        approvalAuditRef: z.string().trim().min(1),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 

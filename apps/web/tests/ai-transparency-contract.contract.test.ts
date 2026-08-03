@@ -23,19 +23,21 @@ function buildRecord(
     completedAt: "2026-08-03T09:00:00.000Z",
     auditRef: "review:123",
   };
+  const editorialApproval = overrides.editorialApproval ?? {
+    approved: true,
+    approvedAt: "2026-08-03T09:15:00.000Z",
+    auditRef: "approval:123",
+    responsibleRole: "editorial_actor" as const,
+  };
+  const artifactId = overrides.artifactId ?? "artifact:123";
   return {
-    artifactId: "artifact:123",
+    artifactId,
     contentKind,
     createdAt: CREATED_AT,
     modifiedAt: null,
     status,
     humanReview,
-    editorialApproval: overrides.editorialApproval ?? {
-      approved: true,
-      approvedAt: "2026-08-03T09:15:00.000Z",
-      auditRef: "approval:123",
-      responsibleRole: "editorial_actor",
-    },
+    editorialApproval,
     intendedPublic: true,
     publicInterest: true,
     visibleLabelKey:
@@ -58,6 +60,24 @@ function buildRecord(
         safeTraceVerificationRef: "safe-trace:123",
       }),
     },
+    integrityBinding:
+      overrides.integrityBinding === undefined &&
+      humanReview.auditRef &&
+      editorialApproval.auditRef &&
+      editorialApproval.responsibleRole
+        ? {
+            sourceKind: "create_handoff",
+            sourceId: "source:123",
+            targetKind: "dossier",
+            targetId: "target:123",
+            contentReleaseRecordId: "content-release:123",
+            artifactId,
+            actorUserId: "editor:123",
+            actorRole: editorialApproval.responsibleRole,
+            reviewAuditRef: humanReview.auditRef,
+            approvalAuditRef: editorialApproval.auditRef,
+          }
+        : (overrides.integrityBinding ?? null),
     ...overrides,
   };
 }
@@ -275,6 +295,31 @@ describe("AI transparency contract", () => {
     expect(gate.allowed).toBe(false);
     expect(gate.blockers).toContain("record_invalid");
     expect(gate.blockers).toContain("metadata_capability_truth_missing");
+  });
+
+  it("fails closed when a public record has no or mismatched integrity binding", () => {
+    const missing = resolveAiTransparencyPublicationGate({
+      record: buildRecord({ integrityBinding: null }),
+      action: "public_display",
+      existingGuards: OPEN_EXISTING_GUARDS,
+    });
+    expect(missing.allowed).toBe(false);
+    expect(missing.blockers).toContain("integrity_binding_missing");
+
+    const mismatched = buildRecord();
+    mismatched.integrityBinding = {
+      ...mismatched.integrityBinding!,
+      sourceId: "other-source",
+      artifactId: "other-artifact",
+    };
+    const blocked = resolveAiTransparencyPublicationGate({
+      record: mismatched,
+      action: "public_display",
+      existingGuards: OPEN_EXISTING_GUARDS,
+    });
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.blockers).toContain("record_invalid");
+    expect(blocked.blockers).toContain("integrity_binding_mismatch");
   });
 
   it("builds a read-only pre-cutoff audit finding without automatic relabelling", () => {

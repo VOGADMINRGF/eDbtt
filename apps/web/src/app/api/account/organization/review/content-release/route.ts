@@ -6,17 +6,17 @@ import {
   hasVerifiedMembershipWriteAccess,
 } from "@/lib/server/auth/membershipDirectoryRepository";
 import {
+  CONTENT_RELEASE_AI_CLASSIFICATIONS,
   prepareContentReleaseTargetFromSourceResult,
-  updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
 import {
   buildOrganizationDashboardReadModel,
   organizationEntitlementAllowsScope,
 } from "@features/region";
 import {
-  parseAiTransparencyRecord,
-  resolveContentReleaseAiTransparencyGate,
-} from "@/features/ai/aiTransparencyReleaseGuard";
+  executeServerAuthoritativeContentReleaseAction,
+  resolveServerAiTransparencyResponsibleRole,
+} from "@/features/ai/aiTransparencyContentReleaseServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ const ContentReleaseBodySchema = z
       "archive_target",
     ]),
     note: z.string().trim().min(1).optional(),
-    aiTransparency: z.unknown().optional(),
+    aiClassification: z.enum(CONTENT_RELEASE_AI_CLASSIFICATIONS).optional(),
   })
   .strict();
 
@@ -154,32 +154,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const aiTransparencyGate = resolveContentReleaseAiTransparencyGate({
+    const release = await executeServerAuthoritativeContentReleaseAction({
+      sourceKind: body.sourceKind,
+      sourceId: body.sourceId,
+      targetType: body.targetType,
       action: body.action,
-      record: body.aiTransparency,
+      classification: body.aiClassification ?? null,
+      actor: {
+        userId,
+        responsibleRole: resolveServerAiTransparencyResponsibleRole({
+          role: gate.actor.role,
+          isAdmin: gate.actor.isAdmin === true,
+        }),
+      },
+      note: body.note ?? null,
     });
-    if (!aiTransparencyGate.allowed) {
+    if (!release.allowed) {
       return NextResponse.json(
         {
           ok: false,
           error: "ai_transparency_guard_blocked",
           message:
             "KI-Transparenzstatus, menschliche Prüfung, redaktionelle Freigabe, Kennzeichnung und Provenienz müssen vor öffentlicher Sichtbarkeit vollständig dokumentiert sein.",
-          blockers: aiTransparencyGate.gate.blockers,
+          blockers: release.blockers,
         },
         { status: 409 },
       );
     }
 
-    const record = await updateContentReleaseTargetFromSourceResult({
-      sourceKind: body.sourceKind,
-      sourceResultId: body.sourceId,
-      targetType: body.targetType,
-      action: body.action,
-      requestedBy: userId,
-      note: body.note,
-      aiTransparency: parseAiTransparencyRecord(body.aiTransparency),
-    });
+    const record = release.target;
     return NextResponse.json(
       {
         ok: true,

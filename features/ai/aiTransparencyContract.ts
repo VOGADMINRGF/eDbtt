@@ -92,6 +92,19 @@ export type AiTransparencyEditorialTruth = {
   responsibleRole: AiTransparencyResponsibleRole | null;
 };
 
+export type AiTransparencyIntegrityBinding = {
+  sourceKind: string;
+  sourceId: string;
+  targetKind: string;
+  targetId: string;
+  contentReleaseRecordId: string;
+  artifactId: string;
+  actorUserId: string;
+  actorRole: AiTransparencyResponsibleRole;
+  reviewAuditRef: string;
+  approvalAuditRef: string;
+};
+
 export type AiTransparencyRecord = {
   artifactId: string;
   contentKind: AiTransparencyContentKind;
@@ -108,6 +121,7 @@ export type AiTransparencyRecord = {
   derivativeContentRef: string | null;
   deepfakeDisclosureApplied: boolean;
   provenance: AiMachineReadableProvenance;
+  integrityBinding?: AiTransparencyIntegrityBinding | null;
 };
 
 export type AiTransparencyPublicView = {
@@ -146,7 +160,9 @@ export type AiTransparencyBlocker =
   | "derivative_reference_missing"
   | "deepfake_disclosure_missing"
   | "provider_metadata_lost"
-  | "provider_metadata_not_preserved";
+  | "provider_metadata_not_preserved"
+  | "integrity_binding_missing"
+  | "integrity_binding_mismatch";
 
 export type AiTransparencyPublicationGate = {
   allowed: boolean;
@@ -313,6 +329,30 @@ export function validateAiTransparencyRecord(
   ) {
     issues.push("editorial_approval_truth_incomplete");
   }
+  if (record.integrityBinding) {
+    const binding = record.integrityBinding;
+    if (
+      !isNonEmpty(binding.sourceKind) ||
+      !isNonEmpty(binding.sourceId) ||
+      !isNonEmpty(binding.targetKind) ||
+      !isNonEmpty(binding.targetId) ||
+      !isNonEmpty(binding.contentReleaseRecordId) ||
+      !isNonEmpty(binding.artifactId) ||
+      !isNonEmpty(binding.actorUserId) ||
+      !isNonEmpty(binding.reviewAuditRef) ||
+      !isNonEmpty(binding.approvalAuditRef)
+    ) {
+      issues.push("integrity_binding_incomplete");
+    }
+    if (
+      binding.artifactId !== record.artifactId ||
+      binding.reviewAuditRef !== record.humanReview.auditRef ||
+      binding.approvalAuditRef !== record.editorialApproval.auditRef ||
+      binding.actorRole !== record.editorialApproval.responsibleRole
+    ) {
+      issues.push("integrity_binding_mismatch");
+    }
+  }
   if (
     (record.status === "ai_manipulated_media" ||
       record.status === "deepfake_disclosure_required") &&
@@ -440,6 +480,20 @@ export function resolveAiTransparencyPublicationGate(
 
   if (record) {
     if (!record.intendedPublic) blockers.push("not_intended_for_publication");
+    if (record.intendedPublic && !record.integrityBinding) {
+      blockers.push("integrity_binding_missing");
+    }
+    if (
+      record.integrityBinding &&
+      (record.integrityBinding.artifactId !== record.artifactId ||
+        record.integrityBinding.reviewAuditRef !== record.humanReview.auditRef ||
+        record.integrityBinding.approvalAuditRef !==
+          record.editorialApproval.auditRef ||
+        record.integrityBinding.actorRole !==
+          record.editorialApproval.responsibleRole)
+    ) {
+      blockers.push("integrity_binding_mismatch");
+    }
     const expectedLabel = getAiTransparencyLabelKey({
       status: record.status,
       contentKind: record.contentKind,

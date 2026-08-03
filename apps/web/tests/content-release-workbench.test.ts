@@ -63,15 +63,19 @@ import {
   getContentReleasePersistenceState,
   getPublicContentLink,
   listContentReleaseAuditEventsForRecords,
-  makeContentVisible,
   listContentReleaseAuditEvents,
   preparePublishPreview,
   prepareContentReleaseTargetFromSourceResult,
   revokeVisibility,
   archiveVisibleContent,
   setContentReleaseWorkbenchRepoForTests,
-  updateContentReleaseTargetFromSourceResult,
 } from "@features/contentReleaseWorkbench";
+import {
+  applyReviewQueueOperation,
+  createInMemoryReviewQueueOperationRepo,
+  setReviewQueueOperationRepoForTests,
+} from "@features/reviewQueueOperations";
+import { executeServerAuthoritativeContentReleaseAction } from "@/features/ai/aiTransparencyContentReleaseServer";
 import {
   createInMemoryPersistedCreateHandoffRepo,
   setPersistedCreateHandoffRepoForTests,
@@ -358,6 +362,7 @@ describe("content release workbench", () => {
     mocks.updateDossierCounts.mockReset();
     mocks.seedDossierFromAnalysis.mockReset();
     setContentReleaseWorkbenchRepoForTests(createInMemoryContentReleaseWorkbenchRepo());
+    setReviewQueueOperationRepoForTests(createInMemoryReviewQueueOperationRepo());
     setRegionSourceConnectionRuntimeRepoForTests(
       createInMemoryRegionSourceConnectionRuntimeRepo({
         results: [sourceResult as any],
@@ -373,6 +378,31 @@ describe("content release workbench", () => {
       anlassraumId: { toHexString: () => "anlassraum-release-1" },
     });
   });
+
+  async function markSourceReady(sourceKind: "region_source_result" | "create_handoff", sourceId: string) {
+    await applyReviewQueueOperation({
+      itemId:
+        sourceKind === "create_handoff"
+          ? `create_handoff:persisted:${sourceId}`
+          : `region_source_result:${sourceId}`,
+      action: "mark_ready",
+      requestedByUserId: "reviewer-1",
+    });
+  }
+
+  async function executePublicAction(input: {
+    targetType: "dossier" | "anlassraum" | "topic_page";
+    action: "make_visible" | "prepare_publication";
+  }) {
+    return executeServerAuthoritativeContentReleaseAction({
+      sourceKind: "region_source_result",
+      sourceId: sourceResult.id,
+      targetType: input.targetType,
+      action: input.action,
+      classification: "human_only",
+      actor: { userId: "admin-1", responsibleRole: "admin" },
+    });
+  }
 
   it("prepares a dossier draft from a review item without auto publication", async () => {
     const record = await prepareContentReleaseTargetFromSourceResult({
@@ -466,25 +496,23 @@ describe("content release workbench", () => {
     });
     expect(prepared.visibilityState).toBe("internal_review");
 
-    const visible = await makeContentVisible({
-      sourceKind: "region_source_result",
-      sourceResultId: sourceResult.id,
+    await markSourceReady("region_source_result", sourceResult.id);
+    const visible = await executePublicAction({
       targetType: "dossier",
-      requestedBy: "admin-1",
+      action: "make_visible",
     });
-    expect(visible.visibilityState).toBe("public_unverified");
+    expect(visible.allowed).toBe(true);
+    expect(visible.target.visibilityState).toBe("public_unverified");
 
-    const preparedForPublication = await updateContentReleaseTargetFromSourceResult({
-      sourceKind: "region_source_result",
-      sourceResultId: sourceResult.id,
+    const preparedForPublication = await executePublicAction({
       targetType: "dossier",
       action: "prepare_publication",
-      requestedBy: "admin-1",
     });
-    expect(preparedForPublication.visibilityState).toBe("public_reviewed");
-    expect(preparedForPublication.visibilityState).not.toBe("public_official");
+    expect(preparedForPublication.allowed).toBe(true);
+    expect(preparedForPublication.target.visibilityState).toBe("public_reviewed");
+    expect(preparedForPublication.target.visibilityState).not.toBe("public_official");
 
-    const auditEvents = await listContentReleaseAuditEvents(preparedForPublication.id);
+    const auditEvents = await listContentReleaseAuditEvents(preparedForPublication.target.id);
     expect(auditEvents.map((event) => event.action)).toEqual(
       expect.arrayContaining([
         "prepared",
@@ -510,13 +538,12 @@ describe("content release workbench", () => {
     });
     expect(beforeVisible.find((target) => target.targetType === "dossier")?.qrHref).toBeNull();
 
-    await updateContentReleaseTargetFromSourceResult({
-      sourceKind: "region_source_result",
-      sourceResultId: sourceResult.id,
+    await markSourceReady("region_source_result", sourceResult.id);
+    const visible = await executePublicAction({
       targetType: "dossier",
       action: "make_visible",
-      requestedBy: "admin-1",
     });
+    expect(visible.allowed).toBe(true);
 
     const visibleTargets = await buildContentReleaseWorkbenchTargets({
       sourceKind: "region_source_result",
@@ -553,13 +580,12 @@ describe("content release workbench", () => {
       targetType: "anlassraum",
       requestedBy: "admin-1",
     });
-    await updateContentReleaseTargetFromSourceResult({
-      sourceKind: "region_source_result",
-      sourceResultId: sourceResult.id,
+    await markSourceReady("region_source_result", sourceResult.id);
+    const preparedForPublication = await executePublicAction({
       targetType: "anlassraum",
       action: "prepare_publication",
-      requestedBy: "admin-1",
     });
+    expect(preparedForPublication.allowed).toBe(true);
 
     const revoked = await revokeVisibility({
       sourceKind: "region_source_result",
@@ -654,12 +680,12 @@ describe("content release workbench", () => {
       requestedBy: "admin-1",
     });
 
-    await makeContentVisible({
-      sourceKind: "region_source_result",
-      sourceResultId: sourceResult.id,
+    await markSourceReady("region_source_result", sourceResult.id);
+    const visible = await executePublicAction({
       targetType: "dossier",
-      requestedBy: "admin-1",
+      action: "make_visible",
     });
+    expect(visible.allowed).toBe(true);
     await archiveVisibleContent({
       sourceKind: "region_source_result",
       sourceResultId: sourceResult.id,
