@@ -12,7 +12,7 @@ import {
 } from "@/lib/i18n/autoTranslate";
 import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
 import { getLocaleConfig, isCoreLocale, isSupportedLocale } from "@/config/locales";
-import { useCurrentUser, clearCachedUser } from "@/hooks/auth";
+import { useCurrentUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 import { classifyMobileAppShellPath } from "@/features/wrapper/mobileAppShellContract";
@@ -66,7 +66,12 @@ function isActiveNavHref(pathname: string | null, href: string) {
 
 export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const { uiLocale, setUiLocale, readingLocale } = useLanguagePreferences();
-  const { user: currentUser, loading: currentUserLoading } = useCurrentUser(initialUser);
+  const {
+    user: currentUser,
+    loading: currentUserLoading,
+    error: currentUserError,
+    confirmLoggedOut,
+  } = useCurrentUser(initialUser);
   const authTruth = resolveHeaderAuthTruth({
     initialUser,
     currentUser,
@@ -165,16 +170,21 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
-      await fetch("/api/auth/logout", { method: "POST" });
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) return;
+      confirmLoggedOut();
+      setMobileOpen(false);
+      router.refresh();
     } catch (err) {
       console.warn("logout failed", err);
     } finally {
-      clearCachedUser();
       setLoggingOut(false);
-      setMobileOpen(false);
-      router.refresh();
     }
   };
+
+  const unknownAccountLabel = currentUserError
+    ? t("Accountstatus derzeit nicht verfügbar", "auth.unavailable")
+    : t("Accountstatus wird geprüft", "auth.loading");
 
   return (
     <header
@@ -275,9 +285,11 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
           {authTruth.status === "unknown" ? (
             <span
               role="status"
-              aria-label={t("Accountstatus wird geladen", "auth.loading")}
-              className="hidden h-9 w-20 animate-pulse rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] sm:block"
-            />
+              aria-label={unknownAccountLabel}
+              className="hidden rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs font-medium text-[rgb(var(--muted))] sm:block"
+            >
+              {unknownAccountLabel}
+            </span>
           ) : null}
           <button
             type="button"
@@ -370,8 +382,12 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               ))}
 
               {authTruth.status === "unknown" ? (
-                <p role="status" className="mt-2 text-xs text-[rgb(var(--muted))]">
-                  {t("Accountstatus wird geladen …", "auth.loading.mobile")}
+                <p
+                  role="status"
+                  aria-label={unknownAccountLabel}
+                  className="mt-2 text-xs text-[rgb(var(--muted))]"
+                >
+                  {unknownAccountLabel}
                 </p>
               ) : null}
 

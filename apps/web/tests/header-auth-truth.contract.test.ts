@@ -50,6 +50,16 @@ describe("global SiteHeader auth truth", () => {
     ).toEqual({ status: "authenticated", user });
   });
 
+  it("does not fall back to an initial guest after client resolution fails", () => {
+    expect(
+      resolveHeaderAuthTruth({
+        initialUser: null,
+        currentUser: undefined,
+        currentUserLoading: false,
+      }),
+    ).toEqual({ status: "unknown", user: undefined });
+  });
+
   it("binds Login and the neutral loading state to the resolved truth", () => {
     const source = readFileSync(
       resolve(process.cwd(), "src/app/(components)/SiteHeader.tsx"),
@@ -58,7 +68,9 @@ describe("global SiteHeader auth truth", () => {
     expect(source).toContain('authTruth.status === "guest"');
     expect(source).toContain('authTruth.status === "unknown"');
     expect(source).toContain("useCurrentUser(initialUser)");
-    expect(source).toContain("Accountstatus wird geladen");
+    expect(source).toContain("Accountstatus wird geprüft");
+    expect(source).toContain("Accountstatus derzeit nicht verfügbar");
+    expect(source).not.toContain("animate-pulse");
     expect(source).not.toContain("{!user && (");
   });
 });
