@@ -49,13 +49,20 @@ function getOrLoadUser() {
   return pending;
 }
 
-export function useCurrentUser(): AuthState {
-  const [user, setUser] = useState<AuthUser | null | undefined>(cachedUser);
-  const [loading, setLoading] = useState(cachedUser === undefined);
+export function useCurrentUser(initialUser?: AuthUser | null): AuthState {
+  const initialResolvedUser = initialUser !== undefined ? initialUser : cachedUser;
+  const [user, setUser] = useState<AuthUser | null | undefined>(initialResolvedUser);
+  const [loading, setLoading] = useState(initialResolvedUser === undefined);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     let active = true;
+    if (initialUser !== undefined) {
+      cachedUser = initialUser;
+      pending = null;
+      setUser(initialUser);
+      setLoading(false);
+    }
     const revalidate = async () => {
       const now = Date.now();
       if (now - lastRevalidate < REVALIDATE_MS) return;
@@ -97,7 +104,7 @@ export function useCurrentUser(): AuthState {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialUser]);
 
   const refresh = useCallback(async () => {
     cachedUser = undefined;
@@ -113,11 +120,6 @@ export function useCurrentUser(): AuthState {
 // Helfer, um den Client-Cache explizit zu leeren (z.B. nach Logout)
 export function clearCachedUser() {
   cachedUser = undefined;
-  pending = null;
-}
-
-export function primeCachedUser(user: AuthUser | null) {
-  cachedUser = user;
   pending = null;
 }
 
