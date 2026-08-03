@@ -10,7 +10,6 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import {
   buildVoxyCharacterMotionFixturePlan,
   validateVoxyCharacterMotionFixturePlan,
@@ -38,28 +37,43 @@ function resolveFormat(): VoxyVideoFormat {
   return value as VoxyVideoFormat;
 }
 
-function runFfmpeg(inputPath: string, outputPath: string): void {
-  const result = spawnSync(
-    "ffmpeg",
-    [
-      "-y",
-      "-i",
-      inputPath,
-      "-an",
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-movflags",
-      "+faststart",
-      outputPath,
-    ],
-    { encoding: "utf8" },
-  );
+function runFfmpeg(input: {
+  framesDirectory: string;
+  fps: number;
+  frameCount: number;
+  outputPath: string;
+  outputExtension: ".mp4" | ".webm";
+}): void {
+  const common = [
+    "-y",
+    "-framerate",
+    String(input.fps),
+    "-i",
+    join(input.framesDirectory, "frame-%04d.png"),
+    "-frames:v",
+    String(input.frameCount),
+    "-r",
+    String(input.fps),
+    "-an",
+  ];
+  const codec =
+    input.outputExtension === ".mp4"
+      ? [
+          "-c:v",
+          "libx264",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+        ]
+      : ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-pix_fmt", "yuv420p"];
+  const result = spawnSync("ffmpeg", [...common, ...codec, input.outputPath], {
+    encoding: "utf8",
+  });
 
   if (result.error || result.status !== 0) {
     const detail = result.error?.message ?? result.stderr.trim();
-    throw new Error(`FFmpeg conversion failed: ${detail}`);
+    throw new Error(`FFmpeg render failed: ${detail}`);
   }
 }
 
@@ -86,7 +100,7 @@ async function main(): Promise<void> {
 
   const stageAsset = await readFile(assetPath);
   const embeddedCharacterAssetUrl = `data:image/png;base64,${stageAsset.toString("base64")}`;
-  const html = renderVoxyCharacterMotionFixtureHtml({
+  const previewHtml = renderVoxyCharacterMotionFixtureHtml({
     plan,
     embeddedCharacterAssetUrl,
   });
@@ -94,16 +108,18 @@ async function main(): Promise<void> {
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), "voxy-character-motion-fixture-"),
   );
-  const htmlPath = join(temporaryDirectory, "fixture.html");
+  const framesDirectory = join(temporaryDirectory, "frames");
+  const previewHtmlPath = join(temporaryDirectory, "fixture.html");
   const planPath = join(temporaryDirectory, "fixture-plan.json");
-  await writeFile(htmlPath, html, "utf8");
+  await mkdir(framesDirectory, { recursive: true });
+  await writeFile(previewHtmlPath, previewHtml, "utf8");
   await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
 
   if (hasFlag("html-only")) {
     const htmlOutput = requestedOutput.replace(/\.(webm|mp4)$/i, ".html");
     const jsonOutput = requestedOutput.replace(/\.(webm|mp4)$/i, ".json");
     await mkdir(dirname(htmlOutput), { recursive: true });
-    await copyFile(htmlPath, htmlOutput);
+    await copyFile(previewHtmlPath, htmlOutput);
     await copyFile(planPath, jsonOutput);
     console.log(
       JSON.stringify(
@@ -127,31 +143,50 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: plan.width, height: plan.height },
-    recordVideo: {
-      dir: temporaryDirectory,
-      size: { width: plan.width, height: plan.height },
-    },
     reducedMotion: "no-preference",
   });
   const page = await context.newPage();
-  const video = page.video();
-  if (!video) {
-    throw new Error("Playwright video recording is unavailable.");
+  const captureHtml = renderVoxyCharacterMotionFixtureHtml({
+    plan,
+    embeddedCharacterAssetUrl,
+    captureTimeMs: 0,
+  });
+  await page.setContent(captureHtml, { waitUntil: "load" });
+  await page.waitForFunction(() =>
+    Array.from(document.images).every((image) => image.complete),
+  );
+
+  const frameCount = Math.round((plan.durationMs / 1_000) * plan.fps);
+  for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+    const captureTimeMs = Math.round((frameIndex * 1_000) / plan.fps);
+    await page.evaluate((timeMs) => {
+      const fixture = document.getElementById("fixture");
+      fixture?.style.setProperty("--capture-time", `${timeMs}ms`);
+      if (fixture) void fixture.offsetHeight;
+    }, captureTimeMs);
+    const framePath = join(
+      framesDirectory,
+      `frame-${String(frameIndex).padStart(4, "0")}.png`,
+    );
+    await page.screenshot({
+      path: framePath,
+      type: "png",
+      clip: { x: 0, y: 0, width: plan.width, height: plan.height },
+    });
   }
 
-  await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
-  await page.waitForTimeout(plan.durationMs + 450);
   await page.close();
   await context.close();
-  const recordedWebm = await video.path();
   await browser.close();
 
   await mkdir(dirname(requestedOutput), { recursive: true });
-  if (outputExtension === ".mp4") {
-    runFfmpeg(recordedWebm, requestedOutput);
-  } else {
-    await copyFile(recordedWebm, requestedOutput);
-  }
+  runFfmpeg({
+    framesDirectory,
+    fps: plan.fps,
+    frameCount,
+    outputPath: requestedOutput,
+    outputExtension: outputExtension as ".mp4" | ".webm",
+  });
 
   const manifestOutput = requestedOutput.replace(/\.(webm|mp4)$/i, ".json");
   await copyFile(planPath, manifestOutput);
@@ -169,6 +204,7 @@ async function main(): Promise<void> {
         height: plan.height,
         durationMs: plan.durationMs,
         fps: plan.fps,
+        frameCount,
         reviewRequired: plan.reviewRequired,
         autoPublish: plan.autoPublish,
         lipSync: plan.lipSync,
