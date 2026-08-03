@@ -3,7 +3,10 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { normalizeVogOriginMetadata } from "@features/vog/publicBallotContract";
+import {
+  normalizeVogOriginMetadata,
+  resolveVogPublicBallotLocales,
+} from "@features/vog/publicBallotContract";
 import { VoteModel } from "@/models/votes/Vote";
 import {
   getVogPublicBallotReadModel,
@@ -22,7 +25,10 @@ const VotePayloadSchema = z
     source: z.string().trim().max(64).optional(),
     origin: z.string().trim().max(64).optional(),
     origin_id: z.string().trim().max(120).optional(),
-    locale: z.string().trim().max(16).optional(),
+    locale: z.string().trim().max(48).optional(),
+    reading_locale: z.string().trim().max(48).optional(),
+    ui_locale: z.string().trim().max(48).optional(),
+    output_locale: z.string().trim().max(48).optional(),
   })
   .strict();
 
@@ -102,9 +108,17 @@ export async function POST(
     );
   }
 
+  const locales = resolveVogPublicBallotLocales({
+    release: record.release,
+    locale: parsed.data.locale,
+    readingLocale: parsed.data.reading_locale,
+    uiLocale: parsed.data.ui_locale,
+    outputLocale: parsed.data.output_locale,
+  });
   const originMetadata = normalizeVogOriginMetadata(
     parsed.data,
     record.release.originId,
+    locales,
   );
   const now = new Date();
   const filter = {
@@ -156,7 +170,9 @@ export async function POST(
   const ballot = await getVogPublicBallotReadModel({
     code: record.code,
     questionId: record.questionId,
-    locale: originMetadata.locale,
+    readingLocale: originMetadata.readingLocale,
+    uiLocale: originMetadata.uiLocale,
+    outputLocale: originMetadata.outputLocale,
     guestTokenHash: guest.tokenHash,
   }).catch(() => null);
 

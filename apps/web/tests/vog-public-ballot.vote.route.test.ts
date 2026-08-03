@@ -44,6 +44,15 @@ function record(lifecycle: "open" | "closed" | "scheduled" = "open") {
     lifecycle,
     release: {
       originId: "vog-question-01",
+      originalLocale: "de",
+      translations: {
+        de: { title: "Deutsche Frage", context: "Kontext", options: { yes: "Ja", no: "Nein", open: "Offen" } },
+        en: { title: "English question", context: "Context", options: { yes: "Yes", no: "No", open: "Open" } },
+        fr: { title: "Question française", context: "Contexte", options: { yes: "Oui", no: "Non", open: "Ouvert" } },
+        es: { title: "Pregunta española", context: "Contexto", options: { yes: "Sí", no: "No", open: "Abierto" } },
+        tr: { title: "Türkçe soru", context: "Bağlam", options: { yes: "Evet", no: "Hayır", open: "Açık" } },
+        ar: { title: "السؤال العربي", context: "السياق", options: { yes: "نعم", no: "لا", open: "مفتوح" } },
+      },
     },
   };
 }
@@ -53,8 +62,16 @@ function ballot() {
     code: "VOGSET01",
     questionId: "question-1",
     originId: "vog-question-01",
-    locale: "de",
     originalLocale: "de",
+    readingLocale: "de",
+    uiLocale: "de",
+    outputLocale: "de",
+    requestedReadingLocale: "de",
+    requestedOutputLocale: "de",
+    readingTranslationStatus: "original",
+    outputTranslationStatus: "original",
+    availableLocales: ["de", "en", "fr", "es", "tr", "ar"],
+    direction: "ltr",
     lifecycle: "open",
     title: "Konkrete Frage",
     context: "Kontext",
@@ -80,7 +97,12 @@ function ballot() {
 }
 
 function request(
-  body: Record<string, unknown> = { choice: "yes", locale: "de" },
+  body: Record<string, unknown> = {
+    choice: "yes",
+    reading_locale: "de",
+    ui_locale: "de",
+    output_locale: "de",
+  },
   options: { cookie?: boolean; headers?: Record<string, string> } = {},
 ) {
   const headers: Record<string, string> = {
@@ -131,7 +153,9 @@ describe("VOG public ballot vote route", () => {
         source: "vote4gov",
         origin: "voiceopengov",
         origin_id: "spoofed-origin-id",
-        locale: "de",
+        reading_locale: "ar",
+        ui_locale: "fr",
+        output_locale: "es",
       }),
       context,
     );
@@ -157,7 +181,10 @@ describe("VOG public ballot vote route", () => {
             source: "vote4gov",
             origin: "voiceopengov",
             originId: "vog-question-01",
-            locale: "de",
+            originalLocale: "de",
+            readingLocale: "ar",
+            uiLocale: "fr",
+            outputLocale: "es",
           },
         }),
       }),
@@ -174,11 +201,11 @@ describe("VOG public ballot vote route", () => {
     mocks.updateVote.mockResolvedValue({ matchedCount: 1 });
 
     const first = await POST(
-      request({ choice: "yes", locale: "de" }, { cookie: true }),
+      request({ choice: "yes", reading_locale: "de" }, { cookie: true }),
       context,
     );
     const second = await POST(
-      request({ choice: "no", locale: "de" }, { cookie: true }),
+      request({ choice: "no", reading_locale: "en" }, { cookie: true }),
       context,
     );
 
@@ -217,7 +244,7 @@ describe("VOG public ballot vote route", () => {
 
   it("rejects an oversized body even without trusting Content-Length", async () => {
     const response = await POST(
-      request({ choice: "x".repeat(5_000), locale: "de" }),
+      request({ choice: "x".repeat(5_000), reading_locale: "de" }),
       context,
     );
 
@@ -269,7 +296,7 @@ describe("VOG public ballot vote route", () => {
         source: "vote4gov",
         origin: "voiceopengov",
         origin_id: "vog-question-01",
-        locale: "de",
+        reading_locale: "de",
       }),
       context,
     );

@@ -408,3 +408,62 @@ wurde deshalb ausschließlich aus `origin/main` übernommen und nicht editiert.
 
 Dieser PR bleibt Draft. Kein Ready-for-Review, Merge, Deployment oder reale
 Freigabe erfolgt aus diesem Closing-Pass.
+
+## Offener Mehrsprachenvertrag · 2026-08-03
+
+Der zunächst auf eine feste DE/EN-Paarung begrenzte Sprachvertrag wurde im
+bestehenden Draft-PR auf einen offenen locale-basierten Vertrag erweitert.
+
+### Kanonischer Sprach- und Optionsvertrag
+
+- `translations` ist eine streng validierte Locale-Map mit kanonischen
+  BCP-47-Schlüsseln. Weitere gültige Locale-Tags wie `pt-BR` benötigen keine
+  Schemaänderung.
+- Bedienkopien und Regressionen decken initial `de`, `en`, `fr`, `es`, `tr`
+  und `ar` ab.
+- `originalLocale`, `readingLocale`, `uiLocale` und `outputLocale` werden im
+  Readmodel, Vote-Handoff und Origin-Metadatum getrennt geführt.
+- Query-Locale-Werte werden nur akzeptiert, wenn sie zur initialen
+  UI-Allowlist oder zu einer serverseitig freigegebenen Übersetzung gehören.
+  Ungültige, duplizierte oder unbekannte Werte fallen sichtbar auf den
+  Originaltext zurück.
+- Fehlende Sprachfassungen zeigen einen expliziten Hinweis. Es wird weder eine
+  automatische noch eine KI-generierte Übersetzung behauptet oder erzeugt.
+- Arabische Lesesprache setzt `lang="ar"` und `dir="rtl"`.
+- Die bestehenden Frage- und Options-IDs bleiben sprachunabhängig. Jede
+  Übersetzung muss exakt dieselben Options-IDs führen; fehlende, zusätzliche
+  oder unterschiedlich viele Optionen machen den Release fail-closed
+  ungültig.
+- Stimmen und Ergebnisaggregation verwenden ausschließlich die stabilen
+  Options-IDs. Nur die Ergebnisbeschriftung folgt `outputLocale`; Sprache ist
+  kein Aggregationsschlüssel.
+- Übersetzungsobjekte sind strikt auf Titel, Kontext und Optionslabels
+  begrenzt. Sie können weder Release, Lifecycle, Berechtigung,
+  Beteiligungsklasse noch Ergebnisstatus erzeugen oder verändern.
+- Quellen-URLs, Gegenpositions-URLs, Release, Lifecycle und Ergebnisstatus
+  bleiben außerhalb der Übersetzungs-Map kanonisch und sprachunabhängig.
+
+### Regressionen und Validierung
+
+Lokale Abschlussprüfung unter Node `20.20.2`:
+
+- fokussierte Public-Ballot-Suite: `6` Dateien, `38/38` Tests grün;
+- DE, EN, FR, ES, TR und AR einschließlich RTL: grün;
+- Sprachwechsel mit erhaltener eigener Auswahl: grün;
+- identische stabile Options-IDs und fail-closed Optionsmismatch: grün;
+- unbekannte, ungültige, duplizierte und fehlende Locale: grün;
+- keine Sprachaufspaltung der Ergebniszählung: grün;
+- Mobile-, Tastatur- und Screenreader-Verträge: grün;
+- Vote4Gov-/Topic-/Auth-/Session-Regression: `12` Dateien, `87/87` Tests grün;
+- Production Guardrails: `36/36` Tests grün;
+- Typecheck und vollständiger Lint: grün;
+- vollständiger Production Build mit ausschließlich `apps/web/.env.example`
+  im Prozess: grün; `256` Seitenverträge ohne Verstoß und `322/322` statische
+  Seiten;
+- kein Vote4Gov-Registryeintrag, kein reales Artikelrelease, kein
+  Auto-Publish und keine automatische Übersetzung;
+- `docs/E150/OpenTasks.md` bleibt unverändert und byte-identisch zu
+  `origin/main`.
+
+PR `#557` bleibt Draft. Kein Merge und kein Production-Deployment erfolgt aus
+diesem Mehrsprachen-Closing-Pass.

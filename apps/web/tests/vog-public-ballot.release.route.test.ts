@@ -38,29 +38,25 @@ function release() {
     resultsVisibility: "after_vote",
     startsAt: "2026-08-01T00:00:00.000Z",
     closesAt: "2026-09-01T00:00:00.000Z",
-    localized: {
-      de: {
-        title: "Soll diese Option priorisiert werden?",
-        context: "Kurzer belegter Kontext zur konkreten VOG-Frage.",
-        optionLabels: ["Ja", "Nein", "Noch offen"],
-      },
-      en: {
-        title: "Should this option be prioritised?",
-        context: "Brief evidenced context for the concrete VOG question.",
-        optionLabels: ["Yes", "No", "Still open"],
-      },
+    translations: {
+      de: { title: "Deutsche Frage", context: "Deutscher Kontext", options: { yes: "Ja", no: "Nein", open: "Offen" } },
+      en: { title: "English question", context: "English context", options: { yes: "Yes", no: "No", open: "Open" } },
+      fr: { title: "Question française", context: "Contexte français", options: { yes: "Oui", no: "Non", open: "Ouvert" } },
+      es: { title: "Pregunta española", context: "Contexto español", options: { yes: "Sí", no: "No", open: "Abierto" } },
+      tr: { title: "Türkçe soru", context: "Türkçe bağlam", options: { yes: "Evet", no: "Hayır", open: "Açık" } },
+      ar: { title: "السؤال العربي", context: "السياق العربي", options: { yes: "نعم", no: "لا", open: "مفتوح" } },
     },
     sources: [
       {
         id: "source-1",
-        label: { de: "Quelle", en: "Source" },
+        labels: { de: "Quelle", en: "Source", fr: "Source", es: "Fuente", tr: "Kaynak", ar: "المصدر" },
         href: "https://example.org/source",
       },
     ],
     counterPositions: [
       {
         id: "counter-1",
-        label: { de: "Gegenposition", en: "Counterposition" },
+        labels: { de: "Gegenposition", en: "Counterposition", fr: "Contre-position", es: "Contraposición", tr: "Karşı görüş", ar: "الموقف المقابل" },
         href: "https://example.org/counter",
       },
     ],
@@ -135,7 +131,7 @@ describe("VOG public ballot release route", () => {
         originId: "vog-question-01",
         status: "open",
         publicHref:
-          "/vog/fragen/VOGSET01/question-1?source=vote4gov&origin=voiceopengov&origin_id=vog-question-01&locale=de",
+          "/vog/fragen/VOGSET01/question-1?source=vote4gov&origin=voiceopengov&origin_id=vog-question-01&reading_locale=de&ui_locale=de&output_locale=de",
       },
     });
     expect(mocks.requireAdmin).toHaveBeenCalledTimes(1);

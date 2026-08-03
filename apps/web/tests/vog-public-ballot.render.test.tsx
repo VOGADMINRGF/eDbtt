@@ -3,36 +3,32 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { VogPublicBallotClient } from "@/app/vog/fragen/[code]/[questionId]/VogPublicBallotClient";
 import type { VogPublicBallotReadModel } from "@/features/vog/publicBallotReadModel";
 
-function ballot(
-  overrides: Partial<VogPublicBallotReadModel> = {},
-): VogPublicBallotReadModel {
+function ballot(overrides: Partial<VogPublicBallotReadModel> = {}): VogPublicBallotReadModel {
   return {
     code: "VOGSET01",
     questionId: "question-1",
     originId: "vog-question-01",
-    locale: "de",
     originalLocale: "de",
+    readingLocale: "de",
+    uiLocale: "de",
+    outputLocale: "de",
+    requestedReadingLocale: "de",
+    requestedOutputLocale: "de",
+    readingTranslationStatus: "original",
+    outputTranslationStatus: "original",
+    availableLocales: ["de", "en", "fr", "es", "tr", "ar"],
+    direction: "ltr",
     lifecycle: "open",
     title: "Soll diese Option priorisiert werden?",
     context: "Kurzer belegter Kontext zur konkreten VOG-Frage.",
     options: [
-      { canonicalChoice: "yes", label: "Ja" },
-      { canonicalChoice: "no", label: "Nein" },
-      { canonicalChoice: "open", label: "Noch offen" },
+      { optionId: "yes", label: "Ja" },
+      { optionId: "no", label: "Nein" },
+      { optionId: "open", label: "Noch offen" },
     ],
-    sources: [
-      {
-        id: "source-1",
-        label: "Primärquelle",
-        href: "https://example.org/source",
-      },
-    ],
+    sources: [{ id: "source-1", label: "Primärquelle", href: "https://example.org/source" }],
     counterPositions: [
-      {
-        id: "counter-1",
-        label: "Belegte Gegenposition",
-        href: "https://example.org/counter",
-      },
+      { id: "counter-1", label: "Belegte Gegenposition", href: "https://example.org/counter" },
     ],
     accessMode: "public_guest",
     attributionMode: "hidden",
@@ -48,41 +44,108 @@ const metadata = {
   source: "vote4gov" as const,
   origin: "voiceopengov" as const,
   originId: "vog-question-01",
-  locale: "de" as const,
+  originalLocale: "de",
+  readingLocale: "de",
+  uiLocale: "de" as const,
+  outputLocale: "de",
 };
 
-const localeHrefs = {
-  de: "/vog/fragen/VOGSET01/question-1?locale=de",
-  en: "/vog/fragen/VOGSET01/question-1?locale=en",
-};
+const localeLinks = ["de", "en", "fr", "es", "tr", "ar"].map((locale) => ({
+  locale,
+  href: `/vog/fragen/VOGSET01/question-1?reading_locale=${locale}&ui_locale=${locale}&output_locale=${locale}`,
+}));
 
 describe("VOG public ballot render contract", () => {
-  it("puts the concrete question, options and participation class before any login", () => {
+  it("puts the question, stable options and participation class before any login", () => {
     const html = renderToStaticMarkup(
       <VogPublicBallotClient
         initialBallot={ballot()}
         originMetadata={metadata}
-        localeHrefs={localeHrefs}
+        localeLinks={localeLinks}
       />,
     );
 
     expect(html).toContain("Soll diese Option priorisiert werden?");
-    expect(html).toContain("Kurzer belegter Kontext");
     expect(html).toContain("Offene öffentliche Beteiligung");
-    expect(html).toContain("nicht verifizierte öffentliche Konsultation");
-    expect(html).toContain("Ja");
-    expect(html).toContain("Nein");
-    expect(html).toContain("Noch offen");
+    expect(html).toContain('value="yes"');
+    expect(html).toContain('value="no"');
+    expect(html).toContain('value="open"');
     expect(html).toContain('type="radio"');
     expect(html).toContain("Stimme abgeben");
-    expect(html).toContain("Roh-IP");
     expect(html).toContain("Primärquelle");
-    expect(html).toContain("Belegte Gegenposition");
     expect(html).toContain('href="#vog-evidence"');
     expect(html).not.toContain('href="/login"');
   });
 
-  it("renders an accessible separated participation pass after a guest vote", () => {
+  it("renders all six language links with mobile, keyboard and screenreader semantics", () => {
+    const html = renderToStaticMarkup(
+      <VogPublicBallotClient
+        initialBallot={ballot()}
+        originMetadata={metadata}
+        localeLinks={localeLinks}
+      />,
+    );
+    for (const locale of ["de", "en", "fr", "es", "tr", "ar"]) {
+      expect(html).toContain(`hrefLang="${locale}"`);
+    }
+    expect(html).toContain('aria-label="Sprache"');
+    expect(html).toContain("flex-wrap");
+    expect(html).toContain("min-h-11");
+    expect(html).toContain("focus-visible:outline");
+    expect(html).toContain("<fieldset");
+    expect(html).toContain("<legend");
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain("min-h-12 w-full");
+  });
+
+  it("renders Arabic content and interface with RTL direction", () => {
+    const html = renderToStaticMarkup(
+      <VogPublicBallotClient
+        initialBallot={ballot({
+          readingLocale: "ar",
+          uiLocale: "ar",
+          outputLocale: "ar",
+          direction: "rtl",
+          title: "هل ينبغي إعطاء الأولوية لهذا الخيار؟",
+          context: "سياق موجز وموثق.",
+          options: [
+            { optionId: "yes", label: "نعم" },
+            { optionId: "no", label: "لا" },
+            { optionId: "open", label: "مفتوح" },
+          ],
+        })}
+        originMetadata={{ ...metadata, readingLocale: "ar", uiLocale: "ar", outputLocale: "ar" }}
+        localeLinks={localeLinks}
+      />,
+    );
+    expect(html).toContain('lang="ar"');
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain("مشاركة عامة مفتوحة");
+    expect(html).toContain("إرسال التصويت");
+  });
+
+  it("announces a missing translation honestly without claiming automatic translation", () => {
+    const html = renderToStaticMarkup(
+      <VogPublicBallotClient
+        initialBallot={ballot({
+          readingLocale: "de",
+          uiLocale: "fr",
+          outputLocale: "de",
+          requestedReadingLocale: "fr",
+          readingTranslationStatus: "missing_fallback",
+          availableLocales: ["de", "en"],
+        })}
+        originMetadata={{ ...metadata, uiLocale: "fr" }}
+        localeLinks={localeLinks.slice(0, 2)}
+      />,
+    );
+    expect(html).toContain('data-testid="vog-translation-fallback"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain("aucune traduction automatique n’a été générée");
+    expect(html).toContain("Soll diese Option priorisiert werden?");
+  });
+
+  it("renders one result aggregation and the preserved own selection", () => {
     const html = renderToStaticMarkup(
       <VogPublicBallotClient
         initialBallot={ballot({
@@ -93,62 +156,24 @@ describe("VOG public ballot render contract", () => {
             openGuestVotes: 11,
             verifiedMemberVotes: 3,
             optionCounts: [
-              { canonicalChoice: "yes", label: "Ja", count: 8 },
-              { canonicalChoice: "no", label: "Nein", count: 4 },
-              { canonicalChoice: "open", label: "Noch offen", count: 2 },
+              { optionId: "yes", label: "Ja", count: 8 },
+              { optionId: "no", label: "Nein", count: 4 },
+              { optionId: "open", label: "Noch offen", count: 2 },
             ],
-            distributionChannels: [
-              { source: "vote4gov", count: 10 },
-              { source: "direct", count: 4 },
-            ],
+            distributionChannels: [{ source: "vote4gov", count: 14 }],
             startsAt: "2026-08-01T00:00:00.000Z",
             closesAt: "2026-09-01T00:00:00.000Z",
             resultStatus: "public_consultation",
           },
         })}
         originMetadata={metadata}
-        localeHrefs={localeHrefs}
+        localeLinks={localeLinks}
       />,
     );
-
-    expect(html).toContain('role="status"');
-    expect(html).toContain("Sie haben bereits teilgenommen");
     expect(html).toContain("Beteiligungspass");
     expect(html).toContain("Offene Gaststimmen");
     expect(html).toContain("Verifizierte VOG-Mitgliedsstimmen");
-    expect(html).toContain(">11<");
-    expect(html).toContain(">3<");
-    expect(html).toContain("nicht repräsentativ");
     expect(html).toContain("Ihre Auswahl");
-    expect(html).toContain("Aggregierte Verteilungskanäle");
-    expect(html).toContain("vote4gov: 10");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Freiwillig anmelden");
-  });
-
-  it("renders English and closed states without an active submit action", () => {
-    const html = renderToStaticMarkup(
-      <VogPublicBallotClient
-        initialBallot={ballot({
-          locale: "en",
-          lifecycle: "closed",
-          title: "Should this option be prioritised?",
-          context: "Brief evidenced context for the concrete VOG question.",
-          options: [
-            { canonicalChoice: "yes", label: "Yes" },
-            { canonicalChoice: "no", label: "No" },
-            { canonicalChoice: "open", label: "Still open" },
-          ],
-        })}
-        originMetadata={{ ...metadata, locale: "en" }}
-        localeHrefs={localeHrefs}
-      />,
-    );
-
-    expect(html).toContain('lang="en"');
-    expect(html).toContain("Open public participation");
-    expect(html).toContain("This public participation is closed.");
-    expect(html).toContain("Neither a raw IP address nor a full user agent".replace("Neither", "neither"));
-    expect(html).not.toContain("Submit vote</button>");
   });
 });

@@ -76,7 +76,9 @@ Beispielhafte Herkunftsmetadaten:
 source=vote4gov
 origin=voiceopengov
 origin_id=vog-question-01
-locale=de
+reading_locale=de
+ui_locale=de
+output_locale=de
 ```
 
 Der Link aus Vote4Gov soll direkt die passende Abstimmungsoberfläche öffnen. Die Herkunftsparameter müssen sicher validiert, durch den Einstieg erhalten und für Analytics beziehungsweise Provenienz datensparsam nutzbar sein. Sie dürfen keine Berechtigung verleihen.
@@ -110,7 +112,12 @@ Kein obligatorischer Login-Dialog und kein Umweg über allgemeine Navigation.
 ### Sprachen und Zugänglichkeit
 
 - ursprüngliche Frage und Lesesprache unterscheidbar,
-- DE/EN mindestens regressionssicher,
+- offene, streng validierte BCP-47-Locale-Map statt fest verdrahteter
+  Sprachfelder,
+- `originalLocale`, `readingLocale`, `uiLocale` und `outputLocale` getrennt,
+- initial mindestens DE, EN, FR, ES, TR und AR regressionssicher,
+- arabische Lesesprache mit RTL sowie ehrlicher Original-Fallback ohne
+  behauptete automatische Übersetzung,
 - Tastatur, Screenreader, Touch und kleine Mobilgeräte,
 - Fehlermeldungen ohne technische Interna,
 - bei fehlender Verbindung keine vorgetäuschte Stimmabgabe.
@@ -231,7 +238,7 @@ Bestehende allgemeine Abstimmungen dürfen nicht automatisch öffentlich oder an
 - [ ] keine Roh-IP und kein vollständiger User-Agent im Vote-Datensatz des neuen Pfads
 - [ ] ehrlicher Mehrfachteilnahme- und Nicht-Repräsentativitäts-Hinweis
 - [ ] Closed-, Missing-, Network-, Rate-limit- und bereits-abgestimmt-Zustände
-- [ ] DE/EN, Tastatur, Screenreader und Mobile geprüft
+- [ ] DE/EN/FR/ES/TR/AR, RTL, Tastatur, Screenreader und Mobile geprüft
 - [ ] QR-/Public-Entry-Härtung aus PR #520 bleibt erhalten
 - [ ] fokussierte Tests, Security, Typecheck, Lint und Build grün
 - [ ] `git diff --check` grün

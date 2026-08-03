@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { VogOriginMetadata } from "@features/vog/publicBallotContract";
+import type {
+  VogOriginMetadata,
+  VogPublicBallotUiLocale,
+} from "@features/vog/publicBallotContract";
 import {
   VOG_BALLOT_CSRF_HEADER,
   VOG_BALLOT_CSRF_VALUE,
@@ -12,8 +15,15 @@ import type {
 } from "@/features/vog/publicBallotReadModel";
 
 type Copy = {
+  language: string;
   eyebrow: string;
   originalLanguage: string;
+  readingLanguage: string;
+  uiLanguage: string;
+  outputLanguage: string;
+  missingTranslation: string;
+  invalidLocale: string;
+  outputFallback: string;
   participationHeading: string;
   participationBody: string;
   attribution: string;
@@ -49,10 +59,20 @@ type Copy = {
   evidenceAccess: string;
 };
 
-const COPY: Record<"de" | "en", Copy> = {
+const COPY: Record<VogPublicBallotUiLocale, Copy> = {
   de: {
+    language: "Sprache",
     eyebrow: "VoiceOpenGov · öffentliche VOG-Frage",
     originalLanguage: "Originalsprache",
+    readingLanguage: "Lesesprache",
+    uiLanguage: "Bedienungssprache",
+    outputLanguage: "Ausgabesprache",
+    missingTranslation:
+      "Die angeforderte Sprachfassung fehlt. Der freigegebene Originaltext wird angezeigt; es wurde keine automatische Übersetzung erzeugt.",
+    invalidLocale:
+      "Die angeforderte Sprache ist nicht freigegeben oder ungültig. Der freigegebene Originaltext wird angezeigt.",
+    outputFallback:
+      "Die angeforderte Ausgabesprache fehlt. Ergebnisbeschriftungen verwenden eine vorhandene freigegebene Sprachfassung.",
     participationHeading: "Offene öffentliche Beteiligung",
     participationBody:
       "Diese Beteiligung ist ohne Konto möglich und wird nicht als verifizierte Mitgliedsentscheidung gezählt.",
@@ -91,8 +111,18 @@ const COPY: Record<"de" | "en", Copy> = {
     evidenceAccess: "Quellen und Gegenpositionen ansehen",
   },
   en: {
+    language: "Language",
     eyebrow: "VoiceOpenGov · public VOG question",
     originalLanguage: "Original language",
+    readingLanguage: "Reading language",
+    uiLanguage: "Interface language",
+    outputLanguage: "Output language",
+    missingTranslation:
+      "The requested language version is missing. The released original is shown; no automatic translation was generated.",
+    invalidLocale:
+      "The requested locale is invalid or not allowlisted. The released original is shown.",
+    outputFallback:
+      "The requested output language is missing. Result labels use an available released language version.",
     participationHeading: "Open public participation",
     participationBody:
       "You can participate without an account. This is not counted as a verified member decision.",
@@ -130,11 +160,211 @@ const COPY: Record<"de" | "en", Copy> = {
     distribution: "Aggregated distribution channels",
     evidenceAccess: "View sources and counterpositions",
   },
+  fr: {
+    language: "Langue",
+    eyebrow: "VoiceOpenGov · question VOG publique",
+    originalLanguage: "Langue originale",
+    readingLanguage: "Langue de lecture",
+    uiLanguage: "Langue de l’interface",
+    outputLanguage: "Langue de sortie",
+    missingTranslation:
+      "La version linguistique demandée manque. Le texte original publié est affiché ; aucune traduction automatique n’a été générée.",
+    invalidLocale:
+      "La langue demandée est invalide ou non autorisée. Le texte original publié est affiché.",
+    outputFallback:
+      "La langue de sortie demandée manque. Les libellés de résultat utilisent une version linguistique publiée disponible.",
+    participationHeading: "Participation publique ouverte",
+    participationBody:
+      "Vous pouvez participer sans compte. Cette participation ne compte pas comme décision d’un membre vérifié.",
+    attribution: "Attribution du nom : non publique",
+    legitimacy: "Légitimité : consultation publique non vérifiée",
+    choose: "Choisir une réponse",
+    submit: "Envoyer le vote",
+    submitting: "Enregistrement du vote …",
+    change: "Mettre à jour le choix",
+    saved: "Votre vote a été enregistré.",
+    updated: "Votre choix a été mis à jour sans compter un vote supplémentaire.",
+    alreadyVoted: "Vous avez déjà participé. Vous pouvez modifier votre choix.",
+    networkError: "Aucune connexion. Votre vote n’a pas été enregistré.",
+    rateLimited: "Trop de tentatives. Veuillez patienter puis réessayer.",
+    closed: "Cette participation publique est terminée.",
+    scheduled: "Cette participation publique n’est pas encore ouverte.",
+    genericError: "Le vote n’a pas pu être enregistré. Veuillez réessayer.",
+    resultUnavailable: " Le justificatif de participation est temporairement indisponible.",
+    ownSelection: "Votre choix",
+    privacy:
+      "Un jeton de participation aléatoire de première partie réduit les votes multiples. Le nouveau vote ne stocke ni adresse IP brute ni agent utilisateur complet.",
+    methodology:
+      "Ce résultat n’est pas représentatif. Sans identité vérifiée, les participations répétées peuvent être réduites, mais pas totalement exclues.",
+    resultHeading: "Justificatif de participation",
+    total: "Total des votes",
+    guestVotes: "Votes invités ouverts",
+    memberVotes: "Votes de membres VOG vérifiés",
+    period: "Période",
+    openEnded: "ouvert",
+    sources: "Sources",
+    counterPositions: "Contre-positions",
+    follow: "Après votre participation, vous pouvez utiliser un compte pour suivre des sujets.",
+    login: "Connexion facultative",
+    publicConsultation: "Consultation publique",
+    distribution: "Canaux de distribution agrégés",
+    evidenceAccess: "Voir les sources et les contre-positions",
+  },
+  es: {
+    language: "Idioma",
+    eyebrow: "VoiceOpenGov · pregunta VOG pública",
+    originalLanguage: "Idioma original",
+    readingLanguage: "Idioma de lectura",
+    uiLanguage: "Idioma de la interfaz",
+    outputLanguage: "Idioma de salida",
+    missingTranslation:
+      "Falta la versión solicitada. Se muestra el texto original publicado; no se ha generado ninguna traducción automática.",
+    invalidLocale:
+      "El idioma solicitado no es válido o no está permitido. Se muestra el texto original publicado.",
+    outputFallback:
+      "Falta el idioma de salida solicitado. Las etiquetas de resultados usan una versión publicada disponible.",
+    participationHeading: "Participación pública abierta",
+    participationBody:
+      "Puede participar sin una cuenta. Esto no se cuenta como decisión de un miembro verificado.",
+    attribution: "Atribución del nombre: no pública",
+    legitimacy: "Legitimidad: consulta pública no verificada",
+    choose: "Elegir una respuesta",
+    submit: "Emitir voto",
+    submitting: "Guardando el voto …",
+    change: "Actualizar selección",
+    saved: "Su voto se ha guardado.",
+    updated: "Su selección se actualizó sin contar otro voto.",
+    alreadyVoted: "Ya ha participado. Puede actualizar su selección.",
+    networkError: "Sin conexión. Su voto no se ha guardado.",
+    rateLimited: "Demasiados intentos. Espere un momento y vuelva a intentarlo.",
+    closed: "Esta participación pública está cerrada.",
+    scheduled: "Esta participación pública aún no está abierta.",
+    genericError: "No se pudo guardar el voto. Vuelva a intentarlo.",
+    resultUnavailable: " El comprobante de participación no está disponible temporalmente.",
+    ownSelection: "Su selección",
+    privacy:
+      "Un token aleatorio de participación propio reduce los votos duplicados. El nuevo registro no guarda la IP sin procesar ni el agente de usuario completo.",
+    methodology:
+      "Este resultado no es representativo. Sin identidad verificada, la participación repetida puede reducirse, pero no excluirse por completo.",
+    resultHeading: "Comprobante de participación",
+    total: "Votos totales",
+    guestVotes: "Votos abiertos de invitados",
+    memberVotes: "Votos de miembros VOG verificados",
+    period: "Periodo",
+    openEnded: "abierto",
+    sources: "Fuentes",
+    counterPositions: "Contraposiciones",
+    follow: "Después de participar, puede usar una cuenta para seguir temas de forma opcional.",
+    login: "Inicio de sesión opcional",
+    publicConsultation: "Consulta pública",
+    distribution: "Canales de distribución agregados",
+    evidenceAccess: "Ver fuentes y contraposiciones",
+  },
+  tr: {
+    language: "Dil",
+    eyebrow: "VoiceOpenGov · herkese açık VOG sorusu",
+    originalLanguage: "Orijinal dil",
+    readingLanguage: "Okuma dili",
+    uiLanguage: "Arayüz dili",
+    outputLanguage: "Çıktı dili",
+    missingTranslation:
+      "İstenen dil sürümü eksik. Yayımlanmış orijinal metin gösteriliyor; otomatik çeviri oluşturulmadı.",
+    invalidLocale:
+      "İstenen dil geçersiz veya izin listesinde değil. Yayımlanmış orijinal metin gösteriliyor.",
+    outputFallback:
+      "İstenen çıktı dili eksik. Sonuç etiketleri mevcut yayımlanmış bir dil sürümünü kullanıyor.",
+    participationHeading: "Açık kamu katılımı",
+    participationBody:
+      "Hesap olmadan katılabilirsiniz. Bu katılım doğrulanmış üye kararı olarak sayılmaz.",
+    attribution: "Ad ilişkilendirmesi: herkese açık değil",
+    legitimacy: "Meşruiyet: doğrulanmamış kamu danışması",
+    choose: "Bir yanıt seçin",
+    submit: "Oy gönder",
+    submitting: "Oy kaydediliyor …",
+    change: "Seçimi güncelle",
+    saved: "Oyunuz kaydedildi.",
+    updated: "Seçiminiz ek oy sayılmadan güncellendi.",
+    alreadyVoted: "Daha önce katıldınız. Seçiminizi güncelleyebilirsiniz.",
+    networkError: "Bağlantı yok. Oyunuz kaydedilmedi.",
+    rateLimited: "Çok fazla deneme. Lütfen kısa süre bekleyip tekrar deneyin.",
+    closed: "Bu kamu katılımı kapandı.",
+    scheduled: "Bu kamu katılımı henüz açılmadı.",
+    genericError: "Oy kaydedilemedi. Lütfen tekrar deneyin.",
+    resultUnavailable: " Katılım belgesi geçici olarak kullanılamıyor.",
+    ownSelection: "Seçiminiz",
+    privacy:
+      "Rastgele birinci taraf katılım belirteci mükerrer oyları azaltır. Yeni oy kaydında ham IP veya tam kullanıcı aracısı saklanmaz.",
+    methodology:
+      "Bu sonuç temsili değildir. Doğrulanmış kimlik olmadan tekrarlanan katılım azaltılabilir ancak tamamen engellenemez.",
+    resultHeading: "Katılım belgesi",
+    total: "Toplam oy",
+    guestVotes: "Açık misafir oyları",
+    memberVotes: "Doğrulanmış VOG üye oyları",
+    period: "Dönem",
+    openEnded: "açık",
+    sources: "Kaynaklar",
+    counterPositions: "Karşı görüşler",
+    follow: "Katılımdan sonra konuları takip etmek için isteğe bağlı olarak hesap kullanabilirsiniz.",
+    login: "İsteğe bağlı giriş",
+    publicConsultation: "Kamu danışması",
+    distribution: "Toplu dağıtım kanalları",
+    evidenceAccess: "Kaynakları ve karşı görüşleri görüntüle",
+  },
+  ar: {
+    language: "اللغة",
+    eyebrow: "VoiceOpenGov · سؤال VOG عام",
+    originalLanguage: "اللغة الأصلية",
+    readingLanguage: "لغة القراءة",
+    uiLanguage: "لغة الواجهة",
+    outputLanguage: "لغة المخرجات",
+    missingTranslation:
+      "النسخة اللغوية المطلوبة غير متاحة. يُعرض النص الأصلي المنشور، ولم تُنشأ ترجمة آلية.",
+    invalidLocale:
+      "اللغة المطلوبة غير صالحة أو غير مسموح بها. يُعرض النص الأصلي المنشور.",
+    outputFallback:
+      "لغة المخرجات المطلوبة غير متاحة. تستخدم تسميات النتائج نسخة لغوية منشورة ومتاحة.",
+    participationHeading: "مشاركة عامة مفتوحة",
+    participationBody:
+      "يمكنك المشاركة من دون حساب. لا تُحتسب هذه المشاركة كقرار عضو موثّق.",
+    attribution: "إسناد الاسم: غير علني",
+    legitimacy: "الشرعية: مشاورة عامة غير موثّقة",
+    choose: "اختر إجابة",
+    submit: "إرسال التصويت",
+    submitting: "جارٍ حفظ التصويت …",
+    change: "تحديث الاختيار",
+    saved: "تم حفظ تصويتك.",
+    updated: "تم تحديث اختيارك من دون احتساب صوت إضافي.",
+    alreadyVoted: "لقد شاركت سابقًا. يمكنك تحديث اختيارك.",
+    networkError: "لا يوجد اتصال. لم يتم حفظ تصويتك.",
+    rateLimited: "محاولات كثيرة جدًا. يُرجى الانتظار قليلًا ثم المحاولة مجددًا.",
+    closed: "أُغلقت هذه المشاركة العامة.",
+    scheduled: "لم تبدأ هذه المشاركة العامة بعد.",
+    genericError: "تعذّر حفظ التصويت. يُرجى المحاولة مجددًا.",
+    resultUnavailable: " بطاقة المشاركة غير متاحة مؤقتًا.",
+    ownSelection: "اختيارك",
+    privacy:
+      "يحد رمز مشاركة عشوائي من الطرف الأول من الأصوات المكررة. لا يخزن سجل التصويت الجديد عنوان IP الخام أو وكيل المستخدم الكامل.",
+    methodology:
+      "هذه النتيجة غير تمثيلية. من دون هوية موثّقة يمكن تقليل المشاركة المتكررة، لكن لا يمكن منعها بالكامل.",
+    resultHeading: "بطاقة المشاركة",
+    total: "إجمالي الأصوات",
+    guestVotes: "أصوات الضيوف المفتوحة",
+    memberVotes: "أصوات أعضاء VOG الموثّقين",
+    period: "الفترة",
+    openEnded: "مفتوحة",
+    sources: "المصادر",
+    counterPositions: "المواقف المقابلة",
+    follow: "بعد المشاركة يمكنك اختياريًا استخدام حساب لمتابعة الموضوعات.",
+    login: "تسجيل دخول اختياري",
+    publicConsultation: "مشاورة عامة",
+    distribution: "قنوات التوزيع المجمعة",
+    evidenceAccess: "عرض المصادر والمواقف المقابلة",
+  },
 };
 
-function formatDate(value: string | null, locale: "de" | "en") {
+function formatDate(value: string | null, locale: VogPublicBallotUiLocale) {
   if (!value) return null;
-  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(new Date(value));
 }
@@ -144,7 +374,7 @@ function ResultPass({
   locale,
 }: {
   result: VogPublicBallotResultPass;
-  locale: "de" | "en";
+  locale: VogPublicBallotUiLocale;
 }) {
   const copy = COPY[locale];
   const start = formatDate(result.startsAt, locale) ?? copy.openEnded;
@@ -183,7 +413,7 @@ function ResultPass({
             ? Math.round((option.count / result.totalVotes) * 100)
             : 0;
           return (
-            <div key={option.canonicalChoice} className="text-sm">
+            <div key={option.optionId} className="text-sm">
               <div className="flex items-center justify-between gap-4">
                 <span className="font-medium text-[rgb(var(--fg))]">{option.label}</span>
                 <span className="text-[rgb(var(--muted))]">
@@ -226,20 +456,20 @@ function ResultPass({
 export function VogPublicBallotClient({
   initialBallot,
   originMetadata,
-  localeHrefs,
+  localeLinks,
 }: {
   initialBallot: VogPublicBallotReadModel;
   originMetadata: VogOriginMetadata;
-  localeHrefs: { de: string; en: string };
+  localeLinks: Array<{ locale: string; href: string }>;
 }) {
   const [ballot, setBallot] = useState(initialBallot);
   const [selection, setSelection] = useState(initialBallot.ownSelection ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState(
-    initialBallot.ownSelection ? COPY[initialBallot.locale].alreadyVoted : "",
+    initialBallot.ownSelection ? COPY[initialBallot.uiLocale].alreadyVoted : "",
   );
   const statusRef = useRef<HTMLParagraphElement>(null);
-  const copy = COPY[ballot.locale];
+  const copy = COPY[ballot.uiLocale];
   const canVote = ballot.lifecycle === "open";
 
   useEffect(() => {
@@ -266,7 +496,9 @@ export function VogPublicBallotClient({
             source: originMetadata.source,
             origin: originMetadata.origin,
             origin_id: originMetadata.originId,
-            locale: ballot.locale,
+            reading_locale: ballot.readingLocale,
+            ui_locale: ballot.uiLocale,
+            output_locale: ballot.outputLocale,
           }),
         },
       );
@@ -298,7 +530,7 @@ export function VogPublicBallotClient({
           ownSelection: selection,
           ownSelectionLabel:
             current.options.find(
-              (option) => option.canonicalChoice === selection,
+              (option) => option.optionId === selection,
             )?.label ?? null,
           results: null,
         }));
@@ -322,11 +554,23 @@ export function VogPublicBallotClient({
       : ballot.lifecycle === "scheduled"
         ? copy.scheduled
         : null;
+  const readingLocaleNotice =
+    ballot.readingTranslationStatus === "missing_fallback"
+      ? copy.missingTranslation
+      : ballot.readingTranslationStatus === "invalid_fallback"
+        ? copy.invalidLocale
+        : null;
+  const outputLocaleNotice =
+    ballot.outputTranslationStatus === "missing_fallback" ||
+    ballot.outputTranslationStatus === "invalid_fallback"
+      ? copy.outputFallback
+      : null;
 
   return (
     <main
       className="mx-auto flex min-h-[100svh] max-w-3xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-8"
-      lang={ballot.locale}
+      lang={ballot.readingLocale}
+      dir={ballot.direction}
       data-testid="vog-public-ballot"
       data-lifecycle={ballot.lifecycle}
     >
@@ -335,13 +579,21 @@ export function VogPublicBallotClient({
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             {copy.eyebrow} · {ballot.originId}
           </p>
-          <nav aria-label="Language" className="flex gap-2 text-xs">
-            <a href={localeHrefs.de} hrefLang="de" aria-current={ballot.locale === "de" ? "page" : undefined}>
-              DE
-            </a>
-            <a href={localeHrefs.en} hrefLang="en" aria-current={ballot.locale === "en" ? "page" : undefined}>
-              EN
-            </a>
+          <nav
+            aria-label={copy.language}
+            className="flex max-w-full flex-wrap gap-x-3 gap-y-2 text-xs"
+          >
+            {localeLinks.map((link) => (
+              <a
+                key={link.locale}
+                href={link.href}
+                hrefLang={link.locale}
+                aria-current={ballot.readingLocale === link.locale ? "page" : undefined}
+                className="min-h-11 rounded-md px-1 py-3 font-semibold underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {link.locale.toUpperCase()}
+              </a>
+            ))}
           </nav>
         </div>
         <h1 className="text-2xl font-bold leading-tight text-[rgb(var(--fg))] sm:text-3xl">
@@ -350,9 +602,22 @@ export function VogPublicBallotClient({
         <p className="text-sm leading-relaxed text-[rgb(var(--muted))] sm:text-base">
           {ballot.context}
         </p>
-        <p className="text-xs text-[rgb(var(--muted))]">
-          {copy.originalLanguage}: {ballot.originalLocale.toUpperCase()}
-        </p>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[rgb(var(--muted))] sm:grid-cols-4">
+          <div><dt>{copy.originalLanguage}</dt><dd className="font-semibold text-[rgb(var(--fg))]">{ballot.originalLocale}</dd></div>
+          <div><dt>{copy.readingLanguage}</dt><dd className="font-semibold text-[rgb(var(--fg))]">{ballot.readingLocale}</dd></div>
+          <div><dt>{copy.uiLanguage}</dt><dd className="font-semibold text-[rgb(var(--fg))]">{ballot.uiLocale}</dd></div>
+          <div><dt>{copy.outputLanguage}</dt><dd className="font-semibold text-[rgb(var(--fg))]">{ballot.outputLocale}</dd></div>
+        </dl>
+        {(readingLocaleNotice || outputLocaleNotice) && (
+          <div
+            role="status"
+            data-testid="vog-translation-fallback"
+            className="space-y-1 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+          >
+            {readingLocaleNotice && <p>{readingLocaleNotice}</p>}
+            {outputLocaleNotice && <p>{outputLocaleNotice}</p>}
+          </div>
+        )}
         <a
           href="#vog-evidence"
           className="inline-flex text-xs font-semibold underline underline-offset-2"
@@ -383,15 +648,15 @@ export function VogPublicBallotClient({
           <div className="grid grid-cols-1 gap-2">
             {ballot.options.map((option) => (
               <label
-                key={option.canonicalChoice}
+                key={option.optionId}
                 className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm font-medium text-[rgb(var(--fg))] has-[:checked]:border-sky-600 has-[:checked]:ring-2 has-[:checked]:ring-sky-200"
               >
                 <input
                   type="radio"
                   name="vog-public-ballot-choice"
-                  value={option.canonicalChoice}
-                  checked={selection === option.canonicalChoice}
-                  onChange={() => setSelection(option.canonicalChoice)}
+                  value={option.optionId}
+                  checked={selection === option.optionId}
+                  onChange={() => setSelection(option.optionId)}
                   className="h-5 w-5"
                 />
                 <span>{option.label}</span>
@@ -432,7 +697,7 @@ export function VogPublicBallotClient({
       </p>
 
       {ballot.results && (
-        <ResultPass result={ballot.results} locale={ballot.locale} />
+        <ResultPass result={ballot.results} locale={ballot.uiLocale} />
       )}
 
       {ballot.ownSelectionLabel && (

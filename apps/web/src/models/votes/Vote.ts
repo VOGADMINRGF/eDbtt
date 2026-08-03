@@ -30,7 +30,10 @@ export type VoteDoc = {
     source?: "vote4gov" | "voiceopengov" | "direct";
     origin?: "voiceopengov" | "vote4gov" | "edebatte";
     originId?: string;
-    locale?: "de" | "en";
+    originalLocale?: string;
+    readingLocale?: string;
+    uiLocale?: string;
+    outputLocale?: string;
   };
 };
 

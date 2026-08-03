@@ -33,7 +33,9 @@ describe("VOG public ballot page", () => {
           source: "vote4gov",
           origin: "voiceopengov",
           origin_id: "vog-question-01",
-          locale: "de",
+          reading_locale: "de",
+          ui_locale: "de",
+          output_locale: "de",
         }),
       }),
     );
@@ -45,7 +47,9 @@ describe("VOG public ballot page", () => {
       expect.objectContaining({
         code: "missing-set",
         questionId: "missing-question",
-        locale: "de",
+        readingLocale: "de",
+        uiLocale: "de",
+        outputLocale: "de",
         guestTokenHash: null,
       }),
     );
@@ -55,12 +59,45 @@ describe("VOG public ballot page", () => {
     const html = renderToStaticMarkup(
       await VogPublicBallotPage({
         params: Promise.resolve({ code: "missing", questionId: "missing" }),
-        searchParams: Promise.resolve({ locale: "en" }),
+        searchParams: Promise.resolve({
+          reading_locale: "en",
+          ui_locale: "en",
+          output_locale: "en",
+        }),
       }),
     );
 
     expect(html).toContain('lang="en"');
     expect(html).toContain("Public question unavailable");
     expect(html).toContain("Origin parameters cannot grant access");
+  });
+
+  it("renders an Arabic RTL missing state from an allowlisted UI locale", async () => {
+    const html = renderToStaticMarkup(
+      await VogPublicBallotPage({
+        params: Promise.resolve({ code: "missing", questionId: "missing" }),
+        searchParams: Promise.resolve({ ui_locale: "ar", reading_locale: "ar" }),
+      }),
+    );
+
+    expect(html).toContain('lang="ar"');
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain("السؤال العام غير متاح");
+  });
+
+  it("does not trust invalid or duplicate query locales", async () => {
+    const html = renderToStaticMarkup(
+      await VogPublicBallotPage({
+        params: Promise.resolve({ code: "missing", questionId: "missing" }),
+        searchParams: Promise.resolve({
+          reading_locale: ["ar", "de"],
+          ui_locale: "not_a_locale",
+        }),
+      }),
+    );
+
+    expect(html).toContain('lang="de"');
+    expect(html).toContain("Öffentliche Frage nicht verfügbar");
+    expect(html).not.toContain('dir="rtl"');
   });
 });

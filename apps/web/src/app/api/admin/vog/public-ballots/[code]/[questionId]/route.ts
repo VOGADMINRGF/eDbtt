@@ -123,7 +123,9 @@ export async function PUT(
         source: "vote4gov",
         origin: "voiceopengov",
         originId: parsed.data.originId,
-        locale: parsed.data.originalLocale,
+        readingLocale: parsed.data.originalLocale,
+        uiLocale: parsed.data.originalLocale,
+        outputLocale: parsed.data.originalLocale,
       }),
     },
   });
