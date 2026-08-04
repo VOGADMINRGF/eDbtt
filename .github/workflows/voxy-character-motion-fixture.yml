@@ -10,12 +10,14 @@ on:
       - "apps/web/src/features/voxyVideo/characterMotionFixtureHtml.ts"
       - "apps/web/scripts/render-voxy-character-motion-fixture.ts"
       - "apps/web/scripts/export-voxy-master-assets.ts"
+      - "apps/web/scripts/validate-voxy-render-artifacts.ts"
       - "apps/web/tests/voxy-video-modern-character.contract.test.ts"
       - "apps/web/tests/voxy-character-motion-fixture.contract.test.ts"
       - "apps/web/tests/voxy-master-assets.contract.test.ts"
       - "apps/web/public/brand/voxy/fixtures/**"
       - "apps/web/public/brands/voxy/**"
       - "docs/E150/VOXY-CHARACTER-MOTION-FIXTURE-RENDER-01_2026-08-03.md"
+      - "docs/E150/VOXY-MASTER-ASSET-SYSTEM-01_2026-08-04.md"
       - ".github/workflows/voxy-character-motion-fixture.yml"
 
 permissions:
@@ -100,6 +102,9 @@ jobs:
           pnpm -w exec tsx apps/web/scripts/export-voxy-master-assets.ts \
             --format=16:9 --profile=marketing8k \
             --output=artifacts/voxy-master-16x9-marketing8k.png
+
+      - name: Validate dimensions duration fps and file integrity
+        run: pnpm -w exec tsx apps/web/scripts/validate-voxy-render-artifacts.ts
 
       - name: Upload review artifacts
         uses: actions/upload-artifact@v4
