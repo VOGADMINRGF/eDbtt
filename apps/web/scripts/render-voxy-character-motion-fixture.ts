@@ -1,13 +1,6 @@
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import {
@@ -21,8 +14,7 @@ const SUPPORTED_FORMATS = new Set<VoxyVideoFormat>(["16:9", "9:16", "1:1"]);
 
 function readArgument(name: string): string | null {
   const prefix = `--${name}=`;
-  const argument = process.argv.slice(2).find((entry) => entry.startsWith(prefix));
-  return argument ? argument.slice(prefix.length) : null;
+  return process.argv.slice(2).find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
 }
 
 function hasFlag(name: string): boolean {
@@ -37,6 +29,19 @@ function resolveFormat(): VoxyVideoFormat {
   return value as VoxyVideoFormat;
 }
 
+function publicAssetPath(webRoot: string, publicPath: string): string {
+  if (!publicPath.startsWith("/brands/voxy/")) {
+    throw new Error("Voxy fixture assets must use the canonical /brands/voxy path.");
+  }
+  return resolve(webRoot, "public", publicPath.slice(1));
+}
+
+async function embeddedSvgDataUrl(path: string): Promise<string> {
+  const content = await readFile(path, "utf8");
+  if (!content.includes("<svg")) throw new Error(`Invalid SVG master: ${path}`);
+  return `data:image/svg+xml;base64,${Buffer.from(content).toString("base64")}`;
+}
+
 function runFfmpeg(input: {
   framesDirectory: string;
   fps: number;
@@ -45,35 +50,16 @@ function runFfmpeg(input: {
   outputExtension: ".mp4" | ".webm";
 }): void {
   const common = [
-    "-y",
-    "-framerate",
-    String(input.fps),
-    "-i",
+    "-y", "-framerate", String(input.fps), "-i",
     join(input.framesDirectory, "frame-%04d.png"),
-    "-frames:v",
-    String(input.frameCount),
-    "-r",
-    String(input.fps),
-    "-an",
+    "-frames:v", String(input.frameCount), "-r", String(input.fps), "-an",
   ];
-  const codec =
-    input.outputExtension === ".mp4"
-      ? [
-          "-c:v",
-          "libx264",
-          "-pix_fmt",
-          "yuv420p",
-          "-movflags",
-          "+faststart",
-        ]
-      : ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-pix_fmt", "yuv420p"];
-  const result = spawnSync("ffmpeg", [...common, ...codec, input.outputPath], {
-    encoding: "utf8",
-  });
-
+  const codec = input.outputExtension === ".mp4"
+    ? ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+    : ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-pix_fmt", "yuv420p"];
+  const result = spawnSync("ffmpeg", [...common, ...codec, input.outputPath], { encoding: "utf8" });
   if (result.error || result.status !== 0) {
-    const detail = result.error?.message ?? result.stderr.trim();
-    throw new Error(`FFmpeg render failed: ${detail}`);
+    throw new Error(`FFmpeg render failed: ${result.error?.message ?? result.stderr.trim()}`);
   }
 }
 
@@ -81,33 +67,30 @@ async function main(): Promise<void> {
   const format = resolveFormat();
   const plan = buildVoxyCharacterMotionFixturePlan(format);
   const validation = validateVoxyCharacterMotionFixturePlan(plan);
-  if (!validation.ok) {
-    throw new Error(`Fixture plan invalid: ${validation.errors.join(", ")}`);
-  }
+  if (!validation.ok) throw new Error(`Fixture plan invalid: ${validation.errors.join(", ")}`);
 
   const webRoot = resolve(import.meta.dirname, "..");
   const repositoryRoot = resolve(webRoot, "../..");
-  const assetPath = join(webRoot, "public/brand/voxy/voxy-podcast-stage.png");
+  const studioPath = publicAssetPath(webRoot, plan.studioAssetPath);
+  const characterPath = publicAssetPath(webRoot, plan.characterAssetPath);
   const requestedOutput = resolve(
     process.cwd(),
-    readArgument("output") ??
-      `artifacts/voxy-character-motion-fixture-${format.replace(":", "x")}.webm`,
+    readArgument("output") ?? `artifacts/voxy-character-motion-fixture-${format.replace(":", "x")}.webm`,
   );
   const outputExtension = extname(requestedOutput).toLowerCase();
   if (outputExtension !== ".webm" && outputExtension !== ".mp4") {
     throw new Error("Output must end in .webm or .mp4.");
   }
 
-  const stageAsset = await readFile(assetPath);
-  const embeddedCharacterAssetUrl = `data:image/png;base64,${stageAsset.toString("base64")}`;
+  const embeddedStudioAssetUrl = await embeddedSvgDataUrl(studioPath);
+  const embeddedCharacterAssetUrl = await embeddedSvgDataUrl(characterPath);
   const previewHtml = renderVoxyCharacterMotionFixtureHtml({
     plan,
+    embeddedStudioAssetUrl,
     embeddedCharacterAssetUrl,
   });
 
-  const temporaryDirectory = await mkdtemp(
-    join(tmpdir(), "voxy-character-motion-fixture-"),
-  );
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), "voxy-character-motion-fixture-"));
   const framesDirectory = join(temporaryDirectory, "frames");
   const previewHtmlPath = join(temporaryDirectory, "fixture.html");
   const planPath = join(temporaryDirectory, "fixture-plan.json");
@@ -121,40 +104,22 @@ async function main(): Promise<void> {
     await mkdir(dirname(htmlOutput), { recursive: true });
     await copyFile(previewHtmlPath, htmlOutput);
     await copyFile(planPath, jsonOutput);
-    console.log(
-      JSON.stringify(
-        {
-          status: "html_fixture_written",
-          format,
-          htmlOutput,
-          jsonOutput,
-          reviewRequired: plan.reviewRequired,
-          autoPublish: plan.autoPublish,
-          lipSync: plan.lipSync,
-        },
-        null,
-        2,
-      ),
-    );
+    console.log(JSON.stringify({ status: "html_fixture_written", format, htmlOutput, jsonOutput, reviewRequired: plan.reviewRequired, autoPublish: plan.autoPublish, lipSync: plan.lipSync }, null, 2));
     await rm(temporaryDirectory, { recursive: true, force: true });
     return;
   }
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport: { width: plan.width, height: plan.height },
-    reducedMotion: "no-preference",
-  });
+  const context = await browser.newContext({ viewport: { width: plan.width, height: plan.height }, reducedMotion: "no-preference" });
   const page = await context.newPage();
   const captureHtml = renderVoxyCharacterMotionFixtureHtml({
     plan,
+    embeddedStudioAssetUrl,
     embeddedCharacterAssetUrl,
     captureTimeMs: 0,
   });
   await page.setContent(captureHtml, { waitUntil: "load" });
-  await page.waitForFunction(() =>
-    Array.from(document.images).every((image) => image.complete),
-  );
+  await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete));
 
   const frameCount = Math.round((plan.durationMs / 1_000) * plan.fps);
   for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
@@ -164,12 +129,8 @@ async function main(): Promise<void> {
       fixture?.style.setProperty("--capture-time", `${timeMs}ms`);
       if (fixture) void fixture.offsetHeight;
     }, captureTimeMs);
-    const framePath = join(
-      framesDirectory,
-      `frame-${String(frameIndex).padStart(4, "0")}.png`,
-    );
     await page.screenshot({
-      path: framePath,
+      path: join(framesDirectory, `frame-${String(frameIndex).padStart(4, "0")}.png`),
       type: "png",
       clip: { x: 0, y: 0, width: plan.width, height: plan.height },
     });
@@ -192,31 +153,26 @@ async function main(): Promise<void> {
   await copyFile(planPath, manifestOutput);
   await rm(temporaryDirectory, { recursive: true, force: true });
 
-  console.log(
-    JSON.stringify(
-      {
-        status: "fixture_rendered",
-        repositoryRoot,
-        format,
-        output: requestedOutput,
-        manifest: manifestOutput,
-        width: plan.width,
-        height: plan.height,
-        durationMs: plan.durationMs,
-        fps: plan.fps,
-        frameCount,
-        reviewRequired: plan.reviewRequired,
-        autoPublish: plan.autoPublish,
-        lipSync: plan.lipSync,
-      },
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify({
+    status: "fixture_rendered",
+    repositoryRoot,
+    format,
+    output: requestedOutput,
+    manifest: manifestOutput,
+    studioAssetPath: plan.studioAssetPath,
+    characterAssetPath: plan.characterAssetPath,
+    width: plan.width,
+    height: plan.height,
+    durationMs: plan.durationMs,
+    fps: plan.fps,
+    frameCount,
+    reviewRequired: plan.reviewRequired,
+    autoPublish: plan.autoPublish,
+    lipSync: plan.lipSync,
+  }, null, 2));
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : "Unknown fixture error";
-  console.error(`VOXY_CHARACTER_MOTION_FIXTURE_FAILED: ${message}`);
+  console.error(`VOXY_CHARACTER_MOTION_FIXTURE_FAILED: ${error instanceof Error ? error.message : "Unknown fixture error"}`);
   process.exitCode = 1;
 });
