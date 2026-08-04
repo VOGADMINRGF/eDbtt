@@ -77,7 +77,7 @@ describe("VOG public ballot render contract", () => {
     expect(html).not.toContain('href="/login"');
   });
 
-  it("renders all six language links with mobile, keyboard and screenreader semantics", () => {
+  it("renders all six language links with names, codes and accessible semantics", () => {
     const html = renderToStaticMarkup(
       <VogPublicBallotClient
         initialBallot={ballot()}
@@ -87,6 +87,17 @@ describe("VOG public ballot render contract", () => {
     );
     for (const locale of ["de", "en", "fr", "es", "tr", "ar"]) {
       expect(html).toContain(`hrefLang="${locale}"`);
+      expect(html).toContain(`lang="${locale}"`);
+    }
+    for (const label of [
+      "Deutsch · DE",
+      "English · EN",
+      "Français · FR",
+      "Español · ES",
+      "Türkçe · TR",
+      "العربية · AR",
+    ]) {
+      expect(html).toContain(label);
     }
     expect(html).toContain('aria-label="Sprache"');
     expect(html).toContain("flex-wrap");
