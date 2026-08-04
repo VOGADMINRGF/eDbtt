@@ -1,6 +1,6 @@
 {
   "name": "Voxy Master Asset System",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "canonicalBasePath": "/brands/voxy",
   "status": "review",
   "sourceFormat": "svg",
@@ -23,6 +23,11 @@
     "sittingMaster": "/brands/voxy/characters/voxy-sitting-master.svg",
     "standingMaster": "/brands/voxy/characters/voxy-standing-master.svg",
     "gesturingMaster": "/brands/voxy/characters/voxy-gesturing-master.svg"
+  },
+  "rig": {
+    "manifest": "/brands/voxy/rig/voxy-rig-manifest.json",
+    "layered": true,
+    "humanApprovalRequired": true
   },
   "studio": {
     "16:9": "/brands/voxy/studio/voxy-studio-background-16x9.svg",
