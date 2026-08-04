@@ -1,0 +1,27 @@
+{
+  "id": "voxy-character-motion-fixture-v1",
+  "status": "review",
+  "purpose": "Deterministic Voxy studio motion fixture without lip sync or external avatar provider.",
+  "characterAsset": "/brand/voxy/voxy-podcast-stage.png",
+  "formats": {
+    "16:9": { "width": 1280, "height": 720 },
+    "9:16": { "width": 720, "height": 1280 },
+    "1:1": { "width": 1080, "height": 1080 }
+  },
+  "durationMs": 8000,
+  "fps": 24,
+  "editorialMode": "facts_updates_only",
+  "politicalInterpretationAllowed": false,
+  "recommendationsAllowed": false,
+  "reviewRequired": true,
+  "autoPublish": false,
+  "lipSync": false,
+  "renderCommand": "pnpm -w exec tsx apps/web/scripts/render-voxy-character-motion-fixture.ts --format=16:9 --output=artifacts/voxy-character-motion-fixture-16x9.mp4",
+  "scenes": [
+    "opening",
+    "source_update",
+    "contrast",
+    "open_question",
+    "closing"
+  ]
+}
