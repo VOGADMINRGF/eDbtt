@@ -1,8 +1,11 @@
 # VOXY-AUTO-PUBLISH-READINESS-01
 
-Stand: 2026-08-04  
-Issue: #571  
-Status: `codex_ready` / Draft-Implementierung  
+Stand: 2026-08-04
+
+Issue: #571
+
+Status: `codex_ready` / Draft-Implementierung
+
 Aktivierung: ausdrücklich **nicht** Bestandteil dieses Slices
 
 ## Zweck
