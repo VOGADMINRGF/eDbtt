@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -13,10 +13,24 @@ import type { VoxyVideoFormat } from "../src/features/voxyVideo/modernCharacterC
 
 const FORMATS = new Set<VoxyVideoFormat>(["16:9", "9:16", "1:1"]);
 const PROFILES = new Set<VoxyMasterQualityProfile>(["review", "production", "marketing8k"]);
+const LEGACY_STAGE_REFERENCE = "../../../brand/voxy/voxy-podcast-stage.png";
 
 function argument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.slice(2).find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
+}
+
+async function buildSelfContainedSvg(input: {
+  sourcePath: string;
+  legacyStagePath: string;
+}): Promise<string> {
+  const sourceSvg = await readFile(input.sourcePath, "utf8");
+  if (!sourceSvg.includes("<svg")) throw new Error("Marketing master is not SVG");
+  if (!sourceSvg.includes(LEGACY_STAGE_REFERENCE)) return sourceSvg;
+
+  const stageBytes = await readFile(input.legacyStagePath);
+  const embeddedStage = `data:image/png;base64,${stageBytes.toString("base64")}`;
+  return sourceSvg.replaceAll(LEGACY_STAGE_REFERENCE, embeddedStage);
 }
 
 async function main(): Promise<void> {
@@ -28,6 +42,7 @@ async function main(): Promise<void> {
   const { width, height, fps } = resolveVoxyMasterDimensions(format, profile);
   const webRoot = resolve(import.meta.dirname, "..");
   const sourcePath = resolve(webRoot, "public", resolveVoxyMarketingAsset(format).replace(/^\//, ""));
+  const legacyStagePath = resolve(webRoot, "public/brand/voxy/voxy-podcast-stage.png");
   const output = resolve(
     process.cwd(),
     argument("output") ?? `artifacts/voxy-master-${format.replace(":", "x")}-${profile}.png`,
@@ -38,8 +53,12 @@ async function main(): Promise<void> {
   }
 
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "voxy-master-export-"));
+  const resolvedSvgPath = join(temporaryDirectory, "master.self-contained.svg");
   const htmlPath = join(temporaryDirectory, "export.html");
-  const sourceUrl = pathToFileURL(sourcePath).href;
+  const resolvedSvg = await buildSelfContainedSvg({ sourcePath, legacyStagePath });
+  await writeFile(resolvedSvgPath, resolvedSvg, "utf8");
+
+  const sourceUrl = pathToFileURL(resolvedSvgPath).href;
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden;background:#02050f}img{display:block;width:${width}px;height:${height}px;object-fit:fill}</style></head><body><img src="${sourceUrl}" alt=""></body></html>`;
   await writeFile(htmlPath, html, "utf8");
 
@@ -63,7 +82,17 @@ async function main(): Promise<void> {
   }
 
   await rm(temporaryDirectory, { recursive: true, force: true });
-  console.log(JSON.stringify({ status: "voxy_master_exported", format, profile, width, height, fps, sourcePath, output }, null, 2));
+  console.log(JSON.stringify({
+    status: "voxy_master_exported",
+    format,
+    profile,
+    width,
+    height,
+    fps,
+    sourcePath,
+    legacyStageEmbedded: resolvedSvg.includes("data:image/png;base64,"),
+    output,
+  }, null, 2));
 }
 
 main().catch((error: unknown) => {
