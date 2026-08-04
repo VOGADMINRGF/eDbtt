@@ -1,7 +1,8 @@
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, extname, resolve } from "node:path";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   resolveVoxyMarketingAsset,
@@ -36,10 +37,16 @@ async function main(): Promise<void> {
     throw new Error("Output must be PNG, WebP or AVIF");
   }
 
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), "voxy-master-export-"));
+  const htmlPath = join(temporaryDirectory, "export.html");
+  const sourceUrl = pathToFileURL(sourcePath).href;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden;background:#02050f}img{display:block;width:${width}px;height:${height}px;object-fit:fill}</style></head><body><img src="${sourceUrl}" alt=""></body></html>`;
+  await writeFile(htmlPath, html, "utf8");
+
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-  await page.goto(pathToFileURL(sourcePath).href, { waitUntil: "load" });
-  await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete));
+  await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
+  await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0));
   const png = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width, height } });
   await browser.close();
 
@@ -55,7 +62,8 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(JSON.stringify({ status: "voxy_master_exported", format, profile, width, height, fps, output }, null, 2));
+  await rm(temporaryDirectory, { recursive: true, force: true });
+  console.log(JSON.stringify({ status: "voxy_master_exported", format, profile, width, height, fps, sourcePath, output }, null, 2));
 }
 
 main().catch((error: unknown) => {
