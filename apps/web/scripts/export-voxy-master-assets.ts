@@ -1,7 +1,8 @@
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   resolveVoxyMarketingAsset,
   resolveVoxyMasterDimensions,
@@ -35,12 +36,11 @@ async function main(): Promise<void> {
     throw new Error("Output must be PNG, WebP or AVIF");
   }
 
-  const svg = await readFile(sourcePath, "utf8");
-  const html = `<!doctype html><html><body style="margin:0;background:#02050f"><img src="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}" width="${width}" height="${height}" /></body></html>`;
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-  await page.setContent(html, { waitUntil: "load" });
-  const png = await page.screenshot({ type: "png" });
+  await page.goto(pathToFileURL(sourcePath).href, { waitUntil: "load" });
+  await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete));
+  const png = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width, height } });
   await browser.close();
 
   await mkdir(dirname(output), { recursive: true });
