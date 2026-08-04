@@ -9,7 +9,7 @@ import {
   VOXY_MASTER_ASSETS,
   resolveVoxyBroadcastTemplate,
   resolveVoxyStudioAsset,
-} from "@/features/voxy/voxyMasterAssets";
+} from "../voxy/voxyMasterAssets";
 
 export const VOXY_CHARACTER_MOTION_FIXTURE_VERSION =
   "voxy-character-motion-fixture-v2" as const;
