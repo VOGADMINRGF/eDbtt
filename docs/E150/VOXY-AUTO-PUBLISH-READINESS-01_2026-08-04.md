@@ -110,6 +110,6 @@ Selbst ein vollständig grüner Bericht darf nur `eligible_for_human_allowlist_d
 ## Kalender
 
 - 21.08.2026, 11:00: Shadow Mode nach Go/No-Go starten
-- 20.09.2026, 10:00: 30-Tage-Review
+- 20.09.2026, 11:00: 30-Tage-Review
 
 Beide Termine sind an den tatsächlichen Start gekoppelt und bei Verschiebung gemeinsam anzupassen.
