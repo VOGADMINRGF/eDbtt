@@ -48,11 +48,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium and FFmpeg
+      - name: Install Chromium and verify FFmpeg
         run: |
-          pnpm -C apps/web exec playwright install --with-deps chromium
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          pnpm -C apps/web exec playwright install chromium
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
 
       - name: Run focused contracts
         run: |
