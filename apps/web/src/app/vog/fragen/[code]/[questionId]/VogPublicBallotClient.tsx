@@ -6,6 +6,7 @@ import type {
   VogPublicBallotUiLocale,
 } from "@features/vog/publicBallotContract";
 import {
+  getVogPublicBallotLocaleDirection,
   VOG_BALLOT_CSRF_HEADER,
   VOG_BALLOT_CSRF_VALUE,
 } from "@features/vog/publicBallotContract";
@@ -362,6 +363,68 @@ const COPY: Record<VogPublicBallotUiLocale, Copy> = {
   },
 };
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  de: "Deutsch",
+  en: "English",
+  fr: "Français",
+  es: "Español",
+  tr: "Türkçe",
+  ar: "العربية",
+};
+const DRAFT_SELECTION_STORAGE_PREFIX = "edebatte:vog-public-ballot-draft:v1";
+
+function getLanguageLabel(locale: string, uiLocale: VogPublicBallotUiLocale) {
+  const nativeName = LANGUAGE_NAMES[locale];
+  if (nativeName) return `${nativeName} · ${locale.toUpperCase()}`;
+  try {
+    const displayName = new Intl.DisplayNames([uiLocale], { type: "language" }).of(locale);
+    return displayName ? `${displayName} · ${locale}` : locale;
+  } catch {
+    return locale;
+  }
+}
+
+function draftSelectionStorageKey(code: string, questionId: string) {
+  return `${DRAFT_SELECTION_STORAGE_PREFIX}:${code}:${questionId}`;
+}
+
+function readDraftSelection(
+  code: string,
+  questionId: string,
+  allowedOptionIds: readonly string[],
+) {
+  try {
+    const stored = window.sessionStorage.getItem(
+      draftSelectionStorageKey(code, questionId),
+    );
+    if (stored && allowedOptionIds.includes(stored)) return stored;
+    if (stored) {
+      window.sessionStorage.removeItem(draftSelectionStorageKey(code, questionId));
+    }
+  } catch {
+    // Storage is a progressive enhancement only; voting remains available.
+  }
+  return null;
+}
+
+function persistDraftSelection(code: string, questionId: string, selection: string) {
+  try {
+    const key = draftSelectionStorageKey(code, questionId);
+    if (selection) window.sessionStorage.setItem(key, selection);
+    else window.sessionStorage.removeItem(key);
+  } catch {
+    // Storage is a progressive enhancement only; voting remains available.
+  }
+}
+
+function clearDraftSelection(code: string, questionId: string) {
+  try {
+    window.sessionStorage.removeItem(draftSelectionStorageKey(code, questionId));
+  } catch {
+    // Storage is a progressive enhancement only; voting remains available.
+  }
+}
+
 function formatDate(value: string | null, locale: VogPublicBallotUiLocale) {
   if (!value) return null;
   return new Intl.DateTimeFormat(locale, {
@@ -473,8 +536,22 @@ export function VogPublicBallotClient({
   const canVote = ballot.lifecycle === "open";
 
   useEffect(() => {
+    const storedSelection = readDraftSelection(
+      initialBallot.code,
+      initialBallot.questionId,
+      initialBallot.options.map((option) => option.optionId),
+    );
+    if (storedSelection) setSelection(storedSelection);
+  }, [initialBallot.code, initialBallot.questionId, initialBallot.options]);
+
+  useEffect(() => {
     if (notice) statusRef.current?.focus();
   }, [notice]);
+
+  function updateSelection(optionId: string) {
+    setSelection(optionId);
+    persistDraftSelection(ballot.code, ballot.questionId, optionId);
+  }
 
   async function submitVote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -521,6 +598,7 @@ export function VogPublicBallotClient({
         }
         return;
       }
+      clearDraftSelection(ballot.code, ballot.questionId);
       if (body.ballot) {
         setBallot(body.ballot);
         setSelection(body.ballot.ownSelection ?? selection);
@@ -588,10 +666,15 @@ export function VogPublicBallotClient({
                 key={link.locale}
                 href={link.href}
                 hrefLang={link.locale}
+                lang={link.locale}
+                dir={getVogPublicBallotLocaleDirection(link.locale)}
                 aria-current={ballot.readingLocale === link.locale ? "page" : undefined}
+                onClick={() =>
+                  persistDraftSelection(ballot.code, ballot.questionId, selection)
+                }
                 className="min-h-11 rounded-md px-1 py-3 font-semibold underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
-                {link.locale.toUpperCase()}
+                {getLanguageLabel(link.locale, ballot.uiLocale)}
               </a>
             ))}
           </nav>
@@ -656,7 +739,7 @@ export function VogPublicBallotClient({
                   name="vog-public-ballot-choice"
                   value={option.optionId}
                   checked={selection === option.optionId}
-                  onChange={() => setSelection(option.optionId)}
+                  onChange={() => updateSelection(option.optionId)}
                   className="h-5 w-5"
                 />
                 <span>{option.label}</span>
