@@ -1,0 +1,30 @@
+name: Voxy Animatable Master Contract
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/src/features/voxyVideo/animatableMasterAsset.ts"
+      - "apps/web/tests/voxy-animatable-master-asset.contract.test.ts"
+      - ".github/workflows/voxy-animatable-master-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C apps/web exec vitest run tests/voxy-animatable-master-asset.contract.test.ts
+      - run: pnpm -C apps/web run typecheck
+      - run: git diff --check
