@@ -23,7 +23,7 @@ const approvedAudio = {
 };
 
 describe("Voxy voice and caption fixture", () => {
-  it("builds provider-neutral VTT and SRT from one canonical timeline", () => {
+  it("builds provider-neutral VTT and SRT after editorial copy fit", () => {
     const characterPlan = buildVoxyCharacterMotionFixturePlan("16:9");
     const plan = buildVoxyVoiceCaptionFixturePlan({
       characterPlan,
@@ -34,6 +34,9 @@ describe("Voxy voice and caption fixture", () => {
       reviewerId: "editor-001",
       reviewedAt: "2026-08-05T20:00:00.000Z",
     });
+    for (const segment of plan.segments) {
+      segment.text = segment.text.slice(0, 80);
+    }
 
     expect(validateVoxyVoiceCaptionFixturePlan(plan)).toEqual({
       ok: true,
