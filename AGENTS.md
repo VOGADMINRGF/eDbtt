@@ -104,6 +104,34 @@ Vor entsprechenden Änderungen müssen Agenten die kanonische Datei lesen und fo
 - nur tatsächlich verfügbare Produktfunktionen und Automatisierungen versprechen
 - einen echten Bedeutungswechsel zuerst in der kanonischen Datei und anschließend in `docs/E150/OpenTasks.md` synchronisieren
 
+### 10. Foundation canon (verbindlich)
+Vor grundlegenden Produkt-, Architektur-, KI-, Automatisierungs-, Kommunikations-, Governance- oder Engineering-Entscheidungen müssen Agenten die relevanten Dateien unter `docs/foundation/` lesen.
+
+Die verbindliche Reihenfolge lautet:
+
+1. `docs/foundation/Constitution.md`
+2. `docs/foundation/Vision.md`
+3. `docs/foundation/Grundwerte.md`
+4. `docs/foundation/Architecture-Canon.md`
+5. `docs/foundation/Engineering-Canon.md`
+6. `docs/brand/EDEBATTE_BRAND_NARRATIVE.md`
+7. `AGENTS.md`
+8. `docs/E150/OpenTasks.md`
+9. Run Packs, ADRs und Implementierungen
+
+Agenten müssen insbesondere:
+- menschliche Verantwortung und Entscheidungsgrenzen erhalten
+- Quellen, Evidenzen, Widersprüche und Unsicherheiten nachvollziehbar bewahren
+- Original-, Lese-, Bedien- und Ausgabesprache getrennt berücksichtigen
+- KI nicht als autonome Wahrheits- oder Governance-Instanz behandeln
+- Automation nach Risiko, Wirkung, Policy und Konfidenz staffeln
+- keine allgemeine Auto-Publish-Logik einführen
+- Datenschutz, Sicherheit, Barrierefreiheit, Beobachtbarkeit und Wiederherstellung als Produktanforderungen behandeln
+- bestehende Architektur erweitern, statt parallele Wahrheiten zu schaffen
+- tatsächliche Produktwahrheit nicht durch visionäre Texte überzeichnen
+
+Bei einem Konflikt gilt die höherstehende Ebene. Ein echter Bedeutungswechsel muss zuerst in den Foundation-Dokumenten beschlossen und danach in Brand Narrative, OpenTasks, ADRs, Run Packs und Implementierung synchronisiert werden.
+
 ---
 
 ## Required Task Status Meanings

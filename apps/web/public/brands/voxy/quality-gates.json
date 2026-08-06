@@ -1,0 +1,35 @@
+{
+  "status": "review",
+  "mustPass": [
+    "five_fingers_each_hand",
+    "vog_pin_legible",
+    "edebatte_pocket_mark_legible",
+    "waveform_behind_character",
+    "waveform_never_over_logo",
+    "no_baked_dynamic_text",
+    "safe_zones_for_16x9_9x16_1x1",
+    "svg_master_present",
+    "no_checkerboard_background",
+    "no_cropped_head_hands_microphone",
+    "review_required",
+    "auto_publish_false"
+  ],
+  "legacyPolicy": {
+    "path": "/brand/voxy",
+    "usage": "compatibility-only",
+    "blockNewMarketingUse": true,
+    "reason": "older raster variants may contain inconsistent anatomy or baked typography"
+  },
+  "humanReviewRequired": [
+    "final character look",
+    "marketing license/provenance",
+    "motion rig pivot points",
+    "all pose anatomy at 200% zoom"
+  ],
+  "marketingMasterPolicy": {
+    "hands": "not visible in publish-safe framing; lower-third begins above the hand area",
+    "branding": "VOG pin and eDebatte pocket mark visible in source; separate vector overlays available",
+    "dynamicText": "never baked into the publish template",
+    "status": "marketing_review"
+  }
+}
