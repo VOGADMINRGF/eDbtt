@@ -363,6 +363,14 @@ Dieser additive Block führt die nach PR `#558`, PR `#573`, PR `#582` und den Be
 | VOXY-AUTO-PUBLISH-SHADOW-RUNTIME-01 | blocked | P0 | Issues `#570`, `#578`; Issue `#575` | Append-only Shadow-Evidence und reproduzierbaren 30-Tage-Bericht auf realen Revisionen aufbauen | kein Auto-Approve, keine Aktivierung und kein externer Publish; Ergebnis höchstens `eligible_for_human_allowlist_decision` |
 | DAILY-TOPIC-INGESTION-E2E-01 | blocked | P0 | Issues `#567`, `#568`, `#570`; Issue `#581` | Direkte Eingabe und kontrollierte Feed-/Signalquelle in derselben kanonischen Daily-Pipeline nachweisen | reale Topic-/Briefing-IDs, Provenienz, Deduplizierung, Quellenbedarf, Gegenposition, Review und Voxy-Vorschlag; kein Render oder Publishing ohne Freigabe |
 
+## Ökosystem-Mehrsprachigkeitsvertrag — 2026-08-06
+
+Dieser Governance-Slice definiert nur den gemeinsamen Mehrsprachenvertrag. Keine Produktimplementierung, Übersetzung oder Aktivierung.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| ECOSYSTEM-I18N-CONTRACT-01 | codex_ready | P0 | I18N Go `#456`; Public Ballot PR `#557`; Vote4Gov PR `#9`; VoiceOpenGov PR `#6`; Issue `#566` | Gemeinsamen offenen Locale-, Translation-, RTL-, Accessibility-, SEO- und Cross-Domain-Vertrag versionieren; keine Repository-Adapter in diesem Slice | Initial `de`, `en`, `fr`, `es`, `tr`, `ar`; weitere BCP-47-Tags ohne Schemaänderung; `originalLocale`, `readingLocale`, `uiLocale`, `outputLocale` getrennt; stabile sprachunabhängige IDs; ehrliche Translation- und Fallbackzustände; RTL; Canonical und hreflang; Übersetzung ist keine Evidenz; sprachübergreifend identische Frage- und Options-IDs; kein PII-Handoff, Auto-Publish, Mega-PR oder zweite i18n-SSOT |
+
 ## Historischer Katalog und Evidenz
 
 Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.
