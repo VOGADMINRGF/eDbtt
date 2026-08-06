@@ -371,6 +371,14 @@ Dieser Governance-Slice definiert nur den gemeinsamen Mehrsprachenvertrag. Keine
 | --- | --- | --- | --- | --- | --- |
 | ECOSYSTEM-I18N-CONTRACT-01 | codex_ready | P0 | I18N Go `#456`; Public Ballot PR `#557`; Vote4Gov PR `#9`; VoiceOpenGov PR `#6`; Issue `#566` | Gemeinsamen offenen Locale-, Translation-, RTL-, Accessibility-, SEO- und Cross-Domain-Vertrag versionieren; keine Repository-Adapter in diesem Slice | Initial `de`, `en`, `fr`, `es`, `tr`, `ar`; weitere BCP-47-Tags ohne Schemaänderung; `originalLocale`, `readingLocale`, `uiLocale`, `outputLocale` getrennt; stabile sprachunabhängige IDs; ehrliche Translation- und Fallbackzustände; RTL; Canonical und hreflang; Übersetzung ist keine Evidenz; sprachübergreifend identische Frage- und Options-IDs; kein PII-Handoff, Auto-Publish, Mega-PR oder zweite i18n-SSOT |
 
+## Social-Provider-Secret-Manifest — 2026-08-06
+
+Dieser additive Governance-Eintrag autorisiert nach positivem Post-Merge-Preflight ausschließlich einen kleinen Docs-/Config-Slice. Er verbindet noch keinen Provider und enthält keine echten Zugangsdaten.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| SOCIAL-SECRET-MANIFEST-01 | codex_ready | P0 | Issue `#585`; Issues `#471` und `#474`; `ECOSYSTEM-I18N-CONTRACT-01` | Bestehende Social-Connector-Konfiguration inventarisieren; Reddit und Threads deaktiviert ergänzen; wertfreies serverseitiges Secret-Manifest und Guardrails erstellen | Bestehende Flag-Namen bleiben unverändert; `REDDIT_CONNECTOR_ENABLED=0` und `THREADS_CONNECTOR_ENABLED=0`; `SOCIAL_AUTO_PUBLISH_ENABLED=0`; `SOCIAL_REALTIME_PUBLISH_ENABLED=0`; `SOCIAL_REQUIRE_REVIEW=1`; keine `NEXT_PUBLIC_*`-Social-Secrets; keine echten IDs, Tokens, E-Mails, Telefonnummern oder Passwörter; lokale, Preview- und Produktionsumgebung getrennt; minimale Read-Scopes und spätere Write-Scopes getrennt; unbestätigte Providerfelder als `provider_verification_required`; Rotation, Ablauf, Revocation, Disconnect, Retention, Audit und Incident-Verfahren dokumentiert; fokussierte Guardrail-Tests; keine OAuth-Route, DB-/Migration, Provider-API, reale Verbindung, Veröffentlichung oder Deployment |
+
 ## Historischer Katalog und Evidenz
 
 Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.
