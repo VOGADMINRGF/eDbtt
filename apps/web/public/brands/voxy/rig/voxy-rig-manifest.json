@@ -1,0 +1,66 @@
+{
+  "name": "Voxy Layered Motion Rig",
+  "version": "1.0.0",
+  "status": "review",
+  "coordinateSystem": "SVG viewBox pixels, origin top-left",
+  "canonicalCharacter": "/brands/voxy/characters/voxy-sitting-master.svg",
+  "fallbackPoses": {
+    "neutral_idle": "/brands/voxy/characters/voxy-sitting-master.svg",
+    "listening": "/brands/voxy/characters/voxy-sitting-master.svg",
+    "explaining": "/brands/voxy/characters/voxy-gesturing-master.svg",
+    "questioning": "/brands/voxy/characters/voxy-gesturing-master.svg",
+    "highlighting_source": "/brands/voxy/characters/voxy-gesturing-master.svg",
+    "showing_contrast": "/brands/voxy/characters/voxy-standing-master.svg",
+    "inviting_participation": "/brands/voxy/characters/voxy-gesturing-master.svg"
+  },
+  "requiredLayers": [
+    { "id": "studio", "kind": "background", "required": true },
+    { "id": "desk", "kind": "foreground", "required": true },
+    { "id": "microphone", "kind": "prop", "required": true },
+    { "id": "body", "kind": "character", "required": true, "pivot": { "x": 800, "y": 1120 } },
+    { "id": "left-arm", "kind": "character", "required": true, "pivot": { "x": 520, "y": 980 } },
+    { "id": "right-arm", "kind": "character", "required": true, "pivot": { "x": 1080, "y": 980 } },
+    { "id": "left-hand-five-fingers", "kind": "anatomy", "required": true, "digitCount": 5, "pivot": { "x": 620, "y": 1410 } },
+    { "id": "right-hand-five-fingers", "kind": "anatomy", "required": true, "digitCount": 5, "pivot": { "x": 980, "y": 1410 } },
+    { "id": "head", "kind": "character", "required": true, "pivot": { "x": 800, "y": 680 } },
+    { "id": "left-eye", "kind": "expression", "required": true },
+    { "id": "right-eye", "kind": "expression", "required": true },
+    { "id": "left-eyelid", "kind": "expression", "required": true },
+    { "id": "right-eyelid", "kind": "expression", "required": true },
+    { "id": "left-brow", "kind": "expression", "required": true },
+    { "id": "right-brow", "kind": "expression", "required": true },
+    { "id": "mouth-neutral", "kind": "expression", "required": true, "lipSync": false },
+    { "id": "headphones", "kind": "prop", "required": true },
+    { "id": "vog-pin", "kind": "branding", "required": true, "literal": "VOG" },
+    { "id": "edebatte-pocket", "kind": "branding", "required": true, "literal": "eDebatte" },
+    { "id": "jarvis-waveform", "kind": "signal", "required": true, "zOrder": "behind-character" },
+    { "id": "logo-zone", "kind": "branding", "required": true, "waveformOverlapAllowed": false }
+  ],
+  "motionLimits": {
+    "headRotationDegrees": { "min": -4, "max": 4 },
+    "bodyRotationDegrees": { "min": -2, "max": 2 },
+    "headTranslationPercent": { "min": -1.5, "max": 1.5 },
+    "armRotationDegrees": { "min": -18, "max": 18 },
+    "blinkDurationMs": { "min": 90, "max": 180 },
+    "cameraScale": { "min": 1, "max": 1.06 }
+  },
+  "expressions": [
+    "neutral",
+    "attentive",
+    "thoughtful",
+    "friendly",
+    "serious",
+    "surprised",
+    "inviting"
+  ],
+  "prohibited": [
+    "lip-sync",
+    "viseme animation",
+    "aggressive expression",
+    "triumphant political expression",
+    "finger count mutation",
+    "mirrored VOG pin",
+    "waveform over logo"
+  ],
+  "humanApprovalRequired": true
+}

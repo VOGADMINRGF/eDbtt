@@ -1,0 +1,80 @@
+{
+  "name": "Voxy Master Asset System",
+  "version": "4.1.0",
+  "canonicalBasePath": "/brands/voxy",
+  "status": "review",
+  "sourceFormat": "svg",
+  "resolution": "resolution-independent",
+  "colorSystem": "deep-navy + turquoise-to-electric-blue",
+  "anatomy": {
+    "hands": "exactly five digits per hand",
+    "verifiedAssets": [
+      "voxy-sitting-master",
+      "voxy-standing-master",
+      "voxy-gesturing-master"
+    ]
+  },
+  "branding": {
+    "lapelPin": "VOG",
+    "pocketMark": "eDebatte",
+    "waveformRule": "behind Voxy, never across logo"
+  },
+  "characters": {
+    "sittingMaster": "/brands/voxy/characters/voxy-sitting-master.svg",
+    "standingMaster": "/brands/voxy/characters/voxy-standing-master.svg",
+    "gesturingMaster": "/brands/voxy/characters/voxy-gesturing-master.svg"
+  },
+  "rig": {
+    "manifest": "/brands/voxy/rig/voxy-rig-manifest.json",
+    "layered": true,
+    "humanApprovalRequired": true
+  },
+  "studio": {
+    "16:9": "/brands/voxy/studio/voxy-studio-background-16x9.svg",
+    "9:16": "/brands/voxy/studio/voxy-studio-background-9x16.svg",
+    "1:1": "/brands/voxy/studio/voxy-studio-background-1x1.svg"
+  },
+  "templates": {
+    "16:9": "/brands/voxy/templates/voxy-broadcast-template-16x9.svg",
+    "9:16": "/brands/voxy/templates/voxy-broadcast-template-9x16.svg",
+    "1:1": "/brands/voxy/templates/voxy-broadcast-template-1x1.svg"
+  },
+  "overlays": {
+    "vogPin": "/brands/voxy/overlays/vog-pin.svg",
+    "edebattePocketMark": "/brands/voxy/overlays/edebatte-pocket-mark.svg",
+    "voxyWordmark": "/brands/voxy/overlays/voxy-wordmark.svg",
+    "jarvisWaveform": "/brands/voxy/overlays/jarvis-waveform.svg"
+  },
+  "exports": {
+    "videoMasters": {
+      "16:9": "3840x2160@30fps",
+      "9:16": "2160x3840@30fps",
+      "1:1": "2160x2160@30fps"
+    },
+    "web": [
+      "AVIF",
+      "WebP",
+      "SVG"
+    ],
+    "marketing": [
+      "PNG 8K",
+      "PNG 4K",
+      "H.264 MP4",
+      "WebM"
+    ]
+  },
+  "guardrails": [
+    "no lip sync requirement",
+    "no auto publish",
+    "no political interpretation",
+    "no action recommendations",
+    "all text remains editable",
+    "legacy /brand/voxy assets are compatibility-only until manually audited"
+  ],
+  "marketingMasters": {
+    "16:9": "/brands/voxy/marketing/voxy-studio-marketing-master-16x9.svg",
+    "9:16": "/brands/voxy/marketing/voxy-studio-marketing-master-9x16.svg",
+    "1:1": "/brands/voxy/marketing/voxy-studio-marketing-master-1x1.svg"
+  },
+  "marketingSourceNote": "Publish-safe SVG wrappers use the reviewed raster source from the legacy compatibility directory, replace the logo zone with crisp vector branding and cover the anatomy-sensitive hand area with the editable lower-third. The independent vector rig remains review-only until final art approval."
+}
