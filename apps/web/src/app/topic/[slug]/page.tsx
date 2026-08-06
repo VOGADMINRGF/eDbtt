@@ -28,6 +28,8 @@ import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { BRAND } from "@/lib/brand";
 import type { RegionPublicationVisibilityState } from "@features/region/publicationRiskLadder";
+import { resolveVote4GovTopicHandoff } from "@features/vote4gov/sourceRegistry";
+import { Vote4GovTopicContext } from "@/features/vote4gov/Vote4GovTopicContext";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -241,6 +243,10 @@ export default async function TopicPage({
   const { slug } = await params;
   const resolvedSearch = searchParams ? await searchParams : {};
   const previewRequested = readStringParam(resolvedSearch.previewTopicPage) === "1";
+  const vote4GovResolution = resolveVote4GovTopicHandoff({
+    encodedBundle: resolvedSearch.v4g,
+    topicSlug: slug,
+  });
   const canPreview = previewRequested ? await canPreviewHiddenTopicPage(slug) : false;
   const topicPageRecord = await getPublicTopicPageRecordBySlug(slug);
   const publicTopicPage = await buildPreviewablePublicTopicPageBySlug({
@@ -251,6 +257,10 @@ export default async function TopicPage({
   if (publicTopicPage) {
     return (
       <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-8 md:py-10">
+        <Vote4GovTopicContext
+          resolution={vote4GovResolution}
+          topicTitle={publicTopicPage.title}
+        />
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-3">
@@ -438,6 +448,9 @@ export default async function TopicPage({
         companionContexts={companionContexts}
         basePath={`/topic/${topic.slug}`}
         distribution={distribution}
+        leadingContent={
+          <Vote4GovTopicContext resolution={vote4GovResolution} topicTitle={topic.title} />
+        }
       />
     </>
   );

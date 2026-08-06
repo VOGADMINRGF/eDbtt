@@ -127,6 +127,7 @@ type TopicSurfaceProps = {
   basePath: string;
   distribution: DistributionContext;
   companionContexts?: CompanionContext[];
+  leadingContent?: ReactNode;
 };
 
 export function TopicSurface({
@@ -136,6 +137,7 @@ export function TopicSurface({
   basePath,
   distribution,
   companionContexts = [],
+  leadingContent,
 }: TopicSurfaceProps) {
   const sourceById = new Map(topic.sources.map((source) => [source.id, source]));
   const unresolvedRoadmap = topic.roadmap.filter((item) => item.status !== "done");
@@ -147,6 +149,7 @@ export function TopicSurface({
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl space-y-5 px-4 py-8 md:py-10">
+      {leadingContent}
       <TopicContextHero
         context={context}
         topic={topic}
