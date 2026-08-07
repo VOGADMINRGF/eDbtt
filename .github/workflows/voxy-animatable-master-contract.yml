@@ -15,6 +15,9 @@ on:
 permissions:
   contents: read
 
+env:
+  VOXY_EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   contract-render-evidence:
     runs-on: ubuntu-latest
@@ -45,11 +48,11 @@ jobs:
             tests/voxy-animatable-layer-assets.contract.test.ts
       - name: Render real 8-second layered master and crop evidence
         env:
-          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts --output=artifacts/voxy-animatable-master
       - name: Verify exact-head evidence and 8-second duration
         env:
-          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -66,7 +69,7 @@ jobs:
       - name: Upload revision-bound render evidence
         uses: actions/upload-artifact@v4
         with:
-          name: voxy-animatable-master-${{ github.sha }}
+          name: voxy-animatable-master-${{ env.VOXY_EXACT_HEAD_SHA }}
           path: artifacts/voxy-animatable-master/**
           if-no-files-found: error
           retention-days: 14
