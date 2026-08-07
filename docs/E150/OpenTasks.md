@@ -1,3 +1,5 @@
+# E150 Open Tasks — Operativer Kopf 2026-07-30
+
 ## Kanonischer Operativteil
 
 - Dieser Abschnitt ist die aktuelle operative Queue.
