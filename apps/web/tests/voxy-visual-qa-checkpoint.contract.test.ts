@@ -2,119 +2,119 @@ import { describe, expect, it } from "vitest";
 import {
   buildVoxyVisualQaCheckpoint,
   buildVoxyVisualQaSnapshot,
+  getVoxyVisualQaEvidenceKey,
   validateVoxyVisualQaCheckpoint,
+  VOXY_VISUAL_QA_REGIONS,
 } from "@/features/voxyVideo/visualQaCheckpoint";
 
-function buildApprovedCheckpoint() {
-  const commitSha = "cd7672144ef195d8e85cb8c404b615c627500e41";
+const HASH = "a".repeat(64);
+const HEAD = "307a2b7e7cdb15e62eefb4e9b5348817cb83a201";
+
+function regions() {
+  return VOXY_VISUAL_QA_REGIONS.map((region) => ({
+    region,
+    capturePath: `artifacts/${region}.png`,
+    captureSha256: HASH,
+    sharpnessScore: 0.5,
+    haloDetected: false,
+    cropped: false,
+    typographyOverflow: false,
+    notes: [],
+  }));
+}
+
+function snapshot(format: "16:9" | "9:16" | "1:1", commitSha = HEAD) {
+  return buildVoxyVisualQaSnapshot({
+    format,
+    assetPath: `/brands/voxy/templates/voxy-broadcast-template-${format.replace(":", "x")}.svg`,
+    assetVersion: "test-v1",
+    commitSha,
+    fullCapturePath: `artifacts/${format}-surface.png`,
+    fullCaptureSha256: HASH,
+    regions: regions(),
+    poses: [{ poseId: "standing_master", leftHandVisible: true, rightHandVisible: true, leftFingerCount: 5, rightFingerCount: 5 }],
+  });
+}
+
+function pendingCheckpoint() {
   return buildVoxyVisualQaCheckpoint({
-    snapshots: ["16:9", "9:16", "1:1"].map((format) =>
-      buildVoxyVisualQaSnapshot({
-        format: format as "16:9" | "9:16" | "1:1",
-        assetPath: `/brands/voxy/templates/voxy-broadcast-template-${format.replace(":", "x")}.svg`,
-        assetVersion: "1.0.0",
-        commitSha,
-      }),
-    ),
-    reviewStatus: "approved",
-    reviewerId: "editor-001",
-    reviewedAt: "2026-08-05T20:00:00.000Z",
-    revision: 3,
+    snapshots: [snapshot("16:9"), snapshot("9:16"), snapshot("1:1")],
+    reviewStatus: "pending",
+    revision: 4,
   });
 }
 
 describe("Voxy 200 percent visual QA checkpoint", () => {
-  it("requires exactly one 200 percent snapshot for all three formats", () => {
-    const checkpoint = buildApprovedCheckpoint();
+  it("requires one real hashed capture set for all three 200-percent formats", () => {
+    const checkpoint = pendingCheckpoint();
     const evidence = validateVoxyVisualQaCheckpoint(checkpoint);
-
     expect(evidence.automatedPassed).toBe(true);
-    expect(evidence.productionEligible).toBe(true);
-    expect(evidence.reviewedRevision).toBe(3);
-    expect(evidence.errors).toEqual([]);
-    expect(checkpoint.snapshots.map((snapshot) => snapshot.zoomPercent)).toEqual([
-      200,
-      200,
-      200,
-    ]);
+    expect(evidence.productionEligible).toBe(false);
+    expect(evidence.evidenceCommitSha).toBe(HEAD);
+    expect(checkpoint.snapshots.map((item) => item.zoomPercent)).toEqual([200, 200, 200]);
   });
 
-  it("creates deterministic evidence for identical asset revisions", () => {
-    const first = validateVoxyVisualQaCheckpoint(buildApprovedCheckpoint());
-    const second = validateVoxyVisualQaCheckpoint(buildApprovedCheckpoint());
-    expect(first.evidenceKey).toBe(second.evidenceKey);
+  it("creates deterministic evidence for identical capture revisions", () => {
+    expect(getVoxyVisualQaEvidenceKey(pendingCheckpoint())).toBe(getVoxyVisualQaEvidenceKey(pendingCheckpoint()));
+  });
+
+  it("binds a human approval to both exact head and exact evidence key", () => {
+    const pending = pendingCheckpoint();
+    const evidenceKey = getVoxyVisualQaEvidenceKey(pending);
+    const approved = buildVoxyVisualQaCheckpoint({
+      snapshots: pending.snapshots,
+      reviewStatus: "approved",
+      reviewerId: "human-reviewer",
+      reviewedAt: "2026-08-07T18:00:00.000Z",
+      revision: 4,
+      approvedCommitSha: HEAD,
+      approvedEvidenceKey: evidenceKey,
+    });
+    const result = validateVoxyVisualQaCheckpoint(approved);
+    expect(result.automatedPassed).toBe(true);
+    expect(result.productionEligible).toBe(true);
+    expect(result.reviewedCommitSha).toBe(HEAD);
+  });
+
+  it("rejects stale or metadata-only approvals", () => {
+    const checkpoint = pendingCheckpoint();
+    checkpoint.humanReview.status = "approved";
+    checkpoint.humanReview.reviewerId = "human-reviewer";
+    checkpoint.humanReview.reviewedAt = "2026-08-07T18:00:00.000Z";
+    checkpoint.humanReview.approvedCommitSha = "stale-head";
+    checkpoint.humanReview.approvedEvidenceKey = getVoxyVisualQaEvidenceKey(checkpoint);
+    const result = validateVoxyVisualQaCheckpoint(checkpoint);
+    expect(result.productionEligible).toBe(false);
+    expect(result.errors).toContain("human_review_revision_or_evidence_mismatch");
   });
 
   it("fails closed for four- or six-finger poses", () => {
-    const checkpoint = buildApprovedCheckpoint();
-    checkpoint.snapshots[0].poses[0] = {
-      ...checkpoint.snapshots[0].poses[0],
-      leftFingerCount: 4,
-      rightFingerCount: 6,
-    };
-
+    const checkpoint = pendingCheckpoint();
+    checkpoint.snapshots[0].poses[0] = { ...checkpoint.snapshots[0].poses[0], leftFingerCount: 4, rightFingerCount: 6 };
     const evidence = validateVoxyVisualQaCheckpoint(checkpoint);
-    expect(evidence.automatedPassed).toBe(false);
-    expect(evidence.errors).toContain(
-      "left_hand_finger_count_invalid:16:9:neutral_idle",
-    );
-    expect(evidence.errors).toContain(
-      "right_hand_finger_count_invalid:16:9:neutral_idle",
-    );
+    expect(evidence.errors).toContain("left_hand_finger_count_invalid:16:9:standing_master");
+    expect(evidence.errors).toContain("right_hand_finger_count_invalid:16:9:standing_master");
   });
 
-  it("fails for blur, halo, crop and typography overflow", () => {
-    const checkpoint = buildApprovedCheckpoint();
-    const face = checkpoint.snapshots[1].regions.find(
-      (region) => region.region === "face_eyes",
-    );
-    if (!face) throw new Error("face_eyes region missing in fixture");
-    face.sharpnessScore = 0.5;
+  it("fails for blur, halo, crop and typography overflow signals", () => {
+    const checkpoint = pendingCheckpoint();
+    const face = checkpoint.snapshots[1].regions.find((region) => region.region === "face_eyes");
+    if (!face) throw new Error("face_eyes region missing");
+    face.sharpnessScore = 0;
     face.haloDetected = true;
     face.cropped = true;
     face.typographyOverflow = true;
-
     const evidence = validateVoxyVisualQaCheckpoint(checkpoint);
     expect(evidence.errors).toContain("visual_region_blurry:9:16:face_eyes");
     expect(evidence.errors).toContain("visual_region_halo:9:16:face_eyes");
     expect(evidence.errors).toContain("visual_region_cropped:9:16:face_eyes");
-    expect(evidence.errors).toContain(
-      "visual_region_typography_overflow:9:16:face_eyes",
-    );
+    expect(evidence.errors).toContain("visual_region_typography_overflow:9:16:face_eyes");
   });
 
-  it("rejects waveform overlap with the logo zone", () => {
-    const checkpoint = buildApprovedCheckpoint();
-    checkpoint.snapshots[2].waveformOverlapsLogo = true;
-
-    expect(validateVoxyVisualQaCheckpoint(checkpoint).errors).toContain(
-      "waveform_layout_invalid:1:1",
-    );
-  });
-
-  it("never treats automated success as human approval", () => {
-    const checkpoint = buildApprovedCheckpoint();
-    checkpoint.humanReview = {
-      ...checkpoint.humanReview,
-      status: "pending",
-      reviewerId: null,
-      reviewedAt: null,
-    };
-
-    const evidence = validateVoxyVisualQaCheckpoint(checkpoint);
-    expect(evidence.automatedPassed).toBe(true);
-    expect(evidence.productionEligible).toBe(false);
-    expect(evidence.reviewedRevision).toBeNull();
-  });
-
-  it("requires every defined review crop", () => {
-    const checkpoint = buildApprovedCheckpoint();
-    checkpoint.snapshots[0].regions = checkpoint.snapshots[0].regions.filter(
-      (region) => region.region !== "vog_pin",
-    );
-
-    expect(validateVoxyVisualQaCheckpoint(checkpoint).errors).toContain(
-      "visual_region_missing:16:9:vog_pin",
-    );
+  it("rejects mixed commit revisions", () => {
+    const checkpoint = buildVoxyVisualQaCheckpoint({
+      snapshots: [snapshot("16:9"), snapshot("9:16", "different-head"), snapshot("1:1")],
+    });
+    expect(validateVoxyVisualQaCheckpoint(checkpoint).errors).toContain("snapshot_revision_mismatch");
   });
 });

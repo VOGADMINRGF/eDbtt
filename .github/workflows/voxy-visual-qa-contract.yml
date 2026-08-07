@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "apps/web/src/features/voxyVideo/visualQaCheckpoint.ts"
+      - "apps/web/scripts/capture-voxy-200pct-evidence.ts"
       - "apps/web/tests/voxy-visual-qa-checkpoint.contract.test.ts"
+      - "apps/web/public/brands/voxy/**"
+      - "docs/E150/VOXY-200PCT-VISUAL-QA-CHECKPOINT-01_2026-08-05.md"
       - ".github/workflows/voxy-visual-qa-contract.yml"
   workflow_dispatch:
 
@@ -12,19 +15,59 @@ permissions:
   contents: read
 
 jobs:
-  contract:
+  contract-and-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.17.1
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -C apps/web exec vitest run tests/voxy-visual-qa-checkpoint.contract.test.ts
-      - run: pnpm -C apps/web run typecheck
-      - run: git diff --check
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm -C apps/web exec playwright install chromium
+
+      - name: Run focused contract tests
+        run: pnpm -C apps/web exec vitest run tests/voxy-visual-qa-checkpoint.contract.test.ts
+
+      - name: Capture real 200-percent browser evidence
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: pnpm -w exec tsx apps/web/scripts/capture-voxy-200pct-evidence.ts --output=artifacts/voxy-200pct-visual-qa
+
+      - name: Verify evidence is bound to exact head
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/voxy-200pct-visual-qa/evidence-manifest.json','utf8'));
+          if (manifest.commitSha !== process.env.VOXY_EVIDENCE_COMMIT_SHA) throw new Error('evidence_head_mismatch');
+          if (manifest.humanReview.status !== 'pending') throw new Error('human_review_must_remain_pending');
+          if (manifest.humanReview.approvedCommitSha !== null) throw new Error('self_approval_forbidden');
+          if (manifest.formats.length !== 3) throw new Error('three_formats_required');
+          NODE
+
+      - name: Typecheck
+        run: pnpm -C apps/web run typecheck
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Upload revision-bound review evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxy-200pct-visual-qa-${{ github.sha }}
+          path: artifacts/voxy-200pct-visual-qa/**
+          if-no-files-found: error
+          retention-days: 14

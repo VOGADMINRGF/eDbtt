@@ -363,6 +363,44 @@ Dieser additive Block führt die nach PR `#558`, PR `#573`, PR `#582` und den Be
 | VOXY-AUTO-PUBLISH-SHADOW-RUNTIME-01 | blocked | P0 | Issues `#570`, `#578`; Issue `#575` | Append-only Shadow-Evidence und reproduzierbaren 30-Tage-Bericht auf realen Revisionen aufbauen | kein Auto-Approve, keine Aktivierung und kein externer Publish; Ergebnis höchstens `eligible_for_human_allowlist_decision` |
 | DAILY-TOPIC-INGESTION-E2E-01 | blocked | P0 | Issues `#567`, `#568`, `#570`; Issue `#581` | Direkte Eingabe und kontrollierte Feed-/Signalquelle in derselben kanonischen Daily-Pipeline nachweisen | reale Topic-/Briefing-IDs, Provenienz, Deduplizierung, Quellenbedarf, Gegenposition, Review und Voxy-Vorschlag; kein Render oder Publishing ohne Freigabe |
 
+## Ökosystem-Mehrsprachigkeitsvertrag — 2026-08-06
+
+Dieser Governance-Slice definiert nur den gemeinsamen Mehrsprachenvertrag. Keine Produktimplementierung, Übersetzung oder Aktivierung.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| ECOSYSTEM-I18N-CONTRACT-01 | codex_ready | P0 | I18N Go `#456`; Public Ballot PR `#557`; Vote4Gov PR `#9`; VoiceOpenGov PR `#6`; Issue `#566` | Gemeinsamen offenen Locale-, Translation-, RTL-, Accessibility-, SEO- und Cross-Domain-Vertrag versionieren; keine Repository-Adapter in diesem Slice | Initial `de`, `en`, `fr`, `es`, `tr`, `ar`; weitere BCP-47-Tags ohne Schemaänderung; `originalLocale`, `readingLocale`, `uiLocale`, `outputLocale` getrennt; stabile sprachunabhängige IDs; ehrliche Translation- und Fallbackzustände; RTL; Canonical und hreflang; Übersetzung ist keine Evidenz; sprachübergreifend identische Frage- und Options-IDs; kein PII-Handoff, Auto-Publish, Mega-PR oder zweite i18n-SSOT |
+
+## Social-Provider-Secret-Manifest — 2026-08-06
+
+Dieser additive Governance-Eintrag autorisiert nach positivem Post-Merge-Preflight ausschließlich einen kleinen Docs-/Config-Slice. Er verbindet noch keinen Provider und enthält keine echten Zugangsdaten.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| SOCIAL-SECRET-MANIFEST-01 | codex_ready | P0 | Issue `#585`; Issues `#471` und `#474`; `ECOSYSTEM-I18N-CONTRACT-01` | Bestehende Social-Connector-Konfiguration inventarisieren; Reddit und Threads deaktiviert ergänzen; wertfreies serverseitiges Secret-Manifest und Guardrails erstellen | Bestehende Flag-Namen bleiben unverändert; `REDDIT_CONNECTOR_ENABLED=0` und `THREADS_CONNECTOR_ENABLED=0`; `SOCIAL_AUTO_PUBLISH_ENABLED=0`; `SOCIAL_REALTIME_PUBLISH_ENABLED=0`; `SOCIAL_REQUIRE_REVIEW=1`; keine `NEXT_PUBLIC_*`-Social-Secrets; keine echten IDs, Tokens, E-Mails, Telefonnummern oder Passwörter; lokale, Preview- und Produktionsumgebung getrennt; minimale Read-Scopes und spätere Write-Scopes getrennt; unbestätigte Providerfelder als `provider_verification_required`; Rotation, Ablauf, Revocation, Disconnect, Retention, Audit und Incident-Verfahren dokumentiert; fokussierte Guardrail-Tests; keine OAuth-Route, DB-/Migration, Provider-API, reale Verbindung, Veröffentlichung oder Deployment |
+
+
+## Claim-/Source- und Topic-Resolution-Governance — 2026-08-07
+
+Diese Einträge serialisieren die bereits versionierten Run-Packs in die operative Queue. `ATOMIC-CLAIM-SOURCE-RELATION-CONTRACT-01` darf nach positivem Post-Merge-Preflight als kleiner Contract-/Fixture-Slice starten. `CANONICAL-TOPIC-RESOLUTION-01` bleibt bis zum Abschluss des Claim-/Source-Grundvertrags ausdrücklich blockiert.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| ATOMIC-CLAIM-SOURCE-RELATION-CONTRACT-01 | done | P0 | `ECOSYSTEM-I18N-CONTRACT-01`; Issue `#587`; PR `#594`; PR `#596`; bestehende CreateAnalyzeResponse-, Claim-to-Dossier-, Source-/Factcheck-, Provenance- und Reason-Graph-Handoff-Contracts | Bestehenden RePro/eDebatte-Kernvertrag additiv in typed `SourceArtifact`, `SourceSegment`, `AtomicClaim`, `ClaimSourceRelation`, mehrdimensionale `EvidenceAssessment`, `PublicationClassification` und `SynthesisReceipt` überführen; fokussierte Contract- und Red-Team-Fixtures ergänzen | Konkrete Quelle und Segmentreferenz zwingend; zusammengesetzte Aussagen atomisieren; thematische Nähe, Beispiel, Mechanismus, Kontext, Gegenbeispiel, Ausnahme oder normative Gegenposition erhöhen niemals Beleggrad oder unabhängige Bestätigungen; Agentenläufe sind keine Quellen; Quellenfamilie und Unabhängigkeit maschinenlesbar; Synthese erzeugt weder neue Claim-ID noch stärkere Relation; Übersetzung ist Lesefassung und keine Evidenz; kein neuer Store, keine zweite Ontologie, kein Graph-Write, Auto-Publish oder politische Wahrheitsentscheidung; Run-Pack `docs/E150/ATOMIC_CLAIM_SOURCE_RELATION_CONTRACT_01_CODEX_RUNPACK_2026-08-07.md` |
+| CANONICAL-TOPIC-RESOLUTION-01 | codex_ready | P0 | `ATOMIC-CLAIM-SOURCE-RELATION-CONTRACT-01`; Issue `#586`; PR `#597`; bestehende Create-/Match-Flächen | Read-only und fail-closed Resolver-Contract für `CanonicalTopic`, `JurisdictionContext`, `DecisionQuestion` und `ExternalParticipationSignal`; vorhandene Matchresultate nur als Kandidaten weiterverwenden | Bestehende eDebatte-Themen haben Vorrang; Jurisdiktion bleibt getrennt; `duplicate_risk`, mehrdeutige Kandidaten, fehlende Region, Sprachunsicherheit oder degradierte Quellen führen zu Review statt Fusion oder Neuerstellung; externe Petition, Umfrage oder Sitzung bleibt Signal unter einem vorhandenen Topic; kein Auto-Merge, Auto-Poll, Auto-Publish, Funding-/Actor-Automation oder Graph-Write; Run-Pack `docs/E150/CANONICAL_TOPIC_RESOLUTION_01_CODEX_RUNPACK_2026-08-07.md` |
+
+
+## Evidence-Relation-Folgeslices B–E — 2026-08-07
+
+Slice A ist technisch abgeschlossen. Die folgenden Slices bleiben bewusst seriell blockiert und erhalten keine implizite Runtime-, Review-, Publish- oder Graph-Freigabe.
+
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| SOURCE-LINEAGE-INDEPENDENCE-01 | blocked | P0 | `ATOMIC-CLAIM-SOURCE-RELATION-CONTRACT-01`; Issue `#587` | Source Family, Derivat-/Syndikations-/Same-Origin-Erkennung und echte Quellenunabhängigkeit | Agentenlauf ist keine Quelle; gleiche Agenturmeldung/Studie/Interviewfamilie zählt nicht mehrfach; keine Live-Ingestion ohne Provider-/Allowlist-/Retention-Gates |
+| CLAIM-RELATION-REVIEW-01 | blocked | P0 | `SOURCE-LINEAGE-INDEPENDENCE-01`; Issue `#587` | Reviewvertrag für Relation, Kontext, Gegenbeleg und Geltungsbereich | keine automatische Hochstufung; menschlicher Review; gemeinsamer I18N-Vertrag, BCP-47-offen und RTL-fähig |
+| SYNTHESIS-EVIDENCE-GATE-01 | blocked | P0 | `SOURCE-LINEAGE-INDEPENDENCE-01`; `CLAIM-RELATION-REVIEW-01`; Issue `#587` | SynthesisReceipt an Review-/Publish-Guard anbinden | keine neue Claim-ID, keine Relationshochstufung, keine Übersetzung als Evidenz, kein Auto-Publish oder Graph-Merge |
+| EVIDENCE-RELATION-REDTEAM-E2E-01 | blocked | P0 | `SOURCE-LINEAGE-INDEPENDENCE-01`; `CLAIM-RELATION-REVIEW-01`; `SYNTHESIS-EVIDENCE-GATE-01`; Issue `#587` | kontrollierter E2E über Research, Claims/Factcheck, Dossier, Governance und Voxy | beweist fail-closed gegen synthetischen Konsens; keine politische Wahrheitsentscheidung, kein Auto-Publish, kein Graph-Merge |
+
 ## Historischer Katalog und Evidenz
 
 Die nachfolgenden Abschnitte bleiben vollständig als historische Evidenz erhalten. Sie dienen der Nachvollziehbarkeit, aber nicht als aktuelle operative Tagesqueue.

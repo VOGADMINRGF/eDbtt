@@ -76,4 +76,52 @@ describe("web ci critical guardrails contract", () => {
     expect(liveSmokeScript).toContain("CONNECT_TIMEOUT_MS = 5_000");
     expect(liveSmokeScript).toContain("TOTAL_TIMEOUT_MS = 15_000");
   });
+
+  it("keeps social connectors fail-closed and provider secrets server-side", () => {
+    const envExample = readRoot("apps/web/.env.example");
+    const manifest = readRoot(
+      "docs/E150/SOCIAL_PROVIDER_SECRET_MANIFEST_01.md",
+    );
+
+    const disabledConnectors = [
+      "INSTAGRAM_CONNECTOR_ENABLED",
+      "TIKTOK_CONNECTOR_ENABLED",
+      "LINKEDIN_CONNECTOR_ENABLED",
+      "FACEBOOK_CONNECTOR_ENABLED",
+      "YOUTUBE_CONNECTOR_ENABLED",
+      "X_CONNECTOR_ENABLED",
+      "REDDIT_CONNECTOR_ENABLED",
+      "THREADS_CONNECTOR_ENABLED",
+      "MASTODON_CONNECTOR_ENABLED",
+      "BLUESKY_CONNECTOR_ENABLED",
+      "WHATSAPP_CHANNEL_CONNECTOR_ENABLED",
+      "TELEGRAM_CONNECTOR_ENABLED",
+      "NEWSLETTER_CONNECTOR_ENABLED",
+    ];
+
+    for (const connector of disabledConnectors) {
+      expect(envExample).toMatch(new RegExp(`^${connector}=0$`, "m"));
+    }
+
+    expect(envExample).toMatch(/^SOCIAL_DISTRIBUTION_ENABLED=0$/m);
+    expect(envExample).toMatch(/^SOCIAL_AUTO_PUBLISH_ENABLED=0$/m);
+    expect(envExample).toMatch(/^SOCIAL_REALTIME_PUBLISH_ENABLED=0$/m);
+    expect(envExample).toMatch(/^SOCIAL_REQUIRE_REVIEW=1$/m);
+    expect(envExample).toMatch(/^WEBSITE_EMBED_CONNECTOR_ENABLED=1$/m);
+
+    expect(envExample).not.toMatch(
+      /^NEXT_PUBLIC_(?:SOCIAL|META|FACEBOOK|INSTAGRAM|YOUTUBE|LINKEDIN|REDDIT|X|TIKTOK|THREADS|MASTODON|BLUESKY|TELEGRAM|WHATSAPP).*(?:SECRET|TOKEN|CLIENT_ID|CLIENT_SECRET|APP_ID|KEY|PASSWORD)=/m,
+    );
+
+    expect(manifest).toContain("provider_verification_required");
+    expect(manifest).toContain("keine echten IDs");
+    expect(manifest).toContain("keine OAuth-Route");
+    expect(manifest).not.toMatch(
+      /(?:ghp_|github_pat_|xoxb-|ya29\.|Bearer\s+|eyJ[a-zA-Z0-9_-]+\.)/,
+    );
+    expect(manifest).not.toMatch(
+      /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+    );
+  });
+
 });

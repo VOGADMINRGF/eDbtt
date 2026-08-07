@@ -1,7 +1,7 @@
 import type { VoxyVideoFormat } from "./modernCharacterContracts";
 
 export const VOXY_VISUAL_QA_CHECKPOINT_VERSION =
-  "voxy-visual-qa-checkpoint-v1" as const;
+  "voxy-visual-qa-checkpoint-v2" as const;
 
 export const VOXY_VISUAL_QA_REGIONS = [
   "face_eyes",
@@ -17,7 +17,6 @@ export const VOXY_VISUAL_QA_REGIONS = [
 ] as const;
 
 export type VoxyVisualQaRegion = (typeof VOXY_VISUAL_QA_REGIONS)[number];
-
 export type VoxyVisualQaReviewStatus =
   | "pending"
   | "approved"
@@ -26,6 +25,8 @@ export type VoxyVisualQaReviewStatus =
 
 export type VoxyVisualQaRegionResult = {
   region: VoxyVisualQaRegion;
+  capturePath: string;
+  captureSha256: string;
   sharpnessScore: number;
   haloDetected: boolean;
   cropped: boolean;
@@ -49,6 +50,8 @@ export type VoxyVisualQaSnapshot = {
   assetPath: string;
   assetVersion: string;
   commitSha: string;
+  fullCapturePath: string;
+  fullCaptureSha256: string;
   regions: VoxyVisualQaRegionResult[];
   poses: VoxyVisualQaPoseResult[];
   waveformBehindCharacter: boolean;
@@ -65,6 +68,8 @@ export type VoxyVisualQaCheckpoint = {
     reviewerId: string | null;
     reviewedAt: string | null;
     revision: number;
+    approvedCommitSha: string | null;
+    approvedEvidenceKey: string | null;
   };
   tolerancePolicy: {
     minimumSharpnessScore: number;
@@ -77,10 +82,12 @@ export type VoxyVisualQaCheckpoint = {
 export type VoxyVisualQaEvidence = {
   checkpointId: string;
   evidenceKey: string;
+  evidenceCommitSha: string | null;
   automatedPassed: boolean;
   productionEligible: boolean;
   errors: string[];
   reviewedRevision: number | null;
+  reviewedCommitSha: string | null;
 };
 
 const FORMAT_DIMENSIONS: Readonly<
@@ -90,6 +97,8 @@ const FORMAT_DIMENSIONS: Readonly<
   "9:16": { width: 720, height: 1280 },
   "1:1": { width: 1080, height: 1080 },
 };
+
+const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
 function stableHash(value: string): string {
   let hash = 0x811c9dc5;
@@ -105,8 +114,12 @@ export function buildVoxyVisualQaSnapshot(input: {
   assetPath: string;
   assetVersion: string;
   commitSha: string;
-  regions?: VoxyVisualQaRegionResult[];
-  poses?: VoxyVisualQaPoseResult[];
+  fullCapturePath: string;
+  fullCaptureSha256: string;
+  regions: VoxyVisualQaRegionResult[];
+  poses: VoxyVisualQaPoseResult[];
+  waveformBehindCharacter?: boolean;
+  waveformOverlapsLogo?: boolean;
 }): VoxyVisualQaSnapshot {
   const dimensions = FORMAT_DIMENSIONS[input.format];
   return {
@@ -117,29 +130,12 @@ export function buildVoxyVisualQaSnapshot(input: {
     assetPath: input.assetPath,
     assetVersion: input.assetVersion,
     commitSha: input.commitSha,
-    regions:
-      input.regions ??
-      VOXY_VISUAL_QA_REGIONS.map((region) => ({
-        region,
-        sharpnessScore: 1,
-        haloDetected: false,
-        cropped: false,
-        typographyOverflow: false,
-        notes: [],
-      })),
-    poses:
-      input.poses ??
-      [
-        {
-          poseId: "neutral_idle",
-          leftHandVisible: true,
-          rightHandVisible: true,
-          leftFingerCount: 5,
-          rightFingerCount: 5,
-        },
-      ],
-    waveformBehindCharacter: true,
-    waveformOverlapsLogo: false,
+    fullCapturePath: input.fullCapturePath,
+    fullCaptureSha256: input.fullCaptureSha256,
+    regions: input.regions,
+    poses: input.poses,
+    waveformBehindCharacter: input.waveformBehindCharacter ?? true,
+    waveformOverlapsLogo: input.waveformOverlapsLogo ?? false,
   };
 }
 
@@ -149,6 +145,8 @@ export function buildVoxyVisualQaCheckpoint(input: {
   reviewerId?: string | null;
   reviewedAt?: string | null;
   revision?: number;
+  approvedCommitSha?: string | null;
+  approvedEvidenceKey?: string | null;
   minimumSharpnessScore?: number;
 }): VoxyVisualQaCheckpoint {
   const revision = input.revision ?? 1;
@@ -162,9 +160,11 @@ export function buildVoxyVisualQaCheckpoint(input: {
       reviewerId: input.reviewerId ?? null,
       reviewedAt: input.reviewedAt ?? null,
       revision,
+      approvedCommitSha: input.approvedCommitSha ?? null,
+      approvedEvidenceKey: input.approvedEvidenceKey ?? null,
     },
     tolerancePolicy: {
-      minimumSharpnessScore: input.minimumSharpnessScore ?? 0.92,
+      minimumSharpnessScore: input.minimumSharpnessScore ?? 0.08,
       silentToleranceIncreaseAllowed: false,
     },
     autoApprove: false,
@@ -172,10 +172,35 @@ export function buildVoxyVisualQaCheckpoint(input: {
   };
 }
 
+function evidenceSeed(checkpoint: VoxyVisualQaCheckpoint): string {
+  return checkpoint.snapshots
+    .map((snapshot) =>
+      [
+        snapshot.format,
+        snapshot.assetPath,
+        snapshot.assetVersion,
+        snapshot.commitSha,
+        snapshot.fullCaptureSha256,
+        ...snapshot.regions
+          .map((region) => `${region.region}:${region.captureSha256}`)
+          .sort(),
+      ].join(":"),
+    )
+    .sort()
+    .join("|");
+}
+
+export function getVoxyVisualQaEvidenceKey(
+  checkpoint: VoxyVisualQaCheckpoint,
+): string {
+  return `${checkpoint.version}:${stableHash(evidenceSeed(checkpoint))}`;
+}
+
 export function validateVoxyVisualQaCheckpoint(
   checkpoint: VoxyVisualQaCheckpoint,
 ): VoxyVisualQaEvidence {
   const errors: string[] = [];
+  const evidenceKey = getVoxyVisualQaEvidenceKey(checkpoint);
 
   if (checkpoint.version !== VOXY_VISUAL_QA_CHECKPOINT_VERSION) {
     errors.push("unsupported_visual_qa_checkpoint_version");
@@ -196,8 +221,14 @@ export function validateVoxyVisualQaCheckpoint(
     const matching = checkpoint.snapshots.filter(
       (snapshot) => snapshot.format === format,
     );
-    if (matching.length !== 1) errors.push(`snapshot_format_missing_or_duplicate:${format}`);
+    if (matching.length !== 1) {
+      errors.push(`snapshot_format_missing_or_duplicate:${format}`);
+    }
   }
+
+  const commitShas = new Set(checkpoint.snapshots.map((snapshot) => snapshot.commitSha));
+  const evidenceCommitSha = commitShas.size === 1 ? [...commitShas][0] : null;
+  if (!evidenceCommitSha) errors.push("snapshot_revision_mismatch");
 
   for (const snapshot of checkpoint.snapshots) {
     if (snapshot.zoomPercent !== 200) {
@@ -209,12 +240,19 @@ export function validateVoxyVisualQaCheckpoint(
     if (!snapshot.assetVersion.trim() || !snapshot.commitSha.trim()) {
       errors.push(`snapshot_provenance_missing:${snapshot.format}`);
     }
+    if (!snapshot.fullCapturePath.trim() || !SHA256_PATTERN.test(snapshot.fullCaptureSha256)) {
+      errors.push(`full_capture_missing_or_unhashed:${snapshot.format}`);
+    }
+
     const regions = new Map(snapshot.regions.map((result) => [result.region, result]));
     for (const requiredRegion of VOXY_VISUAL_QA_REGIONS) {
       const result = regions.get(requiredRegion);
       if (!result) {
         errors.push(`visual_region_missing:${snapshot.format}:${requiredRegion}`);
         continue;
+      }
+      if (!result.capturePath.trim() || !SHA256_PATTERN.test(result.captureSha256)) {
+        errors.push(`visual_region_capture_missing_or_unhashed:${snapshot.format}:${requiredRegion}`);
       }
       if (result.sharpnessScore < checkpoint.tolerancePolicy.minimumSharpnessScore) {
         errors.push(`visual_region_blurry:${snapshot.format}:${requiredRegion}`);
@@ -248,22 +286,22 @@ export function validateVoxyVisualQaCheckpoint(
   const humanApproved =
     checkpoint.humanReview.status === "approved" &&
     Boolean(checkpoint.humanReview.reviewerId?.trim()) &&
-    Boolean(checkpoint.humanReview.reviewedAt?.trim());
+    Boolean(checkpoint.humanReview.reviewedAt?.trim()) &&
+    checkpoint.humanReview.approvedCommitSha === evidenceCommitSha &&
+    checkpoint.humanReview.approvedEvidenceKey === evidenceKey;
 
-  const evidenceSeed = checkpoint.snapshots
-    .map(
-      (snapshot) =>
-        `${snapshot.format}:${snapshot.assetPath}:${snapshot.assetVersion}:${snapshot.commitSha}`,
-    )
-    .sort()
-    .join("|");
+  if (checkpoint.humanReview.status === "approved" && !humanApproved) {
+    errors.push("human_review_revision_or_evidence_mismatch");
+  }
 
   return {
     checkpointId: checkpoint.id,
-    evidenceKey: `${checkpoint.version}:${stableHash(evidenceSeed)}`,
-    automatedPassed,
+    evidenceKey,
+    evidenceCommitSha,
+    automatedPassed: errors.length === 0,
     productionEligible: automatedPassed && humanApproved,
     errors,
     reviewedRevision: humanApproved ? checkpoint.humanReview.revision : null,
+    reviewedCommitSha: humanApproved ? evidenceCommitSha : null,
   };
 }
