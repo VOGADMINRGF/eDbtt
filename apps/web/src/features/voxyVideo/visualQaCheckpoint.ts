@@ -1,7 +1,7 @@
 import type { VoxyVideoFormat } from "./modernCharacterContracts";
 
 export const VOXY_VISUAL_QA_CHECKPOINT_VERSION =
-  "voxy-visual-qa-checkpoint-v2" as const;
+  "voxy-visual-qa-checkpoint-v3" as const;
 
 export const VOXY_VISUAL_QA_REGIONS = [
   "face_eyes",
@@ -58,6 +58,15 @@ export type VoxyVisualQaSnapshot = {
   waveformOverlapsLogo: boolean;
 };
 
+export type VoxyVisualQaPersistedReviewDecision = {
+  decisionRecordId: string;
+  decisionGateId: string;
+  decisionType: "mark_review_ready" | "request_revision" | "reject_preview";
+  persistedAt: string;
+  persistedBy: string;
+  persistenceMode: "persistent_primary";
+};
+
 export type VoxyVisualQaCheckpoint = {
   id: string;
   version: typeof VOXY_VISUAL_QA_CHECKPOINT_VERSION;
@@ -70,6 +79,9 @@ export type VoxyVisualQaCheckpoint = {
     revision: number;
     approvedCommitSha: string | null;
     approvedEvidenceKey: string | null;
+    decisionRecordId: string | null;
+    decisionGateId: string | null;
+    persistenceMode: "persistent_primary" | null;
   };
   tolerancePolicy: {
     minimumSharpnessScore: number;
@@ -88,6 +100,7 @@ export type VoxyVisualQaEvidence = {
   errors: string[];
   reviewedRevision: number | null;
   reviewedCommitSha: string | null;
+  requiredDecisionGateId: string | null;
 };
 
 const FORMAT_DIMENSIONS: Readonly<
@@ -141,12 +154,7 @@ export function buildVoxyVisualQaSnapshot(input: {
 
 export function buildVoxyVisualQaCheckpoint(input: {
   snapshots: VoxyVisualQaSnapshot[];
-  reviewStatus?: VoxyVisualQaReviewStatus;
-  reviewerId?: string | null;
-  reviewedAt?: string | null;
   revision?: number;
-  approvedCommitSha?: string | null;
-  approvedEvidenceKey?: string | null;
   minimumSharpnessScore?: number;
 }): VoxyVisualQaCheckpoint {
   const revision = input.revision ?? 1;
@@ -156,12 +164,15 @@ export function buildVoxyVisualQaCheckpoint(input: {
     snapshots: input.snapshots,
     humanReview: {
       required: true,
-      status: input.reviewStatus ?? "pending",
-      reviewerId: input.reviewerId ?? null,
-      reviewedAt: input.reviewedAt ?? null,
+      status: "pending",
+      reviewerId: null,
+      reviewedAt: null,
       revision,
-      approvedCommitSha: input.approvedCommitSha ?? null,
-      approvedEvidenceKey: input.approvedEvidenceKey ?? null,
+      approvedCommitSha: null,
+      approvedEvidenceKey: null,
+      decisionRecordId: null,
+      decisionGateId: null,
+      persistenceMode: null,
     },
     tolerancePolicy: {
       minimumSharpnessScore: input.minimumSharpnessScore ?? 0.08,
@@ -182,7 +193,7 @@ function evidenceSeed(checkpoint: VoxyVisualQaCheckpoint): string {
         snapshot.commitSha,
         snapshot.fullCaptureSha256,
         ...snapshot.regions
-          .map((region) => `${region.region}:${region.captureSha256}`)
+          .map((region) => `${region.region}:${region.captureSha256}:${region.sharpnessScore}`)
           .sort(),
       ].join(":"),
     )
@@ -194,6 +205,52 @@ export function getVoxyVisualQaEvidenceKey(
   checkpoint: VoxyVisualQaCheckpoint,
 ): string {
   return `${checkpoint.version}:${stableHash(evidenceSeed(checkpoint))}`;
+}
+
+export function getVoxyVisualQaReviewDecisionGateId(input: {
+  commitSha: string;
+  evidenceKey: string;
+  revision: number;
+}): string {
+  return `voxy-visual-qa:${input.commitSha}:r${input.revision}:${input.evidenceKey}`;
+}
+
+export function applyPersistedVoxyVisualQaReviewDecision(
+  checkpoint: VoxyVisualQaCheckpoint,
+  decision: VoxyVisualQaPersistedReviewDecision,
+): VoxyVisualQaCheckpoint {
+  const next: VoxyVisualQaCheckpoint = JSON.parse(JSON.stringify(checkpoint));
+  const commitShas = new Set(next.snapshots.map((snapshot) => snapshot.commitSha));
+  const commitSha = commitShas.size === 1 ? [...commitShas][0] : "";
+  const evidenceKey = getVoxyVisualQaEvidenceKey(next);
+  const expectedGateId = getVoxyVisualQaReviewDecisionGateId({
+    commitSha,
+    evidenceKey,
+    revision: next.humanReview.revision,
+  });
+
+  next.humanReview.decisionRecordId = decision.decisionRecordId;
+  next.humanReview.decisionGateId = decision.decisionGateId;
+  next.humanReview.persistenceMode = decision.persistenceMode;
+  next.humanReview.reviewerId = decision.persistedBy;
+  next.humanReview.reviewedAt = decision.persistedAt;
+
+  if (decision.decisionGateId !== expectedGateId) {
+    next.humanReview.status = "pending";
+    return next;
+  }
+
+  if (decision.decisionType === "mark_review_ready") {
+    next.humanReview.status = "approved";
+    next.humanReview.approvedCommitSha = commitSha;
+    next.humanReview.approvedEvidenceKey = evidenceKey;
+  } else if (decision.decisionType === "request_revision") {
+    next.humanReview.status = "needs_changes";
+  } else {
+    next.humanReview.status = "rejected";
+  }
+
+  return next;
 }
 
 export function validateVoxyVisualQaCheckpoint(
@@ -282,16 +339,26 @@ export function validateVoxyVisualQaCheckpoint(
     }
   }
 
-  const automatedPassed = errors.length === 0;
+  const requiredDecisionGateId = evidenceCommitSha
+    ? getVoxyVisualQaReviewDecisionGateId({
+        commitSha: evidenceCommitSha,
+        evidenceKey,
+        revision: checkpoint.humanReview.revision,
+      })
+    : null;
+
   const humanApproved =
     checkpoint.humanReview.status === "approved" &&
+    checkpoint.humanReview.persistenceMode === "persistent_primary" &&
+    Boolean(checkpoint.humanReview.decisionRecordId?.trim()) &&
+    checkpoint.humanReview.decisionGateId === requiredDecisionGateId &&
     Boolean(checkpoint.humanReview.reviewerId?.trim()) &&
     Boolean(checkpoint.humanReview.reviewedAt?.trim()) &&
     checkpoint.humanReview.approvedCommitSha === evidenceCommitSha &&
     checkpoint.humanReview.approvedEvidenceKey === evidenceKey;
 
   if (checkpoint.humanReview.status === "approved" && !humanApproved) {
-    errors.push("human_review_revision_or_evidence_mismatch");
+    errors.push("human_review_persistence_revision_or_evidence_mismatch");
   }
 
   return {
@@ -299,9 +366,10 @@ export function validateVoxyVisualQaCheckpoint(
     evidenceKey,
     evidenceCommitSha,
     automatedPassed: errors.length === 0,
-    productionEligible: automatedPassed && humanApproved,
+    productionEligible: errors.length === 0 && humanApproved,
     errors,
     reviewedRevision: humanApproved ? checkpoint.humanReview.revision : null,
     reviewedCommitSha: humanApproved ? evidenceCommitSha : null,
+    requiredDecisionGateId,
   };
 }
