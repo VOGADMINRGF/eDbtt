@@ -50,7 +50,7 @@ jobs:
         env:
           VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts --output=artifacts/voxy-animatable-master
-      - name: Verify exact-head evidence and 8-second duration
+      - name: Verify exact-head render, themes and provenance evidence
         env:
           VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: |
@@ -59,8 +59,21 @@ jobs:
           const manifest = JSON.parse(fs.readFileSync('artifacts/voxy-animatable-master/evidence-manifest.json','utf8'));
           if (manifest.commitSha !== process.env.VOXY_EVIDENCE_COMMIT_SHA) throw new Error('evidence_head_mismatch');
           if (Math.abs(manifest.render.durationSeconds - 8) > 0.08) throw new Error('render_duration_not_8_seconds');
-          if (manifest.layerAssets.length < 23) throw new Error('independent_layer_assets_missing');
+          if (manifest.render.frameCount !== 192 || manifest.render.fps !== 24) throw new Error('render_frame_contract_broken');
+          if (manifest.layerAssets.length !== 23) throw new Error('independent_layer_assets_missing');
+          if (!manifest.layerSetSha256) throw new Error('layer_set_digest_missing');
           if (!manifest.cropEvidence.every((item) => item.sha256 && item.safeAreaVisible === true)) throw new Error('crop_evidence_missing');
+          const themes = new Map(manifest.themePreviews.map((item) => [item.theme, item]));
+          for (const theme of ['edebatte','vog_member']) {
+            const preview = themes.get(theme);
+            if (!preview?.sha256) throw new Error(`theme_preview_missing:${theme}`);
+            if (!Array.isArray(preview.resolution?.resolvedJacketStops) || preview.resolution.resolvedJacketStops.length !== 2) throw new Error(`theme_stops_missing:${theme}`);
+          }
+          if (manifest.provenanceEvidence.layerSetSha256 !== manifest.layerSetSha256) throw new Error('provenance_layer_digest_mismatch');
+          if (manifest.provenanceEvidence.thirdPartyAssetImports.length !== 0) throw new Error('unexpected_third_party_asset_import');
+          if (manifest.provenanceEvidence.likenessReview.status !== 'pending_human_review') throw new Error('likeness_review_must_remain_human');
+          if (manifest.provenanceEvidence.brandDistanceReview.status !== 'pending_human_review') throw new Error('brand_distance_review_must_remain_human');
+          if (manifest.humanReview.status !== 'pending' || manifest.humanReview.approvedCommitSha !== null) throw new Error('self_approval_forbidden');
           NODE
       - name: Typecheck
         run: pnpm -C apps/web run typecheck
