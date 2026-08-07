@@ -184,7 +184,7 @@ export function buildVoxyVisualQaCheckpoint(input: {
 }
 
 function evidenceSeed(checkpoint: VoxyVisualQaCheckpoint): string {
-  return checkpoint.snapshots
+  const captures = checkpoint.snapshots
     .map((snapshot) =>
       [
         snapshot.format,
@@ -192,19 +192,31 @@ function evidenceSeed(checkpoint: VoxyVisualQaCheckpoint): string {
         snapshot.assetVersion,
         snapshot.commitSha,
         snapshot.fullCaptureSha256,
+        snapshot.waveformBehindCharacter,
+        snapshot.waveformOverlapsLogo,
         ...snapshot.regions
-          .map((region) => `${region.region}:${region.captureSha256}:${region.sharpnessScore}`)
+          .map(
+            (region) =>
+              `${region.region}:${region.captureSha256}:${region.sharpnessScore}:${region.haloDetected}:${region.cropped}:${region.typographyOverflow}`,
+          )
+          .sort(),
+        ...snapshot.poses
+          .map(
+            (pose) =>
+              `${pose.poseId}:${pose.leftHandVisible}:${pose.rightHandVisible}:${pose.leftFingerCount}:${pose.rightFingerCount}`,
+          )
           .sort(),
       ].join(":"),
     )
     .sort()
     .join("|");
+  return `review-revision:${checkpoint.humanReview.revision}|${captures}`;
 }
 
 export function getVoxyVisualQaEvidenceKey(
   checkpoint: VoxyVisualQaCheckpoint,
 ): string {
-  return `${checkpoint.version}:${stableHash(evidenceSeed(checkpoint))}`;
+  return `${checkpoint.version}:r${checkpoint.humanReview.revision}:${stableHash(evidenceSeed(checkpoint))}`;
 }
 
 export function getVoxyVisualQaReviewDecisionGateId(input: {
