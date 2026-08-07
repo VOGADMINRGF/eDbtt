@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/web/src/features/voxyVideo/animatableMasterAsset.ts"
       - "apps/web/scripts/render-voxy-animatable-master.ts"
+      - "apps/web/scripts/render-voxy-approved-look-candidate.ts"
       - "apps/web/tests/voxy-animatable-master-asset.contract.test.ts"
       - "apps/web/tests/voxy-animatable-layer-assets.contract.test.ts"
       - "apps/web/public/brands/voxy/rig/layers/**"
@@ -50,6 +51,10 @@ jobs:
         env:
           VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts --output=artifacts/voxy-animatable-master
+      - name: Render approved-look visual recovery candidate
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
+        run: pnpm -w exec tsx apps/web/scripts/render-voxy-approved-look-candidate.ts --output=artifacts/voxy-approved-look-candidate
       - name: Verify exact-head render, themes and provenance evidence
         env:
           VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
@@ -74,6 +79,16 @@ jobs:
           if (manifest.provenanceEvidence.likenessReview.status !== 'pending_human_review') throw new Error('likeness_review_must_remain_human');
           if (manifest.provenanceEvidence.brandDistanceReview.status !== 'pending_human_review') throw new Error('brand_distance_review_must_remain_human');
           if (manifest.humanReview.status !== 'pending' || manifest.humanReview.approvedCommitSha !== null) throw new Error('self_approval_forbidden');
+
+          const candidate = JSON.parse(fs.readFileSync('artifacts/voxy-approved-look-candidate/approved-look-candidate-manifest.json','utf8'));
+          if (candidate.commitSha !== process.env.VOXY_EVIDENCE_COMMIT_SHA) throw new Error('approved_look_candidate_head_mismatch');
+          if (candidate.canonicalVisualSource.repositoryPath !== 'apps/web/public/brand/voxy/voxy-podcast-stage.png') throw new Error('approved_look_source_mismatch');
+          if (!candidate.canonicalVisualSource.sha256) throw new Error('approved_look_source_hash_missing');
+          if (candidate.constraints.substituteCharacterForbidden !== true || candidate.constraints.identityGeometryRegeneration !== false) throw new Error('approved_look_guardrail_missing');
+          if (candidate.renderMode !== 'approved_raster_identity_preserving_2_5d_candidate') throw new Error('approved_look_render_mode_mismatch');
+          if (Math.abs(candidate.render.durationSeconds - 8) > 0.08 || candidate.render.frameCount !== 192 || candidate.render.fps !== 24) throw new Error('approved_look_render_contract_broken');
+          if (!candidate.cropEvidence.every((item) => item.sha256 && item.safeAreaVisible === true)) throw new Error('approved_look_crop_evidence_missing');
+          if (candidate.humanReview.status !== 'pending' || candidate.humanReview.approvedCommitSha !== null) throw new Error('approved_look_self_approval_forbidden');
           NODE
       - name: Typecheck
         run: pnpm -C apps/web run typecheck
@@ -83,6 +98,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: voxy-animatable-master-${{ env.VOXY_EXACT_HEAD_SHA }}
-          path: artifacts/voxy-animatable-master/**
+          path: |
+            artifacts/voxy-animatable-master/**
+            artifacts/voxy-approved-look-candidate/**
           if-no-files-found: error
           retention-days: 14
