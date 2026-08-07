@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "apps/web/src/features/voxyVideo/voiceCaptionFixture.ts"
+      - "apps/web/scripts/generate-voxy-voice-caption-evidence.ts"
       - "apps/web/tests/voxy-voice-caption-fixture.contract.test.ts"
+      - "apps/web/public/brands/voxy/fixtures/voice-caption-*"
+      - "docs/E150/VOXY-VOICE-AND-CAPTION-FIXTURE-01_2026-08-05.md"
       - ".github/workflows/voxy-voice-caption-contract.yml"
   workflow_dispatch:
 
@@ -12,19 +15,66 @@ permissions:
   contents: read
 
 jobs:
-  contract:
+  contract-audio-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
           version: 10.17.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -C apps/web exec vitest run tests/voxy-voice-caption-fixture.contract.test.ts
-      - run: pnpm -C apps/web run typecheck
-      - run: git diff --check
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install local audio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+          espeak-ng --version | head -n 1
+      - name: Run focused contracts
+        run: pnpm -C apps/web exec vitest run tests/voxy-voice-caption-fixture.contract.test.ts
+      - name: Generate real local source speech fixture
+        run: |
+          mkdir -p artifacts/voxy-voice-caption
+          espeak-ng -v de -s 148 -p 48 -a 165 \
+            -f apps/web/public/brands/voxy/fixtures/voice-caption-source-de.txt \
+            -w artifacts/voxy-voice-caption/source-voice-de.wav
+          test -s artifacts/voxy-voice-caption/source-voice-de.wav
+      - name: Inspect normalize and generate real captions
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          pnpm -w exec tsx apps/web/scripts/generate-voxy-voice-caption-evidence.ts \
+            --source=artifacts/voxy-voice-caption/source-voice-de.wav \
+            --segments=apps/web/public/brands/voxy/fixtures/voice-caption-segments-de.json \
+            --output=artifacts/voxy-voice-caption
+      - name: Verify exact-head audio evidence
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/voxy-voice-caption/evidence-manifest.json','utf8'));
+          if (manifest.commitSha !== process.env.VOXY_EVIDENCE_COMMIT_SHA) throw new Error('evidence_head_mismatch');
+          if (!manifest.source.sha256 || !manifest.normalized.sha256 || !manifest.captions.webVtt.sha256 || !manifest.captions.srt.sha256) throw new Error('artifact_hash_missing');
+          if (manifest.normalized.integratedLufs < -17 || manifest.normalized.integratedLufs > -15) throw new Error('normalized_lufs_out_of_target');
+          if (manifest.normalized.truePeakDbfs > -1) throw new Error('normalized_true_peak_too_high');
+          if (manifest.humanReview.status !== 'pending') throw new Error('human_review_must_remain_pending');
+          NODE
+      - name: Typecheck
+        run: pnpm -C apps/web run typecheck
+      - name: Diff check
+        run: git diff --check
+      - name: Upload revision-bound audio/caption evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxy-voice-caption-${{ github.sha }}
+          path: artifacts/voxy-voice-caption/**
+          if-no-files-found: error
+          retention-days: 14
