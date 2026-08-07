@@ -26,9 +26,14 @@ Exakte Pfade innerhalb des Artifacts:
 - `artifacts/voxy-200pct-visual-qa/9x16/surface-200pct.png`
 - `artifacts/voxy-200pct-visual-qa/1x1/surface-200pct.png`
 - je Format zusätzlich `face_eyes-200pct.png`, `left_hand-200pct.png`, `right_hand-200pct.png`, `vog_pin-200pct.png`, `edebatte_pocket_mark-200pct.png`, `logo_zone-200pct.png`, `microphone_edge-200pct.png`, `waveform-200pct.png`, `lower_third-200pct.png` und `caption_safe_zone-200pct.png`
+- `artifacts/voxy-200pct-visual-qa/negative-fixture/intentional-blur-crop-200pct.png`
 - `artifacts/voxy-200pct-visual-qa/evidence-manifest.json`
 
 Das Manifest enthält SHA-256 je PNG, Viewport, Browserzoom, Exact-Head-SHA, Evidence-Key und den Human-Review-Zustand. Die Pixelanalyse läuft auf einer separaten Browserseite, damit der zu prüfende Surface-Render während der zehn Captures unverändert bleibt.
+
+## Reales Negativfixture
+
+Zusätzlich erzeugt der Workflow einen absichtlich fehlerhaften Browser-Render bei 200 % Zoom. Voxy wird dort tatsächlich über den linken Viewportrand verschoben und mit einem realen CSS-Blur versehen. Der Generator misst die Browser-Bounds des Character-Layers und den tatsächlich angewendeten `computedStyle.filter`; der Workflow schlägt fehl, falls der erwartete reale Crop oder Blur nicht beobachtet wird. Pfad und SHA-256 des Negativfixtures stehen im Evidence-Manifest. Dieses Negativfixture ist ausdrücklich `mustNeverBeApproved` und dient nur dem Nachweis, dass die visuelle Fehlerstrecke nicht ausschließlich mit manipulierten Metadaten getestet wird.
 
 ## Menschliches Gate im bestehenden Reviewpfad
 
@@ -58,7 +63,7 @@ Production Eligibility entsteht nur, wenn gleichzeitig:
 4. `approvedCommitSha` exakt dem geprüften PR-Head entspricht,
 5. `approvedEvidenceKey` exakt dem aus den Capture-Hashes berechneten Evidence-Key entspricht.
 
-Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch wirkungslos. Jeder neue Commit oder veränderte Capture erzeugt einen neuen Gate-ID/Evidence-Key. Dieser PR enthält keine Selbstfreigabe.
+Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch wirkungslos. Jeder neue Commit, jede geänderte Reviewrevision oder veränderte Capture-/QA-Befund erzeugt einen neuen Gate-ID/Evidence-Key. Dieser PR enthält keine Selbstfreigabe.
 
 ## Automatische Gates
 
@@ -70,7 +75,8 @@ Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch wirkungsl
 - keine Capture-Rechtecke außerhalb des Zielviewports
 - exakt fünf Finger je sichtbarer Handpose laut kanonischem Mastervertrag
 - Waveform bleibt hinter Voxy und außerhalb der Logo-Zone laut kanonischem Layoutvertrag
-- identische Assetrevision erzeugt identischen Evidence-Key
+- Evidence-Key umfasst Capture-Hashes, QA-Befunde, Posen und Reviewrevision
+- reales absichtlich fehlerhaftes Browserfixture für Crop/Blur
 
 Halos, subtile Typografiefehler, Anatomie und die endgültige visuelle Crop-Qualität bleiben zusätzlich menschlich zu prüfen; sie werden nicht durch Metadaten als menschlich freigegeben ausgegeben.
 
