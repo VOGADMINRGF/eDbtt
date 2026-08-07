@@ -7,10 +7,12 @@ import {
   relationCountsAsIndependentSupport,
   relationTargetsSameAtomicClaim,
   resolvePublicationClassification,
+  sourceArtifactEligibleAsExternalEvidence,
   validateSynthesisReceipt,
   type AtomicClaim,
   type ClaimSourceRelation,
   type EvidenceAssessment,
+  type SourceArtifact,
   type SourceSegment,
   type SynthesisReceipt,
 } from "@features/analyze/atomicClaimSourceRelationContract";
@@ -37,7 +39,10 @@ const baseSegment: SourceSegment = {
   locator: "S. 4",
   originalText: "60 Prozent der Befragten nennen Thema X.",
   readingView: null,
+  contextBefore: "Methodik und Stichprobe werden unmittelbar davor beschrieben.",
+  contextAfter: "Danach folgen Einschränkungen der Übertragbarkeit.",
   speaker: null,
+  recognitionUncertainty: "none",
   segmentRefStatus: "bound",
   transcriptionStatus: "not_applicable",
   translationStatus: "original",
@@ -147,6 +152,26 @@ describe("atomic claim/source relation contract", () => {
     expect(countIndependentSupportFamilies(relations)).toBe(1);
   });
 
+  it("never treats a model output or model derivative as primary external evidence", () => {
+    const artifact: SourceArtifact = {
+      id: "source-model-1",
+      canonicalRef: "internal:model-output:fixture",
+      sourceType: "model_output",
+      publisherOrAuthor: "fixture-model",
+      publishedAt: null,
+      accessedAt: "2026-08-07T00:00:00.000Z",
+      originalLocale: "de",
+      sourceFamilyId: "family-model-1",
+      contentHashOrRevision: "fixture-revision",
+      lineageStatus: "model_derivative",
+      rightsStatus: "known",
+      retentionStatus: "allowed",
+      accessStatus: "internal",
+    };
+
+    expect(sourceArtifactEligibleAsExternalEvidence(artifact)).toBe(false);
+  });
+
   it("keeps personal experience publishable only as personal experience", () => {
     const claim: AtomicClaim = {
       ...baseClaim,
@@ -187,6 +212,7 @@ describe("atomic claim/source relation contract", () => {
     const segment: SourceSegment = {
       ...baseSegment,
       speaker: "Person A",
+      recognitionUncertainty: "medium",
       transcriptionStatus: "automatic_unreviewed",
     };
 
@@ -278,6 +304,21 @@ describe("atomic claim/source relation contract", () => {
         translationOnly: true,
       }),
     ).toBe(false);
+
+    expect(
+      resolvePublicationClassification({
+        claim: baseClaim,
+        relations: [{ ...baseRelation, translationOnly: true }],
+        sourceSegments: [
+          {
+            ...baseSegment,
+            readingView: "Translated reading view",
+            translationStatus: "machine_reading_view",
+          },
+        ],
+        assessment: baseAssessment,
+      }),
+    ).toBe("review_required");
   });
 
   it("fails closed when the source segment reference is missing", () => {
