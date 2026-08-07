@@ -171,7 +171,7 @@ async function main(): Promise<void> {
   }
 
   await browser.close();
-  const checkpoint = buildVoxyVisualQaCheckpoint({ snapshots, reviewStatus: "pending", revision: 1 });
+  const checkpoint = buildVoxyVisualQaCheckpoint({ snapshots, revision: 1 });
   const validation = validateVoxyVisualQaCheckpoint(checkpoint);
   if (!validation.automatedPassed) {
     throw new Error(`visual_qa_evidence_invalid:${validation.errors.join(",")}`);
@@ -197,6 +197,7 @@ async function main(): Promise<void> {
     commitSha,
     artifactRoot: outputRoot,
     evidenceKey: validation.evidenceKey,
+    requiredDecisionGateId: validation.requiredDecisionGateId,
     productionEligible: validation.productionEligible,
     humanReviewStatus: checkpoint.humanReview.status,
   }, null, 2));
