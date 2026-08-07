@@ -61,11 +61,12 @@ async function svgDataUrl(path: string): Promise<string> {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
-async function edgeContrastScore(page: Page, pngPath: string): Promise<number> {
+async function edgeContrastScore(analysisPage: Page, pngPath: string): Promise<number> {
   const png = await readFile(pngPath);
   const dataUrl = `data:image/png;base64,${png.toString("base64")}`;
-  await page.setContent(`<canvas id="c"></canvas><img id="i" src="${dataUrl}" alt=""/>`, { waitUntil: "load" });
-  return page.evaluate(() => {
+  await analysisPage.setContent(`<canvas id="c"></canvas><img id="i" src="${dataUrl}" alt=""/>`, { waitUntil: "load" });
+  await analysisPage.waitForFunction(() => (document.getElementById("i") as HTMLImageElement | null)?.complete === true);
+  return analysisPage.evaluate(() => {
     const image = document.getElementById("i") as HTMLImageElement;
     const canvas = document.getElementById("c") as HTMLCanvasElement;
     canvas.width = image.naturalWidth;
@@ -77,7 +78,8 @@ async function edgeContrastScore(page: Page, pngPath: string): Promise<number> {
     let difference = 0;
     let samples = 0;
     const stride = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 120));
-    const luminance = (offset: number) => 0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
+    const luminance = (offset: number) =>
+      0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
     for (let y = stride; y < canvas.height; y += stride) {
       for (let x = stride; x < canvas.width; x += stride) {
         const offset = (y * canvas.width + x) * 4;
@@ -113,6 +115,7 @@ async function main(): Promise<void> {
     const [studioUrl, templateUrl] = await Promise.all([svgDataUrl(studioPath), svgDataUrl(templatePath)]);
     const context = await browser.newContext({ viewport: { width: item.width, height: item.height }, deviceScaleFactor: 1 });
     const page = await context.newPage();
+    const analysisPage = await context.newPage();
     const baseWidth = item.width / 2;
     const baseHeight = item.height / 2;
     const portrait = item.format === "9:16";
@@ -137,7 +140,7 @@ async function main(): Promise<void> {
       if (clip.y + clip.height > item.height) clip.height = item.height - clip.y;
       const capturePath = resolve(formatDir, `${region.region}-200pct.png`);
       await page.screenshot({ path: capturePath, type: "png", clip });
-      const score = await edgeContrastScore(page, capturePath);
+      const score = await edgeContrastScore(analysisPage, capturePath);
       regions.push({
         region: region.region,
         capturePath: capturePath.replace(`${process.cwd()}/`, ""),
@@ -146,7 +149,7 @@ async function main(): Promise<void> {
         haloDetected: false,
         cropped: clip.x < 0 || clip.y < 0 || clip.x + clip.width > item.width || clip.y + clip.height > item.height,
         typographyOverflow: false,
-        notes: ["browser_capture_200pct", "halo_and_typography_require_human_visual_review"],
+        notes: ["browser_capture_200pct", "pixel_edge_contrast_measured", "halo_typography_and_semantic_crop_require_human_visual_review"],
       });
     }
 
@@ -162,6 +165,8 @@ async function main(): Promise<void> {
       waveformBehindCharacter: true,
       waveformOverlapsLogo: false,
     }));
+    await analysisPage.close();
+    await page.close();
     await context.close();
   }
 
@@ -187,7 +192,14 @@ async function main(): Promise<void> {
   await mkdir(dirname(manifestPath), { recursive: true });
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
-  console.log(JSON.stringify({ status: "voxy_200pct_evidence_ready_for_human_review", commitSha, artifactRoot: outputRoot, evidenceKey: validation.evidenceKey, productionEligible: validation.productionEligible, humanReviewStatus: checkpoint.humanReview.status }, null, 2));
+  console.log(JSON.stringify({
+    status: "voxy_200pct_evidence_ready_for_human_review",
+    commitSha,
+    artifactRoot: outputRoot,
+    evidenceKey: validation.evidenceKey,
+    productionEligible: validation.productionEligible,
+    humanReviewStatus: checkpoint.humanReview.status,
+  }, null, 2));
 }
 
 main().catch((error: unknown) => {
