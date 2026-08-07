@@ -170,6 +170,45 @@ async function main(): Promise<void> {
     await context.close();
   }
 
+  const negativeDir = resolve(outputRoot, "negative-fixture");
+  await mkdir(negativeDir, { recursive: true });
+  const negativeStudio = await svgDataUrl(resolve(webRoot, "public/brands/voxy/studio/voxy-studio-background-16x9.svg"));
+  const negativeTemplate = await svgDataUrl(resolve(webRoot, "public/brands/voxy/templates/voxy-broadcast-template-16x9.svg"));
+  const negativeContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+  const negativePage = await negativeContext.newPage();
+  const negativeAnalysisPage = await negativeContext.newPage();
+  await negativePage.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020718}.zoom-root{position:relative;width:640px;height:360px;zoom:200%;overflow:hidden;background:#020718}.layer{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.character{position:absolute;left:-32%;top:4%;width:58%;height:88%;object-fit:contain;object-position:center bottom;filter:blur(7px)}.template{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}</style></head><body><main class="zoom-root" data-browser-zoom="200" data-negative-fixture="intentional-blur-crop"><img class="layer" src="${negativeStudio}" alt=""><img class="character" src="${characterUrl}" alt=""><img class="template" src="${negativeTemplate}" alt=""></main></body></html>`, { waitUntil: "load" });
+  await negativePage.waitForFunction(() => Array.from(document.images).every((image) => image.complete));
+  const negativeCharacter = negativePage.locator(".character");
+  const characterBounds = await negativeCharacter.boundingBox();
+  const computedFilter = await negativeCharacter.evaluate((element) => getComputedStyle(element).filter);
+  const actualCrop = Boolean(
+    characterBounds &&
+      (characterBounds.x < 0 ||
+        characterBounds.y < 0 ||
+        characterBounds.x + characterBounds.width > 1280 ||
+        characterBounds.y + characterBounds.height > 720),
+  );
+  if (!actualCrop) throw new Error("negative_fixture_did_not_produce_real_crop");
+  if (!computedFilter.includes("blur")) throw new Error("negative_fixture_did_not_apply_real_blur");
+  const negativePath = resolve(negativeDir, "intentional-blur-crop-200pct.png");
+  await negativePage.screenshot({ path: negativePath, type: "png", clip: { x: 0, y: 0, width: 1280, height: 720 } });
+  const negativeFixture = {
+    format: "16:9" as const,
+    browserZoomPercent: 200,
+    path: negativePath.replace(`${process.cwd()}/`, ""),
+    sha256: await fileSha256(negativePath),
+    characterBounds,
+    actualCrop,
+    computedFilter,
+    edgeContrastScore: await edgeContrastScore(negativeAnalysisPage, negativePath),
+    expectedFailures: ["real_character_crop", "real_css_blur"],
+    mustNeverBeApproved: true,
+  };
+  await negativeAnalysisPage.close();
+  await negativePage.close();
+  await negativeContext.close();
+
   await browser.close();
   const checkpoint = buildVoxyVisualQaCheckpoint({ snapshots, revision: 1 });
   const validation = validateVoxyVisualQaCheckpoint(checkpoint);
@@ -179,13 +218,14 @@ async function main(): Promise<void> {
   if (validation.productionEligible) throw new Error("human_review_must_not_be_self_approved");
 
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     commitSha,
     browserZoomPercent: 200,
     formats: FORMATS.map(({ format, width, height }) => ({ format, viewport: { width, height } })),
     checkpoint,
     validation,
+    negativeFixture,
     humanReview: checkpoint.humanReview,
   };
   const manifestPath = resolve(outputRoot, "evidence-manifest.json");
@@ -198,6 +238,7 @@ async function main(): Promise<void> {
     artifactRoot: outputRoot,
     evidenceKey: validation.evidenceKey,
     requiredDecisionGateId: validation.requiredDecisionGateId,
+    negativeFixture,
     productionEligible: validation.productionEligible,
     humanReviewStatus: checkpoint.humanReview.status,
   }, null, 2));
