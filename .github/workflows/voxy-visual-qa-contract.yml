@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+env:
+  VOXY_EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   contract-and-evidence:
     runs-on: ubuntu-latest
@@ -42,12 +45,12 @@ jobs:
 
       - name: Capture real 200-percent browser evidence
         env:
-          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: pnpm -w exec tsx apps/web/scripts/capture-voxy-200pct-evidence.ts --output=artifacts/voxy-200pct-visual-qa
 
       - name: Verify evidence is bound to exact head
         env:
-          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ env.VOXY_EXACT_HEAD_SHA }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -56,6 +59,7 @@ jobs:
           if (manifest.humanReview.status !== 'pending') throw new Error('human_review_must_remain_pending');
           if (manifest.humanReview.approvedCommitSha !== null) throw new Error('self_approval_forbidden');
           if (manifest.formats.length !== 3) throw new Error('three_formats_required');
+          if (!manifest.validation.requiredDecisionGateId) throw new Error('revision_bound_human_gate_missing');
           NODE
 
       - name: Typecheck
@@ -67,7 +71,7 @@ jobs:
       - name: Upload revision-bound review evidence
         uses: actions/upload-artifact@v4
         with:
-          name: voxy-200pct-visual-qa-${{ github.sha }}
+          name: voxy-200pct-visual-qa-${{ env.VOXY_EXACT_HEAD_SHA }}
           path: artifacts/voxy-200pct-visual-qa/**
           if-no-files-found: error
           retention-days: 14
