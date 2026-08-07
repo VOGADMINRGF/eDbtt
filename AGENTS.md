@@ -20,13 +20,14 @@ Agents must not invent their own backlog when a relevant task already exists in 
 Before starting work, always:
 1. read the relevant section(s) in `docs/E150/OpenTasks.md`
 2. determine whether the task is:
-   - `codex_ready`
-   - `needs_decision`
    - `blocked`
-   - `research_only`
+   - `codex_ready`
+   - `in_progress`
+   - `review`
+   - `manual_gate`
    - `done`
 
-Only `codex_ready` tasks may be implemented without further confirmation.
+Only `codex_ready` tasks may start a new implementation slice without further documented authorization. `in_progress` work must reuse its existing branch/PR when one exists. `review` and `manual_gate` are not implicit implementation or merge authorization.
 
 ### 2. Never silently decide product questions
 If a task touches:
@@ -136,13 +137,16 @@ Bei einem Konflikt gilt die höherstehende Ebene. Ein echter Bedeutungswechsel m
 
 ## Required Task Status Meanings
 
-- `open`
-- `codex_ready`
-- `in_progress`
-- `blocked`
-- `needs_decision`
-- `research_only`
-- `done`
+The canonical operative status set is defined by the current `docs/E150/OpenTasks.md` head and is:
+
+- `blocked` — not executable; only dependency, governance, audit, or preparatory work that does not bypass the blocker is allowed
+- `codex_ready` — eligible for a task-specific preflight and, only after a positive preflight, a new implementation branch if no existing branch/PR already owns the slice
+- `in_progress` — implementation is already active; reuse the existing branch/PR and do not create a duplicate
+- `review` — implementation/evidence is awaiting review or a documented review gate; not implicit merge or product approval
+- `manual_gate` — blocked on an explicit human, legal, credential, provider, production, device, or other manual decision/check
+- `done` — acceptance criteria are backed by repository evidence and the operative task is closed
+
+Historical/archive sections may contain older labels such as `open`, `needs_decision`, or `research_only`; they are not valid operative-head statuses unless the canonical OpenTasks status contract is explicitly changed first.
 
 ---
 
