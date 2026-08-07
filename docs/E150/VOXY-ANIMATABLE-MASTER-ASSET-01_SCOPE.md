@@ -1,3 +1,3 @@
 # Scope boundary
 
-Dieser Draft-PR implementiert ausschließlich den kanonischen Layer-, Pivot-, Theme- und Motion-Frame-Vertrag mit fokussierten Contract-Tests. Die finale visuelle Illustration bleibt an den 200-%-Checkpoint gekoppelt. Kein Deployment, Upload oder Publishing.
+Dieser Draft-PR implementiert den kanonischen Layer-, Pivot-, Theme- und Motion-Frame-Vertrag, tatsächliche unabhängige SVG-Layer, einen lokalen Chromium/FFmpeg-Renderer sowie revisionsgebundene 8-Sekunden- und Crop-Evidence. Kein Deployment, externer Upload oder Publishing.

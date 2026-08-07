@@ -1,53 +1,61 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01
 
-Stand: 2026-08-05
+Stand: 2026-08-07
 
 ## Ergebnis
 
-Der bestehende Raster-/Fallback-Fixture erhält einen kanonischen Layer-, Pivot- und Bewegungsvertrag für ein echtes animierbares Voxy-Master. eDebatte und VoiceOpenGov verwenden dieselben Layer-IDs, Proportionen und Bewegungsgrenzen; nur die Theme-Tokens unterscheiden sich.
+Der Voxy-Master besteht in diesem PR nicht mehr nur aus einem Layervertrag. Unter `apps/web/public/brands/voxy/rig/layers/` liegen tatsächliche eigenständige SVG-Ebenen, die vom Renderer `apps/web/scripts/render-voxy-animatable-master.ts` einzeln geladen, nach dem kanonischen Pivot-/Motion-Vertrag transformiert und zu einem realen 8-Sekunden-Video zusammengesetzt werden.
 
-## Kanonische Ebenen
+## Reale unabhängige Ebenen
 
-- Studiohintergrund und Studiobildschirme
-- Jarvis-Waveform hinter der Figur
-- Tisch, Mikrofon und Schatten
-- Körper, Kopf, beide Arme und beide Hände
-- beide Augen, Lider und Brauen
-- neutrale geschlossene Mundebene ohne Lip-Sync
-- Kopfhörer
-- VOG-Pin und eDebatte-Pocket-Mark als getrennte Overlays
-- eigenständige Logo-Zone
+Die kanonischen Layer-IDs aus `VOXY_MASTER_LAYER_IDS` besitzen jeweils eine eigene SVG-Datei unter:
 
-Alle Character-, Anatomy- und Expression-Layer besitzen dokumentierte Pivotpunkte. Beide Hände sind im Vertrag auf exakt fünf Finger festgelegt.
+`apps/web/public/brands/voxy/rig/layers/<layer-id>.svg`
 
-## Themes
+Beide Hände besitzen fünf explizite `data-digit`-Elemente. VOG-Pin und eDebatte-Pocket-Mark bleiben getrennte Branding-Layer. Waveform und Logo-Zone bleiben getrennte Dateien und Z-Ebenen. Keine Viseme- oder Lip-Sync-Ebene wird erzeugt.
 
-- `edebatte`: Blau / Electric Blue
-- `vog_member`: Türkis–Electric-Blue-Verlauf
+## Reale Renderer-Evidence
 
-Die Layerstruktur bleibt zwischen beiden Themes identisch.
+Workflow: `.github/workflows/voxy-animatable-master-contract.yml`
 
-## Motion-Runtime
+Reproduktionskommando:
 
-`buildVoxyMasterMotionFrame` erzeugt begrenzte, deterministische Transformationen für Kopf, Arme und Lider. Die bestehenden Motion-Zustände können damit unabhängig von einem Mund- oder Viseme-System auf das Master angewendet werden.
+```bash
+VOXY_EVIDENCE_COMMIT_SHA=$(git rev-parse HEAD) \
+  pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts \
+  --output=artifacts/voxy-animatable-master
+```
 
-## Fail-closed-Gates
+Der Workflow installiert Chromium und FFmpeg, rendert 192 Browserframes bei 24 fps und codiert daraus eine echte MP4-Datei mit acht Sekunden Laufzeit.
 
-- fehlende oder doppelte Pflichtlayer
-- nicht unabhängige Layer
-- fehlende Pivotpunkte
-- vier- oder sechsfingrige Hände
-- nichtkanonische Layerpfade
-- Waveform vor der Figur
-- zusammengeführte Waveform-/Logoebene
-- unvollständige 16:9-, 9:16- oder 1:1-Crops
-- Lip-Sync oder Viseme-Aktivierung
-- fehlendes Human-Approval-Gate
+CI-Artifact: `voxy-animatable-master-<exact-head-sha>`
+
+Exakte Pfade darin:
+
+- `artifacts/voxy-animatable-master/voxy-layered-master-8s-16x9.mp4`
+- `artifacts/voxy-animatable-master/crop-safe-16x9.png`
+- `artifacts/voxy-animatable-master/crop-safe-9x16.png`
+- `artifacts/voxy-animatable-master/crop-safe-1x1.png`
+- `artifacts/voxy-animatable-master/evidence-manifest.json`
+
+Das Manifest enthält den Exact-Head-SHA, SHA-256 aller 23 Layerdateien, SHA-256 des Videos und der Crop-Captures, per `ffprobe` gemessene Dauer/Dimensionen/FPS sowie den ausstehenden Human-Review-Status.
+
+## Crop- und Safe-Area-Nachweis
+
+Die drei PNGs stammen aus demselben Layer-Renderer bei 4,0 Sekunden. `9:16` und `1:1` werden als reale Ausschnitte des 16:9-Frames erzeugt; die türkise gestrichelte Linie markiert die jeweils dokumentierte Safe Area. Damit ist sichtbar prüfbar, ob Kopf, Hände, Branding und zentrale Silhouette im Zielformat erhalten bleiben.
+
+## Human Gate
+
+Die Render-Evidence endet absichtlich mit `humanReview.status = pending`. Dieser PR wird nicht durch den Agenten visuell freigegeben. Die finale Sichtabnahme erfolgt durch Ricky anhand des exakten Workflow-Artifacts; jede Änderung am PR-Head erzeugt eine neue revisionsgebundene Evidence.
 
 ## Grenzen
 
-Dieser Slice liefert den ausführbaren Layer-/Rig-Vertrag und die Motion-Frame-Erzeugung. Die finale visuelle Layer-Illustration bleibt an den 200-%-Checkpoint aus Issue #580 gekoppelt. Es erfolgt kein Deployment, Upload oder Publishing.
+- kein Lip-Sync und keine Viseme-Abhängigkeit
+- kein Deployment
+- kein externer Upload
+- kein Publishing
+- keine Selbstfreigabe
 
-## Tests
+## Abschlussnachweis
 
-`apps/web/tests/voxy-animatable-master-asset.contract.test.ts` deckt beide Themes, unabhängige Layer, Pivotpunkte, Bewegungsgrenzen, Fingeranzahl, Waveform-Z-Order, Crops und Human Approval ab.
+Exact-Head-SHA, Workflow-Run, Artifact-ID, Hashes und Checkresultate werden nach dem finalen CI-Lauf als PR-Kommentar ergänzt, ohne den geprüften Head erneut zu verändern.

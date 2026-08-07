@@ -4,7 +4,11 @@ on:
   pull_request:
     paths:
       - "apps/web/src/features/voxyVideo/animatableMasterAsset.ts"
+      - "apps/web/scripts/render-voxy-animatable-master.ts"
       - "apps/web/tests/voxy-animatable-master-asset.contract.test.ts"
+      - "apps/web/tests/voxy-animatable-layer-assets.contract.test.ts"
+      - "apps/web/public/brands/voxy/rig/layers/**"
+      - "docs/E150/VOXY-ANIMATABLE-MASTER-ASSET-01_2026-08-05.md"
       - ".github/workflows/voxy-animatable-master-contract.yml"
   workflow_dispatch:
 
@@ -12,19 +16,57 @@ permissions:
   contents: read
 
 jobs:
-  contract:
+  contract-render-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
           version: 10.17.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -C apps/web exec vitest run tests/voxy-animatable-master-asset.contract.test.ts
-      - run: pnpm -C apps/web run typecheck
-      - run: git diff --check
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium and FFmpeg
+        run: |
+          pnpm -C apps/web exec playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+      - name: Run focused contracts
+        run: |
+          pnpm -C apps/web exec vitest run \
+            tests/voxy-animatable-master-asset.contract.test.ts \
+            tests/voxy-animatable-layer-assets.contract.test.ts
+      - name: Render real 8-second layered master and crop evidence
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts --output=artifacts/voxy-animatable-master
+      - name: Verify exact-head evidence and 8-second duration
+        env:
+          VOXY_EVIDENCE_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/voxy-animatable-master/evidence-manifest.json','utf8'));
+          if (manifest.commitSha !== process.env.VOXY_EVIDENCE_COMMIT_SHA) throw new Error('evidence_head_mismatch');
+          if (Math.abs(manifest.render.durationSeconds - 8) > 0.08) throw new Error('render_duration_not_8_seconds');
+          if (manifest.layerAssets.length < 23) throw new Error('independent_layer_assets_missing');
+          if (!manifest.cropEvidence.every((item) => item.sha256 && item.safeAreaVisible === true)) throw new Error('crop_evidence_missing');
+          NODE
+      - name: Typecheck
+        run: pnpm -C apps/web run typecheck
+      - name: Diff check
+        run: git diff --check
+      - name: Upload revision-bound render evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxy-animatable-master-${{ github.sha }}
+          path: artifacts/voxy-animatable-master/**
+          if-no-files-found: error
+          retention-days: 14
