@@ -47,15 +47,30 @@ export const PUBLICATION_CLASSIFICATIONS = [
 
 export type PublicationClassification = (typeof PUBLICATION_CLASSIFICATIONS)[number];
 
+export const SOURCE_ARTIFACT_TYPES = [
+  "primary_document",
+  "official_record",
+  "dataset",
+  "study",
+  "interview",
+  "media_report",
+  "secondary_source",
+  "user_provided_material",
+  "model_output",
+] as const;
+
+export type SourceArtifactType = (typeof SOURCE_ARTIFACT_TYPES)[number];
+
 export type SourceArtifact = {
   id: string;
   canonicalRef: string;
-  sourceType: string;
+  sourceType: SourceArtifactType;
   publisherOrAuthor: string | null;
   publishedAt: string | null;
   accessedAt: string | null;
   originalLocale: string;
   sourceFamilyId: string;
+  contentHashOrRevision: string | null;
   lineageStatus:
     | "original"
     | "copy"
@@ -65,6 +80,7 @@ export type SourceArtifact = {
     | "model_derivative";
   rightsStatus: "known" | "unknown" | "restricted";
   retentionStatus: "allowed" | "limited" | "prohibited";
+  accessStatus: "public" | "restricted" | "internal";
 };
 
 export type SourceSegment = {
@@ -73,7 +89,10 @@ export type SourceSegment = {
   locator: string;
   originalText: string | null;
   readingView: string | null;
+  contextBefore: string | null;
+  contextAfter: string | null;
   speaker: string | null;
+  recognitionUncertainty: "none" | "low" | "medium" | "high" | "unknown";
   segmentRefStatus: "bound" | "missing";
   transcriptionStatus:
     | "not_applicable"
@@ -203,6 +222,19 @@ function normalizeDimension(value: string | null | undefined): string {
     .replace(/\s+/g, " ");
 }
 
+export function sourceArtifactEligibleAsExternalEvidence(
+  artifact: SourceArtifact,
+): boolean {
+  return Boolean(
+    artifact.sourceType !== "model_output" &&
+      artifact.lineageStatus !== "model_derivative" &&
+      artifact.accessStatus !== "internal" &&
+      artifact.rightsStatus !== "restricted" &&
+      artifact.retentionStatus !== "prohibited" &&
+      artifact.canonicalRef.trim(),
+  );
+}
+
 export function haveEquivalentAtomicClaimScope(
   left: Pick<AtomicClaim, "scope">,
   right: Pick<AtomicClaim, "scope">,
@@ -314,11 +346,16 @@ export function resolvePublicationClassification(params: {
   );
   const claimSegments = findClaimSegments(params);
 
+  if (claimRelations.every((relation) => relation.translationOnly)) {
+    return "review_required";
+  }
+
   if (params.claim.type === "reported_speech") {
     const hasQuoteRelation = claimRelations.some(
       (relation) =>
-        relation.relationType === "reported_by_source" ||
-        relation.relationType === "supports_exactly",
+        relation.translationOnly === false &&
+        (relation.relationType === "reported_by_source" ||
+          relation.relationType === "supports_exactly"),
     );
     const hasUnsafeTranscript = claimSegments.some(
       (segment) => segment.transcriptionStatus === "automatic_unreviewed",
