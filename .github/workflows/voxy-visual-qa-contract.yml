@@ -60,6 +60,10 @@ jobs:
           if (manifest.humanReview.approvedCommitSha !== null) throw new Error('self_approval_forbidden');
           if (manifest.formats.length !== 3) throw new Error('three_formats_required');
           if (!manifest.validation.requiredDecisionGateId) throw new Error('revision_bound_human_gate_missing');
+          if (!manifest.negativeFixture?.sha256) throw new Error('negative_render_fixture_missing');
+          if (manifest.negativeFixture.actualCrop !== true) throw new Error('negative_fixture_real_crop_not_observed');
+          if (!String(manifest.negativeFixture.computedFilter).includes('blur')) throw new Error('negative_fixture_real_blur_not_observed');
+          if (manifest.negativeFixture.mustNeverBeApproved !== true) throw new Error('negative_fixture_guard_missing');
           NODE
 
       - name: Typecheck
