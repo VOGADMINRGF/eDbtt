@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyPersistedVoxyVisualQaReviewDecision,
   buildVoxyVisualQaCheckpoint,
   buildVoxyVisualQaSnapshot,
   getVoxyVisualQaEvidenceKey,
+  getVoxyVisualQaReviewDecisionGateId,
   validateVoxyVisualQaCheckpoint,
   VOXY_VISUAL_QA_REGIONS,
 } from "@/features/voxyVideo/visualQaCheckpoint";
@@ -39,7 +41,6 @@ function snapshot(format: "16:9" | "9:16" | "1:1", commitSha = HEAD) {
 function pendingCheckpoint() {
   return buildVoxyVisualQaCheckpoint({
     snapshots: [snapshot("16:9"), snapshot("9:16"), snapshot("1:1")],
-    reviewStatus: "pending",
     revision: 4,
   });
 }
@@ -58,34 +59,72 @@ describe("Voxy 200 percent visual QA checkpoint", () => {
     expect(getVoxyVisualQaEvidenceKey(pendingCheckpoint())).toBe(getVoxyVisualQaEvidenceKey(pendingCheckpoint()));
   });
 
-  it("binds a human approval to both exact head and exact evidence key", () => {
+  it("accepts approval only from a persistent decision bound to exact head, revision and evidence", () => {
     const pending = pendingCheckpoint();
     const evidenceKey = getVoxyVisualQaEvidenceKey(pending);
-    const approved = buildVoxyVisualQaCheckpoint({
-      snapshots: pending.snapshots,
-      reviewStatus: "approved",
-      reviewerId: "human-reviewer",
-      reviewedAt: "2026-08-07T18:00:00.000Z",
-      revision: 4,
-      approvedCommitSha: HEAD,
-      approvedEvidenceKey: evidenceKey,
+    const decisionGateId = getVoxyVisualQaReviewDecisionGateId({
+      commitSha: HEAD,
+      evidenceKey,
+      revision: pending.humanReview.revision,
+    });
+    const approved = applyPersistedVoxyVisualQaReviewDecision(pending, {
+      decisionRecordId: "voxy-render-preview-review-decision:abc123",
+      decisionGateId,
+      decisionType: "mark_review_ready",
+      persistedAt: "2026-08-07T18:00:00.000Z",
+      persistedBy: "human-reviewer",
+      persistenceMode: "persistent_primary",
     });
     const result = validateVoxyVisualQaCheckpoint(approved);
     expect(result.automatedPassed).toBe(true);
     expect(result.productionEligible).toBe(true);
     expect(result.reviewedCommitSha).toBe(HEAD);
+    expect(result.requiredDecisionGateId).toBe(decisionGateId);
   });
 
-  it("rejects stale or metadata-only approvals", () => {
+  it("rejects a stale persisted decision gate", () => {
+    const checkpoint = applyPersistedVoxyVisualQaReviewDecision(pendingCheckpoint(), {
+      decisionRecordId: "voxy-render-preview-review-decision:stale",
+      decisionGateId: "voxy-visual-qa:stale:r4:stale-evidence",
+      decisionType: "mark_review_ready",
+      persistedAt: "2026-08-07T18:00:00.000Z",
+      persistedBy: "human-reviewer",
+      persistenceMode: "persistent_primary",
+    });
+    const result = validateVoxyVisualQaCheckpoint(checkpoint);
+    expect(result.productionEligible).toBe(false);
+    expect(checkpoint.humanReview.status).toBe("pending");
+  });
+
+  it("cannot become production eligible from metadata-only approval fields", () => {
     const checkpoint = pendingCheckpoint();
     checkpoint.humanReview.status = "approved";
     checkpoint.humanReview.reviewerId = "human-reviewer";
     checkpoint.humanReview.reviewedAt = "2026-08-07T18:00:00.000Z";
-    checkpoint.humanReview.approvedCommitSha = "stale-head";
+    checkpoint.humanReview.approvedCommitSha = HEAD;
     checkpoint.humanReview.approvedEvidenceKey = getVoxyVisualQaEvidenceKey(checkpoint);
     const result = validateVoxyVisualQaCheckpoint(checkpoint);
     expect(result.productionEligible).toBe(false);
-    expect(result.errors).toContain("human_review_revision_or_evidence_mismatch");
+    expect(result.errors).toContain("human_review_persistence_revision_or_evidence_mismatch");
+  });
+
+  it("maps persisted revision requests and rejects without approving", () => {
+    const pending = pendingCheckpoint();
+    const gate = getVoxyVisualQaReviewDecisionGateId({
+      commitSha: HEAD,
+      evidenceKey: getVoxyVisualQaEvidenceKey(pending),
+      revision: 4,
+    });
+    const needsChanges = applyPersistedVoxyVisualQaReviewDecision(pending, {
+      decisionRecordId: "voxy-render-preview-review-decision:revision",
+      decisionGateId: gate,
+      decisionType: "request_revision",
+      persistedAt: "2026-08-07T18:00:00.000Z",
+      persistedBy: "human-reviewer",
+      persistenceMode: "persistent_primary",
+    });
+    expect(needsChanges.humanReview.status).toBe("needs_changes");
+    expect(validateVoxyVisualQaCheckpoint(needsChanges).productionEligible).toBe(false);
   });
 
   it("fails closed for four- or six-finger poses", () => {
