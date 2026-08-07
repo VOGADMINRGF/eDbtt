@@ -337,14 +337,26 @@ export function resolvePublicationClassification(params: {
   sourceSegments: SourceSegment[];
   assessment: EvidenceAssessment;
 }): PublicationClassification {
-  if (hasSourceIntegrityFailure(params)) return "blocked_source_integrity";
+  if (
+    hasSourceIntegrityFailure({
+      claimId: params.claim.id,
+      relations: params.relations,
+      sourceSegments: params.sourceSegments,
+    })
+  ) {
+    return "blocked_source_integrity";
+  }
 
   if (params.assessment.humanReviewStatus !== "reviewed") return "review_required";
 
   const claimRelations = params.relations.filter(
     (relation) => relation.claimId === params.claim.id,
   );
-  const claimSegments = findClaimSegments(params);
+  const claimSegments = findClaimSegments({
+    claimId: params.claim.id,
+    relations: params.relations,
+    sourceSegments: params.sourceSegments,
+  });
 
   if (claimRelations.every((relation) => relation.translationOnly)) {
     return "review_required";
