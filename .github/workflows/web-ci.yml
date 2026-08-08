@@ -61,6 +61,8 @@ jobs:
           tests/create-planner-provider-fallback.contract.test.ts
           tests/create-planner-provider-identity.contract.test.ts
           tests/create-planner-routing.contract.test.ts
+          tests/atomic-claim-source-relation.contract.test.ts
+          tests/atomic-claim-source-relation-adapters.contract.test.ts
           tests/ai-orchestration-provenance-trace.contract.test.ts
           tests/dialog-intelligence-runtime-bridge.test.ts
           tests/create-candidate-preview.contract.test.ts
