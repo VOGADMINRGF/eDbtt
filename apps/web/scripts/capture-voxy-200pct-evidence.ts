@@ -78,15 +78,16 @@ async function edgeContrastScore(analysisPage: Page, pngPath: string): Promise<n
     let difference = 0;
     let samples = 0;
     const stride = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 120));
-    const luminance = (offset: number) =>
-      0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
     for (let y = stride; y < canvas.height; y += stride) {
       for (let x = stride; x < canvas.width; x += stride) {
         const offset = (y * canvas.width + x) * 4;
         const left = (y * canvas.width + x - stride) * 4;
         const top = ((y - stride) * canvas.width + x) * 4;
-        difference += Math.abs(luminance(offset) - luminance(left));
-        difference += Math.abs(luminance(offset) - luminance(top));
+        const currentLuminance = 0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
+        const leftLuminance = 0.2126 * pixels[left] + 0.7152 * pixels[left + 1] + 0.0722 * pixels[left + 2];
+        const topLuminance = 0.2126 * pixels[top] + 0.7152 * pixels[top + 1] + 0.0722 * pixels[top + 2];
+        difference += Math.abs(currentLuminance - leftLuminance);
+        difference += Math.abs(currentLuminance - topLuminance);
         samples += 2;
       }
     }
