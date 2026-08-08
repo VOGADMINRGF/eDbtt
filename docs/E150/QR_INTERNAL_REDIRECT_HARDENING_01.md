@@ -167,3 +167,24 @@ aktuellen `origin/main`-Blob
 Taskstatus geändert oder ergänzt. Nach vollständiger technischer Validierung ist für
 `QR-INTERNAL-REDIRECT-HARDENING-01` maximal der Status `review` empfohlen. Die
 kanonische Statusänderung bleibt dem alleinigen SSOT-Schreiber vorbehalten.
+
+## Post-Main-Sync-Revalidierung 2026-08-08
+
+- Der bestehende Branch wurde konfliktfrei mit
+  `origin/main@347c8b20eb5e9342c332f82114b5f8d63dd7d893` synchronisiert. Es wurde
+  weder ein zweiter Branch noch ein zweiter Pull Request erzeugt.
+- Code-Verify-Head vor diesem reinen Evidence-Nachtrag:
+  `947a715d127c7f1db55aa725565c852eea4e9d12`.
+- Die fokussierte QR-, Redirect-, Auth-, Studio-, Stream- und Wrapper-Matrix
+  ist unter Node `v20.20.2` mit **20 Dateien und 202 Tests** grün.
+- Web Critical Guardrails sind mit **17 Dateien und 72 Tests**, Production
+  Guardrails mit **12 Dateien und 36 Tests** grün; der statische
+  Web-Critical-Guard ist ebenfalls grün.
+- Typecheck und Lint sind unter Node `v20.20.2` grün.
+- Der lokale Production-Build ist grün: **255** Page-Contracts ohne Verstoß
+  und **322** statisch erzeugte Seiten. Der Worktree enthielt dabei eine
+  bereits vorhandene, unveränderte `.env.local`; der isolierte Umgebungsbeleg
+  bleibt deshalb der Exact-Head-CI-/Vercel-Lauf.
+- `docs/E150/OpenTasks.md` bleibt gegenüber `origin/main` unverändert. Reale
+  Kamera-/Geräteprüfung, persistentes Referenzziel, Organisations-/Event-
+  Handoff-Abnahme, Ready, Merge und Production bleiben manuelle Gates.
