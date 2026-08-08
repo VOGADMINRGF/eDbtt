@@ -237,3 +237,22 @@ prüfen:
 Der Abschlussstatus dieses technischen Slices bleibt daher maximal `review`.
 Der finale Branch-Head nach dem Evidence-Commit wird im Draft-PR und in der
 Übergabe als `Exact Head` dokumentiert.
+
+## Post-Main-Sync-Revalidierung 2026-08-08
+
+- Der bestehende Task-Branch wurde ohne Konflikt mit
+  `origin/main@347c8b20eb5e9342c332f82114b5f8d63dd7d893` synchronisiert; es wurde
+  weder ein zweiter Branch noch ein zweiter Pull Request erstellt.
+- Code-Verify-Head vor diesem reinen Evidence-Nachtrag:
+  `ce77ade9d73e5303380e92fba7d7e73e89fd153f`.
+- Unter Node `v20.20.2` sind die fokussierten Transparenz-, Release-, Review-,
+  Export-, Social-, Voxy-, Trace- und Security-Gegenproben mit **23 Dateien
+  und 103 Tests** grün.
+- `pnpm -C apps/web run typecheck` und `pnpm -C apps/web run lint` sind unter
+  Node `v20.20.2` grün.
+- Der vollständige Build mit ausschließlich prozesslokal geladenen,
+  nicht geheimen Werten aus `apps/web/.env.example` ist grün: **256**
+  Page-Contracts ohne Verstoß und **323** statisch erzeugte Seiten.
+- `docs/E150/OpenTasks.md` bleibt gegenüber `origin/main` unverändert. Die
+  menschlichen Legal-, Produkt-, Accessibility-, Preview-, Merge- und
+  Deployment-Gates bleiben offen; der Status bleibt maximal `review`.
