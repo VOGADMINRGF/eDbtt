@@ -467,3 +467,54 @@ Lokale Abschlussprüfung unter Node `20.20.2`:
 
 PR `#557` bleibt Draft. Kein Merge und kein Production-Deployment erfolgt aus
 diesem Mehrsprachen-Closing-Pass.
+
+## Revalidierung gegen aktuellen Main · 2026-08-09
+
+### Synchronisierung und Kollisionen
+
+- Ausgangs-Head des bestehenden Branches:
+  `310bb791e9840270bb21aa0490a8567b20c3b12e`.
+- Integrierter Main-Stand:
+  `347c8b20eb5e9342c332f82114b5f8d63dd7d893`.
+- Konfliktfreier Merge-Head vor diesem Evidence-Nachtrag:
+  `6e88f07eb8fc4d41aabb5580909592c583c5835e`.
+- Mergekonflikte: **0**. Der PR-Scope bleibt bei `19` Public-Ballot-,
+  I18N-, Security-, Test-, Workflow- und Evidence-Dateien.
+- Die tatsächlichen Dateilisten aller offenen Fremd-PRs `#590`, `#589`,
+  `#588`, `#561`, `#556`, `#536`, `#527` und `#520` wurden erneut geprüft.
+  Direkte Überschneidung mit PR `#557`: **0**.
+- `docs/E150/OpenTasks.md` wurde ausschließlich aus `main` übernommen und
+  bleibt außerhalb des eigenen PR-Diffs. Es wurde kein zweiter Adapterbranch
+  und keine parallele I18N-Wahrheit angelegt.
+
+### Erneute technische Validierung
+
+Alle lokalen Läufe erfolgten unter Node `20.20.2`:
+
+- Public-Ballot-, Sprachwechsel-, Release-, Vote-, Rate-Limit- und
+  Auth-Regression: `10` Dateien, `72/72` Tests grün;
+- Web-PR-Critical-Guardrails: `17` Dateien, `72/72` Tests grün;
+- Production Guardrails: Public Routes `7/7`, Admin Review `6/6`, Publish
+  Guardrails `23/23`; insgesamt `36/36` grün;
+- Typecheck: grün;
+- vollständiger Lint: grün;
+- vollständiger Production Build mit ausschließlich `apps/web/.env.example`
+  im Prozess: grün; `256` Seitenverträge ohne Verstoß, Compiler und TypeScript
+  grün, statische Generierung `322/322`;
+- der erste absichtlich secret-freie Buildlauf ohne `.env.local` kompilierte,
+  stoppte aber erwartungsgemäß beim Page-Data-Collect an fehlenden Pflicht-ENV.
+  Es wurden keine lokalen Secrets gelesen, geschrieben oder verändert.
+
+### Verbleibende Gates
+
+Der technische Endstatus bleibt maximal `manual_gate`. Weiter offen sind:
+
+- eine ausdrücklich zulässige reale Preview-Fixture oder ein freigegebener
+  VOG-Fragendatensatz mit stabilen Frage-, Options-, Quellen- und
+  Gegenpositions-IDs;
+- der unabhängige DE/EN/FR/ES/TR/AR-, RTL-, Mobile-, Tastatur-,
+  Screenreader- und 200-%-Bedien-Smoke;
+- Admin-/2FA-Release, menschliche Review- und Mergeentscheidung.
+
+Der PR bleibt Draft. Kein Ready, Merge, Deployment oder Public Release erfolgt
+aus dieser Revalidierung.
