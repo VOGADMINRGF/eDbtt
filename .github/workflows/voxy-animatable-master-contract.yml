@@ -85,9 +85,12 @@ jobs:
           if (candidate.canonicalVisualSource.repositoryPath !== 'apps/web/public/brand/voxy/voxy-podcast-stage.png') throw new Error('approved_look_source_mismatch');
           if (!candidate.canonicalVisualSource.sha256) throw new Error('approved_look_source_hash_missing');
           if (candidate.constraints.substituteCharacterForbidden !== true || candidate.constraints.identityGeometryRegeneration !== false) throw new Error('approved_look_guardrail_missing');
-          if (candidate.renderMode !== 'approved_raster_identity_preserving_2_5d_candidate') throw new Error('approved_look_render_mode_mismatch');
+          if (candidate.renderMode !== 'approved_raster_source_preserving_masked_motion_candidate') throw new Error('approved_look_render_mode_mismatch');
+          if (candidate.status !== 'needs_human_review') throw new Error('approved_look_human_gate_missing');
           if (Math.abs(candidate.render.durationSeconds - 8) > 0.08 || candidate.render.frameCount !== 192 || candidate.render.fps !== 24) throw new Error('approved_look_render_contract_broken');
-          if (!candidate.cropEvidence.every((item) => item.sha256 && item.safeAreaVisible === true)) throw new Error('approved_look_crop_evidence_missing');
+          if (!Array.isArray(candidate.reviewFrames) || candidate.reviewFrames.length < 4 || !candidate.reviewFrames.every((item) => item.sha256)) throw new Error('approved_look_motion_review_frames_missing');
+          if (!Array.isArray(candidate.motion?.independentlyDrivenReviewMasks) || candidate.motion.independentlyDrivenReviewMasks.length < 3) throw new Error('approved_look_independent_motion_missing');
+          if (!candidate.cropEvidence.every((item) => item.sha256 && item.width > 0 && item.height > 0)) throw new Error('approved_look_crop_evidence_missing');
           if (candidate.humanReview.status !== 'pending' || candidate.humanReview.approvedCommitSha !== null) throw new Error('approved_look_self_approval_forbidden');
           NODE
       - name: Typecheck
