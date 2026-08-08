@@ -324,3 +324,28 @@ Abschließende Validierung des Closing-Passes unter Node `v20.20.2`:
 - Merge erst nach Review und ausdrücklicher Produktfreigabe.
 
 Der Task steht deshalb maximal auf `review`, nicht auf `done`.
+
+## Post-Main-Sync-Revalidierung 2026-08-09
+
+- Der bestehende Branch wurde konfliktfrei mit
+  `origin/main@347c8b20eb5e9342c332f82114b5f8d63dd7d893` synchronisiert. Es wurde
+  weder ein zweiter Branch noch ein zweiter Pull Request erzeugt.
+- Code-Verify-Head vor diesem reinen Evidence-Nachtrag:
+  `d65bbfa3034f5cb5efe874041964ab9c832caf23`.
+- Die fokussierten Directory- und Render-Verträge sind unter Node `v20.20.2`
+  mit **2 Dateien und 16 Tests** grün.
+- Die breite Region-/Navigation-/Entitlement-Matrix bestätigt **118 grüne
+  Tests**. Drei fachfremde Fehler sind unverändert auf `origin/main`
+  reproduzierbar: der bereits kanonische Regionstyp `land`, das veraltete
+  Header-Label `Zur Initiative` und der Deep-Search-Fallback-Vertrag. Keiner
+  dieser Tests oder Schutzpfade wurde in diesem eng erlaubten Slice verändert.
+- Web Critical Guardrails sind mit **17 Dateien und 72 Tests**, Production
+  Guardrails mit **12 Dateien und 36 Tests** grün; statischer Guard,
+  Typecheck, Lint und `git diff --check` sind ebenfalls grün.
+- Der lokale Production-Build ist grün: **255** Page-Contracts ohne Verstoß
+  und **322** statisch erzeugte Seiten. Der Worktree enthielt eine bereits
+  vorhandene, unveränderte `.env.local`; der isolierte Umgebungsbeleg bleibt
+  deshalb der Exact-Head-CI-/Vercel-Lauf.
+- `docs/E150/OpenTasks.md` bleibt gegenüber `origin/main` unverändert. Die
+  menschliche Desktop-/Mobile-, Light-/Dark- und kontrollierte
+  Missing-/Error-/Recovery-Abnahme bleibt offen; Status maximal `review`.
