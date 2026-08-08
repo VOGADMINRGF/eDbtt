@@ -2,4 +2,5 @@
 export * from "./schemas";
 // Builder
 export * from "./buildDossierFromAnalyze";
+export * from "./atomicEvidenceHandoff";
 export * from "./server/studioPersistence";

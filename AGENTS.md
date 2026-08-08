@@ -20,13 +20,14 @@ Agents must not invent their own backlog when a relevant task already exists in 
 Before starting work, always:
 1. read the relevant section(s) in `docs/E150/OpenTasks.md`
 2. determine whether the task is:
-   - `codex_ready`
-   - `needs_decision`
    - `blocked`
-   - `research_only`
+   - `codex_ready`
+   - `in_progress`
+   - `review`
+   - `manual_gate`
    - `done`
 
-Only `codex_ready` tasks may be implemented without further confirmation.
+Only `codex_ready` tasks may start a new implementation slice without further documented authorization. `in_progress` work must reuse its existing branch/PR when one exists. `review` and `manual_gate` are not implicit implementation or merge authorization.
 
 ### 2. Never silently decide product questions
 If a task touches:
@@ -104,17 +105,48 @@ Vor entsprechenden Änderungen müssen Agenten die kanonische Datei lesen und fo
 - nur tatsächlich verfügbare Produktfunktionen und Automatisierungen versprechen
 - einen echten Bedeutungswechsel zuerst in der kanonischen Datei und anschließend in `docs/E150/OpenTasks.md` synchronisieren
 
+### 10. Foundation canon (verbindlich)
+Vor grundlegenden Produkt-, Architektur-, KI-, Automatisierungs-, Kommunikations-, Governance- oder Engineering-Entscheidungen müssen Agenten die relevanten Dateien unter `docs/foundation/` lesen.
+
+Die verbindliche Reihenfolge lautet:
+
+1. `docs/foundation/Constitution.md`
+2. `docs/foundation/Vision.md`
+3. `docs/foundation/Grundwerte.md`
+4. `docs/foundation/Architecture-Canon.md`
+5. `docs/foundation/Engineering-Canon.md`
+6. `docs/brand/EDEBATTE_BRAND_NARRATIVE.md`
+7. `AGENTS.md`
+8. `docs/E150/OpenTasks.md`
+9. Run Packs, ADRs und Implementierungen
+
+Agenten müssen insbesondere:
+- menschliche Verantwortung und Entscheidungsgrenzen erhalten
+- Quellen, Evidenzen, Widersprüche und Unsicherheiten nachvollziehbar bewahren
+- Original-, Lese-, Bedien- und Ausgabesprache getrennt berücksichtigen
+- KI nicht als autonome Wahrheits- oder Governance-Instanz behandeln
+- Automation nach Risiko, Wirkung, Policy und Konfidenz staffeln
+- keine allgemeine Auto-Publish-Logik einführen
+- Datenschutz, Sicherheit, Barrierefreiheit, Beobachtbarkeit und Wiederherstellung als Produktanforderungen behandeln
+- bestehende Architektur erweitern, statt parallele Wahrheiten zu schaffen
+- tatsächliche Produktwahrheit nicht durch visionäre Texte überzeichnen
+
+Bei einem Konflikt gilt die höherstehende Ebene. Ein echter Bedeutungswechsel muss zuerst in den Foundation-Dokumenten beschlossen und danach in Brand Narrative, OpenTasks, ADRs, Run Packs und Implementierung synchronisiert werden.
+
 ---
 
 ## Required Task Status Meanings
 
-- `open`
-- `codex_ready`
-- `in_progress`
-- `blocked`
-- `needs_decision`
-- `research_only`
-- `done`
+The canonical operative status set is defined by the current `docs/E150/OpenTasks.md` head and is:
+
+- `blocked` — not executable; only dependency, governance, audit, or preparatory work that does not bypass the blocker is allowed
+- `codex_ready` — eligible for a task-specific preflight and, only after a positive preflight, a new implementation branch if no existing branch/PR already owns the slice
+- `in_progress` — implementation is already active; reuse the existing branch/PR and do not create a duplicate
+- `review` — implementation/evidence is awaiting review or a documented review gate; not implicit merge or product approval
+- `manual_gate` — blocked on an explicit human, legal, credential, provider, production, device, or other manual decision/check
+- `done` — acceptance criteria are backed by repository evidence and the operative task is closed
+
+Historical/archive sections may contain older labels such as `open`, `needs_decision`, or `research_only`; they are not valid operative-head statuses unless the canonical OpenTasks status contract is explicitly changed first.
 
 ---
 
