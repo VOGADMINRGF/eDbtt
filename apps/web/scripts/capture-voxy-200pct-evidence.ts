@@ -75,8 +75,7 @@ async function edgeContrastScore(analysisPage: Page, pngPath: string): Promise<n
     if (!context) return 0;
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    let difference = 0;
-    let samples = 0;
+    const gradients: number[] = [];
     const stride = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 120));
     for (let y = stride; y < canvas.height; y += stride) {
       for (let x = stride; x < canvas.width; x += stride) {
@@ -86,12 +85,18 @@ async function edgeContrastScore(analysisPage: Page, pngPath: string): Promise<n
         const currentLuminance = 0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
         const leftLuminance = 0.2126 * pixels[left] + 0.7152 * pixels[left + 1] + 0.0722 * pixels[left + 2];
         const topLuminance = 0.2126 * pixels[top] + 0.7152 * pixels[top + 1] + 0.0722 * pixels[top + 2];
-        difference += Math.abs(currentLuminance - leftLuminance);
-        difference += Math.abs(currentLuminance - topLuminance);
-        samples += 2;
+        gradients.push(Math.max(
+          Math.abs(currentLuminance - leftLuminance),
+          Math.abs(currentLuminance - topLuminance),
+        ));
       }
     }
-    return samples === 0 ? 0 : Math.min(1, difference / samples / 48);
+    if (gradients.length === 0) return 0;
+    gradients.sort((a, b) => b - a);
+    const strongestEdgeCount = Math.max(1, Math.ceil(gradients.length * 0.08));
+    const strongestEdges = gradients.slice(0, strongestEdgeCount);
+    const strongestEdgeMean = strongestEdges.reduce((sum, value) => sum + value, 0) / strongestEdges.length;
+    return Math.min(1, strongestEdgeMean / 96);
   });
 }
 
@@ -150,14 +155,14 @@ async function main(): Promise<void> {
         haloDetected: false,
         cropped: clip.x < 0 || clip.y < 0 || clip.x + clip.width > item.width || clip.y + clip.height > item.height,
         typographyOverflow: false,
-        notes: ["browser_capture_200pct", "pixel_edge_contrast_measured", "halo_typography_and_semantic_crop_require_human_visual_review"],
+        notes: ["browser_capture_200pct", "strongest_edge_sharpness_measured", "flat_vector_area_not_counted_as_blur", "halo_typography_and_semantic_crop_require_human_visual_review"],
       });
     }
 
     snapshots.push(buildVoxyVisualQaSnapshot({
       format: item.format,
       assetPath: `/brands/voxy/templates/${item.template}`,
-      assetVersion: "browser-capture-v1",
+      assetVersion: "browser-capture-v2-edge-strength",
       commitSha,
       fullCapturePath: fullPath.replace(`${process.cwd()}/`, ""),
       fullCaptureSha256: await fileSha256(fullPath),
