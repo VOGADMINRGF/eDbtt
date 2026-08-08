@@ -89,8 +89,8 @@ export function buildHomeStructuredData() {
     inLanguage: "de-DE",
     description: BRAND.tagline_de,
     publisher: {
-      "@type": "Organization",
-      name: BRAND.name,
+      "@type": "Person",
+      name: "Ricky G. Fleischer",
       url: BRAND.baseUrl,
       email: BRAND.contactEmail,
     },
