@@ -8,6 +8,8 @@ Issue: `#489`
 
 Branch: `feat/voxy-smart-presence-foundation-01`
 
+Draft-PR: `#610`
+
 ## Ergebnis
 
 Die gemeinsame, read-only Smart-Presence-Grundlage ist implementiert und in der
