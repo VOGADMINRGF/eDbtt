@@ -5,6 +5,13 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import type { Dossier } from "@features/dossier";
 import type { DossierPublicUpdateContext } from "@features/dossier/updateReadModel";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
+import VoxyHelpTrigger from "@/components/voxy/VoxyHelpTrigger";
+import VoxySmartDock from "@/components/voxy/VoxySmartDock";
+import {
+  buildVoxySmartPresenceContext,
+  type VoxySmartPresenceAction,
+  type VoxySmartPresenceContext,
+} from "@/features/voxy/smartPresenceContract";
 import DossierConnections, {
   type DossierFocusTarget,
 } from "./DossierConnections";
@@ -119,6 +126,117 @@ function questionSemanticTone(
   return "neutral";
 }
 
+function voxyLanguageContext(model: DossierWorkspaceModel) {
+  return {
+    contentLanguage: model.language,
+    interfaceLanguage: "de",
+    direction: model.dir,
+  } as const;
+}
+
+function voxyPermissionContext() {
+  return {
+    canRead: true,
+    canNavigate: true,
+    canMutate: false,
+  } as const;
+}
+
+function claimHelpContext(
+  claim: DossierWorkspaceClaim,
+  model: DossierWorkspaceModel,
+): VoxySmartPresenceContext | null {
+  if (!claim.uncertainty && claim.evidenceTone !== "warning" && claim.evidenceTone !== "danger") {
+    return null;
+  }
+  const allowedActions: VoxySmartPresenceAction[] = [];
+  const firstSource = claim.sourceLinks[0]?.sourceId;
+  const firstQuestion = claim.questionIds[0];
+  if (firstSource) {
+    allowedActions.push({
+      id: `claim-${claim.id}-source`,
+      label: "Verknüpfte Quelle prüfen",
+      kind: "navigate",
+      target: { view: "sources", objectType: "source", objectId: firstSource },
+    });
+  }
+  if (firstQuestion) {
+    allowedActions.push({
+      id: `claim-${claim.id}-question`,
+      label: "Offene Frage prüfen",
+      kind: "navigate",
+      target: { view: "questions", objectType: "question", objectId: firstQuestion },
+    });
+  }
+  return buildVoxySmartPresenceContext({
+    surface: "dossier",
+    objectType: "claim",
+    objectId: claim.id,
+    objectLabel: claim.title,
+    helpTopic: "unclear_claim",
+    status: claim.uncertainty ?? claim.evidenceLabel,
+    allowedActions,
+    languageContext: voxyLanguageContext(model),
+    permissionContext: voxyPermissionContext(),
+  });
+}
+
+function sourceHelpContext(
+  source: DossierWorkspaceSource,
+  model: DossierWorkspaceModel,
+): VoxySmartPresenceContext | null {
+  if (!source.hasContradiction && source.reviewState !== "unreviewed") return null;
+  const firstClaim = source.claimLinks[0]?.claimId;
+  return buildVoxySmartPresenceContext({
+    surface: "dossier",
+    objectType: "source",
+    objectId: source.id,
+    objectLabel: source.title,
+    helpTopic: source.hasContradiction ? "contradicting_source" : "unreviewed_source",
+    status: source.evidenceStatus ?? (source.hasContradiction ? "Widerspruch dokumentiert" : "Ungeprüft"),
+    allowedActions: firstClaim
+      ? [{
+          id: `source-${source.id}-claim`,
+          label: "Betroffene Aussage prüfen",
+          kind: "navigate",
+          target: { view: "positions", objectType: "claim", objectId: firstClaim },
+        }]
+      : [],
+    languageContext: {
+      ...voxyLanguageContext(model),
+      contentLanguage: source.language,
+      direction: source.dir,
+    },
+    permissionContext: voxyPermissionContext(),
+  });
+}
+
+function questionHelpContext(
+  question: DossierWorkspaceQuestion,
+  model: DossierWorkspaceModel,
+): VoxySmartPresenceContext | null {
+  if (question.status === "closed") return null;
+  const firstSource = question.sourceLinks[0]?.sourceId;
+  return buildVoxySmartPresenceContext({
+    surface: "dossier",
+    objectType: "question",
+    objectId: question.id,
+    objectLabel: question.text,
+    helpTopic: question.status === "answered" ? "review_status" : "open_question",
+    status: question.answerReviewLabel,
+    allowedActions: firstSource
+      ? [{
+          id: `question-${question.id}-source`,
+          label: "Zugeordnete Quelle prüfen",
+          kind: "navigate",
+          target: { view: "sources", objectType: "source", objectId: firstSource },
+        }]
+      : [],
+    languageContext: voxyLanguageContext(model),
+    permissionContext: voxyPermissionContext(),
+  });
+}
+
 function EvidenceBadge({ claim }: { claim: DossierWorkspaceClaim }) {
   const tone =
     claim.evidenceTone === "positive"
@@ -143,9 +261,11 @@ function EvidenceBadge({ claim }: { claim: DossierWorkspaceClaim }) {
 
 function ClaimCard({
   claim,
+  model,
   onNavigate,
 }: {
   claim: DossierWorkspaceClaim;
+  model: DossierWorkspaceModel;
   onNavigate: (mode: WorkspaceMode, target: DossierFocusTarget) => void;
 }) {
   const firstSourceId = claim.sourceLinks[0]?.sourceId;
@@ -165,6 +285,16 @@ function ClaimCard({
         </h3>
         <EvidenceBadge claim={claim} />
       </div>
+      <VoxyHelpTrigger
+        context={claimHelpContext(claim, model)}
+        blockId={`claim-${claim.id}`}
+        onAction={(action) =>
+          onNavigate(action.target.view as WorkspaceMode, {
+            type: action.target.objectType as DossierFocusTarget["type"],
+            id: action.target.objectId,
+          })
+        }
+      />
       {claim.text !== claim.title ? (
         <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">{claim.text}</p>
       ) : null}
@@ -640,6 +770,90 @@ export function DossierWorkspace({
         .filter((group) => group.sources.length > 0),
     [model.sourceGroups, sourceFilter],
   );
+  const smartDockContext = useMemo(() => {
+    const focusedContext = (() => {
+      if (!focusTarget) return null;
+      if (focusTarget.type === "claim") {
+        const item = model.claims.find((candidate) => candidate.id === focusTarget.id);
+        return item
+          ? claimHelpContext(item, model) ?? buildVoxySmartPresenceContext({
+              surface: "dossier",
+              objectType: "claim",
+              objectId: item.id,
+              objectLabel: item.title,
+              helpTopic: "surface_help",
+              status: item.evidenceLabel,
+              allowedActions: [],
+              languageContext: voxyLanguageContext(model),
+              permissionContext: voxyPermissionContext(),
+            })
+          : null;
+      }
+      if (focusTarget.type === "source") {
+        const item = model.sources.find((candidate) => candidate.id === focusTarget.id);
+        return item
+          ? sourceHelpContext(item, model) ?? buildVoxySmartPresenceContext({
+              surface: "dossier",
+              objectType: "source",
+              objectId: item.id,
+              objectLabel: item.title,
+              helpTopic: "surface_help",
+              status: item.evidenceStatus ?? item.reviewState,
+              allowedActions: [],
+              languageContext: {
+                ...voxyLanguageContext(model),
+                contentLanguage: item.language,
+                direction: item.dir,
+              },
+              permissionContext: voxyPermissionContext(),
+            })
+          : null;
+      }
+      if (focusTarget.type === "question") {
+        const item = model.questions.find((candidate) => candidate.id === focusTarget.id);
+        return item
+          ? questionHelpContext(item, model) ?? buildVoxySmartPresenceContext({
+              surface: "dossier",
+              objectType: "question",
+              objectId: item.id,
+              objectLabel: item.text,
+              helpTopic: "review_status",
+              status: item.answerReviewLabel,
+              allowedActions: [],
+              languageContext: voxyLanguageContext(model),
+              permissionContext: voxyPermissionContext(),
+            })
+          : null;
+      }
+      return null;
+    })();
+    const claim = model.claims.find(
+      (item) => item.uncertainty || item.evidenceTone === "warning" || item.evidenceTone === "danger",
+    );
+    const source = model.sources.find(
+      (item) => item.hasContradiction || item.reviewState === "unreviewed",
+    );
+    const question = model.questions.find((item) => item.status !== "closed");
+    const contextual =
+      mode === "sources" && source
+        ? sourceHelpContext(source, model)
+        : mode === "questions" && question
+          ? questionHelpContext(question, model)
+          : claim
+            ? claimHelpContext(claim, model)
+            : null;
+    return focusedContext ?? contextual ?? buildVoxySmartPresenceContext({
+      surface: "dossier",
+      objectType: "dossier",
+      objectId: dossier.meta.id,
+      objectLabel: model.title,
+      helpTopic: "surface_help",
+      status: model.statusLabel,
+      allowedActions: [],
+      languageContext: voxyLanguageContext(model),
+      permissionContext: voxyPermissionContext(),
+    });
+  }, [dossier.meta.id, focusTarget, mode, model]);
 
   function selectMode(nextMode: WorkspaceMode, moveFocus = false) {
     setFocusTarget(null);
@@ -656,6 +870,21 @@ export function DossierWorkspace({
     }
     setFocusTarget(target);
     setMode(nextMode);
+  }
+
+  function handleVoxyAction(action: VoxySmartPresenceAction) {
+    const nextMode = MODES.find((item) => item.id === action.target.view)?.id;
+    const targetType = action.target.objectType;
+    if (
+      !nextMode ||
+      !["claim", "source", "question", "option", "perspective"].includes(targetType)
+    ) {
+      return;
+    }
+    navigateTo(nextMode, {
+      type: targetType as DossierFocusTarget["type"],
+      id: action.target.objectId,
+    });
   }
 
   useEffect(() => {
@@ -860,6 +1089,7 @@ export function DossierWorkspace({
                         <ClaimCard
                           key={claim.id}
                           claim={claim}
+                          model={model}
                           onNavigate={navigateTo}
                         />
                       ))}
@@ -879,6 +1109,7 @@ export function DossierWorkspace({
                           <ClaimCard
                             key={claim.id}
                             claim={claim}
+                            model={model}
                             onNavigate={navigateTo}
                           />
                         ))}
@@ -932,6 +1163,7 @@ export function DossierWorkspace({
                       <ClaimCard
                         key={claim.id}
                         claim={claim}
+                        model={model}
                         onNavigate={navigateTo}
                       />
                     ))}
@@ -1015,6 +1247,11 @@ export function DossierWorkspace({
                             {source.evidenceStatus ??
                               "nicht verfügbar – kein expliziter Prüfstatus hinterlegt"}
                           </p>
+                          <VoxyHelpTrigger
+                            context={sourceHelpContext(source, model)}
+                            blockId={`source-${source.id}`}
+                            onAction={handleVoxyAction}
+                          />
                           {source.href ? (
                             <a
                               href={source.href}
@@ -1134,6 +1371,11 @@ export function DossierWorkspace({
                       <h3 className="mt-3 text-base font-semibold leading-7 text-[rgb(var(--fg))]">
                         {question.text}
                       </h3>
+                      <VoxyHelpTrigger
+                        context={questionHelpContext(question, model)}
+                        blockId={`question-${question.id}`}
+                        onAction={handleVoxyAction}
+                      />
 
                       <div className="mt-4 grid gap-3 lg:grid-cols-2">
                         <section className={`rounded-xl border border-s-4 p-3 ${SEMANTIC_TONE_CLASSES.info}`}>
@@ -1444,6 +1686,9 @@ export function DossierWorkspace({
           </div>
         ) : null}
       </div>
+      {smartDockContext ? (
+        <VoxySmartDock context={smartDockContext} onAction={handleVoxyAction} />
+      ) : null}
     </section>
   );
 }
