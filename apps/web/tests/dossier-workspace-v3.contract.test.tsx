@@ -310,6 +310,42 @@ describe("DOSSIER-WORKSPACE-02", () => {
     expect(screen.getByRole("group", { name: "Quellen filtern" })).toBeTruthy();
   });
 
+  it("adopts one contextual Voxy trigger per source block and follows the focused object", () => {
+    const { container } = render(
+      <DossierWorkspace dossier={dossierWithUnreviewedSource()} demo />,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Quellen" }));
+
+    const helpBlocks = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-voxy-help-block-id]"),
+    );
+    expect(helpBlocks.length).toBeGreaterThan(0);
+    for (const block of helpBlocks) {
+      const id = block.getAttribute("data-voxy-help-block-id");
+      expect(container.querySelectorAll(`[data-voxy-help-block-id="${id}"]`)).toHaveLength(1);
+    }
+
+    const trigger = helpBlocks[0].querySelector("button");
+    if (!trigger) throw new Error("Voxy-Hilfetrigger fehlt");
+    fireEvent.click(trigger);
+    const peek = screen.getByRole("dialog");
+    expect(peek.getAttribute("data-voxy-surface")).toBe("dossier");
+    expect(peek.getAttribute("data-voxy-object-type")).toBe("source");
+    fireEvent.click(screen.getByRole("button", { name: "Hilfe schließen" }));
+
+    const sourceWithClaim = helpBlocks
+      .map((block) => block.closest("article"))
+      .find((article) => article?.querySelector<HTMLButtonElement>("button.text-start"));
+    const claimLink = sourceWithClaim?.querySelector<HTMLButtonElement>("button.text-start");
+    if (!claimLink) throw new Error("Verknüpfte Aussage für Fokusnachweis fehlt");
+    fireEvent.click(claimLink);
+    expect(
+      container
+        .querySelector("[data-voxy-smart-dock]")
+        ?.getAttribute("data-voxy-object-type"),
+    ).toBe("claim");
+  });
+
   it("resets a restrictive source filter before navigating to a filtered source", () => {
     render(<DossierWorkspace dossier={dossierWithUnreviewedSource()} demo />);
     fireEvent.click(screen.getByRole("tab", { name: "Quellen" }));
