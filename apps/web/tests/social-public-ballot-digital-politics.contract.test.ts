@@ -51,4 +51,20 @@ describe("digital politics social public ballot", () => {
     expect(route).toContain("httpOnly: true");
     expect(route).toContain("incrementRateLimit");
   });
+
+  it("records only explicit UTM attribution fields and never persists the raw referrer", () => {
+    const route = readSource(
+      "src/app/api/public-ballots/digital-politics/vote/route.ts",
+    );
+    const voteModel = readSource("src/models/votes/Vote.ts");
+
+    expect(route).toContain('searchParams.get("utm_source")');
+    expect(route).toContain('searchParams.get("utm_medium")');
+    expect(route).toContain('searchParams.get("utm_campaign")');
+    expect(route).toContain('searchParams.get("utm_content")');
+    expect(route).toContain("url.origin !== req.nextUrl.origin");
+    expect(route).toContain("ATTRIBUTION_VALUE_RE");
+    expect(route).not.toContain("rawReferrer");
+    expect(voteModel).toContain("attribution?: VoteAttribution");
+  });
 });
