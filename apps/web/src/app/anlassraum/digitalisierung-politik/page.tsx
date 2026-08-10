@@ -10,5 +10,10 @@ export const metadata: Metadata = buildPublicPageMetadata({
 });
 
 export default function DigitalPoliticsBallotPage() {
-  return <DigitalPoliticsBallotClient />;
+  return (
+    <>
+      <h1 className="sr-only">Digitalisierung politischer Beteiligung</h1>
+      <DigitalPoliticsBallotClient />
+    </>
+  );
 }
