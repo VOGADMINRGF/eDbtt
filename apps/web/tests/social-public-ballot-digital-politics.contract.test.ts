@@ -67,4 +67,24 @@ describe("digital politics social public ballot", () => {
     expect(route).not.toContain("rawReferrer");
     expect(voteModel).toContain("attribution?: VoteAttribution");
   });
+
+  it("fails closed when the dedicated VOTES store is unavailable and exposes a safe readiness probe", () => {
+    const route = readSource(
+      "src/app/api/public-ballots/digital-politics/vote/route.ts",
+    );
+    const productionSmoke = readSource(
+      "../../scripts/ci/check-production-public-runtime.mjs",
+    );
+
+    expect(route).toContain("export async function GET()");
+    expect(route).toContain("votes_store_unavailable");
+    expect(route).toContain('status: 503');
+    expect(route).toContain('reason,');
+    expect(route).toContain('operation: "health" | "write"');
+    expect(route).not.toContain('coreCol(');
+    expect(route).not.toContain('CORE_MONGODB_URI');
+
+    expect(productionSmoke).toContain('/anlassraum/digitalisierung-politik');
+    expect(productionSmoke).toContain('/api/public-ballots/digital-politics/vote');
+  });
 });
