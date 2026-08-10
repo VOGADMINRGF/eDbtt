@@ -80,7 +80,7 @@ jobs:
             body="$(cat "$tmp")"
             rm -f "$tmp"
 
-            if [[ "$status" == "200" || "$status" == "503" ]]; then
+            if [[ "$status" == "200" || "$status" == "503" || "$status" == "401" ]]; then
               break
             fi
             sleep 10
@@ -88,6 +88,11 @@ jobs:
 
           echo "HTTP ${status}"
           printf '%s\n' "$body" | jq -c . 2>/dev/null || printf '%s\n' "$body"
+
+          if [[ "$status" == "401" ]] && printf '%s' "$body" | grep -q 'Protected deployment'; then
+            echo "Vercel preview is deployment-protected; runtime probe skipped."
+            exit 0
+          fi
 
           if [[ "$status" != "200" ]]; then
             echo "Dedicated VOTES runtime is not ready on preview" >&2
