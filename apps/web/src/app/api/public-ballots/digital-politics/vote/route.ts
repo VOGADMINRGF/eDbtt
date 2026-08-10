@@ -22,6 +22,8 @@ const VoteSchema = z.object({
   locale: z.string().trim().max(12).optional(),
 });
 
+type VotesStoreFailureReason = "configuration" | "connectivity";
+
 function hash(value: string) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -55,6 +57,56 @@ function requestIsSameSite(req: NextRequest) {
   return true;
 }
 
+function classifyVotesStoreFailure(error: unknown): VotesStoreFailureReason {
+  const message = error instanceof Error ? error.message : "";
+  return message.startsWith("[triMongo] Missing") ? "configuration" : "connectivity";
+}
+
+function logVotesStoreFailure(operation: "health" | "write", error: unknown) {
+  const reason = classifyVotesStoreFailure(error);
+  const name = error instanceof Error ? error.name : "UnknownError";
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+
+  console.error("[public-ballot] votes store unavailable", {
+    operation,
+    reason,
+    name,
+    code: code || undefined,
+  });
+
+  return reason;
+}
+
+function unavailableResponse(reason: VotesStoreFailureReason) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "votes_store_unavailable",
+      reason,
+    },
+    {
+      status: 503,
+      headers: { "cache-control": "no-store" },
+    },
+  );
+}
+
+export async function GET() {
+  try {
+    const Vote = await VoteModel();
+    await Vote.findOne({}, { projection: { _id: 1 }, maxTimeMS: 5_000 });
+    return NextResponse.json(
+      { ok: true, store: "votes" },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } catch (error) {
+    return unavailableResponse(logVotesStoreFailure("health", error));
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!requestIsSameSite(req)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
@@ -82,30 +134,35 @@ export async function POST(req: NextRequest) {
   const guest = readOrCreateGuestToken(req);
   const sessionId = hash(`${DIGITAL_POLITICS_BALLOT_ID}:${guest.token}`).slice(0, 40);
   const now = new Date();
-  const Vote = await VoteModel();
 
-  await Vote.updateOne(
-    {
-      qrSetId: DIGITAL_POLITICS_BALLOT_ID,
-      qrQuestionId: question.id,
-      sessionId,
-    },
-    {
-      $set: {
-        statementId: DIGITAL_POLITICS_BALLOT_ID,
+  try {
+    const Vote = await VoteModel();
+
+    await Vote.updateOne(
+      {
         qrSetId: DIGITAL_POLITICS_BALLOT_ID,
         qrQuestionId: question.id,
-        choice: parsed.data.choice,
         sessionId,
-        locale: parsed.data.locale?.trim() || "de",
-        updatedAt: now,
       },
-      $setOnInsert: {
-        createdAt: now,
+      {
+        $set: {
+          statementId: DIGITAL_POLITICS_BALLOT_ID,
+          qrSetId: DIGITAL_POLITICS_BALLOT_ID,
+          qrQuestionId: question.id,
+          choice: parsed.data.choice,
+          sessionId,
+          locale: parsed.data.locale?.trim() || "de",
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          createdAt: now,
+        },
       },
-    },
-    { upsert: true },
-  );
+      { upsert: true },
+    );
+  } catch (error) {
+    return unavailableResponse(logVotesStoreFailure("write", error));
+  }
 
   const response = NextResponse.json({
     ok: true,
