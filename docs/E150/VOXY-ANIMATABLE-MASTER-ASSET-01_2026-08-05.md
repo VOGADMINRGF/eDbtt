@@ -1,71 +1,43 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01
 
-Stand: 2026-08-07
+Stand: 2026-08-11
 
-## Ergebnis
+## Kontrollbefund
 
-Der Voxy-Master besteht in diesem PR nicht mehr nur aus einem Layervertrag. Unter `apps/web/public/brands/voxy/rig/layers/` liegen tatsächliche eigenständige SVG-Ebenen, die vom Renderer `apps/web/scripts/render-voxy-animatable-master.ts` einzeln geladen, nach dem kanonischen Pivot-/Motion-Vertrag transformiert und zu einem realen 8-Sekunden-Video zusammengesetzt werden.
+Der lokale SVG-/Layer-/Masked-Raster-Weg wurde nach Human Review auf `#589@c6e2971f5ab5aa477258dbdeec6bf0671b8c1daf` verworfen. Attempt 6 erzeugte keine belastbare unabhängige Augen-/Armbewegung. Der Operator hat weitere lokale Masken-, Crop-, SVG-, CSS-Affine- oder Segmentierungsverfeinerungen ausdrücklich gestoppt.
 
-## Reale unabhängige Ebenen
+Die zuvor erzeugten Rig-Layer, lokalen Renderer und deren dedizierter Render-Workflow sind deshalb keine akzeptierte kanonische Voxy-Identität und dürfen nicht als Grundlage nachgelagerter Runtime-/Studio-/Publishing-Slices behandelt werden.
 
-Die kanonischen Layer-IDs aus `VOXY_MASTER_LAYER_IDS` besitzen jeweils eine eigene SVG-Datei unter:
+## Technisch zulässiger Zustand
 
-`apps/web/public/brands/voxy/rig/layers/<layer-id>.svg`
+Der Branch enthält nur noch einen provider-neutralen, fail-closed Motion-Gate-Contract:
 
-Beide Hände besitzen fünf explizite `data-digit`-Elemente. VOG-Pin und eDebatte-Pocket-Mark bleiben getrennte Branding-Layer. Waveform und Logo-Zone bleiben getrennte Dateien und Z-Ebenen. Die Branding-Layer enthalten keine SVG-`<text>`-Elemente oder eingebrannte Schrift; die Markenformen liegen als Vektorpfade vor. Außer dem Studiohintergrund belegt kein Layer die komplette 1600×1600-Fläche mit einem deckenden Full-Canvas-Rechteck. Keine Viseme- oder Lip-Sync-Ebene wird erzeugt.
+- kanonische visuelle Referenz bleibt `apps/web/public/brand/voxy/voxy-podcast-stage.png`;
+- keine Providerentscheidung wird im Code vorweggenommen;
+- keine Credentials oder Accounts werden angelegt oder aktiviert;
+- kein externer Datentransfer findet statt;
+- keine Retention-/Privacy-Annahme wird erfunden;
+- kein Budget oder Spend wird freigegeben;
+- kein generiertes Artefakt darf ohne explizite Human Visual Acceptance publiziert werden.
 
-## Reale Renderer-Evidence
+## Verbleibende Human Gates
 
-Workflow: `.github/workflows/voxy-animatable-master-contract.yml`
+1. `provider_selection` — Provider/Verfahren menschlich auswählen und freigeben.
+2. `account_credentials` — Account- und Credential-Nutzung menschlich freigeben.
+3. `external_data_transfer` — Übertragung der visuellen Quelle an einen externen Dienst freigeben.
+4. `privacy_retention` — Datenschutz-, Retention- und Löschbedingungen prüfen und freigeben.
+5. `budget_spend` — Kosten-/Budgetgrenze freigeben.
+6. `visual_acceptance` — resultierende Voxy-Identität visuell gegen die kanonische Referenz abnehmen.
 
-Reproduktionskommando:
+## Status
 
-```bash
-VOXY_EVIDENCE_COMMIT_SHA=$(git rev-parse HEAD) \
-  pnpm -w exec tsx apps/web/scripts/render-voxy-animatable-master.ts \
-  --output=artifacts/voxy-animatable-master
-```
+- technischer Zustand: `review`, sobald Exact-Head-Checks grün sind;
+- operativer Zustand: `manual_gate`;
+- PR bleibt Draft;
+- kein Merge, kein Ready-for-Review, kein Production-Deployment, kein externes Publishing.
 
-Im PR-Workflow wird `github.event.pull_request.head.sha` als Evidence-Revision verwendet. Der Workflow installiert Chromium und FFmpeg, rendert 192 Browserframes bei 24 fps und codiert daraus eine echte MP4-Datei mit acht Sekunden Laufzeit.
+## Abhängigkeit zu #588
 
-CI-Artifact: `voxy-animatable-master-<exact-pr-head-sha>`
+`#588` ist durch diesen Zustand **noch nicht freigegeben**. Der provider-neutrale Contract stabilisiert nur die technische Grenze. Eine belastbare kanonische animierbare Identität liegt erst nach den oben genannten menschlichen Gates und insbesondere nach `visual_acceptance` vor.
 
-Exakte Pfade darin:
-
-- `artifacts/voxy-animatable-master/voxy-layered-master-8s-16x9.mp4`
-- `artifacts/voxy-animatable-master/crop-safe-16x9.png`
-- `artifacts/voxy-animatable-master/crop-safe-9x16.png`
-- `artifacts/voxy-animatable-master/crop-safe-1x1.png`
-- `artifacts/voxy-animatable-master/theme-edebatte-frame-4s.png`
-- `artifacts/voxy-animatable-master/theme-vog-member-frame-4s.png`
-- `artifacts/voxy-animatable-master/evidence-manifest.json`
-
-Das Manifest enthält den Exact-Head-SHA, SHA-256 aller 23 Layerdateien, einen Digest des vollständigen Layer-Sets, SHA-256 des Videos, der Theme-Previews und der Crop-Captures sowie per `ffprobe` gemessene Dauer/Dimensionen/FPS.
-
-## Beide Themes sind real renderbar
-
-Der Renderer lädt dieselben 23 Dateien und dieselben Pivotpunkte für `edebatte` und `vog_member`. Die im Vertrag gespeicherten Theme-Werte werden vor dem Browserrender in konkrete SVG-Farben aufgelöst. Für `vog_member` wird der CSS-Vertragswert `linear-gradient(...)` nicht als SVG-Fill weitergereicht: die zwei Hex-Farben werden als konkrete Jacket-Stops extrahiert und auf Body-/Arm-Layer angewendet. Der Workflow erzeugt je Theme einen realen Chromium-Capture bei 4,0 Sekunden und prüft dessen SHA-256.
-
-## Crop- und Safe-Area-Nachweis
-
-Die drei Crop-PNGs stammen aus demselben Layer-Renderer bei 4,0 Sekunden. Der Rig wird innerhalb des 1280×720-Stages zentral und crop-sicher gehalten; `9:16` und `1:1` werden als reale Center-Crops desselben 16:9-Frames erzeugt. Die türkise gestrichelte Linie markiert die jeweilige Safe Area. Kopf, beide Hände, VOG-Pin, eDebatte-Pocket-Mark und Mikrofon bleiben dadurch im tatsächlichen 9:16-Frame sichtbar; der frühere abgeschnittene Portrait-Crop wurde korrigiert.
-
-## Provenienz-, Ähnlichkeits- und Markenabstand
-
-Das Evidence-Manifest bindet die Prüfung an die tatsächlichen Dateien: alle 23 Pfade und SHA-256 werden zu `layerSetSha256` zusammengeführt. Die Quelle wird als `repo_authored_standalone_svg_layers` dokumentiert; in diesem Slice werden keine Drittanbieter-Assets importiert. Ähnlichkeits- und Markenabstandsprüfung bleiben als menschliche Sichtprüfung `pending_human_review` und können nicht durch den Renderer selbst freigegeben werden.
-
-## Human Gate
-
-Die Render-Evidence endet absichtlich mit `humanReview.status = pending`. Dieser PR wird nicht durch den Agenten visuell freigegeben. Die finale Sichtabnahme erfolgt durch Ricky anhand des exakten Workflow-Artifacts; jede Änderung am PR-Head erzeugt eine neue revisionsgebundene Evidence.
-
-## Grenzen
-
-- kein Lip-Sync und keine Viseme-Abhängigkeit
-- kein Deployment
-- kein externer Upload
-- kein Publishing
-- keine Selbstfreigabe
-
-## Abschlussnachweis
-
-Exact-Head-SHA, Workflow-Run, Artifact-ID, Layer-/Render-/Crop-Hashes und Checkresultate werden nach dem finalen CI-Lauf als PR-Kommentar ergänzt, ohne den geprüften Head erneut zu verändern.
+Wenn nach Exact-Head-Validierung ausschließlich diese Human Gates verbleiben, ist auf `#589` zu stoppen; es darf nicht künstlich weiterimplementiert werden.
