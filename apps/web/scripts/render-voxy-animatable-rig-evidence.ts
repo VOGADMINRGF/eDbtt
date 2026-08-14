@@ -231,8 +231,26 @@ async function main(): Promise<void> {
   const repositoryRoot = resolve(webRoot, "../..");
   const currentHead = runBinary("git", ["rev-parse", "HEAD"]);
   if (currentHead !== exactHeadSha) throw new Error("exact_head_does_not_match_checkout");
-  if (runBinary("git", ["status", "--porcelain", "--untracked-files=no"])) {
-    throw new Error("exact_head_evidence_requires_clean_tracked_worktree");
+  const evidenceInputPaths = [
+    "apps/web/scripts/render-voxy-animatable-rig-evidence.ts",
+    "apps/web/src/features/voxyVideo/animatableMasterAsset.ts",
+    "apps/web/src/features/voxyVideo/characterMotionFixture.ts",
+    "apps/web/src/features/voxyVideo/characterMotionFixtureHtml.ts",
+    "apps/web/public/brand/voxy/voxy-podcast-stage.png",
+    "apps/web/public/brands/voxy/characters/voxy-sitting-master.svg",
+    "apps/web/public/brands/voxy/studio",
+  ];
+  const changedEvidenceInputs = runBinary("git", [
+    "diff",
+    "--name-only",
+    "HEAD",
+    "--",
+    ...evidenceInputPaths,
+  ]);
+  if (changedEvidenceInputs) {
+    throw new Error(
+      `exact_head_evidence_inputs_dirty:${changedEvidenceInputs.replaceAll("\n", ",")}`,
+    );
   }
 
   const outputRoot = resolve(
