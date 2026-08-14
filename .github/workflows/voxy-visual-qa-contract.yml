@@ -4,8 +4,12 @@ on:
   pull_request:
     paths:
       - "apps/web/src/features/voxyVideo/visualQaCheckpoint.ts"
+      - "apps/web/src/features/voxyVideo/visualDetectorLicenseContract.ts"
+      - "apps/web/src/features/voxyVideo/voxyVisualHandDetector.ts"
       - "apps/web/scripts/capture-voxy-200pct-evidence.ts"
       - "apps/web/tests/voxy-visual-qa-checkpoint.contract.test.ts"
+      - "apps/web/tests/voxy-visual-detector-license-contract.test.ts"
+      - "apps/web/THIRD_PARTY_NOTICES.voxy-visual-detector.md"
       - "apps/web/public/brands/voxy/**"
       - "docs/E150/VOXY-200PCT-VISUAL-QA-CHECKPOINT-01_2026-08-05.md"
       - ".github/workflows/voxy-visual-qa-contract.yml"
@@ -41,7 +45,7 @@ jobs:
         run: pnpm -C apps/web exec playwright install chromium
 
       - name: Run focused contract tests
-        run: pnpm -C apps/web exec vitest run tests/voxy-visual-qa-checkpoint.contract.test.ts
+        run: pnpm -C apps/web exec vitest run tests/voxy-visual-detector-license-contract.test.ts tests/voxy-visual-qa-checkpoint.contract.test.ts
 
       - name: Capture real 200-percent browser evidence
         env:
@@ -64,6 +68,13 @@ jobs:
           if (manifest.negativeFixture.actualCrop !== true) throw new Error('negative_fixture_real_crop_not_observed');
           if (!String(manifest.negativeFixture.computedFilter).includes('blur')) throw new Error('negative_fixture_real_blur_not_observed');
           if (manifest.negativeFixture.mustNeverBeApproved !== true) throw new Error('negative_fixture_guard_missing');
+          if (manifest.detector?.id !== 'voxy_raster_silhouette_hand_landmarker') throw new Error('local_hand_detector_missing');
+          if (manifest.detector?.externalServiceRequired !== false) throw new Error('external_detector_forbidden');
+          if (manifest.detector?.runtimeNetworkRequired !== false) throw new Error('detector_network_forbidden');
+          if (!/^[a-f0-9]{64}$/.test(manifest.detector?.modelSha256 || '')) throw new Error('detector_model_hash_missing');
+          if (manifest.detectorNegativeFixtures?.length !== 4) throw new Error('detector_negative_fixtures_missing');
+          if (!manifest.detectorNegativeFixtures.every((fixture) => fixture.mustNeverBeApproved === true)) throw new Error('detector_negative_fixture_guard_missing');
+          if (manifest.validation.productionEligible !== false) throw new Error('human_gate_must_block_production');
           NODE
 
       - name: Typecheck

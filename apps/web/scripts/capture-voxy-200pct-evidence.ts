@@ -9,6 +9,17 @@ import {
   type VoxyVisualQaRegion,
   type VoxyVisualQaRegionResult,
 } from "../src/features/voxyVideo/visualQaCheckpoint";
+import {
+  getVoxyDetectorLicenseStatus,
+  isUsableVoxyHandDetectionEvidence,
+  VOXY_VISUAL_DETECTOR_SELECTED,
+  VOXY_VISUAL_HAND_MINIMUM_CONFIDENCE,
+  type VoxyHandDetectionEvidence,
+} from "../src/features/voxyVideo/visualDetectorLicenseContract";
+import {
+  VoxyVisualHandDetector,
+  VOXY_VISUAL_HAND_DETECTOR_PROFILE_SERIALIZED,
+} from "../src/features/voxyVideo/voxyVisualHandDetector";
 import type { VoxyVideoFormat } from "../src/features/voxyVideo/modernCharacterContracts";
 
 const FORMATS: ReadonlyArray<{
@@ -41,6 +52,37 @@ const REGIONS: ReadonlyArray<{
   { region: "lower_third", x: 0.03, y: 0.73, width: 0.72, height: 0.19 },
   { region: "caption_safe_zone", x: 0.03, y: 0.90, width: 0.94, height: 0.08 },
 ];
+
+const HAND_REGION_OVERRIDES: Readonly<
+  Record<
+    VoxyVideoFormat,
+    Readonly<
+      Record<"left_hand" | "right_hand", { x: number; y: number; width: number; height: number }>
+    >
+  >
+> = {
+  "16:9": {
+    left_hand: { x: 0.25, y: 0.57, width: 0.12, height: 0.14 },
+    right_hand: { x: 0.39, y: 0.57, width: 0.12, height: 0.14 },
+  },
+  "9:16": {
+    left_hand: { x: 0.24, y: 0.5, width: 0.15, height: 0.13 },
+    right_hand: { x: 0.59, y: 0.5, width: 0.16, height: 0.13 },
+  },
+  "1:1": {
+    left_hand: { x: 0.18, y: 0.57, width: 0.13, height: 0.13 },
+    right_hand: { x: 0.44, y: 0.57, width: 0.13, height: 0.13 },
+  },
+};
+
+function regionsForFormat(format: VoxyVideoFormat) {
+  return REGIONS.map((region) => {
+    if (region.region !== "left_hand" && region.region !== "right_hand") {
+      return region;
+    }
+    return { region: region.region, ...HAND_REGION_OVERRIDES[format][region.region] };
+  });
+}
 
 function readArgument(name: string): string | null {
   const prefix = `--${name}=`;
@@ -100,6 +142,75 @@ async function edgeContrastScore(analysisPage: Page, pngPath: string): Promise<n
   });
 }
 
+async function decodeLocalPng(
+  analysisPage: Page,
+  pngPath: string,
+): Promise<{
+  width: number;
+  height: number;
+  rgba: Uint8ClampedArray;
+  inputPath: string;
+  inputSha256: string;
+}> {
+  const png = await readFile(pngPath);
+  const dataUrl = `data:image/png;base64,${png.toString("base64")}`;
+  await analysisPage.setContent(
+    `<canvas id="c"></canvas><img id="i" src="${dataUrl}" alt="">`,
+    { waitUntil: "load" },
+  );
+  const decoded = await analysisPage.evaluate(() => {
+    const image = document.getElementById("i") as HTMLImageElement;
+    const canvas = document.getElementById("c") as HTMLCanvasElement;
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("png_canvas_context_unavailable");
+    context.drawImage(image, 0, 0);
+    return {
+      width: canvas.width,
+      height: canvas.height,
+      rgba: Array.from(
+        context.getImageData(0, 0, canvas.width, canvas.height).data,
+      ),
+    };
+  });
+  return {
+    width: decoded.width,
+    height: decoded.height,
+    rgba: new Uint8ClampedArray(decoded.rgba),
+    inputPath: pngPath.replace(`${process.cwd()}/`, ""),
+    inputSha256: sha256(png),
+  };
+}
+
+async function renderHandDetectorFixture(input: {
+  page: Page;
+  path: string;
+  kind: string;
+  uprightFingerCount: number;
+  includeThumb: boolean;
+  cropped?: boolean;
+}): Promise<void> {
+  const fingers = Array.from({ length: input.uprightFingerCount }, (_, index) => {
+    const x = 62 + index * 17;
+    const y = 42 + Math.abs(2 - index) * 3;
+    return `<rect x="${x}" y="${y}" width="13" height="58" rx="6.5" fill="#f4f5f8"/>`;
+  }).join("");
+  const thumb = input.includeThumb
+    ? '<rect x="27" y="94" width="43" height="17" rx="8.5" fill="#f4f5f8" transform="rotate(35 48.5 102.5)"/>'
+    : "";
+  const transform = input.cropped ? 'transform="translate(-55 0)"' : "";
+  await input.page.setContent(
+    `<!doctype html><html><head><style>html,body{margin:0;width:180px;height:180px;overflow:hidden;background:#020718}svg{display:block}</style></head><body><svg width="180" height="180" viewBox="0 0 180 180" data-hand-detector-fixture="${input.kind}"><rect width="180" height="180" fill="#020718"/><g ${transform}>${fingers}${thumb}${input.uprightFingerCount > 0 ? '<rect x="48" y="88" width="100" height="60" rx="24" fill="#f4f5f8"/>' : ""}</g></svg></body></html>`,
+    { waitUntil: "load" },
+  );
+  await input.page.screenshot({
+    path: input.path,
+    type: "png",
+    clip: { x: 0, y: 0, width: 180, height: 180 },
+  });
+}
+
 async function main(): Promise<void> {
   const commitSha = process.env.VOXY_EVIDENCE_COMMIT_SHA?.trim();
   if (!commitSha) throw new Error("VOXY_EVIDENCE_COMMIT_SHA is required");
@@ -107,6 +218,12 @@ async function main(): Promise<void> {
   const webRoot = resolve(import.meta.dirname, "..");
   const outputRoot = resolve(process.cwd(), readArgument("output") ?? "artifacts/voxy-200pct-visual-qa");
   await mkdir(outputRoot, { recursive: true });
+  const detectorProfileSha256 = sha256(
+    Buffer.from(VOXY_VISUAL_HAND_DETECTOR_PROFILE_SERIALIZED, "utf8"),
+  );
+  const handDetector = new VoxyVisualHandDetector({
+    modelSha256: detectorProfileSha256,
+  });
 
   const characterPath = resolve(webRoot, "public/brands/voxy/characters/voxy-standing-master.svg");
   const characterUrl = await svgDataUrl(characterPath);
@@ -135,7 +252,8 @@ async function main(): Promise<void> {
     await page.screenshot({ path: fullPath, type: "png", clip: { x: 0, y: 0, width: item.width, height: item.height } });
 
     const regions: VoxyVisualQaRegionResult[] = [];
-    for (const region of REGIONS) {
+    const regionAbsolutePaths = new Map<VoxyVisualQaRegion, string>();
+    for (const region of regionsForFormat(item.format)) {
       const clip = {
         x: Math.max(0, Math.floor(region.x * item.width)),
         y: Math.max(0, Math.floor(region.y * item.height)),
@@ -146,6 +264,7 @@ async function main(): Promise<void> {
       if (clip.y + clip.height > item.height) clip.height = item.height - clip.y;
       const capturePath = resolve(formatDir, `${region.region}-200pct.png`);
       await page.screenshot({ path: capturePath, type: "png", clip });
+      regionAbsolutePaths.set(region.region, capturePath);
       const score = await edgeContrastScore(analysisPage, capturePath);
       regions.push({
         region: region.region,
@@ -159,6 +278,20 @@ async function main(): Promise<void> {
       });
     }
 
+    const leftHandPath = regionAbsolutePaths.get("left_hand");
+    const rightHandPath = regionAbsolutePaths.get("right_hand");
+    if (!leftHandPath || !rightHandPath) {
+      throw new Error(`hand_capture_path_missing:${item.format}`);
+    }
+    const leftHandDetection = handDetector.detect({
+      hand: "left",
+      image: await decodeLocalPng(analysisPage, leftHandPath),
+    });
+    const rightHandDetection = handDetector.detect({
+      hand: "right",
+      image: await decodeLocalPng(analysisPage, rightHandPath),
+    });
+
     snapshots.push(buildVoxyVisualQaSnapshot({
       format: item.format,
       assetPath: `/brands/voxy/templates/${item.template}`,
@@ -167,7 +300,15 @@ async function main(): Promise<void> {
       fullCapturePath: fullPath.replace(`${process.cwd()}/`, ""),
       fullCaptureSha256: await fileSha256(fullPath),
       regions,
-      poses: [{ poseId: "standing_master", leftHandVisible: true, rightHandVisible: true, leftFingerCount: 5, rightFingerCount: 5 }],
+      poses: [{
+        poseId: "standing_master",
+        leftHandVisible: true,
+        rightHandVisible: true,
+        leftFingerCount: leftHandDetection.fingerCount,
+        rightFingerCount: rightHandDetection.fingerCount,
+        leftHandDetection,
+        rightHandDetection,
+      }],
       waveformBehindCharacter: true,
       waveformOverlapsLogo: false,
     }));
@@ -215,6 +356,109 @@ async function main(): Promise<void> {
   await negativePage.close();
   await negativeContext.close();
 
+  const detectorFixtureDir = resolve(negativeDir, "hand-detector");
+  await mkdir(detectorFixtureDir, { recursive: true });
+  const detectorFixtureContext = await browser.newContext({
+    viewport: { width: 180, height: 180 },
+    deviceScaleFactor: 1,
+  });
+  const detectorFixturePage = await detectorFixtureContext.newPage();
+  const detectorFixtureAnalysisPage = await detectorFixtureContext.newPage();
+  const detectorFixtureSpecs = [
+    {
+      kind: "hand-not-detected",
+      uprightFingerCount: 0,
+      includeThumb: false,
+    },
+    {
+      kind: "insufficient-confidence-cropped-hand",
+      uprightFingerCount: 4,
+      includeThumb: true,
+      cropped: true,
+    },
+    {
+      kind: "four-finger-hand",
+      uprightFingerCount: 3,
+      includeThumb: true,
+    },
+    {
+      kind: "six-finger-hand",
+      uprightFingerCount: 5,
+      includeThumb: true,
+    },
+  ] as const;
+  const detectorNegativeFixtures: Array<{
+    kind: string;
+    path: string;
+    sha256: string;
+    detection: VoxyHandDetectionEvidence;
+    expectedFailure: string;
+    mustNeverBeApproved: true;
+  }> = [];
+  for (const fixture of detectorFixtureSpecs) {
+    const fixturePath = resolve(detectorFixtureDir, `${fixture.kind}.png`);
+    await renderHandDetectorFixture({
+      page: detectorFixturePage,
+      path: fixturePath,
+      ...fixture,
+    });
+    const detection = handDetector.detect({
+      hand: "left",
+      image: await decodeLocalPng(detectorFixtureAnalysisPage, fixturePath),
+    });
+    let expectedFailure: string;
+    if (fixture.kind === "hand-not-detected") {
+      if (detection.detected || detection.fingerCount !== null) {
+        throw new Error("negative_hand_not_detected_fixture_was_accepted");
+      }
+      expectedFailure = "hand_detection_missing";
+    } else if (fixture.kind === "insufficient-confidence-cropped-hand") {
+      if (
+        !detection.detected ||
+        detection.confidence >= VOXY_VISUAL_HAND_MINIMUM_CONFIDENCE ||
+        detection.fingerCount !== null
+      ) {
+        throw new Error("negative_low_confidence_fixture_was_accepted");
+      }
+      expectedFailure = "hand_detection_unusable";
+    } else if (fixture.kind === "four-finger-hand") {
+      if (detection.fingerCount !== 4) {
+        throw new Error(
+          `negative_four_finger_fixture_not_detected:${detection.fingerCount}`,
+        );
+      }
+      expectedFailure = "hand_finger_count_invalid";
+    } else {
+      if (detection.fingerCount !== 6) {
+        throw new Error(
+          `negative_six_finger_fixture_not_detected:${detection.fingerCount}`,
+        );
+      }
+      expectedFailure = "hand_finger_count_invalid";
+    }
+    detectorNegativeFixtures.push({
+      kind: fixture.kind,
+      path: fixturePath.replace(`${process.cwd()}/`, ""),
+      sha256: await fileSha256(fixturePath),
+      detection,
+      expectedFailure,
+      mustNeverBeApproved: true,
+    });
+  }
+  await detectorFixtureAnalysisPage.close();
+  await detectorFixturePage.close();
+  await detectorFixtureContext.close();
+
+  const positiveDetection = snapshots[0]?.poses[0]?.leftHandDetection;
+  if (!positiveDetection) throw new Error("positive_hand_detection_missing");
+  const corruptedProvenanceEvidence: VoxyHandDetectionEvidence = {
+    ...positiveDetection,
+    modelSha256: "missing-model-provenance",
+  };
+  if (isUsableVoxyHandDetectionEvidence(corruptedProvenanceEvidence)) {
+    throw new Error("corrupted_detector_provenance_was_accepted");
+  }
+
   await browser.close();
   const checkpoint = buildVoxyVisualQaCheckpoint({ snapshots, revision: 1 });
   const validation = validateVoxyVisualQaCheckpoint(checkpoint);
@@ -224,7 +468,7 @@ async function main(): Promise<void> {
   if (validation.productionEligible) throw new Error("human_review_must_not_be_self_approved");
 
   const manifest = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: new Date().toISOString(),
     commitSha,
     browserZoomPercent: 200,
@@ -232,6 +476,17 @@ async function main(): Promise<void> {
     checkpoint,
     validation,
     negativeFixture,
+    detector: {
+      ...VOXY_VISUAL_DETECTOR_SELECTED,
+      modelSha256: detectorProfileSha256,
+      profile: JSON.parse(VOXY_VISUAL_HAND_DETECTOR_PROFILE_SERIALIZED),
+    },
+    detectorNegativeFixtures,
+    corruptedProvenanceFixture: {
+      evidence: corruptedProvenanceEvidence,
+      expectedFailure: "hand_detection_unusable",
+      mustNeverBeApproved: true,
+    },
     humanReview: checkpoint.humanReview,
   };
   const manifestPath = resolve(outputRoot, "evidence-manifest.json");
@@ -244,6 +499,13 @@ async function main(): Promise<void> {
     artifactRoot: outputRoot,
     evidenceKey: validation.evidenceKey,
     requiredDecisionGateId: validation.requiredDecisionGateId,
+    detectorId: VOXY_VISUAL_DETECTOR_SELECTED.id,
+    detectorVersion: VOXY_VISUAL_DETECTOR_SELECTED.version,
+    detectorModelId: VOXY_VISUAL_DETECTOR_SELECTED.modelId,
+    detectorModelSha256: detectorProfileSha256,
+    detectorLicenseStatus: getVoxyDetectorLicenseStatus(
+      VOXY_VISUAL_DETECTOR_SELECTED.licenseMatrix,
+    ),
     negativeFixture,
     productionEligible: validation.productionEligible,
     humanReviewStatus: checkpoint.humanReview.status,

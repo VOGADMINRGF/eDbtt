@@ -1,10 +1,16 @@
 # VOXY-200PCT-VISUAL-QA-CHECKPOINT-01
 
-Stand: 2026-08-07
+Stand: 2026-08-14
 
 ## Ergebnis
 
-Der Voxy-Reviewpfad besitzt einen real ausführbaren Browser-Capture-Pfad für `16:9`, `9:16` und `1:1`. Die Evidence wird mit CSS-Browserzoom `200%` in Chromium erzeugt, enthält den vollständigen Surface-Capture plus die zehn dokumentierten Prüfausschnitte und wird an den exakten PR-Head gebunden. Ein automatisches Ergebnis ersetzt die menschliche Sichtabnahme ausdrücklich nicht.
+Der Voxy-Reviewpfad besitzt einen real ausführbaren Browser-Capture-Pfad für
+`16:9`, `9:16` und `1:1`. Die Evidence wird mit CSS-Browserzoom `200%` in
+Chromium erzeugt, enthält den vollständigen Surface-Capture plus die zehn
+dokumentierten Prüfausschnitte und wird an den exakten PR-Head gebunden. Die
+Finger-Evidence stammt aus echter lokaler PNG-Pixelanalyse statt aus
+hartkodierten `5/5`-Werten. Ein automatisches Ergebnis ersetzt die menschliche
+Sichtabnahme ausdrücklich nicht.
 
 ## Reale Evidence
 
@@ -18,28 +24,75 @@ VOXY_EVIDENCE_COMMIT_SHA=$(git rev-parse HEAD) \
   --output=artifacts/voxy-200pct-visual-qa
 ```
 
-Im `pull_request`-Workflow wird ausdrücklich `github.event.pull_request.head.sha` verwendet, nicht der synthetische GitHub-Merge-SHA. Der CI-Artifact-Name lautet revisionsgebunden `voxy-200pct-visual-qa-<exact-pr-head-sha>`.
+Im `pull_request`-Workflow wird ausdrücklich
+`github.event.pull_request.head.sha` verwendet, nicht der synthetische
+GitHub-Merge-SHA. Der CI-Artifact-Name lautet revisionsgebunden
+`voxy-200pct-visual-qa-<exact-pr-head-sha>`.
 
 Exakte Pfade innerhalb des Artifacts:
 
 - `artifacts/voxy-200pct-visual-qa/16x9/surface-200pct.png`
 - `artifacts/voxy-200pct-visual-qa/9x16/surface-200pct.png`
 - `artifacts/voxy-200pct-visual-qa/1x1/surface-200pct.png`
-- je Format zusätzlich `face_eyes-200pct.png`, `left_hand-200pct.png`, `right_hand-200pct.png`, `vog_pin-200pct.png`, `edebatte_pocket_mark-200pct.png`, `logo_zone-200pct.png`, `microphone_edge-200pct.png`, `waveform-200pct.png`, `lower_third-200pct.png` und `caption_safe_zone-200pct.png`
+- je Format zusätzlich `face_eyes-200pct.png`, `left_hand-200pct.png`,
+  `right_hand-200pct.png`, `vog_pin-200pct.png`,
+  `edebatte_pocket_mark-200pct.png`, `logo_zone-200pct.png`,
+  `microphone_edge-200pct.png`, `waveform-200pct.png`,
+  `lower_third-200pct.png` und `caption_safe_zone-200pct.png`
 - `artifacts/voxy-200pct-visual-qa/negative-fixture/intentional-blur-crop-200pct.png`
+- `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/hand-not-detected.png`
+- `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/insufficient-confidence-cropped-hand.png`
+- `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/four-finger-hand.png`
+- `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/six-finger-hand.png`
 - `artifacts/voxy-200pct-visual-qa/evidence-manifest.json`
 
-Das Manifest enthält SHA-256 je PNG, Viewport, Browserzoom, Exact-Head-SHA, Evidence-Key und den Human-Review-Zustand. Die Pixelanalyse läuft auf einer separaten Browserseite, damit der zu prüfende Surface-Render während der zehn Captures unverändert bleibt.
+Das Manifest enthält SHA-256 je PNG, Viewport, Browserzoom, Exact-Head-SHA,
+Evidence-Key, Detector-/Runtime-/Modellprofil-Provenienz, die vierteilige
+Lizenzmatrix, Detection-Confidence, Handedness, Fingerzahl,
+Landmark-Evidence und den Human-Review-Zustand. Die Pixelanalyse läuft auf einer
+separaten Browserseite, damit der zu prüfende Surface-Render während der zehn
+Captures unverändert bleibt.
 
-## Reales Negativfixture
+## Lokale Hand-/Landmark-Erkennung
 
-Zusätzlich erzeugt der Workflow einen absichtlich fehlerhaften Browser-Render bei 200 % Zoom. Voxy wird dort tatsächlich über den linken Viewportrand verschoben und mit einem realen CSS-Blur versehen. Der Generator misst die Browser-Bounds des Character-Layers und den tatsächlich angewendeten `computedStyle.filter`; der Workflow schlägt fehl, falls der erwartete reale Crop oder Blur nicht beobachtet wird. Pfad und SHA-256 des Negativfixtures stehen im Evidence-Manifest. Dieses Negativfixture ist ausdrücklich `mustNeverBeApproved` und dient nur dem Nachweis, dass die visuelle Fehlerstrecke nicht ausschließlich mit manipulierten Metadaten getestet wird.
+Der typisierte Adapter `VoxyVisualHandDetector` verwendet
+`voxy_raster_silhouette_hand_landmarker@1.0.0` mit dem gewichtslosen Profil
+`voxy-upright-open-palm-profile-v1`. Er segmentiert die helle neutrale
+Voxy-Handkomponente aus dem lokalen PNG, prüft Bildgrenze, Auflösung,
+Silhouettensolidität, getrennte aufrechte Finger und seitlichen Daumen und
+erzeugt aus der beobachteten Topologie äquivalente Landmark-Evidence. Bei fünf
+Fingern entstehen genau 21 Punkte. Mindest-Confidence ist `0.75`.
+
+Der Capture berechnet den SHA-256 des serialisierten Profils und den SHA-256
+jedes Detector-Inputs. Aktueller Profil-SHA-256:
+`cce29f7a8d96eb82288c93b183831b35091cf9df3c310d4210f89dab14584a03`.
+Es gibt kein Modellgewicht, kein Runtime-CDN, keinen Upload und keinen externen
+Detection-Service. Die vollständige Kandidaten- und Lizenzentscheidung steht in
+`docs/E150/VOXY-VISUAL-DETECTOR-LICENSE-CONTRACT-01_2026-08-14.md`.
+
+## Reale Negativfixtures
+
+Der Workflow erzeugt weiterhin einen absichtlich fehlerhaften Browser-Render
+bei 200 % Zoom. Voxy wird dort tatsächlich über den linken Viewportrand
+verschoben und mit einem realen CSS-Blur versehen. Der Generator misst die
+Browser-Bounds des Character-Layers und den tatsächlich angewendeten
+`computedStyle.filter`; der Workflow schlägt fehl, falls der erwartete reale
+Crop oder Blur nicht beobachtet wird.
+
+Die Hand-Detection ergänzt vier real gerasterte PNG-Negativfälle: keine Hand,
+ein an der Bildgrenze abgeschnittener Low-Confidence-Fall, vier Finger und sechs
+Finger. Der fehlende oder beschädigte Provenienzbeleg bleibt sinnvollerweise
+ein getrenntes Metadatenfixture, weil diese Beschädigung gerade nicht im Bild
+liegt. Alle Negativfixtures sind `mustNeverBeApproved`. Keine Strecke setzt bei
+Fehlern fünf Finger als Fallback.
 
 ## Menschliches Gate im bestehenden Reviewpfad
 
-Der CI-Lauf erzeugt ausschließlich `humanReview.status = pending`. Er kann und darf keine menschliche Freigabe setzen.
+Der CI-Lauf erzeugt ausschließlich `humanReview.status = pending`. Er kann und
+darf keine menschliche Freigabe setzen.
 
-Die Freigabe wird an den bereits vorhandenen persistenten Voxy-Reviewpfad angebunden:
+Die Freigabe wird an den bereits vorhandenen persistenten Voxy-Reviewpfad
+angebunden:
 
 - Store: `apps/web/src/features/create/voxyRenderPreviewReviewDecisionPersistenceStore.ts`
 - Admin-API: `/api/admin/voxy-render-preview-review-decisions`
@@ -49,7 +102,10 @@ Für jede Evidence wird ein unverwechselbares Gate erzeugt:
 
 `voxy-visual-qa:<exact-pr-head-sha>:r<review-revision>:<evidence-key>`
 
-`applyPersistedVoxyVisualQaReviewDecision` akzeptiert für das visuelle Gate nur einen tatsächlich als persistent gekennzeichneten Review-Record mit `decisionRecordId`, `persistedBy` und `persistedAt`. Die Entscheidung wird wie folgt auf das QA-Gate abgebildet:
+`applyPersistedVoxyVisualQaReviewDecision` akzeptiert für das visuelle Gate nur
+einen tatsächlich als persistent gekennzeichneten Review-Record mit
+`decisionRecordId`, `persistedBy` und `persistedAt`. Die Entscheidung wird wie
+folgt auf das QA-Gate abgebildet:
 
 - `mark_review_ready` → `approved`
 - `request_revision` → `needs_changes`
@@ -58,12 +114,17 @@ Für jede Evidence wird ein unverwechselbares Gate erzeugt:
 Production Eligibility entsteht nur, wenn gleichzeitig:
 
 1. der automatisierte Capture-Check grün ist,
-2. der persistierte Decision-Gate-ID exakt Head, Evidence-Key und Reviewrevision entspricht,
+2. die persistierte Decision-Gate-ID exakt Head, Evidence-Key und
+   Reviewrevision entspricht,
 3. Reviewer und Zeitpunkt aus dem persistenten Record vorliegen,
 4. `approvedCommitSha` exakt dem geprüften PR-Head entspricht,
-5. `approvedEvidenceKey` exakt dem aus den Capture-Hashes berechneten Evidence-Key entspricht.
+5. `approvedEvidenceKey` exakt dem aus Capture-, QA- und Detector-Evidence
+   berechneten Evidence-Key entspricht.
 
-Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch wirkungslos. Jeder neue Commit, jede geänderte Reviewrevision oder veränderte Capture-/QA-Befund erzeugt einen neuen Gate-ID/Evidence-Key. Dieser PR enthält keine Selbstfreigabe.
+Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch
+wirkungslos. Jeder neue Commit, jede geänderte Reviewrevision oder veränderte
+Capture-/QA-/Detector-Befund erzeugt einen neuen Gate-ID/Evidence-Key. Dieser PR
+enthält keine Selbstfreigabe.
 
 ## Automatische Gates
 
@@ -73,21 +134,39 @@ Eine alte oder nur in-memory/metadatenbasierte Freigabe bleibt dadurch wirkungsl
 - SHA-256 für vollständige Surface-Captures und alle Prüfausschnitte
 - tatsächlicher pixelbasierter Edge-Contrast-Schärfesignalwert je Ausschnitt
 - keine Capture-Rechtecke außerhalb des Zielviewports
-- exakt fünf Finger je sichtbarer Handpose laut kanonischem Mastervertrag
-- Waveform bleibt hinter Voxy und außerhalb der Logo-Zone laut kanonischem Layoutvertrag
-- Evidence-Key umfasst Capture-Hashes, QA-Befunde, Posen und Reviewrevision
-- reales absichtlich fehlerhaftes Browserfixture für Crop/Blur
+- lokale bildbasierte Detection je sichtbarer Hand mit Confidence mindestens
+  `0.75`
+- fünf Finger und genau 21 äquivalente Landmark-Evidenzen je gültiger
+  Open-Palm-Pose
+- Detector-, Runtime-, Profil-, Modell-/Profil-SHA-, Input-SHA- und
+  Lizenzprovenienz vollständig
+- Waveform bleibt hinter Voxy und außerhalb der Logo-Zone laut kanonischem
+  Layoutvertrag
+- Evidence-Key umfasst Capture-Hashes, QA-Befunde, Hand-Evidence, Posen und
+  Reviewrevision
+- reale absichtlich fehlerhafte Browserfixtures für Crop, Blur und
+  Hand-Detection
 
-Halos, subtile Typografiefehler, Anatomie und die endgültige visuelle Crop-Qualität bleiben zusätzlich menschlich zu prüfen; sie werden nicht durch Metadaten als menschlich freigegeben ausgegeben.
+Halos, subtile Typografiefehler, Anatomie und die endgültige visuelle
+Crop-Qualität bleiben zusätzlich menschlich zu prüfen; sie werden nicht durch
+Metadaten als menschlich freigegeben ausgegeben.
 
 ## Grenzen
 
 - kein Auto-Approve
 - keine stillen Toleranzanhebungen
+- kein Fingerzahl-Fallback und keine Threshold-Absenkung für ein künstliches
+  Grün
+- Detector ist auf die kontrollierte flache Open-Palm-Voxy-Pose begrenzt und
+  kein allgemeiner Natural-Hand-Detector
 - keine Rechte-, Marken- oder Produktfreigabe durch CI
 - kein externer Upload oder Publishing
 - keine menschliche Freigabe durch den Agenten
+- keine Änderung am Rigging-Scope von PR #589
 
 ## Abschlussnachweis
 
-Der endgültige Exact-Head-SHA, Workflow-Run, Artifact-ID, Capture-Hashes und die Checkresultate werden im PR-Kommentar dokumentiert, damit die Dokumentation selbst den Evidence-Commit nicht nachträglich verändert.
+Der endgültige Exact-Head-SHA, Workflow-Run, Artifact-ID, Capture-Hashes,
+Detector-/Profilversion und die Checkresultate werden im PR-Kommentar
+dokumentiert, damit die Dokumentation selbst den Evidence-Commit nicht
+nachträglich verändert.

@@ -2,78 +2,120 @@
 
 Stand: 2026-08-14
 
-## Ziel
+## Ergebnis
 
-Die aktuell in PR #588 noch hartkodierte Hand-/Finger-Evidence durch eine lokale, bildbasierte und lizenzsaubere Detection ersetzen, ohne den bestehenden fail-closed Visual-QA- und Human-Review-Vertrag zu verändern.
+Die in PR #588 zuvor hartkodierte Finger-Evidence wird durch den lokalen,
+gewichtslosen `voxy_raster_silhouette_hand_landmarker@1.0.0` ersetzt. Der
+Detector wertet ausschließlich RGBA-Pixel der lokal erzeugten PNG-Handcrops
+aus, erkennt die kontrollierte aufrechte Voxy-Open-Palm-Silhouette, leitet
+Fingerzahl und eine äquivalente Landmark-Struktur ab und läuft ohne Netzwerk,
+Upload, SaaS oder neue Detector-Abhängigkeit.
+
+MediaPipe Tasks Hand Landmarker bleibt ein nicht ausgelieferter Kandidat mit
+Status `license_review_required`. Weder das NPM-Paket noch ein
+`hand_landmarker.task`-Bundle, WASM-Artefakt oder Modellgewicht wurde integriert,
+heruntergeladen oder in den Repository-/Evidence-Pfad aufgenommen.
 
 ## Betreiberentscheidung
 
 - Standardpfad: lokal / self-hosted / kein externer Detection-Service.
-- Bevorzugter Kandidat: MediaPipe Tasks Hand Landmarker.
-- Framework-/Sample-Code ist Apache-2.0-lizenziert.
-- Das konkret verwendete Modellbundle bzw. dessen Weights werden separat geprüft und dürfen erst nach dokumentierter Lizenzfreigabe eingebunden werden.
-- Keine implizite Annahme, dass eine Framework-Lizenz automatisch für Modellgewichte gilt.
-- Kein Detector darf Production selbst freigeben; Detector-Ergebnisse sind ausschließlich Evidence für #588.
+- Kein CDN-Modell und kein Runtime-Netzwerkzugriff.
+- Kein Upload visueller Daten und kein SaaS-Budget.
+- Detector-Ergebnisse sind ausschließlich QA-Evidence für #588.
+- Human Visual Acceptance bleibt zwingend.
+- Keine automatische Production-Freigabe oder Veröffentlichung.
 
-## Lizenz-Gate
+## MediaPipe-Audit und Fail-closed-Entscheidung
 
-Ein Detector darf nur `license_approved` werden, wenn alle vier Dimensionen dokumentiert grün sind:
+Der MediaPipe-Frameworkcode und die offiziellen Codebeispiele sind
+Apache-2.0-lizenziert. Die offizielle Web-Anleitung verlangt daneben jedoch ein
+separates trainiertes Modellbundle und beschreibt dessen Download in das
+Projekt, ohne auf derselben Seite eine konkrete Lizenz für das Bundle, dessen
+Redistribution, Offline-Hosting und erforderliche Notices zu benennen. Die
+Framework-/Sample-Lizenz wird deshalb nicht auf die Gewichte hochgerechnet.
 
-1. Code-Lizenz: permissiv und kompatibel (MIT / Apache-2.0 / BSD oder explizit freigegeben).
-2. Modell-/Weights-Lizenz: kommerzielle/produktive Nutzung zulässig und nachvollziehbar dokumentiert.
-3. Transitive Dependencies: keine inkompatiblen oder ungeklärten Lizenzbedingungen im tatsächlich ausgelieferten Pfad.
-4. Attribution/Notices: notwendige Copyright-, LICENSE-, NOTICE- und Third-Party-Hinweise vollständig mitgeführt.
+Zusätzlich dokumentiert das MediaPipe-Projekt, dass Tasks-APIs Nutzungs- und
+Performance-Metriken an Google senden. Das widerspricht dem für diesen Slice
+verbindlichen Zero-Egress-Vertrag, solange kein belastbarer vollständig
+offlinefähiger und lizenzgeprüfter Pfad nachgewiesen ist.
 
-Fehlt eine dieser Dimensionen, lautet der Status `license_review_required` und der Detector darf nicht als Production-Evidence-Quelle dienen.
+Primärquellen:
 
-## Technischer Zielpfad
+- Framework/Code: https://github.com/google-ai-edge/mediapipe
+- Web-Hand-Landmarker, separates Modell und Beispiel-CDN-Pfad: https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js
+- MediaPipe Privacy Notice zu lokalen Eingabedaten und externen Nutzungsmetriken: https://github.com/google-ai-edge/mediapipe#privacy-notice
 
-`Voxy-Render -> lokaler HandDetector -> Landmarks/Confidence -> Finger-/Visibility-Evidence -> bestehender #588 Validator -> Human Visual Acceptance`
+Technischer Fit: Das verfügbare Voxy-Master zeigt sehr kleine, flache
+Vektorhände in einer kontrollierten aufrechten Pose. Ein auf natürliche Hände
+trainierter Palm-/Landmark-Stack ist für diesen Stil nicht belegt. Die
+Alternative prüft genau diesen kontrollierten Rendervertrag. Sie ist ausdrücklich
+kein allgemeiner Handdetector und darf nicht durch Threshold-Hacks auf andere
+Posen oder Stile ausgedehnt werden.
 
-Der Detector soll mindestens liefern:
+## Vollständige Lizenzmatrix
 
-- linke/rechte Hand erkannt oder nicht erkannt,
-- Landmark-Anzahl und Mindestvertrauen,
-- nachvollziehbare Handedness,
-- daraus deterministisch abgeleitete Fingerzahl bzw. `null`, wenn keine belastbare Bestimmung möglich ist,
-- Detektor-/Modellversion und Modell-Hash für revisionsgebundene Evidence.
+| Ebene | MediaPipe Tasks Hand Landmarker | Ausgewählter Voxy-Rasterdetector |
+| --- | --- | --- |
+| 1. Framework-/Code-Lizenz | Apache-2.0 für Framework und Samples belegt; allein nicht ausreichend | First-party TypeScript im bestehenden Repository; kein kopierter MediaPipe-Code; `approved` |
+| 2. Modell / konkrete Weights | konkrete Lizenz für das gepinnte `hand_landmarker.task`-Bundle, kommerzielle Redistribution und Offline-Hosting nicht belastbar belegt; `license_review_required` | keine ML-Weights; gehashtes first-party Algorithmusprofil `voxy-upright-open-palm-profile-v1`; `not_applicable_no_weights / approved` |
+| 3. Transitive Runtime-Dependencies | NPM-/WASM-/Telemetrie-/Offline-Kette für den konkreten ausgelieferten Pfad nicht freigegeben; nicht installiert | Detector-Kern ist dependency-free TypeScript auf RGBA-Pixeln; vorhandenes Playwright/Chromium dekodiert nur lokale PNGs im bestehenden Capture-Harness; `approved` |
+| 4. Attribution / THIRD_PARTY_NOTICES | konkrete Bundle-/WASM-Notices nicht abschließend belegt; `license_review_required` | keine neue Third-Party-Detector-Komponente; Nachweis in `apps/web/THIRD_PARTY_NOTICES.voxy-visual-detector.md`; `approved` |
 
-## P0-Umfang
+Gesamtstatus:
 
-- die derzeit fest eingetragenen `leftFingerCount: 5` / `rightFingerCount: 5` im Capture-Pfad entfernen;
-- einen kleinen `VoxyVisualDetector`-/`VoxyHandDetector`-Adapter einführen;
-- lokale Inferenz gegen die bereits erzeugten Hand-Crops aus #588;
-- echte positive Fixture mit fünf plausiblen Fingern je sichtbarer Hand;
-- echte negative Fixtures: fehlende Hand, unzureichende Confidence sowie mindestens eine bildbasierte ungültige Anatomie-/Finger-Evidence;
-- bestehender Validator bleibt fail-closed;
-- Human Review bleibt zwingend und kann nicht durch Detector-Grün ersetzt werden;
-- Exact-Head-Bindung und Evidence-Hashes bleiben erhalten.
+- MediaPipe: `preferred_candidate / license_review_required / unshipped`
+- `voxy_raster_silhouette_hand_landmarker@1.0.0`: `license_approved`
 
-## Nicht Ziel dieses Slices
+## Detector- und Modellprovenienz
 
-- kein Face-/Eye-Großsystem;
-- kein generatives Hand-Reparieren;
-- kein Auto-Approve;
-- kein Publishing;
-- kein externer Provider;
-- kein Zwang, #589 oder das lokale Stretchy-kompatible Rig auf diesen Detector warten zu lassen.
+- Detector: `voxy_raster_silhouette_hand_landmarker`
+- Detector-Version: `1.0.0`
+- Runtime: `pure-typescript-rgba-v1`
+- Modellart: `weightless_algorithmic_profile`
+- Modell-/Profil-ID: `voxy-upright-open-palm-profile-v1`
+- aktueller Profil-SHA-256: `cce29f7a8d96eb82288c93b183831b35091cf9df3c310d4210f89dab14584a03`
+- Mindest-Confidence: `0.75`
+- Input: lokal erzeugter PNG-Handcrop mit eigenem SHA-256
+- Output: Detection, capture-seitig belastbare Handedness, Confidence,
+  Fingerzahl und `1 + fingerCount * 4` äquivalente Rasterlandmarks; bei fünf
+  Fingern genau 21 Landmarks
 
-## Verhältnis zu #589
+Der Profil-Hash wird im Capture aus der kanonischen serialisierten
+Detector-Konfiguration berechnet. Eine Profiländerung erzeugt dadurch andere
+Provenienz und einen neuen revisionsgebundenen Evidence-Key.
 
-#589 erzeugt die lokale animierbare Voxy-Identität. Dieser Vertrag liegt bewusst in #588 und prüft anschließend das gerenderte Ergebnis. Der Detector ist damit QA-Evidence und kein Motion- oder Rig-Blocker.
+## Fail-closed-Vertrag
 
-## Akzeptanzkriterien
+- Keine Hand erkannt: `detected = false`, `fingerCount = null`.
+- Crop berührt die Eingabegrenze oder Topologie/Confidence reicht nicht:
+  `fingerCount = null` und `hand_detection_unusable`.
+- Vier oder sechs erkannte Finger bleiben reale Evidence und blockieren über
+  `hand_finger_count_invalid`.
+- Fehlender oder beschädigter Detector-, Runtime-, Modell-, Input- oder
+  Lizenzbeleg blockiert.
+- Es gibt keinen Fallback auf fünf Finger.
+- Ein Detector-Grün ersetzt nie Human Visual Acceptance.
 
-- keine hartkodierten 5/5-Fingerwerte mehr im Production-Evidence-Capture;
-- Detector läuft lokal und reproduzierbar;
-- Lizenzmatrix vollständig und `license_approved`;
-- Modell-/Runtime-Versionen und Hashes in der Evidence;
-- mindestens ein realer negativer Bildfall wird vom Detector/Validator fail-closed erkannt;
-- bestehende 16:9-, 9:16- und 1:1-Evidence bleibt revisionsgebunden;
-- Human Visual Acceptance bleibt `pending`, bis ein Mensch entscheidet.
+## Reale negative Bild-Evidence
 
-## Aktueller Kandidatenstatus
+Der Capture-Workflow rastert und analysiert zusätzlich:
 
-MediaPipe Tasks Hand Landmarker: `preferred_candidate / license_review_required`.
+- `negative-fixture/hand-detector/hand-not-detected.png`
+- `negative-fixture/hand-detector/insufficient-confidence-cropped-hand.png`
+- `negative-fixture/hand-detector/four-finger-hand.png`
+- `negative-fixture/hand-detector/six-finger-hand.png`
 
-Begründung: lokale Hand-Landmark-Erkennung mit 21 Hand-Landmarks ist für den P0 passend; Framework/Samples sind Apache-2.0. Vor tatsächlicher Modellintegration muss die Lizenz des konkret gepinnten Modellbundles/Weights separat als Repository-Evidence erfasst werden.
+Der beschädigte Provenienzfall ist getrennt als Metadatenfixture im Manifest
+enthalten, weil die Beschädigung gerade nicht im Bild liegt. Alle Negativfälle
+sind `mustNeverBeApproved`.
+
+## Grenzen
+
+- keine allgemeine Natural-Hand-/Gestenerkennung
+- kein Face-/Eye-Großsystem
+- kein generatives Hand-Reparieren
+- kein Auto-Approve oder Auto-Publish
+- kein externer Provider
+- keine Änderung am Rigging-Scope von #589
+- bei einer neuen Pose oder einem neuen Voxy-Stil zuerst ehrlicher Detector-Fit-
+  und Human-Review-Nachweis; keine künstliche Schwellenabsenkung

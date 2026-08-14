@@ -1,7 +1,11 @@
 import type { VoxyVideoFormat } from "./modernCharacterContracts";
+import {
+  isUsableVoxyHandDetectionEvidence,
+  type VoxyHandDetectionEvidence,
+} from "./visualDetectorLicenseContract";
 
 export const VOXY_VISUAL_QA_CHECKPOINT_VERSION =
-  "voxy-visual-qa-checkpoint-v3" as const;
+  "voxy-visual-qa-checkpoint-v4" as const;
 
 export const VOXY_VISUAL_QA_REGIONS = [
   "face_eyes",
@@ -40,6 +44,8 @@ export type VoxyVisualQaPoseResult = {
   rightHandVisible: boolean;
   leftFingerCount: number | null;
   rightFingerCount: number | null;
+  leftHandDetection: VoxyHandDetectionEvidence | null;
+  rightHandDetection: VoxyHandDetectionEvidence | null;
 };
 
 export type VoxyVisualQaSnapshot = {
@@ -203,7 +209,7 @@ function evidenceSeed(checkpoint: VoxyVisualQaCheckpoint): string {
         ...snapshot.poses
           .map(
             (pose) =>
-              `${pose.poseId}:${pose.leftHandVisible}:${pose.rightHandVisible}:${pose.leftFingerCount}:${pose.rightFingerCount}`,
+              `${pose.poseId}:${pose.leftHandVisible}:${pose.rightHandVisible}:${pose.leftFingerCount}:${pose.rightFingerCount}:${JSON.stringify(pose.leftHandDetection)}:${JSON.stringify(pose.rightHandDetection)}`,
           )
           .sort(),
       ].join(":"),
@@ -342,6 +348,46 @@ export function validateVoxyVisualQaCheckpoint(
     }
 
     for (const pose of snapshot.poses) {
+      if (pose.leftHandVisible) {
+        if (!pose.leftHandDetection?.detected) {
+          errors.push(
+            `left_hand_detection_missing:${snapshot.format}:${pose.poseId}`,
+          );
+        } else if (!isUsableVoxyHandDetectionEvidence(pose.leftHandDetection)) {
+          errors.push(
+            `left_hand_detection_unusable:${snapshot.format}:${pose.poseId}`,
+          );
+        }
+        if (pose.leftFingerCount !== pose.leftHandDetection?.fingerCount) {
+          errors.push(
+            `left_hand_detection_count_mismatch:${snapshot.format}:${pose.poseId}`,
+          );
+        }
+      } else if (pose.leftFingerCount !== null) {
+        errors.push(
+          `left_hand_hidden_but_count_present:${snapshot.format}:${pose.poseId}`,
+        );
+      }
+      if (pose.rightHandVisible) {
+        if (!pose.rightHandDetection?.detected) {
+          errors.push(
+            `right_hand_detection_missing:${snapshot.format}:${pose.poseId}`,
+          );
+        } else if (!isUsableVoxyHandDetectionEvidence(pose.rightHandDetection)) {
+          errors.push(
+            `right_hand_detection_unusable:${snapshot.format}:${pose.poseId}`,
+          );
+        }
+        if (pose.rightFingerCount !== pose.rightHandDetection?.fingerCount) {
+          errors.push(
+            `right_hand_detection_count_mismatch:${snapshot.format}:${pose.poseId}`,
+          );
+        }
+      } else if (pose.rightFingerCount !== null) {
+        errors.push(
+          `right_hand_hidden_but_count_present:${snapshot.format}:${pose.poseId}`,
+        );
+      }
       if (pose.leftHandVisible && pose.leftFingerCount !== 5) {
         errors.push(`left_hand_finger_count_invalid:${snapshot.format}:${pose.poseId}`);
       }
