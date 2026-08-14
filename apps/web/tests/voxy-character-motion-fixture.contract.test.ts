@@ -112,6 +112,9 @@ describe("Voxy character motion fixture", () => {
     expect(html).toContain("character-stage");
     expect(html).toContain('data-rig-id="voxy-stretchy-compatible-svg-rig"');
     expect(html).toContain("#left-hand-five-fingers");
+    expect(html).toContain("rotate(calc(-58deg");
+    expect(html).toContain("rotate(calc(58deg");
+    expect(html).toContain("0%,20%");
     expect(html).not.toContain('class="waveform"');
     expect(html).not.toContain("HeyGen");
   });

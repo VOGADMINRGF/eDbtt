@@ -8,6 +8,7 @@ import {
   VOXY_CANONICAL_VISUAL_SOURCE,
   VOXY_LOCAL_RIG,
   VOXY_RIG_FIXTURE_TIMELINE,
+  VOXY_RIG_MOTION_PROFILE,
   VOXY_RIG_MOTION_STATES,
   VOXY_MOTION_PROVIDER_STATUS,
   getVoxyRigMotionTarget,
@@ -63,6 +64,61 @@ describe("Voxy motion provider gate contract", () => {
     }
     for (let timeMs = 0; timeMs < 8_000; timeMs += 41) {
       expect(validateVoxyLocalRigFrame(buildVoxyRigFrame(timeMs))).toEqual([]);
+    }
+  });
+
+  it("uses the polished motion profile without changing rig identity or anatomy", () => {
+    expect(VOXY_LOCAL_RIG.version).toBe("voxy-local-2d-rig-v1");
+    expect(VOXY_RIG_MOTION_PROFILE).toMatchObject({
+      version: "voxy-motion-polish-v2",
+      gestureDelayMs: 120,
+      gestureTransitionMs: 720,
+    });
+    expect(VOXY_LOCAL_RIG.handPresentation).toEqual({
+      left: {
+        baseRotationDeg: -58,
+        wristInset: { x: -12, y: -5 },
+      },
+      right: {
+        baseRotationDeg: 58,
+        wristInset: { x: 12, y: -5 },
+      },
+      scale: 0.78,
+    });
+    expect(VOXY_LOCAL_RIG.hands.left.digitIds).toHaveLength(5);
+    expect(VOXY_LOCAL_RIG.hands.right.digitIds).toHaveLength(5);
+  });
+
+  it("keeps one dominant gesture per statement and lets gaze lead the arm", () => {
+    const explaining = getVoxyRigMotionTarget("explaining");
+    const contrast = getVoxyRigMotionTarget("showing_contrast");
+    const invitation = getVoxyRigMotionTarget("inviting_participation");
+    expect(explaining.rightArmRotationDeg).toBe(-9.5);
+    expect(Math.abs(explaining.leftArmRotationDeg)).toBeLessThan(1);
+    expect(Math.abs(contrast.leftArmRotationDeg)).toBeGreaterThan(
+      Math.abs(contrast.rightArmRotationDeg),
+    );
+    expect(Math.abs(invitation.leftArmRotationDeg)).toBeGreaterThan(
+      Math.abs(invitation.rightArmRotationDeg),
+    );
+
+    const transitionStart = buildVoxyRigFrame(2_000);
+    const gazeLead = buildVoxyRigFrame(2_200);
+    expect(Math.abs(gazeLead.eyeLookX - transitionStart.eyeLookX)).toBeGreaterThan(
+      Math.abs(
+        gazeLead.rightArmRotationDeg - transitionStart.rightArmRotationDeg,
+      ),
+    );
+  });
+
+  it("eases across state boundaries without pose snapping", () => {
+    for (const boundary of [2_000, 4_000, 6_000]) {
+      const before = buildVoxyRigFrame(boundary - 1);
+      const after = buildVoxyRigFrame(boundary);
+      expect(Math.abs(after.leftArmRotationDeg - before.leftArmRotationDeg)).toBeLessThan(0.02);
+      expect(Math.abs(after.rightArmRotationDeg - before.rightArmRotationDeg)).toBeLessThan(0.02);
+      expect(Math.abs(after.headRotationDeg - before.headRotationDeg)).toBeLessThan(0.02);
+      expect(Math.abs(after.eyeLookX - before.eyeLookX)).toBeLessThan(0.02);
     }
   });
 

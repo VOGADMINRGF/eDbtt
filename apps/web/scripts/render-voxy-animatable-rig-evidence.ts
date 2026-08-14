@@ -17,6 +17,7 @@ import {
   VOXY_CANONICAL_VISUAL_SOURCE,
   VOXY_LOCAL_RIG,
   VOXY_RIG_FIXTURE_TIMELINE,
+  VOXY_RIG_MOTION_PROFILE,
 } from "../src/features/voxyVideo/animatableMasterAsset";
 import {
   buildVoxyCharacterMotionFixturePlan,
@@ -277,6 +278,7 @@ async function main(): Promise<void> {
   const formatEvidence: unknown[] = [];
   let externalNetworkRequests = 0;
   let clipPath = "";
+  let webmPath = "";
   try {
     for (const format of FORMATS) {
       const plan = buildVoxyCharacterMotionFixturePlan(format);
@@ -370,6 +372,35 @@ async function main(): Promise<void> {
           "+faststart",
           clipPath,
         ]);
+        webmPath = join(
+          outputRoot,
+          `voxy-local-rig-${exactHeadSha.slice(0, 12)}-16x9.webm`,
+        );
+        runBinary(ffmpeg, [
+          "-y",
+          "-framerate",
+          String(FPS),
+          "-i",
+          join(framesDirectory, "frame-%04d.png"),
+          "-frames:v",
+          String(FRAME_COUNT),
+          "-r",
+          String(FPS),
+          "-an",
+          "-c:v",
+          "libvpx-vp9",
+          "-deadline",
+          "good",
+          "-cpu-used",
+          "4",
+          "-crf",
+          "32",
+          "-b:v",
+          "0",
+          "-pix_fmt",
+          "yuv420p",
+          webmPath,
+        ]);
       }
 
       formatEvidence.push({
@@ -384,7 +415,7 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  if (!clipPath) throw new Error("primary_clip_missing");
+  if (!clipPath || !webmPath) throw new Error("primary_clip_missing");
   if (externalNetworkRequests !== 0) {
     throw new Error(`external_network_request_blocked:${externalNetworkRequests}`);
   }
@@ -417,9 +448,42 @@ async function main(): Promise<void> {
   ) {
     throw new Error(`render_media_contract_failed:${JSON.stringify(probe)}`);
   }
+  const webmProbe = JSON.parse(
+    runBinary(ffprobe, [
+      "-v",
+      "error",
+      "-count_frames",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=width,height,r_frame_rate,avg_frame_rate,nb_frames,nb_read_frames:format=duration",
+      "-of",
+      "json",
+      webmPath,
+    ]),
+  ) as {
+    streams?: Array<Record<string, string | number>>;
+    format?: Record<string, string>;
+  };
+  const webmStream = webmProbe.streams?.[0];
+  const webmDurationSeconds = Number(webmProbe.format?.duration);
+  const webmFrameCount = Number(
+    webmStream?.nb_read_frames ?? webmStream?.nb_frames,
+  );
+  if (
+    webmStream?.width !== 1280 ||
+    webmStream?.height !== 720 ||
+    webmStream?.avg_frame_rate !== "24/1" ||
+    webmFrameCount !== FRAME_COUNT ||
+    Math.abs(webmDurationSeconds - 8) > 0.01
+  ) {
+    throw new Error(
+      `render_webm_media_contract_failed:${JSON.stringify(webmProbe)}`,
+    );
+  }
 
   const manifest = {
-    schemaVersion: "voxy-animatable-rig-evidence-v1",
+    schemaVersion: "voxy-animatable-rig-evidence-v2",
     taskId: "VOXY-ANIMATABLE-MASTER-ASSET-01",
     exactHeadSha,
     generatedAt: new Date().toISOString(),
@@ -444,10 +508,16 @@ async function main(): Promise<void> {
         sha256: await fileSha256(rigPath),
         licenseStatus: "first_party_repository_asset_no_model_weights",
       },
+      motionProfile: {
+        ...VOXY_RIG_MOTION_PROFILE,
+        handPresentation: VOXY_LOCAL_RIG.handPresentation,
+      },
     },
     render: {
       clip: relative(outputRoot, clipPath),
       clipSha256: await fileSha256(clipPath),
+      webm: relative(outputRoot, webmPath),
+      webmSha256: await fileSha256(webmPath),
       durationMs: DURATION_MS,
       fps: FPS,
       frameCount: FRAME_COUNT,
@@ -456,6 +526,7 @@ async function main(): Promise<void> {
       codec: "h264",
       pixelFormat: "yuv420p",
       ffprobe: probe,
+      webmFfprobe: webmProbe,
     },
     timeline: VOXY_RIG_FIXTURE_TIMELINE,
     formats: formatEvidence,
@@ -485,6 +556,8 @@ async function main(): Promise<void> {
         manifest: manifestPath,
         clip: clipPath,
         clipSha256: manifest.render.clipSha256,
+        webm: webmPath,
+        webmSha256: manifest.render.webmSha256,
         durationSeconds,
         fps: FPS,
         frameCount: reportedFrameCount,

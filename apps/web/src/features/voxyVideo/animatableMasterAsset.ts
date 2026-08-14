@@ -98,6 +98,20 @@ export function canPublishVoxyMotionArtifact(input: {
 
 export const VOXY_LOCAL_RIG_VERSION = "voxy-local-2d-rig-v1" as const;
 
+export const VOXY_RIG_MOTION_PROFILE = {
+  version: "voxy-motion-polish-v2",
+  gazeTransitionMs: 500,
+  gestureDelayMs: 120,
+  gestureTransitionMs: 720,
+  bodyTransitionMs: 780,
+  neutralReturnStartFraction: 0.68,
+  breathingTranslatePixels: 0.8,
+  breathingBodyRotationDeg: 0.08,
+  breathingHeadRotationDeg: 0.12,
+  blinkWindowsMs: [920, 6_720],
+  blinkDurationMs: 160,
+} as const;
+
 export const VOXY_RIG_MOTION_STATES = [
   "neutral_idle",
   "listening",
@@ -240,6 +254,17 @@ export const VOXY_LOCAL_RIG = {
       ],
     },
   },
+  handPresentation: {
+    left: {
+      baseRotationDeg: -58,
+      wristInset: { x: -12, y: -5 },
+    },
+    right: {
+      baseRotationDeg: 58,
+      wristInset: { x: 12, y: -5 },
+    },
+    scale: 0.78,
+  },
   limits: {
     headRotationDeg: { min: -4, max: 4 },
     bodyRotationDeg: { min: -2, max: 2 },
@@ -266,7 +291,7 @@ const VOXY_RIG_MOTION_TARGETS: Readonly<
   neutral_idle: {
     bodyRotationDeg: 0,
     bodyTranslateY: 0,
-    headRotationDeg: -0.4,
+    headRotationDeg: -0.2,
     headTranslateX: 0,
     headTranslateY: 0,
     eyeLookX: 0,
@@ -278,88 +303,88 @@ const VOXY_RIG_MOTION_TARGETS: Readonly<
     rightHandRotationDeg: 0,
   },
   listening: {
-    bodyRotationDeg: -0.5,
-    bodyTranslateY: 1,
-    headRotationDeg: -2.4,
-    headTranslateX: -2,
-    headTranslateY: 1,
-    eyeLookX: -5,
+    bodyRotationDeg: -0.35,
+    bodyTranslateY: 0.5,
+    headRotationDeg: -1.6,
+    headTranslateX: -1,
+    headTranslateY: 0.5,
+    eyeLookX: -3.5,
     eyeLookY: 1,
-    browRotationDeg: -1.5,
-    leftArmRotationDeg: 2,
-    rightArmRotationDeg: -2,
-    leftHandRotationDeg: 2,
-    rightHandRotationDeg: -2,
+    browRotationDeg: -1,
+    leftArmRotationDeg: 1.5,
+    rightArmRotationDeg: -1.5,
+    leftHandRotationDeg: 1,
+    rightHandRotationDeg: -1,
   },
   explaining: {
-    bodyRotationDeg: 0.7,
-    bodyTranslateY: -1,
-    headRotationDeg: 1.2,
-    headTranslateX: 2,
-    headTranslateY: -2,
-    eyeLookX: 4,
-    eyeLookY: -1,
-    browRotationDeg: 1.5,
-    leftArmRotationDeg: 2,
-    rightArmRotationDeg: -12,
-    leftHandRotationDeg: 2,
-    rightHandRotationDeg: -8,
-  },
-  questioning: {
-    bodyRotationDeg: -0.6,
-    bodyTranslateY: 0,
-    headRotationDeg: -3.1,
-    headTranslateX: -1,
-    headTranslateY: -2,
-    eyeLookX: -3,
-    eyeLookY: -2,
-    browRotationDeg: -3,
-    leftArmRotationDeg: -3,
-    rightArmRotationDeg: 3,
-    leftHandRotationDeg: -2,
-    rightHandRotationDeg: 3,
-  },
-  highlighting_source: {
-    bodyRotationDeg: 0.5,
-    bodyTranslateY: -1,
-    headRotationDeg: 0.8,
+    bodyRotationDeg: 0.35,
+    bodyTranslateY: -0.5,
+    headRotationDeg: 0.65,
     headTranslateX: 1,
     headTranslateY: -1,
-    eyeLookX: 5,
+    eyeLookX: 3,
+    eyeLookY: -0.5,
+    browRotationDeg: 1,
+    leftArmRotationDeg: 0.5,
+    rightArmRotationDeg: -9.5,
+    leftHandRotationDeg: 0,
+    rightHandRotationDeg: -5.5,
+  },
+  questioning: {
+    bodyRotationDeg: -0.35,
+    bodyTranslateY: 0,
+    headRotationDeg: -2.1,
+    headTranslateX: -1,
+    headTranslateY: -2,
+    eyeLookX: -2.5,
+    eyeLookY: -1.5,
+    browRotationDeg: -2,
+    leftArmRotationDeg: -2,
+    rightArmRotationDeg: 2,
+    leftHandRotationDeg: -1.5,
+    rightHandRotationDeg: 1.5,
+  },
+  highlighting_source: {
+    bodyRotationDeg: 0.3,
+    bodyTranslateY: -0.5,
+    headRotationDeg: 0.5,
+    headTranslateX: 1,
+    headTranslateY: -1,
+    eyeLookX: 3.5,
     eyeLookY: 0,
     browRotationDeg: 1,
-    leftArmRotationDeg: -11,
-    rightArmRotationDeg: 1,
-    leftHandRotationDeg: -7,
-    rightHandRotationDeg: 1,
+    leftArmRotationDeg: -8.5,
+    rightArmRotationDeg: 0.5,
+    leftHandRotationDeg: -4.5,
+    rightHandRotationDeg: 0,
   },
   showing_contrast: {
-    bodyRotationDeg: -0.4,
+    bodyRotationDeg: -0.25,
     bodyTranslateY: 0,
-    headRotationDeg: -1.1,
-    headTranslateX: -1,
+    headRotationDeg: -0.6,
+    headTranslateX: -0.5,
     headTranslateY: 0,
-    eyeLookX: -5,
+    eyeLookX: -2.5,
     eyeLookY: 0,
     browRotationDeg: -1,
-    leftArmRotationDeg: -9,
-    rightArmRotationDeg: 9,
-    leftHandRotationDeg: -6,
-    rightHandRotationDeg: 6,
+    leftArmRotationDeg: -7,
+    rightArmRotationDeg: 3,
+    leftHandRotationDeg: -4,
+    rightHandRotationDeg: 1.5,
   },
   inviting_participation: {
     bodyRotationDeg: 0,
     bodyTranslateY: -1,
-    headRotationDeg: 0.5,
+    headRotationDeg: 0.15,
     headTranslateX: 0,
     headTranslateY: -1,
     eyeLookX: 0,
     eyeLookY: 0,
-    browRotationDeg: 1.5,
-    leftArmRotationDeg: -13,
-    rightArmRotationDeg: 13,
-    leftHandRotationDeg: -8,
-    rightHandRotationDeg: 8,
+    browRotationDeg: 0.75,
+    leftArmRotationDeg: -9.5,
+    rightArmRotationDeg: 1.5,
+    leftHandRotationDeg: -4.5,
+    rightHandRotationDeg: 1,
   },
 };
 
@@ -369,7 +394,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 
 function easeInOut(value: number): number {
   const clamped = clamp(value, 0, 1);
-  return clamped * clamped * (3 - 2 * clamped);
+  return clamped ** 3 * (clamped * (clamped * 6 - 15) + 10);
 }
 
 function interpolate(
@@ -405,9 +430,9 @@ function rotateAnchorAroundPivot(input: {
 }
 
 function getBlinkAmount(timeMs: number): number {
-  const windows = [900, 6_700];
-  for (const startMs of windows) {
-    const progress = (timeMs - startMs) / 144;
+  for (const startMs of VOXY_RIG_MOTION_PROFILE.blinkWindowsMs) {
+    const progress =
+      (timeMs - startMs) / VOXY_RIG_MOTION_PROFILE.blinkDurationMs;
     if (progress >= 0 && progress <= 1) {
       return progress <= 0.5 ? progress * 2 : (1 - progress) * 2;
     }
@@ -434,16 +459,51 @@ export function buildVoxyRigFrame(timeMs: number): VoxyRigFrame {
   const previousEntry = VOXY_RIG_FIXTURE_TIMELINE[Math.max(0, timelineIndex - 1)];
   const rawStateProgress =
     (normalizedTimeMs - entry.startMs) / (entry.endMs - entry.startMs);
-  const transitionProgress = easeInOut(
-    Math.min(1, (normalizedTimeMs - entry.startMs) / 360),
+  const stateElapsedMs = normalizedTimeMs - entry.startMs;
+  const gazeTransitionProgress = easeInOut(
+    stateElapsedMs / VOXY_RIG_MOTION_PROFILE.gazeTransitionMs,
+  );
+  const gestureTransitionProgress = easeInOut(
+    (stateElapsedMs - VOXY_RIG_MOTION_PROFILE.gestureDelayMs) /
+      VOXY_RIG_MOTION_PROFILE.gestureTransitionMs,
+  );
+  const bodyTransitionProgress = easeInOut(
+    stateElapsedMs / VOXY_RIG_MOTION_PROFILE.bodyTransitionMs,
+  );
+  const gazeTarget = interpolate(
+    VOXY_RIG_MOTION_TARGETS[previousEntry.state],
+    VOXY_RIG_MOTION_TARGETS[entry.state],
+    gazeTransitionProgress,
+  );
+  const bodyTarget = interpolate(
+    VOXY_RIG_MOTION_TARGETS[previousEntry.state],
+    VOXY_RIG_MOTION_TARGETS[entry.state],
+    bodyTransitionProgress,
   );
   const target = interpolate(
     VOXY_RIG_MOTION_TARGETS[previousEntry.state],
     VOXY_RIG_MOTION_TARGETS[entry.state],
-    transitionProgress,
+    gestureTransitionProgress,
   );
-  if (entry.state === "inviting_participation" && rawStateProgress > 0.72) {
-    const returnProgress = easeInOut((rawStateProgress - 0.72) / 0.28);
+  Object.assign(target, {
+    bodyRotationDeg: bodyTarget.bodyRotationDeg,
+    bodyTranslateY: bodyTarget.bodyTranslateY,
+    headRotationDeg: gazeTarget.headRotationDeg,
+    headTranslateX: gazeTarget.headTranslateX,
+    headTranslateY: gazeTarget.headTranslateY,
+    eyeLookX: gazeTarget.eyeLookX,
+    eyeLookY: gazeTarget.eyeLookY,
+    browRotationDeg: gazeTarget.browRotationDeg,
+  });
+  if (
+    entry.state === "inviting_participation" &&
+    rawStateProgress > VOXY_RIG_MOTION_PROFILE.neutralReturnStartFraction
+  ) {
+    const returnProgress = easeInOut(
+      (rawStateProgress -
+        VOXY_RIG_MOTION_PROFILE.neutralReturnStartFraction) /
+        (1 - VOXY_RIG_MOTION_PROFILE.neutralReturnStartFraction),
+    );
     Object.assign(
       target,
       interpolate(
@@ -454,9 +514,15 @@ export function buildVoxyRigFrame(timeMs: number): VoxyRigFrame {
     );
   }
   const breathingPhase = (normalizedTimeMs / 4_000) * Math.PI * 2;
-  target.bodyTranslateY += Math.sin(breathingPhase) * 1.5;
-  target.bodyRotationDeg += Math.sin(breathingPhase * 0.5) * 0.18;
-  target.headRotationDeg += Math.sin(breathingPhase * 0.75) * 0.22;
+  target.bodyTranslateY +=
+    Math.sin(breathingPhase) *
+    VOXY_RIG_MOTION_PROFILE.breathingTranslatePixels;
+  target.bodyRotationDeg +=
+    Math.sin(breathingPhase * 0.5) *
+    VOXY_RIG_MOTION_PROFILE.breathingBodyRotationDeg;
+  target.headRotationDeg +=
+    Math.sin(breathingPhase * 0.75) *
+    VOXY_RIG_MOTION_PROFILE.breathingHeadRotationDeg;
 
   const leftHandAnchor = rotateAnchorAroundPivot({
     anchor: VOXY_LOCAL_RIG.hands.left.anchor,

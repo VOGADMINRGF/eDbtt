@@ -70,7 +70,7 @@ jobs:
 
       - name: Verify fail-closed review metadata
         run: |
-          node -e 'const fs=require("node:fs");const m=JSON.parse(fs.readFileSync("artifacts/voxy-animatable-rig-evidence/manifest.json","utf8"));if(m.exactHeadSha!==process.env.VOXY_FIXTURE_COMMIT_SHA||m.humanVisualAcceptance!=="pending"||m.productionEligible!==false||m.autoPublish!==false||m.render.durationMs!==8000||m.render.fps!==24||m.render.frameCount!==192||m.formats.length!==3)process.exit(1)'
+          node -e 'const fs=require("node:fs");const m=JSON.parse(fs.readFileSync("artifacts/voxy-animatable-rig-evidence/manifest.json","utf8"));if(m.schemaVersion!=="voxy-animatable-rig-evidence-v2"||m.exactHeadSha!==process.env.VOXY_FIXTURE_COMMIT_SHA||m.humanVisualAcceptance!=="pending"||m.productionEligible!==false||m.autoPublish!==false||m.render.durationMs!==8000||m.render.fps!==24||m.render.frameCount!==192||!m.render.clipSha256||!m.render.webmSha256||m.provenance.motionProfile?.version!=="voxy-motion-polish-v2"||m.formats.length!==3)process.exit(1)'
 
       - name: Upload directly reviewable exact-head evidence
         uses: actions/upload-artifact@v4
