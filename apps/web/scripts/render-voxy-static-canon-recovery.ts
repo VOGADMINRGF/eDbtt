@@ -4,14 +4,14 @@ import { spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import {
-  buildVoxyStaticCanonRecoveryPlan,
-  validateVoxyStaticCanonRecoveryPlan,
+  buildVoxyStaticCanonFinalPlan,
+  validateVoxyStaticCanonFinalPlan,
   VOXY_STATIC_CANON_NATIVE_ASSETS,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "../src/features/voxyVideo/staticCanonRecovery";
 import {
-  renderVoxyStaticCanonCandidateHtml,
-  renderVoxyStaticCanonComparisonHtml,
+  renderVoxyStaticCanonFinalComparisonHtml,
+  renderVoxyStaticCanonFinalHtml,
 } from "../src/features/voxyVideo/staticCanonRecoveryHtml";
 
 function argument(name: string): string | null {
@@ -115,8 +115,8 @@ async function main(): Promise<void> {
     );
   }
 
-  const plan = buildVoxyStaticCanonRecoveryPlan(exactHeadSha);
-  const planErrors = validateVoxyStaticCanonRecoveryPlan(plan);
+  const plan = buildVoxyStaticCanonFinalPlan(exactHeadSha);
+  const planErrors = validateVoxyStaticCanonFinalPlan(plan);
   if (planErrors.length > 0) {
     throw new Error(`static_canon_plan_invalid:${planErrors.join(",")}`);
   }
@@ -162,7 +162,7 @@ async function main(): Promise<void> {
 
   const outputRoot = resolve(
     process.cwd(),
-    argument("output") ?? "artifacts/voxy-static-canon-recovery",
+    argument("output") ?? plan.outputDirectory,
   );
   await mkdir(outputRoot, { recursive: true });
   const stagePath = repositoryPath(
@@ -190,25 +190,25 @@ async function main(): Promise<void> {
     if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
   });
 
-  const candidateDataUrls = {} as Record<
-    (typeof plan.candidates)[number]["id"],
+  const finalDataUrls = {} as Record<
+    (typeof plan.variants)[number]["id"],
     string
   >;
-  const candidateEvidence = [];
-  for (const candidate of plan.candidates) {
+  const variantEvidence = [];
+  for (const variant of plan.variants) {
     await page.setViewportSize({
       width: plan.output.width,
       height: plan.output.height,
     });
     await setStaticHtml(
       page,
-      renderVoxyStaticCanonCandidateHtml({
+      renderVoxyStaticCanonFinalHtml({
         plan,
-        candidate,
+        variant,
         assets: embeddedAssets,
       }),
     );
-    const outputPath = resolve(outputRoot, candidate.fileName);
+    const outputPath = resolve(outputRoot, variant.fileName);
     const bytes = await page.locator(".master").screenshot({
       path: outputPath,
       type: "png",
@@ -219,20 +219,54 @@ async function main(): Promise<void> {
       dimensions.height !== plan.output.height ||
       bytes.length < 250_000
     ) {
-      throw new Error(`candidate_render_contract_failed:${candidate.id}`);
+      throw new Error(`final_variant_render_contract_failed:${variant.id}`);
     }
-    candidateDataUrls[candidate.id] = dataUrl(bytes, "image/png");
-    candidateEvidence.push({
-      id: candidate.id,
-      file: candidate.fileName,
+    finalDataUrls[variant.id] = dataUrl(bytes, "image/png");
+    variantEvidence.push({
+      id: variant.id,
+      file: variant.fileName,
       sha256: sha256(bytes),
       width: dimensions.width,
       height: dimensions.height,
-      mode: candidate.mode,
-      characterPixelSource: candidate.characterPixelSource,
-      camera: candidate.camera,
-      knownDeviations: candidate.knownDeviations,
+      selection: variant.selection,
+      role: variant.role,
+      contentArchitecture: variant.contentArchitecture,
+      characterPixelSource: variant.characterPixelSource,
+      camera: variant.camera,
+      waveform: variant.waveform,
+      knownDeviations: variant.knownDeviations,
     });
+  }
+
+  const primaryVariant = plan.variants.find(
+    (variant) => variant.role === "primary_master",
+  );
+  if (!primaryVariant) throw new Error("primary_master_missing");
+  await page.setViewportSize({
+    width: plan.output.width,
+    height: plan.output.height,
+  });
+  await setStaticHtml(
+    page,
+    renderVoxyStaticCanonFinalHtml({
+      plan,
+      variant: primaryVariant,
+      assets: embeddedAssets,
+      clean: true,
+    }),
+  );
+  const cleanPrimaryPath = resolve(outputRoot, plan.cleanPrimaryFileName);
+  const cleanPrimaryBytes = await page.locator(".master").screenshot({
+    path: cleanPrimaryPath,
+    type: "png",
+  });
+  const cleanPrimaryDimensions = pngDimensions(cleanPrimaryBytes);
+  if (
+    cleanPrimaryDimensions.width !== plan.output.width ||
+    cleanPrimaryDimensions.height !== plan.output.height ||
+    cleanPrimaryBytes.length < 250_000
+  ) {
+    throw new Error("clean_primary_render_contract_failed");
   }
 
   await page.setViewportSize({
@@ -241,12 +275,12 @@ async function main(): Promise<void> {
   });
   await setStaticHtml(
     page,
-    renderVoxyStaticCanonComparisonHtml({
-      candidateDataUrls,
+    renderVoxyStaticCanonFinalComparisonHtml({
+      finalDataUrls,
       canonBoards: canonBoardDataUrls,
     }),
   );
-  const comparisonPath = resolve(outputRoot, "comparison.png");
+  const comparisonPath = resolve(outputRoot, plan.comparisonFileName);
   const comparisonBytes = await page.locator(".sheet").screenshot({
     path: comparisonPath,
     type: "png",
@@ -264,16 +298,21 @@ async function main(): Promise<void> {
     throw new Error("external_request_detected");
   }
 
-  const candidateHashes = new Set(
-    candidateEvidence.map((candidate) => candidate.sha256),
+  const variantHashes = new Set(
+    variantEvidence.map((variant) => variant.sha256),
   );
-  if (candidateHashes.size !== plan.candidates.length) {
-    throw new Error("candidate_variants_must_be_visibly_distinct");
+  if (variantHashes.size !== plan.variants.length) {
+    throw new Error("final_variants_must_be_visibly_distinct");
   }
 
   const manifest = {
     schemaVersion: plan.schemaVersion,
     exactHeadSha,
+    primaryMaster: plan.primaryMaster,
+    editorialVariant: plan.editorialVariant,
+    rejectedVariant: plan.rejectedVariant,
+    rejectedVariantIncluded: plan.rejectedVariantIncluded,
+    waveform: plan.waveform,
     canonBoardPaths: canonBoardEvidence.map((board) => board.path),
     canonBoardSha256: Object.fromEntries(
       canonBoardEvidence.map((board) => [board.id, board.sha256]),
@@ -291,17 +330,32 @@ async function main(): Promise<void> {
         sha256: await fileSha256(wordmarkPath),
       },
     ],
+    inputSha256: {
+      canonStage: await fileSha256(stagePath),
+      nativeWordmark: await fileSha256(wordmarkPath),
+      canonManifest: await fileSha256(canonManifestPath),
+    },
     renderResolution: {
-      candidates: { width: plan.output.width, height: plan.output.height },
+      finals: { width: plan.output.width, height: plan.output.height },
       comparison: {
         width: plan.output.comparisonWidth,
         height: plan.output.comparisonHeight,
       },
     },
     productionMethod: plan.productionMethod,
-    candidates: candidateEvidence,
+    variants: variantEvidence,
+    cleanPrimary: {
+      file: plan.cleanPrimaryFileName,
+      sha256: sha256(cleanPrimaryBytes),
+      width: cleanPrimaryDimensions.width,
+      height: cleanPrimaryDimensions.height,
+      exampleContentLayersIncluded: false,
+      characterPixelSource: primaryVariant.characterPixelSource,
+      camera: primaryVariant.camera,
+      waveform: primaryVariant.waveform,
+    },
     comparison: {
-      file: "comparison.png",
+      file: plan.comparisonFileName,
       sha256: sha256(comparisonBytes),
       width: comparisonDimensions.width,
       height: comparisonDimensions.height,
@@ -310,7 +364,7 @@ async function main(): Promise<void> {
       character: {
         status: "human_review_required",
         evidence:
-          "CANON-04 character pixels are the identical source for A/B/C; CANON-01 and CANON-02 remain the direct character and hand references.",
+          "CANON-04 character pixels, camera and grade are identical for Primary A and Editorial C; CANON-01 and CANON-02 remain the direct proportion, face and hand references.",
       },
       render: {
         status: "human_review_required",
@@ -320,24 +374,27 @@ async function main(): Promise<void> {
       studio: {
         status: "human_review_required",
         evidence:
-          "CANON-04 is the pixel source; CANON-03 and CANON-04 define lighting, microphone, desk, waveform and spatial hierarchy.",
+          "CANON-04 is the shared pixel source; CANON-03 and CANON-04 define lighting, microphone, desk and the single waveform behind Voxy.",
       },
       layout: {
         status: "human_review_required",
         evidence:
-          "Generated board copy is covered by native review zones; camera, crop, content space and lighting weight are the only candidate differences.",
+          "Primary A and Editorial C share character, studio, camera, lighting, typography and material treatment; only the native content-zone architecture differs.",
       },
     },
     knownCanonDeviations: [
-      "candidates_are_flattened_review_composites_not_layered_character_or_studio_masters",
+      "finals_are_flattened_review_composites_not_layered_character_or_studio_masters",
       "source_board_lighting_and_character_pose_are_baked_into_the_canon_04_pixel_source",
       "native_review_typography_and_empty_content_zones_require_later_product_copy_and_layout_acceptance",
+      "cross_platform_chromium_font_rasterization_can_change_png_bitstreams_without_changing_the_bound_layout",
       "no_animation_or_rig_eligibility_is_inferred_from_static_fidelity",
     ],
+    recoveryReview: plan.recoveryReview,
     previousMotion: plan.previousMotion,
     externalProviderUsed: plan.externalProviderUsed,
     externalUploadUsed: plan.externalUploadUsed,
     generativeRedrawUsed: plan.generativeRedrawUsed,
+    audioAnalysisImplemented: plan.audioAnalysisImplemented,
     humanVisualAcceptance: plan.humanVisualAcceptance,
     animationEligible: plan.animationEligible,
     productionEligible: plan.productionEligible,
@@ -348,16 +405,20 @@ async function main(): Promise<void> {
   process.stdout.write(
     `${JSON.stringify(
       {
-        status: "voxy_static_canon_recovery_rendered",
+        status: "voxy_static_canon_final_rendered",
         exactHeadSha,
         outputRoot: relative(process.cwd(), outputRoot),
         manifest: relative(process.cwd(), manifestPath),
-        candidates: candidateEvidence.map((candidate) => ({
-          file: candidate.file,
-          sha256: candidate.sha256,
+        variants: variantEvidence.map((variant) => ({
+          file: variant.file,
+          sha256: variant.sha256,
         })),
+        cleanPrimary: {
+          file: manifest.cleanPrimary.file,
+          sha256: manifest.cleanPrimary.sha256,
+        },
         comparison: {
-          file: "comparison.png",
+          file: manifest.comparison.file,
           sha256: manifest.comparison.sha256,
         },
         humanVisualAcceptance: manifest.humanVisualAcceptance,

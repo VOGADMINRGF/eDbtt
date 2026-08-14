@@ -87,8 +87,12 @@ verbindliche Reihenfolge für den weiteren Self-hosted-Pfad:
    visuelle Abnahme zu ersetzen.
 
 Rig-Komfort oder technische Detektierbarkeit dürfen niemals Vorrang vor
-Wiedererkennbarkeit, Anatomie und Broadcast-Qualität erhalten. Bis zur
-menschlichen Auswahl des statischen Masters gilt `animationEligible = false`.
+Wiedererkennbarkeit, Anatomie und Broadcast-Qualität erhalten. Die menschliche
+Prüfung des statischen Recovery-Heads
+`0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als Primary Master und C als
+Editorial-/Anlass-Variante ausgewählt; B ist verworfen. Das ist noch keine
+finale Human Visual Acceptance. Bis zu dieser finalen Abnahme gilt weiterhin
+`animationEligible = false`.
 
 ## #588 — Freigabebedingung
 
@@ -139,11 +143,13 @@ Kompatibilität ersetzt keine Human Visual Acceptance.
 
 Die menschliche Prüfung hat den Motion-Stand anschließend abgelehnt. Seine
 technischen Ergebnisse bleiben historische Evidence, dürfen aber nicht als
-Freigabe oder als aktueller visueller Master gelesen werden. Der laufende
-Recovery-Schritt erzeugt ausschließlich statische A/B/C-Master aus derselben
-CANON-04-Pixelquelle, vollständig lokal und ohne generatives Redraw. Erst die
-menschliche Auswahl eines dieser Kandidaten kann einen neuen Rig-Schritt
-öffnen.
+Freigabe oder als aktueller visueller Master gelesen werden. Aus der statischen
+Recovery-Prüfung wird Primary A gemeinsam mit Editorial C finalisiert; B bleibt
+verworfen. A und C verwenden dieselbe CANON-04-Pixelquelle, Kamera, Licht-,
+Marken-, Typografie- und Materialbehandlung und genau eine statische Waveform
+hinter Voxy. Nur ihre Inhaltszonenarchitektur unterscheidet sich. Der Lauf bleibt
+vollständig lokal, ohne Audioanalyse oder generatives Redraw. Erst die noch
+ausstehende finale Human Visual Acceptance kann einen neuen Rig-Schritt öffnen.
 
 Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
 Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche

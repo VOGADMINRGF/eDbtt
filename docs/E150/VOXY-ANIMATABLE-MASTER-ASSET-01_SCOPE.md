@@ -9,25 +9,33 @@ Der Motion-Stand aus Exact Head
 abgelehnt. Das SVG-Rig und seine technische Evidence bleiben nachvollziehbar,
 gelten aber nicht als akzeptiertes visuelles Masterasset.
 
-Bis zur menschlichen Auswahl eines neuen statischen Masters gilt für PR `#589`:
+Die menschliche Prüfung des statischen Recovery-Heads
+`0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als Primary Master und C als
+Editorial-/Anlass-Variante ausgewählt. B ist verworfen. Diese Auswahl erlaubt
+die statische Finalisierung, ist aber noch keine finale Human Visual Acceptance.
+Für PR `#589` gilt deshalb:
 
 - keine Animation und kein weiterer Motion-Polish;
-- drei statische 1920 × 1080 Canon-Recovery-Kandidaten A/B/C aus derselben
-  CANON-04-Voxy-Pixelquelle;
-- Unterschiede ausschließlich in Kamera, Crop, Inhaltsraum und
-  Lichtgewichtung;
-- eine Vergleichstafel mit A/B/C und den vier Canon-Boards;
+- zwei statische 1920 × 1080 Master, Primary A und Editorial C, aus derselben
+  CANON-04-Voxy-/Studio-Pixelquelle;
+- identische Kamera, Licht-, Marken-, Typografie- und Materialbehandlung;
+- Unterschiede ausschließlich in der nativen Inhaltszonenarchitektur;
+- genau eine statische Waveform hinter Voxy; künftig audio-reaktionsfähig,
+  aktuell nicht audio-reaktiv und ohne Audioanalyse;
+- eine Vergleichstafel mit A final, C final und den vier Canon-Boards;
+- B bleibt historische, klar verworfene Recovery-Evidence und wird nicht in das
+  finale Artefakt übernommen;
 - lokaler, revisionsgebundener Raster-Render ohne Generierung, externen Dienst,
   Upload oder SaaS;
 - Exact-Head-Artefakt mit mindestens 14 Tagen Aufbewahrung;
 - `humanVisualAcceptance = pending`, `animationEligible = false` und
   `productionEligible = false`.
 
-Die Canon-Boards 01 und 02 kontrollieren Charakter, Gesicht, Hände und
-Anatomie; 03 und 04 kontrollieren Studio und Broadcast-Layout. CANON-04 ist die
-identische Charakterquelle aller drei Kandidaten. Erst eine ausdrückliche
-menschliche Auswahl darf die Grundlage für einen späteren, getrennten
-Rig-/Animationsschritt bilden.
+Die unveränderten Canon-Boards 01 und 02 kontrollieren Charakter, Gesicht,
+Hände und Anatomie; 03 und 04 kontrollieren Studio und Broadcast-Layout.
+CANON-04 ist die identische Charakter-/Studioquelle beider finalen Varianten.
+Ein späterer, getrennt autorisierter Rig-/Animationsschritt bleibt trotz der
+A/C-Auswahl an die finale Human Visual Acceptance gebunden.
 
 ## Ziel
 
@@ -80,8 +88,9 @@ Alle sieben geforderten Zustände sind im Rig-Contract implementiert und geteste
 
 ## Human Gate
 
-Der frühere Motion-Kandidat hat `humanVisualAcceptance = rejected`. Für die
-statischen Recovery-Kandidaten bleibt `humanVisualAcceptance = pending`;
+Der frühere Motion-Kandidat und die statische Variante B haben
+`humanVisualAcceptance = rejected`. Für Primary A und Editorial C bleibt
+`humanVisualAcceptance = pending`;
 `animationEligible`, `productionEligible` und `autoPublish` bleiben `false`.
 Der technische Slice endet maximal in `review`. Merge, Ready-for-Review,
 Deployment, Publishing und Production-VOTES sind nicht Teil dieses Scopes.

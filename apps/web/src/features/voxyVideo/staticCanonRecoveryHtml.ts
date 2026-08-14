@@ -1,6 +1,6 @@
 import type {
-  VoxyStaticCanonCandidate,
-  VoxyStaticCanonRecoveryPlan,
+  VoxyStaticCanonFinalPlan,
+  VoxyStaticCanonFinalVariant,
 } from "./staticCanonRecovery";
 
 export type VoxyStaticCanonEmbeddedAssets = {
@@ -8,112 +8,122 @@ export type VoxyStaticCanonEmbeddedAssets = {
   wordmarkDataUrl: string;
 };
 
-const CARD_MARKUP = `
-  <div class="content-card source-card"><span class="card-index">01</span><div><b>QUELLEN</b><i></i><i></i></div></div>
-  <div class="content-card contrast-card"><span class="card-index">02</span><div><b>GEGENPOSITION</b><i></i><i></i></div></div>
-  <div class="content-card question-card"><span class="card-index">03</span><div><b>OFFENE FRAGE</b><i></i><i></i></div></div>
-`;
-
-function candidatePanelMarkup(candidate: VoxyStaticCanonCandidate): string {
-  if (candidate.mode === "canon_fidelity") {
-    return `
-      <section class="topic-card"><small>THEMA · DATUM</small><strong>MODERATION IM KONTEXT</strong><span></span></section>
-      <section class="content-stack">${CARD_MARKUP}</section>
-    `;
-  }
-  if (candidate.mode === "broadcast") {
-    return `
-      <section class="broadcast-monitor">
-        <small>LIVE MODERATION</small>
-        <strong>VOXY IM STUDIO</strong>
-        <div class="meter">${Array.from({ length: 18 }, (_, index) => `<i style="--h:${28 + ((index * 17) % 66)}%"></i>`).join("")}</div>
-        <div class="broadcast-meta"><span>MIKROFON</span><span>WAVEFORM</span><span>HOST</span></div>
-      </section>
-    `;
-  }
+function primaryRailMarkup(): string {
   return `
-    <section class="editorial-grid">
-      <div class="editorial-head"><small>THEMA · DATUM</small><strong>EDITORIAL MASTER</strong></div>
-      <div class="editorial-field wide"><b>HEADLINE</b><i></i><i></i></div>
-      <div class="editorial-field"><b>QUELLEN</b><i></i><i></i><i></i></div>
-      <div class="editorial-field"><b>PRO / CONTRA</b><i></i><i></i><i></i></div>
-      <div class="editorial-field wide compact"><b>DOSSIER · ABSTIMMUNG · CAPTIONS</b><i></i></div>
+    <section class="content-rail primary-rail" aria-label="Broadcast-Inhaltszonen">
+      <header class="rail-head">
+        <small>THEMA · DATUM</small>
+        <strong>MODERATION IM KONTEXT</strong>
+        <span></span>
+      </header>
+      <div class="signal-row"><em>01</em><div><small>EVIDENZ</small><b>QUELLEN</b><i></i></div></div>
+      <div class="signal-row"><em>02</em><div><small>PERSPEKTIVE</small><b>GEGENPOSITION</b><i></i></div></div>
+      <div class="signal-row"><em>03</em><div><small>BETEILIGUNG</small><b>OFFENE FRAGE</b><i></i></div></div>
     </section>
   `;
 }
 
-export function renderVoxyStaticCanonCandidateHtml(input: {
-  plan: VoxyStaticCanonRecoveryPlan;
-  candidate: VoxyStaticCanonCandidate;
+function editorialRailMarkup(): string {
+  return `
+    <section class="content-rail editorial-rail" aria-label="Editorial- und Anlass-Inhaltszonen">
+      <header class="rail-head">
+        <small>ANLASS · THEMA · DATUM</small>
+        <strong>EDITORIAL / ANLASS</strong>
+        <span></span>
+      </header>
+      <div class="editorial-topic"><small>KONTEXT</small><b>ANLASS UND KERNFRAGE</b><i></i><i></i></div>
+      <div class="position-pair">
+        <div><small>POSITION A</small><i></i><i></i></div>
+        <div><small>POSITION B</small><i></i><i></i></div>
+      </div>
+      <div class="editorial-meta"><span>QUELLEN</span><span>DOSSIER</span><span>FAKTEN</span></div>
+      <div class="participation-line"><small>BETEILIGUNGSFRAGE</small><i></i></div>
+    </section>
+  `;
+}
+
+function lowerThirdMarkup(): string {
+  return `
+    <section class="lower-third" aria-label="Lower-Third-Beispielzone">
+      <div class="lower-copy"><small>HEUTE IM FOKUS</small><strong>Headline und Kernaussage</strong><span>Kurze Einordnung mit Quellen- und Kontextbezug.</span></div>
+      <div class="lower-meta"><small>MODERATION</small><b>QUELLEN · KONTEXT<br>BETEILIGUNG</b></div>
+    </section>
+    <div class="caption-safe"><span>UNTERTITEL-SAFE-ZONE</span></div>
+  `;
+}
+
+export function renderVoxyStaticCanonFinalHtml(input: {
+  plan: VoxyStaticCanonFinalPlan;
+  variant: VoxyStaticCanonFinalVariant;
   assets: VoxyStaticCanonEmbeddedAssets;
+  clean?: boolean;
 }): string {
-  const { candidate, assets } = input;
+  const { variant, assets, clean = false } = input;
+  const editorial = variant.contentArchitecture === "editorial_anlass";
+  const railMaskLeft = editorial ? 1160 : 1305;
+  const railLeft = editorial ? 1218 : 1362;
+  const railWidth = editorial ? 650 : 510;
+  const lowerRight = editorial ? 735 : 565;
+  const contentMarkup = clean
+    ? ""
+    : `${editorial ? editorialRailMarkup() : primaryRailMarkup()}${lowerThirdMarkup()}`;
   return `<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${candidate.label}</title>
+<title>${clean ? "PRIMARY A · CLEAN" : variant.label}</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020718;font-family:Arial,Helvetica,sans-serif;color:#fff}
-.master{position:relative;width:1920px;height:1080px;overflow:hidden;isolation:isolate;background:#020718}
-.canon-stage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:translate(${candidate.camera.translateX}px,${candidate.camera.translateY}px) scale(${candidate.camera.scale});transform-origin:50% 45%;filter:saturate(1.04) contrast(1.025)}
-.light-grade{position:absolute;inset:0;background:radial-gradient(circle at 48% 42%,transparent 0 34%,rgba(0,7,25,.16) 66%,rgba(0,4,16,.62) 100%),linear-gradient(90deg,rgba(0,217,192,.055),transparent 40%,rgba(30,107,255,.04));pointer-events:none}
-.source-clean-left{position:absolute;left:0;top:0;width:470px;height:805px;background:#020718;box-shadow:34px 0 52px rgba(2,7,24,.94)}
-.source-clean-right{position:absolute;right:0;top:0;width:${candidate.rightPanelWidth}px;height:880px;background:#020718;box-shadow:-34px 0 52px rgba(2,7,24,.94)}
-.source-clean-bottom{position:absolute;left:0;right:0;bottom:0;height:286px;background:#01040f;border-top:1px solid rgba(93,162,255,.25);box-shadow:0 -30px 52px rgba(1,4,15,.95)}
-.frame{position:absolute;inset:14px;border:1px solid rgba(151,184,224,.42);border-radius:18px;box-shadow:inset 0 0 70px rgba(0,32,85,.18);pointer-events:none}
-.review-label{position:absolute;left:38px;top:32px;z-index:5;padding:11px 16px;border:1px solid rgba(255,255,255,.46);border-radius:10px;background:rgba(1,5,15,.86);font-size:17px;letter-spacing:.14em;font-weight:700}
-.review-label:before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:10px;background:linear-gradient(135deg,#00d9c0,#1e6bff);box-shadow:0 0 16px #00d9c0}
-.brand-panel{position:absolute;left:44px;top:112px;width:354px;height:226px;padding:18px;border:1px solid rgba(55,144,255,.48);border-radius:22px;background:linear-gradient(145deg,rgba(4,12,31,.98),rgba(1,5,15,.9));box-shadow:0 20px 60px rgba(0,0,0,.36),0 0 42px rgba(30,107,255,.16)}
-.brand-panel img{width:100%;height:100%;object-fit:contain}
-.brand-note{position:absolute;left:58px;top:370px;width:330px;color:#90a8c9;font-size:16px;line-height:1.55;letter-spacing:.04em}
-.brand-note strong{display:block;color:#fff;font-size:21px;letter-spacing:.08em;margin-bottom:8px}
-.topic-card,.broadcast-monitor,.editorial-grid{position:absolute;right:42px;top:60px;width:${Math.max(410, candidate.rightPanelWidth - 72)}px}
-.topic-card{height:148px;padding:25px 28px;border:1px solid rgba(160,188,222,.55);border-radius:15px;background:rgba(2,8,22,.94);box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.topic-card small,.broadcast-monitor small,.editorial-head small{display:block;color:#39d9e6;font-size:16px;letter-spacing:.14em;margin-bottom:12px}
-.topic-card strong,.broadcast-monitor strong,.editorial-head strong{font-size:26px;letter-spacing:.045em}.topic-card span{display:block;width:66%;height:4px;margin-top:18px;background:linear-gradient(90deg,#00d9c0,#1e6bff);border-radius:4px}
-.content-stack{position:absolute;right:42px;top:232px;width:${Math.max(410, candidate.rightPanelWidth - 72)}px;display:grid;gap:14px}
-.content-card{height:150px;border:1px solid rgba(76,164,255,.5);border-radius:16px;background:linear-gradient(130deg,rgba(4,24,50,.97),rgba(2,9,25,.96));display:grid;grid-template-columns:72px 1fr;align-items:center;padding:18px 20px;box-shadow:0 16px 45px rgba(0,0,0,.28)}
-.content-card.contrast-card{border-color:rgba(118,96,255,.6);background:linear-gradient(130deg,rgba(15,20,72,.97),rgba(3,8,25,.96))}.content-card.question-card{border-color:rgba(0,217,192,.55)}
-.card-index{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#00d9c0,#1e6bff);font-weight:800;font-size:18px;box-shadow:0 0 26px rgba(30,107,255,.28)}
-.content-card b{display:block;font-size:22px;letter-spacing:.055em;margin-bottom:12px}.content-card i,.editorial-field i{display:block;height:6px;background:rgba(189,212,239,.23);border-radius:4px;margin-top:9px}.content-card i:last-child{width:68%}
-.lower-third{position:absolute;left:46px;right:${candidate.mode === "editorial" ? 726 : 54}px;bottom:79px;height:176px;border:1px solid rgba(110,156,211,.5);border-radius:17px;background:linear-gradient(105deg,rgba(2,9,24,.98),rgba(3,14,34,.93));padding:27px 34px 25px 50px;box-shadow:0 22px 70px rgba(0,0,0,.4)}
-.lower-third:before{content:"";position:absolute;left:22px;top:26px;bottom:26px;width:6px;border-radius:5px;background:linear-gradient(#00d9c0,#1e6bff);box-shadow:0 0 20px rgba(0,217,192,.4)}
-.lower-third small{color:#42dbe6;font-size:16px;letter-spacing:.14em}.lower-third strong{display:block;font-size:36px;letter-spacing:.02em;margin:13px 0}.lower-third span{display:block;width:62%;height:7px;border-radius:5px;background:rgba(188,211,239,.22)}
-.footer{position:absolute;left:48px;right:48px;bottom:25px;display:flex;justify-content:space-between;color:#79a8df;font-size:14px;letter-spacing:.14em}.footer b{color:#3cd9e7}
-.broadcast-monitor{top:116px;padding:32px;border:1px solid rgba(44,126,255,.6);border-radius:18px;background:linear-gradient(150deg,rgba(1,7,22,.98),rgba(4,19,51,.96));box-shadow:0 0 70px rgba(30,107,255,.17)}
-.meter{height:210px;margin:32px 0 22px;display:flex;gap:8px;align-items:center;justify-content:center;border-block:1px solid rgba(79,137,209,.24)}.meter i{display:block;width:11px;height:var(--h);border-radius:8px;background:linear-gradient(#00d9c0,#1e6bff);box-shadow:0 0 16px rgba(30,107,255,.28)}
-.broadcast-meta{display:flex;justify-content:space-between;color:#8faacb;font-size:13px;letter-spacing:.12em}
-.editorial-grid{top:54px;display:grid;grid-template-columns:1fr 1fr;gap:14px}.editorial-head,.editorial-field{border:1px solid rgba(79,139,215,.46);border-radius:15px;background:rgba(2,9,24,.96);padding:20px 22px}.editorial-head{grid-column:1/-1;height:122px}.editorial-field{min-height:175px}.editorial-field.wide{grid-column:1/-1}.editorial-field.compact{min-height:105px}.editorial-field b{display:block;color:#e7f1ff;font-size:18px;letter-spacing:.1em;margin-bottom:16px}
-.candidate-b-broadcast .light-grade{background:radial-gradient(circle at 52% 43%,rgba(30,107,255,.06),transparent 39%),linear-gradient(90deg,rgba(1,5,17,.15),transparent 58%,rgba(0,17,55,.34))}
-.candidate-c-editorial .light-grade{background:linear-gradient(90deg,rgba(0,217,192,.035),transparent 43%,rgba(1,5,17,.46) 65%),radial-gradient(circle at 43% 42%,transparent 0 31%,rgba(1,5,17,.24) 75%)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#010511;font-family:Arial,Helvetica,sans-serif;color:#fff}
+.master{--rail-mask-left:${railMaskLeft}px;--rail-left:${railLeft}px;--rail-width:${railWidth}px;--lower-right:${lowerRight}px;position:relative;width:1920px;height:1080px;overflow:hidden;isolation:isolate;background:#010511}
+.studio-stage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:translate(${variant.camera.translateX}px,${variant.camera.translateY}px) scale(${variant.camera.scale});transform-origin:${variant.camera.transformOrigin};filter:saturate(1.055) contrast(1.035) brightness(1.015)}
+.studio-grade{position:absolute;inset:0;background:radial-gradient(circle at 48% 36%,rgba(45,106,255,.04),transparent 30%),linear-gradient(90deg,rgba(0,213,203,.035),transparent 34%,rgba(1,5,18,.08) 60%,rgba(1,5,18,.56) 100%);pointer-events:none}
+.brand-reset{position:absolute;left:0;top:0;width:455px;height:432px;background:linear-gradient(90deg,rgba(1,5,17,.995),rgba(2,8,24,.97) 76%,rgba(2,8,24,.25)),repeating-linear-gradient(90deg,transparent 0 22px,rgba(35,77,136,.12) 23px 25px);box-shadow:42px 0 64px rgba(1,5,17,.5)}
+.right-reset{position:absolute;left:var(--rail-mask-left);right:0;top:0;height:776px;background:linear-gradient(90deg,rgba(1,5,17,.12),rgba(1,5,17,.96) 12%,#010511 30%);box-shadow:-42px 0 70px rgba(1,5,17,.58)}
+.bottom-reset{position:absolute;left:0;right:0;top:760px;bottom:0;background:linear-gradient(180deg,#020817,#01040e 58%,#01030a);border-top:1px solid rgba(74,125,195,.28)}
+.bottom-reset:before{content:"";position:absolute;left:0;right:0;top:-88px;height:88px;background:linear-gradient(transparent,rgba(1,5,17,.94));pointer-events:none}
+.frame{position:absolute;inset:14px;border:1px solid rgba(140,175,218,.38);border-radius:20px;box-shadow:inset 0 0 80px rgba(0,34,94,.15);pointer-events:none}
+.on-air{position:absolute;left:42px;top:34px;height:55px;padding:0 18px;display:flex;align-items:center;gap:12px;border:1px solid rgba(216,231,249,.76);border-radius:8px;background:rgba(1,5,16,.74);font-size:21px;font-weight:800;letter-spacing:.1em;box-shadow:0 12px 34px rgba(0,0,0,.28)}
+.on-air i{width:13px;height:13px;border-radius:50%;background:#00d9c0;box-shadow:0 0 18px rgba(0,217,192,.8)}
+.brand-lockup{position:absolute;left:56px;top:154px;width:350px;height:190px;padding:12px 10px;border-left:3px solid #00d9c0;background:linear-gradient(90deg,rgba(3,13,32,.78),rgba(3,13,32,.16));filter:drop-shadow(0 15px 32px rgba(0,0,0,.25))}
+.brand-lockup:after{content:"DIGITALER MODERATOR";position:absolute;left:22px;bottom:-31px;color:#76a9dd;font-size:13px;letter-spacing:.16em}
+.brand-lockup img{width:100%;height:100%;object-fit:contain}
+.content-rail{position:absolute;left:var(--rail-left);top:54px;width:var(--rail-width);height:650px;padding:27px 29px;background:linear-gradient(145deg,rgba(2,10,27,.97),rgba(1,5,17,.92));border-left:1px solid rgba(73,167,255,.58);border-block:1px solid rgba(107,150,205,.34);box-shadow:-24px 0 55px rgba(0,0,0,.3),inset 20px 0 35px rgba(30,107,255,.04)}
+.rail-head{height:125px}.rail-head small{display:block;color:#3ddde4;font-size:14px;letter-spacing:.15em;margin-bottom:12px}.rail-head strong{display:block;font-size:27px;letter-spacing:.045em}.rail-head span{display:block;width:72%;height:3px;margin-top:21px;background:linear-gradient(90deg,#00d9c0,#1e6bff);border-radius:3px}
+.signal-row{height:142px;display:grid;grid-template-columns:70px 1fr;align-items:center;border-top:1px solid rgba(126,163,210,.26)}.signal-row em{width:43px;height:43px;display:grid;place-items:center;border:1px solid rgba(58,199,236,.58);border-radius:50%;color:#65e4ec;font-size:15px;font-style:normal;font-weight:800}.signal-row small{display:block;color:#7798bf;font-size:12px;letter-spacing:.16em;margin-bottom:7px}.signal-row b{display:block;font-size:21px;letter-spacing:.07em}.signal-row i{display:block;width:78%;height:4px;margin-top:13px;background:rgba(179,207,239,.22);border-radius:4px}
+.editorial-rail{height:664px}.editorial-topic{height:125px;padding-top:18px;border-top:1px solid rgba(126,163,210,.26)}.editorial-topic small,.position-pair small,.participation-line small{display:block;color:#7c9dc3;font-size:12px;letter-spacing:.14em;margin-bottom:10px}.editorial-topic b{font-size:20px;letter-spacing:.07em}.editorial-topic i,.position-pair i,.participation-line i{display:block;height:4px;margin-top:10px;background:rgba(179,207,239,.23);border-radius:3px}.editorial-topic i:last-child{width:66%}
+.position-pair{display:grid;grid-template-columns:1fr 1fr;height:125px;border-block:1px solid rgba(126,163,210,.26)}.position-pair div{padding:21px 22px 14px 0}.position-pair div+div{padding-left:22px;border-left:1px solid rgba(126,163,210,.26)}.position-pair i:last-child{width:72%}
+.editorial-meta{height:85px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(126,163,210,.26)}.editorial-meta span{color:#dbeaff;font-size:13px;font-weight:700;letter-spacing:.14em}.editorial-meta span+span:before{content:"";display:inline-block;width:4px;height:4px;margin:0 20px 3px 0;border-radius:50%;background:#1e6bff}
+.participation-line{padding-top:21px}.participation-line i{width:82%}
+.lower-third{position:absolute;left:50px;right:var(--lower-right);top:798px;height:154px;display:grid;grid-template-columns:1fr 255px;align-items:center;padding:20px 31px 20px 44px;background:linear-gradient(90deg,rgba(2,12,31,.98),rgba(2,10,25,.88));border-block:1px solid rgba(104,155,215,.5);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.lower-third:before{content:"";position:absolute;left:15px;top:21px;bottom:21px;width:5px;border-radius:4px;background:linear-gradient(#00d9c0,#1e6bff);box-shadow:0 0 18px rgba(0,217,192,.35)}
+.lower-copy small,.lower-meta small{display:block;color:#45dfe6;font-size:13px;letter-spacing:.14em}.lower-copy strong{display:block;margin:8px 0 5px;font-size:32px;letter-spacing:.02em}.lower-copy span{color:#9aafca;font-size:17px}.lower-meta{height:80px;padding:12px 0 0 28px;border-left:1px solid rgba(111,151,202,.35)}.lower-meta b{display:block;margin-top:8px;color:#91a9c8;font-size:13px;line-height:1.55;letter-spacing:.08em}
+.caption-safe{position:absolute;left:50px;right:50px;top:971px;height:54px;border:1px dashed rgba(109,146,193,.38);display:flex;align-items:center;justify-content:center;color:#597596;font-size:12px;letter-spacing:.15em}.caption-safe span{padding:0 15px;background:#01040e}
+.footer{position:absolute;left:50px;right:50px;bottom:25px;display:flex;justify-content:space-between;align-items:center;color:#6997cb;font-size:13px;letter-spacing:.14em}.footer b{color:#3bdde5;font-weight:700}
+.clean .right-reset{background:linear-gradient(90deg,rgba(1,5,17,.06),rgba(1,5,17,.92) 18%,#010511 42%)}.clean .bottom-reset{top:820px}.clean .bottom-reset:before{top:-130px;height:130px}.clean .footer b{color:#7b94b3}
 </style>
 </head>
-<body><main class="master ${candidate.id}" data-candidate-id="${candidate.id}" data-character-source="CANON-04">
-  <img class="canon-stage" src="${assets.canonStageDataUrl}" alt="">
-  <div class="light-grade"></div><div class="source-clean-left"></div><div class="source-clean-right"></div><div class="source-clean-bottom"></div>
-  <div class="frame"></div><div class="review-label">${candidate.label}</div>
-  <section class="brand-panel"><img src="${assets.wordmarkDataUrl}" alt="Voxy eDebatte"></section>
-  <section class="brand-note"><strong>DIGITALER MODERATOR</strong>Eine kanonische Identität · lokales statisches Review-Master</section>
-  ${candidatePanelMarkup(candidate)}
-  <section class="lower-third"><small>HUMAN-REVIEW-ZONE</small><strong>Headline und Kernaussage</strong><span></span></section>
-  <footer class="footer"><span>VOXY · VOICEOPENGOV · eDEBATTE</span><b>STATISCH · NICHT PRODUKTIV</b></footer>
+<body><main class="master ${variant.id}${clean ? " clean" : ""}" data-variant-id="${variant.id}" data-selection="${variant.selection}" data-character-source="CANON-04" data-waveform-count="1" data-waveform-placement="behind_voxy" data-future-audio-reactive-eligible="true" data-currently-audio-reactive="false">
+  <img class="studio-stage" src="${assets.canonStageDataUrl}" alt="">
+  <div class="studio-grade"></div><div class="brand-reset"></div><div class="right-reset"></div><div class="bottom-reset"></div>
+  <div class="frame"></div><div class="on-air"><i></i>ON AIR</div>
+  <section class="brand-lockup"><img src="${assets.wordmarkDataUrl}" alt="Voxy eDebatte"></section>
+  ${contentMarkup}
+  <footer class="footer"><span>VOXY · DIGITALER MODERATOR · eDEBATTE</span><b>${clean ? "CLEAN MASTER BASE · HUMAN REVIEW" : `${variant.label} · HUMAN REVIEW`}</b></footer>
 </main></body></html>`;
 }
 
-export function renderVoxyStaticCanonComparisonHtml(input: {
-  candidateDataUrls: Readonly<Record<VoxyStaticCanonCandidate["id"], string>>;
+export function renderVoxyStaticCanonFinalComparisonHtml(input: {
+  finalDataUrls: Readonly<Record<"primary-a-final" | "editorial-c-final", string>>;
   canonBoards: readonly Readonly<{ id: string; dataUrl: string }>[];
 }): string {
-  const candidates = [
-    ["candidate-a-canon", "A · CANON FIDELITY"],
-    ["candidate-b-broadcast", "B · BROADCAST"],
-    ["candidate-c-editorial", "C · EDITORIAL"],
+  const variants = [
+    ["primary-a-final", "PRIMARY A · BROADCAST MASTER"],
+    ["editorial-c-final", "EDITORIAL C · ANLASS-VARIANTE"],
   ] as const;
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01040d;color:#fff;font-family:Arial,Helvetica,sans-serif}.sheet{width:3200px;height:1800px;padding:54px 58px;background:radial-gradient(circle at 50% 0,#071a40,#01040d 58%)}
-h1{margin:0;font-size:42px;letter-spacing:.08em}p{margin:12px 0 32px;color:#8ea9cc;font-size:22px}.candidate-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}.candidate,.canon{border:1px solid rgba(94,151,224,.48);border-radius:17px;overflow:hidden;background:#020718;box-shadow:0 20px 55px rgba(0,0,0,.38)}.candidate img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}.label{height:64px;display:flex;align-items:center;padding:0 22px;color:#dfeeff;font-size:21px;font-weight:700;letter-spacing:.08em;border-top:1px solid rgba(94,151,224,.32)}
-h2{font-size:25px;letter-spacing:.1em;margin:42px 0 18px;color:#55dce9}.canon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}.canon img{display:block;width:100%;height:410px;object-fit:contain;background:#01030a}.canon .label{height:55px;font-size:17px}.notice{display:flex;justify-content:space-between;margin-top:28px;color:#718aad;font-size:18px;letter-spacing:.06em}.notice b{color:#49dbe7}
-</style></head><body><main class="sheet"><h1>VOXY · STATISCHE MASTER-AUSWAHL</h1><p>Direkter Human-Review-Vergleich · keine automatische Bewertung · keine Animationsfreigabe</p><section class="candidate-grid">${candidates.map(([id, label]) => `<article class="candidate"><img src="${input.candidateDataUrls[id]}" alt=""><div class="label">${label}</div></article>`).join("")}</section><h2>HUMAN-APPROVED CANON-REFERENZEN</h2><section class="canon-grid">${input.canonBoards.map((board) => `<article class="canon"><img src="${board.dataUrl}" alt=""><div class="label">${board.id}</div></article>`).join("")}</section><div class="notice"><span>Charakterquelle A/B/C identisch: CANON-04 · CANON-01/02 Character-Kontrolle · CANON-03/04 Studio/Layout</span><b>HUMAN VISUAL ACCEPTANCE: PENDING</b></div></main></body></html>`;
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01040d;color:#fff;font-family:Arial,Helvetica,sans-serif}.sheet{width:3200px;height:1800px;padding:48px 58px;background:radial-gradient(circle at 50% 0,#071a40,#01040d 58%)}
+h1{margin:0;font-size:40px;letter-spacing:.08em}p{margin:10px 0 26px;color:#8ea9cc;font-size:20px}.variant-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}.variant,.canon{border:1px solid rgba(94,151,224,.48);overflow:hidden;background:#020718;box-shadow:0 20px 55px rgba(0,0,0,.38)}.variant img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}.label{height:58px;display:flex;align-items:center;padding:0 22px;color:#dfeeff;font-size:20px;font-weight:700;letter-spacing:.08em;border-top:1px solid rgba(94,151,224,.32)}
+h2{font-size:24px;letter-spacing:.1em;margin:30px 0 15px;color:#55dce9}.canon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.canon img{display:block;width:100%;height:435px;object-fit:contain;background:#01030a}.canon .label{height:50px;font-size:16px}.notice{display:flex;justify-content:space-between;margin-top:24px;color:#718aad;font-size:17px;letter-spacing:.055em}.notice b{color:#49dbe7}
+</style></head><body><main class="sheet"><h1>VOXY · FINALER STATISCHER MASTER-REVIEW</h1><p>A = Primary Broadcast Master · C = Editorial-/Anlass-Variante · B = rejected · keine automatische Qualitätsaussage</p><section class="variant-grid">${variants.map(([id, label]) => `<article class="variant"><img src="${input.finalDataUrls[id]}" alt=""><div class="label">${label}</div></article>`).join("")}</section><h2>VERBINDLICHE CANON-REFERENZEN</h2><section class="canon-grid">${input.canonBoards.map((board) => `<article class="canon"><img src="${board.dataUrl}" alt=""><div class="label">${board.id}</div></article>`).join("")}</section><div class="notice"><span>Identischer Character, Studio, Kamera, Licht und eine Hintergrund-Waveform in A/C · nur die Content-Zonen unterscheiden sich</span><b>HUMAN VISUAL ACCEPTANCE: PENDING</b></div></main></body></html>`;
 }

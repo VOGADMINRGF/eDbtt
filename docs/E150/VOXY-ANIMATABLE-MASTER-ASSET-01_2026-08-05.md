@@ -10,9 +10,14 @@ abgelehnt. Die Detector-, Render- und Format-Evidence dieses Stands bleibt als
 technischer Nachweis erhalten, ist aber keine akzeptierte Voxy-Identität und
 keine Grundlage für weitere Animation oder Production.
 
-Der aktuelle Recovery-Slice erzeugt deshalb ausdrücklich **keine Animation**.
-Er bindet die vier menschlich freigegebenen Canon-Boards aus
-`apps/web/public/brands/voxy/canon/` als visuelle Hierarchie:
+Der aktuelle Finalisierungs-Slice erzeugt deshalb ausdrücklich **keine
+Animation**. Die menschliche Recovery-Auswahl am statischen Exact Head
+`0009a32a8c29781c8f1bc149c2f3538febfec755` setzt A als Primary Master und C
+als Editorial-/Anlass-Variante. B ist verworfen und kein Produktionskandidat.
+Diese Auswahl ist noch keine finale Human Visual Acceptance von A oder C.
+
+Der Slice bindet die vier menschlich freigegebenen Canon-Boards aus
+`apps/web/public/brands/voxy/references/canon/` als unveränderte visuelle SSOT:
 
 - `CANON-01-character-development-board.png` — Charakter-, Gesichts-,
   Anatomie- und Detailkontrolle,
@@ -23,28 +28,36 @@ Er bindet die vier menschlich freigegebenen Canon-Boards aus
 - `CANON-03-teal-broadcast-layout.png` — Studio-, Licht- und
   Broadcast-Kompositionskontrolle,
   SHA256 `479caf603da577009318beda49b4e0dc61f79c70e6bdb9fed820d448767aaded`;
-- `CANON-04-blue-broadcast-layout.png` — identische Voxy-Pixelquelle für alle
-  drei Recovery-Kandidaten sowie Studio-/Layoutkontrolle,
+- `CANON-04-blue-broadcast-layout.png` — identische Voxy-/Studio-Pixelquelle
+  für Primary A und Editorial C sowie Studio-/Layoutkontrolle,
   SHA256 `8ec3927f2871b210f46468f56a2845811c89dbb971c11bf086de7446ac0efff8`.
 
 Der lokale Renderer
-`apps/web/scripts/render-voxy-static-canon-recovery.ts` erzeugt drei statische
-16:9-Master in 1920 × 1080 und eine 3200 × 1800 große Vergleichstafel:
+`apps/web/scripts/render-voxy-static-canon-recovery.ts` erzeugt unter
+`artifacts/voxy-static-canon-final/` zwei statische 16:9-Master in 1920 × 1080,
+einen optionalen Clean Master und eine 3200 × 1800 große Vergleichstafel:
 
-- `candidate-a-canon.png` — engste Canon-Nähe;
-- `candidate-b-broadcast.png` — Broadcast-Gewichtung mit mehr Monitorraum;
-- `candidate-c-editorial.png` — redaktionelle Gewichtung mit größerer
-  Inhaltsfläche;
-- `comparison.png` — A/B/C und alle vier Canon-Boards in einer Review-Fläche;
-- `manifest.json` — Exact Head, sämtliche SHA256, Canon-Rollen, Source-Crop,
-  Kamera-/Lichtgewichtung und Freigabegrenzen.
+- `primary-a-final.png` — ausgewählter Primary Master A;
+- `primary-a-clean.png` — derselbe Primary Master ohne redaktionellen
+  Beispielinhalt;
+- `editorial-c-final.png` — ausgewählte Editorial-/Anlass-Variante C;
+- `canon-comparison-final.png` — A final, C final und alle vier Canon-Boards;
+- `manifest.json` — Exact Head, sämtliche Input-/Output-SHA256, Dimensionen,
+  Produktionsmethode, Auswahl, Abweichungen und Freigabegrenzen.
 
-Alle drei Kandidaten verwenden exakt dieselbe abgeflachte Voxy-Quelle aus
-CANON-04; nur Kamera, Crop, Inhaltsraum und Lichtgewichtung unterscheiden sich.
+A und C verwenden exakt dieselbe abgeflachte CANON-04-Voxy-/Studio-Pixelquelle,
+dieselbe Kamera, Licht-, Marken-, Typografie- und Materialbehandlung. Nur die
+native Inhaltszonenarchitektur unterscheidet sich. Voxy ist größer und enger in
+eine ruhigere Broadcast-/Editorial-Fläche integriert; generische Dashboard-
+Cards, harte Maskenkanten und die frühere doppelte Waveform entfallen. Genau
+eine statische Waveform bleibt hinter Voxy. Sie ist als künftig
+audio-reaktionsfähig markiert, aktuell aber nicht audio-reaktiv; Audioanalyse ist
+nicht Teil dieses Slices.
+
 Der Lauf bleibt vollständig lokal, nutzt weder Generierung noch externen Dienst,
 Upload oder SaaS und lädt sein Exact-Head-Artefakt für mindestens 14 Tage hoch.
-`humanVisualAcceptance` ist für diese statischen Kandidaten `pending`;
-`animationEligible`, `productionEligible` und `autoPublish` bleiben `false`.
+`humanVisualAcceptance` ist für A und C `pending`; `animationEligible`,
+`productionEligible` und `autoPublish` bleiben `false`.
 
 ## Ergebnis des technischen Slices
 
@@ -137,9 +150,9 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 ## Bekannte visuelle Grenzen
 
-- Die statischen Recovery-Master verwenden eine abgeflachte Canon-04-Pixelquelle
+- Die statischen finalen Master verwenden eine abgeflachte Canon-04-Pixelquelle
   und sind noch kein separates, geschichtetes 3D- oder Rig-Masterasset.
-- Pose und Grundlicht sind deshalb zwischen A/B/C gebunden; Figur und Studio
+- Pose und Grundlicht sind deshalb zwischen A/C gebunden; Figur und Studio
   können noch nicht unabhängig voneinander verändert werden.
 - Die nativen redaktionellen Text- und Inhaltsflächen sind Review-Platzhalter;
   die in der Canon-Rasterquelle eingebrannten Beispieltexte werden vollständig
@@ -159,7 +172,9 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 - Motion-Stand `7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb`:
   `humanVisualAcceptance = rejected`;
-- statische A/B/C-Recovery-Kandidaten: `humanVisualAcceptance = pending`;
+- Primary A und Editorial C: `humanVisualAcceptance = pending`;
+- Variante B: `rejected`, nicht im finalen Artefakt enthalten und nicht für
+  Production vorgesehen;
 - technischer Taskzustand nach Exact-Head-Render und grünen Checks maximal:
   `review`;
 - `animationEligible = false`, `productionEligible = false` und

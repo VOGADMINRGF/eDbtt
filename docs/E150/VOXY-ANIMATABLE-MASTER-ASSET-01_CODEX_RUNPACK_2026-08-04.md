@@ -4,9 +4,21 @@ Stand: 2026-08-04
 
 ## Status
 
-`codex_ready_pending_ssot_serialization`
+`review`
 
 Dieser Run-Pack ist eine additive Ausführungsvorbereitung zu Issue #569. `docs/E150/OpenTasks.md` bleibt die alleinige operative Implementierungs-SSOT. Dieser Text ersetzt die Queue nicht.
+
+Der historische Branch-Start und die ursprüngliche animierbare Definition of
+Done unten sind durch den aktuellen Recovery-/Finalisierungsstand überholt. Im
+bestehenden Draft-PR `#589` gilt: Der Motion-Head
+`7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb` ist menschlich abgelehnt. Die
+menschliche Prüfung von `0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als
+Primary Master und C als Editorial-/Anlass-Variante ausgewählt; B ist verworfen.
+Der aktuelle Slice finalisiert ausschließlich statische A/C-Master aus derselben
+CANON-04-Pixelquelle. Genau eine statische Waveform liegt hinter Voxy; eine
+spätere Audio-Reaktion ist nur als Eignung markiert und nicht implementiert.
+`humanVisualAcceptance = pending`, `animationEligible = false`,
+`productionEligible = false` und `autoPublish = false` bleiben verbindlich.
 
 Die Produkt-, Marken-, Look- und kommerzielle Nutzungsfreigabe wurde am 04.08.2026 erteilt. PR #558 ist gemergt. Der 200-%-Kontrollpunkt ist in Issue #580 manifestiert.
 

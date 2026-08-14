@@ -1,8 +1,11 @@
-export const VOXY_STATIC_CANON_RECOVERY_SCHEMA_VERSION =
-  "voxy-static-canon-recovery-v1" as const;
+export const VOXY_STATIC_CANON_FINAL_SCHEMA_VERSION =
+  "voxy-static-canon-final-v1" as const;
 
 export const VOXY_REJECTED_MOTION_HEAD =
   "7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb" as const;
+
+export const VOXY_STATIC_RECOVERY_REVIEW_HEAD =
+  "0009a32a8c29781c8f1bc149c2f3538febfec755" as const;
 
 export const VOXY_STATIC_CANON_BOARDS = [
   {
@@ -43,78 +46,78 @@ export const VOXY_STATIC_CANON_BOARDS = [
   },
 ] as const;
 
-export const VOXY_STATIC_CANON_PIXEL_SOURCE =
-  VOXY_STATIC_CANON_BOARDS[3];
+export const VOXY_STATIC_CANON_PIXEL_SOURCE = VOXY_STATIC_CANON_BOARDS[3];
 
 export const VOXY_STATIC_CANON_NATIVE_ASSETS = {
-  wordmark:
-    "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg",
+  wordmark: "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg",
 } as const;
 
-export type VoxyStaticCanonCandidateId =
-  | "candidate-a-canon"
-  | "candidate-b-broadcast"
-  | "candidate-c-editorial";
+export const VOXY_STATIC_CANON_FINAL_CAMERA = {
+  scale: 1.075,
+  translateX: -18,
+  translateY: 2,
+  transformOrigin: "50% 44%",
+} as const;
 
-export type VoxyStaticCanonCandidate = Readonly<{
-  id: VoxyStaticCanonCandidateId;
-  fileName: `${VoxyStaticCanonCandidateId}.png`;
-  mode: "canon_fidelity" | "broadcast" | "editorial";
+export const VOXY_STATIC_CANON_WAVEFORM = {
+  count: 1,
+  placement: "behind_voxy",
+  futureAudioReactiveEligible: true,
+  currentlyAudioReactive: false,
+} as const;
+
+export type VoxyStaticCanonFinalId =
+  | "primary-a-final"
+  | "editorial-c-final";
+
+export type VoxyStaticCanonFinalVariant = Readonly<{
+  id: VoxyStaticCanonFinalId;
+  fileName: `${VoxyStaticCanonFinalId}.png`;
+  selection: "A" | "C";
+  role: "primary_master" | "editorial_variant";
   label: string;
-  camera: Readonly<{
-    scale: number;
-    translateX: number;
-    translateY: number;
-  }>;
-  rightPanelWidth: number;
+  contentArchitecture: "broadcast_primary" | "editorial_anlass";
+  camera: typeof VOXY_STATIC_CANON_FINAL_CAMERA;
   characterPixelSource: typeof VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath;
+  waveform: typeof VOXY_STATIC_CANON_WAVEFORM;
   knownDeviations: readonly string[];
 }>;
 
-export const VOXY_STATIC_CANON_CANDIDATES = [
+export const VOXY_STATIC_CANON_FINAL_VARIANTS = [
   {
-    id: "candidate-a-canon",
-    fileName: "candidate-a-canon.png",
-    mode: "canon_fidelity",
-    label: "A · CANON FIDELITY",
-    camera: { scale: 1, translateX: 0, translateY: 0 },
-    rightPanelWidth: 550,
+    id: "primary-a-final",
+    fileName: "primary-a-final.png",
+    selection: "A",
+    role: "primary_master",
+    label: "PRIMARY A · BROADCAST MASTER",
+    contentArchitecture: "broadcast_primary",
+    camera: VOXY_STATIC_CANON_FINAL_CAMERA,
     characterPixelSource: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+    waveform: VOXY_STATIC_CANON_WAVEFORM,
     knownDeviations: [
-      "flattened_canon_board_source_not_layered_3d_scene",
-      "generated_board_typography_covered_by_native_review_zones",
+      "flattened_canon_04_source_not_yet_a_layered_character_and_studio_master",
+      "native_content_zones_are_review_placeholders_not_final_product_copy",
     ],
   },
   {
-    id: "candidate-b-broadcast",
-    fileName: "candidate-b-broadcast.png",
-    mode: "broadcast",
-    label: "B · BROADCAST",
-    camera: { scale: 1.035, translateX: -18, translateY: 5 },
-    rightPanelWidth: 500,
+    id: "editorial-c-final",
+    fileName: "editorial-c-final.png",
+    selection: "C",
+    role: "editorial_variant",
+    label: "EDITORIAL C · ANLASS-VARIANTE",
+    contentArchitecture: "editorial_anlass",
+    camera: VOXY_STATIC_CANON_FINAL_CAMERA,
     characterPixelSource: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+    waveform: VOXY_STATIC_CANON_WAVEFORM,
     knownDeviations: [
-      "camera_crop_tighter_than_canon_04",
-      "broadcast_status_graphics_are_native_review_placeholders",
+      "flattened_canon_04_source_not_yet_a_layered_character_and_studio_master",
+      "editorial_information_zones_require_later_content_specific_review",
     ],
   },
-  {
-    id: "candidate-c-editorial",
-    fileName: "candidate-c-editorial.png",
-    mode: "editorial",
-    label: "C · EDITORIAL",
-    camera: { scale: 1.02, translateX: -72, translateY: 2 },
-    rightPanelWidth: 690,
-    characterPixelSource: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
-    knownDeviations: [
-      "camera_shift_creates_larger_native_editorial_content_zone",
-      "editorial_fields_are_empty_review_zones_not_final_copy",
-    ],
-  },
-] as const satisfies readonly VoxyStaticCanonCandidate[];
+] as const satisfies readonly VoxyStaticCanonFinalVariant[];
 
-export type VoxyStaticCanonRecoveryPlan = {
-  schemaVersion: typeof VOXY_STATIC_CANON_RECOVERY_SCHEMA_VERSION;
+export type VoxyStaticCanonFinalPlan = {
+  schemaVersion: typeof VOXY_STATIC_CANON_FINAL_SCHEMA_VERSION;
   exactHeadSha: string;
   output: {
     width: 1920;
@@ -122,9 +125,21 @@ export type VoxyStaticCanonRecoveryPlan = {
     comparisonWidth: 3200;
     comparisonHeight: 1800;
   };
+  outputDirectory: "artifacts/voxy-static-canon-final";
+  cleanPrimaryFileName: "primary-a-clean.png";
+  comparisonFileName: "canon-comparison-final.png";
   canonBoards: typeof VOXY_STATIC_CANON_BOARDS;
-  candidates: typeof VOXY_STATIC_CANON_CANDIDATES;
+  variants: typeof VOXY_STATIC_CANON_FINAL_VARIANTS;
+  primaryMaster: "A";
+  editorialVariant: "C";
+  rejectedVariant: "B";
+  rejectedVariantIncluded: false;
+  waveform: typeof VOXY_STATIC_CANON_WAVEFORM;
   productionMethod: "local_playwright_raster_composition_over_canon_board";
+  recoveryReview: {
+    exactHeadSha: typeof VOXY_STATIC_RECOVERY_REVIEW_HEAD;
+    visualDirection: "accepted_for_final_refinement";
+  };
   previousMotion: {
     exactHeadSha: typeof VOXY_REJECTED_MOTION_HEAD;
     humanVisualAcceptance: "rejected";
@@ -133,17 +148,18 @@ export type VoxyStaticCanonRecoveryPlan = {
   externalProviderUsed: false;
   externalUploadUsed: false;
   generativeRedrawUsed: false;
+  audioAnalysisImplemented: false;
   humanVisualAcceptance: "pending";
   animationEligible: false;
   productionEligible: false;
   autoPublish: false;
 };
 
-export function buildVoxyStaticCanonRecoveryPlan(
+export function buildVoxyStaticCanonFinalPlan(
   exactHeadSha: string,
-): VoxyStaticCanonRecoveryPlan {
+): VoxyStaticCanonFinalPlan {
   return {
-    schemaVersion: VOXY_STATIC_CANON_RECOVERY_SCHEMA_VERSION,
+    schemaVersion: VOXY_STATIC_CANON_FINAL_SCHEMA_VERSION,
     exactHeadSha,
     output: {
       width: 1920,
@@ -151,9 +167,21 @@ export function buildVoxyStaticCanonRecoveryPlan(
       comparisonWidth: 3200,
       comparisonHeight: 1800,
     },
+    outputDirectory: "artifacts/voxy-static-canon-final",
+    cleanPrimaryFileName: "primary-a-clean.png",
+    comparisonFileName: "canon-comparison-final.png",
     canonBoards: VOXY_STATIC_CANON_BOARDS,
-    candidates: VOXY_STATIC_CANON_CANDIDATES,
+    variants: VOXY_STATIC_CANON_FINAL_VARIANTS,
+    primaryMaster: "A",
+    editorialVariant: "C",
+    rejectedVariant: "B",
+    rejectedVariantIncluded: false,
+    waveform: VOXY_STATIC_CANON_WAVEFORM,
     productionMethod: "local_playwright_raster_composition_over_canon_board",
+    recoveryReview: {
+      exactHeadSha: VOXY_STATIC_RECOVERY_REVIEW_HEAD,
+      visualDirection: "accepted_for_final_refinement",
+    },
     previousMotion: {
       exactHeadSha: VOXY_REJECTED_MOTION_HEAD,
       humanVisualAcceptance: "rejected",
@@ -162,6 +190,7 @@ export function buildVoxyStaticCanonRecoveryPlan(
     externalProviderUsed: false,
     externalUploadUsed: false,
     generativeRedrawUsed: false,
+    audioAnalysisImplemented: false,
     humanVisualAcceptance: "pending",
     animationEligible: false,
     productionEligible: false,
@@ -169,8 +198,8 @@ export function buildVoxyStaticCanonRecoveryPlan(
   };
 }
 
-export function validateVoxyStaticCanonRecoveryPlan(
-  plan: VoxyStaticCanonRecoveryPlan,
+export function validateVoxyStaticCanonFinalPlan(
+  plan: VoxyStaticCanonFinalPlan,
 ): string[] {
   const errors: string[] = [];
   if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) {
@@ -180,19 +209,45 @@ export function validateVoxyStaticCanonRecoveryPlan(
     errors.push("four_canon_boards_required");
   }
   if (
-    plan.candidates.map((candidate) => candidate.fileName).join(",") !==
-    "candidate-a-canon.png,candidate-b-broadcast.png,candidate-c-editorial.png"
+    plan.variants.map((variant) => variant.fileName).join(",") !==
+    "primary-a-final.png,editorial-c-final.png"
   ) {
-    errors.push("candidate_output_contract_invalid");
+    errors.push("final_output_contract_invalid");
   }
   if (
-    plan.candidates.some(
-      (candidate) =>
-        candidate.characterPixelSource !==
+    plan.primaryMaster !== "A" ||
+    plan.editorialVariant !== "C" ||
+    plan.rejectedVariant !== "B" ||
+    plan.rejectedVariantIncluded !== false
+  ) {
+    errors.push("human_selection_contract_invalid");
+  }
+  if (
+    plan.variants.some(
+      (variant) =>
+        variant.characterPixelSource !==
         VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
     )
   ) {
-    errors.push("candidate_character_source_must_be_identical");
+    errors.push("final_character_source_must_be_identical");
+  }
+  if (
+    plan.variants.some(
+      (variant) =>
+        JSON.stringify(variant.camera) !==
+        JSON.stringify(VOXY_STATIC_CANON_FINAL_CAMERA),
+    )
+  ) {
+    errors.push("final_camera_and_studio_must_be_identical");
+  }
+  if (
+    plan.waveform.count !== 1 ||
+    plan.waveform.placement !== "behind_voxy" ||
+    plan.waveform.futureAudioReactiveEligible !== true ||
+    plan.waveform.currentlyAudioReactive !== false ||
+    plan.audioAnalysisImplemented !== false
+  ) {
+    errors.push("single_background_waveform_contract_invalid");
   }
   if (
     plan.previousMotion.humanVisualAcceptance !== "rejected" ||
