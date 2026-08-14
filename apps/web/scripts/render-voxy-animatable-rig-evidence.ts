@@ -483,7 +483,7 @@ async function main(): Promise<void> {
   }
 
   const manifest = {
-    schemaVersion: "voxy-animatable-rig-evidence-v2",
+    schemaVersion: "voxy-animatable-rig-evidence-v1",
     taskId: "VOXY-ANIMATABLE-MASTER-ASSET-01",
     exactHeadSha,
     generatedAt: new Date().toISOString(),
