@@ -44,6 +44,10 @@ Exakte Pfade innerhalb des Artifacts:
 - `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/insufficient-confidence-cropped-hand.png`
 - `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/four-finger-hand.png`
 - `artifacts/voxy-200pct-visual-qa/negative-fixture/hand-detector/six-finger-hand.png`
+- vier zusätzliche gültige PNG-Fixtures
+  `valid-five-finger-hand--45deg.png`, `valid-five-finger-hand--30deg.png`,
+  `valid-five-finger-hand-30deg.png` und
+  `valid-five-finger-hand-45deg.png`
 - `artifacts/voxy-200pct-visual-qa/evidence-manifest.json`
 
 Das Manifest enthält SHA-256 je PNG, Viewport, Browserzoom, Exact-Head-SHA,
@@ -56,16 +60,26 @@ Captures unverändert bleibt.
 ## Lokale Hand-/Landmark-Erkennung
 
 Der typisierte Adapter `VoxyVisualHandDetector` verwendet
-`voxy_raster_silhouette_hand_landmarker@1.0.0` mit dem gewichtslosen Profil
-`voxy-upright-open-palm-profile-v1`. Er segmentiert die helle neutrale
-Voxy-Handkomponente aus dem lokalen PNG, prüft Bildgrenze, Auflösung,
-Silhouettensolidität, getrennte aufrechte Finger und seitlichen Daumen und
-erzeugt aus der beobachteten Topologie äquivalente Landmark-Evidence. Bei fünf
-Fingern entstehen genau 21 Punkte. Mindest-Confidence ist `0.75`.
+`voxy_raster_silhouette_hand_landmarker@2.0.0` mit dem gewichtslosen Profil
+`voxy-rotation-normalized-open-palm-profile-v2`. Er segmentiert die helle
+neutrale Voxy-Handkomponente aus dem lokalen PNG, polstert die Maske um 24
+Pixel, berechnet die Hauptachse der Silhouettenpixel per PCA und normalisiert
+die lokale Binärmaske deterministisch in die bereits geprüfte
+Upright-Open-Palm-Topologie. Erst danach laufen die unveränderten
+Finger-/Daumen-/Topologie- und Confidence-Gates. Bei fünf Fingern entstehen
+genau 21 Punkte. Mindest-Confidence bleibt `0.75`.
+
+Evidence enthält den ursprünglichen Crop-SHA, Hauptachsenwinkel und -stärke,
+den angewendeten Rotationswinkel, `normalizationApplied`, den SHA-256 der
+normalisierten Maske, den Paddingvertrag, Cropverluststatus und den
+Detector-Profil-SHA. Nicht belastbare Achsen, Eingaberandkontakt,
+Normalisierungs-Cropverlust, unzureichende Confidence oder fehlende Provenienz
+setzen die Fingerzahl auf `null`; es gibt keine automatische Fünf-Finger-
+Annahme.
 
 Der Capture berechnet den SHA-256 des serialisierten Profils und den SHA-256
 jedes Detector-Inputs. Aktueller Profil-SHA-256:
-`cce29f7a8d96eb82288c93b183831b35091cf9df3c310d4210f89dab14584a03`.
+`75ae283ba8eea2e5637f2d9c373d333132086f99f5a6b7194dcbdb8a82b25f4c`.
 Es gibt kein Modellgewicht, kein Runtime-CDN, keinen Upload und keinen externen
 Detection-Service. Die vollständige Kandidaten- und Lizenzentscheidung steht in
 `docs/E150/VOXY-VISUAL-DETECTOR-LICENSE-CONTRACT-01_2026-08-14.md`.
@@ -80,8 +94,10 @@ Browser-Bounds des Character-Layers und den tatsächlich angewendeten
 Crop oder Blur nicht beobachtet wird.
 
 Die Hand-Detection ergänzt vier real gerasterte PNG-Negativfälle: keine Hand,
-ein an der Bildgrenze abgeschnittener Low-Confidence-Fall, vier Finger und sechs
-Finger. Der fehlende oder beschädigte Provenienzbeleg bleibt sinnvollerweise
+ein bei `+30°` an der Bildgrenze abgeschnittener Low-Confidence-Fall, vier
+Finger bei `-45°` und sechs Finger bei `+30°`. Vier gültige Fünf-Finger-
+PNG-Fixtures bei ungefähr `-45°`, `-30°`, `+30°` und `+45°` belegen den
+positiven Normalisierungspfad. Der fehlende oder beschädigte Provenienzbeleg bleibt sinnvollerweise
 ein getrenntes Metadatenfixture, weil diese Beschädigung gerade nicht im Bild
 liegt. Alle Negativfixtures sind `mustNeverBeApproved`. Keine Strecke setzt bei
 Fehlern fünf Finger als Fallback.
@@ -140,6 +156,8 @@ enthält keine Selbstfreigabe.
   Open-Palm-Pose
 - Detector-, Runtime-, Profil-, Modell-/Profil-SHA-, Input-SHA- und
   Lizenzprovenienz vollständig
+- ursprünglicher Crop-SHA, PCA-Hauptachse, Normalisierungswinkel,
+  normalisierter Input-SHA, Padding und Cropverluststatus vollständig
 - Waveform bleibt hinter Voxy und außerhalb der Logo-Zone laut kanonischem
   Layoutvertrag
 - Evidence-Key umfasst Capture-Hashes, QA-Befunde, Hand-Evidence, Posen und
@@ -163,6 +181,25 @@ Metadaten als menschlich freigegeben ausgegeben.
 - kein externer Upload oder Publishing
 - keine menschliche Freigabe durch den Agenten
 - keine Änderung am Rigging-Scope von PR #589
+
+## #589-Exact-Head-Cross-Check
+
+Der schreibgeschützte Cross-Check wird mit
+`apps/web/scripts/cross-check-voxy-589-hand-evidence.ts` gegen das
+revisionsgebundene #589-Artefakt ausgeführt. Für den Exact Head
+`df339f8a3c62031a0a006cabcbf96581b48f9285` wurden aus 12 Standframes alle 24
+Handregionen anhand der im Artifact-Manifest enthaltenen Bounds mit dem
+24-Pixel-Paddingvertrag neu geschnitten. 23 Crops werden als fünf Finger mit
+Confidence `1.0` akzeptiert; die gemessenen Originalrotationen liegen zwischen
+`-90°` und `+90°`.
+
+Der Crop `1:1 / 5000 ms / right` bleibt bewusst blockiert: In der kleinen
+Rasterauflösung trennt die normalisierte Silhouette nur drei aufrechte Finger
+plus Daumen, also vier Finger. Derselbe Posezustand wird in `16:9` und `9:16`
+korrekt erkannt. Es wurde weder der Confidence-Schwellenwert abgesenkt noch ein
+Fünf-Finger-Fallback eingebaut. Für diesen einzelnen Crop bleibt daher Human
+Visual Acceptance erforderlich. `humanReview = pending` und
+`productionEligible = false` bleiben unverändert.
 
 ## Abschlussnachweis
 

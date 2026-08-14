@@ -66,7 +66,10 @@ function rasterHand(input: {
   };
 }
 
-const detector = new VoxyVisualHandDetector({ modelSha256: HASH });
+const detector = new VoxyVisualHandDetector({
+  modelSha256: HASH,
+  hashBytes: () => HASH,
+});
 
 function handDetection(
   hand: "left" | "right",

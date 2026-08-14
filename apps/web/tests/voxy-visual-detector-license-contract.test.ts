@@ -67,8 +67,54 @@ function rasterHand(input: {
   };
 }
 
+function rotateRaster(
+  image: ReturnType<typeof rasterHand>,
+  rotationDegrees: number,
+) {
+  const rgba = new Uint8ClampedArray(image.rgba.length);
+  for (let index = 0; index < image.width * image.height; index += 1) {
+    const offset = index * 4;
+    rgba[offset] = 2;
+    rgba[offset + 1] = 7;
+    rgba[offset + 2] = 24;
+    rgba[offset + 3] = 255;
+  }
+  const radians = (rotationDegrees * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const centerX = (image.width - 1) / 2;
+  const centerY = (image.height - 1) / 2;
+  for (let y = 0; y < image.height; y += 1) {
+    for (let x = 0; x < image.width; x += 1) {
+      const deltaX = x - centerX;
+      const deltaY = y - centerY;
+      const sourceX = Math.round(centerX + cosine * deltaX + sine * deltaY);
+      const sourceY = Math.round(centerY - sine * deltaX + cosine * deltaY);
+      if (
+        sourceX < 0 ||
+        sourceY < 0 ||
+        sourceX >= image.width ||
+        sourceY >= image.height
+      ) {
+        continue;
+      }
+      const sourceOffset = (sourceY * image.width + sourceX) * 4;
+      const targetOffset = (y * image.width + x) * 4;
+      rgba.set(image.rgba.subarray(sourceOffset, sourceOffset + 4), targetOffset);
+    }
+  }
+  return {
+    ...image,
+    rgba,
+    inputPath: `fixture://local-raster-hand-${rotationDegrees}deg.png`,
+  };
+}
+
 function detector() {
-  return new VoxyVisualHandDetector({ modelSha256: HASH });
+  return new VoxyVisualHandDetector({
+    modelSha256: HASH,
+    hashBytes: () => HASH,
+  });
 }
 
 describe("Voxy visual detector license contract", () => {
@@ -142,6 +188,27 @@ describe("Voxy visual detector license contract", () => {
     expect(isUsableVoxyHandDetectionEvidence(evidence)).toBe(true);
   });
 
+  it.each([-45, -30, 30, 45])(
+    "normalizes a padded open palm rotated by %i degrees before topology checks",
+    (rotationDegrees) => {
+      const evidence = detector().detect({
+        hand: "left",
+        image: rotateRaster(
+          rasterHand({ uprightFingerCount: 4, includeThumb: true }),
+          rotationDegrees,
+        ),
+      });
+      expect(evidence.fingerCount).toBe(5);
+      expect(evidence.landmarkCount).toBe(21);
+      expect(evidence.originalRotationDegrees).toBeCloseTo(rotationDegrees, -1);
+      expect(evidence.normalizationApplied).toBe(true);
+      expect(evidence.normalizedInputSha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(evidence.paddingPixels).toBeGreaterThan(0);
+      expect(evidence.normalizationCropLoss).toBe(false);
+      expect(isUsableVoxyHandDetectionEvidence(evidence)).toBe(true);
+    },
+  );
+
   it("fails closed on a real empty raster and a cropped low-confidence raster", () => {
     const missing = detector().detect({
       hand: "left",
@@ -177,6 +244,27 @@ describe("Voxy visual detector license contract", () => {
     expect(six.landmarkCount).toBe(25);
   });
 
+  it("keeps rotated four- and six-finger anatomy fail-closed for five-finger QA", () => {
+    const four = detector().detect({
+      hand: "left",
+      image: rotateRaster(
+        rasterHand({ uprightFingerCount: 3, includeThumb: true }),
+        -45,
+      ),
+    });
+    const six = detector().detect({
+      hand: "left",
+      image: rotateRaster(
+        rasterHand({ uprightFingerCount: 5, includeThumb: true }),
+        30,
+      ),
+    });
+    expect(four.fingerCount).toBe(4);
+    expect(six.fingerCount).toBe(6);
+    expect(four.normalizationApplied).toBe(true);
+    expect(six.normalizationApplied).toBe(true);
+  });
+
   it("rejects damaged detector or model provenance", () => {
     const evidence = detector().detect({
       hand: "left",
@@ -192,6 +280,18 @@ describe("Voxy visual detector license contract", () => {
       isUsableVoxyHandDetectionEvidence({
         ...evidence,
         detectorId: "",
+      }),
+    ).toBe(false);
+    expect(
+      isUsableVoxyHandDetectionEvidence({
+        ...evidence,
+        detectorProfileSha256: "damaged-profile-provenance",
+      }),
+    ).toBe(false);
+    expect(
+      isUsableVoxyHandDetectionEvidence({
+        ...evidence,
+        normalizedInputSha256: null,
       }),
     ).toBe(false);
   });

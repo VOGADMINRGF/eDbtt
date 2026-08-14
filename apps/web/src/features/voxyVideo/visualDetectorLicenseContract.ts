@@ -34,9 +34,9 @@ export type VoxyDetectorLicenseMatrix = {
 
 export const VOXY_VISUAL_DETECTOR_SELECTED = {
   id: "voxy_raster_silhouette_hand_landmarker",
-  version: "1.0.0",
-  runtimeVersion: "pure-typescript-rgba-v1",
-  modelId: "voxy-upright-open-palm-profile-v1",
+  version: "2.0.0",
+  runtimeVersion: "pure-typescript-rgba-pca-v2",
+  modelId: "voxy-rotation-normalized-open-palm-profile-v2",
   modelKind: "weightless_algorithmic_profile",
   externalServiceRequired: false,
   runtimeNetworkRequired: false,
@@ -111,8 +111,17 @@ export type VoxyHandDetectionEvidence = {
   runtimeVersion: string;
   modelId: string;
   modelSha256: string;
+  detectorProfileSha256: string;
   inputSha256: string;
+  originalInputSha256: string;
+  normalizedInputSha256: string | null;
   inputPath: string;
+  originalRotationDegrees: number | null;
+  principalAxisDegrees: number | null;
+  principalAxisStrength: number | null;
+  normalizationApplied: boolean;
+  paddingPixels: number;
+  normalizationCropLoss: boolean;
   localExecution: boolean;
   licenseStatus: VoxyDetectorLicenseStatus;
   failureReason: string | null;
@@ -145,7 +154,25 @@ export function isUsableVoxyHandDetectionEvidence(
   }
   if (evidence.modelId !== VOXY_VISUAL_DETECTOR_SELECTED.modelId) return false;
   if (!/^[a-f0-9]{64}$/i.test(evidence.modelSha256)) return false;
+  if (evidence.detectorProfileSha256 !== evidence.modelSha256) return false;
   if (!/^[a-f0-9]{64}$/i.test(evidence.inputSha256)) return false;
+  if (evidence.originalInputSha256 !== evidence.inputSha256) return false;
+  if (!/^[a-f0-9]{64}$/i.test(evidence.normalizedInputSha256 ?? "")) {
+    return false;
+  }
+  if (!Number.isFinite(evidence.originalRotationDegrees)) return false;
+  if (!Number.isFinite(evidence.principalAxisDegrees)) return false;
+  if (
+    !Number.isFinite(evidence.principalAxisStrength) ||
+    (evidence.principalAxisStrength ?? 0) < 0 ||
+    (evidence.principalAxisStrength ?? 0) > 1
+  ) {
+    return false;
+  }
+  if (!Number.isInteger(evidence.paddingPixels) || evidence.paddingPixels <= 0) {
+    return false;
+  }
+  if (evidence.normalizationCropLoss) return false;
   if (!evidence.inputPath.trim()) return false;
   if (!evidence.localExecution) return false;
   if (evidence.licenseStatus !== "license_approved") return false;

@@ -189,6 +189,7 @@ async function renderHandDetectorFixture(input: {
   kind: string;
   uprightFingerCount: number;
   includeThumb: boolean;
+  rotationDegrees: number;
   cropped?: boolean;
 }): Promise<void> {
   const fingers = Array.from({ length: input.uprightFingerCount }, (_, index) => {
@@ -199,15 +200,15 @@ async function renderHandDetectorFixture(input: {
   const thumb = input.includeThumb
     ? '<rect x="27" y="94" width="43" height="17" rx="8.5" fill="#f4f5f8" transform="rotate(35 48.5 102.5)"/>'
     : "";
-  const transform = input.cropped ? 'transform="translate(-55 0)"' : "";
+  const cropTransform = input.cropped ? 'transform="translate(-95 0)"' : "";
   await input.page.setContent(
-    `<!doctype html><html><head><style>html,body{margin:0;width:180px;height:180px;overflow:hidden;background:#020718}svg{display:block}</style></head><body><svg width="180" height="180" viewBox="0 0 180 180" data-hand-detector-fixture="${input.kind}"><rect width="180" height="180" fill="#020718"/><g ${transform}>${fingers}${thumb}${input.uprightFingerCount > 0 ? '<rect x="48" y="88" width="100" height="60" rx="24" fill="#f4f5f8"/>' : ""}</g></svg></body></html>`,
+    `<!doctype html><html><head><style>html,body{margin:0;width:240px;height:240px;overflow:hidden;background:#020718}svg{display:block}</style></head><body><svg width="240" height="240" viewBox="0 0 240 240" data-hand-detector-fixture="${input.kind}"><rect width="240" height="240" fill="#020718"/><g transform="translate(30 30)"><g transform="rotate(${input.rotationDegrees} 90 100)"><g ${cropTransform}>${fingers}${thumb}${input.uprightFingerCount > 0 ? '<rect x="48" y="88" width="100" height="60" rx="24" fill="#f4f5f8"/>' : ""}</g></g></g></svg></body></html>`,
     { waitUntil: "load" },
   );
   await input.page.screenshot({
     path: input.path,
     type: "png",
-    clip: { x: 0, y: 0, width: 180, height: 180 },
+    clip: { x: 0, y: 0, width: 240, height: 240 },
   });
 }
 
@@ -223,6 +224,7 @@ async function main(): Promise<void> {
   );
   const handDetector = new VoxyVisualHandDetector({
     modelSha256: detectorProfileSha256,
+    hashBytes: (value) => sha256(Buffer.from(value)),
   });
 
   const characterPath = resolve(webRoot, "public/brands/voxy/characters/voxy-standing-master.svg");
@@ -359,7 +361,7 @@ async function main(): Promise<void> {
   const detectorFixtureDir = resolve(negativeDir, "hand-detector");
   await mkdir(detectorFixtureDir, { recursive: true });
   const detectorFixtureContext = await browser.newContext({
-    viewport: { width: 180, height: 180 },
+    viewport: { width: 240, height: 240 },
     deviceScaleFactor: 1,
   });
   const detectorFixturePage = await detectorFixtureContext.newPage();
@@ -369,22 +371,26 @@ async function main(): Promise<void> {
       kind: "hand-not-detected",
       uprightFingerCount: 0,
       includeThumb: false,
+      rotationDegrees: 0,
     },
     {
       kind: "insufficient-confidence-cropped-hand",
       uprightFingerCount: 4,
       includeThumb: true,
+      rotationDegrees: 30,
       cropped: true,
     },
     {
       kind: "four-finger-hand",
       uprightFingerCount: 3,
       includeThumb: true,
+      rotationDegrees: -45,
     },
     {
       kind: "six-finger-hand",
       uprightFingerCount: 5,
       includeThumb: true,
+      rotationDegrees: 30,
     },
   ] as const;
   const detectorNegativeFixtures: Array<{
@@ -395,6 +401,44 @@ async function main(): Promise<void> {
     expectedFailure: string;
     mustNeverBeApproved: true;
   }> = [];
+  const detectorRotationFixtures: Array<{
+    kind: string;
+    path: string;
+    sha256: string;
+    requestedRotationDegrees: number;
+    detection: VoxyHandDetectionEvidence;
+  }> = [];
+  for (const rotationDegrees of [-45, -30, 30, 45] as const) {
+    const kind = `valid-five-finger-hand-${rotationDegrees}deg`;
+    const fixturePath = resolve(detectorFixtureDir, `${kind}.png`);
+    await renderHandDetectorFixture({
+      page: detectorFixturePage,
+      path: fixturePath,
+      kind,
+      uprightFingerCount: 4,
+      includeThumb: true,
+      rotationDegrees,
+    });
+    const detection = handDetector.detect({
+      hand: "left",
+      image: await decodeLocalPng(detectorFixtureAnalysisPage, fixturePath),
+    });
+    if (
+      detection.fingerCount !== 5 ||
+      !isUsableVoxyHandDetectionEvidence(detection)
+    ) {
+      throw new Error(
+        `rotated_positive_hand_fixture_not_accepted:${rotationDegrees}:${detection.fingerCount}:${detection.failureReason}`,
+      );
+    }
+    detectorRotationFixtures.push({
+      kind,
+      path: fixturePath.replace(`${process.cwd()}/`, ""),
+      sha256: await fileSha256(fixturePath),
+      requestedRotationDegrees: rotationDegrees,
+      detection,
+    });
+  }
   for (const fixture of detectorFixtureSpecs) {
     const fixturePath = resolve(detectorFixtureDir, `${fixture.kind}.png`);
     await renderHandDetectorFixture({
@@ -458,6 +502,13 @@ async function main(): Promise<void> {
   if (isUsableVoxyHandDetectionEvidence(corruptedProvenanceEvidence)) {
     throw new Error("corrupted_detector_provenance_was_accepted");
   }
+  const missingNormalizationProvenanceEvidence: VoxyHandDetectionEvidence = {
+    ...positiveDetection,
+    normalizedInputSha256: null,
+  };
+  if (isUsableVoxyHandDetectionEvidence(missingNormalizationProvenanceEvidence)) {
+    throw new Error("missing_normalization_provenance_was_accepted");
+  }
 
   await browser.close();
   const checkpoint = buildVoxyVisualQaCheckpoint({ snapshots, revision: 1 });
@@ -468,7 +519,7 @@ async function main(): Promise<void> {
   if (validation.productionEligible) throw new Error("human_review_must_not_be_self_approved");
 
   const manifest = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     generatedAt: new Date().toISOString(),
     commitSha,
     browserZoomPercent: 200,
@@ -482,8 +533,14 @@ async function main(): Promise<void> {
       profile: JSON.parse(VOXY_VISUAL_HAND_DETECTOR_PROFILE_SERIALIZED),
     },
     detectorNegativeFixtures,
+    detectorRotationFixtures,
     corruptedProvenanceFixture: {
       evidence: corruptedProvenanceEvidence,
+      expectedFailure: "hand_detection_unusable",
+      mustNeverBeApproved: true,
+    },
+    missingNormalizationProvenanceFixture: {
+      evidence: missingNormalizationProvenanceEvidence,
       expectedFailure: "hand_detection_unusable",
       mustNeverBeApproved: true,
     },

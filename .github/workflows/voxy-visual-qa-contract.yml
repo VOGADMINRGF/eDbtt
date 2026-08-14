@@ -7,6 +7,7 @@ on:
       - "apps/web/src/features/voxyVideo/visualDetectorLicenseContract.ts"
       - "apps/web/src/features/voxyVideo/voxyVisualHandDetector.ts"
       - "apps/web/scripts/capture-voxy-200pct-evidence.ts"
+      - "apps/web/scripts/cross-check-voxy-589-hand-evidence.ts"
       - "apps/web/tests/voxy-visual-qa-checkpoint.contract.test.ts"
       - "apps/web/tests/voxy-visual-detector-license-contract.test.ts"
       - "apps/web/THIRD_PARTY_NOTICES.voxy-visual-detector.md"
@@ -72,8 +73,11 @@ jobs:
           if (manifest.detector?.externalServiceRequired !== false) throw new Error('external_detector_forbidden');
           if (manifest.detector?.runtimeNetworkRequired !== false) throw new Error('detector_network_forbidden');
           if (!/^[a-f0-9]{64}$/.test(manifest.detector?.modelSha256 || '')) throw new Error('detector_model_hash_missing');
+          if (manifest.detectorRotationFixtures?.length !== 4) throw new Error('rotated_positive_png_fixtures_missing');
+          if (!manifest.detectorRotationFixtures.every((fixture) => fixture.detection?.fingerCount === 5 && fixture.detection?.normalizationApplied === true)) throw new Error('rotated_positive_png_fixture_not_normalized');
           if (manifest.detectorNegativeFixtures?.length !== 4) throw new Error('detector_negative_fixtures_missing');
           if (!manifest.detectorNegativeFixtures.every((fixture) => fixture.mustNeverBeApproved === true)) throw new Error('detector_negative_fixture_guard_missing');
+          if (!manifest.detectorNegativeFixtures.filter((fixture) => fixture.kind.includes('four-finger') || fixture.kind.includes('six-finger')).every((fixture) => fixture.detection?.normalizationApplied === true)) throw new Error('rotated_negative_fixture_not_normalized');
           if (manifest.validation.productionEligible !== false) throw new Error('human_gate_must_block_production');
           NODE
 
