@@ -72,9 +72,12 @@ async function setStaticHtml(page: Page, html: string): Promise<void> {
     const images = Array.from(document.images);
     await Promise.all(
       images.map(async (image) => {
-        if (!image.complete) await image.decode();
+        await image.decode();
       }),
     );
+    await new Promise<void>((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()));
+    });
   });
 }
 

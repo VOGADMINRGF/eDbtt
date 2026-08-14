@@ -59,9 +59,9 @@ export function renderVoxyStaticCanonCandidateHtml(input: {
 .master{position:relative;width:1920px;height:1080px;overflow:hidden;isolation:isolate;background:#020718}
 .canon-stage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:translate(${candidate.camera.translateX}px,${candidate.camera.translateY}px) scale(${candidate.camera.scale});transform-origin:50% 45%;filter:saturate(1.04) contrast(1.025)}
 .light-grade{position:absolute;inset:0;background:radial-gradient(circle at 48% 42%,transparent 0 34%,rgba(0,7,25,.16) 66%,rgba(0,4,16,.62) 100%),linear-gradient(90deg,rgba(0,217,192,.055),transparent 40%,rgba(30,107,255,.04));pointer-events:none}
-.source-clean-left{position:absolute;left:0;top:0;width:470px;height:805px;background:linear-gradient(90deg,#020718 0%,rgba(2,7,24,.985) 77%,rgba(2,7,24,.3) 100%)}
-.source-clean-right{position:absolute;right:0;top:0;width:${candidate.rightPanelWidth}px;height:880px;background:linear-gradient(90deg,rgba(2,7,24,.35),rgba(2,7,24,.98) 12%,#020718 100%)}
-.source-clean-bottom{position:absolute;left:0;right:0;bottom:0;height:286px;background:linear-gradient(180deg,rgba(2,7,24,.12),rgba(2,7,24,.97) 18%,#01040f 100%);border-top:1px solid rgba(93,162,255,.25)}
+.source-clean-left{position:absolute;left:0;top:0;width:470px;height:805px;background:#020718;box-shadow:34px 0 52px rgba(2,7,24,.94)}
+.source-clean-right{position:absolute;right:0;top:0;width:${candidate.rightPanelWidth}px;height:880px;background:#020718;box-shadow:-34px 0 52px rgba(2,7,24,.94)}
+.source-clean-bottom{position:absolute;left:0;right:0;bottom:0;height:286px;background:#01040f;border-top:1px solid rgba(93,162,255,.25);box-shadow:0 -30px 52px rgba(1,4,15,.95)}
 .frame{position:absolute;inset:14px;border:1px solid rgba(151,184,224,.42);border-radius:18px;box-shadow:inset 0 0 70px rgba(0,32,85,.18);pointer-events:none}
 .review-label{position:absolute;left:38px;top:32px;z-index:5;padding:11px 16px;border:1px solid rgba(255,255,255,.46);border-radius:10px;background:rgba(1,5,15,.86);font-size:17px;letter-spacing:.14em;font-weight:700}
 .review-label:before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:10px;background:linear-gradient(135deg,#00d9c0,#1e6bff);box-shadow:0 0 16px #00d9c0}
