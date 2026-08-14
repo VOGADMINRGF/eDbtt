@@ -73,6 +73,23 @@ Der Self-hosted-Pfad ist technisch ausführbar, sobald:
 
 Danach bleibt ausschließlich die **menschliche visuelle Abnahme** der Voxy-Identität ein notwendiges Human Gate.
 
+Der erste lokale SVG-Motion-Kandidat aus Exact Head
+`7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb` hat dieses Gate trotz grüner
+technischer Render- und Detector-Evidence nicht bestanden. Daraus folgt eine
+verbindliche Reihenfolge für den weiteren Self-hosted-Pfad:
+
+1. zuerst drei hochwertige statische Mastervarianten direkt gegen die vier
+   freigegebenen Canon-Boards herstellen;
+2. genau einen statischen Charakter-/Broadcast-Master menschlich auswählen;
+3. erst danach ein neues geschichtetes Rig oder Motion-Profil aus dem
+   akzeptierten Master ableiten;
+4. Detector-, Format- und Exact-Head-Evidence erneut ausführen, ohne die
+   visuelle Abnahme zu ersetzen.
+
+Rig-Komfort oder technische Detektierbarkeit dürfen niemals Vorrang vor
+Wiedererkennbarkeit, Anatomie und Broadcast-Qualität erhalten. Bis zur
+menschlichen Auswahl des statischen Masters gilt `animationEligible = false`.
+
 ## #588 — Freigabebedingung
 
 #588 wird nicht durch eine SaaS-/Budgetentscheidung freigegeben. Er wird freigegeben, sobald ein lokales Self-hosted Rig eine revisionsgebundene Fixture liefert, die als kanonische animierbare Voxy-Identität menschlich akzeptiert wurde. Anschließend prüft #588 die 200-%-Qualitätszonen fail-closed.
@@ -119,6 +136,14 @@ lokale #588-Detector aus Exact Head
 Standframe-Hand-Crops der drei Formate mit fünf Fingern und Confidence `1.0`;
 seine unveränderten Negativ-Fixtures bleiben fail-closed. Diese technische
 Kompatibilität ersetzt keine Human Visual Acceptance.
+
+Die menschliche Prüfung hat den Motion-Stand anschließend abgelehnt. Seine
+technischen Ergebnisse bleiben historische Evidence, dürfen aber nicht als
+Freigabe oder als aktueller visueller Master gelesen werden. Der laufende
+Recovery-Schritt erzeugt ausschließlich statische A/B/C-Master aus derselben
+CANON-04-Pixelquelle, vollständig lokal und ohne generatives Redraw. Erst die
+menschliche Auswahl eines dieser Kandidaten kann einen neuen Rig-Schritt
+öffnen.
 
 Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
 Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche

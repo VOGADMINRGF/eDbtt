@@ -2,6 +2,33 @@
 
 Stand: 2026-08-14
 
+## Aktueller Recovery-Scope
+
+Der Motion-Stand aus Exact Head
+`7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb` ist menschlich visuell
+abgelehnt. Das SVG-Rig und seine technische Evidence bleiben nachvollziehbar,
+gelten aber nicht als akzeptiertes visuelles Masterasset.
+
+Bis zur menschlichen Auswahl eines neuen statischen Masters gilt für PR `#589`:
+
+- keine Animation und kein weiterer Motion-Polish;
+- drei statische 1920 × 1080 Canon-Recovery-Kandidaten A/B/C aus derselben
+  CANON-04-Voxy-Pixelquelle;
+- Unterschiede ausschließlich in Kamera, Crop, Inhaltsraum und
+  Lichtgewichtung;
+- eine Vergleichstafel mit A/B/C und den vier Canon-Boards;
+- lokaler, revisionsgebundener Raster-Render ohne Generierung, externen Dienst,
+  Upload oder SaaS;
+- Exact-Head-Artefakt mit mindestens 14 Tagen Aufbewahrung;
+- `humanVisualAcceptance = pending`, `animationEligible = false` und
+  `productionEligible = false`.
+
+Die Canon-Boards 01 und 02 kontrollieren Charakter, Gesicht, Hände und
+Anatomie; 03 und 04 kontrollieren Studio und Broadcast-Layout. CANON-04 ist die
+identische Charakterquelle aller drei Kandidaten. Erst eine ausdrückliche
+menschliche Auswahl darf die Grundlage für einen späteren, getrennten
+Rig-/Animationsschritt bilden.
+
 ## Ziel
 
 Eine tatsächlich lokal reproduzierbare, Stretchy-Studio-kompatibel gedachte
@@ -53,10 +80,11 @@ Alle sieben geforderten Zustände sind im Rig-Contract implementiert und geteste
 
 ## Human Gate
 
-`humanVisualAcceptance` bleibt `pending`, `productionEligible` bleibt `false`
-und `autoPublish` bleibt `false`. Der technische Slice endet maximal in
-`review`. Merge, Deployment, Publishing und Production-VOTES sind nicht Teil
-dieses Scopes.
+Der frühere Motion-Kandidat hat `humanVisualAcceptance = rejected`. Für die
+statischen Recovery-Kandidaten bleibt `humanVisualAcceptance = pending`;
+`animationEligible`, `productionEligible` und `autoPublish` bleiben `false`.
+Der technische Slice endet maximal in `review`. Merge, Ready-for-Review,
+Deployment, Publishing und Production-VOTES sind nicht Teil dieses Scopes.
 
 ## Verhältnis zu #588 und #590
 

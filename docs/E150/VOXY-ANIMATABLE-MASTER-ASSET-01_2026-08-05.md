@@ -2,6 +2,50 @@
 
 Stand: 2026-08-14
 
+## Verbindlicher visueller Review-Stand
+
+Der technisch grüne Motion-Stand aus Exact Head
+`7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb` wurde menschlich visuell
+abgelehnt. Die Detector-, Render- und Format-Evidence dieses Stands bleibt als
+technischer Nachweis erhalten, ist aber keine akzeptierte Voxy-Identität und
+keine Grundlage für weitere Animation oder Production.
+
+Der aktuelle Recovery-Slice erzeugt deshalb ausdrücklich **keine Animation**.
+Er bindet die vier menschlich freigegebenen Canon-Boards aus
+`apps/web/public/brands/voxy/canon/` als visuelle Hierarchie:
+
+- `CANON-01-character-development-board.png` — Charakter-, Gesichts-,
+  Anatomie- und Detailkontrolle,
+  SHA256 `e58f4f5a6b23d8da6ccd81d979057f1b6f8ce8ae22eeba7032a2fb417a2c8bcc`;
+- `CANON-02-character-overview-board.png` — Charakter-, Hand- und
+  Ganzkörperkontrolle,
+  SHA256 `e881e2c0e698f70eeb71ed78a021c5ef6bab8d37d52277e00a08e2f7ed9a8fe7`;
+- `CANON-03-teal-broadcast-layout.png` — Studio-, Licht- und
+  Broadcast-Kompositionskontrolle,
+  SHA256 `479caf603da577009318beda49b4e0dc61f79c70e6bdb9fed820d448767aaded`;
+- `CANON-04-blue-broadcast-layout.png` — identische Voxy-Pixelquelle für alle
+  drei Recovery-Kandidaten sowie Studio-/Layoutkontrolle,
+  SHA256 `8ec3927f2871b210f46468f56a2845811c89dbb971c11bf086de7446ac0efff8`.
+
+Der lokale Renderer
+`apps/web/scripts/render-voxy-static-canon-recovery.ts` erzeugt drei statische
+16:9-Master in 1920 × 1080 und eine 3200 × 1800 große Vergleichstafel:
+
+- `candidate-a-canon.png` — engste Canon-Nähe;
+- `candidate-b-broadcast.png` — Broadcast-Gewichtung mit mehr Monitorraum;
+- `candidate-c-editorial.png` — redaktionelle Gewichtung mit größerer
+  Inhaltsfläche;
+- `comparison.png` — A/B/C und alle vier Canon-Boards in einer Review-Fläche;
+- `manifest.json` — Exact Head, sämtliche SHA256, Canon-Rollen, Source-Crop,
+  Kamera-/Lichtgewichtung und Freigabegrenzen.
+
+Alle drei Kandidaten verwenden exakt dieselbe abgeflachte Voxy-Quelle aus
+CANON-04; nur Kamera, Crop, Inhaltsraum und Lichtgewichtung unterscheiden sich.
+Der Lauf bleibt vollständig lokal, nutzt weder Generierung noch externen Dienst,
+Upload oder SaaS und lädt sein Exact-Head-Artefakt für mindestens 14 Tage hoch.
+`humanVisualAcceptance` ist für diese statischen Kandidaten `pending`;
+`animationEligible`, `productionEligible` und `autoPublish` bleiben `false`.
+
 ## Ergebnis des technischen Slices
 
 Der nach der Betreiberentscheidung vom 14. August zugelassene neue Ansatz ist
@@ -93,8 +137,16 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 ## Bekannte visuelle Grenzen
 
+- Die statischen Recovery-Master verwenden eine abgeflachte Canon-04-Pixelquelle
+  und sind noch kein separates, geschichtetes 3D- oder Rig-Masterasset.
+- Pose und Grundlicht sind deshalb zwischen A/B/C gebunden; Figur und Studio
+  können noch nicht unabhängig voneinander verändert werden.
+- Die nativen redaktionellen Text- und Inhaltsflächen sind Review-Platzhalter;
+  die in der Canon-Rasterquelle eingebrannten Beispieltexte werden vollständig
+  abgedeckt, nicht als Produktcopy übernommen.
 - Die native Vektorfigur ist eine kontrollierbare, stilisierte Ableitung der
-  akzeptierten 3D-Referenz; eine pixelidentische 3D-Rekonstruktion ist sie nicht.
+  Canon-Referenz; sie wurde menschlich visuell abgelehnt und ist keine aktuell
+  akzeptierte 3D-Rekonstruktion.
 - Mundbewegung und Lip-Sync sind bewusst nicht enthalten.
 - Die Handformen bleiben starr und werden über Arm-/Hand-Pivots bewegt; Finger
   werden in dieser Fixture nicht einzeln deformiert.
@@ -105,7 +157,12 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 ## Status und Grenzen
 
-- technischer Zustand nach Exact-Head-Render und grünen Checks: `review`;
-- Human Visual Acceptance: `pending`;
+- Motion-Stand `7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb`:
+  `humanVisualAcceptance = rejected`;
+- statische A/B/C-Recovery-Kandidaten: `humanVisualAcceptance = pending`;
+- technischer Taskzustand nach Exact-Head-Render und grünen Checks maximal:
+  `review`;
+- `animationEligible = false`, `productionEligible = false` und
+  `autoPublish = false`;
 - PR bleibt Draft;
 - kein Merge, kein Ready-for-Review, kein Deployment und kein Publishing.
