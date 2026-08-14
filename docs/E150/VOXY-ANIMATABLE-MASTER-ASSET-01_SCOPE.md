@@ -1,36 +1,66 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01 — Scope
 
-Stand: 2026-08-11
+Stand: 2026-08-14
 
 ## Ziel
 
-Die akzeptierte Voxy-Identität gegen technische Eigenfreigabe absichern und den Übergang zu einem später menschlich ausgewählten Motion-/Retargeting-Verfahren provider-neutral vorbereiten.
+Eine tatsächlich lokal reproduzierbare, Stretchy-Studio-kompatibel gedachte
+Voxy-Fixture erzeugen. Die menschlich akzeptierte Referenz
+`apps/web/public/brand/voxy/voxy-podcast-stage.png` bleibt die kanonische
+Identitätsquelle. Technische Evidence ersetzt keine Human Visual Acceptance.
 
 ## In Scope
 
-- kanonische visuelle Quelle unverändert auf `apps/web/public/brand/voxy/voxy-podcast-stage.png` festschreiben;
-- provider-neutralen Preflight-Contract für Providerwahl, Account/Credentials, externen Datentransfer, Privacy/Retention und Budget definieren;
-- alle Provideraufrufe fail-closed halten, solange eines dieser Human Gates fehlt;
-- Publishing eines erzeugten Artefakts zusätzlich an explizite Human Visual Acceptance binden;
-- fokussierte Contract-Tests für diese Sperren.
+- natives SVG-Layer-/Pivot-Rig aus dem eigenen Assetbestand;
+- unabhängige Steuerung von Kopf, Augen, Lidern, Brauen, Armen, Händen und
+  Oberkörper;
+- separat im Oberkörper-Layer geführter VOG-Pin und eDebatte-Pocket-Mark;
+- exakt fünf vorhandene, nicht generativ erzeugte Finger-Elemente je Hand;
+- sieben deterministische Motion States;
+- revisionsgebundener lokaler 8-Sekunden-Render mit 24 fps in `16:9`;
+- reproduzierbare Standframes und Hand-Crops in `16:9`, `9:16` und `1:1`;
+- Clip-, Asset- und Rig-SHA256 sowie Exact-Head-, Timeline- und
+  Render-Provenienz;
+- lokaler Hand-/Crop-Smoke als vorgelagerte Evidence für den unabhängigen
+  fail-closed Checkpoint aus PR `#588`.
 
-## Explizit verworfen / aus dem Scope entfernt
+## Technischer Ansatz
 
-- weitere lokale SVG-Rig-Verfeinerung;
-- weitere Masken-, Crop- oder CSS-Affine-Animation der kanonischen Rasterquelle;
-- lokale Segmentierungs-Hacks zur Erzeugung scheinbar unabhängiger Anatomie;
-- die bisherigen Rig-Layer und lokalen Render-Evidence-Skripte als mergefähiger Produktionsweg.
+`voxy-sitting-master.svg` bleibt ein einziges natives Vektorasset. Der Renderer
+steuert dessen vorhandene Gruppen über dokumentierte Pivotpunkte. Arme und Hände
+bewegen sich gekoppelt um Schulteranker; Hände werden weder ausgeschnitten noch
+pro Frame neu erzeugt. Branding-Elemente erben ausschließlich die starre
+Oberkörpertransformation und werden nicht separat deformiert.
 
-## Out of Scope / Human Gates
+Die Fixture nutzt vier ruhige Zustände:
 
-- konkrete Providerwahl oder -aktivierung;
-- Accountanlage und Credentials;
-- Upload oder sonstiger externer Datentransfer;
-- Zustimmung zu Retention-, Privacy- oder Löschbedingungen;
-- Budget-/Spend-Freigabe;
-- finale visuelle Abnahme eines generierten/retargeteten Voxy-Artefakts;
-- Runtime-, Studio-, Publishing- oder Production-VOTES-Connectivity.
+1. `neutral_idle` (0–2 s)
+2. `explaining` (2–4 s)
+3. `showing_contrast` (4–6 s)
+4. `inviting_participation` (6–8 s)
 
-## Guardrail
+Alle sieben geforderten Zustände sind im Rig-Contract implementiert und getestet.
 
-Der Contract ist Architektur, keine aktive Providerintegration. Fehlt eine menschliche Freigabe, bleibt der jeweilige Schritt gesperrt. `#588` darf erst nach belastbarer Human Visual Acceptance der kanonischen animierbaren Identität fortgesetzt werden.
+## Explizit verworfen
+
+- Attempts 1–6;
+- Raster-Crops als künstliche Körperteile;
+- CSS-Affine-Reparatur einzelner Pixelregionen;
+- Masken- oder nachträgliche Handsegmentierung als Animationsmethode;
+- generativ neu gezeichnete Hände;
+- externe Avatarprovider, Uploads, Runtime-CDNs oder SaaS-Budget;
+- Lip-Sync als Voraussetzung.
+
+## Human Gate
+
+`humanVisualAcceptance` bleibt `pending`, `productionEligible` bleibt `false`
+und `autoPublish` bleibt `false`. Der technische Slice endet maximal in
+`review`. Merge, Deployment, Publishing und Production-VOTES sind nicht Teil
+dieses Scopes.
+
+## Verhältnis zu #588 und #590
+
+`#589` erzeugt Rig und Render-Evidence. `#588` bleibt der unabhängige
+200-%-Visual-QA-Checkpoint und wird nicht in diesen Branch kopiert. `#590`
+bleibt der providerneutrale Audio-/Caption-/Composition-Slice; sein Scope wird
+nicht verändert.

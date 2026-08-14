@@ -92,3 +92,25 @@ Der erste akzeptable Voxy-Video-Stack benötigt keinen fotorealistischen Mund. V
 - saubere Audio-/Caption-/Brand-Composition;
 - reproduzierbare lokale Renderbarkeit;
 - keine laufenden Avatar-SaaS-Kosten.
+
+## Konkrete Implementierung in #589
+
+Der erste lokale Rig-Satz ist ohne zusätzliche Stretchy-Studio-GUI- oder
+Runtime-Abhängigkeit als äquivalenter nativer SVG-Layer-/Pivot-Vertrag
+implementiert:
+
+- Rig-ID: `voxy-stretchy-compatible-svg-rig`
+- Rig-Version: `voxy-local-2d-rig-v1`
+- Asset: `apps/web/public/brands/voxy/characters/voxy-sitting-master.svg`
+- Renderer:
+  `apps/web/scripts/render-voxy-animatable-rig-evidence.ts`
+- keine externen Requests, Provider, Uploads, Modelle oder Modellgewichte;
+- 8 Sekunden, 24 fps, primär `16:9`, Stand-/Crop-Evidence zusätzlich in
+  `9:16` und `1:1`;
+- Exact-Head-Artefakt im PR-Workflow;
+- Human Visual Acceptance bleibt `pending`, Production bleibt gesperrt.
+
+Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
+Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche
+visuelle Abnahme und der unabhängige #588-QA-Checkpoint bleiben notwendige
+Freigabeschritte.

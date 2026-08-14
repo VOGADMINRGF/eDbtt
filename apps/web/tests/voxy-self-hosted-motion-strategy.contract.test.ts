@@ -17,6 +17,15 @@ describe("Voxy self-hosted motion strategy", () => {
     );
     expect(VOXY_SELF_HOSTED_MOTION_STRATEGY.providerBudgetRequired).toBe(false);
     expect(VOXY_SELF_HOSTED_MOTION_STRATEGY.autoPublish).toBe(false);
+    expect(VOXY_SELF_HOSTED_MOTION_STRATEGY.localRig).toEqual({
+      id: "voxy-stretchy-compatible-svg-rig",
+      version: "voxy-local-2d-rig-v1",
+      assetPath:
+        "apps/web/public/brands/voxy/characters/voxy-sitting-master.svg",
+      implementation: "native_svg_layer_pivot_rig",
+      modelWeightsRequired: false,
+      networkRequired: false,
+    });
   });
 
   it("requires human acceptance and all three publication formats", () => {

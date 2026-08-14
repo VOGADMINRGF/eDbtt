@@ -11,6 +11,15 @@ export const VOXY_SELF_HOSTED_MOTION_STRATEGY = {
   lipSyncRequired: false,
   canonicalVisualSource:
     "apps/web/public/brand/voxy/voxy-podcast-stage.png",
+  localRig: {
+    id: "voxy-stretchy-compatible-svg-rig",
+    version: "voxy-local-2d-rig-v1",
+    assetPath:
+      "apps/web/public/brands/voxy/characters/voxy-sitting-master.svg",
+    implementation: "native_svg_layer_pivot_rig",
+    modelWeightsRequired: false,
+    networkRequired: false,
+  },
   requiredFormats: ["16:9", "9:16", "1:1"],
   requiredMotionStates: [
     "neutral_idle",
