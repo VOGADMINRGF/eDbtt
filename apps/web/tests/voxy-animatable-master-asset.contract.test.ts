@@ -101,6 +101,8 @@ describe("Voxy motion provider gate contract", () => {
     expect(Math.abs(invitation.leftArmRotationDeg)).toBeGreaterThan(
       Math.abs(invitation.rightArmRotationDeg),
     );
+    expect(invitation.rightArmRotationDeg).toBe(0);
+    expect(invitation.rightHandRotationDeg).toBe(0);
 
     const transitionStart = buildVoxyRigFrame(2_000);
     const gazeLead = buildVoxyRigFrame(2_200);

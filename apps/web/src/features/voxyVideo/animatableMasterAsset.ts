@@ -382,9 +382,9 @@ const VOXY_RIG_MOTION_TARGETS: Readonly<
     eyeLookY: 0,
     browRotationDeg: 0.75,
     leftArmRotationDeg: -9.5,
-    rightArmRotationDeg: 1.5,
+    rightArmRotationDeg: 0,
     leftHandRotationDeg: -4.5,
-    rightHandRotationDeg: 1,
+    rightHandRotationDeg: 0,
   },
 };
 
