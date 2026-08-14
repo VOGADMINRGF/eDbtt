@@ -105,10 +105,20 @@ implementiert:
 - Renderer:
   `apps/web/scripts/render-voxy-animatable-rig-evidence.ts`
 - keine externen Requests, Provider, Uploads, Modelle oder Modellgewichte;
-- 8 Sekunden, 24 fps, primär `16:9`, Stand-/Crop-Evidence zusätzlich in
-  `9:16` und `1:1`;
+- 8 Sekunden, 24 fps, MP4 und WebM primär in `16:9`, Stand-/Crop-Evidence
+  zusätzlich in `9:16` und `1:1`;
 - Exact-Head-Artefakt im PR-Workflow;
 - Human Visual Acceptance bleibt `pending`, Production bleibt gesperrt.
+
+Das additive Profil `voxy-motion-polish-v2` belässt Rig und Identität
+unverändert, reduziert Hand-Basisrotation und Gestenausschläge, setzt pro
+Aussage eine dominante Hand, lässt Blick/Kopf die verzögert und weich
+eingesetzten Arme führen und hält Oberkörper-/Idle-Bewegung bewusst klein. Der
+lokale #588-Detector aus Exact Head
+`0756ad48bfd61cf88696f91bc41da87e988020c0` akzeptiert alle 24 realen
+Standframe-Hand-Crops der drei Formate mit fünf Fingern und Confidence `1.0`;
+seine unveränderten Negativ-Fixtures bleiben fail-closed. Diese technische
+Kompatibilität ersetzt keine Human Visual Acceptance.
 
 Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
 Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche

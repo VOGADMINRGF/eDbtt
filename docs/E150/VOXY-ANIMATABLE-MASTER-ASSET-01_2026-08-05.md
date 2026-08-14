@@ -22,17 +22,40 @@ Blinzeln, Brauen, beide Arme und beide Hände. VOG-Pin und eDebatte-Markierung
 bleiben eigene SVG-Gruppen innerhalb des starr bewegten Oberkörpers. Jede Hand
 enthält fünf feste Digit-Nodes; der Renderer erzeugt keine neue Anatomie.
 
+## Motion-Polish im bestehenden Rig
+
+Die Charakteridentität, Kleidung, Markierungen, Grundproportionen und das
+kanonische SVG wurden nicht neu aufgebaut oder verändert. Der typisierte
+Motion-Vertrag `voxy-motion-polish-v2` verfeinert ausschließlich die vorhandenen
+Pivots:
+
+- Hand-Basisrotation von bisher `-74°/+74°` auf `-58°/+58°` reduziert und die
+  Handgelenke um 12 px in die Ärmel geführt;
+- Gestenausschläge gegenüber der ersten Fixture typischerweise um etwa
+  15–25 % reduziert;
+- rechte Hand als dominante Erklärungsgeste, linke Hand als dominante
+  Kontrast- und Einladungsgeste; die jeweils andere Hand bleibt ruhig;
+- Blick-/Kopfbewegung führt die verzögert einsetzende Armbewegung, anschließend
+  erfolgt eine weiche Rückkehr in neutral statt Pose-Snapping;
+- `smootherstep`-Easing, 720-ms-Gestenübergang, 780-ms-Oberkörperübergang und
+  sehr kleine Atem-/Idle-Amplitude;
+- zwei kurze Blinkfenster und zurückhaltend eingeblendete Aussagekarten.
+
+Die feste Timeline bleibt `0–2 s neutral_idle`, `2–4 s explaining`,
+`4–6 s showing_contrast` und `6–8 s inviting_participation`.
+
 ## Reproduzierbare Evidence
 
 Der Exact-Head-Renderer
 `apps/web/scripts/render-voxy-animatable-rig-evidence.ts` erzeugt:
 
-- ein 8,000-s-MP4 in 1280 × 720, 24 fps und 192 Frames;
+- ein 8,000-s-MP4 und WebM in 1280 × 720, 24 fps und 192 Frames;
 - vier revisionsgebundene Standframes pro Format in `16:9`, `9:16` und `1:1`;
 - gerenderte Crops beider Hände für jeden Standframe;
 - fünf gerenderte SVG-Digit-Center als landmark-äquivalente Evidence je Hand;
 - pixelbasierte Hand-Präsenz- und Crop-Safe-Prüfung;
-- SHA256 für Clip, Referenz, Rig, Standframes und Hand-Crops;
+- SHA256 für beide Clips, Referenz, Rig, Motion-Profil, Standframes und
+  Hand-Crops;
 - Exact Head, Timeline, Renderparameter und die expliziten Zustände
   `humanVisualAcceptance = pending`, `productionEligible = false` und
   `autoPublish = false`.
@@ -42,32 +65,31 @@ lädt dieses Verzeichnis als Exact-Head-Artefakt hoch. Der lokale Smoke ist kein
 Selbstfreigabe und ersetzt den unabhängigen Detector-/200-%-Checkpoint aus
 `#588` nicht.
 
-## Gegenprüfung mit #588@b2b50745
+## Gegenprüfung mit #588@0756ad48
 
-Der unveränderte Detector
-`voxy_raster_silhouette_hand_landmarker@1.0.0` aus dem Exact Head
-`b2b50745c594cbd56385b811eecfd18f878e2033` wurde lokal gegen acht echte
-`16:9`-Hand-Crops der vier Gesten ausgeführt. Das Ergebnis bleibt korrekt
-fail-closed:
+Der unveränderte, vollständig lokale Detector
+`voxy_raster_silhouette_hand_landmarker@2.0.0` mit Runtime
+`pure-typescript-rgba-pca-v2` und Modellprofil
+`voxy-rotation-normalized-open-palm-profile-v2` aus dem finalen #588-Exact-Head
+`0756ad48bfd61cf88696f91bc41da87e988020c0` wurde gegen alle 24 echten
+Hand-Crops der vier Gesten in `16:9`, `9:16` und `1:1` ausgeführt.
+Profil-SHA256:
+`75ae283ba8eea2e5637f2d9c373d333132086f99f5a6b7194dcbdb8a82b25f4c`.
 
-- alle acht Crops: `fingerCount = null`, `landmarkCount = 0`;
-- sechs Crops: Confidence `0.65`,
-  `hand_topology_or_confidence_insufficient`;
-- beide Crops der Kontrastgeste: Confidence `0.30`,
-  `hand_component_touches_input_boundary`.
+- getestet: 24;
+- erkannt/akzeptiert: 24;
+- blockiert: 0;
+- Fingerzahl: durchgehend 5;
+- Confidence: durchgehend `1.0`;
+- ermittelte Originalrotationen: `-70°` bis `+60°`;
+- Rotationsnormalisierung: für alle 24 Crops angewendet;
+- kein Threshold wurde abgesenkt und keine QA-Ausnahme ergänzt.
 
-Der Detector ist laut eigenem Profil nur für
-`upright_open_palm_flat_vector` validiert. Die Fixture bewegt dagegen die
-vorhandenen Voxy-Hände seitlich rotiert an ihren Hand-/Arm-Pivots; ein enger
-Element-Crop kann die helle Komponente zusätzlich am Rand abschneiden. Deshalb
-wurde weder der Confidence-Threshold abgesenkt noch die Rig-Anatomie für den
-Detector verbogen.
-
-Kleinste belastbare Folge im unabhängigen `#588`-Scope: Hand-Crops mit
-deterministischem Padding erfassen und die Silhouette vor der Topologieprüfung
-rotationsnormalisieren, anschließend dieselben Negativ-Fixtures erneut
-fail-closed prüfen. Bis dahin ist der #589-eigene Pixel-/Digit-Center-Smoke grün,
-der unabhängige #588-Detector-Gate aber offen/blockierend.
+Die unveränderten #588-Vertragstests wurden direkt aus diesem Exact Head
+ausgeführt: 25 Tests sind grün. Rotierte 4- und 6-Finger-Evidence,
+unzureichende Confidence, Cropverlust, fehlende Hand und beschädigte Provenienz
+bleiben fail-closed. Das technische Detector-Gate ist damit für diese Fixture
+erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt.
 
 ## Bekannte visuelle Grenzen
 
@@ -78,8 +100,8 @@ der unabhängige #588-Detector-Gate aber offen/blockierend.
   werden in dieser Fixture nicht einzeln deformiert.
 - Human Visual Acceptance muss insbesondere Wiedererkennbarkeit, Handanschluss,
   Gestenruhe, Gesicht und Markenabstand bewerten.
-- Der aktuelle #588-Detector kann die seitlich rotierten offenen Hände noch
-  nicht belastbar zählen; dieses Gate bleibt fail-closed offen.
+- Der Detector prüft die relevanten offenen Hände dieser Fixture, bewertet aber
+  weder Charakteridentität noch Natürlichkeit, Timing oder Gesamtkomposition.
 
 ## Status und Grenzen
 
