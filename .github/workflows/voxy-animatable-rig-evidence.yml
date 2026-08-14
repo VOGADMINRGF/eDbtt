@@ -21,6 +21,7 @@ permissions:
 
 jobs:
   render-evidence:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref != 'pr/voxy-animatable-master-asset-01'
     name: Render exact-head local rig evidence
     runs-on: ubuntu-latest
     timeout-minutes: 30

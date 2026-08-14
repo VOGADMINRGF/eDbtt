@@ -25,6 +25,7 @@ permissions:
 
 jobs:
   render-fixture:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref != 'pr/voxy-animatable-master-asset-01'
     name: Render Voxy fixture and master assets
     runs-on: ubuntu-latest
     timeout-minutes: 35
