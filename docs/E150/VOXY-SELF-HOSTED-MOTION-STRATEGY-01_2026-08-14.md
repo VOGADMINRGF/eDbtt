@@ -1,0 +1,94 @@
+# VOXY-SELF-HOSTED-MOTION-STRATEGY-01
+
+Stand: 2026-08-14
+
+## Betreiberentscheidung
+
+Voxy verfolgt dauerhaft **self-hosted / open-source first**. Ein kostenpflichtiger Avatar-SaaS wie HeyGen ist kein Standardpfad und kein notwendiges Gate für die weitere Voxy-Entwicklung.
+
+Der bevorzugte technische Weg ist ein kontrolliertes 2D-Rig, das die Voxy-Identität vollständig im eigenen Assetbestand hält. Primärer Evaluationspfad ist **Stretchy Studio** beziehungsweise ein kompatibler lokaler 2D-Rig-Workflow mit PSD-/Layer-, Bone-, Mesh- und Pivot-Unterstützung. Die Auswahl bedeutet keine ungeprüfte Runtime-Abhängigkeit: Drittcode wird erst nach Lizenz-, Supply-Chain- und Reproduzierbarkeitsprüfung in einen produktiven Build übernommen.
+
+## Zielarchitektur
+
+1. **Owned master asset**
+   - kanonische visuelle Referenz bleibt im eDebatte-Repo;
+   - Kopf, Augen, Lider, Brauen, Arme und Hände werden als kontrollierbare Ebenen/Pivots geführt;
+   - VOG-Pin und eDebatte-Markierung bleiben separate Overlays;
+   - keine externe Plattform wird Source of Truth für Voxy.
+
+2. **Primary motion path: local 2D rig**
+   - primärer Bake-off: Stretchy-Studio-kompatibles Rig;
+   - deterministische Gesten statt generativ neu erfundener Hände;
+   - mindestens `neutral_idle`, `listening`, `explaining`, `questioning`, `highlighting_source`, `showing_contrast`, `inviting_participation`;
+   - feste 16:9-, 9:16- und 1:1-Safe-Zones;
+   - keine Lip-Sync-Abhängigkeit.
+
+3. **Optional face-motion layer**
+   - LivePortrait oder vergleichbare Open-Source-Komponente nur optional;
+   - kommerzielle Nutzung nur mit vollständig lizenzsauberer Modell-/Detector-Kette;
+   - keine standardmäßig nicht-kommerziell lizenzierten Gewichte als Production-Abhängigkeit.
+
+4. **Optional lip-sync layer**
+   - MuseTalk oder vergleichbare lokale Komponente frühestens nach stabiler Character-Identität;
+   - Lip-Sync ist Qualitätsverbesserung, kein Blocker für Voxy-Video;
+   - Drittmodell-Lizenzen werden separat geprüft.
+
+5. **Composition stays in-house**
+   - Audio, Captions, Lower Third, Waveform, VOG-/eDebatte-Branding und Export bleiben im eigenen Composition-/FFmpeg-Pfad;
+   - #590 bleibt providerneutral;
+   - kein Auto-Publish.
+
+## Kosten- und Datenregel
+
+Der lokale Self-hosted-Pfad benötigt **keine** Freigabe für externe Accounts, Credentials, Datentransfer, Provider-Retention oder SaaS-Spend. Diese Gates gelten nur, wenn später bewusst ein externer Dienst als Fallback aktiviert werden soll.
+
+Für den Standardpfad gelten stattdessen:
+
+- `execution_mode = self_hosted`
+- `primary_rig_engine = stretchy_studio_compatible`
+- `external_upload = false`
+- `commercial_saas_default = disabled`
+- `provider_credentials_required = false`
+- `provider_budget_required = false`
+- `human_visual_acceptance = required`
+- `auto_publish = false`
+
+## Verhältnis zu den bisherigen Versuchen
+
+Die verworfenen Attempts 1–6 bleiben als Evidenz dafür bestehen, dass Masken-, Crop-, CSS-Affine- und nachträgliche Rastersegmentierung keine belastbare Anatomie erzeugt haben. Diese konkreten Reparaturwege werden nicht wieder geöffnet.
+
+Die neue Entscheidung erlaubt dagegen ausdrücklich ein **echtes neu aufgebautes Rig** mit kontrollierten Bones/Meshes/Pivots. Das ist kein siebter Maskierungsversuch, sondern ein anderer Produktionsansatz.
+
+## #589 — neue Gate-Logik
+
+`VOXY-ANIMATABLE-MASTER-ASSET-01` bleibt der zuständige Slice. Die bisherige Annahme, dass für den nächsten Schritt zwingend Providerwahl, Account, externer Datentransfer, Retention und Budget freigegeben werden müssen, gilt **nicht für den Self-hosted-Standardpfad**.
+
+Der Self-hosted-Pfad ist technisch ausführbar, sobald:
+
+1. der lokale Rig-Workflow reproduzierbar eingerichtet ist;
+2. die Voxy-Ebenen und Pivotpunkte dokumentiert sind;
+3. mindestens eine 8-Sekunden-Fixture lokal erzeugt wurde;
+4. Hände, Gesicht, Branding und Crops die bestehenden QA-Verträge bestehen;
+5. die Ausgabe revisionsgebunden an den Exact Head dokumentiert ist.
+
+Danach bleibt ausschließlich die **menschliche visuelle Abnahme** der Voxy-Identität ein notwendiges Human Gate.
+
+## #588 — Freigabebedingung
+
+#588 wird nicht durch eine SaaS-/Budgetentscheidung freigegeben. Er wird freigegeben, sobald ein lokales Self-hosted Rig eine revisionsgebundene Fixture liefert, die als kanonische animierbare Voxy-Identität menschlich akzeptiert wurde. Anschließend prüft #588 die 200-%-Qualitätszonen fail-closed.
+
+## Fallback
+
+Ein kommerzieller externer Avatar-/Motionanbieter darf später nur als expliziter Fallback evaluiert werden, wenn der Self-hosted-Ansatz die dokumentierten Qualitätskriterien nicht erreicht. Dann greifen erneut Providerwahl-, Account-, Datenschutz-, Retention-, Budget- und Transfer-Gates. Es gibt keinen automatischen Wechsel zu einem SaaS-Anbieter.
+
+## Abnahmeziel
+
+Der erste akzeptable Voxy-Video-Stack benötigt keinen fotorealistischen Mund. Vorrang haben:
+
+- stabile Wiedererkennbarkeit;
+- korrekte Hände und Anatomie;
+- ruhige Kopf-/Augenbewegung;
+- wenige kontrollierte Gesten;
+- saubere Audio-/Caption-/Brand-Composition;
+- reproduzierbare lokale Renderbarkeit;
+- keine laufenden Avatar-SaaS-Kosten.
