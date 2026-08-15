@@ -95,6 +95,9 @@ describe("Voxy first explainer video v2 contract", () => {
       expect(html).toContain('alt="VOG"');
       expect(html).toContain('alt="eDebatte"');
       expect(html).toContain(">eDebatte · WAS<");
+      expect(html).toContain(
+        `.content-rail{display:${format === "16:9" ? "block" : "none"}}`,
+      );
       expect(html).not.toMatch(/https?:\/\//);
       expect(html).not.toContain("<video");
       expect(html).not.toContain("<canvas");
