@@ -50,7 +50,7 @@ export const VOXY_STATIC_CANON_PIXEL_SOURCE = VOXY_STATIC_CANON_BOARDS[3];
 
 export const VOXY_STATIC_CANON_NATIVE_ASSETS = {
   wordmark: "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg",
-  vogPin: "apps/web/public/brands/voxy/overlays/vog-pin.svg",
+  lapelPin: "apps/web/public/brands/voxy/overlays/voxy-lapel-pin.svg",
   edebattePocketMark:
     "apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg",
 } as const;

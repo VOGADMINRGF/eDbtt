@@ -5,17 +5,18 @@ import {
   buildVoxyJacketCanonGatePlan,
   validateVoxyJacketCanonGatePlan,
   VOXY_JACKET_CANON_GATE_CROPS,
-  VOXY_JACKET_CANON_MARK_PROVENANCE,
   VOXY_JACKET_CANON_GATE_OUTPUT,
-  VOXY_JACKET_CANON_PIXEL_MATCH_CROPS,
+  VOXY_JACKET_CANON_MARK_PROVENANCE,
   VOXY_JACKET_HARD_CANON_REGION,
+  VOXY_JACKET_NON_BRAND_PIXEL_MATCH_CROP,
 } from "@/features/voxyVideo/jacketCanonGate";
 
 const HEAD = "7c6aa18e5618b4ef82760f24e1ecf9b80c04ff70";
 
 describe("Voxy jacket canon gate contract", () => {
-  it("makes the jacket and both character marks a hard Canon region", () => {
+  it("keeps jacket geometry hard-Canon while naming the exact reconstructed marks", () => {
     const plan = buildVoxyJacketCanonGatePlan(HEAD);
+    expect(plan.schemaVersion).toBe("voxy-jacket-canon-gate-v2");
     expect(plan.hardCanonRegion).toBe(VOXY_JACKET_HARD_CANON_REGION);
     expect(plan.hardCanonRegion).toEqual([
       "jacket_cut",
@@ -24,26 +25,30 @@ describe("Voxy jacket canon gate contract", () => {
       "stitching",
       "pocket_geometry",
       "blue_piping",
-      "vog_lapel_pin",
+      "voxy_lapel_pin",
       "edebatte_pocket_mark",
     ]);
     expect(plan.cropContract).toBe(VOXY_JACKET_CANON_GATE_CROPS);
-    expect(plan.pixelMatchCrops).toBe(VOXY_JACKET_CANON_PIXEL_MATCH_CROPS);
+    expect(plan.nonBrandPixelMatchCrop).toBe(
+      VOXY_JACKET_NON_BRAND_PIXEL_MATCH_CROP,
+    );
     expect(plan.source.canonBoardId).toBe("CANON-04");
     expect(Object.keys(plan.source.allCanonHashes)).toHaveLength(4);
   });
 
-  it("records the exact Canon pixel match without claiming OCR", () => {
+  it("requires human legibility after deterministic vector reconstruction", () => {
     const { brandQa } = buildVoxyJacketCanonGatePlan(HEAD);
     expect(brandQa.evidenceMethod).toBe(
-      "exact_canon_pixel_match_plus_human_visual_review_no_ocr_claim",
+      "vector_source_text_contract_plus_masked_non_brand_pixel_match_and_human_legibility",
     );
     expect(brandQa.lapelPin).toMatchObject({
-      expectedText: "VOG",
+      expectedText: "VOXY",
       expectedVisibleMarkCount: 1,
       visibleMarkCount: 1,
+      humanLegibilityRequired: true,
+      humanLegibilityStatus: "pending",
       machineRecognizedText: null,
-      status: "passed",
+      technicalStatus: "passed",
     });
     expect(brandQa.pocketMark).toMatchObject({
       expectedText: "eDebatte",
@@ -51,23 +56,26 @@ describe("Voxy jacket canon gate contract", () => {
       visibleMarkCount: 1,
       badgePresent: false,
       secondLinePresent: false,
+      humanLegibilityRequired: true,
+      humanLegibilityStatus: "pending",
       machineRecognizedText: null,
-      status: "passed",
+      technicalStatus: "passed",
     });
   });
 
-  it("passes the Jacket gate while keeping layer master and Motion v3 closed", () => {
+  it("passes only the technical Jacket gate and keeps downstream gates closed", () => {
     const plan = buildVoxyJacketCanonGatePlan(HEAD);
     expect(plan.jacketCanonGate).toEqual({
       passed: true,
-      lapelPin: "passed",
-      pocketMark: "passed",
-      texturePreserved: true,
+      brandLayerTechnicalContract: "passed",
+      nonBrandPixelsPreserved: true,
+      texturePreservedOutsideReplacementMasks: true,
       lapelGeometryPreserved: true,
       pocketGeometryPreserved: true,
       bluePipingPreserved: true,
-      visualIntegration: "passed",
+      humanLegibility: "pending",
     });
+    expect(plan.humanDecision.status).toBe("rejected");
     expect(plan.layerMasterEligible).toBe(false);
     expect(plan.motionV3Eligible).toBe(false);
     expect(plan.animationEligible).toBe(false);
@@ -77,41 +85,36 @@ describe("Voxy jacket canon gate contract", () => {
     expect(validateVoxyJacketCanonGatePlan(plan)).toEqual([]);
   });
 
-  it("rejects Canon-match drift and any silent downstream release", () => {
+  it("rejects mark-contract drift and any silent downstream release", () => {
     const drift = structuredClone(buildVoxyJacketCanonGatePlan(HEAD));
-    drift.jacketCanonGate.passed = false as true;
     drift.brandQa.pocketMark.visibleMarkCount = 2 as 1;
+    drift.jacketCanonGate.nonBrandPixelsPreserved = false as true;
     drift.motionV3Eligible = true as false;
-    drift.productionEligible = true as false;
     expect(validateVoxyJacketCanonGatePlan(drift)).toEqual(
       expect.arrayContaining([
-        "brand_qa_must_reflect_canon_pixel_match",
-        "jacket_gate_pass_contract_invalid",
-        "downstream_and_release_gates_must_fail_closed",
+        "brand_legibility_contract_invalid",
+        "technical_jacket_gate_contract_invalid",
+        "human_and_downstream_gates_must_remain_closed",
       ]),
     );
   });
 
-  it("binds honest geometric provenance for both retained Canon marks", () => {
+  it("records source, geometry and legibility provenance for both marks", () => {
     const plan = buildVoxyJacketCanonGatePlan(HEAD);
     expect(plan.markProvenance).toBe(VOXY_JACKET_CANON_MARK_PROVENANCE);
+    expect(plan.markProvenance.lapelPin.text).toBe("VOXY");
+    expect(plan.markProvenance.pocketMark.text).toBe("eDebatte");
     for (const mark of Object.values(plan.markProvenance)) {
-      expect(mark.sourceCanonFile).toContain(
+      expect(mark.geometryReferenceCanonFile).toContain(
         "CANON-04-broadcast-layout-blue.png",
       );
-      expect(mark.scale.effective).toBeCloseTo(1.234449761);
-      expect(mark.rotation).toEqual({
-        additionalDegrees: 0,
-        nativeCanonAnglePreserved: true,
-      });
-      expect(mark.opacity).toBe(1);
-      expect(mark.compositingMethod).toBe(
-        "retain_unmodified_canon_raster_pixels_via_primary_a_camera_no_overlay",
-      );
+      expect(mark.geometryDerivedFromCanon).toBe(true);
+      expect(mark.wordmarkReconstructedForLegibility).toBe(true);
+      expect(mark.compositingMethod).toBeTruthy();
     }
   });
 
-  it("binds exactly the five mandatory visual evidence PNGs", () => {
+  it("binds the six mandatory visual evidence PNGs", () => {
     expect(VOXY_JACKET_CANON_GATE_OUTPUT).toMatchObject({
       outputDirectory: "artifacts/voxy-jacket-canon-gate",
       jacketFullFileName: "jacket-full.png",
@@ -119,6 +122,7 @@ describe("Voxy jacket canon gate contract", () => {
       lapelPin400PctFileName: "lapel-pin-400pct.png",
       pocketMark400PctFileName: "pocket-mark-400pct.png",
       comparisonFileName: "jacket-canon-comparison.png",
+      legibilityComparisonFileName: "jacket-brand-legibility-comparison.png",
       manifestFileName: "manifest.json",
     });
   });
@@ -134,15 +138,14 @@ describe("Voxy jacket canon gate contract", () => {
       "lapelPin400PctFileName",
       "pocketMark400PctFileName",
       "comparisonFileName",
+      "legibilityComparisonFileName",
       "manifestFileName",
     ]) {
       expect(source).toContain(file);
     }
     expect(source).toContain("external_requests_detected");
-    expect(source).toContain("jacket_canon_pixel_match_failed");
+    expect(source).toContain("jacket_canon_non_brand_pixel_match_failed");
     expect(source).toContain("No layer master or Motion v3 render is authorized");
-    expect(source).not.toContain("vogPinOverlay");
-    expect(source).not.toContain("edebattePocketOverlay");
     expect(source).not.toContain("artifacts/voxy-layer-master");
     expect(source).not.toContain("artifacts/voxy-motion-v3");
   });

@@ -23,6 +23,8 @@ const HEAD = "9cb25e91ae6fe04f7e532e8116cf0f500ee30ddb";
 const ASSETS = {
   canonStageDataUrl: "data:image/png;base64,canon",
   studioLockupDataUrl: "data:image/svg+xml;base64,lockup",
+  lapelPinDataUrl: "data:image/svg+xml;base64,lapel",
+  edebattePocketMarkDataUrl: "data:image/svg+xml;base64,pocket",
 };
 
 describe("Voxy first explainer video v2 contract", () => {
@@ -52,7 +54,7 @@ describe("Voxy first explainer video v2 contract", () => {
 
   it("uses the human-decided brand roles and compact explainer copy", () => {
     expect(VOXY_FIRST_EXPLAINER_BRAND).toEqual({
-      lapelPin: "VOG",
+      lapelPin: "VOXY",
       pocketMark: "eDebatte",
       pocketMarkStyle: "wordmark_no_badge",
       studioPrimary: "VoiceOpenGov",
@@ -103,9 +105,13 @@ describe("Voxy first explainer video v2 contract", () => {
       expect(html).toContain(`data-format="${format}"`);
       expect(html).toContain('data-waveform-count="1"');
       expect(html).toContain('data-waveform-placement="behind_voxy"');
-      expect(html).toContain('data-character-marks="canon-04-raster-only"');
-      expect(html).not.toContain("native-vog-pin");
-      expect(html).not.toContain("native-edebatte-pocket-mark");
+      expect(html).toContain(
+        'data-character-marks="canon-geometry-reconstructed-vector-wordmarks"',
+      );
+      expect(html).toContain("reconstructed-lapel-pin");
+      expect(html).toContain("reconstructed-pocket-mark");
+      expect(html).toContain('alt="VOXY"');
+      expect(html).toContain('alt="eDebatte"');
       expect(html).toContain('alt="VoiceOpenGov eDebatte"');
       expect(html).toContain(">eDEBATTE · WAS<");
       expect(html).toContain(
@@ -161,7 +167,18 @@ describe("Voxy first explainer video v2 contract", () => {
     expect(source).toContain("motion_is_limited_to_five_sparse_blinks_micro_gaze_highlight_cues");
   });
 
-  it("keeps the jacket marks in CANON-04 pixels and binds the studio lockup", () => {
+  it("binds exact reconstructed jacket text and the studio lockup", () => {
+    const lapelPin = readFileSync(
+      resolve(process.cwd(), "public/brands/voxy/overlays/voxy-lapel-pin.svg"),
+      "utf8",
+    );
+    const pocketMark = readFileSync(
+      resolve(
+        process.cwd(),
+        "public/brands/voxy/overlays/edebatte-pocket-mark.svg",
+      ),
+      "utf8",
+    );
     const studioLockup = readFileSync(
       resolve(process.cwd(), "public/brands/voxy/overlays/voiceopengov-edebatte-lockup.svg"),
       "utf8",
@@ -170,5 +187,10 @@ describe("Voxy first explainer video v2 contract", () => {
     expect(studioLockup).toContain(">eDebatte</text>");
     expect(studioLockup).not.toContain(">VOXY</text>");
     expect(studioLockup).not.toContain(">Vote4Gov</text>");
+    expect(lapelPin).toContain(">VOXY</text>");
+    expect(lapelPin).not.toContain(">VOG</text>");
+    expect(pocketMark).toContain(">eDebatte</text>");
+    expect(pocketMark).not.toContain(">eDebotte</text>");
+    expect(pocketMark).not.toContain("<rect");
   });
 });

@@ -18,6 +18,7 @@ import {
 import {
   VOXY_STATIC_CANON_BOARDS,
   VOXY_STATIC_CANON_FINAL_CAMERA,
+  VOXY_STATIC_CANON_NATIVE_ASSETS,
 } from "../src/features/voxyVideo/staticCanonRecovery";
 
 function argument(name: string): string | null {
@@ -95,7 +96,52 @@ function renderComparisonHtml(input: {
 }): string {
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:1600px;height:900px;overflow:hidden;background:#050914;color:#f5f7fb;font-family:Arial,Helvetica,sans-serif}.board{width:1600px;height:900px;padding:46px 54px}.header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px}.eyebrow{color:#53e4ae;font-weight:900;letter-spacing:.14em}.title{margin:8px 0 0;font-size:36px}.gate{padding:12px 18px;border:2px solid #35d89a;border-radius:999px;color:#75ebbb;font-weight:900;letter-spacing:.12em}.pair{display:grid;grid-template-columns:1fr 1fr;gap:28px}.panel{padding:20px;border:1px solid #293750;border-radius:18px;background:#091120}.panel h2{margin:0 0 14px;font-size:18px;letter-spacing:.08em}.panel img{display:block;width:100%;height:465px;object-fit:contain;background:#010511}.notes{margin-top:24px;padding:18px 22px;border-left:4px solid #35d89a;background:#111829;font-size:20px;line-height:1.45}.notes strong{color:#75ebbb}
-</style></head><body><main class="board"><header class="header"><div><div class="eyebrow">VOXY · HARD CANON REGION</div><h1 class="title">Jacket Canon Comparison</h1></div><div class="gate">GATE PASS</div></header><section class="pair"><article class="panel"><h2>REPAIRED PRIMARY-A JACKET</h2><img src="${input.candidateDataUrl}" alt="Repaired Primary-A jacket crop"></article><article class="panel"><h2>CANON-04 · SAME CAMERA</h2><img src="${input.canonDataUrl}" alt="Canon-04 reference crop"></article></section><section class="notes"><strong>PASS:</strong> VOG-Pin, eDebatte-Wortmarke, Paspel, Revers, Taschengeometrie und Stofftextur stammen unverändert aus CANON-04. Künstliche Jacket-Overlays sind entfernt; die menschliche Sichtfreigabe bleibt ausstehend.</section></main></body></html>`;
+</style></head><body><main class="board"><header class="header"><div><div class="eyebrow">VOXY · HARD CANON REGION</div><h1 class="title">Jacket Canon Comparison</h1></div><div class="gate">TECHNICAL PASS</div></header><section class="pair"><article class="panel"><h2>NEW · RECONSTRUCTED WORDMARKS</h2><img src="${input.candidateDataUrl}" alt="Jacket with reconstructed VOXY and eDebatte marks"></article><article class="panel"><h2>CANON-04 · GEOMETRY REFERENCE</h2><img src="${input.canonDataUrl}" alt="Canon-04 geometry reference crop"></article></section><section class="notes"><strong>HUMAN REVIEW PENDING:</strong> Außerhalb der zwei Markenmasken bleiben die Jacket-Pixel unverändert. VOXY und eDebatte sind lesbar neu gerenderte Vektorlayer; ihre finale visuelle Akzeptanz wird hier nicht automatisiert behauptet.</section></main></body></html>`;
+}
+
+function renderLegibilityComparisonHtml(input: {
+  canonLapelDataUrl: string;
+  beforeLapelDataUrl: string;
+  newLapelDataUrl: string;
+  canonPocketDataUrl: string;
+  beforePocketDataUrl: string;
+  newPocketDataUrl: string;
+}): string {
+  const panel = (label: string, image: string, alt: string) =>
+    `<article class="panel"><h3>${label}</h3><img src="${image}" alt="${alt}"></article>`;
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{margin:0;width:1800px;height:1050px;overflow:hidden;background:#050914;color:#f5f7fb;font-family:Arial,Helvetica,sans-serif}.board{width:1800px;height:1050px;padding:44px 52px}.eyebrow{color:#53e4ae;font-weight:900;letter-spacing:.14em}.header{display:flex;justify-content:space-between;align-items:flex-end}.header h1{margin:8px 0 0;font-size:38px}.gate{padding:12px 18px;border:2px solid #35d89a;border-radius:999px;color:#75ebbb;font-weight:900;letter-spacing:.1em}.section{margin-top:28px}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.section h2{margin:0;font-size:22px;letter-spacing:.08em}.expected{color:#75ebbb;font-size:18px;font-weight:900;letter-spacing:.08em}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.panel{padding:15px;border:1px solid #293750;border-radius:16px;background:#091120}.panel h3{margin:0 0 10px;color:#a9bdd5;font-size:15px;letter-spacing:.12em}.panel img{display:block;width:100%;height:292px;object-fit:contain;background:#010511}.notice{margin-top:22px;padding:15px 20px;border-left:4px solid #35d89a;background:#111829;font-size:17px}.notice strong{color:#75ebbb}
+</style></head><body><main class="board"><header class="header"><div><div class="eyebrow">VOXY · BRAND LEGIBILITY</div><h1>CANON · VORHER · NEU</h1></div><div class="gate">HUMAN REVIEW PENDING</div></header><section class="section"><div class="section-head"><h2>REVERS-PIN</h2><div class="expected">EXPECTED: VOXY</div></div><div class="grid">${panel("CANON", input.canonLapelDataUrl, "Canon lapel pin")}${panel("VORHER · 64b79c79", input.beforeLapelDataUrl, "Human-rejected prior lapel pin")}${panel("NEU · VECTOR", input.newLapelDataUrl, "Reconstructed VOXY lapel pin")}</div></section><section class="section"><div class="section-head"><h2>BRUSTTASCHE</h2><div class="expected">EXPECTED: eDebatte</div></div><div class="grid">${panel("CANON", input.canonPocketDataUrl, "Canon pocket mark")}${panel("VORHER · 64b79c79", input.beforePocketDataUrl, "Human-rejected prior pocket mark")}${panel("NEU · VECTOR", input.newPocketDataUrl, "Reconstructed eDebatte pocket mark")}</div></section><div class="notice"><strong>STOP:</strong> Technischer PASS erlaubt weder Layer-Master noch Motion v3. Die Wortmarken benötigen die nächste menschliche Sichtfreigabe.</div></main></body></html>`;
+}
+
+async function screenshotMaskedNonBrandJacket(input: {
+  page: Page;
+  path: string;
+  clip: { x: number; y: number; width: number; height: number };
+  masks: Readonly<Record<string, { x: number; y: number; width: number; height: number }>>;
+}): Promise<void> {
+  await input.page.evaluate((masks) => {
+    for (const mask of Object.values(masks)) {
+      const element = document.createElement("div");
+      element.dataset.jacketBrandMask = "true";
+      Object.assign(element.style, {
+        position: "fixed",
+        left: `${mask.x}px`,
+        top: `${mask.y}px`,
+        width: `${mask.width}px`,
+        height: `${mask.height}px`,
+        background: "#ff00ff",
+        zIndex: "9999",
+      });
+      document.body.append(element);
+    }
+  }, input.masks);
+  await input.page.screenshot({ path: input.path, type: "png", clip: input.clip });
+  await input.page.evaluate(() => {
+    document
+      .querySelectorAll("[data-jacket-brand-mask='true']")
+      .forEach((element) => element.remove());
+  });
 }
 
 async function scalePng(input: {
@@ -145,6 +191,8 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
+    VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
   ];
   const dirtyInputs = runBinary(
@@ -198,11 +246,37 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ),
+    lapelPin: repositoryPath(
+      repositoryRoot,
+      VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+    ),
+    edebattePocketMark: repositoryPath(
+      repositoryRoot,
+      VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+    ),
   };
+  const lapelPinSource = await readFile(sourcePaths.lapelPin, "utf8");
+  const pocketMarkSource = await readFile(
+    sourcePaths.edebattePocketMark,
+    "utf8",
+  );
+  if (
+    !/>VOXY<\//.test(lapelPinSource) ||
+    />VOG<\//.test(lapelPinSource) ||
+    !/>eDebatte<\//.test(pocketMarkSource) ||
+    />eDebotte<\//.test(pocketMarkSource)
+  ) {
+    throw new Error("reconstructed_brand_source_text_contract_failed");
+  }
   const assets: VoxyFirstExplainerEmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
     studioLockupDataUrl: dataUrl(
       await readFile(sourcePaths.studioLockup),
+      "image/svg+xml",
+    ),
+    lapelPinDataUrl: dataUrl(Buffer.from(lapelPinSource), "image/svg+xml"),
+    edebattePocketMarkDataUrl: dataUrl(
+      Buffer.from(pocketMarkSource),
       "image/svg+xml",
     ),
   };
@@ -242,10 +316,11 @@ async function main(): Promise<void> {
     type: "png",
     clip: plan.cropContract.jacket,
   });
-  await page.screenshot({
+  await screenshotMaskedNonBrandJacket({
+    page,
     path: jacketMatchCandidatePath,
-    type: "png",
-    clip: plan.pixelMatchCrops.jacket,
+    clip: plan.nonBrandPixelMatchCrop,
+    masks: plan.brandReplacementMasks,
   });
   await page.screenshot({
     path: lapelSourcePath,
@@ -299,20 +374,21 @@ async function main(): Promise<void> {
     type: "png",
     clip: plan.cropContract.jacket,
   });
-  await page.screenshot({
+  await screenshotMaskedNonBrandJacket({
+    page,
     path: canonJacketMatchPath,
-    type: "png",
-    clip: plan.pixelMatchCrops.jacket,
+    clip: plan.nonBrandPixelMatchCrop,
+    masks: plan.brandReplacementMasks,
   });
   await page.screenshot({
     path: canonLapelPath,
     type: "png",
-    clip: plan.pixelMatchCrops.lapelPin,
+    clip: plan.cropContract.lapelPin,
   });
   await page.screenshot({
     path: canonPocketPath,
     type: "png",
-    clip: plan.pixelMatchCrops.pocketMark,
+    clip: plan.cropContract.pocketMark,
   });
   const comparisonPath = resolve(outputRoot, plan.output.comparisonFileName);
   await page.setViewportSize({ width: 1600, height: 900 });
@@ -324,51 +400,43 @@ async function main(): Promise<void> {
     }),
   );
   await page.locator(".board").screenshot({ path: comparisonPath, type: "png" });
+  const legibilityComparisonPath = resolve(
+    outputRoot,
+    plan.output.legibilityComparisonFileName,
+  );
+  await page.setViewportSize({ width: 1800, height: 1050 });
+  await settlePage(
+    page,
+    renderLegibilityComparisonHtml({
+      canonLapelDataUrl: dataUrl(await readFile(canonLapelPath), "image/png"),
+      beforeLapelDataUrl: dataUrl(await readFile(canonLapelPath), "image/png"),
+      newLapelDataUrl: dataUrl(await readFile(lapelSourcePath), "image/png"),
+      canonPocketDataUrl: dataUrl(await readFile(canonPocketPath), "image/png"),
+      beforePocketDataUrl: dataUrl(await readFile(canonPocketPath), "image/png"),
+      newPocketDataUrl: dataUrl(await readFile(pocketSourcePath), "image/png"),
+    }),
+  );
+  await page
+    .locator(".board")
+    .screenshot({ path: legibilityComparisonPath, type: "png" });
   await browser.close();
 
   if (externalRequests.length > 0) {
     throw new Error(`external_requests_detected:${externalRequests.join(",")}`);
   }
 
-  const pixelMatchEntries = [
-    {
-      id: "jacket",
-      crop: plan.pixelMatchCrops.jacket,
-      candidatePath: jacketMatchCandidatePath,
-      referencePath: canonJacketMatchPath,
-    },
-    {
-      id: "lapelPin",
-      crop: plan.pixelMatchCrops.lapelPin,
-      candidatePath: lapelSourcePath,
-      referencePath: canonLapelPath,
-    },
-    {
-      id: "pocketMark",
-      crop: plan.pixelMatchCrops.pocketMark,
-      candidatePath: pocketSourcePath,
-      referencePath: canonPocketPath,
-    },
-  ] as const;
-  const pixelMatch = Object.fromEntries(
-    await Promise.all(
-      pixelMatchEntries.map(async (entry) => {
-        const candidateBytes = await readFile(entry.candidatePath);
-        const referenceBytes = await readFile(entry.referencePath);
-        return [
-          entry.id,
-          {
-            crop: entry.crop,
-            candidateSha256: sha256(candidateBytes),
-            referenceSha256: sha256(referenceBytes),
-            matched: candidateBytes.equals(referenceBytes),
-          },
-        ];
-      }),
-    ),
-  );
-  if (Object.values(pixelMatch).some((entry) => !entry.matched)) {
-    throw new Error("jacket_canon_pixel_match_failed");
+  const candidateNonBrandBytes = await readFile(jacketMatchCandidatePath);
+  const referenceNonBrandBytes = await readFile(canonJacketMatchPath);
+  const nonBrandPixelMatch = {
+    crop: plan.nonBrandPixelMatchCrop,
+    replacementMasks: plan.brandReplacementMasks,
+    maskFill: "#ff00ff",
+    candidateSha256: sha256(candidateNonBrandBytes),
+    referenceSha256: sha256(referenceNonBrandBytes),
+    matched: candidateNonBrandBytes.equals(referenceNonBrandBytes),
+  };
+  if (!nonBrandPixelMatch.matched) {
+    throw new Error("jacket_canon_non_brand_pixel_match_failed");
   }
 
   const outputFiles = [
@@ -377,6 +445,7 @@ async function main(): Promise<void> {
     plan.output.lapelPin400PctFileName,
     plan.output.pocketMark400PctFileName,
     plan.output.comparisonFileName,
+    plan.output.legibilityComparisonFileName,
   ];
   const outputs = Object.fromEntries(
     await Promise.all(
@@ -396,7 +465,7 @@ async function main(): Promise<void> {
     canonEvidence,
     hardCanonRegion: plan.hardCanonRegion,
     cropContract: plan.cropContract,
-    pixelMatch,
+    nonBrandPixelMatch,
     markProvenance: plan.markProvenance,
     comparison: plan.comparison,
     candidateFrameIndex,
@@ -405,8 +474,20 @@ async function main(): Promise<void> {
         path: relative(repositoryRoot, sourcePaths.canonStage),
         sha256: await fileSha256(sourcePaths.canonStage),
       },
-      characterMarks:
-        "unmodified_canon_04_raster_pixels_no_svg_or_typographic_overlay",
+      lapelPin: {
+        path: relative(repositoryRoot, sourcePaths.lapelPin),
+        sha256: await fileSha256(sourcePaths.lapelPin),
+        exactText: "VOXY",
+        geometryReference: "CANON-04",
+        reconstructedForLegibility: true,
+      },
+      pocketMark: {
+        path: relative(repositoryRoot, sourcePaths.edebattePocketMark),
+        sha256: await fileSha256(sourcePaths.edebattePocketMark),
+        exactText: "eDebatte",
+        geometryReference: "CANON-04",
+        reconstructedForLegibility: true,
+      },
     },
     outputs,
     jacketCanonGate: plan.jacketCanonGate,

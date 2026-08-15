@@ -5,26 +5,27 @@ Stand: 2026-08-15
 ## Verbindlicher Jacket-Canon-Gate vom 15.08.2026
 
 Die grundsätzliche menschliche Akzeptanz des statischen A-/C-Masters ist keine
-Akzeptanz der anschließend sichtbaren Motion-v2-Sakkoüberlagerungen. Der letzte
-Motion-v2-Stand ist für VOG-Pin, eDebatte-Pocket-Mark und deren Integration in
-Revers, Tasche und Stoff ausdrücklich abgelehnt.
+Akzeptanz der anschließend sichtbaren Motion-v2-Sakkoüberlagerungen. Der
+pixelidentische Gate-Stand am Head
+`64b79c797450fe4c6202b6d0e3bad8c1afa2ed4b` ist ausdrücklich abgelehnt: Der
+Pin las sich als `VOKT`/`VOXT`, die Pocket-Wortmarke als `eDebotte`.
 
-Sakko-Schnitt, Revers, Stofftextur, Nähte, Taschenform, blaue Paspel, VOG-Pin
-und eDebatte-Pocket-Mark bilden daher gemeinsam eine unveränderliche
-Character-Identity-Region. Vor einem Layer-Master oder Motion v3 muss der lokale
-Exact-Head-Renderer `render-voxy-jacket-canon-gate.ts` fünf direkt prüfbare
-PNG-Evidenzen und ein Manifest gegen CANON-04 erzeugen. Die abgelehnten frei
-gesetzten SVG-Marken sind aus Primary A und dem Explainer entfernt. VOG-Pin,
-genau eine eDebatte-Wortmarke, Paspel, Revers, Tasche und Stoff bleiben als
-unveränderte CANON-04-Rasterpixel in derselben Primary-A-Kamerakomposition.
+Sakko-Schnitt, Revers, Stofftextur, Nähte, Taschenform und blaue Paspel bleiben
+unverändert. Ausschließlich die beiden kleinen Markenflächen werden ersetzt:
+der Revers-Pin mit exakt `VOXY`, die Brusttasche mit exakt einmal `eDebatte`,
+ohne Badge, Box oder zweite Zeile. CANON-04 bleibt Geometriequelle für Position,
+Größenordnung, Winkel, Perspektive, Farbwirkung und Integration, aber nicht mehr
+Pixelquelle der Buchstaben. Beide Wortmarken werden als lokale hochauflösende
+Vektorlayer neu gerendert; eine Character- oder Sakko-Generation findet nicht
+statt.
 
-Der technische Gate-Stand ist `passed`, weil Jacket-, Pin- und Pocket-Region
-bytegenau mit CANON-04 übereinstimmen. `layerMasterEligible`, `motionV3Eligible`
-und `animationEligible` bleiben dennoch `false`; `humanVisualAcceptance`
-bleibt `pending`. Weder OCR-Annahmen noch rekonstruierendes Raster-Patching oder
-neu gezeichnete Typografie begründen den PASS. Erst die menschliche Sichtung
-der revisionsgebundenen Evidence kann eine spätere Freigabeentscheidung
-begründen.
+Der technische Gate-Stand darf `passed` sein, wenn die exakten Quelltexte, die
+dokumentierte Markenprovenienz und der maskierte Bytevergleich der unveränderten
+Jacket-Pixel bestehen. Für beide Marken gilt `humanLegibilityRequired = true`;
+`layerMasterEligible`, `motionV3Eligible` und `animationEligible` bleiben
+`false`, `humanVisualAcceptance` bleibt `pending`. Erst die menschliche Sichtung
+der revisionsgebundenen Evidence in 100, 200 und 400 Prozent kann eine spätere
+Freigabeentscheidung begründen.
 
 ## Aktueller Recovery-Scope
 
@@ -49,7 +50,7 @@ aktuellen Explainer in PR `#589` gilt:
   akzeptierter geschichteter Master existiert;
 - genau eine statische Waveform hinter Voxy; künftig audio-reaktionsfähig,
   aktuell nicht audio-reaktiv und ohne Audioanalyse;
-- CANON-04-VOG-Pin, genau eine eDebatte-Wortmarke ohne Badge/zweite Zeile und dauerhaftes
+- Canon-geometrischer VOXY-Pin, genau eine rekonstruierte eDebatte-Wortmarke ohne Badge/zweite Zeile und dauerhaftes
   VoiceOpenGov-/eDebatte-Studio-Lockup gemäß Human Branding Decision;
 - lokaler, revisionsgebundener Raster-Render ohne Generierung, externen Dienst,
   Upload oder SaaS;
@@ -75,7 +76,7 @@ Identitätsquelle. Technische Evidence ersetzt keine Human Visual Acceptance.
 - natives SVG-Layer-/Pivot-Rig aus dem eigenen Assetbestand;
 - unabhängige Steuerung von Kopf, Augen, Lidern, Brauen, Armen, Händen und
   Oberkörper;
-- separat im Oberkörper-Layer geführter VOG-Pin und eDebatte-Pocket-Mark;
+- separat im Oberkörper-Layer geführter VOXY-Pin und eDebatte-Pocket-Mark;
 - exakt fünf vorhandene, nicht generativ erzeugte Finger-Elemente je Hand;
 - sieben deterministische Motion States;
 - revisionsgebundener lokaler 8-Sekunden-Render mit 24 fps in `16:9`;

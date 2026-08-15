@@ -257,44 +257,52 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 ## Jacket-Canon-Gate nach Human Review vom 15.08.2026
 
 Die nach dem statisch akzeptierten A-Master erzeugte Motion-v2-Ausgabe ist für
-den sichtbaren Sakko-/Branding-Stand nicht akzeptiert. Das Sakko wird ab dieser
-Entscheidung vollständig als Hard-Canon-Region behandelt: Schnitt, Revers,
-Stofftextur, Nähte, Taschenform, blaue Paspel, VOG-Pin und
-eDebatte-Pocket-Mark dürfen nicht unabhängig voneinander angenähert werden.
+den sichtbaren Sakko-/Branding-Stand nicht akzeptiert. Auch der technisch
+pixelidentische Jacket-Gate am Head
+`64b79c797450fe4c6202b6d0e3bad8c1afa2ed4b` hat die anschließende menschliche
+Sichtprüfung nicht bestanden: Der Revers-Pin las sich als `VOKT`/`VOXT` statt
+`VOXY`, die Pocket-Wortmarke als `eDebotte` statt `eDebatte`. Pixelidentität
+belegt bei diesen sehr kleinen Rasterglyphen keine Markenlesbarkeit.
 
-Der neue lokale Exact-Head-Renderer
+Der lokale Exact-Head-Renderer
 `apps/web/scripts/render-voxy-jacket-canon-gate.ts` stellt den aktuellen
-Motion-v2-Jacket-Crop und denselben CANON-04-Ausschnitt bei identischer Kamera
-gegenüber. Er erzeugt unter `artifacts/voxy-jacket-canon-gate/`:
+Jacket-Crop und denselben CANON-04-Ausschnitt bei identischer Kamera gegenüber.
+Er erzeugt unter `artifacts/voxy-jacket-canon-gate/`:
 
 - `jacket-full.png`;
 - `jacket-200pct.png`;
 - `lapel-pin-400pct.png`;
 - `pocket-mark-400pct.png`;
 - `jacket-canon-comparison.png`;
+- `jacket-brand-legibility-comparison.png` mit CANON, VORHER und NEU;
 - `manifest.json` mit Exact Head, allen vier Canon-Hashes, Crop-Vertrag,
   Asset-Provenienz und fail-closed Freigabefeldern.
 
-Der reparierte Gate-Befund ist technisch `passed`. Die frei gesetzten
-VOG-/eDebatte-SVG-Overlays wurden aus der Primary-A- und Explainer-Komposition
-entfernt. Der Renderer vergleicht die zentrale Jacket-, VOG- und Pocket-Region
-bei identischer Primary-A-Kamera bytegenau mit CANON-04 und bricht bei jeder
-Pixelabweichung ab. Damit bleiben Position, Größe, nativer Winkel, Stofftextur,
-Revers, Taschengeometrie und blaue Paspel gemeinsam erhalten. Es wird keine
-OCR-Erkennung und keine neu gezeichnete oder extrahierte Typografie als
-Integrationsnachweis ausgegeben.
+Die Reparatur ersetzt ausschließlich die beiden kleinen Markenflächen. Der
+Revers-Pin enthält exakt `VOXY`; die Brusttasche enthält exakt einmal
+`eDebatte`, ohne Badge, Box oder zweite Zeile. Beide Buchstabenbilder werden als
+lokale hochauflösende SVG-Texte neu gerendert und nicht aus dem fehlerhaften
+CANON-04-Raster extrahiert. CANON-04 bleibt die Geometriequelle für Position,
+Größenordnung, Winkel, Perspektive, Farbwirkung und Integration. Ein maskierter
+Bytevergleich bricht bei jeder Änderung der Jacket-Pixel außerhalb der beiden
+dokumentierten Ersatzflächen ab. Kopf, Gesicht, Kopfhörer, Körper, Hände,
+Sakko, Stoffstruktur, Revers, Brusttasche, blaue Paspel, Beleuchtung, Mikrofon,
+Studio, Waveform und Bildkomposition bleiben unverändert.
 
 Die geometrische Provenienz ist im Manifest für beide Marken gebunden. Quelle
-ist `CANON-04-broadcast-layout-blue.png`; der VOG-Quellcrop liegt bei
-`x=585, y=414, w=60, h=38`, der Pocket-Quellcrop bei
-`x=760, y=470, w=90, h=60`. Beide Regionen werden nicht separat neu
-zusammengesetzt, sondern bleiben mit `opacity=1`, ohne Zusatzrotation und mit
-dem effektiven Primary-A-Faktor `1.234449761` Teil derselben unveränderten
-Canon-Rasterkomposition. Die dokumentierten Zielbounds sind für VOG
-`x=632.153, y=477.114, w=74.067, h=46.909` und für eDebatte
-`x=848.182, y=546.243, w=111.1, h=74.067` im 1920×1080-Frame.
+ist `CANON-04-broadcast-layout-blue.png`; der Pin-Referenzcrop liegt bei
+`x=585, y=414, w=60, h=38`, der Pocket-Referenzcrop bei
+`x=760, y=470, w=90, h=60`. Dokumentiert werden je Marke `text`,
+`fontSource`, `renderingMethod`, `targetPlacement`, `scale`, `rotation`,
+`perspectiveTransform` und `compositingMethod`. Zusätzlich gelten
+`geometryDerivedFromCanon = true` und
+`wordmarkReconstructedForLegibility = true`. Es gibt keine Character-
+Generation, keine Bildgenerierung, keinen externen Dienst und keinen Upload.
 
-Folgerichtig bleiben `layerMasterEligible = false`,
+Der technische Gate-Befund darf nach erfolgreichem Exact-Head-Render `passed`
+sein. Für Pin und Pocket bleiben `humanLegibilityRequired = true` und
+`humanLegibilityStatus = pending`. Folgerichtig bleiben
+`layerMasterEligible = false`,
 `motionV3Eligible = false`, `animationEligible = false`,
 `humanVisualAcceptance = pending`, `productionEligible = false` und
 `autoPublish = false`. Es wurde kein Layer-Master und kein Motion-v3-Render

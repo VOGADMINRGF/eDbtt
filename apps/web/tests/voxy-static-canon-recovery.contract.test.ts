@@ -15,6 +15,12 @@ import {
 
 const HEAD = "9cb25e91ae6fe04f7e532e8116cf0f500ee30ddb";
 const DATA_URL = "data:image/png;base64,canonical";
+const ASSETS = {
+  canonStageDataUrl: DATA_URL,
+  wordmarkDataUrl: "data:image/svg+xml;base64,wordmark",
+  lapelPinDataUrl: "data:image/svg+xml;base64,lapel",
+  edebattePocketMarkDataUrl: "data:image/svg+xml;base64,pocket",
+};
 
 describe("Voxy static canon final contract", () => {
   it("binds all four human-approved canon boards by exact path and SHA", () => {
@@ -109,10 +115,7 @@ describe("Voxy static canon final contract", () => {
       const html = renderVoxyStaticCanonFinalHtml({
         plan,
         variant,
-        assets: {
-          canonStageDataUrl: DATA_URL,
-          wordmarkDataUrl: "data:image/svg+xml;base64,wordmark",
-        },
+        assets: ASSETS,
       });
       expect(html).toContain(`data-variant-id="${variant.id}"`);
       expect(html).toContain('data-character-source="CANON-04"');
@@ -127,9 +130,13 @@ describe("Voxy static canon final contract", () => {
       expect(html).not.toContain("<canvas");
       expect(html).not.toMatch(/https?:\/\//);
       expect(html).not.toContain("@keyframes");
-      expect(html).toContain('data-character-marks="canon-04-raster-only"');
-      expect(html).not.toContain("native-vog-pin");
-      expect(html).not.toContain("native-edebatte-pocket-mark");
+      expect(html).toContain(
+        'data-character-marks="canon-geometry-reconstructed-vector-wordmarks"',
+      );
+      expect(html).toContain("reconstructed-lapel-pin");
+      expect(html).toContain("reconstructed-pocket-mark");
+      expect(html).toContain('alt="VOXY"');
+      expect(html).toContain('alt="eDebatte"');
     }
   });
 
@@ -138,10 +145,7 @@ describe("Voxy static canon final contract", () => {
     const html = renderVoxyStaticCanonFinalHtml({
       plan,
       variant: plan.variants[0],
-      assets: {
-        canonStageDataUrl: DATA_URL,
-        wordmarkDataUrl: "data:image/svg+xml;base64,wordmark",
-      },
+      assets: ASSETS,
       clean: true,
     });
     expect(html).toContain("PRIMARY A · CLEAN");

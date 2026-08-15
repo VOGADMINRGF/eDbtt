@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - "apps/web/public/brands/voxy/references/canon/**"
+      - "apps/web/public/brands/voxy/overlays/voxy-lapel-pin.svg"
+      - "apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg"
       - "apps/web/src/features/voxyVideo/jacketCanonGate.ts"
       - "apps/web/src/features/voxyVideo/firstExplainerVideo.ts"
       - "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts"
@@ -75,24 +77,31 @@ jobs:
             "lapel-pin-400pct.png",
             "pocket-mark-400pct.png",
             "jacket-canon-comparison.png",
+            "jacket-brand-legibility-comparison.png",
             "manifest.json",
           ];
           if (files.some((file) => !fs.existsSync(root + file))) process.exit(1);
           const manifest = JSON.parse(fs.readFileSync(root + "manifest.json", "utf8"));
           const hash = (file) => crypto.createHash("sha256").update(fs.readFileSync(root + file)).digest("hex");
           if (
-            manifest.schemaVersion !== "voxy-jacket-canon-gate-v1" ||
+            manifest.schemaVersion !== "voxy-jacket-canon-gate-v2" ||
             manifest.exactHeadSha !== process.env.VOXY_JACKET_GATE_COMMIT_SHA ||
             manifest.jacketCanonGate?.passed !== true ||
-            manifest.brandQa?.lapelPin?.expectedText !== "VOG" ||
+            manifest.jacketCanonGate?.nonBrandPixelsPreserved !== true ||
+            manifest.jacketCanonGate?.humanLegibility !== "pending" ||
+            manifest.brandQa?.lapelPin?.expectedText !== "VOXY" ||
             manifest.brandQa?.lapelPin?.visibleMarkCount !== 1 ||
-            manifest.brandQa?.lapelPin?.status !== "passed" ||
+            manifest.brandQa?.lapelPin?.technicalStatus !== "passed" ||
+            manifest.brandQa?.lapelPin?.humanLegibilityRequired !== true ||
+            manifest.brandQa?.lapelPin?.humanLegibilityStatus !== "pending" ||
             manifest.brandQa?.pocketMark?.expectedText !== "eDebatte" ||
             manifest.brandQa?.pocketMark?.visibleMarkCount !== 1 ||
             manifest.brandQa?.pocketMark?.badgePresent !== false ||
             manifest.brandQa?.pocketMark?.secondLinePresent !== false ||
-            manifest.brandQa?.pocketMark?.status !== "passed" ||
-            Object.values(manifest.pixelMatch).some((entry) => entry.matched !== true) ||
+            manifest.brandQa?.pocketMark?.technicalStatus !== "passed" ||
+            manifest.brandQa?.pocketMark?.humanLegibilityRequired !== true ||
+            manifest.brandQa?.pocketMark?.humanLegibilityStatus !== "pending" ||
+            manifest.nonBrandPixelMatch?.matched !== true ||
             manifest.layerMasterEligible !== false ||
             manifest.motionV3Eligible !== false ||
             manifest.animationEligible !== false ||

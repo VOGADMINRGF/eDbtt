@@ -1,11 +1,11 @@
 import {
   VOXY_STATIC_CANON_BOARDS,
-  VOXY_STATIC_CANON_FINAL_CAMERA,
+  VOXY_STATIC_CANON_NATIVE_ASSETS,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "./staticCanonRecovery";
 
 export const VOXY_JACKET_CANON_GATE_SCHEMA_VERSION =
-  "voxy-jacket-canon-gate-v1" as const;
+  "voxy-jacket-canon-gate-v2" as const;
 
 export const VOXY_JACKET_CANON_GATE_OUTPUT = {
   outputDirectory: "artifacts/voxy-jacket-canon-gate",
@@ -14,6 +14,7 @@ export const VOXY_JACKET_CANON_GATE_OUTPUT = {
   lapelPin400PctFileName: "lapel-pin-400pct.png",
   pocketMark400PctFileName: "pocket-mark-400pct.png",
   comparisonFileName: "jacket-canon-comparison.png",
+  legibilityComparisonFileName: "jacket-brand-legibility-comparison.png",
   manifestFileName: "manifest.json",
 } as const;
 
@@ -23,58 +24,83 @@ export const VOXY_JACKET_CANON_GATE_CROPS = {
   pocketMark: { x: 800, y: 510, width: 220, height: 145 },
 } as const;
 
-export const VOXY_JACKET_CANON_PIXEL_MATCH_CROPS = {
-  jacket: { x: 540, y: 390, width: 520, height: 405 },
-  lapelPin: VOXY_JACKET_CANON_GATE_CROPS.lapelPin,
-  pocketMark: VOXY_JACKET_CANON_GATE_CROPS.pocketMark,
+export const VOXY_JACKET_NON_BRAND_PIXEL_MATCH_CROP = {
+  x: 540,
+  y: 390,
+  width: 520,
+  height: 405,
+} as const;
+
+export const VOXY_JACKET_BRAND_LAYER_GEOMETRY = {
+  lapelPin: {
+    left: 643,
+    top: 486,
+    width: 49,
+    height: 24,
+    rotationDegrees: -10,
+    perspectiveTransform: "skewX(-3deg) scaleY(0.88)",
+  },
+  pocketMark: {
+    left: 858,
+    top: 579,
+    width: 70,
+    height: 22,
+    rotationDegrees: -7,
+    perspectiveTransform: "skewX(-3deg) scaleY(0.92)",
+  },
+} as const;
+
+export const VOXY_JACKET_BRAND_REPLACEMENT_MASKS = {
+  lapelPin: { x: 630, y: 470, width: 78, height: 58 },
+  pocketMark: { x: 845, y: 565, width: 98, height: 55 },
 } as const;
 
 export const VOXY_JACKET_CANON_MARK_PROVENANCE = {
   lapelPin: {
-    sourceCanonFile: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
-    sourceCrop: { x: 585, y: 414, width: 60, height: 38 },
+    text: "VOXY",
+    fontSource: "Arial 800 with Helvetica and sans-serif fallbacks",
+    sourceAsset: VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+    renderingMethod: "browser_rasterized_inline_svg_text_at_native_vector_resolution",
+    geometryReferenceCanonFile: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+    geometryReferenceCrop: { x: 585, y: 414, width: 60, height: 38 },
     targetPlacement: {
       coordinateSpace: "primary_a_1920x1080",
-      x: 632.153,
-      y: 477.114,
-      width: 74.067,
-      height: 46.909,
+      x: VOXY_JACKET_BRAND_LAYER_GEOMETRY.lapelPin.left,
+      y: VOXY_JACKET_BRAND_LAYER_GEOMETRY.lapelPin.top,
+      width: VOXY_JACKET_BRAND_LAYER_GEOMETRY.lapelPin.width,
+      height: VOXY_JACKET_BRAND_LAYER_GEOMETRY.lapelPin.height,
     },
-    scale: {
-      objectFitCover: 1.148325359,
-      primaryCamera: VOXY_STATIC_CANON_FINAL_CAMERA.scale,
-      effective: 1.234449761,
-    },
-    rotation: {
-      additionalDegrees: 0,
-      nativeCanonAnglePreserved: true,
-    },
-    opacity: 1,
+    scale: { x: 0.102083333, y: 0.1, sourceViewBox: "480x240" },
+    rotation: { degrees: -10, transformOrigin: "center" },
+    perspectiveTransform:
+      VOXY_JACKET_BRAND_LAYER_GEOMETRY.lapelPin.perspectiveTransform,
     compositingMethod:
-      "retain_unmodified_canon_raster_pixels_via_primary_a_camera_no_overlay",
+      "opaque_dark_pin_surface_replaces_only_canon_pin_surface_then_vector_text",
+    geometryDerivedFromCanon: true,
+    wordmarkReconstructedForLegibility: true,
   },
   pocketMark: {
-    sourceCanonFile: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
-    sourceCrop: { x: 760, y: 470, width: 90, height: 60 },
+    text: "eDebatte",
+    fontSource: "Arial 700 with Helvetica and sans-serif fallbacks",
+    sourceAsset: VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+    renderingMethod: "browser_rasterized_inline_svg_text_at_native_vector_resolution",
+    geometryReferenceCanonFile: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+    geometryReferenceCrop: { x: 760, y: 470, width: 90, height: 60 },
     targetPlacement: {
       coordinateSpace: "primary_a_1920x1080",
-      x: 848.182,
-      y: 546.243,
-      width: 111.1,
-      height: 74.067,
+      x: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.left,
+      y: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.top,
+      width: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.width,
+      height: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.height,
     },
-    scale: {
-      objectFitCover: 1.148325359,
-      primaryCamera: VOXY_STATIC_CANON_FINAL_CAMERA.scale,
-      effective: 1.234449761,
-    },
-    rotation: {
-      additionalDegrees: 0,
-      nativeCanonAnglePreserved: true,
-    },
-    opacity: 1,
+    scale: { x: 0.0875, y: 0.091666667, sourceViewBox: "800x240" },
+    rotation: { degrees: -7, transformOrigin: "center" },
+    perspectiveTransform:
+      VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.perspectiveTransform,
     compositingMethod:
-      "retain_unmodified_canon_raster_pixels_via_primary_a_camera_no_overlay",
+      "glyph_shaped_dark_cleanup_stroke_then_single_gradient_vector_wordmark",
+    geometryDerivedFromCanon: true,
+    wordmarkReconstructedForLegibility: true,
   },
 } as const;
 
@@ -85,19 +111,18 @@ export const VOXY_JACKET_HARD_CANON_REGION = [
   "stitching",
   "pocket_geometry",
   "blue_piping",
-  "vog_lapel_pin",
+  "voxy_lapel_pin",
   "edebatte_pocket_mark",
 ] as const;
 
 export const VOXY_JACKET_CANON_GATE_HUMAN_DECISION = {
   date: "2026-08-15",
   status: "rejected",
-  scope: "motion_v2_visible_jacket",
+  scope: "jacket_gate_at_64b79c797450fe4c6202b6d0e3bad8c1afa2ed4b",
   reasons: [
-    "vog_pin_position_size_angle_and_jacket_integration_not_accepted",
-    "edebatte_pocket_mark_position_size_angle_and_jacket_integration_not_accepted",
-    "duplicate_or_reconstructed_edebatte_mark_visible",
-    "branding_reads_as_post_applied_ui_overlay",
+    "canon_raster_pin_reads_as_vokt_or_voxt_instead_of_voxy",
+    "canon_raster_pocket_mark_reads_as_edebotte_instead_of_edebatte",
+    "pixel_identity_does_not_establish_brand_legibility",
   ],
 } as const;
 
@@ -109,25 +134,30 @@ export type VoxyJacketCanonGatePlan = Readonly<{
     canonBoardId: typeof VOXY_STATIC_CANON_PIXEL_SOURCE.id;
     canonBoardPath: typeof VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath;
     canonBoardSha256: typeof VOXY_STATIC_CANON_PIXEL_SOURCE.sha256;
-    allCanonHashes: Readonly<Record<(typeof VOXY_STATIC_CANON_BOARDS)[number]["id"], string>>;
+    allCanonHashes: Readonly<
+      Record<(typeof VOXY_STATIC_CANON_BOARDS)[number]["id"], string>
+    >;
   };
   hardCanonRegion: typeof VOXY_JACKET_HARD_CANON_REGION;
   cropContract: typeof VOXY_JACKET_CANON_GATE_CROPS;
-  pixelMatchCrops: typeof VOXY_JACKET_CANON_PIXEL_MATCH_CROPS;
+  nonBrandPixelMatchCrop: typeof VOXY_JACKET_NON_BRAND_PIXEL_MATCH_CROP;
+  brandReplacementMasks: typeof VOXY_JACKET_BRAND_REPLACEMENT_MASKS;
   markProvenance: typeof VOXY_JACKET_CANON_MARK_PROVENANCE;
   comparison: {
-    candidate: "repaired_primary_a_jacket";
-    reference: "canon_04_same_camera";
+    canon: "canon_04_raster_marks";
+    before: "human_rejected_head_64b79c79";
+    candidate: "reconstructed_vector_wordmarks";
   };
   brandQa: {
-    evidenceMethod: "exact_canon_pixel_match_plus_human_visual_review_no_ocr_claim";
+    evidenceMethod: "vector_source_text_contract_plus_masked_non_brand_pixel_match_and_human_legibility";
     lapelPin: {
-      expectedText: "VOG";
+      expectedText: "VOXY";
       expectedVisibleMarkCount: 1;
       visibleMarkCount: 1;
+      humanLegibilityRequired: true;
+      humanLegibilityStatus: "pending";
       machineRecognizedText: null;
-      status: "passed";
-      reason: "candidate_region_is_pixel_identical_to_canon_04_at_primary_a_camera";
+      technicalStatus: "passed";
     };
     pocketMark: {
       expectedText: "eDebatte";
@@ -135,20 +165,21 @@ export type VoxyJacketCanonGatePlan = Readonly<{
       visibleMarkCount: 1;
       badgePresent: false;
       secondLinePresent: false;
+      humanLegibilityRequired: true;
+      humanLegibilityStatus: "pending";
       machineRecognizedText: null;
-      status: "passed";
-      reason: "candidate_region_is_pixel_identical_to_canon_04_at_primary_a_camera";
+      technicalStatus: "passed";
     };
   };
   jacketCanonGate: {
     passed: true;
-    lapelPin: "passed";
-    pocketMark: "passed";
-    texturePreserved: true;
+    brandLayerTechnicalContract: "passed";
+    nonBrandPixelsPreserved: true;
+    texturePreservedOutsideReplacementMasks: true;
     lapelGeometryPreserved: true;
     pocketGeometryPreserved: true;
     bluePipingPreserved: true;
-    visualIntegration: "passed";
+    humanLegibility: "pending";
   };
   humanDecision: typeof VOXY_JACKET_CANON_GATE_HUMAN_DECISION;
   layerMasterEligible: false;
@@ -179,23 +210,25 @@ export function buildVoxyJacketCanonGatePlan(
     },
     hardCanonRegion: VOXY_JACKET_HARD_CANON_REGION,
     cropContract: VOXY_JACKET_CANON_GATE_CROPS,
-    pixelMatchCrops: VOXY_JACKET_CANON_PIXEL_MATCH_CROPS,
+    nonBrandPixelMatchCrop: VOXY_JACKET_NON_BRAND_PIXEL_MATCH_CROP,
+    brandReplacementMasks: VOXY_JACKET_BRAND_REPLACEMENT_MASKS,
     markProvenance: VOXY_JACKET_CANON_MARK_PROVENANCE,
     comparison: {
-      candidate: "repaired_primary_a_jacket",
-      reference: "canon_04_same_camera",
+      canon: "canon_04_raster_marks",
+      before: "human_rejected_head_64b79c79",
+      candidate: "reconstructed_vector_wordmarks",
     },
     brandQa: {
       evidenceMethod:
-        "exact_canon_pixel_match_plus_human_visual_review_no_ocr_claim",
+        "vector_source_text_contract_plus_masked_non_brand_pixel_match_and_human_legibility",
       lapelPin: {
-        expectedText: "VOG",
+        expectedText: "VOXY",
         expectedVisibleMarkCount: 1,
         visibleMarkCount: 1,
+        humanLegibilityRequired: true,
+        humanLegibilityStatus: "pending",
         machineRecognizedText: null,
-        status: "passed",
-        reason:
-          "candidate_region_is_pixel_identical_to_canon_04_at_primary_a_camera",
+        technicalStatus: "passed",
       },
       pocketMark: {
         expectedText: "eDebatte",
@@ -203,21 +236,21 @@ export function buildVoxyJacketCanonGatePlan(
         visibleMarkCount: 1,
         badgePresent: false,
         secondLinePresent: false,
+        humanLegibilityRequired: true,
+        humanLegibilityStatus: "pending",
         machineRecognizedText: null,
-        status: "passed",
-        reason:
-          "candidate_region_is_pixel_identical_to_canon_04_at_primary_a_camera",
+        technicalStatus: "passed",
       },
     },
     jacketCanonGate: {
       passed: true,
-      lapelPin: "passed",
-      pocketMark: "passed",
-      texturePreserved: true,
+      brandLayerTechnicalContract: "passed",
+      nonBrandPixelsPreserved: true,
+      texturePreservedOutsideReplacementMasks: true,
       lapelGeometryPreserved: true,
       pocketGeometryPreserved: true,
       bluePipingPreserved: true,
-      visualIntegration: "passed",
+      humanLegibility: "pending",
     },
     humanDecision: VOXY_JACKET_CANON_GATE_HUMAN_DECISION,
     layerMasterEligible: false,
@@ -244,7 +277,7 @@ export function validateVoxyJacketCanonGatePlan(
     plan.source.canonBoardSha256 !== VOXY_STATIC_CANON_PIXEL_SOURCE.sha256 ||
     Object.keys(plan.source.allCanonHashes).length !== 4
   ) {
-    errors.push("canon_provenance_invalid");
+    errors.push("canon_geometry_provenance_invalid");
   }
   if (
     VOXY_JACKET_HARD_CANON_REGION.some(
@@ -254,47 +287,42 @@ export function validateVoxyJacketCanonGatePlan(
     errors.push("hard_canon_region_incomplete");
   }
   if (
-    plan.brandQa.evidenceMethod !==
-      "exact_canon_pixel_match_plus_human_visual_review_no_ocr_claim" ||
-    plan.brandQa.lapelPin.expectedText !== "VOG" ||
-    plan.brandQa.lapelPin.expectedVisibleMarkCount !== 1 ||
-    plan.brandQa.lapelPin.machineRecognizedText !== null ||
+    plan.markProvenance.lapelPin.text !== "VOXY" ||
+    plan.markProvenance.pocketMark.text !== "eDebatte" ||
+    !plan.markProvenance.lapelPin.geometryDerivedFromCanon ||
+    !plan.markProvenance.pocketMark.geometryDerivedFromCanon ||
+    !plan.markProvenance.lapelPin.wordmarkReconstructedForLegibility ||
+    !plan.markProvenance.pocketMark.wordmarkReconstructedForLegibility
+  ) {
+    errors.push("reconstructed_mark_provenance_invalid");
+  }
+  if (
+    plan.brandQa.lapelPin.expectedText !== "VOXY" ||
     plan.brandQa.lapelPin.visibleMarkCount !== 1 ||
-    plan.brandQa.lapelPin.status !== "passed" ||
+    !plan.brandQa.lapelPin.humanLegibilityRequired ||
+    plan.brandQa.lapelPin.humanLegibilityStatus !== "pending" ||
+    plan.brandQa.lapelPin.technicalStatus !== "passed" ||
     plan.brandQa.pocketMark.expectedText !== "eDebatte" ||
-    plan.brandQa.pocketMark.expectedVisibleMarkCount !== 1 ||
     plan.brandQa.pocketMark.visibleMarkCount !== 1 ||
     plan.brandQa.pocketMark.badgePresent !== false ||
     plan.brandQa.pocketMark.secondLinePresent !== false ||
-    plan.brandQa.pocketMark.machineRecognizedText !== null ||
-    plan.brandQa.pocketMark.status !== "passed"
+    !plan.brandQa.pocketMark.humanLegibilityRequired ||
+    plan.brandQa.pocketMark.humanLegibilityStatus !== "pending" ||
+    plan.brandQa.pocketMark.technicalStatus !== "passed"
   ) {
-    errors.push("brand_qa_must_reflect_canon_pixel_match");
+    errors.push("brand_legibility_contract_invalid");
   }
   if (
     plan.jacketCanonGate.passed !== true ||
-    plan.jacketCanonGate.lapelPin !== "passed" ||
-    plan.jacketCanonGate.pocketMark !== "passed" ||
-    plan.jacketCanonGate.texturePreserved !== true ||
+    plan.jacketCanonGate.brandLayerTechnicalContract !== "passed" ||
+    plan.jacketCanonGate.nonBrandPixelsPreserved !== true ||
+    plan.jacketCanonGate.texturePreservedOutsideReplacementMasks !== true ||
     plan.jacketCanonGate.lapelGeometryPreserved !== true ||
     plan.jacketCanonGate.pocketGeometryPreserved !== true ||
     plan.jacketCanonGate.bluePipingPreserved !== true ||
-    plan.jacketCanonGate.visualIntegration !== "passed"
+    plan.jacketCanonGate.humanLegibility !== "pending"
   ) {
-    errors.push("jacket_gate_pass_contract_invalid");
-  }
-  if (
-    plan.markProvenance !== VOXY_JACKET_CANON_MARK_PROVENANCE ||
-    plan.markProvenance.lapelPin.sourceCanonFile !==
-      VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath ||
-    plan.markProvenance.pocketMark.sourceCanonFile !==
-      VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath ||
-    plan.markProvenance.lapelPin.opacity !== 1 ||
-    plan.markProvenance.pocketMark.opacity !== 1 ||
-    plan.markProvenance.lapelPin.rotation.additionalDegrees !== 0 ||
-    plan.markProvenance.pocketMark.rotation.additionalDegrees !== 0
-  ) {
-    errors.push("mark_provenance_invalid");
+    errors.push("technical_jacket_gate_contract_invalid");
   }
   if (
     plan.layerMasterEligible !== false ||
@@ -307,7 +335,7 @@ export function validateVoxyJacketCanonGatePlan(
     plan.productionEligible !== false ||
     plan.autoPublish !== false
   ) {
-    errors.push("downstream_and_release_gates_must_fail_closed");
+    errors.push("human_and_downstream_gates_must_remain_closed");
   }
   return errors;
 }

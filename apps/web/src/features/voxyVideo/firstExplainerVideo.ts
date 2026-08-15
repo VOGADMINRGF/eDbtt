@@ -135,7 +135,7 @@ export const VOXY_FIRST_EXPLAINER_STANDFRAMES = [
 ] as const;
 
 export const VOXY_FIRST_EXPLAINER_BRAND = {
-  lapelPin: "VOG",
+  lapelPin: "VOXY",
   pocketMark: "eDebatte",
   pocketMarkStyle: "wordmark_no_badge",
   studioPrimary: "VoiceOpenGov",
@@ -233,7 +233,7 @@ export function validateVoxyFirstExplainerPlan(plan: VoxyFirstExplainerPlan): st
   if (plan.output.durationMs !== 17_000 || plan.output.fps !== 24 || plan.output.frameCount !== 408 || plan.output.width !== 1920 || plan.output.height !== 1080) errors.push("primary_media_contract_invalid");
   if (plan.timeline.length !== 5 || plan.timeline[0].startMs !== 0 || plan.timeline.at(-1)?.endMs !== plan.output.durationMs || plan.timeline.some((segment, index) => segment.startMs >= segment.endMs || (index > 0 && segment.startMs !== plan.timeline[index - 1].endMs))) errors.push("timeline_contract_invalid");
   if (plan.timeline[1].editorialKicker !== "VOTE4GOV · WARUM" || plan.timeline[2].editorialKicker !== "eDEBATTE · WAS" || plan.timeline[3].editorialKicker !== "VOICEOPENGOV · WIE") errors.push("brand_architecture_contract_invalid");
-  if (plan.brand.lapelPin !== "VOG" || plan.brand.pocketMark !== "eDebatte" || plan.brand.pocketMarkStyle !== "wordmark_no_badge" || plan.brand.studioPrimary !== "VoiceOpenGov" || plan.brand.studioSecondary !== "eDebatte" || plan.brand.vote4GovPlacement !== "contextual_only" || plan.brand.voxyRole !== "digital_moderator") errors.push("brand_surface_contract_invalid");
+  if (plan.brand.lapelPin !== "VOXY" || plan.brand.pocketMark !== "eDebatte" || plan.brand.pocketMarkStyle !== "wordmark_no_badge" || plan.brand.studioPrimary !== "VoiceOpenGov" || plan.brand.studioSecondary !== "eDebatte" || plan.brand.vote4GovPlacement !== "contextual_only" || plan.brand.voxyRole !== "digital_moderator") errors.push("brand_surface_contract_invalid");
   if (plan.waveform.count !== 1 || plan.waveform.placement !== "behind_voxy" || plan.waveform.currentlyAudioReactive !== false) errors.push("single_static_waveform_contract_invalid");
   if (plan.audioProvenance.audioIncluded !== false || plan.audioProvenance.audioTrackExpected !== false || plan.audioProvenance.externalUploadUsed !== false) errors.push("audio_provenance_must_fail_closed");
   if (plan.motionBoundary.flattenedMaster !== true || plan.motionBoundary.independentHeadMotionAvailable !== false || plan.motionBoundary.independentBodyMotionAvailable !== false || plan.motionBoundary.independentHandMotionAvailable !== false || plan.timeline.some((segment) => segment.handGesture !== "none_flattened_master_identity_lock")) errors.push("flattened_identity_lock_broken");

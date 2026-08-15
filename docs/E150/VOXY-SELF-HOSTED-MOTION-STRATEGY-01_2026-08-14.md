@@ -96,11 +96,13 @@ Motion-Ausgabe: diese beginnt erneut bei `humanVisualAcceptance = pending`.
 
 Der sichtbare Motion-v2-Sakko-Stand hat die anschließende menschliche Prüfung
 vom 15.08.2026 nicht bestanden. Vor jedem neuen Layer- oder Motion-v3-Schritt
-ist deshalb ein eigener Jacket-Canon-Gate verbindlich. Er prüft VOG-Pin,
-eDebatte-Pocket-Mark, Revers, Tasche, Paspel und Stofftextur gemeinsam gegen die
-unveränderten Canon-Boards. Der reparierte Pfad entfernt die zusätzlichen
-SVG-Marken und besteht den technischen Gate durch bytegleichen Vergleich der
-relevanten Jacket-Regionen mit CANON-04. `animationEligible = false` und
+ist deshalb ein eigener Jacket-Canon-Gate verbindlich. Der pixelidentische
+CANON-04-Buchstabenstand am Head `64b79c797450fe4c6202b6d0e3bad8c1afa2ed4b`
+wurde menschlich abgelehnt. Der reparierte Pfad ersetzt ausschließlich die
+beiden kleinen Markenflächen durch lokale Vektorlayer mit exakt `VOXY` und
+`eDebatte`. CANON-04 bleibt Geometriequelle; ein maskierter Bytevergleich
+erhält die Jacket-Pixel außerhalb der Ersatzflächen. Für beide Marken ist
+menschliche Lesbarkeitsprüfung verbindlich. `animationEligible = false` und
 `humanVisualAcceptance = pending` bleiben bis zur menschlichen Sichtung
 unverändert. Ein lokaler technischer PASS ersetzt diesen visuellen Human Gate
 nicht.

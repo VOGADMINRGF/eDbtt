@@ -28,7 +28,10 @@ import {
   type VoxyFirstExplainerEmbeddedAssets,
   type VoxyFirstExplainerFormat,
 } from "../src/features/voxyVideo/firstExplainerVideoHtml";
-import { VOXY_STATIC_CANON_PIXEL_SOURCE } from "../src/features/voxyVideo/staticCanonRecovery";
+import {
+  VOXY_STATIC_CANON_NATIVE_ASSETS,
+  VOXY_STATIC_CANON_PIXEL_SOURCE,
+} from "../src/features/voxyVideo/staticCanonRecovery";
 
 type DetectorEvidence = {
   detected: boolean;
@@ -449,6 +452,8 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/public/brands/voxy/references/canon",
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
   ];
   const dirtyInputs = runBinary(
     "git",
@@ -488,6 +493,14 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ),
+    lapelPin: repositoryPath(
+      repositoryRoot,
+      VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+    ),
+    edebattePocketMark: repositoryPath(
+      repositoryRoot,
+      VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+    ),
   };
   const assets: VoxyFirstExplainerEmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
@@ -495,10 +508,27 @@ async function main(): Promise<void> {
       await readFile(sourcePaths.studioLockup),
       "image/svg+xml",
     ),
+    lapelPinDataUrl: dataUrl(
+      await readFile(sourcePaths.lapelPin),
+      "image/svg+xml",
+    ),
+    edebattePocketMarkDataUrl: dataUrl(
+      await readFile(sourcePaths.edebattePocketMark),
+      "image/svg+xml",
+    ),
   };
+  const lapelPinSvg = await readFile(sourcePaths.lapelPin, "utf8");
+  const edebattePocketMarkSvg = await readFile(
+    sourcePaths.edebattePocketMark,
+    "utf8",
+  );
   const studioLockupSvg = await readFile(sourcePaths.studioLockup, "utf8");
   const brandQa = {
     status:
+      />VOXY<\/text>/.test(lapelPinSvg) &&
+      !/>VOG<\/text>/.test(lapelPinSvg) &&
+      />eDebatte<\/text>/.test(edebattePocketMarkSvg) &&
+      !/>eDebotte<\/text>/.test(edebattePocketMarkSvg) &&
       />VoiceOpenGov<\/text>/.test(studioLockupSvg) &&
       />eDebatte<\/text>/.test(studioLockupSvg) &&
       !/>VOXY<\/text>/.test(studioLockupSvg) &&
@@ -506,11 +536,18 @@ async function main(): Promise<void> {
         ? "rule_based_pass_visual_review_pending"
         : "failed",
     ...plan.brand,
-    characterMarks: "canon_04_raster_pixels",
+    characterMarks: "canon_geometry_reconstructed_vector_wordmarks",
     pocketBadgeGeometryPresent: false,
-    nativeVectorOverlays: false,
+    reconstructedVectorOverlays: true,
+    geometryDerivedFromCanon: true,
+    wordmarkReconstructedForLegibility: true,
+    humanLegibilityRequired: true,
     rasterTextReconstructionUsed: false,
     canonStageSha256: await fileSha256(sourcePaths.canonStage),
+    lapelPinSha256: await fileSha256(sourcePaths.lapelPin),
+    edebattePocketMarkSha256: await fileSha256(
+      sourcePaths.edebattePocketMark,
+    ),
     studioLockupSha256: await fileSha256(sourcePaths.studioLockup),
   } as const;
   if (brandQa.status === "failed") throw new Error("native_brand_qa_failed");
