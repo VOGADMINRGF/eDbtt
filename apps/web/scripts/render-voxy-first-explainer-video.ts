@@ -768,6 +768,10 @@ async function main(): Promise<void> {
   assertMedia("mp4", mp4Probe);
   assertMedia("webm", webmProbe);
 
+  const clipSha256 = await fileSha256(mp4Path);
+  const webmSha256 = await fileSha256(webmPath);
+  const captionSha256 = await fileSha256(captionsVttPath);
+
   const manifest = {
     schemaVersion: plan.schemaVersion,
     exactHeadSha,
@@ -792,15 +796,22 @@ async function main(): Promise<void> {
     },
     width: plan.output.width,
     height: plan.output.height,
+    renderSize: {
+      width: plan.output.width,
+      height: plan.output.height,
+    },
+    clipSha256,
+    webmSha256,
+    captionSha256,
     media: {
       mp4: {
         file: plan.output.mp4FileName,
-        sha256: await fileSha256(mp4Path),
+        sha256: clipSha256,
         ffprobe: mp4Probe,
       },
       webm: {
         file: plan.output.webmFileName,
-        sha256: await fileSha256(webmPath),
+        sha256: webmSha256,
         ffprobe: webmProbe,
       },
       preview: {
@@ -813,7 +824,7 @@ async function main(): Promise<void> {
       burnedIn: true,
       vtt: {
         file: plan.output.captionsVttFileName,
-        sha256: await fileSha256(captionsVttPath),
+        sha256: captionSha256,
       },
       srt: {
         file: plan.output.captionsSrtFileName,
@@ -858,13 +869,14 @@ async function main(): Promise<void> {
     handQa,
     externalProviderUsed: plan.externalProviderUsed,
     externalUploadUsed: plan.externalUploadUsed,
+    externalVisualUploadUsed: plan.externalUploadUsed,
     generativeRedrawUsed: plan.generativeRedrawUsed,
     humanVisualAcceptance: plan.humanVisualAcceptance,
     productionEligible: plan.productionEligible,
     autoPublish: plan.autoPublish,
     knownDeviations: [
       "accepted_primary_a_is_a_flattened_raster_without_independent_head_or_hand_layers",
-      "motion_is_limited_to_two_sparse_blinks_and_editorial_easing_to_preserve_the_accepted_identity",
+      "motion_is_limited_to_four_sparse_blinks_and_editorial_easing_to_preserve_the_accepted_identity",
       "accepted_primary_a_hands_are_clasped_and_not_open_palm_detector_inspectable",
       "no_audio_is_included_because_pr_590_has_no_reusable_license_clean_local_voice_result",
       "brand_overlay_geometry_and_full_motion_output_require_human_visual_review",

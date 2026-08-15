@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   buildVoxyFirstExplainerPlan,
   buildVoxyFirstExplainerSrt,
@@ -121,5 +123,22 @@ describe("Voxy first explainer video v2 contract", () => {
       expect(vtt).toContain(segment.caption);
       expect(srt).toContain(segment.caption);
     }
+  });
+
+  it("keeps the exact-head artifact manifest fields explicit", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "scripts/render-voxy-first-explainer-video.ts"),
+      "utf8",
+    );
+    for (const field of [
+      "renderSize",
+      "clipSha256",
+      "webmSha256",
+      "captionSha256",
+      "externalVisualUploadUsed",
+    ]) {
+      expect(source).toContain(field);
+    }
+    expect(source).toContain("motion_is_limited_to_four_sparse_blinks");
   });
 });
