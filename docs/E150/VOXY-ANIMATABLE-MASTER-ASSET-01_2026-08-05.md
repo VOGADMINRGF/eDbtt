@@ -71,20 +71,26 @@ Die VOG-Anstecknadel und die eDebatte-Pocket-Markierung werden vor der
 Bewegungscomposition durch die lokalen nativen SVG-Assets `vog-pin.svg` und
 `edebatte-pocket-mark.svg` mit exakt den Texten `VOG` und `eDebatte` überlagert.
 
-Der Clip ist 16 Sekunden lang, 1280 × 720 Pixel groß, hat 24 fps und 384 Frames.
-Seine Timeline lautet:
+Der V2-Clip ist 16 Sekunden lang, 1920 × 1080 Pixel groß, hat 24 fps und 384
+Frames. Seine Timeline lautet:
 
-- 0–3 s: Voxy stellt sich mit `Hallo Nachbarn,` vor;
-- 3–6 s: Vote4Gov als Denk- und Reflexionsebene / Warum;
-- 6–10 s: eDebatte als Instrument / Was mit Themen, Argumenten, Quellen und
+- 0–2 s: Voxy stellt sich mit `Ich bin Voxy.` vor und eröffnet mit der Frage,
+  was nach der Wahl geschieht;
+- 2–5 s: Vote4Gov als Denk- und Reflexionsebene / Warum;
+- 5–9 s: eDebatte als Instrument / Was mit Themen, Argumenten, Quellen und
   nachvollziehbarer Beteiligung;
-- 10–14 s: VoiceOpenGov als Bewegung / Wie;
-- 14–16 s: Voxy verbindet Warum, Was und Wie und kehrt in neutral zurück.
+- 9–13 s: VoiceOpenGov als Bewegung / Wie;
+- 13–16 s: Voxy verbindet Warum, Was und Wie und kehrt in neutral zurück.
+
+Die V2-Komposition führt die Abfolge als zurückhaltenden Social Hook mit
+`DU WÄHLST. / UND DANN?`, den drei Warum-/Was-/Wie-Ebenen und dem Abschluss
+`NICHT GLAUBEN. NACHVOLLZIEHEN.`. Voxy bleibt dabei die Hauptfigur; die
+Editorial-Zone ersetzt weder Charakter noch Studio.
 
 Die akzeptierte Quelle ist ein abgeflachtes Raster und besitzt keine getrennten
 Kopf-, Arm- oder Handebenen. Um Identität und Anatomie nicht durch einen neuen
 Masken-/Crop-Versuch zu beschädigen, beschränkt sich der kontrollierte Test auf
-zwei sparsame lokale Blink-Overlays und weich eingeblendete Editorial-/Caption-
+vier sparsame lokale Blink-Overlays und weich eingeblendete Editorial-/Caption-
 Übergänge. Eine unabhängige Kopfbewegung und die geforderte kontrollierte
 Handgeste sind in diesem Master technisch nicht belastbar möglich. Diese
 Abweichung wird im Manifest und für die erneute menschliche Prüfung offen

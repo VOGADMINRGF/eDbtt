@@ -58,7 +58,7 @@ export const VOXY_FIRST_EXPLAINER_TIMELINE = [
     handGesture: "none_flattened_master_identity_lock",
     editorialTitle: "DU WÄHLST.",
     editorialRole: "UND DANN?",
-    caption: "Du wählst. Aber was passiert zwischen zwei Wahlen?",
+    caption: "Ich bin Voxy. Und nach der Wahl?",
   },
   {
     id: "vote4gov_why",

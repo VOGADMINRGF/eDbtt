@@ -52,6 +52,7 @@ describe("Voxy first explainer video v2 contract", () => {
   it("starts with a social hook and preserves why/what/how architecture", () => {
     expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].editorialTitle).toBe("DU WÄHLST.");
     expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].editorialRole).toBe("UND DANN?");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].caption).toContain("Ich bin Voxy.");
     expect(VOXY_FIRST_EXPLAINER_TIMELINE[1].editorialRole).toBe("WARUM NEU DENKEN?");
     expect(VOXY_FIRST_EXPLAINER_TIMELINE[2].editorialRole).toBe("eDEBATTE · DAS INSTRUMENT");
     expect(VOXY_FIRST_EXPLAINER_TIMELINE[3].editorialRole).toBe("VOICEOPENGOV · DIE BEWEGUNG");
@@ -91,7 +92,7 @@ describe("Voxy first explainer video v2 contract", () => {
       expect(html).toContain('data-waveform-placement="behind_voxy"');
       expect(html).toContain('alt="VOG"');
       expect(html).toContain('alt="eDebatte"');
-      expect(html).toContain(">eDebatte<");
+      expect(html).toContain(">eDebatte · WAS<");
       expect(html).not.toMatch(/https?:\/\//);
       expect(html).not.toContain("<video");
       expect(html).not.toContain("<canvas");
