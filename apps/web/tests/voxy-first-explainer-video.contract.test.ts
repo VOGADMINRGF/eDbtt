@@ -10,7 +10,10 @@ import {
   VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD,
   VOXY_FIRST_EXPLAINER_TIMELINE,
 } from "@/features/voxyVideo/firstExplainerVideo";
-import { renderVoxyFirstExplainerFrameHtml } from "@/features/voxyVideo/firstExplainerVideoHtml";
+import {
+  buildVoxyFirstExplainerFrameState,
+  renderVoxyFirstExplainerFrameHtml,
+} from "@/features/voxyVideo/firstExplainerVideoHtml";
 
 const HEAD = "9cb25e91ae6fe04f7e532e8116cf0f500ee30ddb";
 const ASSETS = {
@@ -125,6 +128,24 @@ describe("Voxy first explainer video contract", () => {
       expect(html).not.toContain("<canvas");
       expect(html).not.toContain("@keyframes");
     }
+  });
+
+  it("reuses only pixel-identical stable visual states", () => {
+    const plan = buildVoxyFirstExplainerPlan(HEAD);
+    const stableA = buildVoxyFirstExplainerFrameState({
+      plan,
+      frameIndex: 30,
+    });
+    const stableB = buildVoxyFirstExplainerFrameState({
+      plan,
+      frameIndex: 31,
+    });
+    const blink = buildVoxyFirstExplainerFrameState({
+      plan,
+      frameIndex: 40,
+    });
+    expect(stableA.visualStateKey).toBe(stableB.visualStateKey);
+    expect(blink.visualStateKey).not.toBe(stableA.visualStateKey);
   });
 
   it("emits matching German VTT and SRT sidecars", () => {

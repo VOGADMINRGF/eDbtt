@@ -43,6 +43,29 @@ function segmentOpacity(atMs: number, startMs: number, endMs: number): number {
   return Math.min(entering, leaving);
 }
 
+export function buildVoxyFirstExplainerFrameState(input: {
+  plan: VoxyFirstExplainerPlan;
+  frameIndex: number;
+}): {
+  atMs: number;
+  segment: ReturnType<typeof findVoxyFirstExplainerSegment>;
+  opacity: number;
+  blink: number;
+  visualStateKey: string;
+} {
+  const atMs = (input.frameIndex * 1_000) / input.plan.output.fps;
+  const segment = findVoxyFirstExplainerSegment(atMs);
+  const opacity = segmentOpacity(atMs, segment.startMs, segment.endMs);
+  const blink = blinkAmount(atMs);
+  return {
+    atMs,
+    segment,
+    opacity,
+    blink,
+    visualStateKey: `${segment.id}:${opacity.toFixed(9)}:${blink.toFixed(9)}`,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -59,10 +82,8 @@ export function renderVoxyFirstExplainerFrameHtml(input: {
 }): string {
   const { plan, assets, frameIndex, format = "16:9" } = input;
   const geometry = formatGeometry[format];
-  const atMs = (frameIndex * 1_000) / plan.output.fps;
-  const segment = findVoxyFirstExplainerSegment(atMs);
-  const opacity = segmentOpacity(atMs, segment.startMs, segment.endMs);
-  const blink = blinkAmount(atMs);
+  const { atMs, segment, opacity, blink } =
+    buildVoxyFirstExplainerFrameState({ plan, frameIndex });
   const masterScale = geometry.scale;
   const masterTranslateX = geometry.translateX;
   const portrait = format !== "16:9";

@@ -21,6 +21,7 @@ import {
   VOXY_FIRST_EXPLAINER_STANDFRAMES,
 } from "../src/features/voxyVideo/firstExplainerVideo";
 import {
+  buildVoxyFirstExplainerFrameState,
   renderVoxyFirstExplainerFrameHtml,
   type VoxyFirstExplainerEmbeddedAssets,
   type VoxyFirstExplainerFormat,
@@ -458,7 +459,23 @@ async function main(): Promise<void> {
     if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
   });
 
+  const renderedVisualStates = new Map<string, string>();
+  let chromiumRenderedFrameCount = 0;
+  let reusedFrameCount = 0;
   for (let frameIndex = 0; frameIndex < plan.output.frameCount; frameIndex += 1) {
+    const framePath = resolve(
+      framesRoot,
+      `frame-${String(frameIndex).padStart(4, "0")}.png`,
+    );
+    const frameState = buildVoxyFirstExplainerFrameState({ plan, frameIndex });
+    const reusableFramePath = renderedVisualStates.get(
+      frameState.visualStateKey,
+    );
+    if (reusableFramePath) {
+      await copyFile(reusableFramePath, framePath);
+      reusedFrameCount += 1;
+      continue;
+    }
     await setFrameHtml(
       page,
       renderVoxyFirstExplainerFrameHtml({
@@ -467,10 +484,6 @@ async function main(): Promise<void> {
         frameIndex,
         format: "16:9",
       }),
-    );
-    const framePath = resolve(
-      framesRoot,
-      `frame-${String(frameIndex).padStart(4, "0")}.png`,
     );
     const bytes = await page.locator(".viewport").screenshot({
       path: framePath,
@@ -483,6 +496,8 @@ async function main(): Promise<void> {
     ) {
       throw new Error(`primary_frame_dimensions_invalid:${frameIndex}`);
     }
+    renderedVisualStates.set(frameState.visualStateKey, framePath);
+    chromiumRenderedFrameCount += 1;
   }
 
   const mp4Path = resolve(outputRoot, plan.output.mp4FileName);
@@ -518,6 +533,14 @@ async function main(): Promise<void> {
     "0",
     "-crf",
     "31",
+    "-deadline",
+    "good",
+    "-cpu-used",
+    "4",
+    "-tile-columns",
+    "2",
+    "-threads",
+    "4",
     "-row-mt",
     "1",
     "-pix_fmt",
@@ -644,6 +667,12 @@ async function main(): Promise<void> {
     durationSeconds: plan.output.durationMs / 1_000,
     fps: plan.output.fps,
     frameCount: plan.output.frameCount,
+    frameRendering: {
+      chromiumRenderedFrameCount,
+      reusedPixelIdenticalFrameCount: reusedFrameCount,
+      reuseContract:
+        "Only frames with identical segment, eased opacity and blink state reuse a previously rendered PNG.",
+    },
     width: plan.output.width,
     height: plan.output.height,
     media: {
