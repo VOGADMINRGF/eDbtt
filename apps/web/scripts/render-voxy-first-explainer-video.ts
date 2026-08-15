@@ -19,6 +19,7 @@ import {
   validateVoxyFirstExplainerPlan,
   VOXY_FIRST_EXPLAINER_DETECTOR_HEAD,
   VOXY_FIRST_EXPLAINER_STANDFRAMES,
+  VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
 } from "../src/features/voxyVideo/firstExplainerVideo";
 import {
   buildVoxyFirstExplainerFrameState,
@@ -123,8 +124,10 @@ async function updateFrameState(
     atMs: number;
     opacity: number;
     blink: number;
-    segmentId: string;
+    gazeX: number;
+    gazeY: number;
     motionState: string;
+    editorialKicker: string;
     editorialTitle: string;
     editorialRole: string;
     caption: string;
@@ -133,9 +136,10 @@ async function updateFrameState(
   await page.evaluate(async (next) => {
     const viewport = document.querySelector<HTMLElement>(".viewport");
     const onAirIndicator = document.querySelector<HTMLElement>(".on-air i");
-    const railCopy = document.querySelector<HTMLElement>(".rail-copy");
-    const railTitle = document.querySelector<HTMLElement>(".rail-title");
-    const railRole = document.querySelector<HTMLElement>(".rail-role");
+    const cueCopy = document.querySelector<HTMLElement>(".cue-copy");
+    const cueKicker = document.querySelector<HTMLElement>(".cue-kicker");
+    const cueTitle = document.querySelector<HTMLElement>(".cue-title");
+    const cueRole = document.querySelector<HTMLElement>(".cue-role");
     const caption = document.querySelector<HTMLElement>(".caption");
     const portraitCaption =
       document.querySelector<HTMLElement>(".portrait-caption");
@@ -144,20 +148,20 @@ async function updateFrameState(
     const portraitRole =
       document.querySelector<HTMLElement>(".portrait-title small");
     const eyelids = document.querySelectorAll<HTMLElement>(".eyelid");
-    const railLevels =
-      document.querySelectorAll<HTMLElement>(".rail-levels span");
+    const eyeGlints = document.querySelectorAll<HTMLElement>(".eye-glint");
     if (
       !viewport ||
       !onAirIndicator ||
-      !railCopy ||
-      !railTitle ||
-      !railRole ||
+      !cueCopy ||
+      !cueKicker ||
+      !cueTitle ||
+      !cueRole ||
       !caption ||
       !portraitCaption ||
       !portraitTitle ||
       !portraitRole ||
       eyelids.length !== 2 ||
-      railLevels.length !== 3
+      eyeGlints.length !== 2
     ) {
       throw new Error("reusable_frame_document_contract_missing");
     }
@@ -168,28 +172,19 @@ async function updateFrameState(
     for (const eyelid of eyelids) {
       eyelid.style.opacity = String(next.blink);
     }
+    for (const eyeGlint of eyeGlints) {
+      eyeGlint.style.transform =
+        `translate(${next.gazeX}px,${next.gazeY}px) rotate(-8deg)`;
+    }
     onAirIndicator.style.boxShadow =
       `0 0 ${14 + next.opacity * 8}px rgba(0,217,192,.8)`;
 
-    railCopy.style.opacity = String(next.opacity);
-    railCopy.style.transform =
-      `translateY(${Math.round((1 - next.opacity) * 18)}px)`;
-    railTitle.textContent = next.editorialTitle;
-    railTitle.style.fontSize =
-      next.segmentId === "voiceopengov_how" ? "31px" : "38px";
-    railRole.textContent = next.editorialRole;
-
-    const activeRailIndex =
-      next.segmentId === "vote4gov_why"
-        ? 0
-        : next.segmentId === "edebatte_what"
-          ? 1
-          : next.segmentId === "voiceopengov_how"
-            ? 2
-            : -1;
-    for (const [index, level] of Array.from(railLevels).entries()) {
-      level.classList.toggle("active", index === activeRailIndex);
-    }
+    cueCopy.style.opacity = String(next.opacity);
+    cueCopy.style.transform =
+      `translateY(${Math.round((1 - next.opacity) * 10)}px)`;
+    cueKicker.textContent = next.editorialKicker;
+    cueTitle.textContent = next.editorialTitle;
+    cueRole.textContent = next.editorialRole;
 
     caption.textContent = next.caption;
     caption.style.opacity = String(next.opacity);
@@ -198,7 +193,7 @@ async function updateFrameState(
     portraitCaption.textContent = next.caption;
     portraitCaption.style.opacity = String(next.opacity);
     portraitTitle.textContent = next.editorialTitle;
-    portraitRole.textContent = next.editorialRole;
+    portraitRole.textContent = next.editorialKicker;
     await new Promise<void>((resolveFrame) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()));
     });
@@ -456,6 +451,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/public/brands/voxy/references/canon",
+    VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ...Object.values(VOXY_STATIC_CANON_NATIVE_ASSETS),
   ];
   const dirtyInputs = runBinary(
@@ -492,9 +488,9 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
     ),
-    wordmark: repositoryPath(
+    studioLockup: repositoryPath(
       repositoryRoot,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.wordmark,
+      VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ),
     vogPin: repositoryPath(
       repositoryRoot,
@@ -507,7 +503,10 @@ async function main(): Promise<void> {
   };
   const assets: VoxyFirstExplainerEmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
-    wordmarkDataUrl: dataUrl(await readFile(sourcePaths.wordmark), "image/svg+xml"),
+    studioLockupDataUrl: dataUrl(
+      await readFile(sourcePaths.studioLockup),
+      "image/svg+xml",
+    ),
     vogPinDataUrl: dataUrl(await readFile(sourcePaths.vogPin), "image/svg+xml"),
     edebattePocketMarkDataUrl: dataUrl(
       await readFile(sourcePaths.edebattePocketMark),
@@ -519,21 +518,31 @@ async function main(): Promise<void> {
     sourcePaths.edebattePocketMark,
     "utf8",
   );
+  const studioLockupSvg = await readFile(sourcePaths.studioLockup, "utf8");
+  const pocketHasBadgeGeometry =
+    /<(?:rect|path|polygon|polyline)\b/i.test(edebattePocketSvg) ||
+    /\bstroke\s*=/i.test(edebattePocketSvg);
   const brandQa = {
     status:
       />VOG<\/text>/.test(vogPinSvg) &&
       !/>(?:VOGT|VORT|VOXY)<\/text>/.test(vogPinSvg) &&
-      />eDebatte<\/text>/.test(edebattePocketSvg)
+      />eDebatte<\/text>/.test(edebattePocketSvg) &&
+      !pocketHasBadgeGeometry &&
+      />VoiceOpenGov<\/text>/.test(studioLockupSvg) &&
+      />eDebatte<\/text>/.test(studioLockupSvg) &&
+      !/>VOXY<\/text>/.test(studioLockupSvg) &&
+      !/>Vote4Gov<\/text>/.test(studioLockupSvg)
         ? "rule_based_pass_visual_review_pending"
         : "failed",
-    lapelPin: "VOG",
-    pocketMark: "eDebatte",
+    ...plan.brand,
+    pocketBadgeGeometryPresent: pocketHasBadgeGeometry,
     nativeVectorOverlays: true,
     rasterTextReconstructionUsed: false,
     vogPinSha256: await fileSha256(sourcePaths.vogPin),
     edebattePocketMarkSha256: await fileSha256(
       sourcePaths.edebattePocketMark,
     ),
+    studioLockupSha256: await fileSha256(sourcePaths.studioLockup),
   } as const;
   if (brandQa.status === "failed") throw new Error("native_brand_qa_failed");
 
@@ -573,8 +582,10 @@ async function main(): Promise<void> {
         atMs: frameState.atMs,
         opacity: frameState.opacity,
         blink: frameState.blink,
-        segmentId: frameState.segment.id,
+        gazeX: frameState.gazeX,
+        gazeY: frameState.gazeY,
         motionState: frameState.segment.motionState,
+        editorialKicker: frameState.segment.editorialKicker,
         editorialTitle: frameState.segment.editorialTitle,
         editorialRole: frameState.segment.editorialRole,
         caption: frameState.segment.caption,
@@ -792,7 +803,7 @@ async function main(): Promise<void> {
       motionQuantizationSteps:
         VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS,
       reuseContract:
-        "Only frames with identical segment and identically quantized smootherstep opacity/blink state reuse a previously rendered PNG.",
+        "Only frames with identical segment and identically quantized smootherstep opacity/blink/gaze-highlight state reuse a previously rendered PNG.",
     },
     width: plan.output.width,
     height: plan.output.height,
@@ -844,6 +855,7 @@ async function main(): Promise<void> {
     waveform: plan.waveform,
     waveformCount: plan.waveform.count,
     waveformPlacement: plan.waveform.placement,
+    brand: plan.brand,
     brandQa,
     sourceAssets: Object.fromEntries(
       await Promise.all(
@@ -876,7 +888,8 @@ async function main(): Promise<void> {
     autoPublish: plan.autoPublish,
     knownDeviations: [
       "accepted_primary_a_is_a_flattened_raster_without_independent_head_or_hand_layers",
-      "motion_is_limited_to_four_sparse_blinks_and_editorial_easing_to_preserve_the_accepted_identity",
+      "motion_is_limited_to_five_sparse_blinks_micro_gaze_highlight_cues_and_editorial_easing_to_preserve_the_accepted_identity",
+      "independent_head_body_arm_and_hand_motion_is_blocked_until_an_accepted_layered_master_exists",
       "accepted_primary_a_hands_are_clasped_and_not_open_palm_detector_inspectable",
       "no_audio_is_included_because_pr_590_has_no_reusable_license_clean_local_voice_result",
       "brand_overlay_geometry_and_full_motion_output_require_human_visual_review",

@@ -11,16 +11,18 @@ export const VOXY_FIRST_EXPLAINER_DETECTOR_HEAD =
   "0756ad48bfd61cf88696f91bc41da87e988020c0" as const;
 export const VOXY_FIRST_EXPLAINER_VOICE_FIXTURE_HEAD =
   "6f2929ca7ad9267b47f7f2a8952dc8f3c95e0f48" as const;
+export const VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH =
+  "apps/web/public/brands/voxy/overlays/voiceopengov-edebatte-lockup.svg" as const;
 
 export const VOXY_FIRST_EXPLAINER_OUTPUT = {
-  durationMs: 16_000,
+  durationMs: 17_000,
   fps: 24,
-  frameCount: 384,
+  frameCount: 408,
   width: 1920,
   height: 1080,
-  outputDirectory: "artifacts/voxy-first-explainer-video",
-  mp4FileName: "voxy-first-explainer-16x9.mp4",
-  webmFileName: "voxy-first-explainer-16x9.webm",
+  outputDirectory: "artifacts/voxy-first-explainer-video-v2",
+  mp4FileName: "voxy-first-explainer-v2-16x9.mp4",
+  webmFileName: "voxy-first-explainer-v2-16x9.webm",
   previewFileName: "preview.png",
   captionsVttFileName: "captions.de.vtt",
   captionsSrtFileName: "captions.de.srt",
@@ -43,6 +45,9 @@ export type VoxyFirstExplainerSegment = Readonly<{
     | "returning_to_neutral";
   eyebrowMotion: "none";
   handGesture: "none_flattened_master_identity_lock";
+  gazeCueX: -1.5 | 0 | 1.5 | 2;
+  gazeCueY: -0.5 | 0 | 0.5;
+  editorialKicker: string;
   editorialTitle: string;
   editorialRole: string;
   caption: string;
@@ -52,67 +57,92 @@ export const VOXY_FIRST_EXPLAINER_TIMELINE = [
   {
     id: "voxy_intro",
     startMs: 0,
-    endMs: 2_000,
+    endMs: 3_000,
     motionState: "hook",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "DU WÄHLST.",
-    editorialRole: "UND DANN?",
-    caption: "Ich bin Voxy. Und nach der Wahl?",
+    gazeCueX: 0,
+    gazeCueY: 0,
+    editorialKicker: "VOXY · MODERATION",
+    editorialTitle: "Voxy",
+    editorialRole: "Digitaler Moderator",
+    caption: "Ich bin Voxy – dein digitaler Moderator.",
   },
   {
     id: "vote4gov_why",
-    startMs: 2_000,
-    endMs: 5_000,
+    startMs: 3_000,
+    endMs: 6_000,
     motionState: "explaining",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "VOTE4GOV",
-    editorialRole: "WARUM NEU DENKEN?",
-    caption: "Vote4Gov fragt, warum politische Entscheidungen verständlicher und näher an den Menschen werden können.",
+    gazeCueX: 2,
+    gazeCueY: -0.5,
+    editorialKicker: "VOTE4GOV · WARUM",
+    editorialTitle: "Fragen stellen",
+    editorialRole: "Denk- und Reflexionsebene",
+    caption: "Vote4Gov stellt die Fragen hinter unserer Demokratie.",
   },
   {
     id: "edebatte_what",
-    startMs: 5_000,
-    endMs: 9_000,
+    startMs: 6_000,
+    endMs: 10_000,
     motionState: "showing_instrument",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "ARGUMENTE. QUELLEN. ABSTIMMUNG.",
-    editorialRole: "eDEBATTE · DAS INSTRUMENT",
-    caption: "eDebatte macht Themen, Argumente, Quellen und Beteiligung nachvollziehbar.",
+    gazeCueX: -1.5,
+    gazeCueY: 0,
+    editorialKicker: "eDEBATTE · WAS",
+    editorialTitle: "Nachvollziehbar beteiligen",
+    editorialRole: "Instrument und Infrastruktur",
+    caption: "eDebatte macht Argumente, Quellen und Beteiligung nachvollziehbar.",
   },
   {
     id: "voiceopengov_how",
-    startMs: 9_000,
-    endMs: 13_000,
+    startMs: 10_000,
+    endMs: 14_000,
     motionState: "inviting_participation",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "MENSCHEN VERBINDEN.",
-    editorialRole: "VOICEOPENGOV · DIE BEWEGUNG",
-    caption: "VoiceOpenGov verbindet Menschen, die informierte Beteiligung möglich machen wollen.",
+    gazeCueX: 1.5,
+    gazeCueY: 0.5,
+    editorialKicker: "VOICEOPENGOV · WIE",
+    editorialTitle: "Menschen verbinden",
+    editorialRole: "Bewegung und Community",
+    caption: "VoiceOpenGov verbindet Menschen, die daraus echte Beteiligung machen wollen.",
   },
   {
     id: "voxy_connects",
-    startMs: 13_000,
-    endMs: 16_000,
+    startMs: 14_000,
+    endMs: 17_000,
     motionState: "returning_to_neutral",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "VOXY VERBINDET.",
-    editorialRole: "NICHT GLAUBEN. NACHVOLLZIEHEN.",
-    caption: "Vote4Gov fragt warum. eDebatte zeigt was. VoiceOpenGov macht daraus Bewegung.",
+    gazeCueX: 0,
+    gazeCueY: 0,
+    editorialKicker: "VOXY · ÜBERBLICK",
+    editorialTitle: "Zusammenhänge im Blick",
+    editorialRole: "Ruhige Rückkehr zur Moderation",
+    caption: "Und ich? Ich helfe euch, den Überblick zu behalten.",
   },
 ] as const satisfies readonly VoxyFirstExplainerSegment[];
 
 export const VOXY_FIRST_EXPLAINER_STANDFRAMES = [
-  { id: "start", atMs: 1_000 },
-  { id: "vote4gov", atMs: 3_500 },
-  { id: "edebatte", atMs: 7_000 },
-  { id: "voiceopengov", atMs: 11_000 },
-  { id: "ende", atMs: 15_000 },
+  { id: "start", atMs: 1_500 },
+  { id: "vote4gov", atMs: 4_500 },
+  { id: "edebatte", atMs: 8_000 },
+  { id: "voiceopengov", atMs: 12_000 },
+  { id: "end", atMs: 15_500 },
 ] as const;
+
+export const VOXY_FIRST_EXPLAINER_BRAND = {
+  lapelPin: "VOG",
+  pocketMark: "eDebatte",
+  pocketMarkStyle: "wordmark_no_badge",
+  studioPrimary: "VoiceOpenGov",
+  studioSecondary: "eDebatte",
+  vote4GovPlacement: "contextual_only",
+  voxyRole: "digital_moderator",
+} as const;
 
 export const VOXY_FIRST_EXPLAINER_AUDIO_PROVENANCE = {
   status: "not_included_license_clean_local_voice_unavailable",
@@ -141,10 +171,12 @@ export type VoxyFirstExplainerPlan = Readonly<{
   timeline: typeof VOXY_FIRST_EXPLAINER_TIMELINE;
   waveform: typeof VOXY_STATIC_CANON_WAVEFORM;
   audioProvenance: typeof VOXY_FIRST_EXPLAINER_AUDIO_PROVENANCE;
+  brand: typeof VOXY_FIRST_EXPLAINER_BRAND;
   motionBoundary: {
     flattenedMaster: true;
-    allowed: readonly ["blink_overlay", "micro_gaze_overlay", "editorial_easing"];
+    allowed: readonly ["blink_overlay", "micro_gaze_highlight_overlay", "editorial_easing"];
     independentHeadMotionAvailable: false;
+    independentBodyMotionAvailable: false;
     independentHandMotionAvailable: false;
     reason: "accepted_master_is_flattened_raster";
   };
@@ -172,10 +204,12 @@ export function buildVoxyFirstExplainerPlan(exactHeadSha: string): VoxyFirstExpl
     timeline: VOXY_FIRST_EXPLAINER_TIMELINE,
     waveform: VOXY_STATIC_CANON_WAVEFORM,
     audioProvenance: VOXY_FIRST_EXPLAINER_AUDIO_PROVENANCE,
+    brand: VOXY_FIRST_EXPLAINER_BRAND,
     motionBoundary: {
       flattenedMaster: true,
-      allowed: ["blink_overlay", "micro_gaze_overlay", "editorial_easing"],
+      allowed: ["blink_overlay", "micro_gaze_highlight_overlay", "editorial_easing"],
       independentHeadMotionAvailable: false,
+      independentBodyMotionAvailable: false,
       independentHandMotionAvailable: false,
       reason: "accepted_master_is_flattened_raster",
     },
@@ -196,13 +230,13 @@ export function validateVoxyFirstExplainerPlan(plan: VoxyFirstExplainerPlan): st
   const errors: string[] = [];
   if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_sha_invalid");
   if (plan.staticMaster.exactHeadSha !== VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD || plan.staticMaster.primaryMaster !== "A" || plan.staticMaster.editorialVariant !== "C" || plan.staticMaster.rejectedVariant !== "B" || plan.staticMaster.humanVisualAcceptance !== "accepted") errors.push("accepted_static_master_contract_invalid");
-  if (plan.output.durationMs !== 16_000 || plan.output.fps !== 24 || plan.output.frameCount !== 384 || plan.output.width !== 1920 || plan.output.height !== 1080) errors.push("primary_media_contract_invalid");
+  if (plan.output.durationMs !== 17_000 || plan.output.fps !== 24 || plan.output.frameCount !== 408 || plan.output.width !== 1920 || plan.output.height !== 1080) errors.push("primary_media_contract_invalid");
   if (plan.timeline.length !== 5 || plan.timeline[0].startMs !== 0 || plan.timeline.at(-1)?.endMs !== plan.output.durationMs || plan.timeline.some((segment, index) => segment.startMs >= segment.endMs || (index > 0 && segment.startMs !== plan.timeline[index - 1].endMs))) errors.push("timeline_contract_invalid");
-  if (plan.timeline[1].editorialRole !== "WARUM NEU DENKEN?" || plan.timeline[2].editorialRole !== "eDEBATTE · DAS INSTRUMENT" || plan.timeline[3].editorialRole !== "VOICEOPENGOV · DIE BEWEGUNG") errors.push("brand_architecture_contract_invalid");
-  if (plan.timeline[0].editorialTitle !== "DU WÄHLST." || plan.timeline.at(-1)?.editorialRole !== "NICHT GLAUBEN. NACHVOLLZIEHEN.") errors.push("social_hook_contract_invalid");
+  if (plan.timeline[1].editorialKicker !== "VOTE4GOV · WARUM" || plan.timeline[2].editorialKicker !== "eDEBATTE · WAS" || plan.timeline[3].editorialKicker !== "VOICEOPENGOV · WIE") errors.push("brand_architecture_contract_invalid");
+  if (plan.brand.lapelPin !== "VOG" || plan.brand.pocketMark !== "eDebatte" || plan.brand.pocketMarkStyle !== "wordmark_no_badge" || plan.brand.studioPrimary !== "VoiceOpenGov" || plan.brand.studioSecondary !== "eDebatte" || plan.brand.vote4GovPlacement !== "contextual_only" || plan.brand.voxyRole !== "digital_moderator") errors.push("brand_surface_contract_invalid");
   if (plan.waveform.count !== 1 || plan.waveform.placement !== "behind_voxy" || plan.waveform.currentlyAudioReactive !== false) errors.push("single_static_waveform_contract_invalid");
   if (plan.audioProvenance.audioIncluded !== false || plan.audioProvenance.audioTrackExpected !== false || plan.audioProvenance.externalUploadUsed !== false) errors.push("audio_provenance_must_fail_closed");
-  if (plan.motionBoundary.flattenedMaster !== true || plan.motionBoundary.independentHeadMotionAvailable !== false || plan.motionBoundary.independentHandMotionAvailable !== false || plan.timeline.some((segment) => segment.handGesture !== "none_flattened_master_identity_lock")) errors.push("flattened_identity_lock_broken");
+  if (plan.motionBoundary.flattenedMaster !== true || plan.motionBoundary.independentHeadMotionAvailable !== false || plan.motionBoundary.independentBodyMotionAvailable !== false || plan.motionBoundary.independentHandMotionAvailable !== false || plan.timeline.some((segment) => segment.handGesture !== "none_flattened_master_identity_lock")) errors.push("flattened_identity_lock_broken");
   if (plan.externalProviderUsed !== false || plan.externalUploadUsed !== false || plan.generativeRedrawUsed !== false || plan.humanVisualAcceptance !== "pending" || plan.productionEligible !== false || plan.autoPublish !== false) errors.push("human_and_production_gates_must_fail_closed");
   return errors;
 }

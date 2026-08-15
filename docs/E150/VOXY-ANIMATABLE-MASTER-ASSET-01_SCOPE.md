@@ -9,27 +9,29 @@ Der Motion-Stand aus Exact Head
 abgelehnt. Das SVG-Rig und seine technische Evidence bleiben nachvollziehbar,
 gelten aber nicht als akzeptiertes visuelles Masterasset.
 
-Die menschliche Prüfung des statischen Recovery-Heads
-`0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als Primary Master und C als
-Editorial-/Anlass-Variante ausgewählt. B ist verworfen. Diese Auswahl erlaubt
-die statische Finalisierung, ist aber noch keine finale Human Visual Acceptance.
-Für PR `#589` gilt deshalb:
+Die menschliche Prüfung hat am statischen Exact Head
+`ecba53e4167a6382d16dc2dda25c2f162dab8162` A als Primary Master und C als
+Editorial-/Anlass-Variante akzeptiert. B ist verworfen. Ein kontrollierter
+Animationstest aus dem akzeptierten Primary A ist erlaubt; jede neue
+Motion-Ausgabe beginnt erneut mit `humanVisualAcceptance = pending`. Für den
+aktuellen Explainer in PR `#589` gilt:
 
-- keine Animation und kein weiterer Motion-Polish;
-- zwei statische 1920 × 1080 Master, Primary A und Editorial C, aus derselben
-  CANON-04-Voxy-/Studio-Pixelquelle;
+- kein Reaktivieren des menschlich abgelehnten SVG-Rigs und kein neuer
+  Charakter-/Studio-Look;
+- dieselbe abgeflachte CANON-04-Voxy-/Studio-Pixelquelle wie Primary A;
 - identische Kamera, Licht-, Marken-, Typografie- und Materialbehandlung;
-- Unterschiede ausschließlich in der nativen Inhaltszonenarchitektur;
+- lokale Blink- und minimale Blicklicht-Overlays sowie Editorial-Easing;
+- keine unabhängige Kopf-, Oberkörper-, Arm- oder Handbewegung, solange kein
+  akzeptierter geschichteter Master existiert;
 - genau eine statische Waveform hinter Voxy; künftig audio-reaktionsfähig,
   aktuell nicht audio-reaktiv und ohne Audioanalyse;
-- eine Vergleichstafel mit A final, C final und den vier Canon-Boards;
-- B bleibt historische, klar verworfene Recovery-Evidence und wird nicht in das
-  finale Artefakt übernommen;
+- VOG-Pin, eDebatte-Wortmarke ohne Badge und dauerhaftes
+  VoiceOpenGov-/eDebatte-Studio-Lockup gemäß Human Branding Decision;
 - lokaler, revisionsgebundener Raster-Render ohne Generierung, externen Dienst,
   Upload oder SaaS;
 - Exact-Head-Artefakt mit mindestens 14 Tagen Aufbewahrung;
-- `humanVisualAcceptance = pending`, `animationEligible = false` und
-  `productionEligible = false`.
+- `humanVisualAcceptance = pending`, `productionEligible = false` und
+  `autoPublish = false`.
 
 Die unveränderten Canon-Boards 01 und 02 kontrollieren Charakter, Gesicht,
 Hände und Anatomie; 03 und 04 kontrollieren Studio und Broadcast-Layout.

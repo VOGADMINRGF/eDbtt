@@ -63,43 +63,47 @@ beginnt erneut mit `humanVisualAcceptance = pending`; `productionEligible` und
 
 ## Erster kontrollierter Explainer aus Primary A
 
-Der neue revisionsgebundene Renderer
+Der revisionsgebundene Renderer
 `apps/web/scripts/render-voxy-first-explainer-video.ts` nutzt ausschließlich die
 akzeptierte CANON-04-Pixelquelle und die etablierte Primary-A-Kamera. Er baut
 weder das abgelehnte SVG-Rig noch einen neuen Charakter oder ein neues Studio.
-Die VOG-Anstecknadel und die eDebatte-Pocket-Markierung werden vor der
-Bewegungscomposition durch die lokalen nativen SVG-Assets `vog-pin.svg` und
-`edebatte-pocket-mark.svg` mit exakt den Texten `VOG` und `eDebatte` überlagert.
+Die VOG-Anstecknadel und die eDebatte-Pocket-Markierung werden durch lokale
+native SVG-Assets überlagert. Die Pocket-Markierung ist nur noch eine feine
+blau-türkise Wortmarke ohne Rahmen, Badge, Schild oder Box. Der dauerhafte
+Studio-Absender verwendet `VoiceOpenGov` primär und `eDebatte` sekundär;
+`Vote4Gov` erscheint ausschließlich kontextuell. Diese Markenbelegung folgt der
+menschlichen Branding-Entscheidung im Draft-PR #589 vom 15. August 2026.
 
-Der V2-Clip ist 16 Sekunden lang, 1920 × 1080 Pixel groß, hat 24 fps und 384
-Frames. Seine Timeline lautet:
+Der Motion-v2-Clip ist 17 Sekunden lang, 1920 × 1080 Pixel groß, hat 24 fps und
+408 Frames. Seine Timeline lautet:
 
-- 0–2 s: Voxy stellt sich mit `Ich bin Voxy.` vor und eröffnet mit der Frage,
-  was nach der Wahl geschieht;
-- 2–5 s: Vote4Gov als Denk- und Reflexionsebene / Warum;
-- 5–9 s: eDebatte als Instrument / Was mit Themen, Argumenten, Quellen und
-  nachvollziehbarer Beteiligung;
-- 9–13 s: VoiceOpenGov als Bewegung / Wie;
-- 13–16 s: Voxy verbindet Warum, Was und Wie und kehrt in neutral zurück.
+- 0–3 s: Voxy stellt sich als digitaler Moderator vor;
+- 3–6 s: Vote4Gov als Denk- und Reflexionsebene / Warum;
+- 6–10 s: eDebatte als Instrument und Infrastruktur / Was;
+- 10–14 s: VoiceOpenGov als Bewegung und Community / Wie;
+- 14–17 s: Voxy hilft beim Überblick und kehrt visuell zur Ruhe zurück.
 
-Die V2-Komposition führt die Abfolge als zurückhaltenden Social Hook mit
-`DU WÄHLST. / UND DANN?`, den drei Warum-/Was-/Wie-Ebenen und dem Abschluss
-`NICHT GLAUBEN. NACHVOLLZIEHEN.`. Voxy bleibt dabei die Hauptfigur; die
-Editorial-Zone ersetzt weder Charakter noch Studio.
+Die Einblendungen sind kompakte Broadcast-Hinweise statt großer Dashboard-
+Cards. Voxy bleibt Hauptfigur. Der deutsche Erklärtext entspricht dem
+verbindlichen Testtext aus dem Human-Review-Kommentar und enthält ausdrücklich
+kein `Hallo Nachbarn`.
 
 Die akzeptierte Quelle ist ein abgeflachtes Raster und besitzt keine getrennten
 Kopf-, Arm- oder Handebenen. Um Identität und Anatomie nicht durch einen neuen
 Masken-/Crop-Versuch zu beschädigen, beschränkt sich der kontrollierte Test auf
-vier sparsame lokale Blink-Overlays und weich eingeblendete Editorial-/Caption-
-Übergänge. Eine unabhängige Kopfbewegung und die geforderte kontrollierte
-Handgeste sind in diesem Master technisch nicht belastbar möglich. Diese
-Abweichung wird im Manifest und für die erneute menschliche Prüfung offen
-geführt.
+fünf sparsame lokale Blink-Overlays, eine quantisierte Blicklichtbewegung von
+höchstens zwei Pixeln sowie weich eingeblendete Editorial-/Caption-Übergänge.
+Die Blicklichtbewegung ist kein behauptetes unabhängiges Augen-Rig. Unabhängige
+Kopfneigung, Oberkörperatmung und Arm-/Handgeste sind in diesem Master technisch
+nicht belastbar möglich. Der dokumentiert verworfene Raster-Masken-/Crop-Pfad
+wird nicht reaktiviert. Diese Abweichung wird im Manifest und für die erneute
+menschliche Prüfung offen geführt.
 
-Die Ausgabe enthält MP4, WebM, Preview, fünf gebundene Standframes, zehn
-Hand-Crops, je fünf 9:16- und 1:1-Evidencebilder, Manifest sowie deutsche VTT-
-und SRT-Captions. Die Untertitel sind zusätzlich eingebrannt. Genau eine
-statische Waveform bleibt hinter Voxy.
+Die Ausgabe unter `artifacts/voxy-first-explainer-video-v2/` enthält MP4, WebM,
+Preview, fünf gebundene Standframes, zehn Hand-Crops, je fünf 9:16- und
+1:1-Evidencebilder, Manifest sowie deutsche VTT- und SRT-Captions. Die
+Untertitel sind zusätzlich eingebrannt. Genau eine statische Waveform bleibt
+hinter Voxy.
 
 PR #590 bleibt ein separater Draft und stellt noch kein lizenzsauberes lokales
 TTS-Audioergebnis bereit. Der Clip enthält deshalb bewusst keine Audiospur; das
@@ -211,7 +215,8 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 ## Bekannte visuelle Grenzen
 
-- Die statischen finalen Master verwenden eine abgeflachte Canon-04-Pixelquelle
+- Die statischen finalen Master und der Motion-v2-Explainer verwenden eine
+  abgeflachte Canon-04-Pixelquelle
   und sind noch kein separates, geschichtetes 3D- oder Rig-Masterasset.
 - Pose und Grundlicht sind deshalb zwischen A/C gebunden; Figur und Studio
   können noch nicht unabhängig voneinander verändert werden.
@@ -221,7 +226,9 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 - Die native Vektorfigur ist eine kontrollierbare, stilisierte Ableitung der
   Canon-Referenz; sie wurde menschlich visuell abgelehnt und ist keine aktuell
   akzeptierte 3D-Rekonstruktion.
-- Mundbewegung und Lip-Sync sind bewusst nicht enthalten.
+- Unabhängige Kopf-, Oberkörper-, Arm-, Hand- und Mundbewegung sowie Lip-Sync
+  sind bewusst nicht enthalten, solange kein menschlich akzeptierter
+  geschichteter Master existiert.
 - Die Handformen bleiben starr und werden über Arm-/Hand-Pivots bewegt; Finger
   werden in dieser Fixture nicht einzeln deformiert.
 - Human Visual Acceptance muss insbesondere Wiedererkennbarkeit, Handanschluss,

@@ -154,11 +154,14 @@ Die statische Human Visual Acceptance ist inzwischen erfolgt. Der erste
 kontrollierte Explainer übernimmt deshalb die akzeptierte abgeflachte
 CANON-04-Pixelquelle direkt, ohne das abgelehnte Rig zu reaktivieren oder eine
 neue Figur zu zeichnen. Weil die Quelle keine getrennten Kopf-/Handebenen hat,
-bleibt dieser Test bewusst auf zwei sparsame Blinzler und Editorial-Easing
-begrenzt; die gefaltete Handpose wird im #588-Cross-Check fail-closed als nicht
-Open-Palm-prüfbar markiert. Ein späterer unabhängiger Gestenpfad erfordert ein
-aus dem akzeptierten Master abgeleitetes, erneut menschlich abzunehmendes
-Layer-/Rig-Asset.
+bleibt Motion v2 bewusst auf fünf sparsame Blinzler, eine höchstens zwei Pixel
+große lokale Blicklichtbewegung und Editorial-Easing begrenzt; die gefaltete
+Handpose wird im #588-Cross-Check fail-closed als nicht Open-Palm-prüfbar
+markiert. Die verbindliche Branding-Korrektur nutzt VOG am Revers, eine
+badgefreie eDebatte-Wortmarke auf der Brusttasche und VoiceOpenGov/eDebatte als
+dauerhaften Studio-Absender. Ein späterer unabhängiger Kopf-, Oberkörper- oder
+Gestenpfad erfordert ein aus dem akzeptierten Master abgeleitetes, erneut
+menschlich abzunehmendes Layer-/Rig-Asset.
 
 Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
 Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche
