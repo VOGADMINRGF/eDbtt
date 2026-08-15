@@ -55,8 +55,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install local Chromium renderer
-        run: pnpm -C apps/web exec playwright install chromium
+      - name: Install local Chromium renderer and FFmpeg
+        run: |
+          pnpm -C apps/web exec playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version
+          ffprobe -version
 
       - name: Run motion and explainer contracts
         run: |
