@@ -115,6 +115,62 @@ async function setFrameHtml(page: Page, html: string): Promise<void> {
   });
 }
 
+async function updateFrameHtml(page: Page, html: string): Promise<void> {
+  await page.evaluate(async (nextHtml) => {
+    const parsed = new DOMParser().parseFromString(nextHtml, "text/html");
+    const currentStyle = document.querySelector("style");
+    const nextStyle = parsed.querySelector("style");
+    const currentViewport = document.querySelector<HTMLElement>(".viewport");
+    const nextViewport = parsed.querySelector<HTMLElement>(".viewport");
+    if (!currentStyle || !nextStyle || !currentViewport || !nextViewport) {
+      throw new Error("reusable_frame_document_contract_missing");
+    }
+    currentStyle.textContent = nextStyle.textContent;
+    document.title = parsed.title;
+    for (const attribute of Array.from(currentViewport.attributes)) {
+      if (attribute.name.startsWith("data-")) {
+        currentViewport.removeAttribute(attribute.name);
+      }
+    }
+    for (const attribute of Array.from(nextViewport.attributes)) {
+      if (attribute.name.startsWith("data-")) {
+        currentViewport.setAttribute(attribute.name, attribute.value);
+      }
+    }
+    const textSelectors = [
+      ".rail-title",
+      ".rail-role",
+      ".caption",
+      ".portrait-caption",
+      ".portrait-title strong",
+      ".portrait-title small",
+    ];
+    for (const selector of textSelectors) {
+      const current = document.querySelector<HTMLElement>(selector);
+      const next = parsed.querySelector<HTMLElement>(selector);
+      if (!current || !next) {
+        throw new Error(`reusable_frame_text_contract_missing:${selector}`);
+      }
+      current.textContent = next.textContent;
+    }
+    const currentLevels = Array.from(
+      document.querySelectorAll<HTMLElement>(".rail-levels span"),
+    );
+    const nextLevels = Array.from(
+      parsed.querySelectorAll<HTMLElement>(".rail-levels span"),
+    );
+    if (currentLevels.length !== nextLevels.length) {
+      throw new Error("reusable_frame_level_contract_missing");
+    }
+    currentLevels.forEach((level, index) => {
+      level.className = nextLevels[index].className;
+    });
+    await new Promise<void>((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()));
+    });
+  }, html);
+}
+
 async function decodeLocalPng(
   page: Page,
   pngPath: string,
@@ -462,6 +518,7 @@ async function main(): Promise<void> {
   const renderedVisualStates = new Map<string, string>();
   let chromiumRenderedFrameCount = 0;
   let reusedFrameCount = 0;
+  let mainFrameDocumentInitialized = false;
   for (let frameIndex = 0; frameIndex < plan.output.frameCount; frameIndex += 1) {
     const framePath = resolve(
       framesRoot,
@@ -476,15 +533,18 @@ async function main(): Promise<void> {
       reusedFrameCount += 1;
       continue;
     }
-    await setFrameHtml(
-      page,
-      renderVoxyFirstExplainerFrameHtml({
-        plan,
-        assets,
-        frameIndex,
-        format: "16:9",
-      }),
-    );
+    const html = renderVoxyFirstExplainerFrameHtml({
+      plan,
+      assets,
+      frameIndex,
+      format: "16:9",
+    });
+    if (mainFrameDocumentInitialized) {
+      await updateFrameHtml(page, html);
+    } else {
+      await setFrameHtml(page, html);
+      mainFrameDocumentInitialized = true;
+    }
     const bytes = await page.locator(".viewport").screenshot({
       path: framePath,
       type: "png",
