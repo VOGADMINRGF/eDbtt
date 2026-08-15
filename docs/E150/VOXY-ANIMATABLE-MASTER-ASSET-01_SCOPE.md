@@ -1,6 +1,6 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01 — Scope
 
-Stand: 2026-08-14
+Stand: 2026-08-15
 
 ## Verbindlicher Jacket-Canon-Gate vom 15.08.2026
 
@@ -13,16 +13,18 @@ Sakko-Schnitt, Revers, Stofftextur, Nähte, Taschenform, blaue Paspel, VOG-Pin
 und eDebatte-Pocket-Mark bilden daher gemeinsam eine unveränderliche
 Character-Identity-Region. Vor einem Layer-Master oder Motion v3 muss der lokale
 Exact-Head-Renderer `render-voxy-jacket-canon-gate.ts` fünf direkt prüfbare
-PNG-Evidenzen und ein Manifest gegen CANON-04 erzeugen. Der aktuelle
-Motion-v2-Kandidat verwendet frei gesetzte SVG-Marken über einer bereits
-gebrandeten abgeflachten Pixelquelle; genau eine integrierte Wortmarke sowie
-Textur- und Geometrieerhalt sind damit nicht belastbar nachgewiesen.
+PNG-Evidenzen und ein Manifest gegen CANON-04 erzeugen. Die abgelehnten frei
+gesetzten SVG-Marken sind aus Primary A und dem Explainer entfernt. VOG-Pin,
+genau eine eDebatte-Wortmarke, Paspel, Revers, Tasche und Stoff bleiben als
+unveränderte CANON-04-Rasterpixel in derselben Primary-A-Kamerakomposition.
 
-Der Gate-Stand ist deshalb `failed`; `layerMasterEligible`, `motionV3Eligible`
-und `animationEligible` bleiben `false`. Es wird weder durch OCR-Annahmen noch
-durch ein rekonstruierendes Raster-Patching ein PASS behauptet. Erst ein später
-menschlich sauberer, provenance-gebundener Canon-Abgleich darf diese Sperre in
-einem getrennt überprüften Stand aufheben.
+Der technische Gate-Stand ist `passed`, weil Jacket-, Pin- und Pocket-Region
+bytegenau mit CANON-04 übereinstimmen. `layerMasterEligible`, `motionV3Eligible`
+und `animationEligible` bleiben dennoch `false`; `humanVisualAcceptance`
+bleibt `pending`. Weder OCR-Annahmen noch rekonstruierendes Raster-Patching oder
+neu gezeichnete Typografie begründen den PASS. Erst die menschliche Sichtung
+der revisionsgebundenen Evidence kann eine spätere Freigabeentscheidung
+begründen.
 
 ## Aktueller Recovery-Scope
 
@@ -47,7 +49,7 @@ aktuellen Explainer in PR `#589` gilt:
   akzeptierter geschichteter Master existiert;
 - genau eine statische Waveform hinter Voxy; künftig audio-reaktionsfähig,
   aktuell nicht audio-reaktiv und ohne Audioanalyse;
-- VOG-Pin, eDebatte-Wortmarke ohne Badge und dauerhaftes
+- CANON-04-VOG-Pin, genau eine eDebatte-Wortmarke ohne Badge/zweite Zeile und dauerhaftes
   VoiceOpenGov-/eDebatte-Studio-Lockup gemäß Human Branding Decision;
 - lokaler, revisionsgebundener Raster-Render ohne Generierung, externen Dienst,
   Upload oder SaaS;

@@ -6,8 +6,6 @@ import type {
 export type VoxyStaticCanonEmbeddedAssets = {
   canonStageDataUrl: string;
   wordmarkDataUrl: string;
-  vogPinDataUrl: string;
-  edebattePocketMarkDataUrl: string;
 };
 
 function primaryRailMarkup(): string {
@@ -90,9 +88,6 @@ export function renderVoxyStaticCanonFinalHtml(input: {
 .brand-lockup{position:absolute;left:56px;top:154px;width:350px;height:190px;padding:12px 10px;border-left:3px solid #00d9c0;background:linear-gradient(90deg,rgba(3,13,32,.78),rgba(3,13,32,.16));filter:drop-shadow(0 15px 32px rgba(0,0,0,.25))}
 .brand-lockup:after{content:"DIGITALER MODERATOR";position:absolute;left:22px;bottom:-31px;color:#76a9dd;font-size:13px;letter-spacing:.16em}
 .brand-lockup img{width:100%;height:100%;object-fit:contain}
-.native-character-mark{position:absolute;z-index:2;display:block;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));pointer-events:none}
-.native-vog-pin{left:650px;top:482px;width:49px;height:24px;transform:rotate(4deg)}
-.native-edebatte-pocket-mark{left:838px;top:565px;width:112px;height:34px;transform:rotate(-6deg)}
 .content-rail{position:absolute;left:var(--rail-left);top:54px;width:var(--rail-width);height:650px;padding:27px 29px;background:linear-gradient(145deg,rgba(2,10,27,.97),rgba(1,5,17,.92));border-left:1px solid rgba(73,167,255,.58);border-block:1px solid rgba(107,150,205,.34);box-shadow:-24px 0 55px rgba(0,0,0,.3),inset 20px 0 35px rgba(30,107,255,.04)}
 .rail-head{height:125px}.rail-head small{display:block;color:#3ddde4;font-size:14px;letter-spacing:.15em;margin-bottom:12px}.rail-head strong{display:block;font-size:27px;letter-spacing:.045em}.rail-head span{display:block;width:72%;height:3px;margin-top:21px;background:linear-gradient(90deg,#00d9c0,#1e6bff);border-radius:3px}
 .signal-row{height:142px;display:grid;grid-template-columns:70px 1fr;align-items:center;border-top:1px solid rgba(126,163,210,.26)}.signal-row em{width:43px;height:43px;display:grid;place-items:center;border:1px solid rgba(58,199,236,.58);border-radius:50%;color:#65e4ec;font-size:15px;font-style:normal;font-weight:800}.signal-row small{display:block;color:#7798bf;font-size:12px;letter-spacing:.16em;margin-bottom:7px}.signal-row b{display:block;font-size:21px;letter-spacing:.07em}.signal-row i{display:block;width:78%;height:4px;margin-top:13px;background:rgba(179,207,239,.22);border-radius:4px}
@@ -108,10 +103,8 @@ export function renderVoxyStaticCanonFinalHtml(input: {
 .clean .right-reset{left:1200px;background:linear-gradient(90deg,transparent,#010511 32%)}.clean .bottom-reset{top:750px}.clean .bottom-reset:before{top:-105px;height:105px}.clean .footer b{color:#7b94b3}
 </style>
 </head>
-<body><main class="master ${variant.id}${clean ? " clean" : ""}" data-variant-id="${variant.id}" data-selection="${variant.selection}" data-character-source="CANON-04" data-waveform-count="1" data-waveform-placement="behind_voxy" data-future-audio-reactive-eligible="true" data-currently-audio-reactive="false">
+<body><main class="master ${variant.id}${clean ? " clean" : ""}" data-variant-id="${variant.id}" data-selection="${variant.selection}" data-character-source="CANON-04" data-character-marks="canon-04-raster-only" data-waveform-count="1" data-waveform-placement="behind_voxy" data-future-audio-reactive-eligible="true" data-currently-audio-reactive="false">
   <img class="studio-stage" src="${assets.canonStageDataUrl}" alt="">
-  <img class="native-character-mark native-vog-pin" src="${assets.vogPinDataUrl}" alt="VOG">
-  <img class="native-character-mark native-edebatte-pocket-mark" src="${assets.edebattePocketMarkDataUrl}" alt="eDebatte">
   <div class="studio-grade"></div><div class="brand-reset"></div><div class="right-reset"></div><div class="bottom-reset"></div>
   <div class="frame"></div><div class="on-air"><i></i>ON AIR</div>
   <section class="brand-lockup"><img src="${assets.wordmarkDataUrl}" alt="Voxy eDebatte"></section>

@@ -67,9 +67,10 @@ Der revisionsgebundene Renderer
 `apps/web/scripts/render-voxy-first-explainer-video.ts` nutzt ausschließlich die
 akzeptierte CANON-04-Pixelquelle und die etablierte Primary-A-Kamera. Er baut
 weder das abgelehnte SVG-Rig noch einen neuen Charakter oder ein neues Studio.
-Die VOG-Anstecknadel und die eDebatte-Pocket-Markierung werden durch lokale
-native SVG-Assets überlagert. Die Pocket-Markierung ist nur noch eine feine
-blau-türkise Wortmarke ohne Rahmen, Badge, Schild oder Box. Der dauerhafte
+VOG-Anstecknadel, eDebatte-Pocket-Markierung und blaue Paspel bleiben
+unveränderte CANON-04-Rasterpixel. Es werden keine lokalen SVG-Marken mehr über
+das bereits gebrandete Sakko gelegt. Die Pocket-Markierung bleibt genau eine
+feine blau-türkise Wortmarke ohne Rahmen, Badge, Schild oder zweite Zeile. Der dauerhafte
 Studio-Absender verwendet `VoiceOpenGov` primär und `eDebatte` sekundär;
 `Vote4Gov` erscheint ausschließlich kontextuell. Diese Markenbelegung folgt der
 menschlichen Branding-Entscheidung im Draft-PR #589 vom 15. August 2026.
@@ -274,19 +275,29 @@ gegenüber. Er erzeugt unter `artifacts/voxy-jacket-canon-gate/`:
 - `manifest.json` mit Exact Head, allen vier Canon-Hashes, Crop-Vertrag,
   Asset-Provenienz und fail-closed Freigabefeldern.
 
-Der aktuelle Gate-Befund ist `failed`. Zwar enthalten die beiden lokalen
-SVG-Quelldateien die erwarteten Texte `VOG` und `eDebatte`, doch das ist kein
-OCR- oder Integrationsnachweis. Der Pin ist nach Position, Größe, Winkel und
-Sakko-Integration menschlich abgelehnt. Bei der Brusttasche liegt eine native
-SVG-Wortmarke über der bereits eingebrannten Canon-Markierung; die sichtbare
-Evidence zeigt daher zwei Marken beziehungsweise eine zweite Zeile statt
-genau einer integrierten Wortmarke. Weil diese Überlagerungen Pixel der
-Hard-Canon-Region ersetzen, gelten auch Textur- und Taschengeometrieerhalt als
-nicht belegt.
+Der reparierte Gate-Befund ist technisch `passed`. Die frei gesetzten
+VOG-/eDebatte-SVG-Overlays wurden aus der Primary-A- und Explainer-Komposition
+entfernt. Der Renderer vergleicht die zentrale Jacket-, VOG- und Pocket-Region
+bei identischer Primary-A-Kamera bytegenau mit CANON-04 und bricht bei jeder
+Pixelabweichung ab. Damit bleiben Position, Größe, nativer Winkel, Stofftextur,
+Revers, Taschengeometrie und blaue Paspel gemeinsam erhalten. Es wird keine
+OCR-Erkennung und keine neu gezeichnete oder extrahierte Typografie als
+Integrationsnachweis ausgegeben.
+
+Die geometrische Provenienz ist im Manifest für beide Marken gebunden. Quelle
+ist `CANON-04-broadcast-layout-blue.png`; der VOG-Quellcrop liegt bei
+`x=585, y=414, w=60, h=38`, der Pocket-Quellcrop bei
+`x=760, y=470, w=90, h=60`. Beide Regionen werden nicht separat neu
+zusammengesetzt, sondern bleiben mit `opacity=1`, ohne Zusatzrotation und mit
+dem effektiven Primary-A-Faktor `1.234449761` Teil derselben unveränderten
+Canon-Rasterkomposition. Die dokumentierten Zielbounds sind für VOG
+`x=632.153, y=477.114, w=74.067, h=46.909` und für eDebatte
+`x=848.182, y=546.243, w=111.1, h=74.067` im 1920×1080-Frame.
 
 Folgerichtig bleiben `layerMasterEligible = false`,
 `motionV3Eligible = false`, `animationEligible = false`,
 `humanVisualAcceptance = pending`, `productionEligible = false` und
 `autoPublish = false`. Es wurde kein Layer-Master und kein Motion-v3-Render
 erstellt. CANON-01 bis CANON-04, PR #588 und der frühere Rig-Scope wurden nicht
-verändert.
+verändert. Der technische PASS wird erst nach Sichtung der neuen Jacket-Evidence
+zu einer möglichen menschlichen Freigabeentscheidung.

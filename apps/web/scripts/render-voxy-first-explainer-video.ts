@@ -28,10 +28,7 @@ import {
   type VoxyFirstExplainerEmbeddedAssets,
   type VoxyFirstExplainerFormat,
 } from "../src/features/voxyVideo/firstExplainerVideoHtml";
-import {
-  VOXY_STATIC_CANON_NATIVE_ASSETS,
-  VOXY_STATIC_CANON_PIXEL_SOURCE,
-} from "../src/features/voxyVideo/staticCanonRecovery";
+import { VOXY_STATIC_CANON_PIXEL_SOURCE } from "../src/features/voxyVideo/staticCanonRecovery";
 
 type DetectorEvidence = {
   detected: boolean;
@@ -452,7 +449,6 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/public/brands/voxy/references/canon",
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
-    ...Object.values(VOXY_STATIC_CANON_NATIVE_ASSETS),
   ];
   const dirtyInputs = runBinary(
     "git",
@@ -492,14 +488,6 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ),
-    vogPin: repositoryPath(
-      repositoryRoot,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
-    ),
-    edebattePocketMark: repositoryPath(
-      repositoryRoot,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
-    ),
   };
   const assets: VoxyFirstExplainerEmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
@@ -507,27 +495,10 @@ async function main(): Promise<void> {
       await readFile(sourcePaths.studioLockup),
       "image/svg+xml",
     ),
-    vogPinDataUrl: dataUrl(await readFile(sourcePaths.vogPin), "image/svg+xml"),
-    edebattePocketMarkDataUrl: dataUrl(
-      await readFile(sourcePaths.edebattePocketMark),
-      "image/svg+xml",
-    ),
   };
-  const vogPinSvg = await readFile(sourcePaths.vogPin, "utf8");
-  const edebattePocketSvg = await readFile(
-    sourcePaths.edebattePocketMark,
-    "utf8",
-  );
   const studioLockupSvg = await readFile(sourcePaths.studioLockup, "utf8");
-  const pocketHasBadgeGeometry =
-    /<(?:rect|path|polygon|polyline)\b/i.test(edebattePocketSvg) ||
-    /\bstroke\s*=/i.test(edebattePocketSvg);
   const brandQa = {
     status:
-      />VOG<\/text>/.test(vogPinSvg) &&
-      !/>(?:VOGT|VORT|VOXY)<\/text>/.test(vogPinSvg) &&
-      />eDebatte<\/text>/.test(edebattePocketSvg) &&
-      !pocketHasBadgeGeometry &&
       />VoiceOpenGov<\/text>/.test(studioLockupSvg) &&
       />eDebatte<\/text>/.test(studioLockupSvg) &&
       !/>VOXY<\/text>/.test(studioLockupSvg) &&
@@ -535,13 +506,11 @@ async function main(): Promise<void> {
         ? "rule_based_pass_visual_review_pending"
         : "failed",
     ...plan.brand,
-    pocketBadgeGeometryPresent: pocketHasBadgeGeometry,
-    nativeVectorOverlays: true,
+    characterMarks: "canon_04_raster_pixels",
+    pocketBadgeGeometryPresent: false,
+    nativeVectorOverlays: false,
     rasterTextReconstructionUsed: false,
-    vogPinSha256: await fileSha256(sourcePaths.vogPin),
-    edebattePocketMarkSha256: await fileSha256(
-      sourcePaths.edebattePocketMark,
-    ),
+    canonStageSha256: await fileSha256(sourcePaths.canonStage),
     studioLockupSha256: await fileSha256(sourcePaths.studioLockup),
   } as const;
   if (brandQa.status === "failed") throw new Error("native_brand_qa_failed");
@@ -892,7 +861,7 @@ async function main(): Promise<void> {
       "independent_head_body_arm_and_hand_motion_is_blocked_until_an_accepted_layered_master_exists",
       "accepted_primary_a_hands_are_clasped_and_not_open_palm_detector_inspectable",
       "no_audio_is_included_because_pr_590_has_no_reusable_license_clean_local_voice_result",
-      "brand_overlay_geometry_and_full_motion_output_require_human_visual_review",
+      "canon_retained_jacket_pixels_and_full_motion_output_require_human_visual_review",
     ],
   };
   await writeFile(

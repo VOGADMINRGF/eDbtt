@@ -5,12 +5,11 @@ on:
   pull_request:
     paths:
       - "apps/web/public/brands/voxy/references/canon/**"
-      - "apps/web/public/brands/voxy/overlays/vog-pin.svg"
-      - "apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg"
       - "apps/web/src/features/voxyVideo/jacketCanonGate.ts"
       - "apps/web/src/features/voxyVideo/firstExplainerVideo.ts"
       - "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts"
       - "apps/web/src/features/voxyVideo/staticCanonRecovery.ts"
+      - "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts"
       - "apps/web/scripts/render-voxy-jacket-canon-gate.ts"
       - "apps/web/tests/voxy-jacket-canon-gate.contract.test.ts"
       - ".github/workflows/voxy-jacket-canon-gate.yml"
@@ -64,7 +63,7 @@ jobs:
             apps/web/scripts/render-voxy-jacket-canon-gate.ts \
             --output=artifacts/voxy-jacket-canon-gate
 
-      - name: Verify evidence and fail-closed stop
+      - name: Verify Canon match and human-review stop
         run: |
           node - <<'NODE'
           const fs = require("node:fs");
@@ -84,14 +83,16 @@ jobs:
           if (
             manifest.schemaVersion !== "voxy-jacket-canon-gate-v1" ||
             manifest.exactHeadSha !== process.env.VOXY_JACKET_GATE_COMMIT_SHA ||
-            manifest.jacketCanonGate?.passed !== false ||
+            manifest.jacketCanonGate?.passed !== true ||
             manifest.brandQa?.lapelPin?.expectedText !== "VOG" ||
-            manifest.brandQa?.lapelPin?.status !== "failed" ||
+            manifest.brandQa?.lapelPin?.visibleMarkCount !== 1 ||
+            manifest.brandQa?.lapelPin?.status !== "passed" ||
             manifest.brandQa?.pocketMark?.expectedText !== "eDebatte" ||
-            manifest.brandQa?.pocketMark?.visibleMarkCount !== 2 ||
+            manifest.brandQa?.pocketMark?.visibleMarkCount !== 1 ||
             manifest.brandQa?.pocketMark?.badgePresent !== false ||
-            manifest.brandQa?.pocketMark?.secondLinePresent !== true ||
-            manifest.brandQa?.pocketMark?.status !== "failed" ||
+            manifest.brandQa?.pocketMark?.secondLinePresent !== false ||
+            manifest.brandQa?.pocketMark?.status !== "passed" ||
+            Object.values(manifest.pixelMatch).some((entry) => entry.matched !== true) ||
             manifest.layerMasterEligible !== false ||
             manifest.motionV3Eligible !== false ||
             manifest.animationEligible !== false ||

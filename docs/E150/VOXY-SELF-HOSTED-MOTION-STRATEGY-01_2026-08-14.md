@@ -98,10 +98,12 @@ Der sichtbare Motion-v2-Sakko-Stand hat die anschließende menschliche Prüfung
 vom 15.08.2026 nicht bestanden. Vor jedem neuen Layer- oder Motion-v3-Schritt
 ist deshalb ein eigener Jacket-Canon-Gate verbindlich. Er prüft VOG-Pin,
 eDebatte-Pocket-Mark, Revers, Tasche, Paspel und Stofftextur gemeinsam gegen die
-unveränderten Canon-Boards. Der aktuelle Overlay-über-Flattened-Raster-Pfad
-scheitert fail-closed; `animationEligible = false`. Ein lokaler technischer
-Render oder korrekte SVG-Quelltexte dürfen diesen visuellen Human Gate nicht
-ersetzen.
+unveränderten Canon-Boards. Der reparierte Pfad entfernt die zusätzlichen
+SVG-Marken und besteht den technischen Gate durch bytegleichen Vergleich der
+relevanten Jacket-Regionen mit CANON-04. `animationEligible = false` und
+`humanVisualAcceptance = pending` bleiben bis zur menschlichen Sichtung
+unverändert. Ein lokaler technischer PASS ersetzt diesen visuellen Human Gate
+nicht.
 
 ## #588 — Freigabebedingung
 

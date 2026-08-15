@@ -23,8 +23,6 @@ const HEAD = "9cb25e91ae6fe04f7e532e8116cf0f500ee30ddb";
 const ASSETS = {
   canonStageDataUrl: "data:image/png;base64,canon",
   studioLockupDataUrl: "data:image/svg+xml;base64,lockup",
-  vogPinDataUrl: "data:image/svg+xml;base64,vog",
-  edebattePocketMarkDataUrl: "data:image/svg+xml;base64,edebatte",
 };
 
 describe("Voxy first explainer video v2 contract", () => {
@@ -105,8 +103,9 @@ describe("Voxy first explainer video v2 contract", () => {
       expect(html).toContain(`data-format="${format}"`);
       expect(html).toContain('data-waveform-count="1"');
       expect(html).toContain('data-waveform-placement="behind_voxy"');
-      expect(html).toContain('alt="VOG"');
-      expect(html).toContain('alt="eDebatte"');
+      expect(html).toContain('data-character-marks="canon-04-raster-only"');
+      expect(html).not.toContain("native-vog-pin");
+      expect(html).not.toContain("native-edebatte-pocket-mark");
       expect(html).toContain('alt="VoiceOpenGov eDebatte"');
       expect(html).toContain(">eDEBATTE · WAS<");
       expect(html).toContain(
@@ -162,18 +161,11 @@ describe("Voxy first explainer video v2 contract", () => {
     expect(source).toContain("motion_is_limited_to_five_sparse_blinks_micro_gaze_highlight_cues");
   });
 
-  it("binds a badge-free pocket mark and the VoiceOpenGov/eDebatte studio lockup", () => {
-    const pocketMark = readFileSync(
-      resolve(process.cwd(), "public/brands/voxy/overlays/edebatte-pocket-mark.svg"),
-      "utf8",
-    );
+  it("keeps the jacket marks in CANON-04 pixels and binds the studio lockup", () => {
     const studioLockup = readFileSync(
       resolve(process.cwd(), "public/brands/voxy/overlays/voiceopengov-edebatte-lockup.svg"),
       "utf8",
     );
-    expect(pocketMark).toContain(">eDebatte</text>");
-    expect(pocketMark).not.toMatch(/<(?:rect|path|polygon|polyline)\b/i);
-    expect(pocketMark).not.toMatch(/\bstroke\s*=/i);
     expect(studioLockup).toContain(">VoiceOpenGov</text>");
     expect(studioLockup).toContain(">eDebatte</text>");
     expect(studioLockup).not.toContain(">VOXY</text>");

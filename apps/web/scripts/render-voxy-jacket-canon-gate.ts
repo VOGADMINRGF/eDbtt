@@ -18,7 +18,6 @@ import {
 import {
   VOXY_STATIC_CANON_BOARDS,
   VOXY_STATIC_CANON_FINAL_CAMERA,
-  VOXY_STATIC_CANON_NATIVE_ASSETS,
 } from "../src/features/voxyVideo/staticCanonRecovery";
 
 function argument(name: string): string | null {
@@ -95,8 +94,8 @@ function renderComparisonHtml(input: {
   canonDataUrl: string;
 }): string {
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
-*{box-sizing:border-box}html,body{margin:0;width:1600px;height:900px;overflow:hidden;background:#050914;color:#f5f7fb;font-family:Arial,Helvetica,sans-serif}.board{width:1600px;height:900px;padding:46px 54px}.header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px}.eyebrow{color:#ff7474;font-weight:900;letter-spacing:.14em}.title{margin:8px 0 0;font-size:36px}.gate{padding:12px 18px;border:2px solid #ff5d67;border-radius:999px;color:#ff8b92;font-weight:900;letter-spacing:.12em}.pair{display:grid;grid-template-columns:1fr 1fr;gap:28px}.panel{padding:20px;border:1px solid #293750;border-radius:18px;background:#091120}.panel h2{margin:0 0 14px;font-size:18px;letter-spacing:.08em}.panel img{display:block;width:100%;height:465px;object-fit:contain;background:#010511}.notes{margin-top:24px;padding:18px 22px;border-left:4px solid #ff5d67;background:#111829;font-size:20px;line-height:1.45}.notes strong{color:#ff8b92}
-</style></head><body><main class="board"><header class="header"><div><div class="eyebrow">VOXY · HARD CANON REGION</div><h1 class="title">Jacket Canon Comparison</h1></div><div class="gate">GATE FAIL</div></header><section class="pair"><article class="panel"><h2>CURRENT MOTION V2 JACKET</h2><img src="${input.candidateDataUrl}" alt="Current Motion v2 jacket crop"></article><article class="panel"><h2>CANON-04 · SAME CAMERA</h2><img src="${input.canonDataUrl}" alt="Canon-04 reference crop"></article></section><section class="notes"><strong>STOP:</strong> Der frei gesetzte VOG-Pin ist nicht canon-integriert; die native eDebatte-Wortmarke liegt zusätzlich über der bereits eingebrannten Markierung. Textur-, Geometrie- und Exactly-once-Vertrag sind damit nicht belastbar erfüllt.</section></main></body></html>`;
+*{box-sizing:border-box}html,body{margin:0;width:1600px;height:900px;overflow:hidden;background:#050914;color:#f5f7fb;font-family:Arial,Helvetica,sans-serif}.board{width:1600px;height:900px;padding:46px 54px}.header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px}.eyebrow{color:#53e4ae;font-weight:900;letter-spacing:.14em}.title{margin:8px 0 0;font-size:36px}.gate{padding:12px 18px;border:2px solid #35d89a;border-radius:999px;color:#75ebbb;font-weight:900;letter-spacing:.12em}.pair{display:grid;grid-template-columns:1fr 1fr;gap:28px}.panel{padding:20px;border:1px solid #293750;border-radius:18px;background:#091120}.panel h2{margin:0 0 14px;font-size:18px;letter-spacing:.08em}.panel img{display:block;width:100%;height:465px;object-fit:contain;background:#010511}.notes{margin-top:24px;padding:18px 22px;border-left:4px solid #35d89a;background:#111829;font-size:20px;line-height:1.45}.notes strong{color:#75ebbb}
+</style></head><body><main class="board"><header class="header"><div><div class="eyebrow">VOXY · HARD CANON REGION</div><h1 class="title">Jacket Canon Comparison</h1></div><div class="gate">GATE PASS</div></header><section class="pair"><article class="panel"><h2>REPAIRED PRIMARY-A JACKET</h2><img src="${input.candidateDataUrl}" alt="Repaired Primary-A jacket crop"></article><article class="panel"><h2>CANON-04 · SAME CAMERA</h2><img src="${input.canonDataUrl}" alt="Canon-04 reference crop"></article></section><section class="notes"><strong>PASS:</strong> VOG-Pin, eDebatte-Wortmarke, Paspel, Revers, Taschengeometrie und Stofftextur stammen unverändert aus CANON-04. Künstliche Jacket-Overlays sind entfernt; die menschliche Sichtfreigabe bleibt ausstehend.</section></main></body></html>`;
 }
 
 async function scalePng(input: {
@@ -144,10 +143,9 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/firstExplainerVideo.ts",
     "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
+    "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
-    VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
-    VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
   ];
   const dirtyInputs = runBinary(
     "git",
@@ -200,14 +198,6 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     ),
-    vogPin: repositoryPath(
-      repositoryRoot,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
-    ),
-    edebattePocketMark: repositoryPath(
-      repositoryRoot,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
-    ),
   };
   const assets: VoxyFirstExplainerEmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
@@ -215,18 +205,7 @@ async function main(): Promise<void> {
       await readFile(sourcePaths.studioLockup),
       "image/svg+xml",
     ),
-    vogPinDataUrl: dataUrl(await readFile(sourcePaths.vogPin), "image/svg+xml"),
-    edebattePocketMarkDataUrl: dataUrl(
-      await readFile(sourcePaths.edebattePocketMark),
-      "image/svg+xml",
-    ),
   };
-
-  const vogPinSvg = await readFile(sourcePaths.vogPin, "utf8");
-  const pocketMarkSvg = await readFile(sourcePaths.edebattePocketMark, "utf8");
-  if (!/>VOG<\/text>/.test(vogPinSvg) || !/>eDebatte<\/text>/.test(pocketMarkSvg)) {
-    throw new Error("native_brand_asset_provenance_invalid");
-  }
 
   const externalRequests: string[] = [];
   const browser = await chromium.launch({ headless: true });
@@ -252,12 +231,21 @@ async function main(): Promise<void> {
   );
 
   const jacketFullPath = resolve(outputRoot, plan.output.jacketFullFileName);
+  const jacketMatchCandidatePath = resolve(
+    outputRoot,
+    ".jacket-match-candidate.png",
+  );
   const lapelSourcePath = resolve(outputRoot, ".lapel-source.png");
   const pocketSourcePath = resolve(outputRoot, ".pocket-source.png");
   await page.screenshot({
     path: jacketFullPath,
     type: "png",
     clip: plan.cropContract.jacket,
+  });
+  await page.screenshot({
+    path: jacketMatchCandidatePath,
+    type: "png",
+    clip: plan.pixelMatchCrops.jacket,
   });
   await page.screenshot({
     path: lapelSourcePath,
@@ -303,10 +291,28 @@ async function main(): Promise<void> {
 
   await settlePage(page, renderCanonReferenceHtml(assets.canonStageDataUrl));
   const canonJacketPath = resolve(outputRoot, ".canon-jacket-source.png");
+  const canonJacketMatchPath = resolve(outputRoot, ".canon-jacket-match.png");
+  const canonLapelPath = resolve(outputRoot, ".canon-lapel-source.png");
+  const canonPocketPath = resolve(outputRoot, ".canon-pocket-source.png");
   await page.screenshot({
     path: canonJacketPath,
     type: "png",
     clip: plan.cropContract.jacket,
+  });
+  await page.screenshot({
+    path: canonJacketMatchPath,
+    type: "png",
+    clip: plan.pixelMatchCrops.jacket,
+  });
+  await page.screenshot({
+    path: canonLapelPath,
+    type: "png",
+    clip: plan.pixelMatchCrops.lapelPin,
+  });
+  await page.screenshot({
+    path: canonPocketPath,
+    type: "png",
+    clip: plan.pixelMatchCrops.pocketMark,
   });
   const comparisonPath = resolve(outputRoot, plan.output.comparisonFileName);
   await page.setViewportSize({ width: 1600, height: 900 });
@@ -322,6 +328,47 @@ async function main(): Promise<void> {
 
   if (externalRequests.length > 0) {
     throw new Error(`external_requests_detected:${externalRequests.join(",")}`);
+  }
+
+  const pixelMatchEntries = [
+    {
+      id: "jacket",
+      crop: plan.pixelMatchCrops.jacket,
+      candidatePath: jacketMatchCandidatePath,
+      referencePath: canonJacketMatchPath,
+    },
+    {
+      id: "lapelPin",
+      crop: plan.pixelMatchCrops.lapelPin,
+      candidatePath: lapelSourcePath,
+      referencePath: canonLapelPath,
+    },
+    {
+      id: "pocketMark",
+      crop: plan.pixelMatchCrops.pocketMark,
+      candidatePath: pocketSourcePath,
+      referencePath: canonPocketPath,
+    },
+  ] as const;
+  const pixelMatch = Object.fromEntries(
+    await Promise.all(
+      pixelMatchEntries.map(async (entry) => {
+        const candidateBytes = await readFile(entry.candidatePath);
+        const referenceBytes = await readFile(entry.referencePath);
+        return [
+          entry.id,
+          {
+            crop: entry.crop,
+            candidateSha256: sha256(candidateBytes),
+            referenceSha256: sha256(referenceBytes),
+            matched: candidateBytes.equals(referenceBytes),
+          },
+        ];
+      }),
+    ),
+  );
+  if (Object.values(pixelMatch).some((entry) => !entry.matched)) {
+    throw new Error("jacket_canon_pixel_match_failed");
   }
 
   const outputFiles = [
@@ -349,6 +396,8 @@ async function main(): Promise<void> {
     canonEvidence,
     hardCanonRegion: plan.hardCanonRegion,
     cropContract: plan.cropContract,
+    pixelMatch,
+    markProvenance: plan.markProvenance,
     comparison: plan.comparison,
     candidateFrameIndex,
     sourceAssets: {
@@ -356,16 +405,8 @@ async function main(): Promise<void> {
         path: relative(repositoryRoot, sourcePaths.canonStage),
         sha256: await fileSha256(sourcePaths.canonStage),
       },
-      vogPinOverlay: {
-        path: relative(repositoryRoot, sourcePaths.vogPin),
-        sha256: await fileSha256(sourcePaths.vogPin),
-        textProvenance: "svg_source_contains_exact_text_vog",
-      },
-      edebattePocketOverlay: {
-        path: relative(repositoryRoot, sourcePaths.edebattePocketMark),
-        sha256: await fileSha256(sourcePaths.edebattePocketMark),
-        textProvenance: "svg_source_contains_exact_text_edebatte",
-      },
+      characterMarks:
+        "unmodified_canon_04_raster_pixels_no_svg_or_typographic_overlay",
     },
     outputs,
     jacketCanonGate: plan.jacketCanonGate,
@@ -381,7 +422,7 @@ async function main(): Promise<void> {
     productionEligible: plan.productionEligible,
     autoPublish: plan.autoPublish,
     stopReason:
-      "Jacket Canon Gate failed. No layer master or Motion v3 render is authorized.",
+      "Jacket Canon Gate passed; human visual acceptance remains pending. No layer master or Motion v3 render is authorized.",
   };
   await writeFile(
     resolve(outputRoot, plan.output.manifestFileName),
@@ -391,11 +432,15 @@ async function main(): Promise<void> {
   await rm(lapelSourcePath, { force: true });
   await rm(pocketSourcePath, { force: true });
   await rm(canonJacketPath, { force: true });
+  await rm(jacketMatchCandidatePath, { force: true });
+  await rm(canonJacketMatchPath, { force: true });
+  await rm(canonLapelPath, { force: true });
+  await rm(canonPocketPath, { force: true });
 
   process.stdout.write(
     `${JSON.stringify(
       {
-        status: "jacket_canon_gate_failed",
+        status: "jacket_canon_gate_passed_human_review_pending",
         exactHeadSha,
         outputRoot: relative(process.cwd(), outputRoot),
         evidenceFiles: outputFiles,
