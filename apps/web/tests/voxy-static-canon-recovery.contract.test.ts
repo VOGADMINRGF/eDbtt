@@ -112,6 +112,8 @@ describe("Voxy static canon final contract", () => {
         assets: {
           canonStageDataUrl: DATA_URL,
           wordmarkDataUrl: "data:image/svg+xml;base64,wordmark",
+          vogPinDataUrl: "data:image/svg+xml;base64,vog-pin",
+          edebattePocketMarkDataUrl: "data:image/svg+xml;base64,edebatte",
         },
       });
       expect(html).toContain(`data-variant-id="${variant.id}"`);
@@ -127,6 +129,8 @@ describe("Voxy static canon final contract", () => {
       expect(html).not.toContain("<canvas");
       expect(html).not.toMatch(/https?:\/\//);
       expect(html).not.toContain("@keyframes");
+      expect(html).toContain('alt="VOG"');
+      expect(html).toContain('alt="eDebatte"');
     }
   });
 
@@ -138,6 +142,8 @@ describe("Voxy static canon final contract", () => {
       assets: {
         canonStageDataUrl: DATA_URL,
         wordmarkDataUrl: "data:image/svg+xml;base64,wordmark",
+        vogPinDataUrl: "data:image/svg+xml;base64,vog-pin",
+        edebattePocketMarkDataUrl: "data:image/svg+xml;base64,edebatte",
       },
       clean: true,
     });

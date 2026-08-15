@@ -88,11 +88,11 @@ verbindliche Reihenfolge für den weiteren Self-hosted-Pfad:
 
 Rig-Komfort oder technische Detektierbarkeit dürfen niemals Vorrang vor
 Wiedererkennbarkeit, Anatomie und Broadcast-Qualität erhalten. Die menschliche
-Prüfung des statischen Recovery-Heads
-`0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als Primary Master und C als
-Editorial-/Anlass-Variante ausgewählt; B ist verworfen. Das ist noch keine
-finale Human Visual Acceptance. Bis zu dieser finalen Abnahme gilt weiterhin
-`animationEligible = false`.
+Prüfung hat am statischen Exact Head
+`ecba53e4167a6382d16dc2dda25c2f162dab8162` A als Primary Master und C als
+Editorial-/Anlass-Variante final akzeptiert; B ist verworfen. Damit ist ein
+kontrollierter Animationstest freigegeben. Die Acceptance gilt nicht für dessen
+Motion-Ausgabe: diese beginnt erneut bei `humanVisualAcceptance = pending`.
 
 ## #588 — Freigabebedingung
 
@@ -148,8 +148,17 @@ Recovery-Prüfung wird Primary A gemeinsam mit Editorial C finalisiert; B bleibt
 verworfen. A und C verwenden dieselbe CANON-04-Pixelquelle, Kamera, Licht-,
 Marken-, Typografie- und Materialbehandlung und genau eine statische Waveform
 hinter Voxy. Nur ihre Inhaltszonenarchitektur unterscheidet sich. Der Lauf bleibt
-vollständig lokal, ohne Audioanalyse oder generatives Redraw. Erst die noch
-ausstehende finale Human Visual Acceptance kann einen neuen Rig-Schritt öffnen.
+vollständig lokal, ohne Audioanalyse oder generatives Redraw.
+
+Die statische Human Visual Acceptance ist inzwischen erfolgt. Der erste
+kontrollierte Explainer übernimmt deshalb die akzeptierte abgeflachte
+CANON-04-Pixelquelle direkt, ohne das abgelehnte Rig zu reaktivieren oder eine
+neue Figur zu zeichnen. Weil die Quelle keine getrennten Kopf-/Handebenen hat,
+bleibt dieser Test bewusst auf zwei sparsame Blinzler und Editorial-Easing
+begrenzt; die gefaltete Handpose wird im #588-Cross-Check fail-closed als nicht
+Open-Palm-prüfbar markiert. Ein späterer unabhängiger Gestenpfad erfordert ein
+aus dem akzeptierten Master abgeleitetes, erneut menschlich abzunehmendes
+Layer-/Rig-Asset.
 
 Damit sind die technischen Provider-, Credential-, Transfer-, Retention- und
 Budget-Gates für den Standardpfad tatsächlich entfallen. Nur die menschliche

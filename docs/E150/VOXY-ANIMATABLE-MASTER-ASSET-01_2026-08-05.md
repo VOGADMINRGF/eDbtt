@@ -1,6 +1,6 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01
 
-Stand: 2026-08-14
+Stand: 2026-08-15
 
 ## Verbindlicher visueller Review-Stand
 
@@ -10,11 +10,12 @@ abgelehnt. Die Detector-, Render- und Format-Evidence dieses Stands bleibt als
 technischer Nachweis erhalten, ist aber keine akzeptierte Voxy-Identität und
 keine Grundlage für weitere Animation oder Production.
 
-Der aktuelle Finalisierungs-Slice erzeugt deshalb ausdrücklich **keine
-Animation**. Die menschliche Recovery-Auswahl am statischen Exact Head
-`0009a32a8c29781c8f1bc149c2f3538febfec755` setzt A als Primary Master und C
-als Editorial-/Anlass-Variante. B ist verworfen und kein Produktionskandidat.
-Diese Auswahl ist noch keine finale Human Visual Acceptance von A oder C.
+Die anschließende menschliche Entscheidung akzeptiert am statischen Exact Head
+`ecba53e4167a6382d16dc2dda25c2f162dab8162` A als Primary Master und C als
+Editorial-/Anlass-Variante. B ist verworfen und kein Produktionskandidat. Die
+Human Visual Acceptance des statischen Masters ist damit abgeschlossen und ein
+kontrollierter Animationstest darf beginnen. Das ist keine Acceptance der
+neuen Motion-Ausgabe und keine Production-Freigabe.
 
 Der Slice bindet die vier menschlich freigegebenen Canon-Boards aus
 `apps/web/public/brands/voxy/references/canon/` als unveränderte visuelle SSOT:
@@ -56,8 +57,62 @@ nicht Teil dieses Slices.
 
 Der Lauf bleibt vollständig lokal, nutzt weder Generierung noch externen Dienst,
 Upload oder SaaS und lädt sein Exact-Head-Artefakt für mindestens 14 Tage hoch.
-`humanVisualAcceptance` ist für A und C `pending`; `animationEligible`,
-`productionEligible` und `autoPublish` bleiben `false`.
+Die statische A/C-Auswahl ist menschlich akzeptiert. Jede neue Motion-Ausgabe
+beginnt erneut mit `humanVisualAcceptance = pending`; `productionEligible` und
+`autoPublish` bleiben `false`.
+
+## Erster kontrollierter Explainer aus Primary A
+
+Der neue revisionsgebundene Renderer
+`apps/web/scripts/render-voxy-first-explainer-video.ts` nutzt ausschließlich die
+akzeptierte CANON-04-Pixelquelle und die etablierte Primary-A-Kamera. Er baut
+weder das abgelehnte SVG-Rig noch einen neuen Charakter oder ein neues Studio.
+Die VOG-Anstecknadel und die eDebatte-Pocket-Markierung werden vor der
+Bewegungscomposition durch die lokalen nativen SVG-Assets `vog-pin.svg` und
+`edebatte-pocket-mark.svg` mit exakt den Texten `VOG` und `eDebatte` überlagert.
+
+Der Clip ist 16 Sekunden lang, 1280 × 720 Pixel groß, hat 24 fps und 384 Frames.
+Seine Timeline lautet:
+
+- 0–3 s: Voxy stellt sich mit `Hallo Nachbarn,` vor;
+- 3–6 s: Vote4Gov als Denk- und Reflexionsebene / Warum;
+- 6–10 s: eDebatte als Instrument / Was mit Themen, Argumenten, Quellen und
+  nachvollziehbarer Beteiligung;
+- 10–14 s: VoiceOpenGov als Bewegung / Wie;
+- 14–16 s: Voxy verbindet Warum, Was und Wie und kehrt in neutral zurück.
+
+Die akzeptierte Quelle ist ein abgeflachtes Raster und besitzt keine getrennten
+Kopf-, Arm- oder Handebenen. Um Identität und Anatomie nicht durch einen neuen
+Masken-/Crop-Versuch zu beschädigen, beschränkt sich der kontrollierte Test auf
+zwei sparsame lokale Blink-Overlays und weich eingeblendete Editorial-/Caption-
+Übergänge. Eine unabhängige Kopfbewegung und die geforderte kontrollierte
+Handgeste sind in diesem Master technisch nicht belastbar möglich. Diese
+Abweichung wird im Manifest und für die erneute menschliche Prüfung offen
+geführt.
+
+Die Ausgabe enthält MP4, WebM, Preview, fünf gebundene Standframes, zehn
+Hand-Crops, je fünf 9:16- und 1:1-Evidencebilder, Manifest sowie deutsche VTT-
+und SRT-Captions. Die Untertitel sind zusätzlich eingebrannt. Genau eine
+statische Waveform bleibt hinter Voxy.
+
+PR #590 bleibt ein separater Draft und stellt noch kein lizenzsauberes lokales
+TTS-Audioergebnis bereit. Der Clip enthält deshalb bewusst keine Audiospur; das
+Manifest dokumentiert den fehlenden Voice-Baustein statt Audioerfolg zu
+simulieren. Kein Provider, externer Upload oder SaaS-Pfad wird genutzt.
+
+## #588-Cross-Check des Explainers
+
+Der Renderer lädt den unveränderten Detector aus #588-Exact-Head
+`0756ad48bfd61cf88696f91bc41da87e988020c0` direkt aus dem lokalen Git-Objekt
+und bindet Detector-, License-Contract- und Profil-SHA256. Die gefalteten Hände
+des akzeptierten Primary A sind keine getrennt sichtbaren Open Palms. Deshalb
+kann dieser Detector die geforderte Sichtbarkeit von fünf Fingern pro Hand
+nicht belastbar bestätigen. Alle zehn realen Standframe-Crops werden geprüft,
+aber unabhängig von einem zufälligen Roh-Detektorergebnis als
+`not_open_palm_clasped_hands` und `blocked_human_review_required` geführt.
+Thresholds bleiben unverändert, es gibt keine QA-Ausnahme und niemals einen
+statischen Fünf-Finger-Fallback. Die Negative-Fixtures des revisionsgebundenen
+#588-Detectors bleiben unverändert fail-closed.
 
 ## Ergebnis des technischen Slices
 
@@ -172,12 +227,15 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 
 - Motion-Stand `7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb`:
   `humanVisualAcceptance = rejected`;
-- Primary A und Editorial C: `humanVisualAcceptance = pending`;
+- Primary A und Editorial C am statischen Head
+  `ecba53e4167a6382d16dc2dda25c2f162dab8162`:
+  `humanVisualAcceptance = accepted`;
 - Variante B: `rejected`, nicht im finalen Artefakt enthalten und nicht für
   Production vorgesehen;
 - technischer Taskzustand nach Exact-Head-Render und grünen Checks maximal:
   `review`;
-- `animationEligible = false`, `productionEligible = false` und
-  `autoPublish = false`;
+- kontrollierter Animationstest: erlaubt; neue Motion-Ausgabe:
+  `humanVisualAcceptance = pending`;
+- `productionEligible = false` und `autoPublish = false`;
 - PR bleibt Draft;
 - kein Merge, kein Ready-for-Review, kein Deployment und kein Publishing.

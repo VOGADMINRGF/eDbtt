@@ -6,6 +6,8 @@ on:
     paths:
       - "apps/web/public/brands/voxy/references/canon/**"
       - "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg"
+      - "apps/web/public/brands/voxy/overlays/vog-pin.svg"
+      - "apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg"
       - "apps/web/src/features/voxyVideo/staticCanonRecovery.ts"
       - "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts"
       - "apps/web/scripts/render-voxy-static-canon-recovery.ts"

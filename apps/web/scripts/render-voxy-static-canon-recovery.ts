@@ -101,6 +101,8 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
     VOXY_STATIC_CANON_NATIVE_ASSETS.wordmark,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
   ];
   const dirtyInputs = runBinary("git", [
     "diff",
@@ -173,9 +175,22 @@ async function main(): Promise<void> {
     repositoryRoot,
     VOXY_STATIC_CANON_NATIVE_ASSETS.wordmark,
   );
+  const vogPinPath = repositoryPath(
+    repositoryRoot,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
+  );
+  const edebattePocketMarkPath = repositoryPath(
+    repositoryRoot,
+    VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+  );
   const embeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(stagePath), "image/png"),
     wordmarkDataUrl: dataUrl(await readFile(wordmarkPath), "image/svg+xml"),
+    vogPinDataUrl: dataUrl(await readFile(vogPinPath), "image/svg+xml"),
+    edebattePocketMarkDataUrl: dataUrl(
+      await readFile(edebattePocketMarkPath),
+      "image/svg+xml",
+    ),
   };
 
   const externalRequests: string[] = [];
@@ -329,10 +344,22 @@ async function main(): Promise<void> {
         path: VOXY_STATIC_CANON_NATIVE_ASSETS.wordmark,
         sha256: await fileSha256(wordmarkPath),
       },
+      {
+        role: "native_editable_vog_lapel_pin",
+        path: VOXY_STATIC_CANON_NATIVE_ASSETS.vogPin,
+        sha256: await fileSha256(vogPinPath),
+      },
+      {
+        role: "native_editable_edebatte_pocket_mark",
+        path: VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+        sha256: await fileSha256(edebattePocketMarkPath),
+      },
     ],
     inputSha256: {
       canonStage: await fileSha256(stagePath),
       nativeWordmark: await fileSha256(wordmarkPath),
+      nativeVogPin: await fileSha256(vogPinPath),
+      nativeEdebattePocketMark: await fileSha256(edebattePocketMarkPath),
       canonManifest: await fileSha256(canonManifestPath),
     },
     renderResolution: {
