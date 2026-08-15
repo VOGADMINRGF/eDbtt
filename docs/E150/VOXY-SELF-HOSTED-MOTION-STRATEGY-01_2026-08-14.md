@@ -94,6 +94,15 @@ Editorial-/Anlass-Variante final akzeptiert; B ist verworfen. Damit ist ein
 kontrollierter Animationstest freigegeben. Die Acceptance gilt nicht für dessen
 Motion-Ausgabe: diese beginnt erneut bei `humanVisualAcceptance = pending`.
 
+Der sichtbare Motion-v2-Sakko-Stand hat die anschließende menschliche Prüfung
+vom 15.08.2026 nicht bestanden. Vor jedem neuen Layer- oder Motion-v3-Schritt
+ist deshalb ein eigener Jacket-Canon-Gate verbindlich. Er prüft VOG-Pin,
+eDebatte-Pocket-Mark, Revers, Tasche, Paspel und Stofftextur gemeinsam gegen die
+unveränderten Canon-Boards. Der aktuelle Overlay-über-Flattened-Raster-Pfad
+scheitert fail-closed; `animationEligible = false`. Ein lokaler technischer
+Render oder korrekte SVG-Quelltexte dürfen diesen visuellen Human Gate nicht
+ersetzen.
+
 ## #588 — Freigabebedingung
 
 #588 wird nicht durch eine SaaS-/Budgetentscheidung freigegeben. Er wird freigegeben, sobald ein lokales Self-hosted Rig eine revisionsgebundene Fixture liefert, die als kanonische animierbare Voxy-Identität menschlich akzeptiert wurde. Anschließend prüft #588 die 200-%-Qualitätszonen fail-closed.

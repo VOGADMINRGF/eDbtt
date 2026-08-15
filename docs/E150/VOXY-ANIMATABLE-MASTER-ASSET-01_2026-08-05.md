@@ -252,3 +252,41 @@ erfüllt; die menschliche visuelle Abnahme bleibt davon ausdrücklich unberührt
 - `productionEligible = false` und `autoPublish = false`;
 - PR bleibt Draft;
 - kein Merge, kein Ready-for-Review, kein Deployment und kein Publishing.
+
+## Jacket-Canon-Gate nach Human Review vom 15.08.2026
+
+Die nach dem statisch akzeptierten A-Master erzeugte Motion-v2-Ausgabe ist für
+den sichtbaren Sakko-/Branding-Stand nicht akzeptiert. Das Sakko wird ab dieser
+Entscheidung vollständig als Hard-Canon-Region behandelt: Schnitt, Revers,
+Stofftextur, Nähte, Taschenform, blaue Paspel, VOG-Pin und
+eDebatte-Pocket-Mark dürfen nicht unabhängig voneinander angenähert werden.
+
+Der neue lokale Exact-Head-Renderer
+`apps/web/scripts/render-voxy-jacket-canon-gate.ts` stellt den aktuellen
+Motion-v2-Jacket-Crop und denselben CANON-04-Ausschnitt bei identischer Kamera
+gegenüber. Er erzeugt unter `artifacts/voxy-jacket-canon-gate/`:
+
+- `jacket-full.png`;
+- `jacket-200pct.png`;
+- `lapel-pin-400pct.png`;
+- `pocket-mark-400pct.png`;
+- `jacket-canon-comparison.png`;
+- `manifest.json` mit Exact Head, allen vier Canon-Hashes, Crop-Vertrag,
+  Asset-Provenienz und fail-closed Freigabefeldern.
+
+Der aktuelle Gate-Befund ist `failed`. Zwar enthalten die beiden lokalen
+SVG-Quelldateien die erwarteten Texte `VOG` und `eDebatte`, doch das ist kein
+OCR- oder Integrationsnachweis. Der Pin ist nach Position, Größe, Winkel und
+Sakko-Integration menschlich abgelehnt. Bei der Brusttasche liegt eine native
+SVG-Wortmarke über der bereits eingebrannten Canon-Markierung; die sichtbare
+Evidence zeigt daher zwei Marken beziehungsweise eine zweite Zeile statt
+genau einer integrierten Wortmarke. Weil diese Überlagerungen Pixel der
+Hard-Canon-Region ersetzen, gelten auch Textur- und Taschengeometrieerhalt als
+nicht belegt.
+
+Folgerichtig bleiben `layerMasterEligible = false`,
+`motionV3Eligible = false`, `animationEligible = false`,
+`humanVisualAcceptance = pending`, `productionEligible = false` und
+`autoPublish = false`. Es wurde kein Layer-Master und kein Motion-v3-Render
+erstellt. CANON-01 bis CANON-04, PR #588 und der frühere Rig-Scope wurden nicht
+verändert.

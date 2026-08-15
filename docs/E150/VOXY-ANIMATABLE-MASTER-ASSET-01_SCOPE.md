@@ -2,6 +2,28 @@
 
 Stand: 2026-08-14
 
+## Verbindlicher Jacket-Canon-Gate vom 15.08.2026
+
+Die grundsätzliche menschliche Akzeptanz des statischen A-/C-Masters ist keine
+Akzeptanz der anschließend sichtbaren Motion-v2-Sakkoüberlagerungen. Der letzte
+Motion-v2-Stand ist für VOG-Pin, eDebatte-Pocket-Mark und deren Integration in
+Revers, Tasche und Stoff ausdrücklich abgelehnt.
+
+Sakko-Schnitt, Revers, Stofftextur, Nähte, Taschenform, blaue Paspel, VOG-Pin
+und eDebatte-Pocket-Mark bilden daher gemeinsam eine unveränderliche
+Character-Identity-Region. Vor einem Layer-Master oder Motion v3 muss der lokale
+Exact-Head-Renderer `render-voxy-jacket-canon-gate.ts` fünf direkt prüfbare
+PNG-Evidenzen und ein Manifest gegen CANON-04 erzeugen. Der aktuelle
+Motion-v2-Kandidat verwendet frei gesetzte SVG-Marken über einer bereits
+gebrandeten abgeflachten Pixelquelle; genau eine integrierte Wortmarke sowie
+Textur- und Geometrieerhalt sind damit nicht belastbar nachgewiesen.
+
+Der Gate-Stand ist deshalb `failed`; `layerMasterEligible`, `motionV3Eligible`
+und `animationEligible` bleiben `false`. Es wird weder durch OCR-Annahmen noch
+durch ein rekonstruierendes Raster-Patching ein PASS behauptet. Erst ein später
+menschlich sauberer, provenance-gebundener Canon-Abgleich darf diese Sperre in
+einem getrennt überprüften Stand aufheben.
+
 ## Aktueller Recovery-Scope
 
 Der Motion-Stand aus Exact Head
