@@ -4,7 +4,7 @@ import {
 } from "./staticCanonRecovery";
 
 export const VOXY_FIRST_EXPLAINER_SCHEMA_VERSION =
-  "voxy-first-explainer-video-v1" as const;
+  "voxy-first-explainer-video-v2" as const;
 export const VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD =
   "ecba53e4167a6382d16dc2dda25c2f162dab8162" as const;
 export const VOXY_FIRST_EXPLAINER_DETECTOR_HEAD =
@@ -16,8 +16,8 @@ export const VOXY_FIRST_EXPLAINER_OUTPUT = {
   durationMs: 16_000,
   fps: 24,
   frameCount: 384,
-  width: 1280,
-  height: 720,
+  width: 1920,
+  height: 1080,
   outputDirectory: "artifacts/voxy-first-explainer-video",
   mp4FileName: "voxy-first-explainer-16x9.mp4",
   webmFileName: "voxy-first-explainer-16x9.webm",
@@ -36,7 +36,7 @@ export type VoxyFirstExplainerSegment = Readonly<{
   startMs: number;
   endMs: number;
   motionState:
-    | "neutral_idle"
+    | "hook"
     | "explaining"
     | "showing_instrument"
     | "inviting_participation"
@@ -52,69 +52,66 @@ export const VOXY_FIRST_EXPLAINER_TIMELINE = [
   {
     id: "voxy_intro",
     startMs: 0,
-    endMs: 3_000,
-    motionState: "neutral_idle",
+    endMs: 2_000,
+    motionState: "hook",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "VOXY",
-    editorialRole: "DIGITALER MODERATOR",
-    caption: "Hallo Nachbarn, ich bin Voxy – euer digitaler Moderator.",
+    editorialTitle: "DU WÄHLST.",
+    editorialRole: "UND DANN?",
+    caption: "Du wählst. Aber was passiert zwischen zwei Wahlen?",
   },
   {
     id: "vote4gov_why",
-    startMs: 3_000,
-    endMs: 6_000,
+    startMs: 2_000,
+    endMs: 5_000,
     motionState: "explaining",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
     editorialTitle: "VOTE4GOV",
-    editorialRole: "DENK- UND REFLEXIONSEBENE · WARUM",
-    caption:
-      "Vote4Gov fragt, warum politische Entscheidungen verständlicher und näher an den Menschen werden können.",
+    editorialRole: "WARUM NEU DENKEN?",
+    caption: "Vote4Gov fragt, warum politische Entscheidungen verständlicher und näher an den Menschen werden können.",
   },
   {
     id: "edebatte_what",
-    startMs: 6_000,
-    endMs: 10_000,
+    startMs: 5_000,
+    endMs: 9_000,
     motionState: "showing_instrument",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "eDebatte",
-    editorialRole: "INSTRUMENT · WAS",
-    caption:
-      "eDebatte macht Themen, Argumente, Quellen und Beteiligung nachvollziehbar.",
+    editorialTitle: "ARGUMENTE. QUELLEN. ABSTIMMUNG.",
+    editorialRole: "eDEBATTE · DAS INSTRUMENT",
+    caption: "eDebatte macht Themen, Argumente, Quellen und Beteiligung nachvollziehbar.",
   },
   {
     id: "voiceopengov_how",
-    startMs: 10_000,
-    endMs: 14_000,
+    startMs: 9_000,
+    endMs: 13_000,
     motionState: "inviting_participation",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "VOICEOPENGOV",
-    editorialRole: "BEWEGUNG · WIE",
-    caption:
-      "VoiceOpenGov verbindet Menschen, die informierte Beteiligung möglich machen wollen.",
+    editorialTitle: "MENSCHEN VERBINDEN.",
+    editorialRole: "VOICEOPENGOV · DIE BEWEGUNG",
+    caption: "VoiceOpenGov verbindet Menschen, die informierte Beteiligung möglich machen wollen.",
   },
   {
     id: "voxy_connects",
-    startMs: 14_000,
+    startMs: 13_000,
     endMs: 16_000,
     motionState: "returning_to_neutral",
     eyebrowMotion: "none",
     handGesture: "none_flattened_master_identity_lock",
-    editorialTitle: "VOXY VERBINDET",
-    editorialRole: "WARUM · WAS · WIE",
-    caption: "Und ich verbinde diese Ebenen.",
+    editorialTitle: "VOXY VERBINDET.",
+    editorialRole: "NICHT GLAUBEN. NACHVOLLZIEHEN.",
+    caption: "Vote4Gov fragt warum. eDebatte zeigt was. VoiceOpenGov macht daraus Bewegung.",
   },
 ] as const satisfies readonly VoxyFirstExplainerSegment[];
 
 export const VOXY_FIRST_EXPLAINER_STANDFRAMES = [
   { id: "start", atMs: 1_000 },
-  { id: "vote4gov", atMs: 4_500 },
-  { id: "edebatte", atMs: 8_000 },
-  { id: "voiceopengov", atMs: 12_000 },
-  { id: "ende", atMs: 15_500 },
+  { id: "vote4gov", atMs: 3_500 },
+  { id: "edebatte", atMs: 7_000 },
+  { id: "voiceopengov", atMs: 11_000 },
+  { id: "ende", atMs: 15_000 },
 ] as const;
 
 export const VOXY_FIRST_EXPLAINER_AUDIO_PROVENANCE = {
@@ -123,8 +120,7 @@ export const VOXY_FIRST_EXPLAINER_AUDIO_PROVENANCE = {
   audioTrackExpected: false,
   voiceFixturePr: 590,
   voiceFixtureHeadSha: VOXY_FIRST_EXPLAINER_VOICE_FIXTURE_HEAD,
-  reason:
-    "PR #590 remains a separate draft and provides no license-clean local TTS audio result that can be reused without changing its scope.",
+  reason: "PR #590 remains a separate draft and provides no license-clean local TTS audio result that can be reused without changing its scope.",
   provider: null,
   model: null,
   externalUploadUsed: false,
@@ -160,9 +156,7 @@ export type VoxyFirstExplainerPlan = Readonly<{
   autoPublish: false;
 }>;
 
-export function buildVoxyFirstExplainerPlan(
-  exactHeadSha: string,
-): VoxyFirstExplainerPlan {
+export function buildVoxyFirstExplainerPlan(exactHeadSha: string): VoxyFirstExplainerPlan {
   return {
     schemaVersion: VOXY_FIRST_EXPLAINER_SCHEMA_VERSION,
     exactHeadSha,
@@ -194,95 +188,22 @@ export function buildVoxyFirstExplainerPlan(
   };
 }
 
-export function findVoxyFirstExplainerSegment(
-  atMs: number,
-): (typeof VOXY_FIRST_EXPLAINER_TIMELINE)[number] {
-  return (
-    VOXY_FIRST_EXPLAINER_TIMELINE.find(
-      (segment) => atMs >= segment.startMs && atMs < segment.endMs,
-    ) ?? VOXY_FIRST_EXPLAINER_TIMELINE.at(-1)!
-  );
+export function findVoxyFirstExplainerSegment(atMs: number): (typeof VOXY_FIRST_EXPLAINER_TIMELINE)[number] {
+  return VOXY_FIRST_EXPLAINER_TIMELINE.find((segment) => atMs >= segment.startMs && atMs < segment.endMs) ?? VOXY_FIRST_EXPLAINER_TIMELINE.at(-1)!;
 }
 
-export function validateVoxyFirstExplainerPlan(
-  plan: VoxyFirstExplainerPlan,
-): string[] {
+export function validateVoxyFirstExplainerPlan(plan: VoxyFirstExplainerPlan): string[] {
   const errors: string[] = [];
-  if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) {
-    errors.push("exact_head_sha_invalid");
-  }
-  if (
-    plan.staticMaster.exactHeadSha !== VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD ||
-    plan.staticMaster.primaryMaster !== "A" ||
-    plan.staticMaster.editorialVariant !== "C" ||
-    plan.staticMaster.rejectedVariant !== "B" ||
-    plan.staticMaster.humanVisualAcceptance !== "accepted"
-  ) {
-    errors.push("accepted_static_master_contract_invalid");
-  }
-  if (
-    plan.output.durationMs !== 16_000 ||
-    plan.output.fps !== 24 ||
-    plan.output.frameCount !== 384 ||
-    plan.output.width !== 1280 ||
-    plan.output.height !== 720
-  ) {
-    errors.push("primary_media_contract_invalid");
-  }
-  if (
-    plan.timeline.length !== 5 ||
-    plan.timeline[0].startMs !== 0 ||
-    plan.timeline.at(-1)?.endMs !== plan.output.durationMs ||
-    plan.timeline.some(
-      (segment, index) =>
-        segment.startMs >= segment.endMs ||
-        (index > 0 && segment.startMs !== plan.timeline[index - 1].endMs),
-    )
-  ) {
-    errors.push("timeline_contract_invalid");
-  }
-  if (
-    plan.timeline[1].editorialRole !== "DENK- UND REFLEXIONSEBENE · WARUM" ||
-    plan.timeline[2].editorialRole !== "INSTRUMENT · WAS" ||
-    plan.timeline[3].editorialRole !== "BEWEGUNG · WIE"
-  ) {
-    errors.push("brand_architecture_contract_invalid");
-  }
-  if (
-    plan.waveform.count !== 1 ||
-    plan.waveform.placement !== "behind_voxy" ||
-    plan.waveform.currentlyAudioReactive !== false
-  ) {
-    errors.push("single_static_waveform_contract_invalid");
-  }
-  if (
-    plan.audioProvenance.audioIncluded !== false ||
-    plan.audioProvenance.audioTrackExpected !== false ||
-    plan.audioProvenance.externalUploadUsed !== false
-  ) {
-    errors.push("audio_provenance_must_fail_closed");
-  }
-  if (
-    plan.motionBoundary.flattenedMaster !== true ||
-    plan.motionBoundary.independentHeadMotionAvailable !== false ||
-    plan.motionBoundary.independentHandMotionAvailable !== false ||
-    plan.timeline.some(
-      (segment) =>
-        segment.handGesture !== "none_flattened_master_identity_lock",
-    )
-  ) {
-    errors.push("flattened_identity_lock_broken");
-  }
-  if (
-    plan.externalProviderUsed !== false ||
-    plan.externalUploadUsed !== false ||
-    plan.generativeRedrawUsed !== false ||
-    plan.humanVisualAcceptance !== "pending" ||
-    plan.productionEligible !== false ||
-    plan.autoPublish !== false
-  ) {
-    errors.push("human_and_production_gates_must_fail_closed");
-  }
+  if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_sha_invalid");
+  if (plan.staticMaster.exactHeadSha !== VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD || plan.staticMaster.primaryMaster !== "A" || plan.staticMaster.editorialVariant !== "C" || plan.staticMaster.rejectedVariant !== "B" || plan.staticMaster.humanVisualAcceptance !== "accepted") errors.push("accepted_static_master_contract_invalid");
+  if (plan.output.durationMs !== 16_000 || plan.output.fps !== 24 || plan.output.frameCount !== 384 || plan.output.width !== 1920 || plan.output.height !== 1080) errors.push("primary_media_contract_invalid");
+  if (plan.timeline.length !== 5 || plan.timeline[0].startMs !== 0 || plan.timeline.at(-1)?.endMs !== plan.output.durationMs || plan.timeline.some((segment, index) => segment.startMs >= segment.endMs || (index > 0 && segment.startMs !== plan.timeline[index - 1].endMs))) errors.push("timeline_contract_invalid");
+  if (plan.timeline[1].editorialRole !== "WARUM NEU DENKEN?" || plan.timeline[2].editorialRole !== "eDEBATTE · DAS INSTRUMENT" || plan.timeline[3].editorialRole !== "VOICEOPENGOV · DIE BEWEGUNG") errors.push("brand_architecture_contract_invalid");
+  if (plan.timeline[0].editorialTitle !== "DU WÄHLST." || plan.timeline.at(-1)?.editorialRole !== "NICHT GLAUBEN. NACHVOLLZIEHEN.") errors.push("social_hook_contract_invalid");
+  if (plan.waveform.count !== 1 || plan.waveform.placement !== "behind_voxy" || plan.waveform.currentlyAudioReactive !== false) errors.push("single_static_waveform_contract_invalid");
+  if (plan.audioProvenance.audioIncluded !== false || plan.audioProvenance.audioTrackExpected !== false || plan.audioProvenance.externalUploadUsed !== false) errors.push("audio_provenance_must_fail_closed");
+  if (plan.motionBoundary.flattenedMaster !== true || plan.motionBoundary.independentHeadMotionAvailable !== false || plan.motionBoundary.independentHandMotionAvailable !== false || plan.timeline.some((segment) => segment.handGesture !== "none_flattened_master_identity_lock")) errors.push("flattened_identity_lock_broken");
+  if (plan.externalProviderUsed !== false || plan.externalUploadUsed !== false || plan.generativeRedrawUsed !== false || plan.humanVisualAcceptance !== "pending" || plan.productionEligible !== false || plan.autoPublish !== false) errors.push("human_and_production_gates_must_fail_closed");
   return errors;
 }
 
@@ -295,15 +216,9 @@ function captionTime(ms: number, separator: "." | ","): string {
 }
 
 export function buildVoxyFirstExplainerVtt(): string {
-  return `WEBVTT\n\n${VOXY_FIRST_EXPLAINER_TIMELINE.map(
-    (segment) =>
-      `${captionTime(segment.startMs, ".")} --> ${captionTime(segment.endMs, ".")}\n${segment.caption}`,
-  ).join("\n\n")}\n`;
+  return `WEBVTT\n\n${VOXY_FIRST_EXPLAINER_TIMELINE.map((segment) => `${captionTime(segment.startMs, ".")} --> ${captionTime(segment.endMs, ".")}\n${segment.caption}`).join("\n\n")}\n`;
 }
 
 export function buildVoxyFirstExplainerSrt(): string {
-  return `${VOXY_FIRST_EXPLAINER_TIMELINE.map(
-    (segment, index) =>
-      `${index + 1}\n${captionTime(segment.startMs, ",")} --> ${captionTime(segment.endMs, ",")}\n${segment.caption}`,
-  ).join("\n\n")}\n`;
+  return `${VOXY_FIRST_EXPLAINER_TIMELINE.map((segment, index) => `${index + 1}\n${captionTime(segment.startMs, ",")} --> ${captionTime(segment.endMs, ",")}\n${segment.caption}`).join("\n\n")}\n`;
 }
