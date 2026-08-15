@@ -24,8 +24,8 @@ const ASSETS = {
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,edebatte",
 };
 
-describe("Voxy first explainer video contract", () => {
-  it("binds the accepted static A/C decision and the unchanged #588 detector head", () => {
+describe("Voxy first explainer video v2 contract", () => {
+  it("binds the accepted static A/C decision and unchanged #588 detector head", () => {
     const plan = buildVoxyFirstExplainerPlan(HEAD);
     expect(plan.staticMaster).toEqual({
       exactHeadSha: VOXY_FIRST_EXPLAINER_STATIC_MASTER_HEAD,
@@ -38,54 +38,33 @@ describe("Voxy first explainer video contract", () => {
     expect(validateVoxyFirstExplainerPlan(plan)).toEqual([]);
   });
 
-  it("defines a contiguous 16-second, 24-fps, five-state timeline", () => {
+  it("defines a contiguous 16-second 1080p five-beat timeline", () => {
     const plan = buildVoxyFirstExplainerPlan(HEAD);
-    expect(plan.output).toMatchObject({
-      durationMs: 16_000,
-      fps: 24,
-      frameCount: 384,
-      width: 1280,
-      height: 720,
-    });
+    expect(plan.schemaVersion).toBe("voxy-first-explainer-video-v2");
+    expect(plan.output).toMatchObject({ durationMs: 16_000, fps: 24, frameCount: 384, width: 1920, height: 1080 });
     expect(plan.output).toBe(VOXY_FIRST_EXPLAINER_OUTPUT);
     expect(plan.timeline).toHaveLength(5);
-    expect(plan.timeline.map((segment) => segment.id)).toEqual([
-      "voxy_intro",
-      "vote4gov_why",
-      "edebatte_what",
-      "voiceopengov_how",
-      "voxy_connects",
-    ]);
-    expect(findVoxyFirstExplainerSegment(3_500).id).toBe("vote4gov_why");
+    expect(plan.timeline.map((segment) => segment.id)).toEqual(["voxy_intro", "vote4gov_why", "edebatte_what", "voiceopengov_how", "voxy_connects"]);
+    expect(findVoxyFirstExplainerSegment(2_500).id).toBe("vote4gov_why");
     expect(findVoxyFirstExplainerSegment(15_500).id).toBe("voxy_connects");
   });
 
-  it("preserves the exact why/what/how brand architecture without party claims", () => {
-    expect(VOXY_FIRST_EXPLAINER_TIMELINE[1].editorialRole).toBe(
-      "DENK- UND REFLEXIONSEBENE · WARUM",
-    );
-    expect(VOXY_FIRST_EXPLAINER_TIMELINE[2].editorialRole).toBe(
-      "INSTRUMENT · WAS",
-    );
-    expect(VOXY_FIRST_EXPLAINER_TIMELINE[3].editorialRole).toBe(
-      "BEWEGUNG · WIE",
-    );
+  it("starts with a social hook and preserves why/what/how architecture", () => {
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].editorialTitle).toBe("DU WÄHLST.");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].editorialRole).toBe("UND DANN?");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[1].editorialRole).toBe("WARUM NEU DENKEN?");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[2].editorialRole).toBe("eDEBATTE · DAS INSTRUMENT");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[3].editorialRole).toBe("VOICEOPENGOV · DIE BEWEGUNG");
+    expect(VOXY_FIRST_EXPLAINER_TIMELINE[4].editorialRole).toBe("NICHT GLAUBEN. NACHVOLLZIEHEN.");
     const serialized = JSON.stringify(VOXY_FIRST_EXPLAINER_TIMELINE);
     expect(serialized).not.toMatch(/Partei|Kandidat|Wahlplattform/i);
-    expect(VOXY_FIRST_EXPLAINER_TIMELINE[0].caption).toMatch(
-      /^Hallo Nachbarn,/,
-    );
+    expect(serialized).not.toMatch(/^Hallo Nachbarn,/i);
   });
 
-  it("keeps the flattened identity locked and all human/production gates fail-closed", () => {
+  it("keeps identity and publication gates fail-closed", () => {
     const plan = buildVoxyFirstExplainerPlan(HEAD);
-    expect(plan.timeline.every((segment) => segment.handGesture === "none_flattened_master_identity_lock"))
-      .toBe(true);
-    expect(plan.motionBoundary).toMatchObject({
-      flattenedMaster: true,
-      independentHeadMotionAvailable: false,
-      independentHandMotionAvailable: false,
-    });
+    expect(plan.timeline.every((segment) => segment.handGesture === "none_flattened_master_identity_lock")).toBe(true);
+    expect(plan.motionBoundary).toMatchObject({ flattenedMaster: true, independentHeadMotionAvailable: false, independentHandMotionAvailable: false });
     expect(plan.audioProvenance.audioIncluded).toBe(false);
     expect(plan.externalProviderUsed).toBe(false);
     expect(plan.externalUploadUsed).toBe(false);
@@ -95,29 +74,18 @@ describe("Voxy first explainer video contract", () => {
     expect(plan.autoPublish).toBe(false);
   });
 
-  it("rejects invented animation, audio and publication readiness", () => {
+  it("rejects invented animation audio and publication readiness", () => {
     const drift = structuredClone(buildVoxyFirstExplainerPlan(HEAD));
     drift.timeline[1].handGesture = "invented_hand_gesture" as never;
     drift.audioProvenance.audioIncluded = true as false;
     drift.productionEligible = true as false;
-    expect(validateVoxyFirstExplainerPlan(drift)).toEqual(
-      expect.arrayContaining([
-        "flattened_identity_lock_broken",
-        "audio_provenance_must_fail_closed",
-        "human_and_production_gates_must_fail_closed",
-      ]),
-    );
+    expect(validateVoxyFirstExplainerPlan(drift)).toEqual(expect.arrayContaining(["flattened_identity_lock_broken", "audio_provenance_must_fail_closed", "human_and_production_gates_must_fail_closed"]));
   });
 
-  it("renders deterministic local frames with exact native marks and one waveform contract", () => {
+  it("renders deterministic local 16:9 9:16 and 1:1 frames", () => {
     const plan = buildVoxyFirstExplainerPlan(HEAD);
     for (const format of ["16:9", "9:16", "1:1"] as const) {
-      const html = renderVoxyFirstExplainerFrameHtml({
-        plan,
-        assets: ASSETS,
-        frameIndex: 192,
-        format,
-      });
+      const html = renderVoxyFirstExplainerFrameHtml({ plan, assets: ASSETS, frameIndex: 192, format });
       expect(html).toContain(`data-format="${format}"`);
       expect(html).toContain('data-waveform-count="1"');
       expect(html).toContain('data-waveform-placement="behind_voxy"');
@@ -131,33 +99,13 @@ describe("Voxy first explainer video contract", () => {
     }
   });
 
-  it("reuses only pixel-identical stable visual states", () => {
+  it("keeps bounded deterministic eased motion states", () => {
     const plan = buildVoxyFirstExplainerPlan(HEAD);
-    const stableA = buildVoxyFirstExplainerFrameState({
-      plan,
-      frameIndex: 30,
-    });
-    const stableB = buildVoxyFirstExplainerFrameState({
-      plan,
-      frameIndex: 31,
-    });
-    const blink = buildVoxyFirstExplainerFrameState({
-      plan,
-      frameIndex: 40,
-    });
-    expect(stableA.visualStateKey).toBe(stableB.visualStateKey);
-    expect(blink.visualStateKey).not.toBe(stableA.visualStateKey);
-  });
-
-  it("keeps eased motion reviewable with bounded deterministic render states", () => {
-    const plan = buildVoxyFirstExplainerPlan(HEAD);
-    const states = Array.from({ length: plan.output.frameCount }, (_, frameIndex) =>
-      buildVoxyFirstExplainerFrameState({ plan, frameIndex }),
-    );
+    const states = Array.from({ length: plan.output.frameCount }, (_, frameIndex) => buildVoxyFirstExplainerFrameState({ plan, frameIndex }));
     const uniqueStates = new Set(states.map((state) => state.visualStateKey));
     expect(VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS).toBe(6);
     expect(uniqueStates.size).toBeGreaterThanOrEqual(30);
-    expect(uniqueStates.size).toBeLessThanOrEqual(48);
+    expect(uniqueStates.size).toBeLessThanOrEqual(72);
     expect(new Set(states.map((state) => state.opacity)).size).toBeGreaterThan(3);
     expect(new Set(states.map((state) => state.blink)).size).toBeGreaterThan(3);
   });
@@ -166,8 +114,8 @@ describe("Voxy first explainer video contract", () => {
     const vtt = buildVoxyFirstExplainerVtt();
     const srt = buildVoxyFirstExplainerSrt();
     expect(vtt).toContain("WEBVTT");
-    expect(vtt).toContain("00:00:06.000 --> 00:00:10.000");
-    expect(srt).toContain("00:00:06,000 --> 00:00:10,000");
+    expect(vtt).toContain("00:00:05.000 --> 00:00:09.000");
+    expect(srt).toContain("00:00:05,000 --> 00:00:09,000");
     for (const segment of VOXY_FIRST_EXPLAINER_TIMELINE) {
       expect(vtt).toContain(segment.caption);
       expect(srt).toContain(segment.caption);
