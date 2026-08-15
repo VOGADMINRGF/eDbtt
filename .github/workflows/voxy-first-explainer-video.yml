@@ -21,7 +21,7 @@ jobs:
   render-first-explainer:
     name: Render exact-head first explainer
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       VOXY_EXPLAINER_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       VOXY_DETECTOR_HEAD_SHA: 0756ad48bfd61cf88696f91bc41da87e988020c0

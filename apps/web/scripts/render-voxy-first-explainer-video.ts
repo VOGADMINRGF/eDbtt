@@ -604,10 +604,16 @@ async function main(): Promise<void> {
     }
     renderedVisualStates.set(frameState.visualStateKey, framePath);
     chromiumRenderedFrameCount += 1;
+    if (chromiumRenderedFrameCount % 10 === 0) {
+      console.log(
+        `render_progress:chromium_states=${chromiumRenderedFrameCount}`,
+      );
+    }
   }
 
   const mp4Path = resolve(outputRoot, plan.output.mp4FileName);
   const webmPath = resolve(outputRoot, plan.output.webmFileName);
+  console.log("render_progress:encode_mp4_started");
   runBinary("ffmpeg", [
     "-y",
     "-framerate",
@@ -617,7 +623,7 @@ async function main(): Promise<void> {
     "-c:v",
     "libx264",
     "-preset",
-    "medium",
+    "veryfast",
     "-crf",
     "18",
     "-pix_fmt",
@@ -627,6 +633,8 @@ async function main(): Promise<void> {
     "-an",
     mp4Path,
   ]);
+  console.log("render_progress:encode_mp4_completed");
+  console.log("render_progress:encode_webm_started");
   runBinary("ffmpeg", [
     "-y",
     "-framerate",
@@ -654,6 +662,7 @@ async function main(): Promise<void> {
     "-an",
     webmPath,
   ]);
+  console.log("render_progress:encode_webm_completed");
 
   const standframes = [];
   const cropPaths: Array<{
