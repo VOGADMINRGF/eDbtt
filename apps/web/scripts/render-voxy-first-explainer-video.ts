@@ -115,60 +115,93 @@ async function setFrameHtml(page: Page, html: string): Promise<void> {
   });
 }
 
-async function updateFrameHtml(page: Page, html: string): Promise<void> {
-  await page.evaluate(async (nextHtml) => {
-    const parsed = new DOMParser().parseFromString(nextHtml, "text/html");
-    const currentStyle = document.querySelector("style");
-    const nextStyle = parsed.querySelector("style");
-    const currentViewport = document.querySelector<HTMLElement>(".viewport");
-    const nextViewport = parsed.querySelector<HTMLElement>(".viewport");
-    if (!currentStyle || !nextStyle || !currentViewport || !nextViewport) {
+async function updateFrameState(
+  page: Page,
+  state: {
+    frameIndex: number;
+    atMs: number;
+    opacity: number;
+    blink: number;
+    segmentId: string;
+    motionState: string;
+    editorialTitle: string;
+    editorialRole: string;
+    caption: string;
+  },
+): Promise<void> {
+  await page.evaluate(async (next) => {
+    const viewport = document.querySelector<HTMLElement>(".viewport");
+    const onAirIndicator = document.querySelector<HTMLElement>(".on-air i");
+    const railCopy = document.querySelector<HTMLElement>(".rail-copy");
+    const railTitle = document.querySelector<HTMLElement>(".rail-title");
+    const railRole = document.querySelector<HTMLElement>(".rail-role");
+    const caption = document.querySelector<HTMLElement>(".caption");
+    const portraitCaption =
+      document.querySelector<HTMLElement>(".portrait-caption");
+    const portraitTitle =
+      document.querySelector<HTMLElement>(".portrait-title strong");
+    const portraitRole =
+      document.querySelector<HTMLElement>(".portrait-title small");
+    const eyelids = document.querySelectorAll<HTMLElement>(".eyelid");
+    const railLevels =
+      document.querySelectorAll<HTMLElement>(".rail-levels span");
+    if (
+      !viewport ||
+      !onAirIndicator ||
+      !railCopy ||
+      !railTitle ||
+      !railRole ||
+      !caption ||
+      !portraitCaption ||
+      !portraitTitle ||
+      !portraitRole ||
+      eyelids.length !== 2 ||
+      railLevels.length !== 3
+    ) {
       throw new Error("reusable_frame_document_contract_missing");
     }
-    currentStyle.textContent = nextStyle.textContent;
-    document.title = parsed.title;
-    for (const attribute of Array.from(currentViewport.attributes)) {
-      if (attribute.name.startsWith("data-")) {
-        currentViewport.removeAttribute(attribute.name);
-      }
+    viewport.dataset.frameIndex = String(next.frameIndex);
+    viewport.dataset.atMs = next.atMs.toFixed(3);
+    viewport.dataset.motionState = next.motionState;
+
+    for (const eyelid of eyelids) {
+      eyelid.style.opacity = String(next.blink);
     }
-    for (const attribute of Array.from(nextViewport.attributes)) {
-      if (attribute.name.startsWith("data-")) {
-        currentViewport.setAttribute(attribute.name, attribute.value);
-      }
+    onAirIndicator.style.boxShadow =
+      `0 0 ${14 + next.opacity * 8}px rgba(0,217,192,.8)`;
+
+    railCopy.style.opacity = String(next.opacity);
+    railCopy.style.transform =
+      `translateY(${Math.round((1 - next.opacity) * 18)}px)`;
+    railTitle.textContent = next.editorialTitle;
+    railTitle.style.fontSize =
+      next.segmentId === "voiceopengov_how" ? "31px" : "38px";
+    railRole.textContent = next.editorialRole;
+
+    const activeRailIndex =
+      next.segmentId === "vote4gov_why"
+        ? 0
+        : next.segmentId === "edebatte_what"
+          ? 1
+          : next.segmentId === "voiceopengov_how"
+            ? 2
+            : -1;
+    for (const [index, level] of Array.from(railLevels).entries()) {
+      level.classList.toggle("active", index === activeRailIndex);
     }
-    const textSelectors = [
-      ".rail-title",
-      ".rail-role",
-      ".caption",
-      ".portrait-caption",
-      ".portrait-title strong",
-      ".portrait-title small",
-    ];
-    for (const selector of textSelectors) {
-      const current = document.querySelector<HTMLElement>(selector);
-      const next = parsed.querySelector<HTMLElement>(selector);
-      if (!current || !next) {
-        throw new Error(`reusable_frame_text_contract_missing:${selector}`);
-      }
-      current.textContent = next.textContent;
-    }
-    const currentLevels = Array.from(
-      document.querySelectorAll<HTMLElement>(".rail-levels span"),
-    );
-    const nextLevels = Array.from(
-      parsed.querySelectorAll<HTMLElement>(".rail-levels span"),
-    );
-    if (currentLevels.length !== nextLevels.length) {
-      throw new Error("reusable_frame_level_contract_missing");
-    }
-    currentLevels.forEach((level, index) => {
-      level.className = nextLevels[index].className;
-    });
+
+    caption.textContent = next.caption;
+    caption.style.opacity = String(next.opacity);
+    caption.style.transform =
+      `translateY(${Math.round((1 - next.opacity) * 10)}px)`;
+    portraitCaption.textContent = next.caption;
+    portraitCaption.style.opacity = String(next.opacity);
+    portraitTitle.textContent = next.editorialTitle;
+    portraitRole.textContent = next.editorialRole;
     await new Promise<void>((resolveFrame) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()));
     });
-  }, html);
+  }, state);
 }
 
 async function decodeLocalPng(
@@ -533,16 +566,28 @@ async function main(): Promise<void> {
       reusedFrameCount += 1;
       continue;
     }
-    const html = renderVoxyFirstExplainerFrameHtml({
-      plan,
-      assets,
-      frameIndex,
-      format: "16:9",
-    });
     if (mainFrameDocumentInitialized) {
-      await updateFrameHtml(page, html);
+      await updateFrameState(page, {
+        frameIndex,
+        atMs: frameState.atMs,
+        opacity: frameState.opacity,
+        blink: frameState.blink,
+        segmentId: frameState.segment.id,
+        motionState: frameState.segment.motionState,
+        editorialTitle: frameState.segment.editorialTitle,
+        editorialRole: frameState.segment.editorialRole,
+        caption: frameState.segment.caption,
+      });
     } else {
-      await setFrameHtml(page, html);
+      await setFrameHtml(
+        page,
+        renderVoxyFirstExplainerFrameHtml({
+          plan,
+          assets,
+          frameIndex,
+          format: "16:9",
+        }),
+      );
       mainFrameDocumentInitialized = true;
     }
     const bytes = await page.locator(".viewport").screenshot({
@@ -594,9 +639,9 @@ async function main(): Promise<void> {
     "-crf",
     "31",
     "-deadline",
-    "good",
+    "realtime",
     "-cpu-used",
-    "4",
+    "7",
     "-tile-columns",
     "2",
     "-threads",
