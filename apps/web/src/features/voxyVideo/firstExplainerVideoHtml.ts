@@ -11,6 +11,8 @@ export type VoxyFirstExplainerEmbeddedAssets = {
 
 export type VoxyFirstExplainerFormat = "16:9" | "9:16" | "1:1";
 
+export const VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS = 6;
+
 const formatGeometry = {
   "16:9": { width: 1280, height: 720, scale: 2 / 3, translateX: 0 },
   "9:16": { width: 720, height: 1280, scale: 1280 / 1080, translateX: -550 },
@@ -24,6 +26,13 @@ function clamp01(value: number): number {
 function smootherstep(value: number): number {
   const x = clamp01(value);
   return x * x * x * (x * (x * 6 - 15) + 10);
+}
+
+function quantizeMotion(value: number): number {
+  return (
+    Math.round(clamp01(value) * VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS) /
+    VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS
+  );
 }
 
 function blinkAmount(atMs: number): number {
@@ -55,8 +64,10 @@ export function buildVoxyFirstExplainerFrameState(input: {
 } {
   const atMs = (input.frameIndex * 1_000) / input.plan.output.fps;
   const segment = findVoxyFirstExplainerSegment(atMs);
-  const opacity = segmentOpacity(atMs, segment.startMs, segment.endMs);
-  const blink = blinkAmount(atMs);
+  const opacity = quantizeMotion(
+    segmentOpacity(atMs, segment.startMs, segment.endMs),
+  );
+  const blink = quantizeMotion(blinkAmount(atMs));
   return {
     atMs,
     segment,

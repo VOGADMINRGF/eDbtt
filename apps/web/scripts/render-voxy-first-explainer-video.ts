@@ -23,6 +23,7 @@ import {
 import {
   buildVoxyFirstExplainerFrameState,
   renderVoxyFirstExplainerFrameHtml,
+  VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS,
   type VoxyFirstExplainerEmbeddedAssets,
   type VoxyFirstExplainerFormat,
 } from "../src/features/voxyVideo/firstExplainerVideoHtml";
@@ -775,8 +776,10 @@ async function main(): Promise<void> {
     frameRendering: {
       chromiumRenderedFrameCount,
       reusedPixelIdenticalFrameCount: reusedFrameCount,
+      motionQuantizationSteps:
+        VOXY_FIRST_EXPLAINER_MOTION_QUANTIZATION_STEPS,
       reuseContract:
-        "Only frames with identical segment, eased opacity and blink state reuse a previously rendered PNG.",
+        "Only frames with identical segment and identically quantized smootherstep opacity/blink state reuse a previously rendered PNG.",
     },
     width: plan.output.width,
     height: plan.output.height,
