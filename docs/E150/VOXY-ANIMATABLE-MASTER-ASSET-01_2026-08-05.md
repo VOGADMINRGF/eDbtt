@@ -353,3 +353,32 @@ bereinigten Kompositionsquelle. Er erhebt keine OCR-
 Erfolgsbehauptung. `humanLegibilityRequired = true`,
 `humanVisualAcceptance = pending`, `animationEligible = false`,
 `productionEligible = false` und `autoPublish = false` bleiben verbindlich.
+
+### Abschließender Pocket-Micro-Pass vor Human Visual Acceptance
+
+Die korrigierte Wortmarke am Exact Head
+`f948e1e6ce09fd9c62e8621b490eb8f0994c60ab` wurde grundsätzlich positiv
+gesichtet. Der abschließende Micro-Pass ist deshalb kein Redesign: Position
+`left=858, top=574` und Größe `74×23` bleiben unverändert. Im direkten
+A/B-Vergleich wird nur die Rotation von −4° auf −2,5° reduziert. Zusätzlich
+lässt `fill-opacity="0.94"` im nativen SVG den dunklen Stoff- und Lichtton
+minimal durch die Wortmarke wirken. Es gibt weiterhin keinen Stroke, Filter,
+Blur, Glow, Badge, Rahmen, Box oder eine zweite Textzeile.
+
+Der revisionsgebundene Renderer erzeugt bei identischem Ausschnitt und gleicher
+Skalierung:
+
+- `pocket-mark-final-100pct.png`;
+- `pocket-mark-final-200pct.png`;
+- `pocket-mark-final-400pct.png`;
+- `jacket-final-context.png`;
+- `pocket-micro-pass-comparison.png`;
+- `manifest.json`.
+
+Die lokale A/B-Sichtprüfung bewertet den Micro-Pass als subtil besser integriert
+und übernimmt ihn technisch. `eDebatte` bleibt bei 100 %, 200 % und 400 %
+eindeutig lesbar. Größe, Position und der VOXY-Revers-Pin sind unverändert;
+außerhalb der Pocket-Maske bleibt das Bild pixelgleich. Die finale menschliche
+Freigabe wird nicht vorweggenommen: `humanVisualAcceptance = pending`,
+`animationEligible = false`, `productionEligible = false` und
+`autoPublish = false`.

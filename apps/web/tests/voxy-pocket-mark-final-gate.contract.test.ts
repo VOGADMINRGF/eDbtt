@@ -8,6 +8,8 @@ import {
   VOXY_POCKET_MARK_COMPOSITION_SOURCE,
   VOXY_POCKET_MARK_FINAL_GATE_OUTPUT,
   VOXY_POCKET_MARK_FINAL_GATE_UNCHANGED_LAPEL_PIN_SHA256,
+  VOXY_POCKET_MARK_PREVIOUS_PASS_HEAD,
+  VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION,
 } from "@/features/voxyVideo/pocketMarkFinalGate";
 
 const HEAD = "7c6aa18e5618b4ef82760f24e1ecf9b80c04ff70";
@@ -15,7 +17,7 @@ const HEAD = "7c6aa18e5618b4ef82760f24e1ecf9b80c04ff70";
 describe("Voxy pocket mark final gate contract", () => {
   it("binds one clean vector eDebatte mark and no automated visual claim", () => {
     const plan = buildVoxyPocketMarkFinalGatePlan(HEAD);
-    expect(plan.schemaVersion).toBe("voxy-pocket-mark-final-gate-v1");
+    expect(plan.schemaVersion).toBe("voxy-pocket-mark-final-gate-v2");
     expect(plan.brandQa).toEqual({
       expectedText: "eDebatte",
       visibleMarkCount: 1,
@@ -32,8 +34,19 @@ describe("Voxy pocket mark final gate contract", () => {
       technicalStatus: "passed",
     });
     expect(plan.presentation).toMatchObject({
-      rotationDegrees: -4,
+      rotationDegrees: -2.5,
       perspectiveTransform: "none",
+    });
+    expect(VOXY_POCKET_MARK_PREVIOUS_PASS_HEAD).toBe(
+      "f948e1e6ce09fd9c62e8621b490eb8f0994c60ab",
+    );
+    expect(VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION).toMatchObject({
+      left: plan.presentation.left,
+      top: plan.presentation.top,
+      width: plan.presentation.width,
+      height: plan.presentation.height,
+      rotationDegrees: -4,
+      surfaceOpacity: 1,
     });
     expect(validateVoxyPocketMarkFinalGatePlan(plan)).toEqual([]);
   });
@@ -68,11 +81,11 @@ describe("Voxy pocket mark final gate contract", () => {
   it("binds the five required Pocket Gate evidence images", () => {
     expect(VOXY_POCKET_MARK_FINAL_GATE_OUTPUT).toMatchObject({
       outputDirectory: "artifacts/voxy-pocket-mark-final-gate",
-      fullContextFileName: "pocket-full-context.png",
-      mark100PctFileName: "pocket-mark-100pct.png",
-      mark200PctFileName: "pocket-mark-200pct.png",
-      mark400PctFileName: "pocket-mark-400pct.png",
-      beforeAfterFileName: "pocket-mark-before-after.png",
+      fullContextFileName: "jacket-final-context.png",
+      mark100PctFileName: "pocket-mark-final-100pct.png",
+      mark200PctFileName: "pocket-mark-final-200pct.png",
+      mark400PctFileName: "pocket-mark-final-400pct.png",
+      beforeAfterFileName: "pocket-micro-pass-comparison.png",
       manifestFileName: "manifest.json",
     });
   });
@@ -88,6 +101,10 @@ describe("Voxy pocket mark final gate contract", () => {
     expect(svg.match(/<text\b/g)).toHaveLength(1);
     expect(svg).toContain('data-vector-source="true"');
     expect(svg).toContain('data-exact-text="eDebatte"');
+    expect(svg).toContain(
+      'data-surface-integration="substrate-alpha-0.94"',
+    );
+    expect(svg.match(/fill-opacity="0\.94"/g)).toHaveLength(1);
     expect(svg).toContain(">eDebatte</text>");
     expect(svg).not.toMatch(/<rect\b|<filter\b|\sstroke=|drop-shadow|box-shadow/i);
     expect(svg).not.toMatch(/\.png|\.jpe?g|data:image\/(png|jpe?g)/i);
@@ -102,6 +119,8 @@ describe("Voxy pocket mark final gate contract", () => {
     expect(source).toContain("outside_pocket_pixels_changed");
     expect(source).toContain("external_requests_detected");
     expect(source).toContain("machineOcrClaimed");
+    expect(source).toContain('microPassDecision: "adopted"');
+    expect(source).toContain("VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION");
     expect(source).not.toContain("artifacts/voxy-layer-master");
     expect(source).not.toContain("artifacts/voxy-motion-v3");
 

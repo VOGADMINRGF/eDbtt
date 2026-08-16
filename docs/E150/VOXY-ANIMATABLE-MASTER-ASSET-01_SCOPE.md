@@ -51,6 +51,13 @@ Exact-Head-Gate erzeugt Kontext-, 100-, 200-, 400-%- und Vorher-/Nachher-
 Evidence unter `artifacts/voxy-pocket-mark-final-gate/`; außerhalb der
 dokumentierten Pocket-Maske müssen die Pixel bytegleich bleiben.
 
+Der abschließende Micro-Pass nach der grundsätzlich positiven Sichtung des Heads
+`f948e1e6ce09fd9c62e8621b490eb8f0994c60ab` hält Position und Größe fest,
+reduziert ausschließlich die Rotation von −4° auf −2,5° und verwendet im
+nativen SVG `fill-opacity="0.94"` für eine subtile Stoff-/Lichtintegration.
+Der direkte Vergleich zeigt beide Stände im selben Ausschnitt und Maßstab.
+Weitere optische Optimierung ist nicht Teil dieses Scopes.
+
 Auch ein technischer Pocket-PASS lässt `humanVisualAcceptance = pending`,
 `animationEligible = false`, `productionEligible = false` und
 `autoPublish = false`. Layer-Master, Motion v3, Audio, neues Explainer-Video,

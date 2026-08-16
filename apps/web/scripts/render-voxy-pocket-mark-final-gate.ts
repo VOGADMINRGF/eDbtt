@@ -15,14 +15,13 @@ import {
   buildVoxyPocketMarkFinalGatePlan,
   validateVoxyPocketMarkFinalGatePlan,
   VOXY_POCKET_MARK_COMPOSITION_SOURCE,
-  VOXY_POCKET_MARK_FINAL_REJECTED_PRESENTATION,
+  VOXY_POCKET_MARK_PREVIOUS_PASS_HEAD,
+  VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION,
 } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import {
   VOXY_STATIC_CANON_NATIVE_ASSETS,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "../src/features/voxyVideo/staticCanonRecovery";
-
-const REJECTED_POCKET_MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="240" viewBox="0 0 800 240"><defs><linearGradient id="brand" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#00D9C0"/><stop offset="1" stop-color="#1E6BFF"/></linearGradient></defs><text x="400" y="174" fill="url(#brand)" stroke="#061027" stroke-width="34" paint-order="stroke fill" stroke-linejoin="round" font-family="Arial, Helvetica, sans-serif" font-size="150" font-weight="700" letter-spacing="-4" text-anchor="middle">eDebatte</text></svg>`;
 
 function argument(name: string): string | null {
   const prefix = `--${name}=`;
@@ -111,21 +110,16 @@ async function scalePng(input: {
   );
 }
 
-async function setRejectedPocketPresentation(
+async function setPreviousPassPocketPresentation(
   page: Page,
-  rejectedCanonStageDataUrl: string,
+  previousPassSvg: string,
 ): Promise<void> {
   await page.evaluate(
-    ({ source, presentation, rejectedStage }) => {
+    ({ source, presentation }) => {
       const mark = document.querySelector<HTMLImageElement>(
         ".reconstructed-pocket-mark",
       );
       if (!mark) throw new Error("pocket_mark_element_missing");
-      const stage = document.querySelector<HTMLImageElement>(
-        ".studio-stage",
-      );
-      if (!stage) throw new Error("studio_stage_element_missing");
-      stage.src = rejectedStage;
       mark.src = source;
       Object.assign(mark.style, {
         left: `${presentation.left}px`,
@@ -133,20 +127,19 @@ async function setRejectedPocketPresentation(
         width: `${presentation.width}px`,
         height: `${presentation.height}px`,
         transform: `rotate(${presentation.rotationDegrees}deg) ${presentation.perspectiveTransform}`,
+        opacity: `${presentation.surfaceOpacity}`,
       });
     },
     {
-      source: dataUrl(Buffer.from(REJECTED_POCKET_MARK_SVG), "image/svg+xml"),
-      presentation: VOXY_POCKET_MARK_FINAL_REJECTED_PRESENTATION,
-      rejectedStage: rejectedCanonStageDataUrl,
+      source: dataUrl(Buffer.from(previousPassSvg), "image/svg+xml"),
+      presentation: VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION,
     },
   );
   await page.evaluate(async () => {
     const mark = document.querySelector<HTMLImageElement>(
       ".reconstructed-pocket-mark",
     );
-    const stage = document.querySelector<HTMLImageElement>(".studio-stage");
-    await Promise.all([mark?.decode(), stage?.decode()]);
+    await mark?.decode();
   });
 }
 
@@ -180,7 +173,7 @@ function renderBeforeAfterHtml(input: {
 }): string {
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:1500px;height:760px;overflow:hidden;background:#050914;color:#f5f7fb;font-family:Arial,Helvetica,sans-serif}.board{width:1500px;height:760px;padding:44px 52px}.head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px}.eyebrow{color:#53e4ae;font-weight:900;letter-spacing:.14em}.head h1{margin:8px 0 0;font-size:38px}.gate{padding:12px 18px;border:2px solid #35d89a;border-radius:999px;color:#75ebbb;font-weight:900;letter-spacing:.1em}.pair{display:grid;grid-template-columns:1fr 1fr;gap:26px}.panel{padding:18px;border:1px solid #293750;border-radius:18px;background:#091120}.panel h2{margin:0 0 14px;font-size:18px;letter-spacing:.1em}.panel img{display:block;width:100%;height:480px;object-fit:contain;background:#010511}.expected{margin-top:22px;padding:16px 20px;border-left:4px solid #35d89a;background:#111829;font-size:18px}.expected strong{color:#75ebbb}
-</style></head><body><main class="board"><header class="head"><div><div class="eyebrow">VOXY · POCKET MARK FINAL GATE</div><h1>VORHER · NEU</h1></div><div class="gate">HUMAN REVIEW PENDING</div></header><section class="pair"><article class="panel"><h2>VORHER · ABGELEHNT · ${VOXY_POCKET_MARK_FINAL_REJECTED_PRESENTATION.rotationDegrees}° + SKEW/STROKE</h2><img src="${input.beforeDataUrl}" alt="Abgelehnte Pocket-Wortmarke"></article><article class="panel"><h2>NEU · VECTOR · −4° · NO STROKE / GLOW</h2><img src="${input.afterDataUrl}" alt="Neue eDebatte-Pocket-Wortmarke"></article></section><div class="expected"><strong>EXPECTED: eDebatte · genau einmal.</strong> Kein Badge, keine Box, keine zweite Zeile. Technischer PASS ersetzt keine menschliche Sichtfreigabe.</div></main></body></html>`;
+</style></head><body><main class="board"><header class="head"><div><div class="eyebrow">VOXY · POCKET MARK MICRO-PASS</div><h1>BISHERIGER PASS · FINALER MICRO-PASS</h1></div><div class="gate">HUMAN REVIEW PENDING</div></header><section class="pair"><article class="panel"><h2>BISHERIGER PASS · ${VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION.rotationDegrees}° · 100 % DECKKRAFT</h2><img src="${input.beforeDataUrl}" alt="Bisherige technisch bestandene eDebatte-Pocket-Wortmarke"></article><article class="panel"><h2>MICRO-PASS · −2,5° · 94 % DECKKRAFT</h2><img src="${input.afterDataUrl}" alt="Finaler eDebatte-Pocket-Micro-Pass"></article></section><div class="expected"><strong>EXPECTED: eDebatte · genau einmal.</strong> Gleicher Ausschnitt, gleiche Skalierung, gleiche Position und Größe. Kein Stroke, Glow, Badge oder Box.</div></main></body></html>`;
 }
 
 async function main(): Promise<void> {
@@ -232,7 +225,7 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     ),
-    rejectedCanonStage: repositoryPath(
+    canonSource: repositoryPath(
       repositoryRoot,
       VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
     ),
@@ -264,10 +257,13 @@ async function main(): Promise<void> {
     textContent !== "eDebatte" ||
     /eDebotte|<rect\b|<filter\b|\sstroke=|drop-shadow|box-shadow/i.test(
       pocketSvg,
-    )
+    ) ||
+    !/data-surface-integration="substrate-alpha-0\.94"/.test(pocketSvg) ||
+    (pocketSvg.match(/fill-opacity="0\.94"/g)?.length ?? 0) !== 1
   ) {
     throw new Error("pocket_vector_source_qa_failed");
   }
+  const previousPassPocketSvg = pocketSvg.replace(' fill-opacity="0.94"', "");
 
   const outputRoot = resolve(
     process.cwd(),
@@ -339,10 +335,7 @@ async function main(): Promise<void> {
     repositoryRoot,
   });
 
-  await setRejectedPocketPresentation(
-    page,
-    dataUrl(await readFile(sourcePaths.rejectedCanonStage), "image/png"),
-  );
+  await setPreviousPassPocketPresentation(page, previousPassPocketSvg);
   const before100Path = resolve(outputRoot, ".before-100pct.png");
   const before400Path = resolve(outputRoot, ".before-400pct.png");
   const beforeMaskedPath = resolve(outputRoot, ".before-masked.png");
@@ -409,6 +402,8 @@ async function main(): Promise<void> {
     schemaVersion: plan.schemaVersion,
     exactHeadSha,
     rejectedHeadSha: plan.rejectedHeadSha,
+    previousPassHeadSha: VOXY_POCKET_MARK_PREVIOUS_PASS_HEAD,
+    microPassDecision: "adopted",
     expectedText: plan.brandQa.expectedText,
     visibleMarkCount: plan.brandQa.visibleMarkCount,
     badgePresent: plan.brandQa.badgePresent,
@@ -432,13 +427,20 @@ async function main(): Promise<void> {
     cleanedCompositionSource: {
       path: relative(repositoryRoot, sourcePaths.canonStage),
       sha256: await fileSha256(sourcePaths.canonStage),
-      derivedFrom: relative(repositoryRoot, sourcePaths.rejectedCanonStage),
+      derivedFrom: relative(repositoryRoot, sourcePaths.canonSource),
       cleanupRegion: VOXY_POCKET_MARK_COMPOSITION_SOURCE.cleanupRegion,
       cleanupMethod: VOXY_POCKET_MARK_COMPOSITION_SOURCE.cleanupMethod,
       nativeResolution: true,
       rasterUpscaleUsed: false,
     },
     presentation: plan.presentation,
+    previousPassPresentation: VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION,
+    surfaceIntegration: {
+      method: "native_svg_fill_opacity_allows_subtle_substrate_light_response",
+      fillOpacity: 0.94,
+      blur: false,
+      filter: false,
+    },
     unchangedLapelPin: {
       path: relative(repositoryRoot, sourcePaths.lapelPin),
       sha256: await fileSha256(sourcePaths.lapelPin),
@@ -450,7 +452,7 @@ async function main(): Promise<void> {
     productionEligible: plan.productionEligible,
     autoPublish: plan.autoPublish,
     stopReason:
-      "Technical Pocket Gate passed; human visual acceptance remains pending. No layer master, Motion v3, audio, explainer video, production, or publishing is authorized.",
+      "Pocket micro-pass adopted after direct visual comparison; human visual acceptance remains pending. No layer master, Motion v3, audio, explainer video, production, or publishing is authorized.",
   };
   await writeFile(
     resolve(outputRoot, plan.output.manifestFileName),

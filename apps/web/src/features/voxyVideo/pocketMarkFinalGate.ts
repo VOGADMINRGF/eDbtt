@@ -5,7 +5,10 @@ import {
 import { VOXY_JACKET_BRAND_LAYER_GEOMETRY } from "./jacketCanonGate";
 
 export const VOXY_POCKET_MARK_FINAL_GATE_SCHEMA_VERSION =
-  "voxy-pocket-mark-final-gate-v1" as const;
+  "voxy-pocket-mark-final-gate-v2" as const;
+
+export const VOXY_POCKET_MARK_PREVIOUS_PASS_HEAD =
+  "f948e1e6ce09fd9c62e8621b490eb8f0994c60ab" as const;
 
 export const VOXY_POCKET_MARK_FINAL_GATE_REJECTED_HEAD =
   "02a83e832890f12fe9843d2dc1cb8e543ddef07b" as const;
@@ -27,11 +30,11 @@ export const VOXY_POCKET_MARK_COMPOSITION_SOURCE = {
 
 export const VOXY_POCKET_MARK_FINAL_GATE_OUTPUT = {
   outputDirectory: "artifacts/voxy-pocket-mark-final-gate",
-  fullContextFileName: "pocket-full-context.png",
-  mark100PctFileName: "pocket-mark-100pct.png",
-  mark200PctFileName: "pocket-mark-200pct.png",
-  mark400PctFileName: "pocket-mark-400pct.png",
-  beforeAfterFileName: "pocket-mark-before-after.png",
+  fullContextFileName: "jacket-final-context.png",
+  mark100PctFileName: "pocket-mark-final-100pct.png",
+  mark200PctFileName: "pocket-mark-final-200pct.png",
+  mark400PctFileName: "pocket-mark-final-400pct.png",
+  beforeAfterFileName: "pocket-micro-pass-comparison.png",
   manifestFileName: "manifest.json",
 } as const;
 
@@ -47,6 +50,16 @@ export const VOXY_POCKET_MARK_FINAL_REJECTED_PRESENTATION = {
   height: 22,
   rotationDegrees: -7,
   perspectiveTransform: "skewX(-3deg) scaleY(0.92)",
+} as const;
+
+export const VOXY_POCKET_MARK_PREVIOUS_PASS_PRESENTATION = {
+  left: 858,
+  top: 574,
+  width: 74,
+  height: 23,
+  rotationDegrees: -4,
+  perspectiveTransform: "none",
+  surfaceOpacity: 1,
 } as const;
 
 export type VoxyPocketMarkFinalGatePlan = Readonly<{
@@ -125,7 +138,7 @@ export function validateVoxyPocketMarkFinalGatePlan(
     plan.sourceAsset !== VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark ||
     plan.presentation !== VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark ||
     plan.presentation.perspectiveTransform !== "none" ||
-    Math.abs(plan.presentation.rotationDegrees) > 4
+    plan.presentation.rotationDegrees !== -2.5
   ) {
     errors.push("pocket_vector_presentation_invalid");
   }

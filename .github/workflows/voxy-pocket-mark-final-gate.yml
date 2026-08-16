@@ -72,19 +72,21 @@ jobs:
           const crypto = require("node:crypto");
           const root = "artifacts/voxy-pocket-mark-final-gate/";
           const files = [
-            "pocket-full-context.png",
-            "pocket-mark-100pct.png",
-            "pocket-mark-200pct.png",
-            "pocket-mark-400pct.png",
-            "pocket-mark-before-after.png",
+            "jacket-final-context.png",
+            "pocket-mark-final-100pct.png",
+            "pocket-mark-final-200pct.png",
+            "pocket-mark-final-400pct.png",
+            "pocket-micro-pass-comparison.png",
             "manifest.json",
           ];
           if (files.some((file) => !fs.existsSync(root + file))) process.exit(1);
           const manifest = JSON.parse(fs.readFileSync(root + "manifest.json", "utf8"));
           const hash = (file) => crypto.createHash("sha256").update(fs.readFileSync(root + file)).digest("hex");
           if (
-            manifest.schemaVersion !== "voxy-pocket-mark-final-gate-v1" ||
+            manifest.schemaVersion !== "voxy-pocket-mark-final-gate-v2" ||
             manifest.exactHeadSha !== process.env.VOXY_POCKET_GATE_COMMIT_SHA ||
+            manifest.previousPassHeadSha !== "f948e1e6ce09fd9c62e8621b490eb8f0994c60ab" ||
+            manifest.microPassDecision !== "adopted" ||
             manifest.expectedText !== "eDebatte" ||
             manifest.visibleMarkCount !== 1 ||
             manifest.badgePresent !== false ||
@@ -98,6 +100,10 @@ jobs:
             manifest.humanVisualAcceptance !== "pending" ||
             manifest.machineOcrClaimed !== false ||
             manifest.technicalPocketGate !== "passed" ||
+            manifest.presentation?.rotationDegrees !== -2.5 ||
+            manifest.surfaceIntegration?.fillOpacity !== 0.94 ||
+            manifest.surfaceIntegration?.blur !== false ||
+            manifest.surfaceIntegration?.filter !== false ||
             manifest.unchangedLapelPin?.changed !== false ||
             manifest.outsidePocketPixelMatch?.matched !== true ||
             manifest.animationEligible !== false ||
