@@ -606,3 +606,76 @@ nur die Hörprüfung und bestimmen keinen Sieger. Status bleibt
 `humanVisualAcceptance = accepted`, `humanAudioAcceptance = pending`,
 `documentaryVoiceBakeoff = ready_for_human_review`, `humanWinner = pending`,
 `productionEligible = false` und `autoPublish = false`; PR #589 bleibt Draft.
+
+## First-Party Voice Clone Bake-off (2026-08-16)
+
+Der ausdrücklich autorisierte First-Party-Lauf ersetzt keine menschliche
+Audioentscheidung. Als Voice Owner ist Ricky Gerd Fleischer mit
+`voiceConsent = explicit`, `voiceReferenceSource = first_party_recording` und
+`thirdPartySpeakerRights = none` gebunden. Genau zwei durch den Betreiber als
+absolute lokale Pfade bereitgestellte Aufnahmen werden vor jedem Lauf auf
+Existenz und SHA-256 geprüft und anschließend ausschließlich read-only
+verwendet. Pfade und Hashes werden aus der öffentlichen Evidence bewusst
+weggelassen. Originale und getrimmte Referenzsegmente gelangen weder in den
+Git-Worktree noch in Git, PR, GitHub Artifacts, Vercel, `public/` oder ein
+Production-Bundle.
+
+Das Security-/License-Gate pinnt die lokale Engine auf
+`chatterbox-tts 0.1.7` mit Upstream-Revision
+`5de7a54aa4e5e2baadb0182dde554908b48b85c2` und Chatterbox Multilingual V3 auf
+Hugging-Face-Modellrevision
+`5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18`. Engine und Modellgewichte sind
+MIT-lizenziert. Die produktionsrelevanten Weight-, Tokenizer- und
+Conditioning-SHAs sind im Codevertrag fixiert. Der reale lokale
+Python-3.13-Lauf löst 112 Runtime-Pakete ohne unbekannte Lizenzangabe auf.
+`pykakasi` ist GPL-3.0-or-later und `soxr` LGPL-2.1-or-later; deshalb erlaubt
+dieses Gate ausschließlich lokale Inferenz und keine Verteilung oder
+Einbettung der Runtime. Die synthetisierten Audios müssen den eingebauten
+PerTh-Wasserzeichentest bestehen. Nach Provisionierung blockiert der Worker
+Sockets fail-closed und führt die Synthese mit
+`runtimeNetworkRequests = 0` aus.
+
+Beide Aufnahmen wurden lokal mit Signalmetriken und einem ebenfalls lokalen
+Whisper-Zeitstempelproxy analysiert. Vier 5,8 bis 9,9 Sekunden lange,
+zusammenhängende Referenzfenster aus beiden Aufnahmen gehen in die kontrollierte
+Matrix ein. Sie werden lediglich geschnitten, mono auf 24 kHz resampelt und
+außerhalb des Worktrees gehalten; Denoising, Pitch-Shifting und Voice-Changer
+finden nicht statt. A, B und C verwenden exakt denselben sichtbaren deutschen
+Testtext. Ausschließlich die TTS-internen Aliasse `Woxi`, `Wout-for-Goff`,
+`Woiss-Open-Goff` und `eh Debatte` steuern die Markenaussprache.
+
+Die private lokale Evidence unter
+`artifacts/voxy-first-party-voice-clone-private/` enthält:
+
+- `reference-selection.json` ohne private Pfade;
+- vier synthetisierte Parameter-Matrix-Takes;
+- für A — Ricky Natural, B — Ricky Calm und C — Voxy jeweils `raw.wav`,
+  `finished.wav` und einen 12-sekündigen `preview.mp4`;
+- `comparison-without-original.wav`, `manifest.json` und `README.md`.
+
+Die einzige Vergleichs-WAV mit einem kurzen Originalsegment liegt absichtlich
+außerhalb des Git-Worktrees im privaten Voice-Review-Verzeichnis. Das
+Finished-Audio nutzt ausschließlich lineare Lautheitsnormalisierung und
+Peak-Kontrolle; Hall, Pitch-Effekt, Exciter, Voice-Changer und aggressive
+Kompression bleiben ausgeschlossen. Der lokale technische Lauf prüft pro Take
+Medienformat, Clipping, SHA-256, PerTh und Original-Unverändertheit. Ein lokaler
+Whisper-ASR-Proxy deckt den deutschen Inhalt weitgehend ab, meldet aber bei A
+ein mögliches zusätzliches „Nein“ und bei C ein mögliches „solltest“ statt
+„sollst“. Diese maschinelle Unsicherheit wird nicht als Hörurteil oder
+Textperfektion ausgegeben und muss im Human Review geprüft werden.
+
+Die drei kurzen Video-Previews verwenden dieselbe eingefrorene visuelle Quelle
+auf Head `58548d2a5f6e4a59e84464a5c4aea3875f38662c`, Mouth v4.1 und genau eine
+Waveform hinter Voxy. Nur Audioamplitude, die vorhandenen Mundzustände und die
+bereits vorhandene Waveform reagieren; Character, Sakko, Pin, Pocket-Mark,
+Studio und Kamera bleiben gesperrt. Das öffentliche Exact-Head-CI-Artefakt
+enthält aus Privacy-Gründen ausschließlich technische Manifeste,
+Lizenzprovenienz, Parameter und Frozen-Visual-Verträge—kein Original, kein
+Referenzsegment, keine Synthese und keine privaten Metadaten.
+
+Status bleibt `humanVisualAcceptance = accepted`,
+`humanAudioAcceptance = pending`,
+`firstPartyVoiceCloneGate = ready_for_human_review`,
+`humanVoiceWinner = pending`, `productionEligible = false` und
+`autoPublish = false`. Es gibt keinen Production-, Publishing- oder weiteren
+Motion-Schritt.
