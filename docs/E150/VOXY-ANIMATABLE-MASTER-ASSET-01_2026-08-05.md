@@ -309,3 +309,47 @@ sein. Für Pin und Pocket bleiben `humanLegibilityRequired = true` und
 erstellt. CANON-01 bis CANON-04, PR #588 und der frühere Rig-Scope wurden nicht
 verändert. Der technische PASS wird erst nach Sichtung der neuen Jacket-Evidence
 zu einer möglichen menschlichen Freigabeentscheidung.
+
+## Pocket-Mark-Final-Gate nach Human Review vom 16.08.2026
+
+Die Evidence am Exact Head
+`02a83e832890f12fe9843d2dc1cb8e543ddef07b` erhielt für die Pocket-Mark
+`humanVisualAcceptance = rejected`. `eDebatte` war lesbar, zeigte bei 400 %
+jedoch Cyan-/Blau-Farbsäume, eine Doppelkontur, zu starke perspektivische
+Verzerrung und weiche Glyphenkanten. Der VOXY-Revers-Pin ist nicht Teil dieses
+Fixes und bleibt durch seinen SHA-256
+`f5d60d98f561959e5a9b7b93899e1b566c91799cea1f83338a8756f9cfdab446`
+unverändert gebunden.
+
+Die Reparatur betrifft ausschließlich
+`apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg`. Das Asset nutzt
+eine native interne Auflösung von 1600×480, genau ein SVG-`text`-Element und die
+exakte kombinierte Zeichenfolge `eDebatte`: `e` in Türkis, `Debatte` in Blau.
+Es enthält keinen Stroke, Filter, Glow, Rasterinhalt, Badge, Rahmen, Box oder
+zweite Zeile. Eine deterministische abgeleitete CANON-04-Kompositionsquelle
+entfernt die alte fehlerhafte Glyphe ausschließlich bei
+`x=768, y=497, w=52, h=22` im nativen 1672×941-Bild. Die lokal per
+FFmpeg-`delogo` bereinigten RGBA-Bytes werden ohne Skalierung nur für diese
+Region in die unveränderten Original-RGBA-Bytes eingesetzt. Die
+Vektorwortmarke wird nicht aus diesem Raster gewonnen. Die Taschenorientierung
+wird auf eine leichte Rotation von −4° ohne Perspektiv-Skew reduziert;
+Lesbarkeit hat Vorrang vor mathematisch exakter Verzerrung.
+
+Der separate Renderer
+`apps/web/scripts/render-voxy-pocket-mark-final-gate.ts` erzeugt
+revisionsgebunden unter `artifacts/voxy-pocket-mark-final-gate/`:
+
+- `pocket-full-context.png`;
+- `pocket-mark-100pct.png`;
+- `pocket-mark-200pct.png`;
+- `pocket-mark-400pct.png`;
+- `pocket-mark-before-after.png`;
+- `manifest.json`.
+
+Der technische Gate prüft Quelltext, einzelne Textinstanz, ausgeschlossene
+Stroke-/Glow-/Box-Regeln, Vektorprovenienz, den unveränderten Pin-Hash und
+Bytegleichheit außerhalb der Pocket-Maske sowie Hash und native Abmessungen der
+bereinigten Kompositionsquelle. Er erhebt keine OCR-
+Erfolgsbehauptung. `humanLegibilityRequired = true`,
+`humanVisualAcceptance = pending`, `animationEligible = false`,
+`productionEligible = false` und `autoPublish = false` bleiben verbindlich.

@@ -1,11 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="240" viewBox="0 0 800 240" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480" role="img" aria-labelledby="title desc" data-vector-source="true" data-exact-text="eDebatte">
   <title id="title">eDebatte pocket wordmark</title>
-  <desc id="desc">High-resolution reconstructed eDebatte wordmark without badge, box, or second line.</desc>
+  <desc id="desc">Single high-resolution vector eDebatte wordmark without outline, glow, badge, box, or second line.</desc>
   <defs>
-    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
-      <stop stop-color="#00D9C0"/>
+    <linearGradient id="brand" gradientUnits="userSpaceOnUse" x1="185" y1="0" x2="1415" y2="0">
+      <stop offset="0" stop-color="#00D9C0"/>
+      <stop offset="0.135" stop-color="#00D9C0"/>
+      <stop offset="0.136" stop-color="#1E6BFF"/>
       <stop offset="1" stop-color="#1E6BFF"/>
     </linearGradient>
   </defs>
-  <text x="400" y="174" fill="url(#brand)" stroke="#061027" stroke-width="34" paint-order="stroke fill" stroke-linejoin="round" font-family="Arial, Helvetica, sans-serif" font-size="150" font-weight="700" letter-spacing="-4" text-anchor="middle">eDebatte</text>
+  <text x="800" y="344" fill="url(#brand)" font-family="Arial, Helvetica, sans-serif" font-size="300" font-weight="700" letter-spacing="-8" text-anchor="middle">eDebatte</text>
 </svg>

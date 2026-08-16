@@ -27,6 +27,35 @@ Jacket-Pixel bestehen. Für beide Marken gilt `humanLegibilityRequired = true`;
 der revisionsgebundenen Evidence in 100, 200 und 400 Prozent kann eine spätere
 Freigabeentscheidung begründen.
 
+### Pocket-Mark-Final-Gate vom 16.08.2026
+
+Der technische PASS am Head
+`02a83e832890f12fe9843d2dc1cb8e543ddef07b` wurde für die eDebatte-Pocket-Mark
+menschlich abgelehnt. Die Wortmarke war lesbar, aber wegen Cyan-Geisterkante,
+Doppelkontur, zu starker Perspektive und weicher Buchstaben nicht markenscharf.
+Der VOXY-Pin ist nicht Teil dieser Korrektur und bleibt per Asset-Hash
+unverändert.
+
+Die Folgekorrektur ersetzt ausschließlich das Pocket-Mark-SVG durch eine native
+1600×480-Vektorquelle mit einer Textinstanz und exakt `eDebatte`. `e` ist
+türkis, `Debatte` blau. Stroke, Filter, Glow, Badge, Box, Rahmen, zweite Zeile
+und Raster-Upscale der Wortmarke sind ausgeschlossen. Damit die abgelehnte
+Rasterglyphe nicht als Geisterkante unter dem Vektor verbleibt, entfernt eine
+deterministische CANON-04-Arbeitskopie ausschließlich die Region
+`x=768, y=497, w=52, h=22` in der nativen 1672×941-Quelle; außerhalb dieser
+Region bleiben die Original-RGBA-Bytes unverändert. Nur die lokal per
+FFmpeg-`delogo` bereinigten Bytes dieser Region werden ohne Skalierung
+eingesetzt. Die Orientierung folgt der Tasche nur noch mit leichter Rotation
+und ohne Perspektiv-Skew. Der separate lokale
+Exact-Head-Gate erzeugt Kontext-, 100-, 200-, 400-%- und Vorher-/Nachher-
+Evidence unter `artifacts/voxy-pocket-mark-final-gate/`; außerhalb der
+dokumentierten Pocket-Maske müssen die Pixel bytegleich bleiben.
+
+Auch ein technischer Pocket-PASS lässt `humanVisualAcceptance = pending`,
+`animationEligible = false`, `productionEligible = false` und
+`autoPublish = false`. Layer-Master, Motion v3, Audio, neues Explainer-Video,
+Publishing und Production bleiben bis zur menschlichen Sichtfreigabe gesperrt.
+
 ## Aktueller Recovery-Scope
 
 Der Motion-Stand aus Exact Head

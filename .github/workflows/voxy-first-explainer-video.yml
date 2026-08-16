@@ -5,14 +5,14 @@ on:
   pull_request:
     paths:
       - "apps/web/public/brands/voxy/references/canon/**"
-      - "apps/web/public/brands/voxy/overlays/**"
+      - "apps/web/public/brands/voxy/overlays/jarvis-waveform.svg"
+      - "apps/web/public/brands/voxy/overlays/voiceopengov-edebatte-lockup.svg"
+      - "apps/web/public/brands/voxy/overlays/voxy-lapel-pin.svg"
+      - "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg"
       - "apps/web/src/features/voxyVideo/firstExplainerVideo.ts"
-      - "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts"
       - "apps/web/src/features/voxyVideo/staticCanonRecovery.ts"
-      - "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts"
       - "apps/web/scripts/render-voxy-first-explainer-video.ts"
       - "apps/web/tests/voxy-first-explainer-video.contract.test.ts"
-      - ".github/workflows/voxy-first-explainer-video.yml"
 
 permissions:
   contents: read

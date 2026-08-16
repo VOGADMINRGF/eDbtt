@@ -17,6 +17,7 @@ import {
 } from "../src/features/voxyVideo/jacketCanonGate";
 import {
   VOXY_STATIC_CANON_BOARDS,
+  VOXY_STATIC_CANON_COMPOSITION_SOURCE,
   VOXY_STATIC_CANON_FINAL_CAMERA,
   VOXY_STATIC_CANON_NATIVE_ASSETS,
 } from "../src/features/voxyVideo/staticCanonRecovery";
@@ -191,6 +192,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
+    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
@@ -241,7 +243,14 @@ async function main(): Promise<void> {
   await mkdir(outputRoot, { recursive: true });
 
   const sourcePaths = {
-    canonStage: repositoryPath(repositoryRoot, plan.source.canonBoardPath),
+    canonStage: repositoryPath(
+      repositoryRoot,
+      VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+    ),
+    canonGeometryReference: repositoryPath(
+      repositoryRoot,
+      plan.source.canonBoardPath,
+    ),
     studioLockup: repositoryPath(
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
@@ -364,7 +373,12 @@ async function main(): Promise<void> {
     repositoryRoot,
   });
 
-  await settlePage(page, renderCanonReferenceHtml(assets.canonStageDataUrl));
+  await settlePage(
+    page,
+    renderCanonReferenceHtml(
+      dataUrl(await readFile(sourcePaths.canonGeometryReference), "image/png"),
+    ),
+  );
   const canonJacketPath = resolve(outputRoot, ".canon-jacket-source.png");
   const canonJacketMatchPath = resolve(outputRoot, ".canon-jacket-match.png");
   const canonLapelPath = resolve(outputRoot, ".canon-lapel-source.png");
@@ -473,6 +487,10 @@ async function main(): Promise<void> {
       canonStage: {
         path: relative(repositoryRoot, sourcePaths.canonStage),
         sha256: await fileSha256(sourcePaths.canonStage),
+      },
+      canonGeometryReference: {
+        path: relative(repositoryRoot, sourcePaths.canonGeometryReference),
+        sha256: await fileSha256(sourcePaths.canonGeometryReference),
       },
       lapelPin: {
         path: relative(repositoryRoot, sourcePaths.lapelPin),

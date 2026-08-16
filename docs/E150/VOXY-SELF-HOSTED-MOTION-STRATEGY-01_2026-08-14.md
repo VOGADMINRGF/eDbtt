@@ -107,6 +107,17 @@ menschliche Lesbarkeitsprüfung verbindlich. `animationEligible = false` und
 unverändert. Ein lokaler technischer PASS ersetzt diesen visuellen Human Gate
 nicht.
 
+Der folgende technische Jacket-PASS am Head
+`02a83e832890f12fe9843d2dc1cb8e543ddef07b` wurde für die eDebatte-Pocket-Mark
+erneut menschlich abgelehnt. Die Folgekorrektur ist auf diese eine Markenfläche
+begrenzt: natives hochauflösendes SVG, eine Textinstanz `eDebatte`, keine
+Stroke-/Glow-/Box-Regel, kein Raster-Upscale und nur leichte Rotation ohne
+Perspektiv-Skew. Die alte Rasterglyphe wird nur in einer nativen, deterministisch
+bereinigten CANON-04-Kompositionsquelle entfernt; die Wortmarke selbst bleibt
+ein separater Vektor. Der VOXY-Pin bleibt unverändert. Ein eigener Pocket-Mark-
+Final-Gate belegt 100-/200-/400-%-Evidence und Pixelgleichheit außerhalb der
+Pocket-Maske; alle Motion-, Production- und Publish-Gates bleiben geschlossen.
+
 ## #588 — Freigabebedingung
 
 #588 wird nicht durch eine SaaS-/Budgetentscheidung freigegeben. Er wird freigegeben, sobald ein lokales Self-hosted Rig eine revisionsgebundene Fixture liefert, die als kanonische animierbare Voxy-Identität menschlich akzeptiert wurde. Anschließend prüft #588 die 200-%-Qualitätszonen fail-closed.

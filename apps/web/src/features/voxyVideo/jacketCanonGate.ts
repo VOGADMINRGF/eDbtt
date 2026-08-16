@@ -42,11 +42,11 @@ export const VOXY_JACKET_BRAND_LAYER_GEOMETRY = {
   },
   pocketMark: {
     left: 858,
-    top: 579,
-    width: 70,
-    height: 22,
-    rotationDegrees: -7,
-    perspectiveTransform: "skewX(-3deg) scaleY(0.92)",
+    top: 574,
+    width: 74,
+    height: 23,
+    rotationDegrees: -4,
+    perspectiveTransform: "none",
   },
 } as const;
 
@@ -93,12 +93,12 @@ export const VOXY_JACKET_CANON_MARK_PROVENANCE = {
       width: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.width,
       height: VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.height,
     },
-    scale: { x: 0.0875, y: 0.091666667, sourceViewBox: "800x240" },
-    rotation: { degrees: -7, transformOrigin: "center" },
+    scale: { x: 0.04625, y: 0.047916667, sourceViewBox: "1600x480" },
+    rotation: { degrees: -4, transformOrigin: "center" },
     perspectiveTransform:
       VOXY_JACKET_BRAND_LAYER_GEOMETRY.pocketMark.perspectiveTransform,
     compositingMethod:
-      "glyph_shaped_dark_cleanup_stroke_then_single_gradient_vector_wordmark",
+      "native_resolution_canon_pocket_glyph_cleanup_then_single_native_svg_text_no_stroke_no_filter",
     geometryDerivedFromCanon: true,
     wordmarkReconstructedForLegibility: true,
   },

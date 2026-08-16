@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "apps/web/public/brands/voxy/references/canon/**"
+      - "apps/web/public/brands/voxy/references/derived/CANON-04-pocket-clean.png"
       - "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg"
       - "apps/web/public/brands/voxy/overlays/vog-pin.svg"
       - "apps/web/public/brands/voxy/overlays/edebatte-pocket-mark.svg"

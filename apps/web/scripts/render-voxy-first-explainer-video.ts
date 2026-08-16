@@ -29,6 +29,7 @@ import {
   type VoxyFirstExplainerFormat,
 } from "../src/features/voxyVideo/firstExplainerVideoHtml";
 import {
+  VOXY_STATIC_CANON_COMPOSITION_SOURCE,
   VOXY_STATIC_CANON_NATIVE_ASSETS,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "../src/features/voxyVideo/staticCanonRecovery";
@@ -451,6 +452,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/public/brands/voxy/references/canon",
+    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
@@ -487,7 +489,7 @@ async function main(): Promise<void> {
   const sourcePaths = {
     canonStage: repositoryPath(
       repositoryRoot,
-      VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+      VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
     ),
     studioLockup: repositoryPath(
       repositoryRoot,

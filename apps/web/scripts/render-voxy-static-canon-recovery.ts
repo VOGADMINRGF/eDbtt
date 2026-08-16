@@ -6,6 +6,7 @@ import { dirname, relative, resolve } from "node:path";
 import {
   buildVoxyStaticCanonFinalPlan,
   validateVoxyStaticCanonFinalPlan,
+  VOXY_STATIC_CANON_COMPOSITION_SOURCE,
   VOXY_STATIC_CANON_NATIVE_ASSETS,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "../src/features/voxyVideo/staticCanonRecovery";
@@ -100,6 +101,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
+    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
     VOXY_STATIC_CANON_NATIVE_ASSETS.wordmark,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
@@ -169,7 +171,7 @@ async function main(): Promise<void> {
   await mkdir(outputRoot, { recursive: true });
   const stagePath = repositoryPath(
     repositoryRoot,
-    VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
   );
   const wordmarkPath = repositoryPath(
     repositoryRoot,
@@ -338,9 +340,12 @@ async function main(): Promise<void> {
     canonBoards: canonBoardEvidence,
     sourceAssets: [
       {
-        role: "identical_character_and_studio_pixel_source",
-        path: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+        role: "canon_derived_pocket_clean_character_and_studio_source",
+        path: VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
         sha256: await fileSha256(stagePath),
+        derivedFrom: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+        cleanupRegion: VOXY_STATIC_CANON_COMPOSITION_SOURCE.cleanupRegion,
+        cleanupMethod: VOXY_STATIC_CANON_COMPOSITION_SOURCE.cleanupMethod,
       },
       {
         role: "native_editable_wordmark",

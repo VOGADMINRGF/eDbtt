@@ -48,6 +48,18 @@ export const VOXY_STATIC_CANON_BOARDS = [
 
 export const VOXY_STATIC_CANON_PIXEL_SOURCE = VOXY_STATIC_CANON_BOARDS[3];
 
+export const VOXY_STATIC_CANON_COMPOSITION_SOURCE = {
+  repositoryPath:
+    "apps/web/public/brands/voxy/references/derived/CANON-04-pocket-clean.png",
+  sha256: "5176f19d3de18a34c32c908d93a3277a2715959d491620d21c7129f9d305f5ca",
+  width: 1672,
+  height: 941,
+  derivedFrom: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+  cleanupRegion: { x: 768, y: 497, width: 52, height: 22 },
+  cleanupMethod:
+    "ffmpeg_delogo_region_spliced_into_original_raw_rgba_no_scale",
+} as const;
+
 export const VOXY_STATIC_CANON_NATIVE_ASSETS = {
   wordmark: "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg",
   lapelPin: "apps/web/public/brands/voxy/overlays/voxy-lapel-pin.svg",
