@@ -104,6 +104,21 @@ describe("Voxy pocket mark final gate contract", () => {
     expect(source).toContain("machineOcrClaimed");
     expect(source).not.toContain("artifacts/voxy-layer-master");
     expect(source).not.toContain("artifacts/voxy-motion-v3");
+
+    const explainerWorkflow = readFileSync(
+      resolve(
+        process.cwd(),
+        "../..",
+        ".github/workflows/voxy-first-explainer-video.yml",
+      ),
+      "utf8",
+    );
+    expect(explainerWorkflow).toContain(
+      "github.head_ref != 'pr/voxy-animatable-master-asset-01'",
+    );
+    expect(explainerWorkflow).not.toContain(
+      'apps/web/public/brands/voxy/overlays/**',
+    );
   });
 
   it("uses the native-resolution cleaned Canon source without a cleanup box", () => {
