@@ -63,6 +63,38 @@ Auch ein technischer Pocket-PASS lässt `humanVisualAcceptance = pending`,
 `autoPublish = false`. Layer-Master, Motion v3, Audio, neues Explainer-Video,
 Publishing und Production bleiben bis zur menschlichen Sichtfreigabe gesperrt.
 
+## Autorisierter Layer-Master-/Motion-v3-Scope vom 16.08.2026
+
+Der neuere menschliche PR-Review-Kommentar akzeptiert den statischen
+Character-/Clothing-Stand am Exact Head
+`93217eca79013d13affc7bc9881a9c76f19feab9` und autorisiert ausschließlich den
+lokalen Layer-Master sowie einen kontrollierten Motion-v3-Sichtkandidaten. Der
+VOXY-Pin, die einzelne eDebatte-Pocket-Mark bei −2,5° und 94 % Substrat-Alpha,
+Sakko-Geometrie und -Textur, blaue Paspel, Kopfkontur, Kopfhörer, Mikrofon,
+Studiofamilie und genau eine Waveform hinter Voxy sind eingefroren.
+
+Da der akzeptierte Character-Stand nur als flaches Raster vorliegt, trennt der
+lokale Master keine Pixel durch generative Rekonstruktion. Stattdessen enthält
+er 26 revisionsgebundene SVG-Ebenen und transparente Evidence-PNGs. Kleine
+Bewegungen verwenden additive Originalpixel-Plates über dem akzeptierten
+Static Master; Neutralpose und eingefrorene Markenebenen bleiben unangetastet.
+Diese technische Architektur und ihre sichtbare Grenze stehen ausdrücklich im
+Layer-Manifest.
+
+Motion v3 rendert lokal 25 Sekunden bei 1920×1080 und 24 fps. Die Animation
+beschränkt sich auf natürliche Blinzler, Mikro-Blickbewegung, maximal 0,35°
+Kopfneigung, Atembewegung, vier subtile Mundinnenzustände und zwei höchstens
+2,4 Pixel große Hinweise mit den weiterhin verschränkten Händen. Es wird keine
+offene Hand behauptet; der Open-Palm-Detector aus PR #588 ist deshalb nicht
+anwendbar und wird nicht durch geänderte Schwellen ersetzt. Ohne belastbares
+lizenzsauberes lokales TTS bleiben Audio und Provider-Provenienz leer; deutsche
+Captions und Mund-Timing sind vorhanden.
+
+Die neue Motion-Ausgabe beginnt erneut bei `humanVisualAcceptance = pending`.
+`productionEligible = false` und `autoPublish = false` bleiben unverändert.
+Kein Deployment, Upload, Publishing, Merge oder Ready-for-Review ist Teil dieses
+Scopes.
+
 ## Aktueller Recovery-Scope
 
 Der Motion-Stand aus Exact Head

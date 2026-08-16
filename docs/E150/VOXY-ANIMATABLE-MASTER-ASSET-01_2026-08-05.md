@@ -382,3 +382,39 @@ außerhalb der Pocket-Maske bleibt das Bild pixelgleich. Die finale menschliche
 Freigabe wird nicht vorweggenommen: `humanVisualAcceptance = pending`,
 `animationEligible = false`, `productionEligible = false` und
 `autoPublish = false`.
+
+## Lokaler Layer-Master und Motion v3 — 16.08.2026
+
+Der letzte bindende PR-Kommentar akzeptiert den statischen Character-/Clothing-
+Stand am Exact Head `93217eca79013d13affc7bc9881a9c76f19feab9` und öffnet
+damit ausschließlich den lokalen Layer-Master-/Motion-v3-Sichtlauf. Der
+abgelehnte historische SVG-Character wird nicht reaktiviert. Pin, Pocket-Mark,
+Sakko, Kopfkontur, Kopfhörer, Mikrofon, Studio und die einzelne Waveform bleiben
+an die akzeptierte Pixelquelle gebunden.
+
+Der Master unter `apps/web/public/brands/voxy/rig/layers/` umfasst 26 lokale,
+reproduzierbare SVG-Ebenen mit stabilen IDs, Z-Reihenfolge, Regionen und
+Pivotpunkten. Das Evidence-Paket `artifacts/voxy-layer-master/` enthält alle
+transparenten Layer-Renderings, Übersicht, Neutral-, Blink-, Speaking- und
+Gesture-Frames sowie `layer-manifest.json`. Weil das akzeptierte Ausgangsbild
+flach ist, arbeitet die Animation ehrlich mit additiven Originalpixel-Plates;
+sie behauptet keine vollständig hole-filled separierte Puppet-Datei und nutzt
+keine generative Rekonstruktion.
+
+`artifacts/voxy-motion-v3/` enthält einen deterministischen 25-Sekunden-Render
+bei 1920×1080, 24 fps als MP4 und WebM, fünf Standframes, Preview,
+Kontaktbogen, deutsche VTT-/SRT-Captions, zwei Hand-Crops und Safe-Crop-Evidence
+für 9:16 und 1:1. Es gibt sieben Blinzler, vier an den Caption-Segmenten
+getaktete subtile Mundinnenzustände, Mikro-Blick und -Kopfbewegung sowie zwei
+sehr kleine Hinweise mit den weiterhin verschränkten Händen. Der Open-Palm-
+Detector aus PR #588 ist auf diese Pose nicht anwendbar; er wird nicht
+ausgeführt, seine Schwellen werden nicht verändert und es gibt keine
+Fünf-Finger-Erfolgsbehauptung aus einem ungeeigneten Crop.
+
+Es wurde kein lizenzsauberes lokales TTS gefunden. Deshalb besitzt der Clip
+bewusst keine Audiospur; Captions und deterministisches Mund-Timing bleiben
+vorhanden. Es gab keinen Provider, externen Upload oder generativen Character-
+Ersatz. Exact-Head-CI rendert Layer-Master und Motion v3 separat und bewahrt
+beide Artefakte mindestens 14 Tage auf. Die sichtbare Motion-Ausgabe wartet auf
+die menschliche Sichtabnahme: `humanVisualAcceptance = pending`,
+`productionEligible = false` und `autoPublish = false`. PR #589 bleibt Draft.
